@@ -1,0 +1,1131 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "Full Stack FastAPI Project", "version": "0.1.0" },
+  "paths": {
+    "/api/v1/users/": {
+      "get": {
+        "tags": ["users"],
+        "summary": "Read Users",
+        "operationId": "users-read_users",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "skip",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 0, "title": "Skip" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 100, "title": "Limit" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UsersPublic" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      },
+      "post": {
+        "tags": ["users"],
+        "summary": "Create User",
+        "operationId": "users-create_user",
+        "security": [{ "HTTPBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UserCreate" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UserPublic" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
+    "/api/v1/users/me": {
+      "get": {
+        "tags": ["users"],
+        "summary": "Read User Me",
+        "operationId": "users-read_user_me",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UserPublic" }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Client Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        },
+        "security": [{ "HTTPBearer": [] }]
+      },
+      "delete": {
+        "tags": ["users"],
+        "summary": "Delete User Me",
+        "operationId": "users-delete_user_me",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Message" }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Client Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        },
+        "security": [{ "HTTPBearer": [] }]
+      },
+      "patch": {
+        "tags": ["users"],
+        "summary": "Update User Me",
+        "operationId": "users-update_user_me",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UserUpdateMe" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UserPublic" }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Client Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        },
+        "security": [{ "HTTPBearer": [] }]
+      }
+    },
+    "/api/v1/users/{user_id}": {
+      "get": {
+        "tags": ["users"],
+        "summary": "Read User By Id",
+        "operationId": "users-read_user_by_id",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "User Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UserPublic" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      },
+      "patch": {
+        "tags": ["users"],
+        "summary": "Update User",
+        "operationId": "users-update_user",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "User Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UserUpdate" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UserPublic" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["users"],
+        "summary": "Delete User",
+        "operationId": "users-delete_user",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "User Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Message" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
+    "/api/v1/roles/": {
+      "get": {
+        "tags": ["roles"],
+        "summary": "Read Roles",
+        "operationId": "roles-read_roles",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "skip",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 0, "title": "Skip" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 100, "title": "Limit" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RolesPublic" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
+    "/api/v1/roles/{role_id}": {
+      "get": {
+        "tags": ["roles"],
+        "summary": "Read Role",
+        "operationId": "roles-read_role",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "role_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "Role Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RolePublic" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
+    "/api/v1/permissions/": {
+      "get": {
+        "tags": ["permissions"],
+        "summary": "Read Permissions",
+        "operationId": "permissions-read_permissions",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "skip",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 0, "title": "Skip" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 200, "title": "Limit" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PermissionsPublic" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
+    "/api/v1/permissions/{permission_id}": {
+      "get": {
+        "tags": ["permissions"],
+        "summary": "Read Permission",
+        "operationId": "permissions-read_permission",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "permission_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Permission Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PermissionPublic" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
+    "/api/v1/tenants/": {
+      "get": {
+        "tags": ["tenants"],
+        "summary": "Read Tenants",
+        "operationId": "tenants-read_tenants",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "skip",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 0, "title": "Skip" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 100, "title": "Limit" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TenantsPublic" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
+    "/api/v1/tenants/{tenant_id}": {
+      "get": {
+        "tags": ["tenants"],
+        "summary": "Read Tenant",
+        "operationId": "tenants-read_tenant",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Tenant Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TenantPublic" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
+    "/api/v1/items/": {
+      "get": {
+        "tags": ["items"],
+        "summary": "Read Items",
+        "operationId": "items-read_items",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "skip",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 0, "title": "Skip" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 100, "title": "Limit" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ItemsPublic" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      },
+      "post": {
+        "tags": ["items"],
+        "summary": "Create Item",
+        "operationId": "items-create_item",
+        "security": [{ "HTTPBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ItemCreate" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ItemPublic" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
+    "/api/v1/items/{id}": {
+      "get": {
+        "tags": ["items"],
+        "summary": "Read Item",
+        "operationId": "items-read_item",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ItemPublic" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      },
+      "put": {
+        "tags": ["items"],
+        "summary": "Update Item",
+        "operationId": "items-update_item",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ItemUpdate" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ItemPublic" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["items"],
+        "summary": "Delete Item",
+        "operationId": "items-delete_item",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Message" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
+    "/api/v1/utils/test-email/": {
+      "post": {
+        "tags": ["utils"],
+        "summary": "Test Email",
+        "operationId": "utils-test_email",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "email_to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "email",
+              "title": "Email To"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Message" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
+    "/api/v1/utils/health-check/": {
+      "get": {
+        "tags": ["utils"],
+        "summary": "Health Check",
+        "operationId": "utils-health_check",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean",
+                  "title": "Response Utils-Health Check"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Client Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/private/users/": {
+      "post": {
+        "tags": ["private"],
+        "summary": "Create User",
+        "operationId": "private-create_user",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PrivateUserCreate" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UserPublic" }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Client Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ErrorResponse": {
+        "properties": {
+          "code": { "type": "string", "title": "Code" },
+          "message": { "type": "string", "title": "Message" },
+          "details": { "anyOf": [{}, { "type": "null" }], "title": "Details" }
+        },
+        "type": "object",
+        "required": ["code", "message"],
+        "title": "ErrorResponse",
+        "description": "Standard error envelope returned by all API error responses."
+      },
+      "ItemCreate": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "description": {
+            "anyOf": [
+              { "type": "string", "maxLength": 255 },
+              { "type": "null" }
+            ],
+            "title": "Description"
+          }
+        },
+        "type": "object",
+        "required": ["title"],
+        "title": "ItemCreate"
+      },
+      "ItemPublic": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "description": {
+            "anyOf": [
+              { "type": "string", "maxLength": 255 },
+              { "type": "null" }
+            ],
+            "title": "Description"
+          },
+          "id": { "type": "string", "format": "uuid", "title": "Id" },
+          "owner_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Owner Id"
+          },
+          "created_at": {
+            "anyOf": [
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
+            ],
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": ["title", "id", "owner_id"],
+        "title": "ItemPublic"
+      },
+      "ItemUpdate": {
+        "properties": {
+          "title": {
+            "anyOf": [
+              { "type": "string", "maxLength": 255, "minLength": 1 },
+              { "type": "null" }
+            ],
+            "title": "Title"
+          },
+          "description": {
+            "anyOf": [
+              { "type": "string", "maxLength": 255 },
+              { "type": "null" }
+            ],
+            "title": "Description"
+          }
+        },
+        "type": "object",
+        "title": "ItemUpdate"
+      },
+      "ItemsPublic": {
+        "properties": {
+          "data": {
+            "items": { "$ref": "#/components/schemas/ItemPublic" },
+            "type": "array",
+            "title": "Data"
+          },
+          "count": { "type": "integer", "title": "Count" }
+        },
+        "type": "object",
+        "required": ["data", "count"],
+        "title": "ItemsPublic"
+      },
+      "Message": {
+        "properties": { "message": { "type": "string", "title": "Message" } },
+        "type": "object",
+        "required": ["message"],
+        "title": "Message"
+      },
+      "PermissionPublic": {
+        "properties": {
+          "id": { "type": "string", "format": "uuid", "title": "Id" },
+          "name": { "type": "string", "title": "Name" },
+          "resource": { "type": "string", "title": "Resource" },
+          "action": { "type": "string", "title": "Action" },
+          "description": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Description"
+          },
+          "created_at": {
+            "anyOf": [
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
+            ],
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": ["id", "name", "resource", "action"],
+        "title": "PermissionPublic"
+      },
+      "PermissionsPublic": {
+        "properties": {
+          "data": {
+            "items": { "$ref": "#/components/schemas/PermissionPublic" },
+            "type": "array",
+            "title": "Data"
+          },
+          "count": { "type": "integer", "title": "Count" }
+        },
+        "type": "object",
+        "required": ["data", "count"],
+        "title": "PermissionsPublic"
+      },
+      "PrivateUserCreate": {
+        "properties": {
+          "email": { "type": "string", "title": "Email" },
+          "password": { "type": "string", "title": "Password" },
+          "full_name": { "type": "string", "title": "Full Name" },
+          "is_verified": {
+            "type": "boolean",
+            "title": "Is Verified",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": ["email", "password", "full_name"],
+        "title": "PrivateUserCreate"
+      },
+      "RolePublic": {
+        "properties": {
+          "id": { "type": "string", "format": "uuid", "title": "Id" },
+          "name": { "type": "string", "title": "Name" },
+          "description": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Description"
+          },
+          "created_at": {
+            "anyOf": [
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
+            ],
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": ["id", "name"],
+        "title": "RolePublic"
+      },
+      "RolesPublic": {
+        "properties": {
+          "data": {
+            "items": { "$ref": "#/components/schemas/RolePublic" },
+            "type": "array",
+            "title": "Data"
+          },
+          "count": { "type": "integer", "title": "Count" }
+        },
+        "type": "object",
+        "required": ["data", "count"],
+        "title": "RolesPublic"
+      },
+      "TenantPublic": {
+        "properties": {
+          "id": { "type": "string", "format": "uuid", "title": "Id" },
+          "name": { "type": "string", "title": "Name" },
+          "slug": { "type": "string", "title": "Slug" },
+          "is_active": { "type": "boolean", "title": "Is Active" },
+          "created_at": {
+            "anyOf": [
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
+            ],
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": ["id", "name", "slug", "is_active"],
+        "title": "TenantPublic"
+      },
+      "TenantsPublic": {
+        "properties": {
+          "data": {
+            "items": { "$ref": "#/components/schemas/TenantPublic" },
+            "type": "array",
+            "title": "Data"
+          },
+          "count": { "type": "integer", "title": "Count" }
+        },
+        "type": "object",
+        "required": ["data", "count"],
+        "title": "TenantsPublic"
+      },
+      "UserCreate": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "maxLength": 255,
+            "format": "email",
+            "title": "Email"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "default": true
+          },
+          "is_superuser": {
+            "type": "boolean",
+            "title": "Is Superuser",
+            "default": false
+          },
+          "full_name": {
+            "anyOf": [
+              { "type": "string", "maxLength": 255 },
+              { "type": "null" }
+            ],
+            "title": "Full Name"
+          }
+        },
+        "type": "object",
+        "required": ["email"],
+        "title": "UserCreate"
+      },
+      "UserPublic": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "maxLength": 255,
+            "format": "email",
+            "title": "Email"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "default": true
+          },
+          "is_superuser": {
+            "type": "boolean",
+            "title": "Is Superuser",
+            "default": false
+          },
+          "full_name": {
+            "anyOf": [
+              { "type": "string", "maxLength": 255 },
+              { "type": "null" }
+            ],
+            "title": "Full Name"
+          },
+          "id": { "type": "string", "format": "uuid", "title": "Id" },
+          "tenant_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Tenant Id"
+          },
+          "created_at": {
+            "anyOf": [
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
+            ],
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": ["email", "id", "tenant_id"],
+        "title": "UserPublic"
+      },
+      "UserUpdate": {
+        "properties": {
+          "email": {
+            "anyOf": [
+              { "type": "string", "maxLength": 255, "format": "email" },
+              { "type": "null" }
+            ],
+            "title": "Email"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "default": true
+          },
+          "is_superuser": {
+            "type": "boolean",
+            "title": "Is Superuser",
+            "default": false
+          },
+          "full_name": {
+            "anyOf": [
+              { "type": "string", "maxLength": 255 },
+              { "type": "null" }
+            ],
+            "title": "Full Name"
+          }
+        },
+        "type": "object",
+        "title": "UserUpdate"
+      },
+      "UserUpdateMe": {
+        "properties": {
+          "full_name": {
+            "anyOf": [
+              { "type": "string", "maxLength": 255 },
+              { "type": "null" }
+            ],
+            "title": "Full Name"
+          },
+          "email": {
+            "anyOf": [
+              { "type": "string", "maxLength": 255, "format": "email" },
+              { "type": "null" }
+            ],
+            "title": "Email"
+          }
+        },
+        "type": "object",
+        "title": "UserUpdateMe"
+      },
+      "UsersPublic": {
+        "properties": {
+          "data": {
+            "items": { "$ref": "#/components/schemas/UserPublic" },
+            "type": "array",
+            "title": "Data"
+          },
+          "count": { "type": "integer", "title": "Count" }
+        },
+        "type": "object",
+        "required": ["data", "count"],
+        "title": "UsersPublic"
+      }
+    },
+    "securitySchemes": { "HTTPBearer": { "type": "http", "scheme": "bearer" } }
+  }
+}

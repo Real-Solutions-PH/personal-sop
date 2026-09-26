@@ -1,0 +1,60 @@
+name: License Gate
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  license-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - run: uv sync --frozen --no-dev
+        working-directory: backend
+      # The uv workspace venv lives at the repo root, not in backend/
+      - run: uvx pip-licenses --python "$GITHUB_WORKSPACE/.venv/bin/python" --format=json | python3 "$GITHUB_WORKSPACE/scripts/check_licenses.py"
+        working-directory: backend
+
+  license-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+      # Workspace root install: frontend deps are hoisted to the root lockfile.
+      # --production so only shipped deps are on disk; license-checker then runs
+      # WITHOUT --production (that flag hard-errors at a bun workspace root).
+      - run: bun install --frozen-lockfile --production
+      - run: bunx license-checker-rseidelsohn --excludePrivatePackages --json | python3 scripts/check_licenses.py
+
+  license-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile --production
+        working-directory: mobile
+      - run: bunx license-checker-rseidelsohn --excludePrivatePackages --json | python3 "$GITHUB_WORKSPACE/scripts/check_licenses.py"
+        working-directory: mobile
+
+  # https://github.com/marketplace/actions/alls-green#why
+  alls-green-license-gate:  # This job does nothing and is only used for the branch protection
+    if: always()
+    needs:
+      - license-backend
+      - license-frontend
+      - license-mobile
+    runs-on: ubuntu-latest
+    steps:
+      - name: Decide whether the needed jobs succeeded or failed
+        uses: re-actors/alls-green@release/v1
+        with:
+          jobs: ${{ toJSON(needs) }}

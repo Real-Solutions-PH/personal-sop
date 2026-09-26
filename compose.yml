@@ -1,0 +1,180 @@
+services:
+
+  db:
+    image: postgres:18
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+    volumes:
+      - app-db-data:/var/lib/postgresql/data/pgdata
+    env_file:
+      - .env
+    environment:
+      - PGDATA=/var/lib/postgresql/data/pgdata
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
+      - POSTGRES_USER=${POSTGRES_USER?Variable not set}
+      - POSTGRES_DB=${POSTGRES_DB?Variable not set}
+
+  redis:
+    image: redis:8-alpine
+    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - app-redis-data:/data
+
+  minio:
+    # Docker Hub no longer serves minio/minio; pull the same release from quay.io.
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
+    restart: always
+    command: server /data --console-address ":9001"
+    env_file:
+      - .env
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER?Variable not set}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD?Variable not set}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - app-minio-data:/data
+
+  prestart:
+    image: '${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}'
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+    command: bash scripts/prestart.sh
+    env_file:
+      - .env
+    # The Supabase local stack (supabase start) runs on the HOST, so the
+    # container reaches it via host.docker.internal; tokens are still issued
+    # with the host-local URL, hence the explicit SUPABASE_JWT_ISSUER.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - DOMAIN=${DOMAIN}
+      - FRONTEND_HOST=${FRONTEND_HOST?Variable not set}
+      - ENVIRONMENT=${ENVIRONMENT}
+      - BACKEND_CORS_ORIGINS=${BACKEND_CORS_ORIGINS}
+      - FIRST_SUPERUSER=${FIRST_SUPERUSER?Variable not set}
+      - FIRST_SUPERUSER_PASSWORD=${FIRST_SUPERUSER_PASSWORD?Variable not set}
+      - SUPABASE_JWT_ISSUER=${SUPABASE_URL?Variable not set}/auth/v1
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY?Variable not set}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY?Variable not set}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - EMAILS_FROM_EMAIL=${EMAILS_FROM_EMAIL}
+      - POSTGRES_SERVER=db
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER?Variable not set}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
+      - SENTRY_DSN=${SENTRY_DSN}
+
+  backend:
+    image: '${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}'
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+      minio:
+        # the app lifespan ensures the default bucket exists at startup
+        condition: service_healthy
+      prestart:
+        condition: service_completed_successfully
+    env_file:
+      - .env
+    # See prestart: the host-run Supabase stack is reached via
+    # host.docker.internal while token issuers stay host-local.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - DOMAIN=${DOMAIN}
+      - FRONTEND_HOST=${FRONTEND_HOST?Variable not set}
+      - ENVIRONMENT=${ENVIRONMENT}
+      - BACKEND_CORS_ORIGINS=${BACKEND_CORS_ORIGINS}
+      - FIRST_SUPERUSER=${FIRST_SUPERUSER?Variable not set}
+      - FIRST_SUPERUSER_PASSWORD=${FIRST_SUPERUSER_PASSWORD?Variable not set}
+      - SUPABASE_JWT_ISSUER=${SUPABASE_URL?Variable not set}/auth/v1
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY?Variable not set}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY?Variable not set}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - EMAILS_FROM_EMAIL=${EMAILS_FROM_EMAIL}
+      - POSTGRES_SERVER=db
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER?Variable not set}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
+      - SENTRY_DSN=${SENTRY_DSN}
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/utils/health-check/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+
+  worker:
+    image: '${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}'
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+      prestart:
+        condition: service_completed_successfully
+    env_file:
+      - .env
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT}
+      - POSTGRES_SERVER=db
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER?Variable not set}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
+      - SENTRY_DSN=${SENTRY_DSN}
+    command: procrastinate --app=app.modules.jobs.app.jobs_app worker
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+
+  frontend:
+    image: '${DOCKER_IMAGE_FRONTEND?Variable not set}:${TAG-latest}'
+    restart: always
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=https://api.${DOMAIN?Variable not set}
+        - NEXT_PUBLIC_SENTRY_DSN=${FRONTEND_SENTRY_DSN:-}
+        # The browser client reuses the same Supabase project URL/anon key
+        # the backend validates against (see .env.example).
+        - NEXT_PUBLIC_SUPABASE_URL=${SUPABASE_URL?Variable not set}
+        - NEXT_PUBLIC_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY?Variable not set}
+        - NODE_ENV=production
+
+volumes:
+  app-db-data:
+  app-redis-data:
+  app-minio-data:

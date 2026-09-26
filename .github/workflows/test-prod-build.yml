@@ -1,0 +1,49 @@
+name: Test Production Build
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    types:
+      - opened
+      - synchronize
+
+jobs:
+  test-prod-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Seed .env for CI
+        run: cp .env.example .env
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v3
+        with:
+          version: latest
+      - name: Start Supabase auth stack
+        # supabase/config.toml disables studio/realtime/storage/edge-runtime/
+        # analytics; .env (seeded from .env.example) carries the CLI's
+        # well-known demo keys, so no `supabase status` export is needed.
+        run: supabase start
+      # Build with base compose only (no dev override): the frontend uses its
+      # standalone runtime target (a real `next build`) and the backend uses
+      # its 4-worker production CMD — none of which the override-merged
+      # workflows ever exercise.
+      - name: Build the production images
+        run: docker compose -f compose.yml build
+      - run: docker compose -f compose.yml -f compose.ci-prod.yml down -v --remove-orphans
+      - name: Boot the production stack
+        run: docker compose -f compose.yml -f compose.ci-prod.yml up -d --wait backend frontend
+      - name: Backend is up (production image)
+        run: >-
+          curl --retry 20 --retry-delay 3 --retry-all-errors --fail --silent
+          --output /dev/null http://localhost:8000/api/v1/utils/health-check/
+      - name: Frontend is up (standalone next build)
+        run: >-
+          curl --retry 20 --retry-delay 3 --retry-all-errors --fail --silent
+          --output /dev/null http://localhost:3000
+      - name: Dump stack logs on failure
+        if: failure()
+        run: docker compose -f compose.yml -f compose.ci-prod.yml logs --no-color | tail -200
+      - run: docker compose -f compose.yml -f compose.ci-prod.yml down -v --remove-orphans

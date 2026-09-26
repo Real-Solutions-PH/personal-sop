@@ -1,0 +1,126 @@
+Real Solutions PH Template License
+==================================
+
+This repository combines two layers of code under different terms:
+
+  1. The original upstream template ("Upstream Code") by Sebastián Ramírez,
+     distributed under the MIT License (reproduced below).
+  2. All modifications, additions, configurations, integrations, and original
+     works contributed to this repository by Real Solutions PH ("Template
+     Code"), which are proprietary to Real Solutions PH and governed by the
+     terms in Section A below.
+
+Downstream projects derived from this repository ("Client Projects") will
+typically contain a third layer ("Client Code") whose ownership is determined
+by the written services agreement between Real Solutions PH and the client.
+Section B below describes the default position absent a conflicting agreement.
+
+--------------------------------------------------------------------------------
+SECTION A — Template Code (Real Solutions PH Proprietary)
+--------------------------------------------------------------------------------
+
+Copyright (c) 2026 Real Solutions PH. All rights reserved.
+
+"Template Code" means every file, line, asset, configuration, script, schema,
+and documentation contributed to this repository by Real Solutions PH or its
+personnel, including any future versions thereof, but excluding the Upstream
+Code identified in Section C.
+
+1. Ownership. Real Solutions PH retains all right, title, and interest in and
+   to the Template Code, including all copyright and other intellectual
+   property rights, in perpetuity. No transfer or assignment of ownership in
+   the Template Code occurs by virtue of this repository being used to start,
+   build, deliver, host, or operate any Client Project, regardless of whether
+   that Client Project is, or later becomes, deployed, distributed,
+   commercialized, or otherwise made publicly available.
+
+2. Internal Reuse. Real Solutions PH may use, copy, modify, extend, sublicense
+   (as part of Client Projects), and incorporate the Template Code into any
+   number of present or future projects, products, or engagements, including
+   projects undertaken concurrently with, after, or for clients other than the
+   client of any earlier engagement that used the Template Code. Use of the
+   Template Code in one Client Project does not exhaust, restrict, or
+   encumber Real Solutions PH's right to use the same Template Code in any
+   other Client Project.
+
+3. Client Use. Clients of Real Solutions PH receive a non-exclusive,
+   non-transferable, royalty-free license to use the Template Code solely as
+   integrated into the specific Client Project delivered to them, for the
+   internal and commercial operation of that Client Project. Clients do not
+   acquire ownership of the Template Code, may not extract the Template Code
+   for use in unrelated projects, and may not redistribute the Template Code
+   as a standalone template, framework, or starter kit.
+
+4. No Third-Party Distribution. Except as expressly permitted in Section A.3,
+   the Template Code may not be copied, sublicensed, sold, published, or
+   distributed by any party other than Real Solutions PH without Real
+   Solutions PH's prior written consent.
+
+5. Warranty Disclaimer. The Template Code is provided "AS IS", without
+   warranty of any kind, express or implied, including but not limited to the
+   warranties of merchantability, fitness for a particular purpose, and
+   non-infringement. In no event shall Real Solutions PH be liable for any
+   claim, damages, or other liability arising from, out of, or in connection
+   with the Template Code or its use.
+
+--------------------------------------------------------------------------------
+SECTION B — Client Code (Default Position)
+--------------------------------------------------------------------------------
+
+"Client Code" means modules, business logic, features, integrations, content,
+designs, and any other code or assets built on top of the Template Code
+specifically for a particular client engagement, that are not part of the
+Template Code or Upstream Code.
+
+Absent a written agreement to the contrary between Real Solutions PH and the
+client, Client Code authored by Real Solutions PH in the course of delivering a
+Client Project is assigned to the client upon full payment of the agreed fees
+for that engagement, on a work-for-hire basis to the maximum extent permitted
+by applicable law. The client's ownership of Client Code does not extend to,
+and is expressly carved out from, the Template Code and the Upstream Code,
+which remain governed by Sections A and C respectively.
+
+This Section B is descriptive of Real Solutions PH's default contracting
+position. The operative ownership of Client Code in any given engagement is
+governed by the executed services agreement for that engagement, which
+controls in the event of any conflict with this section.
+
+--------------------------------------------------------------------------------
+SECTION C — Upstream Code (MIT License, preserved)
+--------------------------------------------------------------------------------
+
+Portions of this repository originate from the "Full Stack FastAPI Template"
+by Sebastián Ramírez and remain licensed under the MIT License set out below.
+Nothing in Sections A or B is intended to, or shall be construed to, revoke,
+narrow, or supersede the MIT License as it applies to the Upstream Code.
+
+    MIT License
+
+    Copyright (c) 2019 Sebastián Ramírez
+
+    Permission is hereby granted, free of charge, to any person obtaining a
+    copy of this software and associated documentation files (the "Software"),
+    to deal in the Software without restriction, including without limitation
+    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+    and/or sell copies of the Software, and to permit persons to whom the
+    Software is furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in
+    all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+    THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+    OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+    ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+    OTHER DEALINGS IN THE SOFTWARE.
+
+--------------------------------------------------------------------------------
+SECTION D — Interpretation
+--------------------------------------------------------------------------------
+
+If any portion of this LICENSE is held unenforceable, the remainder shall
+remain in full force. To the extent any term in Section A or B conflicts with
+the MIT License as applied to the Upstream Code, the MIT License controls for
+the Upstream Code only. For all Template Code, Section A controls.

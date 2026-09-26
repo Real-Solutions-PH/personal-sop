@@ -1,0 +1,158 @@
+services:
+
+  db:
+    restart: "no"
+    # Bind to loopback: these dev-only infra ports carry weak local creds and
+    # must not be reachable from the LAN.
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  redis:
+    restart: "no"
+    ports:
+      - "127.0.0.1:6379:6379"
+
+  minio:
+    restart: "no"
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+
+  prestart:
+    # Same dev-only Supabase address as the backend: init_db calls GoTrue at
+    # startup, so prestart must reach the host stack via host.docker.internal.
+    environment:
+      SUPABASE_URL: http://host.docker.internal:54321
+
+  backend:
+    restart: "no"
+    # The image runs as an unprivileged user; in dev, run as root so the
+    # container can write the bind-mounted coverage dir and compose-watch syncs.
+    user: root
+    ports:
+      - "8000:8000"
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    # command: sleep infinity  # Infinite loop to keep container alive doing nothing
+    command:
+      - fastapi
+      - run
+      - --reload
+      - "app/main.py"
+    develop:
+      watch:
+        - path: ./backend
+          action: sync
+          target: /app/backend
+          ignore:
+            - ./backend/.venv
+            - .venv
+        - path: ./backend/pyproject.toml
+          action: rebuild
+    # TODO: remove once coverage is done locally
+    volumes:
+      - ./backend/htmlcov:/app/backend/htmlcov
+    environment:
+      SMTP_HOST: "mailcatcher"
+      SMTP_PORT: "1025"
+      SMTP_TLS: "false"
+      EMAILS_FROM_EMAIL: "noreply@example.com"
+      # The host-run Supabase stack (supabase start) is reached from inside the
+      # container via host.docker.internal; this dev-only address lives here,
+      # not in the base compose, so the base image stays environment-agnostic.
+      SUPABASE_URL: http://host.docker.internal:54321
+
+  worker:
+    restart: "no"
+    # Run as root in dev so compose-watch syncs into the container.
+    user: root
+    develop:
+      watch:
+        - path: ./backend
+          action: sync
+          target: /app/backend
+          ignore:
+            - ./backend/.venv
+            - .venv
+        - path: ./backend/pyproject.toml
+          action: rebuild
+
+  # Catches the BACKEND's app-notification SMTP emails only (SMTP_HOST above).
+  # Auth emails (signup/recovery) are sent by Supabase GoTrue and land in the
+  # local Supabase stack's Mailpit (http://127.0.0.1:54324) — the E2E suite
+  # reads those from Mailpit, not from here.
+  mailcatcher:
+    # No version tags are published for this image, so pin by digest
+    # (schickling/mailcatcher:latest at time of pinning) for reproducibility.
+    image: schickling/mailcatcher@sha256:55ed289525a565f7587b138a423705267eb34eda1ec8d35acd6dc7966a933e84
+    ports:
+      - "1080:1080"
+      - "1025:1025"
+
+  frontend:
+    restart: "no"
+    ports:
+      - "3000:3000"
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      target: dev
+      args:
+        - NEXT_PUBLIC_API_URL=http://localhost:8000
+    # The Next.js middleware (server-side, in-container) reaches the
+    # host-local Supabase stack via host.docker.internal, while the browser
+    # (on the host) keeps the NEXT_PUBLIC_* 127.0.0.1 URL from .env.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      WATCHPACK_POLLING: "true"
+      CHOKIDAR_USEPOLLING: "true"
+      NEXT_PUBLIC_SUPABASE_URL: ${SUPABASE_URL:-http://127.0.0.1:54321}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
+      SUPABASE_URL: http://host.docker.internal:54321
+      # Server-side (SSR) backend base URL: NEXT_PUBLIC_API_URL points at the
+      # HOST's localhost:8000 and is unreachable from inside this container —
+      # SSR of useSuspenseQuery pages was failing with ECONNREFUSED. See
+      # frontend/src/components/providers.tsx.
+      API_URL: http://backend:8000
+    develop:
+      watch:
+        - path: ./frontend
+          action: sync
+          target: /app/frontend
+          ignore:
+            - ./frontend/node_modules
+            - ./frontend/.next
+        - path: ./frontend/package.json
+          action: rebuild
+        - path: ./bun.lock
+          action: rebuild
+
+  cypress:
+    profiles:
+      - e2e
+    build:
+      context: .
+      dockerfile: e2e/Dockerfile
+    ipc: host
+    depends_on:
+      - backend
+      - frontend
+    # The frontend image bakes browser-facing URLs for a HOST browser
+    # (NEXT_PUBLIC_API_URL=http://localhost:8000, Supabase on
+    # 127.0.0.1:54321), so the Cypress browser must see the stack exactly
+    # like the host does: host networking makes the published ports
+    # (frontend :3000, backend :8000, Supabase :54321, Mailpit :54324)
+    # reachable on localhost. Linux-only (fine: CI runners + `cypress open`
+    # on macOS runs from the host, not this container).
+    network_mode: host
+    env_file:
+      - .env
+    environment:
+      - CYPRESS_BASE_URL=http://localhost:3000
+      - CYPRESS_API_URL=http://localhost:8000
+      - CYPRESS_MAILPIT_HOST=http://127.0.0.1:54324
+      - CI=${CI:-}
+    volumes:
+      - ./e2e/cypress/screenshots:/e2e/cypress/screenshots

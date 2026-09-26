@@ -1,0 +1,11 @@
+.vscode/*
+!.vscode/extensions.json
+node_modules/
+# Cypress
+e2e/cypress/screenshots/
+e2e/cypress/videos/
+e2e/cypress/downloads/
+.env
+package-lock.json
+yarn.lock
+pnpm-lock.yaml

@@ -1,0 +1,120 @@
+name: Cypress Tests
+
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    types:
+    - opened
+    - synchronize
+  workflow_dispatch:
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    # On pull requests paths-filter lists the changed files through the API,
+    # which needs pull-requests:read. A private repository's default token
+    # can be restricted to contents/metadata/packages, and Dependabot's token
+    # is read-only regardless, so request exactly what the job needs.
+    permissions:
+      contents: read
+      pull-requests: read
+    # Set job outputs to values from filter step
+    outputs:
+      changed: ${{ steps.filter.outputs.changed }}
+    steps:
+    - uses: actions/checkout@v7
+    # For pull requests it's not necessary to checkout the code but for the main branch it is
+    - uses: dorny/paths-filter@v4
+      id: filter
+      with:
+        filters: |
+          changed:
+            - backend/**
+            - frontend/**
+            - e2e/**
+            - .env
+            - compose*.yml
+            - .github/workflows/cypress.yml
+
+  # Serial run by design: Cypress parallelization is gated behind Cypress
+  # Cloud (paid) and ADR-0004 rejects paid/self-hosted orchestration until a
+  # client engagement justifies it.
+  test-cypress:
+    needs:
+      - changes
+    if: ${{ needs.changes.outputs.changed == 'true' }}
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    steps:
+    # This job builds every stack image plus the Cypress image on top of the
+    # Supabase stack and the host installs, which can exceed a hosted runner's
+    # free disk. Drop preinstalled SDKs the job never uses.
+    - name: Free runner disk space
+      run: |
+        df -h /
+        sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+        df -h /
+    - uses: actions/checkout@v7
+    - uses: oven-sh/setup-bun@v2
+    - uses: actions/setup-python@v6
+      with:
+        python-version: '3.11'
+    - name: Install uv
+      uses: astral-sh/setup-uv@v7
+    - run: uv sync
+      working-directory: backend
+    - run: bun install --frozen-lockfile
+    - name: Seed .env for CI
+      run: cp .env.example .env
+    - name: Set up Supabase CLI
+      uses: supabase/setup-cli@v3
+      with:
+        version: latest
+    - name: Start Supabase auth stack
+      # supabase/config.toml disables studio/realtime/storage/edge-runtime/
+      # analytics; .env (seeded from .env.example) carries the CLI's
+      # well-known demo keys, so no `supabase status` export is needed.
+      run: supabase start
+    - run: bash scripts/generate-client.sh
+    - run: docker compose --profile e2e build
+    - run: docker compose down -v --remove-orphans
+    - name: Start the stack
+      run: docker compose up -d backend frontend
+    - name: Wait for the frontend dev server
+      run: curl --retry 60 --retry-delay 5 --retry-all-errors --fail --silent --output /dev/null http://localhost:3000/login
+    - name: Run Cypress tests
+      run: docker compose run --rm cypress
+    - name: Dump stack logs on failure
+      if: failure()
+      run: |
+        docker compose logs frontend --no-color | tail -150
+        docker compose logs backend --no-color | tail -60
+        echo "--- reachability from the frontend container ---"
+        docker compose exec -T frontend sh -c 'wget -q -O- http://host.docker.internal:54321/auth/v1/health || echo UNREACHABLE'
+    - run: docker compose down -v --remove-orphans
+    - name: Upload screenshots of failures
+      if: ${{ failure() }}
+      uses: actions/upload-artifact@v7
+      with:
+        name: cypress-screenshots
+        path: e2e/cypress/screenshots
+        if-no-files-found: ignore
+        retention-days: 7
+
+  # https://github.com/marketplace/actions/alls-green#why
+  alls-green-cypress:  # This job does nothing and is only used for the branch protection
+    if: always()
+    # changes is listed too: when it fails, test-cypress is skipped, and an
+    # allowed skip alone would let this aggregate pass without any tests.
+    needs:
+      - changes
+      - test-cypress
+    runs-on: ubuntu-latest
+    steps:
+      - name: Decide whether the needed jobs succeeded or failed
+        uses: re-actors/alls-green@release/v1
+        with:
+          jobs: ${{ toJSON(needs) }}
+          allowed-skips: test-cypress

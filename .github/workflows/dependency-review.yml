@@ -1,0 +1,51 @@
+name: Dependency Review
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-review:
+    runs-on: ubuntu-latest
+    steps:
+      # The dependency review API answers a bare 403 "Forbidden" on a private
+      # repository without GitHub Advanced Security, and the review action
+      # then fails without evaluating anything. Probe the same API first:
+      # review when it is available, skip with a notice on exactly that
+      # response, and fail on anything else (rate limits, permission errors,
+      # outages) so the gate never passes silently.
+      - name: Check the dependency review API is available
+        id: api
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          code=$(curl -sS -o body.json -D headers.txt -w '%{http_code}' \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/dependency-graph/compare/$BASE_SHA...$HEAD_SHA")
+          # Exactly one JSON object, or the body counts as unexpected.
+          message=$(jq -sr 'if length == 1 and (.[0] | type) == "object"
+            then .[0].message // "" else error("unexpected body") end' body.json 2>/dev/null) ||
+            message="unparseable response body"
+          if [ "$code" = 200 ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          elif [ "$code" = 403 ] && [ "$message" = "Forbidden" ] &&
+            ! grep -qi -e '^retry-after:' -e '^x-ratelimit-remaining: 0' headers.txt; then
+            echo "::notice::Dependency review is unavailable on this repository (private without GitHub Advanced Security); skipping."
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::Dependency review API returned HTTP $code: ${message:-no message}"
+            exit 1
+          fi
+      - name: Checkout
+        if: steps.api.outputs.available == 'true'
+        uses: actions/checkout@v7
+      - name: Review dependency changes
+        if: steps.api.outputs.available == 'true'
+        uses: actions/dependency-review-action@v5
+        with:
+          fail-on-severity: high

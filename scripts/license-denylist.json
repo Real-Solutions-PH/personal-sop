@@ -1,0 +1,14 @@
+{
+  "deny_patterns": [
+    "AGPL",
+    "AFFERO",
+    "BUSL",
+    "BUSINESS SOURCE",
+    "SSPL",
+    "SERVER SIDE PUBLIC",
+    "SUL-1",
+    "SUSTAINABLE USE"
+  ],
+  "allow_packages": ["app", "@copilotkit/license-verifier"],
+  "_note": "Case-insensitive substring match against the full license string, including inside dual-license expressions. To ship a denylisted or UNKNOWN-license dependency, add it to allow_packages with a link to an accepted ADR in docs/adr/ (constitution §0.3/§3.7)."
+}

@@ -1,0 +1,40 @@
+name: Image Scan
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - backend
+          - frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Seed .env for CI
+        run: cp .env.example .env
+      - name: Build the ${{ matrix.image }} image
+        run: docker compose -f compose.yml build ${{ matrix.image }}
+      - name: Scan the ${{ matrix.image }} image for known vulnerabilities
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ matrix.image }}:latest
+          format: table
+          severity: CRITICAL,HIGH
+          # Report fixable CRITICAL/HIGH findings in the job log but do not
+          # block: the base images already carry OS-package CVEs whose
+          # remediation (base bumps / upgrade layers) is tracked separately.
+          # New vulnerable dependencies are gated by the dependency review
+          # wherever the repository supports it (see dependency-review.yml).
+          ignore-unfixed: true
+          exit-code: "0"

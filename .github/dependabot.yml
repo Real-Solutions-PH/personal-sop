@@ -1,0 +1,63 @@
+version: 2
+updates:
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ⬆
+    labels: [dependencies, internal]
+    groups:
+      github-actions:
+        patterns: ["*"]
+  # Python uv
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ⬆
+    labels: [dependencies, internal]
+    groups:
+      python:
+        patterns: ["*"]
+  # bun
+  - package-ecosystem: bun
+    directories:
+      - /
+      - /mobile
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ⬆
+    labels: [dependencies, internal]
+    ignore:
+      - dependency-name: "@hey-api/openapi-ts"
+    groups:
+      javascript:
+        patterns: ["*"]
+  # Docker
+  - package-ecosystem: docker
+    directories:
+      - /backend
+      - /frontend
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ⬆
+    labels: [dependencies, internal]
+    groups:
+      docker:
+        patterns: ["*"]
+  # Docker Compose
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ⬆
+    labels: [dependencies, internal]
+    groups:
+      docker-compose:
+        patterns: ["*"]

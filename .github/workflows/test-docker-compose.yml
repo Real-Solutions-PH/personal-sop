@@ -1,0 +1,37 @@
+name: Test Docker Compose
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    types:
+      - opened
+      - synchronize
+
+jobs:
+
+  test-docker-compose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Seed .env for CI
+        run: cp .env.example .env
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v3
+        with:
+          version: latest
+      - name: Start Supabase auth stack
+        # supabase/config.toml disables studio/realtime/storage/edge-runtime/
+        # analytics; .env (seeded from .env.example) carries the CLI's
+        # well-known demo keys, so no `supabase status` export is needed.
+        run: supabase start
+      - run: docker compose build
+      - run: docker compose down -v --remove-orphans
+      - run: docker compose up -d --wait backend frontend
+      - name: Test backend is up
+        run: curl -f http://localhost:8000/api/v1/utils/health-check/
+      - name: Test frontend is up
+        run: curl -f http://localhost:3000
+      - run: docker compose down -v --remove-orphans
