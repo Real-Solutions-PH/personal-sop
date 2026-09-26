@@ -41,7 +41,7 @@ jobs:
       - name: Seed .env for CI (client-generation hook imports app settings)
         run: cp .env.example .env
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
       - name: Setup uv
