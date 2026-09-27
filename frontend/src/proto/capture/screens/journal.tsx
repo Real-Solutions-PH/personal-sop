@@ -15,7 +15,7 @@ import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
-import { dayKey, dayOffset } from "../../lib/day"
+import { dayKey, dayOffset, weekday } from "../../lib/day"
 import {
   Btn,
   Card,
@@ -139,9 +139,14 @@ export function JournalListScreen() {
 
   const stats = useMemo(() => {
     const days = new Set(entries.map((e) => e.day))
-    const heat = Array.from({ length: 28 }, (_, i) =>
-      days.has(dayOffset(i - 27)) ? 1 : 0,
-    )
+    // 4 weeks, padded to start on Sunday so each column is one week
+    const lead = weekday(dayOffset(-27))
+    const heat = [
+      ...Array.from({ length: lead }, () => null),
+      ...Array.from({ length: 28 }, (_, i) =>
+        days.has(dayOffset(i - 27)) ? 1 : 0,
+      ),
+    ]
     const week = entries.filter((e) => e.day >= dayOffset(-6)).length
     const moods: number[] = []
     for (let w = 7; w >= 0; w--) {
@@ -196,7 +201,12 @@ export function JournalListScreen() {
               <Stat label="Entries" value={entries.length} />
             </div>
             <div className="mt-4">
-              <Heatmap values={stats.heat} accent="life" cols={14} />
+              <Heatmap
+                values={stats.heat}
+                accent="life"
+                flow="column"
+                rowLabels={["S", "M", "T", "W", "T", "F", "S"]}
+              />
               <div className="mt-1 text-[11px] text-muted-foreground">
                 Last 4 weeks
               </div>
