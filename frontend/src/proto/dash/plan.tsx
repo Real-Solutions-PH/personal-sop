@@ -1,14 +1,22 @@
 "use client"
 
-import { Check, ChevronLeft, ChevronRight, Plus } from "lucide-react"
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  CloudSun,
+  Moon,
+  Sun,
+  Sunrise,
+} from "lucide-react"
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 import { cn } from "@/lib/utils"
-import type { ModuleKey } from "../contract"
+import type { CalendarItem, ModuleKey } from "../contract"
 import { FinancePlanPanel } from "../finance"
 import { HabitsPlanView } from "../habits"
 import { dayKey } from "../lib/day"
-import { openQuickAdd, TasksPlanView } from "../tasks"
+import { TasksPlanView } from "../tasks"
 import { Card, Chip, Empty, Screen, SectionTitle, Segmented } from "../ui/kit"
 import { AREA, addDaysKey, MODULE_KEYS } from "./data"
 import { useAllCalendar, useEnabled } from "./hooks"
@@ -46,21 +54,7 @@ export function PlanScreen() {
   const active = options.some((o) => o.value === seg) ? seg : "calendar"
 
   return (
-    <Screen
-      title="Plan"
-      actions={
-        active === "tasks" && (
-          <button
-            type="button"
-            aria-label="Add task"
-            onClick={() => openQuickAdd()}
-            className="grid size-11 place-items-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring bg-tsk text-background"
-          >
-            <Plus className="size-5" />
-          </button>
-        )
-      }
-    >
+    <Screen title="Plan">
       <div className="sticky top-14 z-10 -mx-4 bg-background/85 px-4 pb-3 backdrop-blur-md">
         <Segmented value={active} onChange={change} options={options} />
       </div>
@@ -273,33 +267,7 @@ function CalendarView() {
           />
         </Card>
       ) : (
-        <Card className="px-3 py-1">
-          {selItems.map((i) => (
-            <Link
-              key={i.id}
-              href={i.href}
-              className="flex min-h-12 items-center gap-3 border-border/50 border-b py-2 last:border-0"
-            >
-              <ModuleDot module={i.module} />
-              <span className="num w-11 shrink-0 text-muted-foreground text-xs">
-                {i.time ?? "all day"}
-              </span>
-              <span
-                className={cn(
-                  "min-w-0 flex-1 truncate text-sm",
-                  i.done && "text-muted-foreground line-through",
-                )}
-              >
-                {i.title}
-              </span>
-              {i.done ? (
-                <Check className="size-4 text-good" />
-              ) : (
-                <ChevronRight className="size-4 text-muted-foreground" />
-              )}
-            </Link>
-          ))}
-        </Card>
+        <DayParts items={selItems} isToday={sel === today} />
       )}
 
       {enabled.finance && (
@@ -317,5 +285,166 @@ function CalendarView() {
         </>
       )}
     </div>
+  )
+}
+
+// ---------------------------------------------------------------- day parts
+
+// The day split into fixed blocks (day-part planning). Night wraps past
+// midnight to the 04:00 day boundary, so a 01:00 item stays in tonight's block.
+const PARTS = [
+  {
+    key: "early",
+    label: "Early morning",
+    range: "4–8 AM",
+    from: 4,
+    to: 8,
+    icon: Sunrise,
+  },
+  {
+    key: "morning",
+    label: "Morning",
+    range: "8 AM–12 PM",
+    from: 8,
+    to: 12,
+    icon: Sun,
+  },
+  {
+    key: "afternoon",
+    label: "Afternoon",
+    range: "12–6 PM",
+    from: 12,
+    to: 18,
+    icon: CloudSun,
+  },
+  {
+    key: "night",
+    label: "Night",
+    range: "6 PM–4 AM",
+    from: 18,
+    to: 28,
+    icon: Moon,
+  },
+] as const
+
+const partOf = (time: string) => {
+  const h = Number(time.slice(0, 2))
+  const hh = h < 4 ? h + 24 : h
+  return PARTS.find((p) => hh >= p.from && hh < p.to)?.key ?? "night"
+}
+
+function DayParts({
+  items,
+  isToday,
+}: {
+  items: CalendarItem[]
+  isToday: boolean
+}) {
+  const nowH = new Date().getHours()
+  const nowPart = partOf(`${String(nowH).padStart(2, "0")}:00`)
+  const anytime = items.filter((i) => !i.time)
+  const groups = PARTS.map((p) => ({
+    ...p,
+    items: items
+      .filter((i) => i.time && partOf(i.time) === p.key)
+      .sort((a, b) => {
+        // keep after-midnight items at the end of the night block
+        const k = (t = "") => (Number(t.slice(0, 2)) < 4 ? `2${t}` : `1${t}`)
+        return k(a.time).localeCompare(k(b.time))
+      }),
+  }))
+  return (
+    <div className="space-y-3">
+      {groups.map((g) => {
+        const done = g.items.filter((i) => i.done).length
+        const current = isToday && g.key === nowPart
+        return (
+          <section
+            key={g.key}
+            aria-label={`${g.label}, ${g.range}: ${g.items.length} items`}
+            className={cn(
+              "rounded-2xl border bg-card",
+              current ? "border-primary/60" : "border-border/60",
+            )}
+          >
+            <div className="flex items-center gap-2 px-3 pt-3 pb-1">
+              <g.icon
+                className={cn(
+                  "size-4",
+                  current ? "text-primary" : "text-muted-foreground",
+                )}
+                aria-hidden="true"
+              />
+              <span className="font-semibold text-sm">{g.label}</span>
+              <span className="text-muted-foreground text-xs">{g.range}</span>
+              {current && (
+                <span className="rounded-full bg-primary/15 px-2 py-0.5 font-semibold text-[10px] text-primary uppercase tracking-wider">
+                  Now
+                </span>
+              )}
+              {g.items.length > 0 && (
+                <span className="num ml-auto text-muted-foreground text-xs">
+                  {done}/{g.items.length}
+                </span>
+              )}
+            </div>
+            {g.items.length === 0 ? (
+              <div className="px-3 pb-3 text-muted-foreground/70 text-xs">
+                Nothing planned
+              </div>
+            ) : (
+              <div className="px-3 pb-1">
+                {g.items.map((i) => (
+                  <CalRow key={i.id} i={i} />
+                ))}
+              </div>
+            )}
+          </section>
+        )
+      })}
+      {anytime.length > 0 && (
+        <section
+          aria-label={`Anytime: ${anytime.length} items`}
+          className="rounded-2xl border border-border/60 bg-card"
+        >
+          <div className="px-3 pt-3 pb-1 font-semibold text-sm">Anytime</div>
+          <div className="px-3 pb-1">
+            {anytime.map((i) => (
+              <CalRow key={i.id} i={i} />
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  )
+}
+
+function CalRow({ i }: { i: CalendarItem }) {
+  return (
+    <Link
+      href={i.href}
+      className="flex min-h-12 items-center gap-3 border-border/50 border-b py-2 last:border-0"
+    >
+      <ModuleDot module={i.module} />
+      <span className="num w-11 shrink-0 text-muted-foreground text-xs">
+        {i.time ?? "any"}
+      </span>
+      <span
+        className={cn(
+          "min-w-0 flex-1 truncate text-sm",
+          i.done && "text-muted-foreground line-through",
+        )}
+      >
+        {i.title}
+      </span>
+      {i.done ? (
+        <Check className="size-4 text-good" aria-label="Done" />
+      ) : (
+        <ChevronRight
+          className="size-4 text-muted-foreground"
+          aria-hidden="true"
+        />
+      )}
+    </Link>
   )
 }

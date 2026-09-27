@@ -24,7 +24,6 @@ import {
   Heatmap,
   Screen,
   SectionTitle,
-  Sparkline,
   Stat,
 } from "../../ui/kit"
 import {
@@ -35,6 +34,7 @@ import {
 } from "../actions"
 import { AREAS, type JournalEntry, MOODS, type Mood } from "../data"
 import { AreaPicker, MoodPicker } from "../edit"
+import { MoodTrend } from "../mood-trend"
 import { journalDraft } from "../parse"
 import { captureStore } from "../store"
 import { toast } from "../toast"
@@ -148,17 +148,8 @@ export function JournalListScreen() {
       ),
     ]
     const week = entries.filter((e) => e.day >= dayOffset(-6)).length
-    const moods: number[] = []
-    for (let w = 7; w >= 0; w--) {
-      const from = dayOffset(-7 * w - 6)
-      const to = dayOffset(-7 * w)
-      const m = entries
-        .filter((e) => e.mood && e.day >= from && e.day <= to)
-        .map((e) => e.mood as number)
-      if (m.length) moods.push(m.reduce((a, b) => a + b, 0) / m.length)
-    }
     const withMood = entries.filter((e) => e.mood).length
-    return { streak: journalStreak(entries), heat, week, moods, withMood }
+    return { streak: journalStreak(entries), heat, week, withMood }
   }, [entries])
 
   const today = dayKey()
@@ -211,14 +202,7 @@ export function JournalListScreen() {
                 Last 4 weeks
               </div>
             </div>
-            {stats.withMood >= 5 && stats.moods.length > 1 && (
-              <div className="mt-3">
-                <div className="mb-1 text-muted-foreground text-xs">
-                  Mood trend · 8 weeks
-                </div>
-                <Sparkline data={stats.moods} accent="life" height={40} />
-              </div>
-            )}
+            {stats.withMood >= 5 && <MoodTrend entries={entries} />}
           </Card>
 
           <div className="mt-3 grid grid-cols-2 gap-2">
