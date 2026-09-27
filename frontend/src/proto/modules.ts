@@ -1,0 +1,7 @@
+import { module as finance } from "./finance"
+import { module as fitness } from "./fitness"
+import { module as habits } from "./habits"
+import { module as tasks } from "./tasks"
+
+// Order = Today card order within module cards.
+export const modules = [habits, tasks, fitness, finance]

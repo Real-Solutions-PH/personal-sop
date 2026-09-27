@@ -4,6 +4,9 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --font-sans: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
+  --font-display:
+    var(--font-barlow-condensed), var(--font-barlow), ui-sans-serif, sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -39,6 +42,15 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  /* Personal SOP module accents (prototype, ADR-0009) */
+  --color-hab: var(--hab);
+  --color-tsk: var(--tsk);
+  --color-fit: var(--fit);
+  --color-fin: var(--fin);
+  --color-life: var(--life);
+  --color-good: var(--good);
+  --color-bad: var(--bad);
+  --color-warn: var(--warn);
 }
 
 :root {
@@ -49,7 +61,7 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.5982 0.10687 182.4689);
+  --primary: oklch(0.5 0.1 182);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -74,17 +86,25 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --hab: oklch(0.6 0.2 293);
+  --tsk: oklch(0.62 0.16 240);
+  --fit: oklch(0.68 0.19 45);
+  --fin: oklch(0.62 0.15 160);
+  --life: oklch(0.72 0.17 75);
+  --good: oklch(0.62 0.16 150);
+  --bad: oklch(0.6 0.21 25);
+  --warn: oklch(0.75 0.16 75);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
+  --background: oklch(0.13 0.008 270);
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
+  --card: oklch(0.19 0.01 270);
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
   --primary: oklch(0.65 0.10687 182.4689);
-  --primary-foreground: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.16 0.01 270);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
@@ -108,6 +128,14 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --hab: oklch(0.7 0.18 293);
+  --tsk: oklch(0.72 0.14 240);
+  --fit: oklch(0.76 0.17 50);
+  --fin: oklch(0.74 0.15 160);
+  --life: oklch(0.82 0.16 80);
+  --good: oklch(0.74 0.17 150);
+  --bad: oklch(0.7 0.19 25);
+  --warn: oklch(0.82 0.15 80);
 }
 
 @layer base {
@@ -121,4 +149,47 @@
   [role="button"] {
     cursor: pointer;
   }
+}
+
+/* Prototype: tabular numbers for stats, safe-area padding for installed PWA */
+.num {
+  font-variant-numeric: tabular-nums;
+}
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+.blur-amount {
+  filter: blur(6px);
+  user-select: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+button,
+a {
+  touch-action: manipulation;
+}
+/* Horizontal chip rows swipe on touch; the scrollbar only reads as a stray line. */
+.overflow-x-auto {
+  scrollbar-width: none;
+}
+.overflow-x-auto::-webkit-scrollbar {
+  display: none;
+}
+
+/* Share cards: transparent "sticker" preview */
+.checker {
+  background:
+    repeating-conic-gradient(oklch(0.34 0 0) 0 25%, oklch(0.28 0 0) 0 50%) 0 0 /
+    5cqw 5cqw;
 }

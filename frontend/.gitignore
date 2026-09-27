@@ -27,3 +27,6 @@ openapi.json
 *.sw?
 
 *.tsbuildinfo
+
+# local env (prototype flags, dummy keys)
+.env*.local

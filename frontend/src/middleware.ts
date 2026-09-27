@@ -15,6 +15,14 @@ const publicRoutes = [
 const authOnlyRedirects = ["/login", "/signup", "/recover-password"]
 
 export async function middleware(request: NextRequest) {
+  // ponytail: UI-first prototype runs on the local mock store (ADR-0009) — no auth.
+  // Remove this branch when the prototype is wired to the backend.
+  if (process.env.NEXT_PUBLIC_PROTOTYPE === "1") {
+    if (request.nextUrl.pathname === "/") {
+      return NextResponse.redirect(new URL("/today", request.url))
+    }
+    return NextResponse.next()
+  }
   // Canonical @supabase/ssr middleware pattern: refresh the auth session and
   // forward any rotated cookies on both pass-through and redirect responses.
   let supabaseResponse = NextResponse.next({ request })

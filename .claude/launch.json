@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "prototype",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "--cwd", "frontend", "dev"],
+      "port": 3100,
+      "autoPort": true
+    }
+  ]
+}
