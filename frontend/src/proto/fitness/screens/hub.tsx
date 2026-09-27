@@ -2,12 +2,14 @@
 
 import {
   BarChart3,
-  ChevronRight,
+  CheckCircle2,
   Dumbbell,
   LayoutList,
   Play,
+  Plus,
   Scale,
   Settings,
+  Share2,
   Trophy,
 } from "lucide-react"
 import Link from "next/link"
@@ -26,11 +28,11 @@ import {
   Sparkline,
   Stat,
 } from "../../ui/kit"
+import { BodyFatCard } from "../bodyfat"
 import {
   allPrs,
   consistencyStreak,
   dailyWeights,
-  dayTotals,
   finished,
   fmtMin,
   fmtVolume,
@@ -40,22 +42,16 @@ import {
   relDay,
   sessionsByWeek,
   suggestion,
-  targetFor,
   weeklyRate,
   weightTrend,
   workoutTotals,
 } from "../calc"
+import type { Workout } from "../data"
 import { StartSheet, WeighInSheet } from "../sheets"
 import { useFit } from "../store"
-import {
-  ErrorState,
-  LoadingState,
-  MacroRings,
-  Pill,
-  TrendChart,
-  useViewState,
-} from "../ui"
-import { LogMealButtons } from "./nutrition"
+import { TrainProgress } from "../train-progress"
+import { ErrorState, LoadingState, Pill, TrendChart, useViewState } from "../ui"
+import { NutritionDay } from "./nutrition"
 
 // FIT-01 Fitness hub — Train · Eat · Body
 
@@ -117,6 +113,73 @@ export function HubScreen() {
   )
 }
 
+/** Replaces "Up next" once a workout is finished today; another session is still one tap away. */
+function DoneToday({
+  workouts,
+  prMap,
+  onStart,
+}: {
+  workouts: Workout[]
+  prMap: ReturnType<typeof prsByWorkout>
+  onStart: () => void
+}) {
+  const s = useFit()
+  const latest = workouts[0]
+  const totals = workouts.map((w) => workoutTotals(s, w))
+  const sec = totals.reduce((a, t) => a + t.durationSec, 0)
+  const vol = totals.reduce((a, t) => a + t.volume, 0)
+  const sets = totals.reduce((a, t) => a + t.done, 0)
+  const prs = workouts.reduce((a, w) => a + (prMap.get(w.id)?.length ?? 0), 0)
+  return (
+    <Card className="mt-4 border-good/30 bg-gradient-to-br from-good/10 via-transparent to-fit/10">
+      <div className="flex items-center gap-3">
+        <div className="grid size-11 place-items-center rounded-full bg-good/15 text-good">
+          <CheckCircle2 className="size-6" aria-hidden="true" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-good text-xs uppercase tracking-wider">
+            Done for today
+          </div>
+          <div className="truncate font-display font-semibold text-xl">
+            {workouts.map((w) => w.name).join(" + ")}
+          </div>
+        </div>
+      </div>
+      <div className="mt-3 grid grid-cols-4 gap-2 text-center">
+        {[
+          [fmtMin(sec), "time"],
+          [String(sets), "sets"],
+          [fmtVolume(vol), "volume"],
+          [String(prs), prs === 1 ? "PR" : "PRs"],
+        ].map(([v, l]) => (
+          <div key={l} className="rounded-xl bg-background/50 py-2">
+            <div className="num font-display font-semibold text-lg">{v}</div>
+            <div className="text-[11px] text-muted-foreground">{l}</div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <Btn
+          variant="secondary"
+          href={`/fitness/workouts/${latest.id}/summary`}
+        >
+          Summary
+        </Btn>
+        <Btn accent="fit" href={`/fitness/share/${latest.id}`}>
+          <Share2 className="size-4" /> Share
+        </Btn>
+      </div>
+      <button
+        type="button"
+        onClick={onStart}
+        className="mt-2 flex h-11 w-full items-center justify-center gap-1.5 rounded-xl text-muted-foreground text-sm hover:bg-muted"
+      >
+        <Plus className="size-4" aria-hidden="true" /> Start another workout
+      </button>
+    </Card>
+  )
+}
+
 function Train({ empty, onStart }: { empty: boolean; onStart: () => void }) {
   const s = useFit()
   const d = useMemo(() => {
@@ -129,7 +192,11 @@ function Train({ empty, onStart }: { empty: boolean; onStart: () => void }) {
     const week = sessionsByWeek(s, 1)[0]
     const recent = finished(s).slice(-3).reverse()
     const prMap = prsByWorkout(allPrs(s))
+    const today = finished(s)
+      .filter((w) => dayKey(new Date(w.startedAt)) === dayKey())
+      .reverse()
     return {
+      today,
       next,
       last,
       sugs,
@@ -179,6 +246,8 @@ function Train({ empty, onStart }: { empty: boolean; onStart: () => void }) {
             </span>
           </div>
         </Card>
+      ) : d.today.length ? (
+        <DoneToday workouts={d.today} prMap={d.prMap} onStart={onStart} />
       ) : (
         d.next && (
           <Card className="mt-4">
@@ -261,6 +330,8 @@ function Train({ empty, onStart }: { empty: boolean; onStart: () => void }) {
         </Btn>
       </div>
 
+      <TrainProgress />
+
       <SectionTitle
         action={
           <Link href="/fitness/workouts" className="text-fit text-xs">
@@ -302,38 +373,7 @@ function Train({ empty, onStart }: { empty: boolean; onStart: () => void }) {
 }
 
 function Eat() {
-  const s = useFit()
-  const today = dayKey()
-  const d = useMemo(
-    () => ({ ...dayTotals(s, today), target: targetFor(s, today) }),
-    [s, today],
-  )
-  return (
-    <>
-      <Card href="/fitness/nutrition" className="mt-4">
-        <div className="mb-3 flex items-center justify-between">
-          <div className="font-semibold">Today</div>
-          <span className="flex items-center gap-1 text-muted-foreground text-xs">
-            {!!d.toReview && <Pill tone="fit">{d.toReview} to review</Pill>}
-            {!!d.pending && <Pill tone="warn">+{d.pending} pending</Pill>}
-            <ChevronRight className="size-4" />
-          </span>
-        </div>
-        <MacroRings totals={d.totals} target={d.target} />
-      </Card>
-      <Card className="mt-3 p-2">
-        <LogMealButtons />
-      </Card>
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <Btn variant="secondary" href="/fitness/nutrition/history">
-          History
-        </Btn>
-        <Btn variant="secondary" href="/fitness/nutrition/targets">
-          Targets
-        </Btn>
-      </div>
-    </>
-  )
+  return <NutritionDay />
 }
 
 function Body({ empty, onWeigh }: { empty: boolean; onWeigh: () => void }) {
@@ -392,6 +432,7 @@ function Body({ empty, onWeigh }: { empty: boolean; onWeigh: () => void }) {
           <Scale className="size-4" /> Weigh in
         </Btn>
       )}
+      <BodyFatCard onLog={onWeigh} />
       <Card
         href="/fitness/body"
         className="mt-3 flex items-center justify-between"

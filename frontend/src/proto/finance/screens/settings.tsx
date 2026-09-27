@@ -9,7 +9,7 @@ import {
   Sparkles,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useMemo, useState } from "react"
+import { type ReactNode, useMemo, useState } from "react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { privacyStore, togglePrivacy } from "../../lib/privacy"
@@ -404,7 +404,17 @@ interface Suggest {
   limit?: string
 }
 
-export function FinanceSetup() {
+// Embedded in the app-wide setup flow (/setup) via `onDone`: no screen chrome,
+// the flow owns Skip and navigation.
+const Plain = ({
+  children,
+}: {
+  children: ReactNode
+  title?: string
+  back?: string
+}) => <div>{children}</div>
+
+export function FinanceSetup({ onDone }: { onDone?: () => void } = {}) {
   const s = useFin()
   const router = useRouter()
   const existing = useMemo(
@@ -514,14 +524,18 @@ export function FinanceSetup() {
       })
     if (created.gcash) updateSettings({ defaultAccountId: created.gcash })
     toast(`${Object.keys(created).length} accounts added`)
-    router.push("/finance")
+    if (onDone) onDone()
+    else router.push("/finance")
   }
+  const Wrap = onDone ? Plain : Screen
   return (
-    <Screen title="Set up Finance" back="/finance">
-      <p className="px-1 text-muted-foreground text-sm">
-        Pick where your money lives and type today's balance. You can fine-tune
-        later.
-      </p>
+    <Wrap title="Set up Finance" back="/finance">
+      {!onDone && (
+        <p className="px-1 text-muted-foreground text-sm">
+          Pick where your money lives and type today's balance. You can
+          fine-tune later.
+        </p>
+      )}
       <div className="mt-3 space-y-2">
         {visible.map((r) => (
           <Card key={r.key} className={cn("p-3", !r.on && "opacity-60")}>
@@ -625,9 +639,11 @@ export function FinanceSetup() {
       </Card>
 
       <div className="mt-5 flex gap-2">
-        <Btn variant="ghost" onClick={() => router.push("/finance")}>
-          Skip
-        </Btn>
+        {!onDone && (
+          <Btn variant="ghost" onClick={() => router.push("/finance")}>
+            Skip
+          </Btn>
+        )}
         <Btn
           accent="fin"
           className="flex-1"
@@ -637,6 +653,6 @@ export function FinanceSetup() {
           Add {visible.filter((r) => r.on).length} accounts
         </Btn>
       </div>
-    </Screen>
+    </Wrap>
   )
 }

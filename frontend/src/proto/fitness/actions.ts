@@ -541,12 +541,16 @@ export function logWeighIn(
   weightKg: number,
   measuredAt?: string,
   note?: string,
+  bodyFatPct?: number,
 ): WeighIn {
   const w: WeighIn = {
     id: uid(),
     weightKg: Math.round(weightKg * 10) / 10,
     measuredAt: measuredAt ?? now(),
     note,
+    ...(bodyFatPct !== undefined
+      ? { bodyFatPct: Math.round(bodyFatPct * 10) / 10 }
+      : {}),
   }
   fitStore.set((s) => ({ ...s, weighIns: [...s.weighIns, w] }))
   return w

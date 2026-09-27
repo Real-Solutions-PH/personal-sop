@@ -194,7 +194,9 @@ export function LogMealButtons({ day }: { day?: string }) {
   )
 }
 
-export function NutritionDayScreen() {
+/** A day's nutrition: switcher, macro rings, log buttons, meals, quick re-log.
+ *  Rendered inside Fitness → Eat (the old /fitness/nutrition route redirects there). */
+export function NutritionDay() {
   const s = useFit()
   const qs = useSearchParams()
   const router = useRouter()
@@ -224,32 +226,11 @@ export function NutritionDayScreen() {
   }, [s, day, view])
   const go = (k: string) =>
     router.replace(
-      k === today ? "/fitness/nutrition" : `/fitness/nutrition?day=${k}`,
+      k === today ? "/fitness?tab=eat" : `/fitness?tab=eat&day=${k}`,
     )
   return (
-    <Screen
-      title="Nutrition"
-      back="/fitness?tab=eat"
-      actions={
-        <>
-          <Link
-            href="/fitness/nutrition/history"
-            aria-label="History"
-            className="grid size-10 place-items-center rounded-full hover:bg-muted"
-          >
-            <History className="size-5" />
-          </Link>
-          <Link
-            href="/fitness/nutrition/targets"
-            aria-label="Targets"
-            className="grid size-10 place-items-center rounded-full hover:bg-muted"
-          >
-            <Target className="size-5" />
-          </Link>
-        </>
-      }
-    >
-      <div className="flex items-center justify-between">
+    <>
+      <div className="mt-3 flex items-center justify-between">
         <button
           type="button"
           aria-label="Previous day"
@@ -309,6 +290,14 @@ export function NutritionDayScreen() {
           <Card className="mt-3 p-2">
             <LogMealButtons day={day === today ? undefined : day} />
           </Card>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <Btn variant="secondary" href="/fitness/nutrition/history">
+              <History className="size-4" /> History
+            </Btn>
+            <Btn variant="secondary" href="/fitness/nutrition/targets">
+              <Target className="size-4" /> Targets
+            </Btn>
+          </div>
 
           {!d.meals.length ? (
             <Empty
@@ -417,7 +406,7 @@ export function NutritionDayScreen() {
           )}
         </>
       )}
-    </Screen>
+    </>
   )
 }
 

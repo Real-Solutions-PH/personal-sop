@@ -90,6 +90,8 @@ export interface WeighIn {
   id: string
   measuredAt: string
   weightKg: number
+  /** Optional, from a smart scale / caliper, logged with the weigh-in. */
+  bodyFatPct?: number
   note?: string
 }
 
@@ -780,10 +782,13 @@ function seedWeighIns(rnd: () => number): WeighIn[] {
     const t = (n + 89) / 88
     const monBump = dow(n) === 1 ? 0.35 : 0
     const w = 82 - 3.5 * t + (rnd() - 0.5) * 0.7 + monBump
+    // body fat on roughly two mornings a week, 22.8% -> 19.6% over the cut
+    const bf = rnd() < 0.3 ? 22.8 - 3.2 * t + (rnd() - 0.5) * 0.6 : undefined
     out.push({
       id: `wi${-n}`,
       measuredAt: at(n, 6, 20 + Math.floor(rnd() * 25)),
       weightKg: Math.round(w * 10) / 10,
+      ...(bf !== undefined ? { bodyFatPct: Math.round(bf * 10) / 10 } : {}),
     })
   }
   return out

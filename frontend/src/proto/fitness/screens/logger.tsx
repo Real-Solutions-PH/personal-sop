@@ -153,7 +153,8 @@ function Logger({
   ).length
   const doFinish = (unf: "remove" | "done" = "remove", endAt?: string) => {
     const w = finishWorkout(workout.id, { unfinished: unf, endAt })
-    if (w) onExit(`/fitness/workouts/${w.id}/summary`)
+    // Back to Train, where the "done today" card replaces Up next (summary is one tap away).
+    if (w) onExit("/fitness?tab=train")
   }
 
   return (

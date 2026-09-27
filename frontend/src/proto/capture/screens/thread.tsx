@@ -121,11 +121,7 @@ export function ThreadScreen() {
             <button
               type="button"
               aria-label="Back"
-              onClick={() =>
-                window.history.length > 1
-                  ? router.back()
-                  : router.push("/today")
-              }
+              onClick={() => router.push("/today")}
               className="grid size-11 place-items-center rounded-full hover:bg-muted"
             >
               <ChevronLeft className="size-5" />

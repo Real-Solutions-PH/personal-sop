@@ -2,7 +2,7 @@
 
 import { ChevronLeft } from "lucide-react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import {
   type ComponentProps,
   type ComponentType,
@@ -54,6 +54,24 @@ const accentBg: Record<Accent, string> = {
 
 export { accentBg, accentText }
 
+// Path prefixes with no page of their own (only dynamic children), so "up" skips them.
+const NO_PAGE = new Set([
+  "/habits/day",
+  "/tasks/list",
+  "/tasks/task",
+  "/stats/metric",
+  "/fitness/share",
+  "/fitness/nutrition/meals",
+])
+
+/** Hierarchical parent of a route: drop segments until a real page; module roots go to Today. */
+export function parentOf(pathname: string): string {
+  let p = pathname.replace(/\/+$/, "")
+  do p = p.slice(0, p.lastIndexOf("/"))
+  while (NO_PAGE.has(p))
+  return p || "/today"
+}
+
 /** Screen scaffold: sticky header (optional back), scrollable body. */
 export function Screen({
   title,
@@ -63,42 +81,27 @@ export function Screen({
   className,
 }: {
   title?: ReactNode
-  /** true = previous page (Today if none); string = href */
+  /** true = parent route (see parentOf); string = href */
   back?: boolean | string
   actions?: ReactNode
   children: ReactNode
   className?: string
 }) {
-  const router = useRouter()
+  const pathname = usePathname()
   return (
     <div className="flex min-h-full flex-col">
       {(title || back || actions) && (
         <header className="pt-safe sticky top-0 z-20 bg-background/85 backdrop-blur-md">
           <div className="flex h-14 items-center gap-1 px-2">
-            {back &&
-              (typeof back === "string" ? (
-                <Link
-                  href={back}
-                  aria-label="Back"
-                  className="grid size-10 place-items-center rounded-full hover:bg-muted"
-                >
-                  <ChevronLeft className="size-5" />
-                </Link>
-              ) : (
-                <button
-                  type="button"
-                  aria-label="Back"
-                  onClick={() =>
-                    // Opened directly (deep link, notification): no in-app history.
-                    window.history.length > 1
-                      ? router.back()
-                      : router.push("/today")
-                  }
-                  className="grid size-10 place-items-center rounded-full hover:bg-muted"
-                >
-                  <ChevronLeft className="size-5" />
-                </button>
-              ))}
+            {back && (
+              <Link
+                href={typeof back === "string" ? back : parentOf(pathname)}
+                aria-label="Back"
+                className="grid size-10 place-items-center rounded-full hover:bg-muted"
+              >
+                <ChevronLeft className="size-5" />
+              </Link>
+            )}
             <h1
               className={cn(
                 "flex-1 truncate font-display font-semibold text-xl",

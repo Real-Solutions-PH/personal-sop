@@ -358,6 +358,7 @@ export function routineStats(
   })
   return {
     runs: mine,
+    scheduledDays,
     completed: completed.length,
     abandoned,
     rate: scheduledDays ? completed.length / scheduledDays : 0,

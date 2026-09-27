@@ -125,6 +125,15 @@ export const saveShareDefaults = (
 
 export const setOnboarded = (v: boolean) => set((s) => ({ ...s, onboarded: v }))
 
+export const skipSetup = (m: ModuleKey) =>
+  set((s) => ({
+    ...s,
+    setupSkipped: Array.from(new Set([...s.setupSkipped, m])),
+  }))
+
+export const setSetupHidden = (v: boolean) =>
+  set((s) => ({ ...s, setupHidden: v }))
+
 export const setInstallDismissed = (v: boolean) =>
   set((s) => ({ ...s, installDismissed: v }))
 

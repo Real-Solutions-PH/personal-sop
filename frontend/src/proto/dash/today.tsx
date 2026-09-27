@@ -47,6 +47,7 @@ import {
   useTrophies,
 } from "./hooks"
 import { AppLauncher } from "./launcher"
+import { SetupCard } from "./setup"
 import {
   dashStore,
   markAllRead,
@@ -229,6 +230,7 @@ export function TodayScreen() {
         {!isNew && (
           <DayHero threshold={threshold} sealed={!!sealed} enabled={enabled} />
         )}
+        <SetupCard />
         <AppLauncher title="Your apps" />
 
         {state === "loading" ? (

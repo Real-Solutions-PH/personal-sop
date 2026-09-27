@@ -1,10 +1,11 @@
-import { Suspense } from "react"
-import { NutritionDayScreen } from "@/proto/fitness/screens/nutrition"
+import { redirect } from "next/navigation"
 
-export default function Page() {
-  return (
-    <Suspense>
-      <NutritionDayScreen />
-    </Suspense>
-  )
+// Nutrition lives in Fitness → Eat now; keep old links (Today card, notifications) working.
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ day?: string }>
+}) {
+  const { day } = await searchParams
+  redirect(day ? `/fitness?tab=eat&day=${day}` : "/fitness?tab=eat")
 }

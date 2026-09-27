@@ -189,6 +189,12 @@ function WeighInForm({ onDone }: { onDone: () => void }) {
     .sort((a, b) => a.measuredAt.localeCompare(b.measuredAt))
     .at(-1)
   const [w, setW] = useState(last?.weightKg ?? 75)
+  const lastBf = [...s.weighIns]
+    .filter((x) => x.bodyFatPct !== undefined)
+    .sort((a, b) => a.measuredAt.localeCompare(b.measuredAt))
+    .at(-1)?.bodyFatPct
+  // Body fat is optional and collapsed, so the default log stays open → save.
+  const [bf, setBf] = useState<number | null>(null)
   const [day, setDay] = useState(dayKey())
   const [confirm, setConfirm] = useState(false)
   const avg = avgOver(s, -6, 0)
@@ -199,9 +205,12 @@ function WeighInForm({ onDone }: { onDone: () => void }) {
     if (outlier && !confirm) return setConfirm(true)
     const when =
       day === dayKey() ? undefined : new Date(`${day}T07:00:00`).toISOString()
-    const rec = logWeighIn(w, when)
+    const rec = logWeighIn(w, when, undefined, bf ?? undefined)
     onDone()
-    toast(`Logged ${kg(rec.weightKg)}`, () => deleteWeighIn(rec.id))
+    toast(
+      `Logged ${kg(rec.weightKg)}${rec.bodyFatPct !== undefined ? ` · ${rec.bodyFatPct}% body fat` : ""}`,
+      () => deleteWeighIn(rec.id),
+    )
   }
   return (
     <div className="space-y-5 pt-2">
@@ -248,6 +257,41 @@ function WeighInForm({ onDone }: { onDone: () => void }) {
           />
         </label>
       </div>
+      {bf === null ? (
+        <button
+          type="button"
+          onClick={() => setBf(lastBf ?? 20)}
+          className="flex h-11 w-full items-center justify-center gap-1.5 rounded-xl border border-border border-dashed text-muted-foreground text-sm"
+        >
+          <Plus className="size-4" aria-hidden="true" /> Add body fat %
+        </button>
+      ) : (
+        <div className="rounded-2xl bg-muted/40 p-3">
+          <div className="mb-2 flex items-center justify-between text-sm">
+            <span className="font-medium">Body fat</span>
+            <button
+              type="button"
+              onClick={() => setBf(null)}
+              className="h-9 px-2 text-muted-foreground text-xs"
+            >
+              Remove
+            </button>
+          </div>
+          <Stepper
+            value={bf}
+            onChange={setBf}
+            step={0.1}
+            min={3}
+            max={60}
+            unit="%"
+          />
+          <div className="mt-1 text-center text-muted-foreground text-xs">
+            {lastBf !== undefined
+              ? `Last: ${lastBf}%`
+              : "From a smart scale or calipers"}
+          </div>
+        </div>
+      )}
       {implausible && (
         <div className="rounded-xl bg-bad/15 p-3 text-bad text-sm">
           That doesn’t look like a body weight.

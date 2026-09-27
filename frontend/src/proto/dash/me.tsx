@@ -11,6 +11,7 @@ import {
   Eye,
   Flame,
   LayoutGrid,
+  ListChecks,
   Pencil,
   RotateCcw,
   Scale,
@@ -20,6 +21,7 @@ import {
   Target,
   Trash2,
   Trophy,
+  UserPlus,
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -50,6 +52,7 @@ import {
 } from "./hooks"
 import { AppLauncher } from "./launcher"
 import { AvatarPhotoButton } from "./photo"
+import { startAsNewUser } from "./setup"
 import { Avatar, WeightsEditor } from "./stats"
 import {
   dashStore,
@@ -125,6 +128,7 @@ export function MeScreen() {
   const target = useOnTarget(30)
   const install = useInstallState()
   const [reset, setReset] = useState(false)
+  const [fresh, setFresh] = useState(false)
 
   return (
     <Screen
@@ -388,6 +392,27 @@ export function MeScreen() {
         />
         <Row
           icon={
+            <Icon tint="bg-muted">
+              <ListChecks className="size-4" />
+            </Icon>
+          }
+          title="Set up my data"
+          subtitle="Accounts, habits, training, tasks — pick up where you left off"
+          right={chev}
+          href="/setup"
+        />
+        <Row
+          icon={
+            <Icon tint="bg-muted">
+              <UserPlus className="size-4" />
+            </Icon>
+          }
+          title="Start as a new user"
+          subtitle="Demo: empty every section and run first-time setup"
+          onClick={() => setFresh(true)}
+        />
+        <Row
+          icon={
             <Icon tint="bg-bad/10 text-bad">
               <RotateCcw className="size-4" />
             </Icon>
@@ -400,6 +425,18 @@ export function MeScreen() {
       <p className="mt-4 text-center text-muted-foreground text-xs">
         Personal SOP · prototype build
       </p>
+      <Confirm
+        open={fresh}
+        onClose={() => setFresh(false)}
+        title="Start as a new user?"
+        body="Every section is emptied so you can walk first-time onboarding and setup. Reset demo data brings the samples back."
+        confirm="Start fresh"
+        danger
+        onConfirm={() => {
+          startAsNewUser()
+          router.push("/onboarding")
+        }}
+      />
       <Confirm
         open={reset}
         onClose={() => setReset(false)}

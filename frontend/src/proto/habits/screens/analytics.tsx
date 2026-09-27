@@ -41,6 +41,7 @@ import {
   streaks,
   weekStartOf,
 } from "../logic"
+import { RoutineProgressCard } from "../routine-progress"
 import { habitsStore } from "../store"
 import { fmtDay, Gate, HabitIcon, StreakChip } from "../ui"
 
@@ -418,25 +419,16 @@ function Body() {
       {d.routines.length > 0 && (
         <>
           <SectionTitle>Routines</SectionTitle>
-          <Card className="p-1">
+          <div className="space-y-3">
             {d.routines.map(({ r, s }) => (
-              <Link
+              <RoutineProgressCard
                 key={r.id}
-                href={`/habits/routines/${r.id}`}
-                className="flex items-center gap-3 rounded-xl px-2 py-2.5 active:bg-muted/60"
-              >
-                <HabitIcon icon={r.icon} size="sm" />
-                <div className="min-w-0 flex-1">
-                  <div className="truncate font-medium text-sm">{r.name}</div>
-                  <div className="text-muted-foreground text-xs">
-                    {s.completed} done · {s.abandoned.length} abandoned · pace{" "}
-                    {s.pace ? pct(s.pace) : "—"}
-                  </div>
-                </div>
-                <span className="num font-semibold text-sm">{pct(s.rate)}</span>
-              </Link>
+                r={r}
+                s={s}
+                habits={state.habits}
+              />
             ))}
-          </Card>
+          </div>
         </>
       )}
 

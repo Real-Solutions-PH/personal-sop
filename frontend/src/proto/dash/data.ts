@@ -131,6 +131,10 @@ export interface DashState {
   /** Last-used field toggles per share template (F-DSH-23). */
   share: Partial<Record<ShareTemplate, Record<string, boolean>>>
   onboarded: boolean
+  /** Data setup (/setup): steps the user skipped — still offered on Today. */
+  setupSkipped: ModuleKey[]
+  /** Today's "finish setting up" card dismissed. */
+  setupHidden: boolean
   installDismissed: boolean
   push: {
     permission: "default" | "granted" | "denied"
@@ -296,6 +300,8 @@ export const seed = (): DashState => ({
   wrapups: {},
   share: {},
   onboarded: true,
+  setupSkipped: [],
+  setupHidden: false,
   installDismissed: false,
   push: {
     permission: "default",

@@ -721,9 +721,9 @@ export function OnboardingScreen() {
             </Card>
             <Btn
               className="h-12 w-full text-base"
-              onClick={() => finish("/capture")}
+              onClick={() => finish("/setup")}
             >
-              Log my first win
+              Bring my data in
             </Btn>
             <Btn
               variant="ghost"

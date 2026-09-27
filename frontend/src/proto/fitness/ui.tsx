@@ -498,7 +498,7 @@ export function Pill({
   return (
     <span
       className={cn(
-        "inline-flex h-5 items-center gap-1 rounded-full px-2 font-medium text-[11px]",
+        "inline-flex h-5 shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2 font-medium text-[11px]",
         tone === "muted" && "bg-muted text-muted-foreground",
         tone === "fit" && "bg-fit/15 text-fit",
         tone === "good" && "bg-good/15 text-good",
