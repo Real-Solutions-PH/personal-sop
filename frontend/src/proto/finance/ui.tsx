@@ -101,7 +101,7 @@ export function AcctIcon({
         "grid shrink-0 place-items-center rounded-full text-white",
         size === "sm" ? "size-6" : "size-10",
       )}
-      style={{ background: acct?.color ?? "#64748b" }}
+      style={{ background: acct?.color ?? "var(--acct-slate)" }}
     >
       <Icon className={size === "sm" ? "size-3.5" : "size-5"} />
     </span>

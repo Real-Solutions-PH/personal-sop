@@ -28,7 +28,11 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: "#0f0f14",
+  // First paint only; ThemeColorSync retints to the in-app theme after hydration.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f5f6f9" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f0f14" },
+  ],
   viewportFit: "cover",
 }
 

@@ -169,7 +169,7 @@ export function LifeScoreHero({
       ? (ls.score - level.floor) / (level.next.floor - level.floor)
       : 1
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-[oklch(0.25_0.06_293)] via-[oklch(0.2_0.03_260)] to-[oklch(0.22_0.05_60)] p-5 text-white shadow-xl">
+    <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-hero-from via-hero-via to-hero-to p-5 text-white shadow-xl">
       <div className="pointer-events-none absolute -top-16 -right-16 size-48 rounded-full bg-life/25 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-20 -left-10 size-48 rounded-full bg-hab/30 blur-3xl" />
       <div className="relative flex items-center gap-4">

@@ -93,7 +93,7 @@ export function NotificationScreen() {
         What the lock screen shows. Tap a ping to open the task.
         {actions ? "" : " iPhone shows no action buttons — tap opens the app."}
       </p>
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-slate-800 to-slate-950 p-4 pb-8 text-white">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-(--lockscreen-from) to-(--lockscreen-to) p-4 pb-8 text-white">
         <div className="flex flex-col items-center py-4">
           <Lock className="size-4 opacity-70" />
           <div className="num mt-1 font-light text-6xl">

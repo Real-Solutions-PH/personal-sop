@@ -50,7 +50,7 @@ const BACKDROP: Record<Backdrop, { cls: string; vars: CSSProperties }> = {
     cls: "text-white",
     vars: {
       background:
-        "radial-gradient(120% 70% at 100% 0%, color-mix(in oklch, var(--a) 75%, transparent), transparent 60%), radial-gradient(90% 60% at 0% 100%, color-mix(in oklch, var(--a2) 55%, transparent), transparent 65%), linear-gradient(160deg, oklch(0.24 0.05 270), oklch(0.13 0.02 270))",
+        "radial-gradient(120% 70% at 100% 0%, color-mix(in oklch, var(--a) 75%, transparent), transparent 60%), radial-gradient(90% 60% at 0% 100%, color-mix(in oklch, var(--a2) 55%, transparent), transparent 65%), linear-gradient(160deg, var(--share-vivid-from), var(--share-vivid-to))",
       "--hi": "var(--a)",
       "--panel": "rgb(255 255 255 / 0.09)",
       "--track": "rgb(255 255 255 / 0.14)",
@@ -60,17 +60,17 @@ const BACKDROP: Record<Backdrop, { cls: string; vars: CSSProperties }> = {
     cls: "text-white",
     vars: {
       background:
-        "radial-gradient(80% 40% at 50% 0%, color-mix(in oklch, var(--a) 22%, transparent), transparent 70%), oklch(0.12 0.01 270)",
+        "radial-gradient(80% 40% at 50% 0%, color-mix(in oklch, var(--a) 22%, transparent), transparent 70%), var(--share-night)",
       "--hi": "var(--a)",
       "--panel": "rgb(255 255 255 / 0.06)",
       "--track": "rgb(255 255 255 / 0.1)",
     } as CSSProperties,
   },
   paper: {
-    cls: "text-neutral-900",
+    cls: "text-(--share-paper-ink)",
     vars: {
       background:
-        "radial-gradient(90% 50% at 100% 0%, color-mix(in oklch, var(--a) 22%, transparent), transparent 70%), oklch(0.97 0.012 85)",
+        "radial-gradient(90% 50% at 100% 0%, color-mix(in oklch, var(--a) 22%, transparent), transparent 70%), var(--share-paper)",
       "--hi": "color-mix(in oklch, var(--a) 62%, black)",
       "--panel": "rgb(0 0 0 / 0.05)",
       "--track": "rgb(0 0 0 / 0.1)",
@@ -104,7 +104,7 @@ const PARTNER: Record<CardAccent, CardAccent> = {
 }
 
 const PHOTO_PLACEHOLDER =
-  "repeating-linear-gradient(135deg, oklch(0.32 0.03 270) 0 3cqw, oklch(0.28 0.03 270) 3cqw 6cqw)"
+  "repeating-linear-gradient(135deg, var(--share-placeholder-a) 0 3cqw, var(--share-placeholder-b) 3cqw 6cqw)"
 
 export function ShareFrame({
   format,
@@ -444,7 +444,7 @@ export function Medal({
         "inline-flex max-w-full items-center gap-[1.4cqw] rounded-full px-[2.6cqw] py-[1.2cqw] font-bold text-[3.3cqw] uppercase leading-none tracking-wide [text-shadow:none]",
         tone === "hi" && "bg-(--hi) text-black/85",
         tone === "gold" &&
-          "bg-gradient-to-br from-[oklch(0.9_0.13_90)] to-[oklch(0.72_0.15_65)] text-black/85",
+          "bg-gradient-to-br from-(--gold-from) to-(--gold-to) text-black/85",
         tone === "plain" && "bg-(--panel) ring-1 ring-current/20",
         className,
       )}
@@ -824,20 +824,21 @@ const BACKDROPS: { value: Backdrop; label: string; swatch: string }[] = [
     value: "vivid",
     label: "Vivid",
     swatch:
-      "radial-gradient(circle at 80% 20%, var(--a), transparent 65%), oklch(0.18 0.03 270)",
+      "radial-gradient(circle at 80% 20%, var(--a), transparent 65%), var(--share-vivid-swatch)",
   },
-  { value: "night", label: "Night", swatch: "oklch(0.12 0.01 270)" },
-  { value: "paper", label: "Paper", swatch: "oklch(0.97 0.012 85)" },
+  { value: "night", label: "Night", swatch: "var(--share-night)" },
+  { value: "paper", label: "Paper", swatch: "var(--share-paper)" },
   {
     value: "photo",
     label: "Photo",
-    swatch: "linear-gradient(135deg, oklch(0.5 0.05 200), oklch(0.3 0.05 40))",
+    swatch:
+      "linear-gradient(135deg, var(--share-photo-from), var(--share-photo-to))",
   },
   {
     value: "sticker",
     label: "Sticker",
     swatch:
-      "repeating-conic-gradient(oklch(0.8 0 0) 0 25%, oklch(0.6 0 0) 0 50%) 0 0 / 10px 10px",
+      "repeating-conic-gradient(var(--checker-a) 0 25%, var(--checker-b) 0 50%) 0 0 / 10px 10px",
   },
 ]
 
@@ -943,7 +944,7 @@ export function ShareTargets({
       label: "Stories",
       icon: <FaInstagram className="size-5" />,
       onClick: onStory,
-      cls: "bg-gradient-to-br from-[#feda75] via-[#d62976] to-[#4f5bd5] text-white",
+      cls: "bg-gradient-to-br from-(--brand-ig-1) via-(--brand-ig-2) to-(--brand-ig-3) text-white",
     },
     { label: "Save", icon: <Download className="size-5" />, onClick: onSave },
     { label: "Caption", icon: <Copy className="size-5" />, onClick: onCopy },

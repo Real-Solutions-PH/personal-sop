@@ -455,15 +455,15 @@ function ReceiptReview({ open, onOpenChange }: SheetProps) {
       }
     >
       <div className="flex gap-4">
-        <div className="w-24 shrink-0 -rotate-2 rounded-md bg-[#f7f3e8] p-2 font-mono text-[7px] text-neutral-700 leading-tight shadow">
+        <div className="w-24 shrink-0 -rotate-2 rounded-md bg-paper p-2 font-mono text-[7px] text-paper-foreground leading-tight shadow">
           <div className="text-center font-bold">JOLLIBEE</div>
           <div className="text-center">SM MEGAMALL</div>
-          <div className="my-1 border-neutral-400 border-t border-dashed" />
+          <div className="my-1 border-paper-foreground/40 border-t border-dashed" />
           <div>1 C1 CHICKENJOY 99</div>
           <div>1 JOLLY SPAG 70</div>
           <div>1 BURGER STEAK 99</div>
           <div>1 PINEAPPLE JCE 79</div>
-          <div className="my-1 border-neutral-400 border-t border-dashed" />
+          <div className="my-1 border-paper-foreground/40 border-t border-dashed" />
           <div className="font-bold">TOTAL 347.00</div>
           <div>GCASH</div>
         </div>

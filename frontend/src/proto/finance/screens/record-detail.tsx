@@ -161,7 +161,7 @@ export function RecordDetail() {
         <Card className="mt-3 space-y-2 text-sm">
           {r.receipt && (
             <div className="flex items-center gap-3">
-              <div className="grid h-16 w-12 place-items-center rounded-md bg-[#f7f3e8] text-neutral-500">
+              <div className="grid h-16 w-12 place-items-center rounded-md bg-paper text-paper-foreground">
                 <Receipt className="size-5" />
               </div>
               <div className="flex-1">

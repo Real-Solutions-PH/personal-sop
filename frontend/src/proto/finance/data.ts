@@ -364,13 +364,16 @@ const TARGET: Record<string, number> = {
 }
 
 const ACCOUNTS: Omit<Account, "opening" | "openingDate">[] = [
-  a("cash", "Cash", "cash", "#16a34a", 0),
-  a("gcash", "GCash", "ewallet", "#2563eb", 1),
-  a("maya", "Maya", "ewallet", "#10b981", 2),
-  a("bpi", "BPI Savings", "bank", "#b91c1c", 3),
-  { ...a("bpicc", "BPI Credit Card", "credit", "#9f1239", 4), limit: 80000 },
+  a("cash", "Cash", "cash", "var(--acct-green)", 0),
+  a("gcash", "GCash", "ewallet", "var(--acct-blue)", 1),
+  a("maya", "Maya", "ewallet", "var(--acct-emerald)", 2),
+  a("bpi", "BPI Savings", "bank", "var(--acct-red)", 3),
   {
-    ...a("col", "COL Financial", "investment", "#7c3aed", 5),
+    ...a("bpicc", "BPI Credit Card", "credit", "var(--acct-rose)", 4),
+    limit: 80000,
+  },
+  {
+    ...a("col", "COL Financial", "investment", "var(--acct-violet)", 5),
     manual: true,
     inProjection: false,
   },

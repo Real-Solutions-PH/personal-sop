@@ -519,17 +519,19 @@ export function RecordEditor({
 
 // ------------------------------------------------------------------ FIN-11
 
-const COLORS = [
-  "#16a34a",
-  "#2563eb",
-  "#10b981",
-  "#b91c1c",
-  "#9f1239",
-  "#7c3aed",
-  "#ea580c",
-  "#0891b2",
-  "#64748b",
+// Account swatches are theme tokens (globals.css --acct-*); the name is the a11y label.
+const COLOR_NAMES = [
+  "green",
+  "blue",
+  "emerald",
+  "red",
+  "rose",
+  "violet",
+  "orange",
+  "cyan",
+  "slate",
 ]
+const COLORS = COLOR_NAMES.map((n) => `var(--acct-${n})`)
 const TYPES: { v: AccountType; l: string }[] = [
   { v: "cash", l: "Cash" },
   { v: "bank", l: "Bank" },
@@ -678,11 +680,11 @@ export function AccountEditor({
       )}
       <Field label="Colour">
         <div className="flex flex-wrap gap-2">
-          {COLORS.map((c) => (
+          {COLORS.map((c, i) => (
             <button
               key={c}
               type="button"
-              aria-label={c}
+              aria-label={COLOR_NAMES[i]}
               onClick={() => setColor(c)}
               className={cn(
                 "size-8 rounded-full ring-offset-2 ring-offset-background",

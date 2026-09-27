@@ -27,6 +27,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { type ReactNode, useEffect, useState } from "react"
 import { toast } from "sonner"
+import { useTheme } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
 import type { ModuleKey } from "../contract"
 import { DAY_START_HOUR } from "../lib/day"
@@ -40,6 +41,7 @@ import {
   Row,
   Screen,
   SectionTitle,
+  Segmented,
   SwitchTrack,
 } from "../ui/kit"
 import { AREA, type Identity, MODULE_KEYS } from "./data"
@@ -129,6 +131,7 @@ export function MeScreen() {
   const install = useInstallState()
   const [reset, setReset] = useState(false)
   const [fresh, setFresh] = useState(false)
+  const { theme, setTheme } = useTheme()
 
   return (
     <Screen
@@ -376,6 +379,19 @@ export function MeScreen() {
             href={MODULE_CONFIG[k][MODULE_CONFIG[k].length - 1].href}
           />
         ))}
+      </Card>
+
+      <SectionTitle>Appearance</SectionTitle>
+      <Card className="p-2">
+        <Segmented
+          value={theme ?? "system"}
+          onChange={setTheme}
+          options={[
+            { value: "system", label: "System" },
+            { value: "light", label: "Light" },
+            { value: "dark", label: "Dark" },
+          ]}
+        />
       </Card>
 
       <SectionTitle>App</SectionTitle>
