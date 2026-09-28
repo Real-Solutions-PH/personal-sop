@@ -39,8 +39,9 @@ export interface Miss {
 export interface ModuleContract {
   key: ModuleKey
   label: string
-  /** Card(s) for the Today dashboard; render null when nothing to show. */
-  TodayCard: ComponentType
+  /** Card(s) for the Today dashboard; render null when nothing to show.
+   *  `evening` = the wrap-up layout (IA §6): state results against targets. */
+  TodayCard: ComponentType<{ evening?: boolean }>
   /** 0..1 performance for the Life Score over `days` days ending `offset`
    *  days before today (offset = days → the previous equal period). */
   useAreaRate: (days: number, offset?: number) => number

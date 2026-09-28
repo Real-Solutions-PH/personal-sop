@@ -263,7 +263,7 @@ export function TodayScreen() {
                 state === "error" && m.key === "tasks" ? (
                   <ErrorCard key={m.key} what="Tasks" />
                 ) : (
-                  <m.TodayCard key={m.key} />
+                  <m.TodayCard key={m.key} evening={evening} />
                 ),
               )}
 

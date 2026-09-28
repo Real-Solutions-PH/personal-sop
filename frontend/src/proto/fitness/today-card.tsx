@@ -11,6 +11,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useMemo, useState } from "react"
+import { cn } from "@/lib/utils"
 import { openCapture } from "../lib/capture"
 import { dayKey, fmtDuration } from "../lib/day"
 import { Btn, Card, Ring } from "../ui/kit"
@@ -37,11 +38,11 @@ import { Pill, useNow } from "./ui"
 
 // Today cards (IA §6): Workout · Macros left · Weigh-in. Each hides when irrelevant.
 
-export function FitnessTodayCard() {
+export function FitnessTodayCard({ evening }: { evening?: boolean }) {
   return (
     <div className="space-y-3">
       <WorkoutCard />
-      <MacrosCard />
+      <MacrosCard evening={evening} />
       <WeighInCard />
     </div>
   )
@@ -163,7 +164,7 @@ function ActivePill() {
   )
 }
 
-function MacrosCard() {
+function MacrosCard({ evening }: { evening?: boolean }) {
   const s = useFit()
   const d = useMemo(
     () => ({ ...dayTotals(s, dayKey()), target: targetFor(s, dayKey()) }),
@@ -198,17 +199,37 @@ function MacrosCard() {
             <span className="font-semibold text-[11px]">P</span>
           </Ring>
           <div className="min-w-0">
-            <div className="num font-semibold">
+            <div
+              className={cn(
+                "num font-semibold",
+                evening && kLeft !== undefined && kLeft < 0 && "text-bad",
+              )}
+            >
               {kLeft === undefined
                 ? `${Math.round(d.totals.kcal)} kcal eaten`
-                : kLeft >= 0
-                  ? `${Math.round(kLeft)} kcal left`
-                  : `${Math.round(-kLeft)} kcal over`}
+                : evening
+                  ? `${Math.round(Math.abs(kLeft))} kcal ${kLeft >= 0 ? "under" : "over"}`
+                  : kLeft >= 0
+                    ? `${Math.round(kLeft)} kcal left`
+                    : `${Math.round(-kLeft)} kcal over`}
             </div>
-            <div className="num truncate text-muted-foreground text-sm">
-              {pLeft === undefined
-                ? "Set targets"
-                : `${Math.max(0, Math.round(pLeft))} g protein left`}
+            <div
+              className={cn(
+                "num text-muted-foreground text-sm",
+                !evening && "truncate",
+              )}
+            >
+              {pLeft === undefined ? (
+                "Set targets"
+              ) : evening ? (
+                <span className={pLeft <= 0 ? "text-good" : "text-bad"}>
+                  {pLeft <= 0
+                    ? "Protein target hit"
+                    : `${Math.round(pLeft)} g protein short`}
+                </span>
+              ) : (
+                `${Math.max(0, Math.round(pLeft))} g protein left`
+              )}
               {!!d.pending && ` · +${d.pending} pending`}
               {!!d.toReview && ` · ${d.toReview} to review`}
             </div>

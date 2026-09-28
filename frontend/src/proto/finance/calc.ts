@@ -309,6 +309,13 @@ export interface BudgetView {
   to: string
 }
 
+/** Today's allowance as it stood at the start of the day: what was left
+ *  before today's spend, split over today and the days remaining. Unlike
+ *  safePerDay it does not shrink as today's spending comes in. */
+export function todayAllowance(v: BudgetView, spentToday: number): number {
+  return Math.max(0, v.limit - v.spent + spentToday) / (v.daysLeft + 1)
+}
+
 export function budgetView(s: FinState, b: Budget, mk?: string): BudgetView {
   const sd = s.settings.monthStartDay
   const t = today()

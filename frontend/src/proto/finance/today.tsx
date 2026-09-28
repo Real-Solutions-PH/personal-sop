@@ -34,7 +34,9 @@ import {
   type Occurrence,
   occurrencesIn,
   project,
+  spendIn,
   today,
+  todayAllowance,
 } from "./calc"
 import { FinSheets, openSheet } from "./sheets"
 import { useFin } from "./store"
@@ -104,7 +106,7 @@ function DueRow({ o }: { o: Occurrence }) {
 }
 
 /** Today dashboard card (IA §6): spend today, due items, alerts, nudges. */
-export function FinanceTodayCard() {
+export function FinanceTodayCard({ evening }: { evening?: boolean }) {
   const s = useFin()
   const [open, setOpen] = useState(true)
   const d = useMemo(() => {
@@ -142,6 +144,9 @@ export function FinanceTodayCard() {
     return {
       spent: todayFlow.spend,
       ov,
+      allowance: ov
+        ? todayAllowance(ov, spendIn(s, t, t, ov.b.categoryIds))
+        : null,
       due,
       alerts,
       stale,
@@ -186,14 +191,31 @@ export function FinanceTodayCard() {
               <Money value={d.spent} className="font-semibold text-xl" />
             </div>
           </Link>
-          {d.ov && (
+          {evening && d.allowance !== null ? (
             <div className="text-right text-xs">
-              <div className="text-muted-foreground">Safe to spend / day</div>
-              <Money
-                value={d.ov.safePerDay}
-                className="font-semibold text-fin"
-              />
+              <div className="text-muted-foreground">
+                of <Money value={d.allowance} /> today
+              </div>
+              <div
+                className={cn(
+                  "font-semibold",
+                  d.spent > d.allowance ? "text-bad" : "text-good",
+                )}
+              >
+                <Money value={Math.abs(d.allowance - d.spent)} />{" "}
+                {d.spent > d.allowance ? "over" : "under"}
+              </div>
             </div>
+          ) : (
+            d.ov && (
+              <div className="text-right text-xs">
+                <div className="text-muted-foreground">Safe to spend / day</div>
+                <Money
+                  value={d.ov.safePerDay}
+                  className="font-semibold text-fin"
+                />
+              </div>
+            )
           )}
           <button
             type="button"
