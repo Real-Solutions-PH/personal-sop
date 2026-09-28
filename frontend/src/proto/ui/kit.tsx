@@ -471,7 +471,7 @@ export function Chip({
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3.5 font-medium text-sm transition-colors",
+        "inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full border px-3.5 font-medium text-sm transition-colors",
         active
           ? cn(accentBg[accent], "border-transparent text-background")
           : "border-border bg-card text-foreground active:bg-muted",

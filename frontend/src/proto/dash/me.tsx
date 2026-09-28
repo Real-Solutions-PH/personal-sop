@@ -18,6 +18,7 @@ import {
   Share2,
   Smartphone,
   Sparkles,
+  SunMoon,
   Target,
   Trash2,
   Trophy,
@@ -132,7 +133,8 @@ export function MeScreen() {
   const install = useInstallState()
   const [reset, setReset] = useState(false)
   const [fresh, setFresh] = useState(false)
-  const { theme, setTheme } = useTheme()
+  const { theme, resolvedTheme } = useTheme()
+  const eveningStart = dashStore.use((s) => s.eveningStart)
 
   return (
     <Screen
@@ -341,9 +343,26 @@ export function MeScreen() {
             </Icon>
           }
           title="Day & time"
-          subtitle={`Day starts ${String(DAY_START_HOUR).padStart(2, "0")}:00 · Asia/Manila`}
+          subtitle={`Day starts ${String(DAY_START_HOUR).padStart(2, "0")}:00 · Evening ${eveningStart} · Asia/Manila`}
           right={chev}
           href="/me/settings#day"
+        />
+        <Row
+          icon={
+            <Icon tint="bg-muted">
+              <SunMoon className="size-4" />
+            </Icon>
+          }
+          title="Appearance"
+          subtitle={
+            !theme || theme === "system"
+              ? `Follows system${resolvedTheme ? ` · ${resolvedTheme} now` : ""}`
+              : theme === "light"
+                ? "Light"
+                : "Dark"
+          }
+          right={chev}
+          href="/me/settings#appearance"
         />
         <Row
           icon={
@@ -380,19 +399,6 @@ export function MeScreen() {
             href={MODULE_CONFIG[k][MODULE_CONFIG[k].length - 1].href}
           />
         ))}
-      </Card>
-
-      <SectionTitle>Appearance</SectionTitle>
-      <Card className="p-2">
-        <Segmented
-          value={theme ?? "system"}
-          onChange={setTheme}
-          options={[
-            { value: "system", label: "System" },
-            { value: "light", label: "Light" },
-            { value: "dark", label: "Dark" },
-          ]}
-        />
       </Card>
 
       <SectionTitle>App</SectionTitle>
@@ -608,6 +614,7 @@ export function EditProfileScreen() {
 export function SettingsScreen() {
   const enabled = useEnabled()
   const push = dashStore.use((s) => s.push)
+  const { theme, setTheme } = useTheme()
   const threshold = dashStore.use((s) => s.targetThreshold)
   const eveningStart = dashStore.use((s) => s.eveningStart)
   const hidden = privacyStore.use((s) => s.hidden)
@@ -718,6 +725,24 @@ export function SettingsScreen() {
         </Card>
       </section>
 
+      <section id="appearance" className="scroll-mt-16">
+        <SectionTitle>Appearance</SectionTitle>
+        <Card className="space-y-2 p-2">
+          <Segmented
+            value={theme ?? "system"}
+            onChange={setTheme}
+            options={[
+              { value: "system", label: "System" },
+              { value: "light", label: "Light" },
+              { value: "dark", label: "Dark" },
+            ]}
+          />
+          <p className="px-1 pb-1 text-muted-foreground text-xs">
+            System follows your phone's light or dark setting.
+          </p>
+        </Card>
+      </section>
+
       <section id="day" className="scroll-mt-16">
         <SectionTitle>Day & time</SectionTitle>
         <Card className="px-3 py-1">
@@ -755,7 +780,7 @@ export function SettingsScreen() {
             title="Week starts"
             right={<span className="text-sm">Monday</span>}
           />
-          <div className="py-2">
+          <div className="px-1 py-2">
             <div className="font-medium">What counts as on target</div>
             <div className="text-muted-foreground text-sm">
               Share of due habits + tasks done to hit the day's target
