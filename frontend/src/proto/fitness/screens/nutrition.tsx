@@ -106,7 +106,7 @@ export function MealThumb({ meal, size = 44 }: { meal: Meal; size?: number }) {
       className={cn(
         "grid shrink-0 place-items-center rounded-xl",
         meal.photo
-          ? "bg-gradient-to-br from-fit/60 via-life/40 to-good/40 text-white"
+          ? "bg-gradient-to-br from-nut/60 via-life/40 to-good/40 text-white"
           : "bg-muted text-muted-foreground",
       )}
       style={{ width: size, height: size }}
@@ -127,7 +127,7 @@ function StatusPill({ meal }: { meal: Meal }) {
         <CloudOff className="size-3" /> Estimating when online
       </Pill>
     )
-  if (meal.status === "estimated") return <Pill tone="fit">Review</Pill>
+  if (meal.status === "estimated") return <Pill tone="nut">Review</Pill>
   if (meal.source === "connector") return <Pill>via Claude</Pill>
   return null
 }
@@ -165,7 +165,7 @@ export function LogMealButtons({ day }: { day?: string }) {
       {btns.map((b) => {
         const inner = (
           <>
-            <span className="grid size-11 place-items-center rounded-2xl bg-fit/15 text-fit">
+            <span className="grid size-11 place-items-center rounded-2xl bg-nut/15 text-nut">
               {b.icon}
             </span>
             <span className="text-xs">{b.label}</span>
@@ -271,13 +271,13 @@ export function NutritionDay() {
                   {Math.round(d.totals.protein)}/{d.target.protein} g
                 </span>
                 {!!d.pending && <Pill tone="warn">+{d.pending} pending</Pill>}
-                {!!d.toReview && <Pill tone="fit">{d.toReview} to review</Pill>}
+                {!!d.toReview && <Pill tone="nut">{d.toReview} to review</Pill>}
               </div>
             ) : (
               <div className="mt-3 flex items-center justify-between rounded-xl bg-muted/60 p-3 text-sm">
                 <span>No targets set — showing totals eaten.</span>
                 <Btn
-                  accent="fit"
+                  accent="nut"
                   className="h-9"
                   href="/fitness/nutrition/targets"
                 >
@@ -306,7 +306,7 @@ export function NutritionDay() {
               body="A photo is enough; AI estimates the macros and you confirm."
               action={
                 <Btn
-                  accent="fit"
+                  accent="nut"
                   onClick={() => openCapture({ mode: "photo", hint: "meal" })}
                 >
                   <Camera className="size-4" /> Log a meal
@@ -397,7 +397,7 @@ export function NutritionDay() {
                       <span className="num text-muted-foreground text-xs">
                         {Math.round(mealTotals(m).kcal)} kcal
                       </span>
-                      <Plus className="size-4 text-fit" />
+                      <Plus className="size-4 text-nut" />
                     </div>
                   </button>
                 ))}
@@ -474,7 +474,7 @@ function ItemRow({
           <button
             type="button"
             onClick={() => setOpen((x) => !x)}
-            className="ml-auto text-fit text-xs"
+            className="ml-auto text-nut text-xs"
           >
             {open ? "Done" : "Edit macros"}
           </button>
@@ -602,7 +602,7 @@ export function MealScreen() {
           <button
             type="button"
             onClick={() => setEditing((x) => !x)}
-            className="h-9 rounded-full px-3 font-medium text-fit text-sm"
+            className="h-9 rounded-full px-3 font-medium text-nut text-sm"
           >
             {editing ? "Done" : "Edit"}
           </button>
@@ -638,7 +638,7 @@ export function MealScreen() {
               onChange={(e) => setHint(e.target.value)}
               placeholder="e.g. 1 cup rice, sinigang na baboy"
             />
-            <Btn accent="fit" onClick={rehint}>
+            <Btn accent="nut" onClick={rehint}>
               Estimate
             </Btn>
           </div>
@@ -664,7 +664,7 @@ export function MealScreen() {
             macros until it’s estimated and confirmed.
           </div>
           <Btn
-            accent="fit"
+            accent="nut"
             className="mt-4"
             disabled={estimating}
             onClick={() => {
@@ -689,7 +689,7 @@ export function MealScreen() {
             <Card className="mt-4">
               <div className="flex items-center justify-between text-sm">
                 <span className="flex items-center gap-1.5 font-medium">
-                  <Sparkles className="size-4 text-fit" /> AI estimate
+                  <Sparkles className="size-4 text-nut" /> AI estimate
                 </span>
                 <Pill
                   tone={conf >= 0.8 ? "good" : conf >= 0.65 ? "warn" : "bad"}
@@ -698,7 +698,7 @@ export function MealScreen() {
                   confidence · {Math.round(conf * 100)}%
                 </Pill>
               </div>
-              <Bar value={conf} accent="fit" className="mt-2 h-1.5" />
+              <Bar value={conf} accent="nut" className="mt-2 h-1.5" />
               {meal.followUp && (
                 <div className="mt-3 rounded-xl bg-muted/60 p-3">
                   <div className="text-sm">{meal.followUp.question}</div>
@@ -715,7 +715,7 @@ export function MealScreen() {
           )}
 
           <Card className="mt-3 grid grid-cols-4 gap-2 text-center">
-            <Stat label="kcal" value={Math.round(totals.kcal)} accent="fit" />
+            <Stat label="kcal" value={Math.round(totals.kcal)} accent="nut" />
             <Stat label="Protein" value={`${Math.round(totals.protein)}g`} />
             <Stat label="Carbs" value={`${Math.round(totals.carbs)}g`} />
             <Stat label="Fat" value={`${Math.round(totals.fat)}g`} />
@@ -751,7 +751,7 @@ export function MealScreen() {
                   <Chip
                     key={l}
                     active={meal.label === l}
-                    accent="fit"
+                    accent="nut"
                     onClick={() => updateMeal(meal.id, { label: l })}
                     className="capitalize"
                   >
@@ -821,7 +821,7 @@ export function MealScreen() {
           </Btn>
           {review && !failed && (
             <Btn
-              accent="fit"
+              accent="nut"
               disabled={!meal.items.length}
               onClick={() => {
                 confirmMeal(meal.id)
@@ -874,7 +874,7 @@ export function ManualMealScreen() {
     <Screen back={back} title="Log meal" className="pb-28">
       <Card>
         <div className="flex items-center gap-2 font-medium text-sm">
-          <Sparkles className="size-4 text-fit" /> Describe it
+          <Sparkles className="size-4 text-nut" /> Describe it
         </div>
         <textarea
           value={text}
@@ -891,7 +891,7 @@ export function ManualMealScreen() {
           </div>
         )}
         <Btn
-          accent="fit"
+          accent="nut"
           className="w-full"
           disabled={!text.trim()}
           onClick={() => {
@@ -910,7 +910,7 @@ export function ManualMealScreen() {
           <Chip
             key={l}
             active={label === l}
-            accent="fit"
+            accent="nut"
             onClick={() => setLabel(l)}
             className="capitalize"
           >
@@ -1036,7 +1036,7 @@ export function ManualMealScreen() {
 
       <div className="sticky bottom-0 mt-6 bg-background/90 py-3 backdrop-blur">
         <Btn
-          accent="fit"
+          accent="nut"
           className="w-full"
           disabled={!items.length}
           onClick={() => {
@@ -1194,7 +1194,7 @@ export function TargetsScreen() {
               </Btn>
             </div>
             {sug && (
-              <div className="mt-3 flex items-center justify-between rounded-xl bg-fit/10 p-3">
+              <div className="mt-3 flex items-center justify-between rounded-xl bg-nut/10 p-3">
                 <span className="num text-sm">
                   {sug.kcal} kcal · P{sug.protein} · C{sug.carbs} · F{sug.fat}
                 </span>
@@ -1204,7 +1204,7 @@ export function TargetsScreen() {
                     setT(sug)
                     setSug(null)
                   }}
-                  className="font-semibold text-fit text-sm"
+                  className="font-semibold text-nut text-sm"
                 >
                   Use
                 </button>
@@ -1241,7 +1241,7 @@ export function TargetsScreen() {
 
           <div className="sticky bottom-0 mt-6 bg-background/90 py-3 backdrop-blur">
             <Btn
-              accent="fit"
+              accent="nut"
               className="w-full"
               onClick={() => {
                 setMacroTarget(t)
@@ -1285,7 +1285,7 @@ export function NutritionHistoryScreen() {
           title="No meals logged in this range"
           body="On-target stats appear once you log at least one day."
           action={
-            <Btn accent="fit" href="/fitness/nutrition">
+            <Btn accent="nut" href="/fitness/nutrition">
               Log today
             </Btn>
           }
@@ -1296,7 +1296,7 @@ export function NutritionHistoryScreen() {
             <Stat
               label="Calories on target"
               value={`${Math.round(a.calorie * 100)}%`}
-              accent="fit"
+              accent="nut"
             />
             <Stat
               label="Protein hit rate"
@@ -1352,7 +1352,7 @@ export function NutritionHistoryScreen() {
                     <span className="block">
                       <Bar
                         value={d.target ? d.totals.kcal / d.target.kcal : 0}
-                        accent="fit"
+                        accent="nut"
                         className="my-1 h-1.5"
                       />
                       <span className="num text-xs">

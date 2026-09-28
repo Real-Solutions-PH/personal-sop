@@ -55,7 +55,7 @@ export function FitnessTodayCard({ evening }: { evening?: boolean }) {
       <TodayGroup
         title="Nutrition"
         icon={<Utensils />}
-        accent="fit"
+        accent="nut"
         href="/fitness/nutrition"
       >
         <MacrosCard evening={evening} />
@@ -199,7 +199,7 @@ function MacrosCard({ evening }: { evening?: boolean }) {
             value={d.target ? d.totals.kcal / d.target.kcal : 0}
             size={48}
             stroke={5}
-            accent="fit"
+            accent="nut"
           >
             <span className="num font-semibold text-[11px]">
               {Math.round(d.target ? (d.totals.kcal / d.target.kcal) * 100 : 0)}
@@ -255,7 +255,7 @@ function MacrosCard({ evening }: { evening?: boolean }) {
           type="button"
           aria-label="Log meal by photo"
           onClick={() => openCapture({ mode: "photo", hint: "meal" })}
-          className="grid size-10 place-items-center rounded-xl bg-fit/15 text-fit"
+          className="grid size-10 place-items-center rounded-xl bg-nut/15 text-nut"
         >
           <Camera className="size-5" />
         </button>

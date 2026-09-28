@@ -46,6 +46,7 @@
   --color-hab: var(--hab);
   --color-tsk: var(--tsk);
   --color-fit: var(--fit);
+  --color-nut: var(--nut);
   --color-fin: var(--fin);
   --color-life: var(--life);
   --color-good: var(--good);
@@ -96,6 +97,7 @@
   --hab: oklch(0.52 0.2 293);
   --tsk: oklch(0.52 0.15 245);
   --fit: oklch(0.56 0.16 45);
+  --nut: oklch(0.55 0.19 350);
   --fin: oklch(0.5 0.11 160);
   --life: oklch(0.55 0.12 70);
   --good: oklch(0.52 0.14 150);
@@ -175,6 +177,7 @@
   --hab: oklch(0.7 0.18 293);
   --tsk: oklch(0.72 0.14 240);
   --fit: oklch(0.76 0.17 50);
+  --nut: oklch(0.72 0.16 350);
   --fin: oklch(0.74 0.15 160);
   --life: oklch(0.82 0.16 80);
   --good: oklch(0.74 0.17 150);

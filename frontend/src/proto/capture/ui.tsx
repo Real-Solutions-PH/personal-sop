@@ -143,6 +143,12 @@ export const tint: Record<
     text: "text-fit",
     solid: "bg-fit",
   },
+  nut: {
+    bg: "bg-nut/12",
+    border: "border-nut/30",
+    text: "text-nut",
+    solid: "bg-nut",
+  },
   fin: {
     bg: "bg-fin/12",
     border: "border-fin/30",

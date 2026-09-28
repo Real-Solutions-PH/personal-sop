@@ -63,6 +63,7 @@ const tint: Record<Accent, string> = {
   hab: "bg-hab/15",
   tsk: "bg-tsk/15",
   fit: "bg-fit/15",
+  nut: "bg-nut/15",
   fin: "bg-fin/15",
   life: "bg-life/15",
   primary: "bg-primary/15",

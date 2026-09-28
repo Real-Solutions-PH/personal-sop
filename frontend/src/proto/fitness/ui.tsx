@@ -420,7 +420,7 @@ export function MacroRings({
         value={target ? totals.kcal / target.kcal : 0}
         size={big}
         stroke={size === "lg" ? 10 : 7}
-        accent="fit"
+        accent="nut"
       >
         <div>
           <div
@@ -492,7 +492,7 @@ export function Pill({
   className,
 }: {
   children: ReactNode
-  tone?: "muted" | "fit" | "good" | "bad" | "warn"
+  tone?: "muted" | "fit" | "nut" | "good" | "bad" | "warn"
   className?: string
 }) {
   return (
@@ -501,6 +501,7 @@ export function Pill({
         "inline-flex h-5 shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2 font-medium text-[11px]",
         tone === "muted" && "bg-muted text-muted-foreground",
         tone === "fit" && "bg-fit/15 text-fit",
+        tone === "nut" && "bg-nut/15 text-nut",
         tone === "good" && "bg-good/15 text-good",
         tone === "bad" && "bg-bad/15 text-bad",
         tone === "warn" && "bg-warn/15 text-warn",

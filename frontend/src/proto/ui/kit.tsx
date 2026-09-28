@@ -18,13 +18,14 @@ import { peso } from "../lib/day"
 import { privacyStore } from "../lib/privacy"
 
 // Shared mobile UI kit for the prototype. Module screens compose these; module
-// accents are the tailwind colours hab / tsk / fit / fin / life / good / bad / warn.
+// accents are the tailwind colours hab / tsk / fit / nut / fin / life / good / bad / warn.
 
-export type Accent = "hab" | "tsk" | "fit" | "fin" | "life" | "primary"
+export type Accent = "hab" | "tsk" | "fit" | "nut" | "fin" | "life" | "primary"
 const accentText: Record<Accent, string> = {
   hab: "text-hab",
   tsk: "text-tsk",
   fit: "text-fit",
+  nut: "text-nut",
   fin: "text-fin",
   life: "text-life",
   primary: "text-primary",
@@ -33,6 +34,7 @@ const accentStroke: Record<Accent, string> = {
   hab: "stroke-hab",
   tsk: "stroke-tsk",
   fit: "stroke-fit",
+  nut: "stroke-nut",
   fin: "stroke-fin",
   life: "stroke-life",
   primary: "stroke-primary",
@@ -41,6 +43,7 @@ const accentFill: Record<Accent, string> = {
   hab: "fill-hab",
   tsk: "fill-tsk",
   fit: "fill-fit",
+  nut: "fill-nut",
   fin: "fill-fin",
   life: "fill-life",
   primary: "fill-primary",
@@ -49,6 +52,7 @@ const accentBg: Record<Accent, string> = {
   hab: "bg-hab",
   tsk: "bg-tsk",
   fit: "bg-fit",
+  nut: "bg-nut",
   fin: "bg-fin",
   life: "bg-life",
   primary: "bg-primary",
@@ -162,6 +166,7 @@ const accentSoft: Record<Accent, string> = {
   hab: "bg-hab/15 text-hab",
   tsk: "bg-tsk/15 text-tsk",
   fit: "bg-fit/15 text-fit",
+  nut: "bg-nut/15 text-nut",
   fin: "bg-fin/15 text-fin",
   life: "bg-life/15 text-life",
   primary: "bg-primary/15 text-primary",
@@ -211,7 +216,7 @@ export function TodayGroup({
 /** Vertical stack of Cards; flattens inside a TodayGroup so rows divide evenly. */
 export function Stack({ children }: { children: ReactNode }) {
   return useContext(GroupCtx) ? (
-    <>{children}</>
+    children
   ) : (
     <div className="space-y-3">{children}</div>
   )
