@@ -9,3 +9,6 @@ e2e/cypress/downloads/
 package-lock.json
 yarn.lock
 pnpm-lock.yaml
+# Vercel CLI project link
+.vercel
+.env.local

@@ -26,7 +26,9 @@ const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  // Standalone is for the Docker image; Vercel's build adapter packages the
+  // app itself and fails on standalone output (missing next-server.js.nft.json).
+  output: process.env.VERCEL ? undefined : "standalone",
   reactStrictMode: true,
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }]

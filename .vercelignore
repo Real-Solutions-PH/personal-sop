@@ -1,0 +1,13 @@
+# Vercel builds only the Next.js prototype (project root directory: frontend/).
+# Upload the frontend plus the root Bun workspace files it installs from.
+/*
+!/frontend
+!/package.json
+!/bun.lock
+!/e2e
+/e2e/*
+!/e2e/package.json
+/frontend/node_modules
+/frontend/.next
+/frontend/.env
+/frontend/.env.local
