@@ -15,7 +15,8 @@ import {
   Share2,
   Smartphone,
   Sparkles,
-  Sun,
+  Sunrise,
+  Sunset,
   Target,
   Trophy,
   X,
@@ -189,9 +190,9 @@ export function TodayScreen() {
               className="grid size-11 place-items-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring text-muted-foreground hover:bg-muted"
             >
               {evening ? (
-                <Moon className="size-5" />
+                <Sunset className="size-5" />
               ) : (
-                <Sun className="size-5" />
+                <Sunrise className="size-5" />
               )}
             </button>
             <button
