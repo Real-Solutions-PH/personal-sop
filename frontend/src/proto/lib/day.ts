@@ -29,8 +29,10 @@ export function at(n: number, hh: number, mm = 0): string {
 /** 0=Sun … 6=Sat for a day key. */
 export const weekday = (key: string) => new Date(`${key}T12:00:00`).getDay()
 
-export const isEvening = (d: Date = new Date()) =>
-  d.getHours() >= 18 || d.getHours() < DAY_START_HOUR
+/** Evening runs from `start` ("HH:MM") until the day boundary. */
+export const isEvening = (d: Date = new Date(), start = "18:00") =>
+  `${pad(d.getHours())}:${pad(d.getMinutes())}` >= start ||
+  d.getHours() < DAY_START_HOUR
 
 const pesoFmt = new Intl.NumberFormat("en-PH", { maximumFractionDigits: 0 })
 export const peso = (n: number) => `₱${pesoFmt.format(n)}`

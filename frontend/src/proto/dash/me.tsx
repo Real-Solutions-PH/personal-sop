@@ -59,6 +59,7 @@ import { Avatar, WeightsEditor } from "./stats"
 import {
   dashStore,
   setEnabled,
+  setEveningStart,
   setIdentities,
   setPush,
   setTargetThreshold,
@@ -608,6 +609,7 @@ export function SettingsScreen() {
   const enabled = useEnabled()
   const push = dashStore.use((s) => s.push)
   const threshold = dashStore.use((s) => s.targetThreshold)
+  const eveningStart = dashStore.use((s) => s.eveningStart)
   const hidden = privacyStore.use((s) => s.hidden)
   const [off, setOff] = useState<ModuleKey | null>(null)
 
@@ -730,6 +732,23 @@ export function SettingsScreen() {
               <span className="num text-sm">
                 {String(DAY_START_HOUR).padStart(2, "0")}:00
               </span>
+            }
+          />
+          <Row
+            title="Evening starts at"
+            subtitle="Today switches to the wrap-up view"
+            right={
+              <input
+                type="time"
+                aria-label="Evening starts at"
+                min="12:00"
+                required
+                value={eveningStart}
+                onChange={(e) =>
+                  e.target.value && setEveningStart(e.target.value)
+                }
+                className="num h-11 rounded-lg bg-muted px-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
             }
           />
           <Row

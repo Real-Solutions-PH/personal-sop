@@ -143,6 +143,9 @@ export const setPush = (p: Partial<DashState["push"]>) =>
 export const setTargetThreshold = (v: number) =>
   set((s) => ({ ...s, targetThreshold: v }))
 
+export const setEveningStart = (hm: string) =>
+  set((s) => ({ ...s, eveningStart: hm }))
+
 export const markTrophiesSeen = (ids: string[]) =>
   set((s) => ({
     ...s,

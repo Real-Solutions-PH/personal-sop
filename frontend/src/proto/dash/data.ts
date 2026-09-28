@@ -143,6 +143,8 @@ export interface DashState {
     review: string
   }
   targetThreshold: number
+  /** "HH:MM" when Today switches to the evening wrap-up layout (F-DSH-03). */
+  eveningStart: string
   seenTrophies: string[]
 }
 
@@ -310,5 +312,6 @@ export const seed = (): DashState => ({
     review: "Sun 19:00",
   },
   targetThreshold: 0.8,
+  eveningStart: "18:00",
   seenTrophies: [],
 })

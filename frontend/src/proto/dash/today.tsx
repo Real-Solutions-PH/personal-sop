@@ -15,8 +15,6 @@ import {
   Share2,
   Smartphone,
   Sparkles,
-  Sunrise,
-  Sunset,
   Target,
   Trophy,
   X,
@@ -126,16 +124,32 @@ function useIsStandalone() {
   return v
 }
 
+/** Morning vs evening layout from the clock and the user's "Evening starts at"
+ *  setting; re-checked each minute and on return to the app. `?mode=` pins it
+ *  for demos. */
+function useEvening(modeParam: string | null) {
+  const start = dashStore.use((s) => s.eveningStart)
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const tick = () => setNow(new Date())
+    const id = setInterval(tick, 60_000)
+    document.addEventListener("visibilitychange", tick)
+    return () => {
+      clearInterval(id)
+      document.removeEventListener("visibilitychange", tick)
+    }
+  }, [])
+  if (modeParam === "evening") return true
+  if (modeParam === "morning") return false
+  return isEvening(now, start)
+}
+
 // ================================================================= Today
 
 export function TodayScreen() {
   const state = useViewState()
   const modeParam = useQueryParam("mode")
-  const [evening, setEvening] = useState(isEvening())
-  useEffect(() => {
-    if (modeParam === "evening") setEvening(true)
-    if (modeParam === "morning") setEvening(false)
-  }, [modeParam])
+  const evening = useEvening(modeParam)
 
   const hidden = privacyStore.use((s) => s.hidden)
   const unread = dashStore.use((s) => s.notifs.filter((n) => !n.read).length)
@@ -183,18 +197,6 @@ export function TodayScreen() {
             </h1>
           </div>
           <div className="flex items-center gap-1">
-            <button
-              type="button"
-              aria-label={evening ? "Show morning view" : "Show evening view"}
-              onClick={() => setEvening((v) => !v)}
-              className="grid size-11 place-items-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring text-muted-foreground hover:bg-muted"
-            >
-              {evening ? (
-                <Sunset className="size-5" />
-              ) : (
-                <Sunrise className="size-5" />
-              )}
-            </button>
             <button
               type="button"
               aria-label={hidden ? "Show amounts" : "Hide amounts"}
