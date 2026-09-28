@@ -2,16 +2,16 @@
 
 import {
   AlarmClock,
+  CheckSquare,
   ChevronRight,
   Flame,
   Plus,
   ShoppingCart,
-  Sparkles,
   TriangleAlert,
 } from "lucide-react"
 import Link from "next/link"
 import { openCapture } from "../lib/capture"
-import { Btn, Card } from "../ui/kit"
+import { Btn, Card, TodayGroup } from "../ui/kit"
 import { useListMap, useStats, useTodayData } from "./hooks"
 import { fmtInstant, isDueNow, today } from "./logic"
 import { TaskSheets } from "./sheets"
@@ -22,6 +22,14 @@ import { EmptyAllClear, openQuickAdd, openTriage, TaskRow } from "./ui"
 // groceries chip → next ping → "All clear".
 
 export function TasksTodayCard() {
+  return (
+    <TodayGroup title="Tasks" icon={<CheckSquare />} accent="tsk" href="/tasks">
+      <TasksTodayInner />
+    </TodayGroup>
+  )
+}
+
+function TasksTodayInner() {
   const d = useTodayData()
   const stats = useStats(7)
   const listMap = useListMap()
@@ -33,10 +41,7 @@ export function TasksTodayCard() {
   if (!d.everHadTasks)
     return (
       <Card>
-        <div className="flex items-center gap-2 font-semibold">
-          <Sparkles className="size-4 text-tsk" /> Tasks
-        </div>
-        <p className="mt-1 text-muted-foreground text-sm">
+        <p className="text-muted-foreground text-sm">
           Dump what's on your mind — dates and lists get sorted for you.
         </p>
         <Btn
@@ -59,8 +64,7 @@ export function TasksTodayCard() {
       <TaskSheets />
       <div className="flex items-center gap-2 px-1">
         <Link href="/tasks" className="flex min-w-0 flex-1 items-center gap-2">
-          <span className="font-semibold">Tasks</span>
-          <span className="num text-muted-foreground text-sm">
+          <span className="num font-medium text-sm">
             {d.doneDueToday.length}/
             {d.due.length + d.doneDueToday.length + d.overdue.length}
           </span>

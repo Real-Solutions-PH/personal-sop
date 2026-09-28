@@ -14,7 +14,7 @@ import {
 import Link from "next/link"
 import { useMemo, useState } from "react"
 import { cn } from "@/lib/utils"
-import { Btn, Card, Money } from "../ui/kit"
+import { Btn, Card, Money, TodayGroup } from "../ui/kit"
 import {
   deleteRecords,
   settleOccurrence,
@@ -107,6 +107,14 @@ function DueRow({ o }: { o: Occurrence }) {
 
 /** Today dashboard card (IA §6): spend today, due items, alerts, nudges. */
 export function FinanceTodayCard({ evening }: { evening?: boolean }) {
+  return (
+    <TodayGroup title="Finance" icon={<Wallet />} accent="fin" href="/finance">
+      <FinanceTodayInner evening={evening} />
+    </TodayGroup>
+  )
+}
+
+function FinanceTodayInner({ evening }: { evening?: boolean }) {
   const s = useFin()
   const [open, setOpen] = useState(true)
   const d = useMemo(() => {

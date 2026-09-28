@@ -1,12 +1,19 @@
 "use client"
 
-import { ChevronDown, ChevronRight, Play, Share2, Sparkles } from "lucide-react"
+import {
+  ChevronDown,
+  ChevronRight,
+  Play,
+  Share2,
+  Sparkles,
+  Target,
+} from "lucide-react"
 import Link from "next/link"
 import { useMemo, useState } from "react"
 import { cn } from "@/lib/utils"
 import { dayKey, dayOffset, fmtDuration } from "../lib/day"
 import { liveStore } from "../lib/live"
-import { Btn, Card, Ring } from "../ui/kit"
+import { Btn, Card, TodayGroup as Group, Ring, Stack } from "../ui/kit"
 import { checkHabit, timerHref } from "./actions"
 import type { Habit, Routine } from "./data"
 import {
@@ -103,8 +110,11 @@ export function RoutineCta({
 /** HAB-C1 + HAB-C2 + yesterday's loose ends — the module's Today card. */
 export function HabitsTodayCard() {
   const mounted = useMounted()
-  if (!mounted) return null
-  return <TodayCardInner />
+  return (
+    <Group title="Habits" icon={<Target />} accent="hab" href="/habits">
+      {mounted && <TodayCardInner />}
+    </Group>
+  )
 }
 
 function TodayCardInner() {
@@ -193,7 +203,7 @@ function TodayCardInner() {
     )
 
   return (
-    <div className="space-y-3">
+    <Stack>
       {data.routines.map((r) => (
         <RoutineCta
           key={r.id}
@@ -214,15 +224,12 @@ function TodayCardInner() {
               {data.doneCount}/{dueCount}
             </span>
           </Ring>
-          <div className="min-w-0 flex-1">
-            <div className="font-semibold">Habits</div>
-            <div className="text-muted-foreground text-xs">
-              {perfect
-                ? "Perfect day ✓"
-                : dueCount === 0
-                  ? "Nothing scheduled — rest day"
-                  : `${dueCount - data.doneCount} left today${data.skipped ? ` · ${data.skipped} skipped` : ""}`}
-            </div>
+          <div className="min-w-0 flex-1 font-medium">
+            {perfect
+              ? "Perfect day ✓"
+              : dueCount === 0
+                ? "Nothing scheduled — rest day"
+                : `${dueCount - data.doneCount} left today${data.skipped ? ` · ${data.skipped} skipped` : ""}`}
           </div>
           <Link href="/habits/manage" className="font-medium text-hab text-sm">
             Manage
@@ -341,6 +348,6 @@ function TodayCardInner() {
         onOpenChange={(o) => !o && setSheet(null)}
       />
       {guard.dialog}
-    </div>
+    </Stack>
   )
 }

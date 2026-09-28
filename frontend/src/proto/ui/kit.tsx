@@ -1,13 +1,15 @@
 "use client"
 
-import { ChevronLeft } from "lucide-react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   type ComponentProps,
   type ComponentType,
+  createContext,
   type InputHTMLAttributes,
   type ReactNode,
+  useContext,
   useLayoutEffect,
   useRef,
 } from "react"
@@ -119,6 +121,9 @@ export function Screen({
   )
 }
 
+/** Inside a TodayGroup, Cards drop their own frame and become divided rows. */
+const GroupCtx = createContext(false)
+
 export function Card({
   children,
   className,
@@ -130,8 +135,11 @@ export function Card({
   href?: string
   onClick?: () => void
 }) {
+  const grouped = useContext(GroupCtx)
   const cls = cn(
-    "block rounded-2xl border border-border/60 bg-card p-4 text-left",
+    grouped
+      ? "block px-4 py-3 text-left"
+      : "block rounded-2xl border border-border/60 bg-card p-4 text-left",
     (href || onClick) && "transition-colors active:bg-muted/60",
     className,
   )
@@ -148,6 +156,65 @@ export function Card({
       </button>
     )
   return <div className={cls}>{children}</div>
+}
+
+const accentSoft: Record<Accent, string> = {
+  hab: "bg-hab/15 text-hab",
+  tsk: "bg-tsk/15 text-tsk",
+  fit: "bg-fit/15 text-fit",
+  fin: "bg-fin/15 text-fin",
+  life: "bg-life/15 text-life",
+  primary: "bg-primary/15 text-primary",
+}
+
+/** One framed card per feature on Today: a labelled header, then the
+ *  feature's Cards as divided rows. Renders nothing when it has no rows. */
+export function TodayGroup({
+  title,
+  icon,
+  accent,
+  href,
+  children,
+}: {
+  title: string
+  icon: ReactNode
+  accent: Accent
+  href: string
+  children: ReactNode
+}) {
+  return (
+    <section
+      aria-label={title}
+      className="overflow-hidden rounded-2xl border border-border/60 bg-card has-[>div:empty]:hidden"
+    >
+      <Link href={href} className="flex items-center gap-2.5 px-4 pt-3 pb-2.5">
+        <span
+          className={cn(
+            "grid size-7 place-items-center rounded-lg [&>svg]:size-4",
+            accentSoft[accent],
+          )}
+        >
+          {icon}
+        </span>
+        <span className="flex-1 font-semibold">{title}</span>
+        <ChevronRight className="size-4 text-muted-foreground" />
+      </Link>
+      <GroupCtx.Provider value={true}>
+        <div className="divide-y divide-border/50 border-border/50 border-t">
+          {children}
+        </div>
+      </GroupCtx.Provider>
+    </section>
+  )
+}
+
+/** Vertical stack of Cards; flattens inside a TodayGroup so rows divide evenly. */
+export function Stack({ children }: { children: ReactNode }) {
+  return useContext(GroupCtx) ? (
+    <>{children}</>
+  ) : (
+    <div className="space-y-3">{children}</div>
+  )
 }
 
 export function SectionTitle({

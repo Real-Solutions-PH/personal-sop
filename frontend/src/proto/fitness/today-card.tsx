@@ -8,13 +8,14 @@ import {
   Play,
   Scale,
   Share2,
+  Utensils,
 } from "lucide-react"
 import Link from "next/link"
 import { useMemo, useState } from "react"
 import { cn } from "@/lib/utils"
 import { openCapture } from "../lib/capture"
 import { dayKey, fmtDuration } from "../lib/day"
-import { Btn, Card, Ring } from "../ui/kit"
+import { Btn, Card, Ring, TodayGroup } from "../ui/kit"
 import {
   allPrs,
   dailyWeights,
@@ -36,15 +37,30 @@ import { StartSheet, WeighInSheet } from "./sheets"
 import { useFit } from "./store"
 import { Pill, useNow } from "./ui"
 
-// Today cards (IA §6): Workout · Macros left · Weigh-in. Each hides when irrelevant.
+// Today cards (IA §6), as two groups so training and eating read as separate
+// goals: Fitness (workout · weigh-in) and Nutrition (macros left).
 
 export function FitnessTodayCard({ evening }: { evening?: boolean }) {
   return (
-    <div className="space-y-3">
-      <WorkoutCard />
-      <MacrosCard evening={evening} />
-      <WeighInCard />
-    </div>
+    <>
+      <TodayGroup
+        title="Fitness"
+        icon={<Dumbbell />}
+        accent="fit"
+        href="/fitness"
+      >
+        <WorkoutCard />
+        <WeighInCard />
+      </TodayGroup>
+      <TodayGroup
+        title="Nutrition"
+        icon={<Utensils />}
+        accent="fit"
+        href="/fitness/nutrition"
+      >
+        <MacrosCard evening={evening} />
+      </TodayGroup>
+    </>
   )
 }
 
