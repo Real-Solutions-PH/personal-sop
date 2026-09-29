@@ -26,7 +26,8 @@ import {
   Screen,
   Segmented,
 } from "../../ui/kit"
-import { recategorise } from "../actions"
+import { SwipeAction, SwipeRow } from "../../ui/swipe-row"
+import { deleteRecords, recategorise, restoreRecords } from "../actions"
 import { acctMap, catMap, dayLabel, recDay, today } from "../calc"
 import type { FinRecord, RecordType } from "../data"
 import { CategoryPicker } from "../editors"
@@ -41,6 +42,7 @@ import {
   RecordRow,
   sourceLabel,
   Toggle,
+  undoToast,
   useDemoState,
 } from "../ui"
 
@@ -386,18 +388,37 @@ export function RecordsScreen() {
             )}
             <Card className="px-2 py-0.5">
               {g.rows.map((r) => (
-                <RecordRow
+                // IA FIN-02: swipe to delete, with undo.
+                <SwipeRow
                   key={r.id}
-                  r={r}
-                  cats={cats}
-                  accts={accts}
-                  selected={selecting && sel.includes(r.id)}
-                  onClick={
-                    selecting
-                      ? () => toggleSel(r.id)
-                      : () => router.push(`/finance/records/${r.id}`)
+                  actions={
+                    !selecting && (
+                      <SwipeAction
+                        onClick={() => {
+                          const gone = deleteRecords([r.id])
+                          undoToast("Deleted 1 record", () =>
+                            restoreRecords(gone),
+                          )
+                        }}
+                        icon={<Trash2 className="size-4" />}
+                        label="Delete"
+                        className="bg-bad text-white"
+                      />
+                    )
                   }
-                />
+                >
+                  <RecordRow
+                    r={r}
+                    cats={cats}
+                    accts={accts}
+                    selected={selecting && sel.includes(r.id)}
+                    onClick={
+                      selecting
+                        ? () => toggleSel(r.id)
+                        : () => router.push(`/finance/records/${r.id}`)
+                    }
+                  />
+                </SwipeRow>
               ))}
             </Card>
           </div>

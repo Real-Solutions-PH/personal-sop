@@ -5,6 +5,7 @@ import {
   BookOpen,
   Briefcase,
   CalendarClock,
+  CalendarDays,
   Check,
   Gift,
   Heart,
@@ -17,6 +18,8 @@ import {
   Repeat,
   ShoppingCart,
   Star,
+  SunMedium,
+  Trash2,
 } from "lucide-react"
 import {
   type ReactNode,
@@ -33,9 +36,18 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import { type Accent, Btn, Card, Empty } from "../ui/kit"
-import { deleteTask, restoreTask, toggleTask, uncompleteTask } from "./actions"
+import { SwipeAction, SwipeRow } from "../ui/swipe-row"
+import {
+  deleteTask,
+  rescheduleBy,
+  restoreTask,
+  setDue,
+  toggleTask,
+  uncompleteTask,
+} from "./actions"
 import type { ListColor, ListIcon, Task, TaskList } from "./data"
 import {
+  addDays,
   diffDays,
   fmtDay,
   fmtRepeat,
@@ -403,6 +415,18 @@ export function tick(t: Task) {
   })
 }
 
+/** Move a task's due date to today + days, with a toast. */
+export function push(t: Task, days: number) {
+  const tk = today()
+  const target = addDays(tk, days)
+  const later = !!t.dueDate && target > t.dueDate
+  if (days === 0) setDue(t.id, tk)
+  else rescheduleBy(t.id, days)
+  toast(`Moved to ${fmtDay(target)}`, {
+    description: later ? `Rescheduled ${t.rescheduleCount + 1}×` : undefined,
+  })
+}
+
 export function softDelete(t: Task) {
   deleteTask(t.id)
   toast(`Deleted · ${t.title}`, {
@@ -424,55 +448,90 @@ export function TaskRow({
   list?: TaskList | null
   showList?: boolean
   showDay?: boolean
-  /** Inline, swipe-free action buttons shown under the row when expanded. */
+  /** Inline action buttons (the ⋯ menu) — the button twin of the swipes. */
   actions?: ReactNode
   shopping?: boolean
   onOpen?: () => void
 }) {
   const done = task.status === "done"
+  // IA F-TSK-09: right = done; left reveals Tomorrow / Pick / Delete.
   return (
-    <div className="group">
-      <div className="flex min-h-14 items-center gap-3 px-1">
-        <Circle
-          done={done}
-          shopping={shopping}
-          label={
-            done ? `Mark "${task.title}" not done` : `Complete "${task.title}"`
-          }
-          onClick={() => tick(task)}
-        />
-        <button
-          type="button"
-          onClick={onOpen ?? (() => openTask(task.id))}
-          className="min-w-0 flex-1 py-2 text-left"
-        >
-          <div
-            className={cn(
-              "flex items-center gap-1.5 font-medium leading-snug",
-              done &&
-                "text-muted-foreground line-through decoration-muted-foreground/50",
-            )}
+    <SwipeRow
+      onDone={() => tick(task)}
+      doneLabel={done ? "Reopen" : shopping ? "In cart" : "Done"}
+      doneClass="bg-tsk text-background"
+      actions={
+        <>
+          {!done && !shopping && (
+            <>
+              <SwipeAction
+                onClick={() => push(task, 1)}
+                icon={<SunMedium className="size-4" />}
+                label="Tomorrow"
+                className="bg-muted"
+              />
+              <SwipeAction
+                onClick={() => openPick(task.id)}
+                icon={<CalendarDays className="size-4" />}
+                label="Pick"
+                className="bg-secondary"
+              />
+            </>
+          )}
+          <SwipeAction
+            onClick={() => softDelete(task)}
+            icon={<Trash2 className="size-4" />}
+            label="Delete"
+            className="bg-bad text-white"
+          />
+        </>
+      }
+    >
+      <div className="group">
+        <div className="flex min-h-14 items-center gap-3 px-1">
+          <Circle
+            done={done}
+            shopping={shopping}
+            label={
+              done
+                ? `Mark "${task.title}" not done`
+                : `Complete "${task.title}"`
+            }
+            onClick={() => tick(task)}
+          />
+          <button
+            type="button"
+            onClick={onOpen ?? (() => openTask(task.id))}
+            className="min-w-0 flex-1 py-2 text-left"
           >
-            <span className="truncate">{task.title}</span>
-            {task.starred && !done && (
-              <Star
-                className="size-3.5 shrink-0 fill-warn text-warn"
-                aria-label="Starred"
+            <div
+              className={cn(
+                "flex items-center gap-1.5 font-medium leading-snug",
+                done &&
+                  "text-muted-foreground line-through decoration-muted-foreground/50",
+              )}
+            >
+              <span className="truncate">{task.title}</span>
+              {task.starred && !done && (
+                <Star
+                  className="size-3.5 shrink-0 fill-warn text-warn"
+                  aria-label="Starred"
+                />
+              )}
+            </div>
+            {!shopping && (
+              <DueMeta
+                task={task}
+                list={list}
+                showList={showList}
+                showDay={showDay}
               />
             )}
-          </div>
-          {!shopping && (
-            <DueMeta
-              task={task}
-              list={list}
-              showList={showList}
-              showDay={showDay}
-            />
-          )}
-        </button>
-        {actions}
+          </button>
+          {actions}
+        </div>
       </div>
-    </div>
+    </SwipeRow>
   )
 }
 

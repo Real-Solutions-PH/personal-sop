@@ -10,8 +10,9 @@ import {
   WifiOff,
 } from "lucide-react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { type ReactNode, useEffect, useState } from "react"
+import { usePathname, useRouter } from "next/navigation"
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react"
+import { blocked, passed, useSwipe } from "@/hooks/useSwipe"
 import { cn } from "@/lib/utils"
 import { CaptureSheet } from "../capture"
 import "../wiring"
@@ -26,6 +27,55 @@ const tabs = [
   { href: "/stats", label: "Stats", icon: BarChart3 },
   { href: "/me", label: "Me", icon: User },
 ] as const
+
+const ROOTS: string[] = tabs.flatMap((t) => (t ? [t.href] : []))
+
+/**
+ * Page-level swipes on <main>: from the left edge of a sub-page, go back
+ * (clicks the header's Back link, so it lands where Back does); anywhere on a
+ * tab root, go to the neighbouring tab. Rows and scrollers claim first.
+ */
+function usePageSwipe() {
+  const path = usePathname()
+  const router = useRouter()
+  const go = useRef<(() => void) | null>(null)
+  const el = useRef<HTMLElement | null>(null)
+  const swipe = useSwipe({
+    claim: ({ axis, dx, x0, target }) => {
+      const main = el.current
+      if (axis !== "x" || !main || blocked(target, main, "x")) return false
+      const back = main.querySelector<HTMLAnchorElement>(
+        'header a[aria-label="Back"]',
+      )
+      if (back && dx > 0 && x0 - main.getBoundingClientRect().left < 32) {
+        go.current = () => back.click()
+        return true
+      }
+      const next = ROOTS[ROOTS.indexOf(path) + (dx < 0 ? 1 : -1)]
+      if (!ROOTS.includes(path) || !next) return false
+      go.current = () => router.push(next)
+      return true
+    },
+    move: (dx) => {
+      if (!el.current) return
+      el.current.style.transition = "none"
+      el.current.style.transform = `translateX(${dx * 0.5}px)`
+    },
+    end: (dx, _, v) => {
+      if (!el.current) return
+      el.current.style.transition = "transform 200ms ease-out"
+      el.current.style.transform = ""
+      if (passed(dx, v, 90)) go.current?.()
+    },
+  })
+  return useCallback(
+    (node: HTMLElement | null) => {
+      el.current = node
+      return swipe(node)
+    },
+    [swipe],
+  )
+}
 
 function LiveBar() {
   const live = liveStore.use((s) => s.live)
@@ -78,6 +128,7 @@ function OfflineBanner() {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const path = usePathname()
+  const pageSwipe = usePageSwipe()
   // ponytail: client-only render. Stores hydrate from localStorage, which the
   // server can't see, so SSR would always mismatch. Revisit when data comes from the API.
   const [mounted, setMounted] = useState(false)
@@ -86,7 +137,10 @@ export function AppShell({ children }: { children: ReactNode }) {
     // Phone-width column; on desktop it renders as a centred device frame.
     <div className="min-h-dvh bg-background md:bg-muted/30 md:py-6">
       <div className="relative mx-auto flex h-dvh max-w-md flex-col overflow-hidden bg-background md:h-[min(860px,calc(100dvh_-_3rem))] md:rounded-[2.5rem] md:border md:shadow-2xl">
-        <main className="flex-1 overflow-y-auto overscroll-contain">
+        <main
+          ref={pageSwipe}
+          className="flex-1 overflow-y-auto overscroll-contain"
+        >
           {mounted && children}
         </main>
         <div className="pointer-events-none absolute inset-x-0 bottom-[calc(4rem_+_env(safe-area-inset-bottom))] [&>*]:pointer-events-auto">

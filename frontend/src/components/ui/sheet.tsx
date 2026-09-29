@@ -4,6 +4,7 @@ import * as React from "react"
 import * as SheetPrimitive from "@radix-ui/react-dialog"
 import { XIcon } from "lucide-react"
 
+import { blocked, passed, useSwipe } from "@/hooks/useSwipe"
 import { cn } from "@/lib/utils"
 
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
@@ -52,6 +53,30 @@ function SheetContent({
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: "top" | "right" | "bottom" | "left"
 }) {
+  const close = React.useRef<HTMLButtonElement>(null)
+  // Bottom sheets follow a downward drag and close past 100px or on a flick.
+  // Inline transition:none while dragging; clearing it lets the sheet's own
+  // transition animate the snap back.
+  const swipe = useSwipe({
+    claim: ({ axis, dy, target }) =>
+      side === "bottom" &&
+      axis === "y" &&
+      dy > 0 &&
+      !blocked(target, target.closest("[data-slot=sheet-content]") ?? target, "y"),
+    move: (_, dy) => {
+      const el = close.current?.parentElement
+      if (!el) return
+      el.style.transition = "none"
+      el.style.transform = `translateY(${Math.max(0, dy)}px)`
+    },
+    end: (_, dy, v) => {
+      const el = close.current?.parentElement
+      if (!el) return
+      el.style.transition = ""
+      if (dy > 0 && passed(dy, v, 100)) close.current?.click()
+      else el.style.transform = ""
+    },
+  })
   return (
     <SheetPortal>
       <SheetOverlay />
@@ -70,9 +95,12 @@ function SheetContent({
           className
         )}
         {...props}
+        ref={side === "bottom" ? swipe : props.ref}
       >
         {children}
-        <SheetPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">
+        <SheetPrimitive.Close
+          ref={close}
+          className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">
           <XIcon className="size-4" />
           <span className="sr-only">Close</span>
         </SheetPrimitive.Close>

@@ -2,26 +2,14 @@
 
 import { ArrowDown, ArrowUp, Ellipsis, Star, Trash2 } from "lucide-react"
 import { useState } from "react"
-import { toast } from "sonner"
 import { cn } from "@/lib/utils"
-import { moveTask, rescheduleBy, setDue, updateTask } from "./actions"
+import { moveTask, updateTask } from "./actions"
 import type { Task, TaskList } from "./data"
-import { addDays, fmtDay, today } from "./logic"
-import { openPick, softDelete, TaskRow } from "./ui"
+import { today } from "./logic"
+import { openPick, push, softDelete, TaskRow } from "./ui"
 
-// Swipe-free row actions (IA F-TSK-09 as buttons): ⋯ reveals Today / Tomorrow /
+// Button twin of the row swipes (IA F-TSK-09): ⋯ reveals Today / Tomorrow /
 // Next week / Pick / Star / Delete, plus ↑↓ when the list is in manual sort.
-
-function push(t: Task, days: number) {
-  const tk = today()
-  const target = addDays(tk, days)
-  const later = !!t.dueDate && target > t.dueDate
-  if (days === 0) setDue(t.id, tk)
-  else rescheduleBy(t.id, days)
-  toast(`Moved to ${fmtDay(target)}`, {
-    description: later ? `Rescheduled ${t.rescheduleCount + 1}×` : undefined,
-  })
-}
 
 export function ActionTaskRow({
   task,
