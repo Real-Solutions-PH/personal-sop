@@ -4,6 +4,7 @@
   "files": {
     "includes": [
       "**",
+      "!expo-env.d.ts",
       "!**/.expo",
       "!**/node_modules",
       "!**/src/client",

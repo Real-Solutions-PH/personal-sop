@@ -124,6 +124,9 @@ services:
           ignore:
             - ./frontend/node_modules
             - ./frontend/.next
+        - path: ./shared
+          action: sync
+          target: /app/shared
         - path: ./frontend/package.json
           action: rebuild
         - path: ./bun.lock

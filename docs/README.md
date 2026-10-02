@@ -25,6 +25,7 @@ Context pack for human + AI programmers building this SaaS. Fill each template; 
 | [21-onboarding.md](21-onboarding.md) | Dev setup, repo tour, runbook | Eng |
 | [22-ai-module.md](22-ai-module.md) | AI module — LLM provider/key setup, chat transport, spend-cap posture | Backend |
 | [22-data-protection.md](22-data-protection.md) | Deletion, retention, GDPR export/erase, audit trail | Backend |
+| [mobile.md](mobile.md) | Native Expo prototype, shared domain, running and verification | Eng |
 | [constitution.md](constitution.md) | Engineering Constitution — stack defaults and conventions | All |
 | [ia/](ia/README.md) | Information architecture — screens, flows, open questions per module | Design |
 | [adr/](adr/) | Architecture Decision Records — one file per decision | Tech lead |

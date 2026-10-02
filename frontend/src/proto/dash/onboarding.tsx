@@ -25,10 +25,20 @@ import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import {
+  IDENTITIES,
+  NO_SKIP,
+  PACES,
+  PASS_THROUGH,
+  type Pace,
+  STARTERS,
+  STEPS,
+  type Step,
+} from "../../../../shared/prototype/dash/onboarding"
 import type { ModuleKey } from "../contract"
 import { uid } from "../lib/store"
 import { Btn, Card, NumberInput } from "../ui/kit"
-import { AREA, type Goal, MODULE_KEYS } from "./data"
+import { AREA, MODULE_KEYS } from "./data"
 import { useInstallState } from "./me"
 import {
   dashStore,
@@ -44,102 +54,6 @@ import { AreaIcon, useQueryParam } from "./ui"
 // Order is deliberate: the user invests (identity, targets, times) and commits
 // before we ask for anything (push, install) — asks land after value, framed
 // around the plan they just built.
-
-const STEPS = [
-  "welcome",
-  "identity", // identity-based habits: who you're becoming, not what you do
-  "modules", // pre-selected from identity (default effect)
-  "targets", // pace presets, gentle start recommended (tiny-wins)
-  "when", // implementation intention: a time you pick yourself
-  "building", // labor illusion — the plan feels made for you
-  "pledge", // commitment & consistency: hold to commit
-  "notifications", // asked after commitment, framed as protecting the plan
-  "install",
-  "done", // peak-end: day 1 starts now
-] as const
-type Step = (typeof STEPS)[number]
-// Transitional steps don't count toward progress or get a Back stop.
-const PASS_THROUGH: Step[] = ["building"]
-const NO_SKIP: Step[] = ["welcome", "building", "pledge", "done"]
-
-const IDENTITIES: { text: string; module?: ModuleKey }[] = [
-  { text: "I show up every day", module: "habits" },
-  { text: "I finish what I start", module: "tasks" },
-  { text: "I'm someone who trains", module: "fitness" },
-  { text: "I'm in control of my money", module: "finance" },
-  { text: "I keep the promises I make to myself" },
-]
-
-type Pace = "gentle" | "steady" | "ambitious"
-const PACES: Record<
-  Pace,
-  { label: string; note: string; targets: Record<ModuleKey, number> }
-> = {
-  gentle: {
-    label: "Gentle",
-    note: "Easy wins first",
-    targets: { habits: 60, tasks: 70, fitness: 2, finance: 10 },
-  },
-  steady: {
-    label: "Steady",
-    note: "A real stretch",
-    targets: { habits: 80, tasks: 85, fitness: 4, finance: 20 },
-  },
-  ambitious: {
-    label: "Ambitious",
-    note: "No days off",
-    targets: { habits: 90, tasks: 95, fitness: 5, finance: 30 },
-  },
-}
-
-interface Starter {
-  metric: string
-  label: string
-  target: number
-  unit: string
-  comparator: Goal["comparator"]
-  period: Goal["period"]
-  hint: string
-}
-
-const STARTERS: Record<ModuleKey, Starter> = {
-  habits: {
-    metric: "habits:habits.rate",
-    label: "Habit completion",
-    target: 80,
-    unit: "%",
-    comparator: "gte",
-    period: "week",
-    hint: "of scheduled habits done",
-  },
-  tasks: {
-    metric: "tasks:tasks.onTime",
-    label: "On-time rate",
-    target: 85,
-    unit: "%",
-    comparator: "gte",
-    period: "week",
-    hint: "tasks done by their due date",
-  },
-  fitness: {
-    metric: "fitness:sessions",
-    label: "Workouts",
-    target: 4,
-    unit: "",
-    comparator: "gte",
-    period: "week",
-    hint: "sessions per week",
-  },
-  finance: {
-    metric: "finance:savings-rate",
-    label: "Savings rate",
-    target: 20,
-    unit: "%",
-    comparator: "gte",
-    period: "month",
-    hint: "of income kept this month",
-  },
-}
 
 interface BIPEvent extends Event {
   prompt: () => Promise<void>

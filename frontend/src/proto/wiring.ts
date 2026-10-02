@@ -1,13 +1,9 @@
-"use client"
-
 import { toast } from "sonner"
-import { onWorkoutFinished } from "./fitness/actions"
-import { autoCheckWorkoutHabits } from "./habits/actions"
+import { configureNotifications } from "../../../shared/prototype/lib/platform"
+import { connectWorkoutHabits } from "../../../shared/prototype/wiring"
 
-// Cross-module side effects (IA ruling X-7): finishing a workout ticks habits
-// linked to "any workout logged". Imported once by the shell.
-onWorkoutFinished(() => {
-  const logs = autoCheckWorkoutHabits()
-  if (logs.length)
-    toast.success(`Habit checked: ${logs.length} linked to workouts`)
-})
+connectWorkoutHabits((count) =>
+  toast.success(`Habit checked: ${count} linked to workouts`),
+)
+
+configureNotifications((message, options) => toast(message, options))

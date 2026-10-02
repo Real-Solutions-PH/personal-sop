@@ -1,0 +1,745 @@
+import * as A from "@domain/fitness/actions"
+import * as C from "@domain/fitness/calc"
+import type { WorkoutSet } from "@domain/fitness/data"
+import { fitStore } from "@domain/fitness/store"
+import { fmtDuration } from "@domain/lib/day"
+import { liveStore } from "@domain/lib/live"
+import { useLocalSearchParams } from "expo-router"
+import {
+  Check,
+  Dumbbell,
+  Ellipsis,
+  Minus,
+  Plus,
+  Timer,
+  TrendingUp,
+} from "lucide-react-native"
+import { useState } from "react"
+import { TextInput, View } from "react-native"
+import { toast } from "sonner-native"
+import {
+  Bar,
+  border,
+  Copy,
+  Frame,
+  IconTap,
+  Line,
+  Segmented,
+  Tap,
+} from "../native-kit"
+import { go, replace } from "../navigation"
+import { fonts, useTheme } from "../theme"
+import { Button, confirm, Empty, Field, Screen, Sheet, useNow } from "../ui"
+import { StartWorkoutSheet } from "./fitness-start"
+export function WorkoutLogger() {
+  const p = useLocalSearchParams<{ edit?: string; resume?: string }>(),
+    s = fitStore.use((s) => s),
+    t = useTheme(),
+    now = useNow(),
+    w = s.workouts.find((w) =>
+      p.edit
+        ? w.id === p.edit
+        : w.id === s.activeId && w.status === "in_progress",
+    ),
+    [picker, setPicker] = useState<null | string>(null),
+    [query, setQuery] = useState(""),
+    [picked, setPicked] = useState<string[]>([]),
+    [editing, setEditing] = useState<{ we: string; set: string } | null>(null),
+    [menu, setMenu] = useState<string | null>(null),
+    [note, setNote] = useState<string | null>(null),
+    [finish, setFinish] = useState(false),
+    [start, setStart] = useState(false),
+    [rename, setRename] = useState(false),
+    [resume, setResume] = useState(
+      () =>
+        !!w &&
+        !p.edit &&
+        (p.resume === "1" ||
+          Date.now() - new Date(A.lastActivity(w)).getTime() > 3 * 3600000),
+    )
+
+  if (!w)
+    return (
+      <Screen title="Workout">
+        <Empty
+          icon={Dumbbell}
+          title="No workout running"
+          detail="Start from a template, repeat your last session, or go empty."
+          action={<Button onPress={() => setStart(true)}>Start workout</Button>}
+        />
+        {liveStore.get().live && (
+          <Button tone="quiet" href={liveStore.get().live!.href}>
+            Return to running activity
+          </Button>
+        )}
+        {start && <StartWorkoutSheet onClose={() => setStart(false)} />}
+      </Screen>
+    )
+  const totals = C.workoutTotals(s, w),
+    unfinished = w.exercises.flatMap((e) =>
+      e.sets.filter((x) => !C.isDone(x)),
+    ).length,
+    rest = s.rest ? (new Date(s.rest.endsAt).getTime() - now) / 1000 : 0,
+    we = w.exercises.find((x) => x.id === menu),
+    target = editing
+      ? w.exercises
+          .find((x) => x.id === editing.we)
+          ?.sets.find((x) => x.id === editing.set)
+      : undefined
+  const finishWorkout = (mode: "remove" | "done", endAt?: string) => {
+    if (A.finishWorkout(w.id, { unfinished: mode, endAt })) {
+      setFinish(false)
+      setResume(false)
+      replace("/fitness?tab=train")
+    }
+  }
+  const discard = () =>
+    confirm(
+      "Discard this workout?",
+      "Nothing from this session will be saved.",
+      () => {
+        A.discardWorkout(w.id)
+        replace("/fitness")
+      },
+    )
+  const openPicker = (id = "add") => {
+    setPicked([])
+    setQuery("")
+    setPicker(id)
+  }
+  return (
+    <Screen
+      title={p.edit ? `Edit · ${w.name}` : w.name}
+      onTitlePress={() => setRename(!rename)}
+      actions={
+        <Button
+          small
+          onPress={() => {
+            if (p.edit) {
+              toast.success("Workout updated — PRs recomputed")
+              replace(`/fitness/workouts/${w.id}`)
+            } else if (unfinished) setFinish(true)
+            else finishWorkout("remove")
+          }}
+        >
+          {p.edit ? "Done" : "Finish"}
+        </Button>
+      }
+    >
+      {rename && (
+        <Field
+          label="Workout name"
+          value={w.name}
+          onChangeText={(name) => A.updateWorkoutMeta(w.id, { name })}
+        />
+      )}
+      {!p.edit && (
+        <View
+          style={{ padding: 12, borderRadius: 16, backgroundColor: t.card }}
+        >
+          <Line style={{ gap: 8 }}>
+            {[
+              {
+                label: "Elapsed",
+                value: fmtDuration(
+                  (now - new Date(w.startedAt).getTime()) / 1000,
+                ),
+              },
+              { label: "Sets", value: `${totals.done}/${totals.planned}` },
+              { label: "Volume", value: C.fmtVolume(totals.volume) },
+            ].map((v, i) => (
+              <View key={v.label} style={{ flex: 1, alignItems: "center" }}>
+                <Copy
+                  size={20}
+                  weight="semibold"
+                  style={{ color: i === 0 ? t.fit : t.text }}
+                >
+                  {v.value}
+                </Copy>
+                <Copy size={11} muted>
+                  {v.label}
+                </Copy>
+              </View>
+            ))}
+          </Line>
+        </View>
+      )}
+      {!p.edit && s.rest && (
+        <Frame
+          style={{
+            padding: 12,
+            borderColor: rest <= 0 ? `${t.good}66` : `${t.fit}66`,
+            backgroundColor: rest <= 0 ? `${t.good}26` : t.card,
+          }}
+        >
+          <Line>
+            <Timer size={20} color={rest <= 0 ? t.good : t.fit} />
+            <View style={{ flex: 1 }}>
+              <Copy size={24} weight="semibold" style={{ lineHeight: 24 }}>
+                {rest <= 0 ? `+${fmtDuration(-rest)}` : fmtDuration(rest)}
+              </Copy>
+              <Copy size={12} muted>
+                {rest <= 0
+                  ? "Rest over — next set"
+                  : `Rest · ${s.rest.durationSec}s`}
+              </Copy>
+            </View>
+            {rest > 0 && (
+              <>
+                <Button small tone="quiet" onPress={() => A.adjustRest(-15)}>
+                  −15
+                </Button>
+                <Button small tone="quiet" onPress={() => A.adjustRest(15)}>
+                  +15
+                </Button>
+              </>
+            )}
+            <Button small tone="quiet" onPress={A.skipRest}>
+              {rest <= 0 ? "OK" : "Skip"}
+            </Button>
+          </Line>
+          {rest > 0 && (
+            <View style={{ marginTop: 8 }}>
+              <Bar
+                value={rest / Math.max(1, s.rest.durationSec)}
+                color={t.fit}
+              />
+            </View>
+          )}
+          {rest > 0 && s.rest.durationSec !== s.settings.restSec && (
+            <Tap
+              onPress={() => A.updateSettings({ restSec: s.rest!.durationSec })}
+              style={{ marginTop: 6 }}
+            >
+              <Copy size={12} style={{ color: t.fit }}>
+                Make {s.rest.durationSec}s my default
+              </Copy>
+            </Tap>
+          )}
+        </Frame>
+      )}
+      {!w.exercises.length && (
+        <Empty
+          title="No exercises yet"
+          detail="Add your first exercise — recents are on top."
+        />
+      )}
+      {w.exercises.map((we) => {
+        const ex = s.exercises.find((e) => e.id === we.exerciseId),
+          other = { ...s, workouts: s.workouts.filter((x) => x.id !== w.id) },
+          prev = C.exerciseHistory(other, we.exerciseId).at(-1),
+          suggestion = C.suggestion(other, we.exerciseId),
+          prevWorking = prev?.we.sets.filter(C.isWorking) ?? [],
+          prevWarm = prev?.we.sets.filter((x) => !C.isWorking(x)) ?? [],
+          allDone =
+            we.sets.some((x) => C.isWorking(x) && C.isDone(x)) &&
+            we.sets.every(C.isDone)
+        let working = 0,
+          warm = 0
+        return (
+          <Frame
+            key={we.id}
+            style={{
+              padding: 12,
+              borderColor: allDone ? `${t.fit}66` : border(t.line, 0.6),
+            }}
+          >
+            <Line style={{ alignItems: "flex-start", gap: 8 }}>
+              <View style={{ flex: 1 }}>
+                <Tap onPress={() => go(`/fitness/exercises/${we.exerciseId}`)}>
+                  <Copy weight="semibold" lines={1}>
+                    {ex?.name ?? "Unknown exercise"}
+                  </Copy>
+                </Tap>
+                <Line style={{ marginTop: 2, gap: 6 }}>
+                  <Line
+                    style={{
+                      gap: 3,
+                      paddingHorizontal: 6,
+                      paddingVertical: 2,
+                      borderRadius: 99,
+                      backgroundColor: `${t.fit}1a`,
+                    }}
+                  >
+                    {suggestion.kind !== "new" && (
+                      <TrendingUp size={12} color={t.fit} />
+                    )}
+                    <Copy size={11} style={{ color: t.fit }}>
+                      {suggestion.kind === "new" ? "New" : suggestion.badge}
+                    </Copy>
+                  </Line>
+                  <Copy size={12} muted lines={1} style={{ flex: 1 }}>
+                    {suggestion.detail}
+                  </Copy>
+                </Line>
+              </View>
+              <IconTap
+                size={32}
+                icon={Ellipsis}
+                label={`Options for ${ex?.name}`}
+                onPress={() => setMenu(we.id)}
+              />
+            </Line>
+            {(note === we.id || we.note) && (
+              <TextInput
+                accessibilityLabel="Exercise note"
+                value={we.note ?? ""}
+                onChangeText={(value) => A.setExerciseNote(w.id, we.id, value)}
+                placeholder="Note (seat 4, grip width…)"
+                placeholderTextColor={t.muted}
+                style={{
+                  marginTop: 8,
+                  height: 36,
+                  borderRadius: 8,
+                  borderWidth: 1,
+                  borderColor: t.line,
+                  paddingHorizontal: 12,
+                  fontFamily: fonts.body,
+                  fontSize: 14,
+                  color: t.text,
+                }}
+              />
+            )}
+            <Line style={{ marginTop: 12, paddingHorizontal: 4, gap: 8 }}>
+              {[
+                "Set",
+                "Last",
+                ex?.loadType === "bodyweight" ? "+kg" : "kg",
+                ex?.loadType === "time" ? "sec" : "reps",
+                "",
+              ].map((x, i) => (
+                <Copy
+                  key={`${i}-${x}`}
+                  size={10}
+                  muted
+                  style={{
+                    width: i === 0 ? 32 : i === 4 ? 44 : undefined,
+                    flex: i > 0 && i < 4 ? 1 : undefined,
+                    textAlign: i > 1 ? "center" : "left",
+                    letterSpacing: 0.5,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {x}
+                </Copy>
+              ))}
+            </Line>
+            <View style={{ marginTop: 4, gap: 4 }}>
+              {we.sets.map((set) => {
+                const isWarm = !C.isWorking(set),
+                  ghost = isWarm ? prevWarm[warm++] : prevWorking[working++],
+                  label = isWarm
+                    ? "W"
+                    : set.kind === "drop"
+                      ? "D"
+                      : set.kind === "failure"
+                        ? "F"
+                        : String(working),
+                  needsWeight =
+                    !C.isDone(set) &&
+                    set.weight === 0 &&
+                    ex?.loadType === "weight"
+                return (
+                  <Line
+                    key={set.id}
+                    style={{
+                      gap: 8,
+                      paddingHorizontal: 4,
+                      paddingVertical: 4,
+                      borderRadius: 12,
+                      backgroundColor: C.isDone(set)
+                        ? `${t.fit}1a`
+                        : "transparent",
+                    }}
+                  >
+                    <Copy
+                      size={14}
+                      weight="semibold"
+                      style={{
+                        width: 32,
+                        textAlign: "center",
+                        color: isWarm ? t.warn : t.muted,
+                      }}
+                    >
+                      {label}
+                    </Copy>
+                    <Copy size={12} muted lines={1} style={{ flex: 1 }}>
+                      {ghost ? `${C.kgShort(ghost.weight)}×${ghost.reps}` : "—"}
+                    </Copy>
+                    {[
+                      needsWeight ? "—" : C.kgShort(set.weight),
+                      String(set.reps),
+                    ].map((value, i) => (
+                      <Tap
+                        key={`${i}-${set.id}`}
+                        label={`${ex?.name} set ${label} ${i ? "reps" : "weight"}`}
+                        onPress={() => setEditing({ we: we.id, set: set.id })}
+                        style={{
+                          flex: 1,
+                          height: 40,
+                          borderRadius: 8,
+                          backgroundColor: border(t.soft, 0.6),
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Copy
+                          weight="semibold"
+                          style={{
+                            color: !i && needsWeight ? t.muted : t.text,
+                          }}
+                        >
+                          {value}
+                        </Copy>
+                      </Tap>
+                    ))}
+                    <View style={{ width: 44 }}>
+                      <Tap
+                        label={C.isDone(set) ? "Undo set" : "Complete set"}
+                        onPress={() =>
+                          needsWeight
+                            ? setEditing({ we: we.id, set: set.id })
+                            : A.toggleSet(w.id, we.id, set.id)
+                        }
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 12,
+                          borderWidth: 2,
+                          borderColor: C.isDone(set) ? t.fit : t.line,
+                          backgroundColor: C.isDone(set)
+                            ? t.fit
+                            : "transparent",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Check
+                          size={20}
+                          strokeWidth={3}
+                          color={C.isDone(set) ? t.bg : t.muted}
+                        />
+                      </Tap>
+                    </View>
+                  </Line>
+                )
+              })}
+            </View>
+            <Tap
+              onPress={() => A.addSet(w.id, we.id)}
+              style={{
+                marginTop: 8,
+                height: 36,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Line style={{ gap: 4 }}>
+                <Plus size={16} color={t.muted} />
+                <Copy size={14} muted>
+                  Add set
+                </Copy>
+              </Line>
+            </Tap>
+          </Frame>
+        )
+      })}
+      <Button tone="quiet" icon={Plus} onPress={() => openPicker()}>
+        Add exercise
+      </Button>
+      {!p.edit && (
+        <Tap
+          onPress={discard}
+          style={{ paddingVertical: 12, alignItems: "center" }}
+        >
+          <Copy size={14} style={{ color: t.bad }}>
+            Discard workout
+          </Copy>
+        </Tap>
+      )}
+      <Sheet
+        title={picker === "add" ? "Add exercises" : "Replace exercise"}
+        open={picker !== null}
+        onClose={() => setPicker(null)}
+      >
+        <Field label="Search exercises" value={query} onChangeText={setQuery} />
+        {s.exercises
+          .filter(
+            (e) =>
+              !e.archived &&
+              e.name.toLowerCase().includes(query.trim().toLowerCase()),
+          )
+          .map((e) => (
+            <Tap
+              key={e.id}
+              onPress={() => {
+                if (picker !== "add") {
+                  A.replaceExercise(w.id, picker!, e.id)
+                  setPicker(null)
+                } else
+                  setPicked(
+                    picked.includes(e.id)
+                      ? picked.filter((x) => x !== e.id)
+                      : [...picked, e.id],
+                  )
+              }}
+              style={{ paddingVertical: 8 }}
+            >
+              <Line>
+                <View
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: 6,
+                    borderWidth: 1,
+                    borderColor: picked.includes(e.id) ? t.fit : t.line,
+                    backgroundColor: picked.includes(e.id)
+                      ? t.fit
+                      : "transparent",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {picked.includes(e.id) && <Check size={16} color={t.bg} />}
+                </View>
+                <View>
+                  <Copy weight="medium">{e.name}</Copy>
+                  <Copy size={12} muted>
+                    {e.muscle} · {e.equipment}
+                  </Copy>
+                </View>
+              </Line>
+            </Tap>
+          ))}
+        {picker === "add" && (
+          <Button
+            disabled={!picked.length}
+            onPress={() => {
+              A.addExercises(w.id, picked)
+              setPicker(null)
+            }}
+          >{`Add ${picked.length || ""} exercises`}</Button>
+        )}
+      </Sheet>
+      <Sheet
+        title="Exercise options"
+        open={menu !== null}
+        onClose={() => setMenu(null)}
+      >
+        {we && (
+          <>
+            <Button
+              tone="quiet"
+              onPress={() => {
+                go(`/fitness/exercises/${we.exerciseId}`)
+                setMenu(null)
+              }}
+            >
+              History
+            </Button>
+            <Button
+              tone="quiet"
+              onPress={() => {
+                openPicker(we.id)
+                setMenu(null)
+              }}
+            >
+              Replace
+            </Button>
+            <Button
+              tone="quiet"
+              onPress={() => {
+                setNote(we.id)
+                setMenu(null)
+              }}
+            >
+              Note
+            </Button>
+            <Button
+              tone="quiet"
+              onPress={() => {
+                A.moveExercise(w.id, we.id, -1)
+                setMenu(null)
+              }}
+            >
+              Move up
+            </Button>
+            <Button
+              tone="quiet"
+              onPress={() => {
+                A.moveExercise(w.id, we.id, 1)
+                setMenu(null)
+              }}
+            >
+              Move down
+            </Button>
+            <Button
+              tone="danger"
+              onPress={() => {
+                A.removeExercise(w.id, we.id)
+                setMenu(null)
+              }}
+            >
+              Remove
+            </Button>
+          </>
+        )}
+      </Sheet>
+      {target && editing && (
+        <SetEditor
+          key={target.id}
+          set={target}
+          open
+          onClose={() => setEditing(null)}
+          onSave={(patch) => A.updateSet(w.id, editing.we, editing.set, patch)}
+          onDelete={() => A.removeSet(w.id, editing.we, editing.set)}
+        />
+      )}
+      <Sheet
+        title={`${unfinished} set${unfinished === 1 ? "" : "s"} not done`}
+        open={finish}
+        onClose={() => setFinish(false)}
+      >
+        <Copy size={14} muted>
+          Planned sets you never checked off.
+        </Copy>
+        <Button onPress={() => finishWorkout("remove")}>
+          Remove them & finish
+        </Button>
+        <Button tone="quiet" onPress={() => finishWorkout("done")}>
+          Mark all done & finish
+        </Button>
+        <Button tone="quiet" onPress={() => setFinish(false)}>
+          Keep logging
+        </Button>
+      </Sheet>
+      <Sheet
+        title={`${w.name} is still running`}
+        open={resume}
+        onClose={() => setResume(false)}
+      >
+        <Copy size={14} muted>
+          Started {C.relDay(w.startedAt).toLowerCase()} · last set{" "}
+          {C.fmtMin(
+            (Date.now() - new Date(A.lastActivity(w)).getTime()) / 1000,
+          )}{" "}
+          ago
+        </Copy>
+        <Button onPress={() => finishWorkout("remove", A.lastActivity(w))}>
+          Finish at last set time
+        </Button>
+        <Button tone="quiet" onPress={() => setResume(false)}>
+          Resume
+        </Button>
+        <Button tone="danger" onPress={discard}>
+          Discard
+        </Button>
+      </Sheet>
+    </Screen>
+  )
+}
+function SetEditor({
+  set,
+  open,
+  onClose,
+  onSave,
+  onDelete,
+}: {
+  set: WorkoutSet
+  open: boolean
+  onClose: () => void
+  onSave: (patch: Partial<WorkoutSet>) => void
+  onDelete: () => void
+}) {
+  const t = useTheme(),
+    [weight, setWeight] = useState(String(set.weight)),
+    [reps, setReps] = useState(String(set.reps)),
+    [kind, setKind] = useState(set.kind)
+  return (
+    <Sheet title="Edit set" open={open} onClose={onClose}>
+      <Segmented
+        value={kind}
+        onChange={setKind}
+        options={(["working", "warmup", "drop", "failure"] as const).map(
+          (value) => ({
+            value,
+            label: {
+              working: "Working",
+              warmup: "Warm-up",
+              drop: "Drop",
+              failure: "Failure",
+            }[value],
+          }),
+        )}
+      />
+      {[
+        { label: "Weight (kg)", value: weight, set: setWeight, step: 2.5 },
+        { label: "Reps", value: reps, set: setReps, step: 1 },
+      ].map((row) => (
+        <View key={row.label} style={{ gap: 8 }}>
+          <Copy size={14} muted>
+            {row.label}
+          </Copy>
+          <Line style={{ justifyContent: "center", gap: 16 }}>
+            <IconTap
+              size={44}
+              icon={Minus}
+              background={t.soft}
+              label={`Less ${row.label}`}
+              onPress={() =>
+                row.set(String(Math.max(0, Number(row.value) - row.step)))
+              }
+            />
+            <TextInput
+              accessibilityLabel={row.label}
+              value={row.value}
+              onChangeText={row.set}
+              keyboardType="decimal-pad"
+              style={{
+                width: 100,
+                height: 56,
+                fontFamily: fonts.semibold,
+                fontSize: 30,
+                textAlign: "center",
+                color: t.text,
+              }}
+            />
+            <IconTap
+              size={44}
+              icon={Plus}
+              background={t.soft}
+              label={`More ${row.label}`}
+              onPress={() => row.set(String(Number(row.value) + row.step))}
+            />
+          </Line>
+        </View>
+      ))}
+      <Button
+        onPress={() => {
+          if (
+            !Number.isFinite(Number(weight)) ||
+            Number(weight) < 0 ||
+            !Number.isInteger(Number(reps)) ||
+            Number(reps) < 0
+          ) {
+            toast.error("Enter valid weight and reps")
+            return
+          }
+          onSave({ weight: Number(weight), reps: Number(reps), kind })
+          onClose()
+        }}
+      >
+        Save
+      </Button>
+      <Button
+        tone="quiet"
+        onPress={() => {
+          onDelete()
+          onClose()
+        }}
+      >
+        Delete set
+      </Button>
+    </Sheet>
+  )
+}

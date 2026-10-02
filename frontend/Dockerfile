@@ -16,6 +16,7 @@ COPY frontend/package.json /app/frontend/
 # the root workspace manifest lists e2e — bun refuses to run without it
 COPY e2e/package.json /app/e2e/
 COPY ./frontend /app/frontend
+COPY ./shared /app/shared
 WORKDIR /app/frontend
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
@@ -43,6 +44,7 @@ COPY frontend/package.json /app/frontend/
 # the root workspace manifest lists e2e — bun refuses to run without it
 COPY e2e/package.json /app/e2e/
 COPY ./frontend /app/frontend
+COPY ./shared /app/shared
 
 WORKDIR /app/frontend
 ARG NEXT_PUBLIC_API_URL

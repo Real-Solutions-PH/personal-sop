@@ -57,10 +57,12 @@ jobs:
         working-directory: mobile
       - run: bun run typecheck
         working-directory: mobile
-      - run: bunx biome ci ./
+      - run: bunx biome ci ./ ../shared/prototype
         working-directory: mobile
       # jest-expo unit tests (bun run test → jest; bun's own `bun test` is NOT used)
-      - run: bun run test
+      - run: bun run test --runInBand
+        working-directory: mobile
+      - run: bunx expo export --platform all --max-workers 2
         working-directory: mobile
 
   # https://github.com/marketplace/actions/alls-green#why

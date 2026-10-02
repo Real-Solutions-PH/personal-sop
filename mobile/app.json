@@ -1,12 +1,11 @@
 {
   "expo": {
-    "name": "FastAPI Mobile",
-    "slug": "fastapi-mobile",
+    "name": "Personal SOP",
+    "slug": "personal-sop",
     "version": "0.0.0",
     "orientation": "portrait",
-    "scheme": "fastapimobile",
+    "scheme": "personalsop",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },
@@ -17,9 +16,35 @@
     },
     "web": {
       "bundler": "metro",
-      "output": "static"
+      "output": "single"
     },
-    "plugins": ["expo-router", "expo-sqlite", "@sentry/react-native/expo"],
+    "plugins": [
+      "expo-router",
+      "expo-sqlite",
+      "@sentry/react-native/expo",
+      "expo-secure-store",
+      "expo-status-bar",
+      "expo-sharing",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow Personal SOP to record voice captures.",
+          "enableBackgroundPlayback": false,
+          "enableBackgroundRecording": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Choose a profile picture or capture photo.",
+          "cameraPermission": "Take a photo for a capture.",
+          "microphonePermission": false
+        }
+      ],
+      "@react-native-community/datetimepicker",
+      "expo-asset",
+      "expo-font"
+    ],
     "experiments": {
       "typedRoutes": true,
       "tsconfigPaths": true

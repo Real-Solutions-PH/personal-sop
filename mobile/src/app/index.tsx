@@ -1,7 +1,12 @@
 import { Redirect } from "expo-router"
-import { useAuthStore } from "@/stores/auth-store"
+import { prototypeMode } from "@/prototype/mode"
 
+function ConnectedIndex() {
+  const { useAuthStore } =
+    require("@/stores/auth-store") as typeof import("@/stores/auth-store")
+  const authenticated = useAuthStore((s) => s.isAuthenticated)
+  return <Redirect href={authenticated ? "/(app)" : "/login"} />
+}
 export default function Index() {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  return <Redirect href={isAuthenticated ? "/(app)" : "/login"} />
+  return prototypeMode ? <Redirect href="/today" /> : <ConnectedIndex />
 }
