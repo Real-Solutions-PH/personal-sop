@@ -58,7 +58,7 @@ jobs:
         df -h /
     - uses: actions/checkout@v7
     - uses: oven-sh/setup-bun@v2
-    - uses: actions/setup-python@v6
+    - uses: actions/setup-python@v7
       with:
         python-version: '3.11'
     - name: Install uv
