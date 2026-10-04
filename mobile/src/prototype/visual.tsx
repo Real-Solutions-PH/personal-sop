@@ -74,6 +74,7 @@ export function IconButton({
     Icon = icons[icon]
   return (
     <Pressable
+      cssInterop={false}
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={() => (href ? go(href) : onPress?.())}

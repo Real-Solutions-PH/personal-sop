@@ -74,6 +74,8 @@ export function Line({
     </View>
   )
 }
+// NativeWind flattens callback styles into empty objects on native. These
+// controls use React Native styles directly, so bypass className conversion.
 export function Tap({
   children,
   onPress,
@@ -87,6 +89,7 @@ export function Tap({
 }) {
   return (
     <Pressable
+      cssInterop={false}
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}

@@ -16,7 +16,7 @@ import {
   Trophy,
 } from "lucide-react-native"
 import { useState } from "react"
-import { ScrollView, Text, View } from "react-native"
+import { ScrollView, StyleSheet, Text, View } from "react-native"
 import Svg, {
   Circle,
   Defs,
@@ -94,24 +94,22 @@ function LifeHero({
         end={{ x: 1, y: 1 }}
         style={{ padding: 20 }}
       >
-        <Svg
-          width="100%"
-          height="100%"
-          style={{ position: "absolute", left: 0, top: 0 }}
-        >
-          <Defs>
-            <RadialGradient id="gold">
-              <Stop offset="0" stopColor={t.life} stopOpacity={0.25} />
-              <Stop offset="1" stopColor={t.life} stopOpacity={0} />
-            </RadialGradient>
-            <RadialGradient id="purple">
-              <Stop offset="0" stopColor={t.hab} stopOpacity={0.3} />
-              <Stop offset="1" stopColor={t.hab} stopOpacity={0} />
-            </RadialGradient>
-          </Defs>
-          <Ellipse cx="90%" cy="10%" rx="65%" ry="75%" fill="url(#gold)" />
-          <Ellipse cx="15%" cy="95%" rx="60%" ry="60%" fill="url(#purple)" />
-        </Svg>
+        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+          <Svg width="100%" height="100%">
+            <Defs>
+              <RadialGradient id="gold">
+                <Stop offset="0" stopColor={t.life} stopOpacity={0.25} />
+                <Stop offset="1" stopColor={t.life} stopOpacity={0} />
+              </RadialGradient>
+              <RadialGradient id="purple">
+                <Stop offset="0" stopColor={t.hab} stopOpacity={0.3} />
+                <Stop offset="1" stopColor={t.hab} stopOpacity={0} />
+              </RadialGradient>
+            </Defs>
+            <Ellipse cx="90%" cy="10%" rx="65%" ry="75%" fill="url(#gold)" />
+            <Ellipse cx="15%" cy="95%" rx="60%" ry="60%" fill="url(#purple)" />
+          </Svg>
+        </View>
         <Line style={{ gap: 16 }}>
           <Tap
             label="How the Life Score is weighted"

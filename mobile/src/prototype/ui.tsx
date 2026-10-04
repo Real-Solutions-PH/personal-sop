@@ -104,6 +104,7 @@ export function Button({
   return (
     <Animated.View style={style}>
       <Pressable
+        cssInterop={false}
         accessibilityRole="button"
         accessibilityState={{ disabled }}
         disabled={disabled}
