@@ -489,7 +489,7 @@ export function Screen({
   prototypeLayout?: boolean
   scrollToEnd?: boolean
   /** Enables pull-to-refresh; resolve when the refresh finishes. */
-  onRefresh?: () => Promise<unknown> | void
+  onRefresh?: () => unknown
 }) {
   const t = useTheme()
   const safe = useSafeAreaInsets()
