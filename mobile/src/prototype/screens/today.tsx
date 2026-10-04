@@ -77,6 +77,7 @@ import { go } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import { Screen, SwipeRow, undo, useNow } from "../ui"
 import { Ring } from "../visual"
+import { WeatherCard } from "../weather-card"
 import { RecordEditor, useMoney } from "./finance"
 import { HabitLog } from "./habits"
 import { TaskRow } from "./tasks"
@@ -1419,6 +1420,7 @@ export function Today() {
       }
     >
       <DayHero />
+      <WeatherCard />
       {!s.setupHidden && pending.length > 0 && (
         <Frame style={{ padding: 16 }}>
           <Line>

@@ -30,6 +30,8 @@ The bottom navigation exposes Today, Plan, Capture, Stats and Me. Native stack n
 
 Photo capture/library selection, microphone recording, haptic feedback, clipboard, CSV sharing and progress-card image sharing use Expo/native APIs. Permission denial leaves typed/manual entry available. Voice recording pauses when the app leaves the foreground and is limited to five minutes for capture and ten minutes for journal entries. Audio transcription, image interpretation, AI responses, statement parsing and reminder delivery remain simulated, matching the prototype's scope.
 
+Weather (`/weather`, mobile-only, summarised by a card on Today) uses the free, keyless Open-Meteo forecast and geocoding APIs (`src/prototype/weather.ts`). Location permission is requested only on the first visit to `/weather` or from "Use current location". If permission is denied or unavailable, the screen uses the saved city (Manila by default), which can be changed with the city search. The last forecast is persisted locally and shown offline with its age. It refreshes after 15 minutes when the screen mounts or the app returns to the foreground, and it can also be refreshed manually. On web, the device location is labelled with coordinates because reverse geocoding is native-only.
+
 ## Visual system
 
 The native prototype uses the web prototype's semantic palette, including separate light/dark module accents. Their sRGB equivalents, spacing, radii and font names live in `shared/prototype/design/tokens.ts`. Barlow supplies body text and Barlow Condensed supplies display headings and statistics; font assets are bundled with the application.
