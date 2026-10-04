@@ -14,9 +14,9 @@ function routes(root: string, leaf: string): string[] {
   visit(root)
   return found.sort()
 }
-test("every web prototype route has a native Expo route", () => {
+test("every web prototype route has a native Expo route (native may add more)", () => {
   const root = resolve(__dirname, "../../../..")
-  expect(routes(join(root, "mobile/src/app/(sop)"), "index.tsx")).toEqual(
-    routes(join(root, "frontend/src/app/(sop)"), "page.tsx"),
-  )
+  const native = routes(join(root, "mobile/src/app/(sop)"), "index.tsx")
+  const web = routes(join(root, "frontend/src/app/(sop)"), "page.tsx")
+  expect(native).toEqual(expect.arrayContaining(web))
 })

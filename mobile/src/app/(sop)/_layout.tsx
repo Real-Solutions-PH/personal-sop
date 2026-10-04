@@ -1,28 +1,24 @@
 import { openCapture } from "@domain/lib/capture"
 import { liveStore } from "@domain/lib/live"
 import { useConnectivity } from "@domain/lib/platform"
+import * as Haptics from "expo-haptics"
 import { LinearGradient } from "expo-linear-gradient"
 import { Redirect, Stack, usePathname } from "expo-router"
-import {
-  CalendarCheck2,
-  ChartColumn,
-  House,
-  Plus,
-  User,
-} from "lucide-react-native"
+import { CalendarCheck2, House, Plus, User, Users } from "lucide-react-native"
 import { Pressable, Text, View } from "react-native"
 import { useReducedMotion } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { prototypeMode } from "@/prototype/mode"
 import { go, replace } from "@/prototype/navigation"
 import { CaptureOverlay } from "@/prototype/screens/capture"
+import { socialStore, unread } from "@/prototype/social/store"
 import { AccentContext, fonts, useTheme } from "@/prototype/theme"
 
 const tabs = [
   { label: "Today", href: "/today", icon: House },
   { label: "Plan", href: "/plan", icon: CalendarCheck2 },
   { label: "Capture", href: "/capture", icon: Plus },
-  { label: "Stats", href: "/stats", icon: ChartColumn },
+  { label: "Social", href: "/social", icon: Users },
   { label: "Me", href: "/me", icon: User },
 ]
 export default function PrototypeLayout() {
@@ -31,10 +27,14 @@ export default function PrototypeLayout() {
   const path = usePathname()
   const focus =
     /^\/habits\/routines\/[^/]+\/play$/.test(path) ||
-    /^\/habits\/[^/]+\/timer$/.test(path)
+    /^\/habits\/[^/]+\/timer$/.test(path) ||
+    /^\/social\/(stories|story-new|chat|compose|new-chat)/.test(path)
   const reduced = useReducedMotion()
   const online = useConnectivity()
   const live = liveStore.use((s) => s.live)
+  const dms = socialStore.use(
+    (s) => s.chats.filter((c) => !c.muted && unread(c) > 0).length,
+  )
   if (!prototypeMode) return <Redirect href="/login" />
   return (
     <AccentContext.Provider
@@ -61,7 +61,27 @@ export default function PrototypeLayout() {
             gestureEnabled: true,
             animation: reduced ? "none" : "slide_from_right",
           }}
-        />
+        >
+          <Stack.Screen
+            name="social/stories/[id]/index"
+            options={{
+              animation: reduced ? "none" : "fade_from_bottom",
+              presentation: "fullScreenModal",
+              gestureEnabled: false,
+            }}
+          />
+          <Stack.Screen
+            name="social/story-new/index"
+            options={{
+              animation: reduced ? "none" : "slide_from_bottom",
+              presentation: "fullScreenModal",
+            }}
+          />
+          <Stack.Screen
+            name="social/compose/index"
+            options={{ animation: reduced ? "none" : "slide_from_bottom" }}
+          />
+        </Stack>
         {live && !focus && (
           <Pressable
             accessibilityRole="button"
@@ -110,9 +130,11 @@ export default function PrototypeLayout() {
                   accessibilityRole="tab"
                   accessibilityLabel={tab.label}
                   accessibilityState={{ selected: active }}
-                  onPress={() =>
-                    tab.label === "Capture" ? openCapture() : replace(tab.href)
-                  }
+                  onPress={() => {
+                    void Haptics.selectionAsync().catch(() => {})
+                    if (tab.label === "Capture") openCapture()
+                    else if (path !== tab.href) replace(tab.href)
+                  }}
                   style={{
                     flex: 1,
                     minHeight: 48,
@@ -137,11 +159,29 @@ export default function PrototypeLayout() {
                       <Plus size={28} strokeWidth={2.5} color="white" />
                     </LinearGradient>
                   ) : (
-                    <Icon
-                      size={20}
-                      strokeWidth={active ? 2.4 : 1.8}
-                      color={active ? t.text : t.muted}
-                    />
+                    <View>
+                      <Icon
+                        size={20}
+                        strokeWidth={active ? 2.4 : 1.8}
+                        color={active ? t.text : t.muted}
+                      />
+                      {tab.label === "Social" && dms > 0 && (
+                        <View
+                          accessibilityLabel={`${dms} unread messages`}
+                          style={{
+                            position: "absolute",
+                            top: -3,
+                            right: -6,
+                            width: 9,
+                            height: 9,
+                            borderRadius: 5,
+                            backgroundColor: "#ff3040",
+                            borderWidth: 1.5,
+                            borderColor: t.bg,
+                          }}
+                        />
+                      )}
+                    </View>
                   )}
                   <Text
                     style={{
