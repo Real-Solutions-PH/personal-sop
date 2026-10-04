@@ -152,9 +152,8 @@ function Mosaic({ posts, width }: { posts: Post[]; width: number }) {
   return (
     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 1 }}>
       {posts.map((p, i) => {
-        const big = i % 10 === 2
-        const w = big ? s * 2 + 1 : s
-        const h = big ? s * 2 + 1 : s
+        const w = s
+        const h = s * 1.25
         const m = p.media[0]
         return (
           <Pressable
@@ -381,9 +380,7 @@ export function Explore() {
               >
                 {suggested.map((p, i) => (
                   <Animated.View key={p.id} entering={FadeInDown.delay(i * 60)}>
-                    <Pressable
-                      accessibilityRole="button"
-                      onPress={() => go(`/social/u/${p.id}`)}
+                    <View
                       style={{
                         width: 150,
                         padding: 14,
@@ -395,27 +392,34 @@ export function Explore() {
                         gap: 6,
                       }}
                     >
-                      <Avatar id={p.id} size={64} ring={false} />
-                      <Text
-                        numberOfLines={1}
-                        style={{ color: t.text, fontFamily: fonts.semibold }}
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`Open ${p.name}'s profile`}
+                        onPress={() => go(`/social/u/${p.id}`)}
+                        style={{ alignItems: "center", gap: 6 }}
                       >
-                        {p.name}
-                      </Text>
-                      <Text
-                        numberOfLines={2}
-                        style={{
-                          color: t.muted,
-                          fontFamily: fonts.body,
-                          fontSize: 12,
-                          textAlign: "center",
-                          minHeight: 32,
-                        }}
-                      >
-                        {p.bio}
-                      </Text>
+                        <Avatar id={p.id} size={64} ring={false} />
+                        <Text
+                          numberOfLines={1}
+                          style={{ color: t.text, fontFamily: fonts.semibold }}
+                        >
+                          {p.name}
+                        </Text>
+                        <Text
+                          numberOfLines={2}
+                          style={{
+                            color: t.muted,
+                            fontFamily: fonts.body,
+                            fontSize: 12,
+                            textAlign: "center",
+                            minHeight: 32,
+                          }}
+                        >
+                          {p.bio}
+                        </Text>
+                      </Pressable>
                       <FollowButton person={p} small />
-                    </Pressable>
+                    </View>
                   </Animated.View>
                 ))}
               </ScrollView>
@@ -441,33 +445,45 @@ function ActivityRow({ a, isNew }: { a: Activity; isNew: boolean }) {
     story: "liked your story.",
   }[a.kind]
   return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={() =>
-        go(a.postId ? `/social/post/${a.postId}` : `/social/u/${a.by}`)
-      }
-      style={({ pressed }) => ({
+    <View
+      style={{
         flexDirection: "row",
         alignItems: "center",
         gap: 12,
         paddingHorizontal: 16,
         paddingVertical: 10,
-        backgroundColor: pressed ? t.soft : isNew ? `${t.tsk}10` : t.bg,
-      })}
+        backgroundColor: isNew ? `${t.tsk}10` : t.bg,
+      }}
     >
-      <Avatar id={a.by} size={44} />
-      <Text
-        style={{
+      <Pressable
+        accessibilityRole="button"
+        onPress={() =>
+          go(a.postId ? `/social/post/${a.postId}` : `/social/u/${a.by}`)
+        }
+        style={({ pressed }) => ({
           flex: 1,
-          color: t.text,
-          fontFamily: fonts.body,
-          fontSize: 14,
-          lineHeight: 19,
-        }}
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 12,
+          opacity: pressed ? 0.6 : 1,
+        })}
       >
-        <Text style={{ fontFamily: fonts.semibold }}>{person?.username} </Text>
-        {verb} <Text style={{ color: t.muted }}>{agoText(a.at)}</Text>
-      </Text>
+        <Avatar id={a.by} size={44} />
+        <Text
+          style={{
+            flex: 1,
+            color: t.text,
+            fontFamily: fonts.body,
+            fontSize: 14,
+            lineHeight: 19,
+          }}
+        >
+          <Text style={{ fontFamily: fonts.semibold }}>
+            {person?.username}{" "}
+          </Text>
+          {verb} <Text style={{ color: t.muted }}>{agoText(a.at)}</Text>
+        </Text>
+      </Pressable>
       {a.kind === "follow" && person ? (
         <FollowButton person={person} small />
       ) : thumb ? (
@@ -487,7 +503,7 @@ function ActivityRow({ a, isNew }: { a: Activity; isNew: boolean }) {
           />
         </View>
       ) : null}
-    </Pressable>
+    </View>
   )
 }
 

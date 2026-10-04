@@ -942,36 +942,45 @@ export function Follows({ id }: { id: string }) {
         contentContainerStyle={{ paddingBottom: safe.bottom + 24 }}
         renderItem={({ item, index }) => (
           <Animated.View entering={FadeInDown.delay(index * 40)}>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => go(`/social/u/${item.id}`)}
-              style={({ pressed }) => ({
+            <View
+              style={{
                 flexDirection: "row",
                 alignItems: "center",
                 gap: 12,
                 paddingHorizontal: 16,
                 paddingVertical: 8,
-                backgroundColor: pressed ? t.soft : t.bg,
-              })}
+              }}
             >
-              <Avatar id={item.id} size={48} />
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: t.text, fontFamily: fonts.semibold }}>
-                  {item.username}
-                </Text>
-                <Text
-                  style={{
-                    color: t.muted,
-                    fontFamily: fonts.body,
-                    fontSize: 13,
-                  }}
-                >
-                  {item.name}
-                  {item.card ? ` · Score ${item.card.life}` : ""}
-                </Text>
-              </View>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => go(`/social/u/${item.id}`)}
+                style={({ pressed }) => ({
+                  flex: 1,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 12,
+                  backgroundColor: pressed ? t.soft : t.bg,
+                })}
+              >
+                <Avatar id={item.id} size={48} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: t.text, fontFamily: fonts.semibold }}>
+                    {item.username}
+                  </Text>
+                  <Text
+                    style={{
+                      color: t.muted,
+                      fontFamily: fonts.body,
+                      fontSize: 13,
+                    }}
+                  >
+                    {item.name}
+                    {item.card ? ` · Score ${item.card.life}` : ""}
+                  </Text>
+                </View>
+              </Pressable>
               <FollowButton person={item} small />
-            </Pressable>
+            </View>
           </Animated.View>
         )}
         ListEmptyComponent={<Empty title="No one here yet" icon={Copy} />}
