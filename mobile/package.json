@@ -25,7 +25,10 @@
       "^react$": "<rootDir>/node_modules/react",
       "^react/(.*)$": "<rootDir>/node_modules/react/$1",
       "^lucide-react-native$": "<rootDir>/node_modules/lucide-react-native/dist/cjs/lucide-react-native.js"
-    }
+    },
+    "setupFiles": [
+      "<rootDir>/jest.setup.js"
+    ]
   },
   "dependencies": {
     "@expo-google-fonts/barlow": "^0.4.1",
