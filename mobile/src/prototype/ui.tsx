@@ -681,6 +681,8 @@ export function Sheet({
   const [mounted, setMounted] = useState(open)
   const y = useSharedValue(screen)
   const closing = useRef(false)
+  // Runs on open/close only: adding `mounted` would restart the open spring.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: see above
   useEffect(() => {
     if (open) {
       closing.current = false
@@ -696,7 +698,7 @@ export function Sheet({
         if (done) runOnJS(setMounted)(false)
       })
     }
-  }, [open, y, screen, reduced, mounted])
+  }, [open])
   const dismiss = () => {
     if (closing.current) return
     closing.current = true
