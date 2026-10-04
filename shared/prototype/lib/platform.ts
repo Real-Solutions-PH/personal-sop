@@ -8,20 +8,29 @@ export function setConnectivity(online: boolean) {
 }
 export function getConnectivity() {
   return (
-    nativeOnline ?? (typeof navigator === "undefined" ? true : navigator.onLine)
+    nativeOnline ??
+    (typeof navigator === "undefined" || typeof navigator.onLine !== "boolean"
+      ? true
+      : navigator.onLine)
   )
 }
 function subscribe(listener: () => void) {
   listeners.add(listener)
-  if (typeof window !== "undefined") {
-    window.addEventListener("online", listener)
-    window.addEventListener("offline", listener)
+  const browserWindow =
+    typeof window !== "undefined" &&
+    typeof window.addEventListener === "function" &&
+    typeof window.removeEventListener === "function"
+      ? window
+      : undefined
+  if (browserWindow) {
+    browserWindow.addEventListener("online", listener)
+    browserWindow.addEventListener("offline", listener)
   }
   return () => {
     listeners.delete(listener)
-    if (typeof window !== "undefined") {
-      window.removeEventListener("online", listener)
-      window.removeEventListener("offline", listener)
+    if (browserWindow) {
+      browserWindow.removeEventListener("online", listener)
+      browserWindow.removeEventListener("offline", listener)
     }
   }
 }

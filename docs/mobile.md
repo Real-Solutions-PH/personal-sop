@@ -22,7 +22,7 @@ Prototype mode is the default. It needs no backend, Supabase credentials or AI k
 - `mobile/src/prototype/ui.tsx` owns the common touch controls, safe-area layouts, accessible fields, sheets, swipe actions and feedback.
 - Native persistence uses a separate SQLite database, `prototype.db`, through a small synchronous storage adapter. Each module keeps its existing JSON shape and key. The browser uses localStorage. Data is local to that installation; web records are not automatically transferred to a phone.
 - The native adapter uses parameterized SQL. Failed writes stay in memory and can be retried. Malformed saved collections fall back to sample data without overwriting the saved value during loading.
-- The authenticated template and prototype have separate route guards, providers and storage. No production authorization is bypassed by the prototype's screen actions.
+- The authenticated template and prototype have separate route guards, providers and storage. Connected screen implementations live in `mobile/src/connected/`; their Expo route wrappers load them only in connected mode. Route discovery can therefore run in Expo Go without initializing MMKV or backend services. No production authorization is bypassed by the prototype's screen actions.
 
 ## Phone interactions
 
@@ -33,6 +33,8 @@ Photo capture/library selection, microphone recording, haptic feedback, clipboar
 ## Visual system
 
 The native prototype uses the web prototype's semantic palette, including separate light/dark module accents. Their sRGB equivalents, spacing, radii and font names live in `shared/prototype/design/tokens.ts`. Barlow supplies body text and Barlow Condensed supplies display headings and statistics; font assets are bundled with the application.
+
+Prototype press controls with callback-based styles opt out of NativeWind class-name conversion using `cssInterop={false}`. This preserves native dimensions, padding, colors and pressed feedback; the native styling tests exercise the actual adapter because browser rendering does not reproduce this failure. Decorative percentage-sized SVG layers sit in an absolute-fill wrapper so card padding does not shrink their drawing bounds.
 
 `visual.tsx` contains native progress rings, score heroes, metric tiles and module shortcuts. Charts use native SVG. Screen compositions retain the prototype's dashboard hierarchy, compact management rows and fixed capture composer; camera, date pickers, sheets and gestures remain native adaptations. Share artwork supports story, portrait and square layouts, themed backgrounds and native PNG export.
 
