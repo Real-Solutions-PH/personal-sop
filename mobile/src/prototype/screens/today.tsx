@@ -74,6 +74,7 @@ import {
   Tap,
 } from "../native-kit"
 import { go } from "../navigation"
+import { CommunityCard } from "../social/today-card"
 import { fonts, useTheme } from "../theme"
 import { Screen, SwipeRow, undo, useNow } from "../ui"
 import { Ring } from "../visual"
@@ -1501,6 +1502,7 @@ export function Today() {
       {s.enabled.tasks && <TasksCard />}
       {s.enabled.fitness && <FitnessCards evening={evening} />}
       {s.enabled.finance && <FinanceCard />}
+      <CommunityCard />
       <GoalsAndContext evening={evening} />
     </Screen>
   )
