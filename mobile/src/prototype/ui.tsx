@@ -2,7 +2,9 @@ import * as Haptics from "expo-haptics"
 import {
   Archive,
   CalendarDays,
+  Check,
   ChevronLeft,
+  Ellipsis,
   type LucideIcon,
   X,
 } from "lucide-react-native"
@@ -21,10 +23,15 @@ import {
   Text,
   TextInput,
   type TextInputProps,
+  useWindowDimensions,
   View,
 } from "react-native"
+import { Gesture, GestureDetector } from "react-native-gesture-handler"
 import Swipeable from "react-native-gesture-handler/ReanimatedSwipeable"
 import Animated, {
+  interpolate,
+  runOnJS,
+  type SharedValue,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
@@ -109,6 +116,7 @@ export function Button({
         accessibilityState={{ disabled }}
         disabled={disabled}
         onPress={() => {
+          void Haptics.selectionAsync().catch(() => {})
           if (href) go(href)
           else onPress?.()
         }}
@@ -375,7 +383,13 @@ export function Row({
         accessibilityRole={href || onPress ? "button" : undefined}
         onPress={() => (href ? go(href) : onPress?.())}
         disabled={!href && !onPress}
-        style={{ flex: 1, paddingVertical: 12, paddingRight: 4 }}
+        cssInterop={false}
+        style={({ pressed }) => ({
+          flex: 1,
+          paddingVertical: 12,
+          paddingRight: 4,
+          opacity: pressed ? 0.6 : 1,
+        })}
       >
         <Text
           style={{ fontSize: 16, fontFamily: fonts.semibold, color: t.text }}
@@ -662,86 +676,142 @@ export function Sheet({
   const t = useTheme()
   const safe = useSafeAreaInsets()
   const reduced = useReducedMotion()
+  const { height: screen } = useWindowDimensions()
+  // Stay mounted through the exit animation, then unmount.
+  const [mounted, setMounted] = useState(open)
+  const y = useSharedValue(screen)
+  const closing = useRef(false)
+  useEffect(() => {
+    if (open) {
+      closing.current = false
+      setMounted(true)
+      y.value = screen
+      y.value = reduced
+        ? 0
+        : withSpring(0, { damping: 26, stiffness: 260, mass: 0.9 })
+    } else if (mounted && reduced) {
+      setMounted(false)
+    } else if (mounted) {
+      y.value = withTiming(screen, { duration: reduced ? 0 : 220 }, (done) => {
+        if (done) runOnJS(setMounted)(false)
+      })
+    }
+  }, [open, y, screen, reduced, mounted])
+  const dismiss = () => {
+    if (closing.current) return
+    closing.current = true
+    onClose()
+  }
+  // Drag the grabber/header down to dismiss, like a native sheet.
+  const drag = Gesture.Pan()
+    .onUpdate((e) => {
+      y.value = Math.max(0, e.translationY) + Math.min(0, e.translationY) * 0.15
+    })
+    .onEnd((e) => {
+      if (e.translationY > 110 || e.velocityY > 900) runOnJS(dismiss)()
+      else y.value = withSpring(0, { damping: 22, stiffness: 260 })
+    })
+  const sheetStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: y.value }],
+  }))
+  const backdrop = useAnimatedStyle(() => ({
+    opacity: interpolate(y.value, [0, screen * 0.6], [1, 0], "clamp"),
+  }))
   return (
     <Modal
-      visible={open}
+      visible={mounted}
       transparent
-      animationType={reduced ? "none" : "slide"}
-      onRequestClose={onClose}
+      animationType="none"
+      statusBarTranslucent
+      onRequestClose={dismiss}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={{
-          flex: 1,
-          justifyContent: "flex-end",
-          backgroundColor: "#0008",
-        }}
+        style={{ flex: 1, justifyContent: "flex-end" }}
       >
-        <Pressable
-          style={{ flex: 1 }}
-          accessibilityLabel="Close dialog"
-          onPress={onClose}
-        />
-        <View
-          accessibilityViewIsModal
-          style={{
-            maxHeight: "88%",
-            backgroundColor: t.bg,
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
-            paddingHorizontal: 16,
-            paddingBottom: Math.max(safe.bottom, 16),
-          }}
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFill,
+            { backgroundColor: "#0009" },
+            backdrop,
+          ]}
         >
-          <View
-            style={{
-              alignSelf: "center",
-              width: 40,
-              height: 4,
-              borderRadius: 2,
-              backgroundColor: t.soft,
-              marginTop: 8,
-            }}
+          <Pressable
+            style={{ flex: 1 }}
+            accessibilityLabel="Close dialog"
+            onPress={dismiss}
           />
-          <View
-            style={{
-              paddingTop: 16,
-              paddingBottom: 8,
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <Text
-              style={{
-                fontFamily: fonts.display,
-                fontSize: 18,
-                lineHeight: 28,
-                color: t.text,
-                flex: 1,
-              }}
-            >
-              {title}
-            </Text>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Close"
-              onPress={onClose}
-              hitSlop={8}
-              style={{
-                width: 24,
-                height: 24,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <X size={16} color={t.muted} />
-            </Pressable>
-          </View>
-          <ScrollView keyboardShouldPersistTaps="handled">
+        </Animated.View>
+        <Animated.View
+          accessibilityViewIsModal
+          style={[
+            {
+              maxHeight: "88%",
+              backgroundColor: t.bg,
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              paddingHorizontal: 16,
+              paddingBottom: Math.max(safe.bottom, 16),
+            },
+            sheetStyle,
+          ]}
+        >
+          <GestureDetector gesture={drag}>
+            <View collapsable={false}>
+              <View
+                style={{
+                  alignSelf: "center",
+                  width: 40,
+                  height: 5,
+                  borderRadius: 3,
+                  backgroundColor: t.line,
+                  marginTop: 8,
+                }}
+              />
+              <View
+                style={{
+                  paddingTop: 16,
+                  paddingBottom: 8,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <Text
+                  accessibilityRole="header"
+                  style={{
+                    fontFamily: fonts.display,
+                    fontSize: 18,
+                    lineHeight: 28,
+                    color: t.text,
+                    flex: 1,
+                  }}
+                >
+                  {title}
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Close"
+                  onPress={dismiss}
+                  hitSlop={10}
+                  style={{
+                    width: 30,
+                    height: 30,
+                    borderRadius: 15,
+                    backgroundColor: t.soft,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <X size={16} color={t.muted} />
+                </Pressable>
+              </View>
+            </View>
+          </GestureDetector>
+          <ScrollView keyboardShouldPersistTaps="handled" bounces={false}>
             {children}
           </ScrollView>
-        </View>
+        </Animated.View>
       </KeyboardAvoidingView>
     </Modal>
   )
@@ -757,17 +827,28 @@ export function SwipeRow({
   onMore?: () => void
   moreLabel?: string
 }) {
+  const t = useTheme()
   const ref = useRef<React.ComponentRef<typeof Swipeable>>(null)
   const [direction, setDirection] = useState<string | null>(null)
   return (
     <Swipeable
       ref={ref}
+      friction={1.4}
+      leftThreshold={72}
+      rightThreshold={48}
+      onSwipeableWillOpen={() => {
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(
+          () => {},
+        )
+      }}
       onSwipeableOpen={(side) => {
         setDirection(side)
         if (side === "right" && onComplete) {
           ref.current?.close()
           onComplete()
-          void Haptics.selectionAsync().catch(() => {})
+          void Haptics.notificationAsync(
+            Haptics.NotificationFeedbackType.Success,
+          ).catch(() => {})
         }
       }}
       onSwipeableClose={() => setDirection(null)}
@@ -775,47 +856,92 @@ export function SwipeRow({
       overshootRight={false}
       renderLeftActions={
         onComplete
-          ? () => (
-              <View
-                aria-hidden={direction !== "right"}
-                accessibilityElementsHidden={direction !== "right"}
-                importantForAccessibility={
-                  direction === "right" ? "auto" : "no-hide-descendants"
-                }
-                style={{ justifyContent: "center", paddingRight: 8 }}
-              >
-                <Label>Complete</Label>
-              </View>
+          ? (progress) => (
+              <SwipeAction
+                progress={progress}
+                hidden={direction !== "right"}
+                color={t.good}
+                icon={Check}
+                label="Complete"
+                align="left"
+              />
             )
           : undefined
       }
       renderRightActions={
         onMore
-          ? () => (
-              <View
-                aria-hidden={direction !== "left"}
-                accessibilityElementsHidden={direction !== "left"}
-                importantForAccessibility={
-                  direction === "left" ? "auto" : "no-hide-descendants"
-                }
-                style={{ justifyContent: "center", paddingLeft: 8 }}
-              >
-                <Button
-                  tone="quiet"
-                  onPress={() => {
-                    ref.current?.close()
-                    onMore()
-                  }}
-                >
-                  {moreLabel}
-                </Button>
-              </View>
+          ? (progress) => (
+              <SwipeAction
+                progress={progress}
+                hidden={direction !== "left"}
+                color={t.muted}
+                icon={Ellipsis}
+                label={moreLabel}
+                align="right"
+                onPress={() => {
+                  ref.current?.close()
+                  onMore()
+                }}
+              />
             )
           : undefined
       }
     >
-      {children}
+      <View style={{ backgroundColor: t.bg }}>{children}</View>
     </Swipeable>
+  )
+}
+function SwipeAction({
+  progress,
+  hidden,
+  color,
+  icon: Icon,
+  label,
+  align,
+  onPress,
+}: {
+  progress: SharedValue<number>
+  hidden: boolean
+  color: string
+  icon: LucideIcon
+  label: string
+  align: "left" | "right"
+  onPress?: () => void
+}) {
+  // The icon grows as you drag, so the threshold is felt before release.
+  const iconStyle = useAnimatedStyle(() => ({
+    transform: [
+      { scale: interpolate(progress.value, [0, 1], [0.6, 1.1], "clamp") },
+    ],
+    opacity: interpolate(progress.value, [0, 0.4], [0, 1], "clamp"),
+  }))
+  return (
+    <Pressable
+      accessibilityRole={onPress ? "button" : undefined}
+      accessibilityLabel={label}
+      aria-hidden={hidden}
+      accessibilityElementsHidden={hidden}
+      importantForAccessibility={hidden ? "no-hide-descendants" : "auto"}
+      onPress={onPress}
+      style={{
+        width: 88,
+        backgroundColor: color,
+        alignItems: "center",
+        justifyContent: "center",
+        borderTopLeftRadius: align === "left" ? 12 : 0,
+        borderBottomLeftRadius: align === "left" ? 12 : 0,
+        borderTopRightRadius: align === "right" ? 12 : 0,
+        borderBottomRightRadius: align === "right" ? 12 : 0,
+        gap: 4,
+      }}
+    >
+      <Animated.View style={iconStyle}>
+        <Icon size={22} color="#fff" strokeWidth={2.4} />
+      </Animated.View>
+      <Text style={{ color: "#fff", fontFamily: fonts.semibold, fontSize: 12 }}>
+        {label}
+      </Text>
+    </Pressable>
   )
 }
 export function Progress({ value, label }: { value: number; label?: string }) {

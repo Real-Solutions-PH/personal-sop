@@ -27,8 +27,20 @@ jest.mock("react-native-reanimated", () => ({
   useAnimatedStyle: (get: () => unknown) => get(),
   withSpring: (value: unknown) => value,
   withTiming: (value: unknown) => value,
+  withSequence: (...values: unknown[]) => values[values.length - 1],
+  interpolate: (_: number, __: number[], output: number[]) => output[0],
+  interpolateColor: (_: number, __: number[], output: string[]) => output[0],
+  runOnJS: (fn: unknown) => fn,
   useReducedMotion: () => true,
 }))
+jest.mock("react-native-gesture-handler", () => {
+  // Chainable no-op gesture builder; the detector just renders its child.
+  const chain: object = new Proxy({}, { get: () => () => chain })
+  return {
+    Gesture: new Proxy({}, { get: () => () => chain }),
+    GestureDetector: ({ children }: { children: ReactNode }) => children,
+  }
+})
 jest.mock("react-native-gesture-handler/ReanimatedSwipeable", () => {
   const { View } = require("react-native")
   return ({ children }: { children: ReactNode }) => <View>{children}</View>

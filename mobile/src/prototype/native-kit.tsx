@@ -1,5 +1,6 @@
+import * as Haptics from "expo-haptics"
 import { ChevronRight, type LucideIcon, Play } from "lucide-react-native"
-import type { ReactNode } from "react"
+import { type ReactNode, useEffect, useState } from "react"
 import {
   Pressable,
   Text,
@@ -7,6 +8,12 @@ import {
   View,
   type ViewStyle,
 } from "react-native"
+import Animated, {
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withSpring,
+} from "react-native-reanimated"
 import { go } from "./navigation"
 import { type Accent, fonts, useTheme } from "./theme"
 
@@ -94,7 +101,11 @@ export function Tap({
       accessibilityLabel={label}
       onPress={onPress}
       hitSlop={4}
-      style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1, ...style })}
+      style={({ pressed }) => [
+        { opacity: pressed ? 0.65 : 1 },
+        style,
+        pressed && { transform: [{ scale: 0.97 }] },
+      ]}
     >
       {children}
     </Pressable>
@@ -350,27 +361,72 @@ export function Segmented<T extends string>({
   onChange: (value: T) => void
 }) {
   const t = useTheme()
+  const reduced = useReducedMotion()
+  const [width, setWidth] = useState(0)
+  const index = Math.max(
+    0,
+    options.findIndex((o) => o.value === value),
+  )
+  const segment = width ? (width - 8) / options.length : 0
+  const x = useSharedValue(index * segment)
+  useEffect(() => {
+    x.value = reduced
+      ? index * segment
+      : withSpring(index * segment, { damping: 22, stiffness: 260 })
+  }, [index, segment, reduced, x])
+  // A single pill slides between options, like a native segmented control.
+  const pill = useAnimatedStyle(() => ({
+    transform: [{ translateX: x.value }],
+  }))
   return (
-    <Line
-      style={{ backgroundColor: t.soft, padding: 4, borderRadius: 12, gap: 0 }}
+    <View
+      onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: t.soft,
+        padding: 4,
+        borderRadius: 12,
+      }}
     >
+      {segment > 0 && (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            {
+              position: "absolute",
+              left: 4,
+              top: 4,
+              bottom: 4,
+              width: segment,
+              borderRadius: 8,
+              backgroundColor: t.bg,
+              boxShadow: "0px 1px 3px #00000022",
+            },
+            pill,
+          ]}
+        />
+      )}
       {options.map((o) => (
         <Pressable
           key={o.value}
           accessibilityRole="tab"
           accessibilityLabel={typeof o.label === "string" ? o.label : o.value}
           accessibilityState={{ selected: value === o.value }}
-          onPress={() => onChange(o.value)}
+          onPress={() => {
+            if (o.value !== value) void Haptics.selectionAsync().catch(() => {})
+            onChange(o.value)
+          }}
           style={{
             flex: 1,
             minHeight: 40,
             paddingHorizontal: 8,
             paddingVertical: 8,
             borderRadius: 8,
-            backgroundColor: value === o.value ? t.bg : "transparent",
+            backgroundColor:
+              segment > 0 || value !== o.value ? "transparent" : t.bg,
             alignItems: "center",
             justifyContent: "center",
-            boxShadow: value === o.value ? "0px 1px 2px #0000000d" : undefined,
           }}
         >
           <Copy size={14} weight="medium" muted={value !== o.value}>
@@ -378,7 +434,7 @@ export function Segmented<T extends string>({
           </Copy>
         </Pressable>
       ))}
-    </Line>
+    </View>
   )
 }
 export function LinkRow({
