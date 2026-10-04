@@ -13,6 +13,7 @@ import {
   BookOpen,
   Bot,
   CalendarRange,
+  ChartColumn,
   CheckSquare,
   Clock,
   Dumbbell,
@@ -31,6 +32,7 @@ import {
   Target,
   Trophy,
   UserPlus,
+  Users,
   Wallet,
 } from "lucide-react-native"
 import { Platform, View } from "react-native"
@@ -248,6 +250,20 @@ export function Me() {
         )}
         <SectionHeading>Progress</SectionHeading>
         <Frame style={{ paddingHorizontal: 8, paddingVertical: 4 }}>
+          <LinkRow
+            title="Stats"
+            detail="Life score, trends and reviews"
+            icon={ChartColumn}
+            accent="life"
+            href="/stats"
+          />
+          <LinkRow
+            title="Social profile"
+            detail="Posts, followers and your public scorecard"
+            icon={Users}
+            accent="primary"
+            href="/social/u/me"
+          />
           <LinkRow
             title="Goals"
             detail={`${goals.filter((g) => g.goal.status === "active").length} active`}

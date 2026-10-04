@@ -716,7 +716,10 @@ export function useMe(): Person {
   return {
     id: ME,
     name,
-    username: name.toLowerCase().replace(/[^a-z0-9]+/g, ".") || "you",
+    username:
+      profile.handle?.replace(/^@/, "") ||
+      name.toLowerCase().replace(/[^a-z0-9]+/g, ".") ||
+      "you",
     bio: "Building better days, one rep at a time.",
     accent: "primary",
     photo: profile.photo || undefined,
