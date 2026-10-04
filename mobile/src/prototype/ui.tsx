@@ -857,11 +857,14 @@ export function SwipeRow({
   onComplete,
   onMore,
   moreLabel = "Actions",
+  background,
 }: {
   children: ReactNode
   onComplete?: () => void
   onMore?: () => void
   moreLabel?: string
+  /** Surface colour behind the row; defaults to the page background. */
+  background?: string
 }) {
   const t = useTheme()
   const ref = useRef<React.ComponentRef<typeof Swipeable>>(null)
@@ -923,7 +926,7 @@ export function SwipeRow({
           : undefined
       }
     >
-      <View style={{ backgroundColor: t.bg }}>{children}</View>
+      <View style={{ backgroundColor: background ?? t.bg }}>{children}</View>
     </Swipeable>
   )
 }

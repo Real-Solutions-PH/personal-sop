@@ -6,7 +6,7 @@ import { dayKey } from "@domain/lib/day"
 import { useLocalSearchParams } from "expo-router"
 import { Pencil, Plus } from "lucide-react-native"
 import { useState } from "react"
-import { ScrollView, View } from "react-native"
+import { ScrollView, useWindowDimensions, View } from "react-native"
 import { toast } from "sonner-native"
 import {
   border,
@@ -19,7 +19,7 @@ import {
   Tap,
 } from "../native-kit"
 import { go } from "../navigation"
-import { useTheme } from "../theme"
+import { radius, useTheme } from "../theme"
 import {
   Button,
   Choices,
@@ -43,13 +43,14 @@ export function FinPill({
   return (
     <View
       style={{
-        borderRadius: 6,
+        alignSelf: "flex-start",
+        borderRadius: radius.pill,
         backgroundColor: tone === "muted" ? t.soft : `${t[tone]}26`,
-        paddingHorizontal: 6,
+        paddingHorizontal: 8,
         paddingVertical: 2,
       }}
     >
-      <Copy size={10} weight="medium" style={{ color: t[tone] }}>
+      <Copy size={11} weight="medium" lines={1} style={{ color: t[tone] }}>
         {children}
       </Copy>
     </View>
@@ -196,6 +197,7 @@ export function Planned({ id }: { id?: string }) {
   const s = finStore.use((s) => s),
     t = useTheme(),
     money = useMoney(),
+    narrow = useWindowDimensions().width < 380,
     [tab, setTab] = useState("recurring"),
     [edit, setEdit] = useState(!!params.amount),
     [due, setDue] = useState<{ id: string; day: string } | null>(null),
@@ -256,8 +258,9 @@ export function Planned({ id }: { id?: string }) {
         {items.map((x) => (
           <View key={x.label} style={{ flex: 1 }}>
             <Copy
-              size={30}
+              size={narrow ? 22 : 30}
               weight="displayMedium"
+              lines={1}
               style={{ color: x.color ?? t.text }}
             >
               {x.value}
@@ -598,12 +601,14 @@ export function Planned({ id }: { id?: string }) {
                 <Line style={{ paddingVertical: 8, paddingHorizontal: 4 }}>
                   <PlannedIcon p={p} />
                   <View style={{ flex: 1 }}>
-                    <Line style={{ gap: 6, flexWrap: "wrap" }}>
-                      <Copy weight="medium">{p.name}</Copy>
+                    <Line style={{ gap: 6 }}>
+                      <Copy weight="medium" lines={1} style={{ flexShrink: 1 }}>
+                        {p.name}
+                      </Copy>
                       {p.isInstallment && <FinPill>installment</FinPill>}
                       {p.autoLog && <FinPill tone="fin">auto</FinPill>}
                     </Line>
-                    <Copy size={14} muted>
+                    <Copy size={14} muted lines={1}>
                       {C.scheduleLabel(p)}
                       {p.type !== "transfer"
                         ? ` · ${s.categories.find((c) => c.id === p.categoryId)?.name ?? ""}`

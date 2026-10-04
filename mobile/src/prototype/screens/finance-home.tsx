@@ -28,7 +28,7 @@ import {
   Wallet,
 } from "lucide-react-native"
 import { useState } from "react"
-import { ScrollView, Text, View } from "react-native"
+import { ScrollView, Text, useWindowDimensions, View } from "react-native"
 import { Sparkline } from "../chart"
 import {
   Bar,
@@ -46,6 +46,7 @@ import { useTheme } from "../theme"
 import { Screen } from "../ui"
 import { Ring } from "../visual"
 import { RecordEditor, useMoney } from "./finance"
+import { FinPill } from "./finance-planned"
 
 export const sourceLabel = (source: FinRecord["source"]) =>
   ({
@@ -110,18 +111,7 @@ export function FinanceRecord({
                   : (category?.name ?? "Untitled"))}
             </Copy>
             {record.status === "pending" && (
-              <View
-                style={{
-                  borderRadius: 14,
-                  backgroundColor: `${t.warn}26`,
-                  paddingHorizontal: 8,
-                  paddingVertical: 2,
-                }}
-              >
-                <Copy size={11} style={{ color: t.warn }}>
-                  review
-                </Copy>
-              </View>
+              <FinPill tone="warn">review</FinPill>
             )}
           </Line>
           <Copy size={12} muted lines={1}>
@@ -166,6 +156,7 @@ export function FinanceHome() {
   const t = useTheme(),
     s = finStore.use((s) => s),
     money = useMoney(),
+    narrow = useWindowDimensions().width < 380,
     hidden = privacyStore.use((s) => s.hidden),
     [adding, setAdding] = useState(
       params.add === "expense" || params.add === "income",
@@ -486,25 +477,16 @@ export function FinanceHome() {
                 {pending.length > 0 && (
                   <Frame style={{ padding: 12 }}>
                     <Line style={{ gap: 8, marginBottom: 4 }}>
-                      <View
-                        style={{
-                          borderRadius: 14,
-                          backgroundColor: `${t.warn}26`,
-                          paddingHorizontal: 8,
-                          paddingVertical: 2,
-                        }}
-                      >
-                        <Copy size={11} style={{ color: t.warn }}>
-                          {pending.length} to check
-                        </Copy>
-                      </View>
+                      <FinPill tone="warn">{pending.length} to check</FinPill>
                       <Copy size={14} muted>
                         AI drafts to double-check
                       </Copy>
                     </Line>
                     {pending.map((r) => (
                       <Line key={r.id} style={{ gap: 8 }}>
-                        <FinanceRecord record={r} />
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                          <FinanceRecord record={r} />
+                        </View>
                         <SmallButton
                           accent="fin"
                           quiet
@@ -564,15 +546,19 @@ export function FinanceHome() {
                       },
                       { label: "Days left", value: overall?.daysLeft ?? "—" },
                     ].map((m, i) => (
-                      <View key={m.label} style={{ width: "50%" }}>
+                      <View
+                        key={m.label}
+                        style={{ width: "50%", paddingRight: 4 }}
+                      >
                         <Copy
-                          size={24}
+                          size={narrow ? 20 : 24}
                           weight="display"
+                          lines={1}
                           style={{ color: i === 2 ? t.fin : t.text }}
                         >
                           {m.value}
                         </Copy>
-                        <Copy size={12} muted>
+                        <Copy size={12} muted lines={narrow ? 2 : 1}>
                           {m.label}
                         </Copy>
                       </View>
@@ -589,7 +575,17 @@ export function FinanceHome() {
                         }}
                       >
                         <Copy size={12}>{v.b.name}</Copy>
-                        <Copy size={12} muted>
+                        <Copy
+                          size={12}
+                          style={{
+                            color:
+                              v.pct > 1
+                                ? t.bad
+                                : v.pct > v.pace
+                                  ? t.warn
+                                  : t.muted,
+                          }}
+                        >
                           {Math.round(v.pct * 100)}%
                         </Copy>
                       </Line>
@@ -611,9 +607,26 @@ export function FinanceHome() {
                   <Copy size={14} weight="medium">
                     Cash flow
                   </Copy>
-                  <Copy size={11} muted>
-                    ● In　● Out
-                  </Copy>
+                  <Line style={{ gap: 12 }}>
+                    {[
+                      { label: "In", color: `${t.good}cc` },
+                      { label: "Out", color: `${t.bad}b3` },
+                    ].map((x) => (
+                      <Line key={x.label} style={{ gap: 4 }}>
+                        <View
+                          style={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: 4,
+                            backgroundColor: x.color,
+                          }}
+                        />
+                        <Copy size={11} muted>
+                          {x.label}
+                        </Copy>
+                      </Line>
+                    ))}
+                  </Line>
                 </Line>
                 <Line style={{ alignItems: "flex-end", gap: 16 }}>
                   <View style={{ width: 112, gap: 8 }}>
@@ -805,12 +818,29 @@ export function FinanceHome() {
                       <Copy weight="medium" lines={1}>
                         {o.item.name}
                       </Copy>
-                      <Copy size={12} muted>
-                        {N.dayLabel(o.day)} · {o.status}
-                      </Copy>
+                      <Line style={{ gap: 6 }}>
+                        <Copy size={12} muted>
+                          {N.dayLabel(o.day)}
+                        </Copy>
+                        {o.status === "overdue" && (
+                          <FinPill tone="bad">overdue</FinPill>
+                        )}
+                        {o.status === "due" && (
+                          <FinPill tone="warn">due</FinPill>
+                        )}
+                      </Line>
                     </View>
-                    <Copy weight="medium">
-                      {o.item.type === "income" ? "+" : "−"}
+                    <Copy
+                      weight="medium"
+                      style={{
+                        color: o.item.type === "income" ? t.good : t.text,
+                      }}
+                    >
+                      {o.item.type === "income"
+                        ? "+"
+                        : o.item.type === "expense"
+                          ? "−"
+                          : ""}
                       {money(o.item.amount)}
                     </Copy>
                   </Line>

@@ -5,7 +5,7 @@ import { dayKey } from "@domain/lib/day"
 import { useLocalSearchParams } from "expo-router"
 import { ChevronRight, Share2 } from "lucide-react-native"
 import { type ReactNode, useState } from "react"
-import { View } from "react-native"
+import { useWindowDimensions, View } from "react-native"
 import { FinanceLineChart, Sparkline } from "../chart"
 import { Donut, FIN_PALETTE, FinanceBars, PairBars } from "../finance-charts"
 import {
@@ -41,6 +41,7 @@ export function Reports({ kind }: { kind?: string }) {
   const s = finStore.use((s) => s),
     t = useTheme(),
     money = useMoney(),
+    narrow = useWindowDimensions().width < 380,
     params = useLocalSearchParams<{ period?: Period }>(),
     [p, setP] = useState<Period>(params.period ?? "this"),
     d = reportData(s, p),
@@ -61,24 +62,26 @@ export function Reports({ kind }: { kind?: string }) {
       {items.map((x) => (
         <Frame key={x.label} style={{ padding: 12, flex: 1 }}>
           <Copy
-            size={30}
+            size={narrow ? 22 : 30}
             weight="displayMedium"
+            lines={1}
             style={{ color: x.color ?? t.text }}
           >
             {x.value}
           </Copy>
-          <Copy size={12} muted>
+          <Copy size={12} muted lines={1}>
             {x.label}
+            {x.delta !== undefined && x.delta !== 0 && (
+              <Copy
+                size={12}
+                style={{ color: x.delta > 0 !== !!x.down ? t.good : t.bad }}
+              >
+                {"  "}
+                {x.delta > 0 ? "▲" : "▼"}
+                {Math.abs(x.delta)}%
+              </Copy>
+            )}
           </Copy>
-          {x.delta !== undefined && x.delta !== 0 && (
-            <Copy
-              size={12}
-              style={{ color: x.delta > 0 !== !!x.down ? t.good : t.bad }}
-            >
-              {x.delta > 0 ? "▲" : "▼"}
-              {Math.abs(x.delta)}%
-            </Copy>
-          )}
         </Frame>
       ))}
     </Line>

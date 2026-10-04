@@ -4,6 +4,7 @@ import type { Budget, PlannedItem } from "@domain/finance/data"
 import { lookback } from "@domain/finance/review"
 import { finStore } from "@domain/finance/store"
 import { dayKey } from "@domain/lib/day"
+import { privacyStore } from "@domain/lib/privacy"
 import { LinearGradient } from "expo-linear-gradient"
 import { useLocalSearchParams } from "expo-router"
 import {
@@ -13,6 +14,8 @@ import {
   type LucideIcon,
   Share2,
   Sparkles,
+  ThumbsDown,
+  Trophy,
 } from "lucide-react-native"
 import { useEffect, useState } from "react"
 import { ScrollView, View } from "react-native"
@@ -33,10 +36,36 @@ import { PlannedEditor, useMoney } from "./finance"
 import { BudgetEditor } from "./finance-budget-editor"
 import { FinPill } from "./finance-planned"
 import { FinChip } from "./finance-projection"
+
+function IconHeading({
+  icon: Icon,
+  children,
+}: {
+  icon: LucideIcon
+  children: string
+}) {
+  const t = useTheme()
+  return (
+    <Line
+      style={{ gap: 6, marginTop: 24, marginBottom: 8, paddingHorizontal: 4 }}
+    >
+      <Icon size={14} color={t.muted} />
+      <Copy
+        size={12}
+        weight="medium"
+        muted
+        style={{ letterSpacing: 0.6, textTransform: "uppercase" }}
+      >
+        {children}
+      </Copy>
+    </Line>
+  )
+}
 export function FinanceReview() {
   const s = finStore.use((s) => s),
     t = useTheme(),
     money = useMoney(),
+    hidden = privacyStore.use((v) => v.hidden),
     p = useLocalSearchParams<Record<string, string>>(),
     cur = C.monthOf(dayKey(), s.settings.monthStartDay),
     [period, setPeriod] = useState(p.period ?? C.addMonths(cur, -1)),
@@ -253,12 +282,18 @@ export function FinanceReview() {
               d.base > 0
                 ? `${d.flow.spend > d.base ? "+" : ""}${Math.round((d.flow.spend / d.base - 1) * 100)}% vs 3-period avg`
                 : "",
+            hintColor:
+              d.base > 0 ? (d.flow.spend > d.base ? t.bad : t.good) : undefined,
           },
         ].map((x) => (
-          <Frame key={x.label} style={{ width: "48.9%", padding: 12 }}>
+          <Frame
+            key={x.label}
+            style={{ flexBasis: "45%", flexGrow: 1, padding: 12 }}
+          >
             <Copy
               size={30}
               weight="displayMedium"
+              lines={1}
               style={{ color: x.color ?? t.text }}
             >
               {x.value}
@@ -280,7 +315,11 @@ export function FinanceReview() {
               )}
             </Copy>
             {!!x.hint && (
-              <Copy size={11} muted>
+              <Copy
+                size={11}
+                muted={!x.hintColor}
+                style={x.hintColor ? { color: x.hintColor } : undefined}
+              >
                 {x.hint}
               </Copy>
             )}
@@ -355,7 +394,7 @@ export function FinanceReview() {
             </Tap>
           ))}
         </Frame>
-        <SectionHeading>🏆 Wins</SectionHeading>
+        <IconHeading icon={Trophy}>Wins</IconHeading>
         <View style={{ gap: 8 }}>
           {d.kept.length > 0 &&
             win(
@@ -381,7 +420,7 @@ export function FinanceReview() {
             "Everything else came from statement import. Logging habit is working.",
           )}
         </View>
-        <SectionHeading>Misses</SectionHeading>
+        <IconHeading icon={ThumbsDown}>Misses</IconHeading>
         <Frame style={{ padding: 16, gap: 10 }}>
           {d.blown.map((v) => (
             <Line key={v.b.id} style={{ justifyContent: "space-between" }}>
@@ -428,7 +467,7 @@ export function FinanceReview() {
               <View style={{ alignItems: "flex-end" }}>
                 <Copy size={14}>{money(x.v)}</Copy>
                 <Copy size={11} muted>
-                  ≈ {money(x.v * 12)}/yr
+                  ≈ {hidden ? "₱•••" : C.compact(x.v * 12)}/yr
                 </Copy>
               </View>
             </Line>

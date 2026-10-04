@@ -321,7 +321,14 @@ export function Records({ accountId }: { accountId?: string }) {
             {rows.length} record{rows.length === 1 ? "" : "s"}
           </Copy>
           <Copy size={12} muted>
-            Net {signed(net(rows))}
+            Net{" "}
+            <Copy
+              size={12}
+              muted={net(rows) <= 0}
+              style={net(rows) > 0 ? { color: t.good } : undefined}
+            >
+              {signed(net(rows))}
+            </Copy>
           </Copy>
         </Line>
       </View>
@@ -355,7 +362,11 @@ export function Records({ accountId }: { accountId?: string }) {
                 <Copy size={12} weight="medium" muted>
                   {C.dayLabel(g.day)}
                 </Copy>
-                <Copy size={12} muted>
+                <Copy
+                  size={12}
+                  muted={net(g.rows) <= 0}
+                  style={net(g.rows) > 0 ? { color: t.good } : undefined}
+                >
                   {signed(net(g.rows))}
                 </Copy>
               </Line>

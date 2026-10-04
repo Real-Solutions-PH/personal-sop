@@ -30,7 +30,7 @@ import {
   Tap,
 } from "../native-kit"
 import { go } from "../navigation"
-import { fonts, useTheme } from "../theme"
+import { fonts, radius, useTheme } from "../theme"
 import { Screen } from "../ui"
 import { Ring } from "../visual"
 
@@ -640,7 +640,7 @@ export function HabitsHome() {
                           size={14}
                           weight="medium"
                           lines={1}
-                          style={{ flex: 1 }}
+                          style={{ flexShrink: 1 }}
                         >
                           {h.name}
                         </Copy>
@@ -649,7 +649,7 @@ export function HabitsHome() {
                             style={{
                               gap: 2,
                               backgroundColor: `${t.warn}26`,
-                              borderRadius: 12,
+                              borderRadius: radius.pill,
                               paddingHorizontal: 6,
                             }}
                           >
