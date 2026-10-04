@@ -6,6 +6,7 @@ import { useLocalSearchParams } from "expo-router"
 import {
   Bot,
   History,
+  Lock,
   Mic,
   Send,
   ShieldCheck,
@@ -192,6 +193,7 @@ export function FinanceAdvisor() {
     >
       {!s.settings.disclaimerAck ? (
         <Empty
+          icon={Lock}
           title="Accept the advisor terms first"
           detail="The advisor explains your own numbers. It's not licensed financial advice and never moves money."
           action={<Button onPress={() => setAck(true)}>Read & accept</Button>}

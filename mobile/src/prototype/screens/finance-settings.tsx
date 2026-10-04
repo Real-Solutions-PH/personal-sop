@@ -99,6 +99,7 @@ export function FinanceDisclaimer({
     </Sheet>
   )
 }
+const caps = { textTransform: "uppercase", letterSpacing: 0.6 } as const
 export function FinanceSettings() {
   const s = finStore.use((s) => s),
     st = s.settings,
@@ -111,10 +112,11 @@ export function FinanceSettings() {
     Icon: LucideIcon,
     onPress: () => void,
     detail?: string,
+    iconColor: string = t.muted,
   ) => (
     <Tap onPress={onPress}>
       <Line style={{ paddingVertical: 12, paddingHorizontal: 4 }}>
-        <Icon size={20} color={t.muted} />
+        <Icon size={20} color={iconColor} />
         <View style={{ flex: 1 }}>
           <Copy weight="medium">{title}</Copy>
           {detail && (
@@ -155,7 +157,7 @@ export function FinanceSettings() {
       <View>
         <SectionHeading>Logging</SectionHeading>
         <Frame style={{ padding: 16, gap: 8 }}>
-          <Copy size={12} muted weight="medium">
+          <Copy size={12} muted weight="medium" style={caps}>
             Default account
           </Copy>
           {chips(
@@ -173,7 +175,12 @@ export function FinanceSettings() {
           <Copy size={11} muted>
             Pre-selected in quick-add and chat when you don't say which.
           </Copy>
-          <Copy size={12} muted weight="medium" style={{ marginTop: 8 }}>
+          <Copy
+            size={12}
+            muted
+            weight="medium"
+            style={{ ...caps, marginTop: 8 }}
+          >
             Month starts on day
           </Copy>
           <Line style={{ gap: 8, flexWrap: "wrap" }}>
@@ -225,7 +232,7 @@ export function FinanceSettings() {
         </Frame>
         <SectionHeading>Forecast</SectionHeading>
         <Frame style={{ padding: 16, gap: 8 }}>
-          <Copy size={12} muted weight="medium">
+          <Copy size={12} muted weight="medium" style={caps}>
             Forecast length
           </Copy>
           <Segmented
@@ -246,7 +253,7 @@ export function FinanceSettings() {
           )}
           <Field
             label="Minimum balance ₱"
-            value={floor}
+            value={floor ? Number(floor).toLocaleString("en-PH") : ""}
             onChangeText={(v) => setFloor(v.replace(/[^\d]/g, ""))}
             onBlur={() => A.updateSettings({ safetyFloor: Number(floor || 0) })}
             keyboardType="decimal-pad"
@@ -257,7 +264,7 @@ export function FinanceSettings() {
         </Frame>
         <SectionHeading>AI</SectionHeading>
         <Frame style={{ padding: 16, gap: 8 }}>
-          <Copy size={12} muted weight="medium">
+          <Copy size={12} muted weight="medium" style={caps}>
             Data the AI may see
           </Copy>
           <Segmented
@@ -276,11 +283,12 @@ export function FinanceSettings() {
             ShieldCheck,
             () => setAck(true),
             st.disclaimerAck ? "Acknowledged" : "Not yet acknowledged",
+            t.fin,
           )}
         </Frame>
         <SectionHeading>Statement matching</SectionHeading>
         <Frame style={{ padding: 16, gap: 8 }}>
-          <Copy size={12} muted weight="medium">
+          <Copy size={12} muted weight="medium" style={caps}>
             Remind me when an account hasn't been matched with a statement for
           </Copy>
           {chips(

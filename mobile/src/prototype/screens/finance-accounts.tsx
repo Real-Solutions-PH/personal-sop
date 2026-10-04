@@ -36,6 +36,7 @@ import { Button, confirm, Empty, Field, Screen, Sheet, undo } from "../ui"
 import { RecordEditor, useMoney } from "./finance"
 import { AccountEditor } from "./finance-account-editor"
 import { FinanceRecord } from "./finance-home"
+import { FinPill } from "./finance-planned"
 
 const groups: Record<AccountType, string> = {
   cash: "Cash",
@@ -44,7 +45,13 @@ const groups: Record<AccountType, string> = {
   credit: "Credit cards",
   investment: "Savings & investments",
 }
-export function AccountIcon({ account: a }: { account: Account }) {
+export function AccountIcon({
+  account: a,
+  size = 40,
+}: {
+  account: Account
+  size?: number
+}) {
   const t = useTheme(),
     Icon = {
       cash: Banknote,
@@ -60,15 +67,15 @@ export function AccountIcon({ account: a }: { account: Account }) {
   return (
     <View
       style={{
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: size,
+        height: size,
+        borderRadius: size / 2,
         backgroundColor: color,
         alignItems: "center",
         justifyContent: "center",
       }}
     >
-      <Icon size={20} color="white" />
+      <Icon size={size / 2} color="white" />
     </View>
   )
 }
@@ -360,24 +367,26 @@ export function Accounts({ id }: { id?: string }) {
                   >
                     <Line>
                       <View style={{ flex: 1 }}>
-                        <Copy>{i.fileName}</Copy>
+                        <Copy weight="medium" lines={1}>
+                          {i.fileName}
+                        </Copy>
                         <Copy size={12} muted>
                           {C.shortDate(i.from)} – {C.shortDate(i.to)}
                         </Copy>
                       </View>
-                      <Copy
-                        size={12}
-                        style={{
-                          color:
-                            i.status === "done"
-                              ? t.good
-                              : i.status === "failed"
-                                ? t.bad
-                                : t.warn,
-                        }}
+                      <FinPill
+                        tone={
+                          i.status === "done"
+                            ? "good"
+                            : i.status === "failed"
+                              ? "bad"
+                              : i.status === "undone"
+                                ? "muted"
+                                : "warn"
+                        }
                       >
                         {i.status}
-                      </Copy>
+                      </FinPill>
                     </Line>
                   </Tap>
                 ))}

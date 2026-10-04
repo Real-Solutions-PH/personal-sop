@@ -44,6 +44,7 @@ import {
   undo,
 } from "../ui"
 import { useMoney } from "./finance"
+import { AccountIcon } from "./finance-accounts"
 import { FinPill } from "./finance-planned"
 import { FinChip } from "./finance-projection"
 export function ImportStatement({ id }: { id?: string }) {
@@ -70,6 +71,7 @@ export function ImportStatement({ id }: { id?: string }) {
     <Done imp={imp} />
   )
 }
+const caps = { textTransform: "uppercase", letterSpacing: 0.6 } as const
 function ImportStart() {
   const s = finStore.use((s) => s),
     t = useTheme(),
@@ -84,7 +86,7 @@ function ImportStart() {
         Upload a bank or e-wallet statement. I'll read it, match it against your
         transactions, and show you every difference before anything changes.
       </Copy>
-      <Copy size={12} muted weight="medium">
+      <Copy size={12} muted weight="medium" style={caps}>
         Account
       </Copy>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -97,6 +99,7 @@ function ImportStart() {
                 label={a.name}
                 active={acct === a.id}
                 onPress={() => setAcct(a.id)}
+                leading={<AccountIcon account={a} size={24} />}
               />
             ))}
         </Line>
@@ -114,7 +117,7 @@ function ImportStart() {
             : "Never matched with a statement"}
         </Copy>
       )}
-      <Copy size={12} muted weight="medium">
+      <Copy size={12} muted weight="medium" style={caps}>
         File
       </Copy>
       <View style={{ gap: 8 }}>

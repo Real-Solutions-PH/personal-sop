@@ -67,18 +67,19 @@ export function Reports({ kind }: { kind?: string }) {
           >
             {x.value}
           </Copy>
-          <Copy size={12} muted>
+          <Copy size={12} muted lines={1}>
             {x.label}
+            {x.delta !== undefined && x.delta !== 0 && (
+              <Copy
+                size={12}
+                style={{ color: x.delta > 0 !== !!x.down ? t.good : t.bad }}
+              >
+                {"  "}
+                {x.delta > 0 ? "▲" : "▼"}
+                {Math.abs(x.delta)}%
+              </Copy>
+            )}
           </Copy>
-          {x.delta !== undefined && x.delta !== 0 && (
-            <Copy
-              size={12}
-              style={{ color: x.delta > 0 !== !!x.down ? t.good : t.bad }}
-            >
-              {x.delta > 0 ? "▲" : "▼"}
-              {Math.abs(x.delta)}%
-            </Copy>
-          )}
         </Frame>
       ))}
     </Line>
