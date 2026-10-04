@@ -160,9 +160,8 @@ export function Compose() {
             },
       )
     haptic.done()
-    toast.success(
-      toStory ? "Shared to your feed and story" : "Shared to your feed",
-    )
+    // The feed's Posting… banner confirms the post; only note the story.
+    if (toStory) toast.success("Also added to your story")
     replace("/social")
   }
   const previewW = width - 32
