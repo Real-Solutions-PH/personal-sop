@@ -28,7 +28,7 @@ import {
   Wallet,
 } from "lucide-react-native"
 import { useState } from "react"
-import { ScrollView, Text, View } from "react-native"
+import { ScrollView, Text, useWindowDimensions, View } from "react-native"
 import { Sparkline } from "../chart"
 import {
   Bar,
@@ -156,6 +156,7 @@ export function FinanceHome() {
   const t = useTheme(),
     s = finStore.use((s) => s),
     money = useMoney(),
+    narrow = useWindowDimensions().width < 380,
     hidden = privacyStore.use((s) => s.hidden),
     [adding, setAdding] = useState(
       params.add === "expense" || params.add === "income",
@@ -545,15 +546,19 @@ export function FinanceHome() {
                       },
                       { label: "Days left", value: overall?.daysLeft ?? "—" },
                     ].map((m, i) => (
-                      <View key={m.label} style={{ width: "50%" }}>
+                      <View
+                        key={m.label}
+                        style={{ width: "50%", paddingRight: 4 }}
+                      >
                         <Copy
-                          size={24}
+                          size={narrow ? 20 : 24}
                           weight="display"
+                          lines={1}
                           style={{ color: i === 2 ? t.fin : t.text }}
                         >
                           {m.value}
                         </Copy>
-                        <Copy size={12} muted>
+                        <Copy size={12} muted lines={narrow ? 2 : 1}>
                           {m.label}
                         </Copy>
                       </View>
