@@ -286,10 +286,14 @@ export function FinanceReview() {
               d.base > 0 ? (d.flow.spend > d.base ? t.bad : t.good) : undefined,
           },
         ].map((x) => (
-          <Frame key={x.label} style={{ width: "48.9%", padding: 12 }}>
+          <Frame
+            key={x.label}
+            style={{ flexBasis: "45%", flexGrow: 1, padding: 12 }}
+          >
             <Copy
               size={30}
               weight="displayMedium"
+              lines={1}
               style={{ color: x.color ?? t.text }}
             >
               {x.value}

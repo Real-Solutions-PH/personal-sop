@@ -6,7 +6,7 @@ import { dayKey } from "@domain/lib/day"
 import { useLocalSearchParams } from "expo-router"
 import { Pencil, Plus } from "lucide-react-native"
 import { useState } from "react"
-import { ScrollView, View } from "react-native"
+import { ScrollView, useWindowDimensions, View } from "react-native"
 import { toast } from "sonner-native"
 import {
   border,
@@ -197,6 +197,7 @@ export function Planned({ id }: { id?: string }) {
   const s = finStore.use((s) => s),
     t = useTheme(),
     money = useMoney(),
+    narrow = useWindowDimensions().width < 380,
     [tab, setTab] = useState("recurring"),
     [edit, setEdit] = useState(!!params.amount),
     [due, setDue] = useState<{ id: string; day: string } | null>(null),
@@ -257,8 +258,9 @@ export function Planned({ id }: { id?: string }) {
         {items.map((x) => (
           <View key={x.label} style={{ flex: 1 }}>
             <Copy
-              size={30}
+              size={narrow ? 22 : 30}
               weight="displayMedium"
+              lines={1}
               style={{ color: x.color ?? t.text }}
             >
               {x.value}
