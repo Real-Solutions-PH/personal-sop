@@ -648,8 +648,13 @@ export function MediaCarousel({
                 key={m.uri + i}
                 source={{ uri: m.uri }}
                 accessibilityLabel={`Photo ${i + 1} of ${pages}`}
-                resizeMode="cover"
-                style={{ width, height, backgroundColor: t.soft }}
+                // Tall share cards (9:16) letterbox instead of cropping.
+                resizeMode={m.ratio && m.ratio < 0.75 ? "contain" : "cover"}
+                style={{
+                  width,
+                  height,
+                  backgroundColor: m.ratio && m.ratio < 0.75 ? "#000" : t.soft,
+                }}
               />
             ),
           )}

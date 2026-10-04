@@ -1,10 +1,11 @@
 import { LinearGradient } from "expo-linear-gradient"
 import * as Sharing from "expo-sharing"
 import {
-  Camera,
   Copy as CopyIcon,
   Download,
   Ellipsis,
+  ImagePlus,
+  PlusCircle,
 } from "lucide-react-native"
 import { type ReactNode, useEffect, useId, useRef, useState } from "react"
 import {
@@ -21,6 +22,9 @@ import { captureRef } from "react-native-view-shot"
 import { toast } from "sonner-native"
 import { copyText, pickPhoto } from "./media"
 import { Copy, Line, Segmented, Tap } from "./native-kit"
+import { go } from "./navigation"
+import { keep } from "./social/media"
+import { addStory, setPostDraft } from "./social/store"
 import { type Accent, fonts, useTheme } from "./theme"
 
 export type CardFormat = "9:16" | "4:5" | "1:1"
@@ -289,6 +293,52 @@ export function ShareComposer<K extends string>({
       toast.error("Could not share this image. You can still copy its caption.")
     }
   }
+  // Render the selected card to a PNG for the in-app feed/story.
+  const capture = async () => {
+    const node = refs.current[value]
+    if (!node) return null
+    try {
+      const ratio = format === "9:16" ? 16 / 9 : format === "4:5" ? 5 / 4 : 1
+      if (Platform.OS === "web")
+        return await captureRef(node, { format: "png", result: "data-uri" })
+      const uri = await captureRef(node, {
+        format: "png",
+        quality: 1,
+        width: 1080,
+        height: Math.round(1080 * ratio),
+      })
+      return await keep(uri, "png")
+    } catch {
+      return null
+    }
+  }
+  const toFeed = async () => {
+    const uri = await capture()
+    setPostDraft({
+      caption,
+      media: uri
+        ? [
+            {
+              kind: "image",
+              uri,
+              ratio: format === "9:16" ? 9 / 16 : format === "4:5" ? 4 / 5 : 1,
+            },
+          ]
+        : [],
+    })
+    go(uri ? "/social/compose" : "/social/compose?progress=1")
+  }
+  const toStory = async () => {
+    const uri = await capture()
+    if (!uri) {
+      toast.error("Couldn't render this card. Try Post instead.")
+      return
+    }
+    addStory({ kind: "image", uri })
+    toast.success("Added to your story", {
+      action: { label: "View", onClick: () => go("/social/stories/me") },
+    })
+  }
   if (shareRef) shareRef.current = doShare
   useEffect(() => {
     onLookChange?.({ format, backdrop, photo })
@@ -374,7 +424,8 @@ export function ShareComposer<K extends string>({
       </View>
       <Line style={{ paddingTop: 8, justifyContent: "space-around" }}>
         {[
-          { label: "Stories", Icon: Camera, action: share },
+          { label: "Post", Icon: ImagePlus, action: toFeed },
+          { label: "Story", Icon: PlusCircle, action: toStory },
           { label: "Save", Icon: Download, action: share },
           { label: "Caption", Icon: CopyIcon, action: () => copyText(caption) },
           { label: "More", Icon: Ellipsis, action: share },
@@ -385,7 +436,7 @@ export function ShareComposer<K extends string>({
             onPress={() => void action()}
             style={{ flex: 1, alignItems: "center", gap: 6 }}
           >
-            {label === "Stories" ? (
+            {label === "Story" ? (
               <LinearGradient
                 colors={["#f77737", "#d62976", "#962fbf"]}
                 style={{

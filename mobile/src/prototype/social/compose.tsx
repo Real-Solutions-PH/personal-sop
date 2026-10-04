@@ -261,7 +261,15 @@ export function Compose() {
                   ) : (
                     <Image
                       source={{ uri: m.uri }}
-                      style={{ width: "100%", height: "100%" }}
+                      resizeMode={
+                        m.ratio && m.ratio < 0.75 ? "contain" : "cover"
+                      }
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        backgroundColor:
+                          m.ratio && m.ratio < 0.75 ? "#000" : undefined,
+                      }}
                       accessibilityLabel={`Selected photo ${i + 1}`}
                     />
                   )}
