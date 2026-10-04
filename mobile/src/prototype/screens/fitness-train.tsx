@@ -27,7 +27,7 @@ import {
   Tap,
 } from "../native-kit"
 import { go } from "../navigation"
-import { fonts, useTheme } from "../theme"
+import { fonts, radius, useTheme } from "../theme"
 import { Screen } from "../ui"
 import { StartWorkoutSheet } from "./fitness-start"
 export function FitnessTrain() {
@@ -493,12 +493,22 @@ export function FitnessTrain() {
                 accent="fit"
                 href={`/fitness/workouts/${w.id}`}
                 right={
-                  <Line style={{ gap: 4 }}>
-                    <Trophy size={12} color={t.warn} />
-                    <Copy size={11} style={{ color: t.warn }}>
-                      {prMap.get(w.id)?.length ?? 0}
-                    </Copy>
-                  </Line>
+                  prMap.get(w.id)?.length ? (
+                    <Line
+                      style={{
+                        gap: 4,
+                        backgroundColor: `${t.warn}26`,
+                        borderRadius: radius.pill,
+                        paddingHorizontal: 8,
+                        paddingVertical: 2,
+                      }}
+                    >
+                      <Trophy size={12} color={t.warn} />
+                      <Copy size={11} weight="medium" style={{ color: t.warn }}>
+                        {prMap.get(w.id)?.length}
+                      </Copy>
+                    </Line>
+                  ) : undefined
                 }
               />
             ))}
