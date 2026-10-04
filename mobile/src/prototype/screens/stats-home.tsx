@@ -494,7 +494,7 @@ function Areas({ days }: { days: number }) {
         </View>
         <Line style={{ justifyContent: "center", gap: 16, marginTop: 4 }}>
           <Copy size={12} muted>
-            ━ This {days}d
+            <Text style={{ color: t.life }}>━</Text> This {days}d
           </Copy>
           <Copy size={12} muted>
             ┄ Previous {days}d
