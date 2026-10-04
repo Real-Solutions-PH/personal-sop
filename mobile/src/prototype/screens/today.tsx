@@ -74,7 +74,7 @@ import {
   Tap,
 } from "../native-kit"
 import { go } from "../navigation"
-import { CommunityCard } from "../social/today-card"
+import { CommunityButton, CommunityCard } from "../social/today-card"
 import { fonts, radius, useTheme } from "../theme"
 import { Screen, SwipeRow, undo, useNow } from "../ui"
 import { Ring } from "../visual"
@@ -1403,6 +1403,7 @@ export function Today() {
             color={hidden ? t.primary : t.muted}
             onPress={togglePrivacy}
           />
+          <CommunityButton />
           <View>
             <IconTap
               size={44}

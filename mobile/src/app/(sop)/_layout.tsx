@@ -5,7 +5,13 @@ import * as Haptics from "expo-haptics"
 import { LinearGradient } from "expo-linear-gradient"
 import { Redirect, Stack, usePathname } from "expo-router"
 import type { LucideIcon } from "lucide-react-native"
-import { CalendarCheck2, House, Plus, User, Users } from "lucide-react-native"
+import {
+  CalendarCheck2,
+  ChartColumn,
+  House,
+  Plus,
+  User,
+} from "lucide-react-native"
 import { useEffect } from "react"
 import { Pressable, Text, View } from "react-native"
 import Animated, {
@@ -19,14 +25,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { prototypeMode } from "@/prototype/mode"
 import { go, replace } from "@/prototype/navigation"
 import { CaptureOverlay } from "@/prototype/screens/capture"
-import { socialStore, unread } from "@/prototype/social/store"
 import { AccentContext, fonts, useTheme } from "@/prototype/theme"
 
 const tabs = [
   { label: "Today", href: "/today", icon: House },
   { label: "Plan", href: "/plan", icon: CalendarCheck2 },
   { label: "Capture", href: "/capture", icon: Plus },
-  { label: "Social", href: "/social", icon: Users },
+  { label: "Stats", href: "/stats", icon: ChartColumn },
   { label: "Me", href: "/me", icon: User },
 ]
 // The icon pops when its tab becomes active.
@@ -71,9 +76,6 @@ export default function PrototypeLayout() {
   const reduced = useReducedMotion()
   const online = useConnectivity()
   const live = liveStore.use((s) => s.live)
-  const dms = socialStore.use(
-    (s) => s.chats.filter((c) => !c.muted && unread(c) > 0).length,
-  )
   if (!prototypeMode) return <Redirect href="/login" />
   return (
     <AccentContext.Provider
@@ -200,22 +202,6 @@ export default function PrototypeLayout() {
                   ) : (
                     <View>
                       <TabIcon icon={Icon} active={active} />
-                      {tab.label === "Social" && dms > 0 && (
-                        <View
-                          accessibilityLabel={`${dms} unread messages`}
-                          style={{
-                            position: "absolute",
-                            top: -3,
-                            right: -6,
-                            width: 9,
-                            height: 9,
-                            borderRadius: 5,
-                            backgroundColor: "#ff3040",
-                            borderWidth: 1.5,
-                            borderColor: t.bg,
-                          }}
-                        />
-                      )}
                     </View>
                   )}
                   <Text

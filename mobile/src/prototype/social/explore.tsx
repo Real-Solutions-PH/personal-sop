@@ -151,7 +151,7 @@ function Mosaic({ posts, width }: { posts: Post[]; width: number }) {
   const s = (width - 2) / 3
   return (
     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 1 }}>
-      {posts.map((p, i) => {
+      {posts.map((p) => {
         const w = s
         const h = s * 1.25
         const m = p.media[0]

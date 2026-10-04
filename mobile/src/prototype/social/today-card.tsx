@@ -1,4 +1,4 @@
-import { ChevronRight, Send } from "lucide-react-native"
+import { ChevronRight, Send, Users } from "lucide-react-native"
 import { useMemo } from "react"
 import { Pressable, Text, View } from "react-native"
 import { go } from "../navigation"
@@ -124,5 +124,51 @@ export function CommunityCard() {
         </Pressable>
       )}
     </View>
+  )
+}
+
+/** Header entry to Social, with a dot for unread messages or new stories. */
+export function CommunityButton() {
+  const t = useTheme()
+  const dms = socialStore.use(
+    (s) => s.chats.filter((c) => !c.muted && unread(c) > 0).length,
+  )
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Community${dms ? `, ${dms} unread messages` : ""}`}
+      onPress={() => go("/social")}
+      hitSlop={4}
+      style={({ pressed }) => ({
+        width: 44,
+        height: 44,
+        alignItems: "center",
+        justifyContent: "center",
+        opacity: pressed ? 0.6 : 1,
+      })}
+    >
+      <Users size={20} color={t.text} />
+      {dms > 0 && (
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            top: 6,
+            right: 4,
+            minWidth: 16,
+            height: 16,
+            paddingHorizontal: 4,
+            borderRadius: 8,
+            backgroundColor: "#ff3040",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Text style={{ color: "#fff", fontFamily: fonts.bold, fontSize: 10 }}>
+            {dms}
+          </Text>
+        </View>
+      )}
+    </Pressable>
   )
 }

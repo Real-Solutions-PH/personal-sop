@@ -1,6 +1,7 @@
 import { useFocusEffect } from "expo-router"
 import {
   Camera,
+  ChevronLeft,
   CircleCheck,
   Heart,
   Image as ImageIcon,
@@ -34,7 +35,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { go } from "../navigation"
+import { back, go } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import { Sheet } from "../ui"
 import { Avatar, Bounce, haptic, ProgressCard } from "./kit"
@@ -386,10 +387,13 @@ export function SocialFeed() {
           height: 52,
           flexDirection: "row",
           alignItems: "center",
-          paddingLeft: 16,
+          paddingLeft: 4,
           paddingRight: 6,
         }}
       >
+        <Bounce label="Back" onPress={() => back("/today")}>
+          <ChevronLeft size={26} color={t.text} />
+        </Bounce>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Scroll to top"
