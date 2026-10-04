@@ -1,5 +1,6 @@
 import { dashStore } from "@domain/dash/store"
 import { createStore, uid } from "@domain/lib/store"
+import { create } from "zustand"
 import type { Accent } from "../theme"
 
 // ponytail: social is UI-only for the prototype — every action mutates this
@@ -787,6 +788,11 @@ export function createPost(
     ...p,
   }
   set((s) => ({ ...s, posts: [post, ...s.posts], drafts: {} }))
+  postingStore.setState({
+    thumb: post.media.find((m) => m.kind === "image")?.uri,
+    progress: post.progress,
+    at: Date.now(),
+  })
   // Friends react a moment later so the post feels alive.
   setTimeout(() => {
     mapPost(post.id, (x) => ({
@@ -1048,3 +1054,10 @@ export function agoText(at: number) {
   return x === "now" ? "Just now" : /\d[mhd]$/.test(x) ? `${x} ago` : x
 }
 export const clearDrafts = () => set((s) => ({ ...s, drafts: {} }))
+
+/** Transient "Posting…" banner state; deliberately not persisted. */
+export const postingStore = create<{
+  thumb?: string
+  progress?: Progress
+  at: number
+} | null>(() => null)

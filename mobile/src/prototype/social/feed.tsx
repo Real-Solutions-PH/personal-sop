@@ -10,9 +10,10 @@ import {
   Send,
   Sparkles,
 } from "lucide-react-native"
-import { useCallback, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   FlatList,
+  Image,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -24,17 +25,29 @@ import {
 import { Gesture, GestureDetector } from "react-native-gesture-handler"
 import Animated, {
   FadeInDown,
+  FadeOut,
   LinearTransition,
   runOnJS,
+  useAnimatedStyle,
   useReducedMotion,
+  useSharedValue,
+  withTiming,
 } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { go } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import { Sheet } from "../ui"
-import { Avatar, Bounce, haptic } from "./kit"
+import { Avatar, Bounce, haptic, ProgressCard } from "./kit"
 import { PostCard } from "./post-card"
-import { ME, type Post, socialStore, storyGroups, unread, useMe } from "./store"
+import {
+  ME,
+  type Post,
+  postingStore,
+  socialStore,
+  storyGroups,
+  unread,
+  useMe,
+} from "./store"
 
 export function Badge({ count }: { count: number }) {
   const t = useTheme()
@@ -60,6 +73,76 @@ export function Badge({ count }: { count: number }) {
         {count > 9 ? "9+" : count}
       </Text>
     </View>
+  )
+}
+
+function PostingBanner() {
+  const t = useTheme()
+  const posting = postingStore((s) => s)
+  const [done, setDone] = useState(false)
+  const fill = useSharedValue(0)
+  useEffect(() => {
+    if (!posting) return
+    setDone(false)
+    fill.value = 0
+    fill.value = withTiming(1, { duration: 1400 })
+    const a = setTimeout(() => {
+      setDone(true)
+      haptic.done()
+    }, 1450)
+    const b = setTimeout(() => postingStore.setState(null), 3200)
+    return () => {
+      clearTimeout(a)
+      clearTimeout(b)
+    }
+  }, [posting, fill])
+  const bar = useAnimatedStyle(() => ({ width: `${fill.value * 100}%` }))
+  if (!posting) return null
+  return (
+    <Animated.View
+      entering={FadeInDown}
+      exiting={FadeOut}
+      accessibilityLiveRegion="polite"
+      style={{ borderBottomWidth: 1, borderColor: t.line }}
+    >
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 12,
+          padding: 12,
+        }}
+      >
+        <View
+          style={{
+            width: 36,
+            height: 44,
+            borderRadius: 4,
+            overflow: "hidden",
+            backgroundColor: t.soft,
+          }}
+        >
+          {posting.thumb ? (
+            <Image
+              source={{ uri: posting.thumb }}
+              style={{ width: 36, height: 44 }}
+            />
+          ) : posting.progress ? (
+            <ProgressCard
+              progress={posting.progress}
+              width={36}
+              height={44}
+              compact
+            />
+          ) : null}
+        </View>
+        <Text style={{ flex: 1, color: t.text, fontFamily: fonts.medium }}>
+          {done ? "Posted! Your friends can see it now." : "Posting…"}
+        </Text>
+        {done && <CircleCheck size={20} color={t.good} />}
+      </View>
+      <Animated.View style={[{ height: 2, backgroundColor: t.tsk }, bar]} />
+    </Animated.View>
   )
 }
 
@@ -377,6 +460,7 @@ export function SocialFeed() {
           }
           ListHeaderComponent={
             <View>
+              <PostingBanner />
               <StoryTray />
               <View style={{ flexDirection: "row", gap: 8, padding: 12 }}>
                 {(
