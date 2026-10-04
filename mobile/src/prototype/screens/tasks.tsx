@@ -91,7 +91,7 @@ export function TaskRow({
               }}
             >
               {task.status === "done" && (
-                <Text style={{ color: "white" }}>✓</Text>
+                <Text style={{ color: t.dark ? t.bg : "white" }}>✓</Text>
               )}
             </View>
           </Pressable>
