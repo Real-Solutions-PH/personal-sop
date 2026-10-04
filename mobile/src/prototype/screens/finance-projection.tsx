@@ -21,33 +21,43 @@ import {
 } from "../native-kit"
 import { go } from "../navigation"
 import { Switch } from "../switch"
-import { useTheme } from "../theme"
+import { radius, useTheme } from "../theme"
 import { Button, Empty, Field, Screen } from "../ui"
 import { useMoney } from "./finance"
 export function FinChip({
   label,
   active = false,
   onPress,
+  leading,
 }: {
   label: string
   active?: boolean
   onPress: () => void
+  leading?: React.ReactNode
 }) {
   const t = useTheme()
   return (
     <Tap
       onPress={onPress}
       style={{
-        borderRadius: 20,
-        paddingHorizontal: 14,
+        borderRadius: radius.pill,
+        paddingLeft: leading ? 6 : 14,
+        paddingRight: 14,
         height: 36,
-        justifyContent: "center",
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
         borderWidth: 1,
         borderColor: active ? "transparent" : t.line,
         backgroundColor: active ? t.fin : t.card,
       }}
     >
-      <Copy size={14} weight="medium" style={{ color: active ? t.bg : t.text }}>
+      {leading}
+      <Copy
+        size={14}
+        weight="medium"
+        style={{ color: active ? t.onPrimary : t.text }}
+      >
         {label}
       </Copy>
     </Tap>

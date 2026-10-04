@@ -19,7 +19,7 @@ import {
   Tap,
 } from "../native-kit"
 import { go } from "../navigation"
-import { useTheme } from "../theme"
+import { radius, useTheme } from "../theme"
 import {
   Button,
   Choices,
@@ -43,13 +43,14 @@ export function FinPill({
   return (
     <View
       style={{
-        borderRadius: 6,
+        alignSelf: "flex-start",
+        borderRadius: radius.pill,
         backgroundColor: tone === "muted" ? t.soft : `${t[tone]}26`,
-        paddingHorizontal: 6,
+        paddingHorizontal: 8,
         paddingVertical: 2,
       }}
     >
-      <Copy size={10} weight="medium" style={{ color: t[tone] }}>
+      <Copy size={11} weight="medium" lines={1} style={{ color: t[tone] }}>
         {children}
       </Copy>
     </View>
@@ -598,12 +599,14 @@ export function Planned({ id }: { id?: string }) {
                 <Line style={{ paddingVertical: 8, paddingHorizontal: 4 }}>
                   <PlannedIcon p={p} />
                   <View style={{ flex: 1 }}>
-                    <Line style={{ gap: 6, flexWrap: "wrap" }}>
-                      <Copy weight="medium">{p.name}</Copy>
+                    <Line style={{ gap: 6 }}>
+                      <Copy weight="medium" lines={1} style={{ flexShrink: 1 }}>
+                        {p.name}
+                      </Copy>
                       {p.isInstallment && <FinPill>installment</FinPill>}
                       {p.autoLog && <FinPill tone="fin">auto</FinPill>}
                     </Line>
-                    <Copy size={14} muted>
+                    <Copy size={14} muted lines={1}>
                       {C.scheduleLabel(p)}
                       {p.type !== "transfer"
                         ? ` · ${s.categories.find((c) => c.id === p.categoryId)?.name ?? ""}`
