@@ -286,9 +286,11 @@ export function SocialFeed() {
     haptic.tap()
     setTimeout(() => setRefreshing(false), 900)
   }
-  // Swipe left anywhere on the feed to open messages, like Instagram.
+  // Swipe in from the right edge to open messages. Edge-only so swiping
+  // through a photo carousel never navigates away.
   const swipe = Gesture.Pan()
-    .activeOffsetX(-40)
+    .hitSlop({ right: 0, width: 28 })
+    .activeOffsetX(-24)
     .failOffsetY([-14, 14])
     .onEnd((e) => {
       if (e.translationX < -90 || e.velocityX < -700)

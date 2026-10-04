@@ -475,6 +475,8 @@ export function Profile({ id }: { id: string }) {
     }
   }
   const swipe = Gesture.Pan()
+    // The scores tab has a horizontal trophy row; let it scroll freely.
+    .enabled(tab !== "scores")
     .activeOffsetX([-30, 30])
     .failOffsetY([-12, 12])
     .onEnd((e) => {
