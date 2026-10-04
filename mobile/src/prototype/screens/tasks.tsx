@@ -36,12 +36,15 @@ export function TaskRow({
   showActions = false,
   showDay = false,
   showList = true,
+  surface,
 }: {
   task: Task
   compact?: boolean
   showActions?: boolean
   showDay?: boolean
   showList?: boolean
+  /** Background of the surface the row sits on (e.g. a card). */
+  surface?: string
 }) {
   const t = useTheme()
   const list = tasksStore.use((s) => s.lists.find((l) => l.id === task.listId))
@@ -56,7 +59,11 @@ export function TaskRow({
   }
   return (
     <>
-      <SwipeRow onComplete={toggle} onMore={() => setOpen(true)}>
+      <SwipeRow
+        onComplete={toggle}
+        onMore={() => setOpen(true)}
+        background={surface}
+      >
         <View
           style={{
             flexDirection: "row",
@@ -127,7 +134,7 @@ export function TaskRow({
                 {showDay && task.dueDate && (
                   <Text
                     style={{
-                      fontFamily: fonts.body,
+                      fontFamily: L.isOverdue(task) ? fonts.medium : fonts.body,
                       fontSize: 12,
                       color: L.isOverdue(task) ? t.warn : t.muted,
                     }}
@@ -140,9 +147,9 @@ export function TaskRow({
                 {task.dueTime && (
                   <Text
                     style={{
-                      fontFamily: fonts.body,
+                      fontFamily: L.isDueNow(task) ? fonts.medium : fonts.body,
                       fontSize: 12,
-                      color: t.muted,
+                      color: L.isDueNow(task) ? t.tsk : t.muted,
                     }}
                   >
                     {L.fmtTime(task.dueTime)}

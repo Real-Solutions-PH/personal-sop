@@ -74,7 +74,7 @@ import {
   Tap,
 } from "../native-kit"
 import { go } from "../navigation"
-import { fonts, useTheme } from "../theme"
+import { fonts, radius, useTheme } from "../theme"
 import { Screen, SwipeRow, undo, useNow } from "../ui"
 import { Ring } from "../visual"
 import { RecordEditor, useMoney } from "./finance"
@@ -329,7 +329,11 @@ function TodayHabit({ habit }: { habit: Habit }) {
   }
   return (
     <>
-      <SwipeRow onComplete={toggle} onMore={() => setSheet(true)}>
+      <SwipeRow
+        onComplete={toggle}
+        onMore={() => setSheet(true)}
+        background={t.card}
+      >
         <Line style={{ gap: 8, paddingVertical: 4 }}>
           <Tap
             label={`${done ? "Reopen" : "Complete"} ${habit.name}`}
@@ -651,7 +655,18 @@ function TasksCard() {
             </Line>
           )}
           {dueNow > 0 && (
-            <Copy size={11} style={{ color: t.tsk }}>
+            <Copy
+              size={11}
+              weight="medium"
+              style={{
+                color: t.tsk,
+                backgroundColor: `${t.tsk}26`,
+                borderRadius: radius.pill,
+                paddingHorizontal: 8,
+                paddingVertical: 2,
+                overflow: "hidden",
+              }}
+            >
               {dueNow} due now
             </Copy>
           )}
@@ -694,7 +709,7 @@ function TasksCard() {
         )}
         <View style={{ marginTop: 4 }}>
           {d.due.slice(0, 5).map((task) => (
-            <TaskRow key={task.id} task={task} compact />
+            <TaskRow key={task.id} task={task} compact surface={t.card} />
           ))}
           {!d.due.length && (
             <Copy muted style={{ textAlign: "center", paddingVertical: 20 }}>
