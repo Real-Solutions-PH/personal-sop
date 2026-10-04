@@ -20,6 +20,7 @@ import {
   Flame,
   LayoutGrid,
   ListChecks,
+  LogOut,
   Pencil,
   RotateCcw,
   Scale,
@@ -46,8 +47,9 @@ import {
   SmallButton,
   Tap,
 } from "../native-kit"
-import { go } from "../navigation"
+import { go, replace } from "../navigation"
 import { ProfileAvatar } from "../profile-avatar"
+import { sessionStore, signOut } from "../session"
 import { Switch } from "../switch"
 import { fonts, useTheme } from "../theme"
 import { confirm, Screen } from "../ui"
@@ -58,7 +60,8 @@ export function Me() {
     goals = D.useGoals(),
     score = D.useLifeScore(30),
     target = D.useOnTarget(30),
-    hidden = privacyStore.use((s) => s.hidden)
+    hidden = privacyStore.use((s) => s.hidden),
+    account = sessionStore.use((s) => s.user?.email)
   const fresh = () =>
     confirm(
       "Start as a new user?",
@@ -390,6 +393,22 @@ export function Me() {
                   resetAll()
                   toast.success("Demo data reset")
                   go("/today")
+                },
+              )
+            }
+          />
+          <LinkRow
+            title="Sign out"
+            detail={account ? `Signed in as ${account}` : undefined}
+            icon={LogOut}
+            onPress={() =>
+              confirm(
+                "Sign out?",
+                "Your data stays on this device. Sign back in any time.",
+                () => {
+                  signOut()
+                  replace("/welcome")
+                  toast.success("Signed out")
                 },
               )
             }
