@@ -77,6 +77,7 @@ import { go } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import { Screen, SwipeRow, undo, useNow } from "../ui"
 import { Ring } from "../visual"
+import { refreshWeather } from "../weather"
 import { WeatherCard } from "../weather-card"
 import { RecordEditor, useMoney } from "./finance"
 import { HabitLog } from "./habits"
@@ -1368,6 +1369,7 @@ export function Today() {
     <Screen
       root
       prototypeLayout
+      onRefresh={() => refreshWeather(true)}
       title={`${greeting}, ${s.profile.name.split(" ")[0]}`}
       eyebrow={date
         .toLocaleDateString("en-PH", {

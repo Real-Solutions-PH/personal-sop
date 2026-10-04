@@ -4,9 +4,17 @@ import { useConnectivity } from "@domain/lib/platform"
 import * as Haptics from "expo-haptics"
 import { LinearGradient } from "expo-linear-gradient"
 import { Redirect, Stack, usePathname } from "expo-router"
+import type { LucideIcon } from "lucide-react-native"
 import { CalendarCheck2, House, Plus, User, Users } from "lucide-react-native"
+import { useEffect } from "react"
 import { Pressable, Text, View } from "react-native"
-import { useReducedMotion } from "react-native-reanimated"
+import Animated, {
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withSequence,
+  withSpring,
+} from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { prototypeMode } from "@/prototype/mode"
 import { go, replace } from "@/prototype/navigation"
@@ -21,6 +29,37 @@ const tabs = [
   { label: "Social", href: "/social", icon: Users },
   { label: "Me", href: "/me", icon: User },
 ]
+// The icon pops when its tab becomes active.
+function TabIcon({
+  icon: Icon,
+  active,
+}: {
+  icon: LucideIcon
+  active: boolean
+}) {
+  const t = useTheme()
+  const reduced = useReducedMotion()
+  const scale = useSharedValue(1)
+  useEffect(() => {
+    if (active && !reduced)
+      scale.value = withSequence(
+        withSpring(1.18, { duration: 160 }),
+        withSpring(1, { damping: 12 }),
+      )
+  }, [active, reduced, scale])
+  const style = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }))
+  return (
+    <Animated.View style={style}>
+      <Icon
+        size={20}
+        strokeWidth={active ? 2.4 : 1.8}
+        color={active ? t.text : t.muted}
+      />
+    </Animated.View>
+  )
+}
 export default function PrototypeLayout() {
   const t = useTheme()
   const inset = useSafeAreaInsets()
@@ -160,11 +199,7 @@ export default function PrototypeLayout() {
                     </LinearGradient>
                   ) : (
                     <View>
-                      <Icon
-                        size={20}
-                        strokeWidth={active ? 2.4 : 1.8}
-                        color={active ? t.text : t.muted}
-                      />
+                      <TabIcon icon={Icon} active={active} />
                       {tab.label === "Social" && dms > 0 && (
                         <View
                           accessibilityLabel={`${dms} unread messages`}

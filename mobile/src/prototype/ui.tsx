@@ -17,6 +17,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
   Share,
   StyleSheet,
@@ -475,6 +476,7 @@ export function Screen({
   footer,
   prototypeLayout = true,
   scrollToEnd = false,
+  onRefresh,
 }: {
   titleContent?: ReactNode
   title: string
@@ -486,10 +488,25 @@ export function Screen({
   footer?: ReactNode
   prototypeLayout?: boolean
   scrollToEnd?: boolean
+  /** Enables pull-to-refresh; resolve when the refresh finishes. */
+  onRefresh?: () => Promise<unknown> | void
 }) {
   const t = useTheme()
   const safe = useSafeAreaInsets()
   const scroller = useRef<ScrollView>(null)
+  // A hairline appears under the header once content scrolls beneath it.
+  const [scrolled, setScrolled] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
+  const refresh = async () => {
+    if (!onRefresh) return
+    setRefreshing(true)
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {})
+    try {
+      await onRefresh()
+    } finally {
+      setRefreshing(false)
+    }
+  }
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -503,6 +520,8 @@ export function Screen({
           paddingVertical: prototypeLayout ? (eyebrow ? 12 : 0) : 4,
           height: prototypeLayout && !eyebrow ? 56 : undefined,
           gap: prototypeLayout && !eyebrow ? 4 : 12,
+          borderBottomWidth: StyleSheet.hairlineWidth,
+          borderColor: scrolled ? t.line : "transparent",
         }}
       >
         {!root && (
@@ -568,6 +587,21 @@ export function Screen({
       </View>
       <ScrollView
         ref={scroller}
+        scrollEventThrottle={64}
+        onScroll={(e) => {
+          const next = e.nativeEvent.contentOffset.y > 4
+          if (next !== scrolled) setScrolled(next)
+        }}
+        refreshControl={
+          onRefresh ? (
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => void refresh()}
+              tintColor={t.muted}
+              colors={[t.primary]}
+            />
+          ) : undefined
+        }
         onContentSizeChange={() => {
           if (scrollToEnd) scroller.current?.scrollToEnd({ animated: false })
         }}
