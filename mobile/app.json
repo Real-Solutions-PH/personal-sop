@@ -41,6 +41,15 @@
           "microphonePermission": false
         }
       ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow Personal SOP to use your location to show local weather and the forecast for planning outdoor work.",
+          "locationAlwaysAndWhenInUsePermission": false,
+          "locationAlwaysPermission": false,
+          "motionUsagePermission": false
+        }
+      ],
       "@react-native-community/datetimepicker",
       "expo-asset",
       "expo-font"
