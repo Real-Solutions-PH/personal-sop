@@ -19,19 +19,58 @@ jest.mock("@/lib/supabase", () => {
   throw new Error("Connected Supabase loaded in prototype mode")
 })
 
+// Auth screens are covered by auth.test.tsx; here they only need to load
+// without pulling in connected services.
+for (const [file, name] of [
+  ["auth-welcome", "Welcome"],
+  ["auth-sign-in", "SignIn"],
+  ["auth-sign-up", "SignUp"],
+  ["auth-verify", "VerifyEmail"],
+  ["auth-forgot", "ForgotPassword"],
+  ["auth-reset", "ResetPassword"],
+])
+  jest.doMock(`../screens/${file}`, () => ({
+    [name]: () => {
+      const { Text } = require("react-native")
+      return <Text>{`prototype ${name}`}</Text>
+    },
+  }))
+
 test.each([
-  ["root", () => require("../../app/index")],
-  ["app layout", () => require("../../app/(app)/_layout")],
-  ["app home", () => require("../../app/(app)/index")],
-  ["items", () => require("../../app/(app)/items")],
-  ["settings", () => require("../../app/(app)/settings")],
-  ["login", () => require("../../app/login")],
-  ["signup", () => require("../../app/signup")],
-  ["recover password", () => require("../../app/recover-password")],
-  ["reset password", () => require("../../app/reset-password")],
-])("%s loads in Expo Go without connected services", (_name, load) => {
+  ["app layout", () => require("../../app/(app)/_layout"), "/today"],
+  ["app home", () => require("../../app/(app)/index"), "/today"],
+  ["items", () => require("../../app/(app)/items"), "/today"],
+  ["settings", () => require("../../app/(app)/settings"), "/today"],
+  ["welcome", () => require("../../app/welcome"), "prototype Welcome"],
+  ["login", () => require("../../app/login"), "prototype SignIn"],
+  ["signup", () => require("../../app/signup"), "prototype SignUp"],
+  [
+    "verify email",
+    () => require("../../app/verify-email"),
+    "prototype VerifyEmail",
+  ],
+  [
+    "recover password",
+    () => require("../../app/recover-password"),
+    "prototype ForgotPassword",
+  ],
+  [
+    "reset password",
+    () => require("../../app/reset-password"),
+    "prototype ResetPassword",
+  ],
+])("%s loads in Expo Go without connected services", (_name, load, text) => {
   const Page = (load as () => { default: ComponentType })().default
   const view = render(<Page />)
+  expect(view.getByText(text)).toBeTruthy()
+})
+test("root sends signed-out people to Welcome and members to Today", () => {
+  const { sessionStore } = require("../session") as typeof import("../session")
+  const Root = require("../../app/index").default as ComponentType
+  act(() => sessionStore.set((s) => ({ ...s, signedIn: false })))
+  const view = render(<Root />)
+  expect(view.getByText("/welcome")).toBeTruthy()
+  act(() => sessionStore.set((s) => ({ ...s, signedIn: true })))
   expect(view.getByText("/today")).toBeTruthy()
 })
 
