@@ -14,7 +14,9 @@ import {
 } from "lucide-react-native"
 import { useEffect } from "react"
 import { Pressable, Text, View } from "react-native"
+import { Gesture, GestureDetector } from "react-native-gesture-handler"
 import Animated, {
+  runOnJS,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
@@ -25,6 +27,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { prototypeMode } from "@/prototype/mode"
 import { go, replace } from "@/prototype/navigation"
 import { CaptureOverlay } from "@/prototype/screens/capture"
+import { stepTab, TAB_ROUTES, tabDirection } from "@/prototype/tab-swipe"
 import { AccentContext, fonts, useTheme } from "@/prototype/theme"
 
 const tabs = [
@@ -65,6 +68,9 @@ function TabIcon({
     </Animated.View>
   )
 }
+function swipeTo(path: string, dir: 1 | -1) {
+  if (stepTab(path, dir)) void Haptics.selectionAsync().catch(() => {})
+}
 export default function PrototypeLayout() {
   const t = useTheme()
   const inset = useSafeAreaInsets()
@@ -76,6 +82,30 @@ export default function PrototypeLayout() {
   const reduced = useReducedMotion()
   const online = useConnectivity()
   const live = liveStore.use((s) => s.live)
+  const dir = tabDirection((s) => s.dir)
+  // Swiping slides tabs in from the side you swiped toward; tapping fades.
+  const tabAnimation = {
+    animation: reduced
+      ? ("none" as const)
+      : dir === 1
+        ? ("slide_from_right" as const)
+        : dir === -1
+          ? ("slide_from_left" as const)
+          : ("fade" as const),
+    animationDuration: dir ? 260 : 180,
+  }
+  // Swipe sideways on a tab page to move between tabs. Rows, segment pagers
+  // and calendars inside a page activate sooner, so they keep their swipes.
+  const onTab = TAB_ROUTES.includes(path)
+  const swipeTabs = Gesture.Pan()
+    .enabled(onTab && !reduced)
+    .activeOffsetX([-40, 40])
+    .failOffsetY([-16, 16])
+    .onEnd((e) => {
+      if (e.translationX < -80 || e.velocityX < -700) runOnJS(swipeTo)(path, 1)
+      else if (e.translationX > 80 || e.velocityX > 700)
+        runOnJS(swipeTo)(path, -1)
+    })
   if (!prototypeMode) return <Redirect href="/login" />
   return (
     <AccentContext.Provider
@@ -96,62 +126,42 @@ export default function PrototypeLayout() {
       }
     >
       <View style={{ flex: 1, backgroundColor: t.bg }}>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            gestureEnabled: true,
-            animation: reduced ? "none" : "slide_from_right",
-          }}
-        >
-          {/* Tab switches crossfade; drilling in still slides. */}
-          <Stack.Screen
-            name="today/index"
-            options={{
-              animation: reduced ? "none" : "fade",
-              animationDuration: 180,
-            }}
-          />
-          <Stack.Screen
-            name="plan/index"
-            options={{
-              animation: reduced ? "none" : "fade",
-              animationDuration: 180,
-            }}
-          />
-          <Stack.Screen
-            name="stats/index"
-            options={{
-              animation: reduced ? "none" : "fade",
-              animationDuration: 180,
-            }}
-          />
-          <Stack.Screen
-            name="me/index"
-            options={{
-              animation: reduced ? "none" : "fade",
-              animationDuration: 180,
-            }}
-          />
-          <Stack.Screen
-            name="social/stories/[id]/index"
-            options={{
-              animation: reduced ? "none" : "fade_from_bottom",
-              presentation: "fullScreenModal",
-              gestureEnabled: false,
-            }}
-          />
-          <Stack.Screen
-            name="social/story-new/index"
-            options={{
-              animation: reduced ? "none" : "slide_from_bottom",
-              presentation: "fullScreenModal",
-            }}
-          />
-          <Stack.Screen
-            name="social/compose/index"
-            options={{ animation: reduced ? "none" : "slide_from_bottom" }}
-          />
-        </Stack>
+        <GestureDetector gesture={swipeTabs}>
+          <View style={{ flex: 1 }}>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                gestureEnabled: true,
+                animation: reduced ? "none" : "slide_from_right",
+              }}
+            >
+              {/* Tab switches crossfade; drilling in still slides. */}
+              <Stack.Screen name="today/index" options={tabAnimation} />
+              <Stack.Screen name="plan/index" options={tabAnimation} />
+              <Stack.Screen name="stats/index" options={tabAnimation} />
+              <Stack.Screen name="me/index" options={tabAnimation} />
+              <Stack.Screen
+                name="social/stories/[id]/index"
+                options={{
+                  animation: reduced ? "none" : "fade_from_bottom",
+                  presentation: "fullScreenModal",
+                  gestureEnabled: false,
+                }}
+              />
+              <Stack.Screen
+                name="social/story-new/index"
+                options={{
+                  animation: reduced ? "none" : "slide_from_bottom",
+                  presentation: "fullScreenModal",
+                }}
+              />
+              <Stack.Screen
+                name="social/compose/index"
+                options={{ animation: reduced ? "none" : "slide_from_bottom" }}
+              />
+            </Stack>
+          </View>
+        </GestureDetector>
         {live && !focus && (
           <Pressable
             accessibilityRole="button"
@@ -203,7 +213,10 @@ export default function PrototypeLayout() {
                   onPress={() => {
                     void Haptics.selectionAsync().catch(() => {})
                     if (tab.label === "Capture") openCapture()
-                    else if (path !== tab.href) replace(tab.href)
+                    else if (path !== tab.href) {
+                      tabDirection.setState({ dir: 0 })
+                      replace(tab.href)
+                    }
                   }}
                   style={{
                     flex: 1,

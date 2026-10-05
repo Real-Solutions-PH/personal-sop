@@ -32,7 +32,8 @@ import {
   TriangleAlert,
 } from "lucide-react-native"
 import { useState } from "react"
-import { ScrollView, View } from "react-native"
+import { View } from "react-native"
+import { ScrollView as GHScrollView } from "react-native-gesture-handler"
 import { SwipeSegments, SwipeStep } from "../motion"
 import {
   Copy,
@@ -845,7 +846,7 @@ function CalendarPanel() {
           </View>
         </Frame>
       </SwipeStep>
-      <ScrollView
+      <GHScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         style={{ marginTop: 12 }}
@@ -881,7 +882,7 @@ function CalendarPanel() {
             </Copy>
           </Tap>
         ))}
-      </ScrollView>
+      </GHScrollView>
       <SectionHeading>{`${sel === today ? "Today" : dateLabel(sel)} · ${selected.length}`}</SectionHeading>
       <View style={{ gap: 12 }}>
         {selected.length ? (

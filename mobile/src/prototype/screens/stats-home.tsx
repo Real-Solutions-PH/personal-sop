@@ -16,7 +16,8 @@ import {
   Trophy,
 } from "lucide-react-native"
 import { useState } from "react"
-import { ScrollView, StyleSheet, Text, View } from "react-native"
+import { StyleSheet, Text, View } from "react-native"
+import { ScrollView as GHScrollView } from "react-native-gesture-handler"
 import Svg, {
   Circle,
   Defs,
@@ -325,7 +326,7 @@ function DailyForm({ days }: { days: number }) {
           )}
         </>
       ) : (
-        <ScrollView horizontal>
+        <GHScrollView horizontal>
           <Line style={{ gap: 3 }}>
             {Array.from({ length: Math.ceil(heat.length / 7) }, (_, col) => (
               <View key={col} style={{ gap: 3 }}>
@@ -344,7 +345,7 @@ function DailyForm({ days }: { days: number }) {
               </View>
             ))}
           </Line>
-        </ScrollView>
+        </GHScrollView>
       )}
       <Copy size={12} muted style={{ marginTop: 8 }}>
         Avg {avg ?? "—"}% done · {target.onTarget}/{target.scored} days on
@@ -725,7 +726,7 @@ export function StatsHome() {
                   >
                     Personal bests
                   </SectionHeading>
-                  <ScrollView
+                  <GHScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={{ gap: 8, paddingBottom: 4 }}
@@ -768,7 +769,7 @@ export function StatsHome() {
                         </Frame>
                       </Tap>
                     ))}
-                  </ScrollView>
+                  </GHScrollView>
                 </>
               )}
               <Areas days={days} />

@@ -18,6 +18,7 @@ jest.mock("expo-router", () => ({
     canGoBack: () => false,
   },
   useLocalSearchParams: () => ({}),
+  usePathname: () => "/",
 }))
 jest.mock("react-native-reanimated", () => ({
   __esModule: true,
@@ -40,6 +41,7 @@ jest.mock("react-native-gesture-handler", () => {
   return {
     Gesture: new Proxy({}, { get: () => () => chain }),
     GestureDetector: ({ children }: { children: ReactNode }) => children,
+    ScrollView: require("react-native").ScrollView,
   }
 })
 jest.mock("react-native-gesture-handler/ReanimatedSwipeable", () => {

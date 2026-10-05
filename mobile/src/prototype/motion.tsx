@@ -1,4 +1,5 @@
 import * as Haptics from "expo-haptics"
+import { usePathname } from "expo-router"
 import { Check } from "lucide-react-native"
 import { type ReactNode, useEffect, useRef, useState } from "react"
 import {
@@ -27,6 +28,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated"
 import { Circle } from "react-native-svg"
+import { stepTab } from "./tab-swipe"
 
 /**
  * One place for the app's motion vocabulary so every action feels related:
@@ -282,9 +284,14 @@ export function SwipeSegments<T extends string>({
     dir.current = index > options.indexOf(prev.current) ? 1 : -1
     prev.current = value
   }
+  const path = usePathname()
   const step = (d: 1 | -1) => {
     const next = options[index + d]
-    if (!next) return
+    // Past the first/last segment, the swipe carries on to the next tab.
+    if (!next) {
+      if (stepTab(path, d)) feel.select()
+      return
+    }
     feel.select()
     onChange(next)
   }
