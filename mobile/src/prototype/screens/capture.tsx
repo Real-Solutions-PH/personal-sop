@@ -3,7 +3,7 @@ import type { Capture, RecordCard, ReplyItem } from "@domain/capture/data"
 import { resumeStuck } from "@domain/capture/engine"
 import { captureStore, useOnline } from "@domain/capture/store"
 import { finStore } from "@domain/finance/store"
-import { captureUi, closeCapture } from "@domain/lib/capture"
+import { closeCapture } from "@domain/lib/capture"
 import {
   ArrowUp,
   BookOpen,
@@ -25,8 +25,7 @@ import { CaptureEdit } from "./capture-edit"
 import { CaptureSummary } from "./capture-summary"
 import { useMoney } from "./finance"
 
-export function CaptureOverlay() {
-  const ui = captureUi.use((s) => s)
+export function CaptureOverlay({ bottom = 0 }: { bottom?: number }) {
   const online = useOnline()
   useEffect(() => {
     if (!online) return
@@ -44,11 +43,15 @@ export function CaptureOverlay() {
       app.remove()
     }
   }, [online])
-  return ui.open ? (
-    <CaptureSession key={JSON.stringify(ui.ctx)} ctx={ui.ctx} />
-  ) : null
+  return <CompanionDrawer bottom={bottom} />
 }
-function CaptureSession({ ctx }: { ctx: { hint?: string; mode?: string } }) {
+// ponytail: the old sheet-based session, kept for reference until the
+// companion drawer is signed off.
+export function CaptureSession({
+  ctx,
+}: {
+  ctx: { hint?: string; mode?: string }
+}) {
   const t = useTheme(),
     captures = captureStore.use((s) => s.captures),
     [session, setSession] = useState<string[]>([]),
@@ -586,14 +589,10 @@ export function CaptureThread({
   ) : queue ? (
     <CaptureQueue />
   ) : (
-    <CaptureChat />
+    <CompanionChat />
   )
 }
 
+import { CompanionChat, CompanionDrawer } from "../companion/chat"
 import { CaptureRow } from "./capture-history"
-import {
-  AiAvatar,
-  CaptureChat,
-  Exchange,
-  ThreadComposer,
-} from "./capture-thread"
+import { AiAvatar, Exchange, ThreadComposer } from "./capture-thread"

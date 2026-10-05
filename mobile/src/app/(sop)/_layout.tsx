@@ -1,4 +1,4 @@
-import { openCapture } from "@domain/lib/capture"
+import { captureUi, closeCapture, openCapture } from "@domain/lib/capture"
 import { liveStore } from "@domain/lib/live"
 import { useConnectivity } from "@domain/lib/platform"
 import * as Haptics from "expo-haptics"
@@ -12,7 +12,7 @@ import {
   Plus,
   User,
 } from "lucide-react-native"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { Pressable, Text, View } from "react-native"
 import { Gesture, GestureDetector } from "react-native-gesture-handler"
 import Animated, {
@@ -37,6 +37,29 @@ const tabs = [
   { label: "Stats", href: "/stats", icon: ChartColumn },
   { label: "Me", href: "/me", icon: User },
 ]
+// The + turns into × while the companion drawer is open.
+function FabIcon({ open }: { open: boolean }) {
+  const reduced = useReducedMotion()
+  const turn = useSharedValue(open ? 1 : 0)
+  useEffect(() => {
+    turn.value = reduced
+      ? open
+        ? 1
+        : 0
+      : withSpring(open ? 1 : 0, { damping: 14, stiffness: 220 })
+  }, [open, reduced, turn])
+  const style = useAnimatedStyle(() => ({
+    transform: [
+      { rotate: `${turn.value * 135}deg` },
+      { scale: 1 - Math.sin(turn.value * Math.PI) * 0.15 },
+    ],
+  }))
+  return (
+    <Animated.View style={style}>
+      <Plus size={28} strokeWidth={2.5} color="white" />
+    </Animated.View>
+  )
+}
 // The icon pops when its tab becomes active.
 function TabIcon({
   icon: Icon,
@@ -78,11 +101,14 @@ export default function PrototypeLayout() {
   const focus =
     /^\/habits\/routines\/[^/]+\/play$/.test(path) ||
     /^\/habits\/[^/]+\/timer$/.test(path) ||
-    /^\/social\/(stories|story-new|chat|compose|new-chat)/.test(path)
+    /^\/social\/(stories|story-new|chat|compose|new-chat)/.test(path) ||
+    path === "/capture"
   const reduced = useReducedMotion()
   const online = useConnectivity()
   const live = liveStore.use((s) => s.live)
   const dir = tabDirection((s) => s.dir)
+  const drawer = captureUi.use((s) => s.open)
+  const [bar, setBar] = useState(0)
   // Swiping slides tabs in from the side you swiped toward; tapping fades.
   const tabAnimation = {
     animation: reduced
@@ -189,6 +215,7 @@ export default function PrototypeLayout() {
         )}
         {!focus && (
           <View
+            onLayout={(e) => setBar(e.nativeEvent.layout.height)}
             accessibilityRole="tablist"
             accessibilityLabel="Main navigation"
             style={{
@@ -208,12 +235,20 @@ export default function PrototypeLayout() {
                 <Pressable
                   key={tab.href}
                   accessibilityRole="tab"
-                  accessibilityLabel={tab.label}
+                  accessibilityLabel={
+                    tab.label === "Capture"
+                      ? drawer
+                        ? "Close companion"
+                        : "Open companion"
+                      : tab.label
+                  }
                   accessibilityState={{ selected: active }}
                   onPress={() => {
                     void Haptics.selectionAsync().catch(() => {})
-                    if (tab.label === "Capture") openCapture()
+                    if (tab.label === "Capture")
+                      drawer ? closeCapture() : openCapture()
                     else if (path !== tab.href) {
+                      if (drawer) closeCapture()
                       tabDirection.setState({ dir: 0 })
                       replace(tab.href)
                     }
@@ -239,7 +274,7 @@ export default function PrototypeLayout() {
                         boxShadow: "0px 4px 10px #007c7040",
                       }}
                     >
-                      <Plus size={28} strokeWidth={2.5} color="white" />
+                      <FabIcon open={drawer} />
                     </LinearGradient>
                   ) : (
                     <View>
@@ -260,7 +295,7 @@ export default function PrototypeLayout() {
             })}
           </View>
         )}
-        <CaptureOverlay />
+        <CaptureOverlay bottom={focus ? 0 : bar} />
       </View>
     </AccentContext.Provider>
   )

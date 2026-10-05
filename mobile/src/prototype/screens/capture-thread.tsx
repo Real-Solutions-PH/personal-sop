@@ -7,7 +7,6 @@ import { useLocalSearchParams } from "expo-router"
 import {
   ArrowUp,
   BookOpen,
-  Bot,
   Camera,
   CheckSquare,
   Clock,
@@ -23,6 +22,8 @@ import {
 } from "lucide-react-native"
 import { useState } from "react"
 import { Image, ScrollView, TextInput, View } from "react-native"
+import { Orb } from "../companion/orb"
+import { thinking } from "../companion/store"
 import { border, Copy, Frame, IconTap, Line, Tap } from "../native-kit"
 import { go } from "../navigation"
 import { fonts, useTheme } from "../theme"
@@ -49,28 +50,22 @@ const placeholders: Record<string, string> = {
   workout: "e.g. bench 60x5x3 · ran 5k 30 min",
 }
 export function AiAvatar({ size = 24 }: { size?: number }) {
-  const t = useTheme()
-  return (
-    <LinearGradient
-      colors={[t.primary, t.hab]}
-      style={{
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <Bot size={size * 0.5} color="#fff" />
-    </LinearGradient>
-  )
+  const on = thinking((s) => s.on)
+  return <Orb size={size} active={on} />
 }
 export function ThreadComposer({
   onSent,
   initialHint,
   initialText = "",
   initialMode,
+  onText,
+  hints: showHints = true,
+  placeholder,
 }: {
+  /** Route typed messages here (the companion) instead of capture. */
+  onText?: (text: string, hint?: string) => void
+  hints?: boolean
+  placeholder?: string
   onSent?: (id: string) => void
   initialHint?: string
   initialText?: string
@@ -94,39 +89,41 @@ export function ThreadComposer({
         paddingBottom: 12,
       }}
     >
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 6, paddingBottom: 8 }}
-        style={{ flexGrow: 0 }}
-      >
-        {hints.map((h) => (
-          <Tap
-            key={h.v}
-            onPress={() => setHint(hint === h.v ? undefined : h.v)}
-            style={{
-              height: 44,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 6,
-              borderRadius: 22,
-              borderWidth: 1,
-              borderColor: hint === h.v ? "transparent" : t.line,
-              backgroundColor: hint === h.v ? t.primary : t.card,
-              paddingHorizontal: 14,
-            }}
-          >
-            <h.icon size={16} color={hint === h.v ? t.onPrimary : t.muted} />
-            <Copy
-              size={14}
-              weight="medium"
-              style={{ color: hint === h.v ? t.onPrimary : t.muted }}
+      {showHints && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 6, paddingBottom: 8 }}
+          style={{ flexGrow: 0 }}
+        >
+          {hints.map((h) => (
+            <Tap
+              key={h.v}
+              onPress={() => setHint(hint === h.v ? undefined : h.v)}
+              style={{
+                height: 44,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                borderRadius: 22,
+                borderWidth: 1,
+                borderColor: hint === h.v ? "transparent" : t.line,
+                backgroundColor: hint === h.v ? t.primary : t.card,
+                paddingHorizontal: 14,
+              }}
             >
-              {h.label}
-            </Copy>
-          </Tap>
-        ))}
-      </ScrollView>
+              <h.icon size={16} color={hint === h.v ? t.onPrimary : t.muted} />
+              <Copy
+                size={14}
+                weight="medium"
+                style={{ color: hint === h.v ? t.onPrimary : t.muted }}
+              >
+                {h.label}
+              </Copy>
+            </Tap>
+          ))}
+        </ScrollView>
+      )}
       {!online && (
         <Copy size={12} style={{ color: t.warn, marginBottom: 8 }}>
           Offline — I'll queue it and process when you're back.
@@ -160,7 +157,9 @@ export function ThreadComposer({
             onChangeText={setText}
             multiline
             numberOfLines={1}
-            placeholder={placeholders[hint ?? ""] ?? "Log or ask anything…"}
+            placeholder={
+              placeholders[hint ?? ""] ?? placeholder ?? "Log or ask anything…"
+            }
             placeholderTextColor={border(t.muted, 0.7)}
             style={{
               minHeight: 44,
@@ -198,6 +197,11 @@ export function ThreadComposer({
             color={t.onPrimary}
             background={t.primary}
             onPress={() => {
+              if (onText) {
+                onText(text.trim(), hint)
+                setText("")
+                return
+              }
               const id = A.sendCapture({
                 text: text.trim(),
                 source: "text",
