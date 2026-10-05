@@ -17,7 +17,7 @@ import {
 import { useState } from "react"
 import { ScrollView, Text, View } from "react-native"
 import { Sparkline } from "../chart"
-import { SwipeSegments } from "../motion"
+import { GrowBar, SwipeSegments } from "../motion"
 import {
   Bar,
   border,
@@ -711,11 +711,12 @@ export function HabitsHome() {
                 </Line>
                 <Line style={{ height: 64, alignItems: "flex-end", gap: 4 }}>
                   {weeks.map((v, i) => (
-                    <View
+                    <GrowBar
+                      height={`${Math.max(2, (v / max) * 100)}%`}
+                      index={i}
                       key={i}
                       style={{
                         flex: 1,
-                        height: `${Math.max(2, (v / max) * 100)}%`,
                         borderTopLeftRadius: 6,
                         borderTopRightRadius: 6,
                         backgroundColor: t.hab,

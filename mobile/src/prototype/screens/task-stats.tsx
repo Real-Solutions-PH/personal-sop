@@ -11,6 +11,7 @@ import {
 } from "lucide-react-native"
 import { useState } from "react"
 import { View } from "react-native"
+import { GrowBar } from "../motion"
 import {
   Bar,
   border,
@@ -48,9 +49,10 @@ export function TaskBars({
       {data.map((v, i) => (
         <View key={`${i}-${v}`} style={{ flex: 1, gap: 4 }}>
           <View style={{ height, justifyContent: "flex-end" }}>
-            <View
+            <GrowBar
+              height={Math.max(2, (v / max) * height)}
+              index={i}
               style={{
-                height: Math.max(2, (v / max) * height),
                 backgroundColor:
                   i === data.length - 1 ? color : border(color, 0.4),
                 borderTopLeftRadius: 6,

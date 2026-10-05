@@ -1,6 +1,14 @@
-import type { ReactNode } from "react"
+import { type ReactNode, useEffect } from "react"
 import { View } from "react-native"
+import Animated, {
+  Easing,
+  useAnimatedProps,
+  useReducedMotion,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated"
 import Svg, { Circle } from "react-native-svg"
+import { GrowBar, MOTION } from "./motion"
 import { Copy, Line } from "./native-kit"
 import { useTheme } from "./theme"
 export const FIN_PALETTE = [
@@ -47,16 +55,14 @@ export function Donut({
             offset = -acc
           acc += len
           return (
-            <Circle
+            <Slice
               key={`slice-${i}`}
-              cx={size / 2}
-              cy={size / 2}
+              size={size}
               r={r}
-              fill="none"
-              strokeWidth={16}
-              strokeDasharray={`${Math.max(0, len - 2)} ${circ}`}
-              strokeDashoffset={offset}
-              stroke={t[FIN_PALETTE[i % FIN_PALETTE.length]]}
+              circ={circ}
+              len={Math.max(0, len - 2)}
+              offset={offset}
+              color={t[FIN_PALETTE[i % FIN_PALETTE.length]]}
             />
           )
         })}
@@ -94,11 +100,12 @@ export function PairBars({
             style={{ height: "100%", flex: 1, gap: 4, alignItems: "flex-end" }}
           >
             {[a, b].map((v, j) => (
-              <View
+              <GrowBar
                 key={`bar-${j}`}
+                index={i * 2 + j}
+                height={Math.max(height * 0.02, (v / max) * height)}
                 style={{
                   flex: 1,
-                  height: Math.max(height * 0.02, (v / max) * height),
                   borderTopLeftRadius: 6,
                   borderTopRightRadius: 6,
                   backgroundColor: j ? `${t.bad}b3` : `${t.good}cc`,
@@ -139,9 +146,10 @@ export function FinanceBars({
       {data.map((v, i) => (
         <View key={labels[i]} style={{ flex: 1, gap: 4 }}>
           <View style={{ height, justifyContent: "flex-end" }}>
-            <View
+            <GrowBar
+              index={i}
+              height={Math.max(2, (v / max) * height)}
               style={{
-                height: Math.max(2, (v / max) * height),
                 borderTopLeftRadius: 6,
                 borderTopRightRadius: 6,
                 backgroundColor: t.fin,
@@ -154,5 +162,49 @@ export function FinanceBars({
         </View>
       ))}
     </Line>
+  )
+}
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle)
+/** One donut slice; slices fan out from the top when the chart appears. */
+function Slice({
+  size,
+  r,
+  circ,
+  len,
+  offset,
+  color,
+}: {
+  size: number
+  r: number
+  circ: number
+  len: number
+  offset: number
+  color: string
+}) {
+  const reduced = useReducedMotion()
+  const p = useSharedValue(reduced ? 1 : 0)
+  useEffect(() => {
+    p.value = reduced
+      ? 1
+      : withTiming(1, {
+          duration: MOTION.reveal,
+          easing: Easing.out(Easing.cubic),
+        })
+  }, [reduced, p])
+  const props = useAnimatedProps(() => ({
+    strokeDasharray: [len * p.value, circ],
+    strokeDashoffset: offset * p.value,
+  }))
+  return (
+    <AnimatedCircle
+      cx={size / 2}
+      cy={size / 2}
+      r={r}
+      fill="none"
+      strokeWidth={16}
+      stroke={color}
+      animatedProps={props}
+    />
   )
 }

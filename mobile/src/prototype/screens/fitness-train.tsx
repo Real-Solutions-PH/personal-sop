@@ -14,6 +14,7 @@ import {
 import { useState } from "react"
 import { Text, View } from "react-native"
 import { Sparkline } from "../chart"
+import { GrowBar } from "../motion"
 import {
   border,
   Copy,
@@ -441,11 +442,12 @@ export function FitnessTrain() {
               </Line>
               <Line style={{ height: 72, alignItems: "flex-end", gap: 4 }}>
                 {weeks.map((w, i) => (
-                  <View
+                  <GrowBar
+                    height={`${Math.max(2, (w.volume / max) * 100)}%`}
+                    index={i}
                     key={w.start}
                     style={{
                       flex: 1,
-                      height: `${Math.max(2, (w.volume / max) * 100)}%`,
                       borderTopLeftRadius: 6,
                       borderTopRightRadius: 6,
                       backgroundColor: t.fit,

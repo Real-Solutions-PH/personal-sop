@@ -30,6 +30,7 @@ import {
 import { useState } from "react"
 import { ScrollView, Text, useWindowDimensions, View } from "react-native"
 import { Sparkline } from "../chart"
+import { GrowBar } from "../motion"
 import {
   Bar,
   Copy,
@@ -655,19 +656,19 @@ export function FinanceHome() {
                             gap: 3,
                           }}
                         >
-                          <View
+                          <GrowBar
+                            height={`${(x.flow.income / maxFlow) * 100}%`}
                             style={{
                               flex: 1,
-                              height: `${(x.flow.income / maxFlow) * 100}%`,
                               backgroundColor: `${t.good}cc`,
                               borderTopLeftRadius: 4,
                               borderTopRightRadius: 4,
                             }}
                           />
-                          <View
+                          <GrowBar
+                            height={`${(x.flow.spend / maxFlow) * 100}%`}
                             style={{
                               flex: 1,
-                              height: `${(x.flow.spend / maxFlow) * 100}%`,
                               backgroundColor: `${t.bad}b3`,
                               borderTopLeftRadius: 4,
                               borderTopRightRadius: 4,

@@ -1,7 +1,13 @@
 import * as Haptics from "expo-haptics"
 import { Check } from "lucide-react-native"
 import { type ReactNode, useEffect, useRef, useState } from "react"
-import { Pressable, Text, type TextStyle, View } from "react-native"
+import {
+  Pressable,
+  Text,
+  type TextStyle,
+  View,
+  type ViewStyle,
+} from "react-native"
 import { Gesture, GestureDetector } from "react-native-gesture-handler"
 import Animated, {
   Easing,
@@ -15,6 +21,7 @@ import Animated, {
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
+  withDelay,
   withSequence,
   withSpring,
   withTiming,
@@ -344,5 +351,63 @@ export function SwipeStep({
         </Animated.View>
       </View>
     </GestureDetector>
+  )
+}
+
+/** A chart bar that grows from the baseline when it first appears. */
+export function GrowBar({
+  height,
+  index = 0,
+  style,
+}: {
+  /** Points, or a percentage of the parent such as "40%". */
+  height: number | `${number}%`
+  index?: number
+  style?: ViewStyle
+}) {
+  const reduced = useReducedMotion()
+  const pct = typeof height === "string"
+  const target = pct ? Number.parseFloat(height) : height
+  const h = useSharedValue(reduced ? target : 0)
+  useEffect(() => {
+    h.value = reduced
+      ? target
+      : withDelay(
+          Math.min(index, 12) * 35,
+          withTiming(target, {
+            duration: MOTION.reveal * 0.7,
+            easing: easeOut,
+          }),
+        )
+  }, [target, index, reduced, h])
+  const anim = useAnimatedStyle(() => ({
+    height: pct ? (`${h.value}%` as `${number}%`) : h.value,
+  }))
+  return <Animated.View style={[style, anim]} />
+}
+
+/** Line/area charts sweep in left to right when they first appear. */
+export function Reveal({ children }: { children: ReactNode }) {
+  const reduced = useReducedMotion()
+  const [width, setWidth] = useState(0)
+  const p = useSharedValue(reduced ? 1 : 0)
+  useEffect(() => {
+    if (!width || reduced) return
+    p.value = withTiming(1, { duration: MOTION.reveal, easing: easeOut })
+  }, [width, reduced, p])
+  const clip = useAnimatedStyle(() => ({ width: width * p.value }))
+  return (
+    <View
+      style={{ width: "100%", height: "100%" }}
+      onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+    >
+      {width > 0 ? (
+        <Animated.View style={[{ overflow: "hidden", height: "100%" }, clip]}>
+          <View style={{ width, height: "100%" }}>{children}</View>
+        </Animated.View>
+      ) : (
+        <View style={{ opacity: 0, height: "100%" }}>{children}</View>
+      )}
+    </View>
   )
 }

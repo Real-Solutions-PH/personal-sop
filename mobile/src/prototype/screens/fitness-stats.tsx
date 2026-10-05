@@ -5,6 +5,7 @@ import { ChevronRight, Share2, TriangleAlert } from "lucide-react-native"
 import { useState } from "react"
 import { View } from "react-native"
 import { Sparkline } from "../chart"
+import { GrowBar } from "../motion"
 import {
   border,
   Copy,
@@ -150,13 +151,13 @@ export function FitnessStats() {
                     justifyContent: "flex-end",
                   }}
                 >
-                  <View
+                  <GrowBar
+                    height={Math.max(
+                      2,
+                      (w.count / Math.max(1, ...weeks.map((x) => x.count))) *
+                        90,
+                    )}
                     style={{
-                      height: Math.max(
-                        2,
-                        (w.count / Math.max(1, ...weeks.map((x) => x.count))) *
-                          90,
-                      ),
                       backgroundColor:
                         w.start === weeks.at(-1)?.start
                           ? t.fit

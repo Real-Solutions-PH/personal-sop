@@ -28,7 +28,7 @@ import Svg, {
   LinearGradient as SvgGradient,
   Line as SvgLine,
 } from "react-native-svg"
-import { ArcCircle, CountUp, SwipeSegments } from "../motion"
+import { ArcCircle, CountUp, GrowBar, SwipeSegments } from "../motion"
 import {
   Bar,
   border,
@@ -293,11 +293,12 @@ function DailyForm({ days }: { days: number }) {
             }}
           >
             {vals.map((v, i) => (
-              <View
+              <GrowBar
+                height={`${Math.max(2, (v ?? 0) * 100)}%`}
+                index={i}
                 key={target.range[i].day}
                 style={{
                   flex: 1,
-                  height: `${Math.max(2, (v ?? 0) * 100)}%`,
                   borderTopLeftRadius: 6,
                   borderTopRightRadius: 6,
                   backgroundColor: t.life,
