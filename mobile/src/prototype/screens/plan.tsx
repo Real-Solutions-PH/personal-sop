@@ -33,6 +33,7 @@ import {
 } from "lucide-react-native"
 import { useState } from "react"
 import { ScrollView, View } from "react-native"
+import { SwipeSegments, SwipeStep } from "../motion"
 import {
   Copy,
   Frame,
@@ -414,13 +415,19 @@ export function Plan() {
   return (
     <Screen root prototypeLayout title="Plan">
       <Segmented value={active} onChange={setSeg} options={options} />
-      {active === "tasks" ? (
-        <TaskPlanPanel />
-      ) : active === "habits" ? (
-        <HabitPlanPanel />
-      ) : (
-        <CalendarPanel />
-      )}
+      <SwipeSegments
+        value={active}
+        options={options.map((o) => o.value)}
+        onChange={setSeg}
+      >
+        {active === "tasks" ? (
+          <TaskPlanPanel />
+        ) : active === "habits" ? (
+          <HabitPlanPanel />
+        ) : (
+          <CalendarPanel />
+        )}
+      </SwipeSegments>
     </Screen>
   )
 }
@@ -483,54 +490,56 @@ export function HabitPlanPanel() {
           onPress={() => setWeek(week + 1)}
         />
       </Line>
-      <Line style={{ gap: 4 }}>
-        {days.map((d) => {
-          const due = habits.filter((h) => H.isDue(h, d)),
-            done = due.filter(
-              (h) => idx.get(H.lk(h.id, d))?.status === "done",
-            ).length
-          return (
-            <Tap
-              key={d}
-              label={`Select ${d}`}
-              onPress={() => setSel(d)}
-              style={{
-                flex: 1,
-                gap: 4,
-                alignItems: "center",
-                paddingVertical: 8,
-                borderRadius: 16,
-                backgroundColor: sel === d ? `${t.hab}26` : "transparent",
-              }}
-            >
-              <Copy size={10} muted>
-                {
-                  new Date(`${d}T12:00:00`).toLocaleDateString("en", {
-                    weekday: "short",
-                  })[0]
-                }
-              </Copy>
-              <Ring
-                size={34}
-                strokeWidth={3}
-                color={t.hab}
-                value={d <= today && due.length ? done / due.length : 0}
+      <SwipeStep stepKey={week} onStep={(d) => setWeek(week + d)}>
+        <Line style={{ gap: 4 }}>
+          {days.map((d) => {
+            const due = habits.filter((h) => H.isDue(h, d)),
+              done = due.filter(
+                (h) => idx.get(H.lk(h.id, d))?.status === "done",
+              ).length
+            return (
+              <Tap
+                key={d}
+                label={`Select ${d}`}
+                onPress={() => setSel(d)}
+                style={{
+                  flex: 1,
+                  gap: 4,
+                  alignItems: "center",
+                  paddingVertical: 8,
+                  borderRadius: 16,
+                  backgroundColor: sel === d ? `${t.hab}26` : "transparent",
+                }}
               >
-                <Copy
-                  size={12}
-                  weight="semibold"
-                  style={{ color: d === today ? t.hab : t.text }}
-                >
-                  {Number(d.slice(8))}
+                <Copy size={10} muted>
+                  {
+                    new Date(`${d}T12:00:00`).toLocaleDateString("en", {
+                      weekday: "short",
+                    })[0]
+                  }
                 </Copy>
-              </Ring>
-              <Copy size={10} muted>
-                {d <= today ? `${done}/${due.length}` : due.length}
-              </Copy>
-            </Tap>
-          )
-        })}
-      </Line>
+                <Ring
+                  size={34}
+                  strokeWidth={3}
+                  color={t.hab}
+                  value={d <= today && due.length ? done / due.length : 0}
+                >
+                  <Copy
+                    size={12}
+                    weight="semibold"
+                    style={{ color: d === today ? t.hab : t.text }}
+                  >
+                    {Number(d.slice(8))}
+                  </Copy>
+                </Ring>
+                <Copy size={10} muted>
+                  {d <= today ? `${done}/${due.length}` : due.length}
+                </Copy>
+              </Tap>
+            )
+          })}
+        </Line>
+      </SwipeStep>
       <SectionHeading
         action={
           <Tap onPress={() => go(`/habits/day/${sel}`)}>
@@ -753,83 +762,89 @@ function CalendarPanel() {
           />
         </View>
       </Line>
-      <Frame style={{ padding: 8 }}>
-        <Line style={{ gap: 2, paddingBottom: 4 }}>
-          {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
-            <Copy
-              key={`${d}-${i}`}
-              size={10}
-              muted
-              style={{ flex: 1, textAlign: "center" }}
-            >
-              {d}
-            </Copy>
-          ))}
-        </Line>
-        <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
-          {days.map((d) => {
-            const list = items.filter((i) => i.day === d)
-            return (
-              <Tap
-                key={d}
-                label={`Select ${d}`}
-                onPress={() => setSel(d)}
-                style={{
-                  width: "14.2857%",
-                  height: mode === "week" ? 80 : 56,
-                  paddingVertical: 6,
-                  gap: 4,
-                  alignItems: "center",
-                  borderRadius: 12,
-                  backgroundColor: sel === d ? `${t.primary}26` : "transparent",
-                  opacity:
-                    mode === "month" && !d.startsWith(first.slice(0, 7))
-                      ? 0.35
-                      : 1,
-                }}
+      <SwipeStep
+        stepKey={`${mode}-${offset}`}
+        onStep={(d) => setOffset(offset + d)}
+      >
+        <Frame style={{ padding: 8 }}>
+          <Line style={{ gap: 2, paddingBottom: 4 }}>
+            {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
+              <Copy
+                key={`${d}-${i}`}
+                size={10}
+                muted
+                style={{ flex: 1, textAlign: "center" }}
               >
-                <View
+                {d}
+              </Copy>
+            ))}
+          </Line>
+          <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+            {days.map((d) => {
+              const list = items.filter((i) => i.day === d)
+              return (
+                <Tap
+                  key={d}
+                  label={`Select ${d}`}
+                  onPress={() => setSel(d)}
                   style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: 14,
+                    width: "14.2857%",
+                    height: mode === "week" ? 80 : 56,
+                    paddingVertical: 6,
+                    gap: 4,
                     alignItems: "center",
-                    justifyContent: "center",
-                    backgroundColor: d === today ? t.primary : "transparent",
+                    borderRadius: 12,
+                    backgroundColor:
+                      sel === d ? `${t.primary}26` : "transparent",
+                    opacity:
+                      mode === "month" && !d.startsWith(first.slice(0, 7))
+                        ? 0.35
+                        : 1,
                   }}
                 >
-                  <Copy
-                    size={14}
-                    style={{ color: d === today ? t.onPrimary : t.text }}
+                  <View
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: 14,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      backgroundColor: d === today ? t.primary : "transparent",
+                    }}
                   >
-                    {Number(d.slice(8))}
-                  </Copy>
-                </View>
-                <Line style={{ gap: 2 }}>
-                  {MODULE_KEYS.filter((k) =>
-                    list.some((i) => i.module === k),
-                  ).map((k) => (
-                    <View
-                      key={k}
-                      style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: 3,
-                        backgroundColor: t[AREA[k].accent],
-                      }}
-                    />
-                  ))}
-                </Line>
-                {mode === "week" && (
-                  <Copy size={10} muted>
-                    {list.length || ""}
-                  </Copy>
-                )}
-              </Tap>
-            )
-          })}
-        </View>
-      </Frame>
+                    <Copy
+                      size={14}
+                      style={{ color: d === today ? t.onPrimary : t.text }}
+                    >
+                      {Number(d.slice(8))}
+                    </Copy>
+                  </View>
+                  <Line style={{ gap: 2 }}>
+                    {MODULE_KEYS.filter((k) =>
+                      list.some((i) => i.module === k),
+                    ).map((k) => (
+                      <View
+                        key={k}
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: 3,
+                          backgroundColor: t[AREA[k].accent],
+                        }}
+                      />
+                    ))}
+                  </Line>
+                  {mode === "week" && (
+                    <Copy size={10} muted>
+                      {list.length || ""}
+                    </Copy>
+                  )}
+                </Tap>
+              )
+            })}
+          </View>
+        </Frame>
+      </SwipeStep>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}

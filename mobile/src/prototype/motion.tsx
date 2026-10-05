@@ -303,3 +303,46 @@ export function SwipeSegments<T extends string>({
     </GestureDetector>
   )
 }
+
+/**
+ * Swipe sideways to step a period (day/week/month). Activates sooner than
+ * SwipeSegments so a calendar inside a paged screen keeps its own swipe.
+ */
+export function SwipeStep({
+  stepKey,
+  onStep,
+  children,
+}: {
+  stepKey: string | number
+  onStep: (direction: 1 | -1) => void
+  children: ReactNode
+}) {
+  const reduced = useReducedMotion()
+  const dir = useRef<1 | -1>(1)
+  const step = (d: 1 | -1) => {
+    dir.current = d
+    feel.select()
+    onStep(d)
+  }
+  const pan = Gesture.Pan()
+    .activeOffsetX([-18, 18])
+    .failOffsetY([-12, 12])
+    .onEnd((e) => {
+      if (e.translationX < -50 || e.velocityX < -500) runOnJS(step)(1)
+      else if (e.translationX > 50 || e.velocityX > 500) runOnJS(step)(-1)
+    })
+  const entering = reduced
+    ? undefined
+    : (dir.current > 0 ? SlideInRight : SlideInLeft)
+        .duration(MOTION.base)
+        .easing(easeOut)
+  return (
+    <GestureDetector gesture={pan}>
+      <View collapsable={false} style={{ overflow: "hidden" }}>
+        <Animated.View key={stepKey} entering={entering}>
+          {children}
+        </Animated.View>
+      </View>
+    </GestureDetector>
+  )
+}

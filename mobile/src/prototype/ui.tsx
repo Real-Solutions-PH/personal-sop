@@ -6,6 +6,7 @@ import {
   ChevronLeft,
   Ellipsis,
   type LucideIcon,
+  Trash2,
   X,
 } from "lucide-react-native"
 import { type ReactNode, useEffect, useRef, useState } from "react"
@@ -857,12 +858,21 @@ export function SwipeRow({
   onComplete,
   onMore,
   moreLabel = "Actions",
+  onDismiss,
+  dismissLabel = "Delete",
+  completeLabel = "Complete",
+  completeIcon = Check,
   background,
 }: {
   children: ReactNode
   onComplete?: () => void
   onMore?: () => void
   moreLabel?: string
+  /** Full left swipe removes the row (pair with an undo toast). */
+  onDismiss?: () => void
+  dismissLabel?: string
+  completeLabel?: string
+  completeIcon?: LucideIcon
   /** Surface colour behind the row; defaults to the page background. */
   background?: string
 }) {
@@ -889,6 +899,13 @@ export function SwipeRow({
             Haptics.NotificationFeedbackType.Success,
           ).catch(() => {})
         }
+        if (side === "left" && onDismiss) {
+          ref.current?.close()
+          onDismiss()
+          void Haptics.notificationAsync(
+            Haptics.NotificationFeedbackType.Warning,
+          ).catch(() => {})
+        }
       }}
       onSwipeableClose={() => setDirection(null)}
       overshootLeft={false}
@@ -900,30 +917,41 @@ export function SwipeRow({
                 progress={progress}
                 hidden={direction !== "right"}
                 color={t.good}
-                icon={Check}
-                label="Complete"
+                icon={completeIcon}
+                label={completeLabel}
                 align="left"
               />
             )
           : undefined
       }
       renderRightActions={
-        onMore
+        onDismiss
           ? (progress) => (
               <SwipeAction
                 progress={progress}
                 hidden={direction !== "left"}
-                color={t.muted}
-                icon={Ellipsis}
-                label={moreLabel}
+                color={t.bad}
+                icon={Trash2}
+                label={dismissLabel}
                 align="right"
-                onPress={() => {
-                  ref.current?.close()
-                  onMore()
-                }}
               />
             )
-          : undefined
+          : onMore
+            ? (progress) => (
+                <SwipeAction
+                  progress={progress}
+                  hidden={direction !== "left"}
+                  color={t.muted}
+                  icon={Ellipsis}
+                  label={moreLabel}
+                  align="right"
+                  onPress={() => {
+                    ref.current?.close()
+                    onMore()
+                  }}
+                />
+              )
+            : undefined
       }
     >
       <View style={{ backgroundColor: background ?? t.bg }}>{children}</View>

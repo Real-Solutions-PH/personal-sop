@@ -23,6 +23,7 @@ import {
   ArrowRight,
   Bell,
   Check,
+  MailOpen,
   Mic,
   Sparkles,
   Target,
@@ -43,7 +44,7 @@ import {
 } from "../native-kit"
 import { go } from "../navigation"
 import { fonts, useTheme } from "../theme"
-import { Button, Screen } from "../ui"
+import { Button, Screen, SwipeRow, undo } from "../ui"
 import { Ring } from "../visual"
 
 const colors = {
@@ -97,70 +98,88 @@ export function Inbox() {
                 {list.map((n) => {
                   const I = icons[n.kind]
                   return (
-                    <Tap
+                    <SwipeRow
                       key={n.id}
-                      onPress={() => {
-                        markNotifRead(n.id)
-                        go(n.href)
-                      }}
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "flex-start",
-                        gap: 12,
-                        paddingHorizontal: 4,
-                        paddingVertical: 10,
+                      background={t.card}
+                      completeLabel={n.read ? "Read" : "Mark read"}
+                      completeIcon={MailOpen}
+                      onComplete={() => markNotifRead(n.id)}
+                      dismissLabel="Dismiss"
+                      onDismiss={() => {
+                        const before = dashStore.get().notifs
+                        dashStore.set((s) => ({
+                          ...s,
+                          notifs: s.notifs.filter((x) => x.id !== n.id),
+                        }))
+                        undo("Notification dismissed", () =>
+                          dashStore.set((s) => ({ ...s, notifs: before })),
+                        )
                       }}
                     >
-                      <View
+                      <Tap
+                        onPress={() => {
+                          markNotifRead(n.id)
+                          go(n.href)
+                        }}
                         style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: 18,
-                          marginTop: 2,
-                          backgroundColor:
-                            n.kind === "achievement"
-                              ? border(t.life, 0.15)
-                              : t.soft,
-                          justifyContent: "center",
-                          alignItems: "center",
+                          flexDirection: "row",
+                          alignItems: "flex-start",
+                          gap: 12,
+                          paddingHorizontal: 4,
+                          paddingVertical: 10,
                         }}
                       >
-                        <I
-                          size={16}
-                          color={n.kind === "achievement" ? t.life : t.muted}
-                        />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Copy
-                          size={14}
-                          weight={n.read ? "body" : "semibold"}
-                          lines={1}
+                        <View
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: 18,
+                            marginTop: 2,
+                            backgroundColor:
+                              n.kind === "achievement"
+                                ? border(t.life, 0.15)
+                                : t.soft,
+                            justifyContent: "center",
+                            alignItems: "center",
+                          }}
                         >
-                          {n.title}
-                        </Copy>
-                        <Copy size={12} muted lines={2}>
-                          {n.body}
-                        </Copy>
-                      </View>
-                      <View style={{ alignItems: "flex-end", gap: 4 }}>
-                        <Copy size={10} muted>
-                          {new Date(n.at).toLocaleTimeString("en-PH", {
-                            hour: "numeric",
-                            minute: "2-digit",
-                          })}
-                        </Copy>
-                        {!n.read && (
-                          <View
-                            style={{
-                              width: 8,
-                              height: 8,
-                              borderRadius: 4,
-                              backgroundColor: t.primary,
-                            }}
+                          <I
+                            size={16}
+                            color={n.kind === "achievement" ? t.life : t.muted}
                           />
-                        )}
-                      </View>
-                    </Tap>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Copy
+                            size={14}
+                            weight={n.read ? "body" : "semibold"}
+                            lines={1}
+                          >
+                            {n.title}
+                          </Copy>
+                          <Copy size={12} muted lines={2}>
+                            {n.body}
+                          </Copy>
+                        </View>
+                        <View style={{ alignItems: "flex-end", gap: 4 }}>
+                          <Copy size={10} muted>
+                            {new Date(n.at).toLocaleTimeString("en-PH", {
+                              hour: "numeric",
+                              minute: "2-digit",
+                            })}
+                          </Copy>
+                          {!n.read && (
+                            <View
+                              style={{
+                                width: 8,
+                                height: 8,
+                                borderRadius: 4,
+                                backgroundColor: t.primary,
+                              }}
+                            />
+                          )}
+                        </View>
+                      </Tap>
+                    </SwipeRow>
                   )
                 })}
               </Frame>

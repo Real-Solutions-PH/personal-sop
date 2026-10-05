@@ -17,6 +17,7 @@ import {
 import { useState } from "react"
 import { ScrollView, Text, View } from "react-native"
 import { Sparkline } from "../chart"
+import { SwipeSegments } from "../motion"
 import {
   Bar,
   border,
@@ -361,373 +362,391 @@ export function HabitsHome() {
                 { value: "365", label: "Year" },
               ]}
             />
-            <Frame style={{ padding: 16, marginTop: 12 }}>
-              <Line style={{ gap: 16 }}>
-                <Ring value={cur.rate} size={96} strokeWidth={9} color={t.hab}>
-                  <Copy size={24} weight="semibold">
-                    {Math.round(cur.rate * 100)}%
-                  </Copy>
-                  <Copy size={10} muted>
-                    completion
-                  </Copy>
-                </Ring>
-                <View style={{ flex: 1, gap: 12 }}>
-                  <Line style={{ gap: 12, alignItems: "flex-start" }}>
-                    <View style={{ flex: 1 }}>
-                      <Copy
-                        size={24}
-                        weight="semibold"
-                        style={{
-                          color: cur.rate >= prev.rate ? t.good : t.bad,
-                          letterSpacing: -0.6,
-                        }}
-                      >
-                        {cur.rate >= prev.rate ? "+" : "−"}
-                        {Math.abs(Math.round((cur.rate - prev.rate) * 100))}pt
-                      </Copy>
-                      <Copy size={12} muted>
-                        vs prev {period === "365" ? "year" : `${period}d`}
-                      </Copy>
-                    </View>
-                    <Stat
-                      label="Perfect days"
-                      value={cur.perfect}
-                      delta={cur.perfect - prev.perfect}
-                    />
-                  </Line>
-                  <Line style={{ gap: 12, alignItems: "flex-start" }}>
-                    <Stat
-                      label="Invested"
-                      value={
-                        cur.minutes >= 600
-                          ? `${Math.round(cur.minutes / 60)}h`
-                          : H.fmtMinutes(cur.minutes)
-                      }
-                      delta={Math.round((cur.minutes - prev.minutes) / 60)}
-                    />
-                    <Stat
-                      label="Skip rate"
-                      value={H.pct(cur.skipRate)}
-                      delta={Math.round((cur.skipRate - prev.skipRate) * 100)}
-                      down
-                    />
-                  </Line>
-                </View>
-              </Line>
-            </Frame>
-            <Frame style={{ padding: 16, marginTop: 12 }}>
-              <Line
-                style={{ justifyContent: "space-between", marginBottom: 4 }}
-              >
-                <Copy size={12} muted>
-                  7-day rolling completion
-                </Copy>
-                <Copy size={12} muted>
-                  {rolling.at(-1)}%
-                </Copy>
-              </Line>
-              <Sparkline
-                values={rolling}
-                color={t.hab}
-                height={56}
-                label="7-day rolling completion"
-              />
-            </Frame>
-            <Line style={{ gap: 8, marginTop: 12 }}>
-              {[
-                { label: "Habits", href: "/habits/manage", icon: ListChecks },
-                { label: "Routines", href: "/habits/routines", icon: Repeat },
-                {
-                  label: "Share",
-                  href: "/habits/share?t=scoreboard",
-                  icon: Share2,
-                },
-              ].map((a) => (
-                <Tap
-                  key={a.href}
-                  onPress={() => go(a.href)}
-                  style={{
-                    flex: 1,
-                    height: 44,
-                    backgroundColor: t.soft,
-                    borderRadius: 16,
-                    justifyContent: "center",
-                  }}
-                >
-                  <Line style={{ gap: 8, justifyContent: "center" }}>
-                    <a.icon size={16} color={t.text} />
-                    <Copy size={14} weight="semibold">
-                      {a.label}
-                    </Copy>
-                  </Line>
-                </Tap>
-              ))}
-            </Line>
-            <SectionHeading>Reflection</SectionHeading>
-            <Frame style={{ padding: 16, gap: 12, borderColor: `${t.bad}33` }}>
-              <Line style={{ gap: 8 }}>
-                <TriangleAlert size={16} color={t.bad} />
-                <Copy size={14} weight="semibold">
-                  What slipped
-                </Copy>
-              </Line>
-              <Line style={{ gap: 12 }}>
-                <Stat label="Missed" value={cur.missed} />
-                <Stat label="Broken streaks" value={broken.length} />
-                <Stat label="Worst day" value={worst?.day ?? "—"} />
-              </Line>
-              {broken
-                .slice(-3)
-                .reverse()
-                .map((b) => (
-                  <Tap
-                    key={`${b.h.id}-${b.day}`}
-                    onPress={() => go(`/habits/${b.h.id}`)}
+            <SwipeSegments
+              value={period}
+              options={["7", "30", "90", "365"]}
+              onChange={setPeriod}
+            >
+              <Frame style={{ padding: 16, marginTop: 12 }}>
+                <Line style={{ gap: 16 }}>
+                  <Ring
+                    value={cur.rate}
+                    size={96}
+                    strokeWidth={9}
+                    color={t.hab}
                   >
-                    <Line style={{ gap: 8 }}>
-                      <Copy size={14}>{b.h.icon}</Copy>
-                      <Copy size={14} style={{ flex: 1 }}>
-                        Lost a{" "}
-                        <Text style={{ fontFamily: fonts.bold }}>
-                          {b.length}-day
-                        </Text>{" "}
-                        {b.h.name} streak
-                      </Copy>
-                      <Copy size={12} muted>
-                        {fmtDay(b.day)}
+                    <Copy size={24} weight="semibold">
+                      {Math.round(cur.rate * 100)}%
+                    </Copy>
+                    <Copy size={10} muted>
+                      completion
+                    </Copy>
+                  </Ring>
+                  <View style={{ flex: 1, gap: 12 }}>
+                    <Line style={{ gap: 12, alignItems: "flex-start" }}>
+                      <View style={{ flex: 1 }}>
+                        <Copy
+                          size={24}
+                          weight="semibold"
+                          style={{
+                            color: cur.rate >= prev.rate ? t.good : t.bad,
+                            letterSpacing: -0.6,
+                          }}
+                        >
+                          {cur.rate >= prev.rate ? "+" : "−"}
+                          {Math.abs(Math.round((cur.rate - prev.rate) * 100))}pt
+                        </Copy>
+                        <Copy size={12} muted>
+                          vs prev {period === "365" ? "year" : `${period}d`}
+                        </Copy>
+                      </View>
+                      <Stat
+                        label="Perfect days"
+                        value={cur.perfect}
+                        delta={cur.perfect - prev.perfect}
+                      />
+                    </Line>
+                    <Line style={{ gap: 12, alignItems: "flex-start" }}>
+                      <Stat
+                        label="Invested"
+                        value={
+                          cur.minutes >= 600
+                            ? `${Math.round(cur.minutes / 60)}h`
+                            : H.fmtMinutes(cur.minutes)
+                        }
+                        delta={Math.round((cur.minutes - prev.minutes) / 60)}
+                      />
+                      <Stat
+                        label="Skip rate"
+                        value={H.pct(cur.skipRate)}
+                        delta={Math.round((cur.skipRate - prev.skipRate) * 100)}
+                        down
+                      />
+                    </Line>
+                  </View>
+                </Line>
+              </Frame>
+              <Frame style={{ padding: 16, marginTop: 12 }}>
+                <Line
+                  style={{ justifyContent: "space-between", marginBottom: 4 }}
+                >
+                  <Copy size={12} muted>
+                    7-day rolling completion
+                  </Copy>
+                  <Copy size={12} muted>
+                    {rolling.at(-1)}%
+                  </Copy>
+                </Line>
+                <Sparkline
+                  values={rolling}
+                  color={t.hab}
+                  height={56}
+                  label="7-day rolling completion"
+                />
+              </Frame>
+              <Line style={{ gap: 8, marginTop: 12 }}>
+                {[
+                  { label: "Habits", href: "/habits/manage", icon: ListChecks },
+                  { label: "Routines", href: "/habits/routines", icon: Repeat },
+                  {
+                    label: "Share",
+                    href: "/habits/share?t=scoreboard",
+                    icon: Share2,
+                  },
+                ].map((a) => (
+                  <Tap
+                    key={a.href}
+                    onPress={() => go(a.href)}
+                    style={{
+                      flex: 1,
+                      height: 44,
+                      backgroundColor: t.soft,
+                      borderRadius: 16,
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Line style={{ gap: 8, justifyContent: "center" }}>
+                      <a.icon size={16} color={t.text} />
+                      <Copy size={14} weight="semibold">
+                        {a.label}
                       </Copy>
                     </Line>
                   </Tap>
                 ))}
-              {mostSkipped && mostSkipped.s.skipped > 0 && (
-                <Copy size={14}>
-                  Most skipped:{" "}
-                  <Text style={{ fontFamily: fonts.bold }}>
-                    {mostSkipped.h.name}
-                  </Text>
-                  <Text style={{ color: t.muted }}>
-                    {" "}
-                    ({mostSkipped.s.skipped}× · {H.pct(mostSkipped.s.skipRate)})
-                  </Text>
-                </Copy>
-              )}
-              {low.length > 0 && (
-                <Copy size={14}>
-                  Below 50%:{" "}
-                  {low.map((x) => `${x.h.name} ${H.pct(x.s.rate)}`).join(", ")}
-                </Copy>
-              )}
-              {abandoned.slice(-2).map(({ run, r }) => (
-                <Copy key={run.id} size={14}>
-                  {r.icon} {r.name} abandoned at {run.current}/
-                  {run.steps.length}
-                  <Text style={{ fontSize: 12, color: t.muted }}>
-                    {" "}
-                    · {fmtDay(run.day)}
-                  </Text>
-                </Copy>
-              ))}
-              {!cur.missed && !broken.length && (
-                <Copy size={14} style={{ color: t.good }}>
-                  Nothing slipped this period.
-                </Copy>
-              )}
-            </Frame>
-            <SectionHeading>Last 13 weeks</SectionHeading>
-            <Frame style={{ padding: 16 }}>
-              <ScrollView
-                horizontal
-                contentContainerStyle={{
-                  flexGrow: 1,
-                  justifyContent: "center",
-                }}
-              >
-                <Line style={{ gap: 3 }}>
-                  {Array.from(
-                    { length: Math.ceil(heat.length / 7) },
-                    (_, col) => (
-                      <View key={col} style={{ gap: 3 }}>
-                        {heat.slice(col * 7, col * 7 + 7).map((v, row) => (
-                          <View
-                            key={row}
-                            style={{
-                              height: 14,
-                              width: 14,
-                              borderRadius: 3,
-                              backgroundColor: v === null ? t.soft : t.hab,
-                              opacity: v === null ? 1 : Math.max(0.15, v),
-                            }}
-                          />
-                        ))}
-                      </View>
-                    ),
-                  )}
-                </Line>
-              </ScrollView>
-              <Line
-                style={{
-                  marginTop: 8,
-                  justifyContent: "space-between",
-                  gap: 4,
-                }}
-              >
-                <Copy size={10} muted>
-                  each column = a week, oldest left
-                </Copy>
-                <Copy size={10} muted>
-                  brighter = more done
-                </Copy>
               </Line>
-            </Frame>
-            <SectionHeading
-              action={
-                <Line style={{ gap: 4 }}>
-                  {["rate", "streak", "skip", "name"].map((k) => (
+              <SectionHeading>Reflection</SectionHeading>
+              <Frame
+                style={{ padding: 16, gap: 12, borderColor: `${t.bad}33` }}
+              >
+                <Line style={{ gap: 8 }}>
+                  <TriangleAlert size={16} color={t.bad} />
+                  <Copy size={14} weight="semibold">
+                    What slipped
+                  </Copy>
+                </Line>
+                <Line style={{ gap: 12 }}>
+                  <Stat label="Missed" value={cur.missed} />
+                  <Stat label="Broken streaks" value={broken.length} />
+                  <Stat label="Worst day" value={worst?.day ?? "—"} />
+                </Line>
+                {broken
+                  .slice(-3)
+                  .reverse()
+                  .map((b) => (
                     <Tap
-                      key={k}
-                      onPress={() => setSort(k)}
-                      style={{
-                        borderRadius: 16,
-                        paddingHorizontal: 8,
-                        paddingVertical: 2,
-                        backgroundColor:
-                          sort === k ? `${t.hab}26` : "transparent",
-                      }}
+                      key={`${b.h.id}-${b.day}`}
+                      onPress={() => go(`/habits/${b.h.id}`)}
                     >
-                      <Copy
-                        size={11}
-                        style={{ color: sort === k ? t.hab : t.muted }}
-                      >
-                        {k}
-                      </Copy>
+                      <Line style={{ gap: 8 }}>
+                        <Copy size={14}>{b.h.icon}</Copy>
+                        <Copy size={14} style={{ flex: 1 }}>
+                          Lost a{" "}
+                          <Text style={{ fontFamily: fonts.bold }}>
+                            {b.length}-day
+                          </Text>{" "}
+                          {b.h.name} streak
+                        </Copy>
+                        <Copy size={12} muted>
+                          {fmtDay(b.day)}
+                        </Copy>
+                      </Line>
                     </Tap>
                   ))}
-                </Line>
-              }
-            >
-              Ranking
-            </SectionHeading>
-            <Frame style={{ padding: 4 }}>
-              {ranked.map(({ h, s, st }, i) => (
-                <Tap
-                  key={h.id}
-                  onPress={() => go(`/habits/${h.id}`)}
-                  style={{ paddingHorizontal: 8, paddingVertical: 10 }}
-                >
-                  <Line>
-                    <Copy
-                      size={12}
-                      muted
-                      style={{ width: 16, textAlign: "center" }}
-                    >
-                      {i + 1}
-                    </Copy>
-                    <View
-                      style={{
-                        height: 36,
-                        width: 36,
-                        borderRadius: 12,
-                        backgroundColor: `${t.hab}1f`,
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Copy size={20}>{h.icon}</Copy>
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Line style={{ gap: 6 }}>
-                        <Copy
-                          size={14}
-                          weight="medium"
-                          lines={1}
-                          style={{ flexShrink: 1 }}
-                        >
-                          {h.name}
-                        </Copy>
-                        {st.current > 0 && (
-                          <Line
-                            style={{
-                              gap: 2,
-                              backgroundColor: `${t.warn}26`,
-                              borderRadius: radius.pill,
-                              paddingHorizontal: 6,
-                            }}
-                          >
-                            <Flame size={12} color={t.warn} />
-                            <Copy size={11} style={{ color: t.warn }}>
-                              {st.current}
-                            </Copy>
-                          </Line>
-                        )}
-                      </Line>
-                      <View style={{ marginTop: 4 }}>
-                        <Bar
-                          value={s.rate}
-                          color={s.rate < 0.5 ? t.bad : t.hab}
-                        />
-                      </View>
-                    </View>
-                    <View style={{ width: 56, alignItems: "flex-end" }}>
-                      <Copy size={14} weight="semibold">
-                        {H.pct(s.rate)}
-                      </Copy>
-                      <Copy size={10} muted>
-                        {s.skipped
-                          ? `${H.pct(s.skipRate)} skip`
-                          : `best ${st.best}`}
-                      </Copy>
-                    </View>
-                  </Line>
-                </Tap>
-              ))}
-            </Frame>
-            <SectionHeading>Time invested · 8 weeks</SectionHeading>
-            <Frame style={{ padding: 16 }}>
-              <Line style={{ marginBottom: 8, alignItems: "baseline", gap: 8 }}>
-                <Copy size={24} weight="semibold">
-                  {H.fmtMinutes(weeks.at(-1) ?? 0)}
-                </Copy>
-                <Copy size={12} muted>
-                  this week in timed habits
-                </Copy>
-              </Line>
-              <Line style={{ height: 64, alignItems: "flex-end", gap: 4 }}>
-                {weeks.map((v, i) => (
-                  <View
-                    key={i}
-                    style={{
-                      flex: 1,
-                      height: `${Math.max(2, (v / max) * 100)}%`,
-                      borderTopLeftRadius: 6,
-                      borderTopRightRadius: 6,
-                      backgroundColor: t.hab,
-                      opacity: i === 7 ? 1 : 0.45,
-                    }}
-                  />
+                {mostSkipped && mostSkipped.s.skipped > 0 && (
+                  <Copy size={14}>
+                    Most skipped:{" "}
+                    <Text style={{ fontFamily: fonts.bold }}>
+                      {mostSkipped.h.name}
+                    </Text>
+                    <Text style={{ color: t.muted }}>
+                      {" "}
+                      ({mostSkipped.s.skipped}× ·{" "}
+                      {H.pct(mostSkipped.s.skipRate)})
+                    </Text>
+                  </Copy>
+                )}
+                {low.length > 0 && (
+                  <Copy size={14}>
+                    Below 50%:{" "}
+                    {low
+                      .map((x) => `${x.h.name} ${H.pct(x.s.rate)}`)
+                      .join(", ")}
+                  </Copy>
+                )}
+                {abandoned.slice(-2).map(({ run, r }) => (
+                  <Copy key={run.id} size={14}>
+                    {r.icon} {r.name} abandoned at {run.current}/
+                    {run.steps.length}
+                    <Text style={{ fontSize: 12, color: t.muted }}>
+                      {" "}
+                      · {fmtDay(run.day)}
+                    </Text>
+                  </Copy>
                 ))}
-              </Line>
-            </Frame>
-            {routines.length > 0 && (
-              <>
-                <SectionHeading>Routines</SectionHeading>
-                <View style={{ gap: 12 }}>
-                  {routines.map(({ r, s }) => (
-                    <RoutineProgress key={r.id} routine={r} stats={s} />
+                {!cur.missed && !broken.length && (
+                  <Copy size={14} style={{ color: t.good }}>
+                    Nothing slipped this period.
+                  </Copy>
+                )}
+              </Frame>
+              <SectionHeading>Last 13 weeks</SectionHeading>
+              <Frame style={{ padding: 16 }}>
+                <ScrollView
+                  horizontal
+                  contentContainerStyle={{
+                    flexGrow: 1,
+                    justifyContent: "center",
+                  }}
+                >
+                  <Line style={{ gap: 3 }}>
+                    {Array.from(
+                      { length: Math.ceil(heat.length / 7) },
+                      (_, col) => (
+                        <View key={col} style={{ gap: 3 }}>
+                          {heat.slice(col * 7, col * 7 + 7).map((v, row) => (
+                            <View
+                              key={row}
+                              style={{
+                                height: 14,
+                                width: 14,
+                                borderRadius: 3,
+                                backgroundColor: v === null ? t.soft : t.hab,
+                                opacity: v === null ? 1 : Math.max(0.15, v),
+                              }}
+                            />
+                          ))}
+                        </View>
+                      ),
+                    )}
+                  </Line>
+                </ScrollView>
+                <Line
+                  style={{
+                    marginTop: 8,
+                    justifyContent: "space-between",
+                    gap: 4,
+                  }}
+                >
+                  <Copy size={10} muted>
+                    each column = a week, oldest left
+                  </Copy>
+                  <Copy size={10} muted>
+                    brighter = more done
+                  </Copy>
+                </Line>
+              </Frame>
+              <SectionHeading
+                action={
+                  <Line style={{ gap: 4 }}>
+                    {["rate", "streak", "skip", "name"].map((k) => (
+                      <Tap
+                        key={k}
+                        onPress={() => setSort(k)}
+                        style={{
+                          borderRadius: 16,
+                          paddingHorizontal: 8,
+                          paddingVertical: 2,
+                          backgroundColor:
+                            sort === k ? `${t.hab}26` : "transparent",
+                        }}
+                      >
+                        <Copy
+                          size={11}
+                          style={{ color: sort === k ? t.hab : t.muted }}
+                        >
+                          {k}
+                        </Copy>
+                      </Tap>
+                    ))}
+                  </Line>
+                }
+              >
+                Ranking
+              </SectionHeading>
+              <Frame style={{ padding: 4 }}>
+                {ranked.map(({ h, s, st }, i) => (
+                  <Tap
+                    key={h.id}
+                    onPress={() => go(`/habits/${h.id}`)}
+                    style={{ paddingHorizontal: 8, paddingVertical: 10 }}
+                  >
+                    <Line>
+                      <Copy
+                        size={12}
+                        muted
+                        style={{ width: 16, textAlign: "center" }}
+                      >
+                        {i + 1}
+                      </Copy>
+                      <View
+                        style={{
+                          height: 36,
+                          width: 36,
+                          borderRadius: 12,
+                          backgroundColor: `${t.hab}1f`,
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Copy size={20}>{h.icon}</Copy>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Line style={{ gap: 6 }}>
+                          <Copy
+                            size={14}
+                            weight="medium"
+                            lines={1}
+                            style={{ flexShrink: 1 }}
+                          >
+                            {h.name}
+                          </Copy>
+                          {st.current > 0 && (
+                            <Line
+                              style={{
+                                gap: 2,
+                                backgroundColor: `${t.warn}26`,
+                                borderRadius: radius.pill,
+                                paddingHorizontal: 6,
+                              }}
+                            >
+                              <Flame size={12} color={t.warn} />
+                              <Copy size={11} style={{ color: t.warn }}>
+                                {st.current}
+                              </Copy>
+                            </Line>
+                          )}
+                        </Line>
+                        <View style={{ marginTop: 4 }}>
+                          <Bar
+                            value={s.rate}
+                            color={s.rate < 0.5 ? t.bad : t.hab}
+                          />
+                        </View>
+                      </View>
+                      <View style={{ width: 56, alignItems: "flex-end" }}>
+                        <Copy size={14} weight="semibold">
+                          {H.pct(s.rate)}
+                        </Copy>
+                        <Copy size={10} muted>
+                          {s.skipped
+                            ? `${H.pct(s.skipRate)} skip`
+                            : `best ${st.best}`}
+                        </Copy>
+                      </View>
+                    </Line>
+                  </Tap>
+                ))}
+              </Frame>
+              <SectionHeading>Time invested · 8 weeks</SectionHeading>
+              <Frame style={{ padding: 16 }}>
+                <Line
+                  style={{ marginBottom: 8, alignItems: "baseline", gap: 8 }}
+                >
+                  <Copy size={24} weight="semibold">
+                    {H.fmtMinutes(weeks.at(-1) ?? 0)}
+                  </Copy>
+                  <Copy size={12} muted>
+                    this week in timed habits
+                  </Copy>
+                </Line>
+                <Line style={{ height: 64, alignItems: "flex-end", gap: 4 }}>
+                  {weeks.map((v, i) => (
+                    <View
+                      key={i}
+                      style={{
+                        flex: 1,
+                        height: `${Math.max(2, (v / max) * 100)}%`,
+                        borderTopLeftRadius: 6,
+                        borderTopRightRadius: 6,
+                        backgroundColor: t.hab,
+                        opacity: i === 7 ? 1 : 0.45,
+                      }}
+                    />
                   ))}
-                </View>
-              </>
-            )}
-            <Tap
-              onPress={() => go("/habits/today")}
-              style={{ paddingHorizontal: 4, paddingVertical: 8 }}
-            >
-              <Line style={{ justifyContent: "space-between" }}>
-                <Copy size={12} muted>
-                  Preview the Today card
-                </Copy>
-                <ChevronRight size={14} color={t.muted} />
-              </Line>
-            </Tap>
+                </Line>
+              </Frame>
+              {routines.length > 0 && (
+                <>
+                  <SectionHeading>Routines</SectionHeading>
+                  <View style={{ gap: 12 }}>
+                    {routines.map(({ r, s }) => (
+                      <RoutineProgress key={r.id} routine={r} stats={s} />
+                    ))}
+                  </View>
+                </>
+              )}
+              <Tap
+                onPress={() => go("/habits/today")}
+                style={{ paddingHorizontal: 4, paddingVertical: 8 }}
+              >
+                <Line style={{ justifyContent: "space-between" }}>
+                  <Copy size={12} muted>
+                    Preview the Today card
+                  </Copy>
+                  <ChevronRight size={14} color={t.muted} />
+                </Line>
+              </Tap>
+            </SwipeSegments>
           </>
         )}
       </View>

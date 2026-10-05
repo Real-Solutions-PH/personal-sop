@@ -17,6 +17,7 @@ import {
 } from "react-native"
 import { toast } from "sonner-native"
 import { Trend } from "../chart"
+import { AnimatedCheck } from "../motion"
 import { go } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import {
@@ -128,6 +129,7 @@ export function HabitRow({
   habit: Habit
   day?: string
 }) {
+  const t = useTheme()
   const logs = habitsStore.use((s) => s.logs)
   const log = logs.find((l) => l.habitId === habit.id && l.day === day)
   const [open, setOpen] = useState(false)
@@ -154,13 +156,25 @@ export function HabitRow({
           detail={`${log?.status ?? L.scheduleLabel(habit.schedule)}${habit.target ? ` · ${L.targetLabel(habit)}` : ""}`}
           href={`/habits/${habit.id}`}
           right={
-            <Button
-              small
-              tone={log?.status === "done" ? "primary" : "quiet"}
-              onPress={habit.type === "check" ? done : () => setOpen(true)}
-            >
-              {log?.status === "done" ? "✓" : "Log"}
-            </Button>
+            habit.type === "check" ? (
+              <AnimatedCheck
+                checked={log?.status === "done"}
+                onToggle={done}
+                label={`${log?.status === "done" ? "Clear" : "Check"} ${habit.name}`}
+                color={t.hab}
+                idle={`${t.muted}66`}
+                size={28}
+                checkColor={t.onPrimary}
+              />
+            ) : (
+              <Button
+                small
+                tone={log?.status === "done" ? "primary" : "quiet"}
+                onPress={() => setOpen(true)}
+              >
+                {log?.status === "done" ? "✓" : "Log"}
+              </Button>
+            )
           }
         />
       </SwipeRow>

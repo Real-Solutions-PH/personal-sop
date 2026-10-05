@@ -28,7 +28,7 @@ import Svg, {
   LinearGradient as SvgGradient,
   Line as SvgLine,
 } from "react-native-svg"
-import { ArcCircle, CountUp } from "../motion"
+import { ArcCircle, CountUp, SwipeSegments } from "../motion"
 import {
   Bar,
   border,
@@ -663,229 +663,243 @@ export function StatsHome() {
                 }))}
               />
             </View>
-            <View style={{ marginTop: 12 }}>
-              <LifeHero days={days} onWeights={() => setWeightSheet(true)} />
-            </View>
-            <Line style={{ gap: 8, marginTop: 12, alignItems: "stretch" }}>
-              <Frame style={{ flex: 1, padding: 12 }}>
-                <Copy size={30} weight="display" style={{ lineHeight: 36 }}>
-                  {target.rate === null
-                    ? "—"
-                    : `${Math.round(target.rate * 100)}%`}
-                </Copy>
-                <Line style={{ gap: 6 }}>
-                  <Copy size={12} muted>
-                    On target
-                  </Copy>
-                  <Delta value={delta} />
-                </Line>
-              </Frame>
-              <Frame style={{ flex: 1, padding: 12 }}>
-                <Line style={{ gap: 2, height: 32 }}>
-                  <Flame size={20} color={t.life} fill={t.life} />
-                  <Copy size={24} weight="display" style={{ color: t.life }}>
-                    {target.current}
-                  </Copy>
-                </Line>
-                <Copy size={12} muted>
-                  Streak · best {target.best}
-                </Copy>
-              </Frame>
-              <Frame style={{ flex: 1, padding: 12 }}>
-                <Copy size={30} weight="display" style={{ lineHeight: 36 }}>
-                  {target.onTarget}
-                  <Text style={{ fontSize: 16, color: t.muted }}>
-                    /{target.scored}
-                  </Text>
-                </Copy>
-                <Copy size={12} muted>
-                  On-target days
-                </Copy>
-              </Frame>
-            </Line>
-            <View style={{ marginTop: 12 }}>
-              <DailyForm days={days} />
-            </View>
-            {trophies.length > 0 && (
-              <>
-                <SectionHeading
-                  action={
-                    <Tap onPress={() => go("/stats/trophies")}>
-                      <Copy size={12} style={{ color: t.primary }}>
-                        Trophy case
-                      </Copy>
-                    </Tap>
-                  }
-                >
-                  Personal bests
-                </SectionHeading>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ gap: 8, paddingBottom: 4 }}
-                >
-                  {trophies.map((tr) => (
-                    <Tap
-                      key={tr.id}
-                      onPress={() =>
-                        go(`/stats/trophies?open=${encodeURIComponent(tr.id)}`)
-                      }
-                      style={{ width: 144 }}
-                    >
-                      <Frame style={{ borderColor: `${t.life}4d` }}>
-                        <LinearGradient
-                          colors={[`${t.life}26`, `${t.life}00`]}
-                          style={{ padding: 12 }}
-                        >
-                          <Trophy size={16} color={t.life} />
-                          <Copy
-                            size={20}
-                            weight="display"
-                            style={{ marginTop: 4 }}
-                          >
-                            {tr.value}
-                          </Copy>
-                          <Copy size={12} lines={1}>
-                            {tr.title}
-                          </Copy>
-                          <Copy size={10} muted>
-                            {new Date(`${tr.day}T12:00:00`).toLocaleDateString(
-                              "en-PH",
-                              { month: "short", day: "numeric" },
-                            )}
-                          </Copy>
-                        </LinearGradient>
-                      </Frame>
-                    </Tap>
-                  ))}
-                </ScrollView>
-              </>
-            )}
-            <Areas days={days} />
-            <SectionHeading
-              action={
-                <Tap onPress={() => go("/stats/misses")}>
-                  <Copy size={12} style={{ color: t.primary }}>
-                    Misses & leaks
-                  </Copy>
-                </Tap>
-              }
+            <SwipeSegments
+              value={range}
+              options={["7d", "30d", "90d", "1y"]}
+              onChange={setRange}
             >
-              Misses & leaks
-            </SectionHeading>
-            <Frame style={{ padding: 16 }}>
-              <Tap onPress={() => go(`/stats/misses?range=${days}`)}>
-                <Line style={{ gap: 8 }}>
-                  <Copy size={30} weight="display">
-                    {count(cur)}
+              <View style={{ marginTop: 12 }}>
+                <LifeHero days={days} onWeights={() => setWeightSheet(true)} />
+              </View>
+              <Line style={{ gap: 8, marginTop: 12, alignItems: "stretch" }}>
+                <Frame style={{ flex: 1, padding: 12 }}>
+                  <Copy size={30} weight="display" style={{ lineHeight: 36 }}>
+                    {target.rate === null
+                      ? "—"
+                      : `${Math.round(target.rate * 100)}%`}
                   </Copy>
-                  <Copy size={14} muted style={{ flex: 1 }}>
-                    misses in {days}d
-                  </Copy>
-                  <Delta value={count(cur) - count(prev)} down />
-                </Line>
-                <Line style={{ gap: 8, marginTop: 8 }}>
-                  {MODULE_KEYS.filter((k) => enabled[k]).map((k) => (
-                    <View
-                      key={k}
-                      style={{
-                        flex: 1,
-                        padding: 8,
-                        borderRadius: 12,
-                        backgroundColor: border(t.soft, 0.5),
-                        alignItems: "center",
-                      }}
-                    >
-                      <Copy
-                        weight="semibold"
-                        style={{ color: t[AREA[k].accent] }}
-                      >
-                        {count(cur, k)}
-                      </Copy>
-                      <Copy size={10} muted>
-                        {AREA[k].label}
-                      </Copy>
-                    </View>
-                  ))}
-                </Line>
-              </Tap>
-            </Frame>
-            <SectionHeading
-              action={
-                <Tap onPress={() => go("/stats/goals")}>
-                  <Copy size={12} style={{ color: t.primary }}>
-                    All goals
-                  </Copy>
-                </Tap>
-              }
-            >
-              Goals
-            </SectionHeading>
-            <Frame style={{ paddingHorizontal: 12, paddingVertical: 4 }}>
-              {goals.map((g) => (
-                <Tap
-                  key={g.goal.id}
-                  onPress={() => go("/stats/goals")}
-                  style={{ paddingVertical: 10 }}
-                >
-                  <Line style={{ gap: 8, marginBottom: 6 }}>
-                    <Copy size={14} weight="medium" style={{ flex: 1 }}>
-                      {g.goal.label}
-                      <Copy size={12} muted>
-                        {" "}
-                        {D.fmtGoal(g.goal)}
-                      </Copy>
+                  <Line style={{ gap: 6 }}>
+                    <Copy size={12} muted>
+                      On target
                     </Copy>
-                    <Copy
-                      size={14}
-                      weight="semibold"
-                      style={{ color: g.hit ? t.good : t.text }}
-                    >
-                      {g.entry?.value ?? "—"}
-                      {g.hit ? " ✓" : ""}
+                    <Delta value={delta} />
+                  </Line>
+                </Frame>
+                <Frame style={{ flex: 1, padding: 12 }}>
+                  <Line style={{ gap: 2, height: 32 }}>
+                    <Flame size={20} color={t.life} fill={t.life} />
+                    <Copy size={24} weight="display" style={{ color: t.life }}>
+                      {target.current}
                     </Copy>
                   </Line>
-                  <Bar value={g.pct} color={g.hit ? t.life : t.primary} />
-                </Tap>
-              ))}
-              <Tap
-                onPress={() => go("/stats/goals?new=1")}
-                style={{
-                  borderTopWidth: 1,
-                  borderColor: border(t.line, 0.5),
-                  paddingVertical: 10,
-                }}
-              >
-                <Line style={{ gap: 6, justifyContent: "center" }}>
-                  <Target size={16} color={t.primary} />
-                  <Copy size={14} weight="medium" style={{ color: t.primary }}>
-                    Set a goal
+                  <Copy size={12} muted>
+                    Streak · best {target.best}
                   </Copy>
-                </Line>
-              </Tap>
-            </Frame>
-            <Line style={{ marginTop: 24, gap: 8 }}>
-              {[
-                {
-                  title: "Reviews",
-                  href: "/stats/reviews",
-                  icon: CalendarRange,
-                },
-                { title: "Share card", href: "/stats/share", icon: Share2 },
-              ].map((item) => (
-                <Frame key={item.href} style={{ flex: 1, padding: 16 }}>
-                  <Tap onPress={() => go(item.href)}>
-                    <Line style={{ gap: 8 }}>
-                      <item.icon size={20} color={t.primary} />
-                      <Copy size={14} weight="medium" style={{ flex: 1 }}>
-                        {item.title}
-                      </Copy>
-                      <ChevronRight size={16} color={t.muted} />
-                    </Line>
-                  </Tap>
                 </Frame>
-              ))}
-            </Line>
+                <Frame style={{ flex: 1, padding: 12 }}>
+                  <Copy size={30} weight="display" style={{ lineHeight: 36 }}>
+                    {target.onTarget}
+                    <Text style={{ fontSize: 16, color: t.muted }}>
+                      /{target.scored}
+                    </Text>
+                  </Copy>
+                  <Copy size={12} muted>
+                    On-target days
+                  </Copy>
+                </Frame>
+              </Line>
+              <View style={{ marginTop: 12 }}>
+                <DailyForm days={days} />
+              </View>
+              {trophies.length > 0 && (
+                <>
+                  <SectionHeading
+                    action={
+                      <Tap onPress={() => go("/stats/trophies")}>
+                        <Copy size={12} style={{ color: t.primary }}>
+                          Trophy case
+                        </Copy>
+                      </Tap>
+                    }
+                  >
+                    Personal bests
+                  </SectionHeading>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ gap: 8, paddingBottom: 4 }}
+                  >
+                    {trophies.map((tr) => (
+                      <Tap
+                        key={tr.id}
+                        onPress={() =>
+                          go(
+                            `/stats/trophies?open=${encodeURIComponent(tr.id)}`,
+                          )
+                        }
+                        style={{ width: 144 }}
+                      >
+                        <Frame style={{ borderColor: `${t.life}4d` }}>
+                          <LinearGradient
+                            colors={[`${t.life}26`, `${t.life}00`]}
+                            style={{ padding: 12 }}
+                          >
+                            <Trophy size={16} color={t.life} />
+                            <Copy
+                              size={20}
+                              weight="display"
+                              style={{ marginTop: 4 }}
+                            >
+                              {tr.value}
+                            </Copy>
+                            <Copy size={12} lines={1}>
+                              {tr.title}
+                            </Copy>
+                            <Copy size={10} muted>
+                              {new Date(
+                                `${tr.day}T12:00:00`,
+                              ).toLocaleDateString("en-PH", {
+                                month: "short",
+                                day: "numeric",
+                              })}
+                            </Copy>
+                          </LinearGradient>
+                        </Frame>
+                      </Tap>
+                    ))}
+                  </ScrollView>
+                </>
+              )}
+              <Areas days={days} />
+              <SectionHeading
+                action={
+                  <Tap onPress={() => go("/stats/misses")}>
+                    <Copy size={12} style={{ color: t.primary }}>
+                      Misses & leaks
+                    </Copy>
+                  </Tap>
+                }
+              >
+                Misses & leaks
+              </SectionHeading>
+              <Frame style={{ padding: 16 }}>
+                <Tap onPress={() => go(`/stats/misses?range=${days}`)}>
+                  <Line style={{ gap: 8 }}>
+                    <Copy size={30} weight="display">
+                      {count(cur)}
+                    </Copy>
+                    <Copy size={14} muted style={{ flex: 1 }}>
+                      misses in {days}d
+                    </Copy>
+                    <Delta value={count(cur) - count(prev)} down />
+                  </Line>
+                  <Line style={{ gap: 8, marginTop: 8 }}>
+                    {MODULE_KEYS.filter((k) => enabled[k]).map((k) => (
+                      <View
+                        key={k}
+                        style={{
+                          flex: 1,
+                          padding: 8,
+                          borderRadius: 12,
+                          backgroundColor: border(t.soft, 0.5),
+                          alignItems: "center",
+                        }}
+                      >
+                        <Copy
+                          weight="semibold"
+                          style={{ color: t[AREA[k].accent] }}
+                        >
+                          {count(cur, k)}
+                        </Copy>
+                        <Copy size={10} muted>
+                          {AREA[k].label}
+                        </Copy>
+                      </View>
+                    ))}
+                  </Line>
+                </Tap>
+              </Frame>
+              <SectionHeading
+                action={
+                  <Tap onPress={() => go("/stats/goals")}>
+                    <Copy size={12} style={{ color: t.primary }}>
+                      All goals
+                    </Copy>
+                  </Tap>
+                }
+              >
+                Goals
+              </SectionHeading>
+              <Frame style={{ paddingHorizontal: 12, paddingVertical: 4 }}>
+                {goals.map((g) => (
+                  <Tap
+                    key={g.goal.id}
+                    onPress={() => go("/stats/goals")}
+                    style={{ paddingVertical: 10 }}
+                  >
+                    <Line style={{ gap: 8, marginBottom: 6 }}>
+                      <Copy size={14} weight="medium" style={{ flex: 1 }}>
+                        {g.goal.label}
+                        <Copy size={12} muted>
+                          {" "}
+                          {D.fmtGoal(g.goal)}
+                        </Copy>
+                      </Copy>
+                      <Copy
+                        size={14}
+                        weight="semibold"
+                        style={{ color: g.hit ? t.good : t.text }}
+                      >
+                        {g.entry?.value ?? "—"}
+                        {g.hit ? " ✓" : ""}
+                      </Copy>
+                    </Line>
+                    <Bar value={g.pct} color={g.hit ? t.life : t.primary} />
+                  </Tap>
+                ))}
+                <Tap
+                  onPress={() => go("/stats/goals?new=1")}
+                  style={{
+                    borderTopWidth: 1,
+                    borderColor: border(t.line, 0.5),
+                    paddingVertical: 10,
+                  }}
+                >
+                  <Line style={{ gap: 6, justifyContent: "center" }}>
+                    <Target size={16} color={t.primary} />
+                    <Copy
+                      size={14}
+                      weight="medium"
+                      style={{ color: t.primary }}
+                    >
+                      Set a goal
+                    </Copy>
+                  </Line>
+                </Tap>
+              </Frame>
+              <Line style={{ marginTop: 24, gap: 8 }}>
+                {[
+                  {
+                    title: "Reviews",
+                    href: "/stats/reviews",
+                    icon: CalendarRange,
+                  },
+                  { title: "Share card", href: "/stats/share", icon: Share2 },
+                ].map((item) => (
+                  <Frame key={item.href} style={{ flex: 1, padding: 16 }}>
+                    <Tap onPress={() => go(item.href)}>
+                      <Line style={{ gap: 8 }}>
+                        <item.icon size={20} color={t.primary} />
+                        <Copy size={14} weight="medium" style={{ flex: 1 }}>
+                          {item.title}
+                        </Copy>
+                        <ChevronRight size={16} color={t.muted} />
+                      </Line>
+                    </Tap>
+                  </Frame>
+                ))}
+              </Line>
+            </SwipeSegments>
           </>
         )}
       </View>

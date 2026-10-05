@@ -103,6 +103,35 @@ export default function PrototypeLayout() {
             animation: reduced ? "none" : "slide_from_right",
           }}
         >
+          {/* Tab switches crossfade; drilling in still slides. */}
+          <Stack.Screen
+            name="today/index"
+            options={{
+              animation: reduced ? "none" : "fade",
+              animationDuration: 180,
+            }}
+          />
+          <Stack.Screen
+            name="plan/index"
+            options={{
+              animation: reduced ? "none" : "fade",
+              animationDuration: 180,
+            }}
+          />
+          <Stack.Screen
+            name="stats/index"
+            options={{
+              animation: reduced ? "none" : "fade",
+              animationDuration: 180,
+            }}
+          />
+          <Stack.Screen
+            name="me/index"
+            options={{
+              animation: reduced ? "none" : "fade",
+              animationDuration: 180,
+            }}
+          />
           <Stack.Screen
             name="social/stories/[id]/index"
             options={{
