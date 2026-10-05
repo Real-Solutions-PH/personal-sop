@@ -28,6 +28,7 @@ import Svg, {
   LinearGradient as SvgGradient,
   Line as SvgLine,
 } from "react-native-svg"
+import { ArcCircle, CountUp } from "../motion"
 import {
   Bar,
   border,
@@ -42,7 +43,7 @@ import {
 } from "../native-kit"
 import { go } from "../navigation"
 import { ProfileAvatar } from "../profile-avatar"
-import { useTheme } from "../theme"
+import { fonts, useTheme } from "../theme"
 import { Button, Field, Screen, Sheet } from "../ui"
 
 function Delta({
@@ -84,8 +85,7 @@ function LifeHero({
         : 1,
     size = 148,
     stroke = 11,
-    r = (size - stroke) / 2,
-    c = 2 * Math.PI * r
+    r = (size - stroke) / 2
   return (
     <Frame style={{ borderRadius: 24, boxShadow: "0px 12px 18px #0000001a" }}>
       <LinearGradient
@@ -138,26 +138,28 @@ function LifeHero({
                   stroke={border(t.soft, 0.7)}
                   strokeWidth={stroke}
                 />
-                <Circle
+                <ArcCircle
                   cx={size / 2}
                   cy={size / 2}
                   r={r}
-                  fill="none"
+                  value={value}
                   stroke="url(#life-score)"
                   strokeWidth={stroke}
                   strokeLinecap="round"
-                  strokeDasharray={c}
-                  strokeDashoffset={c * (1 - value)}
                 />
               </G>
             </Svg>
-            <Copy
-              size={48}
-              weight="display"
-              style={{ color: "white", lineHeight: 48, letterSpacing: -2.4 }}
-            >
-              {ls.score ?? "—"}
-            </Copy>
+            <CountUp
+              value={ls.score}
+              style={{
+                fontFamily: fonts.display,
+                fontSize: 48,
+                color: "white",
+                lineHeight: 48,
+                letterSpacing: -2.4,
+                fontVariant: ["tabular-nums"],
+              }}
+            />
             <Copy
               size={10}
               style={{ color: "#ffffff99", letterSpacing: 2, marginTop: 4 }}

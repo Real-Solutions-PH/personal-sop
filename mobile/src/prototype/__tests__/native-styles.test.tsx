@@ -59,6 +59,7 @@ test("native styling preserves touch target dimensions, spacing and color", () =
 jest.mock("sonner-native", () => ({ toast: jest.fn() }))
 jest.mock("react-native-reanimated", () => ({
   __esModule: true,
+  ...require("./reanimated-extras").extras,
   default: require("react-native").Animated,
   useSharedValue: (value: unknown) =>
     require("react").useRef({ value }).current,

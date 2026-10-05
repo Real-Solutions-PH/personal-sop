@@ -30,6 +30,7 @@ import Svg, {
   Stop,
   LinearGradient as SvgGradient,
 } from "react-native-svg"
+import { ArcCircle, CountUp } from "./motion"
 import { go } from "./navigation"
 import { type Accent, fonts, useTheme } from "./theme"
 export const icons = {
@@ -118,7 +119,6 @@ export function Ring({
   const t = useTheme(),
     stroke = strokeWidth ?? size * 0.085,
     r = (size - stroke) / 2,
-    c = 2 * Math.PI * r,
     p = Math.min(1, Math.max(0, Number.isFinite(value) ? value : 0))
   return (
     <View
@@ -146,14 +146,13 @@ export function Ring({
           strokeWidth={stroke}
           fill="none"
         />
-        <Circle
+        <ArcCircle
           cx={size / 2}
           cy={size / 2}
           r={r}
+          value={p}
           stroke={hero ? `url(#${gradientId})` : (color ?? t.accent)}
           strokeWidth={stroke}
-          fill="none"
-          strokeDasharray={`${c * p} ${c}`}
           strokeLinecap="round"
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
         />
@@ -321,11 +320,10 @@ export function ScoreHero({
     >
       <View style={{ flexDirection: "row", alignItems: "center", gap: 18 }}>
         <Ring value={(score ?? 0) / 100} size={145} hero>
-          <Text
+          <CountUp
+            value={score}
             style={{ fontFamily: fonts.display, fontSize: 48, color: "white" }}
-          >
-            {score ?? "—"}
-          </Text>
+          />
           <Text
             style={{
               fontFamily: fonts.medium,

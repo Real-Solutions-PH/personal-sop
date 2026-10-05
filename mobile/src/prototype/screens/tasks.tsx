@@ -12,7 +12,9 @@ import {
 } from "lucide-react-native"
 import { useState } from "react"
 import { Pressable, Text, View } from "react-native"
+import Animated from "react-native-reanimated"
 import { toast } from "sonner-native"
+import { AnimatedCheck, feel, rowEnter, rowExit, rowLayout } from "../motion"
 import { back, go } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import {
@@ -59,193 +61,186 @@ export function TaskRow({
   }
   return (
     <>
-      <SwipeRow
-        onComplete={toggle}
-        onMore={() => setOpen(true)}
-        background={surface}
-      >
-        <View
-          style={{
-            flexDirection: "row",
-            gap: compact ? 12 : 10,
-            alignItems: "center",
-            paddingVertical: compact ? 0 : 9,
-            minHeight: 56,
-            paddingHorizontal: compact ? 4 : 0,
-          }}
+      <Animated.View layout={rowLayout} entering={rowEnter} exiting={rowExit}>
+        <SwipeRow
+          onComplete={toggle}
+          onMore={() => setOpen(true)}
+          background={surface}
         >
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={task.status === "done" ? "Reopen task" : "Done"}
-            onPress={toggle}
+          <View
             style={{
-              minWidth: compact ? 24 : 44,
-              minHeight: 44,
+              flexDirection: "row",
+              gap: compact ? 12 : 10,
               alignItems: "center",
-              justifyContent: "center",
+              paddingVertical: compact ? 0 : 9,
+              minHeight: 56,
+              paddingHorizontal: compact ? 4 : 0,
             }}
           >
-            <View
-              style={{
-                width: 24,
-                height: 24,
-                borderRadius: list?.kind === "shopping" ? 6 : 12,
-                borderWidth: 2,
-                borderColor: task.status === "done" ? t.tsk : `${t.muted}66`,
-                backgroundColor: task.status === "done" ? t.tsk : "transparent",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              {task.status === "done" && (
-                <Text style={{ color: t.dark ? t.bg : "white" }}>✓</Text>
-              )}
-            </View>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => go(`/tasks/task/${task.id}`)}
-            style={{ flex: 1, gap: compact ? 2 : 3 }}
-          >
-            <Text
-              numberOfLines={compact ? 1 : undefined}
-              style={{
-                fontFamily: compact ? fonts.medium : fonts.semibold,
-                fontSize: compact ? 16 : 17,
-                color: t.text,
-                textDecorationLine:
-                  task.status === "done" ? "line-through" : "none",
-              }}
-            >
-              {task.title}
-              {task.starred ? (
-                <Text style={{ color: t.warn, fontSize: 14 }}> ★</Text>
-              ) : null}
-            </Text>
-            {compact ? (
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 6,
-                  height: 16,
-                }}
-              >
-                {showDay && task.dueDate && (
-                  <Text
-                    style={{
-                      fontFamily: L.isOverdue(task) ? fonts.medium : fonts.body,
-                      fontSize: 12,
-                      color: L.isOverdue(task) ? t.warn : t.muted,
-                    }}
-                  >
-                    {L.isOverdue(task)
-                      ? `${L.diffDays(task.dueDate, dayKey())}d late`
-                      : L.fmtDay(task.dueDate)}
-                  </Text>
-                )}
-                {task.dueTime && (
-                  <Text
-                    style={{
-                      fontFamily: L.isDueNow(task) ? fonts.medium : fonts.body,
-                      fontSize: 12,
-                      color: L.isDueNow(task) ? t.tsk : t.muted,
-                    }}
-                  >
-                    {L.fmtTime(task.dueTime)}
-                  </Text>
-                )}
-                {task.recurrence && <Repeat size={12} color={t.muted} />}
-                {task.remindAt && task.status === "open" && (
-                  <AlarmClock size={12} color={t.muted} />
-                )}
-                {task.rescheduleCount > 1 && (
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      gap: 2,
-                      alignItems: "center",
-                    }}
-                  >
-                    <CalendarClock size={12} color={t.warn} />
-                    <Text
-                      style={{
-                        fontFamily: fonts.body,
-                        fontSize: 12,
-                        color: t.warn,
-                      }}
-                    >
-                      {task.rescheduleCount}×
-                    </Text>
-                  </View>
-                )}
-                {list && showList && (
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      gap: 4,
-                      alignItems: "center",
-                    }}
-                  >
-                    <View
-                      style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: 3,
-                        backgroundColor: t[list.color],
-                      }}
-                    />
-                    <Text
-                      style={{
-                        fontFamily: fonts.body,
-                        fontSize: 12,
-                        color: t.muted,
-                      }}
-                    >
-                      {list.name}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            ) : (
-              <Text
-                style={{
-                  fontFamily: fonts.body,
-                  fontSize: 12,
-                  color: L.isOverdue(task) ? t.warn : t.muted,
-                }}
-              >
-                {task.dueDate ? L.fmtDay(task.dueDate) : "No date"}
-                {task.dueTime ? ` · ${task.dueTime}` : ""}
-                {task.recurrence ? ` · ${L.fmtRepeat(task.recurrence)}` : ""}
-              </Text>
-            )}
-          </Pressable>
-          {compact && showActions ? (
+            <AnimatedCheck
+              checked={task.status === "done"}
+              onToggle={toggle}
+              label={task.status === "done" ? "Reopen task" : "Done"}
+              color={t.tsk}
+              idle={`${t.muted}66`}
+              square={list?.kind === "shopping"}
+              checkColor={t.dark ? t.bg : "#fff"}
+            />
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={`Actions for ${task.title}`}
-              onPress={() => setOpen(true)}
-              style={{
-                width: 36,
-                height: 44,
-                alignItems: "center",
-                justifyContent: "center",
+              accessibilityHint="Long press for actions"
+              onPress={() => go(`/tasks/task/${task.id}`)}
+              onLongPress={() => {
+                feel.tap()
+                setOpen(true)
               }}
+              delayLongPress={350}
+              style={{ flex: 1, gap: compact ? 2 : 3 }}
             >
-              <Ellipsis size={16} color={t.muted} />
+              <Text
+                numberOfLines={compact ? 1 : undefined}
+                style={{
+                  fontFamily: compact ? fonts.medium : fonts.semibold,
+                  fontSize: compact ? 16 : 17,
+                  color: t.text,
+                  textDecorationLine:
+                    task.status === "done" ? "line-through" : "none",
+                }}
+              >
+                {task.title}
+                {task.starred ? (
+                  <Text style={{ color: t.warn, fontSize: 14 }}> ★</Text>
+                ) : null}
+              </Text>
+              {compact ? (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 6,
+                    height: 16,
+                  }}
+                >
+                  {showDay && task.dueDate && (
+                    <Text
+                      style={{
+                        fontFamily: L.isOverdue(task)
+                          ? fonts.medium
+                          : fonts.body,
+                        fontSize: 12,
+                        color: L.isOverdue(task) ? t.warn : t.muted,
+                      }}
+                    >
+                      {L.isOverdue(task)
+                        ? `${L.diffDays(task.dueDate, dayKey())}d late`
+                        : L.fmtDay(task.dueDate)}
+                    </Text>
+                  )}
+                  {task.dueTime && (
+                    <Text
+                      style={{
+                        fontFamily: L.isDueNow(task)
+                          ? fonts.medium
+                          : fonts.body,
+                        fontSize: 12,
+                        color: L.isDueNow(task) ? t.tsk : t.muted,
+                      }}
+                    >
+                      {L.fmtTime(task.dueTime)}
+                    </Text>
+                  )}
+                  {task.recurrence && <Repeat size={12} color={t.muted} />}
+                  {task.remindAt && task.status === "open" && (
+                    <AlarmClock size={12} color={t.muted} />
+                  )}
+                  {task.rescheduleCount > 1 && (
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        gap: 2,
+                        alignItems: "center",
+                      }}
+                    >
+                      <CalendarClock size={12} color={t.warn} />
+                      <Text
+                        style={{
+                          fontFamily: fonts.body,
+                          fontSize: 12,
+                          color: t.warn,
+                        }}
+                      >
+                        {task.rescheduleCount}×
+                      </Text>
+                    </View>
+                  )}
+                  {list && showList && (
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        gap: 4,
+                        alignItems: "center",
+                      }}
+                    >
+                      <View
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: 3,
+                          backgroundColor: t[list.color],
+                        }}
+                      />
+                      <Text
+                        style={{
+                          fontFamily: fonts.body,
+                          fontSize: 12,
+                          color: t.muted,
+                        }}
+                      >
+                        {list.name}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              ) : (
+                <Text
+                  style={{
+                    fontFamily: fonts.body,
+                    fontSize: 12,
+                    color: L.isOverdue(task) ? t.warn : t.muted,
+                  }}
+                >
+                  {task.dueDate ? L.fmtDay(task.dueDate) : "No date"}
+                  {task.dueTime ? ` · ${task.dueTime}` : ""}
+                  {task.recurrence ? ` · ${L.fmtRepeat(task.recurrence)}` : ""}
+                </Text>
+              )}
             </Pressable>
-          ) : (
-            !compact && (
-              <IconButton
-                icon="more"
-                label={`Actions for ${task.title}`}
+            {compact && showActions ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Actions for ${task.title}`}
                 onPress={() => setOpen(true)}
-              />
-            )
-          )}
-        </View>
-      </SwipeRow>
+                style={{
+                  width: 36,
+                  height: 44,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Ellipsis size={16} color={t.muted} />
+              </Pressable>
+            ) : (
+              !compact && (
+                <IconButton
+                  icon="more"
+                  label={`Actions for ${task.title}`}
+                  onPress={() => setOpen(true)}
+                />
+              )
+            )}
+          </View>
+        </SwipeRow>
+      </Animated.View>
       <Sheet title="Task actions" open={open} onClose={() => setOpen(false)}>
         <Actions>
           <Button

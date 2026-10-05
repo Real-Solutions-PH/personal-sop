@@ -59,8 +59,10 @@ import {
 } from "lucide-react-native"
 import { useState } from "react"
 import { Platform, Text, View } from "react-native"
+import Animated from "react-native-reanimated"
 import { toast } from "sonner-native"
 import { AppLauncher } from "../app-launcher"
+import { AnimatedCheck, CountUp, rowLayout } from "../motion"
 import {
   Bar,
   border,
@@ -124,7 +126,9 @@ function DayHero() {
             target={s.targetThreshold}
             color={pct >= s.targetThreshold ? t.life : t.primary}
           >
-            <Text
+            <CountUp
+              value={Math.round(pct * 100)}
+              suffix={<Text style={{ fontSize: 20, color: t.muted }}>%</Text>}
               style={{
                 fontFamily: fonts.display,
                 fontSize: 36,
@@ -132,10 +136,7 @@ function DayHero() {
                 lineHeight: 36,
                 color: t.text,
               }}
-            >
-              {Math.round(pct * 100)}
-              <Text style={{ fontSize: 20, color: t.muted }}>%</Text>
-            </Text>
+            />
             <Copy size={11} muted style={{ letterSpacing: 1, marginTop: 4 }}>
               DONE
             </Copy>
@@ -332,122 +333,109 @@ function TodayHabit({ habit }: { habit: Habit }) {
   }
   return (
     <>
-      <SwipeRow
-        onComplete={toggle}
-        onMore={() => setSheet(true)}
-        background={t.card}
-      >
-        <Line style={{ gap: 8, paddingVertical: 4 }}>
-          <Tap
-            label={`${done ? "Reopen" : "Complete"} ${habit.name}`}
-            onPress={toggle}
-            style={{
-              width: 44,
-              height: 44,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <View
-              style={{
-                width: 37,
-                height: 37,
-                borderRadius: 19,
-                borderWidth: 3,
-                borderColor: done ? t.hab : border(t.muted, 0.3),
-                backgroundColor: done ? t.hab : "transparent",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              {done && <Check size={15} color={t.onPrimary} />}
-            </View>
-          </Tap>
-          <Tap
-            onPress={() => go(`/habits/${habit.id}`)}
-            style={{ flex: 1, paddingVertical: 6 }}
-          >
-            <Copy
-              weight="medium"
-              lines={1}
-              style={
-                done
-                  ? { color: t.muted, textDecorationLine: "line-through" }
-                  : {}
-              }
-            >
-              {habit.icon} {habit.name}
-            </Copy>
-            <Line style={{ gap: 6 }}>
-              <Copy size={12} muted>
-                {H.fmtTime(H.slotFor(habit.schedule, today)?.time)}
-                {log?.value !== undefined
-                  ? ` · ${H.valueLabel(habit, log.value)}`
-                  : ""}
-                {log?.status === "skipped" ? " · skipped" : ""}
-              </Copy>
-              {streak > 0 && (
-                <Line
-                  style={{
-                    gap: 2,
-                    borderRadius: 12,
-                    backgroundColor: `${t.warn}26`,
-                    paddingHorizontal: 6,
-                    paddingVertical: 1,
-                  }}
-                >
-                  <Flame size={12} color={t.warn} />
-                  <Copy
-                    size={11}
-                    weight="semibold"
-                    style={{ color: t.warn, lineHeight: 14 }}
-                  >
-                    {streak}
-                  </Copy>
-                </Line>
-              )}
-            </Line>
-          </Tap>
-          {habit.type === "count" && !done && (
-            <Tap
-              label={`Add ${habit.step ?? 1} ${habit.unit ?? ""}`}
-              onPress={() => {
-                HA.incrementCount(habit.id)
-                undo(`Updated ${habit.name}`, () => {
-                  HA.clearLog(habit.id, today)
-                  if (log) HA.restoreLog(log)
-                })
-              }}
-              style={{
-                minWidth: 36,
-                height: 36,
-                borderRadius: 18,
-                backgroundColor: `${t.hab}26`,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Copy size={12} weight="semibold" style={{ color: t.hab }}>
-                +{habit.step ?? 1}
-              </Copy>
-            </Tap>
-          )}
-          {habit.type === "duration" && !done && (
-            <IconTap
-              icon={Play}
-              label={`Start ${habit.name} timer`}
+      <Animated.View layout={rowLayout}>
+        <SwipeRow
+          onComplete={toggle}
+          onMore={() => setSheet(true)}
+          background={t.card}
+        >
+          <Line style={{ gap: 8, paddingVertical: 4 }}>
+            <AnimatedCheck
+              checked={done}
+              onToggle={toggle}
+              label={`${done ? "Reopen" : "Complete"} ${habit.name}`}
               color={t.hab}
-              background={`${t.hab}26`}
-              onPress={() => go(HA.timerHref(habit.id))}
+              idle={border(t.muted, 0.3)}
+              size={37}
+              ring={3}
+              checkColor={t.onPrimary}
             />
-          )}
-          <IconTap
-            icon={MoreHorizontal}
-            label={`More options for ${habit.name}`}
-            onPress={() => setSheet(true)}
-          />
-        </Line>
-      </SwipeRow>
+            <Tap
+              onPress={() => go(`/habits/${habit.id}`)}
+              style={{ flex: 1, paddingVertical: 6 }}
+            >
+              <Copy
+                weight="medium"
+                lines={1}
+                style={
+                  done
+                    ? { color: t.muted, textDecorationLine: "line-through" }
+                    : {}
+                }
+              >
+                {habit.icon} {habit.name}
+              </Copy>
+              <Line style={{ gap: 6 }}>
+                <Copy size={12} muted>
+                  {H.fmtTime(H.slotFor(habit.schedule, today)?.time)}
+                  {log?.value !== undefined
+                    ? ` · ${H.valueLabel(habit, log.value)}`
+                    : ""}
+                  {log?.status === "skipped" ? " · skipped" : ""}
+                </Copy>
+                {streak > 0 && (
+                  <Line
+                    style={{
+                      gap: 2,
+                      borderRadius: 12,
+                      backgroundColor: `${t.warn}26`,
+                      paddingHorizontal: 6,
+                      paddingVertical: 1,
+                    }}
+                  >
+                    <Flame size={12} color={t.warn} />
+                    <Copy
+                      size={11}
+                      weight="semibold"
+                      style={{ color: t.warn, lineHeight: 14 }}
+                    >
+                      {streak}
+                    </Copy>
+                  </Line>
+                )}
+              </Line>
+            </Tap>
+            {habit.type === "count" && !done && (
+              <Tap
+                label={`Add ${habit.step ?? 1} ${habit.unit ?? ""}`}
+                onPress={() => {
+                  HA.incrementCount(habit.id)
+                  undo(`Updated ${habit.name}`, () => {
+                    HA.clearLog(habit.id, today)
+                    if (log) HA.restoreLog(log)
+                  })
+                }}
+                style={{
+                  minWidth: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  backgroundColor: `${t.hab}26`,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Copy size={12} weight="semibold" style={{ color: t.hab }}>
+                  +{habit.step ?? 1}
+                </Copy>
+              </Tap>
+            )}
+            {habit.type === "duration" && !done && (
+              <IconTap
+                icon={Play}
+                label={`Start ${habit.name} timer`}
+                color={t.hab}
+                background={`${t.hab}26`}
+                onPress={() => go(HA.timerHref(habit.id))}
+              />
+            )}
+            <IconTap
+              icon={MoreHorizontal}
+              label={`More options for ${habit.name}`}
+              onPress={() => setSheet(true)}
+            />
+          </Line>
+        </SwipeRow>
+      </Animated.View>
       <HabitLog
         habit={habit}
         day={today}

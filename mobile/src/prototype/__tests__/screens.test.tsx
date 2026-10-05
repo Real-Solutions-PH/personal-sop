@@ -21,6 +21,7 @@ jest.mock("expo-router", () => ({
 }))
 jest.mock("react-native-reanimated", () => ({
   __esModule: true,
+  ...require("./reanimated-extras").extras,
   default: require("react-native").Animated,
   useSharedValue: (value: unknown) =>
     require("react").useRef({ value }).current,
@@ -82,7 +83,7 @@ test("quick capture creates a task that can be completed from the native list", 
     "Native test task",
   )
   expect(screen.getByText("Native test task")).toBeTruthy()
-  fireEvent.press(screen.getByRole("button", { name: "Done" }))
+  fireEvent.press(screen.getByRole("checkbox", { name: "Done" }))
   expect(tasksStore.get().tasks.find((t) => t.id === task?.id)?.status).toBe(
     "done",
   )
@@ -109,6 +110,9 @@ test("record editor does not save an invalid amount", () => {
 
 test("Today uses the scheduled next item and hides completed setup", () => {
   jest.useFakeTimers({ now: new Date(`${dayKey()}T09:30:00`) })
+  // Routines are weekday-specific; drop them so "next up" is a habit or
+  // task on every day of the week.
+  habitsStore.set((s) => ({ ...s, routines: [] }))
   const { Today } = require("../screens/today")
   const view = render(<Today />, { wrapper })
   expect(screen.queryByText("Finish setting up")).toBeNull()
