@@ -10,8 +10,9 @@ import uuid
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
-from typing import Any
+from typing import Any, TypeVar
 
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import col, delete
 
 from app.modules.stats import public as stats
@@ -63,6 +64,22 @@ def event(
             at=at or ctx.now,
         )
     )
+
+
+M = TypeVar("M", Task, TaskList)
+
+
+def insert_new(
+    ctx: Ctx, model: type[M], data: dict[str, Any], row_id: uuid.UUID | None
+) -> M:
+    """Insert a row under a client-minted id. An id another user already
+    holds is invisible here and trips the primary key: that is a 409, inside
+    a savepoint so the rest of the request (or sync batch) survives."""
+    try:
+        with ctx.session.begin_nested():
+            return owned_repo.insert(ctx, model, data, row_id=row_id)
+    except IntegrityError:
+        raise conflict("id_conflict", "This id is already in use") from None
 
 
 def _check_list(ctx: Ctx, list_id: uuid.UUID | None) -> None:
@@ -126,11 +143,8 @@ def create_tasks(ctx: Ctx, items: list[NewTask]) -> list[Task]:
                 out.append(existing)
                 continue
         _check_list(ctx, n.list_id)
-        row = owned_repo.insert(
-            ctx,
-            Task,
-            _build(ctx, n, order, settings.default_remind_time),
-            row_id=n.task_id,
+        row = insert_new(
+            ctx, Task, _build(ctx, n, order, settings.default_remind_time), n.task_id
         )
         order += 1
         event(ctx, row.id, "created")
@@ -266,8 +280,11 @@ def complete(
             ctx.session.add(nxt)
             event(ctx, nid, "created")
         else:
-            # The device already created it optimistically.
+            # The device already created it optimistically: adopt it.
             nxt = existing
+            if nxt.series_parent_id is None:
+                nxt.series_parent_id = t.id
+                ctx.session.add(nxt)
         dirty(ctx, due)
     t.status = "done"
     t.completed_at = at
@@ -491,7 +508,7 @@ def create_list(ctx: Ctx, data: dict[str, Any], list_id: uuid.UUID | None) -> Ta
         "archived_at": None,
         "is_default": False,
     }
-    return owned_repo.insert(ctx, TaskList, data, row_id=list_id)
+    return insert_new(ctx, TaskList, data, list_id)
 
 
 def ensure_default_lists(ctx: Ctx) -> list[TaskList]:
