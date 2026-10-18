@@ -11,7 +11,7 @@ UTC timestamp's ``.date()``).
 
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 DEFAULT_TIMEZONE = "Asia/Manila"
 DEFAULT_DAY_START_HOUR = 4
@@ -27,7 +27,7 @@ class DayClock:
     def __post_init__(self) -> None:
         if not 0 <= self.start_hour <= 23:
             raise ValueError("day_start_hour must be within 0..23")
-        ZoneInfo(self.timezone)  # raises ZoneInfoNotFoundError when unknown
+        check_timezone(self.timezone)
 
     @property
     def zone(self) -> ZoneInfo:
@@ -66,13 +66,22 @@ class DayClock:
         return local.astimezone(timezone.utc)
 
 
+def check_timezone(name: str) -> str:
+    """An IANA zone name, or ValueError (never the zoneinfo KeyError)."""
+    try:
+        ZoneInfo(name)
+    except (ZoneInfoNotFoundError, ValueError) as exc:
+        raise ValueError("unknown time zone") from exc
+    return name
+
+
 def parse_hm(hm: str) -> tuple[int, int]:
     """Parse a strict ``HH:MM`` 24-hour clock string."""
     if len(hm) != 5 or hm[2] != ":" or not (hm[:2] + hm[3:]).isdigit():
-        raise ValueError(f"not an HH:MM time: {hm!r}")
+        raise ValueError("not an HH:MM time")
     hour, minute = int(hm[:2]), int(hm[3:])
     if hour > 23 or minute > 59:
-        raise ValueError(f"not an HH:MM time: {hm!r}")
+        raise ValueError("not an HH:MM time")
     return hour, minute
 
 

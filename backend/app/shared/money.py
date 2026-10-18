@@ -21,7 +21,7 @@ def to_minor(value: str | int | float | Decimal) -> int:
         text = str(value).replace(",", "").replace("₱", "").strip()
         dec = Decimal(text)
     except (InvalidOperation, ValueError) as exc:
-        raise ValueError(f"not an amount: {value!r}") from exc
+        raise ValueError("not an amount") from exc
     if not dec.is_finite():
         raise ValueError("amount must be finite")
     minor = int((dec * 100).quantize(Decimal(1), rounding=ROUND_HALF_UP))

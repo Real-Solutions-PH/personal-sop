@@ -59,7 +59,7 @@ def test_dst_day_is_23_hours_long() -> None:
 def test_invalid_clock_settings_are_rejected() -> None:
     with pytest.raises(ValueError):
         DayClock(start_hour=24)
-    with pytest.raises(Exception):  # noqa: B017 - ZoneInfoNotFoundError
+    with pytest.raises(ValueError):
         DayClock(timezone="Mars/Olympus")
 
 
