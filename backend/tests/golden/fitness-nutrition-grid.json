@@ -1,0 +1,1538 @@
+{
+  "frozenNow": "2026-10-18T04:00:00.000Z",
+  "source": "shared/prototype",
+  "data": {
+    "state": {
+      "exercises": [],
+      "templates": [],
+      "workouts": [],
+      "weighIns": [],
+      "targets": [
+        {
+          "id": "nt1",
+          "effectiveFrom": "2026-09-01",
+          "kcal": 2000,
+          "protein": 150,
+          "carbs": 200,
+          "fat": 60
+        }
+      ],
+      "meals": [
+        {
+          "id": "g0",
+          "eatenAt": "2026-10-17T04:00:00.000Z",
+          "label": "lunch",
+          "source": "manual",
+          "rawInput": "grid",
+          "status": "confirmed",
+          "items": [
+            {
+              "id": "gi0",
+              "name": "x",
+              "qty": 1,
+              "unit": "pc",
+              "kcal": 1799,
+              "protein": 134,
+              "carbs": 0,
+              "fat": 0
+            }
+          ]
+        },
+        {
+          "id": "g1",
+          "eatenAt": "2026-10-16T04:00:00.000Z",
+          "label": "lunch",
+          "source": "manual",
+          "rawInput": "grid",
+          "status": "confirmed",
+          "items": [
+            {
+              "id": "gi1",
+              "name": "x",
+              "qty": 1,
+              "unit": "pc",
+              "kcal": 1800,
+              "protein": 135,
+              "carbs": 0,
+              "fat": 0
+            }
+          ]
+        },
+        {
+          "id": "g2",
+          "eatenAt": "2026-10-15T04:00:00.000Z",
+          "label": "lunch",
+          "source": "manual",
+          "rawInput": "grid",
+          "status": "confirmed",
+          "items": [
+            {
+              "id": "gi2",
+              "name": "x",
+              "qty": 1,
+              "unit": "pc",
+              "kcal": 1800.5,
+              "protein": 134.9,
+              "carbs": 0,
+              "fat": 0
+            }
+          ]
+        },
+        {
+          "id": "g3",
+          "eatenAt": "2026-10-14T04:00:00.000Z",
+          "label": "lunch",
+          "source": "manual",
+          "rawInput": "grid",
+          "status": "confirmed",
+          "items": [
+            {
+              "id": "gi3",
+              "name": "x",
+              "qty": 1,
+              "unit": "pc",
+              "kcal": 2000,
+              "protein": 150,
+              "carbs": 0,
+              "fat": 0
+            }
+          ]
+        },
+        {
+          "id": "g4",
+          "eatenAt": "2026-10-13T04:00:00.000Z",
+          "label": "lunch",
+          "source": "manual",
+          "rawInput": "grid",
+          "status": "confirmed",
+          "items": [
+            {
+              "id": "gi4",
+              "name": "x",
+              "qty": 1,
+              "unit": "pc",
+              "kcal": 2200,
+              "protein": 200,
+              "carbs": 0,
+              "fat": 0
+            }
+          ]
+        },
+        {
+          "id": "g5",
+          "eatenAt": "2026-10-12T04:00:00.000Z",
+          "label": "lunch",
+          "source": "manual",
+          "rawInput": "grid",
+          "status": "confirmed",
+          "items": [
+            {
+              "id": "gi5",
+              "name": "x",
+              "qty": 1,
+              "unit": "pc",
+              "kcal": 2200.5,
+              "protein": 10,
+              "carbs": 0,
+              "fat": 0
+            }
+          ]
+        },
+        {
+          "id": "g6",
+          "eatenAt": "2026-10-11T04:00:00.000Z",
+          "label": "lunch",
+          "source": "manual",
+          "rawInput": "grid",
+          "status": "confirmed",
+          "items": [
+            {
+              "id": "gi6",
+              "name": "x",
+              "qty": 1,
+              "unit": "pc",
+              "kcal": 2201,
+              "protein": 160,
+              "carbs": 0,
+              "fat": 0
+            }
+          ]
+        },
+        {
+          "id": "g7",
+          "eatenAt": "2026-10-10T04:00:00.000Z",
+          "label": "lunch",
+          "source": "manual",
+          "rawInput": "grid",
+          "status": "confirmed",
+          "items": [
+            {
+              "id": "gi7",
+              "name": "x",
+              "qty": 1,
+              "unit": "pc",
+              "kcal": 0,
+              "protein": 0,
+              "carbs": 0,
+              "fat": 0
+            }
+          ]
+        },
+        {
+          "id": "gp",
+          "eatenAt": "2026-10-17T07:00:00.000Z",
+          "label": "snack",
+          "source": "photo",
+          "rawInput": "Photo",
+          "status": "pending_estimate",
+          "items": [
+            {
+              "id": "gpi",
+              "name": "y",
+              "qty": 1,
+              "unit": "pc",
+              "kcal": 999,
+              "protein": 99,
+              "carbs": 0,
+              "fat": 0
+            }
+          ]
+        },
+        {
+          "id": "ge",
+          "eatenAt": "2026-10-15T19:30:00.000Z",
+          "label": "snack",
+          "source": "text",
+          "rawInput": "late",
+          "status": "estimated",
+          "items": [
+            {
+              "id": "gei",
+              "name": "z",
+              "qty": 1,
+              "unit": "pc",
+              "kcal": 50,
+              "protein": 5,
+              "carbs": 0,
+              "fat": 0
+            }
+          ]
+        }
+      ],
+      "settings": {
+        "units": "kg",
+        "restSec": 120,
+        "weeklyTarget": 4,
+        "weighInReminder": "06:30",
+        "progression": "double",
+        "aiSource": "builtin",
+        "goalDirection": "maintain"
+      },
+      "activeId": null,
+      "rest": null
+    },
+    "calc": {
+      "latestBodyweight": null,
+      "exStats": [],
+      "workoutTotals": [],
+      "allPrs": [],
+      "prsByWorkout": {},
+      "extraPrs": [],
+      "suggestions": {},
+      "linearSuggestions": {},
+      "stalled": {},
+      "history": {},
+      "sessionsByWeek": [
+        {
+          "start": "2026-06-01",
+          "count": 0
+        },
+        {
+          "start": "2026-06-08",
+          "count": 0
+        },
+        {
+          "start": "2026-06-15",
+          "count": 0
+        },
+        {
+          "start": "2026-06-22",
+          "count": 0
+        },
+        {
+          "start": "2026-06-29",
+          "count": 0
+        },
+        {
+          "start": "2026-07-06",
+          "count": 0
+        },
+        {
+          "start": "2026-07-13",
+          "count": 0
+        },
+        {
+          "start": "2026-07-20",
+          "count": 0
+        },
+        {
+          "start": "2026-07-27",
+          "count": 0
+        },
+        {
+          "start": "2026-08-03",
+          "count": 0
+        },
+        {
+          "start": "2026-08-10",
+          "count": 0
+        },
+        {
+          "start": "2026-08-17",
+          "count": 0
+        },
+        {
+          "start": "2026-08-24",
+          "count": 0
+        },
+        {
+          "start": "2026-08-31",
+          "count": 0
+        },
+        {
+          "start": "2026-09-07",
+          "count": 0
+        },
+        {
+          "start": "2026-09-14",
+          "count": 0
+        },
+        {
+          "start": "2026-09-21",
+          "count": 0
+        },
+        {
+          "start": "2026-09-28",
+          "count": 0
+        },
+        {
+          "start": "2026-10-05",
+          "count": 0
+        },
+        {
+          "start": "2026-10-12",
+          "count": 0
+        }
+      ],
+      "consistencyStreak": 0,
+      "dailyWeights": {},
+      "weightTrend30": [
+        {
+          "day": "2026-09-19"
+        },
+        {
+          "day": "2026-09-20"
+        },
+        {
+          "day": "2026-09-21"
+        },
+        {
+          "day": "2026-09-22"
+        },
+        {
+          "day": "2026-09-23"
+        },
+        {
+          "day": "2026-09-24"
+        },
+        {
+          "day": "2026-09-25"
+        },
+        {
+          "day": "2026-09-26"
+        },
+        {
+          "day": "2026-09-27"
+        },
+        {
+          "day": "2026-09-28"
+        },
+        {
+          "day": "2026-09-29"
+        },
+        {
+          "day": "2026-09-30"
+        },
+        {
+          "day": "2026-10-01"
+        },
+        {
+          "day": "2026-10-02"
+        },
+        {
+          "day": "2026-10-03"
+        },
+        {
+          "day": "2026-10-04"
+        },
+        {
+          "day": "2026-10-05"
+        },
+        {
+          "day": "2026-10-06"
+        },
+        {
+          "day": "2026-10-07"
+        },
+        {
+          "day": "2026-10-08"
+        },
+        {
+          "day": "2026-10-09"
+        },
+        {
+          "day": "2026-10-10"
+        },
+        {
+          "day": "2026-10-11"
+        },
+        {
+          "day": "2026-10-12"
+        },
+        {
+          "day": "2026-10-13"
+        },
+        {
+          "day": "2026-10-14"
+        },
+        {
+          "day": "2026-10-15"
+        },
+        {
+          "day": "2026-10-16"
+        },
+        {
+          "day": "2026-10-17"
+        },
+        {
+          "day": "2026-10-18"
+        }
+      ],
+      "weightTrend90": [
+        {
+          "day": "2026-07-21"
+        },
+        {
+          "day": "2026-07-22"
+        },
+        {
+          "day": "2026-07-23"
+        },
+        {
+          "day": "2026-07-24"
+        },
+        {
+          "day": "2026-07-25"
+        },
+        {
+          "day": "2026-07-26"
+        },
+        {
+          "day": "2026-07-27"
+        },
+        {
+          "day": "2026-07-28"
+        },
+        {
+          "day": "2026-07-29"
+        },
+        {
+          "day": "2026-07-30"
+        },
+        {
+          "day": "2026-07-31"
+        },
+        {
+          "day": "2026-08-01"
+        },
+        {
+          "day": "2026-08-02"
+        },
+        {
+          "day": "2026-08-03"
+        },
+        {
+          "day": "2026-08-04"
+        },
+        {
+          "day": "2026-08-05"
+        },
+        {
+          "day": "2026-08-06"
+        },
+        {
+          "day": "2026-08-07"
+        },
+        {
+          "day": "2026-08-08"
+        },
+        {
+          "day": "2026-08-09"
+        },
+        {
+          "day": "2026-08-10"
+        },
+        {
+          "day": "2026-08-11"
+        },
+        {
+          "day": "2026-08-12"
+        },
+        {
+          "day": "2026-08-13"
+        },
+        {
+          "day": "2026-08-14"
+        },
+        {
+          "day": "2026-08-15"
+        },
+        {
+          "day": "2026-08-16"
+        },
+        {
+          "day": "2026-08-17"
+        },
+        {
+          "day": "2026-08-18"
+        },
+        {
+          "day": "2026-08-19"
+        },
+        {
+          "day": "2026-08-20"
+        },
+        {
+          "day": "2026-08-21"
+        },
+        {
+          "day": "2026-08-22"
+        },
+        {
+          "day": "2026-08-23"
+        },
+        {
+          "day": "2026-08-24"
+        },
+        {
+          "day": "2026-08-25"
+        },
+        {
+          "day": "2026-08-26"
+        },
+        {
+          "day": "2026-08-27"
+        },
+        {
+          "day": "2026-08-28"
+        },
+        {
+          "day": "2026-08-29"
+        },
+        {
+          "day": "2026-08-30"
+        },
+        {
+          "day": "2026-08-31"
+        },
+        {
+          "day": "2026-09-01"
+        },
+        {
+          "day": "2026-09-02"
+        },
+        {
+          "day": "2026-09-03"
+        },
+        {
+          "day": "2026-09-04"
+        },
+        {
+          "day": "2026-09-05"
+        },
+        {
+          "day": "2026-09-06"
+        },
+        {
+          "day": "2026-09-07"
+        },
+        {
+          "day": "2026-09-08"
+        },
+        {
+          "day": "2026-09-09"
+        },
+        {
+          "day": "2026-09-10"
+        },
+        {
+          "day": "2026-09-11"
+        },
+        {
+          "day": "2026-09-12"
+        },
+        {
+          "day": "2026-09-13"
+        },
+        {
+          "day": "2026-09-14"
+        },
+        {
+          "day": "2026-09-15"
+        },
+        {
+          "day": "2026-09-16"
+        },
+        {
+          "day": "2026-09-17"
+        },
+        {
+          "day": "2026-09-18"
+        },
+        {
+          "day": "2026-09-19"
+        },
+        {
+          "day": "2026-09-20"
+        },
+        {
+          "day": "2026-09-21"
+        },
+        {
+          "day": "2026-09-22"
+        },
+        {
+          "day": "2026-09-23"
+        },
+        {
+          "day": "2026-09-24"
+        },
+        {
+          "day": "2026-09-25"
+        },
+        {
+          "day": "2026-09-26"
+        },
+        {
+          "day": "2026-09-27"
+        },
+        {
+          "day": "2026-09-28"
+        },
+        {
+          "day": "2026-09-29"
+        },
+        {
+          "day": "2026-09-30"
+        },
+        {
+          "day": "2026-10-01"
+        },
+        {
+          "day": "2026-10-02"
+        },
+        {
+          "day": "2026-10-03"
+        },
+        {
+          "day": "2026-10-04"
+        },
+        {
+          "day": "2026-10-05"
+        },
+        {
+          "day": "2026-10-06"
+        },
+        {
+          "day": "2026-10-07"
+        },
+        {
+          "day": "2026-10-08"
+        },
+        {
+          "day": "2026-10-09"
+        },
+        {
+          "day": "2026-10-10"
+        },
+        {
+          "day": "2026-10-11"
+        },
+        {
+          "day": "2026-10-12"
+        },
+        {
+          "day": "2026-10-13"
+        },
+        {
+          "day": "2026-10-14"
+        },
+        {
+          "day": "2026-10-15"
+        },
+        {
+          "day": "2026-10-16"
+        },
+        {
+          "day": "2026-10-17"
+        },
+        {
+          "day": "2026-10-18"
+        }
+      ],
+      "weeklyRate": null,
+      "nutritionDays30": [
+        {
+          "day": "2026-09-19",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "nt1",
+            "effectiveFrom": "2026-09-01",
+            "kcal": 2000,
+            "protein": 150,
+            "carbs": 200,
+            "fat": 60
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-09-20",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "nt1",
+            "effectiveFrom": "2026-09-01",
+            "kcal": 2000,
+            "protein": 150,
+            "carbs": 200,
+            "fat": 60
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-09-21",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "nt1",
+            "effectiveFrom": "2026-09-01",
+            "kcal": 2000,
+            "protein": 150,
+            "carbs": 200,
+            "fat": 60
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-09-22",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "nt1",
+            "effectiveFrom": "2026-09-01",
+            "kcal": 2000,
+            "protein": 150,
+            "carbs": 200,
+            "fat": 60
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-09-23",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "nt1",
+            "effectiveFrom": "2026-09-01",
+            "kcal": 2000,
+            "protein": 150,
+            "carbs": 200,
+            "fat": 60
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-09-24",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "nt1",
+            "effectiveFrom": "2026-09-01",
+            "kcal": 2000,
+            "protein": 150,
+            "carbs": 200,
+            "fat": 60
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-09-25",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "nt1",
+            "effectiveFrom": "2026-09-01",
+            "kcal": 2000,
+            "protein": 150,
+            "carbs": 200,
+            "fat": 60
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-09-26",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "nt1",
+            "effectiveFrom": "2026-09-01",
+            "kcal": 2000,
+            "protein": 150,
+            "carbs": 200,
+            "fat": 60
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-09-27",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "nt1",
+            "effectiveFrom": "2026-09-01",
+            "kcal": 2000,
+            "protein": 150,
+            "carbs": 200,
+            "fat": 60
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-09-28",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "nt1",
+            "effectiveFrom": "2026-09-01",
+            "kcal": 2000,
+            "protein": 150,
+            "carbs": 200,
+            "fat": 60
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-09-29",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "nt1",
+            "effectiveFrom": "2026-09-01",
+            "kcal": 2000,
+            "protein": 150,
+            "carbs": 200,
+            "fat": 60
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-09-30",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "nt1",
+            "effectiveFrom": "2026-09-01",
+            "kcal": 2000,
+            "protein": 150,
+            "carbs": 200,
+            "fat": 60
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-10-01",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "nt1",
+            "effectiveFrom": "2026-09-01",
+            "kcal": 2000,
+            "protein": 150,
+            "carbs": 200,
+            "fat": 60
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-10-02",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "nt1",
+            "effectiveFrom": "2026-09-01",
+            "kcal": 2000,
+            "protein": 150,
+            "carbs": 200,
+            "fat": 60
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-10-03",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "nt1",
+            "effectiveFrom": "2026-09-01",
+            "kcal": 2000,
+            "protein": 150,
+            "carbs": 200,
+            "fat": 60
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-10-04",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "nt1",
+            "effectiveFrom": "2026-09-01",
+            "kcal": 2000,
+            "protein": 150,
+            "carbs": 200,
+            "fat": 60
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-10-05",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "nt1",
+            "effectiveFrom": "2026-09-01",
+            "kcal": 2000,
+            "protein": 150,
+            "carbs": 200,
+            "fat": 60
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-10-06",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "nt1",
+            "effectiveFrom": "2026-09-01",
+            "kcal": 2000,
+            "protein": 150,
+            "carbs": 200,
+            "fat": 60
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-10-07",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "nt1",
+            "effectiveFrom": "2026-09-01",
+            "kcal": 2000,
+            "protein": 150,
+            "carbs": 200,
+            "fat": 60
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-10-08",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "nt1",
+            "effectiveFrom": "2026-09-01",
+            "kcal": 2000,
+            "protein": 150,
+            "carbs": 200,
+            "fat": 60
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-10-09",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "nt1",
+            "effectiveFrom": "2026-09-01",
+            "kcal": 2000,
+            "protein": 150,
+            "carbs": 200,
+            "fat": 60
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-10-10",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "nt1",
+            "effectiveFrom": "2026-09-01",
+            "kcal": 2000,
+            "protein": 150,
+            "carbs": 200,
+            "fat": 60
+          },
+          "meals": 1,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "under"
+        },
+        {
+          "day": "2026-10-11",
+          "totals": {
+            "kcal": 2201,
+            "protein": 160,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "nt1",
+            "effectiveFrom": "2026-09-01",
+            "kcal": 2000,
+            "protein": 150,
+            "carbs": 200,
+            "fat": 60
+          },
+          "meals": 1,
+          "kcalOk": false,
+          "proteinHit": true,
+          "over": true,
+          "verdict": "over"
+        },
+        {
+          "day": "2026-10-12",
+          "totals": {
+            "kcal": 2200.5,
+            "protein": 10,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "nt1",
+            "effectiveFrom": "2026-09-01",
+            "kcal": 2000,
+            "protein": 150,
+            "carbs": 200,
+            "fat": 60
+          },
+          "meals": 1,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": true,
+          "verdict": "over"
+        },
+        {
+          "day": "2026-10-13",
+          "totals": {
+            "kcal": 2200,
+            "protein": 200,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "nt1",
+            "effectiveFrom": "2026-09-01",
+            "kcal": 2000,
+            "protein": 150,
+            "carbs": 200,
+            "fat": 60
+          },
+          "meals": 1,
+          "kcalOk": true,
+          "proteinHit": true,
+          "over": false,
+          "verdict": "hit"
+        },
+        {
+          "day": "2026-10-14",
+          "totals": {
+            "kcal": 2000,
+            "protein": 150,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "nt1",
+            "effectiveFrom": "2026-09-01",
+            "kcal": 2000,
+            "protein": 150,
+            "carbs": 200,
+            "fat": 60
+          },
+          "meals": 1,
+          "kcalOk": true,
+          "proteinHit": true,
+          "over": false,
+          "verdict": "hit"
+        },
+        {
+          "day": "2026-10-15",
+          "totals": {
+            "kcal": 1850.5,
+            "protein": 139.9,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "nt1",
+            "effectiveFrom": "2026-09-01",
+            "kcal": 2000,
+            "protein": 150,
+            "carbs": 200,
+            "fat": 60
+          },
+          "meals": 2,
+          "kcalOk": true,
+          "proteinHit": true,
+          "over": false,
+          "verdict": "hit"
+        },
+        {
+          "day": "2026-10-16",
+          "totals": {
+            "kcal": 1800,
+            "protein": 135,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "nt1",
+            "effectiveFrom": "2026-09-01",
+            "kcal": 2000,
+            "protein": 150,
+            "carbs": 200,
+            "fat": 60
+          },
+          "meals": 1,
+          "kcalOk": true,
+          "proteinHit": true,
+          "over": false,
+          "verdict": "hit"
+        },
+        {
+          "day": "2026-10-17",
+          "totals": {
+            "kcal": 1799,
+            "protein": 134,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "nt1",
+            "effectiveFrom": "2026-09-01",
+            "kcal": 2000,
+            "protein": 150,
+            "carbs": 200,
+            "fat": 60
+          },
+          "meals": 2,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "under"
+        },
+        {
+          "day": "2026-10-18",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "nt1",
+            "effectiveFrom": "2026-09-01",
+            "kcal": 2000,
+            "protein": 150,
+            "carbs": 200,
+            "fat": 60
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        }
+      ],
+      "adherence": [
+        {
+          "days": 7,
+          "offset": 0,
+          "logged": 7,
+          "calorie": 0.5714285714285714,
+          "protein": 0.7142857142857143,
+          "overDays": 2,
+          "coverage": 0.2857142857142857
+        },
+        {
+          "days": 7,
+          "offset": 7,
+          "logged": 1,
+          "calorie": 0,
+          "protein": 0,
+          "overDays": 0,
+          "coverage": 0
+        },
+        {
+          "days": 14,
+          "offset": 0,
+          "logged": 8,
+          "calorie": 0.5,
+          "protein": 0.625,
+          "overDays": 2,
+          "coverage": 0.14285714285714285
+        },
+        {
+          "days": 30,
+          "offset": 0,
+          "logged": 8,
+          "calorie": 0.5,
+          "protein": 0.625,
+          "overDays": 2,
+          "coverage": 0.06666666666666667
+        },
+        {
+          "days": 30,
+          "offset": 30,
+          "logged": 0,
+          "calorie": 0,
+          "protein": 0,
+          "overDays": 0,
+          "coverage": 0
+        },
+        {
+          "days": 3,
+          "offset": 2,
+          "logged": 3,
+          "calorie": 1,
+          "protein": 1,
+          "overDays": 0,
+          "coverage": 0.3333333333333333
+        }
+      ],
+      "overloadRate": {
+        "7": 0,
+        "28": 0,
+        "90": 0
+      },
+      "periodSummary": [
+        {
+          "days": 7,
+          "endOffset": 0,
+          "sessions": 0,
+          "target": 4,
+          "sessionRate": 0,
+          "missed": 4,
+          "prs": 0,
+          "volume": 0
+        },
+        {
+          "days": 7,
+          "endOffset": -7,
+          "sessions": 0,
+          "target": 4,
+          "sessionRate": 0,
+          "missed": 4,
+          "prs": 0,
+          "volume": 0
+        },
+        {
+          "days": 30,
+          "endOffset": 0,
+          "sessions": 0,
+          "target": 17.142857142857142,
+          "sessionRate": 0,
+          "missed": 17,
+          "prs": 0,
+          "volume": 0
+        },
+        {
+          "days": 30,
+          "endOffset": -30,
+          "sessions": 0,
+          "target": 17.142857142857142,
+          "sessionRate": 0,
+          "missed": 17,
+          "prs": 0,
+          "volume": 0
+        },
+        {
+          "days": 90,
+          "endOffset": 0,
+          "sessions": 0,
+          "target": 51.42857142857143,
+          "sessionRate": 0,
+          "missed": 51,
+          "prs": 0,
+          "volume": 0
+        },
+        {
+          "days": 1,
+          "endOffset": 0,
+          "sessions": 0,
+          "target": 0.5714285714285714,
+          "sessionRate": 0,
+          "missed": 1,
+          "prs": 0,
+          "volume": 0
+        }
+      ],
+      "targetFor": {
+        "2026-06-20": null,
+        "2026-07-19": null,
+        "2026-07-20": null,
+        "2026-09-12": "nt1",
+        "2026-09-13": "nt1",
+        "2026-09-14": "nt1",
+        "2026-10-17": "nt1",
+        "2026-10-18": "nt1"
+      },
+      "nextTemplate": null,
+      "dayTotals": {
+        "2026-10-18": {
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "pending": 0,
+          "toReview": 0,
+          "count": 0
+        },
+        "2026-10-17": {
+          "totals": {
+            "kcal": 1799,
+            "protein": 134,
+            "carbs": 0,
+            "fat": 0
+          },
+          "pending": 1,
+          "toReview": 0,
+          "count": 2
+        },
+        "2026-10-16": {
+          "totals": {
+            "kcal": 1800,
+            "protein": 135,
+            "carbs": 0,
+            "fat": 0
+          },
+          "pending": 0,
+          "toReview": 0,
+          "count": 1
+        },
+        "2026-10-15": {
+          "totals": {
+            "kcal": 1850.5,
+            "protein": 139.9,
+            "carbs": 0,
+            "fat": 0
+          },
+          "pending": 0,
+          "toReview": 1,
+          "count": 2
+        }
+      }
+    }
+  }
+}

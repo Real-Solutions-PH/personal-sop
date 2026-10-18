@@ -1,0 +1,1104 @@
+{
+  "frozenNow": "2026-10-18T04:00:00.000Z",
+  "source": "shared/prototype",
+  "data": {
+    "cases": [
+      {
+        "raw": "tapsilog",
+        "result": {
+          "items": [
+            {
+              "name": "Garlic rice (sinangag)",
+              "qty": 1,
+              "unit": "cup",
+              "kcal": 280,
+              "protein": 5,
+              "carbs": 50,
+              "fat": 6,
+              "assumption": "~1 cup, 180 g"
+            },
+            {
+              "name": "Beef tapa",
+              "qty": 100,
+              "unit": "g",
+              "kcal": 250,
+              "protein": 24,
+              "carbs": 8,
+              "fat": 14,
+              "assumption": "~100 g, pan-fried"
+            },
+            {
+              "name": "Fried egg",
+              "qty": 1,
+              "unit": "pc",
+              "kcal": 90,
+              "protein": 6,
+              "carbs": 0,
+              "fat": 7,
+              "assumption": "1 large egg, fried in oil"
+            }
+          ],
+          "confidence": 0.84,
+          "followUp": {
+            "question": "How much rice?",
+            "options": [
+              "1 cup",
+              "1.5 cups",
+              "2 cups"
+            ]
+          }
+        }
+      },
+      {
+        "raw": "tapsilog, isang cup na garlic rice",
+        "result": {
+          "items": [
+            {
+              "name": "Garlic rice (sinangag)",
+              "qty": 1,
+              "unit": "cup",
+              "kcal": 280,
+              "protein": 5,
+              "carbs": 50,
+              "fat": 6,
+              "assumption": "~1 cup, 180 g"
+            },
+            {
+              "name": "Steamed rice",
+              "qty": 1,
+              "unit": "cup",
+              "kcal": 205,
+              "protein": 4,
+              "carbs": 45,
+              "fat": 0,
+              "assumption": "~1 cup cooked, 160 g"
+            },
+            {
+              "name": "Beef tapa",
+              "qty": 100,
+              "unit": "g",
+              "kcal": 250,
+              "protein": 24,
+              "carbs": 8,
+              "fat": 14,
+              "assumption": "~100 g, pan-fried"
+            },
+            {
+              "name": "Fried egg",
+              "qty": 1,
+              "unit": "pc",
+              "kcal": 90,
+              "protein": 6,
+              "carbs": 0,
+              "fat": 7,
+              "assumption": "1 large egg, fried in oil"
+            }
+          ],
+          "confidence": 0.9199999999999999,
+          "followUp": null
+        }
+      },
+      {
+        "raw": "lunch: 1 cup rice, adobo 2 pcs chicken thigh, softdrinks 1 can",
+        "result": {
+          "items": [
+            {
+              "name": "Softdrink",
+              "qty": 1,
+              "unit": "can",
+              "kcal": 140,
+              "protein": 0,
+              "carbs": 39,
+              "fat": 0,
+              "assumption": "1 can, 330 ml, regular"
+            },
+            {
+              "name": "Chicken adobo (thigh)",
+              "qty": 2,
+              "unit": "pc",
+              "kcal": 380,
+              "protein": 32,
+              "carbs": 4,
+              "fat": 26,
+              "assumption": "2 thigh pieces with sauce"
+            },
+            {
+              "name": "Steamed rice",
+              "qty": 1,
+              "unit": "cup",
+              "kcal": 205,
+              "protein": 4,
+              "carbs": 45,
+              "fat": 0,
+              "assumption": "~1 cup cooked, 160 g"
+            }
+          ],
+          "confidence": 0.84,
+          "followUp": null
+        }
+      },
+      {
+        "raw": "breakfast 2 eggs, 2 pandesal, coffee w/ sugar",
+        "result": {
+          "items": [
+            {
+              "name": "Pandesal",
+              "qty": 2,
+              "unit": "pc",
+              "kcal": 240,
+              "protein": 7,
+              "carbs": 44,
+              "fat": 4,
+              "assumption": "2 medium pieces"
+            },
+            {
+              "name": "3-in-1 coffee",
+              "qty": 1,
+              "unit": "sachet",
+              "kcal": 70,
+              "protein": 1,
+              "carbs": 12,
+              "fat": 2,
+              "assumption": "1 sachet with sugar & creamer"
+            },
+            {
+              "name": "Fried egg",
+              "qty": 2,
+              "unit": "pc",
+              "kcal": 180,
+              "protein": 12,
+              "carbs": 0,
+              "fat": 14,
+              "assumption": "1 large egg, fried in oil"
+            }
+          ],
+          "confidence": 0.84,
+          "followUp": null
+        }
+      },
+      {
+        "raw": "2 cups rice and sinigang",
+        "result": {
+          "items": [
+            {
+              "name": "Sinigang na baboy",
+              "qty": 1,
+              "unit": "bowl",
+              "kcal": 320,
+              "protein": 22,
+              "carbs": 10,
+              "fat": 21,
+              "assumption": "1 bowl, pork belly + kangkong, radish"
+            },
+            {
+              "name": "Steamed rice",
+              "qty": 2,
+              "unit": "cup",
+              "kcal": 410,
+              "protein": 8,
+              "carbs": 90,
+              "fat": 0,
+              "assumption": "~1 cup cooked, 160 g"
+            }
+          ],
+          "confidence": 0.76,
+          "followUp": null
+        }
+      },
+      {
+        "raw": "half rice, tinola",
+        "result": {
+          "items": [
+            {
+              "name": "Chicken tinola",
+              "qty": 1,
+              "unit": "bowl",
+              "kcal": 240,
+              "protein": 28,
+              "carbs": 8,
+              "fat": 10,
+              "assumption": "1 bowl, 2 pcs chicken + sayote"
+            },
+            {
+              "name": "Steamed rice",
+              "qty": 0.5,
+              "unit": "cup",
+              "kcal": 103,
+              "protein": 2,
+              "carbs": 23,
+              "fat": 0,
+              "assumption": "~1 cup cooked, 160 g"
+            }
+          ],
+          "confidence": 0.76,
+          "followUp": null
+        }
+      },
+      {
+        "raw": "kalahati rice",
+        "result": {
+          "items": [
+            {
+              "name": "Steamed rice",
+              "qty": 0.5,
+              "unit": "cup",
+              "kcal": 103,
+              "protein": 2,
+              "carbs": 23,
+              "fat": 0,
+              "assumption": "~1 cup cooked, 160 g"
+            }
+          ],
+          "confidence": 0.6799999999999999,
+          "followUp": null
+        }
+      },
+      {
+        "raw": "200g tapa",
+        "result": {
+          "items": [
+            {
+              "name": "Beef tapa",
+              "qty": 200,
+              "unit": "g",
+              "kcal": 500,
+              "protein": 48,
+              "carbs": 16,
+              "fat": 28,
+              "assumption": "~100 g, pan-fried"
+            }
+          ],
+          "confidence": 0.6799999999999999,
+          "followUp": null
+        }
+      },
+      {
+        "raw": "3 x egg",
+        "result": {
+          "items": [
+            {
+              "name": "Fried egg",
+              "qty": 3,
+              "unit": "pc",
+              "kcal": 270,
+              "protein": 18,
+              "carbs": 0,
+              "fat": 21,
+              "assumption": "1 large egg, fried in oil"
+            }
+          ],
+          "confidence": 0.6799999999999999,
+          "followUp": null
+        }
+      },
+      {
+        "raw": "150 g inasal",
+        "result": {
+          "items": [
+            {
+              "name": "Chicken inasal (breast)",
+              "qty": 150,
+              "unit": "g",
+              "kcal": 260,
+              "protein": 46,
+              "carbs": 2,
+              "fat": 7,
+              "assumption": "~150 g grilled breast, no skin"
+            }
+          ],
+          "confidence": 0.6799999999999999,
+          "followUp": null
+        }
+      },
+      {
+        "raw": "protein shake",
+        "result": {
+          "items": [
+            {
+              "name": "Whey protein",
+              "qty": 1,
+              "unit": "scoop",
+              "kcal": 120,
+              "protein": 24,
+              "carbs": 3,
+              "fat": 2,
+              "assumption": "1 scoop (30 g) in water"
+            }
+          ],
+          "confidence": 0.6799999999999999,
+          "followUp": null
+        }
+      },
+      {
+        "raw": "whey and banana",
+        "result": {
+          "items": [
+            {
+              "name": "Banana (lakatan)",
+              "qty": 1,
+              "unit": "pc",
+              "kcal": 100,
+              "protein": 1,
+              "carbs": 26,
+              "fat": 0,
+              "assumption": "1 medium"
+            },
+            {
+              "name": "Whey protein",
+              "qty": 1,
+              "unit": "scoop",
+              "kcal": 120,
+              "protein": 24,
+              "carbs": 3,
+              "fat": 2,
+              "assumption": "1 scoop (30 g) in water"
+            }
+          ],
+          "confidence": 0.76,
+          "followUp": null
+        }
+      },
+      {
+        "raw": "longsilog tocilog",
+        "result": {
+          "items": [
+            {
+              "name": "Garlic rice (sinangag)",
+              "qty": 1,
+              "unit": "cup",
+              "kcal": 280,
+              "protein": 5,
+              "carbs": 50,
+              "fat": 6,
+              "assumption": "~1 cup, 180 g"
+            },
+            {
+              "name": "Longganisa",
+              "qty": 3,
+              "unit": "pc",
+              "kcal": 330,
+              "protein": 15,
+              "carbs": 12,
+              "fat": 25,
+              "assumption": "3 pcs sweet (hamonado)"
+            },
+            {
+              "name": "Pork tocino",
+              "qty": 100,
+              "unit": "g",
+              "kcal": 290,
+              "protein": 16,
+              "carbs": 22,
+              "fat": 15,
+              "assumption": "~100 g"
+            },
+            {
+              "name": "Steamed rice",
+              "qty": 1,
+              "unit": "cup",
+              "kcal": 205,
+              "protein": 4,
+              "carbs": 45,
+              "fat": 0,
+              "assumption": "~1 cup cooked, 160 g"
+            },
+            {
+              "name": "Fried egg",
+              "qty": 1,
+              "unit": "pc",
+              "kcal": 90,
+              "protein": 6,
+              "carbs": 0,
+              "fat": 7,
+              "assumption": "1 large egg, fried in oil"
+            }
+          ],
+          "confidence": 0.92,
+          "followUp": {
+            "question": "How much rice?",
+            "options": [
+              "1 cup",
+              "1.5 cups",
+              "2 cups"
+            ]
+          }
+        }
+      },
+      {
+        "raw": "bangsilog",
+        "result": {
+          "items": [
+            {
+              "name": "Garlic rice (sinangag)",
+              "qty": 1,
+              "unit": "cup",
+              "kcal": 280,
+              "protein": 5,
+              "carbs": 50,
+              "fat": 6,
+              "assumption": "~1 cup, 180 g"
+            },
+            {
+              "name": "Daing na bangus",
+              "qty": 0.5,
+              "unit": "fish",
+              "kcal": 280,
+              "protein": 30,
+              "carbs": 0,
+              "fat": 17,
+              "assumption": "half a medium milkfish, fried"
+            },
+            {
+              "name": "Fried egg",
+              "qty": 1,
+              "unit": "pc",
+              "kcal": 90,
+              "protein": 6,
+              "carbs": 0,
+              "fat": 7,
+              "assumption": "1 large egg, fried in oil"
+            }
+          ],
+          "confidence": 0.84,
+          "followUp": {
+            "question": "How much rice?",
+            "options": [
+              "1 cup",
+              "1.5 cups",
+              "2 cups"
+            ]
+          }
+        }
+      },
+      {
+        "raw": "lechon kawali with rice",
+        "result": {
+          "items": [
+            {
+              "name": "Lechon kawali",
+              "qty": 100,
+              "unit": "g",
+              "kcal": 450,
+              "protein": 25,
+              "carbs": 0,
+              "fat": 38,
+              "assumption": "~100 g, deep-fried pork belly"
+            },
+            {
+              "name": "Steamed rice",
+              "qty": 1,
+              "unit": "cup",
+              "kcal": 205,
+              "protein": 4,
+              "carbs": 45,
+              "fat": 0,
+              "assumption": "~1 cup cooked, 160 g"
+            }
+          ],
+          "confidence": 0.76,
+          "followUp": {
+            "question": "How much rice?",
+            "options": [
+              "1 cup",
+              "1.5 cups",
+              "2 cups"
+            ]
+          }
+        }
+      },
+      {
+        "raw": "1.5 cups garlic rice and 2 eggs",
+        "result": {
+          "items": [
+            {
+              "name": "Garlic rice (sinangag)",
+              "qty": 1.5,
+              "unit": "cup",
+              "kcal": 420,
+              "protein": 8,
+              "carbs": 75,
+              "fat": 9,
+              "assumption": "~1 cup, 180 g"
+            },
+            {
+              "name": "Fried egg",
+              "qty": 2,
+              "unit": "pc",
+              "kcal": 180,
+              "protein": 12,
+              "carbs": 0,
+              "fat": 14,
+              "assumption": "1 large egg, fried in oil"
+            }
+          ],
+          "confidence": 0.76,
+          "followUp": null
+        }
+      },
+      {
+        "raw": "0.1 pandesal",
+        "result": {
+          "items": [
+            {
+              "name": "Pandesal",
+              "qty": 0.5,
+              "unit": "pc",
+              "kcal": 60,
+              "protein": 2,
+              "carbs": 11,
+              "fat": 1,
+              "assumption": "2 medium pieces"
+            }
+          ],
+          "confidence": 0.6799999999999999,
+          "followUp": null
+        }
+      },
+      {
+        "raw": "dalawang itlog",
+        "result": {
+          "items": [
+            {
+              "name": "Fried egg",
+              "qty": 2,
+              "unit": "pc",
+              "kcal": 180,
+              "protein": 12,
+              "carbs": 0,
+              "fat": 14,
+              "assumption": "1 large egg, fried in oil"
+            }
+          ],
+          "confidence": 0.6799999999999999,
+          "followUp": null
+        }
+      },
+      {
+        "raw": "tatlong banana",
+        "result": {
+          "items": [
+            {
+              "name": "Banana (lakatan)",
+              "qty": 3,
+              "unit": "pc",
+              "kcal": 300,
+              "protein": 3,
+              "carbs": 78,
+              "fat": 0,
+              "assumption": "1 medium"
+            }
+          ],
+          "confidence": 0.6799999999999999,
+          "followUp": null
+        }
+      },
+      {
+        "raw": "sinigang na hipon",
+        "result": {
+          "items": [
+            {
+              "name": "Sinigang na baboy",
+              "qty": 1,
+              "unit": "bowl",
+              "kcal": 320,
+              "protein": 22,
+              "carbs": 10,
+              "fat": 21,
+              "assumption": "1 bowl, pork belly + kangkong, radish"
+            },
+            {
+              "name": "Sinigang na hipon",
+              "qty": 1,
+              "unit": "bowl",
+              "kcal": 180,
+              "protein": 24,
+              "carbs": 10,
+              "fat": 4,
+              "assumption": "1 bowl, ~8 shrimp"
+            }
+          ],
+          "confidence": 0.76,
+          "followUp": null
+        }
+      },
+      {
+        "raw": "shrimp sinigang",
+        "result": {
+          "items": [
+            {
+              "name": "Sinigang na baboy",
+              "qty": 1,
+              "unit": "bowl",
+              "kcal": 320,
+              "protein": 22,
+              "carbs": 10,
+              "fat": 21,
+              "assumption": "1 bowl, pork belly + kangkong, radish"
+            },
+            {
+              "name": "Sinigang na hipon",
+              "qty": 1,
+              "unit": "bowl",
+              "kcal": 180,
+              "protein": 24,
+              "carbs": 10,
+              "fat": 4,
+              "assumption": "1 bowl, ~8 shrimp"
+            }
+          ],
+          "confidence": 0.76,
+          "followUp": null
+        }
+      },
+      {
+        "raw": "pancit canton",
+        "result": {
+          "items": [
+            {
+              "name": "Pancit canton",
+              "qty": 1,
+              "unit": "plate",
+              "kcal": 400,
+              "protein": 12,
+              "carbs": 60,
+              "fat": 12,
+              "assumption": "1 plate, with veggies"
+            }
+          ],
+          "confidence": 0.6799999999999999,
+          "followUp": null
+        }
+      },
+      {
+        "raw": "pizza",
+        "result": null
+      },
+      {
+        "raw": "",
+        "result": null
+      },
+      {
+        "raw": "RICE AND ADOBO",
+        "result": {
+          "items": [
+            {
+              "name": "Chicken adobo (thigh)",
+              "qty": 2,
+              "unit": "pc",
+              "kcal": 380,
+              "protein": 32,
+              "carbs": 4,
+              "fat": 26,
+              "assumption": "2 thigh pieces with sauce"
+            },
+            {
+              "name": "Steamed rice",
+              "qty": 1,
+              "unit": "cup",
+              "kcal": 205,
+              "protein": 4,
+              "carbs": 45,
+              "fat": 0,
+              "assumption": "~1 cup cooked, 160 g"
+            }
+          ],
+          "confidence": 0.76,
+          "followUp": {
+            "question": "How much rice?",
+            "options": [
+              "1 cup",
+              "1.5 cups",
+              "2 cups"
+            ]
+          }
+        }
+      },
+      {
+        "raw": "chicken breast 300 g",
+        "result": {
+          "items": [
+            {
+              "name": "Chicken inasal (breast)",
+              "qty": 150,
+              "unit": "g",
+              "kcal": 260,
+              "protein": 46,
+              "carbs": 2,
+              "fat": 7,
+              "assumption": "~150 g grilled breast, no skin"
+            }
+          ],
+          "confidence": 0.6799999999999999,
+          "followUp": null
+        }
+      },
+      {
+        "raw": "10 skyflakes",
+        "result": {
+          "items": [
+            {
+              "name": "SkyFlakes crackers",
+              "qty": 10,
+              "unit": "pack",
+              "kcal": 1300,
+              "protein": 30,
+              "carbs": 190,
+              "fat": 50,
+              "assumption": "1 pack (25 g)"
+            }
+          ],
+          "confidence": 0.6799999999999999,
+          "followUp": null
+        }
+      },
+      {
+        "raw": "coke",
+        "result": {
+          "items": [
+            {
+              "name": "Softdrink",
+              "qty": 1,
+              "unit": "can",
+              "kcal": 140,
+              "protein": 0,
+              "carbs": 39,
+              "fat": 0,
+              "assumption": "1 can, 330 ml, regular"
+            }
+          ],
+          "confidence": 0.6799999999999999,
+          "followUp": null
+        }
+      },
+      {
+        "raw": "oats with banana and whey",
+        "result": {
+          "items": [
+            {
+              "name": "Banana (lakatan)",
+              "qty": 1,
+              "unit": "pc",
+              "kcal": 100,
+              "protein": 1,
+              "carbs": 26,
+              "fat": 0,
+              "assumption": "1 medium"
+            },
+            {
+              "name": "Whey protein",
+              "qty": 1,
+              "unit": "scoop",
+              "kcal": 120,
+              "protein": 24,
+              "carbs": 3,
+              "fat": 2,
+              "assumption": "1 scoop (30 g) in water"
+            },
+            {
+              "name": "Oatmeal with milk",
+              "qty": 1,
+              "unit": "cup",
+              "kcal": 250,
+              "protein": 10,
+              "carbs": 40,
+              "fat": 6,
+              "assumption": "1 cup cooked, low-fat milk"
+            }
+          ],
+          "confidence": 0.84,
+          "followUp": null
+        }
+      }
+    ],
+    "answers": [
+      {
+        "option": "1 cup",
+        "confidenceIn": 0.76,
+        "confidence": 0.86,
+        "items": [
+          {
+            "id": "r",
+            "name": "Steamed rice",
+            "qty": 1,
+            "unit": "cup",
+            "kcal": 205,
+            "protein": 4,
+            "carbs": 45,
+            "fat": 0,
+            "assumption": "1 cup, you said"
+          },
+          {
+            "id": "g",
+            "name": "Garlic rice (sinangag)",
+            "qty": 1,
+            "unit": "cup",
+            "kcal": 280,
+            "protein": 5,
+            "carbs": 50,
+            "fat": 6,
+            "assumption": "1 cup, you said"
+          },
+          {
+            "id": "a",
+            "name": "Chicken adobo (thigh)",
+            "qty": 2,
+            "unit": "pc",
+            "kcal": 380,
+            "protein": 32,
+            "carbs": 4,
+            "fat": 26
+          }
+        ],
+        "followUp": null
+      },
+      {
+        "option": "1.5 cups",
+        "confidenceIn": 0.76,
+        "confidence": 0.86,
+        "items": [
+          {
+            "id": "r",
+            "name": "Steamed rice",
+            "qty": 1.5,
+            "unit": "cup",
+            "kcal": 308,
+            "protein": 6,
+            "carbs": 68,
+            "fat": 0,
+            "assumption": "1.5 cups, you said"
+          },
+          {
+            "id": "g",
+            "name": "Garlic rice (sinangag)",
+            "qty": 1.5,
+            "unit": "cup",
+            "kcal": 420,
+            "protein": 8,
+            "carbs": 75,
+            "fat": 9,
+            "assumption": "1.5 cups, you said"
+          },
+          {
+            "id": "a",
+            "name": "Chicken adobo (thigh)",
+            "qty": 2,
+            "unit": "pc",
+            "kcal": 380,
+            "protein": 32,
+            "carbs": 4,
+            "fat": 26
+          }
+        ],
+        "followUp": null
+      },
+      {
+        "option": "2 cups",
+        "confidenceIn": 0.9,
+        "confidence": 0.95,
+        "items": [
+          {
+            "id": "r",
+            "name": "Steamed rice",
+            "qty": 2,
+            "unit": "cup",
+            "kcal": 410,
+            "protein": 8,
+            "carbs": 90,
+            "fat": 0,
+            "assumption": "2 cups, you said"
+          },
+          {
+            "id": "g",
+            "name": "Garlic rice (sinangag)",
+            "qty": 2,
+            "unit": "cup",
+            "kcal": 560,
+            "protein": 11,
+            "carbs": 100,
+            "fat": 12,
+            "assumption": "2 cups, you said"
+          },
+          {
+            "id": "a",
+            "name": "Chicken adobo (thigh)",
+            "qty": 2,
+            "unit": "pc",
+            "kcal": 380,
+            "protein": 32,
+            "carbs": 4,
+            "fat": 26
+          }
+        ],
+        "followUp": null
+      },
+      {
+        "option": "half",
+        "confidenceIn": null,
+        "confidence": 0.7999999999999999,
+        "items": [
+          {
+            "id": "r",
+            "name": "Steamed rice",
+            "qty": 1,
+            "unit": "cup",
+            "kcal": 205,
+            "protein": 4,
+            "carbs": 45,
+            "fat": 0,
+            "assumption": "half, you said"
+          },
+          {
+            "id": "g",
+            "name": "Garlic rice (sinangag)",
+            "qty": 1,
+            "unit": "cup",
+            "kcal": 280,
+            "protein": 5,
+            "carbs": 50,
+            "fat": 6,
+            "assumption": "half, you said"
+          },
+          {
+            "id": "a",
+            "name": "Chicken adobo (thigh)",
+            "qty": 2,
+            "unit": "pc",
+            "kcal": 380,
+            "protein": 32,
+            "carbs": 4,
+            "fat": 26
+          }
+        ],
+        "followUp": null
+      },
+      {
+        "option": "0.5 cup",
+        "confidenceIn": 0.5,
+        "confidence": 0.6,
+        "items": [
+          {
+            "id": "r",
+            "name": "Steamed rice",
+            "qty": 0.5,
+            "unit": "cup",
+            "kcal": 103,
+            "protein": 2,
+            "carbs": 23,
+            "fat": 0,
+            "assumption": "0.5 cup, you said"
+          },
+          {
+            "id": "g",
+            "name": "Garlic rice (sinangag)",
+            "qty": 0.5,
+            "unit": "cup",
+            "kcal": 140,
+            "protein": 3,
+            "carbs": 25,
+            "fat": 3,
+            "assumption": "0.5 cup, you said"
+          },
+          {
+            "id": "a",
+            "name": "Chicken adobo (thigh)",
+            "qty": 2,
+            "unit": "pc",
+            "kcal": 380,
+            "protein": 32,
+            "carbs": 4,
+            "fat": 26
+          }
+        ],
+        "followUp": null
+      }
+    ],
+    "qty": [
+      {
+        "itemId": "r",
+        "qty": 2,
+        "item": {
+          "id": "r",
+          "name": "Steamed rice",
+          "qty": 2,
+          "unit": "cup",
+          "kcal": 410,
+          "protein": 8,
+          "carbs": 90,
+          "fat": 0,
+          "assumption": "~1 cup cooked, 160 g"
+        }
+      },
+      {
+        "itemId": "r",
+        "qty": 0.5,
+        "item": {
+          "id": "r",
+          "name": "Steamed rice",
+          "qty": 0.5,
+          "unit": "cup",
+          "kcal": 103,
+          "protein": 2,
+          "carbs": 23,
+          "fat": 0,
+          "assumption": "~1 cup cooked, 160 g"
+        }
+      },
+      {
+        "itemId": "g",
+        "qty": 1,
+        "item": {
+          "id": "g",
+          "name": "Garlic rice (sinangag)",
+          "qty": 1,
+          "unit": "cup",
+          "kcal": 280,
+          "protein": 5,
+          "carbs": 50,
+          "fat": 6
+        }
+      },
+      {
+        "itemId": "a",
+        "qty": 3,
+        "item": {
+          "id": "a",
+          "name": "Chicken adobo (thigh)",
+          "qty": 3,
+          "unit": "pc",
+          "kcal": 570,
+          "protein": 48,
+          "carbs": 6,
+          "fat": 39
+        }
+      },
+      {
+        "itemId": "a",
+        "qty": 0,
+        "item": {
+          "id": "a",
+          "name": "Chicken adobo (thigh)",
+          "qty": 0,
+          "unit": "pc",
+          "kcal": 0,
+          "protein": 0,
+          "carbs": 0,
+          "fat": 0
+        }
+      },
+      {
+        "itemId": "a",
+        "qty": -1,
+        "item": {
+          "id": "a",
+          "name": "Chicken adobo (thigh)",
+          "qty": 0,
+          "unit": "pc",
+          "kcal": 0,
+          "protein": 0,
+          "carbs": 0,
+          "fat": 0
+        }
+      }
+    ]
+  }
+}
