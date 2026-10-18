@@ -9372,6 +9372,38 @@
         }
       }
     ],
+    "perfectToday": [
+      {
+        "days": 1,
+        "habitIds": [
+          "h-meditate",
+          "h-nosocial"
+        ],
+        "stats": {
+          "rate": 1,
+          "skipRate": 0,
+          "minutes": 12,
+          "perfect": 0,
+          "missed": 0,
+          "done": 2
+        }
+      },
+      {
+        "days": 7,
+        "habitIds": [
+          "h-meditate",
+          "h-nosocial"
+        ],
+        "stats": {
+          "rate": 0.9285714285714286,
+          "skipRate": 0,
+          "minutes": 74,
+          "perfect": 5,
+          "missed": 0,
+          "done": 13
+        }
+      }
+    ],
     "overallDays": [
       {
         "day": "2026-09-28",

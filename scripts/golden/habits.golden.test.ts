@@ -148,6 +148,16 @@ test("habits logic over the seed", async () => {
 			stats: L.overallStats(s, days, offset),
 		})),
 	);
+	// Only the habits already done today: today is a perfect day, and must
+	// still not count as one.
+	const doneToday = s.habits.filter(
+		(h) => L.cellFor(h, today, idx, today) === "done",
+	);
+	const perfectToday = [1, 7].map((days) => ({
+		days,
+		habitIds: doneToday.map((h) => h.id),
+		stats: L.overallStats({ ...s, habits: doneToday }, days),
+	}));
 	const active = s.habits.filter((h) => h.status !== "archived");
 	const overallDays = L.overallDays(
 		active,
@@ -278,6 +288,7 @@ test("habits logic over the seed", async () => {
 		habitStats,
 		streaks,
 		overallStats,
+		perfectToday,
 		overallDays,
 		routineStats,
 		runStates,

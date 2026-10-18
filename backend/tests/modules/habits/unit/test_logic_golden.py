@@ -247,3 +247,13 @@ def test_step_elapsed() -> None:
 def test_sorted_habits() -> None:
     got = [h.id for h in L.sorted_habits(list(reversed(HABITS)))]
     assert got == FIX["sorted"]
+
+
+def test_perfect_days_never_count_today() -> None:
+    for case in FIX["perfectToday"]:
+        hs = [BY_ID[i] for i in case["habitIds"]]
+        assert hs, "fixture needs habits done today"
+        s = L.overall_stats(hs, IDX, case["days"], TODAY)
+        assert s.perfect == case["stats"]["perfect"]
+        assert s.done == case["stats"]["done"]
+    assert FIX["perfectToday"][0]["stats"]["perfect"] == 0
