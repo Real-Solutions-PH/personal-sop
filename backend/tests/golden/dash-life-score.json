@@ -1,0 +1,1664 @@
+{
+  "frozenNow": "2026-10-18T04:00:00.000Z",
+  "source": "shared/prototype",
+  "data": {
+    "cases": [
+      {
+        "rates": {
+          "habits": 0,
+          "tasks": 0.6,
+          "fitness": 0,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 19,
+        "level": "Getting started"
+      },
+      {
+        "rates": {
+          "habits": 0,
+          "tasks": 0.6,
+          "fitness": 0,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": false,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 8,
+        "level": "Getting started"
+      },
+      {
+        "rates": {
+          "habits": 0,
+          "tasks": 0.6,
+          "fitness": 0,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": false
+        },
+        "score": 15,
+        "level": "Getting started"
+      },
+      {
+        "rates": {
+          "habits": 0,
+          "tasks": 0.6,
+          "fitness": 0.5,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 34,
+        "level": "Getting started"
+      },
+      {
+        "rates": {
+          "habits": 0,
+          "tasks": 0.6,
+          "fitness": 0.5,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": false,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 27,
+        "level": "Getting started"
+      },
+      {
+        "rates": {
+          "habits": 0,
+          "tasks": 0.6,
+          "fitness": 0.5,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": false
+        },
+        "score": 34,
+        "level": "Getting started"
+      },
+      {
+        "rates": {
+          "habits": 0,
+          "tasks": 0.6,
+          "fitness": 1,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 49,
+        "level": "Building"
+      },
+      {
+        "rates": {
+          "habits": 0,
+          "tasks": 0.6,
+          "fitness": 1,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": false,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 46,
+        "level": "Building"
+      },
+      {
+        "rates": {
+          "habits": 0,
+          "tasks": 0.6,
+          "fitness": 1,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": false
+        },
+        "score": 53,
+        "level": "Building"
+      },
+      {
+        "rates": {
+          "habits": 0.25,
+          "tasks": 0.6,
+          "fitness": 0,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 26,
+        "level": "Getting started"
+      },
+      {
+        "rates": {
+          "habits": 0.25,
+          "tasks": 0.6,
+          "fitness": 0,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": false,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 18,
+        "level": "Getting started"
+      },
+      {
+        "rates": {
+          "habits": 0.25,
+          "tasks": 0.6,
+          "fitness": 0,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": false
+        },
+        "score": 24,
+        "level": "Getting started"
+      },
+      {
+        "rates": {
+          "habits": 0.25,
+          "tasks": 0.6,
+          "fitness": 0.5,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 41,
+        "level": "Building"
+      },
+      {
+        "rates": {
+          "habits": 0.25,
+          "tasks": 0.6,
+          "fitness": 0.5,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": false,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 36,
+        "level": "Getting started"
+      },
+      {
+        "rates": {
+          "habits": 0.25,
+          "tasks": 0.6,
+          "fitness": 0.5,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": false
+        },
+        "score": 43,
+        "level": "Building"
+      },
+      {
+        "rates": {
+          "habits": 0.25,
+          "tasks": 0.6,
+          "fitness": 1,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 56,
+        "level": "Steady"
+      },
+      {
+        "rates": {
+          "habits": 0.25,
+          "tasks": 0.6,
+          "fitness": 1,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": false,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 55,
+        "level": "Steady"
+      },
+      {
+        "rates": {
+          "habits": 0.25,
+          "tasks": 0.6,
+          "fitness": 1,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": false
+        },
+        "score": 62,
+        "level": "Steady"
+      },
+      {
+        "rates": {
+          "habits": 0.5,
+          "tasks": 0.6,
+          "fitness": 0,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 34,
+        "level": "Getting started"
+      },
+      {
+        "rates": {
+          "habits": 0.5,
+          "tasks": 0.6,
+          "fitness": 0,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": false,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 27,
+        "level": "Getting started"
+      },
+      {
+        "rates": {
+          "habits": 0.5,
+          "tasks": 0.6,
+          "fitness": 0,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": false
+        },
+        "score": 34,
+        "level": "Getting started"
+      },
+      {
+        "rates": {
+          "habits": 0.5,
+          "tasks": 0.6,
+          "fitness": 0.5,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 49,
+        "level": "Building"
+      },
+      {
+        "rates": {
+          "habits": 0.5,
+          "tasks": 0.6,
+          "fitness": 0.5,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": false,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 46,
+        "level": "Building"
+      },
+      {
+        "rates": {
+          "habits": 0.5,
+          "tasks": 0.6,
+          "fitness": 0.5,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": false
+        },
+        "score": 53,
+        "level": "Building"
+      },
+      {
+        "rates": {
+          "habits": 0.5,
+          "tasks": 0.6,
+          "fitness": 1,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 64,
+        "level": "Steady"
+      },
+      {
+        "rates": {
+          "habits": 0.5,
+          "tasks": 0.6,
+          "fitness": 1,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": false,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 65,
+        "level": "Strong"
+      },
+      {
+        "rates": {
+          "habits": 0.5,
+          "tasks": 0.6,
+          "fitness": 1,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": false
+        },
+        "score": 71,
+        "level": "Strong"
+      },
+      {
+        "rates": {
+          "habits": 0.625,
+          "tasks": 0.6,
+          "fitness": 0,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 37,
+        "level": "Getting started"
+      },
+      {
+        "rates": {
+          "habits": 0.625,
+          "tasks": 0.6,
+          "fitness": 0,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": false,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 32,
+        "level": "Getting started"
+      },
+      {
+        "rates": {
+          "habits": 0.625,
+          "tasks": 0.6,
+          "fitness": 0,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": false
+        },
+        "score": 38,
+        "level": "Getting started"
+      },
+      {
+        "rates": {
+          "habits": 0.625,
+          "tasks": 0.6,
+          "fitness": 0.5,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 52,
+        "level": "Building"
+      },
+      {
+        "rates": {
+          "habits": 0.625,
+          "tasks": 0.6,
+          "fitness": 0.5,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": false,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 50,
+        "level": "Building"
+      },
+      {
+        "rates": {
+          "habits": 0.625,
+          "tasks": 0.6,
+          "fitness": 0.5,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": false
+        },
+        "score": 57,
+        "level": "Steady"
+      },
+      {
+        "rates": {
+          "habits": 0.625,
+          "tasks": 0.6,
+          "fitness": 1,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 67,
+        "level": "Strong"
+      },
+      {
+        "rates": {
+          "habits": 0.625,
+          "tasks": 0.6,
+          "fitness": 1,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": false,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 69,
+        "level": "Strong"
+      },
+      {
+        "rates": {
+          "habits": 0.625,
+          "tasks": 0.6,
+          "fitness": 1,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": false
+        },
+        "score": 76,
+        "level": "Excellent"
+      },
+      {
+        "rates": {
+          "habits": 0.75,
+          "tasks": 0.6,
+          "fitness": 0,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 41,
+        "level": "Building"
+      },
+      {
+        "rates": {
+          "habits": 0.75,
+          "tasks": 0.6,
+          "fitness": 0,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": false,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 36,
+        "level": "Getting started"
+      },
+      {
+        "rates": {
+          "habits": 0.75,
+          "tasks": 0.6,
+          "fitness": 0,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": false
+        },
+        "score": 43,
+        "level": "Building"
+      },
+      {
+        "rates": {
+          "habits": 0.75,
+          "tasks": 0.6,
+          "fitness": 0.5,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 56,
+        "level": "Steady"
+      },
+      {
+        "rates": {
+          "habits": 0.75,
+          "tasks": 0.6,
+          "fitness": 0.5,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": false,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 55,
+        "level": "Steady"
+      },
+      {
+        "rates": {
+          "habits": 0.75,
+          "tasks": 0.6,
+          "fitness": 0.5,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": false
+        },
+        "score": 62,
+        "level": "Steady"
+      },
+      {
+        "rates": {
+          "habits": 0.75,
+          "tasks": 0.6,
+          "fitness": 1,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 71,
+        "level": "Strong"
+      },
+      {
+        "rates": {
+          "habits": 0.75,
+          "tasks": 0.6,
+          "fitness": 1,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": false,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 74,
+        "level": "Strong"
+      },
+      {
+        "rates": {
+          "habits": 0.75,
+          "tasks": 0.6,
+          "fitness": 1,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": false
+        },
+        "score": 81,
+        "level": "Excellent"
+      },
+      {
+        "rates": {
+          "habits": 1,
+          "tasks": 0.6,
+          "fitness": 0,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 49,
+        "level": "Building"
+      },
+      {
+        "rates": {
+          "habits": 1,
+          "tasks": 0.6,
+          "fitness": 0,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": false,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 46,
+        "level": "Building"
+      },
+      {
+        "rates": {
+          "habits": 1,
+          "tasks": 0.6,
+          "fitness": 0,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": false
+        },
+        "score": 53,
+        "level": "Building"
+      },
+      {
+        "rates": {
+          "habits": 1,
+          "tasks": 0.6,
+          "fitness": 0.5,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 64,
+        "level": "Steady"
+      },
+      {
+        "rates": {
+          "habits": 1,
+          "tasks": 0.6,
+          "fitness": 0.5,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": false,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 65,
+        "level": "Strong"
+      },
+      {
+        "rates": {
+          "habits": 1,
+          "tasks": 0.6,
+          "fitness": 0.5,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": false
+        },
+        "score": 71,
+        "level": "Strong"
+      },
+      {
+        "rates": {
+          "habits": 1,
+          "tasks": 0.6,
+          "fitness": 1,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 79,
+        "level": "Excellent"
+      },
+      {
+        "rates": {
+          "habits": 1,
+          "tasks": 0.6,
+          "fitness": 1,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": false,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 83,
+        "level": "Excellent"
+      },
+      {
+        "rates": {
+          "habits": 1,
+          "tasks": 0.6,
+          "fitness": 1,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": false
+        },
+        "score": 90,
+        "level": "Peak"
+      },
+      {
+        "rates": {
+          "habits": 1.4,
+          "tasks": 0.6,
+          "fitness": 0,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 49,
+        "level": "Building"
+      },
+      {
+        "rates": {
+          "habits": 1.4,
+          "tasks": 0.6,
+          "fitness": 0,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": false,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 46,
+        "level": "Building"
+      },
+      {
+        "rates": {
+          "habits": 1.4,
+          "tasks": 0.6,
+          "fitness": 0,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": false
+        },
+        "score": 53,
+        "level": "Building"
+      },
+      {
+        "rates": {
+          "habits": 1.4,
+          "tasks": 0.6,
+          "fitness": 0.5,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 64,
+        "level": "Steady"
+      },
+      {
+        "rates": {
+          "habits": 1.4,
+          "tasks": 0.6,
+          "fitness": 0.5,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": false,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 65,
+        "level": "Strong"
+      },
+      {
+        "rates": {
+          "habits": 1.4,
+          "tasks": 0.6,
+          "fitness": 0.5,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": false
+        },
+        "score": 71,
+        "level": "Strong"
+      },
+      {
+        "rates": {
+          "habits": 1.4,
+          "tasks": 0.6,
+          "fitness": 1,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 79,
+        "level": "Excellent"
+      },
+      {
+        "rates": {
+          "habits": 1.4,
+          "tasks": 0.6,
+          "fitness": 1,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": false,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 83,
+        "level": "Excellent"
+      },
+      {
+        "rates": {
+          "habits": 1.4,
+          "tasks": 0.6,
+          "fitness": 1,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": false
+        },
+        "score": 90,
+        "level": "Peak"
+      },
+      {
+        "rates": {
+          "habits": -0.2,
+          "tasks": 0.6,
+          "fitness": 0,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 19,
+        "level": "Getting started"
+      },
+      {
+        "rates": {
+          "habits": -0.2,
+          "tasks": 0.6,
+          "fitness": 0,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": false,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 8,
+        "level": "Getting started"
+      },
+      {
+        "rates": {
+          "habits": -0.2,
+          "tasks": 0.6,
+          "fitness": 0,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": false
+        },
+        "score": 15,
+        "level": "Getting started"
+      },
+      {
+        "rates": {
+          "habits": -0.2,
+          "tasks": 0.6,
+          "fitness": 0.5,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 34,
+        "level": "Getting started"
+      },
+      {
+        "rates": {
+          "habits": -0.2,
+          "tasks": 0.6,
+          "fitness": 0.5,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": false,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 27,
+        "level": "Getting started"
+      },
+      {
+        "rates": {
+          "habits": -0.2,
+          "tasks": 0.6,
+          "fitness": 0.5,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": false
+        },
+        "score": 34,
+        "level": "Getting started"
+      },
+      {
+        "rates": {
+          "habits": -0.2,
+          "tasks": 0.6,
+          "fitness": 1,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 49,
+        "level": "Building"
+      },
+      {
+        "rates": {
+          "habits": -0.2,
+          "tasks": 0.6,
+          "fitness": 1,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": false,
+          "fitness": true,
+          "finance": true
+        },
+        "score": 46,
+        "level": "Building"
+      },
+      {
+        "rates": {
+          "habits": -0.2,
+          "tasks": 0.6,
+          "fitness": 1,
+          "finance": 0.33
+        },
+        "weights": {
+          "habits": 3,
+          "tasks": 2,
+          "fitness": 3,
+          "finance": 2
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": false
+        },
+        "score": 53,
+        "level": "Building"
+      },
+      {
+        "rates": {
+          "habits": 0,
+          "tasks": 0,
+          "fitness": 0,
+          "finance": 0
+        },
+        "weights": {
+          "habits": 0,
+          "tasks": 0,
+          "fitness": 0,
+          "finance": 0
+        },
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": true
+        },
+        "score": null,
+        "level": "Not scored yet"
+      }
+    ],
+    "levels": [
+      {
+        "score": 0,
+        "level": "Getting started"
+      },
+      {
+        "score": 39,
+        "level": "Getting started"
+      },
+      {
+        "score": 40,
+        "level": "Building"
+      },
+      {
+        "score": 54,
+        "level": "Building"
+      },
+      {
+        "score": 55,
+        "level": "Steady"
+      },
+      {
+        "score": 64,
+        "level": "Steady"
+      },
+      {
+        "score": 65,
+        "level": "Strong"
+      },
+      {
+        "score": 74,
+        "level": "Strong"
+      },
+      {
+        "score": 75,
+        "level": "Excellent"
+      },
+      {
+        "score": 84,
+        "level": "Excellent"
+      },
+      {
+        "score": 85,
+        "level": "Peak"
+      },
+      {
+        "score": 100,
+        "level": "Peak"
+      }
+    ]
+  }
+}

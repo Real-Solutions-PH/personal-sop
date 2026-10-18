@@ -11,6 +11,39 @@ from app.modules.iam.roles import repo as role_repo
 # users + audit trail and the data export/erase rights, without the broad
 # write/admin surface. It consumes the audit-log and GDPR-erase capabilities
 # tracked separately.
+# Every mobile-app capability is owner-scoped in its service; the baseline
+# user role holds all of them.
+MOBILE_API_PERMISSIONS: list[str] = [
+    "profile:read",
+    "profile:write",
+    "habits:read",
+    "habits:write",
+    "tasks:read",
+    "tasks:write",
+    "fitness:read",
+    "fitness:write",
+    "finance:read",
+    "finance:write",
+    "capture:read",
+    "capture:write",
+    "ai_providers:read",
+    "ai_providers:write",
+    "dashboard:read",
+    "dashboard:write",
+    "companion:read",
+    "companion:write",
+    "social:read",
+    "social:write",
+    "weather:read",
+    "weather:write",
+    "media:read",
+    "media:write",
+    "sync:read",
+    "sync:write",
+    "stats:read",
+    "events:read",
+]
+
 ROLE_PERMISSIONS: dict[str, list[str]] = {
     "superadmin": ["*"],
     "admin": [
@@ -31,6 +64,7 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         "ocr:write",
         "conversations:read",
         "conversations:write",
+        *MOBILE_API_PERMISSIONS,
     ],
     "dpo": ["users:read", "audit:read", "data:export", "data:erase"],
 }

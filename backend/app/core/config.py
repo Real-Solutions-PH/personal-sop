@@ -7,6 +7,7 @@ from pydantic import (
     EmailStr,
     HttpUrl,
     PostgresDsn,
+    SecretStr,
     computed_field,
     model_validator,
 )
@@ -224,6 +225,39 @@ class Settings(BaseSettings):
 
     # Jobs Module (background task queue, backed by the Procrastinate worker)
     JOBS_ENABLED: bool = False
+
+    # Mobile API — per-user AI providers. The KEK seals user API keys at rest
+    # (app.shared.crypto); 32 bytes, base64. Lives in the secret manager.
+    AI_CREDENTIALS_KEK: SecretStr | None = None
+    AI_CREDENTIALS_KEK_VERSION: int = 1
+    # When a user has no provider of their own, fall back to the server's
+    # DEFAULT_LLM_PROVIDER keys. Off: such users get the deterministic engine.
+    AI_SERVER_FALLBACK: bool = False
+    AI_REQUEST_TIMEOUT_SECONDS: float = 60.0
+
+    # Mobile API — media uploads (presigned MinIO URLs).
+    MEDIA_BUCKET: str = "media"
+    MEDIA_MAX_IMAGE_MB: int = 15
+    MEDIA_MAX_VIDEO_MB: int = 100
+    MEDIA_MAX_AUDIO_MB: int = 25
+    MEDIA_MAX_FILE_MB: int = 20
+    MEDIA_URL_TTL_SECONDS: int = 900
+
+    # Mobile API — realtime + push.
+    EVENTS_REPLAY_SECONDS: int = 300
+    EVENTS_HEARTBEAT_SECONDS: int = 25
+    EXPO_PUSH_URL: str = "https://exp.host/--/api/v2/push/send"
+    EXPO_PUSH_RECEIPTS_URL: str = "https://exp.host/--/api/v2/push/getReceipts"
+    EXPO_ACCESS_TOKEN: SecretStr | None = None
+    PUSH_ENABLED: bool = False
+
+    # Supabase Auth hook (Standard Webhooks signature, "v1,whsec_<base64>").
+    SUPABASE_AUTH_HOOK_SECRET: SecretStr | None = None
+
+    # Weather proxy (Open-Meteo, keyless).
+    WEATHER_FORECAST_URL: str = "https://api.open-meteo.com/v1/forecast"
+    WEATHER_GEOCODE_URL: str = "https://geocoding-api.open-meteo.com/v1/search"
+    WEATHER_CACHE_SECONDS: int = 900
 
     def _check_default_secret(
         self,

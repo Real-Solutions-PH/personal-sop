@@ -102,6 +102,60 @@ export type RolesPublic = {
     count: number;
 };
 
+export type SyncChange = {
+    entity: string;
+    id: string;
+    version: number;
+    deleted: boolean;
+    row: ({
+    [key: string]: unknown;
+} | null);
+};
+
+export type SyncOp = {
+    op_id: string;
+    kind: 'upsert' | 'delete' | 'action';
+    name: string;
+    id?: (string | null);
+    data?: {
+        [key: string]: unknown;
+    };
+    base_version?: (number | null);
+};
+
+export type kind = 'upsert' | 'delete' | 'action';
+
+export type SyncOpResult = {
+    op_id: string;
+    status: 'applied' | 'conflict' | 'rejected';
+    code?: (string | null);
+    message?: (string | null);
+    row?: ({
+    [key: string]: unknown;
+} | null);
+    result?: ({
+    [key: string]: unknown;
+} | null);
+    replayed?: boolean;
+};
+
+export type status = 'applied' | 'conflict' | 'rejected';
+
+export type SyncPull = {
+    changes: Array<SyncChange>;
+    cursor: number;
+    truncated: boolean;
+};
+
+export type SyncPush = {
+    ops: Array<SyncOp>;
+};
+
+export type SyncPushResult = {
+    results: Array<SyncOpResult>;
+    cursor: number;
+};
+
 export type TenantPublic = {
     id: string;
     name: string;
@@ -163,6 +217,12 @@ export type AuditReadAuditLogsData = {
 };
 
 export type AuditReadAuditLogsResponse = (AuditLogsPublic);
+
+export type EventsStreamData = {
+    lastEventId?: (string | null);
+};
+
+export type EventsStreamResponse = (unknown);
 
 export type ItemsReadItemsData = {
     limit?: number;
@@ -267,6 +327,21 @@ export type RolesReadRoleData = {
 };
 
 export type RolesReadRoleResponse = (RolePublic);
+
+export type SyncPushData = {
+    requestBody: SyncPush;
+};
+
+export type SyncPushResponse = (SyncPushResult);
+
+export type SyncPullData = {
+    cursor?: number;
+    limit?: number;
+};
+
+export type SyncPullResponse = (SyncPull);
+
+export type SyncEntitiesResponse = (Array<(string)>);
 
 export type TenantsReadTenantsData = {
     limit?: number;

@@ -3,7 +3,7 @@
 import type { CancelablePromise } from './core/CancelablePromise';
 import { OpenAPI } from './core/OpenAPI';
 import { request as __request } from './core/request';
-import type { AuditReadAuditLogsData, AuditReadAuditLogsResponse, ItemsReadItemsData, ItemsReadItemsResponse, ItemsCreateItemData, ItemsCreateItemResponse, ItemsReadItemData, ItemsReadItemResponse, ItemsUpdateItemData, ItemsUpdateItemResponse, ItemsDeleteItemData, ItemsDeleteItemResponse, PermissionsReadPermissionsData, PermissionsReadPermissionsResponse, PermissionsReadPermissionData, PermissionsReadPermissionResponse, PrivateCreateUserData, PrivateCreateUserResponse, RbacReadUserPermissionsData, RbacReadUserPermissionsResponse, RbacAssignRoleData, RbacAssignRoleResponse, RbacRemoveRoleData, RbacRemoveRoleResponse, RbacReadRolePermissionsData, RbacReadRolePermissionsResponse, RbacAddPermissionData, RbacAddPermissionResponse, RbacRemovePermissionData, RbacRemovePermissionResponse, RolesReadRolesData, RolesReadRolesResponse, RolesReadRoleData, RolesReadRoleResponse, TenantsReadTenantsData, TenantsReadTenantsResponse, TenantsReadTenantData, TenantsReadTenantResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersExportMyDataResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UsersExportUserDataData, UsersExportUserDataResponse, UsersEraseUserDataData, UsersEraseUserDataResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
+import type { AuditReadAuditLogsData, AuditReadAuditLogsResponse, EventsStreamData, EventsStreamResponse, ItemsReadItemsData, ItemsReadItemsResponse, ItemsCreateItemData, ItemsCreateItemResponse, ItemsReadItemData, ItemsReadItemResponse, ItemsUpdateItemData, ItemsUpdateItemResponse, ItemsDeleteItemData, ItemsDeleteItemResponse, PermissionsReadPermissionsData, PermissionsReadPermissionsResponse, PermissionsReadPermissionData, PermissionsReadPermissionResponse, PrivateCreateUserData, PrivateCreateUserResponse, RbacReadUserPermissionsData, RbacReadUserPermissionsResponse, RbacAssignRoleData, RbacAssignRoleResponse, RbacRemoveRoleData, RbacRemoveRoleResponse, RbacReadRolePermissionsData, RbacReadRolePermissionsResponse, RbacAddPermissionData, RbacAddPermissionResponse, RbacRemovePermissionData, RbacRemovePermissionResponse, RolesReadRolesData, RolesReadRolesResponse, RolesReadRoleData, RolesReadRoleResponse, SyncPushData, SyncPushResponse, SyncPullData, SyncPullResponse, SyncEntitiesResponse, TenantsReadTenantsData, TenantsReadTenantsResponse, TenantsReadTenantData, TenantsReadTenantResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersExportMyDataResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UsersExportUserDataData, UsersExportUserDataResponse, UsersEraseUserDataData, UsersEraseUserDataResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
 
 export class AuditService {
     /**
@@ -21,6 +21,28 @@ export class AuditService {
             query: {
                 skip: data.skip,
                 limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+}
+
+export class EventsService {
+    /**
+     * Stream
+     * @param data The data for the request.
+     * @param data.lastEventId
+     * @returns unknown Successful Response
+     * @throws ApiError
+     */
+    public static stream(data: EventsStreamData = {}): CancelablePromise<EventsStreamResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/events/stream',
+            headers: {
+                'Last-Event-ID': data.lastEventId
             },
             errors: {
                 '4XX': 'Client Error'
@@ -367,6 +389,64 @@ export class RolesService {
             path: {
                 role_id: data.roleId
             },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+}
+
+export class SyncService {
+    /**
+     * Push
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns SyncPushResult Successful Response
+     * @throws ApiError
+     */
+    public static push(data: SyncPushData): CancelablePromise<SyncPushResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/sync/push',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Pull
+     * @param data The data for the request.
+     * @param data.cursor
+     * @param data.limit
+     * @returns SyncPull Successful Response
+     * @throws ApiError
+     */
+    public static pull(data: SyncPullData = {}): CancelablePromise<SyncPullResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/sync/pull',
+            query: {
+                cursor: data.cursor,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Entities
+     * @returns string Successful Response
+     * @throws ApiError
+     */
+    public static entities(): CancelablePromise<SyncEntitiesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/sync/entities',
             errors: {
                 '4XX': 'Client Error'
             }

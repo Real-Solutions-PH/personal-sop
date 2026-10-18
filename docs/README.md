@@ -12,7 +12,7 @@ Context pack for human + AI programmers building this SaaS. Fill each template; 
 | [03-user-personas.md](03-user-personas.md) | Target users, jobs-to-be-done | PM/Design |
 | [04-user-journeys.md](04-user-journeys.md) | Flows, touchpoints, edge cases | Design |
 | [05-project-plan.md](05-project-plan.md) | Milestones, timeline, resources | PM |
-| [08-data-model.md](08-data-model.md) | Entities, schema, relationships | Backend |
+| [08-data-model.md](08-data-model.md) | Entities, schema, relationships (incl. the mobile API domain ERD, 2026-10-18) | Backend |
 | [10-implementation-plan.md](10-implementation-plan.md) | Phases, tasks, dependencies | Tech lead |
 | [13-deployment.md](13-deployment.md) | Single-environment policy, manual promotion | DevOps |
 | [14-observability.md](14-observability.md) | Logs, metrics, traces, alerts | DevOps |

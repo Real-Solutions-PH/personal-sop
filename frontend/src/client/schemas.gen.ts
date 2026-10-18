@@ -431,6 +431,222 @@ export const RolesPublicSchema = {
     title: 'RolesPublic'
 } as const;
 
+export const SyncChangeSchema = {
+    properties: {
+        entity: {
+            type: 'string',
+            title: 'Entity'
+        },
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        version: {
+            type: 'integer',
+            title: 'Version'
+        },
+        deleted: {
+            type: 'boolean',
+            title: 'Deleted'
+        },
+        row: {
+            anyOf: [
+                {
+                    additionalProperties: true,
+                    type: 'object'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Row'
+        }
+    },
+    type: 'object',
+    required: ['entity', 'id', 'version', 'deleted', 'row'],
+    title: 'SyncChange'
+} as const;
+
+export const SyncOpSchema = {
+    properties: {
+        op_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Op Id'
+        },
+        kind: {
+            type: 'string',
+            enum: ['upsert', 'delete', 'action'],
+            title: 'Kind'
+        },
+        name: {
+            type: 'string',
+            maxLength: 40,
+            minLength: 1,
+            title: 'Name'
+        },
+        id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Id'
+        },
+        data: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Data'
+        },
+        base_version: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Base Version'
+        }
+    },
+    type: 'object',
+    required: ['op_id', 'kind', 'name'],
+    title: 'SyncOp'
+} as const;
+
+export const SyncOpResultSchema = {
+    properties: {
+        op_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Op Id'
+        },
+        status: {
+            type: 'string',
+            enum: ['applied', 'conflict', 'rejected'],
+            title: 'Status'
+        },
+        code: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Code'
+        },
+        message: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Message'
+        },
+        row: {
+            anyOf: [
+                {
+                    additionalProperties: true,
+                    type: 'object'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Row'
+        },
+        result: {
+            anyOf: [
+                {
+                    additionalProperties: true,
+                    type: 'object'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Result'
+        },
+        replayed: {
+            type: 'boolean',
+            title: 'Replayed',
+            default: false
+        }
+    },
+    type: 'object',
+    required: ['op_id', 'status'],
+    title: 'SyncOpResult'
+} as const;
+
+export const SyncPullSchema = {
+    properties: {
+        changes: {
+            items: {
+                '$ref': '#/components/schemas/SyncChange'
+            },
+            type: 'array',
+            title: 'Changes'
+        },
+        cursor: {
+            type: 'integer',
+            title: 'Cursor'
+        },
+        truncated: {
+            type: 'boolean',
+            title: 'Truncated'
+        }
+    },
+    type: 'object',
+    required: ['changes', 'cursor', 'truncated'],
+    title: 'SyncPull'
+} as const;
+
+export const SyncPushSchema = {
+    properties: {
+        ops: {
+            items: {
+                '$ref': '#/components/schemas/SyncOp'
+            },
+            type: 'array',
+            maxItems: 200,
+            title: 'Ops'
+        }
+    },
+    type: 'object',
+    required: ['ops'],
+    title: 'SyncPush'
+} as const;
+
+export const SyncPushResultSchema = {
+    properties: {
+        results: {
+            items: {
+                '$ref': '#/components/schemas/SyncOpResult'
+            },
+            type: 'array',
+            title: 'Results'
+        },
+        cursor: {
+            type: 'integer',
+            title: 'Cursor'
+        }
+    },
+    type: 'object',
+    required: ['results', 'cursor'],
+    title: 'SyncPushResult'
+} as const;
+
 export const TenantPublicSchema = {
     properties: {
         id: {
