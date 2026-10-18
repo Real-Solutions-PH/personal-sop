@@ -114,6 +114,19 @@ test("seed state, stats, today data, module contract", async () => {
 		}
 	}
 
+	// Nothing done today: the streak counts back from yesterday.
+	const noToday = {
+		...state,
+		tasks: state.tasks.filter((t) => L.doneDay(t) !== tk),
+	};
+	const quiet = L.computeStats(noToday, L.addDays(tk, -6), tk, tk);
+	const statsNoToday = {
+		removed: state.tasks.filter((t) => L.doneDay(t) === tk).map((t) => t.id),
+		streak: quiet.streak,
+		bestStreak: quiet.bestStreak,
+		done: quiet.done,
+	};
+
 	const ids = (ts: { id: string }[]) => ts.map((t) => t.id);
 	const d = H.useTodayData();
 	const today = {
@@ -160,6 +173,7 @@ test("seed state, stats, today data, module contract", async () => {
 		today: tk,
 		state,
 		stats,
+		statsNoToday,
 		todayData: today,
 		byDue,
 		overdue,
@@ -218,6 +232,11 @@ test("parse + capture split", async () => {
 		"monthly report on the 20th",
 		"every 14 days backup",
 		"weekdays commute log",
+		// JS semantics: ASCII-only \d and \b, and String.replace on the FIRST
+		// occurrence of the matched text (here inside "xtoday").
+		"renew in \u0663 days",
+		"\u00e9monday call",
+		"xtoday today buy",
 	];
 	const days = ["2026-10-18", "2026-10-31", "2026-12-30", "2028-02-27"];
 	const parse = days.flatMap((tk) =>

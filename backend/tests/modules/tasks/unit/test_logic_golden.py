@@ -185,3 +185,21 @@ def test_js_to_fixed(x: float, want: str) -> None:
     # Hand-read from node: (0.25).toFixed(1) === "0.3", (0.35).toFixed(1) ===
     # "0.3" (0.35 is 0.34999… in binary), (1.15).toFixed(1) === "1.1".
     assert L.js_to_fixed(x, 1) == want
+
+
+def test_streak_counts_back_from_yesterday_when_nothing_is_done_today() -> None:
+    want = STATS["statsNoToday"]
+    full = seed_state()
+    drop = set(want["removed"])
+    state = L.TasksState(
+        lists=full.lists,
+        tasks=[t for t in full.tasks if t.id not in drop],
+        events=full.events,
+        count_groceries=full.count_groceries,
+    )
+    got = L.compute_stats(state, L.add_days(TODAY, -6), TODAY, TODAY, CLOCK)
+    assert (got.streak, got.best_streak, got.done) == (
+        want["streak"],
+        want["bestStreak"],
+        want["done"],
+    )

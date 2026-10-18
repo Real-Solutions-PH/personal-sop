@@ -683,6 +683,43 @@
         }
       },
       {
+        "tk": "2026-10-18",
+        "text": "renew in ٣ days",
+        "parsed": {
+          "title": "Renew in ٣ days",
+          "dueDate": null,
+          "dueTime": null,
+          "recurrence": null,
+          "matched": []
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "émonday call",
+        "parsed": {
+          "title": "É call",
+          "dueDate": "2026-10-19",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "monday"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "xtoday today buy",
+        "parsed": {
+          "title": "X today buy",
+          "dueDate": "2026-10-18",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "today"
+          ]
+        }
+      },
+      {
         "tk": "2026-10-31",
         "text": "dentist fri 10am",
         "parsed": {
@@ -1358,6 +1395,43 @@
           },
           "matched": [
             "weekdays"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "renew in ٣ days",
+        "parsed": {
+          "title": "Renew in ٣ days",
+          "dueDate": null,
+          "dueTime": null,
+          "recurrence": null,
+          "matched": []
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "émonday call",
+        "parsed": {
+          "title": "É call",
+          "dueDate": "2026-11-02",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "monday"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "xtoday today buy",
+        "parsed": {
+          "title": "X today buy",
+          "dueDate": "2026-10-31",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "today"
           ]
         }
       },
@@ -2041,6 +2115,43 @@
         }
       },
       {
+        "tk": "2026-12-30",
+        "text": "renew in ٣ days",
+        "parsed": {
+          "title": "Renew in ٣ days",
+          "dueDate": null,
+          "dueTime": null,
+          "recurrence": null,
+          "matched": []
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "émonday call",
+        "parsed": {
+          "title": "É call",
+          "dueDate": "2027-01-04",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "monday"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "xtoday today buy",
+        "parsed": {
+          "title": "X today buy",
+          "dueDate": "2026-12-30",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "today"
+          ]
+        }
+      },
+      {
         "tk": "2028-02-27",
         "text": "dentist fri 10am",
         "parsed": {
@@ -2716,6 +2827,43 @@
           },
           "matched": [
             "weekdays"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "renew in ٣ days",
+        "parsed": {
+          "title": "Renew in ٣ days",
+          "dueDate": null,
+          "dueTime": null,
+          "recurrence": null,
+          "matched": []
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "émonday call",
+        "parsed": {
+          "title": "É call",
+          "dueDate": "2028-02-28",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "monday"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "xtoday today buy",
+        "parsed": {
+          "title": "X today buy",
+          "dueDate": "2028-02-27",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "today"
           ]
         }
       }

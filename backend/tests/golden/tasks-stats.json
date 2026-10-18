@@ -10835,6 +10835,18 @@
         }
       }
     ],
+    "statsNoToday": {
+      "removed": [
+        "t20",
+        "t36",
+        "t37",
+        "d0_0",
+        "d0_1"
+      ],
+      "streak": 9,
+      "bestStreak": 17,
+      "done": 17
+    },
     "todayData": {
       "overdue": [
         "t24",
