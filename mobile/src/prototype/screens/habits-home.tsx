@@ -44,11 +44,13 @@ function Stat({
   value,
   delta,
   down = false,
+  unit = "",
 }: {
   label: string
   value: string | number
   delta?: number
   down?: boolean
+  unit?: string
 }) {
   const t = useTheme()
   return (
@@ -56,15 +58,23 @@ function Stat({
       <Copy size={30} weight="display" style={{ lineHeight: 36 }}>
         {value}
       </Copy>
-      <Copy size={12} muted>
-        {label}
+      {/* Label and delta sit side by side and never wrap apart, so every
+          stat reads the same whatever its label length. */}
+      <Line style={{ gap: 6 }}>
+        <Copy size={12} muted lines={1} style={{ flexShrink: 1 }}>
+          {label}
+        </Copy>
         {delta !== undefined && delta !== 0 && (
-          <Text style={{ color: delta > 0 !== down ? t.good : t.bad }}>
-            　{delta > 0 ? "▲" : "▼"}
+          <Copy
+            size={12}
+            style={{ color: delta > 0 !== down ? t.good : t.bad }}
+          >
+            {delta > 0 ? "▲" : "▼"}
             {Math.abs(delta)}
-          </Text>
+            {unit}
+          </Copy>
         )}
-      </Copy>
+      </Line>
     </View>
   )
 }
@@ -404,11 +414,13 @@ export function HabitsHome() {
                           : H.fmtMinutes(cur.minutes)
                       }
                       delta={Math.round((cur.minutes - prev.minutes) / 60)}
+                      unit="h"
                     />
                     <Stat
                       label="Skip rate"
                       value={H.pct(cur.skipRate)}
                       delta={Math.round((cur.skipRate - prev.skipRate) * 100)}
+                      unit="pt"
                       down
                     />
                   </Line>
@@ -464,7 +476,7 @@ export function HabitsHome() {
               ))}
             </Line>
             <SectionHeading>Reflection</SectionHeading>
-            <Frame style={{ padding: 16, gap: 12, borderColor: `${t.bad}33` }}>
+            <Frame style={{ padding: 16, gap: 12 }}>
               <Line style={{ gap: 8 }}>
                 <TriangleAlert size={16} color={t.bad} />
                 <Copy size={14} weight="semibold">

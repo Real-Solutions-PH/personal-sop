@@ -42,60 +42,62 @@ export function FinanceDisclaimer({
     [scope, setScope] = useState(s.settings.aiScope)
   return (
     <Sheet title="Before you ask" open onClose={onClose}>
-      <Copy size={14}>
-        The advisor is an AI that explains your own numbers, teaches concepts
-        and suggests options. It is not licensed financial advice and never
-        moves money.
-      </Copy>
-      <Copy size={14} muted>
-        This prototype uses local sample answers. Choose the data scope for the
-        advisor:
-      </Copy>
-      {(
-        [
-          {
-            v: "aggregates",
-            title: "Totals only (recommended)",
-            detail:
-              "Monthly totals by category, balances, scheduled payments. No payees or notes.",
-          },
-          {
-            v: "records",
-            title: "Individual transactions when needed",
-            detail:
-              "Individual transactions (payee, amount, date) for questions that need them. You'll see a chip when it's used.",
-          },
-        ] as const
-      ).map((o) => (
-        <Tap key={o.v} onPress={() => setScope(o.v)}>
-          <Frame
-            style={{
-              padding: 12,
-              borderColor: scope === o.v ? t.fin : t.line,
-              backgroundColor: scope === o.v ? `${t.fin}1a` : t.card,
-            }}
-          >
-            <Copy size={14} weight="medium">
-              {o.title}
-            </Copy>
-            <Copy size={12} muted>
-              {o.detail}
-            </Copy>
-          </Frame>
-        </Tap>
-      ))}
-      <Button
-        onPress={() => {
-          A.updateSettings({ disclaimerAck: true, aiScope: scope })
-          onClose()
-          onAck?.()
-        }}
-      >
-        I understand
-      </Button>
-      <Button tone="quiet" onPress={onClose}>
-        Cancel
-      </Button>
+      <View style={{ gap: 8, paddingBottom: 8 }}>
+        <Copy size={14}>
+          The advisor is an AI that explains your own numbers, teaches concepts
+          and suggests options. It is not licensed financial advice and never
+          moves money.
+        </Copy>
+        <Copy size={14} muted>
+          This prototype uses local sample answers. Choose the data scope for
+          the advisor:
+        </Copy>
+        {(
+          [
+            {
+              v: "aggregates",
+              title: "Totals only (recommended)",
+              detail:
+                "Monthly totals by category, balances, scheduled payments. No payees or notes.",
+            },
+            {
+              v: "records",
+              title: "Individual transactions when needed",
+              detail:
+                "Individual transactions (payee, amount, date) for questions that need them. You'll see a chip when it's used.",
+            },
+          ] as const
+        ).map((o) => (
+          <Tap key={o.v} onPress={() => setScope(o.v)}>
+            <Frame
+              style={{
+                padding: 12,
+                borderColor: scope === o.v ? t.fin : t.line,
+                backgroundColor: scope === o.v ? `${t.fin}1a` : t.card,
+              }}
+            >
+              <Copy size={14} weight="medium">
+                {o.title}
+              </Copy>
+              <Copy size={12} muted>
+                {o.detail}
+              </Copy>
+            </Frame>
+          </Tap>
+        ))}
+        <Button
+          onPress={() => {
+            A.updateSettings({ disclaimerAck: true, aiScope: scope })
+            onClose()
+            onAck?.()
+          }}
+        >
+          I understand
+        </Button>
+        <Button tone="quiet" onPress={onClose}>
+          Cancel
+        </Button>
+      </View>
     </Sheet>
   )
 }
@@ -148,7 +150,14 @@ export function FinanceSettings() {
     </Line>
   )
   const chips = (children: React.ReactNode) => (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+    // Bleed to the card edges so a clipped chip reads as "scroll for more"
+    // and the last chip keeps the card's inner padding when scrolled to.
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={{ marginHorizontal: -16, flexGrow: 0 }}
+      contentContainerStyle={{ paddingHorizontal: 16 }}
+    >
       <Line style={{ gap: 8 }}>{children}</Line>
     </ScrollView>
   )

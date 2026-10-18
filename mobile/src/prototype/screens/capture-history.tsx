@@ -11,6 +11,7 @@ import {
   RotateCw,
   Search,
   Trash2,
+  Wifi,
   WifiOff,
   Zap,
 } from "lucide-react-native"
@@ -385,7 +386,11 @@ export function CaptureQueue() {
                 alignItems: "center",
               }}
             >
-              <WifiOff size={20} color={online ? t.good : t.warn} />
+              {online ? (
+                <Wifi size={20} color={t.good} />
+              ) : (
+                <WifiOff size={20} color={t.warn} />
+              )}
             </View>
             <View style={{ flex: 1 }}>
               <Copy weight="semibold">{online ? "Online" : "Offline"}</Copy>

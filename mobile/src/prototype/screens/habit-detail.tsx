@@ -12,7 +12,15 @@ import {
 } from "lucide-react-native"
 import { useState } from "react"
 import { View } from "react-native"
-import { Copy, Frame, IconTap, Line, SectionHeading, Tap } from "../native-kit"
+import {
+  border,
+  Copy,
+  Frame,
+  IconTap,
+  Line,
+  SectionHeading,
+  Tap,
+} from "../native-kit"
 import { go } from "../navigation"
 import { useTheme } from "../theme"
 import { Button, confirm, DateField, Empty, Field, Screen, Sheet } from "../ui"
@@ -132,7 +140,8 @@ function Month({ habit }: { habit: Habit }) {
           )
         })}
       </View>
-      <Line style={{ flexWrap: "wrap", gap: 12, marginTop: 12 }}>
+      {/* Three per row so the legend wraps evenly instead of orphaning one. */}
+      <Line style={{ flexWrap: "wrap", gap: 0, rowGap: 6, marginTop: 12 }}>
         {[
           ["done", t.hab],
           ["partial", `${t.hab}73`],
@@ -141,15 +150,16 @@ function Month({ habit }: { habit: Habit }) {
           ["paused", t.soft],
           ["bonus", "transparent"],
         ].map(([label, color]) => (
-          <Line key={label} style={{ gap: 4 }}>
+          <Line key={label} style={{ gap: 4, width: "33.333%" }}>
             <View
               style={{
                 width: 10,
                 height: 10,
                 borderRadius: 2,
                 backgroundColor: color,
-                borderWidth: label === "bonus" ? 1 : 0,
-                borderColor: t.hab,
+                // Pale swatches (paused, skipped) need an outline to read.
+                borderWidth: label === "done" ? 0 : 1,
+                borderColor: label === "bonus" ? t.hab : border(t.muted, 0.4),
               }}
             />
             <Copy size={11} muted>
@@ -310,7 +320,7 @@ export function HabitDetail({ id }: { id: string }) {
               </Button>
             </View>
             <Button tone="quiet" onPress={() => setLogDay(today)}>
-              Log…
+              Log entry
             </Button>
           </Line>
         )}
@@ -327,21 +337,20 @@ export function HabitDetail({ id }: { id: string }) {
                   >
                     {c.value}
                   </Copy>
-                </Line>
-                <Line style={{ gap: 4 }}>
-                  <Copy size={12} muted>
-                    {c.label}
-                  </Copy>
+                  {/* Delta rides beside the value so the label never truncates. */}
                   {c.delta !== undefined && (
                     <Copy
                       size={12}
                       style={{ color: c.delta >= 0 ? t.good : t.bad }}
                     >
                       {c.delta >= 0 ? "▲" : "▼"}
-                      {Math.abs(c.delta)}
+                      {Math.abs(c.delta)}pt
                     </Copy>
                   )}
                 </Line>
+                <Copy size={12} muted>
+                  {c.label}
+                </Copy>
               </View>
             ))}
           </View>

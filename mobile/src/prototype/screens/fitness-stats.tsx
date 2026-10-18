@@ -245,7 +245,7 @@ export function FitnessStats() {
                       {C.kgShort(Math.round(Math.abs(l.delta) * 10) / 10)} kg
                     </Copy>
                   </View>
-                  <View style={{ width: 80 }}>
+                  <View style={{ width: 56, marginLeft: 8 }}>
                     <Sparkline
                       values={l.series}
                       color={t.fit}
@@ -256,7 +256,7 @@ export function FitnessStats() {
                   </View>
                   <Copy
                     weight="semibold"
-                    style={{ width: 56, textAlign: "right" }}
+                    style={{ width: 44, textAlign: "right" }}
                   >
                     {C.kgShort(Math.round(l.last))}
                   </Copy>

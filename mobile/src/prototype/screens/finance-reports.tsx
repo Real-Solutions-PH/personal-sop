@@ -47,6 +47,15 @@ export function Reports({ kind }: { kind?: string }) {
     d = reportData(s, p),
     prevCats = d.prev.byCat,
     q = `?period=${p}`,
+    // Month names keep their capital; only "Last 3 months" reads mid-sentence.
+    periodText = p === "3m" ? d.r.label.toLowerCase() : d.r.label,
+    // netWorthSeries(…, 90) ends today; keep only the selected period's days.
+    nwStart = Math.max(0, 89 - C.diffDays(dayKey(), d.r.from)),
+    nwEnd = Math.max(nwStart, 89 - C.diffDays(dayKey(), d.r.to)),
+    nw = d.nw.slice(nwStart, nwEnd + 1),
+    nwFrom = C.addDays(dayKey(), nwStart - 89),
+    nwFirst = nw[0] ?? 0,
+    nwLast = nw.at(-1) ?? 0,
     recHref = (extra = "") =>
       `/finance/records?from=${d.r.from}&to=${d.r.to}${extra}`
   const stats = (
@@ -153,9 +162,21 @@ export function Reports({ kind }: { kind?: string }) {
             `/finance/reports/category${q}`,
             <Line style={{ gap: 16 }}>
               <Donut values={d.byCat.map((x) => x[1])} size={112}>
-                <Copy size={10} muted>
-                  top
-                </Copy>
+                {d.byCat[0] && (
+                  <>
+                    <Copy size={14} weight="semibold">
+                      {Math.round((d.byCat[0][1] / d.flow.spend) * 100)}%
+                    </Copy>
+                    <Copy
+                      size={10}
+                      muted
+                      lines={1}
+                      style={{ maxWidth: 68, textAlign: "center" }}
+                    >
+                      {d.cats.get(d.byCat[0][0])?.name ?? "Other"}
+                    </Copy>
+                  </>
+                )}
               </Donut>
               <View style={{ flex: 1, gap: 6 }}>
                 {d.byCat.slice(0, 5).map(([id, v], i) => (
@@ -165,7 +186,7 @@ export function Reports({ kind }: { kind?: string }) {
                         width: 10,
                         height: 10,
                         borderRadius: 5,
-                        backgroundColor: t[FIN_PALETTE[i % 7]],
+                        backgroundColor: t[FIN_PALETTE[i % FIN_PALETTE.length]],
                       }}
                     />
                     <Copy size={12} lines={1} style={{ flex: 1 }}>
@@ -198,7 +219,7 @@ export function Reports({ kind }: { kind?: string }) {
                 height={56}
               />
               <Copy size={12} muted style={{ marginTop: 4 }}>
-                Running total over {d.r.label.toLowerCase()}
+                Running total over {periodText}
               </Copy>
             </>,
           )}
@@ -274,7 +295,7 @@ export function Reports({ kind }: { kind?: string }) {
           <Button
             tone="quiet"
             href={`/finance/review?from=${d.r.from}&to=${d.r.to}`}
-          >{`Review ${d.r.label.toLowerCase()}`}</Button>
+          >{`Review ${periodText}`}</Button>
         </>
       ) : kind === "category" ? (
         <>
@@ -300,7 +321,7 @@ export function Reports({ kind }: { kind?: string }) {
                         width: 12,
                         height: 12,
                         borderRadius: 6,
-                        backgroundColor: t[FIN_PALETTE[i % 7]],
+                        backgroundColor: t[FIN_PALETTE[i % FIN_PALETTE.length]],
                       }}
                     />
                     <View style={{ flex: 1 }}>
@@ -315,13 +336,19 @@ export function Reports({ kind }: { kind?: string }) {
                       <Copy size={14} weight="medium">
                         {money(v)}
                       </Copy>
-                      {prev > 0 && (
+                      {prev > 0 ? (
                         <Copy
                           size={11}
-                          style={{ color: dl > 0 ? t.bad : t.good }}
+                          style={{
+                            color: dl > 0 ? t.bad : dl < 0 ? t.good : t.muted,
+                          }}
                         >
-                          {dl > 0 ? "▲" : "▼"}
+                          {dl > 0 ? "▲" : dl < 0 ? "▼" : "±"}
                           {Math.abs(dl)}%
+                        </Copy>
+                      ) : (
+                        <Copy size={11} muted>
+                          new
                         </Copy>
                       )}
                     </View>
@@ -338,7 +365,7 @@ export function Reports({ kind }: { kind?: string }) {
             <FinanceLineChart
               series={[{ values: d.daily, color: t.fin, area: true }]}
               labels={Array.from({ length: d.days }, (_, i) =>
-                i % 7 === 0 ? C.shortDate(C.addDays(d.r.from, i)) : "",
+                C.shortDate(C.addDays(d.r.from, i)),
               )}
               zero
             />
@@ -423,19 +450,17 @@ export function Reports({ kind }: { kind?: string }) {
       ) : kind === "networth" ? (
         <Frame style={{ paddingHorizontal: 8, paddingVertical: 16 }}>
           <FinanceLineChart
-            series={[{ values: d.nw, color: t.fin, area: true }]}
-            labels={Array.from({ length: 90 }, (_, i) =>
-              i % 15 === 0 ? C.shortDate(C.addDays(dayKey(), i - 89)) : "",
-            )}
+            series={[{ values: nw, color: t.fin, area: true }]}
+            labels={nw.map((_, i) => C.shortDate(C.addDays(nwFrom, i)))}
           />
           <View style={{ paddingHorizontal: 8, paddingBottom: 8, gap: 4 }}>
             <Copy size={12} muted>
               Assets minus credit card debt. Investments at their last manual
               value.
             </Copy>
-            <FinPill tone={d.nw[89] >= d.nw[0] ? "good" : "bad"}>
-              {C.pct((d.nw[89] - d.nw[0]) / Math.abs(d.nw[0] || 1), 1)} in 90
-              days
+            <FinPill tone={nwLast >= nwFirst ? "good" : "bad"}>
+              {C.pct((nwLast - nwFirst) / Math.abs(nwFirst || 1), 1)} over{" "}
+              {periodText}
             </FinPill>
           </View>
         </Frame>

@@ -126,16 +126,20 @@ export function Templates({ id }: { id?: string }) {
     <Screen
       title={existing ? "Edit template" : "New template"}
       actions={
-        <Button
-          small
-          disabled={!items.length}
-          onPress={() => {
-            save()
-            go("/fitness/templates")
-          }}
-        >
-          Save
-        </Button>
+        // The header row insets actions by 8pt (sized for glyph buttons);
+        // a filled pill needs the extra 8pt to sit on the 16pt gutter.
+        <View style={{ marginRight: 8 }}>
+          <Button
+            small
+            disabled={!items.length}
+            onPress={() => {
+              save()
+              go("/fitness/templates")
+            }}
+          >
+            Save
+          </Button>
+        </View>
       }
     >
       <TextInput

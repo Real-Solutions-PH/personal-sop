@@ -923,7 +923,7 @@ function FitnessCards({ evening }: { evening: boolean }) {
                       ? `${Math.round(totals.totals.kcal)} kcal eaten`
                       : `${Math.round(Math.abs(kLeft))} kcal ${kLeft < 0 ? "over" : evening ? "under" : "left"}`}
                   </Copy>
-                  <Copy size={14} muted lines={evening ? undefined : 1}>
+                  <Copy size={14} muted lines={evening ? undefined : 2}>
                     {pLeft === undefined
                       ? "Set targets"
                       : `${Math.max(0, Math.round(pLeft))} g protein ${evening ? "short" : "left"}`}
@@ -1153,7 +1153,9 @@ function FinanceCard() {
               {stale &&
                 info(
                   History,
-                  `${stale.name} not matched with a statement for ${N.lastReconciledDays(stale) ?? "a while"} days`,
+                  N.lastReconciledDays(stale) === null
+                    ? `${stale.name}: no statement match yet`
+                    : `${stale.name}: no statement match in ${N.lastReconciledDays(stale)} days`,
                   `/finance/import?account=${stale.id}`,
                   t.warn,
                 )}
@@ -1201,7 +1203,7 @@ function FinanceCard() {
                       <Text style={{ fontFamily: fonts.semibold }}>
                         {money(last.end)}
                       </Text>{" "}
-                      by {N.monthLabel(last.key)} {last.key.slice(2, 4)}
+                      by {N.monthLabel(last.key)} {last.key.slice(0, 4)}
                     </Copy>
                     <Copy size={12} weight="medium" style={{ color: t.fin }}>
                       What if? ›

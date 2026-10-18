@@ -2,7 +2,12 @@ import { peso } from "@domain/lib/day"
 import { privacyStore } from "@domain/lib/privacy"
 export function useMoney() {
   const hidden = privacyStore.use((s) => s.hidden)
-  return (n: number) => (hidden ? "••••" : peso(n))
+  // Minus before the peso sign ("−₱412", not "₱-412"); -0 never shows a sign.
+  return (n: number) => {
+    if (hidden) return "••••"
+    const r = Math.round(n)
+    return r < 0 ? `−${peso(-r)}` : peso(r || 0)
+  }
 }
 export { AdvisorAnswer } from "./finance-advisor-answer"
 export { PlannedEditor } from "./finance-planned-editor"

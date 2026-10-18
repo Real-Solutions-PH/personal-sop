@@ -6,8 +6,9 @@ import { type ReactNode, useState } from "react"
 import { ScrollView, Text, View } from "react-native"
 import { Copy, Frame, Line, SectionHeading, Tap } from "../native-kit"
 import { CardFrame, type CardLook, ShareComposer } from "../share-kit"
+import { Switch } from "../switch"
 import { fonts, useTheme } from "../theme"
-import { Screen, Toggle } from "../ui"
+import { Screen } from "../ui"
 import { Ring } from "../visual"
 
 type Layout = "streak" | "month" | "routine" | "scoreboard"
@@ -54,7 +55,7 @@ export function HabitShare() {
   function render(kind: Layout, width: number, look: CardLook) {
     const q = width / 100,
       tall = look.format === "9:16",
-      ink = look.backdrop === "paper" ? t["share-paper-ink"] : "#fff",
+      ink = look.backdrop === "paper" ? t["share-paper-ink"] : "#ffffff",
       panel = look.backdrop === "paper" ? "#0000000d" : "#ffffff17"
     const text = (
       value: string,
@@ -411,9 +412,9 @@ export function HabitShare() {
           </>
         )}
         <Frame style={{ gap: 12, padding: 16 }}>
-          <Toggle label="Hide habit names" value={hide} onChange={setHide} />
+          <HabToggle label="Hide habit names" value={hide} onChange={setHide} />
           {layout !== "routine" && layout !== "scoreboard" && (
-            <Toggle
+            <HabToggle
               label="Show completion rate"
               value={showRate}
               onChange={setShowRate}
@@ -425,6 +426,25 @@ export function HabitShare() {
         </Copy>
       </ShareComposer>
     </Screen>
+  )
+}
+/** ui's Toggle row, but with the habits accent like every other habits switch. */
+function HabToggle({
+  label,
+  value,
+  onChange,
+}: {
+  label: string
+  value: boolean
+  onChange: (value: boolean) => void
+}) {
+  return (
+    <Line style={{ gap: 12, minHeight: 52 }}>
+      <Copy size={15} style={{ flex: 1 }}>
+        {label}
+      </Copy>
+      <Switch label={label} value={value} onChange={onChange} accent="hab" />
+    </Line>
   )
 }
 function verdict(rate: number) {

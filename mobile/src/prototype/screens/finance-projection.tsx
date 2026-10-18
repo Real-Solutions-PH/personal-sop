@@ -63,6 +63,37 @@ export function FinChip({
     </Tap>
   )
 }
+/** Legend swatch drawn in the series' own colour and stroke style. */
+function LegendKey({
+  color,
+  label,
+  dashed = false,
+}: {
+  color: string
+  label: string
+  dashed?: boolean
+}) {
+  return (
+    <Line style={{ gap: 6 }}>
+      <Line style={{ gap: 2 }}>
+        {(dashed ? [0, 1, 2] : [0]).map((i) => (
+          <View
+            key={i}
+            style={{
+              width: dashed ? 4 : 14,
+              height: 2,
+              borderRadius: 1,
+              backgroundColor: color,
+            }}
+          />
+        ))}
+      </Line>
+      <Copy size={11} muted>
+        {label}
+      </Copy>
+    </Line>
+  )
+}
 export function Projection() {
   const s = finStore.use((s) => s),
     t = useTheme(),
@@ -245,7 +276,10 @@ export function Projection() {
               weight="semibold"
               style={{ color: proj.low.value < floor ? t.warn : t.text }}
             >
-              {money(proj.low.value)} · {C.monthLabel(proj.low.key)}
+              {money(proj.low.value)} ·{" "}
+              {proj.low.value === proj.start
+                ? "today"
+                : C.monthLabel(proj.low.key)}
             </Copy>
           </View>
         </Line>
@@ -270,18 +304,15 @@ export function Projection() {
               : []),
           ]}
         />
-        <Line style={{ gap: 16, paddingHorizontal: 4 }}>
-          <Copy size={11} muted>
-            ━ Baseline
-          </Copy>
+        <Line style={{ gap: 16, paddingHorizontal: 4, flexWrap: "wrap" }}>
+          <LegendKey color={whatIf ? t.muted : t.fin} label="Baseline" />
           {whatIf && (
-            <Copy size={11} muted>
-              ━ With {name || "purchase"}
-            </Copy>
+            <LegendKey
+              color={verdict === "ok" ? t.fin : color}
+              label={`With ${name || "purchase"}`}
+            />
           )}
-          <Copy size={11} muted>
-            ┄ Minimum balance
-          </Copy>
+          <LegendKey color={t.warn} dashed label="Minimum balance" />
         </Line>
       </Frame>
       <Frame style={{ paddingHorizontal: 16, paddingVertical: 4 }}>
@@ -317,7 +348,7 @@ export function Projection() {
               <Field
                 label="Price ₱"
                 keyboardType="number-pad"
-                value={amount}
+                value={amount ? Number(amount).toLocaleString("en-PH") : ""}
                 onChangeText={(v) => setAmount(v.replace(/[^\d]/g, ""))}
               />
             </View>
@@ -409,7 +440,10 @@ export function Projection() {
                   {
                     label: "New low",
                     value: money(proj.low.value),
-                    detail: C.monthLabel(proj.low.key),
+                    detail:
+                      proj.low.value === proj.start
+                        ? "today"
+                        : C.monthLabel(proj.low.key),
                   },
                   {
                     label: "Recovers in",

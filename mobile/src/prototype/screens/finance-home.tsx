@@ -637,9 +637,14 @@ export function FinanceHome() {
                     <Copy size={12} muted>
                       Net this month
                     </Copy>
-                    <Copy size={12} muted>
-                      In {money(flow.income)} · Out {money(flow.spend)}
-                    </Copy>
+                    <View>
+                      <Copy size={12} muted lines={1}>
+                        In {money(flow.income)}
+                      </Copy>
+                      <Copy size={12} muted lines={1}>
+                        Out {money(flow.spend)}
+                      </Copy>
+                    </View>
                   </View>
                   <View style={{ flex: 1 }}>
                     <Line

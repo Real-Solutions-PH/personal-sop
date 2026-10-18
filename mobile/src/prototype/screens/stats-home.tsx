@@ -720,7 +720,12 @@ export function StatsHome() {
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ gap: 8, paddingBottom: 4 }}
+                  style={{ marginHorizontal: -16 }}
+                  contentContainerStyle={{
+                    gap: 8,
+                    paddingHorizontal: 16,
+                    paddingBottom: 4,
+                  }}
                 >
                   {trophies.map((tr) => (
                     <Tap
@@ -730,10 +735,10 @@ export function StatsHome() {
                       }
                       style={{ width: 144 }}
                     >
-                      <Frame style={{ borderColor: `${t.life}4d` }}>
+                      <Frame style={{ flex: 1, borderColor: `${t.life}4d` }}>
                         <LinearGradient
                           colors={[`${t.life}26`, `${t.life}00`]}
-                          style={{ padding: 12 }}
+                          style={{ flex: 1, padding: 12 }}
                         >
                           <Trophy size={16} color={t.life} />
                           <Copy
@@ -743,7 +748,7 @@ export function StatsHome() {
                           >
                             {tr.value}
                           </Copy>
-                          <Copy size={12} lines={1}>
+                          <Copy size={12} lines={2}>
                             {tr.title}
                           </Copy>
                           <Copy size={10} muted>

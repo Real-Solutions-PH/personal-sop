@@ -24,6 +24,8 @@ export function Stepper({
   compact?: boolean
 }) {
   const t = useTheme(),
+    size = compact ? 24 : 30,
+    shown = Number.isFinite(value) ? String(value) : "",
     clamp = (n: number) =>
       Math.min(
         max,
@@ -61,14 +63,15 @@ export function Stepper({
         <Line
           style={{
             flex: 1,
+            minWidth: 0,
             gap: 4,
             justifyContent: "center",
-            alignItems: "baseline",
+            alignItems: "flex-end",
           }}
         >
           <TextInput
             accessibilityLabel={label}
-            value={Number.isFinite(value) ? String(value) : ""}
+            value={shown}
             onChangeText={(v) => {
               const n = Number.parseFloat(v.replace(",", "."))
               onChange(Number.isFinite(n) ? n : 0)
@@ -76,17 +79,20 @@ export function Stepper({
             onBlur={() => onChange(clamp(value))}
             keyboardType="decimal-pad"
             style={{
-              flex: 1,
+              // Size to the digits so the unit sits right after the number
+              // instead of being pushed to the far edge next to "+".
+              width: Math.max(1, shown.length) * size * 0.62 + 4,
+              flexShrink: 1,
               minWidth: 0,
               padding: 0,
-              fontSize: compact ? 24 : 30,
+              fontSize: size,
               fontFamily: fonts.semibold,
               textAlign: "center",
               color: t.text,
             }}
           />
           {unit && (
-            <Copy size={14} muted>
+            <Copy size={14} muted style={{ marginBottom: compact ? 4 : 6 }}>
               {unit}
             </Copy>
           )}

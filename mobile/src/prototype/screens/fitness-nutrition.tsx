@@ -46,9 +46,9 @@ export function MacroRings({
   const t = useTheme(),
     left = target ? target.kcal - totals.kcal : undefined
   return (
-    <Line style={{ gap: 16 }}>
+    <Line style={{ gap: 12 }}>
       <Ring
-        size={112}
+        size={104}
         value={target ? totals.kcal / target.kcal : 0}
         strokeWidth={10}
         color={t.nut}
@@ -83,7 +83,7 @@ export function MacroRings({
         ).map((m) => (
           <View key={m.key} style={{ flex: 1, alignItems: "center", gap: 4 }}>
             <Ring
-              size={60}
+              size={54}
               strokeWidth={5}
               color={t[m.accent]}
               value={target ? totals[m.key] / target[m.key] : 0}
@@ -133,12 +133,12 @@ export function MealThumb({ meal, size = 44 }: { meal: Meal; size?: number }) {
         width: size,
         height: size,
         borderRadius: 12,
-        backgroundColor: meal.photo ? `${t.nut}66` : t.soft,
+        backgroundColor: meal.photo ? `${t.nut}26` : t.soft,
         alignItems: "center",
         justifyContent: "center",
       }}
     >
-      <Icon size={20} color={meal.photo ? "#fff" : t.muted} />
+      <Icon size={20} color={meal.photo ? t.nut : t.muted} />
     </View>
   )
 }

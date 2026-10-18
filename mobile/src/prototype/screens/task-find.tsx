@@ -241,6 +241,13 @@ export function TaskSearch() {
     </Screen>
   )
 }
+// Completion times always show minutes ("10:00 AM"), unlike due-time
+// labels, so a day's list of clock times reads consistently.
+function completedClock(iso: string): string {
+  const d = new Date(iso),
+    h = d.getHours()
+  return `${h % 12 || 12}:${String(d.getMinutes()).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`
+}
 export function TaskCompleted() {
   const s = tasksStore.use((s) => s),
     _t = useTheme(),
@@ -288,9 +295,7 @@ export function TaskCompleted() {
               {isDeleted
                 ? `Deleted ${task.deletedAt ? L.fmtDayLong(task.deletedAt.slice(0, 10)) : ""}`
                 : task.completedAt
-                  ? L.fmtTime(
-                      new Date(task.completedAt).toTimeString().slice(0, 5),
-                    )
+                  ? completedClock(task.completedAt)
                   : ""}
             </Copy>
           </View>
@@ -333,7 +338,11 @@ export function TaskCompleted() {
                   <SectionHeading>
                     {L.fmtDayLong(day)} · {tasks.length}
                   </SectionHeading>
-                  {tasks.map((task) => row(task))}
+                  {[...tasks]
+                    .sort((a, b) =>
+                      (b.completedAt ?? "").localeCompare(a.completedAt ?? ""),
+                    )
+                    .map((task) => row(task))}
                 </View>
               ))}
             {days < 90 && (

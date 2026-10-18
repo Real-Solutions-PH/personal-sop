@@ -332,6 +332,7 @@ export function Trophies() {
                     <LinearGradient
                       colors={[border(t[colors[type]], 0.25), "transparent"]}
                       style={{
+                        flex: 1,
                         padding: 12,
                         borderRadius: 16,
                         borderWidth: 1,
@@ -382,12 +383,12 @@ export function Trophies() {
                       backgroundColor: border(t.card, 0.4),
                     }}
                   >
-                    <Line style={{ gap: 6 }}>
+                    <Line style={{ gap: 6, alignItems: "flex-start" }}>
                       <Lock size={16} color={t.muted} />
                       <Copy
                         size={12}
                         weight="medium"
-                        lines={1}
+                        lines={2}
                         style={{ flex: 1 }}
                       >
                         {a.title}

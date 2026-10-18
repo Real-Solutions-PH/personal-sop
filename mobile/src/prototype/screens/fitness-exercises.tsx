@@ -32,6 +32,12 @@ import { fonts, useTheme } from "../theme"
 import { Button, Empty, Screen, undo } from "../ui"
 import { ExerciseEditor } from "./fitness"
 
+/** Sentence-case an enum value without title-casing the units after it. */
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+/** Always absolute ("Oct 15") so lists don't mix "Thu" with "Sep 10". */
+const shortDay = (iso: string) =>
+  new Date(iso).toLocaleDateString("en-PH", { month: "short", day: "numeric" })
+
 const MUSCLES = [
   "chest",
   "back",
@@ -197,12 +203,8 @@ export function Exercises({ id }: { id?: string }) {
                       </View>
                       <View style={{ flex: 1 }}>
                         <Copy weight="medium">{e.name}</Copy>
-                        <Copy
-                          size={14}
-                          muted
-                          style={{ textTransform: "capitalize" }}
-                        >
-                          {e.equipment} · {e.repMin}–{e.repMax} reps · +
+                        <Copy size={14} muted>
+                          {cap(e.equipment)} · {e.repMin}–{e.repMax} reps · +
                           {e.increment} kg
                         </Copy>
                       </View>
@@ -230,9 +232,9 @@ export function Exercises({ id }: { id?: string }) {
         </>
       ) : (
         <>
-          <Copy size={14} muted style={{ textTransform: "capitalize" }}>
-            {ex.muscle} · {ex.equipment} · {ex.repMin}–{ex.repMax} reps · +
-            {ex.increment} kg
+          <Copy size={14} muted>
+            {cap(ex.muscle)} · {cap(ex.equipment)} · {ex.repMin}–{ex.repMax}{" "}
+            reps · +{ex.increment} kg
           </Copy>
           {!hist.length ? (
             <Empty
@@ -306,10 +308,11 @@ export function Exercises({ id }: { id?: string }) {
                 <Line>
                   {[
                     {
-                      label: "Best est. 1-rep max",
+                      label: "Est. 1RM",
                       value: C.kgShort(
                         Math.round((best?.stats.bestE1rm ?? 0) * 10) / 10,
                       ),
+                      unit: "kg",
                       color: t.fit,
                     },
                     {
@@ -317,11 +320,13 @@ export function Exercises({ id }: { id?: string }) {
                       value: best?.stats.top
                         ? `${C.kgShort(best.stats.top.weight)}×${best.stats.top.reps}`
                         : "—",
+                      unit: best?.stats.top ? "kg" : "",
                       color: t.text,
                     },
                     {
                       label: "Sessions",
                       value: String(hist.length),
+                      unit: "",
                       color: t.text,
                     },
                   ].map((x) => (
@@ -332,8 +337,13 @@ export function Exercises({ id }: { id?: string }) {
                         style={{ color: x.color }}
                       >
                         {x.value}
+                        {!!x.unit && (
+                          <Copy size={14} muted>
+                            {` ${x.unit}`}
+                          </Copy>
+                        )}
                       </Copy>
-                      <Copy size={12} muted>
+                      <Copy size={12} muted lines={1}>
                         {x.label}
                       </Copy>
                     </View>
@@ -378,13 +388,13 @@ export function Exercises({ id }: { id?: string }) {
                   fmt={(n) =>
                     metric === "volume"
                       ? `${Math.round(n / 100) / 10}t`
-                      : n.toFixed(0)
+                      : `${n.toFixed(0)} kg`
                   }
                   labels={
                     inRange.length
                       ? [
-                          C.relDay(inRange[0].workout.startedAt),
-                          C.relDay(inRange.at(-1)!.workout.startedAt),
+                          shortDay(inRange[0].workout.startedAt),
+                          shortDay(inRange.at(-1)!.workout.startedAt),
                         ]
                       : undefined
                   }
@@ -417,7 +427,7 @@ export function Exercises({ id }: { id?: string }) {
                       <Copy size={14} style={{ flex: 1 }}>
                         {C.prLabel[p.kind]}{" "}
                         <Copy size={14} muted>
-                          · {C.relDay(p.at)}
+                          · {shortDay(p.at)}
                         </Copy>
                       </Copy>
                       <Copy size={14} weight="semibold">
@@ -460,8 +470,8 @@ export function Exercises({ id }: { id?: string }) {
                       }}
                     >
                       <Line>
-                        <Copy size={14} muted style={{ width: 80 }}>
-                          {C.relDay(h.workout.startedAt)}
+                        <Copy size={14} muted style={{ width: 64 }}>
+                          {shortDay(h.workout.startedAt)}
                         </Copy>
                         <Copy size={14} lines={1} style={{ flex: 1 }}>
                           {h.we.sets
@@ -469,8 +479,8 @@ export function Exercises({ id }: { id?: string }) {
                             .map((x) => `${C.kgShort(x.weight)}×${x.reps}`)
                             .join("  ")}
                         </Copy>
-                        <Copy size={12} muted>
-                          {C.kgShort(Math.round(h.stats.bestE1rm))}
+                        <Copy size={14} muted>
+                          {C.kgShort(Math.round(h.stats.bestE1rm))} kg
                         </Copy>
                       </Line>
                     </Tap>

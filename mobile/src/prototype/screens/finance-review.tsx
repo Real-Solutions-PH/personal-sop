@@ -30,7 +30,7 @@ import {
   Tap,
 } from "../native-kit"
 import { go } from "../navigation"
-import { useTheme } from "../theme"
+import { fonts, useTheme } from "../theme"
 import { Button, Empty, Field, Screen, Sheet, shareText } from "../ui"
 import { PlannedEditor, useMoney } from "./finance"
 import { BudgetEditor } from "./finance-budget-editor"
@@ -256,6 +256,7 @@ export function FinanceReview() {
             label: "Savings rate",
             value: C.pct(d.rate),
             delta: Math.round((d.rate - d.prevRate) * 100),
+            unit: " pts",
             color: d.rate >= 0 ? t.fin : t.text,
             hint: d.rate < 0 ? "Spent more than you earned" : "",
           },
@@ -311,6 +312,11 @@ export function FinanceReview() {
                   {" "}
                   {x.delta > 0 ? "▲" : "▼"}
                   {Math.abs(x.delta)}
+                  {"unit" in x ? x.unit : "%"}
+                  <Copy size={12} muted>
+                    {" "}
+                    vs last
+                  </Copy>
                 </Copy>
               )}
             </Copy>
@@ -376,15 +382,21 @@ export function FinanceReview() {
                   {w.cat?.icon} {w.cat?.name ?? "Other"}
                 </Copy>
                 <Line style={{ gap: 8 }}>
-                  {w.prev > 0 && (
-                    <Copy
-                      size={11}
-                      style={{ color: w.v > w.prev ? t.bad : t.good }}
-                    >
-                      {w.v > w.prev ? "▲" : "▼"}
-                      {Math.abs(Math.round((w.v / w.prev - 1) * 100))}%
-                    </Copy>
-                  )}
+                  {w.prev > 0 &&
+                    (() => {
+                      const dl = Math.round((w.v / w.prev - 1) * 100)
+                      return (
+                        <Copy
+                          size={11}
+                          style={{
+                            color: dl > 0 ? t.bad : dl < 0 ? t.good : t.muted,
+                          }}
+                        >
+                          {dl > 0 ? "▲" : dl < 0 ? "▼" : "±"}
+                          {Math.abs(dl)}%
+                        </Copy>
+                      )
+                    })()}
                   <Copy size={14} weight="medium">
                     {money(w.v)}
                   </Copy>
@@ -557,12 +569,26 @@ export function FinanceReview() {
         </Copy>
         <SectionHeading>Your note</SectionHeading>
         <Field
-          label=""
+          label="Your note"
+          hideLabel
           placeholder="What will you do differently?"
           multiline
           value={note}
           onChangeText={setNote}
-          style={{ height: 96, textAlignVertical: "top" }}
+          // Field spreads `style` over its own, so restate the input chrome.
+          style={{
+            height: 96,
+            borderWidth: 1,
+            borderColor: t.line,
+            borderRadius: 12,
+            paddingHorizontal: 12,
+            paddingVertical: 10,
+            fontSize: 14,
+            fontFamily: fonts.body,
+            color: t.text,
+            backgroundColor: t.card,
+            textAlignVertical: "top",
+          }}
         />
         <Line style={{ gap: 8 }}>
           <View style={{ flex: 1 }}>

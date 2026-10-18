@@ -257,7 +257,8 @@ export function TaskStats() {
             {s.reschedules > 0
               ? `Pushed ${s.reschedules}× ${RANGE_LABEL[range]}. `
               : ""}
-            Avg {s.avgReschedules.toFixed(2)} pushes per finished task. Lateness
+            Finished tasks were pushed {s.avgReschedules.toFixed(2)}× each on
+            average — pushes on open tasks count in the total only. Lateness
             uses the original due date.
           </Copy>
           {s.topPushed.length > 0 && (

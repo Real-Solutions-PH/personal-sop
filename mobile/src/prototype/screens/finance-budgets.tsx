@@ -190,7 +190,7 @@ export function Budgets({ id }: { id?: string }) {
                   },
                 ]}
                 labels={Array.from({ length: total }, (_, i) =>
-                  i % 7 === 0 ? C.shortDate(C.addDays(v.from, i)) : "",
+                  C.shortDate(C.addDays(v.from, i)),
                 )}
                 height={150}
                 zero
@@ -280,8 +280,12 @@ export function Budgets({ id }: { id?: string }) {
                   {C.monthLabel(mk, true)} so far
                 </Copy>
               </View>
-              <Copy size={12} muted style={{ textAlign: "right" }}>
-                budgets within limit{"\n"}Bar marker = where you should be today
+              <Copy
+                size={12}
+                muted
+                style={{ flex: 1, marginLeft: 12, textAlign: "right" }}
+              >
+                budgets within limit{"\n"}Marker = today's pace
               </Copy>
             </Line>
           </Frame>

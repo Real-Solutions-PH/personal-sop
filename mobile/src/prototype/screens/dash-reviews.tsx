@@ -190,6 +190,9 @@ function Review({ id }: { id: string }) {
     return (
       <Screen title="Review">
         <Copy>Review not found</Copy>
+        <Copy muted>
+          This review period doesn't exist or is outside your history.
+        </Copy>
         <Button href="/stats/reviews">All reviews</Button>
       </Screen>
     )

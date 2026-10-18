@@ -50,7 +50,7 @@ export function TaskShare() {
   const render = (kind: Layout, width: number, look: CardLook) => {
     const q = width / 100,
       tall = look.format === "9:16",
-      ink = look.backdrop === "paper" ? t["share-paper-ink"] : "#fff",
+      ink = look.backdrop === "paper" ? t["share-paper-ink"] : "#ffffff",
       panel = look.backdrop === "paper" ? "#0000000d" : "#ffffff17",
       text = (value: string, size: number, display = false, color = ink) => (
         <Text

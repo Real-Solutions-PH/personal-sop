@@ -101,6 +101,15 @@ export function Button({
   const style = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }))
+  const fg = disabled
+    ? t.muted
+    : tone === "quiet"
+      ? t.text
+      : tone === "danger"
+        ? t.bad
+        : t.dark
+          ? t.bg
+          : "#FFF"
   return (
     <Animated.View style={style}>
       <Pressable
@@ -127,41 +136,24 @@ export function Button({
           borderRadius: 12,
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor:
-            tone === "quiet"
+          // Disabled is a neutral surface with muted text: fading the accent
+          // fill to 40% left the label unreadable in both themes.
+          backgroundColor: disabled
+            ? t.soft
+            : tone === "quiet"
               ? t.soft
               : tone === "danger"
                 ? `${t.bad}26`
                 : t.accent,
-          opacity: disabled ? 0.4 : pressed ? 0.8 : 1,
+          opacity: pressed && !disabled ? 0.8 : 1,
         })}
       >
-        {Icon && (
-          <Icon
-            size={16}
-            color={
-              tone === "quiet"
-                ? t.text
-                : tone === "danger"
-                  ? t.bad
-                  : t.dark
-                    ? t.bg
-                    : "#FFF"
-            }
-          />
-        )}
+        {Icon && <Icon size={16} color={fg} />}
         <Text
           style={{
             fontSize: 14,
             fontFamily: fonts.semibold,
-            color:
-              tone === "quiet"
-                ? t.text
-                : tone === "danger"
-                  ? t.bad
-                  : t.dark
-                    ? t.bg
-                    : "#FFF",
+            color: fg,
           }}
         >
           {children}
@@ -225,20 +217,24 @@ export function Field({
         value={value}
         onChangeText={onChangeText}
         placeholderTextColor={t.muted}
-        style={{
-          minHeight: 44,
-          borderWidth: 1,
-          borderColor: error ? t.bad : t.line,
-          borderRadius: 12,
-          paddingHorizontal: 12,
-          paddingVertical: 10,
-          fontSize: 14,
-          fontFamily: fonts.body,
-          color: t.text,
-          backgroundColor: t.card,
-          textAlignVertical: props.multiline ? "top" : "center",
-        }}
         {...props}
+        // Caller styles extend the base input look rather than replacing it.
+        style={[
+          {
+            minHeight: 44,
+            borderWidth: 1,
+            borderColor: error ? t.bad : t.line,
+            borderRadius: 12,
+            paddingHorizontal: 12,
+            paddingVertical: 10,
+            fontSize: 14,
+            fontFamily: fonts.body,
+            color: t.text,
+            backgroundColor: t.card,
+            textAlignVertical: props.multiline ? "top" : "center",
+          },
+          props.style,
+        ]}
       />
       {error && (
         <Text accessibilityRole="alert" style={{ color: t.bad }}>
@@ -961,7 +957,16 @@ export function DateField({
         }}
       >
         <Text style={{ fontFamily: fonts.body, fontSize: 14, color: t.text }}>
-          {value || `Choose ${mode}`}
+          {!value
+            ? `Choose ${mode}`
+            : mode === "date" && !Number.isNaN(parsed.getTime())
+              ? parsed.toLocaleDateString("en-PH", {
+                  weekday: "short",
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })
+              : value}
         </Text>
         <CalendarDays size={16} color={t.muted} />
       </Pressable>

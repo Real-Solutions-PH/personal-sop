@@ -142,12 +142,12 @@ export function FitnessSettings() {
             <Line style={{ justifyContent: "space-between" }}>
               <View>
                 <Copy weight="medium">Goal</Copy>
-                <Copy size={14} muted style={{ textTransform: "capitalize" }}>
+                <Copy size={14} muted>
                   {
                     {
-                      cut: "lose weight",
-                      maintain: "maintain",
-                      bulk: "gain weight",
+                      cut: "Lose weight",
+                      maintain: "Maintain",
+                      bulk: "Gain weight",
                     }[st.goalDirection]
                   }
                   {st.goalWeight ? ` → ${kg(st.goalWeight)}` : ""}

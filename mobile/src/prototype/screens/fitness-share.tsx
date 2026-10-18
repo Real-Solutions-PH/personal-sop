@@ -87,7 +87,7 @@ export function FitnessShare({ id }: { id: string }) {
     ]
   function render(kind: Layout, width: number, look: CardLook) {
     const q = width / 100,
-      ink = look.backdrop === "paper" ? t["share-paper-ink"] : "#fff",
+      ink = look.backdrop === "paper" ? t["share-paper-ink"] : "#ffffff",
       tall = look.format === "9:16",
       text = (s: string, size: number, display = false, color = ink) => (
         <Text

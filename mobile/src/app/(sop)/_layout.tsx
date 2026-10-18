@@ -29,9 +29,13 @@ export default function PrototypeLayout() {
   const t = useTheme()
   const inset = useSafeAreaInsets()
   const path = usePathname()
+  // Full-screen flows hide the tab bar: focus players, and the first-run
+  // onboarding/setup screens, which have their own exit.
   const focus =
     /^\/habits\/routines\/[^/]+\/play$/.test(path) ||
-    /^\/habits\/[^/]+\/timer$/.test(path)
+    /^\/habits\/[^/]+\/timer$/.test(path) ||
+    path === "/onboarding" ||
+    path === "/setup"
   const reduced = useReducedMotion()
   const online = useConnectivity()
   const live = liveStore.use((s) => s.live)

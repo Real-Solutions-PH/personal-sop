@@ -330,7 +330,7 @@ export function WrapUp() {
                   Nothing left open.
                 </Copy>
               ) : (
-                open.map((i) => {
+                open.map((i, idx) => {
                   const r = refOf(i)
                   return (
                     <Line
@@ -338,13 +338,13 @@ export function WrapUp() {
                       style={{
                         gap: 8,
                         paddingVertical: 8,
-                        borderBottomWidth: 1,
+                        borderBottomWidth: idx === open.length - 1 ? 0 : 1,
                         borderBottomColor: border(t.line, 0.5),
                       }}
                     >
                       {dot(i.module)}
                       <Tap onPress={() => go(i.href)} style={{ flex: 1 }}>
-                        <Copy size={14} lines={1}>
+                        <Copy size={14} lines={2}>
                           {i.title}
                         </Copy>
                       </Tap>
@@ -359,7 +359,7 @@ export function WrapUp() {
                           else if (r?.kind === "task") completeTask(r.id)
                         }}
                       />
-                      {r?.kind === "task" && (
+                      {r?.kind === "task" ? (
                         <IconTap
                           size={44}
                           icon={ArrowRight}
@@ -370,6 +370,8 @@ export function WrapUp() {
                             toast("Moved to tomorrow")
                           }}
                         />
+                      ) : (
+                        <View style={{ width: 44 }} />
                       )}
                       <IconTap
                         size={44}

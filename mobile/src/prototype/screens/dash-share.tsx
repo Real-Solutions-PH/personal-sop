@@ -193,9 +193,12 @@ function Artwork({
 }) {
   const t = useTheme(),
     q = width / 100,
+    // CardFrame pads 6.5q per side, so rows span 87q — size cells in px so
+    // the q-based gaps don't push a full row past 100% and wrap it.
+    inner = 87 * q,
     tall = look.format === "9:16",
     sq = look.format === "1:1",
-    ink = look.backdrop === "paper" ? t["share-paper-ink"] : "#fff",
+    ink = look.backdrop === "paper" ? t["share-paper-ink"] : "#ffffff",
     hi = t[accents[kind]],
     panel = look.backdrop === "paper" ? "#0000000d" : "#ffffff17",
     date =
@@ -279,7 +282,7 @@ function Artwork({
         <View
           key={x.label}
           style={{
-            width: `${(100 - (cols - 1) * 2) / cols}%`,
+            width: Math.floor(((inner - (cols - 1) * 2 * q) / cols) * 2) / 2,
             padding: 3 * q,
             backgroundColor: panel,
             borderRadius: 3 * q,
@@ -298,7 +301,7 @@ function Artwork({
         <View
           key={x.day}
           style={{
-            width: `${(100 - (cols - 1) * 1.5) / cols}%`,
+            width: Math.floor(((inner - (cols - 1) * 1.5 * q) / cols) * 2) / 2,
             aspectRatio: 1,
             borderRadius: 1.5 * q,
             backgroundColor:
@@ -927,7 +930,7 @@ export function ShareCard() {
             <Button onPress={() => setCheck(true)}>Share</Button>
           </View>
           <SectionHeading>More cards</SectionHeading>
-          <Frame style={{ paddingHorizontal: 12, paddingVertical: 4 }}>
+          <Frame style={{ padding: 12, gap: 8 }}>
             {[
               ["Habit streaks & routines", "/habits/share"],
               ["Workout & PRs", "/fitness"],

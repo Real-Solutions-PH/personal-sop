@@ -13,6 +13,7 @@ import {
 import { useState } from "react"
 import { View } from "react-native"
 import {
+  border,
   Copy,
   Frame,
   IconTap,
@@ -117,14 +118,25 @@ export function HabitsList() {
             color={t.text}
             onPress={() => go("/habits/manage/archived")}
           />
-          <IconTap
-            size={40}
-            icon={Plus}
-            label="New habit"
-            background={t.hab}
-            color={t.bg}
-            onPress={() => go("/habits/new")}
-          />
+          {/* A filled 32pt circle in the 40pt slot, pinned left so its edge
+              lands on the 16pt gutter like the other header glyphs. */}
+          <View
+            style={{
+              width: 40,
+              height: 40,
+              justifyContent: "center",
+              alignItems: "flex-start",
+            }}
+          >
+            <IconTap
+              size={32}
+              icon={Plus}
+              label="New habit"
+              background={t.hab}
+              color={t.bg}
+              onPress={() => go("/habits/new")}
+            />
+          </View>
         </Line>
       }
     >
@@ -225,6 +237,10 @@ export function HabitsList() {
                                           : c === "skipped"
                                             ? `${t.warn}59`
                                             : t.soft,
+                                  // Keep empty days visible on a dark card.
+                                  borderWidth:
+                                    c === "done" || c === "partial" ? 0 : 1,
+                                  borderColor: border(t.muted, 0.35),
                                 }}
                               />
                             )
@@ -381,7 +397,10 @@ export function ArchivedHabits() {
   return (
     <Screen prototypeLayout title="Archived">
       {!rows.length && !routines.length ? (
-        <Empty title="Nothing archived" />
+        <Empty
+          title="Nothing archived"
+          detail="Archived habits and routines show up here."
+        />
       ) : (
         <View style={{ paddingTop: 4, gap: 12 }}>
           {!!rows.length && <SectionHeading>Habits</SectionHeading>}

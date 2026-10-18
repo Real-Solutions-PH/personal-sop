@@ -206,7 +206,7 @@ function Settings() {
               {row(
                 r.label,
                 r.hint,
-                <View style={{ width: 160 }}>
+                <View style={{ width: 144 }}>
                   <Segmented
                     value={st.rules[r.key]}
                     options={[
@@ -274,7 +274,7 @@ function Settings() {
               value={st.financeScope}
               options={[
                 { value: "aggregates", label: "Totals only" },
-                { value: "records", label: "Individual transactions" },
+                { value: "records", label: "Transactions" },
               ]}
               onChange={(financeScope) => updateAISettings({ financeScope })}
             />

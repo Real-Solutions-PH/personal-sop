@@ -601,19 +601,19 @@ export function Planned({ id }: { id?: string }) {
                 <Line style={{ paddingVertical: 8, paddingHorizontal: 4 }}>
                   <PlannedIcon p={p} />
                   <View style={{ flex: 1 }}>
+                    <Copy weight="medium" lines={1}>
+                      {p.name}
+                    </Copy>
                     <Line style={{ gap: 6 }}>
-                      <Copy weight="medium" lines={1} style={{ flexShrink: 1 }}>
-                        {p.name}
-                      </Copy>
                       {p.isInstallment && <FinPill>installment</FinPill>}
                       {p.autoLog && <FinPill tone="fin">auto</FinPill>}
+                      <Copy size={14} muted lines={1} style={{ flexShrink: 1 }}>
+                        {C.scheduleLabel(p)}
+                        {p.type !== "transfer"
+                          ? ` · ${s.categories.find((c) => c.id === p.categoryId)?.name ?? ""}`
+                          : ""}
+                      </Copy>
                     </Line>
-                    <Copy size={14} muted lines={1}>
-                      {C.scheduleLabel(p)}
-                      {p.type !== "transfer"
-                        ? ` · ${s.categories.find((c) => c.id === p.categoryId)?.name ?? ""}`
-                        : ""}
-                    </Copy>
                   </View>
                   <View>
                     <Copy

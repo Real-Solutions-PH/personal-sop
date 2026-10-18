@@ -554,10 +554,11 @@ export function Body({ hub = false }: { hub?: boolean }) {
                               {w.note ? ` · ${w.note}` : ""}
                             </Copy>
                           </View>
-                          {!!diff && (
+                          {!!prev && (
                             <Copy size={12} muted>
-                              {diff > 0 ? "+" : ""}
-                              {diff.toFixed(1)}
+                              {Math.abs(diff) < 0.05
+                                ? "±0.0"
+                                : `${diff > 0 ? "+" : ""}${diff.toFixed(1)}`}
                             </Copy>
                           )}
                           <Copy

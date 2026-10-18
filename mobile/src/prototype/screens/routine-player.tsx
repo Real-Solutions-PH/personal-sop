@@ -18,6 +18,7 @@ import { Copy, Frame, IconTap, Line, Tap } from "../native-kit"
 import { back, go, replace } from "../navigation"
 import { useTheme } from "../theme"
 import { Button, confirm, useNow } from "../ui"
+import { fmtSpan } from "../units"
 import { Ring } from "../visual"
 export function RoutinePlayer({ id }: { id: string }) {
   const t = useTheme(),
@@ -164,7 +165,7 @@ export function RoutinePlayer({ id }: { id: string }) {
               onPress={() => go(`/habits/routines/${id}/summary?run=${run.id}`)}
             >
               <Copy size={14} style={{ color: t.good }}>
-                ✓ Done today in {fmtDuration(L.runActualSec(run))} — see summary
+                ✓ Done today in {fmtSpan(L.runActualSec(run))} — see summary
               </Copy>
             </Tap>
           )}

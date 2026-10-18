@@ -201,8 +201,10 @@ export function Accounts({ id }: { id?: string }) {
               series={[
                 { values: C.accountSeries(s, a, 60), color: t.fin, area: true },
               ]}
+              // FinanceLineChart thins labels itself; pre-blanking them made
+              // its stride skip nearly every date.
               labels={Array.from({ length: 60 }, (_, i) =>
-                i % 15 === 0 ? C.shortDate(C.addDays(dayKey(), i - 59)) : "",
+                C.shortDate(C.addDays(dayKey(), i - 59)),
               )}
               height={140}
             />

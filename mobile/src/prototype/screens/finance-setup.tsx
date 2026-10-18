@@ -131,10 +131,12 @@ export function FinanceSetup({
         inProjection: true,
       })
     if (created.gcash) A.updateSettings({ defaultAccountId: created.gcash })
-    toast(`${Object.keys(created).length} accounts added`)
+    const added = Object.keys(created).length
+    toast(`${added} account${added === 1 ? "" : "s"} added`)
     if (onDone) onDone()
     else go("/finance")
   }
+  const picked = rows.filter((r) => r.on).length
   const content = (
     <>
       <Copy size={14} muted style={{ paddingHorizontal: 4 }}>
@@ -175,6 +177,9 @@ export function FinanceSetup({
                 onChangeText={(name) => set(r.key, { name })}
                 style={{
                   flex: 1,
+                  // Web TextInputs have an intrinsic width; let it shrink so
+                  // the balance input stays inside the card.
+                  minWidth: 0,
                   fontSize: 16,
                   fontFamily: fonts.medium,
                   color: t.text,
@@ -190,7 +195,8 @@ export function FinanceSetup({
                 }
                 keyboardType="decimal-pad"
                 style={{
-                  width: 112,
+                  width: 104,
+                  flexShrink: 0,
                   height: 36,
                   borderRadius: 8,
                   borderWidth: 1,
@@ -206,7 +212,8 @@ export function FinanceSetup({
             </Line>
             {r.type === "credit" && r.on && (
               <Field
-                label=""
+                label="Credit limit"
+                hideLabel
                 placeholder="Credit limit ₱"
                 value={r.limit}
                 onChangeText={(v) =>
@@ -272,10 +279,11 @@ export function FinanceSetup({
           Skip
         </Button>
         <View style={{ flex: 1 }}>
-          <Button
-            disabled={!rows.some((r) => r.on)}
-            onPress={finish}
-          >{`Add ${rows.filter((r) => r.on).length} accounts`}</Button>
+          <Button disabled={!picked} onPress={finish}>
+            {picked === 0
+              ? "Pick an account"
+              : `Add ${picked} account${picked === 1 ? "" : "s"}`}
+          </Button>
         </View>
       </Line>
     </>

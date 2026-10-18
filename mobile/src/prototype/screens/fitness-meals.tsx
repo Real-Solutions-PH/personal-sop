@@ -184,7 +184,12 @@ function When({
           </Copy>
         </Tap>
       ))}
-      <TimeInput label="Time eaten" value={time} onChange={onTime} />
+      <Line style={{ gap: 6 }}>
+        <Copy size={14} muted>
+          Eaten at
+        </Copy>
+        <TimeInput label="Time eaten" value={time} onChange={onTime} />
+      </Line>
     </Line>
   )
 }

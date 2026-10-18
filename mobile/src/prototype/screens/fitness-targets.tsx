@@ -121,7 +121,9 @@ export function MacroTargets() {
             kcal
             {mismatch
               ? ` — ${calc > t.kcal ? "over" : "under"} your ${t.kcal} by ${Math.abs(calc - t.kcal)}.`
-              : " ✓ adds up."}
+              : calc === t.kcal
+                ? " ✓ adds up."
+                : " ✓ ≈ matches."}
           </Copy>
           {mismatch && (
             <Tap onPress={split}>

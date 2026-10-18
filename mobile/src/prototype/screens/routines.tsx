@@ -1,7 +1,7 @@
 import * as A from "@domain/habits/actions"
 import * as L from "@domain/habits/logic"
 import { habitsStore } from "@domain/habits/store"
-import { dayKey, dayOffset, fmtDuration } from "@domain/lib/day"
+import { dayKey, dayOffset } from "@domain/lib/day"
 import { useLocalSearchParams } from "expo-router"
 import {
   Archive,
@@ -31,6 +31,7 @@ import {
 import { go } from "../navigation"
 import { useTheme } from "../theme"
 import { Button, confirm, Empty, Field, Screen, Sheet, undo } from "../ui"
+import { fmtSpan } from "../units"
 
 function HabitIcon({ icon }: { icon: string }) {
   const t = useTheme()
@@ -189,7 +190,7 @@ export function RoutineDetail({ id }: { id: string }) {
               <Play size={20} color={t.bg} fill={t.bg} />
               <Copy weight="semibold" style={{ color: t.bg }}>
                 {run?.state === "completed"
-                  ? `Done today in ${fmtDuration(L.runActualSec(run))}`
+                  ? `Done today in ${fmtSpan(L.runActualSec(run))}`
                   : run?.state === "in_progress"
                     ? `Resume · step ${run.current + 1}/${run.steps.length}`
                     : "Start routine"}
@@ -388,7 +389,7 @@ export function RoutineDetail({ id }: { id: string }) {
                         </Copy>
                         <Copy size={12} muted>
                           {st === "completed"
-                            ? `${x.results.filter((r) => r.status === "done").length}/${x.steps.length} done · ${fmtDuration(L.runActualSec(x))} vs ${fmtDuration(planned)}`
+                            ? `${x.results.filter((r) => r.status === "done").length}/${x.steps.length} done · ${fmtSpan(L.runActualSec(x))} of ${fmtSpan(planned)}`
                             : st === "abandoned"
                               ? `Abandoned at ${x.current}/${x.steps.length}`
                               : `In progress ${x.current}/${x.steps.length}`}
@@ -639,7 +640,7 @@ export function Routines() {
                 </Line>
                 <Copy size={12} muted lines={1} style={{ flex: 1 }}>
                   {last
-                    ? `Last: ${new Date(`${last.day}T12:00:00`).toLocaleDateString("en-US", { weekday: "short" })} · ${st === "completed" ? `✓ ${fmtDuration(L.runActualSec(last))}` : st === "abandoned" ? `abandoned ${last.current}/${last.steps.length}` : "in progress"}`
+                    ? `Last: ${new Date(`${last.day}T12:00:00`).toLocaleDateString("en-US", { weekday: "short" })} · ${st === "completed" ? `✓ ${fmtSpan(L.runActualSec(last))}` : st === "abandoned" ? `abandoned ${last.current}/${last.steps.length}` : "in progress"}`
                     : "Never run"}
                 </Copy>
                 {r.status === "active" && r.steps.length > 0 && (
@@ -792,8 +793,8 @@ export function RoutineSummary({ id, runId }: { id: string; runId?: string }) {
           <Line>
             {[
               ["Steps done", `${done}/${run.steps.length}`],
-              ["Actual", fmtDuration(actual)],
-              ["vs planned", fmtDuration(planned)],
+              ["Actual", fmtSpan(actual)],
+              ["vs planned", fmtSpan(planned)],
             ].map(([label, value], i) => (
               <View key={label} style={{ flex: 1 }}>
                 <Copy
@@ -853,7 +854,7 @@ export function RoutineSummary({ id, runId }: { id: string; runId?: string }) {
                   </Copy>
                   <Copy muted size={12}>
                     {res?.status === "done"
-                      ? `${fmtDuration(res.actualSec)} of ${step.minutes}m`
+                      ? `${fmtSpan(res.actualSec)} of ${fmtSpan(step.minutes * 60)}`
                       : res?.status === "skipped"
                         ? "skipped"
                         : "not reached"}

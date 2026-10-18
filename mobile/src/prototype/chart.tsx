@@ -241,16 +241,14 @@ export function FinanceLineChart({
     max += 1
   }
   const span = max - min
+  // Gridlines sit on the real data extremes so the line never dips past the
+  // lowest one; the 8% padding only adds breathing room around them.
+  const ticks = [max, (max + min) / 2, min]
   min -= span * 0.08
   max += span * 0.08
   const n = Math.max(2, series[0]?.values.length ?? 2),
     x = (i: number) => 40 + (i / (n - 1)) * 292,
     y = (v: number) => 10 + (1 - (v - min) / (max - min)) * (height - 30),
-    ticks = [
-      max - (max - min) * 0.08,
-      (max + min) / 2,
-      min + (max - min) * 0.08,
-    ],
     every = Math.ceil(labels.length / 6)
   return (
     <Svg
@@ -275,7 +273,7 @@ export function FinanceLineChart({
             y={y(v) + 3}
             textAnchor="end"
             fill={t.muted}
-            fontSize={9}
+            fontSize={11}
             fontFamily={fonts.body}
           >
             {hidden ? "••••" : compact(v)}
@@ -297,7 +295,7 @@ export function FinanceLineChart({
             y={y(floor) - 3}
             textAnchor="end"
             fill={t.warn}
-            fontSize={8}
+            fontSize={10}
           >
             minimum
           </SvgText>
@@ -346,7 +344,7 @@ export function FinanceLineChart({
             y={height - 5}
             textAnchor="middle"
             fill={t.muted}
-            fontSize={9}
+            fontSize={11}
             fontFamily={fonts.body}
           >
             {l}
@@ -417,27 +415,33 @@ export function FitnessTrend({
         height={height}
         accessibilityLabel="Trend chart"
       >
-        {ticks.map((v) => (
-          <G key={v}>
-            <Line
-              x1={4}
-              x2={264}
-              y1={y(v)}
-              y2={y(v)}
-              stroke={t.line}
-              strokeDasharray="2 4"
-            />
-            <SvgText
-              x={268}
-              y={y(v) + 3}
-              fontSize={9}
-              fill={t.muted}
-              fontFamily={fonts.body}
-            >
-              {fmt(v)}
-            </SvgText>
-          </G>
-        ))}
+        {/* A tick right next to the goal line reads as a second goal value. */}
+        {ticks
+          .filter(
+            (v) =>
+              goal === undefined || Math.abs(v - goal) > (max - min) * 0.06,
+          )
+          .map((v) => (
+            <G key={v}>
+              <Line
+                x1={4}
+                x2={264}
+                y1={y(v)}
+                y2={y(v)}
+                stroke={t.line}
+                strokeDasharray="2 4"
+              />
+              <SvgText
+                x={268}
+                y={y(v) + 3}
+                fontSize={10}
+                fill={t.muted}
+                fontFamily={fonts.body}
+              >
+                {fmt(v)}
+              </SvgText>
+            </G>
+          ))}
         {goal !== undefined && (
           <G>
             <Line

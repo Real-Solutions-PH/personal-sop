@@ -3,14 +3,17 @@ import { View } from "react-native"
 import Svg, { Circle } from "react-native-svg"
 import { Copy, Line } from "./native-kit"
 import { useTheme } from "./theme"
+// Eight visibly distinct hues — `life` and `warn` were near-identical ambers,
+// and a 7-slot cycle repeated the first colour on the 8th slice.
 export const FIN_PALETTE = [
   "fin",
   "tsk",
   "hab",
   "fit",
   "life",
-  "warn",
-  "muted",
+  "nut",
+  "acct-cyan",
+  "acct-slate",
 ] as const
 export function Donut({
   values,

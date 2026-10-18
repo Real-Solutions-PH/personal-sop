@@ -40,12 +40,17 @@ export function TaskSettings() {
     t = useTheme(),
     st = s.settings,
     n = s.notif
-  const row = (title: string, body: string, right: React.ReactNode) => (
+  const row = (
+    title: string,
+    body: string,
+    right: React.ReactNode,
+    last = false,
+  ) => (
     <Line
       style={{
         paddingVertical: 12,
         gap: 12,
-        borderBottomWidth: 1,
+        borderBottomWidth: last ? 0 : 1,
         borderBottomColor: border(t.line, 0.5),
       }}
     >
@@ -165,6 +170,7 @@ export function TaskSettings() {
                 ]}
               />
             </View>,
+            true,
           )}
         </Frame>
         <SectionHeading>Lists</SectionHeading>
@@ -351,12 +357,16 @@ export function TaskReminders() {
                         width: 44,
                         height: 44,
                         borderRadius: 12,
-                        backgroundColor: name === "SOP" ? t.tsk : t.bg,
+                        backgroundColor: name === "SOP" ? t.tsk : t.card,
+                        borderWidth: name === "SOP" ? 0 : 1,
+                        borderColor: t.line,
                         alignItems: "center",
                         justifyContent: "center",
                       }}
                     >
-                      <Copy size={12}>{name === "SOP" ? "SOP" : ""}</Copy>
+                      <Copy size={12} style={{ color: t.bg }}>
+                        {name === "SOP" ? "SOP" : ""}
+                      </Copy>
                     </View>
                     <Copy size={10} muted>
                       {name}
@@ -673,7 +683,13 @@ export function TaskNotifications() {
       </LinearGradient>
       <Tap onPress={() => go("/tasks/reminders")}>
         <Copy size={12} muted style={{ textAlign: "center" }}>
-          Simulating {s.notif.platform}. Change it under{" "}
+          Simulating{" "}
+          {
+            { ios: "iOS", android: "Android", desktop: "Desktop" }[
+              s.notif.platform
+            ]
+          }
+          . Change it under{" "}
           <Copy size={12} style={{ color: t.tsk }}>
             Reminders
           </Copy>

@@ -69,7 +69,7 @@ export function CardFrame({
       : look.backdrop === "sticker"
         ? ["#414148", "#38383f", "#414148"]
         : [t["share-vivid-from"], t["share-vivid-to"], t["share-vivid-to"]]
-  const ink = paper ? t["share-paper-ink"] : "#fff"
+  const ink = paper ? t["share-paper-ink"] : "#ffffff"
   return (
     <LinearGradient
       colors={colors}
@@ -365,7 +365,7 @@ export function ShareComposer<K extends string>({
                   width: item.key === value ? 16 : 6,
                   height: 6,
                   borderRadius: 3,
-                  backgroundColor: item.key === value ? t.text : t.soft,
+                  backgroundColor: item.key === value ? t.text : t.muted,
                 }}
               />
             ))}
@@ -472,8 +472,10 @@ export function ShareComposer<K extends string>({
                 width: 48,
                 height: 48,
                 borderRadius: 24,
-                borderWidth: backdrop === b ? 2 : 0,
-                borderColor: t[accent],
+                // Unselected swatches keep a hairline so Night stays visible
+                // on a dark page and Paper on a light one.
+                borderWidth: backdrop === b ? 2 : 1,
+                borderColor: backdrop === b ? t[accent] : t.line,
               }}
             />
             <Copy size={12}>{b[0].toUpperCase() + b.slice(1)}</Copy>

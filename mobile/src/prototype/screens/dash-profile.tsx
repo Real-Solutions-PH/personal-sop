@@ -26,7 +26,7 @@ import {
   Wallet,
 } from "lucide-react-native"
 import { useState } from "react"
-import { ScrollView, TextInput, View } from "react-native"
+import { TextInput, View } from "react-native"
 import { toast } from "sonner-native"
 import { pickPhoto } from "../media"
 import {
@@ -174,11 +174,7 @@ export function Profile() {
               <Copy size={12} muted>
                 Linked goal (optional)
               </Copy>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ gap: 6 }}
-              >
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
                 {[
                   { id: "", label: "None" },
                   ...goals.map((g) => ({
@@ -216,7 +212,7 @@ export function Profile() {
                     </Copy>
                   </Tap>
                 ))}
-              </ScrollView>
+              </View>
             </Frame>
           ))}
           {ids.length < 3 && (
@@ -329,12 +325,13 @@ export function WeightsEditor() {
                 <Copy size={14} weight="medium">
                   {AREA[k].label}
                 </Copy>
-                <Copy size={12} muted>
+                <Copy size={12} muted lines={1}>
                   rate{" "}
                   {ls.rates[k] === null
                     ? "—"
-                    : `${Math.round((ls.rates[k] ?? 0) * 100)}%`}{" "}
-                  ·{" "}
+                    : `${Math.round((ls.rates[k] ?? 0) * 100)}%`}
+                </Copy>
+                <Copy size={12} muted lines={1}>
                   {s.enabled[k]
                     ? `${total ? Math.round((s.weights[k] / total) * 100) : 0}% of score`
                     : "turned off"}
@@ -562,7 +559,7 @@ export function Settings() {
             />,
           )}
           {row("Week starts", "", <Copy size={14}>Monday</Copy>)}
-          <View style={{ paddingHorizontal: 4, paddingVertical: 8, gap: 8 }}>
+          <View style={{ paddingVertical: 8, gap: 8 }}>
             <Copy weight="medium">What counts as on target</Copy>
             <Copy size={14} muted>
               Share of due habits + tasks done to hit the day's target

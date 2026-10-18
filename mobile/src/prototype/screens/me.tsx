@@ -184,7 +184,10 @@ export function Me() {
                             muted
                             style={{ fontFamily: fonts.displayRegular }}
                           >
-                            {g.entry?.value ?? "—"} {D.fmtGoal(g.goal)}
+                            {g.entry?.value ?? "—"} /{" "}
+                            {g.goal.comparator === "lte" ? "≤ " : ""}
+                            {g.goal.target}
+                            {g.goal.unit} per {g.goal.period}
                           </Copy>
                         </Line>
                       ) : (

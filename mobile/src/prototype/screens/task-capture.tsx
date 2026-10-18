@@ -100,6 +100,7 @@ export function TaskCapture({
               key={e}
               onPress={() => setText(e)}
               style={{
+                maxWidth: "100%",
                 borderRadius: 20,
                 backgroundColor: t.soft,
                 paddingHorizontal: 12,
