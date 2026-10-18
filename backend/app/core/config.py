@@ -242,6 +242,9 @@ class Settings(BaseSettings):
     MEDIA_MAX_AUDIO_MB: int = 25
     MEDIA_MAX_FILE_MB: int = 20
     MEDIA_URL_TTL_SECONDS: int = 900
+    # Endpoint presigned URLs are signed for, as phones reach object storage
+    # (e.g. https://media.example.com). Unset: MINIO_ENDPOINT.
+    MEDIA_PUBLIC_ENDPOINT: str | None = None
 
     # Mobile API — realtime + push.
     EVENTS_REPLAY_SECONDS: int = 300

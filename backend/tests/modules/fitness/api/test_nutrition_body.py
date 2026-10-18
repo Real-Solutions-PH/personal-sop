@@ -218,11 +218,6 @@ def test_public_estimate_hook_fills_a_pending_photo(
     assert exc.value.detail["code"] == "meal_confirmed"  # type: ignore[attr-defined]
 
 
-@pytest.mark.xfail(
-    raises=NotImplementedError,
-    strict=False,
-    reason="media.public is a stub until merge",
-)
 def test_photo_with_media_checks_the_upload(client: TestClient, db: Session) -> None:
     _, h = signed_in(db)
     r = client.post(
