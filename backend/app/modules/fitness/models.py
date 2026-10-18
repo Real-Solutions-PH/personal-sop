@@ -95,6 +95,8 @@ class Workout(OwnedRow, table=True):
     status: str = Field(default="in_progress", sa_type=String(12))  # type: ignore
     notes: str | None = Field(default=None, max_length=2000)
     source: str = Field(default="live", sa_type=String(5))  # type: ignore
+    # Cardio logged with a chat workout: {activity, km?, min?}.
+    cardio: dict[str, object] | None = Field(default=None, sa_type=JSONB)
 
 
 class WorkoutExercise(OwnedRow, table=True):
@@ -237,7 +239,8 @@ class FitnessSettings(OwnedRow, table=True):
     units: str = Field(default="kg", sa_type=String(2))  # type: ignore
     rest_sec: int = 120
     weekly_target: int = 4
-    weigh_in_reminder: bool = True
+    # Daily weigh-in reminder time (HH:MM, user clock); None = off.
+    weigh_in_reminder: str | None = Field(default="06:30", max_length=5)
     progression: str = Field(default="double", sa_type=String(8))  # type: ignore
     ai_source: str = Field(default="builtin", sa_type=String(10))  # type: ignore
     goal_direction: str = Field(default="maintain", sa_type=String(8))  # type: ignore

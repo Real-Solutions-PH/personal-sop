@@ -38,7 +38,7 @@ class Habit(OwnedRow, table=True):
     )
 
     name: str = Field(max_length=80)
-    icon: str = Field(default="check", max_length=32)
+    icon: str = Field(default="✅", max_length=32)
     type: str = Field(default="check", sa_type=String(8))  # type: ignore
     target: float | None = Field(default=None, sa_type=Float)
     unit: str | None = Field(default=None, max_length=16)

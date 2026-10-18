@@ -187,6 +187,15 @@ def live_label(ctx: Ctx, w: Workout) -> str:
     return f"{w.name} · {done}/{len(working)} sets"
 
 
+def _relabel(ctx: Ctx, workout_id: uuid.UUID) -> None:
+    """Keep the Live bar's "n/m sets" current as sets change."""
+    w = owned_repo.get(ctx, Workout, workout_id)
+    if w is not None and w.status == "in_progress":
+        profile_public.update_live_label(
+            ctx, kind="workout", ref_id=w.id, label=live_label(ctx, w)
+        )
+
+
 # --------------------------------------------------------------------------
 # Planned sets (``plannedSets``)
 # --------------------------------------------------------------------------
@@ -491,6 +500,7 @@ def log_workout_from_chat(
     exercises: list[tuple[str, list[tuple[int, float]]]],
     day: date | None = None,
     workout_id: uuid.UUID | None = None,
+    cardio: dict[str, object] | None = None,
 ) -> Workout:
     """A finished workout backfilled from a capture (``logWorkoutFromChat``):
     18:30 on the day, one hour long, unknown exercises created. Flushes only;
@@ -510,6 +520,7 @@ def log_workout_from_chat(
             "ended_at": start + timedelta(minutes=60),
             "status": "finished",
             "source": "chat",
+            "cardio": cardio,
         },
         row_id=workout_id,
     )
@@ -592,6 +603,7 @@ def add_exercises(
         for i, ex_id in enumerate(exercise_ids)
     ]
     _dirty_at(ctx, w.started_at)
+    _relabel(ctx, workout_id)
     ctx.commit()
     return out
 
@@ -602,6 +614,7 @@ def remove_exercise(*, ctx: Ctx, workout_id: uuid.UUID, we_id: uuid.UUID) -> Non
         owned_repo.soft_delete(ctx, s)
     owned_repo.soft_delete(ctx, we)
     _dirty_at(ctx, _workout(ctx, workout_id).started_at)
+    _relabel(ctx, workout_id)
     ctx.commit()
 
 
@@ -677,6 +690,7 @@ def toggle_set(
     if completed and w.status == "in_progress":
         rest = _start_rest(ctx, None)
     _dirty_at(ctx, w.started_at)
+    _relabel(ctx, workout_id)
     ctx.commit()
     return st, completed, rest
 
@@ -726,6 +740,7 @@ def add_set(
         },
         row_id=set_id or derived_id("workout-set", we.id, str(pos)),
     )
+    _relabel(ctx, workout_id)
     ctx.commit()
     return st
 
@@ -736,6 +751,7 @@ def remove_set(
     st = _set(ctx, workout_id, we_id, set_id)
     owned_repo.soft_delete(ctx, st)
     _dirty_at(ctx, _workout(ctx, workout_id).started_at)
+    _relabel(ctx, workout_id)
     ctx.commit()
 
 

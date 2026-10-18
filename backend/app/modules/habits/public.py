@@ -54,7 +54,7 @@ def create_habit(
     ctx: Ctx,
     *,
     name: str,
-    icon: str = "check",
+    icon: str = "✅",
     type: Literal["check", "duration", "count"] = "check",
     target: float | None = None,
     unit: str | None = None,

@@ -73,6 +73,7 @@ class Category(OwnedRow, table=True):
     archived: bool = False
     system: bool = False
     slug: str | None = Field(default=None, max_length=40)
+    sort_order: int = Field(default=0, sa_column_kwargs={"server_default": "0"})
 
 
 class FinRecord(OwnedRow, table=True):
@@ -299,7 +300,8 @@ class LookBack(OwnedRow, table=True):
     __tablename__ = "look_back"
     __table_args__ = (UniqueConstraint("owner_id", "period", name="uq_look_back"),)
 
-    period: str = Field(max_length=16)  # "2026-09" / "2026-W38"
+    # "2026-09", "2026-W38" or a custom "2026-09-01_2026-09-30".
+    period: str = Field(max_length=24)
     note: str = Field(default="", max_length=2000)
     saved_at: datetime = Field(sa_type=tstz())  # type: ignore
     snapshot: dict[str, object] = Field(sa_type=JSONB)

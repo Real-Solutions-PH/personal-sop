@@ -101,6 +101,17 @@ def resume_live(ctx: Ctx) -> LiveSession | None:
     return live
 
 
+def update_live_label(ctx: Ctx, *, kind: str, ref_id: object, label: str) -> None:
+    """Relabel the Live bar ("Push A · 3/15 sets") if this kind/ref holds it.
+    Flushes only."""
+    live = get_live(ctx)
+    if live is not None and live.kind == kind and live.ref_id == ref_id:
+        if live.label != label:
+            live.label = label[:120]
+            ctx.session.add(live)
+            ctx.session.flush()
+
+
 def end_live(ctx: Ctx, *, kind: str, ref_id: object) -> None:
     """Release the Live bar if (and only if) it holds this kind/ref."""
     live = get_live(ctx)

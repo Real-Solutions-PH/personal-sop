@@ -109,11 +109,11 @@ class TaskSettings(OwnedRow, table=True):
     )
 
     default_remind_time: str = Field(default="09:00", max_length=5)
-    digest_on: bool = True
+    digest_on: bool = False
     digest_time: str = Field(default="07:30", max_length=5)
     quiet_start: str = Field(default="22:00", max_length=5)
     quiet_end: str = Field(default="07:00", max_length=5)
-    count_groceries: bool = False
+    count_groceries: bool = True
     week_start: int = 1
 
 

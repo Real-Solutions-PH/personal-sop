@@ -80,7 +80,12 @@ def _apply(ctx: Ctx, op: SyncOp) -> SyncOpResult:
     if is_restore:
         if existing is None:
             return SyncOpResult(op_id=op.op_id, status="rejected", code="not_found")
-        owned_repo.restore(ctx, existing)
+        if entity.restore is not None:
+            existing = entity.restore(ctx, op.id)
+        else:
+            owned_repo.restore(ctx, existing)
+        ctx.session.flush()
+        ctx.session.refresh(existing)
         return SyncOpResult(
             op_id=op.op_id, status="applied", row=serialize(entity, existing)
         )

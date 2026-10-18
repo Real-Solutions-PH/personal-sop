@@ -65,8 +65,7 @@ class WorkoutDraft:
 
 def log_workout_from_chat(ctx: Ctx, draft: WorkoutDraft) -> Workout:
     """A finished workout from a capture; creates unknown exercises and runs
-    the same finish path as the live logger (habit auto-check included).
-    ``draft.cardio`` has no home in the fitness model and is ignored."""
+    the same finish path as the live logger (habit auto-check included)."""
     return services.log_workout_from_chat(
         ctx,
         name=draft.name,
@@ -74,6 +73,7 @@ def log_workout_from_chat(ctx: Ctx, draft: WorkoutDraft) -> Workout:
             (e.exercise, [(s.reps, s.weight) for s in e.sets]) for e in draft.exercises
         ],
         workout_id=draft.workout_id,
+        cardio=draft.cardio,
     )
 
 

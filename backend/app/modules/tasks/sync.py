@@ -7,9 +7,10 @@ changes are never field writes: ``tasks.complete`` / ``tasks.uncomplete``
 are actions, so a recurring completion always spawns (or removes) its next
 occurrence.
 
-Restoring a soft-deleted task must use ``tasks.restore``: the engine's
-generic restore (``{"deleted_at": null}``) clears the tombstone but not the
-task's ``deleted`` status.
+Restoring a soft-deleted task works both ways: the generic restore op
+(``{"deleted_at": null}``) runs the task's ``restore`` hook, and the
+``tasks.restore`` action stays for clients that already send it. Both leave
+the ``deleted`` status as well as the tombstone.
 """
 
 import uuid
@@ -197,6 +198,12 @@ def _delete_list(ctx: Ctx, args: dict[str, Any]) -> dict[str, Any]:
     return {"count": n}
 
 
+def _restore_hook(ctx: Ctx, task_id: uuid.UUID) -> Task:
+    """Engine restore hook: flushes only; the engine commits the op. A task
+    removed by capture undo is not restorable (404), as over REST."""
+    return ops.restore(ctx, repo.soft_deleted_task(ctx, task_id))
+
+
 def _restore(ctx: Ctx, args: dict[str, Any]) -> dict[str, Any]:
     t = ops.restore(ctx, repo.soft_deleted_task(ctx, args["task_id"]))
     ctx.commit()
@@ -243,6 +250,7 @@ def register(r: Registry) -> None:
             public=TaskPublic,
             upsert=upsert_task,
             delete=delete_task,
+            restore=_restore_hook,
             create_required=("title",),
         )
     )

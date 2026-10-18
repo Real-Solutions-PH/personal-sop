@@ -21,6 +21,9 @@ from app.shared.owned import OwnedRow
 # (ctx, id, validated payload) -> row
 UpsertFn = Callable[[Ctx, uuid.UUID, BaseModel], OwnedRow]
 DeleteFn = Callable[[Ctx, uuid.UUID], None]
+# Undo of a delete when clearing ``deleted_at`` is not enough (e.g. a task
+# whose ``status`` must leave "deleted" too). Returns the restored row.
+RestoreFn = Callable[[Ctx, uuid.UUID], OwnedRow]
 # (ctx, args) -> JSON-able result
 ActionFn = Callable[[Ctx, dict[str, Any]], dict[str, Any]]
 
@@ -33,6 +36,7 @@ class Entity:
     public: type[BaseModel]
     upsert: UpsertFn | None = None
     delete: DeleteFn | None = None
+    restore: RestoreFn | None = None
     # Pulled but never pushed (server-derived rows, e.g. stats rollups).
     read_only: bool = False
     # ``payload`` fields are all optional so an op carries only what changed

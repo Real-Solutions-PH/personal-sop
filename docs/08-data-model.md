@@ -143,7 +143,6 @@ The diagrams below are generated from the SQLModel metadata by `backend/scripts/
 cd backend && uv run python scripts/erd.py
 ```
 
-
 ### `profile`
 
 ```mermaid
@@ -408,7 +407,7 @@ erDiagram
     string units
     integer rest_sec
     integer weekly_target
-    boolean weigh_in_reminder
+    string weigh_in_reminder
     string progression
     string ai_source
     string goal_direction
@@ -475,6 +474,7 @@ erDiagram
     string status
     string notes
     string source
+    jsonb cardio
   }
   workout_exercise {
     uuid id PK
@@ -563,6 +563,7 @@ erDiagram
     boolean archived
     boolean system
     string slug
+    integer sort_order
   }
   fin_record {
     uuid id PK
@@ -1123,4 +1124,3 @@ erDiagram
     timestamptz applied_at
   }
 ```
-

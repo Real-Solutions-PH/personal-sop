@@ -77,6 +77,7 @@ class WorkoutPublic(_Row):
     status: str
     notes: str | None
     source: str
+    cardio: dict[str, object] | None = None
 
 
 class WorkoutExercisePublic(_Row):
@@ -143,7 +144,7 @@ class FitnessSettingsPublic(_Row):
     units: str
     rest_sec: int
     weekly_target: int
-    weigh_in_reminder: bool
+    weigh_in_reminder: str | None
     progression: str
     ai_source: str
     goal_direction: str
@@ -247,7 +248,10 @@ class FitnessSettingsIn(BaseModel):
     units: Units | None = None
     rest_sec: int | None = Field(default=None, ge=0, le=900)
     weekly_target: int | None = Field(default=None, ge=0, le=14)
-    weigh_in_reminder: bool | None = None
+    # HH:MM in the user's clock, or null to turn the reminder off.
+    weigh_in_reminder: str | None = Field(
+        default=None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$"
+    )
     progression: Progression | None = None
     ai_source: AiSource | None = None
     goal_direction: GoalDirection | None = None

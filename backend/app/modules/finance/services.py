@@ -830,7 +830,11 @@ def list_categories(
         ctx,
         Category,
         *where,
-        order_by=[col(Category.created_at), col(Category.name)],
+        order_by=[
+            col(Category.sort_order),
+            col(Category.created_at),
+            col(Category.name),
+        ],
         skip=skip,
         limit=limit,
     )

@@ -1074,8 +1074,21 @@ def _advance(
     ctx.session.flush()
     if run.current >= len(run.steps):
         _finish_run(ctx, run)
+    else:
+        _relabel_run(ctx, run)
     _dirty(ctx, run.day)
     return run
+
+
+def _relabel_run(ctx: Ctx, run: RoutineRun) -> None:
+    routine = owned_repo.get(ctx, Routine, run.routine_id)
+    if routine is not None:
+        profile.update_live_label(
+            ctx,
+            kind="routine",
+            ref_id=run.routine_id,
+            label=_live_label(ctx, routine, list(run.steps), run.current),
+        )
 
 
 def step_done(ctx: Ctx, *, run_id: uuid.UUID) -> RoutineRun:
@@ -1108,6 +1121,7 @@ def step_back(ctx: Ctx, *, run_id: uuid.UUID) -> RoutineRun:
         _reset_step_clock(ctx, run)
         ctx.session.add(run)
         ctx.session.flush()
+        _relabel_run(ctx, run)
     ctx.commit()
     return run
 

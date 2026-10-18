@@ -168,6 +168,7 @@ class CategoryFields(BaseModel):
     icon: str | None = Field(default=None, max_length=32)
     discretionary: bool | None = None
     archived: bool | None = None
+    sort_order: int | None = Field(default=None, ge=0, le=10_000)
 
 
 class CategoryCreate(CategoryFields):
@@ -187,6 +188,7 @@ class CategoryPublic(BaseModel):
     archived: bool
     system: bool
     slug: str | None
+    sort_order: int
     version: int
 
 
@@ -576,7 +578,12 @@ class Snapshot(BaseModel):
 
 class LookBackSave(BaseModel):
     id: uuid.UUID | None = None
-    period: str = Field(min_length=7, max_length=16, pattern=r"^\d{4}-(\d{2}|W\d{2})$")
+    # Month "2026-09", ISO week "2026-W38" or custom "2026-09-01_2026-09-30".
+    period: str = Field(
+        min_length=7,
+        max_length=24,
+        pattern=r"^\d{4}-(\d{2}|W\d{2}|\d{2}-\d{2}_\d{4}-\d{2}-\d{2})$",
+    )
     note: str = Field(default="", max_length=2000)
     snapshot: Snapshot
 
