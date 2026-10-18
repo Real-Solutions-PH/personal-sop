@@ -693,7 +693,10 @@ def adherence(s: FitState, days: int, today: date, offset: int = 0) -> Adherence
     )
 
 
-def label_for_time(at: datetime, clock: DayClock) -> str:
+MealLabel = Literal["breakfast", "lunch", "dinner", "snack"]
+
+
+def label_for_time(at: datetime, clock: DayClock) -> MealLabel:
     h = at.astimezone(clock.zone).hour
     if 4 <= h < 10:
         return "breakfast"
