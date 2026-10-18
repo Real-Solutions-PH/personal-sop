@@ -364,6 +364,7 @@ def _create_habit(ctx: Ctx, *, data: HabitCreate) -> Habit:
         ctx,
         Habit,
         {
+            "icon": "✅",
             "reminder": get_settings(ctx).default_reminder,
             **fields,
             "schedule": schedule,
