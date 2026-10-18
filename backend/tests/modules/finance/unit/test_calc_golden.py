@@ -11,6 +11,20 @@ from tests.modules.finance.unit.golden import c, d, data, plan_of, state, statem
 S = state()
 G = data()
 
+# calc.RAW_HINTS deliberately diverges from the prototype's first-word,
+# first-hit matching (see the comment on the table). For these statement
+# lines the prototype's own guess is wrong; the expected (payee, category)
+# below is hand-read from the line, not taken from the code under test.
+DIVERGENT: dict[str, tuple[str, str]] = {
+    "Payment to GRAB PHILIPPINES": ("Grab", "grab"),  # prototype: 7-Eleven
+    "Bills Payment — SMART COMMUNICATIONS": ("Smart", "phone"),  # SM Supermarket
+    "Payment to GRABFOOD PH": ("GrabFood", "dining"),  # Grab ride
+    "Payment to FOODPANDA PHILIPPINES": ("foodpanda", "dining"),  # 7-Eleven
+    "Payment to SM CINEMA": ("SM Cinema", "entertainment"),  # SM Supermarket
+    "PENDING — Payment to SHOPEEPAY PHILIPPINES": ("Shopee", "shopping"),  # 7-Eleven
+    "WITHHOLDING TAX ON INTEREST": ("BPI", "fees"),  # interest income
+}
+
 
 def approx(pesos: float) -> Any:
     return pytest.approx(c(pesos), rel=1e-9, abs=1e-6)
@@ -259,7 +273,13 @@ def test_reconcile_and_statement_closing(idx: int) -> None:
     g = G["reconcile"][idx]
     rows = calc.reconcile(S, g["account"], statement(g["account"]), g["importId"])
     assert len(rows) == len(g["rows"])
-    for r, gr in zip(rows, g["rows"], strict=True):
+    diverged = 0
+    for r, gr0 in zip(rows, g["rows"], strict=True):
+        gr = dict(gr0)
+        if r.row.raw in DIVERGENT:
+            diverged += 1
+            payee, cat = DIVERGENT[r.row.raw]
+            gr |= {"payee": payee, "suggestedCategoryId": cat, "categoryId": cat}
         assert (r.payee, r.state, r.decision, r.match_id, r.reason) == (
             gr["payee"],
             gr["state"],
@@ -274,6 +294,7 @@ def test_reconcile_and_statement_closing(idx: int) -> None:
         assert r.is_transfer == gr["isTransfer"]
         assert r.confidence == pytest.approx(gr["confidence"])
         assert calc.needs_attention(r.state, r.confidence) == gr["needsAttention"]
+    assert diverged >= 1
     assert calc.statement_closing(S, g["account"], d(g["closingTo"]), rows) == round(
         g["closing"] * 100
     )
@@ -281,7 +302,8 @@ def test_reconcile_and_statement_closing(idx: int) -> None:
 
 def test_guess_payee_and_suggest_category() -> None:
     for g in G["guess"]:
-        assert calc.guess_payee(g["raw"]) == (g["payee"], g["cat"])
+        want = DIVERGENT.get(g["raw"], (g["payee"], g["cat"]))
+        assert calc.guess_payee(g["raw"]) == want
     for g in G["suggest"]:
         assert calc.suggest_category(S, g["payee"]) == g["cat"]
 

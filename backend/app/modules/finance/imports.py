@@ -634,10 +634,21 @@ def delete_import(ctx: Ctx, *, import_id: uuid.UUID) -> None:
 
 
 def restore_import(ctx: Ctx, *, import_id: uuid.UUID) -> StatementImport:
-    """Undo a discard."""
+    """Undo a discard (a tombstoned draft comes back as it was), or reopen an
+    undone import for review with its reviewed rows kept. Committing it again
+    writes the same derived record ids, so the records it created are
+    revived, never duplicated."""
     imp = _import(ctx, import_id, include_deleted=True)
     if imp.deleted_at is not None:
         owned_repo.restore(ctx, imp)
+    elif imp.status == "undone":
+        imp.status = "review"
+        imp.created_ids = []
+        imp.changed = []
+        imp.counts = None
+        ctx.session.add(imp)
+    else:
+        raise conflict("import_not_restorable", "Nothing to restore on this import")
     ctx.commit()
     return imp
 

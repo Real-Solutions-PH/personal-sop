@@ -838,40 +838,52 @@ class RawHint:
     pattern: re.Pattern[str]
     payee: str
     cat: str | None
+    specificity: int
 
 
-def _hint(word: str, payee: str, cat: str | None) -> RawHint:
-    return RawHint(re.compile(word, re.IGNORECASE), payee, cat)
+def _hint(words: str, payee: str, cat: str | None) -> RawHint:
+    """``words`` is ``|``-separated keywords, each matched as whole words."""
+    alts = "|".join(re.escape(w).replace(r"\ ", r"\s+") for w in words.split("|"))
+    return RawHint(re.compile(rf"\b(?:{alts})\b", re.IGNORECASE), payee, cat, max(len(w) for w in words.split("|")))
 
 
-# The prototype's RAW_HINTS: the first word of each merchant's statement text,
-# in the prototype's merchant order (first match wins, so "GRAB" shadows
-# "GRABFOOD" and "SM" shadows "SM CINEMA" exactly as on the device), then the
-# billers. Categories are seeded slugs, mapped to the user's ids by the caller.
-RAW_HINTS: tuple[RawHint, ...] = (
+# Statement-text hints: keyword(s), payee, category slug (mapped to the
+# user's ids by the caller).
+#
+# DIVERGES FROM THE PROTOTYPE on purpose. ``RAW_HINTS`` in the prototype
+# matches the bare FIRST WORD of each merchant's statement text anywhere in
+# the line, first hit wins, so "FOODPANDA PHILIPPINES" and "SHOPEEPAY
+# PHILIPPINES" become 7-Eleven ("PHILIPPINE SEVEN"), "SMART COMMUNICATIONS"
+# becomes SM Supermarket, "GRABFOOD" becomes a Grab ride and "WITHHOLDING
+# TAX ON INTEREST" becomes interest income. Here every keyword matches as
+# whole words and the most specific (longest) keyword wins. Matching and
+# reconcile states are unaffected; only the guessed payee and category of
+# those lines differ (pinned in ``test_calc_golden``).
+_HINTS: tuple[RawHint, ...] = (
     _hint("JOLLIBEE", "Jollibee", "dining"),
-    _hint("MANG", "Mang Inasal", "dining"),
+    _hint("MANG INASAL", "Mang Inasal", "dining"),
     _hint("CHOWKING", "Chowking", "dining"),
-    _hint("PHILIPPINE", "7-Eleven", "dining"),
+    _hint("PHILIPPINE SEVEN|7-ELEVEN|7 ELEVEN", "7-Eleven", "dining"),
     _hint("STARBUCKS", "Starbucks", "coffee"),
-    _hint("TIM", "Tim Hortons", "coffee"),
-    _hint("GRAB", "Grab", "grab"),
+    _hint("TIM HORTONS", "Tim Hortons", "coffee"),
+    _hint("GRAB PHILIPPINES|GRAB", "Grab", "grab"),
     _hint("GRABFOOD", "GrabFood", "dining"),
-    _hint("SM", "SM Supermarket", "groceries"),
+    _hint("SM SUPERMARKET|SM MARKETS", "SM Supermarket", "groceries"),
     _hint("PUREGOLD", "Puregold", "groceries"),
-    _hint("SHOPEEPAY", "Shopee", "shopping"),
+    _hint("SHOPEEPAY|SHOPEE", "Shopee", "shopping"),
     _hint("LAZADA", "Lazada", "shopping"),
-    _hint("MERCURY", "Mercury Drug", "health"),
-    _hint("SM", "SM Cinema", "entertainment"),
-    _hint("ROMANTIC", "Romantic Baboy", "dining"),
+    _hint("MERCURY DRUG", "Mercury Drug", "health"),
+    _hint("SM CINEMA", "SM Cinema", "entertainment"),
+    _hint("ROMANTIC BABOY", "Romantic Baboy", "dining"),
     _hint("MERALCO", "Meralco", "electricity"),
     _hint("SMART", "Smart", "phone"),
     _hint("LUMEN", "Lumen Studio", "freelance"),
     _hint("INTEREST", "BPI", "interest"),
-    _hint("TAX", "BPI", "fees"),
+    _hint("WITHHOLDING TAX|TAX", "BPI", "fees"),
     _hint("SEND MONEY", "Send Money", "gifts"),
     _hint("FOODPANDA", "foodpanda", "dining"),
 )
+RAW_HINTS: tuple[RawHint, ...] = tuple(sorted(_HINTS, key=lambda h: -h.specificity))
 
 _PREFIX = re.compile(
     r"^(Payment to|Bills Payment —|Received money from)\s*", re.IGNORECASE
