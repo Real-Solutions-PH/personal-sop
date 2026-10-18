@@ -24,7 +24,9 @@ class Fin:
         return r.json()
 
     def post(self, path: str, body: Any = None, status: int = 200) -> Any:
-        r = self.c.post(f"{API}{path}", headers=self.h, json=body if body is not None else {})
+        r = self.c.post(
+            f"{API}{path}", headers=self.h, json=body if body is not None else {}
+        )
         assert r.status_code == status, r.text
         return r.json()
 
@@ -43,17 +45,35 @@ class Fin:
         rows = self.get("/categories", limit=100)["data"]
         return {c["slug"]: c["id"] for c in rows if c["slug"]}
 
-    def account(self, name: str, type: str = "ewallet", opening: int = 0, **extra: Any) -> str:
+    def account(
+        self, name: str, type: str = "ewallet", opening: int = 0, **extra: Any
+    ) -> str:
         body = {"name": name, "type": type, "opening_minor": opening, **extra}
         return str(self.post("/accounts", body)["id"])
 
-    def expense(self, account: str, amount: int, cat: str | None = None, **extra: Any) -> dict[str, Any]:
-        body = {"type": "expense", "amount_minor": amount, "account_id": account, "category_id": cat, **extra}
+    def expense(
+        self, account: str, amount: int, cat: str | None = None, **extra: Any
+    ) -> dict[str, Any]:
+        body = {
+            "type": "expense",
+            "amount_minor": amount,
+            "account_id": account,
+            "category_id": cat,
+            **extra,
+        }
         out: dict[str, Any] = self.post("/records", body)["data"][0]
         return out
 
-    def income(self, account: str, amount: int, cat: str | None = None, **extra: Any) -> dict[str, Any]:
-        body = {"type": "income", "amount_minor": amount, "account_id": account, "category_id": cat, **extra}
+    def income(
+        self, account: str, amount: int, cat: str | None = None, **extra: Any
+    ) -> dict[str, Any]:
+        body = {
+            "type": "income",
+            "amount_minor": amount,
+            "account_id": account,
+            "category_id": cat,
+            **extra,
+        }
         out: dict[str, Any] = self.post("/records", body)["data"][0]
         return out
 
@@ -66,17 +86,21 @@ class Fin:
         return list(r.json()["results"])
 
     def pull(self, cursor: int = 0, limit: int = 500) -> dict[str, Any]:
-        r = self.c.get(f"{SYNC}/pull", headers=self.h, params={"cursor": cursor, "limit": limit})
+        r = self.c.get(
+            f"{SYNC}/pull", headers=self.h, params={"cursor": cursor, "limit": limit}
+        )
         assert r.status_code == 200, r.text
         out: dict[str, Any] = r.json()
         return out
 
 
-def op(kind: str, name: str, row_id: uuid.UUID | str | None = None, op_id: str | None = None, **data: Any) -> dict[str, Any]:
+def op(
+    kind: str, entity: str, row_id: uuid.UUID | str | None = None, /, **data: Any
+) -> dict[str, Any]:
     return {
-        "op_id": op_id or str(uuid.uuid4()),
+        "op_id": str(uuid.uuid4()),
         "kind": kind,
-        "name": name,
+        "name": entity,
         "id": str(row_id) if row_id else None,
         "data": data,
     }

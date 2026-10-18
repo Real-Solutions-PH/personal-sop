@@ -844,7 +844,12 @@ class RawHint:
 def _hint(words: str, payee: str, cat: str | None) -> RawHint:
     """``words`` is ``|``-separated keywords, each matched as whole words."""
     alts = "|".join(re.escape(w).replace(r"\ ", r"\s+") for w in words.split("|"))
-    return RawHint(re.compile(rf"\b(?:{alts})\b", re.IGNORECASE), payee, cat, max(len(w) for w in words.split("|")))
+    return RawHint(
+        re.compile(rf"\b(?:{alts})\b", re.IGNORECASE),
+        payee,
+        cat,
+        max(len(w) for w in words.split("|")),
+    )
 
 
 # Statement-text hints: keyword(s), payee, category slug (mapped to the

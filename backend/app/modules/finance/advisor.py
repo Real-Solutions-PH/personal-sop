@@ -35,23 +35,32 @@ class Question:
     period: str | None = None
 
 
-_NUM = re.compile(r"(\d+(?:\.\d+)?)\s*(k)?")
+# An amount: a number, optionally "k". A number followed by "%" or a time
+# unit is a rate or a term, not an amount (DIVERGES from the prototype, whose
+# first-number rule read "0% for 12 months" as a ₱0 purchase).
+_NUM = re.compile(
+    r"(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)\s*(k\b)?(?!\s*(?:%|\d|\.\d|,\d|months?\b|mos?\b|weeks?\b|years?\b|yrs?\b|x\b|×))"
+)
 
 
 def advisor_question(text: str) -> Question:
-    """Port of ``advisorQuestion``: the first number (``45k`` = 45,000) and
+    """Port of ``advisorQuestion``: the first amount (``45k`` = 45,000) and
     the intent, tested in the prototype's order."""
     t = text.lower()
     m = _NUM.search(t)
     amount = (
-        calc.js_round(float(m.group(1)) * (1000 if m.group(2) else 1) * 100)
+        calc.js_round(
+            float(m.group(1).replace(",", "")) * (1000 if m.group(2) else 1) * 100
+        )
         if m
         else None
     )
     if re.search(r"0%|financ|install|or pay cash", t):
-        return Question("finance", amount_minor=amount or 3_000_000, n=12)
+        return Question(
+            "finance", amount_minor=3_000_000 if amount is None else amount, n=12
+        )
     if re.search(r"afford|buy|laptop|purchase", t):
-        return Question("afford", amount_minor=amount or 4_500_000)
+        return Question("afford", amount_minor=4_500_000 if amount is None else amount)
     if re.search(r"leak|where.*money|coffee|wasting", t):
         return Question("leaks")
     if re.search(r"emergency|runway|safety", t):

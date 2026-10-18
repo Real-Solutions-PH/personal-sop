@@ -145,7 +145,7 @@ class FinanceContributor:
         mk = calc.month_of(window.first, sd)
         last_mk = calc.month_of(window.last, sd)
         guard = 0
-        while calc.month_index(mk, last_mk) >= 0 and guard < 24:
+        while calc.month_index(mk, last_mk) <= 0 and guard < 24:
             _, mt = calc.month_range(mk, sd)
             for b in s.budgets:
                 if b.archived:
