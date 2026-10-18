@@ -1,3 +1,4 @@
+import Constants, { ExecutionEnvironment } from "expo-constants"
 import * as Crypto from "expo-crypto"
 import * as SecureStore from "expo-secure-store"
 import { Platform } from "react-native"
@@ -39,8 +40,30 @@ function createWebStore(): KVStore {
 }
 
 type MMKVModule = typeof import("react-native-mmkv")
+type SQLiteKVModule = typeof import("expo-sqlite/kv-store")
+
+// Expo Go cannot load MMKV v4 (it needs the NitroModules native module, which
+// Expo Go does not ship), so there both stores fall back to expo-sqlite's
+// synchronous key-value store. Detected explicitly rather than by catching the
+// load error, so a dev or release build missing MMKV still fails loudly.
+const isExpoGo =
+  Constants.executionEnvironment === ExecutionEnvironment.StoreClient
+
+// Each store gets its own key prefix so the session never shares keys with
+// the general app-state store.
+function createExpoGoStore(prefix: string): KVStore {
+  const { Storage } = require("expo-sqlite/kv-store") as SQLiteKVModule
+  return {
+    getString: (key) => Storage.getItemSync(prefix + key) ?? undefined,
+    set: (key, value) => Storage.setItemSync(prefix + key, value),
+    remove: (key) => {
+      Storage.removeItemSync(prefix + key)
+    },
+  }
+}
 
 function createNativeStore(): KVStore {
+  if (isExpoGo) return createExpoGoStore("general:")
   const { createMMKV } = require("react-native-mmkv") as MMKVModule
   const instance = createMMKV()
   return {
@@ -101,6 +124,9 @@ async function getOrCreateSessionEncryptionKey(): Promise<string> {
 }
 
 async function openEncryptedNativeStore(): Promise<KVStore> {
+  // Expo Go only: unencrypted, because MMKV is unavailable there. Dev-only
+  // runtime; every installed build takes the encrypted MMKV path below.
+  if (isExpoGo) return createExpoGoStore(`${SESSION_STORE_ID}:`)
   const { createMMKV } = require("react-native-mmkv") as MMKVModule
   const encryptionKey = await getOrCreateSessionEncryptionKey()
   const instance = createMMKV({

@@ -6,10 +6,18 @@
 
 type StorageModule = typeof import("@/lib/storage")
 
-function loadStorage(platform: "ios" | "android" | "web"): StorageModule {
+function loadStorage(
+  platform: "ios" | "android" | "web",
+  executionEnvironment: "standalone" | "storeClient" = "standalone",
+): StorageModule {
   let mod: StorageModule | undefined
   jest.isolateModules(() => {
     jest.doMock("react-native", () => ({ Platform: { OS: platform } }))
+    jest.doMock("expo-constants", () => ({
+      __esModule: true,
+      default: { executionEnvironment },
+      ExecutionEnvironment: { StoreClient: "storeClient" },
+    }))
     mod = require("@/lib/storage")
   })
   if (!mod) throw new Error("storage module failed to load")
@@ -28,6 +36,15 @@ jest.mock("react-native-mmkv", () => ({
   createMMKV: (...args: unknown[]) => mockCreateMMKV(...args),
 }))
 
+const mockKv = new Map<string, string>()
+jest.mock("expo-sqlite/kv-store", () => ({
+  Storage: {
+    getItemSync: (k: string) => mockKv.get(k) ?? null,
+    setItemSync: (k: string, v: string) => mockKv.set(k, v),
+    removeItemSync: (k: string) => mockKv.delete(k),
+  },
+}))
+
 const mockGetItemAsync = jest.fn()
 const mockSetItemAsync = jest.fn()
 jest.mock("expo-secure-store", () => ({
@@ -42,6 +59,7 @@ jest.mock("expo-crypto", () => ({
 
 beforeEach(() => {
   jest.clearAllMocks()
+  mockKv.clear()
 })
 
 describe("native platforms", () => {
@@ -243,5 +261,34 @@ describe("getEncryptedSessionStore (web keeps the localStorage path)", () => {
     expect(mockSetItemAsync).not.toHaveBeenCalled()
     expect(mockGetRandomBytes).not.toHaveBeenCalled()
     expect(mockCreateMMKV).not.toHaveBeenCalled()
+  })
+})
+
+describe("Expo Go (no NitroModules, so no MMKV)", () => {
+  it("round-trips the general store through expo-sqlite and never loads MMKV", () => {
+    const { mmkv } = loadStorage("ios", "storeClient")
+
+    mmkv.set("k", "v")
+    expect(mmkv.getString("k")).toBe("v")
+    mmkv.remove("k")
+    expect(mmkv.getString("k")).toBeUndefined()
+
+    expect(mockCreateMMKV).not.toHaveBeenCalled()
+  })
+
+  it("keeps the session store under its own keys, apart from the general store", async () => {
+    const { mmkv, getEncryptedSessionStore } = loadStorage(
+      "android",
+      "storeClient",
+    )
+    const sessionStore = await getEncryptedSessionStore()
+
+    mmkv.set("k", "general")
+    sessionStore.set("k", "session")
+    expect(mmkv.getString("k")).toBe("general")
+    expect(sessionStore.getString("k")).toBe("session")
+
+    expect(mockCreateMMKV).not.toHaveBeenCalled()
+    expect(mockGetItemAsync).not.toHaveBeenCalled()
   })
 })
