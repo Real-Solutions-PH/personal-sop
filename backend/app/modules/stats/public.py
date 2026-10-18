@@ -55,7 +55,15 @@ def series(ctx: Ctx, *, metric: str, days: int) -> list[tuple[date, float | None
     raise NotImplementedError
 
 
+DIRTY_KEY = "stats_dirty"
+
+
 def mark_dirty(ctx: Ctx, *, module: str, day: date) -> None:
     """A write changed ``module`` on ``day``: queue the rollup recompute.
-    Cheap and idempotent; call it from every use case that changes a day."""
-    raise NotImplementedError
+    Cheap and idempotent; call it from every use case that changes a day.
+
+    Collects ``(owner, module, day)`` on the session; the stats module drains
+    the set after commit and enqueues the debounced recompute.
+    """
+    dirty: set[tuple[object, str, date]] = ctx.session.info.setdefault(DIRTY_KEY, set())
+    dirty.add((ctx.user_id, module, day))
