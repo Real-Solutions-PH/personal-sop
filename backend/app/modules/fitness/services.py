@@ -546,6 +546,7 @@ def find_or_create_exercise(ctx: Ctx, name: str) -> Exercise:
     clean = name.strip()
     if not clean:
         raise invalid("exercise_name_required", "An exercise needs a name")
+    ensure_settings(ctx)
     for e in owned_repo.list_rows(ctx, Exercise):
         if e.name.lower() == clean.lower():
             return e
@@ -553,7 +554,8 @@ def find_or_create_exercise(ctx: Ctx, name: str) -> Exercise:
         ctx,
         Exercise,
         derived_id("exercise", ctx.user_id, "name:" + clean.lower()),
-        {"name": clean[:80]},
+        # ``upsertExercise({name})`` defaults: a barbell chest lift, 8-12.
+        {"name": clean[:80], "equipment": "barbell", "muscle": "chest"},
     )
     return ex
 

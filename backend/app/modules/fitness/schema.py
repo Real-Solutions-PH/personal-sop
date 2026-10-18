@@ -29,8 +29,9 @@ Progression = Literal["double", "linear"]
 AiSource = Literal["builtin", "connector"]
 GoalDirection = Literal["cut", "maintain", "bulk"]
 
-Kg = Field(ge=0, le=2000)
 Macro = Field(ge=0, le=100000)
+OptMacro = Field(default=None, ge=0, le=100000)
+OptKg = Field(default=None, ge=0, le=2000)
 
 
 class _Row(BaseModel):
@@ -199,7 +200,7 @@ class WorkoutSetIn(BaseModel):
     workout_exercise_id: uuid.UUID | None = None
     position: int | None = Field(default=None, ge=0, le=1000)
     reps: int | None = Field(default=None, ge=0, le=1000)
-    weight: float | None = Kg
+    weight: float | None = OptKg
     kind: SetKind | None = None
     completed_at: datetime | None = None
 
@@ -213,10 +214,10 @@ class WeighInIn(BaseModel):
 
 class MacroTargetIn(BaseModel):
     effective_from: date | None = None
-    kcal: float | None = Macro
-    protein: float | None = Macro
-    carbs: float | None = Macro
-    fat: float | None = Macro
+    kcal: float | None = OptMacro
+    protein: float | None = OptMacro
+    carbs: float | None = OptMacro
+    fat: float | None = OptMacro
 
 
 class MealIn(BaseModel):
@@ -235,10 +236,10 @@ class MealItemIn(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=120)
     qty: float | None = Field(default=None, gt=0, le=100000)
     unit: str | None = Field(default=None, min_length=1, max_length=24)
-    kcal: float | None = Macro
-    protein: float | None = Macro
-    carbs: float | None = Macro
-    fat: float | None = Macro
+    kcal: float | None = OptMacro
+    protein: float | None = OptMacro
+    carbs: float | None = OptMacro
+    fat: float | None = OptMacro
     assumption: str | None = Field(default=None, max_length=280)
 
 
@@ -299,7 +300,7 @@ class AddSet(BaseModel):
 
 class SetPatch(BaseModel):
     reps: int | None = Field(default=None, ge=0, le=1000)
-    weight: float | None = Kg
+    weight: float | None = OptKg
     kind: SetKind | None = None
 
 
@@ -411,10 +412,10 @@ class FollowUpAnswerIn(BaseModel):
 class ItemPatch(BaseModel):
     qty: float | None = Field(default=None, gt=0, le=100000)
     name: str | None = Field(default=None, min_length=1, max_length=120)
-    kcal: float | None = Macro
-    protein: float | None = Macro
-    carbs: float | None = Macro
-    fat: float | None = Macro
+    kcal: float | None = OptMacro
+    protein: float | None = OptMacro
+    carbs: float | None = OptMacro
+    fat: float | None = OptMacro
 
 
 class AddMealItem(BaseModel):

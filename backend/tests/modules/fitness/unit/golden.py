@@ -36,7 +36,7 @@ def load(name: str) -> dict[str, Any]:
 
 
 def frozen_now(name: str = "fitness-calc") -> datetime:
-    return ts(load(name)["frozenNow"])
+    return tsr(load(name)["frozenNow"])
 
 
 def ts(s: str | None) -> datetime | None:
