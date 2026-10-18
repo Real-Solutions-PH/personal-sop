@@ -25,12 +25,6 @@ from tests.utils.mobile import ctx_for, signed_in
 from tests.utils.user import create_auth_user
 from tests.utils.utils import auth_headers
 
-STUB = pytest.mark.xfail(
-    raises=NotImplementedError,
-    strict=False,
-    reason="habits.public.auto_check_workout_habits is a stub until merge",
-)
-
 
 def _start(client: TestClient, h: dict[str, str], **body: object) -> dict[str, Any]:
     return ok(client.post(f"{API}/workouts/start", headers=h, json=body))  # type: ignore[no-any-return]
@@ -301,7 +295,6 @@ def test_set_of_another_exercise_is_not_found(client: TestClient, db: Session) -
     )
 
 
-@STUB
 def test_finish_removes_unchecked_sets_and_releases_the_live_bar(
     client: TestClient, db: Session
 ) -> None:

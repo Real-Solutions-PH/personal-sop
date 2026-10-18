@@ -4,7 +4,6 @@ import uuid
 from datetime import timedelta
 from typing import Any
 
-import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
@@ -326,11 +325,6 @@ def test_workout_actions(client: TestClient, db: Session) -> None:
     assert (bad["status"], bad["code"]) == ("rejected", "workout_not_found")
 
 
-@pytest.mark.xfail(
-    raises=NotImplementedError,
-    strict=False,
-    reason="habits.public.auto_check_workout_habits is a stub until merge",
-)
 def test_finish_action(client: TestClient, db: Session) -> None:
     _, h = signed_in(db)
     wid = uuid.uuid4()
