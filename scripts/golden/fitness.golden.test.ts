@@ -494,6 +494,10 @@ test("meal estimator", async () => {
 		"half rice, tinola",
 		"kalahati rice",
 		"200g tapa",
+		// Gram threshold: above 20 a number is grams, at or below it a count.
+		"20 g tapa",
+		"21 g tapa",
+		"30g tocino",
 		"3 x egg",
 		"150 g inasal",
 		"protein shake",

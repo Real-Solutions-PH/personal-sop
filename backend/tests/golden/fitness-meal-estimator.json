@@ -273,6 +273,63 @@
         }
       },
       {
+        "raw": "20 g tapa",
+        "result": {
+          "items": [
+            {
+              "name": "Beef tapa",
+              "qty": 2000,
+              "unit": "g",
+              "kcal": 5000,
+              "protein": 480,
+              "carbs": 160,
+              "fat": 280,
+              "assumption": "~100 g, pan-fried"
+            }
+          ],
+          "confidence": 0.6799999999999999,
+          "followUp": null
+        }
+      },
+      {
+        "raw": "21 g tapa",
+        "result": {
+          "items": [
+            {
+              "name": "Beef tapa",
+              "qty": 25,
+              "unit": "g",
+              "kcal": 63,
+              "protein": 6,
+              "carbs": 2,
+              "fat": 4,
+              "assumption": "~100 g, pan-fried"
+            }
+          ],
+          "confidence": 0.6799999999999999,
+          "followUp": null
+        }
+      },
+      {
+        "raw": "30g tocino",
+        "result": {
+          "items": [
+            {
+              "name": "Pork tocino",
+              "qty": 30,
+              "unit": "g",
+              "kcal": 87,
+              "protein": 5,
+              "carbs": 7,
+              "fat": 5,
+              "assumption": "~100 g"
+            }
+          ],
+          "confidence": 0.6799999999999999,
+          "followUp": null
+        }
+      },
+      {
         "raw": "3 x egg",
         "result": {
           "items": [
