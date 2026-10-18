@@ -702,6 +702,27 @@ export const AdviceInSchema = {
     title: 'AdviceIn'
 } as const;
 
+export const AdvicePublicSchema = {
+    properties: {
+        kind: {
+            type: 'string',
+            title: 'Kind'
+        },
+        tone: {
+            type: 'string',
+            enum: ['good', 'warn', 'bad'],
+            title: 'Tone'
+        },
+        text: {
+            type: 'string',
+            title: 'Text'
+        }
+    },
+    type: 'object',
+    required: ['kind', 'tone', 'text'],
+    title: 'AdvicePublic'
+} as const;
+
 export const ArchiveExerciseSchema = {
     properties: {
         archived: {
@@ -5860,6 +5881,98 @@ export const MealsOutSchema = {
     title: 'MealsOut'
 } as const;
 
+export const MediaWithUrlSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        kind: {
+            type: 'string',
+            enum: ['image', 'video', 'audio', 'file'],
+            title: 'Kind'
+        },
+        mime: {
+            type: 'string',
+            title: 'Mime'
+        },
+        size_bytes: {
+            type: 'integer',
+            title: 'Size Bytes'
+        },
+        width: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Width'
+        },
+        height: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Height'
+        },
+        duration_sec: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Duration Sec'
+        },
+        state: {
+            type: 'string',
+            enum: ['pending', 'ready', 'rejected'],
+            title: 'State'
+        },
+        ready_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Ready At'
+        },
+        created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At'
+        },
+        url: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Url'
+        }
+    },
+    type: 'object',
+    required: ['id', 'kind', 'mime', 'size_bytes', 'width', 'height', 'duration_sec', 'state', 'ready_at', 'created_at'],
+    title: 'MediaWithUrl'
+} as const;
+
 export const MessageSchema = {
     properties: {
         message: {
@@ -7049,6 +7162,37 @@ export const PermissionsPublicSchema = {
     type: 'object',
     required: ['data', 'count'],
     title: 'PermissionsPublic'
+} as const;
+
+export const PlacePublicSchema = {
+    properties: {
+        name: {
+            type: 'string',
+            title: 'Name'
+        },
+        detail: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Detail'
+        },
+        lat: {
+            type: 'number',
+            title: 'Lat'
+        },
+        lon: {
+            type: 'number',
+            title: 'Lon'
+        }
+    },
+    type: 'object',
+    required: ['name', 'lat', 'lon'],
+    title: 'PlacePublic'
 } as const;
 
 export const PlannedCreateSchema = {
@@ -12682,6 +12826,111 @@ export const UpcomingPublicSchema = {
     title: 'UpcomingPublic'
 } as const;
 
+export const UploadRequestSchema = {
+    properties: {
+        id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Id'
+        },
+        kind: {
+            type: 'string',
+            enum: ['image', 'video', 'audio', 'file'],
+            title: 'Kind'
+        },
+        mime: {
+            type: 'string',
+            maxLength: 80,
+            minLength: 3,
+            title: 'Mime'
+        },
+        size_bytes: {
+            type: 'integer',
+            exclusiveMinimum: 0,
+            title: 'Size Bytes'
+        },
+        width: {
+            anyOf: [
+                {
+                    type: 'integer',
+                    maximum: 20000,
+                    exclusiveMinimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Width'
+        },
+        height: {
+            anyOf: [
+                {
+                    type: 'integer',
+                    maximum: 20000,
+                    exclusiveMinimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Height'
+        },
+        duration_sec: {
+            anyOf: [
+                {
+                    type: 'number',
+                    maximum: 36000,
+                    minimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Duration Sec'
+        }
+    },
+    type: 'object',
+    required: ['kind', 'mime', 'size_bytes'],
+    title: 'UploadRequest'
+} as const;
+
+export const UploadTicketSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        upload_url: {
+            type: 'string',
+            title: 'Upload Url'
+        },
+        expires_in: {
+            type: 'integer',
+            title: 'Expires In'
+        },
+        headers: {
+            additionalProperties: {
+                type: 'string'
+            },
+            type: 'object',
+            title: 'Headers'
+        }
+    },
+    type: 'object',
+    required: ['id', 'upload_url', 'expires_in', 'headers'],
+    title: 'UploadTicket',
+    description: `Upload the bytes with \`\`PUT upload_url\`\` and header
+\`\`Content-Type: <mime>\`\`, then call \`\`POST /media/{id}/complete\`\`.`
+} as const;
+
 export const UserCreateSchema = {
     properties: {
         email: {
@@ -12890,6 +13139,213 @@ export const UsersPublicSchema = {
     type: 'object',
     required: ['data', 'count'],
     title: 'UsersPublic'
+} as const;
+
+export const WeatherPrefPublicSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        source: {
+            type: 'string',
+            enum: ['device', 'city'],
+            title: 'Source'
+        },
+        city_name: {
+            type: 'string',
+            title: 'City Name'
+        },
+        city_detail: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'City Detail'
+        },
+        city_lat: {
+            type: 'number',
+            title: 'City Lat'
+        },
+        city_lon: {
+            type: 'number',
+            title: 'City Lon'
+        },
+        unit: {
+            type: 'string',
+            enum: ['c', 'f'],
+            title: 'Unit'
+        },
+        asked: {
+            type: 'boolean',
+            title: 'Asked'
+        },
+        version: {
+            type: 'integer',
+            title: 'Version'
+        }
+    },
+    type: 'object',
+    required: ['id', 'source', 'city_name', 'city_detail', 'city_lat', 'city_lon', 'unit', 'asked', 'version'],
+    title: 'WeatherPrefPublic'
+} as const;
+
+export const WeatherPrefUpdateSchema = {
+    properties: {
+        source: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['device', 'city']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Source'
+        },
+        city_name: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 120,
+                    minLength: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'City Name'
+        },
+        city_detail: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 160
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'City Detail'
+        },
+        city_lat: {
+            anyOf: [
+                {
+                    type: 'number',
+                    maximum: 90,
+                    minimum: -90
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'City Lat'
+        },
+        city_lon: {
+            anyOf: [
+                {
+                    type: 'number',
+                    maximum: 180,
+                    minimum: -180
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'City Lon'
+        },
+        unit: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['c', 'f']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Unit'
+        },
+        asked: {
+            anyOf: [
+                {
+                    type: 'boolean'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Asked'
+        }
+    },
+    type: 'object',
+    title: 'WeatherPrefUpdate',
+    description: 'Also the sync payload: every field optional.'
+} as const;
+
+export const WeatherViewSchema = {
+    properties: {
+        place: {
+            '$ref': '#/components/schemas/PlacePublic'
+        },
+        forecast: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Forecast'
+        },
+        current: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Current'
+        },
+        plan: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Plan'
+        },
+        advice: {
+            '$ref': '#/components/schemas/AdvicePublic'
+        },
+        rain_soon: {
+            type: 'number',
+            title: 'Rain Soon'
+        },
+        unit: {
+            type: 'string',
+            enum: ['c', 'f'],
+            title: 'Unit'
+        },
+        fetched_at_ms: {
+            type: 'integer',
+            title: 'Fetched At Ms'
+        },
+        stale: {
+            type: 'boolean',
+            title: 'Stale'
+        }
+    },
+    type: 'object',
+    required: ['place', 'forecast', 'current', 'plan', 'advice', 'rain_soon', 'unit', 'fetched_at_ms', 'stale'],
+    title: 'WeatherView',
+    description: 'Everything the Weather screen and the Today card render.'
+} as const;
+
+export const WebhookAckSchema = {
+    properties: {
+        result: {
+            type: 'string',
+            title: 'Result'
+        }
+    },
+    type: 'object',
+    required: ['result'],
+    title: 'WebhookAck'
 } as const;
 
 export const WeekOutSchema = {

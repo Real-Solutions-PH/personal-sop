@@ -117,6 +117,14 @@ export type AdviceIn = {
 
 export type scope = 'aggregates' | 'records';
 
+export type AdvicePublic = {
+    kind: string;
+    tone: 'good' | 'warn' | 'bad';
+    text: string;
+};
+
+export type tone = 'good' | 'warn' | 'bad';
+
 export type app__modules__finance__schema__SettingsPublic = {
     id: string;
     default_account_id: (string | null);
@@ -1260,6 +1268,24 @@ export type MeBundle = {
     live: (LivePublic | null);
 };
 
+export type MediaWithUrl = {
+    id: string;
+    kind: 'image' | 'video' | 'audio' | 'file';
+    mime: string;
+    size_bytes: number;
+    width: (number | null);
+    height: (number | null);
+    duration_sec: (number | null);
+    state: 'pending' | 'ready' | 'rejected';
+    ready_at: (string | null);
+    created_at: string;
+    url?: (string | null);
+};
+
+export type kind4 = 'image' | 'video' | 'audio' | 'file';
+
+export type state = 'pending' | 'ready' | 'rejected';
+
 export type Message = {
     message: string;
 };
@@ -1516,6 +1542,13 @@ export type PermissionPublic = {
 export type PermissionsPublic = {
     data: Array<PermissionPublic>;
     count: number;
+};
+
+export type PlacePublic = {
+    name: string;
+    detail?: (string | null);
+    lat: number;
+    lon: number;
 };
 
 export type PlannedCreate = {
@@ -2276,7 +2309,7 @@ export type SyncOp = {
     base_version?: (number | null);
 };
 
-export type kind4 = 'upsert' | 'delete' | 'action';
+export type kind5 = 'upsert' | 'delete' | 'action';
 
 export type SyncOpResult = {
     op_id: string;
@@ -2516,7 +2549,7 @@ export type TodayRoutine = {
     run: (RunPublic | null);
 };
 
-export type state = 'start' | 'resume' | 'done';
+export type state2 = 'start' | 'resume' | 'done';
 
 export type ToggleSetOut = {
     completed: boolean;
@@ -2548,6 +2581,29 @@ export type TrendPointOut = {
 export type UpcomingPublic = {
     day: string;
     tasks: Array<TaskPublic>;
+};
+
+export type UploadRequest = {
+    id?: (string | null);
+    kind: 'image' | 'video' | 'audio' | 'file';
+    mime: string;
+    size_bytes: number;
+    width?: (number | null);
+    height?: (number | null);
+    duration_sec?: (number | null);
+};
+
+/**
+ * Upload the bytes with ``PUT upload_url`` and header
+ * ``Content-Type: <mime>``, then call ``POST /media/{id}/complete``.
+ */
+export type UploadTicket = {
+    id: string;
+    upload_url: string;
+    expires_in: number;
+    headers: {
+        [key: string]: (string);
+    };
 };
 
 export type UserCreate = {
@@ -2590,6 +2646,60 @@ export type UserUpdate = {
 export type UserUpdateMe = {
     full_name?: (string | null);
     email?: (string | null);
+};
+
+export type WeatherPrefPublic = {
+    id: string;
+    source: 'device' | 'city';
+    city_name: string;
+    city_detail: (string | null);
+    city_lat: number;
+    city_lon: number;
+    unit: 'c' | 'f';
+    asked: boolean;
+    version: number;
+};
+
+export type source6 = 'device' | 'city';
+
+export type unit = 'c' | 'f';
+
+/**
+ * Also the sync payload: every field optional.
+ */
+export type WeatherPrefUpdate = {
+    source?: ('device' | 'city' | null);
+    city_name?: (string | null);
+    city_detail?: (string | null);
+    city_lat?: (number | null);
+    city_lon?: (number | null);
+    unit?: ('c' | 'f' | null);
+    asked?: (boolean | null);
+};
+
+/**
+ * Everything the Weather screen and the Today card render.
+ */
+export type WeatherView = {
+    place: PlacePublic;
+    forecast: {
+        [key: string]: unknown;
+    };
+    current: {
+        [key: string]: unknown;
+    };
+    plan: {
+        [key: string]: unknown;
+    };
+    advice: AdvicePublic;
+    rain_soon: number;
+    unit: 'c' | 'f';
+    fetched_at_ms: number;
+    stale: boolean;
+};
+
+export type WebhookAck = {
+    result: string;
 };
 
 export type Weekdays = {
@@ -3920,6 +4030,30 @@ export type ItemsDeleteItemData = {
 
 export type ItemsDeleteItemResponse = (Message);
 
+export type MediaRequestUploadData = {
+    requestBody: UploadRequest;
+};
+
+export type MediaRequestUploadResponse = (UploadTicket);
+
+export type MediaCompleteUploadData = {
+    mediaId: string;
+};
+
+export type MediaCompleteUploadResponse = (MediaWithUrl);
+
+export type MediaReadMediaData = {
+    mediaId: string;
+};
+
+export type MediaReadMediaResponse = (MediaWithUrl);
+
+export type MediaDeleteMediaData = {
+    mediaId: string;
+};
+
+export type MediaDeleteMediaResponse = (Message);
+
 export type PermissionsReadPermissionsData = {
     limit?: number;
     skip?: number;
@@ -4400,3 +4534,34 @@ export type UtilsTestEmailData = {
 export type UtilsTestEmailResponse = (Message);
 
 export type UtilsHealthCheckResponse = (boolean);
+
+export type WeatherReadPrefsResponse = (WeatherPrefPublic);
+
+export type WeatherUpdatePrefsData = {
+    requestBody: WeatherPrefUpdate;
+};
+
+export type WeatherUpdatePrefsResponse = (WeatherPrefPublic);
+
+export type WeatherReadForecastData = {
+    force?: boolean;
+    lat?: (number | null);
+    lon?: (number | null);
+    name?: (string | null);
+};
+
+export type WeatherReadForecastResponse = (WeatherView);
+
+export type WeatherSearchCitiesData = {
+    q: string;
+};
+
+export type WeatherSearchCitiesResponse = (Array<PlacePublic>);
+
+export type WebhooksSupabaseAuthEventData = {
+    webhookId?: (string | null);
+    webhookSignature?: (string | null);
+    webhookTimestamp?: (string | null);
+};
+
+export type WebhooksSupabaseAuthEventResponse = (WebhookAck);

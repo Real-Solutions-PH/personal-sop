@@ -3,7 +3,7 @@
 import type { CancelablePromise } from './core/CancelablePromise';
 import { OpenAPI } from './core/OpenAPI';
 import { request as __request } from './core/request';
-import type { AuditReadAuditLogsData, AuditReadAuditLogsResponse, EventsStreamData, EventsStreamResponse, FinanceHomeResponse, FinanceGetSettingsResponse, FinanceUpdateSettingsData, FinanceUpdateSettingsResponse, FinanceStartFreshResponse, FinanceResetResponse, FinanceExportCsvResponse, FinanceListAccountsData, FinanceListAccountsResponse, FinanceAddAccountData, FinanceAddAccountResponse, FinanceAccountDetailData, FinanceAccountDetailResponse, FinanceUpdateAccountData, FinanceUpdateAccountResponse, FinanceDeleteAccountData, FinanceDeleteAccountResponse, FinanceAdjustBalanceData, FinanceAdjustBalanceResponse, FinanceListCategoriesData, FinanceListCategoriesResponse, FinanceAddCategoryData, FinanceAddCategoryResponse, FinanceSuggestCategoryData, FinanceSuggestCategoryResponse, FinanceRecentCategoriesResponse, FinanceUpdateCategoryData, FinanceUpdateCategoryResponse, FinanceDeleteCategoryData, FinanceDeleteCategoryResponse, FinanceMoveCategoryData, FinanceMoveCategoryResponse, FinanceCategoryUsesData, FinanceCategoryUsesResponse, FinanceListRecordsData, FinanceListRecordsResponse, FinanceAddRecordData, FinanceAddRecordResponse, FinanceDeleteRecordsData, FinanceDeleteRecordsResponse, FinanceRestoreRecordsData, FinanceRestoreRecordsResponse, FinanceRecategoriseData, FinanceRecategoriseResponse, FinanceGetRecordData, FinanceGetRecordResponse, FinanceUpdateRecordData, FinanceUpdateRecordResponse, FinanceDeleteRecordData, FinanceDeleteRecordResponse, FinanceDuplicateRecordData, FinanceDuplicateRecordResponse, FinanceConfirmRecordData, FinanceConfirmRecordResponse, FinanceListBudgetsData, FinanceListBudgetsResponse, FinanceAddBudgetData, FinanceAddBudgetResponse, FinanceBudgetDetailData, FinanceBudgetDetailResponse, FinanceUpdateBudgetData, FinanceUpdateBudgetResponse, FinanceDeleteBudgetData, FinanceDeleteBudgetResponse, FinanceBudgetAverageData, FinanceBudgetAverageResponse, FinanceListPlannedData, FinanceListPlannedResponse, FinanceAddPlannedData, FinanceAddPlannedResponse, FinanceDueResponse, FinanceSettleData, FinanceSettleResponse, FinanceSkipData, FinanceSkipResponse, FinanceUnskipData, FinanceUnskipResponse, FinanceSnoozeData, FinanceSnoozeResponse, FinanceAutoLogResponse, FinancePlannedDetailData, FinancePlannedDetailResponse, FinanceUpdatePlannedData, FinanceUpdatePlannedResponse, FinanceDeletePlannedData, FinanceDeletePlannedResponse, FinanceOccurrencesData, FinanceOccurrencesResponse, FinanceProjectionDefaultResponse, FinanceProjectionData, FinanceProjectionResponse, FinanceReportData, FinanceReportResponse, FinanceReviewData, FinanceReviewResponse, FinanceSaveReviewData, FinanceSaveReviewResponse, FinanceListLookBacksData, FinanceListLookBacksResponse, FinanceListImportsData, FinanceListImportsResponse, FinanceStartImportData, FinanceStartImportResponse, FinanceImportDetailData, FinanceImportDetailResponse, FinanceImportDeleteData, FinanceImportDeleteResponse, FinanceImportCsvData, FinanceImportCsvResponse, FinanceImportRowsData, FinanceImportRowsResponse, FinancePatchRowsData, FinancePatchRowsResponse, FinanceImportFailData, FinanceImportFailResponse, FinanceImportRetryData, FinanceImportRetryResponse, FinanceImportCommitData, FinanceImportCommitResponse, FinanceImportUndoData, FinanceImportUndoResponse, FinanceImportRestoreData, FinanceImportRestoreResponse, FinanceImportDiscardFileData, FinanceImportDiscardFileResponse, FinanceListThreadsData, FinanceListThreadsResponse, FinanceCreateThreadData, FinanceCreateThreadResponse, FinanceThreadDetailData, FinanceThreadDetailResponse, FinanceRenameThreadData, FinanceRenameThreadResponse, FinanceDeleteThreadData, FinanceDeleteThreadResponse, FinanceAddMessageData, FinanceAddMessageResponse, FinanceDeleteMessageData, FinanceDeleteMessageResponse, FinanceAdvisorAnswerData, FinanceAdvisorAnswerResponse, FitnessOverviewResponse, FitnessStatsData, FitnessStatsResponse, FitnessListWorkoutsData, FitnessListWorkoutsResponse, FitnessActiveWorkoutResponse, FitnessStartWorkoutData, FitnessStartWorkoutResponse, FitnessReadWorkoutData, FitnessReadWorkoutResponse, FitnessUpdateWorkoutData, FitnessUpdateWorkoutResponse, FitnessDeleteWorkoutData, FitnessDeleteWorkoutResponse, FitnessFinishWorkoutData, FitnessFinishWorkoutResponse, FitnessDiscardWorkoutData, FitnessDiscardWorkoutResponse, FitnessRestoreWorkoutData, FitnessRestoreWorkoutResponse, FitnessSaveAsTemplateData, FitnessSaveAsTemplateResponse, FitnessShareCardData, FitnessShareCardResponse, FitnessAddExercisesData, FitnessAddExercisesResponse, FitnessSetExerciseNoteData, FitnessSetExerciseNoteResponse, FitnessRemoveExerciseData, FitnessRemoveExerciseResponse, FitnessMoveExerciseData, FitnessMoveExerciseResponse, FitnessReplaceExerciseData, FitnessReplaceExerciseResponse, FitnessAddSetData, FitnessAddSetResponse, FitnessUpdateSetData, FitnessUpdateSetResponse, FitnessRemoveSetData, FitnessRemoveSetResponse, FitnessToggleSetData, FitnessToggleSetResponse, FitnessReadRestResponse, FitnessStartRestData, FitnessStartRestResponse, FitnessAdjustRestData, FitnessAdjustRestResponse, FitnessSkipRestResponse, FitnessListTemplatesData, FitnessListTemplatesResponse, FitnessCreateTemplateData, FitnessCreateTemplateResponse, FitnessReadTemplateData, FitnessReadTemplateResponse, FitnessPutTemplateData, FitnessPutTemplateResponse, FitnessDeleteTemplateData, FitnessDeleteTemplateResponse, FitnessRestoreTemplateData, FitnessRestoreTemplateResponse, FitnessListExercisesData, FitnessListExercisesResponse, FitnessCreateExerciseData, FitnessCreateExerciseResponse, FitnessReadExerciseData, FitnessReadExerciseResponse, FitnessPutExerciseData, FitnessPutExerciseResponse, FitnessArchiveExerciseData, FitnessArchiveExerciseResponse, FitnessBodyWeightData, FitnessBodyWeightResponse, FitnessListWeighInsData, FitnessListWeighInsResponse, FitnessLogWeighInData, FitnessLogWeighInResponse, FitnessUpdateWeighInData, FitnessUpdateWeighInResponse, FitnessDeleteWeighInData, FitnessDeleteWeighInResponse, FitnessRestoreWeighInData, FitnessRestoreWeighInResponse, FitnessNutritionDayData, FitnessNutritionDayResponse, FitnessNutritionHistoryData, FitnessNutritionHistoryResponse, FitnessReadTargetsResponse, FitnessSetTargetsData, FitnessSetTargetsResponse, FitnessListMealsData, FitnessListMealsResponse, FitnessLogMealData, FitnessLogMealResponse, FitnessEstimateMealData, FitnessEstimateMealResponse, FitnessQueueMealPhotoData, FitnessQueueMealPhotoResponse, FitnessReadMealData, FitnessReadMealResponse, FitnessUpdateMealData, FitnessUpdateMealResponse, FitnessDeleteMealData, FitnessDeleteMealResponse, FitnessReestimateMealData, FitnessReestimateMealResponse, FitnessConfirmMealData, FitnessConfirmMealResponse, FitnessAnswerFollowUpData, FitnessAnswerFollowUpResponse, FitnessAddMealItemData, FitnessAddMealItemResponse, FitnessPatchMealItemData, FitnessPatchMealItemResponse, FitnessRemoveMealItemData, FitnessRemoveMealItemResponse, FitnessRestoreMealData, FitnessRestoreMealResponse, FitnessDuplicateMealData, FitnessDuplicateMealResponse, FitnessReadSettingsResponse, FitnessUpdateSettingsData, FitnessUpdateSettingsResponse, FitnessResetResponse, FitnessStartFreshResponse, HabitsHabitsHomeData, HabitsHabitsHomeResponse, HabitsHabitsTodayResponse, HabitsArchivedHabitsData, HabitsArchivedHabitsResponse, HabitsReadSettingsResponse, HabitsUpdateSettingsData, HabitsUpdateSettingsResponse, HabitsReadTimerResponse, HabitsPauseTimerResponse, HabitsResumeTimerResponse, HabitsExtendTimerData, HabitsExtendTimerResponse, HabitsFinishTimerData, HabitsFinishTimerResponse, HabitsDiscardTimerResponse, HabitsReadDayData, HabitsReadDayResponse, HabitsSaveDayData, HabitsSaveDayResponse, HabitsDeleteLogData, HabitsDeleteLogResponse, HabitsRestoreLogData, HabitsRestoreLogResponse, HabitsListRoutinesData, HabitsListRoutinesResponse, HabitsCreateRoutineData, HabitsCreateRoutineResponse, HabitsReadRoutineData, HabitsReadRoutineResponse, HabitsUpdateRoutineData, HabitsUpdateRoutineResponse, HabitsDeleteRoutineData, HabitsDeleteRoutineResponse, HabitsSetStepsData, HabitsSetStepsResponse, HabitsArchiveRoutineData, HabitsArchiveRoutineResponse, HabitsRestoreRoutineData, HabitsRestoreRoutineResponse, HabitsStartRoutineData, HabitsStartRoutineResponse, HabitsReadPlayerData, HabitsReadPlayerResponse, HabitsRunSummaryData, HabitsRunSummaryResponse, HabitsRunActionData, HabitsRunActionResponse, HabitsListHabitsData, HabitsListHabitsResponse, HabitsCreateHabitData, HabitsCreateHabitResponse, HabitsReadHabitData, HabitsReadHabitResponse, HabitsUpdateHabitData, HabitsUpdateHabitResponse, HabitsDeleteHabitData, HabitsDeleteHabitResponse, HabitsPauseHabitData, HabitsPauseHabitResponse, HabitsResumeHabitData, HabitsResumeHabitResponse, HabitsArchiveHabitData, HabitsArchiveHabitResponse, HabitsRestoreHabitData, HabitsRestoreHabitResponse, HabitsReorderHabitData, HabitsReorderHabitResponse, HabitsListLogsData, HabitsListLogsResponse, HabitsLogHabitData, HabitsLogHabitResponse, HabitsClearLogData, HabitsClearLogResponse, HabitsCheckHabitData, HabitsCheckHabitResponse, HabitsIncrementHabitData, HabitsIncrementHabitResponse, HabitsSkipHabitData, HabitsSkipHabitResponse, HabitsStartTimerData, HabitsStartTimerResponse, ItemsReadItemsData, ItemsReadItemsResponse, ItemsCreateItemData, ItemsCreateItemResponse, ItemsReadItemData, ItemsReadItemResponse, ItemsUpdateItemData, ItemsUpdateItemResponse, ItemsDeleteItemData, ItemsDeleteItemResponse, PermissionsReadPermissionsData, PermissionsReadPermissionsResponse, PermissionsReadPermissionData, PermissionsReadPermissionResponse, PrivateCreateUserData, PrivateCreateUserResponse, ProfileReadMeResponse, ProfileUpdateMeData, ProfileUpdateMeResponse, ProfileHandleAvailableData, ProfileHandleAvailableResponse, ProfileCompleteSignupData, ProfileCompleteSignupResponse, ProfileReadModulesResponse, ProfileUpdateModuleData, ProfileUpdateModuleResponse, ProfileResetWeightsResponse, ProfileReadIdentitiesResponse, ProfileReplaceIdentitiesData, ProfileReplaceIdentitiesResponse, ProfileSkipSetupData, ProfileSkipSetupResponse, ProfileReadLiveResponse, ProfilePauseLiveResponse, ProfileResumeLiveResponse, ProfileReadPushDevicesResponse, ProfileRegisterPushDeviceData, ProfileRegisterPushDeviceResponse, ProfileUnregisterPushDeviceData, ProfileUnregisterPushDeviceResponse, RbacReadUserPermissionsData, RbacReadUserPermissionsResponse, RbacAssignRoleData, RbacAssignRoleResponse, RbacRemoveRoleData, RbacRemoveRoleResponse, RbacReadRolePermissionsData, RbacReadRolePermissionsResponse, RbacAddPermissionData, RbacAddPermissionResponse, RbacRemovePermissionData, RbacRemovePermissionResponse, RolesReadRolesData, RolesReadRolesResponse, RolesReadRoleData, RolesReadRoleResponse, SyncPushData, SyncPushResponse, SyncPullData, SyncPullResponse, SyncEntitiesResponse, TasksTodayResponse, TasksListTasksData, TasksListTasksResponse, TasksCreateTaskData, TasksCreateTaskResponse, TasksSearchData, TasksSearchResponse, TasksCompletedData, TasksCompletedResponse, TasksRecentlyDeletedData, TasksRecentlyDeletedResponse, TasksOverdueResponse, TasksStatsData, TasksStatsResponse, TasksShareData, TasksShareResponse, TasksParseData, TasksParseResponse, TasksGetSettingsResponse, TasksUpdateSettingsData, TasksUpdateSettingsResponse, TasksGetNotifResponse, TasksUpdateNotifData, TasksUpdateNotifResponse, TasksListsData, TasksListsResponse, TasksCreateListData, TasksCreateListResponse, TasksEnsureDefaultListsResponse, TasksGetListData, TasksGetListResponse, TasksUpdateListData, TasksUpdateListResponse, TasksDeleteListData, TasksDeleteListResponse, TasksArchiveListData, TasksArchiveListResponse, TasksMoveListData, TasksMoveListResponse, TasksClearCheckedData, TasksClearCheckedResponse, TasksCreateTasksData, TasksCreateTasksResponse, TasksCaptureData, TasksCaptureResponse, TasksRemoveTasksData, TasksRemoveTasksResponse, TasksUnclearData, TasksUnclearResponse, TasksMoveOverdueToTodayResponse, TasksGetTaskData, TasksGetTaskResponse, TasksUpdateTaskData, TasksUpdateTaskResponse, TasksDeleteTaskData, TasksDeleteTaskResponse, TasksSetDueData, TasksSetDueResponse, TasksCompleteData, TasksCompleteResponse, TasksUncompleteData, TasksUncompleteResponse, TasksToggleData, TasksToggleResponse, TasksRescheduleData, TasksRescheduleResponse, TasksSnoozeData, TasksSnoozeResponse, TasksDuplicateData, TasksDuplicateResponse, TasksRestoreData, TasksRestoreResponse, TasksMoveData, TasksMoveResponse, TenantsReadTenantsData, TenantsReadTenantsResponse, TenantsReadTenantData, TenantsReadTenantResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersExportMyDataResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UsersExportUserDataData, UsersExportUserDataResponse, UsersEraseUserDataData, UsersEraseUserDataResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
+import type { AuditReadAuditLogsData, AuditReadAuditLogsResponse, EventsStreamData, EventsStreamResponse, FinanceHomeResponse, FinanceGetSettingsResponse, FinanceUpdateSettingsData, FinanceUpdateSettingsResponse, FinanceStartFreshResponse, FinanceResetResponse, FinanceExportCsvResponse, FinanceListAccountsData, FinanceListAccountsResponse, FinanceAddAccountData, FinanceAddAccountResponse, FinanceAccountDetailData, FinanceAccountDetailResponse, FinanceUpdateAccountData, FinanceUpdateAccountResponse, FinanceDeleteAccountData, FinanceDeleteAccountResponse, FinanceAdjustBalanceData, FinanceAdjustBalanceResponse, FinanceListCategoriesData, FinanceListCategoriesResponse, FinanceAddCategoryData, FinanceAddCategoryResponse, FinanceSuggestCategoryData, FinanceSuggestCategoryResponse, FinanceRecentCategoriesResponse, FinanceUpdateCategoryData, FinanceUpdateCategoryResponse, FinanceDeleteCategoryData, FinanceDeleteCategoryResponse, FinanceMoveCategoryData, FinanceMoveCategoryResponse, FinanceCategoryUsesData, FinanceCategoryUsesResponse, FinanceListRecordsData, FinanceListRecordsResponse, FinanceAddRecordData, FinanceAddRecordResponse, FinanceDeleteRecordsData, FinanceDeleteRecordsResponse, FinanceRestoreRecordsData, FinanceRestoreRecordsResponse, FinanceRecategoriseData, FinanceRecategoriseResponse, FinanceGetRecordData, FinanceGetRecordResponse, FinanceUpdateRecordData, FinanceUpdateRecordResponse, FinanceDeleteRecordData, FinanceDeleteRecordResponse, FinanceDuplicateRecordData, FinanceDuplicateRecordResponse, FinanceConfirmRecordData, FinanceConfirmRecordResponse, FinanceListBudgetsData, FinanceListBudgetsResponse, FinanceAddBudgetData, FinanceAddBudgetResponse, FinanceBudgetDetailData, FinanceBudgetDetailResponse, FinanceUpdateBudgetData, FinanceUpdateBudgetResponse, FinanceDeleteBudgetData, FinanceDeleteBudgetResponse, FinanceBudgetAverageData, FinanceBudgetAverageResponse, FinanceListPlannedData, FinanceListPlannedResponse, FinanceAddPlannedData, FinanceAddPlannedResponse, FinanceDueResponse, FinanceSettleData, FinanceSettleResponse, FinanceSkipData, FinanceSkipResponse, FinanceUnskipData, FinanceUnskipResponse, FinanceSnoozeData, FinanceSnoozeResponse, FinanceAutoLogResponse, FinancePlannedDetailData, FinancePlannedDetailResponse, FinanceUpdatePlannedData, FinanceUpdatePlannedResponse, FinanceDeletePlannedData, FinanceDeletePlannedResponse, FinanceOccurrencesData, FinanceOccurrencesResponse, FinanceProjectionDefaultResponse, FinanceProjectionData, FinanceProjectionResponse, FinanceReportData, FinanceReportResponse, FinanceReviewData, FinanceReviewResponse, FinanceSaveReviewData, FinanceSaveReviewResponse, FinanceListLookBacksData, FinanceListLookBacksResponse, FinanceListImportsData, FinanceListImportsResponse, FinanceStartImportData, FinanceStartImportResponse, FinanceImportDetailData, FinanceImportDetailResponse, FinanceImportDeleteData, FinanceImportDeleteResponse, FinanceImportCsvData, FinanceImportCsvResponse, FinanceImportRowsData, FinanceImportRowsResponse, FinancePatchRowsData, FinancePatchRowsResponse, FinanceImportFailData, FinanceImportFailResponse, FinanceImportRetryData, FinanceImportRetryResponse, FinanceImportCommitData, FinanceImportCommitResponse, FinanceImportUndoData, FinanceImportUndoResponse, FinanceImportRestoreData, FinanceImportRestoreResponse, FinanceImportDiscardFileData, FinanceImportDiscardFileResponse, FinanceListThreadsData, FinanceListThreadsResponse, FinanceCreateThreadData, FinanceCreateThreadResponse, FinanceThreadDetailData, FinanceThreadDetailResponse, FinanceRenameThreadData, FinanceRenameThreadResponse, FinanceDeleteThreadData, FinanceDeleteThreadResponse, FinanceAddMessageData, FinanceAddMessageResponse, FinanceDeleteMessageData, FinanceDeleteMessageResponse, FinanceAdvisorAnswerData, FinanceAdvisorAnswerResponse, FitnessOverviewResponse, FitnessStatsData, FitnessStatsResponse, FitnessListWorkoutsData, FitnessListWorkoutsResponse, FitnessActiveWorkoutResponse, FitnessStartWorkoutData, FitnessStartWorkoutResponse, FitnessReadWorkoutData, FitnessReadWorkoutResponse, FitnessUpdateWorkoutData, FitnessUpdateWorkoutResponse, FitnessDeleteWorkoutData, FitnessDeleteWorkoutResponse, FitnessFinishWorkoutData, FitnessFinishWorkoutResponse, FitnessDiscardWorkoutData, FitnessDiscardWorkoutResponse, FitnessRestoreWorkoutData, FitnessRestoreWorkoutResponse, FitnessSaveAsTemplateData, FitnessSaveAsTemplateResponse, FitnessShareCardData, FitnessShareCardResponse, FitnessAddExercisesData, FitnessAddExercisesResponse, FitnessSetExerciseNoteData, FitnessSetExerciseNoteResponse, FitnessRemoveExerciseData, FitnessRemoveExerciseResponse, FitnessMoveExerciseData, FitnessMoveExerciseResponse, FitnessReplaceExerciseData, FitnessReplaceExerciseResponse, FitnessAddSetData, FitnessAddSetResponse, FitnessUpdateSetData, FitnessUpdateSetResponse, FitnessRemoveSetData, FitnessRemoveSetResponse, FitnessToggleSetData, FitnessToggleSetResponse, FitnessReadRestResponse, FitnessStartRestData, FitnessStartRestResponse, FitnessAdjustRestData, FitnessAdjustRestResponse, FitnessSkipRestResponse, FitnessListTemplatesData, FitnessListTemplatesResponse, FitnessCreateTemplateData, FitnessCreateTemplateResponse, FitnessReadTemplateData, FitnessReadTemplateResponse, FitnessPutTemplateData, FitnessPutTemplateResponse, FitnessDeleteTemplateData, FitnessDeleteTemplateResponse, FitnessRestoreTemplateData, FitnessRestoreTemplateResponse, FitnessListExercisesData, FitnessListExercisesResponse, FitnessCreateExerciseData, FitnessCreateExerciseResponse, FitnessReadExerciseData, FitnessReadExerciseResponse, FitnessPutExerciseData, FitnessPutExerciseResponse, FitnessArchiveExerciseData, FitnessArchiveExerciseResponse, FitnessBodyWeightData, FitnessBodyWeightResponse, FitnessListWeighInsData, FitnessListWeighInsResponse, FitnessLogWeighInData, FitnessLogWeighInResponse, FitnessUpdateWeighInData, FitnessUpdateWeighInResponse, FitnessDeleteWeighInData, FitnessDeleteWeighInResponse, FitnessRestoreWeighInData, FitnessRestoreWeighInResponse, FitnessNutritionDayData, FitnessNutritionDayResponse, FitnessNutritionHistoryData, FitnessNutritionHistoryResponse, FitnessReadTargetsResponse, FitnessSetTargetsData, FitnessSetTargetsResponse, FitnessListMealsData, FitnessListMealsResponse, FitnessLogMealData, FitnessLogMealResponse, FitnessEstimateMealData, FitnessEstimateMealResponse, FitnessQueueMealPhotoData, FitnessQueueMealPhotoResponse, FitnessReadMealData, FitnessReadMealResponse, FitnessUpdateMealData, FitnessUpdateMealResponse, FitnessDeleteMealData, FitnessDeleteMealResponse, FitnessReestimateMealData, FitnessReestimateMealResponse, FitnessConfirmMealData, FitnessConfirmMealResponse, FitnessAnswerFollowUpData, FitnessAnswerFollowUpResponse, FitnessAddMealItemData, FitnessAddMealItemResponse, FitnessPatchMealItemData, FitnessPatchMealItemResponse, FitnessRemoveMealItemData, FitnessRemoveMealItemResponse, FitnessRestoreMealData, FitnessRestoreMealResponse, FitnessDuplicateMealData, FitnessDuplicateMealResponse, FitnessReadSettingsResponse, FitnessUpdateSettingsData, FitnessUpdateSettingsResponse, FitnessResetResponse, FitnessStartFreshResponse, HabitsHabitsHomeData, HabitsHabitsHomeResponse, HabitsHabitsTodayResponse, HabitsArchivedHabitsData, HabitsArchivedHabitsResponse, HabitsReadSettingsResponse, HabitsUpdateSettingsData, HabitsUpdateSettingsResponse, HabitsReadTimerResponse, HabitsPauseTimerResponse, HabitsResumeTimerResponse, HabitsExtendTimerData, HabitsExtendTimerResponse, HabitsFinishTimerData, HabitsFinishTimerResponse, HabitsDiscardTimerResponse, HabitsReadDayData, HabitsReadDayResponse, HabitsSaveDayData, HabitsSaveDayResponse, HabitsDeleteLogData, HabitsDeleteLogResponse, HabitsRestoreLogData, HabitsRestoreLogResponse, HabitsListRoutinesData, HabitsListRoutinesResponse, HabitsCreateRoutineData, HabitsCreateRoutineResponse, HabitsReadRoutineData, HabitsReadRoutineResponse, HabitsUpdateRoutineData, HabitsUpdateRoutineResponse, HabitsDeleteRoutineData, HabitsDeleteRoutineResponse, HabitsSetStepsData, HabitsSetStepsResponse, HabitsArchiveRoutineData, HabitsArchiveRoutineResponse, HabitsRestoreRoutineData, HabitsRestoreRoutineResponse, HabitsStartRoutineData, HabitsStartRoutineResponse, HabitsReadPlayerData, HabitsReadPlayerResponse, HabitsRunSummaryData, HabitsRunSummaryResponse, HabitsRunActionData, HabitsRunActionResponse, HabitsListHabitsData, HabitsListHabitsResponse, HabitsCreateHabitData, HabitsCreateHabitResponse, HabitsReadHabitData, HabitsReadHabitResponse, HabitsUpdateHabitData, HabitsUpdateHabitResponse, HabitsDeleteHabitData, HabitsDeleteHabitResponse, HabitsPauseHabitData, HabitsPauseHabitResponse, HabitsResumeHabitData, HabitsResumeHabitResponse, HabitsArchiveHabitData, HabitsArchiveHabitResponse, HabitsRestoreHabitData, HabitsRestoreHabitResponse, HabitsReorderHabitData, HabitsReorderHabitResponse, HabitsListLogsData, HabitsListLogsResponse, HabitsLogHabitData, HabitsLogHabitResponse, HabitsClearLogData, HabitsClearLogResponse, HabitsCheckHabitData, HabitsCheckHabitResponse, HabitsIncrementHabitData, HabitsIncrementHabitResponse, HabitsSkipHabitData, HabitsSkipHabitResponse, HabitsStartTimerData, HabitsStartTimerResponse, ItemsReadItemsData, ItemsReadItemsResponse, ItemsCreateItemData, ItemsCreateItemResponse, ItemsReadItemData, ItemsReadItemResponse, ItemsUpdateItemData, ItemsUpdateItemResponse, ItemsDeleteItemData, ItemsDeleteItemResponse, MediaRequestUploadData, MediaRequestUploadResponse, MediaCompleteUploadData, MediaCompleteUploadResponse, MediaReadMediaData, MediaReadMediaResponse, MediaDeleteMediaData, MediaDeleteMediaResponse, PermissionsReadPermissionsData, PermissionsReadPermissionsResponse, PermissionsReadPermissionData, PermissionsReadPermissionResponse, PrivateCreateUserData, PrivateCreateUserResponse, ProfileReadMeResponse, ProfileUpdateMeData, ProfileUpdateMeResponse, ProfileHandleAvailableData, ProfileHandleAvailableResponse, ProfileCompleteSignupData, ProfileCompleteSignupResponse, ProfileReadModulesResponse, ProfileUpdateModuleData, ProfileUpdateModuleResponse, ProfileResetWeightsResponse, ProfileReadIdentitiesResponse, ProfileReplaceIdentitiesData, ProfileReplaceIdentitiesResponse, ProfileSkipSetupData, ProfileSkipSetupResponse, ProfileReadLiveResponse, ProfilePauseLiveResponse, ProfileResumeLiveResponse, ProfileReadPushDevicesResponse, ProfileRegisterPushDeviceData, ProfileRegisterPushDeviceResponse, ProfileUnregisterPushDeviceData, ProfileUnregisterPushDeviceResponse, RbacReadUserPermissionsData, RbacReadUserPermissionsResponse, RbacAssignRoleData, RbacAssignRoleResponse, RbacRemoveRoleData, RbacRemoveRoleResponse, RbacReadRolePermissionsData, RbacReadRolePermissionsResponse, RbacAddPermissionData, RbacAddPermissionResponse, RbacRemovePermissionData, RbacRemovePermissionResponse, RolesReadRolesData, RolesReadRolesResponse, RolesReadRoleData, RolesReadRoleResponse, SyncPushData, SyncPushResponse, SyncPullData, SyncPullResponse, SyncEntitiesResponse, TasksTodayResponse, TasksListTasksData, TasksListTasksResponse, TasksCreateTaskData, TasksCreateTaskResponse, TasksSearchData, TasksSearchResponse, TasksCompletedData, TasksCompletedResponse, TasksRecentlyDeletedData, TasksRecentlyDeletedResponse, TasksOverdueResponse, TasksStatsData, TasksStatsResponse, TasksShareData, TasksShareResponse, TasksParseData, TasksParseResponse, TasksGetSettingsResponse, TasksUpdateSettingsData, TasksUpdateSettingsResponse, TasksGetNotifResponse, TasksUpdateNotifData, TasksUpdateNotifResponse, TasksListsData, TasksListsResponse, TasksCreateListData, TasksCreateListResponse, TasksEnsureDefaultListsResponse, TasksGetListData, TasksGetListResponse, TasksUpdateListData, TasksUpdateListResponse, TasksDeleteListData, TasksDeleteListResponse, TasksArchiveListData, TasksArchiveListResponse, TasksMoveListData, TasksMoveListResponse, TasksClearCheckedData, TasksClearCheckedResponse, TasksCreateTasksData, TasksCreateTasksResponse, TasksCaptureData, TasksCaptureResponse, TasksRemoveTasksData, TasksRemoveTasksResponse, TasksUnclearData, TasksUnclearResponse, TasksMoveOverdueToTodayResponse, TasksGetTaskData, TasksGetTaskResponse, TasksUpdateTaskData, TasksUpdateTaskResponse, TasksDeleteTaskData, TasksDeleteTaskResponse, TasksSetDueData, TasksSetDueResponse, TasksCompleteData, TasksCompleteResponse, TasksUncompleteData, TasksUncompleteResponse, TasksToggleData, TasksToggleResponse, TasksRescheduleData, TasksRescheduleResponse, TasksSnoozeData, TasksSnoozeResponse, TasksDuplicateData, TasksDuplicateResponse, TasksRestoreData, TasksRestoreResponse, TasksMoveData, TasksMoveResponse, TenantsReadTenantsData, TenantsReadTenantsResponse, TenantsReadTenantData, TenantsReadTenantResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersExportMyDataResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UsersExportUserDataData, UsersExportUserDataResponse, UsersEraseUserDataData, UsersEraseUserDataResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse, WeatherReadPrefsResponse, WeatherUpdatePrefsData, WeatherUpdatePrefsResponse, WeatherReadForecastData, WeatherReadForecastResponse, WeatherSearchCitiesData, WeatherSearchCitiesResponse, WebhooksSupabaseAuthEventData, WebhooksSupabaseAuthEventResponse } from './types.gen';
 
 export class AuditService {
     /**
@@ -4075,6 +4075,87 @@ export class ItemsService {
     }
 }
 
+export class MediaService {
+    /**
+     * Request Upload
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns UploadTicket Successful Response
+     * @throws ApiError
+     */
+    public static requestUpload(data: MediaRequestUploadData): CancelablePromise<MediaRequestUploadResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/media/uploads',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Complete Upload
+     * @param data The data for the request.
+     * @param data.mediaId
+     * @returns MediaWithUrl Successful Response
+     * @throws ApiError
+     */
+    public static completeUpload(data: MediaCompleteUploadData): CancelablePromise<MediaCompleteUploadResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/media/{media_id}/complete',
+            path: {
+                media_id: data.mediaId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Media
+     * @param data The data for the request.
+     * @param data.mediaId
+     * @returns MediaWithUrl Successful Response
+     * @throws ApiError
+     */
+    public static readMedia(data: MediaReadMediaData): CancelablePromise<MediaReadMediaResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/media/{media_id}',
+            path: {
+                media_id: data.mediaId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Media
+     * @param data The data for the request.
+     * @param data.mediaId
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static deleteMedia(data: MediaDeleteMediaData): CancelablePromise<MediaDeleteMediaResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/media/{media_id}',
+            path: {
+                media_id: data.mediaId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+}
+
 export class PermissionsService {
     /**
      * Read Permissions
@@ -5818,6 +5899,116 @@ export class UtilsService {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v1/utils/health-check/',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+}
+
+export class WeatherService {
+    /**
+     * Read Prefs
+     * @returns WeatherPrefPublic Successful Response
+     * @throws ApiError
+     */
+    public static readPrefs(): CancelablePromise<WeatherReadPrefsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/weather/prefs',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Prefs
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns WeatherPrefPublic Successful Response
+     * @throws ApiError
+     */
+    public static updatePrefs(data: WeatherUpdatePrefsData): CancelablePromise<WeatherUpdatePrefsResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/weather/prefs',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Forecast
+     * Device location when ``lat``/``lon`` are given, else the saved city.
+     * @param data The data for the request.
+     * @param data.lat
+     * @param data.lon
+     * @param data.name
+     * @param data.force
+     * @returns WeatherView Successful Response
+     * @throws ApiError
+     */
+    public static readForecast(data: WeatherReadForecastData = {}): CancelablePromise<WeatherReadForecastResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/weather/forecast',
+            query: {
+                lat: data.lat,
+                lon: data.lon,
+                name: data.name,
+                force: data.force
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Search Cities
+     * @param data The data for the request.
+     * @param data.q
+     * @returns PlacePublic Successful Response
+     * @throws ApiError
+     */
+    public static searchCities(data: WeatherSearchCitiesData): CancelablePromise<WeatherSearchCitiesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/weather/cities',
+            query: {
+                q: data.q
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+}
+
+export class WebhooksService {
+    /**
+     * Supabase Auth Event
+     * No bearer token: the Standard Webhooks signature is the credential.
+     * @param data The data for the request.
+     * @param data.webhookId
+     * @param data.webhookTimestamp
+     * @param data.webhookSignature
+     * @returns WebhookAck Successful Response
+     * @throws ApiError
+     */
+    public static supabaseAuthEvent(data: WebhooksSupabaseAuthEventData = {}): CancelablePromise<WebhooksSupabaseAuthEventResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/webhooks/supabase-auth',
+            headers: {
+                'webhook-id': data.webhookId,
+                'webhook-timestamp': data.webhookTimestamp,
+                'webhook-signature': data.webhookSignature
+            },
             errors: {
                 '4XX': 'Client Error'
             }
