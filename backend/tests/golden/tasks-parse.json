@@ -1,0 +1,3746 @@
+{
+  "frozenNow": "2026-10-18T04:00:00.000Z",
+  "source": "shared/prototype",
+  "data": {
+    "parse": [
+      {
+        "tk": "2026-10-18",
+        "text": "dentist fri 10am",
+        "parsed": {
+          "title": "Dentist",
+          "dueDate": "2026-10-23",
+          "dueTime": "10:00",
+          "recurrence": null,
+          "matched": [
+            "10am",
+            "fri"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "call Mark tomorrow 3pm",
+        "parsed": {
+          "title": "Call Mark",
+          "dueDate": "2026-10-19",
+          "dueTime": "15:00",
+          "recurrence": null,
+          "matched": [
+            "3pm",
+            "tomorrow"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "finish deck for work by Fri",
+        "parsed": {
+          "title": "Finish deck for work",
+          "dueDate": "2026-10-23",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "by Fri"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "remind me to pay meralco on the 5th every month",
+        "parsed": {
+          "title": "Pay meralco",
+          "dueDate": "2026-11-05",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "monthly",
+              "day": 5
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "every month",
+            "on the 5th"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "pay rent every month on the 31st",
+        "parsed": {
+          "title": "Pay rent",
+          "dueDate": "2026-10-31",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "monthly",
+              "day": 31
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "every month",
+            "on the 31st"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "water plants every 3 days",
+        "parsed": {
+          "title": "Water plants",
+          "dueDate": "2026-10-18",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "everyN",
+              "n": 3
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "every 3 days"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "standup every weekday at 9:30",
+        "parsed": {
+          "title": "Standup",
+          "dueDate": "2026-10-18",
+          "dueTime": "09:30",
+          "recurrence": {
+            "rule": {
+              "kind": "weekdays"
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "every weekday",
+            "at 9:30"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "gym every monday 6am",
+        "parsed": {
+          "title": "Gym",
+          "dueDate": "2026-10-19",
+          "dueTime": "06:00",
+          "recurrence": {
+            "rule": {
+              "kind": "weekly",
+              "days": [
+                1
+              ]
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "every monday",
+            "6am"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "laundry every saturday",
+        "parsed": {
+          "title": "Laundry",
+          "dueDate": "2026-10-24",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "weekly",
+              "days": [
+                6
+              ]
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "every saturday"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "review weekly",
+        "parsed": {
+          "title": "Review",
+          "dueDate": "2026-10-18",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "weekly",
+              "days": [
+                0
+              ]
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "weekly"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "journal daily 21:00",
+        "parsed": {
+          "title": "Journal",
+          "dueDate": "2026-10-18",
+          "dueTime": "21:00",
+          "recurrence": {
+            "rule": {
+              "kind": "daily"
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "daily",
+            "21:00"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "everyday stretch",
+        "parsed": {
+          "title": "Stretch",
+          "dueDate": "2026-10-18",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "daily"
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "everyday"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "call mama tonight",
+        "parsed": {
+          "title": "Call mama",
+          "dueDate": "2026-10-18",
+          "dueTime": "20:00",
+          "recurrence": null,
+          "matched": [
+            "tonight"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "dinner tonight 7pm",
+        "parsed": {
+          "title": "Dinner",
+          "dueDate": "2026-10-18",
+          "dueTime": "19:00",
+          "recurrence": null,
+          "matched": [
+            "7pm",
+            "tonight"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "lunch at noon",
+        "parsed": {
+          "title": "Lunch",
+          "dueDate": "2026-10-18",
+          "dueTime": "12:00",
+          "recurrence": null,
+          "matched": [
+            "noon"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "buy load mamaya",
+        "parsed": {
+          "title": "Buy load",
+          "dueDate": "2026-10-18",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "mamaya"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "submit report tmrw 17:45",
+        "parsed": {
+          "title": "Submit report",
+          "dueDate": "2026-10-19",
+          "dueTime": "17:45",
+          "recurrence": null,
+          "matched": [
+            "17:45",
+            "tmrw"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "pay bills bukas",
+        "parsed": {
+          "title": "Pay bills",
+          "dueDate": "2026-10-19",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "bukas"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "plan trip next week",
+        "parsed": {
+          "title": "Plan trip",
+          "dueDate": "2026-10-19",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "next week"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "clean garage this weekend",
+        "parsed": {
+          "title": "Clean garage",
+          "dueDate": "2026-10-24",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "this weekend"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "renew passport in 10 days",
+        "parsed": {
+          "title": "Renew passport",
+          "dueDate": "2026-10-28",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "in 10 days"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "renew license in 1 day",
+        "parsed": {
+          "title": "Renew license",
+          "dueDate": "2026-10-19",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "in 1 day"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "birthday gift oct 25",
+        "parsed": {
+          "title": "Birthday gift",
+          "dueDate": "2026-10-25",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "oct 25"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "tax filing on apr 15",
+        "parsed": {
+          "title": "Tax filing",
+          "dueDate": "2027-04-15",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "on apr 15"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "anniversary jan 3",
+        "parsed": {
+          "title": "Anniversary",
+          "dueDate": "2027-01-03",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "jan 3"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "mid-month check the 15th",
+        "parsed": {
+          "title": "Mid-month check",
+          "dueDate": "2026-11-15",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "the 15th"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "rent the 1st",
+        "parsed": {
+          "title": "Rent",
+          "dueDate": "2026-11-01",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "the 1st"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "weird date feb 30",
+        "parsed": {
+          "title": "Weird date",
+          "dueDate": "2027-02-30",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "feb 30"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "invalid nov 45",
+        "parsed": {
+          "title": "Invalid",
+          "dueDate": "2026-11-45",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "nov 45"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "meeting at 25:00",
+        "parsed": {
+          "title": "Meeting at 25:00",
+          "dueDate": null,
+          "dueTime": null,
+          "recurrence": null,
+          "matched": []
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "at 12am snack",
+        "parsed": {
+          "title": "Snack",
+          "dueDate": "2026-10-18",
+          "dueTime": "00:00",
+          "recurrence": null,
+          "matched": [
+            "at 12am"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "12pm call",
+        "parsed": {
+          "title": "Call",
+          "dueDate": "2026-10-18",
+          "dueTime": "12:00",
+          "recurrence": null,
+          "matched": [
+            "12pm"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "by",
+        "parsed": {
+          "title": "by",
+          "dueDate": null,
+          "dueTime": null,
+          "recurrence": null,
+          "matched": []
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "remind me",
+        "parsed": {
+          "title": "remind me",
+          "dueDate": null,
+          "dueTime": null,
+          "recurrence": null,
+          "matched": []
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "  ",
+        "parsed": {
+          "title": "",
+          "dueDate": null,
+          "dueTime": null,
+          "recurrence": null,
+          "matched": []
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "email client after lunch",
+        "parsed": {
+          "title": "Email client after lunch",
+          "dueDate": null,
+          "dueTime": null,
+          "recurrence": null,
+          "matched": []
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "Thursday sync",
+        "parsed": {
+          "title": "Sync",
+          "dueDate": "2026-10-22",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "Thursday"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "thurs retro",
+        "parsed": {
+          "title": "Retro",
+          "dueDate": "2026-10-22",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "thurs"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "on tue dentist",
+        "parsed": {
+          "title": "Dentist",
+          "dueDate": "2026-10-20",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "on tue"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "this sat market",
+        "parsed": {
+          "title": "Market",
+          "dueDate": "2026-10-24",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "this sat"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "next wed review",
+        "parsed": {
+          "title": "Review",
+          "dueDate": "2026-10-21",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "next wed"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "deadline sept 30 5pm",
+        "parsed": {
+          "title": "Deadline",
+          "dueDate": "2027-09-30",
+          "dueTime": "17:00",
+          "recurrence": null,
+          "matched": [
+            "5pm",
+            "sept 30"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "pay credit card monthly",
+        "parsed": {
+          "title": "Pay credit card",
+          "dueDate": "2026-10-18",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "monthly",
+              "day": 1
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "monthly"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "monthly report on the 20th",
+        "parsed": {
+          "title": "Report",
+          "dueDate": "2026-10-20",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "monthly",
+              "day": 20
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "monthly",
+            "on the 20th"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "every 14 days backup",
+        "parsed": {
+          "title": "Backup",
+          "dueDate": "2026-10-18",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "everyN",
+              "n": 14
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "every 14 days"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-18",
+        "text": "weekdays commute log",
+        "parsed": {
+          "title": "Commute log",
+          "dueDate": "2026-10-18",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "weekdays"
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "weekdays"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "dentist fri 10am",
+        "parsed": {
+          "title": "Dentist",
+          "dueDate": "2026-11-06",
+          "dueTime": "10:00",
+          "recurrence": null,
+          "matched": [
+            "10am",
+            "fri"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "call Mark tomorrow 3pm",
+        "parsed": {
+          "title": "Call Mark",
+          "dueDate": "2026-11-01",
+          "dueTime": "15:00",
+          "recurrence": null,
+          "matched": [
+            "3pm",
+            "tomorrow"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "finish deck for work by Fri",
+        "parsed": {
+          "title": "Finish deck for work",
+          "dueDate": "2026-11-06",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "by Fri"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "remind me to pay meralco on the 5th every month",
+        "parsed": {
+          "title": "Pay meralco",
+          "dueDate": "2026-11-05",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "monthly",
+              "day": 5
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "every month",
+            "on the 5th"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "pay rent every month on the 31st",
+        "parsed": {
+          "title": "Pay rent",
+          "dueDate": "2026-12-01",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "monthly",
+              "day": 1
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "every month",
+            "on the 31st"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "water plants every 3 days",
+        "parsed": {
+          "title": "Water plants",
+          "dueDate": "2026-10-31",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "everyN",
+              "n": 3
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "every 3 days"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "standup every weekday at 9:30",
+        "parsed": {
+          "title": "Standup",
+          "dueDate": "2026-10-31",
+          "dueTime": "09:30",
+          "recurrence": {
+            "rule": {
+              "kind": "weekdays"
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "every weekday",
+            "at 9:30"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "gym every monday 6am",
+        "parsed": {
+          "title": "Gym",
+          "dueDate": "2026-11-02",
+          "dueTime": "06:00",
+          "recurrence": {
+            "rule": {
+              "kind": "weekly",
+              "days": [
+                1
+              ]
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "every monday",
+            "6am"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "laundry every saturday",
+        "parsed": {
+          "title": "Laundry",
+          "dueDate": "2026-10-31",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "weekly",
+              "days": [
+                6
+              ]
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "every saturday"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "review weekly",
+        "parsed": {
+          "title": "Review",
+          "dueDate": "2026-10-31",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "weekly",
+              "days": [
+                6
+              ]
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "weekly"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "journal daily 21:00",
+        "parsed": {
+          "title": "Journal",
+          "dueDate": "2026-10-31",
+          "dueTime": "21:00",
+          "recurrence": {
+            "rule": {
+              "kind": "daily"
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "daily",
+            "21:00"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "everyday stretch",
+        "parsed": {
+          "title": "Stretch",
+          "dueDate": "2026-10-31",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "daily"
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "everyday"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "call mama tonight",
+        "parsed": {
+          "title": "Call mama",
+          "dueDate": "2026-10-31",
+          "dueTime": "20:00",
+          "recurrence": null,
+          "matched": [
+            "tonight"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "dinner tonight 7pm",
+        "parsed": {
+          "title": "Dinner",
+          "dueDate": "2026-10-31",
+          "dueTime": "19:00",
+          "recurrence": null,
+          "matched": [
+            "7pm",
+            "tonight"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "lunch at noon",
+        "parsed": {
+          "title": "Lunch",
+          "dueDate": "2026-10-31",
+          "dueTime": "12:00",
+          "recurrence": null,
+          "matched": [
+            "noon"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "buy load mamaya",
+        "parsed": {
+          "title": "Buy load",
+          "dueDate": "2026-10-31",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "mamaya"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "submit report tmrw 17:45",
+        "parsed": {
+          "title": "Submit report",
+          "dueDate": "2026-11-01",
+          "dueTime": "17:45",
+          "recurrence": null,
+          "matched": [
+            "17:45",
+            "tmrw"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "pay bills bukas",
+        "parsed": {
+          "title": "Pay bills",
+          "dueDate": "2026-11-01",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "bukas"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "plan trip next week",
+        "parsed": {
+          "title": "Plan trip",
+          "dueDate": "2026-11-02",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "next week"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "clean garage this weekend",
+        "parsed": {
+          "title": "Clean garage",
+          "dueDate": "2026-10-31",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "this weekend"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "renew passport in 10 days",
+        "parsed": {
+          "title": "Renew passport",
+          "dueDate": "2026-11-10",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "in 10 days"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "renew license in 1 day",
+        "parsed": {
+          "title": "Renew license",
+          "dueDate": "2026-11-01",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "in 1 day"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "birthday gift oct 25",
+        "parsed": {
+          "title": "Birthday gift",
+          "dueDate": "2027-10-25",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "oct 25"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "tax filing on apr 15",
+        "parsed": {
+          "title": "Tax filing",
+          "dueDate": "2027-04-15",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "on apr 15"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "anniversary jan 3",
+        "parsed": {
+          "title": "Anniversary",
+          "dueDate": "2027-01-03",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "jan 3"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "mid-month check the 15th",
+        "parsed": {
+          "title": "Mid-month check",
+          "dueDate": "2026-11-15",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "the 15th"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "rent the 1st",
+        "parsed": {
+          "title": "Rent",
+          "dueDate": "2026-11-01",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "the 1st"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "weird date feb 30",
+        "parsed": {
+          "title": "Weird date",
+          "dueDate": "2027-02-30",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "feb 30"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "invalid nov 45",
+        "parsed": {
+          "title": "Invalid",
+          "dueDate": "2026-11-45",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "nov 45"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "meeting at 25:00",
+        "parsed": {
+          "title": "Meeting at 25:00",
+          "dueDate": null,
+          "dueTime": null,
+          "recurrence": null,
+          "matched": []
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "at 12am snack",
+        "parsed": {
+          "title": "Snack",
+          "dueDate": "2026-10-31",
+          "dueTime": "00:00",
+          "recurrence": null,
+          "matched": [
+            "at 12am"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "12pm call",
+        "parsed": {
+          "title": "Call",
+          "dueDate": "2026-10-31",
+          "dueTime": "12:00",
+          "recurrence": null,
+          "matched": [
+            "12pm"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "by",
+        "parsed": {
+          "title": "by",
+          "dueDate": null,
+          "dueTime": null,
+          "recurrence": null,
+          "matched": []
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "remind me",
+        "parsed": {
+          "title": "remind me",
+          "dueDate": null,
+          "dueTime": null,
+          "recurrence": null,
+          "matched": []
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "  ",
+        "parsed": {
+          "title": "",
+          "dueDate": null,
+          "dueTime": null,
+          "recurrence": null,
+          "matched": []
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "email client after lunch",
+        "parsed": {
+          "title": "Email client after lunch",
+          "dueDate": null,
+          "dueTime": null,
+          "recurrence": null,
+          "matched": []
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "Thursday sync",
+        "parsed": {
+          "title": "Sync",
+          "dueDate": "2026-11-05",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "Thursday"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "thurs retro",
+        "parsed": {
+          "title": "Retro",
+          "dueDate": "2026-11-05",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "thurs"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "on tue dentist",
+        "parsed": {
+          "title": "Dentist",
+          "dueDate": "2026-11-03",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "on tue"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "this sat market",
+        "parsed": {
+          "title": "Market",
+          "dueDate": "2026-11-07",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "this sat"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "next wed review",
+        "parsed": {
+          "title": "Review",
+          "dueDate": "2026-11-04",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "next wed"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "deadline sept 30 5pm",
+        "parsed": {
+          "title": "Deadline",
+          "dueDate": "2027-09-30",
+          "dueTime": "17:00",
+          "recurrence": null,
+          "matched": [
+            "5pm",
+            "sept 30"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "pay credit card monthly",
+        "parsed": {
+          "title": "Pay credit card",
+          "dueDate": "2026-10-31",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "monthly",
+              "day": 1
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "monthly"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "monthly report on the 20th",
+        "parsed": {
+          "title": "Report",
+          "dueDate": "2026-11-20",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "monthly",
+              "day": 20
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "monthly",
+            "on the 20th"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "every 14 days backup",
+        "parsed": {
+          "title": "Backup",
+          "dueDate": "2026-10-31",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "everyN",
+              "n": 14
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "every 14 days"
+          ]
+        }
+      },
+      {
+        "tk": "2026-10-31",
+        "text": "weekdays commute log",
+        "parsed": {
+          "title": "Commute log",
+          "dueDate": "2026-10-31",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "weekdays"
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "weekdays"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "dentist fri 10am",
+        "parsed": {
+          "title": "Dentist",
+          "dueDate": "2027-01-01",
+          "dueTime": "10:00",
+          "recurrence": null,
+          "matched": [
+            "10am",
+            "fri"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "call Mark tomorrow 3pm",
+        "parsed": {
+          "title": "Call Mark",
+          "dueDate": "2026-12-31",
+          "dueTime": "15:00",
+          "recurrence": null,
+          "matched": [
+            "3pm",
+            "tomorrow"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "finish deck for work by Fri",
+        "parsed": {
+          "title": "Finish deck for work",
+          "dueDate": "2027-01-01",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "by Fri"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "remind me to pay meralco on the 5th every month",
+        "parsed": {
+          "title": "Pay meralco",
+          "dueDate": "2027-01-05",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "monthly",
+              "day": 5
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "every month",
+            "on the 5th"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "pay rent every month on the 31st",
+        "parsed": {
+          "title": "Pay rent",
+          "dueDate": "2026-12-31",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "monthly",
+              "day": 31
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "every month",
+            "on the 31st"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "water plants every 3 days",
+        "parsed": {
+          "title": "Water plants",
+          "dueDate": "2026-12-30",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "everyN",
+              "n": 3
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "every 3 days"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "standup every weekday at 9:30",
+        "parsed": {
+          "title": "Standup",
+          "dueDate": "2026-12-30",
+          "dueTime": "09:30",
+          "recurrence": {
+            "rule": {
+              "kind": "weekdays"
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "every weekday",
+            "at 9:30"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "gym every monday 6am",
+        "parsed": {
+          "title": "Gym",
+          "dueDate": "2027-01-04",
+          "dueTime": "06:00",
+          "recurrence": {
+            "rule": {
+              "kind": "weekly",
+              "days": [
+                1
+              ]
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "every monday",
+            "6am"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "laundry every saturday",
+        "parsed": {
+          "title": "Laundry",
+          "dueDate": "2027-01-02",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "weekly",
+              "days": [
+                6
+              ]
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "every saturday"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "review weekly",
+        "parsed": {
+          "title": "Review",
+          "dueDate": "2026-12-30",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "weekly",
+              "days": [
+                3
+              ]
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "weekly"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "journal daily 21:00",
+        "parsed": {
+          "title": "Journal",
+          "dueDate": "2026-12-30",
+          "dueTime": "21:00",
+          "recurrence": {
+            "rule": {
+              "kind": "daily"
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "daily",
+            "21:00"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "everyday stretch",
+        "parsed": {
+          "title": "Stretch",
+          "dueDate": "2026-12-30",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "daily"
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "everyday"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "call mama tonight",
+        "parsed": {
+          "title": "Call mama",
+          "dueDate": "2026-12-30",
+          "dueTime": "20:00",
+          "recurrence": null,
+          "matched": [
+            "tonight"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "dinner tonight 7pm",
+        "parsed": {
+          "title": "Dinner",
+          "dueDate": "2026-12-30",
+          "dueTime": "19:00",
+          "recurrence": null,
+          "matched": [
+            "7pm",
+            "tonight"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "lunch at noon",
+        "parsed": {
+          "title": "Lunch",
+          "dueDate": "2026-12-30",
+          "dueTime": "12:00",
+          "recurrence": null,
+          "matched": [
+            "noon"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "buy load mamaya",
+        "parsed": {
+          "title": "Buy load",
+          "dueDate": "2026-12-30",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "mamaya"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "submit report tmrw 17:45",
+        "parsed": {
+          "title": "Submit report",
+          "dueDate": "2026-12-31",
+          "dueTime": "17:45",
+          "recurrence": null,
+          "matched": [
+            "17:45",
+            "tmrw"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "pay bills bukas",
+        "parsed": {
+          "title": "Pay bills",
+          "dueDate": "2026-12-31",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "bukas"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "plan trip next week",
+        "parsed": {
+          "title": "Plan trip",
+          "dueDate": "2027-01-04",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "next week"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "clean garage this weekend",
+        "parsed": {
+          "title": "Clean garage",
+          "dueDate": "2027-01-02",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "this weekend"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "renew passport in 10 days",
+        "parsed": {
+          "title": "Renew passport",
+          "dueDate": "2027-01-09",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "in 10 days"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "renew license in 1 day",
+        "parsed": {
+          "title": "Renew license",
+          "dueDate": "2026-12-31",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "in 1 day"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "birthday gift oct 25",
+        "parsed": {
+          "title": "Birthday gift",
+          "dueDate": "2027-10-25",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "oct 25"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "tax filing on apr 15",
+        "parsed": {
+          "title": "Tax filing",
+          "dueDate": "2027-04-15",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "on apr 15"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "anniversary jan 3",
+        "parsed": {
+          "title": "Anniversary",
+          "dueDate": "2027-01-03",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "jan 3"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "mid-month check the 15th",
+        "parsed": {
+          "title": "Mid-month check",
+          "dueDate": "2027-01-15",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "the 15th"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "rent the 1st",
+        "parsed": {
+          "title": "Rent",
+          "dueDate": "2027-01-01",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "the 1st"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "weird date feb 30",
+        "parsed": {
+          "title": "Weird date",
+          "dueDate": "2027-02-30",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "feb 30"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "invalid nov 45",
+        "parsed": {
+          "title": "Invalid",
+          "dueDate": "2027-11-45",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "nov 45"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "meeting at 25:00",
+        "parsed": {
+          "title": "Meeting at 25:00",
+          "dueDate": null,
+          "dueTime": null,
+          "recurrence": null,
+          "matched": []
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "at 12am snack",
+        "parsed": {
+          "title": "Snack",
+          "dueDate": "2026-12-30",
+          "dueTime": "00:00",
+          "recurrence": null,
+          "matched": [
+            "at 12am"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "12pm call",
+        "parsed": {
+          "title": "Call",
+          "dueDate": "2026-12-30",
+          "dueTime": "12:00",
+          "recurrence": null,
+          "matched": [
+            "12pm"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "by",
+        "parsed": {
+          "title": "by",
+          "dueDate": null,
+          "dueTime": null,
+          "recurrence": null,
+          "matched": []
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "remind me",
+        "parsed": {
+          "title": "remind me",
+          "dueDate": null,
+          "dueTime": null,
+          "recurrence": null,
+          "matched": []
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "  ",
+        "parsed": {
+          "title": "",
+          "dueDate": null,
+          "dueTime": null,
+          "recurrence": null,
+          "matched": []
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "email client after lunch",
+        "parsed": {
+          "title": "Email client after lunch",
+          "dueDate": null,
+          "dueTime": null,
+          "recurrence": null,
+          "matched": []
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "Thursday sync",
+        "parsed": {
+          "title": "Sync",
+          "dueDate": "2026-12-31",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "Thursday"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "thurs retro",
+        "parsed": {
+          "title": "Retro",
+          "dueDate": "2026-12-31",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "thurs"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "on tue dentist",
+        "parsed": {
+          "title": "Dentist",
+          "dueDate": "2027-01-05",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "on tue"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "this sat market",
+        "parsed": {
+          "title": "Market",
+          "dueDate": "2027-01-02",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "this sat"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "next wed review",
+        "parsed": {
+          "title": "Review",
+          "dueDate": "2027-01-06",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "next wed"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "deadline sept 30 5pm",
+        "parsed": {
+          "title": "Deadline",
+          "dueDate": "2027-09-30",
+          "dueTime": "17:00",
+          "recurrence": null,
+          "matched": [
+            "5pm",
+            "sept 30"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "pay credit card monthly",
+        "parsed": {
+          "title": "Pay credit card",
+          "dueDate": "2026-12-30",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "monthly",
+              "day": 1
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "monthly"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "monthly report on the 20th",
+        "parsed": {
+          "title": "Report",
+          "dueDate": "2027-01-20",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "monthly",
+              "day": 20
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "monthly",
+            "on the 20th"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "every 14 days backup",
+        "parsed": {
+          "title": "Backup",
+          "dueDate": "2026-12-30",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "everyN",
+              "n": 14
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "every 14 days"
+          ]
+        }
+      },
+      {
+        "tk": "2026-12-30",
+        "text": "weekdays commute log",
+        "parsed": {
+          "title": "Commute log",
+          "dueDate": "2026-12-30",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "weekdays"
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "weekdays"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "dentist fri 10am",
+        "parsed": {
+          "title": "Dentist",
+          "dueDate": "2028-03-03",
+          "dueTime": "10:00",
+          "recurrence": null,
+          "matched": [
+            "10am",
+            "fri"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "call Mark tomorrow 3pm",
+        "parsed": {
+          "title": "Call Mark",
+          "dueDate": "2028-02-28",
+          "dueTime": "15:00",
+          "recurrence": null,
+          "matched": [
+            "3pm",
+            "tomorrow"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "finish deck for work by Fri",
+        "parsed": {
+          "title": "Finish deck for work",
+          "dueDate": "2028-03-03",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "by Fri"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "remind me to pay meralco on the 5th every month",
+        "parsed": {
+          "title": "Pay meralco",
+          "dueDate": "2028-03-05",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "monthly",
+              "day": 5
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "every month",
+            "on the 5th"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "pay rent every month on the 31st",
+        "parsed": {
+          "title": "Pay rent",
+          "dueDate": "2028-03-02",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "monthly",
+              "day": 2
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "every month",
+            "on the 31st"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "water plants every 3 days",
+        "parsed": {
+          "title": "Water plants",
+          "dueDate": "2028-02-27",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "everyN",
+              "n": 3
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "every 3 days"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "standup every weekday at 9:30",
+        "parsed": {
+          "title": "Standup",
+          "dueDate": "2028-02-27",
+          "dueTime": "09:30",
+          "recurrence": {
+            "rule": {
+              "kind": "weekdays"
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "every weekday",
+            "at 9:30"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "gym every monday 6am",
+        "parsed": {
+          "title": "Gym",
+          "dueDate": "2028-02-28",
+          "dueTime": "06:00",
+          "recurrence": {
+            "rule": {
+              "kind": "weekly",
+              "days": [
+                1
+              ]
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "every monday",
+            "6am"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "laundry every saturday",
+        "parsed": {
+          "title": "Laundry",
+          "dueDate": "2028-03-04",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "weekly",
+              "days": [
+                6
+              ]
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "every saturday"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "review weekly",
+        "parsed": {
+          "title": "Review",
+          "dueDate": "2028-02-27",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "weekly",
+              "days": [
+                0
+              ]
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "weekly"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "journal daily 21:00",
+        "parsed": {
+          "title": "Journal",
+          "dueDate": "2028-02-27",
+          "dueTime": "21:00",
+          "recurrence": {
+            "rule": {
+              "kind": "daily"
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "daily",
+            "21:00"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "everyday stretch",
+        "parsed": {
+          "title": "Stretch",
+          "dueDate": "2028-02-27",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "daily"
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "everyday"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "call mama tonight",
+        "parsed": {
+          "title": "Call mama",
+          "dueDate": "2028-02-27",
+          "dueTime": "20:00",
+          "recurrence": null,
+          "matched": [
+            "tonight"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "dinner tonight 7pm",
+        "parsed": {
+          "title": "Dinner",
+          "dueDate": "2028-02-27",
+          "dueTime": "19:00",
+          "recurrence": null,
+          "matched": [
+            "7pm",
+            "tonight"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "lunch at noon",
+        "parsed": {
+          "title": "Lunch",
+          "dueDate": "2028-02-27",
+          "dueTime": "12:00",
+          "recurrence": null,
+          "matched": [
+            "noon"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "buy load mamaya",
+        "parsed": {
+          "title": "Buy load",
+          "dueDate": "2028-02-27",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "mamaya"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "submit report tmrw 17:45",
+        "parsed": {
+          "title": "Submit report",
+          "dueDate": "2028-02-28",
+          "dueTime": "17:45",
+          "recurrence": null,
+          "matched": [
+            "17:45",
+            "tmrw"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "pay bills bukas",
+        "parsed": {
+          "title": "Pay bills",
+          "dueDate": "2028-02-28",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "bukas"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "plan trip next week",
+        "parsed": {
+          "title": "Plan trip",
+          "dueDate": "2028-02-28",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "next week"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "clean garage this weekend",
+        "parsed": {
+          "title": "Clean garage",
+          "dueDate": "2028-03-04",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "this weekend"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "renew passport in 10 days",
+        "parsed": {
+          "title": "Renew passport",
+          "dueDate": "2028-03-08",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "in 10 days"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "renew license in 1 day",
+        "parsed": {
+          "title": "Renew license",
+          "dueDate": "2028-02-28",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "in 1 day"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "birthday gift oct 25",
+        "parsed": {
+          "title": "Birthday gift",
+          "dueDate": "2028-10-25",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "oct 25"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "tax filing on apr 15",
+        "parsed": {
+          "title": "Tax filing",
+          "dueDate": "2028-04-15",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "on apr 15"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "anniversary jan 3",
+        "parsed": {
+          "title": "Anniversary",
+          "dueDate": "2029-01-03",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "jan 3"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "mid-month check the 15th",
+        "parsed": {
+          "title": "Mid-month check",
+          "dueDate": "2028-03-15",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "the 15th"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "rent the 1st",
+        "parsed": {
+          "title": "Rent",
+          "dueDate": "2028-03-01",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "the 1st"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "weird date feb 30",
+        "parsed": {
+          "title": "Weird date",
+          "dueDate": "2028-02-30",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "feb 30"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "invalid nov 45",
+        "parsed": {
+          "title": "Invalid",
+          "dueDate": "2028-11-45",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "nov 45"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "meeting at 25:00",
+        "parsed": {
+          "title": "Meeting at 25:00",
+          "dueDate": null,
+          "dueTime": null,
+          "recurrence": null,
+          "matched": []
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "at 12am snack",
+        "parsed": {
+          "title": "Snack",
+          "dueDate": "2028-02-27",
+          "dueTime": "00:00",
+          "recurrence": null,
+          "matched": [
+            "at 12am"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "12pm call",
+        "parsed": {
+          "title": "Call",
+          "dueDate": "2028-02-27",
+          "dueTime": "12:00",
+          "recurrence": null,
+          "matched": [
+            "12pm"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "by",
+        "parsed": {
+          "title": "by",
+          "dueDate": null,
+          "dueTime": null,
+          "recurrence": null,
+          "matched": []
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "remind me",
+        "parsed": {
+          "title": "remind me",
+          "dueDate": null,
+          "dueTime": null,
+          "recurrence": null,
+          "matched": []
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "  ",
+        "parsed": {
+          "title": "",
+          "dueDate": null,
+          "dueTime": null,
+          "recurrence": null,
+          "matched": []
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "email client after lunch",
+        "parsed": {
+          "title": "Email client after lunch",
+          "dueDate": null,
+          "dueTime": null,
+          "recurrence": null,
+          "matched": []
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "Thursday sync",
+        "parsed": {
+          "title": "Sync",
+          "dueDate": "2028-03-02",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "Thursday"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "thurs retro",
+        "parsed": {
+          "title": "Retro",
+          "dueDate": "2028-03-02",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "thurs"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "on tue dentist",
+        "parsed": {
+          "title": "Dentist",
+          "dueDate": "2028-02-29",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "on tue"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "this sat market",
+        "parsed": {
+          "title": "Market",
+          "dueDate": "2028-03-04",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "this sat"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "next wed review",
+        "parsed": {
+          "title": "Review",
+          "dueDate": "2028-03-01",
+          "dueTime": null,
+          "recurrence": null,
+          "matched": [
+            "next wed"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "deadline sept 30 5pm",
+        "parsed": {
+          "title": "Deadline",
+          "dueDate": "2028-09-30",
+          "dueTime": "17:00",
+          "recurrence": null,
+          "matched": [
+            "5pm",
+            "sept 30"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "pay credit card monthly",
+        "parsed": {
+          "title": "Pay credit card",
+          "dueDate": "2028-02-27",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "monthly",
+              "day": 1
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "monthly"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "monthly report on the 20th",
+        "parsed": {
+          "title": "Report",
+          "dueDate": "2028-03-20",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "monthly",
+              "day": 20
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "monthly",
+            "on the 20th"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "every 14 days backup",
+        "parsed": {
+          "title": "Backup",
+          "dueDate": "2028-02-27",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "everyN",
+              "n": 14
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "every 14 days"
+          ]
+        }
+      },
+      {
+        "tk": "2028-02-27",
+        "text": "weekdays commute log",
+        "parsed": {
+          "title": "Commute log",
+          "dueDate": "2028-02-27",
+          "dueTime": null,
+          "recurrence": {
+            "rule": {
+              "kind": "weekdays"
+            },
+            "mode": "fixed"
+          },
+          "matched": [
+            "weekdays"
+          ]
+        }
+      }
+    ],
+    "split": [
+      {
+        "text": "buy eggs and rice, call Mark tomorrow 3pm, finish deck for work by Fri",
+        "lists": [
+          "work",
+          "job2",
+          "life",
+          "groceries"
+        ],
+        "drafts": [
+          {
+            "title": "Eggs",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": "groceries",
+            "source": "capture-voice",
+            "vague": false
+          },
+          {
+            "title": "Rice",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": "groceries",
+            "source": "capture-voice",
+            "vague": false
+          },
+          {
+            "title": "Call Mark",
+            "dueDate": "2026-10-19",
+            "dueTime": "15:00",
+            "recurrence": null,
+            "matched": [
+              "3pm",
+              "tomorrow"
+            ],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          },
+          {
+            "title": "Finish deck",
+            "dueDate": "2026-10-23",
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [
+              "by Fri"
+            ],
+            "listId": "work",
+            "source": "capture-voice",
+            "vague": false
+          }
+        ]
+      },
+      {
+        "text": "buy eggs and rice, call Mark tomorrow 3pm, finish deck for work by Fri",
+        "lists": [
+          "work",
+          "life"
+        ],
+        "drafts": [
+          {
+            "title": "Eggs",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          },
+          {
+            "title": "Rice",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          },
+          {
+            "title": "Call Mark",
+            "dueDate": "2026-10-19",
+            "dueTime": "15:00",
+            "recurrence": null,
+            "matched": [
+              "3pm",
+              "tomorrow"
+            ],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          },
+          {
+            "title": "Finish deck",
+            "dueDate": "2026-10-23",
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [
+              "by Fri"
+            ],
+            "listId": "work",
+            "source": "capture-voice",
+            "vague": false
+          }
+        ]
+      },
+      {
+        "text": "buy eggs and rice, call Mark tomorrow 3pm, finish deck for work by Fri",
+        "lists": [],
+        "drafts": [
+          {
+            "title": "Eggs",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          },
+          {
+            "title": "Rice",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          },
+          {
+            "title": "Call Mark",
+            "dueDate": "2026-10-19",
+            "dueTime": "15:00",
+            "recurrence": null,
+            "matched": [
+              "3pm",
+              "tomorrow"
+            ],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          },
+          {
+            "title": "Finish deck",
+            "dueDate": "2026-10-23",
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [
+              "by Fri"
+            ],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          }
+        ]
+      },
+      {
+        "text": "remind me to pay meralco on the 5th every month",
+        "lists": [
+          "work",
+          "job2",
+          "life",
+          "groceries"
+        ],
+        "drafts": [
+          {
+            "title": "Pay meralco",
+            "dueDate": "2026-11-05",
+            "dueTime": null,
+            "recurrence": {
+              "rule": {
+                "kind": "monthly",
+                "day": 5
+              },
+              "mode": "fixed"
+            },
+            "matched": [
+              "every month",
+              "on the 5th"
+            ],
+            "listId": "life",
+            "source": "capture-voice",
+            "vague": false
+          }
+        ]
+      },
+      {
+        "text": "remind me to pay meralco on the 5th every month",
+        "lists": [
+          "work",
+          "life"
+        ],
+        "drafts": [
+          {
+            "title": "Pay meralco",
+            "dueDate": "2026-11-05",
+            "dueTime": null,
+            "recurrence": {
+              "rule": {
+                "kind": "monthly",
+                "day": 5
+              },
+              "mode": "fixed"
+            },
+            "matched": [
+              "every month",
+              "on the 5th"
+            ],
+            "listId": "life",
+            "source": "capture-voice",
+            "vague": false
+          }
+        ]
+      },
+      {
+        "text": "remind me to pay meralco on the 5th every month",
+        "lists": [],
+        "drafts": [
+          {
+            "title": "Pay meralco",
+            "dueDate": "2026-11-05",
+            "dueTime": null,
+            "recurrence": {
+              "rule": {
+                "kind": "monthly",
+                "day": 5
+              },
+              "mode": "fixed"
+            },
+            "matched": [
+              "every month",
+              "on the 5th"
+            ],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          }
+        ]
+      },
+      {
+        "text": "call Mark",
+        "lists": [
+          "work",
+          "job2",
+          "life",
+          "groceries"
+        ],
+        "drafts": [
+          {
+            "title": "Call Mark",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          }
+        ]
+      },
+      {
+        "text": "call Mark",
+        "lists": [
+          "work",
+          "life"
+        ],
+        "drafts": [
+          {
+            "title": "Call Mark",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          }
+        ]
+      },
+      {
+        "text": "call Mark",
+        "lists": [],
+        "drafts": [
+          {
+            "title": "Call Mark",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          }
+        ]
+      },
+      {
+        "text": "email client after lunch",
+        "lists": [
+          "work",
+          "job2",
+          "life",
+          "groceries"
+        ],
+        "drafts": [
+          {
+            "title": "Email client",
+            "dueDate": "2026-10-18",
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": "work",
+            "source": "capture-voice",
+            "vague": true
+          }
+        ]
+      },
+      {
+        "text": "email client after lunch",
+        "lists": [
+          "work",
+          "life"
+        ],
+        "drafts": [
+          {
+            "title": "Email client",
+            "dueDate": "2026-10-18",
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": "work",
+            "source": "capture-voice",
+            "vague": true
+          }
+        ]
+      },
+      {
+        "text": "email client after lunch",
+        "lists": [],
+        "drafts": [
+          {
+            "title": "Email client",
+            "dueDate": "2026-10-18",
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": true
+          }
+        ]
+      },
+      {
+        "text": "gym bag, protein, laundry detergent",
+        "lists": [
+          "work",
+          "job2",
+          "life",
+          "groceries"
+        ],
+        "drafts": [
+          {
+            "title": "Gym bag",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          },
+          {
+            "title": "Protein",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": "groceries",
+            "source": "capture-voice",
+            "vague": false
+          },
+          {
+            "title": "Laundry detergent",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": "groceries",
+            "source": "capture-voice",
+            "vague": false
+          }
+        ]
+      },
+      {
+        "text": "gym bag, protein, laundry detergent",
+        "lists": [
+          "work",
+          "life"
+        ],
+        "drafts": [
+          {
+            "title": "Gym bag",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          },
+          {
+            "title": "Protein",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          },
+          {
+            "title": "Laundry detergent",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": "life",
+            "source": "capture-voice",
+            "vague": false
+          }
+        ]
+      },
+      {
+        "text": "gym bag, protein, laundry detergent",
+        "lists": [],
+        "drafts": [
+          {
+            "title": "Gym bag",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          },
+          {
+            "title": "Protein",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          },
+          {
+            "title": "Laundry detergent",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          }
+        ]
+      },
+      {
+        "text": "buy milk and bread and call mama later",
+        "lists": [
+          "work",
+          "job2",
+          "life",
+          "groceries"
+        ],
+        "drafts": [
+          {
+            "title": "Milk",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": "groceries",
+            "source": "capture-voice",
+            "vague": false
+          },
+          {
+            "title": "Bread",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": "groceries",
+            "source": "capture-voice",
+            "vague": false
+          },
+          {
+            "title": "Call mama",
+            "dueDate": "2026-10-18",
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": "life",
+            "source": "capture-voice",
+            "vague": true
+          }
+        ]
+      },
+      {
+        "text": "buy milk and bread and call mama later",
+        "lists": [
+          "work",
+          "life"
+        ],
+        "drafts": [
+          {
+            "title": "Milk",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          },
+          {
+            "title": "Bread",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          },
+          {
+            "title": "Call mama",
+            "dueDate": "2026-10-18",
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": "life",
+            "source": "capture-voice",
+            "vague": true
+          }
+        ]
+      },
+      {
+        "text": "buy milk and bread and call mama later",
+        "lists": [],
+        "drafts": [
+          {
+            "title": "Milk",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          },
+          {
+            "title": "Bread",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          },
+          {
+            "title": "Call mama",
+            "dueDate": "2026-10-18",
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": true
+          }
+        ]
+      },
+      {
+        "text": "fix freelance site; send invoice to client\nclean room",
+        "lists": [
+          "work",
+          "job2",
+          "life",
+          "groceries"
+        ],
+        "drafts": [
+          {
+            "title": "Fix freelance site",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": "job2",
+            "source": "capture-voice",
+            "vague": false
+          },
+          {
+            "title": "Send invoice to client",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": "work",
+            "source": "capture-voice",
+            "vague": false
+          },
+          {
+            "title": "Clean room",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": "life",
+            "source": "capture-voice",
+            "vague": false
+          }
+        ]
+      },
+      {
+        "text": "fix freelance site; send invoice to client\nclean room",
+        "lists": [
+          "work",
+          "life"
+        ],
+        "drafts": [
+          {
+            "title": "Fix freelance site",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          },
+          {
+            "title": "Send invoice to client",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": "work",
+            "source": "capture-voice",
+            "vague": false
+          },
+          {
+            "title": "Clean room",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": "life",
+            "source": "capture-voice",
+            "vague": false
+          }
+        ]
+      },
+      {
+        "text": "fix freelance site; send invoice to client\nclean room",
+        "lists": [],
+        "drafts": [
+          {
+            "title": "Fix freelance site",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          },
+          {
+            "title": "Send invoice to client",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          },
+          {
+            "title": "Clean room",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          }
+        ]
+      },
+      {
+        "text": "pay pldt and book flights and reply to Anna",
+        "lists": [
+          "work",
+          "job2",
+          "life",
+          "groceries"
+        ],
+        "drafts": [
+          {
+            "title": "Pay pldt",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": "life",
+            "source": "capture-voice",
+            "vague": false
+          },
+          {
+            "title": "Book flights",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          },
+          {
+            "title": "Reply to Anna",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          }
+        ]
+      },
+      {
+        "text": "pay pldt and book flights and reply to Anna",
+        "lists": [
+          "work",
+          "life"
+        ],
+        "drafts": [
+          {
+            "title": "Pay pldt",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": "life",
+            "source": "capture-voice",
+            "vague": false
+          },
+          {
+            "title": "Book flights",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          },
+          {
+            "title": "Reply to Anna",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          }
+        ]
+      },
+      {
+        "text": "pay pldt and book flights and reply to Anna",
+        "lists": [],
+        "drafts": [
+          {
+            "title": "Pay pldt",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          },
+          {
+            "title": "Book flights",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          },
+          {
+            "title": "Reply to Anna",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          }
+        ]
+      },
+      {
+        "text": "eggs tomorrow",
+        "lists": [
+          "work",
+          "job2",
+          "life",
+          "groceries"
+        ],
+        "drafts": [
+          {
+            "title": "Eggs",
+            "dueDate": "2026-10-19",
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [
+              "tomorrow"
+            ],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          }
+        ]
+      },
+      {
+        "text": "eggs tomorrow",
+        "lists": [
+          "work",
+          "life"
+        ],
+        "drafts": [
+          {
+            "title": "Eggs",
+            "dueDate": "2026-10-19",
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [
+              "tomorrow"
+            ],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          }
+        ]
+      },
+      {
+        "text": "eggs tomorrow",
+        "lists": [],
+        "drafts": [
+          {
+            "title": "Eggs",
+            "dueDate": "2026-10-19",
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [
+              "tomorrow"
+            ],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          }
+        ]
+      },
+      {
+        "text": "side job mockups friday, job2 invoice",
+        "lists": [
+          "work",
+          "job2",
+          "life",
+          "groceries"
+        ],
+        "drafts": [
+          {
+            "title": "Side job mockups",
+            "dueDate": "2026-10-23",
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [
+              "friday"
+            ],
+            "listId": "job2",
+            "source": "capture-voice",
+            "vague": false
+          },
+          {
+            "title": "Job2 invoice",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": "work",
+            "source": "capture-voice",
+            "vague": false
+          }
+        ]
+      },
+      {
+        "text": "side job mockups friday, job2 invoice",
+        "lists": [
+          "work",
+          "life"
+        ],
+        "drafts": [
+          {
+            "title": "Side job mockups",
+            "dueDate": "2026-10-23",
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [
+              "friday"
+            ],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          },
+          {
+            "title": "Job2 invoice",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": "work",
+            "source": "capture-voice",
+            "vague": false
+          }
+        ]
+      },
+      {
+        "text": "side job mockups friday, job2 invoice",
+        "lists": [],
+        "drafts": [
+          {
+            "title": "Side job mockups",
+            "dueDate": "2026-10-23",
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [
+              "friday"
+            ],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          },
+          {
+            "title": "Job2 invoice",
+            "dueDate": null,
+            "dueTime": null,
+            "recurrence": null,
+            "matched": [],
+            "listId": null,
+            "source": "capture-voice",
+            "vague": false
+          }
+        ]
+      },
+      {
+        "text": "",
+        "lists": [
+          "work",
+          "job2",
+          "life",
+          "groceries"
+        ],
+        "drafts": []
+      },
+      {
+        "text": "",
+        "lists": [
+          "work",
+          "life"
+        ],
+        "drafts": []
+      },
+      {
+        "text": "",
+        "lists": [],
+        "drafts": []
+      },
+      {
+        "text": " , ;",
+        "lists": [
+          "work",
+          "job2",
+          "life",
+          "groceries"
+        ],
+        "drafts": []
+      },
+      {
+        "text": " , ;",
+        "lists": [
+          "work",
+          "life"
+        ],
+        "drafts": []
+      },
+      {
+        "text": " , ;",
+        "lists": [],
+        "drafts": []
+      }
+    ]
+  }
+}
