@@ -1,0 +1,684 @@
+[
+  {
+    "kind": "upsert",
+    "name": "habit_settings",
+    "id": "a7555f1b-0b95-55cc-8aa9-f4e533b8bd9e",
+    "data": {
+      "week_start": 1,
+      "default_reminder": true,
+      "streak_nudge": true
+    },
+    "create": true
+  },
+  {
+    "kind": "upsert",
+    "name": "habit",
+    "id": "00000000-0000-4000-8000-000000000002",
+    "data": {
+      "name": "Stretch",
+      "icon": "✅",
+      "type": "duration",
+      "target": 15,
+      "unit": null,
+      "step": null,
+      "schedule": [
+        {
+          "days": [0, 1, 2, 3, 4, 5, 6]
+        }
+      ],
+      "reminder": true,
+      "status": "active",
+      "link_workout": false,
+      "archived_at": null,
+      "sort_order": 1
+    },
+    "create": true
+  },
+  {
+    "kind": "upsert",
+    "name": "habit",
+    "id": "00000000-0000-4000-8000-000000000002",
+    "data": {
+      "name": "Stretch 15m"
+    },
+    "create": false
+  },
+  {
+    "kind": "upsert",
+    "name": "habit",
+    "id": "00000000-0000-4000-8000-000000000002",
+    "data": {
+      "status": "paused"
+    },
+    "create": false
+  },
+  {
+    "kind": "upsert",
+    "name": "habit_pause",
+    "id": "c1fd82ca-7bbe-5a5f-aaad-6050bf998a84",
+    "data": {
+      "habit_id": "00000000-0000-4000-8000-000000000002",
+      "from_day": "2026-10-19",
+      "to_day": null,
+      "reason": "Travel"
+    },
+    "create": true
+  },
+  {
+    "kind": "upsert",
+    "name": "habit",
+    "id": "00000000-0000-4000-8000-000000000002",
+    "data": {
+      "status": "active"
+    },
+    "create": false
+  },
+  {
+    "kind": "delete",
+    "name": "habit_pause",
+    "id": "c1fd82ca-7bbe-5a5f-aaad-6050bf998a84"
+  },
+  {
+    "kind": "delete",
+    "name": "habit",
+    "id": "00000000-0000-4000-8000-000000000002"
+  },
+  {
+    "kind": "upsert",
+    "name": "habit",
+    "id": "00000000-0000-4000-8000-000000000010",
+    "data": {
+      "name": "Water",
+      "icon": "✅",
+      "type": "count",
+      "target": 8,
+      "unit": null,
+      "step": 1,
+      "schedule": [
+        {
+          "days": [0, 1, 2, 3, 4, 5, 6]
+        }
+      ],
+      "reminder": true,
+      "status": "active",
+      "link_workout": false,
+      "archived_at": null,
+      "sort_order": 1
+    },
+    "create": true
+  },
+  {
+    "kind": "upsert",
+    "name": "habit_settings",
+    "id": "a7555f1b-0b95-55cc-8aa9-f4e533b8bd9e",
+    "data": {
+      "week_start": 1,
+      "default_reminder": true,
+      "streak_nudge": true
+    },
+    "create": false
+  },
+  {
+    "kind": "upsert",
+    "name": "habit_log",
+    "id": "00000000-0000-4000-8000-000000000013",
+    "data": {
+      "habit_id": "00000000-0000-4000-8000-000000000010",
+      "day": "2026-10-19",
+      "status": "partial",
+      "value": 1,
+      "logged_at": "2026-10-19T01:00:00.000Z",
+      "source": "tap",
+      "note": null
+    },
+    "create": true
+  },
+  {
+    "kind": "upsert",
+    "name": "habit_log",
+    "id": "00000000-0000-4000-8000-000000000013",
+    "data": {
+      "status": "done",
+      "value": 8
+    },
+    "create": false
+  },
+  {
+    "kind": "upsert",
+    "name": "habit_log",
+    "id": "00000000-0000-4000-8000-000000000013",
+    "data": {
+      "status": "skipped",
+      "value": null,
+      "note": "Out all day"
+    },
+    "create": false
+  },
+  {
+    "kind": "upsert",
+    "name": "habit_log",
+    "id": "00000000-0000-4000-8000-000000000013",
+    "data": {
+      "status": "done",
+      "value": 8
+    },
+    "create": false
+  },
+  {
+    "kind": "delete",
+    "name": "habit_log",
+    "id": "00000000-0000-4000-8000-000000000013"
+  },
+  {
+    "kind": "upsert",
+    "name": "habit",
+    "id": "00000000-0000-4000-8000-000000000019",
+    "data": {
+      "name": "A",
+      "icon": "✅",
+      "type": "check",
+      "target": null,
+      "unit": null,
+      "step": null,
+      "schedule": [
+        {
+          "days": [0, 1, 2, 3, 4, 5, 6]
+        }
+      ],
+      "reminder": true,
+      "status": "active",
+      "link_workout": false,
+      "archived_at": null,
+      "sort_order": 1
+    },
+    "create": true
+  },
+  {
+    "kind": "upsert",
+    "name": "habit",
+    "id": "00000000-0000-4000-8000-000000000020",
+    "data": {
+      "name": "B",
+      "icon": "✅",
+      "type": "duration",
+      "target": 5,
+      "unit": null,
+      "step": null,
+      "schedule": [
+        {
+          "days": [0, 1, 2, 3, 4, 5, 6]
+        }
+      ],
+      "reminder": true,
+      "status": "active",
+      "link_workout": false,
+      "archived_at": null,
+      "sort_order": 2
+    },
+    "create": true
+  },
+  {
+    "kind": "upsert",
+    "name": "habit_settings",
+    "id": "a7555f1b-0b95-55cc-8aa9-f4e533b8bd9e",
+    "data": {
+      "week_start": 1,
+      "default_reminder": true,
+      "streak_nudge": true
+    },
+    "create": false
+  },
+  {
+    "kind": "upsert",
+    "name": "routine",
+    "id": "00000000-0000-4000-8000-000000000024",
+    "data": {
+      "name": "Morning",
+      "icon": "🌅",
+      "schedule": [
+        {
+          "days": [0, 1, 2, 3, 4, 5, 6]
+        }
+      ],
+      "reminder": true,
+      "status": "active"
+    },
+    "create": true
+  },
+  {
+    "kind": "upsert",
+    "name": "routine_step",
+    "id": "df79eafe-6f11-51a6-841f-49d63943305b",
+    "data": {
+      "routine_id": "00000000-0000-4000-8000-000000000024",
+      "habit_id": "00000000-0000-4000-8000-000000000019",
+      "position": 0,
+      "minutes": 2
+    },
+    "create": true
+  },
+  {
+    "kind": "upsert",
+    "name": "routine_step",
+    "id": "c660bed0-b633-5e6c-8b1e-925d22d35e77",
+    "data": {
+      "routine_id": "00000000-0000-4000-8000-000000000024",
+      "habit_id": "00000000-0000-4000-8000-000000000020",
+      "position": 1,
+      "minutes": 5
+    },
+    "create": true
+  },
+  {
+    "kind": "upsert",
+    "name": "routine_step",
+    "id": "df79eafe-6f11-51a6-841f-49d63943305b",
+    "data": {
+      "habit_id": "00000000-0000-4000-8000-000000000020",
+      "minutes": 5
+    },
+    "create": false
+  },
+  {
+    "kind": "upsert",
+    "name": "routine_step",
+    "id": "c660bed0-b633-5e6c-8b1e-925d22d35e77",
+    "data": {
+      "habit_id": "00000000-0000-4000-8000-000000000019",
+      "minutes": 2
+    },
+    "create": false
+  },
+  {
+    "kind": "delete",
+    "name": "routine_step",
+    "id": "c660bed0-b633-5e6c-8b1e-925d22d35e77"
+  },
+  {
+    "kind": "upsert",
+    "name": "habit",
+    "id": "00000000-0000-4000-8000-000000000031",
+    "data": {
+      "name": "Water",
+      "icon": "✅",
+      "type": "count",
+      "target": 8,
+      "unit": null,
+      "step": 1,
+      "schedule": [
+        {
+          "days": [0, 1, 2, 3, 4, 5, 6]
+        }
+      ],
+      "reminder": true,
+      "status": "active",
+      "link_workout": false,
+      "archived_at": null,
+      "sort_order": 1
+    },
+    "create": true
+  },
+  {
+    "kind": "upsert",
+    "name": "habit",
+    "id": "00000000-0000-4000-8000-000000000032",
+    "data": {
+      "name": "Read",
+      "icon": "✅",
+      "type": "check",
+      "target": null,
+      "unit": null,
+      "step": null,
+      "schedule": [
+        {
+          "days": [0, 1, 2, 3, 4, 5, 6]
+        }
+      ],
+      "reminder": true,
+      "status": "active",
+      "link_workout": false,
+      "archived_at": null,
+      "sort_order": 2
+    },
+    "create": true
+  },
+  {
+    "kind": "upsert",
+    "name": "habit",
+    "id": "00000000-0000-4000-8000-000000000033",
+    "data": {
+      "name": "Journal",
+      "icon": "✅",
+      "type": "check",
+      "target": null,
+      "unit": null,
+      "step": null,
+      "schedule": [
+        {
+          "days": [0, 1, 2, 3, 4, 5, 6]
+        }
+      ],
+      "reminder": true,
+      "status": "active",
+      "link_workout": false,
+      "archived_at": null,
+      "sort_order": 3
+    },
+    "create": true
+  },
+  {
+    "kind": "upsert",
+    "name": "routine",
+    "id": "00000000-0000-4000-8000-000000000034",
+    "data": {
+      "name": "Morning",
+      "icon": "🌅",
+      "schedule": [
+        {
+          "days": [0, 1, 2, 3, 4, 5, 6]
+        }
+      ],
+      "reminder": true,
+      "status": "active"
+    },
+    "create": true
+  },
+  {
+    "kind": "upsert",
+    "name": "routine_step",
+    "id": "bf7220a5-2919-544b-9468-21a8c195e254",
+    "data": {
+      "routine_id": "00000000-0000-4000-8000-000000000034",
+      "habit_id": "00000000-0000-4000-8000-000000000031",
+      "position": 0,
+      "minutes": 2
+    },
+    "create": true
+  },
+  {
+    "kind": "upsert",
+    "name": "routine_step",
+    "id": "906d6f11-5a44-5b1e-9398-5fc29181dd1f",
+    "data": {
+      "routine_id": "00000000-0000-4000-8000-000000000034",
+      "habit_id": "00000000-0000-4000-8000-000000000032",
+      "position": 1,
+      "minutes": 10
+    },
+    "create": true
+  },
+  {
+    "kind": "upsert",
+    "name": "routine_step",
+    "id": "f6d9d8b2-cf73-530f-bfc0-3ffe51cde11a",
+    "data": {
+      "routine_id": "00000000-0000-4000-8000-000000000034",
+      "habit_id": "00000000-0000-4000-8000-000000000033",
+      "position": 2,
+      "minutes": 5
+    },
+    "create": true
+  },
+  {
+    "kind": "upsert",
+    "name": "habit_settings",
+    "id": "a7555f1b-0b95-55cc-8aa9-f4e533b8bd9e",
+    "data": {
+      "week_start": 1,
+      "default_reminder": true,
+      "streak_nudge": true
+    },
+    "create": false
+  },
+  {
+    "kind": "action",
+    "name": "habits.run.start",
+    "data": {
+      "routine_id": "00000000-0000-4000-8000-000000000034",
+      "run_id": "00000000-0000-4000-8000-000000000043"
+    }
+  },
+  {
+    "kind": "upsert",
+    "name": "routine_run",
+    "id": "00000000-0000-4000-8000-000000000043",
+    "data": {},
+    "create": true
+  },
+  {
+    "kind": "action",
+    "name": "habits.run.add_minute",
+    "data": {
+      "run_id": "00000000-0000-4000-8000-000000000043"
+    }
+  },
+  {
+    "kind": "action",
+    "name": "habits.run.toggle_pause",
+    "data": {
+      "run_id": "00000000-0000-4000-8000-000000000043"
+    }
+  },
+  {
+    "kind": "action",
+    "name": "habits.run.toggle_pause",
+    "data": {
+      "run_id": "00000000-0000-4000-8000-000000000043"
+    }
+  },
+  {
+    "kind": "action",
+    "name": "habits.run.done",
+    "data": {
+      "run_id": "00000000-0000-4000-8000-000000000043"
+    }
+  },
+  {
+    "kind": "upsert",
+    "name": "habit_log",
+    "id": "00000000-0000-4000-8000-000000000049",
+    "data": {
+      "habit_id": "00000000-0000-4000-8000-000000000031",
+      "day": "2026-10-19",
+      "status": "partial",
+      "value": 1,
+      "logged_at": "2026-10-19T01:00:00.000Z",
+      "source": "routine",
+      "note": null
+    },
+    "create": true
+  },
+  {
+    "kind": "action",
+    "name": "habits.run.back",
+    "data": {
+      "run_id": "00000000-0000-4000-8000-000000000043"
+    }
+  },
+  {
+    "kind": "action",
+    "name": "habits.run.done",
+    "data": {
+      "run_id": "00000000-0000-4000-8000-000000000043"
+    }
+  },
+  {
+    "kind": "upsert",
+    "name": "habit_log",
+    "id": "00000000-0000-4000-8000-000000000049",
+    "data": {
+      "value": 2
+    },
+    "create": false
+  },
+  {
+    "kind": "action",
+    "name": "habits.run.skip",
+    "data": {
+      "run_id": "00000000-0000-4000-8000-000000000043"
+    }
+  },
+  {
+    "kind": "upsert",
+    "name": "habit_log",
+    "id": "00000000-0000-4000-8000-000000000055",
+    "data": {
+      "habit_id": "00000000-0000-4000-8000-000000000032",
+      "day": "2026-10-19",
+      "status": "skipped",
+      "value": null,
+      "logged_at": "2026-10-19T01:00:00.000Z",
+      "source": "routine",
+      "note": null
+    },
+    "create": true
+  },
+  {
+    "kind": "upsert",
+    "name": "habit",
+    "id": "00000000-0000-4000-8000-000000000058",
+    "data": {
+      "name": "Meditate",
+      "icon": "✅",
+      "type": "duration",
+      "target": 10,
+      "unit": null,
+      "step": null,
+      "schedule": [
+        {
+          "days": [0, 1, 2, 3, 4, 5, 6]
+        }
+      ],
+      "reminder": true,
+      "status": "active",
+      "link_workout": false,
+      "archived_at": null,
+      "sort_order": 1
+    },
+    "create": true
+  },
+  {
+    "kind": "upsert",
+    "name": "habit_settings",
+    "id": "a7555f1b-0b95-55cc-8aa9-f4e533b8bd9e",
+    "data": {
+      "week_start": 1,
+      "default_reminder": true,
+      "streak_nudge": true
+    },
+    "create": false
+  },
+  {
+    "kind": "action",
+    "name": "habits.timer.start",
+    "data": {
+      "habit_id": "00000000-0000-4000-8000-000000000058"
+    }
+  },
+  {
+    "kind": "upsert",
+    "name": "habit_timer",
+    "id": "71a97603-ff5f-5e75-8314-433b6ec2aaf3",
+    "data": {},
+    "create": true
+  },
+  {
+    "kind": "action",
+    "name": "habits.timer.extend",
+    "data": {
+      "sec": 300
+    }
+  },
+  {
+    "kind": "action",
+    "name": "habits.timer.pause",
+    "data": {}
+  },
+  {
+    "kind": "action",
+    "name": "habits.timer.resume",
+    "data": {}
+  },
+  {
+    "kind": "action",
+    "name": "habits.timer.finish",
+    "data": {
+      "minutes": 12
+    }
+  },
+  {
+    "kind": "upsert",
+    "name": "habit_log",
+    "id": "00000000-0000-4000-8000-000000000066",
+    "data": {
+      "habit_id": "00000000-0000-4000-8000-000000000058",
+      "day": "2026-10-19",
+      "status": "done",
+      "value": 12,
+      "logged_at": "2026-10-19T01:00:00.000Z",
+      "source": "timer",
+      "note": null
+    },
+    "create": true
+  },
+  {
+    "kind": "delete",
+    "name": "habit_timer",
+    "id": "71a97603-ff5f-5e75-8314-433b6ec2aaf3"
+  },
+  {
+    "kind": "action",
+    "name": "habits.timer.start",
+    "data": {
+      "habit_id": "00000000-0000-4000-8000-000000000058"
+    }
+  },
+  {
+    "kind": "upsert",
+    "name": "habit_timer",
+    "id": "71a97603-ff5f-5e75-8314-433b6ec2aaf3",
+    "data": {},
+    "create": false
+  },
+  {
+    "kind": "action",
+    "name": "habits.timer.discard",
+    "data": {}
+  },
+  {
+    "kind": "delete",
+    "name": "habit_timer",
+    "id": "71a97603-ff5f-5e75-8314-433b6ec2aaf3"
+  },
+  {
+    "kind": "upsert",
+    "name": "habit_settings",
+    "id": "a7555f1b-0b95-55cc-8aa9-f4e533b8bd9e",
+    "data": {
+      "week_start": 1,
+      "default_reminder": true,
+      "streak_nudge": true
+    },
+    "create": false
+  },
+  {
+    "kind": "upsert",
+    "name": "habit_settings",
+    "id": "a7555f1b-0b95-55cc-8aa9-f4e533b8bd9e",
+    "data": {
+      "week_start": 0
+    },
+    "create": false
+  },
+  {
+    "kind": "upsert",
+    "name": "habit_settings",
+    "id": "a7555f1b-0b95-55cc-8aa9-f4e533b8bd9e",
+    "data": {
+      "week_start": 1,
+      "default_reminder": true,
+      "streak_nudge": true
+    },
+    "create": false
+  }
+]

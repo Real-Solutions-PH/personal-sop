@@ -1,5 +1,6 @@
 "use client"
 import { dayKey } from "../lib/day"
+import { derivedId } from "../lib/ids"
 import { type Live, liveStore, startLive, stopLive } from "../lib/live"
 import { uid } from "../lib/store"
 import type {
@@ -26,6 +27,8 @@ export interface LogInput {
   note?: string
   source?: LogSource
   add?: boolean
+  /** Id for a new log (an existing log for the day keeps its own). */
+  id?: string
 }
 function autoStatus(h: Habit, value?: number): LogStatus {
   if (h.type === "check" || !h.target || value === undefined) return "done"
@@ -41,7 +44,7 @@ export function logHabit(input: LogInput): HabitLog | null {
     value = existing.value + value
   const status = input.status ?? autoStatus(h, value)
   const log: HabitLog = {
-    id: existing?.id ?? uid(),
+    id: existing?.id ?? input.id ?? uid(),
     habitId: h.id,
     day,
     status,
@@ -62,6 +65,7 @@ export function checkHabit(
   habitId: string,
   day?: string,
   source: LogSource = "tap",
+  id?: string,
 ): HabitLog | null {
   const h = findHabit(habitId)
   if (!h) return null
@@ -69,6 +73,7 @@ export function checkHabit(
     habitId,
     day,
     source,
+    id,
     status: "done",
     value: h.type === "check" ? undefined : (h.target ?? 1),
   })
@@ -100,14 +105,23 @@ export function restoreLog(log: HabitLog) {
     ],
   }))
 }
-export function autoCheckWorkoutHabits(day = dayKey()): HabitLog[] {
+/** Tick the workout-linked habits for a finished workout. With the workout's
+ * id, a new log gets the id the server derives for the same tick, so the
+ * device's copy and the server's converge on one row. */
+export function autoCheckWorkoutHabits(
+  day = dayKey(),
+  workoutId?: string,
+): HabitLog[] {
   const idx = logIndex(S.get().logs)
   const out: HabitLog[] = []
   for (const h of S.get().habits) {
     if (!h.linkWorkout || h.status === "archived") continue
     const cur = idx.get(lk(h.id, day))
     if (cur?.status === "done") continue
-    const l = checkHabit(h.id, day, "workout")
+    const id = workoutId
+      ? derivedId("workout-habit", workoutId, h.id)
+      : undefined
+    const l = checkHabit(h.id, day, "workout", id)
     if (l) out.push(l)
   }
   return out
