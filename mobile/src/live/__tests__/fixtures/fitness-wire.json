@@ -1,0 +1,1707 @@
+[
+  {
+    "entity": "exercise",
+    "kind": "upsert",
+    "name": "exercise",
+    "create": true,
+    "data": {
+      "name": "Bench",
+      "equipment": "barbell",
+      "muscle": "chest",
+      "load_type": "weight",
+      "rep_min": 8,
+      "rep_max": 12,
+      "increment": 2.5,
+      "archived": false
+    }
+  },
+  {
+    "entity": "exercise",
+    "kind": "upsert",
+    "name": "exercise",
+    "create": true,
+    "data": {
+      "name": "Row",
+      "equipment": "cable",
+      "muscle": "back",
+      "load_type": "weight",
+      "rep_min": 8,
+      "rep_max": 12,
+      "increment": 2.5,
+      "archived": false
+    }
+  },
+  {
+    "entity": "exercise",
+    "kind": "upsert",
+    "name": "exercise",
+    "create": true,
+    "data": {
+      "name": "Squat",
+      "equipment": "barbell",
+      "muscle": "quads",
+      "load_type": "weight",
+      "rep_min": 5,
+      "rep_max": 8,
+      "increment": 2.5,
+      "archived": false
+    }
+  },
+  {
+    "entity": "workout_template",
+    "kind": "upsert",
+    "name": "workout_template",
+    "create": true,
+    "data": {
+      "name": "Full body",
+      "sort_order": 0
+    }
+  },
+  {
+    "entity": "template_item",
+    "kind": "upsert",
+    "name": "template_item",
+    "create": true,
+    "data": {
+      "template_id": "00000000-0000-4000-8000-000000000001",
+      "exercise_id": "00000000-0000-4000-8000-000000000002",
+      "position": 0,
+      "sets": 3
+    }
+  },
+  {
+    "entity": "template_item",
+    "kind": "upsert",
+    "name": "template_item",
+    "create": true,
+    "data": {
+      "template_id": "00000000-0000-4000-8000-000000000001",
+      "exercise_id": "00000000-0000-4000-8000-000000000003",
+      "position": 1,
+      "sets": 3
+    }
+  },
+  {
+    "entity": "exercise",
+    "kind": "upsert",
+    "name": "exercise",
+    "create": true,
+    "data": {
+      "name": "Bench",
+      "equipment": "barbell",
+      "muscle": "chest",
+      "load_type": "weight",
+      "rep_min": 8,
+      "rep_max": 12,
+      "increment": 2.5,
+      "archived": false
+    }
+  },
+  {
+    "entity": "exercise",
+    "kind": "upsert",
+    "name": "exercise",
+    "create": true,
+    "data": {
+      "name": "Row",
+      "equipment": "cable",
+      "muscle": "back",
+      "load_type": "weight",
+      "rep_min": 8,
+      "rep_max": 12,
+      "increment": 2.5,
+      "archived": false
+    }
+  },
+  {
+    "entity": "exercise",
+    "kind": "upsert",
+    "name": "exercise",
+    "create": true,
+    "data": {
+      "name": "Squat",
+      "equipment": "barbell",
+      "muscle": "quads",
+      "load_type": "weight",
+      "rep_min": 5,
+      "rep_max": 8,
+      "increment": 2.5,
+      "archived": false
+    }
+  },
+  {
+    "entity": "workout_template",
+    "kind": "upsert",
+    "name": "workout_template",
+    "create": true,
+    "data": {
+      "name": "Full body",
+      "sort_order": 0
+    }
+  },
+  {
+    "entity": "template_item",
+    "kind": "upsert",
+    "name": "template_item",
+    "create": true,
+    "data": {
+      "template_id": "00000000-0000-4000-8000-000000000004",
+      "exercise_id": "00000000-0000-4000-8000-000000000005",
+      "position": 0,
+      "sets": 3
+    }
+  },
+  {
+    "entity": "template_item",
+    "kind": "upsert",
+    "name": "template_item",
+    "create": true,
+    "data": {
+      "template_id": "00000000-0000-4000-8000-000000000004",
+      "exercise_id": "00000000-0000-4000-8000-000000000006",
+      "position": 1,
+      "sets": 3
+    }
+  },
+  {
+    "entity": "template_item",
+    "kind": "upsert",
+    "name": "template_item",
+    "create": false,
+    "data": {
+      "sets": 4
+    }
+  },
+  {
+    "entity": "weigh_in",
+    "kind": "upsert",
+    "name": "weigh_in",
+    "create": true,
+    "data": {
+      "measured_at": "2026-10-19T04:00:00.000Z",
+      "weight_kg": 80.2,
+      "body_fat_pct": 18.5,
+      "note": null
+    }
+  },
+  {
+    "entity": "weigh_in",
+    "kind": "upsert",
+    "name": "weigh_in",
+    "create": false,
+    "data": {
+      "note": "after the run"
+    }
+  },
+  {
+    "entity": "exercise",
+    "kind": "upsert",
+    "name": "exercise",
+    "create": true,
+    "data": {
+      "name": "Bench",
+      "equipment": "barbell",
+      "muscle": "chest",
+      "load_type": "weight",
+      "rep_min": 8,
+      "rep_max": 12,
+      "increment": 2.5,
+      "archived": false
+    }
+  },
+  {
+    "entity": "exercise",
+    "kind": "upsert",
+    "name": "exercise",
+    "create": true,
+    "data": {
+      "name": "Row",
+      "equipment": "cable",
+      "muscle": "back",
+      "load_type": "weight",
+      "rep_min": 8,
+      "rep_max": 12,
+      "increment": 2.5,
+      "archived": false
+    }
+  },
+  {
+    "entity": "exercise",
+    "kind": "upsert",
+    "name": "exercise",
+    "create": true,
+    "data": {
+      "name": "Squat",
+      "equipment": "barbell",
+      "muscle": "quads",
+      "load_type": "weight",
+      "rep_min": 5,
+      "rep_max": 8,
+      "increment": 2.5,
+      "archived": false
+    }
+  },
+  {
+    "entity": "workout_template",
+    "kind": "upsert",
+    "name": "workout_template",
+    "create": true,
+    "data": {
+      "name": "Full body",
+      "sort_order": 0
+    }
+  },
+  {
+    "entity": "template_item",
+    "kind": "upsert",
+    "name": "template_item",
+    "create": true,
+    "data": {
+      "template_id": "00000000-0000-4000-8000-000000000007",
+      "exercise_id": "00000000-0000-4000-8000-000000000008",
+      "position": 0,
+      "sets": 3
+    }
+  },
+  {
+    "entity": "template_item",
+    "kind": "upsert",
+    "name": "template_item",
+    "create": true,
+    "data": {
+      "template_id": "00000000-0000-4000-8000-000000000007",
+      "exercise_id": "00000000-0000-4000-8000-000000000009",
+      "position": 1,
+      "sets": 3
+    }
+  },
+  {
+    "entity": "",
+    "kind": "action",
+    "name": "fitness.start_workout",
+    "create": false,
+    "data": {
+      "source": "empty",
+      "workout_id": "00000000-0000-4000-8000-00000000000a"
+    }
+  },
+  {
+    "entity": "workout",
+    "kind": "upsert",
+    "name": "workout",
+    "create": true,
+    "data": {
+      "name": "Full body",
+      "template_id": "00000000-0000-4000-8000-000000000007",
+      "started_at": "2026-10-19T04:00:00.000Z",
+      "ended_at": null,
+      "notes": null,
+      "source": "live"
+    }
+  },
+  {
+    "entity": "workout_exercise",
+    "kind": "upsert",
+    "name": "workout_exercise",
+    "create": true,
+    "data": {
+      "workout_id": "00000000-0000-4000-8000-00000000000a",
+      "exercise_id": "00000000-0000-4000-8000-000000000008",
+      "position": 0,
+      "note": null
+    }
+  },
+  {
+    "entity": "workout_exercise",
+    "kind": "upsert",
+    "name": "workout_exercise",
+    "create": true,
+    "data": {
+      "workout_id": "00000000-0000-4000-8000-00000000000a",
+      "exercise_id": "00000000-0000-4000-8000-000000000009",
+      "position": 1,
+      "note": null
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-00000000000b",
+      "position": 0,
+      "reps": 8,
+      "weight": 0,
+      "kind": "working"
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-00000000000c",
+      "position": 0,
+      "reps": 8,
+      "weight": 0,
+      "kind": "working"
+    }
+  },
+  {
+    "entity": "",
+    "kind": "action",
+    "name": "fitness.start_workout",
+    "create": false,
+    "data": {
+      "source": "empty",
+      "workout_id": "00000000-0000-4000-8000-00000000000d"
+    }
+  },
+  {
+    "entity": "exercise",
+    "kind": "upsert",
+    "name": "exercise",
+    "create": true,
+    "data": {
+      "name": "Bench",
+      "equipment": "barbell",
+      "muscle": "chest",
+      "load_type": "weight",
+      "rep_min": 8,
+      "rep_max": 12,
+      "increment": 2.5,
+      "archived": false
+    }
+  },
+  {
+    "entity": "exercise",
+    "kind": "upsert",
+    "name": "exercise",
+    "create": true,
+    "data": {
+      "name": "Row",
+      "equipment": "cable",
+      "muscle": "back",
+      "load_type": "weight",
+      "rep_min": 8,
+      "rep_max": 12,
+      "increment": 2.5,
+      "archived": false
+    }
+  },
+  {
+    "entity": "exercise",
+    "kind": "upsert",
+    "name": "exercise",
+    "create": true,
+    "data": {
+      "name": "Squat",
+      "equipment": "barbell",
+      "muscle": "quads",
+      "load_type": "weight",
+      "rep_min": 5,
+      "rep_max": 8,
+      "increment": 2.5,
+      "archived": false
+    }
+  },
+  {
+    "entity": "workout_template",
+    "kind": "upsert",
+    "name": "workout_template",
+    "create": true,
+    "data": {
+      "name": "Full body",
+      "sort_order": 0
+    }
+  },
+  {
+    "entity": "template_item",
+    "kind": "upsert",
+    "name": "template_item",
+    "create": true,
+    "data": {
+      "template_id": "00000000-0000-4000-8000-00000000000e",
+      "exercise_id": "00000000-0000-4000-8000-00000000000f",
+      "position": 0,
+      "sets": 3
+    }
+  },
+  {
+    "entity": "template_item",
+    "kind": "upsert",
+    "name": "template_item",
+    "create": true,
+    "data": {
+      "template_id": "00000000-0000-4000-8000-00000000000e",
+      "exercise_id": "00000000-0000-4000-8000-000000000010",
+      "position": 1,
+      "sets": 3
+    }
+  },
+  {
+    "entity": "workout",
+    "kind": "upsert",
+    "name": "workout",
+    "create": true,
+    "data": {
+      "name": "Full body",
+      "template_id": "00000000-0000-4000-8000-00000000000e",
+      "started_at": "2026-10-19T04:00:00.000Z",
+      "ended_at": null,
+      "notes": null,
+      "source": "live"
+    }
+  },
+  {
+    "entity": "workout_exercise",
+    "kind": "upsert",
+    "name": "workout_exercise",
+    "create": true,
+    "data": {
+      "workout_id": "00000000-0000-4000-8000-00000000000d",
+      "exercise_id": "00000000-0000-4000-8000-00000000000f",
+      "position": 0,
+      "note": null
+    }
+  },
+  {
+    "entity": "workout_exercise",
+    "kind": "upsert",
+    "name": "workout_exercise",
+    "create": true,
+    "data": {
+      "workout_id": "00000000-0000-4000-8000-00000000000d",
+      "exercise_id": "00000000-0000-4000-8000-000000000010",
+      "position": 1,
+      "note": null
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-000000000011",
+      "position": 0,
+      "reps": 8,
+      "weight": 0,
+      "kind": "working"
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-000000000012",
+      "position": 0,
+      "reps": 8,
+      "weight": 0,
+      "kind": "working"
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": false,
+    "data": {
+      "reps": 10,
+      "weight": 60
+    }
+  },
+  {
+    "entity": "",
+    "kind": "action",
+    "name": "fitness.toggle_set",
+    "create": false,
+    "data": {
+      "workout_id": "00000000-0000-4000-8000-00000000000d",
+      "workout_exercise_id": "00000000-0000-4000-8000-000000000011",
+      "set_id": "00000000-0000-4000-8000-000000000013"
+    }
+  },
+  {
+    "entity": "",
+    "kind": "action",
+    "name": "fitness.rest.start",
+    "create": false,
+    "data": {
+      "sec": 120
+    }
+  },
+  {
+    "entity": "",
+    "kind": "action",
+    "name": "fitness.rest.adjust",
+    "create": false,
+    "data": {
+      "delta": 30
+    }
+  },
+  {
+    "entity": "",
+    "kind": "action",
+    "name": "fitness.rest.skip",
+    "create": false,
+    "data": {}
+  },
+  {
+    "entity": "",
+    "kind": "action",
+    "name": "fitness.toggle_set",
+    "create": false,
+    "data": {
+      "workout_id": "00000000-0000-4000-8000-00000000000d",
+      "workout_exercise_id": "00000000-0000-4000-8000-000000000011",
+      "set_id": "00000000-0000-4000-8000-000000000013"
+    }
+  },
+  {
+    "entity": "",
+    "kind": "action",
+    "name": "fitness.start_workout",
+    "create": false,
+    "data": {
+      "source": "empty",
+      "workout_id": "00000000-0000-4000-8000-000000000014"
+    }
+  },
+  {
+    "entity": "exercise",
+    "kind": "upsert",
+    "name": "exercise",
+    "create": true,
+    "data": {
+      "name": "Bench",
+      "equipment": "barbell",
+      "muscle": "chest",
+      "load_type": "weight",
+      "rep_min": 8,
+      "rep_max": 12,
+      "increment": 2.5,
+      "archived": false
+    }
+  },
+  {
+    "entity": "exercise",
+    "kind": "upsert",
+    "name": "exercise",
+    "create": true,
+    "data": {
+      "name": "Row",
+      "equipment": "cable",
+      "muscle": "back",
+      "load_type": "weight",
+      "rep_min": 8,
+      "rep_max": 12,
+      "increment": 2.5,
+      "archived": false
+    }
+  },
+  {
+    "entity": "exercise",
+    "kind": "upsert",
+    "name": "exercise",
+    "create": true,
+    "data": {
+      "name": "Squat",
+      "equipment": "barbell",
+      "muscle": "quads",
+      "load_type": "weight",
+      "rep_min": 5,
+      "rep_max": 8,
+      "increment": 2.5,
+      "archived": false
+    }
+  },
+  {
+    "entity": "workout_template",
+    "kind": "upsert",
+    "name": "workout_template",
+    "create": true,
+    "data": {
+      "name": "Full body",
+      "sort_order": 0
+    }
+  },
+  {
+    "entity": "template_item",
+    "kind": "upsert",
+    "name": "template_item",
+    "create": true,
+    "data": {
+      "template_id": "00000000-0000-4000-8000-000000000015",
+      "exercise_id": "00000000-0000-4000-8000-000000000016",
+      "position": 0,
+      "sets": 3
+    }
+  },
+  {
+    "entity": "template_item",
+    "kind": "upsert",
+    "name": "template_item",
+    "create": true,
+    "data": {
+      "template_id": "00000000-0000-4000-8000-000000000015",
+      "exercise_id": "00000000-0000-4000-8000-000000000017",
+      "position": 1,
+      "sets": 3
+    }
+  },
+  {
+    "entity": "workout",
+    "kind": "upsert",
+    "name": "workout",
+    "create": true,
+    "data": {
+      "name": "Full body",
+      "template_id": "00000000-0000-4000-8000-000000000015",
+      "started_at": "2026-10-19T04:00:00.000Z",
+      "ended_at": null,
+      "notes": null,
+      "source": "live"
+    }
+  },
+  {
+    "entity": "workout_exercise",
+    "kind": "upsert",
+    "name": "workout_exercise",
+    "create": true,
+    "data": {
+      "workout_id": "00000000-0000-4000-8000-000000000014",
+      "exercise_id": "00000000-0000-4000-8000-000000000016",
+      "position": 0,
+      "note": null
+    }
+  },
+  {
+    "entity": "workout_exercise",
+    "kind": "upsert",
+    "name": "workout_exercise",
+    "create": true,
+    "data": {
+      "workout_id": "00000000-0000-4000-8000-000000000014",
+      "exercise_id": "00000000-0000-4000-8000-000000000017",
+      "position": 1,
+      "note": null
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-000000000018",
+      "position": 0,
+      "reps": 8,
+      "weight": 0,
+      "kind": "working"
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-000000000019",
+      "position": 0,
+      "reps": 8,
+      "weight": 0,
+      "kind": "working"
+    }
+  },
+  {
+    "entity": "",
+    "kind": "action",
+    "name": "fitness.toggle_set",
+    "create": false,
+    "data": {
+      "workout_id": "00000000-0000-4000-8000-000000000014",
+      "workout_exercise_id": "00000000-0000-4000-8000-000000000018",
+      "set_id": "00000000-0000-4000-8000-00000000001a"
+    }
+  },
+  {
+    "entity": "",
+    "kind": "action",
+    "name": "fitness.rest.start",
+    "create": false,
+    "data": {
+      "sec": 120
+    }
+  },
+  {
+    "entity": "",
+    "kind": "action",
+    "name": "fitness.finish_workout",
+    "create": false,
+    "data": {
+      "workout_id": "00000000-0000-4000-8000-000000000014",
+      "unfinished": "done",
+      "end_at": "2026-10-19T04:00:00.000Z"
+    }
+  },
+  {
+    "entity": "",
+    "kind": "action",
+    "name": "fitness.rest.skip",
+    "create": false,
+    "data": {}
+  },
+  {
+    "entity": "workout",
+    "kind": "upsert",
+    "name": "workout",
+    "create": false,
+    "data": {
+      "ended_at": "2026-10-19T04:00:00.000Z"
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": false,
+    "data": {
+      "completed_at": "2026-10-19T04:00:00.000Z"
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": false,
+    "data": {
+      "completed_at": "2026-10-19T04:00:00.000Z"
+    }
+  },
+  {
+    "entity": "",
+    "kind": "action",
+    "name": "fitness.start_workout",
+    "create": false,
+    "data": {
+      "source": "empty",
+      "workout_id": "00000000-0000-4000-8000-00000000001b"
+    }
+  },
+  {
+    "entity": "exercise",
+    "kind": "upsert",
+    "name": "exercise",
+    "create": true,
+    "data": {
+      "name": "Bench",
+      "equipment": "barbell",
+      "muscle": "chest",
+      "load_type": "weight",
+      "rep_min": 8,
+      "rep_max": 12,
+      "increment": 2.5,
+      "archived": false
+    }
+  },
+  {
+    "entity": "exercise",
+    "kind": "upsert",
+    "name": "exercise",
+    "create": true,
+    "data": {
+      "name": "Row",
+      "equipment": "cable",
+      "muscle": "back",
+      "load_type": "weight",
+      "rep_min": 8,
+      "rep_max": 12,
+      "increment": 2.5,
+      "archived": false
+    }
+  },
+  {
+    "entity": "exercise",
+    "kind": "upsert",
+    "name": "exercise",
+    "create": true,
+    "data": {
+      "name": "Squat",
+      "equipment": "barbell",
+      "muscle": "quads",
+      "load_type": "weight",
+      "rep_min": 5,
+      "rep_max": 8,
+      "increment": 2.5,
+      "archived": false
+    }
+  },
+  {
+    "entity": "workout_template",
+    "kind": "upsert",
+    "name": "workout_template",
+    "create": true,
+    "data": {
+      "name": "Full body",
+      "sort_order": 0
+    }
+  },
+  {
+    "entity": "template_item",
+    "kind": "upsert",
+    "name": "template_item",
+    "create": true,
+    "data": {
+      "template_id": "00000000-0000-4000-8000-00000000001c",
+      "exercise_id": "00000000-0000-4000-8000-00000000001d",
+      "position": 0,
+      "sets": 3
+    }
+  },
+  {
+    "entity": "template_item",
+    "kind": "upsert",
+    "name": "template_item",
+    "create": true,
+    "data": {
+      "template_id": "00000000-0000-4000-8000-00000000001c",
+      "exercise_id": "00000000-0000-4000-8000-00000000001e",
+      "position": 1,
+      "sets": 3
+    }
+  },
+  {
+    "entity": "workout",
+    "kind": "upsert",
+    "name": "workout",
+    "create": true,
+    "data": {
+      "name": "Full body",
+      "template_id": "00000000-0000-4000-8000-00000000001c",
+      "started_at": "2026-10-19T04:00:00.000Z",
+      "ended_at": null,
+      "notes": null,
+      "source": "live"
+    }
+  },
+  {
+    "entity": "workout_exercise",
+    "kind": "upsert",
+    "name": "workout_exercise",
+    "create": true,
+    "data": {
+      "workout_id": "00000000-0000-4000-8000-00000000001b",
+      "exercise_id": "00000000-0000-4000-8000-00000000001d",
+      "position": 0,
+      "note": null
+    }
+  },
+  {
+    "entity": "workout_exercise",
+    "kind": "upsert",
+    "name": "workout_exercise",
+    "create": true,
+    "data": {
+      "workout_id": "00000000-0000-4000-8000-00000000001b",
+      "exercise_id": "00000000-0000-4000-8000-00000000001e",
+      "position": 1,
+      "note": null
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-00000000001f",
+      "position": 0,
+      "reps": 8,
+      "weight": 0,
+      "kind": "working"
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-000000000020",
+      "position": 0,
+      "reps": 8,
+      "weight": 0,
+      "kind": "working"
+    }
+  },
+  {
+    "entity": "",
+    "kind": "action",
+    "name": "fitness.toggle_set",
+    "create": false,
+    "data": {
+      "workout_id": "00000000-0000-4000-8000-00000000001b",
+      "workout_exercise_id": "00000000-0000-4000-8000-00000000001f",
+      "set_id": "00000000-0000-4000-8000-000000000021"
+    }
+  },
+  {
+    "entity": "",
+    "kind": "action",
+    "name": "fitness.rest.start",
+    "create": false,
+    "data": {
+      "sec": 120
+    }
+  },
+  {
+    "entity": "",
+    "kind": "action",
+    "name": "fitness.finish_workout",
+    "create": false,
+    "data": {
+      "workout_id": "00000000-0000-4000-8000-00000000001b",
+      "unfinished": "remove",
+      "end_at": "2026-10-19T04:00:00.000Z"
+    }
+  },
+  {
+    "entity": "",
+    "kind": "action",
+    "name": "fitness.rest.skip",
+    "create": false,
+    "data": {}
+  },
+  {
+    "entity": "workout",
+    "kind": "upsert",
+    "name": "workout",
+    "create": false,
+    "data": {
+      "ended_at": "2026-10-19T04:00:00.000Z"
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": false,
+    "data": {
+      "completed_at": "2026-10-19T04:00:00.000Z"
+    }
+  },
+  {
+    "entity": "",
+    "kind": "action",
+    "name": "fitness.start_workout",
+    "create": false,
+    "data": {
+      "source": "empty",
+      "workout_id": "00000000-0000-4000-8000-000000000022"
+    }
+  },
+  {
+    "entity": "exercise",
+    "kind": "upsert",
+    "name": "exercise",
+    "create": true,
+    "data": {
+      "name": "Bench",
+      "equipment": "barbell",
+      "muscle": "chest",
+      "load_type": "weight",
+      "rep_min": 8,
+      "rep_max": 12,
+      "increment": 2.5,
+      "archived": false
+    }
+  },
+  {
+    "entity": "exercise",
+    "kind": "upsert",
+    "name": "exercise",
+    "create": true,
+    "data": {
+      "name": "Row",
+      "equipment": "cable",
+      "muscle": "back",
+      "load_type": "weight",
+      "rep_min": 8,
+      "rep_max": 12,
+      "increment": 2.5,
+      "archived": false
+    }
+  },
+  {
+    "entity": "exercise",
+    "kind": "upsert",
+    "name": "exercise",
+    "create": true,
+    "data": {
+      "name": "Squat",
+      "equipment": "barbell",
+      "muscle": "quads",
+      "load_type": "weight",
+      "rep_min": 5,
+      "rep_max": 8,
+      "increment": 2.5,
+      "archived": false
+    }
+  },
+  {
+    "entity": "workout_template",
+    "kind": "upsert",
+    "name": "workout_template",
+    "create": true,
+    "data": {
+      "name": "Full body",
+      "sort_order": 0
+    }
+  },
+  {
+    "entity": "template_item",
+    "kind": "upsert",
+    "name": "template_item",
+    "create": true,
+    "data": {
+      "template_id": "00000000-0000-4000-8000-000000000023",
+      "exercise_id": "00000000-0000-4000-8000-000000000024",
+      "position": 0,
+      "sets": 3
+    }
+  },
+  {
+    "entity": "template_item",
+    "kind": "upsert",
+    "name": "template_item",
+    "create": true,
+    "data": {
+      "template_id": "00000000-0000-4000-8000-000000000023",
+      "exercise_id": "00000000-0000-4000-8000-000000000025",
+      "position": 1,
+      "sets": 3
+    }
+  },
+  {
+    "entity": "workout",
+    "kind": "upsert",
+    "name": "workout",
+    "create": true,
+    "data": {
+      "name": "Full body",
+      "template_id": "00000000-0000-4000-8000-000000000023",
+      "started_at": "2026-10-19T04:00:00.000Z",
+      "ended_at": null,
+      "notes": null,
+      "source": "live"
+    }
+  },
+  {
+    "entity": "workout_exercise",
+    "kind": "upsert",
+    "name": "workout_exercise",
+    "create": true,
+    "data": {
+      "workout_id": "00000000-0000-4000-8000-000000000022",
+      "exercise_id": "00000000-0000-4000-8000-000000000024",
+      "position": 0,
+      "note": null
+    }
+  },
+  {
+    "entity": "workout_exercise",
+    "kind": "upsert",
+    "name": "workout_exercise",
+    "create": true,
+    "data": {
+      "workout_id": "00000000-0000-4000-8000-000000000022",
+      "exercise_id": "00000000-0000-4000-8000-000000000025",
+      "position": 1,
+      "note": null
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-000000000026",
+      "position": 0,
+      "reps": 8,
+      "weight": 0,
+      "kind": "working"
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-000000000027",
+      "position": 0,
+      "reps": 8,
+      "weight": 0,
+      "kind": "working"
+    }
+  },
+  {
+    "entity": "",
+    "kind": "action",
+    "name": "fitness.discard_workout",
+    "create": false,
+    "data": {
+      "workout_id": "00000000-0000-4000-8000-000000000022"
+    }
+  },
+  {
+    "entity": "",
+    "kind": "action",
+    "name": "fitness.start_workout",
+    "create": false,
+    "data": {
+      "source": "empty",
+      "workout_id": "00000000-0000-4000-8000-000000000028"
+    }
+  },
+  {
+    "entity": "exercise",
+    "kind": "upsert",
+    "name": "exercise",
+    "create": true,
+    "data": {
+      "name": "Bench",
+      "equipment": "barbell",
+      "muscle": "chest",
+      "load_type": "weight",
+      "rep_min": 8,
+      "rep_max": 12,
+      "increment": 2.5,
+      "archived": false
+    }
+  },
+  {
+    "entity": "exercise",
+    "kind": "upsert",
+    "name": "exercise",
+    "create": true,
+    "data": {
+      "name": "Row",
+      "equipment": "cable",
+      "muscle": "back",
+      "load_type": "weight",
+      "rep_min": 8,
+      "rep_max": 12,
+      "increment": 2.5,
+      "archived": false
+    }
+  },
+  {
+    "entity": "exercise",
+    "kind": "upsert",
+    "name": "exercise",
+    "create": true,
+    "data": {
+      "name": "Squat",
+      "equipment": "barbell",
+      "muscle": "quads",
+      "load_type": "weight",
+      "rep_min": 5,
+      "rep_max": 8,
+      "increment": 2.5,
+      "archived": false
+    }
+  },
+  {
+    "entity": "workout_template",
+    "kind": "upsert",
+    "name": "workout_template",
+    "create": true,
+    "data": {
+      "name": "Full body",
+      "sort_order": 0
+    }
+  },
+  {
+    "entity": "template_item",
+    "kind": "upsert",
+    "name": "template_item",
+    "create": true,
+    "data": {
+      "template_id": "00000000-0000-4000-8000-000000000029",
+      "exercise_id": "00000000-0000-4000-8000-00000000002a",
+      "position": 0,
+      "sets": 3
+    }
+  },
+  {
+    "entity": "template_item",
+    "kind": "upsert",
+    "name": "template_item",
+    "create": true,
+    "data": {
+      "template_id": "00000000-0000-4000-8000-000000000029",
+      "exercise_id": "00000000-0000-4000-8000-00000000002b",
+      "position": 1,
+      "sets": 3
+    }
+  },
+  {
+    "entity": "workout",
+    "kind": "upsert",
+    "name": "workout",
+    "create": true,
+    "data": {
+      "name": "Full body",
+      "template_id": "00000000-0000-4000-8000-000000000029",
+      "started_at": "2026-10-19T04:00:00.000Z",
+      "ended_at": null,
+      "notes": null,
+      "source": "live"
+    }
+  },
+  {
+    "entity": "workout_exercise",
+    "kind": "upsert",
+    "name": "workout_exercise",
+    "create": true,
+    "data": {
+      "workout_id": "00000000-0000-4000-8000-000000000028",
+      "exercise_id": "00000000-0000-4000-8000-00000000002a",
+      "position": 0,
+      "note": null
+    }
+  },
+  {
+    "entity": "workout_exercise",
+    "kind": "upsert",
+    "name": "workout_exercise",
+    "create": true,
+    "data": {
+      "workout_id": "00000000-0000-4000-8000-000000000028",
+      "exercise_id": "00000000-0000-4000-8000-00000000002b",
+      "position": 1,
+      "note": null
+    }
+  },
+  {
+    "entity": "workout_exercise",
+    "kind": "upsert",
+    "name": "workout_exercise",
+    "create": true,
+    "data": {
+      "workout_id": "00000000-0000-4000-8000-000000000028",
+      "exercise_id": "00000000-0000-4000-8000-00000000002c",
+      "position": 2,
+      "note": null
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-00000000002d",
+      "position": 0,
+      "reps": 8,
+      "weight": 0,
+      "kind": "working"
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-00000000002e",
+      "position": 0,
+      "reps": 8,
+      "weight": 0,
+      "kind": "working"
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-00000000002f",
+      "position": 0,
+      "reps": 5,
+      "weight": 0,
+      "kind": "working"
+    }
+  },
+  {
+    "entity": "workout_exercise",
+    "kind": "upsert",
+    "name": "workout_exercise",
+    "create": false,
+    "data": {
+      "position": 3
+    }
+  },
+  {
+    "entity": "workout_exercise",
+    "kind": "upsert",
+    "name": "workout_exercise",
+    "create": false,
+    "data": {
+      "position": 4
+    }
+  },
+  {
+    "entity": "workout_exercise",
+    "kind": "upsert",
+    "name": "workout_exercise",
+    "create": true,
+    "data": {
+      "workout_id": "00000000-0000-4000-8000-000000000028",
+      "exercise_id": "00000000-0000-4000-8000-00000000002c",
+      "position": 5,
+      "note": null
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-000000000030",
+      "position": 0,
+      "reps": 5,
+      "weight": 0,
+      "kind": "working"
+    }
+  },
+  {
+    "entity": "exercise",
+    "kind": "upsert",
+    "name": "exercise",
+    "create": true,
+    "data": {
+      "name": "Bench",
+      "equipment": "barbell",
+      "muscle": "chest",
+      "load_type": "weight",
+      "rep_min": 8,
+      "rep_max": 12,
+      "increment": 2.5,
+      "archived": false
+    }
+  },
+  {
+    "entity": "exercise",
+    "kind": "upsert",
+    "name": "exercise",
+    "create": true,
+    "data": {
+      "name": "Row",
+      "equipment": "cable",
+      "muscle": "back",
+      "load_type": "weight",
+      "rep_min": 8,
+      "rep_max": 12,
+      "increment": 2.5,
+      "archived": false
+    }
+  },
+  {
+    "entity": "exercise",
+    "kind": "upsert",
+    "name": "exercise",
+    "create": true,
+    "data": {
+      "name": "Squat",
+      "equipment": "barbell",
+      "muscle": "quads",
+      "load_type": "weight",
+      "rep_min": 5,
+      "rep_max": 8,
+      "increment": 2.5,
+      "archived": false
+    }
+  },
+  {
+    "entity": "workout_template",
+    "kind": "upsert",
+    "name": "workout_template",
+    "create": true,
+    "data": {
+      "name": "Full body",
+      "sort_order": 0
+    }
+  },
+  {
+    "entity": "template_item",
+    "kind": "upsert",
+    "name": "template_item",
+    "create": true,
+    "data": {
+      "template_id": "00000000-0000-4000-8000-000000000031",
+      "exercise_id": "00000000-0000-4000-8000-000000000032",
+      "position": 0,
+      "sets": 3
+    }
+  },
+  {
+    "entity": "template_item",
+    "kind": "upsert",
+    "name": "template_item",
+    "create": true,
+    "data": {
+      "template_id": "00000000-0000-4000-8000-000000000031",
+      "exercise_id": "00000000-0000-4000-8000-000000000033",
+      "position": 1,
+      "sets": 3
+    }
+  },
+  {
+    "entity": "workout",
+    "kind": "upsert",
+    "name": "workout",
+    "create": true,
+    "data": {
+      "name": "Push",
+      "template_id": null,
+      "started_at": "2026-10-19T04:00:00.000Z",
+      "ended_at": "2026-10-19T04:00:00.000Z",
+      "notes": null,
+      "source": "chat"
+    }
+  },
+  {
+    "entity": "workout_exercise",
+    "kind": "upsert",
+    "name": "workout_exercise",
+    "create": true,
+    "data": {
+      "workout_id": "00000000-0000-4000-8000-000000000034",
+      "exercise_id": "00000000-0000-4000-8000-000000000032",
+      "position": 0,
+      "note": null
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-000000000035",
+      "position": 0,
+      "reps": 8,
+      "weight": 60,
+      "kind": "working",
+      "completed_at": "2026-10-19T04:00:00.000Z"
+    }
+  },
+  {
+    "entity": "meal",
+    "kind": "upsert",
+    "name": "meal",
+    "create": true,
+    "data": {
+      "eaten_at": "2026-10-19T04:00:00.000Z",
+      "label": "lunch",
+      "source": "manual",
+      "raw_input": "Rice, Adobo",
+      "status": "confirmed",
+      "confidence": null,
+      "follow_up": null
+    }
+  },
+  {
+    "entity": "meal_item",
+    "kind": "upsert",
+    "name": "meal_item",
+    "create": true,
+    "data": {
+      "meal_id": "00000000-0000-4000-8000-000000000036",
+      "position": 0,
+      "name": "Rice",
+      "qty": 1,
+      "unit": "cup",
+      "kcal": 200,
+      "protein": 4,
+      "carbs": 45,
+      "fat": 0,
+      "assumption": null
+    }
+  },
+  {
+    "entity": "meal_item",
+    "kind": "upsert",
+    "name": "meal_item",
+    "create": true,
+    "data": {
+      "meal_id": "00000000-0000-4000-8000-000000000036",
+      "position": 1,
+      "name": "Adobo",
+      "qty": 1,
+      "unit": "serving",
+      "kcal": 350,
+      "protein": 28,
+      "carbs": 4,
+      "fat": 24,
+      "assumption": null
+    }
+  },
+  {
+    "entity": "meal",
+    "kind": "upsert",
+    "name": "meal",
+    "create": true,
+    "data": {
+      "eaten_at": "2026-10-19T04:00:00.000Z",
+      "label": "lunch",
+      "source": "manual",
+      "raw_input": "Rice, Adobo",
+      "status": "estimated",
+      "confidence": 0.7,
+      "follow_up": {
+        "question": "How much rice?",
+        "options": ["1 cup", "1.5 cups", "2 cups"]
+      }
+    }
+  },
+  {
+    "entity": "meal_item",
+    "kind": "upsert",
+    "name": "meal_item",
+    "create": true,
+    "data": {
+      "meal_id": "00000000-0000-4000-8000-000000000037",
+      "position": 0,
+      "name": "Rice",
+      "qty": 1,
+      "unit": "cup",
+      "kcal": 200,
+      "protein": 4,
+      "carbs": 45,
+      "fat": 0,
+      "assumption": null
+    }
+  },
+  {
+    "entity": "meal_item",
+    "kind": "upsert",
+    "name": "meal_item",
+    "create": true,
+    "data": {
+      "meal_id": "00000000-0000-4000-8000-000000000037",
+      "position": 1,
+      "name": "Adobo",
+      "qty": 1,
+      "unit": "serving",
+      "kcal": 350,
+      "protein": 28,
+      "carbs": 4,
+      "fat": 24,
+      "assumption": null
+    }
+  },
+  {
+    "entity": "",
+    "kind": "action",
+    "name": "fitness.answer_follow_up",
+    "create": false,
+    "data": {
+      "meal_id": "00000000-0000-4000-8000-000000000037",
+      "option": "1.5 cups"
+    }
+  },
+  {
+    "entity": "meal",
+    "kind": "upsert",
+    "name": "meal",
+    "create": false,
+    "data": {
+      "confidence": 0.7999999999999999,
+      "follow_up": null
+    }
+  },
+  {
+    "entity": "meal_item",
+    "kind": "upsert",
+    "name": "meal_item",
+    "create": false,
+    "data": {
+      "qty": 1.5,
+      "kcal": 300,
+      "protein": 6,
+      "carbs": 68,
+      "assumption": "1.5 cups, you said"
+    }
+  },
+  {
+    "entity": "",
+    "kind": "action",
+    "name": "fitness.confirm_meal",
+    "create": false,
+    "data": {
+      "meal_id": "00000000-0000-4000-8000-000000000037"
+    }
+  },
+  {
+    "entity": "meal",
+    "kind": "upsert",
+    "name": "meal",
+    "create": false,
+    "data": {
+      "status": "confirmed"
+    }
+  },
+  {
+    "entity": "meal_item",
+    "kind": "upsert",
+    "name": "meal_item",
+    "create": true,
+    "data": {
+      "meal_id": "00000000-0000-4000-8000-000000000037",
+      "position": 2,
+      "name": "Egg",
+      "qty": 1,
+      "unit": "pc",
+      "kcal": 70,
+      "protein": 6,
+      "carbs": 0,
+      "fat": 5,
+      "assumption": null
+    }
+  },
+  {
+    "entity": "macro_target",
+    "kind": "upsert",
+    "name": "macro_target",
+    "create": true,
+    "data": {
+      "effective_from": "2026-10-19",
+      "kcal": 2100,
+      "protein": 150,
+      "carbs": 220,
+      "fat": 70
+    }
+  },
+  {
+    "entity": "fitness_settings",
+    "kind": "upsert",
+    "name": "fitness_settings",
+    "create": true,
+    "data": {
+      "units": "lb",
+      "rest_sec": 90,
+      "weigh_in_reminder": "07:15"
+    }
+  }
+]

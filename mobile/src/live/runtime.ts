@@ -14,6 +14,7 @@ import { SyncEngine } from "./engine"
 import { runEventStream, type ServerEvent } from "./events"
 import type { AnyMapper } from "./mapper"
 import { financeMappers } from "./mappers/finance"
+import { fitnessMappers } from "./mappers/fitness"
 import { habitsMappers } from "./mappers/habits"
 import { modulePrefMapper, weatherPrefMapper } from "./mappers/reference"
 import { tasksMappers } from "./mappers/tasks"
@@ -25,6 +26,7 @@ export type MapperFactory = (userId: string) => AnyMapper[]
 const factories: MapperFactory[] = [
   (uid) => [weatherPrefMapper(uid), modulePrefMapper(uid)],
   financeMappers,
+  fitnessMappers,
   habitsMappers,
   tasksMappers,
 ]
