@@ -53,7 +53,7 @@ def _noop(event: str, data: dict[str, Any]) -> None:
 def companion_row(ctx: Ctx) -> Companion:
     row = owned_repo.find_one(ctx, Companion, include_deleted=True)
     if row is None:
-        row = owned_repo.insert(
+        row, _ = owned_repo.insert_once(
             ctx,
             Companion,
             {"name": "Sol"},

@@ -518,7 +518,7 @@ def ensure_default_lists(ctx: Ctx) -> list[TaskList]:
     if repo.any_list_ever(ctx):
         return repo.lists(ctx)
     for i, (key, name, kind, color, icon) in enumerate(DEFAULT_LISTS):
-        owned_repo.insert(
+        owned_repo.insert_once(
             ctx,
             TaskList,
             {

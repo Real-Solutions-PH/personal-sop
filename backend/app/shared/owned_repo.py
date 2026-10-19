@@ -14,6 +14,7 @@ from collections.abc import Iterable, Sequence
 from typing import Any, TypeVar
 
 from sqlalchemy import ColumnElement
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import col, func, select
 
 from app.shared.context import Ctx
@@ -106,6 +107,29 @@ def insert(
     ctx.session.add(row)
     ctx.session.flush()
     return row
+
+
+def insert_once(
+    ctx: Ctx, model: type[M], data: dict[str, Any], *, row_id: uuid.UUID
+) -> tuple[M, bool]:
+    """Insert a row whose id is derived (one per user, created on first
+    touch), tolerating a concurrent request that inserts the same id.
+
+    The first requests after sign-in arrive together, and each one finding
+    no row would insert the same primary key: the losers waited on the
+    winner's transaction and then failed with a duplicate key. Inside a
+    SAVEPOINT the loser instead reads the winner's row. Returns
+    ``(row, created)``; seed dependent rows only when ``created``.
+    """
+    try:
+        with ctx.session.begin_nested():
+            row = insert(ctx, model, data, row_id=row_id)
+        return row, True
+    except IntegrityError:
+        existing = ctx.session.get(model, row_id, populate_existing=True)
+        if existing is None or existing.owner_id != ctx.user_id:
+            raise
+        return existing, False
 
 
 def apply(row: M, data: dict[str, Any]) -> M:

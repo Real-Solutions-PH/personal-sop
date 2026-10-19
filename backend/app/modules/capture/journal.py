@@ -208,7 +208,7 @@ def settings_row(ctx: Ctx) -> AISettings:
     read. Flushes only."""
     row = owned_repo.find_one(ctx, AISettings, include_deleted=True)
     if row is None:
-        row = owned_repo.insert(
+        row, _ = owned_repo.insert_once(
             ctx,
             AISettings,
             {

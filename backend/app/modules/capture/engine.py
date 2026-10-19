@@ -21,6 +21,7 @@ Order of work, so a refusal is never a 200 with an empty stream:
 """
 
 import json
+import logging
 import queue
 import threading
 import uuid
@@ -58,6 +59,8 @@ from app.modules.media import public as media
 from app.shared import owned_repo
 from app.shared.context import Ctx
 from app.shared.domain import conflict, domain_error, invalid
+
+logger = logging.getLogger(__name__)
 
 Emit = Callable[[str, dict[str, Any]], None]
 STUCK_AFTER = timedelta(seconds=60)
@@ -546,7 +549,11 @@ def run(ctx: Ctx, cap: Capture, plan: Plan, emit: Emit = _noop) -> Capture:
     try:
         engine, reply = _interpret(ctx, cap, plan, emit, pos)
         sp.commit()
-    except Exception:  # noqa: BLE001 - any failure keeps the input and says so
+    except Exception as exc:  # noqa: BLE001 - any failure keeps the input and says so
+        # The type and id only: the exception text can carry the user's input.
+        logger.warning(
+            "capture interpret failed: %s (capture %s)", type(exc).__name__, cap.id
+        )
         sp.rollback()
         ctx.session.refresh(cap)
         _fail(
@@ -596,7 +603,8 @@ def stream_work(
     def run_it() -> None:
         try:
             work(lambda e, d: q.put((e, d)))
-        except Exception:  # noqa: BLE001 - reported as a frame, never as text
+        except Exception as exc:  # noqa: BLE001 - reported as a frame, never as text
+            logger.warning("streamed reply failed: %s", type(exc).__name__)
             q.put(
                 (
                     "error",

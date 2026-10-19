@@ -97,13 +97,14 @@ def settings_row(ctx: Ctx) -> FinanceSettings:
     first touch. Flushes only."""
     row = owned_repo.find_one(ctx, FinanceSettings, include_deleted=True)
     if row is None:
-        row = owned_repo.insert(
+        row, created = owned_repo.insert_once(
             ctx,
             FinanceSettings,
             {},
             row_id=derived_id("finance-settings", ctx.user_id, "settings"),
         )
-        seed_categories(ctx)
+        if created:
+            seed_categories(ctx)
     elif row.deleted_at is not None:
         owned_repo.restore(ctx, row)
     return row
