@@ -9,13 +9,12 @@
 // | /journal             | "Talk it out" / Dictate (microphone)     | NOT COVERABLE ON WEB: needs the device microphone and on-device speech recognition |
 // | Capture "journal: …" | capture creates an entry                 | capture.cy.ts (journal card) |
 
-import { api, rows, settle } from "./capture-support"
+import { api, rows, signIn } from "./capture-support"
 
 describe("journal (live)", () => {
   it("creates, edits and deletes an entry — every step reaches the server", () => {
     cy.newLiveUser("capture-journal").then((user) => {
-      cy.signInLive(user)
-      settle()
+      signIn(user)
 
       // Create.
       cy.visit("/journal/new")
@@ -26,7 +25,10 @@ describe("journal (live)", () => {
       cy.findByRole("textbox", { name: "Tags" }).type("calm, walk")
       cy.findByRole("button", { name: "Save entry" }).click()
       cy.location("pathname").should("eq", "/journal")
-      cy.findAllByText(/Walked to the market at dawn/).should("have.length.gte", 1)
+      cy.findAllByText(/Walked to the market at dawn/).should(
+        "have.length.gte",
+        1,
+      )
 
       rows(
         "select id, body, mood, tags, private, deleted_at from journal_entry where owner_id = $1 and deleted_at is null",
@@ -37,10 +39,8 @@ describe("journal (live)", () => {
         expect(row.tags).to.deep.eq(["calm", "walk"])
         expect(row.private).to.eq(true)
         const id = String(row.id)
-        api<{ data: { id: string; body: string }[] }>(
-          user,
-          "/journal/",
-          (b) => b.data.some((e) => e.id === id),
+        api<{ data: { id: string; body: string }[] }>(user, "/journal/", (b) =>
+          b.data.some((e) => e.id === id),
         )
 
         // Edit: body, mood, private.

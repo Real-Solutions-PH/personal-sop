@@ -1,10 +1,9 @@
 // Helpers shared by the capture, journal, Sol and AI-provider specs.
 //
-// The polls here have a 90 s budget instead of the harness's 20 s: with
-// several E2E sessions sharing one API, a request can wait up to 30 s for a
-// database connection (every open /events/stream pins one), so a sync push
-// or pull can land well after 20 s. The assertions are unchanged; only the
-// time allowed for them to become true is longer.
+// The polls here have a 90 s budget instead of the harness's 20 s: several
+// E2E sessions share one API, and a sync push or pull under that load can
+// land well after 20 s. The assertions are unchanged; only the time allowed
+// for them to become true is longer.
 import type { LiveUser } from "./support"
 
 const BUDGET_MS = 90_000
@@ -80,6 +79,23 @@ export function settle() {
     end = Date.now() + BUDGET_MS
     return attempt()
   })
+}
+
+/**
+ * Sign in through the real Welcome → Sign in screens. Same steps as `cy.signInLive`, but it waits for the sign-in form to
+ * finish rendering first: under load the form re-renders after it appears,
+ * and a field found before that is detached by the time it is typed into.
+ */
+export function signIn(user: LiveUser) {
+  cy.visit("/welcome")
+  cy.findByRole("button", { name: "I already have an account" }).click()
+  cy.findByText("Welcome back").should("be.visible")
+  cy.wait(750, { log: false })
+  cy.findByRole("textbox", { name: "Email" }).type(user.email)
+  cy.findByLabelText("Password").type(user.password, { log: false })
+  cy.findByRole("button", { name: "Sign in" }).click()
+  cy.location("pathname", { timeout: 60000 }).should("eq", "/today")
+  settle()
 }
 
 /** Reload a live screen and wait for its first pull again. */
