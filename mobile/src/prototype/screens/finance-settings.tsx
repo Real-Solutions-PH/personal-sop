@@ -26,6 +26,7 @@ import {
   Tap,
 } from "../native-kit"
 import { go } from "../navigation"
+import { groupPesos, pesoDraft } from "../peso-input"
 import { Switch } from "../switch"
 import { useTheme } from "../theme"
 import { Button, confirm, Empty, Field, Screen, Sheet } from "../ui"
@@ -253,8 +254,8 @@ export function FinanceSettings() {
           )}
           <Field
             label="Minimum balance ₱"
-            value={floor ? Number(floor).toLocaleString("en-PH") : ""}
-            onChangeText={(v) => setFloor(v.replace(/[^\d]/g, ""))}
+            value={groupPesos(floor)}
+            onChangeText={(v) => setFloor(pesoDraft(v))}
             onBlur={() => A.updateSettings({ safetyFloor: Number(floor || 0) })}
             keyboardType="decimal-pad"
           />
