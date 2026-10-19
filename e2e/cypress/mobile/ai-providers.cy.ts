@@ -14,6 +14,7 @@
 // | (no screen)               | stored key is ciphertext (SQL)             | credential lifecycle |
 // | (no screen)               | verify fails cleanly (unreachable)         | credential lifecycle |
 // | (no screen)               | model assignment per purpose (5 purposes)  | credential lifecycle |
+// | (no screen)               | vision refused for a model without images  | credential lifecycle |
 // | /capture (Sol)            | capture with an unreachable model assigned | credential lifecycle |
 // | (no screen)               | remove an assignment, delete the credential | credential lifecycle |
 // | /capture/settings         | AI on switch (kill switch) + its effect    | AI settings rows |
@@ -37,6 +38,7 @@ import {
   sendMessage,
   signIn,
 } from "./capture-support"
+import type { LiveUser } from "./support"
 
 // Obviously fake, and aimed at a port nothing listens on (discard, 9).
 const FAKE_KEY = "sk-e2e-FAKE-not-a-real-key-7Q4z"
@@ -50,6 +52,15 @@ interface Credential {
   key_last4: string
   verified_at: string | null
   last_error_code: string | null
+}
+
+/** A password-grant token, for the one request that must not fail on 4xx. */
+function token(user: LiveUser) {
+  return cy.task<string>(
+    "liveToken",
+    { email: user.email, password: user.password },
+    { log: false },
+  )
 }
 
 function expectNoKey(body: unknown) {
@@ -114,11 +125,26 @@ describe("AI providers and AI settings (live)", () => {
           [cred.id],
         )
 
+        // Vision needs a model that reads images: unclaimed, it is refused.
+        token(user).then((t) =>
+          cy
+            .request({
+              method: "PUT",
+              url: `${Cypress.env("API_URL")}/api/v1/ai/assignments/vision`,
+              headers: { Authorization: `Bearer ${t}` },
+              body: { credential_id: cred.id, model: "fake-vision-model" },
+              failOnStatusCode: false,
+            })
+            .its("status")
+            .should("eq", 422),
+        )
+
         // A model per purpose.
         for (const purpose of PURPOSES)
           cy.liveApi(user, "PUT", `/ai/assignments/${purpose}`, {
             credential_id: cred.id,
             model: `fake-${purpose}-model`,
+            supports_vision: purpose === "vision",
           })
         rows(
           "select purpose, model, credential_id from ai_model_assignment where owner_id = $1 order by purpose",
@@ -185,7 +211,6 @@ describe("AI providers and AI settings (live)", () => {
       cy.visit("/capture/settings")
       cy.findByText("AI is on").should("exist")
       cy.findByText("AI spend this month").should("exist")
-      cy.findByText(/0 calls/).should("exist")
       const setting = (where: string) =>
         rows(
           `select * from ai_settings where owner_id = $1 and deleted_at is null and ${where}`,
@@ -261,6 +286,20 @@ describe("AI providers and AI settings (live)", () => {
         2,
       )
       api<{ data: unknown[] }>(user, "/capture/", (b) => b.data.length === 0)
+
+      // The spend meter is the server's: with no provider, no paid calls.
+      // (Last, so a wrong meter doesn't hide the rows above.)
+      cy.liveApi<{ spend_minor: number; calls: number }>(
+        user,
+        "GET",
+        "/capture/settings",
+      ).then((st) => {
+        expect(st.spend_minor).to.eq(0)
+        expect(st.calls).to.eq(0)
+      })
+      revisit("/capture/settings")
+      cy.findByText(/^0 calls/).should("exist")
+      cy.findByText("₱0").should("exist")
     })
   })
 })

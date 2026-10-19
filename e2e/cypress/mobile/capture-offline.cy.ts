@@ -1,15 +1,17 @@
 // Capture offline queue and photo upload (live, no AI provider).
 //
-// Offline is simulated the way the app's connectivity hook reads it on web
-// (`shared/prototype/lib/platform.ts`): `navigator.onLine` plus the window's
-// `offline` / `online` events. Both the capture path (`isOnline`) and the
-// sync engine (`getConnectivity`) read that same source.
+// Offline is simulated the way the app's connectivity hook reads it on web:
+// NetInfo (`prototype/providers.tsx` -> `setConnectivity`) re-reads
+// `navigator.onLine` on the Network Information API's `change` event (or the
+// window's `offline` / `online` events where that API is missing). Both the
+// capture path (`isOnline`) and the sync engine (`getConnectivity`) read it.
 //
 // | Screen         | Action                                        | Test |
 // |----------------|-----------------------------------------------|------|
 // | /capture (Sol) | send while offline → "Queued" (nothing sent)  | queues offline and flushes online |
 // | /capture       | reconnect → queue flushes, server reads it    | queues offline and flushes online |
 // | /capture/queue | "Pending & offline" lists the queued capture  | queues offline and flushes online |
+// | /capture/queue | "Simulate offline" switch → capture queues     | the simulate-offline switch |
 // | /capture       | Photo → Library → Send photo (upload)         | uploads a photo capture |
 // | /capture       | Photo → Take photo                            | NOT COVERABLE ON WEB: needs a camera |
 
@@ -28,6 +30,12 @@ function setOnline(online: boolean) {
       get: () => online,
     })
     win.dispatchEvent(new win.Event(online ? "online" : "offline"))
+    // NetInfo (the app's connectivity source) listens to the Network
+    // Information API's "change" event when the browser has one, and to
+    // the window events otherwise; it then re-reads navigator.onLine.
+    const connection = (win.navigator as { connection?: EventTarget })
+      .connection
+    connection?.dispatchEvent(new win.Event("change"))
   })
 }
 
@@ -95,6 +103,35 @@ describe("capture offline queue and photo (live)", () => {
       })
       cy.visit("/capture")
       cy.findByText("Queued · will process when online").should("not.exist")
+      cy.findByText("✓ Saved").should("exist")
+    })
+  })
+
+  it("the simulate-offline switch queues captures until it is turned off", () => {
+    const text = "buy dish soap"
+    cy.newLiveUser("capture").then((user) => {
+      signIn(user)
+      cy.visit("/capture/queue")
+      cy.findByRole("switch", { name: "Simulate offline" }).click()
+      cy.findByRole("switch", { name: "Simulate offline" }).should(
+        "have.attr",
+        "aria-checked",
+        "true",
+      )
+      cy.visit("/capture")
+      sendMessage(text)
+      cy.findByText("Queued · will process when online").should("exist")
+
+      // Off again: the queued capture is sent and read by the server.
+      cy.visit("/capture/queue")
+      cy.findByRole("switch", { name: "Simulate offline" }).click()
+      captureRow(user, text, "done").then((cap) =>
+        rows(
+          "select 1 from record_card where capture_id = $1 and state = 'saved'",
+          [cap.id],
+        ),
+      )
+      cy.visit("/capture")
       cy.findByText("✓ Saved").should("exist")
     })
   })
