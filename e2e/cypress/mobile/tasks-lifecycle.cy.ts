@@ -9,6 +9,7 @@ import {
   type ServerTask,
   seedTask,
   settled,
+  signIn,
   taskRow,
   tick,
   titleButton,
@@ -29,7 +30,7 @@ describe("tasks lifecycle (live)", () => {
 
   it("Today and Plan rows: tick, untick, and the Upcoming / Overdue views", () => {
     cy.newLiveUser("tasks").then((user) => {
-      cy.signInLive(user)
+      signIn(user)
       seedTask(user, { title: "Today row task", due_date: day(0) }).then(
         (a: ServerTask) =>
           seedTask(user, { title: "Plan row task", due_date: day(0) }).then(
@@ -76,7 +77,7 @@ describe("tasks lifecycle (live)", () => {
 
   it("recurring completion: the next occurrence has the same derived id on both sides", () => {
     cy.newLiveUser("tasks").then((user) => {
-      cy.signInLive(user)
+      signIn(user)
       seedTask(user, {
         title: "Stretch",
         due_date: day(0),
@@ -122,7 +123,7 @@ describe("tasks lifecycle (live)", () => {
 
   it("row actions sheet: star, snooze, tomorrow, delete + undo, complete, duplicate", () => {
     cy.newLiveUser("tasks").then((user) => {
-      cy.signInLive(user)
+      signIn(user)
       seedTask(user, { title: "Sheet task", due_date: day(0) }).then(
         (t: ServerTask) =>
           seedTask(user, { title: "Copy me" }).then(() => {
@@ -186,7 +187,7 @@ describe("tasks lifecycle (live)", () => {
 
   it("snooze from the detail screen pushes the reminder later", () => {
     cy.newLiveUser("tasks").then((user) => {
-      cy.signInLive(user)
+      signIn(user)
       const remind = new Date(Date.now() + 2 * 3600000)
       remind.setSeconds(0, 0)
       seedTask(user, {
@@ -210,7 +211,7 @@ describe("tasks lifecycle (live)", () => {
 
   it("move overdue to today: Triage → Move all to today", () => {
     cy.newLiveUser("tasks").then((user) => {
-      cy.signInLive(user)
+      signIn(user)
       seedTask(user, { title: "Late one", due_date: day(-1) }).then(
         (a: ServerTask) =>
           seedTask(user, { title: "Late two", due_date: day(-3) }).then(
@@ -240,7 +241,7 @@ describe("tasks lifecycle (live)", () => {
 
   it("delete and restore: detail delete, Recently deleted restore, detail restore, reopen", () => {
     cy.newLiveUser("tasks").then((user) => {
-      cy.signInLive(user)
+      signIn(user)
       seedTask(user, { title: "Old task" }).then((t: ServerTask) => {
         // The title is an input's value, not text: wait for the detail rows.
         visitAndWait(`/tasks/task/${t.id}`, "Add date")
@@ -290,7 +291,7 @@ describe("tasks lifecycle (live)", () => {
 
   it("delete a repeating task: This one makes the next, All future ends it", () => {
     cy.newLiveUser("tasks").then((user) => {
-      cy.signInLive(user)
+      signIn(user)
       seedTask(user, {
         title: "Daily standup",
         due_date: day(0),
@@ -324,7 +325,7 @@ describe("tasks lifecycle (live)", () => {
 
   it("reorder: Manual sort, Move down swaps sort_order on the server", () => {
     cy.newLiveUser("tasks").then((user) => {
-      cy.signInLive(user)
+      signIn(user)
       seedTask(user, { title: "Alpha" }).then(() =>
         seedTask(user, { title: "Bravo" }).then(() =>
           seedTask(user, { title: "Charlie" }).then(() => {

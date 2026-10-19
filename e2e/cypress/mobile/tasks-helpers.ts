@@ -207,3 +207,41 @@ export const dbTask = (id: string) =>
       values: [id],
     })
     .its(0)
+
+/**
+ * Sign in through the real Welcome → Sign in screens (as support.ts's
+ * ``signInLive``), but wait for the fields to be enabled (the screen mounts
+ * with them briefly disabled) and retry when GoTrue answers "Something went
+ * wrong" (a 504 from the shared auth server under load).
+ */
+export function signIn(user: LiveUser) {
+  cy.visit("/welcome")
+  cy.findByRole("button", { name: "I already have an account" }).click()
+  cy.findByRole("textbox", { name: "Email" })
+    .should("not.be.disabled")
+    .clear()
+    .type(user.email)
+  cy.findByLabelText("Password")
+    .should("not.be.disabled")
+    .type(user.password, { log: false })
+  const attempt = (left: number) => {
+    cy.findByRole("button", { name: "Sign in" })
+      .should("not.be.disabled")
+      .click()
+    cy.window({ log: false, timeout: 90000 })
+      .should((w) => {
+        const done = w.location.pathname === "/today"
+        const failed = w.document.body.innerText.includes(
+          "Something went wrong",
+        )
+        expect(done || failed, "signed in, or an error to retry").to.eq(true)
+      })
+      .then((w) => {
+        if (w.location.pathname !== "/today" && left > 0) {
+          cy.wait(3000, { log: false })
+          attempt(left - 1)
+        } else cy.location("pathname").should("eq", "/today")
+      })
+  }
+  attempt(2)
+}

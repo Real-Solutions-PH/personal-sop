@@ -53,6 +53,7 @@ import {
   seedList,
   seedTask,
   settled,
+  signIn,
   trackSync,
   visitAndWait,
 } from "./tasks-helpers"
@@ -65,7 +66,7 @@ describe("tasks (live)", () => {
 
   it("captures tasks, completes one, deletes one — all reach the server", () => {
     cy.newLiveUser("tasks").then((user) => {
-      cy.signInLive(user)
+      signIn(user)
       cy.visit("/tasks/capture")
       cy.findByRole("textbox", { name: "Capture text" })
         .clear()
@@ -119,7 +120,7 @@ describe("tasks (live)", () => {
 
   it("natural-language quick add: date, time, repeat and source reach the server", () => {
     cy.newLiveUser("tasks").then((user) => {
-      cy.signInLive(user)
+      signIn(user)
       cy.visit("/tasks/capture")
       cy.findByRole("button", { name: "Voice" }).click()
       cy.findByRole("textbox", { name: "Capture text" })
@@ -168,7 +169,7 @@ describe("tasks (live)", () => {
 
   it("capture undo: removing one row and Undo all reach the server", () => {
     cy.newLiveUser("tasks").then((user) => {
-      cy.signInLive(user)
+      signIn(user)
       cy.visit("/tasks/capture")
       cy.findByRole("textbox", { name: "Capture text" })
         .clear()
@@ -208,7 +209,7 @@ describe("tasks (live)", () => {
 
   it("capture follow-up: the 1pm reminder offer sets time and reminder", () => {
     cy.newLiveUser("tasks").then((user) => {
-      cy.signInLive(user)
+      signIn(user)
       cy.visit("/tasks/capture")
       // "after lunch" is vague: no time, so the result card offers a reminder.
       cy.findByRole("textbox", { name: "Capture text" })
@@ -226,7 +227,7 @@ describe("tasks (live)", () => {
 
   it("list quick add parses the phrase into the Inbox", () => {
     cy.newLiveUser("tasks").then((user) => {
-      cy.signInLive(user)
+      signIn(user)
       cy.visit("/tasks/list/inbox")
       cy.findByRole("textbox", { name: "Add task" }).type(
         "Call mom tomorrow 9am{enter}",
@@ -247,7 +248,7 @@ describe("tasks (live)", () => {
 
   it("detail edits every field: title, star, list, notes, date, reminder, repeat, copy", () => {
     cy.newLiveUser("tasks").then((user) => {
-      cy.signInLive(user)
+      signIn(user)
       seedList(user, { name: "Errands" }).then((list) => {
         seedTask(user, { title: "Draft plan" }).then((task: ServerTask) => {
           visitAndWait(`/tasks/task/${task.id}`, "Errands")

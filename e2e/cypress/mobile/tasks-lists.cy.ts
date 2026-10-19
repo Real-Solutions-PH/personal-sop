@@ -10,6 +10,7 @@ import {
   seedList,
   seedTask,
   settled,
+  signIn,
   tick,
   titleButton,
   trackSync,
@@ -29,7 +30,7 @@ describe("task lists (live)", () => {
 
   it("create, edit, reorder, archive and unarchive lists", () => {
     cy.newLiveUser("tasks").then((user) => {
-      cy.signInLive(user)
+      signIn(user)
       cy.visit("/tasks/lists")
       cy.findByText("No lists yet").should("exist")
 
@@ -96,7 +97,7 @@ describe("task lists (live)", () => {
 
   it("delete a list, moving its open tasks to the Inbox", () => {
     cy.newLiveUser("tasks").then((user) => {
-      cy.signInLive(user)
+      signIn(user)
       seedList(user, { name: "Work" }).then((l: ServerList) =>
         seedTask(user, { title: "Send invoice", list_id: l.id }).then(
           (a: ServerTask) =>
@@ -133,7 +134,7 @@ describe("task lists (live)", () => {
 
   it("delete a list with its tasks, from the list page's Edit list", () => {
     cy.newLiveUser("tasks").then((user) => {
-      cy.signInLive(user)
+      signIn(user)
       seedList(user, { name: "Temp" }).then((l: ServerList) =>
         seedTask(user, { title: "Throwaway", list_id: l.id }).then(
           (t: ServerTask) => {
@@ -160,7 +161,7 @@ describe("task lists (live)", () => {
 
   it("shopping list: add items, check them, clear checked, undo", () => {
     cy.newLiveUser("tasks").then((user) => {
-      cy.signInLive(user)
+      signIn(user)
       seedList(user, {
         name: "Groceries",
         kind: "shopping",
@@ -220,7 +221,7 @@ describe("task lists (live)", () => {
 
   it("smart views: Inbox and Starred pages, and the Plan Lists tab", () => {
     cy.newLiveUser("tasks").then((user) => {
-      cy.signInLive(user)
+      signIn(user)
       seedList(user, { name: "Home" }).then(() =>
         seedTask(user, { title: "Shining star", starred: true }).then(() =>
           seedTask(user, { title: "Loose end" }).then(() => {

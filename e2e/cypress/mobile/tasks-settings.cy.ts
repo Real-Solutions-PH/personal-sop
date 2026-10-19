@@ -8,6 +8,7 @@ import {
   type ServerTask,
   seedTask,
   settled,
+  signIn,
   titleButton,
   trackSync,
   visitAndWait,
@@ -24,7 +25,7 @@ describe("tasks settings (live)", () => {
 
   it("every settings row lands in task_settings", () => {
     cy.newLiveUser("tasks").then((user) => {
-      cy.signInLive(user)
+      signIn(user)
       // The first sync writes this user's settings row.
       rows("select * from task_settings where owner_id = $1", [user.id]).then(
         ([initial]) => {
@@ -103,7 +104,7 @@ describe("tasks settings (live)", () => {
 
   it("reminders: install step, enable → allow, simulate device, block, unblock, not now", () => {
     cy.newLiveUser("tasks").then((user) => {
-      cy.signInLive(user)
+      signIn(user)
       const notif = (where: string, values: unknown[] = []) =>
         rows(
           `select * from task_notif_state where owner_id = $1 and ${where}`,
@@ -161,7 +162,7 @@ describe("tasks settings (live)", () => {
 
   it("notification preview: Done and Snooze 1h act on the task", () => {
     cy.newLiveUser("tasks").then((user) => {
-      cy.signInLive(user)
+      signIn(user)
       const at = (h: number) => {
         const d = new Date()
         d.setHours(h, 0, 0, 0)
@@ -207,7 +208,7 @@ describe("tasks settings (live)", () => {
 
   it("search, stats and the share card read the synced tasks", () => {
     cy.newLiveUser("tasks").then((user) => {
-      cy.signInLive(user)
+      signIn(user)
       seedTask(user, {
         title: "Renew car insurance",
         notes: "policy 42",

@@ -19,7 +19,7 @@
 // | Weather           | temperature unit °C ↔ °F (Today card follows)  | weather · unit preference |
 // | Weather sheet     | Use current location (browser geolocation stub) | weather · use current location |
 // | (server)          | forecast proxy and city search via the API     | weather · server forecast proxy and city search |
-import { rows, settled, trackSync } from "./tasks-helpers"
+import { rows, settled, signIn, trackSync } from "./tasks-helpers"
 
 Cypress.config("responseTimeout", 90000)
 
@@ -77,7 +77,7 @@ describe("weather (live)", () => {
   it("Today card and forecast screen: location asked once, hour plan and advice", () => {
     stubGeolocation("denied")
     cy.newLiveUser("weather").then((user) => {
-      cy.signInLive(user)
+      signIn(user)
       pref(user.id, "not asked and source = 'city' and city_name = 'Manila'")
       cy.findByRole("button", {
         name: /^Weather in Manila: /,
@@ -103,7 +103,7 @@ describe("weather (live)", () => {
   it("city search and choose a city: the saved city syncs", () => {
     stubGeolocation("denied")
     cy.newLiveUser("weather").then((user) => {
-      cy.signInLive(user)
+      signIn(user)
       cy.visit("/weather")
       pref(user.id, "asked")
       settled()
@@ -141,7 +141,7 @@ describe("weather (live)", () => {
   it("unit preference: °C ↔ °F syncs and the Today card follows", () => {
     stubGeolocation("denied")
     cy.newLiveUser("weather").then((user) => {
-      cy.signInLive(user)
+      signIn(user)
       cy.visit("/weather")
       settled()
       cy.findByRole("button", { name: /^Temperature unit Celsius/ }).click()
@@ -164,12 +164,12 @@ describe("weather (live)", () => {
   it("use current location: the device source syncs", () => {
     stubGeolocation("granted")
     cy.newLiveUser("weather").then((user) => {
-      cy.signInLive(user)
+      signIn(user)
       cy.visit("/weather")
       // Granted on the first-visit ask: the device location is used.
       pref(user.id, "asked and source = 'device'")
       cy.findByRole("button", {
-        name: /^Location 10\.3\d°, 123\.8\d°\. Change location/,
+        name: /^Location 10\.3\d°N, 123\.8\d°E\. Change location/,
         ...FORECAST,
       }).should("exist")
 
