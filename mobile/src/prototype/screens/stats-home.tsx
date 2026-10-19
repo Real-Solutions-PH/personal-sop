@@ -924,7 +924,8 @@ export function StatsHome() {
               keyboardType="numeric"
               value={String(weights[k])}
               onChangeText={(v) => {
-                if (/^\d+$/.test(v)) setWeight(k, Number(v))
+                // Same 0–5 range as the Settings stepper (the server refuses > 10).
+                if (/^\d+$/.test(v)) setWeight(k, Math.min(5, Number(v)))
               }}
             />
           </View>
