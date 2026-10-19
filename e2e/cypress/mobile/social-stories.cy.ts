@@ -112,16 +112,15 @@ describe("social stories & notes (live)", () => {
           signIn(a)
           cy.visit(`/social/stories/${b.id}`)
           cy.findByText(text).should("exist")
-          // The viewer moves on when the story's timer ends; focusing the
-          // reply box pauses it, so act from there.
-          cy.findByRole("textbox", { name: "Reply to story" }).focus()
-          cy.findByRole("button", { name: "Like story" }).click()
-          cy.findByRole("button", { name: "Unlike story" }).should("exist")
-          // A reply is a direct message that quotes the story.
+          // The viewer moves on when the story's timer ends. Typing a reply
+          // pauses it (and hides Like), so reply first, then like at once;
+          // the like is proven on the server below, not by the button.
           cy.findByRole("textbox", { name: "Reply to story" }).type(
             "Looks great",
           )
           cy.findByRole("button", { name: "Send reply" }).click()
+          cy.findByRole("textbox", { name: "Reply to story" }).blur()
+          cy.findByRole("button", { name: "Like story" }).click()
 
           cy.eventuallyRows(
             "select id from story_seen where owner_id = $1 and story_id = $2 and deleted_at is null",
