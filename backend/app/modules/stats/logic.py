@@ -334,15 +334,11 @@ class Progress:
     current: float | None
 
 
-def goal_progress(
-    comparator: str, target: float, current: float | None
-) -> Progress:
+def goal_progress(comparator: str, target: float, current: float | None) -> Progress:
     if current is None:
         return Progress(0.0, False, None)
     if comparator == "gte":
-        return Progress(
-            current / target if target else 1.0, current >= target, current
-        )
+        return Progress(current / target if target else 1.0, current >= target, current)
     return Progress(
         1.0 if current <= target else target / max(current, 0.0001),
         current <= target,
@@ -375,7 +371,9 @@ def goal_views(
         mod, _, key = g.metric.partition(":")
         label = entry.label if entry else FIXED_LABEL.get(g.metric)
         if label is None and key:
-            label = next((m.label for m in metrics30.get(mod, ()) if m.key == key), None)
+            label = next(
+                (m.label for m in metrics30.get(mod, ()) if m.key == key), None
+            )
         out.append(
             GoalView(
                 goal=g,
@@ -453,7 +451,9 @@ def achievements(
 
         p30, p90 = prs(m30), prs(m90)
 
-        def pr(aid: str, title: str, req: str, cur: float, mx: int, detail: str) -> None:
+        def pr(
+            aid: str, title: str, req: str, cur: float, mx: int, detail: str
+        ) -> None:
             pct, text = _prog(cur, mx, "PR" if mx == 1 else "PRs")
             out.append(
                 AchievementView(
@@ -647,16 +647,56 @@ def compose_facets(
         )  # fmt: skip
 
     return [
-        f("habits", "Habits", "habits", r(rates, "habits"), r(prev_rates, "habits"),
-          "/habits"),  # fmt: skip
-        f("routines", "Routines", "habits", routines[0], routines[1],
-          "/habits/routines", (), routine_extra),  # fmt: skip
-        f("tasks", "Tasks", "tasks", r(rates, "tasks"), r(prev_rates, "tasks"),
-          "/tasks/stats"),  # fmt: skip
-        f("training", "Training", "fitness", training[0], training[1],
-          "/fitness?tab=train", ("sessions", "prs", "volume", "overload")),  # fmt: skip
-        f("nutrition", "Nutrition", "fitness", nutrition[0], nutrition[1],
-          "/fitness?tab=eat", ("calories", "protein", "weight")),  # fmt: skip
-        f("finance", "Finance", "finance", r(rates, "finance"),
-          r(prev_rates, "finance"), "/finance/reports"),  # fmt: skip
+        f(
+            "habits",
+            "Habits",
+            "habits",
+            r(rates, "habits"),
+            r(prev_rates, "habits"),
+            "/habits",
+        ),  # fmt: skip
+        f(
+            "routines",
+            "Routines",
+            "habits",
+            routines[0],
+            routines[1],
+            "/habits/routines",
+            (),
+            routine_extra,
+        ),  # fmt: skip
+        f(
+            "tasks",
+            "Tasks",
+            "tasks",
+            r(rates, "tasks"),
+            r(prev_rates, "tasks"),
+            "/tasks/stats",
+        ),  # fmt: skip
+        f(
+            "training",
+            "Training",
+            "fitness",
+            training[0],
+            training[1],
+            "/fitness?tab=train",
+            ("sessions", "prs", "volume", "overload"),
+        ),  # fmt: skip
+        f(
+            "nutrition",
+            "Nutrition",
+            "fitness",
+            nutrition[0],
+            nutrition[1],
+            "/fitness?tab=eat",
+            ("calories", "protein", "weight"),
+        ),  # fmt: skip
+        f(
+            "finance",
+            "Finance",
+            "finance",
+            r(rates, "finance"),
+            r(prev_rates, "finance"),
+            "/finance/reports",
+        ),  # fmt: skip
     ]
