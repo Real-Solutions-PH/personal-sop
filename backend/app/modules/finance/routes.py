@@ -14,6 +14,7 @@ from sqlmodel import col
 
 from app.modules.finance import advisor, calc, imports, repo, services
 from app.modules.finance import schema as S
+from app.modules.finance.advisor_ai import AskIn as AdvisorAskIn
 from app.modules.finance.models import LookBack
 from app.modules.iam.deps import require_permission
 from app.shared import owned_repo
@@ -687,6 +688,15 @@ def add_message(ctx: CtxDep, thread_id: uuid.UUID, data: S.MessageCreate) -> Any
 def delete_message(ctx: CtxDep, thread_id: uuid.UUID, message_id: uuid.UUID) -> Any:
     services.delete_message(ctx, thread_id=thread_id, message_id=message_id)
     return S.Ok(ids=[message_id])
+
+
+@router.post("/advisor/threads/{thread_id}/ask/stream", dependencies=WRITE)
+def advisor_ask_stream(ctx: CtxDep, thread_id: uuid.UUID, data: AdvisorAskIn) -> Any:
+    """Ask the advisor in a thread; the answer streams as SSE (AI when the
+    user's advisor model resolves, else the deterministic answer)."""
+    from app.modules.finance import advisor_ai
+
+    return advisor_ai.stream(ctx, thread_id=thread_id, data=data)
 
 
 @router.post("/advisor/answer", dependencies=READ)
