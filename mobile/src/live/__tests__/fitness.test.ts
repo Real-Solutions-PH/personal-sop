@@ -9,6 +9,7 @@ import {
   deleteTemplate,
   deleteWeighIn,
   discardWorkout,
+  estimateMeal,
   finishWorkout,
   logMeal,
   logWeighIn,
@@ -233,6 +234,23 @@ test("a blank live account starts with the server's goal, not the demo's", () =>
   const st = fitStore.get().settings
   expect(st.goalDirection).toBe("maintain")
   expect(st.goalWeight).toBeUndefined()
+})
+
+test("estimated and picked meal items carry UUID ids", () => {
+  // Live E2E: estimator items had ids like "mi-adobo-lnxell"; /sync/push
+  // validates every op id as a UUID, so the whole batch got a 422 and the
+  // meal (and everything queued after it) never reached the server.
+  const e = engine()
+  const m = estimateMeal("lunch: rice, chicken adobo", {
+    source: "text",
+    eatenAt: T0.toISOString(),
+    label: "lunch",
+  })
+  addMealItem(m!.id, "egg")
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+  const ids = e.capture().flatMap((o) => (o.id ? [o.id] : []))
+  expect(ids.length).toBeGreaterThan(2)
+  for (const id of ids) expect(id).toMatch(uuid)
 })
 
 test("runtime.ts lists the fitness mappers", () => {
