@@ -5,6 +5,8 @@
 //     (status is never a field write, so a recurring completion spawns its
 //     next occurrence server-side, under the same derived id the device used)
 //   - delete (status "deleted"): the task leaves ``list`` -> a delete op
+//   - capture undo (the task leaves the store): tasks.remove, then the
+//     delete op (a no-op on the server by then)
 //   - restore: the task comes back into ``list`` with a local "restored"
 //     event -> tasks.restore, then the usual create upsert of its fields
 //   - due date changes (setDue, rescheduleBy, move overdue to today): a
@@ -181,7 +183,14 @@ export function taskMapper(): Mapper<TasksState, Task> {
     ],
     actions: (prev, next, s) => {
       const ops: ActionOp[] = []
-      if (!next) return ops
+      if (!next) {
+        // Gone from the store altogether (capture undo), not soft-deleted
+        // (that keeps the row with status "deleted"): tasks.remove keeps it
+        // out of the server's Recently deleted and stats.
+        if (prev && !s.tasks.some((t) => t.id === prev.id))
+          ops.push({ name: "tasks.remove", data: { task_ids: [prev.id] } })
+        return ops
+      }
       if (!prev) {
         if (restoredLocally(s, next.id))
           ops.push({ name: "tasks.restore", data: { task_id: next.id } })
