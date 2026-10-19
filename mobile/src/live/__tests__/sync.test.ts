@@ -3,7 +3,7 @@ import { createStore, type StorageAdapter } from "@domain/lib/store"
 import { SyncEngine } from "../engine"
 import { createSseParser } from "../events"
 import type { Http } from "../http"
-import { NetworkError } from "../http"
+import { ApiError, NetworkError } from "../http"
 import { diffEntity, type Mapper } from "../mapper"
 import { createOutbox, type SyncOp } from "../outbox"
 
@@ -56,6 +56,9 @@ class FakeServer implements Http {
   version = 0
   pushes: SyncOp[][] = []
   down = false
+  /** Answer a push containing a matching op with this status for the whole
+   * request, as request-level validation does (no per-op receipts). */
+  refuse: { match: (op: SyncOp) => boolean; status: number } | null = null
   log: { id: string; version: number; deleted: boolean }[] = []
 
   async request<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -63,6 +66,8 @@ class FakeServer implements Http {
     if (method === "POST" && path === "/sync/push") {
       const ops = (body as { ops: SyncOp[] }).ops
       this.pushes.push(ops)
+      if (this.refuse && ops.some(this.refuse.match))
+        throw new ApiError(this.refuse.status, "validation_error", "Invalid")
       const results = ops.map((op) => {
         if (op.kind === "upsert" && op.id) {
           const row = {
@@ -282,4 +287,57 @@ test("an edit captured while a sync is in flight is pushed right after it", asyn
   await second
   expect(server.rows.get("late")).toMatchObject({ title: "Arrived mid-sync" })
   expect(e.pending()).toBe(0)
+})
+
+test("one malformed op is dead-lettered; the ops around it still sync", async () => {
+  const server = new FakeServer()
+  // Request-level validation: a non-UUID id fails the whole batch.
+  server.refuse = { match: (op) => op.id === "not-a-uuid", status: 422 }
+  const storage = memoryStorage()
+  const e = engine(server, storage)
+  todoStore.set({
+    todos: [
+      { id: "a", title: "Before", done: false },
+      { id: "not-a-uuid", title: "Bad", done: false },
+      { id: "c", title: "After", done: false },
+    ],
+  })
+  e.capture()
+  await e.sync()
+  expect(e.pending()).toBe(0)
+  expect(server.rows.get("a")).toMatchObject({ title: "Before" })
+  expect(server.rows.get("c")).toMatchObject({ title: "After" })
+  expect(server.rows.has("not-a-uuid")).toBe(false)
+  expect(e.deadLetters().map((d) => [d.op.id, d.status])).toEqual([
+    ["not-a-uuid", 422],
+  ])
+  // The queue is not wedged: a later edit goes straight through.
+  todoStore.set({
+    todos: [...todoStore.get().todos, { id: "d", title: "Later", done: false }],
+  })
+  e.capture()
+  await e.sync()
+  expect(server.rows.get("d")).toMatchObject({ title: "Later" })
+  expect(e.pending()).toBe(0)
+})
+
+test("a server error is retried, never dead-lettered", async () => {
+  jest.useFakeTimers()
+  try {
+    const server = new FakeServer()
+    server.refuse = { match: () => true, status: 500 }
+    const e = engine(server)
+    todoStore.set({ todos: [{ id: "a", title: "Keep me", done: false }] })
+    e.capture()
+    await e.sync()
+    expect(e.pending()).toBe(1)
+    expect(e.deadLetters()).toEqual([])
+    server.refuse = null
+    await jest.advanceTimersByTimeAsync(2_000)
+    await e.sync()
+    expect(e.pending()).toBe(0)
+    expect(server.rows.get("a")).toMatchObject({ title: "Keep me" })
+  } finally {
+    jest.useRealTimers()
+  }
 })

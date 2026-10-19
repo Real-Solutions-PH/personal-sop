@@ -8,7 +8,7 @@
 
 import { newId } from "@domain/lib/ids"
 import type { StorageAdapter } from "@domain/lib/store"
-import { type Http, NetworkError } from "./http"
+import { ApiError, type Http, NetworkError } from "./http"
 import { type AnyMapper, diffEntity, type Payload } from "./mapper"
 import type { Outbox, SyncOp } from "./outbox"
 
@@ -43,6 +43,13 @@ export interface EngineDeps {
 
 const SNAP_KEY = "sop-live:snapshot"
 const CURSOR_KEY = "sop-live:cursor"
+export const DEAD_LETTER_KEY = "sop-live:dead-letter"
+const DEAD_LETTER_LIMIT = 200
+
+// The server refused the request itself (a malformed op fails validation for
+// the whole batch, so no per-op receipt exists). Retrying the same batch can
+// never succeed, and every op queued behind it would wait forever.
+const MALFORMED = new Set([400, 413, 422])
 
 export class SyncEngine {
   private snapshot: Record<string, Record<string, Payload>> = {}
@@ -186,33 +193,78 @@ export class SyncEngine {
 
   private async push() {
     const batch = this.deps.batch ?? 100
-    while (this.deps.outbox.size()) {
-      const ops = this.deps.outbox.peek(batch)
-      const res = await this.deps.http.request<{ results: OpResult[] }>(
+    while (this.deps.outbox.size())
+      await this.pushOps(this.deps.outbox.peek(batch))
+  }
+
+  /** Push ``ops`` in order. A batch the server refuses as malformed is split
+   * in half until the offending op stands alone; that op is set aside in the
+   * dead-letter list and the rest go through. */
+  private async pushOps(ops: SyncOp[]): Promise<void> {
+    let res: { results: OpResult[] }
+    try {
+      res = await this.deps.http.request<{ results: OpResult[] }>(
         "POST",
         "/sync/push",
         { ops },
       )
-      const byId = new Map(ops.map((o) => [o.op_id, o]))
-      const rows: Change[] = []
-      for (const r of res.results) {
-        const op = byId.get(r.op_id)
-        if (r.status === "rejected") {
-          this.rejected.push(r)
-          this.deps.log?.("op_rejected", { name: op?.name, code: r.code })
-        }
-        if (r.row && op?.kind === "upsert" && op.id)
-          rows.push({
-            entity: op.name,
-            id: op.id,
-            version: 0,
-            deleted: false,
-            row: r.row,
-          })
+    } catch (error) {
+      if (!(error instanceof ApiError) || !MALFORMED.has(error.status))
+        throw error
+      if (ops.length > 1) {
+        const mid = Math.ceil(ops.length / 2)
+        await this.pushOps(ops.slice(0, mid))
+        await this.pushOps(ops.slice(mid))
+        return
       }
-      // The server's row is authoritative (derived fields, LWW outcome).
-      this.apply(rows)
-      this.deps.outbox.ack(res.results.map((r) => r.op_id))
+      this.quarantine(ops[0], error)
+      return
+    }
+    const byId = new Map(ops.map((o) => [o.op_id, o]))
+    const rows: Change[] = []
+    for (const r of res.results) {
+      const op = byId.get(r.op_id)
+      if (r.status === "rejected") {
+        this.rejected.push(r)
+        this.deps.log?.("op_rejected", { name: op?.name, code: r.code })
+      }
+      if (r.row && op?.kind === "upsert" && op.id)
+        rows.push({
+          entity: op.name,
+          id: op.id,
+          version: 0,
+          deleted: false,
+          row: r.row,
+        })
+    }
+    // The server's row is authoritative (derived fields, LWW outcome).
+    this.apply(rows)
+    this.deps.outbox.ack(res.results.map((r) => r.op_id))
+  }
+
+  private quarantine(op: SyncOp, error: ApiError) {
+    const dead = this.deadLetters()
+    dead.push({ op, status: error.status, code: error.code })
+    this.deps.storage.setItem(
+      DEAD_LETTER_KEY,
+      JSON.stringify(dead.slice(-DEAD_LETTER_LIMIT)),
+    )
+    this.rejected.push({
+      op_id: op.op_id,
+      status: "rejected",
+      code: error.code,
+    })
+    // Name and code only: the op's data is the user's content.
+    this.deps.log?.("op_dead_lettered", { name: op.name, code: error.code })
+    this.deps.outbox.ack([op.op_id])
+  }
+
+  /** Ops the server refused as malformed, kept for diagnosis (bounded). */
+  deadLetters(): { op: SyncOp; status: number; code: string }[] {
+    try {
+      return JSON.parse(this.deps.storage.getItem(DEAD_LETTER_KEY) ?? "[]")
+    } catch {
+      return []
     }
   }
 
