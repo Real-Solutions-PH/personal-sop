@@ -521,21 +521,22 @@ def sse(event: str, data: dict[str, Any]) -> str:
     return f"event: {event}\ndata: {body}\n\n"
 
 
-def stream(ctx: Ctx, cap: Capture, plan: Plan) -> Iterator[str]:
-    """Run :func:`run` on a worker thread and yield its frames as they come.
-    The generator waits for the worker before it ends, so the request's
-    database session outlives every use of it."""
+def stream_work(work: Callable[[Emit], None], *, name: str = "ai-reply") -> Iterator[str]:
+    """Run ``work(emit)`` on a worker thread and yield its frames as SSE as
+    they come. The generator waits for the worker before it ends, so the
+    request's database session outlives every use of it. An unexpected
+    failure becomes an ``error`` frame with a fixed message."""
     q: queue.Queue[tuple[str, dict[str, Any]] | None] = queue.Queue()
 
-    def work() -> None:
+    def run_it() -> None:
         try:
-            run(ctx, cap, plan, lambda e, d: q.put((e, d)))
+            work(lambda e, d: q.put((e, d)))
         except Exception:  # noqa: BLE001 - reported as a frame, never as text
-            q.put(("error", {"code": "interpret_failed", "message": "Couldn't process that."}))
+            q.put(("error", {"code": "reply_failed", "message": "Couldn't finish that reply."}))
         finally:
             q.put(None)
 
-    t = threading.Thread(target=work, name=f"capture-{cap.id}", daemon=True)
+    t = threading.Thread(target=run_it, name=name, daemon=True)
     t.start()
     try:
         while True:
@@ -545,6 +546,14 @@ def stream(ctx: Ctx, cap: Capture, plan: Plan) -> Iterator[str]:
             yield sse(*item)
     finally:
         t.join()
+
+
+def stream(ctx: Ctx, cap: Capture, plan: Plan) -> Iterator[str]:
+    return stream_work(lambda emit: _run_quiet(ctx, cap, plan, emit), name=f"capture-{cap.id}")
+
+
+def _run_quiet(ctx: Ctx, cap: Capture, plan: Plan, emit: Emit) -> None:
+    run(ctx, cap, plan, emit)
 
 
 # ---------------------------------------------------------------- recovery

@@ -19,6 +19,7 @@ from app.shared.context import Ctx
 
 SeamError = seams.SeamError
 sse = engine.sse
+stream_work = engine.stream_work
 
 
 def add_journal_entry(
