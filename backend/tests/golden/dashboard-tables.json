@@ -1,0 +1,347 @@
+{
+  "frozenNow": "2026-10-18T04:00:00.000Z",
+  "source": "shared/prototype",
+  "data": {
+    "common": [
+      {
+        "key": "mark",
+        "label": "App mark",
+        "on": true
+      },
+      {
+        "key": "handle",
+        "label": "Handle",
+        "on": false,
+        "sensitive": "Identifies you"
+      },
+      {
+        "key": "dates",
+        "label": "Date range",
+        "on": true
+      }
+    ],
+    "templates": [
+      {
+        "key": "life",
+        "label": "Life Score",
+        "formats": [
+          "9:16",
+          "4:5",
+          "1:1"
+        ],
+        "fields": [
+          {
+            "key": "level",
+            "label": "Level",
+            "on": true
+          },
+          {
+            "key": "hexagon",
+            "label": "Area hexagon",
+            "on": true
+          },
+          {
+            "key": "areas",
+            "label": "Area bars (when hexagon is off)",
+            "on": false
+          },
+          {
+            "key": "delta",
+            "label": "Change vs last month",
+            "on": true
+          }
+        ]
+      },
+      {
+        "key": "weekly",
+        "label": "Weekly recap",
+        "formats": [
+          "9:16",
+          "4:5",
+          "1:1"
+        ],
+        "fields": [
+          {
+            "key": "hexagon",
+            "label": "Area hexagon",
+            "on": true
+          },
+          {
+            "key": "onTarget",
+            "label": "On-target rate",
+            "on": true
+          },
+          {
+            "key": "habits",
+            "label": "Habit %",
+            "on": true
+          },
+          {
+            "key": "training",
+            "label": "Training days",
+            "on": true
+          },
+          {
+            "key": "savings",
+            "label": "Savings rate %",
+            "on": true
+          },
+          {
+            "key": "deltas",
+            "label": "▲▼ vs last week",
+            "on": true
+          },
+          {
+            "key": "trophy",
+            "label": "Top achievement",
+            "on": true
+          }
+        ]
+      },
+      {
+        "key": "monthly",
+        "label": "Monthly recap",
+        "formats": [
+          "9:16",
+          "4:5",
+          "1:1"
+        ],
+        "fields": [
+          {
+            "key": "hexagon",
+            "label": "Area hexagon",
+            "on": true
+          },
+          {
+            "key": "hero",
+            "label": "4 hero stats",
+            "on": true
+          },
+          {
+            "key": "prs",
+            "label": "PR count",
+            "on": true
+          },
+          {
+            "key": "streak",
+            "label": "Best streak",
+            "on": true
+          },
+          {
+            "key": "highlight",
+            "label": "Month highlight",
+            "on": true
+          }
+        ]
+      },
+      {
+        "key": "streak",
+        "label": "Streak",
+        "formats": [
+          "9:16",
+          "4:5",
+          "1:1"
+        ],
+        "fields": [
+          {
+            "key": "grid",
+            "label": "30-day grid",
+            "on": true
+          },
+          {
+            "key": "best",
+            "label": "Best streak",
+            "on": true
+          }
+        ]
+      },
+      {
+        "key": "finance",
+        "label": "Finance %",
+        "formats": [
+          "9:16",
+          "4:5",
+          "1:1"
+        ],
+        "fields": [
+          {
+            "key": "savings",
+            "label": "Savings rate",
+            "on": true
+          },
+          {
+            "key": "spend",
+            "label": "Spending vs last month %",
+            "on": true
+          },
+          {
+            "key": "budgets",
+            "label": "Budgets kept",
+            "on": true
+          },
+          {
+            "key": "nospend",
+            "label": "No-spend days",
+            "on": true
+          }
+        ]
+      },
+      {
+        "key": "profile",
+        "label": "Profile card",
+        "formats": [
+          "9:16"
+        ],
+        "fields": [
+          {
+            "key": "hexagon",
+            "label": "Area hexagon",
+            "on": true
+          },
+          {
+            "key": "photo",
+            "label": "Profile photo",
+            "on": false,
+            "sensitive": "Shows your face"
+          },
+          {
+            "key": "records",
+            "label": "Personal bests",
+            "on": true
+          },
+          {
+            "key": "identity",
+            "label": "Identity statements",
+            "on": false,
+            "sensitive": "Personal text"
+          }
+        ]
+      },
+      {
+        "key": "goal",
+        "label": "Goal hit",
+        "formats": [
+          "9:16",
+          "4:5",
+          "1:1"
+        ],
+        "fields": [
+          {
+            "key": "target",
+            "label": "Target",
+            "on": true
+          }
+        ]
+      }
+    ],
+    "paces": {
+      "gentle": {
+        "label": "Gentle",
+        "note": "Easy wins first",
+        "targets": {
+          "habits": 60,
+          "tasks": 70,
+          "fitness": 2,
+          "finance": 10
+        }
+      },
+      "steady": {
+        "label": "Steady",
+        "note": "A real stretch",
+        "targets": {
+          "habits": 80,
+          "tasks": 85,
+          "fitness": 4,
+          "finance": 20
+        }
+      },
+      "ambitious": {
+        "label": "Ambitious",
+        "note": "No days off",
+        "targets": {
+          "habits": 90,
+          "tasks": 95,
+          "fitness": 5,
+          "finance": 30
+        }
+      }
+    },
+    "starters": {
+      "habits": {
+        "metric": "habits:habits.rate",
+        "label": "Habit completion",
+        "target": 80,
+        "unit": "%",
+        "comparator": "gte",
+        "period": "week",
+        "hint": "of scheduled habits done"
+      },
+      "tasks": {
+        "metric": "tasks:tasks.onTime",
+        "label": "On-time rate",
+        "target": 85,
+        "unit": "%",
+        "comparator": "gte",
+        "period": "week",
+        "hint": "tasks done by their due date"
+      },
+      "fitness": {
+        "metric": "fitness:sessions",
+        "label": "Workouts",
+        "target": 4,
+        "unit": "",
+        "comparator": "gte",
+        "period": "week",
+        "hint": "sessions per week"
+      },
+      "finance": {
+        "metric": "finance:savings-rate",
+        "label": "Savings rate",
+        "target": 20,
+        "unit": "%",
+        "comparator": "gte",
+        "period": "month",
+        "hint": "of income kept this month"
+      }
+    },
+    "identities": [
+      {
+        "text": "I show up every day",
+        "module": "habits"
+      },
+      {
+        "text": "I finish what I start",
+        "module": "tasks"
+      },
+      {
+        "text": "I'm someone who trains",
+        "module": "fitness"
+      },
+      {
+        "text": "I'm in control of my money",
+        "module": "finance"
+      },
+      {
+        "text": "I keep the promises I make to myself"
+      }
+    ],
+    "fmtGoal": [
+      {
+        "metric": "habits:habits.rate",
+        "text": "≥ 80% / week"
+      },
+      {
+        "metric": "tasks:tasks.onTime",
+        "text": "≥ 85% / week"
+      },
+      {
+        "metric": "fitness:sessions",
+        "text": "≥ 4 / week"
+      },
+      {
+        "metric": "finance:savings-rate",
+        "text": "≥ 20% / month"
+      }
+    ]
+  }
+}

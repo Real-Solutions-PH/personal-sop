@@ -1,0 +1,2398 @@
+{
+  "frozenNow": "2026-10-18T04:00:00.000Z",
+  "source": "shared/prototype",
+  "data": {
+    "metrics": {
+      "7": {
+        "habits": [
+          {
+            "key": "habits.rate",
+            "label": "Habit completion",
+            "value": "91%",
+            "delta": 17,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "habits.streak",
+            "label": "Top streak · Morning workout",
+            "value": "17-day",
+            "delta": null,
+            "goodWhen": null,
+            "shareable": true
+          },
+          {
+            "key": "habits.perfect",
+            "label": "Perfect days",
+            "value": "3",
+            "delta": 1,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "habits.time",
+            "label": "Time invested",
+            "value": "10h 27m",
+            "delta": 4,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "habits.skip",
+            "label": "Skip rate",
+            "value": "2%",
+            "delta": -2,
+            "goodWhen": "down",
+            "shareable": true
+          }
+        ],
+        "tasks": [
+          {
+            "key": "tasks.done",
+            "label": "Tasks done",
+            "value": "22",
+            "delta": 13,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "tasks.onTime",
+            "label": "On-time rate",
+            "value": "81%",
+            "delta": -8,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "tasks.streak",
+            "label": "Done streak",
+            "value": "10-day",
+            "delta": null,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "tasks.overdue",
+            "label": "Overdue now",
+            "value": "6",
+            "delta": null,
+            "goodWhen": "down",
+            "shareable": false
+          },
+          {
+            "key": "tasks.reschedules",
+            "label": "Reschedules",
+            "value": "7",
+            "delta": 4,
+            "goodWhen": "down",
+            "shareable": false
+          },
+          {
+            "key": "tasks.followThrough",
+            "label": "Follow-through ratio",
+            "value": "1.1",
+            "delta": 0.2,
+            "goodWhen": "up",
+            "shareable": true
+          }
+        ],
+        "fitness": [
+          {
+            "key": "sessions",
+            "label": "Workouts",
+            "value": "3",
+            "delta": -1,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "prs",
+            "label": "PRs",
+            "value": "9",
+            "delta": -2,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "volume",
+            "label": "Volume lifted",
+            "value": "17.5t",
+            "delta": -31,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "overload",
+            "label": "Progress rate",
+            "value": "69%",
+            "delta": null,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "protein",
+            "label": "Protein hit rate",
+            "value": "43%",
+            "delta": null,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "calories",
+            "label": "Calories on target",
+            "value": "43%",
+            "delta": null,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "weight",
+            "label": "Weight (7-day avg)",
+            "value": "78.6 kg",
+            "delta": -0.32,
+            "goodWhen": "down",
+            "shareable": false
+          }
+        ],
+        "finance": [
+          {
+            "key": "savings-rate",
+            "label": "Savings rate",
+            "value": "80%",
+            "delta": 80,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "no-spend",
+            "label": "No-spend days",
+            "value": "1",
+            "delta": 1,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "budgets",
+            "label": "Budgets on track",
+            "value": "4/4",
+            "delta": null,
+            "goodWhen": null,
+            "shareable": true
+          },
+          {
+            "key": "runway",
+            "label": "Months you could cover",
+            "value": "1.9 mo",
+            "delta": null,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "spend-vs",
+            "label": "Spending vs last period",
+            "value": "-62%",
+            "delta": -62,
+            "goodWhen": "down",
+            "shareable": true
+          }
+        ]
+      },
+      "30": {
+        "habits": [
+          {
+            "key": "habits.rate",
+            "label": "Habit completion",
+            "value": "71%",
+            "delta": 16,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "habits.streak",
+            "label": "Top streak · Morning workout",
+            "value": "17-day",
+            "delta": null,
+            "goodWhen": null,
+            "shareable": true
+          },
+          {
+            "key": "habits.perfect",
+            "label": "Perfect days",
+            "value": "6",
+            "delta": 6,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "habits.time",
+            "label": "Time invested",
+            "value": "29h 50m",
+            "delta": 6,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "habits.skip",
+            "label": "Skip rate",
+            "value": "5%",
+            "delta": 1,
+            "goodWhen": "down",
+            "shareable": true
+          }
+        ],
+        "tasks": [
+          {
+            "key": "tasks.done",
+            "label": "Tasks done",
+            "value": "68",
+            "delta": -4,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "tasks.onTime",
+            "label": "On-time rate",
+            "value": "87%",
+            "delta": 8,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "tasks.streak",
+            "label": "Done streak",
+            "value": "10-day",
+            "delta": null,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "tasks.overdue",
+            "label": "Overdue now",
+            "value": "6",
+            "delta": null,
+            "goodWhen": "down",
+            "shareable": false
+          },
+          {
+            "key": "tasks.reschedules",
+            "label": "Reschedules",
+            "value": "19",
+            "delta": 8,
+            "goodWhen": "down",
+            "shareable": false
+          },
+          {
+            "key": "tasks.followThrough",
+            "label": "Follow-through ratio",
+            "value": "2.0",
+            "delta": -0.9,
+            "goodWhen": "up",
+            "shareable": true
+          }
+        ],
+        "fitness": [
+          {
+            "key": "sessions",
+            "label": "Workouts",
+            "value": "15",
+            "delta": 1,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "prs",
+            "label": "PRs",
+            "value": "34",
+            "delta": -3,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "volume",
+            "label": "Volume lifted",
+            "value": "89.8t",
+            "delta": 15,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "overload",
+            "label": "Progress rate",
+            "value": "69%",
+            "delta": null,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "protein",
+            "label": "Protein hit rate",
+            "value": "54%",
+            "delta": null,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "calories",
+            "label": "Calories on target",
+            "value": "46%",
+            "delta": null,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "weight",
+            "label": "Weight (7-day avg)",
+            "value": "78.6 kg",
+            "delta": -0.32,
+            "goodWhen": "down",
+            "shareable": false
+          }
+        ],
+        "finance": [
+          {
+            "key": "savings-rate",
+            "label": "Savings rate",
+            "value": "33%",
+            "delta": 0,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "no-spend",
+            "label": "No-spend days",
+            "value": "3",
+            "delta": -2,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "budgets",
+            "label": "Budgets on track",
+            "value": "4/4",
+            "delta": null,
+            "goodWhen": null,
+            "shareable": true
+          },
+          {
+            "key": "runway",
+            "label": "Months you could cover",
+            "value": "1.9 mo",
+            "delta": null,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "spend-vs",
+            "label": "Spending vs last period",
+            "value": "0%",
+            "delta": 0,
+            "goodWhen": "down",
+            "shareable": true
+          }
+        ]
+      },
+      "90": {
+        "habits": [
+          {
+            "key": "habits.rate",
+            "label": "Habit completion",
+            "value": "61%",
+            "delta": 40,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "habits.streak",
+            "label": "Top streak · Morning workout",
+            "value": "17-day",
+            "delta": null,
+            "goodWhen": null,
+            "shareable": true
+          },
+          {
+            "key": "habits.perfect",
+            "label": "Perfect days",
+            "value": "6",
+            "delta": 6,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "habits.time",
+            "label": "Time invested",
+            "value": "83h 55m",
+            "delta": 83,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "habits.skip",
+            "label": "Skip rate",
+            "value": "4%",
+            "delta": 4,
+            "goodWhen": "down",
+            "shareable": true
+          }
+        ],
+        "tasks": [
+          {
+            "key": "tasks.done",
+            "label": "Tasks done",
+            "value": "210",
+            "delta": 210,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "tasks.onTime",
+            "label": "On-time rate",
+            "value": "83%",
+            "delta": 83,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "tasks.streak",
+            "label": "Done streak",
+            "value": "10-day",
+            "delta": null,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "tasks.overdue",
+            "label": "Overdue now",
+            "value": "6",
+            "delta": null,
+            "goodWhen": "down",
+            "shareable": false
+          },
+          {
+            "key": "tasks.reschedules",
+            "label": "Reschedules",
+            "value": "35",
+            "delta": 34,
+            "goodWhen": "down",
+            "shareable": false
+          },
+          {
+            "key": "tasks.followThrough",
+            "label": "Follow-through ratio",
+            "value": "3.7",
+            "delta": 3.7,
+            "goodWhen": "up",
+            "shareable": true
+          }
+        ],
+        "fitness": [
+          {
+            "key": "sessions",
+            "label": "Workouts",
+            "value": "35",
+            "delta": 35,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "prs",
+            "label": "PRs",
+            "value": "76",
+            "delta": 76,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "volume",
+            "label": "Volume lifted",
+            "value": "197.4t",
+            "delta": 19743790,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "overload",
+            "label": "Progress rate",
+            "value": "100%",
+            "delta": null,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "protein",
+            "label": "Protein hit rate",
+            "value": "54%",
+            "delta": null,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "calories",
+            "label": "Calories on target",
+            "value": "46%",
+            "delta": null,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "weight",
+            "label": "Weight (7-day avg)",
+            "value": "78.6 kg",
+            "delta": -0.32,
+            "goodWhen": "down",
+            "shareable": false
+          }
+        ],
+        "finance": [
+          {
+            "key": "savings-rate",
+            "label": "Savings rate",
+            "value": "24%",
+            "delta": 24,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "no-spend",
+            "label": "No-spend days",
+            "value": "12",
+            "delta": -78,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "budgets",
+            "label": "Budgets on track",
+            "value": "4/4",
+            "delta": null,
+            "goodWhen": null,
+            "shareable": true
+          },
+          {
+            "key": "runway",
+            "label": "Months you could cover",
+            "value": "1.9 mo",
+            "delta": null,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "spend-vs",
+            "label": "Spending vs last period",
+            "value": "+0%",
+            "delta": 0,
+            "goodWhen": "down",
+            "shareable": true
+          }
+        ]
+      }
+    },
+    "life": {
+      "7": {
+        "score": 81,
+        "rates": {
+          "habits": 0.9148936170212766,
+          "tasks": 0.8125,
+          "fitness": 0.5892857142857143,
+          "finance": 1
+        },
+        "prevRates": {
+          "habits": 0.74,
+          "tasks": 0.8888888888888888,
+          "fitness": 0.75,
+          "finance": 1
+        }
+      },
+      "30": {
+        "score": 79,
+        "rates": {
+          "habits": 0.7101449275362319,
+          "tasks": 0.8703703703703703,
+          "fitness": 0.6682692307692308,
+          "finance": 1
+        },
+        "prevRates": {
+          "habits": 0.5502392344497608,
+          "tasks": 0.7857142857142857,
+          "fitness": 0.8166666666666667,
+          "finance": 1
+        }
+      }
+    },
+    "onTarget": {
+      "7": 0.8333333333333334,
+      "30": 0.3448275862068966
+    },
+    "book": {
+      "week": {
+        "life": {
+          "ref": "life",
+          "label": "Life Score",
+          "module": "life",
+          "value": "81",
+          "n": 81,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true
+        },
+        "onTarget": {
+          "ref": "onTarget",
+          "label": "On-target rate",
+          "module": "life",
+          "value": "83%",
+          "n": 83,
+          "unit": "%",
+          "goodWhen": "up",
+          "shareable": true
+        },
+        "habits:habits.rate": {
+          "ref": "habits:habits.rate",
+          "label": "Habit completion",
+          "module": "habits",
+          "value": "91%",
+          "n": 91,
+          "unit": "%",
+          "goodWhen": "up",
+          "shareable": true,
+          "delta": 17
+        },
+        "habits:habits.streak": {
+          "ref": "habits:habits.streak",
+          "label": "Top streak · Morning workout",
+          "module": "habits",
+          "value": "17-day",
+          "n": 17,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true
+        },
+        "habits:habits.perfect": {
+          "ref": "habits:habits.perfect",
+          "label": "Perfect days",
+          "module": "habits",
+          "value": "3",
+          "n": 3,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true,
+          "delta": 1
+        },
+        "habits:habits.time": {
+          "ref": "habits:habits.time",
+          "label": "Time invested",
+          "module": "habits",
+          "value": "10h 27m",
+          "n": null,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true,
+          "delta": 4
+        },
+        "habits:habits.skip": {
+          "ref": "habits:habits.skip",
+          "label": "Skip rate",
+          "module": "habits",
+          "value": "2%",
+          "n": 2,
+          "unit": "%",
+          "goodWhen": "down",
+          "shareable": true,
+          "delta": -2
+        },
+        "tasks:tasks.done": {
+          "ref": "tasks:tasks.done",
+          "label": "Tasks done",
+          "module": "tasks",
+          "value": "22",
+          "n": 22,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true,
+          "delta": 13
+        },
+        "tasks:tasks.onTime": {
+          "ref": "tasks:tasks.onTime",
+          "label": "On-time rate",
+          "module": "tasks",
+          "value": "81%",
+          "n": 81,
+          "unit": "%",
+          "goodWhen": "up",
+          "shareable": true,
+          "delta": -8
+        },
+        "tasks:tasks.streak": {
+          "ref": "tasks:tasks.streak",
+          "label": "Done streak",
+          "module": "tasks",
+          "value": "10-day",
+          "n": 10,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true
+        },
+        "tasks:tasks.overdue": {
+          "ref": "tasks:tasks.overdue",
+          "label": "Overdue now",
+          "module": "tasks",
+          "value": "6",
+          "n": 6,
+          "unit": "",
+          "goodWhen": "down",
+          "shareable": false
+        },
+        "tasks:tasks.reschedules": {
+          "ref": "tasks:tasks.reschedules",
+          "label": "Reschedules",
+          "module": "tasks",
+          "value": "7",
+          "n": 7,
+          "unit": "",
+          "goodWhen": "down",
+          "shareable": false,
+          "delta": 4
+        },
+        "tasks:tasks.followThrough": {
+          "ref": "tasks:tasks.followThrough",
+          "label": "Follow-through ratio",
+          "module": "tasks",
+          "value": "1.1",
+          "n": 1.1,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true,
+          "delta": 0.2
+        },
+        "fitness:sessions": {
+          "ref": "fitness:sessions",
+          "label": "Workouts",
+          "module": "fitness",
+          "value": "3",
+          "n": 3,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true,
+          "delta": -1
+        },
+        "fitness:prs": {
+          "ref": "fitness:prs",
+          "label": "PRs",
+          "module": "fitness",
+          "value": "9",
+          "n": 9,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true,
+          "delta": -2
+        },
+        "fitness:volume": {
+          "ref": "fitness:volume",
+          "label": "Volume lifted",
+          "module": "fitness",
+          "value": "17.5t",
+          "n": 17.5,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true,
+          "delta": -31
+        },
+        "fitness:overload": {
+          "ref": "fitness:overload",
+          "label": "Progress rate",
+          "module": "fitness",
+          "value": "69%",
+          "n": 69,
+          "unit": "%",
+          "goodWhen": "up",
+          "shareable": true
+        },
+        "fitness:protein": {
+          "ref": "fitness:protein",
+          "label": "Protein hit rate",
+          "module": "fitness",
+          "value": "43%",
+          "n": 43,
+          "unit": "%",
+          "goodWhen": "up",
+          "shareable": true
+        },
+        "fitness:calories": {
+          "ref": "fitness:calories",
+          "label": "Calories on target",
+          "module": "fitness",
+          "value": "43%",
+          "n": 43,
+          "unit": "%",
+          "goodWhen": "up",
+          "shareable": true
+        },
+        "fitness:weight": {
+          "ref": "fitness:weight",
+          "label": "Weight (7-day avg)",
+          "module": "fitness",
+          "value": "78.6 kg",
+          "n": 78.6,
+          "unit": " kg",
+          "goodWhen": "down",
+          "shareable": false,
+          "delta": -0.32
+        },
+        "finance:savings-rate": {
+          "ref": "finance:savings-rate",
+          "label": "Savings rate",
+          "module": "finance",
+          "value": "80%",
+          "n": 80,
+          "unit": "%",
+          "goodWhen": "up",
+          "shareable": true,
+          "delta": 80
+        },
+        "finance:no-spend": {
+          "ref": "finance:no-spend",
+          "label": "No-spend days",
+          "module": "finance",
+          "value": "1",
+          "n": 1,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true,
+          "delta": 1
+        },
+        "finance:budgets": {
+          "ref": "finance:budgets",
+          "label": "Budgets on track",
+          "module": "finance",
+          "value": "4/4",
+          "n": null,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true
+        },
+        "finance:runway": {
+          "ref": "finance:runway",
+          "label": "Months you could cover",
+          "module": "finance",
+          "value": "1.9 mo",
+          "n": 1.9,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true
+        },
+        "finance:spend-vs": {
+          "ref": "finance:spend-vs",
+          "label": "Spending vs last period",
+          "module": "finance",
+          "value": "-62%",
+          "n": -62,
+          "unit": "%",
+          "goodWhen": "down",
+          "shareable": true,
+          "delta": -62
+        }
+      },
+      "month": {
+        "life": {
+          "ref": "life",
+          "label": "Life Score",
+          "module": "life",
+          "value": "79",
+          "n": 79,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true
+        },
+        "onTarget": {
+          "ref": "onTarget",
+          "label": "On-target rate",
+          "module": "life",
+          "value": "34%",
+          "n": 34,
+          "unit": "%",
+          "goodWhen": "up",
+          "shareable": true
+        },
+        "habits:habits.rate": {
+          "ref": "habits:habits.rate",
+          "label": "Habit completion",
+          "module": "habits",
+          "value": "71%",
+          "n": 71,
+          "unit": "%",
+          "goodWhen": "up",
+          "shareable": true,
+          "delta": 16
+        },
+        "habits:habits.streak": {
+          "ref": "habits:habits.streak",
+          "label": "Top streak · Morning workout",
+          "module": "habits",
+          "value": "17-day",
+          "n": 17,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true
+        },
+        "habits:habits.perfect": {
+          "ref": "habits:habits.perfect",
+          "label": "Perfect days",
+          "module": "habits",
+          "value": "6",
+          "n": 6,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true,
+          "delta": 6
+        },
+        "habits:habits.time": {
+          "ref": "habits:habits.time",
+          "label": "Time invested",
+          "module": "habits",
+          "value": "29h 50m",
+          "n": null,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true,
+          "delta": 6
+        },
+        "habits:habits.skip": {
+          "ref": "habits:habits.skip",
+          "label": "Skip rate",
+          "module": "habits",
+          "value": "5%",
+          "n": 5,
+          "unit": "%",
+          "goodWhen": "down",
+          "shareable": true,
+          "delta": 1
+        },
+        "tasks:tasks.done": {
+          "ref": "tasks:tasks.done",
+          "label": "Tasks done",
+          "module": "tasks",
+          "value": "68",
+          "n": 68,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true,
+          "delta": -4
+        },
+        "tasks:tasks.onTime": {
+          "ref": "tasks:tasks.onTime",
+          "label": "On-time rate",
+          "module": "tasks",
+          "value": "87%",
+          "n": 87,
+          "unit": "%",
+          "goodWhen": "up",
+          "shareable": true,
+          "delta": 8
+        },
+        "tasks:tasks.streak": {
+          "ref": "tasks:tasks.streak",
+          "label": "Done streak",
+          "module": "tasks",
+          "value": "10-day",
+          "n": 10,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true
+        },
+        "tasks:tasks.overdue": {
+          "ref": "tasks:tasks.overdue",
+          "label": "Overdue now",
+          "module": "tasks",
+          "value": "6",
+          "n": 6,
+          "unit": "",
+          "goodWhen": "down",
+          "shareable": false
+        },
+        "tasks:tasks.reschedules": {
+          "ref": "tasks:tasks.reschedules",
+          "label": "Reschedules",
+          "module": "tasks",
+          "value": "19",
+          "n": 19,
+          "unit": "",
+          "goodWhen": "down",
+          "shareable": false,
+          "delta": 8
+        },
+        "tasks:tasks.followThrough": {
+          "ref": "tasks:tasks.followThrough",
+          "label": "Follow-through ratio",
+          "module": "tasks",
+          "value": "2.0",
+          "n": 2,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true,
+          "delta": -0.9
+        },
+        "fitness:sessions": {
+          "ref": "fitness:sessions",
+          "label": "Workouts",
+          "module": "fitness",
+          "value": "15",
+          "n": 15,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true,
+          "delta": 1
+        },
+        "fitness:prs": {
+          "ref": "fitness:prs",
+          "label": "PRs",
+          "module": "fitness",
+          "value": "34",
+          "n": 34,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true,
+          "delta": -3
+        },
+        "fitness:volume": {
+          "ref": "fitness:volume",
+          "label": "Volume lifted",
+          "module": "fitness",
+          "value": "89.8t",
+          "n": 89.8,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true,
+          "delta": 15
+        },
+        "fitness:overload": {
+          "ref": "fitness:overload",
+          "label": "Progress rate",
+          "module": "fitness",
+          "value": "69%",
+          "n": 69,
+          "unit": "%",
+          "goodWhen": "up",
+          "shareable": true
+        },
+        "fitness:protein": {
+          "ref": "fitness:protein",
+          "label": "Protein hit rate",
+          "module": "fitness",
+          "value": "54%",
+          "n": 54,
+          "unit": "%",
+          "goodWhen": "up",
+          "shareable": true
+        },
+        "fitness:calories": {
+          "ref": "fitness:calories",
+          "label": "Calories on target",
+          "module": "fitness",
+          "value": "46%",
+          "n": 46,
+          "unit": "%",
+          "goodWhen": "up",
+          "shareable": true
+        },
+        "fitness:weight": {
+          "ref": "fitness:weight",
+          "label": "Weight (7-day avg)",
+          "module": "fitness",
+          "value": "78.6 kg",
+          "n": 78.6,
+          "unit": " kg",
+          "goodWhen": "down",
+          "shareable": false,
+          "delta": -0.32
+        },
+        "finance:savings-rate": {
+          "ref": "finance:savings-rate",
+          "label": "Savings rate",
+          "module": "finance",
+          "value": "33%",
+          "n": 33,
+          "unit": "%",
+          "goodWhen": "up",
+          "shareable": true,
+          "delta": 0
+        },
+        "finance:no-spend": {
+          "ref": "finance:no-spend",
+          "label": "No-spend days",
+          "module": "finance",
+          "value": "3",
+          "n": 3,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true,
+          "delta": -2
+        },
+        "finance:budgets": {
+          "ref": "finance:budgets",
+          "label": "Budgets on track",
+          "module": "finance",
+          "value": "4/4",
+          "n": null,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true
+        },
+        "finance:runway": {
+          "ref": "finance:runway",
+          "label": "Months you could cover",
+          "module": "finance",
+          "value": "1.9 mo",
+          "n": 1.9,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true
+        },
+        "finance:spend-vs": {
+          "ref": "finance:spend-vs",
+          "label": "Spending vs last period",
+          "module": "finance",
+          "value": "0%",
+          "n": 0,
+          "unit": "%",
+          "goodWhen": "down",
+          "shareable": true,
+          "delta": 0
+        }
+      }
+    },
+    "seedGoals": [
+      {
+        "id": "g1",
+        "metric": "life",
+        "label": "Life Score",
+        "target": 75,
+        "unit": "",
+        "comparator": "gte",
+        "period": "month",
+        "createdAt": "2026-09-08",
+        "status": "active",
+        "via": "manual"
+      },
+      {
+        "id": "g2",
+        "metric": "fitness:sessions",
+        "label": "Workouts",
+        "target": 4,
+        "unit": "",
+        "comparator": "gte",
+        "period": "week",
+        "createdAt": "2026-08-19",
+        "status": "active",
+        "via": "onboarding"
+      },
+      {
+        "id": "g3",
+        "metric": "finance:savings-rate",
+        "label": "Savings rate",
+        "target": 25,
+        "unit": "%",
+        "comparator": "gte",
+        "period": "month",
+        "createdAt": "2026-08-19",
+        "status": "active",
+        "via": "onboarding"
+      },
+      {
+        "id": "g4",
+        "metric": "habits:habits.rate",
+        "label": "Habit completion",
+        "target": 85,
+        "unit": "%",
+        "comparator": "gte",
+        "period": "week",
+        "createdAt": "2026-09-28",
+        "status": "active",
+        "via": "review"
+      },
+      {
+        "id": "g5",
+        "metric": "tasks:tasks.overdue",
+        "label": "Overdue now",
+        "target": 2,
+        "unit": "",
+        "comparator": "lte",
+        "period": "week",
+        "createdAt": "2026-08-04",
+        "status": "archived",
+        "via": "manual"
+      }
+    ],
+    "goals": [
+      {
+        "goal": {
+          "id": "g1",
+          "metric": "life",
+          "label": "Life Score",
+          "target": 75,
+          "unit": "",
+          "comparator": "gte",
+          "period": "month",
+          "createdAt": "2026-09-08",
+          "status": "active",
+          "via": "manual"
+        },
+        "entry": {
+          "ref": "life",
+          "label": "Life Score",
+          "module": "life",
+          "value": "79",
+          "n": 79,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true
+        },
+        "pct": 1.0533333333333332,
+        "hit": true,
+        "current": 79
+      },
+      {
+        "goal": {
+          "id": "g2",
+          "metric": "fitness:sessions",
+          "label": "Workouts",
+          "target": 4,
+          "unit": "",
+          "comparator": "gte",
+          "period": "week",
+          "createdAt": "2026-08-19",
+          "status": "active",
+          "via": "onboarding"
+        },
+        "entry": {
+          "ref": "fitness:sessions",
+          "label": "Workouts",
+          "module": "fitness",
+          "value": "3",
+          "n": 3,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true,
+          "delta": -1
+        },
+        "pct": 0.75,
+        "hit": false,
+        "current": 3
+      },
+      {
+        "goal": {
+          "id": "g3",
+          "metric": "finance:savings-rate",
+          "label": "Savings rate",
+          "target": 25,
+          "unit": "%",
+          "comparator": "gte",
+          "period": "month",
+          "createdAt": "2026-08-19",
+          "status": "active",
+          "via": "onboarding"
+        },
+        "entry": {
+          "ref": "finance:savings-rate",
+          "label": "Savings rate",
+          "module": "finance",
+          "value": "33%",
+          "n": 33,
+          "unit": "%",
+          "goodWhen": "up",
+          "shareable": true,
+          "delta": 0
+        },
+        "pct": 1.32,
+        "hit": true,
+        "current": 33
+      },
+      {
+        "goal": {
+          "id": "g4",
+          "metric": "habits:habits.rate",
+          "label": "Habit completion",
+          "target": 85,
+          "unit": "%",
+          "comparator": "gte",
+          "period": "week",
+          "createdAt": "2026-09-28",
+          "status": "active",
+          "via": "review"
+        },
+        "entry": {
+          "ref": "habits:habits.rate",
+          "label": "Habit completion",
+          "module": "habits",
+          "value": "91%",
+          "n": 91,
+          "unit": "%",
+          "goodWhen": "up",
+          "shareable": true,
+          "delta": 17
+        },
+        "pct": 1.0705882352941176,
+        "hit": true,
+        "current": 91
+      },
+      {
+        "goal": {
+          "id": "g5",
+          "metric": "tasks:tasks.overdue",
+          "label": "Overdue now",
+          "target": 2,
+          "unit": "",
+          "comparator": "lte",
+          "period": "week",
+          "createdAt": "2026-08-04",
+          "status": "archived",
+          "via": "manual"
+        },
+        "entry": {
+          "ref": "tasks:tasks.overdue",
+          "label": "Overdue now",
+          "module": "tasks",
+          "value": "6",
+          "n": 6,
+          "unit": "",
+          "goodWhen": "down",
+          "shareable": false
+        },
+        "pct": 0.3333333333333333,
+        "hit": false,
+        "current": 6
+      }
+    ],
+    "parse": [
+      {
+        "value": "91%",
+        "n": 91,
+        "unit": "%"
+      },
+      {
+        "value": "17-day",
+        "n": 17,
+        "unit": ""
+      },
+      {
+        "value": "3",
+        "n": 3,
+        "unit": ""
+      },
+      {
+        "value": "10h 27m",
+        "n": null,
+        "unit": ""
+      },
+      {
+        "value": "2%",
+        "n": 2,
+        "unit": "%"
+      },
+      {
+        "value": "71%",
+        "n": 71,
+        "unit": "%"
+      },
+      {
+        "value": "6",
+        "n": 6,
+        "unit": ""
+      },
+      {
+        "value": "29h 50m",
+        "n": null,
+        "unit": ""
+      },
+      {
+        "value": "5%",
+        "n": 5,
+        "unit": "%"
+      },
+      {
+        "value": "61%",
+        "n": 61,
+        "unit": "%"
+      },
+      {
+        "value": "83h 55m",
+        "n": null,
+        "unit": ""
+      },
+      {
+        "value": "4%",
+        "n": 4,
+        "unit": "%"
+      },
+      {
+        "value": "22",
+        "n": 22,
+        "unit": ""
+      },
+      {
+        "value": "81%",
+        "n": 81,
+        "unit": "%"
+      },
+      {
+        "value": "10-day",
+        "n": 10,
+        "unit": ""
+      },
+      {
+        "value": "7",
+        "n": 7,
+        "unit": ""
+      },
+      {
+        "value": "1.1",
+        "n": 1.1,
+        "unit": ""
+      },
+      {
+        "value": "68",
+        "n": 68,
+        "unit": ""
+      },
+      {
+        "value": "87%",
+        "n": 87,
+        "unit": "%"
+      },
+      {
+        "value": "19",
+        "n": 19,
+        "unit": ""
+      },
+      {
+        "value": "2.0",
+        "n": 2,
+        "unit": ""
+      },
+      {
+        "value": "210",
+        "n": 210,
+        "unit": ""
+      },
+      {
+        "value": "83%",
+        "n": 83,
+        "unit": "%"
+      },
+      {
+        "value": "35",
+        "n": 35,
+        "unit": ""
+      },
+      {
+        "value": "3.7",
+        "n": 3.7,
+        "unit": ""
+      },
+      {
+        "value": "9",
+        "n": 9,
+        "unit": ""
+      },
+      {
+        "value": "17.5t",
+        "n": 17.5,
+        "unit": ""
+      },
+      {
+        "value": "69%",
+        "n": 69,
+        "unit": "%"
+      },
+      {
+        "value": "43%",
+        "n": 43,
+        "unit": "%"
+      },
+      {
+        "value": "78.6 kg",
+        "n": 78.6,
+        "unit": " kg"
+      },
+      {
+        "value": "15",
+        "n": 15,
+        "unit": ""
+      },
+      {
+        "value": "34",
+        "n": 34,
+        "unit": ""
+      },
+      {
+        "value": "89.8t",
+        "n": 89.8,
+        "unit": ""
+      },
+      {
+        "value": "54%",
+        "n": 54,
+        "unit": "%"
+      },
+      {
+        "value": "46%",
+        "n": 46,
+        "unit": "%"
+      },
+      {
+        "value": "76",
+        "n": 76,
+        "unit": ""
+      },
+      {
+        "value": "197.4t",
+        "n": 197.4,
+        "unit": ""
+      },
+      {
+        "value": "100%",
+        "n": 100,
+        "unit": "%"
+      },
+      {
+        "value": "80%",
+        "n": 80,
+        "unit": "%"
+      },
+      {
+        "value": "1",
+        "n": 1,
+        "unit": ""
+      },
+      {
+        "value": "4/4",
+        "n": null,
+        "unit": ""
+      },
+      {
+        "value": "1.9 mo",
+        "n": 1.9,
+        "unit": ""
+      },
+      {
+        "value": "-62%",
+        "n": -62,
+        "unit": "%"
+      },
+      {
+        "value": "33%",
+        "n": 33,
+        "unit": "%"
+      },
+      {
+        "value": "0%",
+        "n": 0,
+        "unit": "%"
+      },
+      {
+        "value": "24%",
+        "n": 24,
+        "unit": "%"
+      },
+      {
+        "value": "12",
+        "n": 12,
+        "unit": ""
+      },
+      {
+        "value": "+0%",
+        "n": 0,
+        "unit": "%"
+      },
+      {
+        "value": "85%",
+        "n": 85,
+        "unit": "%"
+      },
+      {
+        "value": "1,234",
+        "n": 1234,
+        "unit": ""
+      },
+      {
+        "value": "-3.5 kg",
+        "n": -3.5,
+        "unit": " kg"
+      },
+      {
+        "value": "₱12,400",
+        "n": 12400,
+        "unit": ""
+      },
+      {
+        "value": "3 / 4",
+        "n": null,
+        "unit": ""
+      },
+      {
+        "value": "3/4",
+        "n": null,
+        "unit": ""
+      },
+      {
+        "value": "1h 20m",
+        "n": null,
+        "unit": ""
+      },
+      {
+        "value": "45m",
+        "n": null,
+        "unit": ""
+      },
+      {
+        "value": "12-day",
+        "n": 12,
+        "unit": ""
+      },
+      {
+        "value": "—",
+        "n": null,
+        "unit": ""
+      },
+      {
+        "value": "",
+        "n": null,
+        "unit": ""
+      },
+      {
+        "value": "x",
+        "n": null,
+        "unit": ""
+      },
+      {
+        "value": "0.5",
+        "n": 0.5,
+        "unit": ""
+      },
+      {
+        "value": "10.25%",
+        "n": 10.25,
+        "unit": "%"
+      },
+      {
+        "value": "7d",
+        "n": 7,
+        "unit": ""
+      },
+      {
+        "value": "2h",
+        "n": null,
+        "unit": ""
+      },
+      {
+        "value": "-0",
+        "n": 0,
+        "unit": ""
+      },
+      {
+        "value": "1.2.3",
+        "n": 1.2,
+        "unit": ""
+      }
+    ],
+    "progress": [
+      {
+        "comparator": "gte",
+        "target": 0,
+        "current": null,
+        "pct": 0,
+        "hit": false
+      },
+      {
+        "comparator": "gte",
+        "target": 0,
+        "current": 0,
+        "pct": 1,
+        "hit": true
+      },
+      {
+        "comparator": "gte",
+        "target": 0,
+        "current": 0.5,
+        "pct": 1,
+        "hit": true
+      },
+      {
+        "comparator": "gte",
+        "target": 0,
+        "current": 1,
+        "pct": 1,
+        "hit": true
+      },
+      {
+        "comparator": "gte",
+        "target": 0,
+        "current": 3,
+        "pct": 1,
+        "hit": true
+      },
+      {
+        "comparator": "gte",
+        "target": 0,
+        "current": 4,
+        "pct": 1,
+        "hit": true
+      },
+      {
+        "comparator": "gte",
+        "target": 0,
+        "current": 25,
+        "pct": 1,
+        "hit": true
+      },
+      {
+        "comparator": "gte",
+        "target": 0,
+        "current": 30,
+        "pct": 1,
+        "hit": true
+      },
+      {
+        "comparator": "gte",
+        "target": 0,
+        "current": 80,
+        "pct": 1,
+        "hit": true
+      },
+      {
+        "comparator": "gte",
+        "target": 0,
+        "current": -2,
+        "pct": 1,
+        "hit": false
+      },
+      {
+        "comparator": "gte",
+        "target": 1,
+        "current": null,
+        "pct": 0,
+        "hit": false
+      },
+      {
+        "comparator": "gte",
+        "target": 1,
+        "current": 0,
+        "pct": 0,
+        "hit": false
+      },
+      {
+        "comparator": "gte",
+        "target": 1,
+        "current": 0.5,
+        "pct": 0.5,
+        "hit": false
+      },
+      {
+        "comparator": "gte",
+        "target": 1,
+        "current": 1,
+        "pct": 1,
+        "hit": true
+      },
+      {
+        "comparator": "gte",
+        "target": 1,
+        "current": 3,
+        "pct": 3,
+        "hit": true
+      },
+      {
+        "comparator": "gte",
+        "target": 1,
+        "current": 4,
+        "pct": 4,
+        "hit": true
+      },
+      {
+        "comparator": "gte",
+        "target": 1,
+        "current": 25,
+        "pct": 25,
+        "hit": true
+      },
+      {
+        "comparator": "gte",
+        "target": 1,
+        "current": 30,
+        "pct": 30,
+        "hit": true
+      },
+      {
+        "comparator": "gte",
+        "target": 1,
+        "current": 80,
+        "pct": 80,
+        "hit": true
+      },
+      {
+        "comparator": "gte",
+        "target": 1,
+        "current": -2,
+        "pct": -2,
+        "hit": false
+      },
+      {
+        "comparator": "gte",
+        "target": 4,
+        "current": null,
+        "pct": 0,
+        "hit": false
+      },
+      {
+        "comparator": "gte",
+        "target": 4,
+        "current": 0,
+        "pct": 0,
+        "hit": false
+      },
+      {
+        "comparator": "gte",
+        "target": 4,
+        "current": 0.5,
+        "pct": 0.125,
+        "hit": false
+      },
+      {
+        "comparator": "gte",
+        "target": 4,
+        "current": 1,
+        "pct": 0.25,
+        "hit": false
+      },
+      {
+        "comparator": "gte",
+        "target": 4,
+        "current": 3,
+        "pct": 0.75,
+        "hit": false
+      },
+      {
+        "comparator": "gte",
+        "target": 4,
+        "current": 4,
+        "pct": 1,
+        "hit": true
+      },
+      {
+        "comparator": "gte",
+        "target": 4,
+        "current": 25,
+        "pct": 6.25,
+        "hit": true
+      },
+      {
+        "comparator": "gte",
+        "target": 4,
+        "current": 30,
+        "pct": 7.5,
+        "hit": true
+      },
+      {
+        "comparator": "gte",
+        "target": 4,
+        "current": 80,
+        "pct": 20,
+        "hit": true
+      },
+      {
+        "comparator": "gte",
+        "target": 4,
+        "current": -2,
+        "pct": -0.5,
+        "hit": false
+      },
+      {
+        "comparator": "gte",
+        "target": 25,
+        "current": null,
+        "pct": 0,
+        "hit": false
+      },
+      {
+        "comparator": "gte",
+        "target": 25,
+        "current": 0,
+        "pct": 0,
+        "hit": false
+      },
+      {
+        "comparator": "gte",
+        "target": 25,
+        "current": 0.5,
+        "pct": 0.02,
+        "hit": false
+      },
+      {
+        "comparator": "gte",
+        "target": 25,
+        "current": 1,
+        "pct": 0.04,
+        "hit": false
+      },
+      {
+        "comparator": "gte",
+        "target": 25,
+        "current": 3,
+        "pct": 0.12,
+        "hit": false
+      },
+      {
+        "comparator": "gte",
+        "target": 25,
+        "current": 4,
+        "pct": 0.16,
+        "hit": false
+      },
+      {
+        "comparator": "gte",
+        "target": 25,
+        "current": 25,
+        "pct": 1,
+        "hit": true
+      },
+      {
+        "comparator": "gte",
+        "target": 25,
+        "current": 30,
+        "pct": 1.2,
+        "hit": true
+      },
+      {
+        "comparator": "gte",
+        "target": 25,
+        "current": 80,
+        "pct": 3.2,
+        "hit": true
+      },
+      {
+        "comparator": "gte",
+        "target": 25,
+        "current": -2,
+        "pct": -0.08,
+        "hit": false
+      },
+      {
+        "comparator": "gte",
+        "target": 75.5,
+        "current": null,
+        "pct": 0,
+        "hit": false
+      },
+      {
+        "comparator": "gte",
+        "target": 75.5,
+        "current": 0,
+        "pct": 0,
+        "hit": false
+      },
+      {
+        "comparator": "gte",
+        "target": 75.5,
+        "current": 0.5,
+        "pct": 0.006622516556291391,
+        "hit": false
+      },
+      {
+        "comparator": "gte",
+        "target": 75.5,
+        "current": 1,
+        "pct": 0.013245033112582781,
+        "hit": false
+      },
+      {
+        "comparator": "gte",
+        "target": 75.5,
+        "current": 3,
+        "pct": 0.039735099337748346,
+        "hit": false
+      },
+      {
+        "comparator": "gte",
+        "target": 75.5,
+        "current": 4,
+        "pct": 0.052980132450331126,
+        "hit": false
+      },
+      {
+        "comparator": "gte",
+        "target": 75.5,
+        "current": 25,
+        "pct": 0.33112582781456956,
+        "hit": false
+      },
+      {
+        "comparator": "gte",
+        "target": 75.5,
+        "current": 30,
+        "pct": 0.3973509933774834,
+        "hit": false
+      },
+      {
+        "comparator": "gte",
+        "target": 75.5,
+        "current": 80,
+        "pct": 1.0596026490066226,
+        "hit": true
+      },
+      {
+        "comparator": "gte",
+        "target": 75.5,
+        "current": -2,
+        "pct": -0.026490066225165563,
+        "hit": false
+      },
+      {
+        "comparator": "lte",
+        "target": 0,
+        "current": null,
+        "pct": 0,
+        "hit": false
+      },
+      {
+        "comparator": "lte",
+        "target": 0,
+        "current": 0,
+        "pct": 1,
+        "hit": true
+      },
+      {
+        "comparator": "lte",
+        "target": 0,
+        "current": 0.5,
+        "pct": 0,
+        "hit": false
+      },
+      {
+        "comparator": "lte",
+        "target": 0,
+        "current": 1,
+        "pct": 0,
+        "hit": false
+      },
+      {
+        "comparator": "lte",
+        "target": 0,
+        "current": 3,
+        "pct": 0,
+        "hit": false
+      },
+      {
+        "comparator": "lte",
+        "target": 0,
+        "current": 4,
+        "pct": 0,
+        "hit": false
+      },
+      {
+        "comparator": "lte",
+        "target": 0,
+        "current": 25,
+        "pct": 0,
+        "hit": false
+      },
+      {
+        "comparator": "lte",
+        "target": 0,
+        "current": 30,
+        "pct": 0,
+        "hit": false
+      },
+      {
+        "comparator": "lte",
+        "target": 0,
+        "current": 80,
+        "pct": 0,
+        "hit": false
+      },
+      {
+        "comparator": "lte",
+        "target": 0,
+        "current": -2,
+        "pct": 1,
+        "hit": true
+      },
+      {
+        "comparator": "lte",
+        "target": 1,
+        "current": null,
+        "pct": 0,
+        "hit": false
+      },
+      {
+        "comparator": "lte",
+        "target": 1,
+        "current": 0,
+        "pct": 1,
+        "hit": true
+      },
+      {
+        "comparator": "lte",
+        "target": 1,
+        "current": 0.5,
+        "pct": 1,
+        "hit": true
+      },
+      {
+        "comparator": "lte",
+        "target": 1,
+        "current": 1,
+        "pct": 1,
+        "hit": true
+      },
+      {
+        "comparator": "lte",
+        "target": 1,
+        "current": 3,
+        "pct": 0.3333333333333333,
+        "hit": false
+      },
+      {
+        "comparator": "lte",
+        "target": 1,
+        "current": 4,
+        "pct": 0.25,
+        "hit": false
+      },
+      {
+        "comparator": "lte",
+        "target": 1,
+        "current": 25,
+        "pct": 0.04,
+        "hit": false
+      },
+      {
+        "comparator": "lte",
+        "target": 1,
+        "current": 30,
+        "pct": 0.03333333333333333,
+        "hit": false
+      },
+      {
+        "comparator": "lte",
+        "target": 1,
+        "current": 80,
+        "pct": 0.0125,
+        "hit": false
+      },
+      {
+        "comparator": "lte",
+        "target": 1,
+        "current": -2,
+        "pct": 1,
+        "hit": true
+      },
+      {
+        "comparator": "lte",
+        "target": 4,
+        "current": null,
+        "pct": 0,
+        "hit": false
+      },
+      {
+        "comparator": "lte",
+        "target": 4,
+        "current": 0,
+        "pct": 1,
+        "hit": true
+      },
+      {
+        "comparator": "lte",
+        "target": 4,
+        "current": 0.5,
+        "pct": 1,
+        "hit": true
+      },
+      {
+        "comparator": "lte",
+        "target": 4,
+        "current": 1,
+        "pct": 1,
+        "hit": true
+      },
+      {
+        "comparator": "lte",
+        "target": 4,
+        "current": 3,
+        "pct": 1,
+        "hit": true
+      },
+      {
+        "comparator": "lte",
+        "target": 4,
+        "current": 4,
+        "pct": 1,
+        "hit": true
+      },
+      {
+        "comparator": "lte",
+        "target": 4,
+        "current": 25,
+        "pct": 0.16,
+        "hit": false
+      },
+      {
+        "comparator": "lte",
+        "target": 4,
+        "current": 30,
+        "pct": 0.13333333333333333,
+        "hit": false
+      },
+      {
+        "comparator": "lte",
+        "target": 4,
+        "current": 80,
+        "pct": 0.05,
+        "hit": false
+      },
+      {
+        "comparator": "lte",
+        "target": 4,
+        "current": -2,
+        "pct": 1,
+        "hit": true
+      },
+      {
+        "comparator": "lte",
+        "target": 25,
+        "current": null,
+        "pct": 0,
+        "hit": false
+      },
+      {
+        "comparator": "lte",
+        "target": 25,
+        "current": 0,
+        "pct": 1,
+        "hit": true
+      },
+      {
+        "comparator": "lte",
+        "target": 25,
+        "current": 0.5,
+        "pct": 1,
+        "hit": true
+      },
+      {
+        "comparator": "lte",
+        "target": 25,
+        "current": 1,
+        "pct": 1,
+        "hit": true
+      },
+      {
+        "comparator": "lte",
+        "target": 25,
+        "current": 3,
+        "pct": 1,
+        "hit": true
+      },
+      {
+        "comparator": "lte",
+        "target": 25,
+        "current": 4,
+        "pct": 1,
+        "hit": true
+      },
+      {
+        "comparator": "lte",
+        "target": 25,
+        "current": 25,
+        "pct": 1,
+        "hit": true
+      },
+      {
+        "comparator": "lte",
+        "target": 25,
+        "current": 30,
+        "pct": 0.8333333333333334,
+        "hit": false
+      },
+      {
+        "comparator": "lte",
+        "target": 25,
+        "current": 80,
+        "pct": 0.3125,
+        "hit": false
+      },
+      {
+        "comparator": "lte",
+        "target": 25,
+        "current": -2,
+        "pct": 1,
+        "hit": true
+      },
+      {
+        "comparator": "lte",
+        "target": 75.5,
+        "current": null,
+        "pct": 0,
+        "hit": false
+      },
+      {
+        "comparator": "lte",
+        "target": 75.5,
+        "current": 0,
+        "pct": 1,
+        "hit": true
+      },
+      {
+        "comparator": "lte",
+        "target": 75.5,
+        "current": 0.5,
+        "pct": 1,
+        "hit": true
+      },
+      {
+        "comparator": "lte",
+        "target": 75.5,
+        "current": 1,
+        "pct": 1,
+        "hit": true
+      },
+      {
+        "comparator": "lte",
+        "target": 75.5,
+        "current": 3,
+        "pct": 1,
+        "hit": true
+      },
+      {
+        "comparator": "lte",
+        "target": 75.5,
+        "current": 4,
+        "pct": 1,
+        "hit": true
+      },
+      {
+        "comparator": "lte",
+        "target": 75.5,
+        "current": 25,
+        "pct": 1,
+        "hit": true
+      },
+      {
+        "comparator": "lte",
+        "target": 75.5,
+        "current": 30,
+        "pct": 1,
+        "hit": true
+      },
+      {
+        "comparator": "lte",
+        "target": 75.5,
+        "current": 80,
+        "pct": 0.94375,
+        "hit": false
+      },
+      {
+        "comparator": "lte",
+        "target": 75.5,
+        "current": -2,
+        "pct": 1,
+        "hit": true
+      }
+    ]
+  }
+}
