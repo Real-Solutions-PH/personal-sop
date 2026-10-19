@@ -9,11 +9,13 @@ import uuid
 from collections.abc import AsyncIterator
 
 import redis.asyncio as aioredis
-from fastapi import APIRouter, Depends, Header, Request
+from fastapi import APIRouter, Header, Request
 from fastapi.responses import StreamingResponse
+from sqlmodel import Session
 
 from app.core.config import settings
-from app.modules.iam.deps import CurrentUser, require_permission
+from app.core.db import engine
+from app.modules.iam.deps import TokenDep, get_current_user, require_permission
 from app.modules.realtime import presence
 from app.shared.events import stream_key
 
@@ -61,20 +63,30 @@ async def _tail(
         await client.aclose()
 
 
-@router.get(
-    "/stream",
-    dependencies=[Depends(require_permission("events:read"))],
-    response_class=StreamingResponse,
-)
-async def stream(
+_can_read = require_permission("events:read")
+
+
+def _authorize(request: Request, token: str) -> uuid.UUID:
+    """Authenticate and check ``events:read`` on a session closed before the
+    stream starts. A ``SessionDep`` would stay checked out (idle in
+    transaction) for the life of the stream, so every open app pinned one
+    pooled connection until the pool ran dry for every other route."""
+    with Session(engine) as session:
+        user = get_current_user(request, session, token)
+        return _can_read(user, session).id
+
+
+@router.get("/stream", response_class=StreamingResponse)
+def stream(
     request: Request,
-    current_user: CurrentUser,
+    token: TokenDep,
     last_event_id: str | None = Header(default=None, alias="Last-Event-ID"),
 ) -> StreamingResponse:
+    user_id = _authorize(request, token)
     # "$" = only new events; a known id resumes after it (within the window).
     start = last_event_id if last_event_id else "$"
     return StreamingResponse(
-        _tail(request, current_user.id, start),
+        _tail(request, user_id, start),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )

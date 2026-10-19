@@ -181,3 +181,25 @@ def test_social_message_reaches_members_stream_only(server: str, db: Session) ->
     finally:
         r_sync.close()
     del cy_h
+
+
+def test_open_streams_hold_no_database_connection(server: str, db: Session) -> None:
+    # A stream lives for as long as the app is open. If it kept its auth
+    # session checked out, a handful of open apps would drain the pool and
+    # every other route would time out waiting for a connection.
+    from app.core.db import engine
+
+    _, headers = signed_in(db)
+    before = engine.pool.checkedout()  # type: ignore[attr-defined]
+    with _client(server) as c1, _client(server) as c2, _client(server) as c3:
+        with (
+            c1.stream("GET", f"{API}/events/stream", headers=headers) as r1,
+            c2.stream("GET", f"{API}/events/stream", headers=headers) as r2,
+            c3.stream("GET", f"{API}/events/stream", headers=headers) as r3,
+        ):
+            for r in (r1, r2, r3):
+                assert r.status_code == 200
+                # The "retry" preamble arrives once the body has started, so
+                # the route's dependencies have all run by now.
+                next(r.iter_lines())
+            assert engine.pool.checkedout() <= before  # type: ignore[attr-defined]
