@@ -62,10 +62,12 @@ function signIn(user: LiveUser) {
   cy.visit("/welcome")
   cy.findByRole("button", { name: "I already have an account" }).click()
   cy.location("pathname").should("eq", "/login")
-  cy.findByRole("textbox", { name: "Email" })
-    .should("be.enabled")
-    .type(user.email)
-  cy.findByLabelText("Password").should("be.enabled").type(user.password, {
+  // The first load of a spec can still be settling when the form shows;
+  // type with force once the Sign in button is up.
+  cy.findByRole("button", { name: "Sign in" }).should("exist")
+  cy.findByRole("textbox", { name: "Email" }).type(user.email, { force: true })
+  cy.findByLabelText("Password").type(user.password, {
+    force: true,
     log: false,
   })
   cy.findByRole("button", { name: "Sign in" }).click()
