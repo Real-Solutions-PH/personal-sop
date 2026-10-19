@@ -270,13 +270,10 @@ describe("finance insights and settings (live)", {
           "/finance/settings",
           (b) => b.month_start_day === 15 && b.safety_floor_minor === 250075,
         )
-        // Privacy is a device-only preference: the switch flips the screen.
+        // Privacy is a device-only preference: it masks every amount.
         cy.findByRole("switch", { name: "Privacy mode" }).click()
-        cy.findByRole("switch", { name: "Privacy mode" }).should(
-          "have.attr",
-          "aria-checked",
-          "true",
-        )
+        cy.visit("/finance")
+        cy.findAllByText("••••", { timeout: 60000 }).should("exist")
       })
     })
   })

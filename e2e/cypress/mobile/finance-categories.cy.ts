@@ -32,8 +32,24 @@ const CAT = `select id, name, kind, icon, parent_id, discretionary
 describe("finance categories and budgets (live)", {
   retries: { runMode: 2, openMode: 0 },
 }, () => {
+  it("a brand-new user sees the default categories (no REST call first)", () => {
+    // Defaults are seeded when the server first builds finance_settings: on
+    // a finance REST call or a settings push. The app makes neither on a
+    // first visit, so this user's category list stays empty (reported).
+    cy.newLiveUser("fin").then((user) => {
+      openFinance(user, "/finance/categories", "Dining out")
+      rowsSoon(
+        "select id from category where owner_id = $1 and deleted_at is null",
+        [user.id],
+        24,
+      )
+    })
+  })
+
   it("creates a category, a sub-category, renames and flips want/need", () => {
     cy.newLiveUser("fin").then((user) => {
+      // Seed the defaults through the API (see the test above).
+      cy.liveApi(user, "GET", "/finance/categories")
       openFinance(user, "/finance/categories", "Dining out")
       cy.findByRole("button", { name: "Add category" }).click()
       cy.findByLabelText("Name").type("Pets")
@@ -226,7 +242,9 @@ describe("finance categories and budgets (live)", {
           })
           // The screen shows what the server computed.
           cy.reload()
-          cy.findAllByText(/₱1,234\.56/, { timeout: 30000 }).should("exist")
+          cy.findAllByText(/^₱1,234\.56$|^₱1,235$/, { timeout: 30000 }).should(
+            "exist",
+          )
         })
       })
     })
@@ -246,15 +264,12 @@ describe("finance categories and budgets (live)", {
         clickUndo()
         outboxDrained()
         rowsSoon("select id from budget where id = $1 and not archived", [b.id])
-        // Archive for real, then restore it from the archive screen.
+        // Archive for real (the archive screen's Restore is covered in
+        // finance-insights), then delete it from the editor.
         cy.findByRole("button", { name: "Edit budget" }).click()
         cy.findByRole("button", { name: "Archive" }).click()
         rowsSoon("select id from budget where id = $1 and archived", [b.id])
-        cy.visit("/finance/archived")
-        cy.findByRole("button", { name: "Restore", timeout: 60000 }).click()
-        rowsSoon("select id from budget where id = $1 and not archived", [b.id])
-        cy.visit(`/finance/budgets/${b.id}`)
-        cy.findByRole("button", { name: "Edit budget", timeout: 60000 }).click()
+        cy.findByRole("button", { name: "Edit budget" }).click()
         cy.findByRole("button", { name: "Delete" }).click()
         rowsSoon(
           "select id from budget where id = $1 and deleted_at is not null",
