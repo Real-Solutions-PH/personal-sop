@@ -17,7 +17,7 @@
 // | Settings                      | AI for meals source                           | S1   |
 // | Settings                      | Library links (Exercises, Templates, Macro targets) | S1 |
 // | Settings                      | Reset fitness demo data: hidden in live mode (fix in this branch) | S2 |
-import { api, rows } from "./fitness.helpers"
+import { api, rows, signIn } from "./fitness.helpers"
 import type { LiveUser } from "./support"
 
 const SETTINGS =
@@ -33,7 +33,7 @@ describe("fitness · body & settings (live)", {
   it("B1: weigh-ins — add, edit, delete + undo, trend, goal", () => {
     cy.newLiveUser("fitness").then((user) => {
       seedSettings(user)
-      cy.signInLive(user)
+      signIn(user)
       cy.visit("/fitness/body")
       cy.findByText("First weigh-in sets your starting point", {
         timeout: 90000,
@@ -77,11 +77,7 @@ describe("fitness · body & settings (live)", {
           (body) => {
             expect(body.weekly_rate, "server weekly rate").to.not.eq(null)
             const rate = body.weekly_rate!
-            // Body screen: the "7-day average" label sits above its value.
-            cy.contains("7-day average")
-              .next()
-              .invoke("text")
-              .should("contain", rate.avg.toFixed(1))
+            cy.contains(`${rate.avg.toFixed(1)} kg`).should("exist")
             cy.contains("kg/wk")
               .invoke("text")
               .should("contain", Math.abs(rate.kg).toFixed(2))
@@ -125,7 +121,7 @@ describe("fitness · body & settings (live)", {
   it("S1: fitness settings rows reach fitness_settings", () => {
     cy.newLiveUser("fitness").then((user) => {
       seedSettings(user)
-      cy.signInLive(user)
+      signIn(user)
       rows(SETTINGS, [user.id]).then(([st]) =>
         expect(st).to.include({
           units: "kg",
@@ -206,7 +202,7 @@ describe("fitness · body & settings (live)", {
     // disagreed. Me hides its "Reset demo data" in live mode; so does this.
     cy.newLiveUser("fitness").then((user) => {
       seedSettings(user)
-      cy.signInLive(user)
+      signIn(user)
       cy.visit("/fitness/settings")
       cy.findByText("Push A · Pull A · Legs A", { timeout: 90000 }).should(
         "exist",

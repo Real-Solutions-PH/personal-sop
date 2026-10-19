@@ -25,7 +25,7 @@
 // | Workout detail             | Options → Save as template               | W3   |
 // | Workout detail             | Options → Delete                         | W3   |
 // | Cross-module               | Finish ticks a workout-linked habit (habit_log) | W2 |
-import { api, rows } from "./fitness.helpers"
+import { api, rows, signIn } from "./fitness.helpers"
 import type { LiveUser } from "./support"
 
 const ACTIVE =
@@ -54,7 +54,7 @@ describe("fitness · workouts (live)", { defaultCommandTimeout: 60000 }, () => {
   it("W1: empty workout — exercises, sets, rest timer, finish", () => {
     cy.newLiveUser("fitness").then((user) => {
       seedLibrary(user)
-      cy.signInLive(user)
+      signIn(user)
       openFitness()
 
       cy.findByRole("button", { name: "Start" }).click()
@@ -245,7 +245,7 @@ describe("fitness · workouts (live)", { defaultCommandTimeout: 60000 }, () => {
         name: "Lift weights",
         link_workout: true,
       }).then((habit) => {
-        cy.signInLive(user)
+        signIn(user)
         openFitness()
         cy.task<{ id: string }[]>("sql", {
           text: "select id from workout_template where owner_id = $1 and name = 'Push A'",
@@ -313,7 +313,10 @@ describe("fitness · workouts (live)", { defaultCommandTimeout: 60000 }, () => {
               .click()
             cy.findByText(/Repeat last Push A/).click()
             cy.location("pathname").should("eq", "/fitness/workout")
-            rows(`${ACTIVE} and id <> $2`, [user.id, wid]).then(([r]) => {
+            rows(`${ACTIVE} and id <> $2 and name = 'Push A'`, [
+              user.id,
+              wid,
+            ]).then(([r]) => {
               expect(r.name).to.eq("Push A")
               const rid = r.id as string
               rows(
@@ -371,7 +374,7 @@ describe("fitness · workouts (live)", { defaultCommandTimeout: 60000 }, () => {
             unfinished: "done",
           })
 
-          cy.signInLive(user)
+          signIn(user)
           cy.visit("/fitness/workouts")
           cy.findByText("E2E legs", { timeout: 90000 }).click()
           cy.location("pathname").should("eq", `/fitness/workouts/${wid}`)

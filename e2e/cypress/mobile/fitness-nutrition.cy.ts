@@ -17,7 +17,7 @@
 // | Nutrition history                   | Day row opens that day                         | N2   |
 // | Eat                                 | Photo meal estimate — NOT COVERABLE ON WEB: needs the camera / a native image picker, and the live mapper does not upload photos (REST upload path only). Covered by its manual equivalent, "Describe it", in N2. | — |
 // | Eat                                 | Chat / Voice capture buttons open the capture module (capture module's specs) | — |
-import { api, rows } from "./fitness.helpers"
+import { api, rows, signIn } from "./fitness.helpers"
 import type { LiveUser } from "./support"
 
 const today = () => {
@@ -40,7 +40,7 @@ describe("fitness · nutrition (live)", { defaultCommandTimeout: 60000 }, () => 
   it("N1: targets, manual meal, macros left", () => {
     cy.newLiveUser("fitness").then((user) => {
       seedLibrary(user)
-      cy.signInLive(user)
+      signIn(user)
       cy.visit("/fitness?tab=eat")
       cy.findByText("No targets set — showing totals eaten.", {
         timeout: 90000,
@@ -173,7 +173,7 @@ describe("fitness · nutrition (live)", { defaultCommandTimeout: 60000 }, () => 
   it("N2: estimate review, edit items, duplicate, delete + undo, days, history", () => {
     cy.newLiveUser("fitness").then((user) => {
       seedLibrary(user)
-      cy.signInLive(user)
+      signIn(user)
       cy.visit(`/fitness/nutrition/new?day=${today()}`)
       cy.findByRole("textbox", { name: "Describe your meal" }).type(
         "lunch: rice, chicken adobo",

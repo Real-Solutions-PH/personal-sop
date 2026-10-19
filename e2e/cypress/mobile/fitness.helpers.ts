@@ -37,3 +37,18 @@ export function api<T>(
     return api(user, path, check, left - 1)
   })
 }
+
+/** Sign in through the real Welcome → Sign in screens. As support.ts's
+ * signInLive, but types into Email without clearing it first: under load the
+ * field reports "disabled" during the Welcome → Sign in transition, and
+ * `.clear()` fails on that while a plain type waits for it. */
+export function signIn(user: LiveUser) {
+  cy.visit("/welcome")
+  cy.findByRole("button", { name: "I already have an account" }).click()
+  cy.findByRole("textbox", { name: "Email" })
+    .should("not.be.disabled")
+    .type(user.email)
+  cy.findByLabelText("Password").type(user.password, { log: false })
+  cy.findByRole("button", { name: "Sign in" }).click()
+  cy.location("pathname", { timeout: 90000 }).should("eq", "/today")
+}

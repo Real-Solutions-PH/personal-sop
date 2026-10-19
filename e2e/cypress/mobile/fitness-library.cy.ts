@@ -16,7 +16,7 @@
 // | Stats (/fitness/stats)          | Sessions and PRs match GET /fitness/stats  | L3   |
 // | Train                           | "Progress · 8 weeks" key lifts appear      | L3   |
 // (Exercises have no hard delete in the UI: archive is the delete.)
-import { api, rows } from "./fitness.helpers"
+import { api, rows, signIn } from "./fitness.helpers"
 import type { LiveUser } from "./support"
 
 const TEMPLATE_ITEMS = `select e.name, ti.sets, ti.position from template_item ti
@@ -80,7 +80,7 @@ describe("fitness · library (live)", { defaultCommandTimeout: 60000 }, () => {
   it("L1: templates — create, edit, delete + undo, start", () => {
     cy.newLiveUser("fitness").then((user) => {
       seedLibrary(user)
-      cy.signInLive(user)
+      signIn(user)
       cy.visit("/fitness/templates")
       cy.findByText("Push A", { timeout: 90000 }).should("exist")
 
@@ -112,7 +112,7 @@ describe("fitness · library (live)", { defaultCommandTimeout: 60000 }, () => {
         )
 
         // Edit: rename, drop Face Pull, add Leg Press.
-        cy.findByText("E2E upper").click()
+        cy.findAllByText("E2E upper").filter(":visible").first().click()
         cy.location("pathname").should("eq", `/fitness/templates/${tid}`)
         cy.findByRole("textbox", { name: "Template name" })
           .clear()
@@ -140,7 +140,7 @@ describe("fitness · library (live)", { defaultCommandTimeout: 60000 }, () => {
         )
 
         // Delete, then Undo from the toast.
-        cy.findByText("E2E upper v2").click()
+        cy.findAllByText("E2E upper v2").filter(":visible").first().click()
         cy.findByText("Delete template").click()
         cy.location("pathname").should("eq", "/fitness/templates")
         rows(
@@ -148,14 +148,17 @@ describe("fitness · library (live)", { defaultCommandTimeout: 60000 }, () => {
           [tid],
         )
         cy.findByText("Undo").click()
-        cy.findByText("E2E upper v2").should("exist")
+        cy.findAllByText("E2E upper v2")
+          .filter(":visible")
+          .first()
+          .should("exist")
         rows(
           "select 1 from workout_template where id = $1 and deleted_at is null",
           [tid],
         )
 
         // Start this template: a running workout carrying its plan.
-        cy.findByText("E2E upper v2").click()
+        cy.findAllByText("E2E upper v2").filter(":visible").first().click()
         cy.findByRole("button", { name: "Start this template" }).click()
         cy.location("pathname").should("eq", "/fitness/workout")
         rows(
@@ -176,7 +179,7 @@ describe("fitness · library (live)", { defaultCommandTimeout: 60000 }, () => {
   it("L2: exercise library — create, search, edit, archive + undo", () => {
     cy.newLiveUser("fitness").then((user) => {
       seedLibrary(user)
-      cy.signInLive(user)
+      signIn(user)
       cy.visit("/fitness/exercises")
       cy.findByText("Barbell Bench Press", { timeout: 90000 }).should("exist")
 
@@ -248,7 +251,7 @@ describe("fitness · library (live)", { defaultCommandTimeout: 60000 }, () => {
           [65, 10],
         ])
       })
-      cy.signInLive(user)
+      signIn(user)
       cy.task<{ id: string }[]>("sql", {
         text: "select id from exercise where owner_id = $1 and name = 'Barbell Bench Press'",
         values: [user.id],
