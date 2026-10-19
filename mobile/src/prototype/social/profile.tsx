@@ -17,6 +17,7 @@ import {
 } from "lucide-react-native"
 import { useEffect, useMemo, useState } from "react"
 import {
+  ActivityIndicator,
   FlatList,
   Image,
   Pressable,
@@ -36,6 +37,7 @@ import Animated, {
 } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
+import { liveMode } from "@/live/config"
 import { copyText } from "../media"
 import { go } from "../navigation"
 import { Switch } from "../switch"
@@ -66,6 +68,7 @@ import {
   toggleCloseFriend,
   toggleFollow,
   toggleShowScores,
+  useMe,
   usePerson,
 } from "./store"
 
@@ -684,12 +687,7 @@ export function Profile({ id }: { id: string }) {
               </View>
               {tab === "scores" && (
                 <View style={{ paddingTop: 16, gap: 12 }}>
-                  {!card ? (
-                    <Empty
-                      title="No scores yet"
-                      detail={`${person.name.split(" ")[0]} hasn't shared scores.`}
-                    />
-                  ) : !canSeeScores ? (
+                  {!canSeeScores ? (
                     <View
                       style={{ alignItems: "center", gap: 10, padding: 32 }}
                     >
@@ -727,6 +725,11 @@ export function Profile({ id }: { id: string }) {
                       </Text>
                       <FollowButton person={person} />
                     </View>
+                  ) : !card ? (
+                    <Empty
+                      title="No scores yet"
+                      detail={`${person.name.split(" ")[0]} hasn't shared scores.`}
+                    />
                   ) : (
                     <>
                       {mine && (
@@ -891,17 +894,33 @@ export function FollowButton({
 }
 
 /** Followers / following lists with follow buttons. */
-export function Follows({ id }: { id: string }) {
+export function Follows({
+  id,
+  initialTab = "followers",
+}: {
+  id: string
+  initialTab?: "followers" | "following"
+}) {
   const t = useTheme()
   const safe = useSafeAreaInsets()
   const person = usePerson(id)
+  const me = useMe()
   const people = socialStore.use((s) => s.people)
-  const [tab, setTab] = useState<"followers" | "following">("followers")
-  // ponytail: the prototype has one small network, so both lists draw from it.
-  const list =
-    tab === "following"
-      ? people.filter((p) => (id === ME ? p.isFollowing : p.id !== id))
-      : people.filter((p) => p.id !== id)
+  const graph = socialStore.use((s) => s.graph?.[id])
+  const [tab, setTab] = useState<"followers" | "following">(initialTab)
+  useEffect(() => void openPersonLive(id), [id])
+  // Live mode lists the server's graph (nothing until it loads); the
+  // prototype has one small network, so both lists draw from it.
+  const list: Person[] = graph
+    ? graph[tab].flatMap((pid) => {
+        const p = pid === ME ? me : people.find((x) => x.id === pid)
+        return p ? [p] : []
+      })
+    : liveMode
+      ? []
+      : tab === "following"
+        ? people.filter((p) => (id === ME ? p.isFollowing : p.id !== id))
+        : people.filter((p) => p.id !== id)
   return (
     <View style={{ flex: 1, backgroundColor: t.bg, paddingTop: safe.top }}>
       <TopBar title={person?.username ?? ""} />
@@ -983,11 +1002,20 @@ export function Follows({ id }: { id: string }) {
                   </Text>
                 </View>
               </Pressable>
-              <FollowButton person={item} small />
+              {item.id !== ME && <FollowButton person={item} small />}
             </View>
           </Animated.View>
         )}
-        ListEmptyComponent={<Empty title="No one here yet" icon={Copy} />}
+        ListEmptyComponent={
+          liveMode && !graph ? (
+            <ActivityIndicator
+              accessibilityLabel="Loading"
+              style={{ marginTop: 32 }}
+            />
+          ) : (
+            <Empty title="No one here yet" icon={Copy} />
+          )
+        }
       />
     </View>
   )

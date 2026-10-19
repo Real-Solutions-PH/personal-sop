@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from "expo-router"
 import { Camera, Images, MapPin, Sparkles, X } from "lucide-react-native"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
   Image,
   KeyboardAvoidingView,
@@ -118,8 +118,14 @@ export function Compose() {
     !!params.progress || !!draft?.progress,
   )
   const [page, setPage] = useState(0)
+  // Live mode: the server's draft can arrive after the screen opens; take it
+  // until the person starts editing.
+  const touched = useRef(false)
   useEffect(() => {
     if (draft?.progress) setProgress(draft.progress)
+    if (!draft || touched.current) return
+    if (draft.caption) setCaption(draft.caption)
+    if (draft.media?.length) setMedia(draft.media)
   }, [draft])
   const dirty = media.length > 0 || !!progress || caption.trim().length > 0
   const canShare = media.length > 0 || !!progress
@@ -127,6 +133,7 @@ export function Compose() {
     const picked = await pickMedia({ camera })
     if (picked.length) {
       haptic.tap()
+      touched.current = true
       setMedia((m) => [...m, ...picked].slice(0, 10))
     }
   }
@@ -275,7 +282,10 @@ export function Compose() {
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={`Remove item ${i + 1}`}
-                    onPress={() => setMedia((x) => x.filter((_, j) => j !== i))}
+                    onPress={() => {
+                      touched.current = true
+                      setMedia((x) => x.filter((_, j) => j !== i))
+                    }}
                     style={{
                       position: "absolute",
                       top: 10,
@@ -430,7 +440,10 @@ export function Compose() {
           <Avatar id={ME} size={36} ring={false} />
           <TextInput
             value={caption}
-            onChangeText={(v) => setCaption(v.slice(0, 2200))}
+            onChangeText={(v) => {
+              touched.current = true
+              setCaption(v.slice(0, 2200))
+            }}
             placeholder="Write a caption…"
             placeholderTextColor={t.muted}
             accessibilityLabel="Caption"
@@ -467,13 +480,14 @@ export function Compose() {
               key={tag}
               accessibilityRole="button"
               accessibilityLabel={`Add ${tag}`}
-              onPress={() =>
+              onPress={() => {
+                touched.current = true
                 setCaption((c) =>
                   c.includes(tag)
                     ? c
                     : `${c}${c && !c.endsWith(" ") ? " " : ""}${tag} `,
                 )
-              }
+              }}
               style={{
                 paddingHorizontal: 12,
                 minHeight: 32,

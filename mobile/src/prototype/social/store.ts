@@ -145,6 +145,8 @@ export type SocialState = {
   showScores: boolean
   /** Live mode: my own bio and counts from GET /social/me. */
   me?: { bio: string; followers: number; following: number }
+  /** Live mode: who follows / is followed by a person, from the server. */
+  graph?: Record<string, { followers: string[]; following: string[] }>
 }
 
 export const ME = "me"
@@ -789,10 +791,21 @@ export interface SocialRemote {
 }
 
 let remote: SocialRemote | null = null
+let waiting: ((r: SocialRemote) => void)[] = []
 /** Live mode: route actions to the server (null disconnects at sign-out). */
 export function connectSocial(next: SocialRemote | null) {
   remote = next
+  if (!next) return
+  const ready = waiting
+  waiting = []
+  for (const resolve of ready) resolve(next)
 }
+/** The connected remote; a screen that mounts before startup has restored
+ * the session waits for it rather than loading nothing. */
+const connected = (): Promise<SocialRemote> =>
+  remote
+    ? Promise.resolve(remote)
+    : new Promise((resolve) => waiting.push(resolve))
 
 /** Live mode only: send a write; on failure undo the optimistic change and
  * say so. Offline (or signed out) fails at once — social is not queued. */
@@ -822,13 +835,15 @@ function nudge(call: (r: SocialRemote) => Promise<unknown>) {
 /** Loaders the screens call on open/refresh; no-ops in prototype mode. A
  * failed load keeps the cached data; only an explicit refresh reports. */
 function load(call: (r: SocialRemote) => Promise<unknown>, report?: string) {
-  if (!liveMode || !remote) return Promise.resolve()
-  return call(remote).then(
-    () => {},
-    () => {
-      if (report) toast(report)
-    },
-  )
+  if (!liveMode) return Promise.resolve()
+  return connected()
+    .then(call)
+    .then(
+      () => {},
+      () => {
+        if (report) toast(report)
+      },
+    )
 }
 export const refreshSocial = () =>
   load((r) => r.refresh(), "Couldn't refresh. Showing what was saved.")

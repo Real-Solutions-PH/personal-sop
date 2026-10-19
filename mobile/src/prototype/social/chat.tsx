@@ -16,6 +16,7 @@ import {
 } from "lucide-react-native"
 import { useEffect, useMemo, useRef, useState } from "react"
 import {
+  ActivityIndicator,
   FlatList,
   Image,
   KeyboardAvoidingView,
@@ -880,7 +881,11 @@ export function ChatScreen({ id }: { id: string }) {
   const [simulated, setTyping] = useState<string | null>(null)
   const typing = useTyping(id) ?? simulated
   const input = useRef<TextInput>(null)
-  useEffect(() => void openChatLive(id), [id])
+  const [opening, setOpening] = useState(true)
+  useEffect(() => {
+    setOpening(true)
+    void openChatLive(id).finally(() => setOpening(false))
+  }, [id])
   const count = chat?.messages.length ?? 0
   // Mark read and drop the typing dots whenever a message lands. Keyed on the
   // count: depending on `chat` would loop, since marking read changes it.
@@ -904,7 +909,11 @@ export function ChatScreen({ id }: { id: string }) {
           justifyContent: "center",
         }}
       >
-        <Text style={{ color: t.muted }}>This chat no longer exists.</Text>
+        {opening ? (
+          <ActivityIndicator accessibilityLabel="Loading chat" />
+        ) : (
+          <Text style={{ color: t.muted }}>This chat no longer exists.</Text>
+        )}
       </View>
     )
   const group = !!chat.name

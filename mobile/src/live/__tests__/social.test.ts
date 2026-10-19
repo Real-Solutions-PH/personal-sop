@@ -5,7 +5,11 @@
 import {
   connectSocial,
   createPost,
+  deletePost,
   ME,
+  openPersonLive,
+  openPostLive,
+  setPostDraft,
   socialStore,
   toggleLike,
   typingStore,
@@ -395,4 +399,100 @@ test("a new post uploads its media first and sends the media ids, with no fake l
   } finally {
     jest.useRealTimers()
   }
+})
+
+test("a screen that loads before the session connects waits for it", async () => {
+  const person = {
+    ...brief(ANA, "Ana Reyes", "ana.lifts"),
+    bio: "",
+    followers: 1,
+    following: 0,
+    is_me: false,
+    is_following: false,
+    close_friend: false,
+    scores_visible: false,
+  }
+  const { http, calls } = fakeHttp({
+    [`GET /social/people/${ANA}`]: () => person,
+    [`GET /social/people/${ANA}/posts`]: () => empty,
+    [`GET /social/people/${ANA}/followers`]: () => ({
+      data: [{ ...person, ...brief(MEID, "Me", "me"), is_me: true }],
+      count: 1,
+    }),
+    [`GET /social/people/${ANA}/following`]: () => empty,
+  })
+  // The profile mounts (cold open) before startup connects the remote.
+  const loaded = openPersonLive(ANA)
+  await settle()
+  expect(calls).toEqual([])
+  connectSocial(createSocialLive({ http, userId: MEID }))
+  await loaded
+  expect(calls.map((c) => c.path.split("?")[0])).toContain(
+    `/social/people/${ANA}`,
+  )
+  // The follows screen lists the server's graph, me as ME.
+  expect(socialStore.get().graph?.[ANA]).toEqual({
+    followers: [ME],
+    following: [],
+  })
+})
+
+test("a post draft is saved without the inline web image", async () => {
+  const { http, calls } = fakeHttp({
+    "PUT /social/drafts/post": (c) => ({
+      kind: "post",
+      body: (c.body as { body: unknown }).body,
+      updated_at: null,
+    }),
+  })
+  connectSocial(createSocialLive({ http, userId: MEID }))
+  setPostDraft({
+    caption: "Tasks this week",
+    media: [{ kind: "image", uri: "data:image/png;base64,AAAA", ratio: 1 }],
+  })
+  await settle()
+  expect(calls).toEqual([
+    {
+      method: "PUT",
+      path: "/social/drafts/post",
+      body: { body: { caption: "Tasks this week", media: [] } },
+    },
+  ])
+})
+
+test("a read in flight when I delete a post does not bring it back", async () => {
+  let answer: (v: unknown) => void = () => {}
+  const { http } = fakeHttp({
+    [`GET /social/posts/${POST}`]: () =>
+      new Promise((resolve) => {
+        answer = resolve
+      }),
+    [`GET /social/posts/${POST}/comments`]: () => empty,
+    [`DELETE /social/posts/${POST}`]: () => undefined,
+  })
+  socialStore.set((s) => ({
+    ...s,
+    posts: [
+      {
+        id: POST,
+        by: ME,
+        at: 0,
+        caption: "",
+        media: [],
+        likes: 0,
+        liked: false,
+        saved: false,
+        likedBy: [],
+        comments: [],
+      },
+    ],
+  }))
+  connectSocial(createSocialLive({ http, userId: MEID }))
+  const opened = openPostLive(POST)
+  await settle()
+  deletePost(POST)
+  answer(wirePost({ author: brief(MEID, "Me", "me") }))
+  await opened
+  await settle()
+  expect(socialStore.get().posts).toEqual([])
 })

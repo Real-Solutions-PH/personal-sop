@@ -180,6 +180,31 @@ export type SocialLive = SocialRemote & {
   handleEvent(e: ServerEvent): void
 }
 
+/** A share card rendered on web is an inline `data:` image, far over the
+ * server's draft size limit; the draft is saved without it and the image
+ * stays on this device. */
+function draftForServer(
+  body: Record<string, unknown>,
+): Record<string, unknown> {
+  const b = body as { media?: { uri?: string }[] }
+  if (!b.media) return { ...body }
+  return {
+    ...body,
+    media: b.media.filter((m) => !m.uri?.startsWith("data:")),
+  }
+}
+
+/** The server's copy of my post draft, keeping the image only this device
+ * holds (see ``draftForServer``) while it is still the same draft. */
+function withLocalMedia(
+  server: Partial<Post>,
+  local: Partial<Post> | undefined,
+): Partial<Post> {
+  if (server.media?.length || !local?.media?.length) return server
+  if ((local.caption ?? "") !== (server.caption ?? "")) return server
+  return { ...server, media: local.media }
+}
+
 export function createSocialLive(deps: SocialDeps): SocialLive {
   const { http } = deps
   const me = deps.userId
@@ -207,6 +232,8 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
   const chatReady = new Map<string, Promise<unknown>>()
   // Posts and messages still being created: a refresh keeps them.
   const pending = new Set<string>()
+  /** Posts I deleted this session (until restored): stale reads skip them. */
+  const deleted = new Set<string>()
   let followingCursor: string | null | undefined
   let foryouSkip = 0
   const lastTyping = new Map<string, number>()
@@ -407,7 +434,9 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
   })
 
   // ------------------------------------------------------------ merges
-  function mergePosts(list: WPost[], replace = false) {
+  function mergePosts(all: WPost[], replace = false) {
+    // A read that was in flight when I deleted a post must not restore it.
+    const list = all.filter((w) => !deleted.has(w.id))
     set((s) => {
       const byId = new Map(s.posts.map((p) => [p.id, p]))
       const fresh = list.map((w) => mapPost(w, byId.get(w.id)))
@@ -579,7 +608,9 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
       set((s) => ({
         ...s,
         drafts: {
-          post: has(post.body) ? (post.body as Partial<Post>) : undefined,
+          post: has(post.body)
+            ? withLocalMedia(post.body as Partial<Post>, s.drafts.post)
+            : undefined,
           story: has(story.body)
             ? (story.body as Partial<StoryItem>)
             : undefined,
@@ -652,6 +683,29 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
 
   async function openPerson(id: string) {
     const uid = sid(id)
+    // The follows lists show as soon as they arrive, not after the
+    // (slower) scorecard.
+    const graph = Promise.all(
+      (["followers", "following"] as const).map((d) =>
+        http.request<List<WPerson>>(
+          "GET",
+          `/social/people/${uid}/${d}${q({ limit: 50 })}`,
+        ),
+      ),
+    ).then(([followers, following]) =>
+      set((s) => ({
+        ...s,
+        people: upsertPeople(s, [], [...followers.data, ...following.data]),
+        graph: {
+          ...s.graph,
+          [pid(uid)]: {
+            followers: followers.data.map((p) => pid(p.id)),
+            following: following.data.map((p) => pid(p.id)),
+          },
+        },
+      })),
+    )
+    void graph.catch(() => {}) // reported by the await below
     const [person, posts, card] = await Promise.all([
       http.request<WPerson>("GET", `/social/people/${uid}`),
       http.request<WPosts>(
@@ -676,36 +730,24 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
           following: person.following,
         },
       }))
-      return
-    }
-    set((s) => ({
-      ...s,
-      people: upsertPeople(s, [], [person]).map((p) =>
-        p.id === person.id
-          ? { ...p, card: card ? mapCard(card) : undefined }
-          : p,
-      ),
-    }))
-    const graph = await Promise.all(
-      (["followers", "following"] as const).map((d) =>
-        http.request<List<WPerson>>(
-          "GET",
-          `/social/people/${uid}/${d}${q({ limit: 50 })}`,
+    } else {
+      set((s) => ({
+        ...s,
+        people: upsertPeople(s, [], [person]).map((p) =>
+          p.id === person.id
+            ? { ...p, card: card ? mapCard(card) : undefined }
+            : p,
         ),
-      ),
-    )
-    set((s) => ({
-      ...s,
-      people: upsertPeople(
-        s,
-        [],
-        graph.flatMap((g) => g.data),
-      ),
-    }))
+      }))
+    }
+    await graph
   }
 
   async function openChat(id: string) {
     await chatReady.get(id)
+    // Opened cold (a link or a reload): the chat list may not be here yet.
+    if (!get().chats.some((c) => c.id === id))
+      mergeChat(await http.request<WChat>("GET", `/social/chats/${cid(id)}`))
     const page = await http.request<List<WMessage>>(
       "GET",
       `/social/chats/${cid(id)}/messages${q({ limit: 50 })}`,
@@ -827,8 +869,17 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
     },
     updateCaption: (id, caption) =>
       postWrite("PATCH", `/social/posts/${id}`, { caption }),
-    deletePost: (id) => http.request("DELETE", `/social/posts/${id}`),
-    restorePost: (id) => postWrite("POST", `/social/posts/${id}/restore`),
+    deletePost(id) {
+      deleted.add(id)
+      return http.request("DELETE", `/social/posts/${id}`).catch((e) => {
+        deleted.delete(id)
+        throw e
+      })
+    },
+    restorePost(id) {
+      deleted.delete(id)
+      return postWrite("POST", `/social/posts/${id}/restore`)
+    },
     async addComment(postId, comment) {
       const w = await http.request<WComment>(
         "POST",
@@ -890,8 +941,11 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
     },
     clearNote: () => http.request("DELETE", "/social/notes/me"),
     likeNote: (id, on) => http.request(onOff(on), `/social/notes/${id}/like`),
-    follow: (personId, on) =>
-      personWrite(onOff(on), `/social/people/${personId}/follow`),
+    async follow(personId, on) {
+      await personWrite(onOff(on), `/social/people/${personId}/follow`)
+      // Following unlocks the followers-only scorecard: load it now.
+      if (on) quietly(openPerson(personId))
+    },
     closeFriend: (personId, on) =>
       personWrite("PUT", `/social/people/${personId}/close-friend`, {
         close_friend: on,
@@ -973,7 +1027,9 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
     restoreChat: (chatId) => chatWrite("POST", chatPath(chatId, "/restore")),
     saveDraft: (kind, body) =>
       body
-        ? http.request("PUT", `/social/drafts/${kind}`, { body })
+        ? http.request("PUT", `/social/drafts/${kind}`, {
+            body: draftForServer(body),
+          })
         : http.request("DELETE", `/social/drafts/${kind}`),
     async typing(chatId) {
       const t = now()
