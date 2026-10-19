@@ -6,18 +6,28 @@ case (the capture or companion module) commits.
 
 import re
 import uuid
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any, Literal
 
 from sqlalchemy import and_, case, func, or_
 from sqlmodel import col, select
 
-from app.modules.finance import advisor, calc, repo, services
+from app.modules.finance import advisor, imports, repo, services
+from app.modules.finance import calc as calc
 from app.modules.finance import schema as S
-from app.modules.finance.models import Account, Category, FinRecord, PlannedItem
+from app.modules.finance.models import (
+    Account,
+    Category,
+    FinRecord,
+    PlannedItem,
+    StatementImport,
+)
 from app.shared import owned_repo
 from app.shared.context import Ctx
 from app.shared.domain import conflict
+
+# ``calc`` is re-exported for read-only use: the deterministic Q&A computes
+# over ``load_state`` with it.
 
 RecordSource = Literal[
     "chat", "quick-add", "photo", "import", "planned", "manual", "adjustment"
@@ -316,3 +326,134 @@ def advisor_answer(
         scope=scope,
         safety_floor_minor=st.safety_floor_minor,
     )
+
+
+def list_accounts(ctx: Ctx) -> list[Account]:
+    """Every account, archived included, in the user's order."""
+    return owned_repo.list_rows(ctx, Account, order_by=[col(Account.sort_order)])
+
+
+def list_categories(ctx: Ctx) -> list[Category]:
+    """The non-archived categories (both kinds) in the user's order."""
+    return owned_repo.list_rows(
+        ctx,
+        Category,
+        col(Category.archived).is_(False),
+        order_by=[col(Category.sort_order)],
+    )
+
+
+def expense_category_counts(ctx: Ctx, *, since: datetime) -> dict[uuid.UUID, int]:
+    """How many categorised, non-adjustment expenses each category had after
+    ``since``. Keys are in order of each category's first expense in the
+    window, so ties keep a stable order."""
+    counts: dict[uuid.UUID, int] = {}
+    for cid in ctx.session.exec(
+        select(FinRecord.category_id)
+        .where(
+            FinRecord.owner_id == ctx.user_id,
+            FinRecord.tenant_id == ctx.tenant_id,
+            col(FinRecord.deleted_at).is_(None),
+            FinRecord.type == "expense",
+            col(FinRecord.is_adjustment).is_(False),
+            col(FinRecord.category_id).is_not(None),
+            col(FinRecord.at) > since,
+        )
+        .order_by(col(FinRecord.at))
+    ).all():
+        if cid is not None:
+            counts[cid] = counts.get(cid, 0) + 1
+    return counts
+
+
+def find_duplicate_expense(
+    ctx: Ctx, *, amount_minor: int, at: datetime
+) -> tuple[datetime, str | None] | None:
+    """The earliest live expense of exactly ``amount_minor`` strictly within
+    a day either side of ``at``: its time and payee."""
+    row = ctx.session.exec(
+        select(FinRecord.at, FinRecord.payee)
+        .where(
+            FinRecord.owner_id == ctx.user_id,
+            FinRecord.tenant_id == ctx.tenant_id,
+            col(FinRecord.deleted_at).is_(None),
+            FinRecord.type == "expense",
+            FinRecord.amount_minor == amount_minor,
+            col(FinRecord.at) > at - timedelta(days=1),
+            col(FinRecord.at) < at + timedelta(days=1),
+        )
+        .order_by(col(FinRecord.at))
+        .limit(1)
+    ).first()
+    return (row[0], row[1]) if row else None
+
+
+def budget_left(ctx: Ctx, *, category_id: str) -> tuple[str, int] | None:
+    """This month's first non-archived budget covering ``category_id`` (or
+    its parent): its name and what is left in centavos (negative when
+    over). None when no budget covers it."""
+    s = repo.load_state(ctx)
+    cats = calc.cat_map(s)
+    parent = cats[category_id].parent_id if category_id in cats else None
+    b = next(
+        (
+            x
+            for x in s.budgets
+            if not x.archived
+            and x.category_ids
+            and (category_id in x.category_ids or (parent and parent in x.category_ids))
+        ),
+        None,
+    )
+    if b is None:
+        return None
+    v = calc.budget_view(s, b)
+    return b.name, v.limit - v.spent
+
+
+def load_state(ctx: Ctx) -> calc.State:
+    """The user's whole finance state: the input to every ``calc``
+    calculation."""
+    return repo.load_state(ctx)
+
+
+def start_statement_import(
+    ctx: Ctx,
+    *,
+    account_id: uuid.UUID,
+    file_name: str,
+    file_type: str,
+    media_id: uuid.UUID | None,
+    import_id: uuid.UUID,
+    rows: list[dict[str, Any]] | None = None,
+) -> uuid.UUID:
+    """Start a statement import for review, with the rows already read from
+    it when given. Replay-safe: an existing ``import_id`` is returned as
+    is. Flushes only, like every function here."""
+    was = ctx.in_batch
+    ctx.in_batch = True  # the import use cases end in ctx.commit()
+    try:
+        existing = owned_repo.get(ctx, StatementImport, import_id)
+        if existing is not None:
+            return existing.id
+        imp = imports.start_import(
+            ctx,
+            data=S.ImportStart.model_validate(
+                {
+                    "id": import_id,
+                    "account_id": account_id,
+                    "file_name": file_name[:255] or "statement",
+                    "file_type": file_type,
+                    "file_media_id": media_id,
+                }
+            ),
+        )
+        if rows:
+            imports.ingest_rows(
+                ctx,
+                import_id=imp.id,
+                data=S.ExtractedIn.model_validate({"rows": rows}),
+            )
+        return imp.id
+    finally:
+        ctx.in_batch = was

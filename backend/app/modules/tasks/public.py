@@ -7,10 +7,13 @@ only flush: the calling use case commits.
 import uuid
 from dataclasses import dataclass
 from datetime import date
-from typing import Literal
+from typing import Any, Literal
+
+from sqlmodel import col
 
 from app.modules.tasks import ops, repo
 from app.modules.tasks.models import Task
+from app.shared import owned_repo
 from app.shared.context import Ctx
 
 TaskSource = Literal["manual", "capture-text", "capture-voice", "capture-photo"]
@@ -80,3 +83,35 @@ def reschedule_by(ctx: Ctx, *, task_id: uuid.UUID, days: int) -> Task:
     """Move a task's due date by ``days`` (counted as a reschedule). Flushes
     only; the calling use case commits."""
     return ops.reschedule_by(ctx, repo.live_task(ctx, task_id), days)
+
+
+def list_open_tasks(
+    ctx: Ctx, *, order: Literal["newest", "due"], limit: int
+) -> list[Task]:
+    """Open tasks, at most ``limit``: newest first, or by due date (undated
+    last) then creation."""
+    order_by: list[Any] = (
+        [col(Task.created_at).desc()]
+        if order == "newest"
+        else [col(Task.due_date), col(Task.created_at)]
+    )
+    return owned_repo.list_rows(
+        ctx, Task, col(Task.status) == "open", order_by=order_by, limit=limit
+    )
+
+
+def count_open_due_by(ctx: Ctx, *, day: date) -> int:
+    """Open tasks with a due date on or before ``day`` (overdue included)."""
+    return owned_repo.count_rows(
+        ctx,
+        Task,
+        col(Task.status) == "open",
+        col(Task.due_date).is_not(None),
+        col(Task.due_date) <= day,
+    )
+
+
+def list_keys(ctx: Ctx) -> dict[str, uuid.UUID]:
+    """The capture router's list keys (``work``, ``job2``, ``life``,
+    ``groceries``) mapped onto this user's non-archived lists."""
+    return ops._list_keys(ctx)
