@@ -1,18 +1,13 @@
 """Every call capture and its AI tools make into another module.
 
-The writes go through each module's ``public.py``. A handful of reads and
-writes the contracts do not offer yet are made here, read-only where
-possible, and each one is marked ``GAP``: the coordinating session can move
-it behind the owning module's ``public.py`` without touching the rest of
-capture. Nothing outside this file imports another module's internals.
+Every read and write goes through the owning module's ``public.py``; this
+file only adapts their results to the shapes capture works with.
 """
 
 import re
 import uuid
 from datetime import date, datetime, timedelta
 from typing import Any
-
-from sqlmodel import col, select
 
 from app.modules.capture.parse import (
     HabitRef,
@@ -26,7 +21,6 @@ from app.modules.fitness import public as fitness
 from app.modules.habits import public as habits
 from app.modules.stats import public as stats
 from app.modules.tasks import public as tasks
-from app.shared import owned_repo
 from app.shared.context import Ctx
 
 __all__ = ["finance", "fitness", "habits", "stats", "tasks"]
@@ -85,55 +79,16 @@ def _account_keys(accounts: list[Any]) -> dict[str, str]:
 
 def build_world(ctx: Ctx, *, at: datetime | None = None) -> World:
     """The parser's snapshot of the user's data at capture time."""
-    # GAP: habits/tasks/finance expose lookups by query only; the parser
-    # scores every candidate the way the prototype does, so it reads the
-    # candidate lists here (read-only).
-    from app.modules.finance.models import Account, Category, FinRecord
-    from app.modules.habits.models import Habit, Routine
-    from app.modules.tasks import ops as task_ops
-    from app.modules.tasks.models import Task
-
     when = at or ctx.now
-    habit_rows = owned_repo.list_rows(
-        ctx, Habit, order_by=[col(Habit.sort_order), col(Habit.created_at)]
-    )
-    routine_rows = owned_repo.list_rows(
-        ctx, Routine, order_by=[col(Routine.created_at)]
-    )
-    task_rows = owned_repo.list_rows(
-        ctx,
-        Task,
-        col(Task.status) == "open",
-        order_by=[col(Task.created_at).desc()],
-        limit=MAX_OPEN_TASKS,
-    )
+    habit_rows = habits.list_habits(ctx)
+    routine_rows = habits.list_routines(ctx)
+    task_rows = tasks.list_open_tasks(ctx, order="newest", limit=MAX_OPEN_TASKS)
     finance.default_account(ctx)  # seeds finance settings + categories
-    accounts = owned_repo.list_rows(ctx, Account, order_by=[col(Account.sort_order)])
-    cats = owned_repo.list_rows(
-        ctx,
-        Category,
-        col(Category.archived).is_(False),
-        order_by=[col(Category.sort_order)],
-    )
+    accounts = finance.list_accounts(ctx)
+    cats = finance.list_categories(ctx)
     by_id = {c.id: c for c in cats}
     slugs = {c.slug: str(c.id) for c in cats if c.slug}
-    since = when - timedelta(days=30)
-    counts: dict[uuid.UUID, int] = {}
-    for cid in ctx.session.exec(
-        select(FinRecord.category_id)
-        .where(
-            FinRecord.owner_id == ctx.user_id,
-            FinRecord.tenant_id == ctx.tenant_id,
-            col(FinRecord.deleted_at).is_(None),
-            FinRecord.type == "expense",
-            col(FinRecord.is_adjustment).is_(False),
-            col(FinRecord.category_id).is_not(None),
-            col(FinRecord.at) > since,
-        )
-        .order_by(col(FinRecord.at))
-    ).all():
-        if cid is not None:
-            counts[cid] = counts.get(cid, 0) + 1
+    counts = finance.expense_category_counts(ctx, since=when - timedelta(days=30))
     ranked = [k for k, _ in sorted(counts.items(), key=lambda kv: -kv[1])]
     for slug in EXTRA_CATS:
         extra = slugs.get(slug)
@@ -164,7 +119,7 @@ def build_world(ctx: Ctx, *, at: datetime | None = None) -> World:
             for a in accounts
             if not a.archived and a.type != "investment"
         ],
-        list_keys={k: str(v) for k, v in task_ops._list_keys(ctx).items()},
+        list_keys={k: str(v) for k, v in tasks.list_keys(ctx).items()},
         meal=lambda text: meal_estimate(ctx, text),
     )
 
@@ -174,12 +129,8 @@ def build_world(ctx: Ctx, *, at: datetime | None = None) -> World:
 
 def habit_log_on(ctx: Ctx, habit_id: uuid.UUID, day: date) -> dict[str, Any] | None:
     """The live (habit, day) log before a capture writes it, so undo can put
-    it back. GAP: habits.public has no read of one log."""
-    from app.modules.habits.models import HabitLog
-
-    row = owned_repo.find_one(
-        ctx, HabitLog, col(HabitLog.habit_id) == habit_id, col(HabitLog.day) == day
-    )
+    it back."""
+    row = habits.get_log(ctx, habit_id=habit_id, day=day)
     if row is None:
         return None
     return {
@@ -192,112 +143,54 @@ def habit_log_on(ctx: Ctx, habit_id: uuid.UUID, day: date) -> dict[str, Any] | N
 
 
 def habit_streak(ctx: Ctx, habit_id: uuid.UUID) -> int:
-    """GAP: the habit's current streak (the post-log "N-day streak" note)."""
-    from app.modules.habits import logic as HL
-    from app.modules.habits import views as HV
-
-    w = HV.load_world(ctx, since=ctx.today - timedelta(days=400))
-    v = w.views.get(habit_id)
-    return HL.streaks(v, w.idx, ctx.today).current if v else 0
+    """The habit's current streak (the post-log "N-day streak" note)."""
+    return habits.current_streak(ctx, habit_id=habit_id)
 
 
 def duplicate_expense(
     ctx: Ctx, *, amount_minor: int, at: datetime
 ) -> tuple[datetime, str | None] | None:
-    """An expense of the same amount within a day of ``at`` (IA J4 alt).
-    GAP: finance.public has no record search."""
-    from app.modules.finance.models import FinRecord
-
-    row = ctx.session.exec(
-        select(FinRecord.at, FinRecord.payee)
-        .where(
-            FinRecord.owner_id == ctx.user_id,
-            FinRecord.tenant_id == ctx.tenant_id,
-            col(FinRecord.deleted_at).is_(None),
-            FinRecord.type == "expense",
-            FinRecord.amount_minor == amount_minor,
-            col(FinRecord.at) > at - timedelta(days=1),
-            col(FinRecord.at) < at + timedelta(days=1),
-        )
-        .order_by(col(FinRecord.at))
-        .limit(1)
-    ).first()
-    return (row[0], row[1]) if row else None
+    """An expense of the same amount within a day of ``at`` (IA J4 alt)."""
+    return finance.find_duplicate_expense(ctx, amount_minor=amount_minor, at=at)
 
 
 def budget_note(ctx: Ctx, category_id: str | None) -> str | None:
     """'P400 left in Food this month' after an expense (prototype
-    ``budgetNote``). GAP: finance.public has no budget read."""
+    ``budgetNote``)."""
     if not category_id:
         return None
     from app.modules.capture.money import peso
-    from app.modules.finance import calc as FC
-    from app.modules.finance import repo as FR
 
-    s = FR.load_state(ctx)
-    cats = FC.cat_map(s)
-    parent = cats[category_id].parent_id if category_id in cats else None
-    b = next(
-        (
-            x
-            for x in s.budgets
-            if not x.archived
-            and x.category_ids
-            and (category_id in x.category_ids or (parent and parent in x.category_ids))
-        ),
-        None,
-    )
-    if b is None:
+    hit = finance.budget_left(ctx, category_id=category_id)
+    if hit is None:
         return None
-    v = FC.budget_view(s, b)
-    left = v.limit - v.spent
+    name, left = hit
     if left >= 0:
-        return f"{peso(left)} left in {b.name} this month"
-    return f"Over {b.name} budget by {peso(-left)}"
+        return f"{peso(left)} left in {name} this month"
+    return f"Over {name} budget by {peso(-left)}"
 
 
 def macros_left_today(ctx: Ctx) -> tuple[float, float, float, float] | None:
-    """GAP: fitness.public has no macros-left read."""
-    from app.modules.fitness import calc as XC
-    from app.modules.fitness import repo as XR
-
-    left = XC.macros_left(XR.load_state(ctx), ctx.today)
+    left = fitness.macros_left(ctx, day=ctx.today)
     if left is None:
         return None
     return left.kcal, left.protein, left.carbs, left.fat
 
 
 def open_tasks_due_by(ctx: Ctx, day: date) -> int:
-    from app.modules.tasks.models import Task
-
-    return owned_repo.count_rows(
-        ctx,
-        Task,
-        col(Task.status) == "open",
-        col(Task.due_date).is_not(None),
-        col(Task.due_date) <= day,
-    )
+    return tasks.count_open_due_by(ctx, day=day)
 
 
 def finished_workouts_since(ctx: Ctx, since: datetime) -> int:
-    from app.modules.fitness.models import Workout
-
-    return owned_repo.count_rows(
-        ctx,
-        Workout,
-        col(Workout.status) == "finished",
-        col(Workout.started_at) > since,
-    )
+    return fitness.count_finished_workouts_since(ctx, since=since)
 
 
 # ---------------------------------------------------------------- writes
 
 
 def delete_habit(ctx: Ctx, habit_id: uuid.UUID) -> None:
-    """Undo of a habit a capture created. GAP: habits.public has no delete."""
-    from app.modules.habits import services as HS
-
-    HS._delete_habit(ctx, habit_id)
+    """Undo of a habit a capture created."""
+    habits.delete_habit(ctx, habit_id=habit_id)
 
 
 def put_back_habit_log(
@@ -325,18 +218,23 @@ def log_workout(
     cardio: dict[str, object] | None,
     workout_id: uuid.UUID,
 ) -> uuid.UUID:
-    """A finished workout on ``day``. GAP: ``fitness.public.WorkoutDraft``
-    has no day, so "swam 30 min yesterday" would land today; the fitness use
-    case takes one."""
-    from app.modules.fitness import services as XS
-
-    w = XS.log_workout_from_chat(
+    """A finished workout on ``day`` ("swam 30 min yesterday" lands
+    yesterday)."""
+    w = fitness.log_workout_from_chat(
         ctx,
-        name=name,
-        exercises=exercises,
-        day=day,
-        workout_id=workout_id,
-        cardio=cardio,
+        fitness.WorkoutDraft(
+            name=name,
+            exercises=[
+                fitness.ExerciseDraft(
+                    exercise=ex,
+                    sets=[fitness.SetDraft(reps=r, weight=kg) for r, kg in sets],
+                )
+                for ex, sets in exercises
+            ],
+            cardio=cardio,
+            workout_id=workout_id,
+            day=day,
+        ),
     )
     return w.id
 
@@ -366,95 +264,39 @@ def start_statement_import(
     import_id: uuid.UUID,
     rows: list[dict[str, Any]] | None,
 ) -> uuid.UUID:
-    """Hand a statement to finance's import (finance owns the review).
-    GAP: finance.public has no import entry; these two use cases commit."""
-    from app.modules.finance import imports as FI
-    from app.modules.finance import schema as FS
-
-    # Both use cases end in ctx.commit(); inside the capture's SAVEPOINT that
-    # must only flush (the capture commits once, at the end).
-    was = ctx.in_batch
-    ctx.in_batch = True
-    try:
-        return _start_import(
-            ctx, FI, FS, account_id, file_name, file_type, media_id, import_id, rows
-        )
-    finally:
-        ctx.in_batch = was
-
-
-def _start_import(
-    ctx: Ctx,
-    FI: Any,
-    FS: Any,
-    account_id: uuid.UUID,
-    file_name: str,
-    file_type: str,
-    media_id: uuid.UUID | None,
-    import_id: uuid.UUID,
-    rows: list[dict[str, Any]] | None,
-) -> uuid.UUID:
-    existing = owned_repo.get(ctx, FI.StatementImport, import_id)
-    if existing is not None:
-        return existing.id  # type: ignore[no-any-return]
-    imp = FI.start_import(
+    """Hand a statement to finance's import (finance owns the review)."""
+    return finance.start_statement_import(
         ctx,
-        data=FS.ImportStart(
-            id=import_id,
-            account_id=account_id,
-            file_name=file_name[:255] or "statement",
-            file_type=file_type,
-            file_media_id=media_id,
-        ),
+        account_id=account_id,
+        file_name=file_name,
+        file_type=file_type,
+        media_id=media_id,
+        import_id=import_id,
+        rows=rows,
     )
-    if rows:
-        FI.ingest_rows(
-            ctx,
-            import_id=imp.id,
-            data=FS.ExtractedIn.model_validate({"rows": rows}),
-        )
-    return imp.id  # type: ignore[no-any-return]
 
 
 # ---------------------------------------------------------------- Q&A reads
-# GAP: the deterministic Q&A (prototype ``qa.ts``) computes over each
-# module's own ported calculations; none of them is on a ``public.py`` yet.
+# The deterministic Q&A (prototype ``qa.ts``) computes over each module's own
+# state with that module's ported calculations, all from its ``public.py``.
 
 
 def finance_state(ctx: Ctx) -> Any:
-    from app.modules.finance import repo as FR
-
-    return FR.load_state(ctx)
+    return finance.load_state(ctx)
 
 
 def fitness_state(ctx: Ctx) -> Any:
-    from app.modules.fitness import repo as XR
-
-    return XR.load_state(ctx)
+    return fitness.load_state(ctx)
 
 
 def habits_world(ctx: Ctx, since: date) -> Any:
-    from app.modules.habits import views as HV
-
-    return HV.load_world(ctx, since=since)
+    return habits.load_world(ctx, since=since)
 
 
 def open_task_rows(ctx: Ctx) -> list[Any]:
-    from app.modules.tasks.models import Task
-
-    return owned_repo.list_rows(
-        ctx,
-        Task,
-        col(Task.status) == "open",
-        order_by=[col(Task.due_date), col(Task.created_at)],
-        limit=MAX_OPEN_TASKS,
-    )
+    return tasks.list_open_tasks(ctx, order="due", limit=MAX_OPEN_TASKS)
 
 
 def calc_modules() -> tuple[Any, Any, Any]:
     """(finance calc, fitness calc, habits logic)."""
-    from app.modules.finance import calc as FC
-    from app.modules.fitness import calc as XC
-    from app.modules.habits import logic as HL
-
-    return FC, XC, HL
+    return finance.calc, fitness.calc, habits.logic

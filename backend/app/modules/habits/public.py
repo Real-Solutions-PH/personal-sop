@@ -4,13 +4,21 @@ None of these commit: the calling use case does (see ``app.shared.context``).
 """
 
 import uuid
-from datetime import date
+from datetime import date, timedelta
 from typing import Literal
 
+from sqlmodel import col
+
+from app.modules.habits import logic as logic
 from app.modules.habits import services as svc
+from app.modules.habits import views
 from app.modules.habits.models import Habit, HabitLog, Routine, RoutineRun
 from app.modules.habits.schema import EVERY_DAY, HabitCreate, ScheduleSlot
+from app.shared import owned_repo
 from app.shared.context import Ctx
+
+# ``logic`` is re-exported for read-only use: the deterministic Q&A computes
+# streaks, due days and completion over ``load_world`` with it.
 
 LogSource = Literal["tap", "timer", "routine", "capture", "workout"]
 
@@ -106,3 +114,41 @@ def auto_check_workout_habits(
     ``derived_id("workout-habit", workout_id, str(habit_id))``; an existing
     log for the day keeps its id."""
     return svc.auto_check_workout_habits(ctx, day=day, workout_id=workout_id)
+
+
+def delete_habit(ctx: Ctx, *, habit_id: uuid.UUID) -> None:
+    """Delete a habit, its logs and pauses, and drop it from every routine
+    (the undo of a habit a capture created)."""
+    svc._delete_habit(ctx, habit_id)
+
+
+def get_log(ctx: Ctx, *, habit_id: uuid.UUID, day: date) -> HabitLog | None:
+    """The live (habit, day) log, if any."""
+    return owned_repo.find_one(
+        ctx, HabitLog, col(HabitLog.habit_id) == habit_id, col(HabitLog.day) == day
+    )
+
+
+def current_streak(ctx: Ctx, *, habit_id: uuid.UUID) -> int:
+    """The habit's current streak as of today (0 for an unknown habit)."""
+    w = views.load_world(ctx, since=ctx.today - timedelta(days=400))
+    v = w.views.get(habit_id)
+    return logic.streaks(v, w.idx, ctx.today).current if v else 0
+
+
+def list_habits(ctx: Ctx) -> list[Habit]:
+    """Every habit, archived included, in the user's order."""
+    return owned_repo.list_rows(
+        ctx, Habit, order_by=[col(Habit.sort_order), col(Habit.created_at)]
+    )
+
+
+def list_routines(ctx: Ctx) -> list[Routine]:
+    """Every routine, oldest first."""
+    return owned_repo.list_rows(ctx, Routine, order_by=[col(Routine.created_at)])
+
+
+def load_world(ctx: Ctx, *, since: date) -> views.World:
+    """Habits, logs from ``since``, routines and runs: the input to every
+    ``logic`` calculation."""
+    return views.load_world(ctx, since=since)

@@ -5,10 +5,13 @@ None of these commit: the calling use case does (see ``app.shared.context``).
 
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal
 
+from sqlmodel import col
+
 from app.modules.fitness import calc as C
+from app.modules.fitness import calc as calc
 from app.modules.fitness import foods as F
 from app.modules.fitness import repo, services
 from app.modules.fitness.models import Exercise, Meal, WeighIn, Workout
@@ -16,6 +19,9 @@ from app.modules.media import public as media_public
 from app.modules.profile import public as profile_public
 from app.shared import owned_repo
 from app.shared.context import Ctx
+
+# ``calc`` is re-exported for read-only use: the deterministic Q&A computes
+# over ``load_state`` with it.
 
 
 @dataclass(frozen=True)
@@ -61,6 +67,7 @@ class WorkoutDraft:
     exercises: list[ExerciseDraft] = field(default_factory=list)
     cardio: dict[str, object] | None = None
     workout_id: uuid.UUID | None = None
+    day: date | None = None  # business day it happened on; None is today
 
 
 def log_workout_from_chat(ctx: Ctx, draft: WorkoutDraft) -> Workout:
@@ -72,6 +79,7 @@ def log_workout_from_chat(ctx: Ctx, draft: WorkoutDraft) -> Workout:
         exercises=[
             (e.exercise, [(s.reps, s.weight) for s in e.sets]) for e in draft.exercises
         ],
+        day=draft.day,
         workout_id=draft.workout_id,
         cardio=draft.cardio,
     )
@@ -190,3 +198,25 @@ def latest_weight_kg(ctx: Ctx) -> float | None:
     """The most recent weigh-in, in kilograms."""
     latest = repo.latest_weigh_in(ctx)
     return latest.weight_kg if latest else None
+
+
+def macros_left(ctx: Ctx, *, day: date) -> C.Macros | None:
+    """The day's target minus what was eaten (pending estimates excluded);
+    None when no target is set."""
+    return C.macros_left(repo.load_state(ctx), day)
+
+
+def count_finished_workouts_since(ctx: Ctx, *, since: datetime) -> int:
+    """Finished workouts started after ``since``."""
+    return owned_repo.count_rows(
+        ctx,
+        Workout,
+        col(Workout.status) == "finished",
+        col(Workout.started_at) > since,
+    )
+
+
+def load_state(ctx: Ctx) -> C.FitState:
+    """The user's whole fitness state: the input to every ``calc``
+    calculation."""
+    return repo.load_state(ctx)
