@@ -382,7 +382,9 @@ describe("habits routines (live)", () => {
                 "eq",
                 `/habits/routines/${r.id}/play`,
               )
-              cy.findByText("2/2").should("exist")
+              cy.findAllByText("2/2")
+                .filter(":visible")
+                .should("have.length", 1)
               cy.visit(`/habits/routines/${r.id}`)
               cy.findByRole("button", { name: /Resume · step 2\/2/ }).should(
                 "exist",
