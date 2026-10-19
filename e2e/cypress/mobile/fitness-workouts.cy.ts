@@ -37,7 +37,6 @@ function openFitnessWithLibrary(user: LiveUser) {
   cy.findByText("Push A", { timeout: 30000 }).should("exist")
 }
 
-
 function addExercise(name: string) {
   cy.findByRole("button", { name: "Add exercise" }).click()
   cy.findByRole("textbox", { name: "Search exercises" }).type(name)
@@ -168,7 +167,12 @@ describe("fitness · workouts (live)", () => {
         )
         cy.findByRole("button", { name: "Skip" }).click()
         cy.findByText(/Rest · /).should("not.exist")
-        cy.eventuallyApi<unknown>(user, "/fitness/rest", (b) => b === null)
+        // (cy.liveApi cannot yield a null body, so GET /fitness/rest is
+        // read through Postgres: the timer row is gone.)
+        cy.eventuallyRows(
+          "select 1 where not exists (select 1 from rest_timer where owner_id = $1 and deleted_at is null)",
+          [user.id],
+        )
 
         // Exercise options: a note, move Lateral Raise up, then remove it.
         cy.findByRole("button", { name: "Options for Lateral Raise" }).click()
@@ -221,10 +225,10 @@ describe("fitness · workouts (live)", () => {
             b.exercises.length === 1 &&
             b.exercises[0].sets.length === 1,
         )
-        cy.eventuallyApi<unknown>(
+        cy.eventuallyApi<{ active: unknown }>(
           user,
-          "/fitness/workouts/active",
-          (b) => b === null,
+          "/fitness/overview",
+          (b) => b.active === null,
         )
       })
     })
@@ -302,7 +306,10 @@ describe("fitness · workouts (live)", () => {
               )
 
               // Third way to start: "Repeat last Push A".
-              cy.findByText("Start another workout").click()
+              cy.findAllByText("Start another workout")
+                .filter(":visible")
+                .first()
+                .click()
               cy.findByText(/Repeat last Push A/).click()
               cy.location("pathname").should("eq", "/fitness/workout")
               cy.eventuallyRows(`${ACTIVE} and id <> $2`, [user.id, wid]).then(
@@ -320,10 +327,10 @@ describe("fitness · workouts (live)", () => {
                     "select 1 from workout where id = $1 and status = 'discarded' and deleted_at is not null",
                     [rid],
                   )
-                  cy.eventuallyApi<unknown>(
+                  cy.eventuallyApi<{ active: unknown }>(
                     user,
-                    "/fitness/workouts/active",
-                    (b) => b === null,
+                    "/fitness/overview",
+                    (b) => b.active === null,
                   )
                 },
               )
