@@ -119,7 +119,6 @@ describe("social stories & notes (live)", () => {
             "Looks great",
           )
           cy.findByRole("button", { name: "Send reply" }).click()
-          cy.findByRole("textbox", { name: "Reply to story" }).blur()
           cy.findByRole("button", { name: "Like story" }).click()
 
           cy.eventuallyRows(
