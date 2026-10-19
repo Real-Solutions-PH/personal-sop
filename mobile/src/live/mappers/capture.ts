@@ -378,10 +378,20 @@ function foldLogs(card: RecordCard, logs: LiveLog[]): RecordCard {
   return { ...card, log: keep.sort((a, b) => a.at.localeCompare(b.at)) }
 }
 
+/** A held card picks up the log rows that were waiting for it. */
+function withHeldLogs<T extends ReplyItem>(i: T): T {
+  if (i.t !== "record") return i
+  const logs = heldLogs.get(i.id)
+  if (!logs) return i
+  heldLogs.delete(i.id)
+  return foldLogs(i, logs) as T
+}
+
 function attachHeld(c: Capture): Capture {
-  const items = heldItems.get(c.id)
-  if (!items) return c
+  const held = heldItems.get(c.id)
+  if (!held) return c
   heldItems.delete(c.id)
+  const items = held.map(withHeldLogs)
   return {
     ...c,
     reply: {
@@ -459,13 +469,7 @@ function itemMapper<L extends LiveItem>(opts: {
         const mine = byCap.get(c.id) ?? []
         const items = c.reply?.items ?? []
         if (!mine.length && !items.some((i) => dels.includes(i.id))) return c
-        const withLogs = mine.map((m) => {
-          if (m.t !== "record") return m
-          const logs = heldLogs.get(m.id)
-          if (!logs) return m
-          heldLogs.delete(m.id)
-          return foldLogs(m, logs) as L
-        })
+        const withLogs = mine.map(withHeldLogs)
         return {
           ...c,
           reply: {
