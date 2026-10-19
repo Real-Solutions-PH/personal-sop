@@ -78,9 +78,9 @@ describe("habits (live)", () => {
       cy.findByRole("textbox", { name: "Name" }).type("Water")
       cy.findByRole("button", { name: "Choose 💧" }).click()
       cy.findByRole("tab", { name: "# Count" }).click()
-      cy.findByLabelText("Target").clear().type("8")
-      cy.findByLabelText("Unit").type("glasses")
-      cy.findByLabelText("“+” adds").clear().type("2")
+      cy.findByRole("textbox", { name: "Target" }).clear().type("8")
+      cy.findByRole("textbox", { name: "Unit" }).type("glasses")
+      cy.findByRole("textbox", { name: "“+” adds" }).clear().type("2")
       cy.findByRole("button", { name: "Schedule" }).click()
       cy.findByRole("button", { name: "Every day" }).click()
       cy.findByRole("button", { name: "Done" }).click()
@@ -127,7 +127,7 @@ describe("habits (live)", () => {
         // Edit: rename and raise the target.
         cy.findByRole("button", { name: "Edit habit" }).click()
         cy.findByRole("textbox", { name: "Name" }).clear().type("Water intake")
-        cy.findByLabelText("Target").clear().type("10")
+        cy.findByRole("textbox", { name: "Target" }).clear().type("10")
         cy.findByRole("button", { name: "Save changes" }).click()
         dbRows(
           "select 1 from habit where id = $1 and name = 'Water intake' and target = 10",
@@ -323,11 +323,10 @@ describe("habits (live)", () => {
     cy.newLiveUser("habits").then((user) => {
       seedHabit(user, { name: "Yoga", type: "check" }).then((h) => {
         signIn(user)
-        cy.visit(`/habits/${h.id}/edit`)
-        cy.findByRole("textbox", { name: "Name" }, { timeout: 120000 }).should(
-          "have.value",
-          "Yoga",
-        )
+        cy.visit(`/habits/${h.id}`)
+        pulled("Yoga")
+        cy.findByRole("button", { name: "Edit habit" }).click()
+        cy.findByRole("textbox", { name: "Name" }).should("have.value", "Yoga")
         cy.findByRole("button", { name: "Pause" }).click()
         dbRows(
           `select 1 from habit h join habit_pause p on p.habit_id = h.id
@@ -356,11 +355,10 @@ describe("habits (live)", () => {
     cy.newLiveUser("habits").then((user) => {
       seedHabit(user, { name: "Tea", type: "check" }).then((h) => {
         signIn(user)
-        cy.visit(`/habits/${h.id}/edit`)
-        cy.findByRole("textbox", { name: "Name" }, { timeout: 120000 }).should(
-          "have.value",
-          "Tea",
-        )
+        cy.visit(`/habits/${h.id}`)
+        pulled("Tea")
+        cy.findByRole("button", { name: "Edit habit" }).click()
+        cy.findByRole("textbox", { name: "Name" }).should("have.value", "Tea")
         cy.findByRole("button", { name: "Pause" }).click()
         dbRows("select 1 from habit where id = $1 and status = 'paused'", [
           h.id,
