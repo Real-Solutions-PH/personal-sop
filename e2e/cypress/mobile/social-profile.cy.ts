@@ -196,8 +196,8 @@ describe("social profile & follows (live)", () => {
           "select id from follow where owner_id = $1 and followee_id = $2 and deleted_at is null",
           [b.id, a.id],
         )
-        // Leaving the Activity screen marks it read.
-        cy.visit("/social")
+        // Leaving the Activity screen (in-app, not a reload) marks it read.
+        cy.findByRole("button", { name: "Back" }).click()
         cy.eventuallyApi<{ activity_unread: number }>(
           a,
           "/social/badges",

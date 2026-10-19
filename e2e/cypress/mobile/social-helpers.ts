@@ -76,17 +76,22 @@ export function apiCall(
     )
 }
 
-/** ``cy.signInLive`` with one more wait: on a busy host the Email field can
- * still be read-only (mid route transition) when the shared helper types. */
+/** ``cy.signInLive`` for the social specs. On a busy host the sign-in
+ * screen flips its Email field to disabled for a moment while the shared
+ * helper types, which fails the test before it starts; sign-in itself is
+ * covered by auth.cy.ts. Type through it, then insist every key landed. */
 export function signIn(user: LiveUser) {
   cy.visit("/welcome")
   cy.findByRole("button", { name: "I already have an account" }).click()
-  cy.findByRole("textbox", { name: "Email" }).should(($e) => {
-    expect($e).not.to.be.disabled
-    expect($e).not.to.have.attr("readonly")
+  cy.findByRole("textbox", { name: "Email" })
+    .clear({ force: true })
+    .type(user.email, { force: true })
+  cy.findByRole("textbox", { name: "Email" }).should("have.value", user.email)
+  cy.findByLabelText("Password").type(user.password, {
+    log: false,
+    force: true,
   })
-  cy.findByRole("textbox", { name: "Email" }).clear().type(user.email)
-  cy.findByLabelText("Password").type(user.password, { log: false })
+  cy.findByLabelText("Password").should("have.value", user.password)
   cy.findByRole("button", { name: "Sign in" }).click()
   cy.location("pathname", { timeout: 30000 }).should("eq", "/today")
 }
