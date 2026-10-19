@@ -30,6 +30,7 @@ import { fitStore } from "@domain/fitness/store"
 import { derivedId } from "@domain/lib/ids"
 import { liveStore } from "@domain/lib/live"
 import type { StorageAdapter } from "@domain/lib/store"
+import { clearToBlank } from "../blank"
 import { SyncEngine } from "../engine"
 import type { Http } from "../http"
 import type { AnyMapper, Payload } from "../mapper"
@@ -223,6 +224,16 @@ function step(e: SyncEngine, seen: Set<string>) {
   }
   return ops
 }
+
+test("a blank live account starts with the server's goal, not the demo's", () => {
+  // Live E2E: a new account's first fitness_settings push carried the
+  // prototype's demo goal (cut, 76 kg) over the server default (maintain).
+  fitStore.set((s) => ({ ...s, settings: seed().settings }))
+  clearToBlank()
+  const st = fitStore.get().settings
+  expect(st.goalDirection).toBe("maintain")
+  expect(st.goalWeight).toBeUndefined()
+})
 
 test("runtime.ts lists the fitness mappers", () => {
   const rt = require("../runtime") as typeof import("../runtime")
