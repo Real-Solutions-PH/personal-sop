@@ -4,7 +4,6 @@ import uuid
 from datetime import timedelta
 from typing import Any
 
-import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
@@ -191,11 +190,6 @@ def test_story_events_reach_the_audience_only(
     assert bus.types(cy) == ["social.story"] and bus.types(ben) == []
 
 
-@pytest.mark.xfail(
-    raises=NotImplementedError,
-    strict=False,
-    reason="media.public.require_ready is a stub until merge",
-)
 def test_photo_story_needs_ready_media(client: TestClient, trio: Trio) -> None:
     r = client.post(
         f"{API}/stories",

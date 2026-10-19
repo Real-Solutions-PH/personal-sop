@@ -4,7 +4,6 @@ import uuid
 from datetime import timedelta
 from typing import Any
 
-import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
@@ -67,11 +66,6 @@ def test_reused_post_id_of_another_person_is_409(
     assert r.status_code == 409 and code(r) == "id_conflict"
 
 
-@pytest.mark.xfail(
-    raises=NotImplementedError,
-    strict=False,
-    reason="media.public.require_ready is a stub until merge",
-)
 def test_create_post_with_media(client: TestClient, trio: Trio) -> None:
     r = client.post(
         f"{API}/posts",

@@ -244,3 +244,29 @@ def test_presets_cover_every_provider_and_only_custom_takes_a_url() -> None:
         else:
             assert not p.custom_base_url
             assert p.default_base_url and p.default_base_url.startswith("https://")
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "http://localhost:11434/v1",
+        "http://127.0.0.1:1234/v1",
+        "https://10.0.0.5/v1",
+        "https://192.168.1.20/v1",
+        "https://169.254.169.254/latest",
+        "https://[::1]/v1",
+        "https://ollama.localhost/v1",
+    ],
+)
+def test_private_hosts_refused_off_local(raw: str) -> None:
+    with pytest.raises(BaseUrlRejected) as exc:
+        validate_base_url(raw, allow_local=False)
+    assert exc.value.code == "base_url_private"
+
+
+def test_public_hosts_allowed_off_local() -> None:
+    assert (
+        validate_base_url("https://my-ollama.example.com/v1", allow_local=False)
+        == "https://my-ollama.example.com/v1"
+    )
+    assert validate_base_url("http://localhost:11434/v1", allow_local=True)

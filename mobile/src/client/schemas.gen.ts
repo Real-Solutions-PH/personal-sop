@@ -523,6 +523,82 @@ export const AccountsPublicSchema = {
     title: 'AccountsPublic'
 } as const;
 
+export const ActivitiesPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/ActivityPublic'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        },
+        unread: {
+            type: 'integer',
+            title: 'Unread'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count', 'unread'],
+    title: 'ActivitiesPublic'
+} as const;
+
+export const ActivityPublicSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        kind: {
+            type: 'string',
+            enum: ['like', 'comment', 'follow', 'mention', 'story'],
+            title: 'Kind'
+        },
+        actor: {
+            '$ref': '#/components/schemas/PersonBrief'
+        },
+        at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'At'
+        },
+        post_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Post Id'
+        },
+        text: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Text'
+        },
+        unread: {
+            type: 'boolean',
+            title: 'Unread'
+        }
+    },
+    type: 'object',
+    required: ['id', 'kind', 'actor', 'at', 'post_id', 'text', 'unread'],
+    title: 'ActivityPublic'
+} as const;
+
 export const AddExercisesSchema = {
     properties: {
         exercise_ids: {
@@ -805,6 +881,109 @@ export const ArchivedRowSchema = {
     title: 'ArchivedRow'
 } as const;
 
+export const AreaRatePublicSchema = {
+    properties: {
+        module: {
+            type: 'string',
+            title: 'Module'
+        },
+        rate: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Rate'
+        }
+    },
+    type: 'object',
+    required: ['module', 'rate'],
+    title: 'AreaRatePublic'
+} as const;
+
+export const AssignmentInSchema = {
+    properties: {
+        credential_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Credential Id'
+        },
+        model: {
+            type: 'string',
+            maxLength: 120,
+            minLength: 1,
+            title: 'Model'
+        },
+        supports_vision: {
+            type: 'boolean',
+            title: 'Supports Vision',
+            default: false
+        }
+    },
+    additionalProperties: false,
+    type: 'object',
+    required: ['credential_id', 'model'],
+    title: 'AssignmentIn'
+} as const;
+
+export const AssignmentPublicSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        purpose: {
+            type: 'string',
+            enum: ['chat', 'capture', 'vision', 'transcription', 'advisor'],
+            title: 'Purpose'
+        },
+        credential_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Credential Id'
+        },
+        model: {
+            type: 'string',
+            title: 'Model'
+        },
+        supports_vision: {
+            type: 'boolean',
+            title: 'Supports Vision'
+        },
+        updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At'
+        }
+    },
+    type: 'object',
+    required: ['id', 'purpose', 'credential_id', 'model', 'supports_vision', 'updated_at'],
+    title: 'AssignmentPublic'
+} as const;
+
+export const AssignmentsOutSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/AssignmentPublic'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'AssignmentsOut'
+} as const;
+
 export const AuditLogPublicSchema = {
     properties: {
         id: {
@@ -901,6 +1080,22 @@ export const AuditLogsPublicSchema = {
     type: 'object',
     required: ['data', 'count'],
     title: 'AuditLogsPublic'
+} as const;
+
+export const BadgesSchema = {
+    properties: {
+        activity_unread: {
+            type: 'integer',
+            title: 'Activity Unread'
+        },
+        chats_unread: {
+            type: 'integer',
+            title: 'Chats Unread'
+        }
+    },
+    type: 'object',
+    required: ['activity_unread', 'chats_unread'],
+    title: 'Badges'
 } as const;
 
 export const BodyOutSchema = {
@@ -1618,6 +1813,120 @@ export const CategoryUsesSchema = {
     title: 'CategoryUses'
 } as const;
 
+export const ChatPublicSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        name: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Name'
+        },
+        is_group: {
+            type: 'boolean',
+            title: 'Is Group'
+        },
+        members: {
+            items: {
+                '$ref': '#/components/schemas/PersonBrief'
+            },
+            type: 'array',
+            title: 'Members'
+        },
+        muted: {
+            type: 'boolean',
+            title: 'Muted'
+        },
+        pinned: {
+            type: 'boolean',
+            title: 'Pinned'
+        },
+        read_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Read At'
+        },
+        unread: {
+            type: 'integer',
+            title: 'Unread'
+        },
+        last_message: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/app__modules__social__schema__MessagePublic'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        },
+        last_message_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Last Message At'
+        }
+    },
+    type: 'object',
+    required: ['id', 'name', 'is_group', 'members', 'muted', 'pinned', 'read_at', 'unread', 'last_message', 'last_message_at'],
+    title: 'ChatPublic'
+} as const;
+
+export const ChatRenameSchema = {
+    properties: {
+        name: {
+            type: 'string',
+            maxLength: 80,
+            minLength: 1,
+            title: 'Name'
+        }
+    },
+    type: 'object',
+    required: ['name'],
+    title: 'ChatRename'
+} as const;
+
+export const ChatsPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/ChatPublic'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'ChatsPublic'
+} as const;
+
 export const CheckInSchema = {
     properties: {
         day: {
@@ -1641,6 +1950,125 @@ export const CheckInSchema = {
     },
     type: 'object',
     title: 'CheckIn'
+} as const;
+
+export const CloseFriendInSchema = {
+    properties: {
+        close_friend: {
+            type: 'boolean',
+            title: 'Close Friend'
+        }
+    },
+    type: 'object',
+    required: ['close_friend'],
+    title: 'CloseFriendIn'
+} as const;
+
+export const CommentCreateSchema = {
+    properties: {
+        id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Id'
+        },
+        text: {
+            type: 'string',
+            maxLength: 2200,
+            minLength: 1,
+            title: 'Text'
+        },
+        reply_to_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Reply To Id'
+        }
+    },
+    type: 'object',
+    required: ['text'],
+    title: 'CommentCreate'
+} as const;
+
+export const CommentPublicSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        post_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Post Id'
+        },
+        author: {
+            '$ref': '#/components/schemas/PersonBrief'
+        },
+        text: {
+            type: 'string',
+            title: 'Text'
+        },
+        created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At'
+        },
+        likes: {
+            type: 'integer',
+            title: 'Likes'
+        },
+        liked: {
+            type: 'boolean',
+            title: 'Liked'
+        },
+        reply_to_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Reply To Id'
+        }
+    },
+    type: 'object',
+    required: ['id', 'post_id', 'author', 'text', 'created_at', 'likes', 'liked', 'reply_to_id'],
+    title: 'CommentPublic'
+} as const;
+
+export const CommentsPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/CommentPublic'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'CommentsPublic'
 } as const;
 
 export const CommitInSchema = {
@@ -1808,6 +2236,191 @@ export const CountResultSchema = {
     type: 'object',
     required: ['count'],
     title: 'CountResult'
+} as const;
+
+export const CredentialCreateSchema = {
+    properties: {
+        id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Id'
+        },
+        provider: {
+            type: 'string',
+            enum: ['openrouter', 'openai', 'anthropic', 'gemini', 'groq', 'nebius', 'together', 'custom'],
+            title: 'Provider'
+        },
+        label: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 60,
+                    minLength: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Label'
+        },
+        base_url: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Base Url'
+        },
+        api_key: {
+            type: 'string',
+            format: 'password',
+            title: 'Api Key',
+            writeOnly: true
+        }
+    },
+    additionalProperties: false,
+    type: 'object',
+    required: ['provider', 'api_key'],
+    title: 'CredentialCreate'
+} as const;
+
+export const CredentialPublicSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        provider: {
+            type: 'string',
+            enum: ['openrouter', 'openai', 'anthropic', 'gemini', 'groq', 'nebius', 'together', 'custom'],
+            title: 'Provider'
+        },
+        label: {
+            type: 'string',
+            title: 'Label'
+        },
+        base_url: {
+            type: 'string',
+            title: 'Base Url'
+        },
+        key_last4: {
+            type: 'string',
+            title: 'Key Last4'
+        },
+        verified_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Verified At'
+        },
+        last_error_code: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Last Error Code'
+        },
+        created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At'
+        },
+        updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At'
+        }
+    },
+    type: 'object',
+    required: ['id', 'provider', 'label', 'base_url', 'key_last4', 'verified_at', 'last_error_code', 'created_at', 'updated_at'],
+    title: 'CredentialPublic'
+} as const;
+
+export const CredentialUpdateSchema = {
+    properties: {
+        label: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 60,
+                    minLength: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Label'
+        },
+        base_url: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Base Url'
+        },
+        api_key: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'password',
+                    writeOnly: true
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Api Key'
+        }
+    },
+    additionalProperties: false,
+    type: 'object',
+    title: 'CredentialUpdate'
+} as const;
+
+export const CredentialsOutSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/CredentialPublic'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'CredentialsOut'
 } as const;
 
 export const CsvInSchema = {
@@ -2138,6 +2751,73 @@ export const DayVerdictOutSchema = {
     type: 'object',
     required: ['day', 'totals', 'target', 'meals', 'kcal_ok', 'protein_hit', 'over', 'verdict'],
     title: 'DayVerdictOut'
+} as const;
+
+export const DirectInSchema = {
+    properties: {
+        user_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'User Id'
+        },
+        id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Id'
+        }
+    },
+    type: 'object',
+    required: ['user_id'],
+    title: 'DirectIn'
+} as const;
+
+export const DraftInSchema = {
+    properties: {
+        body: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Body'
+        }
+    },
+    type: 'object',
+    title: 'DraftIn'
+} as const;
+
+export const DraftPublicSchema = {
+    properties: {
+        kind: {
+            type: 'string',
+            enum: ['post', 'story'],
+            title: 'Kind'
+        },
+        body: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Body'
+        },
+        updated_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Updated At'
+        }
+    },
+    type: 'object',
+    required: ['kind', 'body', 'updated_at'],
+    title: 'DraftPublic'
 } as const;
 
 export const DueInSchema = {
@@ -2667,6 +3347,28 @@ export const ExercisesOutSchema = {
     title: 'ExercisesOut'
 } as const;
 
+export const ExplorePublicSchema = {
+    properties: {
+        suggested: {
+            items: {
+                '$ref': '#/components/schemas/PersonBrief'
+            },
+            type: 'array',
+            title: 'Suggested'
+        },
+        popular: {
+            items: {
+                '$ref': '#/components/schemas/PostPublic'
+            },
+            type: 'array',
+            title: 'Popular'
+        }
+    },
+    type: 'object',
+    required: ['suggested', 'popular'],
+    title: 'ExplorePublic'
+} as const;
+
 export const ExtendInSchema = {
     properties: {
         sec: {
@@ -3062,6 +3764,42 @@ export const FollowUpAnswerInSchema = {
     type: 'object',
     required: ['option'],
     title: 'FollowUpAnswerIn'
+} as const;
+
+export const GroupCreateSchema = {
+    properties: {
+        id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Id'
+        },
+        name: {
+            type: 'string',
+            maxLength: 80,
+            minLength: 1,
+            title: 'Name'
+        },
+        member_ids: {
+            items: {
+                type: 'string',
+                format: 'uuid'
+            },
+            type: 'array',
+            maxItems: 50,
+            minItems: 1,
+            title: 'Member Ids'
+        }
+    },
+    type: 'object',
+    required: ['name', 'member_ids'],
+    title: 'GroupCreate'
 } as const;
 
 export const HabitCreateSchema = {
@@ -4600,6 +5338,55 @@ export const ItemsPublicSchema = {
     title: 'ItemsPublic'
 } as const;
 
+export const LeaderRowSchema = {
+    properties: {
+        rank: {
+            type: 'integer',
+            title: 'Rank'
+        },
+        person: {
+            '$ref': '#/components/schemas/PersonBrief'
+        },
+        life: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Life'
+        },
+        streak: {
+            type: 'integer',
+            title: 'Streak'
+        }
+    },
+    type: 'object',
+    required: ['rank', 'person', 'life', 'streak'],
+    title: 'LeaderRow'
+} as const;
+
+export const LeaderboardPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/LeaderRow'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'LeaderboardPublic'
+} as const;
+
 export const LeakOutSchema = {
     properties: {
         payee: {
@@ -5881,6 +6668,78 @@ export const MealsOutSchema = {
     title: 'MealsOut'
 } as const;
 
+export const MediaInSchema = {
+    properties: {
+        media_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Media Id'
+        },
+        kind: {
+            type: 'string',
+            enum: ['image', 'video'],
+            title: 'Kind',
+            default: 'image'
+        },
+        ratio: {
+            anyOf: [
+                {
+                    type: 'number',
+                    maximum: 10,
+                    exclusiveMinimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Ratio'
+        }
+    },
+    type: 'object',
+    required: ['media_id'],
+    title: 'MediaIn'
+} as const;
+
+export const MediaPublicSchema = {
+    properties: {
+        media_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Media Id'
+        },
+        kind: {
+            type: 'string',
+            enum: ['image', 'video'],
+            title: 'Kind'
+        },
+        ratio: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Ratio'
+        },
+        url: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Url'
+        }
+    },
+    type: 'object',
+    required: ['media_id', 'kind', 'ratio', 'url'],
+    title: 'MediaPublic'
+} as const;
+
 export const MediaWithUrlSchema = {
     properties: {
         id: {
@@ -5973,6 +6832,53 @@ export const MediaWithUrlSchema = {
     title: 'MediaWithUrl'
 } as const;
 
+export const MemberSettingsSchema = {
+    properties: {
+        muted: {
+            anyOf: [
+                {
+                    type: 'boolean'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Muted'
+        },
+        pinned: {
+            anyOf: [
+                {
+                    type: 'boolean'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Pinned'
+        }
+    },
+    type: 'object',
+    title: 'MemberSettings'
+} as const;
+
+export const MembersInSchema = {
+    properties: {
+        user_ids: {
+            items: {
+                type: 'string',
+                format: 'uuid'
+            },
+            type: 'array',
+            maxItems: 50,
+            minItems: 1,
+            title: 'User Ids'
+        }
+    },
+    type: 'object',
+    required: ['user_ids'],
+    title: 'MembersIn'
+} as const;
+
 export const MessageSchema = {
     properties: {
         message: {
@@ -5985,104 +6891,88 @@ export const MessageSchema = {
     title: 'Message'
 } as const;
 
-export const MessageCreateSchema = {
+export const MessagesPublicSchema = {
     properties: {
-        id: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/app__modules__social__schema__MessagePublic'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        },
+        next_cursor: {
             anyOf: [
                 {
-                    type: 'string',
-                    format: 'uuid'
+                    type: 'string'
                 },
                 {
                     type: 'null'
                 }
             ],
-            title: 'Id'
-        },
-        role: {
-            type: 'string',
-            enum: ['user', 'ai'],
-            title: 'Role'
-        },
-        text: {
-            type: 'string',
-            maxLength: 8000,
-            minLength: 1,
-            title: 'Text'
-        },
-        answer: {
-            anyOf: [
-                {
-                    additionalProperties: true,
-                    type: 'object'
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Answer'
-        },
-        scope: {
-            type: 'string',
-            enum: ['aggregates', 'records'],
-            title: 'Scope',
-            default: 'aggregates'
+            title: 'Next Cursor'
         }
     },
     type: 'object',
-    required: ['role', 'text'],
-    title: 'MessageCreate'
+    required: ['data', 'count'],
+    title: 'MessagesPublic'
 } as const;
 
-export const MessagePublicSchema = {
+export const ModelOutSchema = {
     properties: {
         id: {
             type: 'string',
-            format: 'uuid',
             title: 'Id'
         },
-        thread_id: {
+        name: {
             type: 'string',
-            format: 'uuid',
-            title: 'Thread Id'
+            title: 'Name'
         },
-        role: {
-            type: 'string',
-            title: 'Role'
-        },
-        text: {
-            type: 'string',
-            title: 'Text'
-        },
-        at: {
-            type: 'string',
-            format: 'date-time',
-            title: 'At'
-        },
-        answer: {
+        supports_vision: {
             anyOf: [
                 {
-                    additionalProperties: true,
-                    type: 'object'
+                    type: 'boolean'
                 },
                 {
                     type: 'null'
                 }
             ],
-            title: 'Answer'
-        },
-        scope: {
-            type: 'string',
-            title: 'Scope'
-        },
-        version: {
-            type: 'integer',
-            title: 'Version'
+            title: 'Supports Vision'
         }
     },
     type: 'object',
-    required: ['id', 'thread_id', 'role', 'text', 'at', 'answer', 'scope', 'version'],
-    title: 'MessagePublic'
+    required: ['id', 'name', 'supports_vision'],
+    title: 'ModelOut'
+} as const;
+
+export const ModelsOutSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/ModelOut'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        },
+        truncated: {
+            type: 'boolean',
+            title: 'Truncated'
+        },
+        cached: {
+            type: 'boolean',
+            title: 'Cached'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count', 'truncated', 'cached'],
+    title: 'ModelsOut'
 } as const;
 
 export const ModulePrefPublicSchema = {
@@ -6251,6 +7141,73 @@ export const MoveTaskInSchema = {
     type: 'object',
     required: ['dir', 'ids'],
     title: 'MoveTaskIn'
+} as const;
+
+export const NoteInSchema = {
+    properties: {
+        text: {
+            type: 'string',
+            maxLength: 60,
+            minLength: 1,
+            title: 'Text'
+        }
+    },
+    type: 'object',
+    required: ['text'],
+    title: 'NoteIn'
+} as const;
+
+export const NotePublicSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        person: {
+            '$ref': '#/components/schemas/PersonBrief'
+        },
+        text: {
+            type: 'string',
+            title: 'Text'
+        },
+        created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At'
+        },
+        expires_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Expires At'
+        },
+        liked: {
+            type: 'boolean',
+            title: 'Liked'
+        }
+    },
+    type: 'object',
+    required: ['id', 'person', 'text', 'created_at', 'expires_at', 'liked'],
+    title: 'NotePublic'
+} as const;
+
+export const NotesPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/NotePublic'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'NotesPublic'
 } as const;
 
 export const NotifPublicSchema = {
@@ -7041,6 +7998,25 @@ export const PausePublicSchema = {
     title: 'PausePublic'
 } as const;
 
+export const PeoplePublicSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/PersonPublic'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'PeoplePublic'
+} as const;
+
 export const PerHabitSchema = {
     properties: {
         habit: {
@@ -7162,6 +8138,132 @@ export const PermissionsPublicSchema = {
     type: 'object',
     required: ['data', 'count'],
     title: 'PermissionsPublic'
+} as const;
+
+export const PersonBriefSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        name: {
+            type: 'string',
+            title: 'Name'
+        },
+        handle: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Handle'
+        },
+        accent: {
+            type: 'string',
+            enum: ['hab', 'tsk', 'fit', 'fin', 'life', 'primary'],
+            title: 'Accent'
+        },
+        photo_media_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Photo Media Id'
+        },
+        verified: {
+            type: 'boolean',
+            title: 'Verified'
+        }
+    },
+    type: 'object',
+    required: ['id', 'name', 'handle', 'accent', 'photo_media_id', 'verified'],
+    title: 'PersonBrief'
+} as const;
+
+export const PersonPublicSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        name: {
+            type: 'string',
+            title: 'Name'
+        },
+        handle: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Handle'
+        },
+        accent: {
+            type: 'string',
+            enum: ['hab', 'tsk', 'fit', 'fin', 'life', 'primary'],
+            title: 'Accent'
+        },
+        photo_media_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Photo Media Id'
+        },
+        verified: {
+            type: 'boolean',
+            title: 'Verified'
+        },
+        bio: {
+            type: 'string',
+            title: 'Bio'
+        },
+        followers: {
+            type: 'integer',
+            title: 'Followers'
+        },
+        following: {
+            type: 'integer',
+            title: 'Following'
+        },
+        is_me: {
+            type: 'boolean',
+            title: 'Is Me'
+        },
+        is_following: {
+            type: 'boolean',
+            title: 'Is Following'
+        },
+        close_friend: {
+            type: 'boolean',
+            title: 'Close Friend'
+        },
+        scores_visible: {
+            type: 'boolean',
+            title: 'Scores Visible'
+        }
+    },
+    type: 'object',
+    required: ['id', 'name', 'handle', 'accent', 'photo_media_id', 'verified', 'bio', 'followers', 'following', 'is_me', 'is_following', 'close_friend', 'scores_visible'],
+    title: 'PersonPublic'
 } as const;
 
 export const PlacePublicSchema = {
@@ -7810,6 +8912,189 @@ export const PlayerStateSchema = {
     description: 'The routine player: the run plus the derived clock of its step.'
 } as const;
 
+export const PostCreateSchema = {
+    properties: {
+        id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Id'
+        },
+        caption: {
+            type: 'string',
+            maxLength: 2200,
+            title: 'Caption',
+            default: ''
+        },
+        media: {
+            items: {
+                '$ref': '#/components/schemas/MediaIn'
+            },
+            type: 'array',
+            maxItems: 10,
+            title: 'Media'
+        },
+        progress: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/ProgressIn'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        },
+        location: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 80
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Location'
+        }
+    },
+    type: 'object',
+    title: 'PostCreate'
+} as const;
+
+export const PostPublicSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        author: {
+            '$ref': '#/components/schemas/PersonBrief'
+        },
+        created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At'
+        },
+        caption: {
+            type: 'string',
+            title: 'Caption'
+        },
+        media: {
+            items: {
+                '$ref': '#/components/schemas/MediaPublic'
+            },
+            type: 'array',
+            title: 'Media'
+        },
+        progress: {
+            anyOf: [
+                {
+                    additionalProperties: true,
+                    type: 'object'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Progress'
+        },
+        location: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Location'
+        },
+        tags: {
+            items: {
+                type: 'string'
+            },
+            type: 'array',
+            title: 'Tags'
+        },
+        likes: {
+            type: 'integer',
+            title: 'Likes'
+        },
+        liked: {
+            type: 'boolean',
+            title: 'Liked'
+        },
+        saved: {
+            type: 'boolean',
+            title: 'Saved'
+        },
+        comments: {
+            type: 'integer',
+            title: 'Comments'
+        },
+        liked_by: {
+            items: {
+                '$ref': '#/components/schemas/PersonBrief'
+            },
+            type: 'array',
+            title: 'Liked By'
+        }
+    },
+    type: 'object',
+    required: ['id', 'author', 'created_at', 'caption', 'media', 'progress', 'location', 'tags', 'likes', 'liked', 'saved', 'comments', 'liked_by'],
+    title: 'PostPublic'
+} as const;
+
+export const PostUpdateSchema = {
+    properties: {
+        caption: {
+            type: 'string',
+            maxLength: 2200,
+            title: 'Caption'
+        }
+    },
+    type: 'object',
+    required: ['caption'],
+    title: 'PostUpdate'
+} as const;
+
+export const PostsPublicSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/PostPublic'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        },
+        next_cursor: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Next Cursor'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'PostsPublic'
+} as const;
+
 export const PrOutSchema = {
     properties: {
         workout_id: {
@@ -7847,6 +9132,64 @@ export const PrOutSchema = {
     type: 'object',
     required: ['workout_id', 'exercise_id', 'kind', 'label', 'value', 'prev', 'at'],
     title: 'PrOut'
+} as const;
+
+export const PresetOutSchema = {
+    properties: {
+        name: {
+            type: 'string',
+            enum: ['openrouter', 'openai', 'anthropic', 'gemini', 'groq', 'nebius', 'together', 'custom'],
+            title: 'Name'
+        },
+        label: {
+            type: 'string',
+            title: 'Label'
+        },
+        default_base_url: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Default Base Url'
+        },
+        custom_base_url: {
+            type: 'boolean',
+            title: 'Custom Base Url'
+        },
+        vision_models: {
+            items: {
+                type: 'string'
+            },
+            type: 'array',
+            title: 'Vision Models'
+        }
+    },
+    type: 'object',
+    required: ['name', 'label', 'default_base_url', 'custom_base_url', 'vision_models'],
+    title: 'PresetOut'
+} as const;
+
+export const PresetsOutSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/PresetOut'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'PresetsOut'
 } as const;
 
 export const PrivateUserCreateSchema = {
@@ -8219,6 +9562,92 @@ export const ProfileUpdateSchema = {
     description: 'Every field optional: also the sync payload (field-level LWW).'
 } as const;
 
+export const ProgressInSchema = {
+    properties: {
+        accent: {
+            type: 'string',
+            maxLength: 16,
+            title: 'Accent'
+        },
+        kind: {
+            type: 'string',
+            maxLength: 40,
+            title: 'Kind'
+        },
+        title: {
+            type: 'string',
+            maxLength: 120,
+            title: 'Title'
+        },
+        subtitle: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 120
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Subtitle'
+        },
+        stats: {
+            items: {
+                '$ref': '#/components/schemas/ProgressStat'
+            },
+            type: 'array',
+            maxItems: 6,
+            title: 'Stats'
+        },
+        spark: {
+            anyOf: [
+                {
+                    items: {
+                        type: 'number'
+                    },
+                    type: 'array',
+                    maxItems: 120
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Spark'
+        }
+    },
+    type: 'object',
+    required: ['accent', 'kind', 'title'],
+    title: 'ProgressIn',
+    description: 'A live progress attachment snapshot (the share card a post carries).'
+} as const;
+
+export const ProgressStatSchema = {
+    properties: {
+        label: {
+            type: 'string',
+            title: 'Label'
+        },
+        value: {
+            type: 'string',
+            title: 'Value'
+        },
+        unit: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Unit'
+        }
+    },
+    type: 'object',
+    required: ['label', 'value'],
+    title: 'ProgressStat'
+} as const;
+
 export const ProjMonthOutSchema = {
     properties: {
         key: {
@@ -8445,6 +9874,20 @@ export const PushDevicePublicSchema = {
     type: 'object',
     required: ['id', 'platform', 'last_seen_at', 'disabled_at'],
     title: 'PushDevicePublic'
+} as const;
+
+export const ReactionInSchema = {
+    properties: {
+        emoji: {
+            type: 'string',
+            maxLength: 16,
+            minLength: 1,
+            title: 'Emoji'
+        }
+    },
+    type: 'object',
+    required: ['emoji'],
+    title: 'ReactionIn'
 } as const;
 
 export const RecategoriseSchema = {
@@ -10149,6 +11592,81 @@ export const ScheduleSlotSchema = {
 (empty = anytime) and the on-time window in minutes (default 60).`
 } as const;
 
+export const ScorecardPublicSchema = {
+    properties: {
+        person_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Person Id'
+        },
+        life: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Life'
+        },
+        level: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Level'
+        },
+        delta: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Delta'
+        },
+        streak: {
+            type: 'integer',
+            title: 'Streak'
+        },
+        best: {
+            type: 'integer',
+            title: 'Best'
+        },
+        rates: {
+            items: {
+                '$ref': '#/components/schemas/AreaRatePublic'
+            },
+            type: 'array',
+            title: 'Rates'
+        },
+        stats: {
+            items: {
+                '$ref': '#/components/schemas/ProgressStat'
+            },
+            type: 'array',
+            title: 'Stats'
+        },
+        trophies: {
+            items: {
+                '$ref': '#/components/schemas/TrophyPublic'
+            },
+            type: 'array',
+            title: 'Trophies'
+        }
+    },
+    type: 'object',
+    required: ['person_id', 'life', 'level', 'delta', 'streak', 'best', 'rates', 'stats', 'trophies'],
+    title: 'ScorecardPublic'
+} as const;
+
 export const SemimonthlyScheduleSchema = {
     properties: {
         kind: {
@@ -10907,6 +12425,48 @@ export const SnoozeInSchema = {
     title: 'SnoozeIn'
 } as const;
 
+export const SocialProfileUpdateSchema = {
+    properties: {
+        bio: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 280
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Bio'
+        },
+        accent: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['hab', 'tsk', 'fit', 'fin', 'life', 'primary']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Accent'
+        },
+        show_scores: {
+            anyOf: [
+                {
+                    type: 'boolean'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Show Scores'
+        }
+    },
+    type: 'object',
+    title: 'SocialProfileUpdate'
+} as const;
+
 export const StartWorkoutSchema = {
     properties: {
         source: {
@@ -11204,6 +12764,241 @@ export const StepsInSchema = {
     type: 'object',
     required: ['steps'],
     title: 'StepsIn'
+} as const;
+
+export const StoryCreateSchema = {
+    properties: {
+        id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Id'
+        },
+        kind: {
+            type: 'string',
+            enum: ['image', 'video', 'text', 'progress'],
+            title: 'Kind'
+        },
+        media_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Media Id'
+        },
+        text: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 500
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Text'
+        },
+        bg: {
+            anyOf: [
+                {
+                    items: {
+                        type: 'string'
+                    },
+                    type: 'array',
+                    maxItems: 2,
+                    minItems: 2
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Bg'
+        },
+        progress: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/ProgressIn'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        },
+        audience: {
+            type: 'string',
+            enum: ['everyone', 'close'],
+            title: 'Audience',
+            default: 'everyone'
+        }
+    },
+    type: 'object',
+    required: ['kind'],
+    title: 'StoryCreate'
+} as const;
+
+export const StoryGroupSchema = {
+    properties: {
+        person: {
+            '$ref': '#/components/schemas/PersonBrief'
+        },
+        unseen: {
+            type: 'boolean',
+            title: 'Unseen'
+        },
+        close: {
+            type: 'boolean',
+            title: 'Close'
+        },
+        latest: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Latest'
+        },
+        items: {
+            items: {
+                '$ref': '#/components/schemas/StoryPublic'
+            },
+            type: 'array',
+            title: 'Items'
+        }
+    },
+    type: 'object',
+    required: ['person', 'unseen', 'close', 'latest', 'items'],
+    title: 'StoryGroup'
+} as const;
+
+export const StoryPublicSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        owner_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Owner Id'
+        },
+        created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At'
+        },
+        expires_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Expires At'
+        },
+        kind: {
+            type: 'string',
+            enum: ['image', 'video', 'text', 'progress'],
+            title: 'Kind'
+        },
+        media: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/MediaPublic'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        },
+        text: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Text'
+        },
+        bg: {
+            anyOf: [
+                {
+                    items: {
+                        type: 'string'
+                    },
+                    type: 'array'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Bg'
+        },
+        progress: {
+            anyOf: [
+                {
+                    additionalProperties: true,
+                    type: 'object'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Progress'
+        },
+        audience: {
+            type: 'string',
+            enum: ['everyone', 'close'],
+            title: 'Audience'
+        },
+        seen: {
+            type: 'boolean',
+            title: 'Seen'
+        },
+        liked: {
+            type: 'boolean',
+            title: 'Liked'
+        },
+        likes: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Likes'
+        }
+    },
+    type: 'object',
+    required: ['id', 'owner_id', 'created_at', 'expires_at', 'kind', 'media', 'text', 'bg', 'progress', 'audience', 'seen', 'liked', 'likes'],
+    title: 'StoryPublic'
+} as const;
+
+export const StoryTraySchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/StoryGroup'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'StoryTray'
 } as const;
 
 export const StreaksOutSchema = {
@@ -12464,7 +14259,7 @@ export const ThreadDetailSchema = {
         },
         messages: {
             items: {
-                '$ref': '#/components/schemas/MessagePublic'
+                '$ref': '#/components/schemas/app__modules__finance__schema__MessagePublic'
             },
             type: 'array',
             title: 'Messages'
@@ -12806,6 +14601,27 @@ export const TrendPointOutSchema = {
     title: 'TrendPointOut'
 } as const;
 
+export const TrophyPublicSchema = {
+    properties: {
+        type: {
+            type: 'string',
+            enum: ['pr', 'streak', 'best', 'goal', 'first'],
+            title: 'Type'
+        },
+        title: {
+            type: 'string',
+            title: 'Title'
+        },
+        value: {
+            type: 'string',
+            title: 'Value'
+        }
+    },
+    type: 'object',
+    required: ['type', 'title', 'value'],
+    title: 'TrophyPublic'
+} as const;
+
 export const UpcomingPublicSchema = {
     properties: {
         day: {
@@ -12929,6 +14745,90 @@ export const UploadTicketSchema = {
     title: 'UploadTicket',
     description: `Upload the bytes with \`\`PUT upload_url\`\` and header
 \`\`Content-Type: <mime>\`\`, then call \`\`POST /media/{id}/complete\`\`.`
+} as const;
+
+export const UsageOutSchema = {
+    properties: {
+        month: {
+            type: 'string',
+            title: 'Month'
+        },
+        data: {
+            items: {
+                '$ref': '#/components/schemas/UsageRow'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        },
+        calls: {
+            type: 'integer',
+            title: 'Calls'
+        },
+        spend_minor: {
+            type: 'integer',
+            title: 'Spend Minor'
+        },
+        spend_cap_minor: {
+            type: 'integer',
+            title: 'Spend Cap Minor'
+        },
+        remaining_minor: {
+            type: 'integer',
+            title: 'Remaining Minor'
+        },
+        cap_reached: {
+            type: 'boolean',
+            title: 'Cap Reached'
+        },
+        ai_enabled: {
+            type: 'boolean',
+            title: 'Ai Enabled'
+        }
+    },
+    type: 'object',
+    required: ['month', 'data', 'count', 'calls', 'spend_minor', 'spend_cap_minor', 'remaining_minor', 'cap_reached', 'ai_enabled'],
+    title: 'UsageOut'
+} as const;
+
+export const UsageRowSchema = {
+    properties: {
+        purpose: {
+            type: 'string',
+            enum: ['chat', 'capture', 'vision', 'transcription', 'advisor'],
+            title: 'Purpose'
+        },
+        model: {
+            type: 'string',
+            title: 'Model'
+        },
+        calls: {
+            type: 'integer',
+            title: 'Calls'
+        },
+        failed_calls: {
+            type: 'integer',
+            title: 'Failed Calls'
+        },
+        input_tokens: {
+            type: 'integer',
+            title: 'Input Tokens'
+        },
+        output_tokens: {
+            type: 'integer',
+            title: 'Output Tokens'
+        },
+        cost_minor: {
+            type: 'integer',
+            title: 'Cost Minor'
+        }
+    },
+    type: 'object',
+    required: ['purpose', 'model', 'calls', 'failed_calls', 'input_tokens', 'output_tokens', 'cost_minor'],
+    title: 'UsageRow'
 } as const;
 
 export const UserCreateSchema = {
@@ -13139,6 +15039,26 @@ export const UsersPublicSchema = {
     type: 'object',
     required: ['data', 'count'],
     title: 'UsersPublic'
+} as const;
+
+export const VerifyOutSchema = {
+    properties: {
+        code: {
+            type: 'string',
+            enum: ['ok', 'unauthorized', 'not_found', 'rate_limited', 'unreachable', 'bad_response'],
+            title: 'Code'
+        },
+        ok: {
+            type: 'boolean',
+            title: 'Ok'
+        },
+        credential: {
+            '$ref': '#/components/schemas/CredentialPublic'
+        }
+    },
+    type: 'object',
+    required: ['code', 'ok', 'credential'],
+    title: 'VerifyOut'
 } as const;
 
 export const WeatherPrefPublicSchema = {
@@ -14106,6 +16026,106 @@ export const WorkoutsOutSchema = {
     title: 'WorkoutsOut'
 } as const;
 
+export const app__modules__finance__schema__MessageCreateSchema = {
+    properties: {
+        id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Id'
+        },
+        role: {
+            type: 'string',
+            enum: ['user', 'ai'],
+            title: 'Role'
+        },
+        text: {
+            type: 'string',
+            maxLength: 8000,
+            minLength: 1,
+            title: 'Text'
+        },
+        answer: {
+            anyOf: [
+                {
+                    additionalProperties: true,
+                    type: 'object'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Answer'
+        },
+        scope: {
+            type: 'string',
+            enum: ['aggregates', 'records'],
+            title: 'Scope',
+            default: 'aggregates'
+        }
+    },
+    type: 'object',
+    required: ['role', 'text'],
+    title: 'MessageCreate'
+} as const;
+
+export const app__modules__finance__schema__MessagePublicSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        thread_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Thread Id'
+        },
+        role: {
+            type: 'string',
+            title: 'Role'
+        },
+        text: {
+            type: 'string',
+            title: 'Text'
+        },
+        at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'At'
+        },
+        answer: {
+            anyOf: [
+                {
+                    additionalProperties: true,
+                    type: 'object'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Answer'
+        },
+        scope: {
+            type: 'string',
+            title: 'Scope'
+        },
+        version: {
+            type: 'integer',
+            title: 'Version'
+        }
+    },
+    type: 'object',
+    required: ['id', 'thread_id', 'role', 'text', 'at', 'answer', 'scope', 'version'],
+    title: 'MessagePublic'
+} as const;
+
 export const app__modules__finance__schema__SettingsPublicSchema = {
     properties: {
         id: {
@@ -14392,6 +16412,215 @@ export const app__modules__habits__schema__TodayPublicSchema = {
     type: 'object',
     required: ['day', 'habits', 'routines', 'due', 'done', 'timer'],
     title: 'TodayPublic'
+} as const;
+
+export const app__modules__social__schema__MessageCreateSchema = {
+    properties: {
+        id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Id'
+        },
+        text: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 4000
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Text'
+        },
+        media_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Media Id'
+        },
+        post_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Post Id'
+        },
+        story_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Story Id'
+        },
+        reply_to_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Reply To Id'
+        }
+    },
+    type: 'object',
+    title: 'MessageCreate'
+} as const;
+
+export const app__modules__social__schema__MessagePublicSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        chat_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Chat Id'
+        },
+        sender_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Sender Id'
+        },
+        at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'At'
+        },
+        text: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Text'
+        },
+        media: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/MediaPublic'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        },
+        post_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Post Id'
+        },
+        story_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Story Id'
+        },
+        reply_to_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Reply To Id'
+        },
+        system: {
+            type: 'boolean',
+            title: 'System'
+        },
+        reactions: {
+            additionalProperties: {
+                type: 'string'
+            },
+            type: 'object',
+            title: 'Reactions'
+        }
+    },
+    type: 'object',
+    required: ['id', 'chat_id', 'sender_id', 'at', 'text', 'media', 'post_id', 'story_id', 'reply_to_id', 'system', 'reactions'],
+    title: 'MessagePublic'
+} as const;
+
+export const app__modules__social__schema__TodayPublicSchema = {
+    properties: {
+        activity_unread: {
+            type: 'integer',
+            title: 'Activity Unread'
+        },
+        chats_unread: {
+            type: 'integer',
+            title: 'Chats Unread'
+        },
+        unseen_story_people: {
+            items: {
+                '$ref': '#/components/schemas/PersonBrief'
+            },
+            type: 'array',
+            title: 'Unseen Story People'
+        },
+        latest_post: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/PostPublic'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        }
+    },
+    type: 'object',
+    required: ['activity_unread', 'chats_unread', 'unseen_story_people', 'latest_post'],
+    title: 'TodayPublic',
+    description: "The Today screen's community card."
 } as const;
 
 export const app__modules__tasks__schema__SettingsPublicSchema = {

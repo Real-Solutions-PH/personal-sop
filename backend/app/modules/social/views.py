@@ -6,6 +6,7 @@ import uuid
 from collections import defaultdict
 from collections.abc import Sequence
 
+from fastapi import HTTPException
 from sqlmodel import col, func, select
 
 from app.modules.media import public as media
@@ -39,10 +40,11 @@ LIKED_BY_DETAIL = 50
 
 def media_url(ctx: Ctx, media_id: uuid.UUID) -> str | None:
     """A presigned GET for media the caller may see (visibility is already
-    checked by the caller). None until the media module is merged."""
+    checked by the caller). None when the object is gone or not ready, so one
+    missing photo never fails a whole feed page."""
     try:
         return media.visible_download_url(ctx, media_id)
-    except NotImplementedError:
+    except HTTPException:
         return None
 
 

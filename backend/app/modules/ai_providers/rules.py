@@ -2,6 +2,7 @@
 model-list normaliser and the vision rule. No database, no network.
 """
 
+import ipaddress
 import re
 from dataclasses import dataclass
 from typing import Any, Literal
@@ -91,11 +92,25 @@ class BaseUrlRejected(ValueError):
         self.code = code
 
 
-def validate_base_url(raw: str) -> str:
+def _private_host(host: str) -> bool:
+    """A loopback/private/link-local/reserved IP literal or a localhost name.
+    Names are not resolved here (that would be a check at the wrong time);
+    the egress proxy or network policy is the wall for DNS tricks."""
+    if host in LOCAL_HOSTS or host.endswith(".localhost") or host == "::1":
+        return True
+    try:
+        ip = ipaddress.ip_address(host.strip("[]"))
+    except ValueError:
+        return False
+    return ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved
+
+
+def validate_base_url(raw: str, *, allow_local: bool | None = None) -> str:
     """Normalise a custom preset's base URL or raise :class:`BaseUrlRejected`.
 
     ``https`` anywhere; plain ``http`` only for ``localhost``/``127.0.0.1``
-    (Ollama, LM Studio). Userinfo, query and fragment are refused: the URL is
+    (Ollama, LM Studio), and local or private hosts only when the server runs
+    with ``ENVIRONMENT=local``. Userinfo, query and fragment are refused: the URL is
     a prefix ``/models`` and ``/chat/completions`` are appended to, and the
     key travels in a header, never in the URL. The checks run on the written
     form as well as the parsed one so a parser quirk cannot smuggle a host.
@@ -120,6 +135,14 @@ def validate_base_url(raw: str) -> str:
         _ = parts.port
     except ValueError as exc:
         raise BaseUrlRejected("base_url_invalid") from exc
+    if allow_local is None:
+        from app.core.config import settings
+
+        allow_local = settings.ENVIRONMENT == "local"
+    if not allow_local and _private_host(host):
+        # On a hosted server a local URL would let a user probe the
+        # server's own network. Self-hosted models need a public https URL.
+        raise BaseUrlRejected("base_url_private")
     if scheme == "http" and host not in LOCAL_HOSTS:
         raise BaseUrlRejected("base_url_scheme")
     return f"{scheme}://{parts.netloc.lower()}{parts.path}".rstrip("/")

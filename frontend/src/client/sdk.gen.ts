@@ -3,7 +3,246 @@
 import type { CancelablePromise } from './core/CancelablePromise';
 import { OpenAPI } from './core/OpenAPI';
 import { request as __request } from './core/request';
-import type { AuditReadAuditLogsData, AuditReadAuditLogsResponse, EventsStreamData, EventsStreamResponse, FinanceHomeResponse, FinanceGetSettingsResponse, FinanceUpdateSettingsData, FinanceUpdateSettingsResponse, FinanceStartFreshResponse, FinanceResetResponse, FinanceExportCsvResponse, FinanceListAccountsData, FinanceListAccountsResponse, FinanceAddAccountData, FinanceAddAccountResponse, FinanceAccountDetailData, FinanceAccountDetailResponse, FinanceUpdateAccountData, FinanceUpdateAccountResponse, FinanceDeleteAccountData, FinanceDeleteAccountResponse, FinanceAdjustBalanceData, FinanceAdjustBalanceResponse, FinanceListCategoriesData, FinanceListCategoriesResponse, FinanceAddCategoryData, FinanceAddCategoryResponse, FinanceSuggestCategoryData, FinanceSuggestCategoryResponse, FinanceRecentCategoriesResponse, FinanceUpdateCategoryData, FinanceUpdateCategoryResponse, FinanceDeleteCategoryData, FinanceDeleteCategoryResponse, FinanceMoveCategoryData, FinanceMoveCategoryResponse, FinanceCategoryUsesData, FinanceCategoryUsesResponse, FinanceListRecordsData, FinanceListRecordsResponse, FinanceAddRecordData, FinanceAddRecordResponse, FinanceDeleteRecordsData, FinanceDeleteRecordsResponse, FinanceRestoreRecordsData, FinanceRestoreRecordsResponse, FinanceRecategoriseData, FinanceRecategoriseResponse, FinanceGetRecordData, FinanceGetRecordResponse, FinanceUpdateRecordData, FinanceUpdateRecordResponse, FinanceDeleteRecordData, FinanceDeleteRecordResponse, FinanceDuplicateRecordData, FinanceDuplicateRecordResponse, FinanceConfirmRecordData, FinanceConfirmRecordResponse, FinanceListBudgetsData, FinanceListBudgetsResponse, FinanceAddBudgetData, FinanceAddBudgetResponse, FinanceBudgetDetailData, FinanceBudgetDetailResponse, FinanceUpdateBudgetData, FinanceUpdateBudgetResponse, FinanceDeleteBudgetData, FinanceDeleteBudgetResponse, FinanceBudgetAverageData, FinanceBudgetAverageResponse, FinanceListPlannedData, FinanceListPlannedResponse, FinanceAddPlannedData, FinanceAddPlannedResponse, FinanceDueResponse, FinanceSettleData, FinanceSettleResponse, FinanceSkipData, FinanceSkipResponse, FinanceUnskipData, FinanceUnskipResponse, FinanceSnoozeData, FinanceSnoozeResponse, FinanceAutoLogResponse, FinancePlannedDetailData, FinancePlannedDetailResponse, FinanceUpdatePlannedData, FinanceUpdatePlannedResponse, FinanceDeletePlannedData, FinanceDeletePlannedResponse, FinanceOccurrencesData, FinanceOccurrencesResponse, FinanceProjectionDefaultResponse, FinanceProjectionData, FinanceProjectionResponse, FinanceReportData, FinanceReportResponse, FinanceReviewData, FinanceReviewResponse, FinanceSaveReviewData, FinanceSaveReviewResponse, FinanceListLookBacksData, FinanceListLookBacksResponse, FinanceListImportsData, FinanceListImportsResponse, FinanceStartImportData, FinanceStartImportResponse, FinanceImportDetailData, FinanceImportDetailResponse, FinanceImportDeleteData, FinanceImportDeleteResponse, FinanceImportCsvData, FinanceImportCsvResponse, FinanceImportRowsData, FinanceImportRowsResponse, FinancePatchRowsData, FinancePatchRowsResponse, FinanceImportFailData, FinanceImportFailResponse, FinanceImportRetryData, FinanceImportRetryResponse, FinanceImportCommitData, FinanceImportCommitResponse, FinanceImportUndoData, FinanceImportUndoResponse, FinanceImportRestoreData, FinanceImportRestoreResponse, FinanceImportDiscardFileData, FinanceImportDiscardFileResponse, FinanceListThreadsData, FinanceListThreadsResponse, FinanceCreateThreadData, FinanceCreateThreadResponse, FinanceThreadDetailData, FinanceThreadDetailResponse, FinanceRenameThreadData, FinanceRenameThreadResponse, FinanceDeleteThreadData, FinanceDeleteThreadResponse, FinanceAddMessageData, FinanceAddMessageResponse, FinanceDeleteMessageData, FinanceDeleteMessageResponse, FinanceAdvisorAnswerData, FinanceAdvisorAnswerResponse, FitnessOverviewResponse, FitnessStatsData, FitnessStatsResponse, FitnessListWorkoutsData, FitnessListWorkoutsResponse, FitnessActiveWorkoutResponse, FitnessStartWorkoutData, FitnessStartWorkoutResponse, FitnessReadWorkoutData, FitnessReadWorkoutResponse, FitnessUpdateWorkoutData, FitnessUpdateWorkoutResponse, FitnessDeleteWorkoutData, FitnessDeleteWorkoutResponse, FitnessFinishWorkoutData, FitnessFinishWorkoutResponse, FitnessDiscardWorkoutData, FitnessDiscardWorkoutResponse, FitnessRestoreWorkoutData, FitnessRestoreWorkoutResponse, FitnessSaveAsTemplateData, FitnessSaveAsTemplateResponse, FitnessShareCardData, FitnessShareCardResponse, FitnessAddExercisesData, FitnessAddExercisesResponse, FitnessSetExerciseNoteData, FitnessSetExerciseNoteResponse, FitnessRemoveExerciseData, FitnessRemoveExerciseResponse, FitnessMoveExerciseData, FitnessMoveExerciseResponse, FitnessReplaceExerciseData, FitnessReplaceExerciseResponse, FitnessAddSetData, FitnessAddSetResponse, FitnessUpdateSetData, FitnessUpdateSetResponse, FitnessRemoveSetData, FitnessRemoveSetResponse, FitnessToggleSetData, FitnessToggleSetResponse, FitnessReadRestResponse, FitnessStartRestData, FitnessStartRestResponse, FitnessAdjustRestData, FitnessAdjustRestResponse, FitnessSkipRestResponse, FitnessListTemplatesData, FitnessListTemplatesResponse, FitnessCreateTemplateData, FitnessCreateTemplateResponse, FitnessReadTemplateData, FitnessReadTemplateResponse, FitnessPutTemplateData, FitnessPutTemplateResponse, FitnessDeleteTemplateData, FitnessDeleteTemplateResponse, FitnessRestoreTemplateData, FitnessRestoreTemplateResponse, FitnessListExercisesData, FitnessListExercisesResponse, FitnessCreateExerciseData, FitnessCreateExerciseResponse, FitnessReadExerciseData, FitnessReadExerciseResponse, FitnessPutExerciseData, FitnessPutExerciseResponse, FitnessArchiveExerciseData, FitnessArchiveExerciseResponse, FitnessBodyWeightData, FitnessBodyWeightResponse, FitnessListWeighInsData, FitnessListWeighInsResponse, FitnessLogWeighInData, FitnessLogWeighInResponse, FitnessUpdateWeighInData, FitnessUpdateWeighInResponse, FitnessDeleteWeighInData, FitnessDeleteWeighInResponse, FitnessRestoreWeighInData, FitnessRestoreWeighInResponse, FitnessNutritionDayData, FitnessNutritionDayResponse, FitnessNutritionHistoryData, FitnessNutritionHistoryResponse, FitnessReadTargetsResponse, FitnessSetTargetsData, FitnessSetTargetsResponse, FitnessListMealsData, FitnessListMealsResponse, FitnessLogMealData, FitnessLogMealResponse, FitnessEstimateMealData, FitnessEstimateMealResponse, FitnessQueueMealPhotoData, FitnessQueueMealPhotoResponse, FitnessReadMealData, FitnessReadMealResponse, FitnessUpdateMealData, FitnessUpdateMealResponse, FitnessDeleteMealData, FitnessDeleteMealResponse, FitnessReestimateMealData, FitnessReestimateMealResponse, FitnessConfirmMealData, FitnessConfirmMealResponse, FitnessAnswerFollowUpData, FitnessAnswerFollowUpResponse, FitnessAddMealItemData, FitnessAddMealItemResponse, FitnessPatchMealItemData, FitnessPatchMealItemResponse, FitnessRemoveMealItemData, FitnessRemoveMealItemResponse, FitnessRestoreMealData, FitnessRestoreMealResponse, FitnessDuplicateMealData, FitnessDuplicateMealResponse, FitnessReadSettingsResponse, FitnessUpdateSettingsData, FitnessUpdateSettingsResponse, FitnessResetResponse, FitnessStartFreshResponse, HabitsHabitsHomeData, HabitsHabitsHomeResponse, HabitsHabitsTodayResponse, HabitsArchivedHabitsData, HabitsArchivedHabitsResponse, HabitsReadSettingsResponse, HabitsUpdateSettingsData, HabitsUpdateSettingsResponse, HabitsReadTimerResponse, HabitsPauseTimerResponse, HabitsResumeTimerResponse, HabitsExtendTimerData, HabitsExtendTimerResponse, HabitsFinishTimerData, HabitsFinishTimerResponse, HabitsDiscardTimerResponse, HabitsReadDayData, HabitsReadDayResponse, HabitsSaveDayData, HabitsSaveDayResponse, HabitsDeleteLogData, HabitsDeleteLogResponse, HabitsRestoreLogData, HabitsRestoreLogResponse, HabitsListRoutinesData, HabitsListRoutinesResponse, HabitsCreateRoutineData, HabitsCreateRoutineResponse, HabitsReadRoutineData, HabitsReadRoutineResponse, HabitsUpdateRoutineData, HabitsUpdateRoutineResponse, HabitsDeleteRoutineData, HabitsDeleteRoutineResponse, HabitsSetStepsData, HabitsSetStepsResponse, HabitsArchiveRoutineData, HabitsArchiveRoutineResponse, HabitsRestoreRoutineData, HabitsRestoreRoutineResponse, HabitsStartRoutineData, HabitsStartRoutineResponse, HabitsReadPlayerData, HabitsReadPlayerResponse, HabitsRunSummaryData, HabitsRunSummaryResponse, HabitsRunActionData, HabitsRunActionResponse, HabitsListHabitsData, HabitsListHabitsResponse, HabitsCreateHabitData, HabitsCreateHabitResponse, HabitsReadHabitData, HabitsReadHabitResponse, HabitsUpdateHabitData, HabitsUpdateHabitResponse, HabitsDeleteHabitData, HabitsDeleteHabitResponse, HabitsPauseHabitData, HabitsPauseHabitResponse, HabitsResumeHabitData, HabitsResumeHabitResponse, HabitsArchiveHabitData, HabitsArchiveHabitResponse, HabitsRestoreHabitData, HabitsRestoreHabitResponse, HabitsReorderHabitData, HabitsReorderHabitResponse, HabitsListLogsData, HabitsListLogsResponse, HabitsLogHabitData, HabitsLogHabitResponse, HabitsClearLogData, HabitsClearLogResponse, HabitsCheckHabitData, HabitsCheckHabitResponse, HabitsIncrementHabitData, HabitsIncrementHabitResponse, HabitsSkipHabitData, HabitsSkipHabitResponse, HabitsStartTimerData, HabitsStartTimerResponse, ItemsReadItemsData, ItemsReadItemsResponse, ItemsCreateItemData, ItemsCreateItemResponse, ItemsReadItemData, ItemsReadItemResponse, ItemsUpdateItemData, ItemsUpdateItemResponse, ItemsDeleteItemData, ItemsDeleteItemResponse, MediaRequestUploadData, MediaRequestUploadResponse, MediaCompleteUploadData, MediaCompleteUploadResponse, MediaReadMediaData, MediaReadMediaResponse, MediaDeleteMediaData, MediaDeleteMediaResponse, PermissionsReadPermissionsData, PermissionsReadPermissionsResponse, PermissionsReadPermissionData, PermissionsReadPermissionResponse, PrivateCreateUserData, PrivateCreateUserResponse, ProfileReadMeResponse, ProfileUpdateMeData, ProfileUpdateMeResponse, ProfileHandleAvailableData, ProfileHandleAvailableResponse, ProfileCompleteSignupData, ProfileCompleteSignupResponse, ProfileReadModulesResponse, ProfileUpdateModuleData, ProfileUpdateModuleResponse, ProfileResetWeightsResponse, ProfileReadIdentitiesResponse, ProfileReplaceIdentitiesData, ProfileReplaceIdentitiesResponse, ProfileSkipSetupData, ProfileSkipSetupResponse, ProfileReadLiveResponse, ProfilePauseLiveResponse, ProfileResumeLiveResponse, ProfileReadPushDevicesResponse, ProfileRegisterPushDeviceData, ProfileRegisterPushDeviceResponse, ProfileUnregisterPushDeviceData, ProfileUnregisterPushDeviceResponse, RbacReadUserPermissionsData, RbacReadUserPermissionsResponse, RbacAssignRoleData, RbacAssignRoleResponse, RbacRemoveRoleData, RbacRemoveRoleResponse, RbacReadRolePermissionsData, RbacReadRolePermissionsResponse, RbacAddPermissionData, RbacAddPermissionResponse, RbacRemovePermissionData, RbacRemovePermissionResponse, RolesReadRolesData, RolesReadRolesResponse, RolesReadRoleData, RolesReadRoleResponse, SyncPushData, SyncPushResponse, SyncPullData, SyncPullResponse, SyncEntitiesResponse, TasksTodayResponse, TasksListTasksData, TasksListTasksResponse, TasksCreateTaskData, TasksCreateTaskResponse, TasksSearchData, TasksSearchResponse, TasksCompletedData, TasksCompletedResponse, TasksRecentlyDeletedData, TasksRecentlyDeletedResponse, TasksOverdueResponse, TasksStatsData, TasksStatsResponse, TasksShareData, TasksShareResponse, TasksParseData, TasksParseResponse, TasksGetSettingsResponse, TasksUpdateSettingsData, TasksUpdateSettingsResponse, TasksGetNotifResponse, TasksUpdateNotifData, TasksUpdateNotifResponse, TasksListsData, TasksListsResponse, TasksCreateListData, TasksCreateListResponse, TasksEnsureDefaultListsResponse, TasksGetListData, TasksGetListResponse, TasksUpdateListData, TasksUpdateListResponse, TasksDeleteListData, TasksDeleteListResponse, TasksArchiveListData, TasksArchiveListResponse, TasksMoveListData, TasksMoveListResponse, TasksClearCheckedData, TasksClearCheckedResponse, TasksCreateTasksData, TasksCreateTasksResponse, TasksCaptureData, TasksCaptureResponse, TasksRemoveTasksData, TasksRemoveTasksResponse, TasksUnclearData, TasksUnclearResponse, TasksMoveOverdueToTodayResponse, TasksGetTaskData, TasksGetTaskResponse, TasksUpdateTaskData, TasksUpdateTaskResponse, TasksDeleteTaskData, TasksDeleteTaskResponse, TasksSetDueData, TasksSetDueResponse, TasksCompleteData, TasksCompleteResponse, TasksUncompleteData, TasksUncompleteResponse, TasksToggleData, TasksToggleResponse, TasksRescheduleData, TasksRescheduleResponse, TasksSnoozeData, TasksSnoozeResponse, TasksDuplicateData, TasksDuplicateResponse, TasksRestoreData, TasksRestoreResponse, TasksMoveData, TasksMoveResponse, TenantsReadTenantsData, TenantsReadTenantsResponse, TenantsReadTenantData, TenantsReadTenantResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersExportMyDataResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UsersExportUserDataData, UsersExportUserDataResponse, UsersEraseUserDataData, UsersEraseUserDataResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse, WeatherReadPrefsResponse, WeatherUpdatePrefsData, WeatherUpdatePrefsResponse, WeatherReadForecastData, WeatherReadForecastResponse, WeatherSearchCitiesData, WeatherSearchCitiesResponse, WebhooksSupabaseAuthEventData, WebhooksSupabaseAuthEventResponse } from './types.gen';
+import type { AiProvidersPresetsResponse, AiProvidersListCredentialsData, AiProvidersListCredentialsResponse, AiProvidersCreateCredentialData, AiProvidersCreateCredentialResponse, AiProvidersGetCredentialData, AiProvidersGetCredentialResponse, AiProvidersUpdateCredentialData, AiProvidersUpdateCredentialResponse, AiProvidersDeleteCredentialData, AiProvidersDeleteCredentialResponse, AiProvidersVerifyCredentialData, AiProvidersVerifyCredentialResponse, AiProvidersListModelsData, AiProvidersListModelsResponse, AiProvidersListAssignmentsResponse, AiProvidersPutAssignmentData, AiProvidersPutAssignmentResponse, AiProvidersDeleteAssignmentData, AiProvidersDeleteAssignmentResponse, AiProvidersUsageData, AiProvidersUsageResponse, AuditReadAuditLogsData, AuditReadAuditLogsResponse, EventsStreamData, EventsStreamResponse, FinanceHomeResponse, FinanceGetSettingsResponse, FinanceUpdateSettingsData, FinanceUpdateSettingsResponse, FinanceStartFreshResponse, FinanceResetResponse, FinanceExportCsvResponse, FinanceListAccountsData, FinanceListAccountsResponse, FinanceAddAccountData, FinanceAddAccountResponse, FinanceAccountDetailData, FinanceAccountDetailResponse, FinanceUpdateAccountData, FinanceUpdateAccountResponse, FinanceDeleteAccountData, FinanceDeleteAccountResponse, FinanceAdjustBalanceData, FinanceAdjustBalanceResponse, FinanceListCategoriesData, FinanceListCategoriesResponse, FinanceAddCategoryData, FinanceAddCategoryResponse, FinanceSuggestCategoryData, FinanceSuggestCategoryResponse, FinanceRecentCategoriesResponse, FinanceUpdateCategoryData, FinanceUpdateCategoryResponse, FinanceDeleteCategoryData, FinanceDeleteCategoryResponse, FinanceMoveCategoryData, FinanceMoveCategoryResponse, FinanceCategoryUsesData, FinanceCategoryUsesResponse, FinanceListRecordsData, FinanceListRecordsResponse, FinanceAddRecordData, FinanceAddRecordResponse, FinanceDeleteRecordsData, FinanceDeleteRecordsResponse, FinanceRestoreRecordsData, FinanceRestoreRecordsResponse, FinanceRecategoriseData, FinanceRecategoriseResponse, FinanceGetRecordData, FinanceGetRecordResponse, FinanceUpdateRecordData, FinanceUpdateRecordResponse, FinanceDeleteRecordData, FinanceDeleteRecordResponse, FinanceDuplicateRecordData, FinanceDuplicateRecordResponse, FinanceConfirmRecordData, FinanceConfirmRecordResponse, FinanceListBudgetsData, FinanceListBudgetsResponse, FinanceAddBudgetData, FinanceAddBudgetResponse, FinanceBudgetDetailData, FinanceBudgetDetailResponse, FinanceUpdateBudgetData, FinanceUpdateBudgetResponse, FinanceDeleteBudgetData, FinanceDeleteBudgetResponse, FinanceBudgetAverageData, FinanceBudgetAverageResponse, FinanceListPlannedData, FinanceListPlannedResponse, FinanceAddPlannedData, FinanceAddPlannedResponse, FinanceDueResponse, FinanceSettleData, FinanceSettleResponse, FinanceSkipData, FinanceSkipResponse, FinanceUnskipData, FinanceUnskipResponse, FinanceSnoozeData, FinanceSnoozeResponse, FinanceAutoLogResponse, FinancePlannedDetailData, FinancePlannedDetailResponse, FinanceUpdatePlannedData, FinanceUpdatePlannedResponse, FinanceDeletePlannedData, FinanceDeletePlannedResponse, FinanceOccurrencesData, FinanceOccurrencesResponse, FinanceProjectionDefaultResponse, FinanceProjectionData, FinanceProjectionResponse, FinanceReportData, FinanceReportResponse, FinanceReviewData, FinanceReviewResponse, FinanceSaveReviewData, FinanceSaveReviewResponse, FinanceListLookBacksData, FinanceListLookBacksResponse, FinanceListImportsData, FinanceListImportsResponse, FinanceStartImportData, FinanceStartImportResponse, FinanceImportDetailData, FinanceImportDetailResponse, FinanceImportDeleteData, FinanceImportDeleteResponse, FinanceImportCsvData, FinanceImportCsvResponse, FinanceImportRowsData, FinanceImportRowsResponse, FinancePatchRowsData, FinancePatchRowsResponse, FinanceImportFailData, FinanceImportFailResponse, FinanceImportRetryData, FinanceImportRetryResponse, FinanceImportCommitData, FinanceImportCommitResponse, FinanceImportUndoData, FinanceImportUndoResponse, FinanceImportRestoreData, FinanceImportRestoreResponse, FinanceImportDiscardFileData, FinanceImportDiscardFileResponse, FinanceListThreadsData, FinanceListThreadsResponse, FinanceCreateThreadData, FinanceCreateThreadResponse, FinanceThreadDetailData, FinanceThreadDetailResponse, FinanceRenameThreadData, FinanceRenameThreadResponse, FinanceDeleteThreadData, FinanceDeleteThreadResponse, FinanceAddMessageData, FinanceAddMessageResponse, FinanceDeleteMessageData, FinanceDeleteMessageResponse, FinanceAdvisorAnswerData, FinanceAdvisorAnswerResponse, FitnessOverviewResponse, FitnessStatsData, FitnessStatsResponse, FitnessListWorkoutsData, FitnessListWorkoutsResponse, FitnessActiveWorkoutResponse, FitnessStartWorkoutData, FitnessStartWorkoutResponse, FitnessReadWorkoutData, FitnessReadWorkoutResponse, FitnessUpdateWorkoutData, FitnessUpdateWorkoutResponse, FitnessDeleteWorkoutData, FitnessDeleteWorkoutResponse, FitnessFinishWorkoutData, FitnessFinishWorkoutResponse, FitnessDiscardWorkoutData, FitnessDiscardWorkoutResponse, FitnessRestoreWorkoutData, FitnessRestoreWorkoutResponse, FitnessSaveAsTemplateData, FitnessSaveAsTemplateResponse, FitnessShareCardData, FitnessShareCardResponse, FitnessAddExercisesData, FitnessAddExercisesResponse, FitnessSetExerciseNoteData, FitnessSetExerciseNoteResponse, FitnessRemoveExerciseData, FitnessRemoveExerciseResponse, FitnessMoveExerciseData, FitnessMoveExerciseResponse, FitnessReplaceExerciseData, FitnessReplaceExerciseResponse, FitnessAddSetData, FitnessAddSetResponse, FitnessUpdateSetData, FitnessUpdateSetResponse, FitnessRemoveSetData, FitnessRemoveSetResponse, FitnessToggleSetData, FitnessToggleSetResponse, FitnessReadRestResponse, FitnessStartRestData, FitnessStartRestResponse, FitnessAdjustRestData, FitnessAdjustRestResponse, FitnessSkipRestResponse, FitnessListTemplatesData, FitnessListTemplatesResponse, FitnessCreateTemplateData, FitnessCreateTemplateResponse, FitnessReadTemplateData, FitnessReadTemplateResponse, FitnessPutTemplateData, FitnessPutTemplateResponse, FitnessDeleteTemplateData, FitnessDeleteTemplateResponse, FitnessRestoreTemplateData, FitnessRestoreTemplateResponse, FitnessListExercisesData, FitnessListExercisesResponse, FitnessCreateExerciseData, FitnessCreateExerciseResponse, FitnessReadExerciseData, FitnessReadExerciseResponse, FitnessPutExerciseData, FitnessPutExerciseResponse, FitnessArchiveExerciseData, FitnessArchiveExerciseResponse, FitnessBodyWeightData, FitnessBodyWeightResponse, FitnessListWeighInsData, FitnessListWeighInsResponse, FitnessLogWeighInData, FitnessLogWeighInResponse, FitnessUpdateWeighInData, FitnessUpdateWeighInResponse, FitnessDeleteWeighInData, FitnessDeleteWeighInResponse, FitnessRestoreWeighInData, FitnessRestoreWeighInResponse, FitnessNutritionDayData, FitnessNutritionDayResponse, FitnessNutritionHistoryData, FitnessNutritionHistoryResponse, FitnessReadTargetsResponse, FitnessSetTargetsData, FitnessSetTargetsResponse, FitnessListMealsData, FitnessListMealsResponse, FitnessLogMealData, FitnessLogMealResponse, FitnessEstimateMealData, FitnessEstimateMealResponse, FitnessQueueMealPhotoData, FitnessQueueMealPhotoResponse, FitnessReadMealData, FitnessReadMealResponse, FitnessUpdateMealData, FitnessUpdateMealResponse, FitnessDeleteMealData, FitnessDeleteMealResponse, FitnessReestimateMealData, FitnessReestimateMealResponse, FitnessConfirmMealData, FitnessConfirmMealResponse, FitnessAnswerFollowUpData, FitnessAnswerFollowUpResponse, FitnessAddMealItemData, FitnessAddMealItemResponse, FitnessPatchMealItemData, FitnessPatchMealItemResponse, FitnessRemoveMealItemData, FitnessRemoveMealItemResponse, FitnessRestoreMealData, FitnessRestoreMealResponse, FitnessDuplicateMealData, FitnessDuplicateMealResponse, FitnessReadSettingsResponse, FitnessUpdateSettingsData, FitnessUpdateSettingsResponse, FitnessResetResponse, FitnessStartFreshResponse, HabitsHabitsHomeData, HabitsHabitsHomeResponse, HabitsHabitsTodayResponse, HabitsArchivedHabitsData, HabitsArchivedHabitsResponse, HabitsReadSettingsResponse, HabitsUpdateSettingsData, HabitsUpdateSettingsResponse, HabitsReadTimerResponse, HabitsPauseTimerResponse, HabitsResumeTimerResponse, HabitsExtendTimerData, HabitsExtendTimerResponse, HabitsFinishTimerData, HabitsFinishTimerResponse, HabitsDiscardTimerResponse, HabitsReadDayData, HabitsReadDayResponse, HabitsSaveDayData, HabitsSaveDayResponse, HabitsDeleteLogData, HabitsDeleteLogResponse, HabitsRestoreLogData, HabitsRestoreLogResponse, HabitsListRoutinesData, HabitsListRoutinesResponse, HabitsCreateRoutineData, HabitsCreateRoutineResponse, HabitsReadRoutineData, HabitsReadRoutineResponse, HabitsUpdateRoutineData, HabitsUpdateRoutineResponse, HabitsDeleteRoutineData, HabitsDeleteRoutineResponse, HabitsSetStepsData, HabitsSetStepsResponse, HabitsArchiveRoutineData, HabitsArchiveRoutineResponse, HabitsRestoreRoutineData, HabitsRestoreRoutineResponse, HabitsStartRoutineData, HabitsStartRoutineResponse, HabitsReadPlayerData, HabitsReadPlayerResponse, HabitsRunSummaryData, HabitsRunSummaryResponse, HabitsRunActionData, HabitsRunActionResponse, HabitsListHabitsData, HabitsListHabitsResponse, HabitsCreateHabitData, HabitsCreateHabitResponse, HabitsReadHabitData, HabitsReadHabitResponse, HabitsUpdateHabitData, HabitsUpdateHabitResponse, HabitsDeleteHabitData, HabitsDeleteHabitResponse, HabitsPauseHabitData, HabitsPauseHabitResponse, HabitsResumeHabitData, HabitsResumeHabitResponse, HabitsArchiveHabitData, HabitsArchiveHabitResponse, HabitsRestoreHabitData, HabitsRestoreHabitResponse, HabitsReorderHabitData, HabitsReorderHabitResponse, HabitsListLogsData, HabitsListLogsResponse, HabitsLogHabitData, HabitsLogHabitResponse, HabitsClearLogData, HabitsClearLogResponse, HabitsCheckHabitData, HabitsCheckHabitResponse, HabitsIncrementHabitData, HabitsIncrementHabitResponse, HabitsSkipHabitData, HabitsSkipHabitResponse, HabitsStartTimerData, HabitsStartTimerResponse, ItemsReadItemsData, ItemsReadItemsResponse, ItemsCreateItemData, ItemsCreateItemResponse, ItemsReadItemData, ItemsReadItemResponse, ItemsUpdateItemData, ItemsUpdateItemResponse, ItemsDeleteItemData, ItemsDeleteItemResponse, MediaRequestUploadData, MediaRequestUploadResponse, MediaCompleteUploadData, MediaCompleteUploadResponse, MediaReadMediaData, MediaReadMediaResponse, MediaDeleteMediaData, MediaDeleteMediaResponse, PermissionsReadPermissionsData, PermissionsReadPermissionsResponse, PermissionsReadPermissionData, PermissionsReadPermissionResponse, PrivateCreateUserData, PrivateCreateUserResponse, ProfileReadMeResponse, ProfileUpdateMeData, ProfileUpdateMeResponse, ProfileHandleAvailableData, ProfileHandleAvailableResponse, ProfileCompleteSignupData, ProfileCompleteSignupResponse, ProfileReadModulesResponse, ProfileUpdateModuleData, ProfileUpdateModuleResponse, ProfileResetWeightsResponse, ProfileReadIdentitiesResponse, ProfileReplaceIdentitiesData, ProfileReplaceIdentitiesResponse, ProfileSkipSetupData, ProfileSkipSetupResponse, ProfileReadLiveResponse, ProfilePauseLiveResponse, ProfileResumeLiveResponse, ProfileReadPushDevicesResponse, ProfileRegisterPushDeviceData, ProfileRegisterPushDeviceResponse, ProfileUnregisterPushDeviceData, ProfileUnregisterPushDeviceResponse, RbacReadUserPermissionsData, RbacReadUserPermissionsResponse, RbacAssignRoleData, RbacAssignRoleResponse, RbacRemoveRoleData, RbacRemoveRoleResponse, RbacReadRolePermissionsData, RbacReadRolePermissionsResponse, RbacAddPermissionData, RbacAddPermissionResponse, RbacRemovePermissionData, RbacRemovePermissionResponse, RolesReadRolesData, RolesReadRolesResponse, RolesReadRoleData, RolesReadRoleResponse, SocialReadMeResponse, SocialUpdateMeData, SocialUpdateMeResponse, SocialReadBadgesResponse, SocialReadTodayResponse, SocialReadExploreResponse, SocialReadLeaderboardResponse, SocialSearchPeopleData, SocialSearchPeopleResponse, SocialSearchTagsData, SocialSearchTagsResponse, SocialReadCloseFriendsResponse, SocialReadPersonData, SocialReadPersonResponse, SocialReadScorecardData, SocialReadScorecardResponse, SocialReadFollowersData, SocialReadFollowersResponse, SocialReadFollowingData, SocialReadFollowingResponse, SocialReadPersonPostsData, SocialReadPersonPostsResponse, SocialFollowData, SocialFollowResponse, SocialUnfollowData, SocialUnfollowResponse, SocialSetCloseFriendData, SocialSetCloseFriendResponse, SocialReadFeedData, SocialReadFeedResponse, SocialReadSavedData, SocialReadSavedResponse, SocialCreatePostData, SocialCreatePostResponse, SocialReadPostData, SocialReadPostResponse, SocialUpdatePostData, SocialUpdatePostResponse, SocialDeletePostData, SocialDeletePostResponse, SocialRestorePostData, SocialRestorePostResponse, SocialLikePostData, SocialLikePostResponse, SocialUnlikePostData, SocialUnlikePostResponse, SocialSavePostData, SocialSavePostResponse, SocialUnsavePostData, SocialUnsavePostResponse, SocialReadCommentsData, SocialReadCommentsResponse, SocialAddCommentData, SocialAddCommentResponse, SocialLikeCommentData, SocialLikeCommentResponse, SocialUnlikeCommentData, SocialUnlikeCommentResponse, SocialDeleteCommentData, SocialDeleteCommentResponse, SocialReadTrayResponse, SocialCreateStoryData, SocialCreateStoryResponse, SocialReadStoryData, SocialReadStoryResponse, SocialDeleteStoryData, SocialDeleteStoryResponse, SocialMarkSeenData, SocialMarkSeenResponse, SocialLikeStoryData, SocialLikeStoryResponse, SocialUnlikeStoryData, SocialUnlikeStoryResponse, SocialReadNotesResponse, SocialSetNoteData, SocialSetNoteResponse, SocialClearNoteResponse, SocialLikeNoteData, SocialLikeNoteResponse, SocialUnlikeNoteData, SocialUnlikeNoteResponse, SocialReadChatsData, SocialReadChatsResponse, SocialOpenDirectData, SocialOpenDirectResponse, SocialCreateGroupData, SocialCreateGroupResponse, SocialReadChatData, SocialReadChatResponse, SocialRenameChatData, SocialRenameChatResponse, SocialHideChatData, SocialHideChatResponse, SocialUnhideChatData, SocialUnhideChatResponse, SocialUpdateMembershipData, SocialUpdateMembershipResponse, SocialAddMembersData, SocialAddMembersResponse, SocialLeaveChatData, SocialLeaveChatResponse, SocialMarkReadData, SocialMarkReadResponse, SocialTypingData, SocialTypingResponse, SocialReadMessagesData, SocialReadMessagesResponse, SocialSendMessageData, SocialSendMessageResponse, SocialUnsendData, SocialUnsendResponse, SocialReactData, SocialReactResponse, SocialUnreactData, SocialUnreactResponse, SocialReadActivityData, SocialReadActivityResponse, SocialMarkActivityReadResponse, SocialReadDraftData, SocialReadDraftResponse, SocialPutDraftData, SocialPutDraftResponse, SocialClearDraftData, SocialClearDraftResponse, SyncPushData, SyncPushResponse, SyncPullData, SyncPullResponse, SyncEntitiesResponse, TasksTodayResponse, TasksListTasksData, TasksListTasksResponse, TasksCreateTaskData, TasksCreateTaskResponse, TasksSearchData, TasksSearchResponse, TasksCompletedData, TasksCompletedResponse, TasksRecentlyDeletedData, TasksRecentlyDeletedResponse, TasksOverdueResponse, TasksStatsData, TasksStatsResponse, TasksShareData, TasksShareResponse, TasksParseData, TasksParseResponse, TasksGetSettingsResponse, TasksUpdateSettingsData, TasksUpdateSettingsResponse, TasksGetNotifResponse, TasksUpdateNotifData, TasksUpdateNotifResponse, TasksListsData, TasksListsResponse, TasksCreateListData, TasksCreateListResponse, TasksEnsureDefaultListsResponse, TasksGetListData, TasksGetListResponse, TasksUpdateListData, TasksUpdateListResponse, TasksDeleteListData, TasksDeleteListResponse, TasksArchiveListData, TasksArchiveListResponse, TasksMoveListData, TasksMoveListResponse, TasksClearCheckedData, TasksClearCheckedResponse, TasksCreateTasksData, TasksCreateTasksResponse, TasksCaptureData, TasksCaptureResponse, TasksRemoveTasksData, TasksRemoveTasksResponse, TasksUnclearData, TasksUnclearResponse, TasksMoveOverdueToTodayResponse, TasksGetTaskData, TasksGetTaskResponse, TasksUpdateTaskData, TasksUpdateTaskResponse, TasksDeleteTaskData, TasksDeleteTaskResponse, TasksSetDueData, TasksSetDueResponse, TasksCompleteData, TasksCompleteResponse, TasksUncompleteData, TasksUncompleteResponse, TasksToggleData, TasksToggleResponse, TasksRescheduleData, TasksRescheduleResponse, TasksSnoozeData, TasksSnoozeResponse, TasksDuplicateData, TasksDuplicateResponse, TasksRestoreData, TasksRestoreResponse, TasksMoveData, TasksMoveResponse, TenantsReadTenantsData, TenantsReadTenantsResponse, TenantsReadTenantData, TenantsReadTenantResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersExportMyDataResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UsersExportUserDataData, UsersExportUserDataResponse, UsersEraseUserDataData, UsersEraseUserDataResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse, WeatherReadPrefsResponse, WeatherUpdatePrefsData, WeatherUpdatePrefsResponse, WeatherReadForecastData, WeatherReadForecastResponse, WeatherSearchCitiesData, WeatherSearchCitiesResponse, WebhooksSupabaseAuthEventData, WebhooksSupabaseAuthEventResponse } from './types.gen';
+
+export class AiProvidersService {
+    /**
+     * Presets
+     * @returns PresetsOut Successful Response
+     * @throws ApiError
+     */
+    public static presets(): CancelablePromise<AiProvidersPresetsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/ai/providers/presets',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * List Credentials
+     * @param data The data for the request.
+     * @param data.skip
+     * @param data.limit
+     * @returns CredentialsOut Successful Response
+     * @throws ApiError
+     */
+    public static listCredentials(data: AiProvidersListCredentialsData = {}): CancelablePromise<AiProvidersListCredentialsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/ai/providers',
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Create Credential
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns CredentialPublic Successful Response
+     * @throws ApiError
+     */
+    public static createCredential(data: AiProvidersCreateCredentialData): CancelablePromise<AiProvidersCreateCredentialResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/ai/providers',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Get Credential
+     * @param data The data for the request.
+     * @param data.credentialId
+     * @returns CredentialPublic Successful Response
+     * @throws ApiError
+     */
+    public static getCredential(data: AiProvidersGetCredentialData): CancelablePromise<AiProvidersGetCredentialResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/ai/providers/{credential_id}',
+            path: {
+                credential_id: data.credentialId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Credential
+     * @param data The data for the request.
+     * @param data.credentialId
+     * @param data.requestBody
+     * @returns CredentialPublic Successful Response
+     * @throws ApiError
+     */
+    public static updateCredential(data: AiProvidersUpdateCredentialData): CancelablePromise<AiProvidersUpdateCredentialResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/ai/providers/{credential_id}',
+            path: {
+                credential_id: data.credentialId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Credential
+     * @param data The data for the request.
+     * @param data.credentialId
+     * @returns void Successful Response
+     * @throws ApiError
+     */
+    public static deleteCredential(data: AiProvidersDeleteCredentialData): CancelablePromise<AiProvidersDeleteCredentialResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/ai/providers/{credential_id}',
+            path: {
+                credential_id: data.credentialId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Verify Credential
+     * @param data The data for the request.
+     * @param data.credentialId
+     * @returns VerifyOut Successful Response
+     * @throws ApiError
+     */
+    public static verifyCredential(data: AiProvidersVerifyCredentialData): CancelablePromise<AiProvidersVerifyCredentialResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/ai/providers/{credential_id}/verify',
+            path: {
+                credential_id: data.credentialId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * List Models
+     * @param data The data for the request.
+     * @param data.credentialId
+     * @returns ModelsOut Successful Response
+     * @throws ApiError
+     */
+    public static listModels(data: AiProvidersListModelsData): CancelablePromise<AiProvidersListModelsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/ai/providers/{credential_id}/models',
+            path: {
+                credential_id: data.credentialId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * List Assignments
+     * @returns AssignmentsOut Successful Response
+     * @throws ApiError
+     */
+    public static listAssignments(): CancelablePromise<AiProvidersListAssignmentsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/ai/assignments',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Put Assignment
+     * @param data The data for the request.
+     * @param data.purpose
+     * @param data.requestBody
+     * @returns AssignmentPublic Successful Response
+     * @throws ApiError
+     */
+    public static putAssignment(data: AiProvidersPutAssignmentData): CancelablePromise<AiProvidersPutAssignmentResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/ai/assignments/{purpose}',
+            path: {
+                purpose: data.purpose
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Assignment
+     * @param data The data for the request.
+     * @param data.purpose
+     * @returns void Successful Response
+     * @throws ApiError
+     */
+    public static deleteAssignment(data: AiProvidersDeleteAssignmentData): CancelablePromise<AiProvidersDeleteAssignmentResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/ai/assignments/{purpose}',
+            path: {
+                purpose: data.purpose
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Usage
+     * @param data The data for the request.
+     * @param data.month
+     * @returns UsageOut Successful Response
+     * @throws ApiError
+     */
+    public static usage(data: AiProvidersUsageData = {}): CancelablePromise<AiProvidersUsageResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/ai/usage',
+            query: {
+                month: data.month
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+}
 
 export class AuditService {
     /**
@@ -1561,7 +1800,7 @@ export class FinanceService {
      * @param data The data for the request.
      * @param data.threadId
      * @param data.requestBody
-     * @returns MessagePublic Successful Response
+     * @returns app__modules__finance__schema__MessagePublic Successful Response
      * @throws ApiError
      */
     public static addMessage(data: FinanceAddMessageData): CancelablePromise<FinanceAddMessageResponse> {
@@ -4668,6 +4907,1413 @@ export class RolesService {
             url: '/api/v1/roles/{role_id}',
             path: {
                 role_id: data.roleId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+}
+
+export class SocialService {
+    /**
+     * Read Me
+     * My social profile, with my follower counts.
+     * @returns PersonPublic Successful Response
+     * @throws ApiError
+     */
+    public static readMe(): CancelablePromise<SocialReadMeResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/me',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Me
+     * Bio, accent and the "show my scores to followers" switch.
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns PersonPublic Successful Response
+     * @throws ApiError
+     */
+    public static updateMe(data: SocialUpdateMeData): CancelablePromise<SocialUpdateMeResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/social/me',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Badges
+     * Unread activity and unread (unmuted) chats: the header dots.
+     * @returns Badges Successful Response
+     * @throws ApiError
+     */
+    public static readBadges(): CancelablePromise<SocialReadBadgesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/badges',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Today
+     * The Today screen's community card.
+     * @returns app__modules__social__schema__TodayPublic Successful Response
+     * @throws ApiError
+     */
+    public static readToday(): CancelablePromise<SocialReadTodayResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/today',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Explore
+     * Suggested people and the popular mosaic.
+     * @returns ExplorePublic Successful Response
+     * @throws ApiError
+     */
+    public static readExplore(): CancelablePromise<SocialReadExploreResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/explore',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Leaderboard
+     * Me and the people I follow who share scores, by 30-day Life Score.
+     * @returns LeaderboardPublic Successful Response
+     * @throws ApiError
+     */
+    public static readLeaderboard(): CancelablePromise<SocialReadLeaderboardResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/leaderboard',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Search People
+     * Explore search by name or handle.
+     * @param data The data for the request.
+     * @param data.q
+     * @param data.skip
+     * @param data.limit
+     * @returns PeoplePublic Successful Response
+     * @throws ApiError
+     */
+    public static searchPeople(data: SocialSearchPeopleData = {}): CancelablePromise<SocialSearchPeopleResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/search/people',
+            query: {
+                q: data.q,
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Search Tags
+     * Explore ``#tag`` search over posts, newest first.
+     * @param data The data for the request.
+     * @param data.q
+     * @param data.skip
+     * @param data.limit
+     * @returns PostsPublic Successful Response
+     * @throws ApiError
+     */
+    public static searchTags(data: SocialSearchTagsData = {}): CancelablePromise<SocialSearchTagsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/search/tags',
+            query: {
+                q: data.q,
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Close Friends
+     * My close-friends list.
+     * @returns PeoplePublic Successful Response
+     * @throws ApiError
+     */
+    public static readCloseFriends(): CancelablePromise<SocialReadCloseFriendsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/close-friends',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Person
+     * A profile: name, handle, bio, counts and my state towards them.
+     * @param data The data for the request.
+     * @param data.userId
+     * @returns PersonPublic Successful Response
+     * @throws ApiError
+     */
+    public static readPerson(data: SocialReadPersonData): CancelablePromise<SocialReadPersonResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/people/{user_id}',
+            path: {
+                user_id: data.userId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Scorecard
+     * The followers-only scorecard (404 when not visible to me).
+     * @param data The data for the request.
+     * @param data.userId
+     * @returns ScorecardPublic Successful Response
+     * @throws ApiError
+     */
+    public static readScorecard(data: SocialReadScorecardData): CancelablePromise<SocialReadScorecardResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/people/{user_id}/scorecard',
+            path: {
+                user_id: data.userId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Followers
+     * @param data The data for the request.
+     * @param data.userId
+     * @param data.skip
+     * @param data.limit
+     * @returns PeoplePublic Successful Response
+     * @throws ApiError
+     */
+    public static readFollowers(data: SocialReadFollowersData): CancelablePromise<SocialReadFollowersResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/people/{user_id}/followers',
+            path: {
+                user_id: data.userId
+            },
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Following
+     * @param data The data for the request.
+     * @param data.userId
+     * @param data.skip
+     * @param data.limit
+     * @returns PeoplePublic Successful Response
+     * @throws ApiError
+     */
+    public static readFollowing(data: SocialReadFollowingData): CancelablePromise<SocialReadFollowingResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/people/{user_id}/following',
+            path: {
+                user_id: data.userId
+            },
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Person Posts
+     * A profile's post grid, newest first.
+     * @param data The data for the request.
+     * @param data.userId
+     * @param data.skip
+     * @param data.limit
+     * @returns PostsPublic Successful Response
+     * @throws ApiError
+     */
+    public static readPersonPosts(data: SocialReadPersonPostsData): CancelablePromise<SocialReadPersonPostsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/people/{user_id}/posts',
+            path: {
+                user_id: data.userId
+            },
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Follow
+     * @param data The data for the request.
+     * @param data.userId
+     * @returns PersonPublic Successful Response
+     * @throws ApiError
+     */
+    public static follow(data: SocialFollowData): CancelablePromise<SocialFollowResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/social/people/{user_id}/follow',
+            path: {
+                user_id: data.userId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Unfollow
+     * @param data The data for the request.
+     * @param data.userId
+     * @returns PersonPublic Successful Response
+     * @throws ApiError
+     */
+    public static unfollow(data: SocialUnfollowData): CancelablePromise<SocialUnfollowResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/social/people/{user_id}/follow',
+            path: {
+                user_id: data.userId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Set Close Friend
+     * @param data The data for the request.
+     * @param data.userId
+     * @param data.requestBody
+     * @returns PersonPublic Successful Response
+     * @throws ApiError
+     */
+    public static setCloseFriend(data: SocialSetCloseFriendData): CancelablePromise<SocialSetCloseFriendResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/social/people/{user_id}/close-friend',
+            path: {
+                user_id: data.userId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Feed
+     * Following (keyset: pass ``next_cursor`` back as ``cursor``) or
+     * for-you (ranked; ``skip``/``limit``).
+     * @param data The data for the request.
+     * @param data.tab
+     * @param data.cursor
+     * @param data.skip
+     * @param data.limit
+     * @returns PostsPublic Successful Response
+     * @throws ApiError
+     */
+    public static readFeed(data: SocialReadFeedData = {}): CancelablePromise<SocialReadFeedResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/feed',
+            query: {
+                tab: data.tab,
+                cursor: data.cursor,
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Saved
+     * @param data The data for the request.
+     * @param data.skip
+     * @param data.limit
+     * @returns PostsPublic Successful Response
+     * @throws ApiError
+     */
+    public static readSaved(data: SocialReadSavedData = {}): CancelablePromise<SocialReadSavedResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/saved',
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Create Post
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns PostPublic Successful Response
+     * @throws ApiError
+     */
+    public static createPost(data: SocialCreatePostData): CancelablePromise<SocialCreatePostResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/social/posts',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Post
+     * Post detail, with up to 50 ``liked_by``.
+     * @param data The data for the request.
+     * @param data.postId
+     * @returns PostPublic Successful Response
+     * @throws ApiError
+     */
+    public static readPost(data: SocialReadPostData): CancelablePromise<SocialReadPostResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/posts/{post_id}',
+            path: {
+                post_id: data.postId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Post
+     * Edit the caption (author only).
+     * @param data The data for the request.
+     * @param data.postId
+     * @param data.requestBody
+     * @returns PostPublic Successful Response
+     * @throws ApiError
+     */
+    public static updatePost(data: SocialUpdatePostData): CancelablePromise<SocialUpdatePostResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/social/posts/{post_id}',
+            path: {
+                post_id: data.postId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Post
+     * Soft delete; ``POST …/restore`` undoes it for a short window.
+     * @param data The data for the request.
+     * @param data.postId
+     * @returns void Successful Response
+     * @throws ApiError
+     */
+    public static deletePost(data: SocialDeletePostData): CancelablePromise<SocialDeletePostResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/social/posts/{post_id}',
+            path: {
+                post_id: data.postId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Restore Post
+     * @param data The data for the request.
+     * @param data.postId
+     * @returns PostPublic Successful Response
+     * @throws ApiError
+     */
+    public static restorePost(data: SocialRestorePostData): CancelablePromise<SocialRestorePostResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/social/posts/{post_id}/restore',
+            path: {
+                post_id: data.postId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Like Post
+     * Like, and the double-tap like (idempotent).
+     * @param data The data for the request.
+     * @param data.postId
+     * @returns PostPublic Successful Response
+     * @throws ApiError
+     */
+    public static likePost(data: SocialLikePostData): CancelablePromise<SocialLikePostResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/social/posts/{post_id}/like',
+            path: {
+                post_id: data.postId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Unlike Post
+     * @param data The data for the request.
+     * @param data.postId
+     * @returns PostPublic Successful Response
+     * @throws ApiError
+     */
+    public static unlikePost(data: SocialUnlikePostData): CancelablePromise<SocialUnlikePostResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/social/posts/{post_id}/like',
+            path: {
+                post_id: data.postId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Save Post
+     * @param data The data for the request.
+     * @param data.postId
+     * @returns PostPublic Successful Response
+     * @throws ApiError
+     */
+    public static savePost(data: SocialSavePostData): CancelablePromise<SocialSavePostResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/social/posts/{post_id}/save',
+            path: {
+                post_id: data.postId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Unsave Post
+     * @param data The data for the request.
+     * @param data.postId
+     * @returns PostPublic Successful Response
+     * @throws ApiError
+     */
+    public static unsavePost(data: SocialUnsavePostData): CancelablePromise<SocialUnsavePostResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/social/posts/{post_id}/save',
+            path: {
+                post_id: data.postId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Comments
+     * @param data The data for the request.
+     * @param data.postId
+     * @param data.skip
+     * @param data.limit
+     * @returns CommentsPublic Successful Response
+     * @throws ApiError
+     */
+    public static readComments(data: SocialReadCommentsData): CancelablePromise<SocialReadCommentsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/posts/{post_id}/comments',
+            path: {
+                post_id: data.postId
+            },
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Add Comment
+     * Comment or reply (``reply_to_id`` must be a comment on this post).
+     * @param data The data for the request.
+     * @param data.postId
+     * @param data.requestBody
+     * @returns CommentPublic Successful Response
+     * @throws ApiError
+     */
+    public static addComment(data: SocialAddCommentData): CancelablePromise<SocialAddCommentResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/social/posts/{post_id}/comments',
+            path: {
+                post_id: data.postId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Like Comment
+     * @param data The data for the request.
+     * @param data.postId
+     * @param data.commentId
+     * @returns CommentPublic Successful Response
+     * @throws ApiError
+     */
+    public static likeComment(data: SocialLikeCommentData): CancelablePromise<SocialLikeCommentResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/social/posts/{post_id}/comments/{comment_id}/like',
+            path: {
+                post_id: data.postId,
+                comment_id: data.commentId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Unlike Comment
+     * @param data The data for the request.
+     * @param data.postId
+     * @param data.commentId
+     * @returns CommentPublic Successful Response
+     * @throws ApiError
+     */
+    public static unlikeComment(data: SocialUnlikeCommentData): CancelablePromise<SocialUnlikeCommentResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/social/posts/{post_id}/comments/{comment_id}/like',
+            path: {
+                post_id: data.postId,
+                comment_id: data.commentId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Comment
+     * By the comment's author or the post's owner.
+     * @param data The data for the request.
+     * @param data.postId
+     * @param data.commentId
+     * @returns void Successful Response
+     * @throws ApiError
+     */
+    public static deleteComment(data: SocialDeleteCommentData): CancelablePromise<SocialDeleteCommentResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/social/posts/{post_id}/comments/{comment_id}',
+            path: {
+                post_id: data.postId,
+                comment_id: data.commentId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Tray
+     * The story tray: me first, then unseen, then most recent.
+     * @returns StoryTray Successful Response
+     * @throws ApiError
+     */
+    public static readTray(): CancelablePromise<SocialReadTrayResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/stories',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Create Story
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns StoryPublic Successful Response
+     * @throws ApiError
+     */
+    public static createStory(data: SocialCreateStoryData): CancelablePromise<SocialCreateStoryResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/social/stories',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Story
+     * @param data The data for the request.
+     * @param data.storyId
+     * @returns StoryPublic Successful Response
+     * @throws ApiError
+     */
+    public static readStory(data: SocialReadStoryData): CancelablePromise<SocialReadStoryResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/stories/{story_id}',
+            path: {
+                story_id: data.storyId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Story
+     * @param data The data for the request.
+     * @param data.storyId
+     * @returns void Successful Response
+     * @throws ApiError
+     */
+    public static deleteStory(data: SocialDeleteStoryData): CancelablePromise<SocialDeleteStoryResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/social/stories/{story_id}',
+            path: {
+                story_id: data.storyId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Mark Seen
+     * @param data The data for the request.
+     * @param data.storyId
+     * @returns StoryPublic Successful Response
+     * @throws ApiError
+     */
+    public static markSeen(data: SocialMarkSeenData): CancelablePromise<SocialMarkSeenResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/social/stories/{story_id}/seen',
+            path: {
+                story_id: data.storyId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Like Story
+     * @param data The data for the request.
+     * @param data.storyId
+     * @returns StoryPublic Successful Response
+     * @throws ApiError
+     */
+    public static likeStory(data: SocialLikeStoryData): CancelablePromise<SocialLikeStoryResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/social/stories/{story_id}/like',
+            path: {
+                story_id: data.storyId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Unlike Story
+     * @param data The data for the request.
+     * @param data.storyId
+     * @returns StoryPublic Successful Response
+     * @throws ApiError
+     */
+    public static unlikeStory(data: SocialUnlikeStoryData): CancelablePromise<SocialUnlikeStoryResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/social/stories/{story_id}/like',
+            path: {
+                story_id: data.storyId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Notes
+     * My note and the notes of people I follow.
+     * @returns NotesPublic Successful Response
+     * @throws ApiError
+     */
+    public static readNotes(): CancelablePromise<SocialReadNotesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/notes',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Set Note
+     * Set my one live note (24 hours).
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns NotePublic Successful Response
+     * @throws ApiError
+     */
+    public static setNote(data: SocialSetNoteData): CancelablePromise<SocialSetNoteResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/social/notes/me',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Clear Note
+     * @returns void Successful Response
+     * @throws ApiError
+     */
+    public static clearNote(): CancelablePromise<SocialClearNoteResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/social/notes/me',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Like Note
+     * @param data The data for the request.
+     * @param data.noteId
+     * @returns NotePublic Successful Response
+     * @throws ApiError
+     */
+    public static likeNote(data: SocialLikeNoteData): CancelablePromise<SocialLikeNoteResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/social/notes/{note_id}/like',
+            path: {
+                note_id: data.noteId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Unlike Note
+     * @param data The data for the request.
+     * @param data.noteId
+     * @returns NotePublic Successful Response
+     * @throws ApiError
+     */
+    public static unlikeNote(data: SocialUnlikeNoteData): CancelablePromise<SocialUnlikeNoteResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/social/notes/{note_id}/like',
+            path: {
+                note_id: data.noteId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Chats
+     * My inbox: pinned first, then the most recent.
+     * @param data The data for the request.
+     * @param data.skip
+     * @param data.limit
+     * @returns ChatsPublic Successful Response
+     * @throws ApiError
+     */
+    public static readChats(data: SocialReadChatsData = {}): CancelablePromise<SocialReadChatsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/chats',
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Open Direct
+     * Open (or create) the 1:1 chat with a person.
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns ChatPublic Successful Response
+     * @throws ApiError
+     */
+    public static openDirect(data: SocialOpenDirectData): CancelablePromise<SocialOpenDirectResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/social/chats/direct',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Create Group
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns ChatPublic Successful Response
+     * @throws ApiError
+     */
+    public static createGroup(data: SocialCreateGroupData): CancelablePromise<SocialCreateGroupResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/social/chats/groups',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Chat
+     * @param data The data for the request.
+     * @param data.chatId
+     * @returns ChatPublic Successful Response
+     * @throws ApiError
+     */
+    public static readChat(data: SocialReadChatData): CancelablePromise<SocialReadChatResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/chats/{chat_id}',
+            path: {
+                chat_id: data.chatId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Rename Chat
+     * Rename a group.
+     * @param data The data for the request.
+     * @param data.chatId
+     * @param data.requestBody
+     * @returns ChatPublic Successful Response
+     * @throws ApiError
+     */
+    public static renameChat(data: SocialRenameChatData): CancelablePromise<SocialRenameChatResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/social/chats/{chat_id}',
+            path: {
+                chat_id: data.chatId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Hide Chat
+     * Delete the chat from my inbox only.
+     * @param data The data for the request.
+     * @param data.chatId
+     * @returns void Successful Response
+     * @throws ApiError
+     */
+    public static hideChat(data: SocialHideChatData): CancelablePromise<SocialHideChatResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/social/chats/{chat_id}',
+            path: {
+                chat_id: data.chatId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Unhide Chat
+     * Undo a delete from my inbox.
+     * @param data The data for the request.
+     * @param data.chatId
+     * @returns ChatPublic Successful Response
+     * @throws ApiError
+     */
+    public static unhideChat(data: SocialUnhideChatData): CancelablePromise<SocialUnhideChatResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/social/chats/{chat_id}/restore',
+            path: {
+                chat_id: data.chatId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Membership
+     * Mute or pin, for me.
+     * @param data The data for the request.
+     * @param data.chatId
+     * @param data.requestBody
+     * @returns ChatPublic Successful Response
+     * @throws ApiError
+     */
+    public static updateMembership(data: SocialUpdateMembershipData): CancelablePromise<SocialUpdateMembershipResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/social/chats/{chat_id}/me',
+            path: {
+                chat_id: data.chatId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Add Members
+     * @param data The data for the request.
+     * @param data.chatId
+     * @param data.requestBody
+     * @returns ChatPublic Successful Response
+     * @throws ApiError
+     */
+    public static addMembers(data: SocialAddMembersData): CancelablePromise<SocialAddMembersResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/social/chats/{chat_id}/members',
+            path: {
+                chat_id: data.chatId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Leave Chat
+     * @param data The data for the request.
+     * @param data.chatId
+     * @returns void Successful Response
+     * @throws ApiError
+     */
+    public static leaveChat(data: SocialLeaveChatData): CancelablePromise<SocialLeaveChatResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/social/chats/{chat_id}/leave',
+            path: {
+                chat_id: data.chatId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Mark Read
+     * @param data The data for the request.
+     * @param data.chatId
+     * @returns ChatPublic Successful Response
+     * @throws ApiError
+     */
+    public static markRead(data: SocialMarkReadData): CancelablePromise<SocialMarkReadResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/social/chats/{chat_id}/read',
+            path: {
+                chat_id: data.chatId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Typing
+     * Ephemeral "is typing" nudge to the other members; nothing is stored.
+     * @param data The data for the request.
+     * @param data.chatId
+     * @returns void Successful Response
+     * @throws ApiError
+     */
+    public static typing(data: SocialTypingData): CancelablePromise<SocialTypingResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/social/chats/{chat_id}/typing',
+            path: {
+                chat_id: data.chatId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Messages
+     * Newest first; pass ``next_cursor`` back to page into the past.
+     * @param data The data for the request.
+     * @param data.chatId
+     * @param data.cursor
+     * @param data.limit
+     * @returns MessagesPublic Successful Response
+     * @throws ApiError
+     */
+    public static readMessages(data: SocialReadMessagesData): CancelablePromise<SocialReadMessagesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/chats/{chat_id}/messages',
+            path: {
+                chat_id: data.chatId
+            },
+            query: {
+                cursor: data.cursor,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Send Message
+     * @param data The data for the request.
+     * @param data.chatId
+     * @param data.requestBody
+     * @returns app__modules__social__schema__MessagePublic Successful Response
+     * @throws ApiError
+     */
+    public static sendMessage(data: SocialSendMessageData): CancelablePromise<SocialSendMessageResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/social/chats/{chat_id}/messages',
+            path: {
+                chat_id: data.chatId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Unsend
+     * Unsend (sender only).
+     * @param data The data for the request.
+     * @param data.chatId
+     * @param data.messageId
+     * @returns void Successful Response
+     * @throws ApiError
+     */
+    public static unsend(data: SocialUnsendData): CancelablePromise<SocialUnsendResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/social/chats/{chat_id}/messages/{message_id}',
+            path: {
+                chat_id: data.chatId,
+                message_id: data.messageId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * React
+     * @param data The data for the request.
+     * @param data.chatId
+     * @param data.messageId
+     * @param data.requestBody
+     * @returns app__modules__social__schema__MessagePublic Successful Response
+     * @throws ApiError
+     */
+    public static react(data: SocialReactData): CancelablePromise<SocialReactResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/social/chats/{chat_id}/messages/{message_id}/reaction',
+            path: {
+                chat_id: data.chatId,
+                message_id: data.messageId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Unreact
+     * @param data The data for the request.
+     * @param data.chatId
+     * @param data.messageId
+     * @returns app__modules__social__schema__MessagePublic Successful Response
+     * @throws ApiError
+     */
+    public static unreact(data: SocialUnreactData): CancelablePromise<SocialUnreactResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/social/chats/{chat_id}/messages/{message_id}/reaction',
+            path: {
+                chat_id: data.chatId,
+                message_id: data.messageId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Activity
+     * @param data The data for the request.
+     * @param data.skip
+     * @param data.limit
+     * @returns ActivitiesPublic Successful Response
+     * @throws ApiError
+     */
+    public static readActivity(data: SocialReadActivityData = {}): CancelablePromise<SocialReadActivityResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/activity',
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Mark Activity Read
+     * @returns Badges Successful Response
+     * @throws ApiError
+     */
+    public static markActivityRead(): CancelablePromise<SocialMarkActivityReadResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/social/activity/read',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Draft
+     * @param data The data for the request.
+     * @param data.kind
+     * @returns DraftPublic Successful Response
+     * @throws ApiError
+     */
+    public static readDraft(data: SocialReadDraftData): CancelablePromise<SocialReadDraftResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/drafts/{kind}',
+            path: {
+                kind: data.kind
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Put Draft
+     * @param data The data for the request.
+     * @param data.kind
+     * @param data.requestBody
+     * @returns DraftPublic Successful Response
+     * @throws ApiError
+     */
+    public static putDraft(data: SocialPutDraftData): CancelablePromise<SocialPutDraftResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/social/drafts/{kind}',
+            path: {
+                kind: data.kind
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Clear Draft
+     * @param data The data for the request.
+     * @param data.kind
+     * @returns void Successful Response
+     * @throws ApiError
+     */
+    public static clearDraft(data: SocialClearDraftData): CancelablePromise<SocialClearDraftResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/social/drafts/{kind}',
+            path: {
+                kind: data.kind
             },
             errors: {
                 '4XX': 'Client Error'

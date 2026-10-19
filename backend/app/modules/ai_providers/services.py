@@ -48,6 +48,7 @@ _BASE_URL_MESSAGES = {
     "base_url_invalid": "That base URL is not valid.",
     "base_url_scheme": "Use an https URL (plain http only for localhost).",
     "base_url_userinfo": "Put the API key in the key field, not in the URL.",
+    "base_url_private": "Use a public https URL; local and private addresses are not reachable from the server.",
 }
 
 

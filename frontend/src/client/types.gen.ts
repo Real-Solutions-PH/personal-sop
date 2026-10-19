@@ -81,6 +81,24 @@ export type AccountView = {
     reconciled_days_ago: (number | null);
 };
 
+export type ActivitiesPublic = {
+    data: Array<ActivityPublic>;
+    count: number;
+    unread: number;
+};
+
+export type ActivityPublic = {
+    id: string;
+    kind: 'like' | 'comment' | 'follow' | 'mention' | 'story';
+    actor: PersonBrief;
+    at: string;
+    post_id: (string | null);
+    text: (string | null);
+    unread: boolean;
+};
+
+export type kind = 'like' | 'comment' | 'follow' | 'mention' | 'story';
+
 export type AddExercises = {
     exercise_ids: Array<(string)>;
     ids?: (Array<(string)> | null);
@@ -124,6 +142,31 @@ export type AdvicePublic = {
 };
 
 export type tone = 'good' | 'warn' | 'bad';
+
+export type app__modules__finance__schema__MessageCreate = {
+    id?: (string | null);
+    role: 'user' | 'ai';
+    text: string;
+    answer?: ({
+    [key: string]: unknown;
+} | null);
+    scope?: 'aggregates' | 'records';
+};
+
+export type role = 'user' | 'ai';
+
+export type app__modules__finance__schema__MessagePublic = {
+    id: string;
+    thread_id: string;
+    role: string;
+    text: string;
+    at: string;
+    answer: ({
+    [key: string]: unknown;
+} | null);
+    scope: string;
+    version: number;
+};
 
 export type app__modules__finance__schema__SettingsPublic = {
     id: string;
@@ -187,6 +230,41 @@ export type app__modules__habits__schema__TodayPublic = {
     timer: (TimerPublic | null);
 };
 
+export type app__modules__social__schema__MessageCreate = {
+    id?: (string | null);
+    text?: (string | null);
+    media_id?: (string | null);
+    post_id?: (string | null);
+    story_id?: (string | null);
+    reply_to_id?: (string | null);
+};
+
+export type app__modules__social__schema__MessagePublic = {
+    id: string;
+    chat_id: string;
+    sender_id: string;
+    at: string;
+    text: (string | null);
+    media: (MediaPublic | null);
+    post_id: (string | null);
+    story_id: (string | null);
+    reply_to_id: (string | null);
+    system: boolean;
+    reactions: {
+        [key: string]: (string);
+    };
+};
+
+/**
+ * The Today screen's community card.
+ */
+export type app__modules__social__schema__TodayPublic = {
+    activity_unread: number;
+    chats_unread: number;
+    unseen_story_people: Array<PersonBrief>;
+    latest_post: (PostPublic | null);
+};
+
 export type app__modules__tasks__schema__SettingsPublic = {
     id: string;
     default_remind_time: string;
@@ -239,6 +317,33 @@ export type ArchiveIn = {
     archived: boolean;
 };
 
+export type AreaRatePublic = {
+    module: string;
+    rate: (number | null);
+};
+
+export type AssignmentIn = {
+    credential_id: string;
+    model: string;
+    supports_vision?: boolean;
+};
+
+export type AssignmentPublic = {
+    id: string;
+    purpose: 'chat' | 'capture' | 'vision' | 'transcription' | 'advisor';
+    credential_id: string;
+    model: string;
+    supports_vision: boolean;
+    updated_at: string;
+};
+
+export type purpose = 'chat' | 'capture' | 'vision' | 'transcription' | 'advisor';
+
+export type AssignmentsOut = {
+    data: Array<AssignmentPublic>;
+    count: number;
+};
+
 /**
  * One audit row as returned over the API.
  *
@@ -265,6 +370,11 @@ export type AuditLogPublic = {
 export type AuditLogsPublic = {
     data: Array<AuditLogPublic>;
     count: number;
+};
+
+export type Badges = {
+    activity_unread: number;
+    chats_unread: number;
 };
 
 export type BodyOut = {
@@ -365,7 +475,7 @@ export type CategoryCreate = {
     id?: (string | null);
 };
 
-export type kind = 'expense' | 'income';
+export type kind2 = 'expense' | 'income';
 
 export type CategoryFields = {
     name?: (string | null);
@@ -397,12 +507,60 @@ export type CategoryUses = {
     budgets: number;
 };
 
+export type ChatPublic = {
+    id: string;
+    name: (string | null);
+    is_group: boolean;
+    members: Array<PersonBrief>;
+    muted: boolean;
+    pinned: boolean;
+    read_at: (string | null);
+    unread: number;
+    last_message: (app__modules__social__schema__MessagePublic | null);
+    last_message_at: (string | null);
+};
+
+export type ChatRename = {
+    name: string;
+};
+
+export type ChatsPublic = {
+    data: Array<ChatPublic>;
+    count: number;
+};
+
 export type CheckIn = {
     day?: (string | null);
     source?: 'tap' | 'timer' | 'routine' | 'capture' | 'workout';
 };
 
 export type source2 = 'tap' | 'timer' | 'routine' | 'capture' | 'workout';
+
+export type CloseFriendIn = {
+    close_friend: boolean;
+};
+
+export type CommentCreate = {
+    id?: (string | null);
+    text: string;
+    reply_to_id?: (string | null);
+};
+
+export type CommentPublic = {
+    id: string;
+    post_id: string;
+    author: PersonBrief;
+    text: string;
+    created_at: string;
+    likes: number;
+    liked: boolean;
+    reply_to_id: (string | null);
+};
+
+export type CommentsPublic = {
+    data: Array<CommentPublic>;
+    count: number;
+};
 
 export type CommitIn = {
     transfer_account_id?: (string | null);
@@ -443,6 +601,39 @@ export type CompleteSignup = {
 
 export type CountResult = {
     count: number;
+};
+
+export type CredentialCreate = {
+    id?: (string | null);
+    provider: 'openrouter' | 'openai' | 'anthropic' | 'gemini' | 'groq' | 'nebius' | 'together' | 'custom';
+    label?: (string | null);
+    base_url?: (string | null);
+    api_key: string;
+};
+
+export type provider = 'openrouter' | 'openai' | 'anthropic' | 'gemini' | 'groq' | 'nebius' | 'together' | 'custom';
+
+export type CredentialPublic = {
+    id: string;
+    provider: 'openrouter' | 'openai' | 'anthropic' | 'gemini' | 'groq' | 'nebius' | 'together' | 'custom';
+    label: string;
+    base_url: string;
+    key_last4: string;
+    verified_at: (string | null);
+    last_error_code: (string | null);
+    created_at: string;
+    updated_at: string;
+};
+
+export type CredentialsOut = {
+    data: Array<CredentialPublic>;
+    count: number;
+};
+
+export type CredentialUpdate = {
+    label?: (string | null);
+    base_url?: (string | null);
+    api_key?: (string | null);
 };
 
 export type CsvIn = {
@@ -515,6 +706,27 @@ export type DayVerdictOut = {
     over: boolean;
     verdict: string;
 };
+
+export type DirectIn = {
+    user_id: string;
+    id?: (string | null);
+};
+
+export type DraftIn = {
+    body?: {
+        [key: string]: unknown;
+    };
+};
+
+export type DraftPublic = {
+    kind: 'post' | 'story';
+    body: {
+        [key: string]: unknown;
+    };
+    updated_at: (string | null);
+};
+
+export type kind3 = 'post' | 'story';
 
 export type DueIn = {
     due_date: (string | null);
@@ -638,6 +850,11 @@ export type ExerciseWithStats = {
     stalled: boolean;
 };
 
+export type ExplorePublic = {
+    suggested: Array<PersonBrief>;
+    popular: Array<PostPublic>;
+};
+
 export type ExtendIn = {
     sec: number;
 };
@@ -724,6 +941,12 @@ export type FlowOut = {
 
 export type FollowUpAnswerIn = {
     option: string;
+};
+
+export type GroupCreate = {
+    id?: (string | null);
+    name: string;
+    member_ids: Array<(string)>;
 };
 
 export type HabitCreate = {
@@ -1002,6 +1225,18 @@ export type ItemUpdate = {
     description?: (string | null);
 };
 
+export type LeaderboardPublic = {
+    data: Array<LeaderRow>;
+    count: number;
+};
+
+export type LeaderRow = {
+    rank: number;
+    person: PersonBrief;
+    life: (number | null);
+    streak: number;
+};
+
 export type LeakOut = {
     payee: string;
     n: number;
@@ -1023,7 +1258,7 @@ export type ListCreate = {
     icon?: 'briefcase' | 'laptop' | 'home' | 'cart' | 'heart' | 'book' | 'plane' | 'gift' | 'list';
 };
 
-export type kind2 = 'standard' | 'shopping';
+export type kind4 = 'standard' | 'shopping';
 
 export type color = 'tsk' | 'fin' | 'hab' | 'fit' | 'life' | 'warn';
 
@@ -1076,7 +1311,7 @@ export type LivePublic = {
     paused_sec: number;
 };
 
-export type kind3 = 'timer' | 'routine' | 'workout';
+export type kind5 = 'timer' | 'routine' | 'workout';
 
 export type LiveState = {
     live: (LivePublic | null);
@@ -1268,6 +1503,21 @@ export type MeBundle = {
     live: (LivePublic | null);
 };
 
+export type MediaIn = {
+    media_id: string;
+    kind?: 'image' | 'video';
+    ratio?: (number | null);
+};
+
+export type kind6 = 'image' | 'video';
+
+export type MediaPublic = {
+    media_id: string;
+    kind: 'image' | 'video';
+    ratio: (number | null);
+    url: (string | null);
+};
+
 export type MediaWithUrl = {
     id: string;
     kind: 'image' | 'video' | 'audio' | 'file';
@@ -1282,37 +1532,40 @@ export type MediaWithUrl = {
     url?: (string | null);
 };
 
-export type kind4 = 'image' | 'video' | 'audio' | 'file';
+export type kind7 = 'image' | 'video' | 'audio' | 'file';
 
 export type state = 'pending' | 'ready' | 'rejected';
+
+export type MemberSettings = {
+    muted?: (boolean | null);
+    pinned?: (boolean | null);
+};
+
+export type MembersIn = {
+    user_ids: Array<(string)>;
+};
 
 export type Message = {
     message: string;
 };
 
-export type MessageCreate = {
-    id?: (string | null);
-    role: 'user' | 'ai';
-    text: string;
-    answer?: ({
-    [key: string]: unknown;
-} | null);
-    scope?: 'aggregates' | 'records';
+export type MessagesPublic = {
+    data: Array<app__modules__social__schema__MessagePublic>;
+    count: number;
+    next_cursor?: (string | null);
 };
 
-export type role = 'user' | 'ai';
-
-export type MessagePublic = {
+export type ModelOut = {
     id: string;
-    thread_id: string;
-    role: string;
-    text: string;
-    at: string;
-    answer: ({
-    [key: string]: unknown;
-} | null);
-    scope: string;
-    version: number;
+    name: string;
+    supports_vision: (boolean | null);
+};
+
+export type ModelsOut = {
+    data: Array<ModelOut>;
+    count: number;
+    truncated: boolean;
+    cached: boolean;
 };
 
 export type ModulePrefPublic = {
@@ -1360,6 +1613,24 @@ export type MoveListIn = {
 export type MoveTaskIn = {
     dir: -1 | 1;
     ids: Array<(string)>;
+};
+
+export type NoteIn = {
+    text: string;
+};
+
+export type NotePublic = {
+    id: string;
+    person: PersonBrief;
+    text: string;
+    created_at: string;
+    expires_at: string;
+    liked: boolean;
+};
+
+export type NotesPublic = {
+    data: Array<NotePublic>;
+    count: number;
 };
 
 export type NotifPublic = {
@@ -1514,6 +1785,11 @@ export type PausePublic = {
     version: number;
 };
 
+export type PeoplePublic = {
+    data: Array<PersonPublic>;
+    count: number;
+};
+
 export type PerHabit = {
     habit: HabitPublic;
     stats: app__modules__habits__schema__StatsOut;
@@ -1542,6 +1818,33 @@ export type PermissionPublic = {
 export type PermissionsPublic = {
     data: Array<PermissionPublic>;
     count: number;
+};
+
+export type PersonBrief = {
+    id: string;
+    name: string;
+    handle: (string | null);
+    accent: 'hab' | 'tsk' | 'fit' | 'fin' | 'life' | 'primary';
+    photo_media_id: (string | null);
+    verified: boolean;
+};
+
+export type accent = 'hab' | 'tsk' | 'fit' | 'fin' | 'life' | 'primary';
+
+export type PersonPublic = {
+    id: string;
+    name: string;
+    handle: (string | null);
+    accent: 'hab' | 'tsk' | 'fit' | 'fin' | 'life' | 'primary';
+    photo_media_id: (string | null);
+    verified: boolean;
+    bio: string;
+    followers: number;
+    following: number;
+    is_me: boolean;
+    is_following: boolean;
+    close_friend: boolean;
+    scores_visible: boolean;
 };
 
 export type PlacePublic = {
@@ -1640,6 +1943,57 @@ export type PlayerState = {
     planned_min: number;
 };
 
+export type PostCreate = {
+    id?: (string | null);
+    caption?: string;
+    media?: Array<MediaIn>;
+    progress?: (ProgressIn | null);
+    location?: (string | null);
+};
+
+export type PostPublic = {
+    id: string;
+    author: PersonBrief;
+    created_at: string;
+    caption: string;
+    media: Array<MediaPublic>;
+    progress: ({
+    [key: string]: unknown;
+} | null);
+    location: (string | null);
+    tags: Array<(string)>;
+    likes: number;
+    liked: boolean;
+    saved: boolean;
+    comments: number;
+    liked_by: Array<PersonBrief>;
+};
+
+export type PostsPublic = {
+    data: Array<PostPublic>;
+    count: number;
+    next_cursor?: (string | null);
+};
+
+export type PostUpdate = {
+    caption: string;
+};
+
+export type PresetOut = {
+    name: 'openrouter' | 'openai' | 'anthropic' | 'gemini' | 'groq' | 'nebius' | 'together' | 'custom';
+    label: string;
+    default_base_url: (string | null);
+    custom_base_url: boolean;
+    vision_models: Array<(string)>;
+};
+
+export type name = 'openrouter' | 'openai' | 'anthropic' | 'gemini' | 'groq' | 'nebius' | 'together' | 'custom';
+
+export type PresetsOut = {
+    data: Array<PresetOut>;
+    count: number;
+};
+
 export type PrivateUserCreate = {
     email: string;
     password: string;
@@ -1696,6 +2050,24 @@ export type ProfileUpdate = {
     push_evening?: (string | null);
     push_review?: (boolean | null);
     seen_trophies?: (Array<(string)> | null);
+};
+
+/**
+ * A live progress attachment snapshot (the share card a post carries).
+ */
+export type ProgressIn = {
+    accent: string;
+    kind: string;
+    title: string;
+    subtitle?: (string | null);
+    stats?: Array<ProgressStat>;
+    spark?: (Array<(number)> | null);
+};
+
+export type ProgressStat = {
+    label: string;
+    value: string;
+    unit?: (string | null);
 };
 
 export type ProjectionIn = {
@@ -1755,6 +2127,10 @@ export type PushDevicePublic = {
     platform: string;
     last_seen_at: (string | null);
     disabled_at: (string | null);
+};
+
+export type ReactionIn = {
+    emoji: string;
 };
 
 export type Recategorise = {
@@ -2062,6 +2438,18 @@ export type ScheduleSlot = {
     window?: (number | null);
 };
 
+export type ScorecardPublic = {
+    person_id: string;
+    life: (number | null);
+    level: (string | null);
+    delta: (number | null);
+    streak: number;
+    best: number;
+    rates: Array<AreaRatePublic>;
+    stats: Array<ProgressStat>;
+    trophies: Array<TrophyPublic>;
+};
+
 export type SemimonthlySchedule = {
     kind: "semimonthly";
     days: [
@@ -2192,6 +2580,12 @@ export type SnoozeIn = {
     minutes?: number;
 };
 
+export type SocialProfileUpdate = {
+    bio?: (string | null);
+    accent?: ('hab' | 'tsk' | 'fit' | 'fin' | 'life' | 'primary' | null);
+    show_scores?: (boolean | null);
+};
+
 export type StartWorkout = {
     source?: 'empty' | 'template' | 'repeat';
     template_id?: (string | null);
@@ -2261,6 +2655,54 @@ export type StepsIn = {
     steps: Array<StepIn>;
 };
 
+export type StoryCreate = {
+    id?: (string | null);
+    kind: 'image' | 'video' | 'text' | 'progress';
+    media_id?: (string | null);
+    text?: (string | null);
+    bg?: ([
+    string,
+    string
+] | null);
+    progress?: (ProgressIn | null);
+    audience?: 'everyone' | 'close';
+};
+
+export type kind8 = 'image' | 'video' | 'text' | 'progress';
+
+export type audience = 'everyone' | 'close';
+
+export type StoryGroup = {
+    person: PersonBrief;
+    unseen: boolean;
+    close: boolean;
+    latest: string;
+    items: Array<StoryPublic>;
+};
+
+export type StoryPublic = {
+    id: string;
+    owner_id: string;
+    created_at: string;
+    expires_at: string;
+    kind: 'image' | 'video' | 'text' | 'progress';
+    media: (MediaPublic | null);
+    text: (string | null);
+    bg: (Array<(string)> | null);
+    progress: ({
+    [key: string]: unknown;
+} | null);
+    audience: 'everyone' | 'close';
+    seen: boolean;
+    liked: boolean;
+    likes: (number | null);
+};
+
+export type StoryTray = {
+    data: Array<StoryGroup>;
+    count: number;
+};
+
 export type StreaksOut = {
     current: number;
     best: number;
@@ -2309,7 +2751,7 @@ export type SyncOp = {
     base_version?: (number | null);
 };
 
-export type kind5 = 'upsert' | 'delete' | 'action';
+export type kind9 = 'upsert' | 'delete' | 'action';
 
 export type SyncOpResult = {
     op_id: string;
@@ -2497,7 +2939,7 @@ export type ThreadDetail = {
     title: string;
     created_at: string;
     version: number;
-    messages: Array<MessagePublic>;
+    messages: Array<app__modules__finance__schema__MessagePublic>;
 };
 
 export type ThreadPublic = {
@@ -2578,6 +3020,14 @@ export type TrendPointOut = {
     avg: (number | null);
 };
 
+export type TrophyPublic = {
+    type: 'pr' | 'streak' | 'best' | 'goal' | 'first';
+    title: string;
+    value: string;
+};
+
+export type type3 = 'pr' | 'streak' | 'best' | 'goal' | 'first';
+
 export type UpcomingPublic = {
     day: string;
     tasks: Array<TaskPublic>;
@@ -2604,6 +3054,28 @@ export type UploadTicket = {
     headers: {
         [key: string]: (string);
     };
+};
+
+export type UsageOut = {
+    month: string;
+    data: Array<UsageRow>;
+    count: number;
+    calls: number;
+    spend_minor: number;
+    spend_cap_minor: number;
+    remaining_minor: number;
+    cap_reached: boolean;
+    ai_enabled: boolean;
+};
+
+export type UsageRow = {
+    purpose: 'chat' | 'capture' | 'vision' | 'transcription' | 'advisor';
+    model: string;
+    calls: number;
+    failed_calls: number;
+    input_tokens: number;
+    output_tokens: number;
+    cost_minor: number;
 };
 
 export type UserCreate = {
@@ -2647,6 +3119,14 @@ export type UserUpdateMe = {
     full_name?: (string | null);
     email?: (string | null);
 };
+
+export type VerifyOut = {
+    code: 'ok' | 'unauthorized' | 'not_found' | 'rate_limited' | 'unreachable' | 'bad_response';
+    ok: boolean;
+    credential: CredentialPublic;
+};
+
+export type code = 'ok' | 'unauthorized' | 'not_found' | 'rate_limited' | 'unreachable' | 'bad_response';
 
 export type WeatherPrefPublic = {
     id: string;
@@ -2849,6 +3329,73 @@ export type WorkoutSummary = {
     totals: TotalsOut;
     pr_count: number;
 };
+
+export type AiProvidersPresetsResponse = (PresetsOut);
+
+export type AiProvidersListCredentialsData = {
+    limit?: number;
+    skip?: number;
+};
+
+export type AiProvidersListCredentialsResponse = (CredentialsOut);
+
+export type AiProvidersCreateCredentialData = {
+    requestBody: CredentialCreate;
+};
+
+export type AiProvidersCreateCredentialResponse = (CredentialPublic);
+
+export type AiProvidersGetCredentialData = {
+    credentialId: string;
+};
+
+export type AiProvidersGetCredentialResponse = (CredentialPublic);
+
+export type AiProvidersUpdateCredentialData = {
+    credentialId: string;
+    requestBody: CredentialUpdate;
+};
+
+export type AiProvidersUpdateCredentialResponse = (CredentialPublic);
+
+export type AiProvidersDeleteCredentialData = {
+    credentialId: string;
+};
+
+export type AiProvidersDeleteCredentialResponse = (void);
+
+export type AiProvidersVerifyCredentialData = {
+    credentialId: string;
+};
+
+export type AiProvidersVerifyCredentialResponse = (VerifyOut);
+
+export type AiProvidersListModelsData = {
+    credentialId: string;
+};
+
+export type AiProvidersListModelsResponse = (ModelsOut);
+
+export type AiProvidersListAssignmentsResponse = (AssignmentsOut);
+
+export type AiProvidersPutAssignmentData = {
+    purpose: 'chat' | 'capture' | 'vision' | 'transcription' | 'advisor';
+    requestBody: AssignmentIn;
+};
+
+export type AiProvidersPutAssignmentResponse = (AssignmentPublic);
+
+export type AiProvidersDeleteAssignmentData = {
+    purpose: 'chat' | 'capture' | 'vision' | 'transcription' | 'advisor';
+};
+
+export type AiProvidersDeleteAssignmentResponse = (void);
+
+export type AiProvidersUsageData = {
+    month?: (string | null);
+};
+
+export type AiProvidersUsageResponse = (UsageOut);
 
 export type AuditReadAuditLogsData = {
     limit?: number;
@@ -3305,11 +3852,11 @@ export type FinanceDeleteThreadData = {
 export type FinanceDeleteThreadResponse = (Ok);
 
 export type FinanceAddMessageData = {
-    requestBody: MessageCreate;
+    requestBody: app__modules__finance__schema__MessageCreate;
     threadId: string;
 };
 
-export type FinanceAddMessageResponse = (MessagePublic);
+export type FinanceAddMessageResponse = (app__modules__finance__schema__MessagePublic);
 
 export type FinanceDeleteMessageData = {
     messageId: string;
@@ -4190,6 +4737,403 @@ export type RolesReadRoleData = {
 };
 
 export type RolesReadRoleResponse = (RolePublic);
+
+export type SocialReadMeResponse = (PersonPublic);
+
+export type SocialUpdateMeData = {
+    requestBody: SocialProfileUpdate;
+};
+
+export type SocialUpdateMeResponse = (PersonPublic);
+
+export type SocialReadBadgesResponse = (Badges);
+
+export type SocialReadTodayResponse = (app__modules__social__schema__TodayPublic);
+
+export type SocialReadExploreResponse = (ExplorePublic);
+
+export type SocialReadLeaderboardResponse = (LeaderboardPublic);
+
+export type SocialSearchPeopleData = {
+    limit?: number;
+    q?: string;
+    skip?: number;
+};
+
+export type SocialSearchPeopleResponse = (PeoplePublic);
+
+export type SocialSearchTagsData = {
+    limit?: number;
+    q?: string;
+    skip?: number;
+};
+
+export type SocialSearchTagsResponse = (PostsPublic);
+
+export type SocialReadCloseFriendsResponse = (PeoplePublic);
+
+export type SocialReadPersonData = {
+    userId: string;
+};
+
+export type SocialReadPersonResponse = (PersonPublic);
+
+export type SocialReadScorecardData = {
+    userId: string;
+};
+
+export type SocialReadScorecardResponse = (ScorecardPublic);
+
+export type SocialReadFollowersData = {
+    limit?: number;
+    skip?: number;
+    userId: string;
+};
+
+export type SocialReadFollowersResponse = (PeoplePublic);
+
+export type SocialReadFollowingData = {
+    limit?: number;
+    skip?: number;
+    userId: string;
+};
+
+export type SocialReadFollowingResponse = (PeoplePublic);
+
+export type SocialReadPersonPostsData = {
+    limit?: number;
+    skip?: number;
+    userId: string;
+};
+
+export type SocialReadPersonPostsResponse = (PostsPublic);
+
+export type SocialFollowData = {
+    userId: string;
+};
+
+export type SocialFollowResponse = (PersonPublic);
+
+export type SocialUnfollowData = {
+    userId: string;
+};
+
+export type SocialUnfollowResponse = (PersonPublic);
+
+export type SocialSetCloseFriendData = {
+    requestBody: CloseFriendIn;
+    userId: string;
+};
+
+export type SocialSetCloseFriendResponse = (PersonPublic);
+
+export type SocialReadFeedData = {
+    cursor?: (string | null);
+    limit?: number;
+    skip?: number;
+    tab?: 'following' | 'foryou';
+};
+
+export type SocialReadFeedResponse = (PostsPublic);
+
+export type SocialReadSavedData = {
+    limit?: number;
+    skip?: number;
+};
+
+export type SocialReadSavedResponse = (PostsPublic);
+
+export type SocialCreatePostData = {
+    requestBody: PostCreate;
+};
+
+export type SocialCreatePostResponse = (PostPublic);
+
+export type SocialReadPostData = {
+    postId: string;
+};
+
+export type SocialReadPostResponse = (PostPublic);
+
+export type SocialUpdatePostData = {
+    postId: string;
+    requestBody: PostUpdate;
+};
+
+export type SocialUpdatePostResponse = (PostPublic);
+
+export type SocialDeletePostData = {
+    postId: string;
+};
+
+export type SocialDeletePostResponse = (void);
+
+export type SocialRestorePostData = {
+    postId: string;
+};
+
+export type SocialRestorePostResponse = (PostPublic);
+
+export type SocialLikePostData = {
+    postId: string;
+};
+
+export type SocialLikePostResponse = (PostPublic);
+
+export type SocialUnlikePostData = {
+    postId: string;
+};
+
+export type SocialUnlikePostResponse = (PostPublic);
+
+export type SocialSavePostData = {
+    postId: string;
+};
+
+export type SocialSavePostResponse = (PostPublic);
+
+export type SocialUnsavePostData = {
+    postId: string;
+};
+
+export type SocialUnsavePostResponse = (PostPublic);
+
+export type SocialReadCommentsData = {
+    limit?: number;
+    postId: string;
+    skip?: number;
+};
+
+export type SocialReadCommentsResponse = (CommentsPublic);
+
+export type SocialAddCommentData = {
+    postId: string;
+    requestBody: CommentCreate;
+};
+
+export type SocialAddCommentResponse = (CommentPublic);
+
+export type SocialLikeCommentData = {
+    commentId: string;
+    postId: string;
+};
+
+export type SocialLikeCommentResponse = (CommentPublic);
+
+export type SocialUnlikeCommentData = {
+    commentId: string;
+    postId: string;
+};
+
+export type SocialUnlikeCommentResponse = (CommentPublic);
+
+export type SocialDeleteCommentData = {
+    commentId: string;
+    postId: string;
+};
+
+export type SocialDeleteCommentResponse = (void);
+
+export type SocialReadTrayResponse = (StoryTray);
+
+export type SocialCreateStoryData = {
+    requestBody: StoryCreate;
+};
+
+export type SocialCreateStoryResponse = (StoryPublic);
+
+export type SocialReadStoryData = {
+    storyId: string;
+};
+
+export type SocialReadStoryResponse = (StoryPublic);
+
+export type SocialDeleteStoryData = {
+    storyId: string;
+};
+
+export type SocialDeleteStoryResponse = (void);
+
+export type SocialMarkSeenData = {
+    storyId: string;
+};
+
+export type SocialMarkSeenResponse = (StoryPublic);
+
+export type SocialLikeStoryData = {
+    storyId: string;
+};
+
+export type SocialLikeStoryResponse = (StoryPublic);
+
+export type SocialUnlikeStoryData = {
+    storyId: string;
+};
+
+export type SocialUnlikeStoryResponse = (StoryPublic);
+
+export type SocialReadNotesResponse = (NotesPublic);
+
+export type SocialSetNoteData = {
+    requestBody: NoteIn;
+};
+
+export type SocialSetNoteResponse = (NotePublic);
+
+export type SocialClearNoteResponse = (void);
+
+export type SocialLikeNoteData = {
+    noteId: string;
+};
+
+export type SocialLikeNoteResponse = (NotePublic);
+
+export type SocialUnlikeNoteData = {
+    noteId: string;
+};
+
+export type SocialUnlikeNoteResponse = (NotePublic);
+
+export type SocialReadChatsData = {
+    limit?: number;
+    skip?: number;
+};
+
+export type SocialReadChatsResponse = (ChatsPublic);
+
+export type SocialOpenDirectData = {
+    requestBody: DirectIn;
+};
+
+export type SocialOpenDirectResponse = (ChatPublic);
+
+export type SocialCreateGroupData = {
+    requestBody: GroupCreate;
+};
+
+export type SocialCreateGroupResponse = (ChatPublic);
+
+export type SocialReadChatData = {
+    chatId: string;
+};
+
+export type SocialReadChatResponse = (ChatPublic);
+
+export type SocialRenameChatData = {
+    chatId: string;
+    requestBody: ChatRename;
+};
+
+export type SocialRenameChatResponse = (ChatPublic);
+
+export type SocialHideChatData = {
+    chatId: string;
+};
+
+export type SocialHideChatResponse = (void);
+
+export type SocialUnhideChatData = {
+    chatId: string;
+};
+
+export type SocialUnhideChatResponse = (ChatPublic);
+
+export type SocialUpdateMembershipData = {
+    chatId: string;
+    requestBody: MemberSettings;
+};
+
+export type SocialUpdateMembershipResponse = (ChatPublic);
+
+export type SocialAddMembersData = {
+    chatId: string;
+    requestBody: MembersIn;
+};
+
+export type SocialAddMembersResponse = (ChatPublic);
+
+export type SocialLeaveChatData = {
+    chatId: string;
+};
+
+export type SocialLeaveChatResponse = (void);
+
+export type SocialMarkReadData = {
+    chatId: string;
+};
+
+export type SocialMarkReadResponse = (ChatPublic);
+
+export type SocialTypingData = {
+    chatId: string;
+};
+
+export type SocialTypingResponse = (void);
+
+export type SocialReadMessagesData = {
+    chatId: string;
+    cursor?: (string | null);
+    limit?: number;
+};
+
+export type SocialReadMessagesResponse = (MessagesPublic);
+
+export type SocialSendMessageData = {
+    chatId: string;
+    requestBody: app__modules__social__schema__MessageCreate;
+};
+
+export type SocialSendMessageResponse = (app__modules__social__schema__MessagePublic);
+
+export type SocialUnsendData = {
+    chatId: string;
+    messageId: string;
+};
+
+export type SocialUnsendResponse = (void);
+
+export type SocialReactData = {
+    chatId: string;
+    messageId: string;
+    requestBody: ReactionIn;
+};
+
+export type SocialReactResponse = (app__modules__social__schema__MessagePublic);
+
+export type SocialUnreactData = {
+    chatId: string;
+    messageId: string;
+};
+
+export type SocialUnreactResponse = (app__modules__social__schema__MessagePublic);
+
+export type SocialReadActivityData = {
+    limit?: number;
+    skip?: number;
+};
+
+export type SocialReadActivityResponse = (ActivitiesPublic);
+
+export type SocialMarkActivityReadResponse = (Badges);
+
+export type SocialReadDraftData = {
+    kind: 'post' | 'story';
+};
+
+export type SocialReadDraftResponse = (DraftPublic);
+
+export type SocialPutDraftData = {
+    kind: 'post' | 'story';
+    requestBody: DraftIn;
+};
+
+export type SocialPutDraftResponse = (DraftPublic);
+
+export type SocialClearDraftData = {
+    kind: 'post' | 'story';
+};
+
+export type SocialClearDraftResponse = (void);
 
 export type SyncPushData = {
     requestBody: SyncPush;
