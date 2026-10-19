@@ -85,7 +85,8 @@ describe("task lists (live)", () => {
         "select id from task_list where owner_id = $1 and name = 'Side gig' and archived_at is not null",
         [user.id],
       )
-      cy.findByText("Archived").should("exist")
+      // The section heading renders upper-case.
+      cy.findByText(/^archived$/i).should("exist")
       settled()
       cy.findByRole("button", { name: "Unarchive" }).click()
       rows(

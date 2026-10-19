@@ -217,10 +217,14 @@ export const dbTask = (id: string) =>
 export function signIn(user: LiveUser) {
   cy.visit("/welcome")
   cy.findByRole("button", { name: "I already have an account" }).click()
-  cy.findByRole("textbox", { name: "Email" })
-    .should("not.be.disabled")
-    .clear()
-    .type(user.email)
+  cy.location("pathname").should("eq", "/login")
+  // The form re-renders while the screen settles (a connectivity probe is
+  // in flight); re-query before each action instead of holding the node.
+  cy.wait(1000, { log: false })
+  const email = () =>
+    cy.findByRole("textbox", { name: "Email" }).should("not.be.disabled")
+  email().clear()
+  email().type(user.email)
   cy.findByLabelText("Password")
     .should("not.be.disabled")
     .type(user.password, { log: false })
