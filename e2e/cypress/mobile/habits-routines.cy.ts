@@ -62,7 +62,7 @@ describe("habits routines (live)", () => {
           cy.visit("/habits/routines")
           cy.findByText("Stack habits into one guided flow").should("exist")
           cy.findByRole("button", { name: "New routine" }).click()
-          cy.findByLabelText("Name").type("Morning")
+          cy.findByRole("textbox", { name: "Name" }).type("Morning")
           cy.findByRole("button", { name: "Choose 🌅" }).click()
           cy.findByRole("button", { name: "Create & add steps" }).click()
           cy.location("pathname").should(
@@ -107,7 +107,7 @@ describe("habits routines (live)", () => {
             cy.findByText("+ Add step").click()
             cy.findByLabelText("Search habits").type("Journal")
             cy.findByText("New habit “Journal”").click()
-            cy.findByLabelText("Name").should("have.value", "Journal")
+            cy.findByRole("textbox", { name: "Name" }).should("have.value", "Journal")
             cy.findByRole("button", { name: "Create habit" }).click()
             cy.location("pathname").should("eq", `/habits/routines/${id}`)
             dbRows(
@@ -119,7 +119,7 @@ describe("habits routines (live)", () => {
 
             // Edit: rename.
             cy.findByRole("button", { name: "Edit routine" }).click()
-            cy.findByLabelText("Name").clear().type("Morning flow")
+            cy.findByRole("textbox", { name: "Name" }).clear().type("Morning flow")
             cy.findByRole("button", { name: "Save changes" }).click()
             dbRows(
               "select 1 from routine where id = $1 and name = 'Morning flow'",
@@ -153,8 +153,8 @@ describe("habits routines (live)", () => {
               [r.id],
             )
 
-            cy.findByText("Archived · 1").click()
-            cy.findByText("Evening").should("exist")
+            cy.findByText(/Archived · 1/).click()
+            pulled(/Evening/)
             cy.findByText("Restore").click()
             dbRows(
               "select 1 from routine where id = $1 and status = 'active'",
@@ -173,7 +173,7 @@ describe("habits routines (live)", () => {
               [r.id],
             )
             cy.visit("/habits/manage/archived")
-            cy.findByText("Evening").should("exist")
+            pulled(/Evening/)
             cy.findByRole("button", { name: "Restore" }).click()
             dbRows(
               "select 1 from routine where id = $1 and status = 'active'",
@@ -287,7 +287,8 @@ describe("habits routines (live)", () => {
                   `/habits/routines/${r.id}/summary`,
                 )
                 cy.findByText("Morning done!").should("exist")
-                cy.findByText("1/3").should("exist")
+                // Water done, Stretch skipped, Vitamins continued (counts done).
+                cy.findAllByText("2/3").should("have.length.gte", 1)
                 cy.findByText("skipped").should("exist")
 
                 run().then(([x]) => {

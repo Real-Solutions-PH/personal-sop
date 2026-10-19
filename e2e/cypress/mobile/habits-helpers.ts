@@ -52,6 +52,10 @@ export const apiUntil = <T>(
 export const signIn = (user: LiveUser) => {
   cy.visit("/welcome")
   cy.findByRole("button", { name: "I already have an account" }).click()
+  // The sign-in screen animates in; typing during that transition is
+  // refused as a disabled element.
+  cy.location("pathname").should("not.eq", "/welcome")
+  cy.wait(1500)
   cy.findByRole("textbox", { name: "Email" })
     .should("have.value", "")
     .and("not.be.disabled")

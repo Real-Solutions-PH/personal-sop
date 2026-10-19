@@ -20,6 +20,7 @@
 // held here and attached when the parent arrives; it is then pushed once as
 // an unchanged write, which the server applies as a no-op edit.
 
+import { playerHref } from "@domain/habits/actions"
 import type {
   Habit,
   HabitLog,
@@ -438,12 +439,37 @@ const RUN_FIELDS = [
   "state",
 ] as const
 
+/** A run as the run mapper lists it: plus whether it holds the Live bar.
+ * Leaving the player (`exitRoutine`) changes only the Live bar, never the
+ * run, so the flag is how that transition reaches the server. */
+export type RunRow = RoutineRun & { live?: boolean }
+
+const holdsLive = (r: RoutineRun, live: Live | null | undefined) =>
+  live?.kind === "routine" && live.href === playerHref(r.routineId)
+
 /** The `habits.run.*` actions one local run transition stands for. */
 export function runActions(
-  prev: RoutineRun | undefined,
-  next: RoutineRun | undefined,
+  prev: RunRow | undefined,
+  next: RunRow | undefined,
 ): ActionOp[] {
   if (!next) return [] // a removed run goes with its routine's delete
+  const out = stepActions(prev, next)
+  // Left the player mid-run: the server releases its Live bar. Back in the
+  // player: a start of the open run takes it again.
+  if (prev && next.state === "in_progress") {
+    const run_id = next.id
+    if (prev.live === true && next.live === false)
+      out.push({ name: "habits.run.exit", data: { run_id } })
+    else if (prev.live === false && next.live === true)
+      out.push({
+        name: "habits.run.start",
+        data: { routine_id: next.routineId, run_id },
+      })
+  }
+  return out
+}
+
+function stepActions(prev: RunRow | undefined, next: RunRow): ActionOp[] {
   const run_id = next.id
   const out: ActionOp[] = []
   const was = prev ?? {
@@ -482,11 +508,16 @@ export function runActions(
 
 function runMapper(
   held: ReturnType<typeof orphans<ResultRow>>,
-): Mapper<S, RoutineRun> {
+): Mapper<S, RunRow> {
   return {
     entity: "routine_run",
     store: habitsStore,
-    list: (s) => s.runs,
+    // The Live bar is read here, not stored: a Live-bar change re-runs the
+    // capture through the timer view, which watches the live store.
+    list: (s) => {
+      const live = liveStore.get().live
+      return s.runs.map((r) => ({ ...r, live: holdsLive(r, live) }))
+    },
     id: (r) => r.id,
     toServer: (r) => ({
       routine_id: r.routineId,
