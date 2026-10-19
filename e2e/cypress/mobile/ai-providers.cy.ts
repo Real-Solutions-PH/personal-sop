@@ -99,14 +99,18 @@ describe("AI providers and AI settings (live)", () => {
           "POST",
           `/ai/providers/${cred.id}/verify`,
         ).then((v) => {
+          // A refused connection is "unreachable" (provider_http.py); on this
+          // stack the API's own egress answers for dead ports with an HTTP
+          // error, which the server classifies "bad_response". Both are a
+          // clean failure: a stable code, ok=false, nothing else.
           expect(v.ok).to.eq(false)
-          expect(v.code).to.eq("unreachable")
-          expect(v.credential.last_error_code).to.eq("unreachable")
+          expect(v.code).to.be.oneOf(["unreachable", "bad_response"])
+          expect(v.credential.last_error_code).to.eq(v.code)
           expect(v.credential.verified_at).to.eq(null)
           expectNoKey(v)
         })
         rows(
-          "select 1 from ai_provider_credential where id = $1 and last_error_code = 'unreachable' and verified_at is null",
+          "select 1 from ai_provider_credential where id = $1 and last_error_code in ('unreachable', 'bad_response') and verified_at is null",
           [cred.id],
         )
 

@@ -49,7 +49,8 @@ describe("Sol (live, rules engine)", () => {
         expect(body).to.match(/event: done/)
       })
       cy.findByText("Honest read, coach hat on:").should("exist")
-      cy.findByText("Coach me").should("exist") // the question, as my message
+      // The question shows as my message (a "Coach me" chip may show too).
+      cy.findAllByText("Coach me").should("have.length.gte", 1)
 
       rows(
         "select role, text from companion_message where owner_id = $1 and deleted_at is null order by created_at",

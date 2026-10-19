@@ -8,6 +8,7 @@
 // |-------------------|------------------------------------------------|------|
 // | /capture (Sol)    | text capture → expense card                    | expense: confirm, undo, redo |
 // | /capture          | card Confirm                                   | expense: confirm, undo, redo |
+// | /capture          | expense card: pick an account (Account ⌄)      | expense: confirm, undo, redo |
 // | /capture          | card ↶ Undo                                    | expense: confirm, undo, redo; habit log |
 // | /capture          | card ↷ Redo                                    | expense: confirm, undo, redo |
 // | /capture          | text capture → task card (auto-saved)          | task: edit, discard |
@@ -91,7 +92,28 @@ describe("capture (live, rules engine)", () => {
             [user.id],
           )
 
-          // Confirm: the expense is written in finance.
+          // A new account has no finance account, so Confirm can't write the
+          // expense yet: the card stays open and says so.
+          cy.findByRole("button", { name: "Confirm" }).click()
+          cy.findByText("Couldn't save — try again or edit.").should("exist")
+          rows(
+            "select 1 from record_card where id = $1 and state = 'proposed' and warn is not null",
+            [card.id],
+          )
+
+          // Add an account, then pick it on the card and confirm.
+          cy.liveApi<{ id: string }>(user, "POST", "/finance/accounts", {
+            name: "Wallet",
+            type: "cash",
+          })
+          revisit("/capture")
+          cy.findByText("— ⌄").click()
+          cy.findByRole("button", { name: "Wallet" }).click()
+          cy.findByText("Wallet ⌄").should("exist")
+          rows(
+            "select 1 from record_card where id = $1 and payload->>'account_id' is not null",
+            [card.id],
+          )
           cy.findByRole("button", { name: "Confirm" }).click()
           cy.findByText("✓ Saved").should("exist")
           cardIn(user, cap.id, "saved").then((saved: CardRow) => {
@@ -157,16 +179,28 @@ describe("capture (live, rules engine)", () => {
             .type("Brown eggs")
           cy.findByRole("button", { name: "Save" }).click()
           cy.findByText("✓ Edited").should("exist")
-          cardIn(user, cap.id, "edited")
-          rows("select 1 from task where id = $1 and title = $2", [
-            taskId,
-            "Brown eggs",
-          ])
-          logged(card.id, "edited")
-          apiCard(user, cap.id, "edited")
-          api<{ data: { id: string; title: string }[] }>(user, "/tasks/", (b) =>
-            b.data.some((t) => t.id === taskId && t.title === "Brown eggs"),
-          )
+          // Editing a written card reverts it and writes again (as the
+          // prototype does): the old task is deleted, the card points at
+          // the new one.
+          cardIn(user, cap.id, "edited").then((edited) => {
+            const newId = edited.refs[0]
+            rows("select 1 from task where id = $1 and title = $2", [
+              newId,
+              "Brown eggs",
+            ])
+            rows(
+              "select 1 from task where id = $1 and deleted_at is not null",
+              [taskId],
+            )
+            logged(card.id, "edited")
+            apiCard(user, cap.id, "edited")
+            api<{ data: { id: string; title: string }[] }>(
+              user,
+              "/tasks/",
+              (b) =>
+                b.data.some((t) => t.id === newId && t.title === "Brown eggs"),
+            )
+          })
         })
       })
 
