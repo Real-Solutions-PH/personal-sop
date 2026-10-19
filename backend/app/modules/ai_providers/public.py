@@ -9,16 +9,24 @@ else patches LangChain.
 Resolution order (ADR-0012): the user's assignment for the purpose -> the
 server's default provider when ``AI_SERVER_FALLBACK`` is on -> ``None``, which
 callers route to the deterministic rules engine.
+
+Before any model call a caller runs :func:`check_budget`: it refuses with
+403 ``ai_disabled`` when the user switched AI off and 402
+``ai_spend_cap_reached`` once the month's metered spend reaches the cap
+(``capture.ai_settings``). Callers that fall back to the rules engine catch
+those two and route there; the order is check_budget -> resolve_model ->
+build_chat_model -> record_usage.
 """
 
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import date, datetime
 from typing import Literal
 
 from langchain_core.language_models.chat_models import BaseChatModel
 from pydantic import SecretStr
-from sqlmodel import select
+from sqlmodel import col, func, select
 
 from app.core.config import settings
 from app.modules.ai_providers.models import (
@@ -28,6 +36,7 @@ from app.modules.ai_providers.models import (
 )
 from app.shared import crypto
 from app.shared.context import Ctx
+from app.shared.domain import domain_error
 
 Purpose = Literal["chat", "capture", "vision", "transcription", "advisor"]
 
@@ -166,3 +175,91 @@ def record_usage(
         )
     )
     ctx.session.flush()
+
+
+# ---------------------------------------------------------------------------
+# Budget (ADR-0012 section 5)
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class Budget:
+    ai_enabled: bool
+    spend_cap_minor: int
+    spend_minor: int
+    calls: int
+
+    @property
+    def cap_reached(self) -> bool:
+        # Mirrors the prototype engine: spend >= cap refuses, so a cap of 0
+        # means "no paid calls at all".
+        return self.spend_minor >= self.spend_cap_minor
+
+
+def month_window(ctx: Ctx, first_day: date) -> tuple[datetime, datetime]:
+    """The user's business month containing ``first_day`` as a half-open UTC
+    interval. Months follow the user's time zone and day-start hour."""
+    start = first_day.replace(day=1)
+    nxt = (
+        start.replace(year=start.year + 1, month=1)
+        if start.month == 12
+        else start.replace(month=start.month + 1)
+    )
+    return ctx.clock.start_of(start), ctx.clock.start_of(nxt)
+
+
+def _ai_settings(ctx: Ctx) -> tuple[bool, int]:
+    # ai_settings is the capture module's table; it is read (never written)
+    # here because the cap is enforced at the AI seam. A user with no row yet
+    # gets the table's defaults.
+    from app.modules.capture.models import AISettings
+
+    row = ctx.session.exec(
+        select(AISettings.ai_enabled, AISettings.spend_cap_minor).where(
+            AISettings.owner_id == ctx.user_id,
+            AISettings.tenant_id == ctx.tenant_id,
+            col(AISettings.deleted_at).is_(None),
+        )
+    ).first()
+    if row is None:
+        defaults = AISettings.model_fields
+        return bool(defaults["ai_enabled"].default), int(
+            defaults["spend_cap_minor"].default
+        )
+    return bool(row[0]), int(row[1])
+
+
+def budget(ctx: Ctx, month_of: date | None = None) -> Budget:
+    enabled, cap = _ai_settings(ctx)
+    start, end = month_window(ctx, month_of or ctx.today)
+    spend, calls = ctx.session.exec(
+        select(func.coalesce(func.sum(AIUsage.cost_minor), 0), func.count()).where(
+            AIUsage.owner_id == ctx.user_id,
+            AIUsage.tenant_id == ctx.tenant_id,
+            col(AIUsage.deleted_at).is_(None),
+            col(AIUsage.at) >= start,
+            col(AIUsage.at) < end,
+        )
+    ).one()
+    return Budget(
+        ai_enabled=enabled,
+        spend_cap_minor=cap,
+        spend_minor=int(spend),
+        calls=int(calls),
+    )
+
+
+def check_budget(ctx: Ctx) -> None:
+    """Refuse a model call the user's settings do not allow.
+
+    Raises 403 ``ai_disabled`` or 402 ``ai_spend_cap_reached``. Reads only.
+    """
+    b = budget(ctx)
+    if not b.ai_enabled:
+        raise domain_error(403, "ai_disabled", "AI is switched off in your settings.")
+    if b.cap_reached:
+        raise domain_error(
+            402,
+            "ai_spend_cap_reached",
+            "This month's AI spend cap is reached. Raise the cap or wait for next month.",
+        )
