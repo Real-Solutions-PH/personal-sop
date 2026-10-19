@@ -146,8 +146,14 @@ export class SyncEngine {
         // Undo of this device's own delete: the server keeps the tombstone
         // and refuses a plain upsert onto it (so another device's stale edit
         // cannot revive a row), so restore it explicitly first, unless the
-        // mapper's own action already restores it.
-        if (u.create && gone.delete(u.id) && !acted.has(u.id))
+        // mapper's own action already restores it or the create carries no
+        // fields (an action-owned row, e.g. a habit timer).
+        if (
+          u.create &&
+          gone.delete(u.id) &&
+          !acted.has(u.id) &&
+          Object.keys(u.data).length
+        )
           ops.push({
             op_id: newId(),
             kind: "upsert",
