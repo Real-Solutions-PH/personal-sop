@@ -133,10 +133,10 @@ describe("habits (live)", () => {
           "select 1 from habit where id = $1 and name = 'Water intake' and target = 10",
           [id],
         )
-        apiUntil<{ name: string }>(
+        apiUntil<{ habit: { name: string } }>(
           user,
           `/habits/${id}`,
-          (b) => b.name === "Water intake",
+          (b) => b.habit.name === "Water intake",
         )
       })
     })
