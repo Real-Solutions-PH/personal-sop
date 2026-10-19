@@ -21,6 +21,13 @@ import { liveMode } from "@/live/config"
 import { sessionStore, startLiveSession } from "./session"
 import { prototypeStorage } from "./storage"
 
+// Live mode: server statistics refresh when a screen regains focus. Installed
+// before any screen renders (the focus hook cannot be swapped in later).
+if (liveMode)
+  (
+    require("@/live/stats") as typeof import("@/live/stats")
+  ).installFocusRefresh()
+
 export function PrototypeProviders({ children }: { children: ReactNode }) {
   const [fontsLoaded, fontError] = useFonts({
     Barlow_400Regular,
