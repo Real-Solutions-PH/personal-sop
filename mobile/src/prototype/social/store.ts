@@ -815,22 +815,31 @@ function send(
   what: string,
 ) {
   if (!liveMode) return
-  const r = remote
-  if (!r || !getConnectivity()) {
+  const offline = () => {
     undo()
     toast(`You're offline. Couldn't ${what}.`)
-    return
   }
-  call(r).catch(() => {
-    undo()
-    toast(`Couldn't ${what}. Please try again.`)
-  })
+  if (!getConnectivity()) return offline()
+  const run = (r: SocialRemote) =>
+    call(r).catch(() => {
+      undo()
+      toast(`Couldn't ${what}. Please try again.`)
+    })
+  if (remote) return void run(remote)
+  // Online but startup is still restoring the session: wait for it, briefly.
+  const late = new Promise<null>((resolve) =>
+    setTimeout(() => resolve(null), CONNECT_WAIT_MS),
+  )
+  void Promise.race([connected(), late]).then((r) => (r ? run(r) : offline()))
 }
+const CONNECT_WAIT_MS = 10_000
 /** Passive sync the person did not ask for (seen, read, typing): no toast,
  * nothing to undo, skipped offline. */
 function nudge(call: (r: SocialRemote) => Promise<unknown>) {
-  if (!liveMode || !remote || !getConnectivity()) return
-  call(remote).catch(() => {})
+  if (!liveMode || !getConnectivity()) return
+  void connected()
+    .then(call)
+    .catch(() => {})
 }
 /** Loaders the screens call on open/refresh; no-ops in prototype mode. A
  * failed load keeps the cached data; only an explicit refresh reports. */

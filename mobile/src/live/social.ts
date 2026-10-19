@@ -234,6 +234,9 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
   const pending = new Set<string>()
   /** Posts I deleted this session (until restored): stale reads skip them. */
   const deleted = new Set<string>()
+  const deleting = new Map<string, Promise<unknown>>()
+  /** The last message send per chat; the next one waits for it. */
+  const sending = new Map<string, Promise<unknown>>()
   // When I last wrote my note / each story (client clock): a list read that
   // started earlier does not know about them yet.
   let noteWrittenAt = Number.NEGATIVE_INFINITY
@@ -860,6 +863,23 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
   }
   const chatPath = (id: string, rest = "") => `/social/chats/${cid(id)}${rest}`
 
+  async function postMessage(chatId: string, m: Message) {
+    const media_id = m.media ? await upload(m.media.uri, m.media.kind) : null
+    const w = await http.request<WMessage>(
+      "POST",
+      chatPath(chatId, "/messages"),
+      {
+        id: m.id,
+        text: m.text ?? null,
+        media_id,
+        post_id: m.postId ?? null,
+        story_id: m.storyReply ?? null,
+        reply_to_id: m.replyTo ?? null,
+      },
+    )
+    replaceMessage(chatId, w)
+  }
+
   const remote: SocialRemote = {
     refresh,
     loadMoreFeed,
@@ -896,12 +916,18 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
       postWrite("PATCH", `/social/posts/${id}`, { caption }),
     deletePost(id) {
       deleted.add(id)
-      return http.request("DELETE", `/social/posts/${id}`).catch((e) => {
+      const done = http.request("DELETE", `/social/posts/${id}`).catch((e) => {
         deleted.delete(id)
         throw e
       })
+      deleting.set(id, done)
+      return done
     },
-    restorePost(id) {
+    async restorePost(id) {
+      // Undo right after delete: the delete must land first, or it would
+      // land after the restore and win.
+      await deleting.get(id)?.catch(() => {})
+      deleting.delete(id)
       deleted.delete(id)
       return postWrite("POST", `/social/posts/${id}/restore`)
     },
@@ -1006,22 +1032,17 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
       chatReady.set(chat.id, ready)
       return ready
     },
-    async sendMessage(chatId, m) {
-      await chatReady.get(chatId)
-      const media_id = m.media ? await upload(m.media.uri, m.media.kind) : null
-      const w = await http.request<WMessage>(
-        "POST",
-        chatPath(chatId, "/messages"),
-        {
-          id: m.id,
-          text: m.text ?? null,
-          media_id,
-          post_id: m.postId ?? null,
-          story_id: m.storyReply ?? null,
-          reply_to_id: m.replyTo ?? null,
-        },
-      )
-      replaceMessage(chatId, w)
+    sendMessage(chatId, m) {
+      // One at a time per chat, so the server keeps the order they were sent.
+      const prev = sending.get(chatId) ?? chatReady.get(chatId)
+      const next = Promise.resolve(prev)
+        .catch(() => {})
+        .then(() => postMessage(chatId, m))
+      sending.set(chatId, next)
+      void next.finally(() => {
+        if (sending.get(chatId) === next) sending.delete(chatId)
+      })
+      return next
     },
     react: (chatId, messageId, emoji) =>
       emoji
