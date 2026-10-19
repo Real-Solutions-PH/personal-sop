@@ -134,6 +134,16 @@
     }
   },
   {
+    "entity": "",
+    "kind": "action",
+    "name": "tasks.remove",
+    "data": {
+      "task_ids": [
+        "00000000-0000-4000-8000-000000000006"
+      ]
+    }
+  },
+  {
     "entity": "task",
     "kind": "upsert",
     "name": "task",

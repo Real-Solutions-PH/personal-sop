@@ -8,6 +8,7 @@ import {
   createTask,
   deleteList,
   deleteTask,
+  removeTasks,
   restoreTask,
   setDue,
   snoozeTask,
@@ -356,6 +357,18 @@ describe("store edits become sync ops", () => {
     const ops = record(e.capture())
     expect(names(ops)).toEqual(["tasks.restore", "upsert:task"])
     expect(ops[0].data).toEqual({ task_id: t.id })
+  })
+
+  test("capture undo sends tasks.remove (not a user delete) before the delete", () => {
+    const e = engine()
+    const t = createTask({ title: "Pack bags", source: "capture-text" })
+    e.capture()
+    removeTasks([t.id])
+    const ops = record(e.capture())
+    // The server tombstones it with its status kept, so it stays out of
+    // Recently deleted; the delete op that follows finds it gone.
+    expect(names(ops)).toEqual(["tasks.remove", "delete:task"])
+    expect(ops[0].data).toEqual({ task_ids: [t.id] })
   })
 
   test("deleting a list with its open tasks: task deletes and the list delete", () => {
