@@ -7,6 +7,7 @@ import {
   createPost,
   deletePost,
   ME,
+  openChatLive,
   openPersonLive,
   openPostLive,
   sendMessage,
@@ -16,6 +17,7 @@ import {
   toggleLike,
   toggleShowScores,
   typingStore,
+  unsend,
 } from "@/prototype/social/store"
 import { ApiError, type Http } from "../http"
 import { createSocialLive, TYPING_EVERY_MS } from "../social"
@@ -630,4 +632,51 @@ test("undo right after delete restores only once the delete has landed", async (
   await settle()
   expect(calls.map((c) => c.method)).toEqual(["DELETE", "POST"])
   expect(socialStore.get().posts.map((p) => p.id)).toEqual([POST])
+})
+
+test("a read in flight when I unsend a message does not bring it back", async () => {
+  const msg = {
+    id: "m1",
+    chat_id: CHAT,
+    sender_id: MEID,
+    at: "2026-10-19T08:00:00Z",
+    text: "Oops typo",
+    media: null,
+    post_id: null,
+    story_id: null,
+    reply_to_id: null,
+    system: false,
+    reactions: {},
+  }
+  socialStore.set((s) => ({
+    ...s,
+    chats: [
+      {
+        id: CHAT,
+        members: [ANA],
+        messages: [
+          { id: "m1", by: ME, at: 0, text: "Oops typo", reactions: {} },
+        ],
+        muted: false,
+        pinned: false,
+        readAt: 0,
+      },
+    ],
+  }))
+  let answer: (v: unknown) => void = () => {}
+  const { http } = fakeHttp({
+    [`GET /social/chats/${CHAT}/messages`]: () =>
+      new Promise((resolve) => {
+        answer = resolve
+      }),
+    [`DELETE /social/chats/${CHAT}/messages/m1`]: () => undefined,
+  })
+  connectSocial(createSocialLive({ http, userId: MEID }))
+  const opened = openChatLive(CHAT)
+  await settle()
+  unsend(CHAT, "m1")
+  answer({ data: [msg], count: 1 })
+  await opened
+  await settle()
+  expect(socialStore.get().chats[0].messages).toEqual([])
 })

@@ -235,6 +235,8 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
   /** Posts I deleted this session (until restored): stale reads skip them. */
   const deleted = new Set<string>()
   const deleting = new Map<string, Promise<unknown>>()
+  /** Messages I unsent this session: stale reads skip them. */
+  const unsent = new Set<string>()
   /** The last message send per chat; the next one waits for it. */
   const sending = new Map<string, Promise<unknown>>()
   // When I last wrote my note / each story (client clock): a list read that
@@ -481,7 +483,9 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
       }
     })
   }
-  function mergeMessages(chatId: string, list: WMessage[]) {
+  function mergeMessages(chatId: string, all: WMessage[]) {
+    // A read that was in flight when I unsent a message must not restore it.
+    const list = all.filter((w) => !unsent.has(w.id))
     set((s) => ({
       ...s,
       chats: s.chats.map((c) => {
@@ -1057,8 +1061,15 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
             "DELETE",
             chatPath(chatId, `/messages/${messageId}/reaction`),
           ),
-    unsend: (chatId, messageId) =>
-      http.request("DELETE", chatPath(chatId, `/messages/${messageId}`)),
+    unsend(chatId, messageId) {
+      unsent.add(messageId)
+      return http
+        .request("DELETE", chatPath(chatId, `/messages/${messageId}`))
+        .catch((e) => {
+          unsent.delete(messageId)
+          throw e
+        })
+    },
     async markRead(chatId) {
       await chatReady.get(chatId)
       await http.request("POST", chatPath(chatId, "/read"))

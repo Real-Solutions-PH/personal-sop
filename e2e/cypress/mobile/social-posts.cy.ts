@@ -133,7 +133,9 @@ describe("social posts (live)", () => {
           // For you shows every post in the tenant; Following only followees.
           cy.visit("/social")
           cy.findByRole("tab", { name: "For you" }).click()
-          cy.findByText(caption).should("exist")
+          // For you ranks by likes, then newest: a new post with no likes
+          // can sit past the first page, so page down until it shows.
+          scrollFeedUntil(caption)
           cy.findByRole("tab", { name: "Following" }).click()
           cy.findByText(caption).should("not.exist")
           cy.liveApi(a, "PUT", `/social/people/${b.id}/follow`)
@@ -383,3 +385,15 @@ describe("social posts (live)", () => {
     })
   })
 })
+
+/** Scroll the feed to its end (loading the next page) until ``text`` shows. */
+function scrollFeedUntil(text: string, pages = 15) {
+  cy.get("body").then(($b) => {
+    if ($b.text().includes(text)) return
+    if (pages <= 0) throw new Error(`"${text}" never showed in the feed`)
+    cy.findByText("You're all caught up").scrollIntoView()
+    cy.wait(1500, { log: false })
+    scrollFeedUntil(text, pages - 1)
+  })
+  cy.findByText(text).should("exist")
+}
