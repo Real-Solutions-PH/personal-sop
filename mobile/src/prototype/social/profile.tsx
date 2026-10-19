@@ -446,7 +446,11 @@ export function Profile({ id }: { id: string }) {
   const width = Math.min(useWindowDimensions().width, 600)
   const person = usePerson(id)
   const ring = useRing(id)
-  useEffect(() => void openPersonLive(id), [id])
+  const [opening, setOpening] = useState(true)
+  useEffect(() => {
+    setOpening(true)
+    void openPersonLive(id).finally(() => setOpening(false))
+  }, [id])
   const posts = socialStore.use((s) => s.posts)
   const showScores = socialStore.use((s) => s.showScores)
   const myCard = useMyScorecard()
@@ -492,7 +496,14 @@ export function Profile({ id }: { id: string }) {
     return (
       <View style={{ flex: 1, backgroundColor: t.bg, paddingTop: safe.top }}>
         <TopBar title="Profile" />
-        <Empty title="Profile not found" />
+        {opening ? (
+          <ActivityIndicator
+            accessibilityLabel="Loading profile"
+            style={{ marginTop: 32 }}
+          />
+        ) : (
+          <Empty title="Profile not found" />
+        )}
       </View>
     )
   const following = person.isFollowing

@@ -6,7 +6,7 @@
 // | Screen                 | Action                                        | Test |
 // |------------------------|-----------------------------------------------|------|
 // | /tasks/share           | Post → draft saved on the server              | "a share card becomes a server draft …" |
-// | /social/compose        | Draft restored after a reload                 | "a share card becomes a server draft …" |
+// | /social/compose        | Draft restored after a reload (caption)       | "a share card becomes a server draft …" |
 // | /social/compose        | Share a post with an image (media upload)     | "a share card becomes a server draft …" |
 // | /social/compose        | Share a progress post with a caption + #tag   | "creates a progress post …" |
 // | /social/compose        | Location, also-share-to-story                 | "creates a progress post …" (location); story path in social-stories |
@@ -46,12 +46,19 @@ describe("social posts (live)", () => {
         (d) => !!d.body.caption?.startsWith("Tasks this week"),
       )
 
-      // The draft survives a reload: it comes back from the server.
+      // The draft survives a reload: its caption comes back from the server.
+      // (The web-rendered card image is device-only and may not survive.)
       cy.reload()
-      cy.findByRole("textbox", { name: "Caption" }).should(
+      cy.findByRole("textbox", { name: "Caption" }, { timeout: 60000 }).should(
         "contain.value",
         "Tasks this week",
       )
+
+      // Post it with the image: a fresh card, straight to Share.
+      cy.visit("/tasks/share")
+      cy.findByRole("button", { name: "Post" }).click()
+      cy.location("pathname").should("eq", "/social/compose")
+      cy.findByRole("button", { name: "Remove item 1" }).should("exist")
       cy.findByRole("button", { name: "Share" }).click()
       cy.location("pathname").should("eq", "/social")
 

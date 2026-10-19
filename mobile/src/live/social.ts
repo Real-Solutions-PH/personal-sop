@@ -234,6 +234,10 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
   const pending = new Set<string>()
   /** Posts I deleted this session (until restored): stale reads skip them. */
   const deleted = new Set<string>()
+  // When I last wrote my note / each story (client clock): a list read that
+  // started earlier does not know about them yet.
+  let noteWrittenAt = Number.NEGATIVE_INFINITY
+  const storyWrittenAt = new Map<string, number>()
   let followingCursor: string | null | undefined
   let foryouSkip = 0
   const lastTyping = new Map<string, number>()
@@ -520,31 +524,50 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
       return page.data
     },
     async stories() {
+      const asked = now()
       const tray = await http.request<WTray>("GET", "/social/stories")
       const items = tray.data.flatMap((g) => g.items)
       set((s) => {
         const byId = new Map(s.stories.map((x) => [x.id, x]))
+        const ids = new Set(items.map((w) => w.id))
+        // A story I posted while this read was in flight is not in it.
+        const mine = s.stories.filter(
+          (x) =>
+            !ids.has(x.id) &&
+            (storyWrittenAt.get(x.id) ?? Number.NEGATIVE_INFINITY) >= asked,
+        )
         return {
           ...s,
           people: upsertPeople(
             s,
             tray.data.map((g) => g.person),
           ),
-          stories: items.map((w) => mapStory(w, byId.get(w.id))),
-          seen: items.filter((w) => w.seen).map((w) => w.id),
+          stories: [...items.map((w) => mapStory(w, byId.get(w.id))), ...mine],
+          seen: [
+            ...items.filter((w) => w.seen).map((w) => w.id),
+            ...mine.map((x) => x.id),
+          ],
         }
       })
     },
     async notes() {
+      const asked = now()
       const list = await http.request<List<WNote>>("GET", "/social/notes")
-      set((s) => ({
-        ...s,
-        people: upsertPeople(
-          s,
-          list.data.map((n) => n.person),
-        ),
-        notes: list.data.map(mapNote),
-      }))
+      set((s) => {
+        const notes = list.data.map(mapNote)
+        // A note I left while this read was in flight is not in it.
+        const mine =
+          noteWrittenAt >= asked ? s.notes.find((n) => n.by === ME) : undefined
+        return {
+          ...s,
+          people: upsertPeople(
+            s,
+            list.data.map((n) => n.person),
+          ),
+          notes:
+            mine && !notes.some((n) => n.by === ME) ? [mine, ...notes] : notes,
+        }
+      })
     },
     async chats() {
       const list = await http.request<List<WChat>>(
@@ -706,40 +729,42 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
       })),
     )
     void graph.catch(() => {}) // reported by the await below
-    const [person, posts, card] = await Promise.all([
-      http.request<WPerson>("GET", `/social/people/${uid}`),
-      http.request<WPosts>(
-        "GET",
-        `/social/people/${uid}/posts${q({ limit: 30 })}`,
-      ),
-      http
-        .request<WScorecard>("GET", `/social/people/${uid}/scorecard`)
-        .catch((e: unknown) => {
-          // Not visible to me (followers only, scores hidden): no card.
-          if (e instanceof ApiError && e.status === 404) return null
-          throw e
-        }),
-    ])
-    mergePosts(posts.data)
-    if (person.is_me) {
+    // Each part shows as soon as it arrives; the scorecard is the slowest.
+    const person = http
+      .request<WPerson>("GET", `/social/people/${uid}`)
+      .then((p) => {
+        set((s) =>
+          p.is_me
+            ? {
+                ...s,
+                me: {
+                  bio: p.bio,
+                  followers: p.followers,
+                  following: p.following,
+                },
+              }
+            : { ...s, people: upsertPeople(s, [], [p]) },
+        )
+        return p
+      })
+    const posts = http
+      .request<WPosts>("GET", `/social/people/${uid}/posts${q({ limit: 30 })}`)
+      .then((page) => mergePosts(page.data))
+    const card = http
+      .request<WScorecard>("GET", `/social/people/${uid}/scorecard`)
+      .catch((e: unknown) => {
+        // Not visible to me (followers only, scores hidden): no card.
+        if (e instanceof ApiError && e.status === 404) return null
+        throw e
+      })
+    const [p, w] = await Promise.all([person, card, posts])
+    if (!p.is_me)
       set((s) => ({
         ...s,
-        me: {
-          bio: person.bio,
-          followers: person.followers,
-          following: person.following,
-        },
-      }))
-    } else {
-      set((s) => ({
-        ...s,
-        people: upsertPeople(s, [], [person]).map((p) =>
-          p.id === person.id
-            ? { ...p, card: card ? mapCard(card) : undefined }
-            : p,
+        people: s.people.map((x) =>
+          x.id === p.id ? { ...x, card: w ? mapCard(w) : undefined } : x,
         ),
       }))
-    }
     await graph
   }
 
@@ -910,6 +935,7 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
     deleteComment: (postId, id) =>
       http.request("DELETE", commentPath(postId, id)),
     async createStory(story) {
+      storyWrittenAt.set(story.id, now())
       const media_id =
         (story.kind === "image" || story.kind === "video") && story.uri
           ? await upload(story.uri, story.kind)
@@ -933,6 +959,7 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
     likeStory: (id, on) =>
       http.request(onOff(on), `/social/stories/${id}/like`),
     async setNote(text) {
+      noteWrittenAt = now()
       const w = await http.request<WNote>("PUT", "/social/notes/me", { text })
       set((s) => ({
         ...s,

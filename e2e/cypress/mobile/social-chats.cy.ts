@@ -206,7 +206,10 @@ describe("social chats (live)", () => {
             cy.window().then((win) => {
               ;(win as unknown as { __noReload: boolean }).__noReload = true
             })
-            apiCall(b, "POST", `/social/chats/${chat.id}/typing`).should("eq", 204)
+            apiCall(b, "POST", `/social/chats/${chat.id}/typing`).should(
+              "eq",
+              204,
+            )
             cy.findByText("typing…", { timeout: 15000 }).should("exist")
             cy.liveApi(b, "POST", `/social/chats/${chat.id}/messages`, {
               text: "Live from Bea",

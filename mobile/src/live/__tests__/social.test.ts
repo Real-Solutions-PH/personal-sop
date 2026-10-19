@@ -9,6 +9,7 @@ import {
   ME,
   openPersonLive,
   openPostLive,
+  setNote,
   setPostDraft,
   socialStore,
   toggleLike,
@@ -495,4 +496,34 @@ test("a read in flight when I delete a post does not bring it back", async () =>
   await opened
   await settle()
   expect(socialStore.get().posts).toEqual([])
+})
+
+test("a note left while the notes list loads survives that list", async () => {
+  let answer: (v: unknown) => void = () => {}
+  const { http } = fakeHttp({
+    "GET /social/notes": () =>
+      new Promise((resolve) => {
+        answer = resolve
+      }),
+    "PUT /social/notes/me": () => ({
+      id: "n1",
+      person: brief(MEID, "Me", "me"),
+      text: "Deep work",
+      created_at: "2026-10-19T08:00:00Z",
+      liked: false,
+      likes: 0,
+    }),
+  })
+  const live = createSocialLive({ http, userId: MEID })
+  connectSocial(live)
+  const refreshing = live.refresh().catch(() => {})
+  await settle()
+  setNote("Deep work")
+  await settle()
+  answer(empty)
+  await refreshing
+  await settle()
+  expect(socialStore.get().notes.map((n) => [n.by, n.text])).toEqual([
+    [ME, "Deep work"],
+  ])
 })
