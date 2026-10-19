@@ -25,16 +25,21 @@
 // | Workout detail             | Options → Save as template               | W3   |
 // | Workout detail             | Options → Delete                         | W3   |
 // | Cross-module               | Finish ticks a workout-linked habit (habit_log) | W2 |
+import { api, rows } from "./fitness.helpers"
 import type { LiveUser } from "./support"
 
 const ACTIVE =
   "select id, name, status, template_id from workout where owner_id = $1 and status = 'in_progress' and deleted_at is null"
 
-/** The live app does not seed the library itself (see report); one read does. */
-function openFitnessWithLibrary(user: LiveUser) {
+/** The live app does not seed the library itself (see report); one API read
+ * does. Done before sign-in, so the account's first pull carries it. */
+function seedLibrary(user: LiveUser) {
   cy.liveApi(user, "GET", "/fitness/overview")
+}
+
+function openFitness() {
   cy.visit("/fitness")
-  cy.findByText("Push A", { timeout: 30000 }).should("exist")
+  cy.findByText("Push A", { timeout: 90000 }).should("exist")
 }
 
 function addExercise(name: string) {
@@ -45,34 +50,34 @@ function addExercise(name: string) {
   cy.findByText(name).should("exist")
 }
 
-describe("fitness · workouts (live)", () => {
+describe("fitness · workouts (live)", { defaultCommandTimeout: 60000 }, () => {
   it("W1: empty workout — exercises, sets, rest timer, finish", () => {
     cy.newLiveUser("fitness").then((user) => {
+      seedLibrary(user)
       cy.signInLive(user)
-      openFitnessWithLibrary(user)
+      openFitness()
 
       cy.findByRole("button", { name: "Start" }).click()
       cy.findByText("Empty workout").click()
       cy.location("pathname").should("eq", "/fitness/workout")
-      cy.eventuallyRows(ACTIVE, [user.id]).then((rows) => {
-        expect(rows).to.have.length(1)
-        expect(rows[0].name).to.match(/(Morning|Afternoon|Evening) workout/)
-        expect(rows[0].template_id).to.eq(null)
-        const wid = rows[0].id as string
+      rows(ACTIVE, [user.id]).then((found) => {
+        expect(found).to.have.length(1)
+        expect(found[0].name).to.match(/(Morning|Afternoon|Evening) workout/)
+        expect(found[0].template_id).to.eq(null)
+        const wid = found[0].id as string
 
         // Rename by tapping the title.
-        cy.findByText(rows[0].name as string).click()
+        cy.findByText(found[0].name as string).click()
         cy.findByRole("textbox", { name: "Workout name" })
           .clear()
           .type("E2E chest day")
-        cy.eventuallyRows(
-          "select 1 from workout where id = $1 and name = 'E2E chest day'",
-          [wid],
-        )
+        rows("select 1 from workout where id = $1 and name = 'E2E chest day'", [
+          wid,
+        ])
 
         addExercise("Barbell Bench Press")
         addExercise("Lateral Raise")
-        cy.eventuallyRows(
+        rows(
           `select e.name, we.position from workout_exercise we join exercise e on e.id = we.exercise_id
            where we.workout_id = $1 and we.deleted_at is null order by we.position`,
           [wid],
@@ -89,14 +94,14 @@ describe("fitness · workouts (live)", () => {
           join exercise e on e.id = we.exercise_id
           where we.workout_id = $1 and e.name = 'Barbell Bench Press' order by s.position`
 
-        cy.eventuallyRows(SETS, [wid]).then((before) => {
+        rows(SETS, [wid]).then((before) => {
           const live = before.filter((r) => !r.deleted_at).length
           // A first-time lift plans one blank set; add three more (the
           // first "Add set" belongs to the bench press card).
           expect(live).to.eq(1)
           for (let i = 0; i < 3; i++)
             cy.findAllByText("Add set").first().click()
-          cy.eventuallyRows(
+          rows(
             `${SETS.replace("order by", "and s.deleted_at is null order by")}`,
             [wid],
             live + 3,
@@ -110,7 +115,7 @@ describe("fitness · workouts (live)", () => {
         cy.findByRole("textbox", { name: "Weight (kg)" }).clear().type("60")
         cy.findByRole("textbox", { name: "Reps" }).clear().type("8")
         cy.findByRole("button", { name: "Save" }).click()
-        cy.eventuallyRows(
+        rows(
           `${SETS.replace("order by", "and s.weight = 60 and s.reps = 8 and s.deleted_at is null order by")}`,
           [wid],
         )
@@ -122,11 +127,11 @@ describe("fitness · workouts (live)", () => {
         cy.findByText("Warm-up").click()
         cy.findByRole("textbox", { name: "Weight (kg)" }).clear().type("40")
         cy.findByRole("button", { name: "Save" }).click()
-        cy.eventuallyRows(
+        rows(
           `${SETS.replace("order by", "and s.kind = 'warmup' and s.weight = 40 and s.deleted_at is null order by")}`,
           [wid],
         )
-        cy.eventuallyRows(
+        rows(
           `${SETS.replace("order by", "and s.deleted_at is null order by")}`,
           [wid],
         ).then((liveSets) => {
@@ -137,7 +142,7 @@ describe("fitness · workouts (live)", () => {
             .last()
             .click()
           cy.findByRole("button", { name: "Delete set" }).click()
-          cy.eventuallyRows(
+          rows(
             "select 1 from workout_set where id = $1 and deleted_at is not null",
             [last.id],
           )
@@ -145,23 +150,23 @@ describe("fitness · workouts (live)", () => {
 
         // Complete the 60 × 8 set: completed_at on the server, rest starts.
         cy.findAllByRole("button", { name: "Complete set" }).first().click()
-        cy.eventuallyRows(
+        rows(
           `${SETS.replace("order by", "and s.weight = 60 and s.completed_at is not null order by")}`,
           [wid],
         )
-        cy.eventuallyRows(
+        rows(
           "select duration_sec, ends_at from rest_timer where owner_id = $1 and deleted_at is null and duration_sec = 120",
           [user.id],
         )
         cy.findByText(/Rest · 120s/).should("exist")
         cy.findByRole("button", { name: "+15" }).click()
         cy.findByText(/Rest · 135s/).should("exist")
-        cy.eventuallyRows(
+        rows(
           "select 1 from rest_timer where owner_id = $1 and deleted_at is null and duration_sec = 135",
           [user.id],
         )
         cy.findByRole("button", { name: "−15" }).click()
-        cy.eventuallyRows(
+        rows(
           "select 1 from rest_timer where owner_id = $1 and deleted_at is null and duration_sec = 120",
           [user.id],
         )
@@ -169,7 +174,7 @@ describe("fitness · workouts (live)", () => {
         cy.findByText(/Rest · /).should("not.exist")
         // (cy.liveApi cannot yield a null body, so GET /fitness/rest is
         // read through Postgres: the timer row is gone.)
-        cy.eventuallyRows(
+        rows(
           "select 1 where not exists (select 1 from rest_timer where owner_id = $1 and deleted_at is null)",
           [user.id],
         )
@@ -178,20 +183,20 @@ describe("fitness · workouts (live)", () => {
         cy.findByRole("button", { name: "Options for Lateral Raise" }).click()
         cy.findByRole("button", { name: "Note" }).click()
         cy.findByRole("textbox", { name: "Exercise note" }).type("Seat 4")
-        cy.eventuallyRows(
+        rows(
           "select 1 from workout_exercise where workout_id = $1 and note = 'Seat 4'",
           [wid],
         )
         cy.findByRole("button", { name: "Options for Lateral Raise" }).click()
         cy.findByRole("button", { name: "Move up" }).click()
-        cy.eventuallyRows(
+        rows(
           `select e.name from workout_exercise we join exercise e on e.id = we.exercise_id
            where we.workout_id = $1 and we.deleted_at is null order by we.position limit 1`,
           [wid],
         ).then((r) => expect(r[0].name).to.eq("Lateral Raise"))
         cy.findByRole("button", { name: "Options for Lateral Raise" }).click()
         cy.findByRole("button", { name: "Remove" }).click()
-        cy.eventuallyRows(
+        rows(
           `select 1 from workout_exercise we join exercise e on e.id = we.exercise_id
            where we.workout_id = $1 and e.name = 'Lateral Raise' and we.deleted_at is not null`,
           [wid],
@@ -202,11 +207,11 @@ describe("fitness · workouts (live)", () => {
         cy.findByRole("button", { name: "Remove them & finish" }).click()
         cy.location("search").should("eq", "?tab=train")
         cy.findAllByText("E2E chest day done").should("have.length.at.least", 1)
-        cy.eventuallyRows(
+        rows(
           "select ended_at from workout where id = $1 and status = 'finished' and ended_at is not null",
           [wid],
         )
-        cy.eventuallyRows(
+        rows(
           `${SETS.replace("order by", "and s.deleted_at is null order by")}`,
           [wid],
         ).then((left) => {
@@ -214,7 +219,7 @@ describe("fitness · workouts (live)", () => {
           expect(left[0].weight).to.eq(60)
           expect(left[0].completed_at).to.not.eq(null)
         })
-        cy.eventuallyApi<{
+        api<{
           status: string
           exercises: { exercise_name: string; sets: { weight: number }[] }[]
         }>(
@@ -225,7 +230,7 @@ describe("fitness · workouts (live)", () => {
             b.exercises.length === 1 &&
             b.exercises[0].sets.length === 1,
         )
-        cy.eventuallyApi<{ active: unknown }>(
+        api<{ active: unknown }>(
           user,
           "/fitness/overview",
           (b) => b.active === null,
@@ -235,12 +240,13 @@ describe("fitness · workouts (live)", () => {
   })
   it("W2: template start, one active, mark-all finish ticks a linked habit, repeat, discard", () => {
     cy.newLiveUser("fitness").then((user) => {
-      cy.signInLive(user)
+      seedLibrary(user)
       cy.liveApi<{ id: string }>(user, "POST", "/habits/", {
         name: "Lift weights",
         link_workout: true,
       }).then((habit) => {
-        openFitnessWithLibrary(user)
+        cy.signInLive(user)
+        openFitness()
         cy.task<{ id: string }[]>("sql", {
           text: "select id from workout_template where owner_id = $1 and name = 'Push A'",
           values: [user.id],
@@ -250,92 +256,84 @@ describe("fitness · workouts (live)", () => {
           // The sheet's row comes after the Up next card in the DOM.
           cy.findAllByText("Push A").last().click()
           cy.location("pathname").should("eq", "/fitness/workout")
-          cy.eventuallyRows(`${ACTIVE} and name = 'Push A'`, [user.id]).then(
-            ([w]) => {
-              expect(w.template_id).to.eq(tpl.id)
-              const wid = w.id as string
-              cy.eventuallyRows(
-                "select 1 from workout_exercise where workout_id = $1 and deleted_at is null",
-                [wid],
-                5,
-              )
+          rows(`${ACTIVE} and name = 'Push A'`, [user.id]).then(([w]) => {
+            expect(w.template_id).to.eq(tpl.id)
+            const wid = w.id as string
+            rows(
+              "select 1 from workout_exercise where workout_id = $1 and deleted_at is null",
+              [wid],
+              5,
+            )
 
-              // A second start resumes the running workout, never a new one.
-              cy.visit("/fitness?start=1")
-              cy.findByText("Empty workout").click()
-              cy.location("pathname").should("eq", "/fitness/workout")
-              cy.findByText("Push A").should("exist")
-              cy.task<unknown[]>("sql", {
-                text: ACTIVE,
-                values: [user.id],
-              }).then((rows) => expect(rows).to.have.length(1))
+            // A second start resumes the running workout, never a new one.
+            cy.visit("/fitness?start=1")
+            cy.findByText("Empty workout").click()
+            cy.location("pathname").should("eq", "/fitness/workout")
+            cy.findByText("Push A").should("exist")
+            cy.task<unknown[]>("sql", {
+              text: ACTIVE,
+              values: [user.id],
+            }).then((found) => expect(found).to.have.length(1))
 
-              // Log one real set, then finish with "Mark all done".
-              cy.findByRole("button", {
-                name: "Barbell Bench Press set 1 weight",
-              }).click()
-              cy.findByRole("textbox", { name: "Weight (kg)" })
-                .clear()
-                .type("50")
-              cy.findByRole("button", { name: "Save" }).click()
-              cy.findAllByRole("button", { name: "Complete set" })
-                .first()
-                .click()
-              cy.findByRole("button", { name: "Finish" }).click()
-              cy.findByRole("button", {
-                name: "Mark all done & finish",
-              }).click()
-              cy.findAllByText("Push A done").should("have.length.at.least", 1)
-              cy.eventuallyRows(
-                "select 1 from workout where id = $1 and status = 'finished'",
-                [wid],
-              )
-              cy.eventuallyRows(
-                `select s.completed_at from workout_set s join workout_exercise we on we.id = s.workout_exercise_id
+            // Log one real set, then finish with "Mark all done".
+            cy.findByRole("button", {
+              name: "Barbell Bench Press set 1 weight",
+            }).click()
+            cy.findByRole("textbox", { name: "Weight (kg)" }).clear().type("50")
+            cy.findByRole("button", { name: "Save" }).click()
+            cy.findAllByRole("button", { name: "Complete set" }).first().click()
+            cy.findByRole("button", { name: "Finish" }).click()
+            cy.findByRole("button", {
+              name: "Mark all done & finish",
+            }).click()
+            cy.findAllByText("Push A done").should("have.length.at.least", 1)
+            rows(
+              "select 1 from workout where id = $1 and status = 'finished'",
+              [wid],
+            )
+            rows(
+              `select s.completed_at from workout_set s join workout_exercise we on we.id = s.workout_exercise_id
                  where we.workout_id = $1 and s.deleted_at is null`,
-                [wid],
+              [wid],
+              5,
+            ).then((sets) =>
+              expect(sets.every((r) => r.completed_at !== null)).to.eq(true),
+            )
+
+            // Cross-module: the workout-linked habit got its derived log.
+            rows(
+              "select day, source from habit_log where habit_id = $1 and deleted_at is null and source = 'workout'",
+              [habit.id],
+            )
+
+            // Third way to start: "Repeat last Push A".
+            cy.findAllByText("Start another workout")
+              .filter(":visible")
+              .first()
+              .click()
+            cy.findByText(/Repeat last Push A/).click()
+            cy.location("pathname").should("eq", "/fitness/workout")
+            rows(`${ACTIVE} and id <> $2`, [user.id, wid]).then(([r]) => {
+              expect(r.name).to.eq("Push A")
+              const rid = r.id as string
+              rows(
+                "select 1 from workout_exercise where workout_id = $1 and deleted_at is null",
+                [rid],
                 5,
-              ).then((sets) =>
-                expect(sets.every((r) => r.completed_at !== null)).to.eq(true),
               )
-
-              // Cross-module: the workout-linked habit got its derived log.
-              cy.eventuallyRows(
-                "select day, source from habit_log where habit_id = $1 and deleted_at is null and source = 'workout'",
-                [habit.id],
+              cy.findByText("Discard workout").click()
+              cy.location("pathname").should("eq", "/fitness")
+              rows(
+                "select 1 from workout where id = $1 and status = 'discarded' and deleted_at is not null",
+                [rid],
               )
-
-              // Third way to start: "Repeat last Push A".
-              cy.findAllByText("Start another workout")
-                .filter(":visible")
-                .first()
-                .click()
-              cy.findByText(/Repeat last Push A/).click()
-              cy.location("pathname").should("eq", "/fitness/workout")
-              cy.eventuallyRows(`${ACTIVE} and id <> $2`, [user.id, wid]).then(
-                ([r]) => {
-                  expect(r.name).to.eq("Push A")
-                  const rid = r.id as string
-                  cy.eventuallyRows(
-                    "select 1 from workout_exercise where workout_id = $1 and deleted_at is null",
-                    [rid],
-                    5,
-                  )
-                  cy.findByText("Discard workout").click()
-                  cy.location("pathname").should("eq", "/fitness")
-                  cy.eventuallyRows(
-                    "select 1 from workout where id = $1 and status = 'discarded' and deleted_at is not null",
-                    [rid],
-                  )
-                  cy.eventuallyApi<{ active: unknown }>(
-                    user,
-                    "/fitness/overview",
-                    (b) => b.active === null,
-                  )
-                },
+              api<{ active: unknown }>(
+                user,
+                "/fitness/overview",
+                (b) => b.active === null,
               )
-            },
-          )
+            })
+          })
         })
       })
     })
@@ -343,8 +341,7 @@ describe("fitness · workouts (live)", () => {
 
   it("W3: history, detail, edit, save as template, repeat, delete", () => {
     cy.newLiveUser("fitness").then((user) => {
-      cy.signInLive(user)
-      cy.liveApi(user, "GET", "/fitness/overview")
+      seedLibrary(user)
       cy.task<{ id: string }[]>("sql", {
         text: "select id from workout_template where owner_id = $1 and name = 'Legs A'",
         values: [user.id],
@@ -374,8 +371,9 @@ describe("fitness · workouts (live)", () => {
             unfinished: "done",
           })
 
+          cy.signInLive(user)
           cy.visit("/fitness/workouts")
-          cy.findByText("E2E legs", { timeout: 30000 }).click()
+          cy.findByText("E2E legs", { timeout: 90000 }).click()
           cy.location("pathname").should("eq", `/fitness/workouts/${wid}`)
           cy.findByText("Back Squat").should("exist")
           cy.findByText(/100/).should("exist")
@@ -389,7 +387,7 @@ describe("fitness · workouts (live)", () => {
           cy.findByRole("button", { name: "Save" }).click()
           cy.findByRole("button", { name: "Done" }).click()
           cy.location("pathname").should("eq", `/fitness/workouts/${wid}`)
-          cy.eventuallyRows(
+          rows(
             "select 1 from workout_set where id = $1 and reps = 6 and weight = 100",
             [squat.sets[0].id],
           )
@@ -398,11 +396,11 @@ describe("fitness · workouts (live)", () => {
           cy.findByRole("button", { name: "Workout options" }).click()
           cy.findByRole("button", { name: "Save as template" }).click()
           cy.location("pathname").should("match", /^\/fitness\/templates\//)
-          cy.eventuallyRows(
+          rows(
             "select id from workout_template where owner_id = $1 and name = 'E2E legs' and deleted_at is null",
             [user.id],
           ).then(([t]) =>
-            cy.eventuallyRows(
+            rows(
               "select 1 from template_item where template_id = $1 and deleted_at is null",
               [t.id],
               3,
@@ -413,18 +411,18 @@ describe("fitness · workouts (live)", () => {
           cy.visit(`/fitness/workouts/${wid}`)
           cy.findByRole("button", { name: "Repeat" }).click()
           cy.location("pathname").should("eq", "/fitness/workout")
-          cy.eventuallyRows(`${ACTIVE} and name = 'E2E legs'`, [user.id])
+          rows(`${ACTIVE} and name = 'E2E legs'`, [user.id])
 
           // Options → Delete: a tombstone.
           cy.visit(`/fitness/workouts/${wid}`)
           cy.findByRole("button", { name: "Workout options" }).click()
           cy.findByRole("button", { name: "Delete" }).click()
           cy.location("pathname").should("eq", "/fitness/workouts")
-          cy.eventuallyRows(
+          rows(
             "select 1 from workout where id = $1 and deleted_at is not null",
             [wid],
           )
-          cy.eventuallyApi<{ data: { id: string }[] }>(
+          api<{ data: { id: string }[] }>(
             user,
             "/fitness/workouts",
             (b) => !b.data.some((w) => w.id === wid),

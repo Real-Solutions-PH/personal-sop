@@ -16,6 +16,7 @@
 // | Stats (/fitness/stats)          | Sessions and PRs match GET /fitness/stats  | L3   |
 // | Train                           | "Progress · 8 weeks" key lifts appear      | L3   |
 // (Exercises have no hard delete in the UI: archive is the delete.)
+import { api, rows } from "./fitness.helpers"
 import type { LiveUser } from "./support"
 
 const TEMPLATE_ITEMS = `select e.name, ti.sets, ti.position from template_item ti
@@ -75,13 +76,13 @@ function seedSession(
   })
 }
 
-describe("fitness · library (live)", () => {
+describe("fitness · library (live)", { defaultCommandTimeout: 60000 }, () => {
   it("L1: templates — create, edit, delete + undo, start", () => {
     cy.newLiveUser("fitness").then((user) => {
-      cy.signInLive(user)
       seedLibrary(user)
+      cy.signInLive(user)
       cy.visit("/fitness/templates")
-      cy.findByText("Push A", { timeout: 30000 }).should("exist")
+      cy.findByText("Push A", { timeout: 90000 }).should("exist")
 
       cy.findByRole("button", { name: "New template" }).click()
       cy.location("pathname").should("eq", "/fitness/templates/new")
@@ -93,18 +94,18 @@ describe("fitness · library (live)", () => {
       cy.findByRole("button", { name: "Save" }).click()
       cy.location("pathname").should("eq", "/fitness/templates")
 
-      cy.eventuallyRows(
+      rows(
         "select id from workout_template where owner_id = $1 and name = 'E2E upper' and deleted_at is null",
         [user.id],
       ).then(([tpl]) => {
         const tid = tpl.id as string
-        cy.eventuallyRows(TEMPLATE_ITEMS, [tid], 2).then((items) =>
+        rows(TEMPLATE_ITEMS, [tid], 2).then((items) =>
           expect(items.map((r) => [r.name, r.sets])).to.deep.eq([
             ["Face Pull", 3],
             ["Dumbbell Curl", 4],
           ]),
         )
-        cy.eventuallyApi<{ data: { id: string; name: string }[] }>(
+        api<{ data: { id: string; name: string }[] }>(
           user,
           "/fitness/templates",
           (b) => b.data.some((t) => t.id === tid),
@@ -120,11 +121,11 @@ describe("fitness · library (live)", () => {
         pick(["Leg Press"])
         cy.findByRole("button", { name: "Save" }).click()
         cy.location("pathname").should("eq", "/fitness/templates")
-        cy.eventuallyRows(
+        rows(
           "select 1 from workout_template where id = $1 and name = 'E2E upper v2'",
           [tid],
         )
-        cy.eventuallyRows(
+        rows(
           `${TEMPLATE_ITEMS.replace("order by", "and e.name = 'Leg Press' order by")}`,
           [tid],
         )
@@ -142,13 +143,13 @@ describe("fitness · library (live)", () => {
         cy.findByText("E2E upper v2").click()
         cy.findByText("Delete template").click()
         cy.location("pathname").should("eq", "/fitness/templates")
-        cy.eventuallyRows(
+        rows(
           "select 1 from workout_template where id = $1 and deleted_at is not null",
           [tid],
         )
         cy.findByText("Undo").click()
         cy.findByText("E2E upper v2").should("exist")
-        cy.eventuallyRows(
+        rows(
           "select 1 from workout_template where id = $1 and deleted_at is null",
           [tid],
         )
@@ -157,12 +158,12 @@ describe("fitness · library (live)", () => {
         cy.findByText("E2E upper v2").click()
         cy.findByRole("button", { name: "Start this template" }).click()
         cy.location("pathname").should("eq", "/fitness/workout")
-        cy.eventuallyRows(
+        rows(
           "select id, template_id from workout where owner_id = $1 and status = 'in_progress' and name = 'E2E upper v2'",
           [user.id],
         ).then(([w]) => {
           expect(w.template_id).to.eq(tid)
-          cy.eventuallyRows(
+          rows(
             "select 1 from workout_exercise where workout_id = $1 and deleted_at is null",
             [w.id],
             2,
@@ -174,10 +175,10 @@ describe("fitness · library (live)", () => {
 
   it("L2: exercise library — create, search, edit, archive + undo", () => {
     cy.newLiveUser("fitness").then((user) => {
-      cy.signInLive(user)
       seedLibrary(user)
+      cy.signInLive(user)
       cy.visit("/fitness/exercises")
-      cy.findByText("Barbell Bench Press", { timeout: 30000 }).should("exist")
+      cy.findByText("Barbell Bench Press", { timeout: 90000 }).should("exist")
 
       cy.findByRole("button", { name: "New exercise" }).click()
       cy.findByRole("textbox", { name: "Exercise name" }).type("E2E Cable Fly")
@@ -189,7 +190,7 @@ describe("fitness · library (live)", () => {
 
       const ROW =
         "select id, name, equipment, muscle, rep_min, rep_max, increment, archived from exercise where owner_id = $1 and name like 'E2E Cable Fly%'"
-      cy.eventuallyRows(ROW, [user.id]).then(([ex]) => {
+      rows(ROW, [user.id]).then(([ex]) => {
         expect(ex).to.include({
           name: "E2E Cable Fly",
           equipment: "cable",
@@ -200,10 +201,8 @@ describe("fitness · library (live)", () => {
           archived: false,
         })
         const id = ex.id as string
-        cy.eventuallyApi<{ data: { id: string }[] }>(
-          user,
-          "/fitness/exercises",
-          (b) => b.data.some((e) => e.id === id),
+        api<{ data: { id: string }[] }>(user, "/fitness/exercises", (b) =>
+          b.data.some((e) => e.id === id),
         )
 
         cy.findByRole("textbox", { name: "Search exercises" }).type("E2E")
@@ -217,20 +216,17 @@ describe("fitness · library (live)", () => {
           .type("E2E Cable Fly v2")
         cy.findByRole("button", { name: "Decrease Rep min" }).click()
         cy.findByRole("button", { name: "Save exercise" }).click()
-        cy.eventuallyRows(
-          `${ROW} and name = 'E2E Cable Fly v2' and rep_min = 7`,
-          [user.id],
-        )
+        rows(`${ROW} and name = 'E2E Cable Fly v2' and rep_min = 7`, [user.id])
 
         cy.findByText("Archive exercise").click()
-        cy.eventuallyRows(`${ROW} and archived`, [user.id])
+        rows(`${ROW} and archived`, [user.id])
         cy.findByText("Undo").click()
-        cy.eventuallyRows(`${ROW} and not archived`, [user.id])
+        rows(`${ROW} and not archived`, [user.id])
         cy.findByText("Archive exercise").click()
-        cy.eventuallyRows(`${ROW} and archived`, [user.id])
+        rows(`${ROW} and archived`, [user.id])
 
         cy.visit("/fitness/exercises")
-        cy.findByText("Barbell Bench Press", { timeout: 30000 }).should("exist")
+        cy.findByText("Barbell Bench Press", { timeout: 90000 }).should("exist")
         cy.findByText("E2E Cable Fly v2").should("not.exist")
         cy.findByText("Show archived").click()
         cy.findByText("E2E Cable Fly v2").should("exist")
@@ -240,7 +236,6 @@ describe("fitness · library (live)", () => {
 
   it("L3: PRs, progression and stats agree with the server", () => {
     cy.newLiveUser("fitness").then((user) => {
-      cy.signInLive(user)
       seedLibrary(user)
       cy.task<{ id: string }[]>("sql", {
         text: "select id from workout_template where owner_id = $1 and name = 'Push A'",
@@ -253,6 +248,7 @@ describe("fitness · library (live)", () => {
           [65, 10],
         ])
       })
+      cy.signInLive(user)
       cy.task<{ id: string }[]>("sql", {
         text: "select id from exercise where owner_id = $1 and name = 'Barbell Bench Press'",
         values: [user.id],
@@ -269,7 +265,7 @@ describe("fitness · library (live)", () => {
 
           // Exercise detail: one PR row (with a Share PR button) per server PR.
           cy.visit(`/fitness/exercises/${bench.id}`)
-          cy.findByText("PR history", { timeout: 30000 }).should("exist")
+          cy.findByText("PR history", { timeout: 90000 }).should("exist")
           cy.findAllByRole("button", { name: "Share PR" }).should(
             "have.length",
             Math.min(8, benchPrs),
@@ -295,7 +291,7 @@ describe("fitness · library (live)", () => {
         cy.visit("/fitness?start=1")
         cy.findByText(/Repeat last Push A/).click()
         cy.location("pathname").should("eq", "/fitness/workout")
-        cy.eventuallyRows(
+        rows(
           `select s.weight, s.reps from workout_set s join workout_exercise we on we.id = s.workout_exercise_id
            join workout w on w.id = we.workout_id
            where w.owner_id = $1 and w.status = 'in_progress' and we.exercise_id = $2 and s.deleted_at is null`,

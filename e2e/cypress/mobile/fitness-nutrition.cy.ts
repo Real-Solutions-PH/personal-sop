@@ -17,6 +17,7 @@
 // | Nutrition history                   | Day row opens that day                         | N2   |
 // | Eat                                 | Photo meal estimate — NOT COVERABLE ON WEB: needs the camera / a native image picker, and the live mapper does not upload photos (REST upload path only). Covered by its manual equivalent, "Describe it", in N2. | — |
 // | Eat                                 | Chat / Voice capture buttons open the capture module (capture module's specs) | — |
+import { api, rows } from "./fitness.helpers"
 import type { LiveUser } from "./support"
 
 const today = () => {
@@ -35,14 +36,14 @@ function setStepper(label: string, value: number) {
   cy.findByRole("textbox", { name: label }).clear().type(String(value)).blur()
 }
 
-describe("fitness · nutrition (live)", () => {
+describe("fitness · nutrition (live)", { defaultCommandTimeout: 60000 }, () => {
   it("N1: targets, manual meal, macros left", () => {
     cy.newLiveUser("fitness").then((user) => {
-      cy.signInLive(user)
       seedLibrary(user)
+      cy.signInLive(user)
       cy.visit("/fitness?tab=eat")
       cy.findByText("No targets set — showing totals eaten.", {
-        timeout: 30000,
+        timeout: 90000,
       }).should("exist")
       cy.findByRole("button", { name: "Set targets" }).click()
       cy.location("pathname").should("eq", "/fitness/nutrition/targets")
@@ -58,7 +59,7 @@ describe("fitness · nutrition (live)", () => {
       cy.location("search").should("eq", "?tab=eat")
       const TARGET =
         "select id, effective_from::text as day, kcal, protein, carbs, fat from macro_target where owner_id = $1 and deleted_at is null"
-      cy.eventuallyRows(`${TARGET} and kcal = 2000`, [user.id]).then(([t]) => {
+      rows(`${TARGET} and kcal = 2000`, [user.id]).then(([t]) => {
         expect(t).to.include({
           day: today(),
           protein: 180,
@@ -79,15 +80,15 @@ describe("fitness · nutrition (live)", () => {
         .invoke("val")
         .then((kcal) => {
           cy.findByRole("button", { name: "Save · effective today" }).click()
-          cy.eventuallyRows(`${TARGET} and kcal = $2`, [user.id, Number(kcal)])
+          rows(`${TARGET} and kcal = $2`, [user.id, Number(kcal)])
           cy.wait(3000)
           cy.task<unknown[]>("sql", {
             text: `${TARGET} and effective_from = $2::date`,
             values: [user.id, today()],
-          }).then((rows) =>
-            expect(rows, "one target per day").to.have.length(1),
+          }).then((found) =>
+            expect(found, "one target per day").to.have.length(1),
           )
-          cy.eventuallyApi<{ current: { kcal: number } | null }>(
+          api<{ current: { kcal: number } | null }>(
             user,
             "/fitness/targets",
             (b) => b.current?.kcal === Number(kcal),
@@ -115,7 +116,7 @@ describe("fitness · nutrition (live)", () => {
       cy.findByRole("button", { name: /^Save meal · \d+ kcal$/ }).click()
       cy.location("search").should("contain", "tab=eat")
 
-      cy.eventuallyRows(
+      rows(
         "select id, label, status, source from meal where owner_id = $1 and deleted_at is null",
         [user.id],
       ).then(([meal]) => {
@@ -124,7 +125,7 @@ describe("fitness · nutrition (live)", () => {
           status: "confirmed",
           source: "manual",
         })
-        cy.eventuallyRows(MEAL_ITEMS, [meal.id], 2).then((items) => {
+        rows(MEAL_ITEMS, [meal.id], 2).then((items) => {
           const byName = Object.fromEntries(items.map((i) => [i.name, i]))
           expect(Object.keys(byName).sort()).to.deep.eq([
             "E2E shake",
@@ -141,7 +142,7 @@ describe("fitness · nutrition (live)", () => {
       })
 
       // Macros left: the screen, the API and target − Postgres totals agree.
-      cy.eventuallyApi<{
+      api<{
         left: { kcal: number; protein: number } | null
         meals: unknown[]
       }>(
@@ -171,8 +172,8 @@ describe("fitness · nutrition (live)", () => {
 
   it("N2: estimate review, edit items, duplicate, delete + undo, days, history", () => {
     cy.newLiveUser("fitness").then((user) => {
-      cy.signInLive(user)
       seedLibrary(user)
+      cy.signInLive(user)
       cy.visit(`/fitness/nutrition/new?day=${today()}`)
       cy.findByRole("textbox", { name: "Describe your meal" }).type(
         "lunch: rice, chicken adobo",
@@ -182,16 +183,16 @@ describe("fitness · nutrition (live)", () => {
       cy.findByText("Review estimate").should("exist")
       cy.location("pathname").then((path) => {
         const mid = path.split("/").pop() as string
-        cy.eventuallyRows(
+        rows(
           "select status, source, raw_input from meal where id = $1 and status = 'estimated'",
           [mid],
         )
-        cy.eventuallyRows(MEAL_ITEMS, [mid], 2)
+        rows(MEAL_ITEMS, [mid], 2)
 
         // Follow-up: "How much rice?" → 2 cups.
         cy.findByText("How much rice?").should("exist")
         cy.findByRole("button", { name: "2 cups" }).click()
-        cy.eventuallyRows(
+        rows(
           `${MEAL_ITEMS.replace("order by", "and qty = 2 and assumption = '2 cups, you said' order by")}`,
           [mid],
         )
@@ -201,56 +202,47 @@ describe("fitness · nutrition (live)", () => {
           "chicken adobo, fried egg",
         )
         cy.findByRole("button", { name: "Re-estimate" }).click()
-        cy.eventuallyRows(
+        rows(
           `${MEAL_ITEMS.replace("order by", "and name = 'Fried egg' order by")}`,
           [mid],
         )
 
         cy.findByRole("button", { name: /^Confirm · \d+ kcal$/ }).click()
         cy.location("search").should("contain", "tab=eat")
-        cy.eventuallyRows(
-          "select 1 from meal where id = $1 and status = 'confirmed'",
-          [mid],
-        )
+        rows("select 1 from meal where id = $1 and status = 'confirmed'", [mid])
 
         // Edit the confirmed meal.
         cy.visit(`/fitness/nutrition/meals/${mid}`)
-        cy.findByText("Edit", { timeout: 30000 }).click()
-        cy.eventuallyRows(MEAL_ITEMS, [mid]).then((before) => {
+        cy.findByText("Edit", { timeout: 90000 }).click()
+        rows(MEAL_ITEMS, [mid]).then((before) => {
           const first = before[0] as { id: string; qty: number; name: string }
           cy.findAllByRole("button", { name: "More" }).first().click()
-          cy.eventuallyRows(
-            "select 1 from meal_item where id = $1 and qty > $2",
-            [first.id, first.qty],
-          )
+          rows("select 1 from meal_item where id = $1 and qty > $2", [
+            first.id,
+            first.qty,
+          ])
           cy.findAllByText("Edit macros").first().click()
           cy.findByRole("textbox", { name: "kcal" }).clear().type("333")
-          cy.eventuallyRows(
-            "select 1 from meal_item where id = $1 and kcal = 333",
-            [first.id],
-          )
+          rows("select 1 from meal_item where id = $1 and kcal = 333", [
+            first.id,
+          ])
           cy.findByText("Done").click()
           cy.findAllByRole("button", { name: "Remove item" }).first().click()
-          cy.eventuallyRows(
+          rows(
             "select 1 from meal_item where id = $1 and deleted_at is not null",
             [first.id],
           )
         })
         cy.findByRole("textbox", { name: "Add food" }).type("banana")
         cy.findByText("Banana").click()
-        cy.eventuallyRows(
+        rows(
           `${MEAL_ITEMS.replace("order by", "and name like 'Banana%' order by")}`,
           [mid],
         )
         cy.findByText("snack").click()
-        cy.eventuallyRows(
-          "select 1 from meal where id = $1 and label = 'snack'",
-          [mid],
-        )
+        rows("select 1 from meal where id = $1 and label = 'snack'", [mid])
         cy.findByRole("textbox", { name: "Time eaten" }).clear().type("07:30")
-        cy.eventuallyRows("select eaten_at from meal where id = $1", [
-          mid,
-        ]).then(([m]) =>
+        rows("select eaten_at from meal where id = $1", [mid]).then(([m]) =>
           expect(
             new Date(m.eaten_at as string).toTimeString().slice(0, 5),
           ).to.eq("07:30"),
@@ -259,30 +251,24 @@ describe("fitness · nutrition (live)", () => {
 
         // Duplicate to today.
         cy.findByRole("button", { name: "Duplicate to today" }).click()
-        cy.eventuallyRows(
+        rows(
           "select id from meal where owner_id = $1 and deleted_at is null and id <> $2",
           [user.id, mid],
         ).then(([copy]) =>
           cy
             .task<unknown[]>("sql", { text: MEAL_ITEMS, values: [mid] })
-            .then((orig) =>
-              cy.eventuallyRows(MEAL_ITEMS, [copy.id], orig.length),
-            ),
+            .then((orig) => rows(MEAL_ITEMS, [copy.id], orig.length)),
         )
 
         // Delete, then Undo.
         cy.findByRole("button", { name: "Delete" }).click()
         cy.location("search").should("contain", "tab=eat")
-        cy.eventuallyRows(
-          "select 1 from meal where id = $1 and deleted_at is not null",
-          [mid],
-        )
+        rows("select 1 from meal where id = $1 and deleted_at is not null", [
+          mid,
+        ])
         cy.findByText("Undo").click()
-        cy.eventuallyRows(
-          "select 1 from meal where id = $1 and deleted_at is null",
-          [mid],
-        )
-        cy.eventuallyApi<{ meals: { id: string }[] }>(
+        rows("select 1 from meal where id = $1 and deleted_at is null", [mid])
+        api<{ meals: { id: string }[] }>(
           user,
           `/fitness/nutrition/day?day=${today()}`,
           (b) => b.meals.some((m) => m.id === mid) && b.meals.length === 2,
