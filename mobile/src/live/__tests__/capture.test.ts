@@ -163,8 +163,16 @@ function fakeDeps(opts: {
   const kick = jest.fn()
   const http: Http = {
     request: async <T>(method: string, path: string, body?: unknown) => {
-      calls.push({ method, path, body })
       const route = opts.routes?.[`${method} ${path}`]
+      // The spend meter is read at start and after each send; tests that
+      // don't route it see an empty meter, and it never counts as a call.
+      if (method === "GET" && path === "/capture/settings")
+        return (
+          typeof route === "function"
+            ? route(body)
+            : (route ?? { spend_minor: 0, calls: 0 })
+        ) as T
+      calls.push({ method, path, body })
       if (route === undefined) throw new Error(`unexpected ${method} ${path}`)
       return (typeof route === "function" ? route(body) : route) as T
     },
@@ -1259,4 +1267,28 @@ test("wire: the ops and request bodies the device sends", () => {
     ]),
   )
   writeWireFixture(join(__dirname, "fixtures", "capture-wire.json"), wire)
+})
+
+test("the AI spend meter comes from the server, at start and after a capture", async () => {
+  // The prototype seeds demo spending; live mode must never show it.
+  captureStore.set((s) => ({
+    ...s,
+    spend: { ...s.spend, amount: 142.6, calls: 388 },
+  }))
+  let calls = 0
+  const { post } = fakeDeps({
+    routes: {
+      "GET /capture/settings": () => ({
+        spend_minor: 1250 + 100 * calls++,
+        calls,
+      }),
+    },
+    post: async () => jsonResponse(402, { code: "ai_spend_cap_reached" }),
+  })
+  await flush()
+  expect(captureStore.get().spend).toMatchObject({ amount: 12.5, calls: 1 })
+  sendCapture({ text: "spent 250 on grab" })
+  await flush()
+  expect(post).toHaveBeenCalled()
+  expect(captureStore.get().spend).toMatchObject({ amount: 13.5, calls: 2 })
 })

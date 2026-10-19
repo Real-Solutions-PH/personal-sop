@@ -45,7 +45,14 @@ export function clearToBlank() {
     lookbacks: [],
     threads: [],
   }))
-  captureStore.set((s) => ({ ...s, captures: [], journal: [] }))
+  // The AI spend meter too: the prototype seeds demo spending; live mode
+  // reads the real meter from the server (live/capture.ts).
+  captureStore.set((s) => ({
+    ...s,
+    captures: [],
+    journal: [],
+    spend: { ...s.spend, amount: 0, calls: 0 },
+  }))
   dashStore.set((s) => ({
     ...s,
     goals: [],
