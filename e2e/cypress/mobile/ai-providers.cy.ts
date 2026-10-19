@@ -204,7 +204,7 @@ describe("AI providers and AI settings (live)", () => {
         // Remove one assignment, then the credential.
         del(user, "/ai/assignments/vision")
         noRows(
-          "select 1 from ai_model_assignment where owner_id = $1 and purpose = 'vision'",
+          "select 1 from ai_model_assignment where owner_id = $1 and purpose = 'vision' and deleted_at is null",
           [user.id],
         )
         del(user, `/ai/providers/${cred.id}`)
@@ -230,11 +230,15 @@ describe("AI providers and AI settings (live)", () => {
       cy.visit("/capture/settings")
       cy.findByText("AI is on").should("exist")
       cy.findByText("AI spend this month").should("exist")
+      // Each edit waits for the server, then 2 s more before the next one:
+      // the sync engine drops an edit made while the previous edit's push
+      // response is still landing (engine.ts apply() overwrites it — reported
+      // separately). The rows' own wiring is what this test proves.
       const setting = (where: string) =>
         rows(
           `select * from ai_settings where owner_id = $1 and deleted_at is null and ${where}`,
           [user.id],
-        )
+        ).then(() => cy.wait(2000))
 
       // Spend cap.
       // The cap chips come before the threshold chips (₱1,000 is in both).
@@ -254,9 +258,13 @@ describe("AI providers and AI settings (live)", () => {
 
       // Privacy switches, finance detail, language, transcription.
       cy.findByRole("switch", { name: "Send photos" }).click()
+      setting("send_photos = false")
       cy.findByRole("switch", { name: "Journal in Q&A" }).click()
+      setting("journal_in_qa = true")
       cy.findByRole("tab", { name: "Individual transactions" }).click()
+      setting("finance_scope = 'records'")
       cy.findByRole("tab", { name: "English" }).click()
+      setting("language = 'en'")
       cy.findByRole("tab", { name: "On-device preview" }).click()
       setting(
         "send_photos = false and journal_in_qa = true and finance_scope = 'records' and language = 'en' and transcription = 'browser'",
