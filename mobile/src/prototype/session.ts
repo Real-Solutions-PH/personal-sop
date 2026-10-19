@@ -1,5 +1,33 @@
 import { dashStore, updateProfile } from "@domain/dash/store"
 import { createStore } from "@domain/lib/store"
+import { liveMode } from "@/live/config"
+
+// Live mode backs these same actions with Supabase + the API server
+// (src/live). Loaded lazily so prototype mode never initialises Supabase.
+const live = () => require("@/live/auth") as typeof import("@/live/auth")
+const runtime = () =>
+  require("@/live/runtime") as typeof import("@/live/runtime")
+const storage = () =>
+  (require("./storage") as typeof import("./storage")).prototypeStorage()
+
+async function viaLive<T>(run: () => Promise<T>): Promise<T> {
+  try {
+    return await run()
+  } catch (error) {
+    const e = error as { message?: string; field?: AuthError["field"] }
+    throw new AuthError(
+      e.message ?? "Something went wrong. Please try again.",
+      e.field,
+    )
+  }
+}
+
+/** Live mode: start sync for the signed-in Supabase user. */
+export async function startLiveSession() {
+  const uid = await live().currentUserId()
+  if (uid) runtime().startLive(uid, storage())
+  return uid
+}
 
 // Simulated account session for the UX prototype. Nothing leaves the device:
 // every call resolves locally after a short delay so loading states are visible.
@@ -117,12 +145,19 @@ export async function signIn({
   password: string
   remember: boolean
 }) {
-  await wait()
   const address = email.trim().toLowerCase()
-  if (emailError(address) || !password)
-    throw new AuthError("Enter your email and password")
-  if (password === "wrong")
-    throw new AuthError("Incorrect email or password", "password")
+  if (liveMode) {
+    if (emailError(address) || !password)
+      throw new AuthError("Enter your email and password")
+    await viaLive(() => live().signIn(address, password))
+    await startLiveSession()
+  } else {
+    await wait()
+    if (emailError(address) || !password)
+      throw new AuthError("Enter your email and password")
+    if (password === "wrong")
+      throw new AuthError("Incorrect email or password", "password")
+  }
   sessionStore.set((s) => ({
     ...s,
     signedIn: true,
@@ -132,6 +167,10 @@ export async function signIn({
   }))
 }
 export async function continueWith(provider: "apple" | "google") {
+  if (liveMode)
+    throw new AuthError(
+      `${provider === "apple" ? "Apple" : "Google"} sign-in isn't available yet. Use your email instead.`,
+    )
   await wait()
   sessionStore.set((s) => ({
     ...s,
@@ -145,8 +184,18 @@ export async function continueWith(provider: "apple" | "google") {
   }))
 }
 export async function signUp(user: User & { password: string }) {
-  await wait()
   const email = user.email.trim().toLowerCase()
+  if (liveMode) {
+    await viaLive(() =>
+      live().signUp(email, user.password, user.name.trim(), user.username),
+    )
+    sessionStore.set((s) => ({
+      ...s,
+      pending: { name: user.name.trim(), username: user.username, email },
+    }))
+    return
+  }
+  await wait()
   if (TAKEN_EMAILS.includes(email))
     throw new AuthError(
       "An account with this email already exists. Sign in instead?",
@@ -160,9 +209,19 @@ export async function signUp(user: User & { password: string }) {
   }))
 }
 export async function resendCode() {
+  const pending = sessionStore.get().pending
+  if (liveMode && pending)
+    return viaLive(() => live().resendSignUp(pending.email))
   await wait(500)
 }
 export async function verifyEmail(code: string) {
+  if (liveMode) {
+    const pending = sessionStore.get().pending
+    if (!pending)
+      throw new AuthError("Your sign-up expired. Please start again.")
+    await viaLive(() => live().verifySignUp(pending.email, code))
+    return
+  }
   await wait()
   if (code === "000000")
     throw new AuthError("That code is incorrect or has expired", "code")
@@ -176,19 +235,47 @@ export function completeSignUp() {
   if (!user) return
   updateProfile({ name: user.name, handle: `@${user.username}` })
   sessionStore.set((s) => ({ ...s, signedIn: true, user, pending: null }))
+  if (liveMode) {
+    void startLiveSession()
+    void live()
+      .completeProfile(user.name, user.username)
+      .catch(() => {
+        // The handle stays editable in Me → Profile; sign-in already worked.
+      })
+  }
 }
 export async function requestPasswordReset(email: string) {
-  await wait()
+  if (liveMode)
+    await viaLive(() => live().requestReset(email.trim().toLowerCase()))
+  else await wait()
   sessionStore.set((s) => ({ ...s, resetEmail: email.trim().toLowerCase() }))
 }
-export async function resetPassword(_password: string) {
-  await wait()
+export async function resetPassword(password: string) {
+  if (liveMode) await viaLive(() => live().updatePassword(password))
+  else await wait()
   sessionStore.set((s) => ({
     ...s,
     rememberedEmail: s.resetEmail || s.rememberedEmail,
   }))
 }
 export function signOut() {
+  if (liveMode) {
+    // Push what is still queued, then forget this account's data on the
+    // device so the next account starts clean.
+    const engine = runtime().engine()
+    void (engine ? engine.sync() : Promise.resolve()).finally(() => {
+      runtime().stopLive()
+      void live().signOut()
+      for (const key of [
+        "sop-live:outbox",
+        "sop-live:snapshot",
+        "sop-live:cursor",
+        "sop-live:owner",
+      ])
+        storage().removeItem(key)
+      ;(require("@/live/blank") as typeof import("@/live/blank")).clearToBlank()
+    })
+  }
   sessionStore.set((s) => ({
     ...signedOut(),
     rememberedEmail: s.rememberedEmail,

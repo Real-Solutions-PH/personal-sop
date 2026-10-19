@@ -10,6 +10,8 @@ export interface Store<T> {
   use<S>(select: (state: T) => S): S
   reset(): void
   flush(): boolean
+  /** Plain (non-React) change subscription; returns the unsubscribe. */
+  subscribe(listener: () => void): () => void
 }
 const browserStorage: StorageAdapter = {
   getItem: (key) =>
@@ -112,7 +114,7 @@ export function createStore<T>(key: string, seed: () => T): Store<T> {
     flush()
     emit()
   }
-  const store = { get, set, use, reset, flush }
+  const store = { get, set, use, reset, flush, subscribe }
   registry.push(store)
   return store
 }
@@ -122,4 +124,6 @@ export function flushStores() {
 export function resetAll() {
   for (const store of registry) store.reset()
 }
-export const uid = () => Math.random().toString(36).slice(2, 10)
+// UUID v4: the backend accepts device-minted ids (ADR-0011), so every row
+// created on the device keeps its id through sync.
+export { newId as uid } from "./ids"

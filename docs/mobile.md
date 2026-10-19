@@ -40,6 +40,29 @@ Charts animate in on open (lines sweep, bars grow with a stagger, donut slices f
 
 Weather (`/weather`, mobile-only, summarised by a card on Today) uses the free, keyless Open-Meteo forecast and geocoding APIs (`src/prototype/weather.ts`). Location permission is requested only on the first visit to `/weather` or from "Use current location". If permission is denied or unavailable, the screen uses the saved city (Manila by default), which can be changed with the city search. The last forecast is persisted locally and shown offline with its age. It refreshes after 15 minutes when the screen mounts or the app returns to the foreground, and it can also be refreshed manually. On web, the device location is labelled with coordinates because reverse geocoding is native-only.
 
+## Live mode (2026-10-19)
+
+`bun run start:live` (`EXPO_PUBLIC_APP_MODE=live`) runs the same product UI against the API server, with Supabase sign-in and local-first sync (ADR-0011). It needs `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY`. Like connected mode, it needs a native development build, because the Supabase session is kept in encrypted MMKV.
+
+| Piece | Where | What it does |
+|---|---|---|
+| Account | `src/live/auth.ts`, delegated from `src/prototype/session.ts` | Sign-in, sign-up with the 6-digit email code, password reset and sign-out through GoTrue. The auth screens are unchanged. Apple and Google sign-in show "not available yet". |
+| HTTP | `src/live/http.ts` | Bearer token on every call. A 401 refreshes the session once and retries. |
+| Sync engine | `src/live/engine.ts`, `mapper.ts`, `outbox.ts` | Diffs each mapped store against the last state both sides agreed on, and writes ops to a persisted outbox: creates, field-level edits, deletes, and domain actions for transitions such as completing a task. Pushes in order, then pulls past a stored cursor. Pulled rows are merged without being echoed back. |
+| Mappers | `src/live/mappers/` | One per server entity: local store shape to and from server rows. `reference.ts` holds weather preferences and module switches; each module adds its own via `registerMappers`. |
+| Events | `src/live/events.ts`, `runtime.ts` | One SSE stream (`/events/stream`) opened with `expo/fetch`. It resumes from `Last-Event-ID`, and `sync.changed` triggers a pull. Other events reach `onServerEvent` listeners. |
+| First run | `src/live/blank.ts` | An account's first run on a device starts from empty stores (no demo records), then pulls. Sign-out pushes what is queued, then clears the device. |
+
+Ids: rows created on the device are UUID v4 (`shared/prototype/lib/ids.ts`). Rows a domain action derives use `derivedId`, which matches the backend's UUID v5 byte for byte, so an offline action and its server replay never duplicate.
+
+What happens offline and in each failure case:
+- Offline, the app keeps working on its stores. Ops wait in the outbox, which holds at most 5,000 and drops the oldest first, and are sent on reconnect, on returning to the foreground, on another device's change nudge, or once a minute.
+- A rejected op is logged and dropped from the outbox, and the device keeps its local value until the server row changes. A conflict means the server row wins.
+
+**Verified:**
+- `src/live/__tests__/sync.test.ts` covers diff rules, the offline outbox, action ordering, no echo, pulled deletes, restart persistence, the UUID v5 parity value and the SSE parser.
+- A throwaway end-to-end run of the engine against a running API server with a real GoTrue account confirmed that the offline edit was queued, then pushed on reconnect, then pulled on a second device. The second device's edit came back to the first, with no echo, and matched the server state.
+
 ## Visual system
 
 The native prototype uses the web prototype's semantic palette, including separate light/dark module accents. Their sRGB equivalents, spacing, radii and font names live in `shared/prototype/design/tokens.ts`. Barlow supplies body text and Barlow Condensed supplies display headings and statistics; font assets are bundled with the application.

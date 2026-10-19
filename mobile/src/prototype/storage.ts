@@ -1,5 +1,12 @@
 import type { StorageAdapter } from "@domain/lib/store"
 import { Platform } from "react-native"
+
+let opened: StorageAdapter | null = null
+/** The one adapter every store and the live sync engine share. */
+export function prototypeStorage(): StorageAdapter {
+  opened ??= openPrototypeStorage()
+  return opened
+}
 export function openPrototypeStorage(): StorageAdapter {
   if (Platform.OS === "web")
     return {

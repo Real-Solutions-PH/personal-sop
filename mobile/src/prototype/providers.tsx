@@ -17,7 +17,9 @@ import { ActivityIndicator, Pressable, Text, View } from "react-native"
 import { GestureHandlerRootView } from "react-native-gesture-handler"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 import { Toaster, toast } from "sonner-native"
-import { openPrototypeStorage } from "./storage"
+import { liveMode } from "@/live/config"
+import { sessionStore, startLiveSession } from "./session"
+import { prototypeStorage } from "./storage"
 
 export function PrototypeProviders({ children }: { children: ReactNode }) {
   const [fontsLoaded, fontError] = useFonts({
@@ -35,7 +37,7 @@ export function PrototypeProviders({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null)
   const initialize = useCallback(() => {
     try {
-      configureStorage(openPrototypeStorage(), () =>
+      configureStorage(prototypeStorage(), () =>
         queueMicrotask(() =>
           setError(
             "Local data could not be read or saved. Keep the app open and retry before closing.",
@@ -68,11 +70,25 @@ export function PrototypeProviders({ children }: { children: ReactNode }) {
   )
   useEffect(
     () =>
-      NetInfo.addEventListener((state) =>
-        setConnectivity(state.isConnected !== false),
-      ),
+      NetInfo.addEventListener((state) => {
+        const online = state.isConnected !== false
+        setConnectivity(online)
+        if (online && liveMode)
+          (
+            require("@/live/runtime") as typeof import("@/live/runtime")
+          ).syncNow()
+      }),
     [],
   )
+  // Live mode: the Supabase session decides whether the person is signed in;
+  // a restored session starts sync without a sign-in screen.
+  useEffect(() => {
+    if (!liveMode || !ready) return
+    void startLiveSession().then((uid) => {
+      if (!uid && sessionStore.get().signedIn)
+        sessionStore.set((s) => ({ ...s, signedIn: false, user: null }))
+    })
+  }, [ready])
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>

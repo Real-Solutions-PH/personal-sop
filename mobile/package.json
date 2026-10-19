@@ -12,7 +12,8 @@
     "generate-client": "openapi-ts",
     "typecheck": "tsc --noEmit",
     "test": "jest",
-    "start:connected": "EXPO_PUBLIC_APP_MODE=connected expo start"
+    "start:connected": "EXPO_PUBLIC_APP_MODE=connected expo start",
+    "start:live": "EXPO_PUBLIC_APP_MODE=live expo start"
   },
   "jest": {
     "preset": "jest-expo",
