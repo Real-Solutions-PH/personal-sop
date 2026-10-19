@@ -282,9 +282,21 @@ export class SyncEngine {
     }
   }
 
-  /** Merge server rows into the stores without echoing them back. */
+  /** Merge server rows into the stores without echoing them back.
+   *
+   * A local edit is only diffed into the outbox once the debounce fires. A
+   * server row landing inside that window used to overwrite the store and
+   * reset the diff baseline, so the newer edit was never sent. So any
+   * pending edit is captured into the outbox first; the server's row then
+   * shows until that op's own push brings the edited row back. */
   apply(changes: Change[]) {
     if (!changes.length) return
+    if (this.timer && !this.applying) {
+      clearTimeout(this.timer)
+      this.timer = null
+      this.capture()
+      void this.sync() // in flight: runs once more when this one finishes
+    }
     const byEntity = new Map<string, Change[]>()
     for (const c of changes)
       byEntity.set(c.entity, [...(byEntity.get(c.entity) ?? []), c])

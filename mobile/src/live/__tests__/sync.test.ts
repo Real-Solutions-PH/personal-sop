@@ -341,3 +341,49 @@ test("a server error is retried, never dead-lettered", async () => {
     jest.useRealTimers()
   }
 })
+
+test("an edit made while a push response is in flight is not overwritten", async () => {
+  const server = new FakeServer()
+  let release: () => void = () => {}
+  const gate = new Promise<void>((r) => {
+    release = r
+  })
+  let hold = true
+  const slow: Http = {
+    request: async <T>(
+      method: string,
+      path: string,
+      body?: unknown,
+    ): Promise<T> => {
+      const res = await server.request<T>(method, path, body)
+      if (hold && path === "/sync/push") await gate // response held
+      return res
+    },
+    raw: server.raw,
+  }
+  const storage = memoryStorage()
+  const e = new SyncEngine({
+    http: slow,
+    storage,
+    outbox: createOutbox(storage),
+    mappers: [todoMapper],
+    online: () => true,
+    debounceMs: 30,
+  })
+  e.start((m, onChange) => m.store.subscribe(onChange))
+  todoStore.set({ todos: [{ id: "a", title: "Pay rent", done: false }] })
+  e.capture()
+  const first = e.sync() // its push response is held
+  // The user edits again while that response is in flight; the debounced
+  // capture has not run yet when the response lands.
+  todoStore.set({ todos: [{ id: "a", title: "Pay rent today", done: false }] })
+  hold = false
+  release()
+  await first
+  await new Promise((r) => setTimeout(r, 120)) // debounce + follow-up sync
+  await e.sync()
+  e.stop()
+  expect(todoStore.get().todos[0].title).toBe("Pay rent today")
+  expect(server.rows.get("a")).toMatchObject({ title: "Pay rent today" })
+  expect(e.pending()).toBe(0)
+})
