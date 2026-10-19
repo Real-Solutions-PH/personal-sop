@@ -88,7 +88,16 @@ describe("Sol (live, rules engine)", () => {
       rows(
         "select id, text from memory where owner_id = $1 and deleted_at is null",
         [user.id],
-      ).then(([m]) => {
+      )
+      // One message, one memory: let the app's sync settle, then count. (A
+      // phone that also records it locally pushes a second row.)
+      cy.wait(8000)
+      cy.task<Record<string, unknown>[]>("sql", {
+        text: "select id, text from memory where owner_id = $1 and deleted_at is null",
+        values: [user.id],
+      }).then((all) => {
+        expect(all, "memory rows for one message").to.have.length(1)
+        const [m] = all
         expect(m.text).to.eq("I train for a half marathon in March")
         api<{ memories: { id: string }[] }>(user, "/companion/", (b) =>
           b.memories.some((x) => x.id === m.id),
