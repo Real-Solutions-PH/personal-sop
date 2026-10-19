@@ -237,6 +237,9 @@ def _safe_inline(owner: uuid.UUID, days: set[date]) -> None:
         logger.warning("stats inline recompute failed", exc_info=True)
 
 
+READY_KEY = "stats_dirty_committed"
+
+
 def _after_commit(session: OrmSession) -> None:
     # SQLAlchemy fires this on a SAVEPOINT release too; only the outermost
     # commit has made the rows visible to other connections.
@@ -244,7 +247,19 @@ def _after_commit(session: OrmSession) -> None:
         return
     dirty = session.info.pop(DIRTY_KEY, None)
     if dirty:
-        drain(list(dirty))
+        # Not drained here: ``after_commit`` runs while the session still
+        # holds its pooled connection, and the inline recompute checks out a
+        # second one. Under load every writer held one connection waiting
+        # for another and the pool deadlocked. Drain once it is returned.
+        session.info.setdefault(READY_KEY, []).extend(dirty)
+
+
+def _after_transaction_end(session: OrmSession, transaction: Any) -> None:
+    if transaction.parent is not None:
+        return  # a savepoint or subtransaction; the root still holds the line
+    ready = session.info.pop(READY_KEY, None)
+    if ready:
+        drain(ready)
 
 
 def _after_rollback(session: OrmSession) -> None:
@@ -263,4 +278,5 @@ def install() -> None:
         return
     event.listen(OrmSession, "after_commit", _after_commit)
     event.listen(OrmSession, "after_rollback", _after_rollback)
+    event.listen(OrmSession, "after_transaction_end", _after_transaction_end)
     _installed = True

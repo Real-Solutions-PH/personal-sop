@@ -13,6 +13,7 @@ import logging
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any
 
 from sqlalchemy import event
 from sqlalchemy.orm import Session as OrmSession
@@ -28,6 +29,7 @@ from app.shared.push import PushMessage, send_push
 logger = logging.getLogger(__name__)
 
 _KEY = "dashboard_outbox"
+_READY = "dashboard_outbox_committed"
 EVENT_TYPE = "dashboard.notification"
 NOT_REGISTERED = "DeviceNotRegistered"
 
@@ -142,7 +144,17 @@ def _after_commit(session: OrmSession) -> None:
         return
     items = session.info.pop(_KEY, None)
     if items:
-        deliver(items)
+        # Delivered once the connection is back in the pool (see
+        # ``_after_transaction_end``): a push is an HTTP call to Expo.
+        session.info.setdefault(_READY, []).extend(items)
+
+
+def _after_transaction_end(session: OrmSession, transaction: Any) -> None:
+    if transaction.parent is not None:
+        return
+    ready = session.info.pop(_READY, None)
+    if ready:
+        deliver(ready)
 
 
 def _after_rollback(session: OrmSession) -> None:
@@ -160,6 +172,7 @@ def install() -> None:
         return
     event.listen(OrmSession, "after_commit", _after_commit)
     event.listen(OrmSession, "after_rollback", _after_rollback)
+    event.listen(OrmSession, "after_transaction_end", _after_transaction_end)
     _installed = True
 
 

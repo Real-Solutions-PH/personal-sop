@@ -18,7 +18,7 @@ from typing import Annotated
 from fastapi import Depends
 from sqlmodel import Session, select
 
-from app.modules.iam.deps import CurrentUser
+from app.modules.iam.deps import CurrentUser, release_connection
 from app.modules.iam.users.models import User
 from app.shared.day import DayClock
 from app.shared.owned import utcnow
@@ -85,7 +85,13 @@ def make_ctx(session: Session, user: User, now: datetime | None = None) -> Ctx:
 
 
 def get_ctx(session: TenantScopedSessionDep, current_user: CurrentUser) -> Ctx:
-    return make_ctx(session, current_user)
+    ctx = make_ctx(session, current_user)
+    # FastAPI runs each sync dependency and the endpoint on separate
+    # threadpool hops. Holding the clock-lookup connection across that hop
+    # deadlocks under load: every thread waits for a connection while every
+    # connection waits for a thread. The endpoint checks out its own.
+    release_connection(session)
+    return ctx
 
 
 CtxDep = Annotated[Ctx, Depends(get_ctx)]
