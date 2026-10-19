@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 
 from app.modules.profile import public as profile_public
+from app.modules.profile.models import UserProfile
 from app.modules.stats import logic as L
 from app.modules.stats.contract import (
     CalendarItem,
@@ -20,10 +21,12 @@ from app.modules.stats.contract import (
     Window,
     contributors,
 )
+from app.shared import owned_repo
 from app.shared.context import Ctx
 
 RANGES: dict[str, int] = {"7d": 7, "30d": 30, "90d": 90, "1y": 365}
 LOGGED_DAYS_GATE = 3
+DEFAULT_THRESHOLD = 0.8  # the profile column default
 
 
 @dataclass(frozen=True)
@@ -33,12 +36,20 @@ class Settings:
     threshold: float
 
 
+def _profile(ctx: Ctx) -> UserProfile | None:
+    """The caller's profile row, read only: a statistic never creates one
+    (``profile_public.get_profile`` inserts on first access, and a rollup
+    recompute commits)."""
+    return owned_repo.find_one(ctx, UserProfile, include_deleted=True)
+
+
 def settings(ctx: Ctx) -> Settings:
     ms = profile_public.module_settings(ctx)
+    profile = _profile(ctx)
     return Settings(
         enabled={k: ms[k].enabled for k in L.MODULE_KEYS},
         weights={k: ms[k].weight for k in L.MODULE_KEYS},
-        threshold=profile_public.get_profile(ctx).target_threshold,
+        threshold=profile.target_threshold if profile else DEFAULT_THRESHOLD,
     )
 
 
@@ -318,7 +329,8 @@ def achievements(ctx: Ctx) -> AchievementsResult:
                     else None,
                 )
             )
-    seen = set(profile_public.get_profile(ctx).seen_trophies or [])
+    profile = _profile(ctx)
+    seen = set(profile.seen_trophies or []) if profile else set()
     return AchievementsResult(items=items, trophies=L.trophies(items), seen=seen)
 
 

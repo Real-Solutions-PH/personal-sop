@@ -3,6 +3,7 @@
 from dataclasses import dataclass, field
 from datetime import date
 
+from app.modules.dashboard.outbox import install as _install_outbox
 from app.modules.stats.contract import CalendarItem, Metric, Miss
 from app.modules.stats.logic import (
     AchievementView,
@@ -15,8 +16,12 @@ from app.modules.stats.rollups import install as _install_drain
 from app.shared.context import Ctx
 
 # Every writer imports ``mark_dirty`` from here, so the after-commit drain is
-# attached before the first dirty mark can exist.
+# attached before the first dirty mark can exist. The notification outbox is
+# attached here too: a listener added while SQLAlchemy is dispatching
+# ``after_commit`` (a lazy import inside the drain) raises "deque mutated
+# during iteration", so every listener is in place before the first commit.
 _install_drain()
+_install_outbox()
 
 LEVELS: tuple[tuple[int, str], ...] = (
     (0, "Getting started"),
