@@ -35,6 +35,8 @@ export interface EngineDeps {
   mappers: AnyMapper[]
   online: () => boolean
   log?: (event: string, detail?: unknown) => void
+  /** After every successful push + pull (server statistics refresh). */
+  onSynced?: () => void
   debounceMs?: number
   batch?: number
 }
@@ -158,6 +160,7 @@ export class SyncEngine {
       await this.push()
       await this.pull()
       this.backoffMs = 0
+      this.deps.onSynced?.()
     } catch (error) {
       if (!(error instanceof NetworkError))
         this.deps.log?.("sync_error", String(error))

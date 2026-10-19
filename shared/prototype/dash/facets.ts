@@ -6,6 +6,33 @@ import { module as HAB } from "../habits"
 import { habitsStore } from "../habits/store"
 import { dayOffset } from "../lib/day"
 import { useEnabled, useLifeScore } from "./hooks"
+import {
+  metricFrom,
+  overviewKey,
+  type ServerFacet,
+  type ServerOverview,
+  useServerStat,
+} from "./server-stats"
+
+const MODULE_KEYS: ModuleKey[] = ["habits", "tasks", "fitness", "finance"]
+export function facetsFrom(rows: ServerFacet[]): Facet[] {
+  return rows.flatMap((r) => {
+    const module = r.module as ModuleKey
+    if (!MODULE_KEYS.includes(module)) return []
+    const f: Facet = {
+      key: r.key,
+      label: r.label,
+      module,
+      value: r.value,
+      prev: r.prev,
+      off: r.off,
+      href: r.href,
+    }
+    if (r.metric_keys) f.metricKeys = r.metric_keys
+    if (r.extra.length) f.extra = r.extra.map(metricFrom)
+    return [f]
+  })
+}
 
 export interface Facet {
   key: string
@@ -22,6 +49,14 @@ export interface Facet {
 }
 
 export function useFacets(days: number): Facet[] {
+  const local = useLocalFacets(days)
+  const server = useServerStat<ServerOverview>(overviewKey(days))
+  return useMemo(
+    () => (server.data ? facetsFrom(server.data.facets) : local),
+    [local, server.data],
+  )
+}
+function useLocalFacets(days: number): Facet[] {
   const ls = useLifeScore(days)
   const enabled = useEnabled()
   const fit = useFit()

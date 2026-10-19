@@ -16,6 +16,23 @@ import {
   MODULE_KEYS,
   type ShareTemplate,
 } from "./data"
+import {
+  calendarFrom,
+  metricsFrom,
+  missesFrom,
+  overviewKey,
+  ratesFrom,
+  ringFrom,
+  type ServerAchievements,
+  type ServerCalendarItem,
+  type ServerMetricDetail,
+  type ServerMiss,
+  type ServerOverview,
+  type ServerToday,
+  seriesFrom,
+  statKey,
+  useServerStat,
+} from "./server-stats"
 import { dashStore } from "./store"
 
 const byKey = Object.fromEntries(modules.map((m) => [m.key, m])) as Record<
@@ -44,9 +61,17 @@ export function useAreaRates(
   const t = TSK.useAreaRate(days, offset)
   const f = FIT.useAreaRate(days, offset)
   const fi = FIN.useAreaRate(days, offset)
+  // Live mode: the server's area rates for this range (offset = the range's
+  // own length is the previous period).
+  const server = useServerStat<ServerOverview>(
+    offset === 0 || offset === days ? overviewKey(days) : null,
+  )
   return useMemo(
-    () => ({ habits: h, tasks: t, fitness: f, finance: fi }),
-    [h, t, f, fi],
+    () =>
+      server.data
+        ? ratesFrom(server.data, offset === 0 ? "rate" : "prev")
+        : { habits: h, tasks: t, fitness: f, finance: fi },
+    [h, t, f, fi, server.data, offset],
   )
 }
 export function lifeScoreOf(
@@ -69,13 +94,28 @@ export interface LifeScore {
   delta: number | null
   rates: Record<ModuleKey, number>
   prevRates: Record<ModuleKey, number>
+  /** Where the numbers came from; ``status`` tells loading/empty/error. */
+  source?: "server" | "local"
+  status?: ReturnType<typeof useServerStat>["status"]
 }
 export function useLifeScore(days: number): LifeScore {
   const cur = useAreaRates(days)
   const prevRates = useAreaRates(days, days)
   const weights = useWeights()
   const enabled = useEnabled()
+  const server = useServerStat<ServerOverview>(overviewKey(days))
   return useMemo(() => {
+    const o = server.data
+    if (o)
+      return {
+        score: o.life_score,
+        prev: o.prev_score,
+        delta: o.delta,
+        rates: ratesFrom(o, "rate"),
+        prevRates: ratesFrom(o, "prev"),
+        source: "server" as const,
+        status: server.status,
+      }
     const score = lifeScoreOf(cur, weights, enabled)
     const prev = lifeScoreOf(prevRates, weights, enabled)
     return {
@@ -84,8 +124,10 @@ export function useLifeScore(days: number): LifeScore {
       delta: score !== null && prev !== null ? score - prev : null,
       rates: cur,
       prevRates,
+      source: "local" as const,
+      status: server.status,
     }
-  }, [cur, prevRates, weights, enabled])
+  }, [cur, prevRates, weights, enabled, server.data, server.status])
 }
 export function levelFor(score: number | null) {
   if (score === null) return { name: "Not scored yet", next: null, floor: 0 }
@@ -178,8 +220,29 @@ export function onTargetStats(series: DayResult[]) {
 }
 export function useOnTarget(days: number) {
   const len = Math.max(days * 2, 365)
-  const series = useDaySeries(len)
+  const local = useDaySeries(len)
+  const server = useServerStat<ServerOverview>(overviewKey(days))
   return useMemo(() => {
+    const o = server.data
+    // Live mode: the server's days overwrite the local ones they cover, so
+    // the long series (heatmaps, achievements) keeps its length.
+    const series = o ? overlayDays(local, seriesFrom(o)) : local
+    if (o) {
+      const t = o.on_target
+      return {
+        series,
+        range: seriesFrom(o),
+        rate: t.rate,
+        prevRate: t.prev_rate,
+        onTarget: t.on_target,
+        scored: t.scored,
+        current: t.current,
+        best: t.best,
+        logged: t.logged,
+        source: "server" as const,
+        status: server.status,
+      }
+    }
     const cur = series.slice(-days)
     const prev = series.slice(-days * 2, -days)
     const all = onTargetStats(series)
@@ -195,8 +258,16 @@ export function useOnTarget(days: number) {
       current: all.current,
       best: all.best,
       logged: series.filter((d) => d.done > 0).length,
+      source: "local" as const,
+      status: server.status,
     }
-  }, [series, days])
+  }, [local, days, server.data, server.status])
+}
+/** ``base`` with each day ``over`` covers replaced by ``over``'s. */
+export function overlayDays(base: DayResult[], over: DayResult[]): DayResult[] {
+  if (!over.length) return base
+  const byDay = new Map(over.map((d) => [d.day, d]))
+  return base.map((d) => byDay.get(d.day) ?? d)
 }
 export function useTodayRing() {
   const h = HAB.useTodayProgress()
@@ -204,7 +275,9 @@ export function useTodayRing() {
   const f = FIT.useTodayProgress()
   const fi = FIN.useTodayProgress()
   const enabled = useEnabled()
+  const server = useServerStat<ServerToday>(statKey.today())
   return useMemo(() => {
+    if (server.data) return ringFrom(server.data.ring)
     const per = { habits: h, tasks: t, fitness: f, finance: fi }
     let due = 0
     let done = 0
@@ -214,7 +287,7 @@ export function useTodayRing() {
         done += Math.min(per[k].done, per[k].due)
       }
     return { due, done, per }
-  }, [h, t, f, fi, enabled])
+  }, [h, t, f, fi, enabled, server.data])
 }
 export function useAllCalendar(from: string, to: string): CalendarItem[] {
   const a = HAB.useCalendar(from, to)
@@ -222,16 +295,18 @@ export function useAllCalendar(from: string, to: string): CalendarItem[] {
   const c = FIT.useCalendar(from, to)
   const d = FIN.useCalendar(from, to)
   const enabled = useEnabled()
+  const server = useServerStat<ServerCalendarItem[]>(statKey.calendar(from, to))
   return useMemo(
     () =>
-      [...a, ...b, ...c, ...d]
-        .filter((i) => enabled[i.module])
-        .sort(
-          (x, y) =>
-            x.day.localeCompare(y.day) ||
-            (x.time ?? "99:99").localeCompare(y.time ?? "99:99"),
-        ),
-    [a, b, c, d, enabled],
+      (server.data
+        ? calendarFrom(server.data)
+        : [...a, ...b, ...c, ...d].filter((i) => enabled[i.module])
+      ).sort(
+        (x, y) =>
+          x.day.localeCompare(y.day) ||
+          (x.time ?? "99:99").localeCompare(y.time ?? "99:99"),
+      ),
+    [a, b, c, d, enabled, server.data],
   )
 }
 export function useAllMisses(from: string, to: string): Miss[] {
@@ -240,12 +315,14 @@ export function useAllMisses(from: string, to: string): Miss[] {
   const c = FIT.useMisses(from, to)
   const d = FIN.useMisses(from, to)
   const enabled = useEnabled()
+  const server = useServerStat<ServerMiss[]>(statKey.misses(from, to))
   return useMemo(
     () =>
-      [...a, ...b, ...c, ...d]
-        .filter((m) => enabled[m.module])
-        .sort((x, y) => y.day.localeCompare(x.day)),
-    [a, b, c, d, enabled],
+      (server.data
+        ? missesFrom(server.data)
+        : [...a, ...b, ...c, ...d].filter((m) => enabled[m.module])
+      ).sort((x, y) => y.day.localeCompare(x.day)),
+    [a, b, c, d, enabled, server.data],
   )
 }
 export function useAllMetrics(days: number): Record<ModuleKey, Metric[]> {
@@ -253,9 +330,13 @@ export function useAllMetrics(days: number): Record<ModuleKey, Metric[]> {
   const b = TSK.useMetrics(days)
   const c = FIT.useMetrics(days)
   const d = FIN.useMetrics(days)
+  const server = useServerStat<ServerOverview>(overviewKey(days))
   return useMemo(
-    () => ({ habits: a, tasks: b, fitness: c, finance: d }),
-    [a, b, c, d],
+    () =>
+      server.data
+        ? metricsFrom(server.data)
+        : { habits: a, tasks: b, fitness: c, finance: d },
+    [a, b, c, d, server.data],
   )
 }
 export function parseMetric(value: string): number | null {
@@ -408,7 +489,41 @@ export interface Achievement {
   trophy: Trophy | null
 }
 const STREAK_MILESTONES = [7, 30, 100, 365]
+const TROPHY_TYPES: TrophyType[] = ["pr", "streak", "best", "goal", "first"]
+const trophyType = (t: string): TrophyType =>
+  TROPHY_TYPES.includes(t as TrophyType) ? (t as TrophyType) : "first"
+function trophyFrom(t: ServerAchievements["trophies"][number]): Trophy {
+  const out: Trophy = {
+    id: t.id,
+    type: trophyType(t.type),
+    title: t.title,
+    value: t.value,
+    detail: t.detail,
+    day: t.day,
+    href: t.href,
+  }
+  if (t.share_ref) out.shareRef = t.share_ref
+  return out
+}
+export function achievementsFrom(r: ServerAchievements): Achievement[] {
+  return r.data.map((a) => ({
+    id: a.id,
+    type: trophyType(a.type),
+    title: a.title,
+    requirement: a.requirement,
+    progress: { pct: a.pct, text: a.text },
+    trophy: a.trophy ? trophyFrom(a.trophy) : null,
+  }))
+}
 export function useAchievements(): Achievement[] {
+  const local = useLocalAchievements()
+  const server = useServerStat<ServerAchievements>(statKey.achievements())
+  return useMemo(
+    () => (server.data ? achievementsFrom(server.data) : local),
+    [local, server.data],
+  )
+}
+function useLocalAchievements(): Achievement[] {
   const target = useOnTarget(365)
   const m30 = useAllMetrics(30)
   const m90 = useAllMetrics(90)
@@ -716,13 +831,47 @@ export function useAchievements(): Achievement[] {
 }
 export function useTrophies(): Trophy[] {
   const all = useAchievements()
+  const server = useServerStat<ServerAchievements>(statKey.achievements())
   return useMemo(
     () =>
-      all
-        .flatMap((a) => (a.trophy ? [a.trophy] : []))
-        .sort((a, b) => b.day.localeCompare(a.day)),
-    [all],
+      server.data
+        ? server.data.trophies.map(trophyFrom)
+        : all
+            .flatMap((a) => (a.trophy ? [a.trophy] : []))
+            .sort((a, b) => b.day.localeCompare(a.day)),
+    [all, server.data],
   )
+}
+function bookEntryFrom(e: NonNullable<ServerMetricDetail["week"]>): BookEntry {
+  const out: BookEntry = {
+    ref: e.ref,
+    label: e.label,
+    module: e.module as BookEntry["module"],
+    value: e.value,
+    n: e.n,
+    unit: e.unit,
+    goodWhen: e.good_when,
+    shareable: e.shareable,
+  }
+  if (e.delta !== null) out.delta = e.delta
+  return out
+}
+/** One metric this week and this month (``/stats/metrics/{ref}``). */
+export function useMetricDetail(ref: MetricRef): {
+  week: BookEntry | undefined
+  month: BookEntry | undefined
+} {
+  const b = useMetricBook()
+  const server = useServerStat<ServerMetricDetail>(statKey.metric(ref))
+  return useMemo(() => {
+    const d = server.data
+    if (d)
+      return {
+        week: d.week ? bookEntryFrom(d.week) : undefined,
+        month: d.month ? bookEntryFrom(d.month) : undefined,
+      }
+    return { week: b.week.get(ref), month: b.month.get(ref) }
+  }, [b, ref, server.data])
 }
 export type RangeKey = "7d" | "30d" | "90d" | "1y"
 export const RANGES: {

@@ -13,17 +13,21 @@ import { API_PREFIX, API_URL } from "./config"
 import { SyncEngine } from "./engine"
 import { runEventStream, type ServerEvent } from "./events"
 import type { AnyMapper } from "./mapper"
+import { dashMappers } from "./mappers/dash"
 import { financeMappers } from "./mappers/finance"
 import { habitsMappers } from "./mappers/habits"
 import { modulePrefMapper, weatherPrefMapper } from "./mappers/reference"
 import { tasksMappers } from "./mappers/tasks"
 import { createOutbox } from "./outbox"
+import { registerPushDevice } from "./push"
+import { createStats, type LiveStats } from "./stats"
 
 export type MapperFactory = (userId: string) => AnyMapper[]
 
 // Module mapper factories register here (one per domain module).
 const factories: MapperFactory[] = [
   (uid) => [weatherPrefMapper(uid), modulePrefMapper(uid)],
+  dashMappers,
   financeMappers,
   habitsMappers,
   tasksMappers,
@@ -38,11 +42,24 @@ export function onServerEvent(l: Listener) {
   return () => void listeners.delete(l)
 }
 
-let active: { engine: SyncEngine; stop: () => void } | null = null
+let active: {
+  engine: SyncEngine
+  stats: LiveStats
+  stop: () => void
+} | null = null
 
 export function engine() {
   return active?.engine ?? null
 }
+
+/** The server statistics source (live mode, signed in). */
+export function liveStats() {
+  return active?.stats ?? null
+}
+
+// Events that mean "pull now": another device changed something, or the
+// server put a notice in the inbox.
+const PULL_EVENTS = new Set(["sync.changed", "dashboard.notification"])
 
 const OWNER_KEY = "sop-live:owner"
 
@@ -60,12 +77,15 @@ export function startLive(userId: string, storage: StorageAdapter) {
     clearToBlank()
     storage.setItem(OWNER_KEY, userId)
   }
+  const stats = createStats({ http, online: getConnectivity })
+  stats.start(userId)
   const engine = new SyncEngine({
     http,
     storage,
     outbox: createOutbox(storage),
     mappers: factories.flatMap((f) => f(userId)),
     online: getConnectivity,
+    onSynced: () => void stats.refreshAll(),
   })
   engine.start((m, onChange) => {
     let last = m.store.get()
@@ -73,6 +93,7 @@ export function startLive(userId: string, storage: StorageAdapter) {
       const next = m.store.get()
       if (next !== last) {
         last = next
+        stats.markEdited()
         onChange()
       }
     })
@@ -96,16 +117,19 @@ export function startLive(userId: string, storage: StorageAdapter) {
       return res.ok ? (res.body as ReadableStream<Uint8Array>) : null
     },
     onEvent: (e) => {
-      if (e.type === "sync.changed") void engine.sync()
+      if (PULL_EVENTS.has(e.type)) void engine.sync()
       for (const l of listeners) l(e)
     },
   })
   const interval = setInterval(() => void engine.sync(), 60_000)
   void engine.sync()
+  void registerPushDevice({ http })
   active = {
     engine,
+    stats,
     stop: () => {
       engine.stop()
+      stats.stop()
       appState.remove()
       clearInterval(interval)
       void stream.stop()
