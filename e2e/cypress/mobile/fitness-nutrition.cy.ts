@@ -165,12 +165,14 @@ describe("fitness · nutrition (live)", { defaultCommandTimeout: 60000 }, () => 
           values: [user.id],
         }).then(([db]) => {
           expect(Math.round(day.left!.kcal)).to.eq(Math.round(db.kcal))
-          cy.findByText(/^kcal (left|over)$/)
+          cy.findAllByText(/^kcal (left|over)$/)
+            .filter(":visible")
+            .first()
             .prev()
             .should("have.text", String(Math.abs(Math.round(db.kcal))))
-          cy.findByText(`${Math.max(0, Math.round(db.protein))}g left`).should(
-            "exist",
-          )
+          cy.findAllByText(`${Math.max(0, Math.round(db.protein))}g left`)
+            .filter(":visible")
+            .should("exist")
         })
       })
     })
@@ -247,12 +249,21 @@ describe("fitness · nutrition (live)", { defaultCommandTimeout: 60000 }, () => 
         )
         cy.findByText("snack").click()
         rows("select 1 from meal where id = $1 and label = 'snack'", [mid])
-        cy.findByRole("textbox", { name: "Time eaten" }).clear().type("07:30")
-        rows("select eaten_at from meal where id = $1", [mid]).then(([m]) =>
-          expect(
-            new Date(m.eaten_at as string).toTimeString().slice(0, 5),
-          ).to.eq("07:30"),
-        )
+        cy.task<{ t: string }[]>("sql", {
+          text: "select eaten_at::text as t from meal where id = $1",
+          values: [mid],
+        }).then(([before]) => {
+          cy.findByRole("textbox", { name: "Time eaten" }).clear().type("07:30")
+          // Poll until the edit lands, then check it is 07:30 local.
+          rows(
+            "select eaten_at from meal where id = $1 and eaten_at::text <> $2",
+            [mid, before.t],
+          ).then(([m]) =>
+            expect(
+              new Date(m.eaten_at as string).toTimeString().slice(0, 5),
+            ).to.eq("07:30"),
+          )
+        })
         cy.findAllByText("Done").filter(":visible").first().click()
 
         // Duplicate to today.
