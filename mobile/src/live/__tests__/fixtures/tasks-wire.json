@@ -45,7 +45,7 @@
     "kind": "upsert",
     "name": "task",
     "data": {
-      "due_date": "2026-10-22"
+      "due_date": "2026-10-19"
     }
   },
   {
@@ -81,7 +81,7 @@
     "data": {
       "title": "Submit timesheet",
       "list_id": null,
-      "due_date": "2026-10-20",
+      "due_date": "2026-10-19",
       "due_time": null,
       "remind_at": null,
       "recurrence": {

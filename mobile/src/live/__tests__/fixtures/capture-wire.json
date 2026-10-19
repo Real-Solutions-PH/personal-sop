@@ -57,7 +57,7 @@
       "name": "journal_entry",
       "id": "00000000-0000-4000-8000-00000000000c",
       "data": {
-        "day": "2026-10-18",
+        "day": "2026-10-19",
         "body": "Shipped the deck early.",
         "source": "text",
         "mood": 4,
@@ -142,7 +142,7 @@
       "name": "journal_entry",
       "id": "00000000-0000-4000-8000-00000000000c",
       "data": {
-        "day": "2026-10-18",
+        "day": "2026-10-19",
         "body": "Shipped it.",
         "source": "text",
         "mood": 4,
@@ -291,7 +291,7 @@
             {
               "title": "Pay rent",
               "list_id": null,
-              "due_date": "2026-10-30",
+              "due_date": "2026-10-19",
               "due_time": "09:00",
               "remind": true
             }

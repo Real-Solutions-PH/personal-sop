@@ -388,6 +388,24 @@
     }
   },
   {
+    "entity": "account",
+    "create": true,
+    "data": {
+      "name": "Cash",
+      "type": "cash",
+      "opening_minor": 123456,
+      "opening_date": "2026-10-19",
+      "limit_minor": null,
+      "color": "emerald",
+      "in_net_worth": true,
+      "in_projection": true,
+      "archived": false,
+      "manual": false,
+      "sort_order": 0,
+      "last_reconciled": null
+    }
+  },
+  {
     "entity": "category",
     "create": false,
     "data": {
@@ -775,7 +793,7 @@
     "action": "finance.settle",
     "data": {
       "planned_id": "00000000-0000-4000-8000-000000000009",
-      "day": "2026-10-05",
+      "day": "2026-10-19",
       "amount_minor": 1525050,
       "account_id": "00000000-0000-4000-8000-000000000007",
       "paid_on": "2026-10-19"
@@ -992,14 +1010,14 @@
     "create": true,
     "data": {
       "planned_id": "00000000-0000-4000-8000-000000000015",
-      "on_day": "2026-10-20"
+      "on_day": "2026-10-19"
     }
   },
   {
     "action": "finance.unskip",
     "data": {
       "planned_id": "00000000-0000-4000-8000-000000000015",
-      "day": "2026-10-20"
+      "day": "2026-10-19"
     }
   },
   {
@@ -1007,15 +1025,15 @@
     "create": true,
     "data": {
       "planned_id": "00000000-0000-4000-8000-000000000015",
-      "on_day": "2026-10-20",
-      "until_day": "2026-10-22"
+      "on_day": "2026-10-19",
+      "until_day": "2026-10-19"
     }
   },
   {
     "entity": "planned_snooze",
     "create": false,
     "data": {
-      "until_day": "2026-10-23"
+      "until_day": "2026-10-19"
     }
   },
   {
