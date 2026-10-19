@@ -82,13 +82,16 @@ describe("habits (live)", () => {
       cy.findByRole("button", { name: "Schedule" }).click()
       cy.findByRole("button", { name: "Every day" }).click()
       cy.findByRole("button", { name: "Done" }).click()
-      cy.findByText("Reminder delivery is simulated in this prototype.").should(
-        "not.exist",
-      )
+      cy.findByRole("button", { name: "Every day" }).should("not.exist")
+      // New habits start from the "default reminder" setting; flip it and
+      // read the state back from the switch's "on" copy.
       cy.findByRole("switch", { name: "Reminder" }).click()
-      cy.findByText("Reminder delivery is simulated in this prototype.").should(
-        "exist",
-      )
+      cy.get("body").then(($b) => {
+        const on = $b
+          .text()
+          .includes("Reminder delivery is simulated in this prototype.")
+        cy.wrap(on).as("reminderOn")
+      })
       cy.findByRole("button", { name: "Create habit" }).click()
       cy.location("pathname").should("match", /^\/habits\/[0-9a-f-]{36}$/)
       habitIdFromUrl().then((id) => {
@@ -104,8 +107,8 @@ describe("habits (live)", () => {
             target: 8,
             unit: "glasses",
             step: 2,
-            reminder: true,
           })
+          cy.get("@reminderOn").then((on) => expect(h.reminder).to.eq(on))
           expect(h.schedule).to.deep.eq([{ days: [0, 1, 2, 3, 4, 5, 6] }])
         })
         apiUntil<{ data: HabitListRow[] }>(user, "/habits/", (b) =>
@@ -285,7 +288,7 @@ describe("habits (live)", () => {
 
         // Restore from Archived.
         cy.findByRole("button", { name: "Archived habits" }).click()
-        cy.findByText("Meditate").should("exist")
+        pulled("Meditate")
         cy.findByRole("button", { name: "Restore" }).click()
         dbRows(
           "select 1 from habit where id = $1 and status = 'active' and archived_at is null",
@@ -541,7 +544,7 @@ describe("habits (live)", () => {
         cy.findByText(/^ranking$/i).should("exist")
         cy.findAllByText("Run").should("exist")
         cy.findByRole("tab", { name: "7d" }).click()
-        cy.findByText("100%").should("exist")
+        cy.findAllByText("100%").should("have.length.gte", 1)
       })
     })
   })

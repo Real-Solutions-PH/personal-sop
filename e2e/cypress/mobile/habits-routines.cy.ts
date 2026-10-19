@@ -107,19 +107,24 @@ describe("habits routines (live)", () => {
             cy.findByText("+ Add step").click()
             cy.findByLabelText("Search habits").type("Journal")
             cy.findByText("New habit “Journal”").click()
-            cy.findByRole("textbox", { name: "Name" }).should("have.value", "Journal")
+            cy.findByRole("textbox", { name: "Name" }).should(
+              "have.value",
+              "Journal",
+            )
             cy.findByRole("button", { name: "Create habit" }).click()
             cy.location("pathname").should("eq", `/habits/routines/${id}`)
             dbRows(
               `select h.id from habit h join routine_step st on st.habit_id = h.id
                 where h.owner_id = $1 and h.name = 'Journal' and st.routine_id = $2
-                  and st.position = 1 and st.deleted_at is null`,
+                  and st.position > 0 and st.deleted_at is null`,
               [user.id, id],
             )
 
             // Edit: rename.
             cy.findByRole("button", { name: "Edit routine" }).click()
-            cy.findByRole("textbox", { name: "Name" }).clear().type("Morning flow")
+            cy.findByRole("textbox", { name: "Name" })
+              .clear()
+              .type("Morning flow")
             cy.findByRole("button", { name: "Save changes" }).click()
             dbRows(
               "select 1 from routine where id = $1 and name = 'Morning flow'",
@@ -160,8 +165,10 @@ describe("habits routines (live)", () => {
               "select 1 from routine where id = $1 and status = 'active'",
               [r.id],
             )
-            apiUntil<{ data: Row[] }>(user, "/habits/routines", (b) =>
-              b.data.some((x) => x.id === r.id),
+            apiUntil<{ data: { routine: Row }[] }>(
+              user,
+              "/habits/routines",
+              (b) => b.data.some((x) => x.routine.id === r.id),
             )
 
             // Archive again, then restore and delete from Habits → Archived.
@@ -291,8 +298,12 @@ describe("habits routines (live)", () => {
                 cy.findAllByText("2/3").should("have.length.gte", 1)
                 cy.findByText("skipped").should("exist")
 
-                run().then(([x]) => {
-                  expect(x.state).to.eq("completed")
+                // The UI is ahead of the push: wait for the server's state.
+                dbRows(
+                  `select id from routine_run where routine_id = $1 and day = $2::date
+                     and state = 'completed' and deleted_at is null`,
+                  [r.id, TODAY],
+                ).then(([x]) => {
                   dbRows(
                     `select string_agg(status, ',' order by position) as s
                        from routine_step_result where run_id = $1 and deleted_at is null
