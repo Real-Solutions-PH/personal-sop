@@ -403,6 +403,7 @@ def test_rolled_back_notify_sends_nothing(db: Session, rec: Rec) -> None:
     with ctx_for(user) as ctx:
         dashboard_public.notify(ctx, kind="system", title="Ghost", push=True)
         ctx.session.rollback()
+        ctx.commit()  # a later commit must not deliver the rolled-back post
     assert rec.events == [] and rec.pushed == []
     db.expire_all()
     assert (

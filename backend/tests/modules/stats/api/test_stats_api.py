@@ -197,6 +197,9 @@ def test_rolled_back_write_recomputes_nothing(client: TestClient, db: Session) -
     with ctx_for(user) as ctx:
         habits_public.create_habit(ctx, name="Never")
         ctx.session.rollback()
+        # A later commit on the same session must not drain the rolled-back
+        # write's dirty mark.
+        ctx.commit()
     assert life_rows(db, user.id) == []
     assert (
         ok(client.get(f"{API}/today", headers=h))["ring"]["per"]["habits"]["due"] == 0
