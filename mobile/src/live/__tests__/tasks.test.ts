@@ -1,4 +1,3 @@
-import { writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { derivedId } from "@domain/lib/ids"
 import type { StorageAdapter } from "@domain/lib/store"
@@ -31,6 +30,7 @@ import {
   tasksMappers,
 } from "../mappers/tasks"
 import { createOutbox, type SyncOp } from "../outbox"
+import { writeStableFixture } from "./stable-fixture"
 
 const USER = "8a1f6a52-2c36-4b8f-9d34-3b1f5f0f2a11"
 
@@ -103,10 +103,7 @@ const upsertOf = (ops: SyncOp[], id: string) =>
 beforeEach(() => tasksStore.set(blank()))
 
 afterAll(() => {
-  writeFileSync(
-    join(__dirname, "fixtures", "tasks-wire.json"),
-    `${JSON.stringify(wire, null, 2)}\n`,
-  )
+  writeStableFixture(join(__dirname, "fixtures", "tasks-wire.json"), wire)
 })
 
 test("runtime.ts picks the tasks mappers up through its import", async () => {

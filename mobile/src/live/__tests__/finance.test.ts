@@ -1,4 +1,3 @@
-import { writeFileSync } from "node:fs"
 import { join } from "node:path"
 import {
   addAccount,
@@ -49,6 +48,7 @@ import {
   toMinor,
 } from "../mappers/finance"
 import { createOutbox, type SyncOp } from "../outbox"
+import { writeStableFixture } from "./stable-fixture"
 
 const USER = "8a1f6a52-2c36-4b8f-9d34-3b1f5f0f2a11"
 const cats = categoryIds(USER)
@@ -771,8 +771,5 @@ afterAll(() => {
   }
   // Each test re-creates the default categories: keep one of each payload.
   const unique = [...new Map(wire.map((w) => [JSON.stringify(w), w])).values()]
-  writeFileSync(
-    join(__dirname, "fixtures", "finance-wire.json"),
-    `${JSON.stringify(unique, null, 2)}\n`,
-  )
+  writeStableFixture(join(__dirname, "fixtures", "finance-wire.json"), unique)
 })
