@@ -289,3 +289,50 @@ def test_a_second_user_sees_nothing(client: TestClient, db: Session) -> None:
         "/capture/", {"client_uuid": cap["client_uuid"], "text": "hello"}, status=201
     )
     assert mine["id"] != cap["id"]
+
+
+def test_every_card_kind_undo_removes_exactly_what_it_wrote(
+    client: TestClient, db: Session
+) -> None:
+    from app.modules.capture.models import JournalEntry
+    from app.modules.finance.models import PlannedItem
+    from app.modules.fitness.models import Meal, WeighIn
+    from app.modules.habits.models import RoutineRun
+
+    api = user(client, db)
+    stretch = api.post("/habits/", {"name": "Stretch"})
+    api.post(
+        "/habits/routines",
+        {
+            "name": "Morning routine",
+            "steps": [{"habit_id": stretch["id"], "minutes": 5}],
+        },
+    )
+    cases: list[tuple[str, str, type | None]] = [
+        ("got paid 35k to bpi", "income", FinRecord),
+        ("netflix 549 every 5th", "planned", PlannedItem),
+        ("weighed 72.4", "weighIn", WeighIn),
+        ("lunch adobo with 1 cup rice", "meal", Meal),
+        ("journal: a quiet good day", "journal", JournalEntry),
+    ]
+    for text, kind, model in cases:
+        card = card_of(api.capture(text), kind)
+        if card["state"] != "saved":
+            card = api.post(f"/capture/cards/{card['id']}/confirm")
+        assert card["state"] == "saved", (kind, card["warn"])
+        assert model is not None
+        rows = _module_rows(model, card["refs"])
+        assert len(rows) == len(card["refs"]) >= 1
+        assert all(r.deleted_at is None for r in rows)
+        api.post(f"/capture/cards/{card['id']}/undo")
+        assert all(
+            r.deleted_at is not None for r in _module_rows(model, card["refs"])
+        ), kind
+        log = [x["action"] for x in api.get(f"/capture/cards/{card['id']}")["log"]]
+        assert log[-1] == "undone" and "saved" in log
+    # the routine starts on confirm and its run is the ref
+    start = card_of(api.capture("started morning routine"), "routineStart")
+    assert start["payload"]["routine_id"] and start["tier"] == "confirm"
+    saved = api.post(f"/capture/cards/{start['id']}/confirm")
+    assert saved["state"] == "saved"
+    assert _module_rows(RoutineRun, saved["refs"])[0].state == "in_progress"
