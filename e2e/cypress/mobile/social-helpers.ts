@@ -23,32 +23,35 @@ export function rows(text: string, values: unknown[] = []) {
   return cy.task<Record<string, unknown>[]>("sql", { text, values })
 }
 
-/** A real long press through Chrome's input pipeline. React Native Web's
- * gesture code calls setPointerCapture, which synthetic events cannot
- * satisfy. Chrome only. */
-export function longPress(subject: JQuery<HTMLElement>, holdMs = 700) {
-  const el = subject[0]
-  // A real press hits whatever is on top: keep clear of the tab bar.
-  el.scrollIntoView({ block: "center" })
-  const r = el.getBoundingClientRect()
-  const frame = window.top?.document.querySelector(
-    "iframe.aut-iframe",
-  ) as HTMLIFrameElement | null
-  if (!frame) throw new Error("longPress: no AUT iframe")
-  const f = frame.getBoundingClientRect()
-  const scale = f.width / frame.offsetWidth
-  const x = f.x + (r.x + r.width / 2) * scale
-  const y = f.y + (r.y + r.height / 2) * scale
-  const mouse = (type: string) =>
-    Cypress.automation("remote:debugger:protocol", {
-      command: "Input.dispatchMouseEvent",
-      params: { type, x, y, button: "left", buttons: 1, clickCount: 1 },
-    })
-  return cy
-    .wrap(mouse("mouseMoved"), { log: false })
-    .then(() => mouse("mousePressed"))
-    .wait(holdMs, { log: false })
-    .then(() => mouse("mouseReleased"))
+/** A real long press on the element showing ``text``, through Chrome's
+ * input pipeline. React Native Web's gesture code calls setPointerCapture,
+ * which synthetic events cannot satisfy. Chrome only. */
+export function longPress(text: string, holdMs = 700) {
+  // A real press hits whatever is on top: bring it clear of the tab bar,
+  // let the list settle, then measure where it is now.
+  cy.findByText(text).then(($e) => $e[0].scrollIntoView({ block: "center" }))
+  cy.wait(500, { log: false })
+  return cy.findByText(text).then(($e) => {
+    const r = $e[0].getBoundingClientRect()
+    const frame = window.top?.document.querySelector(
+      "iframe.aut-iframe",
+    ) as HTMLIFrameElement | null
+    if (!frame) throw new Error("longPress: no AUT iframe")
+    const f = frame.getBoundingClientRect()
+    const scale = f.width / frame.offsetWidth
+    const x = f.x + (r.x + r.width / 2) * scale
+    const y = f.y + (r.y + r.height / 2) * scale
+    const mouse = (type: string) =>
+      Cypress.automation("remote:debugger:protocol", {
+        command: "Input.dispatchMouseEvent",
+        params: { type, x, y, button: "left", buttons: 1, clickCount: 1 },
+      })
+    return cy
+      .wrap(mouse("mouseMoved"), { log: false })
+      .then(() => mouse("mousePressed"))
+      .wait(holdMs, { log: false })
+      .then(() => mouse("mouseReleased"))
+  })
 }
 
 /** An API call as ``user`` that may answer 204 (no body); yields the status. */
