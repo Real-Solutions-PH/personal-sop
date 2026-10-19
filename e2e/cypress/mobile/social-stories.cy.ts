@@ -112,12 +112,20 @@ describe("social stories & notes (live)", () => {
           cy.signInLive(a)
           cy.visit(`/social/stories/${b.id}`)
           cy.findByText(text).should("exist")
+          // Act while the story is on screen: the viewer moves on when its
+          // timer ends (typing a reply pauses it).
+          cy.findByRole("button", { name: "Like story" }).click()
+          cy.findByRole("button", { name: "Unlike story" }).should("exist")
+          // A reply is a direct message that quotes the story.
+          cy.findByRole("textbox", { name: "Reply to story" }).type(
+            "Looks great",
+          )
+          cy.findByRole("button", { name: "Send reply" }).click()
+
           cy.eventuallyRows(
             "select id from story_seen where owner_id = $1 and story_id = $2 and deleted_at is null",
             [a.id, story.id],
           )
-          cy.findByRole("button", { name: "Like story" }).click()
-          cy.findByRole("button", { name: "Unlike story" }).should("exist")
           cy.eventuallyRows(
             "select id from story_like where owner_id = $1 and story_id = $2 and deleted_at is null",
             [a.id, story.id],
@@ -131,12 +139,6 @@ describe("social stories & notes (live)", () => {
             `/social/stories/${story.id}`,
             (s) => s.seen && s.liked,
           )
-
-          // A reply is a direct message that quotes the story.
-          cy.findByRole("textbox", { name: "Reply to story" }).type(
-            "Looks great",
-          )
-          cy.findByRole("button", { name: "Send reply" }).click()
           cy.eventuallyRows(
             "select m.id from chat_message m where m.owner_id = $1 and m.story_id = $2 and m.text = 'Looks great' and m.deleted_at is null",
             [a.id, story.id],
