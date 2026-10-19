@@ -81,11 +81,11 @@ export function apiCall(
 export function signIn(user: LiveUser) {
   cy.visit("/welcome")
   cy.findByRole("button", { name: "I already have an account" }).click()
-  cy.findByRole("textbox", { name: "Email" })
-    .should("not.be.disabled")
-    .and("not.have.attr", "readonly")
-    .clear()
-    .type(user.email)
+  cy.findByRole("textbox", { name: "Email" }).should(($e) => {
+    expect($e).not.to.be.disabled
+    expect($e).not.to.have.attr("readonly")
+  })
+  cy.findByRole("textbox", { name: "Email" }).clear().type(user.email)
   cy.findByLabelText("Password").type(user.password, { log: false })
   cy.findByRole("button", { name: "Sign in" }).click()
   cy.location("pathname", { timeout: 30000 }).should("eq", "/today")
