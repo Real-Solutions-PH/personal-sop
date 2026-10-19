@@ -17,7 +17,7 @@
 // | /habits/routines/[id]         | Share routine                             | NOT COVERABLE ON WEB: opens the share composer whose output is a native share sheet |
 // | /habits/routines/[id]/play    | Start, +1 min, Pause/Resume, Done, Skip, Back, Continue (already logged) | plays a routine |
 // | /habits/routines/[id]/summary | steps, Done                               | plays a routine |
-// | /habits/routines/[id]/play    | Leave routine (exit)                      | leaves a routine |
+// | /habits/routines/[id]/play    | Leave routine (exit)                      | leaves a routine (fails against a build without the habits.run.exit mapper fix) |
 // | /habits/routines/[id]         | Start routine / Resume · step n           | leaves a routine |
 // | Today → Habits card           | routine Start / Resume                    | leaves a routine |
 import {

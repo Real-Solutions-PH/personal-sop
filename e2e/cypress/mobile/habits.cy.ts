@@ -8,7 +8,9 @@
 // |----------------------------|------------------------------------------|------|
 // | /habits/new (form)         | name, icon, type, target/unit/step, schedule sheet, reminder, create | core: creates a count habit |
 // | /habits/[id]/edit          | rename, change target, save              | core: creates a count habit |
-// | /habits/[id]/edit          | Pause / Resume / Archive buttons         | core: pauses, resumes, archives (form archive) |
+// | /habits/[id]/edit          | Pause / Resume buttons                   | core: pauses and resumes from the edit form |
+// | /habits/[id]/edit          | Pause again the day of a resume          | core: pauses again on the day of a resume (FAILS: server keeps the habit paused — see the DEFECT note on the test) |
+// | /habits/[id]/edit          | Archive button                           | core: pauses, resumes, archives (form archive) |
 // | /habits/[id] (detail)      | + step (increment)                       | core: creates a count habit |
 // | /habits/[id] (detail)      | Mark done today / undo (check, clear)    | core: checks, clears, skips |
 // | /habits/[id] (detail)      | Log… sheet: status, value, note, save    | core: checks, clears, skips |
@@ -27,7 +29,7 @@
 // | /habits/settings           | Week starts on, default reminder, streak nudge | core: settings |
 // | /habits/settings           | Notifications Enable sheet               | core: settings (client sheet, nothing to persist) |
 // | /habits/settings           | Reset habits demo data                   | core: reset demo data |
-// | /habits/settings           | Reset every section                      | NOT COVERED: resets every module's store at once; would wipe other modules for this user — same mechanism as the habits reset row |
+// | /habits/settings           | Reset every section                      | core: reset every section |
 // | /habits/share              | card composer, layout, toggles           | core: share card (renders server data) |
 // | /habits/share              | share / save image                       | NOT COVERABLE ON WEB: native share sheet / image capture |
 // | /habits (home analytics)   | period, sort chips, links                | core: home analytics (client-side over synced data) |
@@ -470,6 +472,31 @@ describe("habits (live)", () => {
         }).should("have.length", 1)
         cy.task<unknown[]>("sql", {
           text: "select 1 from habit where owner_id = $1 and id <> $2",
+          values: [user.id, h.id],
+        }).should("have.length", 0)
+      })
+    })
+  })
+
+  it("reset every section does not touch the user's server rows", () => {
+    cy.newLiveUser("habits").then((user) => {
+      seedHabit(user, { name: "Keep me too" }).then((h) => {
+        signIn(user)
+        cy.visit("/habits/settings")
+        cy.visit("/habits/manage")
+        pulled("Keep me too")
+        cy.visit("/habits/settings")
+        cy.findByText("Reset every section").click()
+        cy.findByText("All sections reset").should("exist")
+        // Give the 400 ms push debounce time to run, then check the server.
+        cy.wait(5000)
+        cy.task<unknown[]>("sql", {
+          text: "select 1 from habit where id = $1 and deleted_at is null",
+          values: [h.id],
+        }).should("have.length", 1)
+        cy.task<unknown[]>("sql", {
+          text: `select 'habit' from habit where owner_id = $1 and id <> $2
+                 union all select 'task' from task where owner_id = $1`,
           values: [user.id, h.id],
         }).should("have.length", 0)
       })
