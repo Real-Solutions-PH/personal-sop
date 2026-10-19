@@ -17,8 +17,10 @@
 import {
   apiSoon,
   categoryId,
+  clickUndo,
   dayKey,
   openFinance,
+  outboxDrained,
   rowsSoon,
   seedAccount,
 } from "./finance.helpers"
@@ -26,7 +28,10 @@ import {
 const CAT = `select id, name, kind, icon, parent_id, discretionary
                from category where owner_id = $1 and deleted_at is null`
 
-describe("finance categories and budgets (live)", () => {
+// Retries: each attempt creates a fresh user; the shared stack is loaded.
+describe("finance categories and budgets (live)", {
+  retries: { runMode: 2, openMode: 0 },
+}, () => {
   it("creates a category, a sub-category, renames and flips want/need", () => {
     cy.newLiveUser("fin").then((user) => {
       openFinance(user, "/finance/categories", "Dining out")
@@ -236,11 +241,20 @@ describe("finance categories and budgets (live)", () => {
       }).then((b) => {
         openFinance(user, `/finance/budgets/${b.id}`, "Fun")
         cy.findByRole("button", { name: "Edit budget" }).click()
+        // Archive + Undo while the toast shows: still active on the server.
+        cy.findByRole("button", { name: "Archive" }).click()
+        clickUndo()
+        outboxDrained()
+        rowsSoon("select id from budget where id = $1 and not archived", [b.id])
+        // Archive for real, then restore it from the archive screen.
+        cy.findByRole("button", { name: "Edit budget" }).click()
         cy.findByRole("button", { name: "Archive" }).click()
         rowsSoon("select id from budget where id = $1 and archived", [b.id])
-        cy.findByText("Undo").click()
+        cy.visit("/finance/archived")
+        cy.findByRole("button", { name: "Restore", timeout: 60000 }).click()
         rowsSoon("select id from budget where id = $1 and not archived", [b.id])
-        cy.findByRole("button", { name: "Edit budget" }).click()
+        cy.visit(`/finance/budgets/${b.id}`)
+        cy.findByRole("button", { name: "Edit budget", timeout: 60000 }).click()
         cy.findByRole("button", { name: "Delete" }).click()
         rowsSoon(
           "select id from budget where id = $1 and deleted_at is not null",

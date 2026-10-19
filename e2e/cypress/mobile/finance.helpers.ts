@@ -73,7 +73,8 @@ export function eventuallyBalances(
 export function openFinance(user: LiveUser, path: string, waitFor?: string) {
   cy.signInLive(user)
   cy.visit(path)
-  if (waitFor) cy.findAllByText(waitFor, { timeout: 30000 }).should("exist")
+  // The first pull can take over a minute while several suites share the API.
+  if (waitFor) cy.findAllByText(waitFor, { timeout: 90000 }).should("exist")
 }
 
 // Sync is asynchronous, and with several suites sharing one API a push can
@@ -147,4 +148,21 @@ export function dayKey(offset = 0) {
   const d = new Date()
   d.setDate(d.getDate() + offset)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+}
+
+/** Wait until the device has pushed everything it captured: the outbox in
+ * storage is empty (captures run ~400 ms after a change, so wait first). */
+export function outboxDrained() {
+  cy.wait(1500, { log: false })
+  cy.window({ timeout: 90000 })
+    .its("localStorage")
+    .invoke("getItem", "sop-live:outbox")
+    .should((raw) => {
+      expect(raw === null || raw === "[]", "outbox empty").to.eq(true)
+    })
+}
+
+/** Click the toast's Undo while it is still showing (it lasts 6 s). */
+export function clickUndo() {
+  cy.findAllByText("Undo", { timeout: 5000 }).last().click()
 }

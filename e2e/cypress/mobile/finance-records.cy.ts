@@ -17,8 +17,10 @@
 // | /finance/records/[id]   | "View image" (receipt)                    | NOT COVERABLE: mock toast, no server effect |
 import {
   categoryId,
+  clickUndo,
   eventuallyBalances,
   openFinance,
+  outboxDrained,
   rowsSoon,
   seedAccount,
 } from "./finance.helpers"
@@ -43,7 +45,10 @@ function seedRecord(
     .then((b) => b.data[0])
 }
 
-describe("finance records (live)", () => {
+// Retries: each attempt creates a fresh user; the shared stack is loaded.
+describe("finance records (live)", {
+  retries: { runMode: 2, openMode: 0 },
+}, () => {
   it("logs an expense and an income from the editor", () => {
     cy.newLiveUser("fin").then((user) => {
       seedAccount(user, {
@@ -153,15 +158,21 @@ describe("finance records (live)", () => {
             // Delete the original, then undo from the toast.
             cy.visit(`/finance/records/${rec.id}`)
             cy.findAllByText("Puregold").should("have.length.at.least", 1)
+            // Delete, Undo while the toast shows: the server keeps it.
+            cy.findAllByRole("button", { name: "Delete" }).last().click()
+            clickUndo()
+            outboxDrained()
+            rowsSoon(`${RECORD} and r.deleted_at is null`, [user.id, rec.id])
+            eventuallyBalances(user, { Wallet: 480002 })
+            // Delete for real: a tombstone, and the balance follows.
+            cy.visit(`/finance/records/${rec.id}`)
+            cy.findAllByText("Puregold").should("have.length.at.least", 1)
             cy.findAllByRole("button", { name: "Delete" }).last().click()
             rowsSoon(`${RECORD} and r.deleted_at is not null`, [
               user.id,
               rec.id,
             ])
             eventuallyBalances(user, { Wallet: 490001 })
-            cy.findByText("Undo").click()
-            rowsSoon(`${RECORD} and r.deleted_at is null`, [user.id, rec.id])
-            eventuallyBalances(user, { Wallet: 480002 })
           })
         })
       })

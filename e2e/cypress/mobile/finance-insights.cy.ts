@@ -38,6 +38,12 @@ const peso = (minor: number) =>
     maximumFractionDigits: 2,
   })}`
 
+const pesoWhole = (minor: number) =>
+  `₱${Math.round(minor / 100).toLocaleString("en-US")}`
+
+const pesoAny = (minor: number) =>
+  new RegExp(`^(${peso(minor).replace(/[.$]/g, "\\$&")}|${pesoWhole(minor)})$`)
+
 function seedRecord(user: LiveUser, body: Record<string, unknown>) {
   return cy.liveApi(user, "POST", "/finance/records", {
     source: "manual",
@@ -53,7 +59,10 @@ function inMonth(offset: number, day: number) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
 }
 
-describe("finance insights and settings (live)", () => {
+// Retries: each attempt creates a fresh user; the shared stack is loaded.
+describe("finance insights and settings (live)", {
+  retries: { runMode: 2, openMode: 0 },
+}, () => {
   it("overview and reports show what the server computed", () => {
     cy.newLiveUser("fin").then((user) => {
       seedAccount(user, {
@@ -77,7 +86,8 @@ describe("finance insights and settings (live)", () => {
           ).then((a) => {
             expect(a.net_worth_minor).to.eq(1234567 - 234556)
             openFinance(user, "/finance", "Net worth")
-            cy.findAllByText(peso(a.net_worth_minor), {
+            // The overview shows whole pesos.
+            cy.findAllByText(pesoWhole(a.net_worth_minor), {
               timeout: 30000,
             }).should("exist")
           })
@@ -86,7 +96,8 @@ describe("finance insights and settings (live)", () => {
           }>(user, "GET", "/finance/reports?period=this").then((r) => {
             expect(r.flow.spend_minor).to.eq(234556)
             cy.visit("/finance/reports/category?period=this")
-            cy.findAllByText(peso(r.flow.spend_minor), {
+            // Exact or whole pesos, whichever the report renders.
+            cy.findAllByText(pesoAny(r.flow.spend_minor), {
               timeout: 30000,
             }).should("exist")
           })

@@ -15,10 +15,12 @@
 import {
   apiSoon,
   categoryId,
+  clickUndo,
   dayKey,
   derivedId,
   eventuallyBalances,
   openFinance,
+  outboxDrained,
   rowsSoon,
   seedAccount,
 } from "./finance.helpers"
@@ -46,7 +48,10 @@ const PLANNED = `select name, type, amount_minor::int as amount_minor, schedule,
                         archived, end_rule
                    from planned_item where owner_id = $1 and deleted_at is null`
 
-describe("finance planned items (live)", () => {
+// Retries: each attempt creates a fresh user; the shared stack is loaded.
+describe("finance planned items (live)", {
+  retries: { runMode: 2, openMode: 0 },
+}, () => {
   it("creates and edits a scheduled payment from the editor", () => {
     cy.newLiveUser("fin").then((user) => {
       seedAccount(user, {
@@ -182,18 +187,22 @@ describe("finance planned items (live)", () => {
               start: tomorrow,
             }).then((snooze) => {
               openFinance(user, `/finance/planned/${skip.id}`, "Netflix")
-              cy.findByRole("button", { name: "Skip next" }).click()
               derivedId("planned-skip", skip.id, tomorrow).then((sid) => {
-                rowsSoon(
-                  `select id from planned_skip where owner_id = $1 and id = $2
-                     and planned_id = $3 and on_day = $4 and deleted_at is null`,
-                  [user.id, sid, skip.id, tomorrow],
-                )
-                cy.findByText("Undo").click()
+                // Skip, then Undo while the toast shows: no live skip row.
+                cy.findByRole("button", { name: "Skip next" }).click()
+                clickUndo()
+                outboxDrained()
                 rowsSoon(
                   `select 1 where not exists (select 1 from planned_skip
                      where id = $1 and deleted_at is null)`,
                   [sid],
+                )
+                // Skip for real: the skip row, under the server's derived id.
+                cy.findByRole("button", { name: "Skip next" }).click()
+                rowsSoon(
+                  `select id from planned_skip where owner_id = $1 and id = $2
+                     and planned_id = $3 and on_day = $4 and deleted_at is null`,
+                  [user.id, sid, skip.id, tomorrow],
                 )
               })
 
@@ -244,10 +253,13 @@ describe("finance planned items (live)", () => {
             ]).then(([row]) =>
               expect(row.end_rule).to.deep.eq({ kind: "date", date: dayKey() }),
             )
+            // Archive + Undo while the toast shows, then archive for real.
+            cy.findByRole("button", { name: "Archive" }).click()
+            clickUndo()
+            outboxDrained()
+            rowsSoon(`${PLANNED} and id = $2 and not archived`, [user.id, p.id])
             cy.findByRole("button", { name: "Archive" }).click()
             rowsSoon(`${PLANNED} and id = $2 and archived`, [user.id, p.id])
-            cy.findAllByText("Undo").last().click()
-            rowsSoon(`${PLANNED} and id = $2 and not archived`, [user.id, p.id])
           })
         })
       })

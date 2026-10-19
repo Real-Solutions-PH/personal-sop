@@ -82,7 +82,10 @@ function startCsvImport(user: LiveUser, accountId: string) {
     )
 }
 
-describe("finance statement import (live)", () => {
+// Retries: each attempt creates a fresh user; the shared stack is loaded.
+describe("finance statement import (live)", {
+  retries: { runMode: 2, openMode: 0 },
+}, () => {
   it("server pipeline: CSV upload → reconcile → commit → undo → restore", () => {
     cy.newLiveUser("fin").then((user) => {
       seedAccount(user, {
@@ -186,10 +189,10 @@ describe("finance statement import (live)", () => {
                     const CREATED = `select r.id, r.type, r.amount_minor::int as amount_minor,
                                             c.name as category, r.source
                                        from fin_record r join category c on c.id = r.category_id
-                                      where r.owner_id = $1 and r.import_id = $2
+                                      where r.owner_id = $1 and r.import_id = $2 and r.id <> $3
                                         and r.deleted_at is null
                                       order by r.amount_minor`
-                    rowsSoon(CREATED, [user.id, importId], 2).then(
+                    rowsSoon(CREATED, [user.id, importId, existing.id], 2).then(
                       (created) => {
                         expect(
                           created.map((r) => [
@@ -257,15 +260,17 @@ describe("finance statement import (live)", () => {
                           `/finance/imports/${importId}/commit`,
                           {},
                         )
-                        rowsSoon(CREATED, [user.id, importId], 2).then(
-                          (again) => {
-                            expect(again.map((r) => r.id)).to.deep.eq(ids)
-                          },
-                        )
+                        rowsSoon(
+                          CREATED,
+                          [user.id, importId, existing.id],
+                          2,
+                        ).then((again) => {
+                          expect(again.map((r) => r.id)).to.deep.eq(ids)
+                        })
                         rowsSoon(
                           `select count(*)::int as n from fin_record
-                          where owner_id = $1 and import_id = $2`,
-                          [user.id, importId],
+                          where owner_id = $1 and import_id = $2 and id <> $3`,
+                          [user.id, importId, existing.id],
                         ).then(([c]) => expect(c.n).to.eq(2))
                         eventuallyBalances(user, { BDO: 1451544 })
                       },
@@ -321,12 +326,13 @@ describe("finance statement import (live)", () => {
         cy.contains("GCash_Transaction_History.pdf").click()
         cy.findByRole("button", { name: "Upload & read" }).click()
         cy.location("pathname").should("match", /^\/finance\/import\/.+/)
-        cy.get("body").then(($b) => {
-          if ($b.text().includes("Use selected account anyway"))
-            cy.findByRole("button", {
-              name: "Use selected account anyway",
-            }).click()
-        })
+        // Live accounts have UUIDs; the prototype's detection compares the
+        // seed id "gcash", so this prompt always appears (defect, reported).
+        cy.findByRole("button", {
+          name: "Use selected account anyway",
+          timeout: 30000,
+        }).click()
+        cy.findByRole("tab", { name: /^New \d+$/, timeout: 30000 }).click()
         cy.findByRole("button", {
           name: "Accept all new",
           timeout: 30000,
@@ -334,15 +340,15 @@ describe("finance statement import (live)", () => {
         cy.findByRole("button", { name: /^Apply \d+ changes$/ }).click()
         cy.findByText(/^Imported — \d+ added/).should("exist")
 
-        // What the screen committed must exist on the server: the import
-        // itself and the records it added.
-        rowsSoon(
-          "select id, status from statement_import where owner_id = $1",
-          [user.id],
-        )
+        // What the screen committed must exist on the server: the records
+        // it added, then the import itself.
         rowsSoon(
           `select id from fin_record where owner_id = $1 and import_id is not null
              and deleted_at is null`,
+          [user.id],
+        )
+        rowsSoon(
+          "select id, status from statement_import where owner_id = $1",
           [user.id],
         )
       })

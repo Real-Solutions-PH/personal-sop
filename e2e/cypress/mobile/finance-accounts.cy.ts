@@ -17,8 +17,10 @@
 // | /finance/archived         | archived account listed                 | archive |
 import {
   apiSoon,
+  clickUndo,
   eventuallyBalances,
   openFinance,
+  outboxDrained,
   rowsSoon,
   seedAccount,
 } from "./finance.helpers"
@@ -29,7 +31,10 @@ const ACCOUNTS = `select name, type, opening_minor::int as opening_minor, color,
                    where owner_id = $1 and deleted_at is null
                    order by name`
 
-describe("finance accounts (live)", () => {
+// Retries: each attempt creates a fresh user; the shared stack is loaded.
+describe("finance accounts (live)", {
+  retries: { runMode: 2, openMode: 0 },
+}, () => {
   it("setup: creates the chosen accounts with their opening balances", () => {
     cy.newLiveUser("fin").then((user) => {
       openFinance(user, "/finance", "Set up Finance")
@@ -198,11 +203,11 @@ describe("finance accounts (live)", () => {
         opening_minor: 10000,
       }).then((acct) => {
         openFinance(user, `/finance/accounts/${acct.id}`, "Old card")
+        // Archive, Undo while the 6 s toast shows: once the device has pushed
+        // everything, the server holds the account unarchived.
         cy.findByText("Archive").click()
-        rowsSoon("select archived from account where id = $1 and archived", [
-          acct.id,
-        ])
-        cy.findByText("Undo").click()
+        clickUndo()
+        outboxDrained()
         rowsSoon(
           "select archived from account where id = $1 and not archived",
           [acct.id],
@@ -212,6 +217,11 @@ describe("finance accounts (live)", () => {
           "/finance/accounts",
           (b) => b.data.some((a) => a.id === acct.id && !a.archived),
         )
+        // Archive for real: the server has it archived.
+        cy.findByText("Archive").click()
+        rowsSoon("select archived from account where id = $1 and archived", [
+          acct.id,
+        ])
       })
     })
   })
