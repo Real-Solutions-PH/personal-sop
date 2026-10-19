@@ -238,12 +238,18 @@ def _safe_inline(owner: uuid.UUID, days: set[date]) -> None:
 
 
 def _after_commit(session: OrmSession) -> None:
+    # SQLAlchemy fires this on a SAVEPOINT release too; only the outermost
+    # commit has made the rows visible to other connections.
+    if session.get_nested_transaction() is not None:
+        return
     dirty = session.info.pop(DIRTY_KEY, None)
     if dirty:
         drain(list(dirty))
 
 
 def _after_rollback(session: OrmSession) -> None:
+    if session.get_nested_transaction() is not None:
+        return  # a savepoint rolled back; the outer transaction goes on
     session.info.pop(DIRTY_KEY, None)
 
 

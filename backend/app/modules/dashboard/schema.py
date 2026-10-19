@@ -20,7 +20,7 @@ GoalStatus = Literal["active", "archived"]
 Via = Literal["manual", "onboarding", "review"]
 NotifKind = Literal["reminder", "achievement", "review", "system", "social"]
 
-Target = Field(ge=-1e9, le=1e9, allow_inf_nan=False)
+TARGET_BOUND = 1e9
 
 
 # ---------------------------------------------------------------- goals
@@ -30,7 +30,7 @@ class GoalCreate(BaseModel):
     id: uuid.UUID | None = None
     metric: str = Field(min_length=1, max_length=64)
     label: str = Field(min_length=1, max_length=120)
-    target: float = Target
+    target: float = Field(ge=-TARGET_BOUND, le=TARGET_BOUND, allow_inf_nan=False)
     unit: str = Field(default="", max_length=16)
     comparator: Comparator = "gte"
     period: Period = "week"
@@ -40,7 +40,9 @@ class GoalCreate(BaseModel):
 class GoalUpdate(BaseModel):
     metric: str | None = Field(default=None, min_length=1, max_length=64)
     label: str | None = Field(default=None, min_length=1, max_length=120)
-    target: float | None = Target
+    target: float | None = Field(
+        default=None, ge=-TARGET_BOUND, le=TARGET_BOUND, allow_inf_nan=False
+    )
     unit: str | None = Field(default=None, max_length=16)
     comparator: Comparator | None = None
     period: Period | None = None

@@ -4,7 +4,6 @@ against the database (service level, through ``ctx_for``)."""
 import uuid
 from datetime import UTC, datetime, timedelta
 
-import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
@@ -119,11 +118,6 @@ def test_contributor_reads_the_users_rows(client: TestClient, db: Session) -> No
         assert contributor.achievements(ctx) == []
 
 
-@pytest.mark.xfail(
-    raises=NotImplementedError,
-    strict=False,
-    reason="dashboard.notify is a stub until merge",
-)
 def test_reminder_job_posts_once_per_reminder(client: TestClient, db: Session) -> None:
     user, headers = signed_in(db)
     soon = datetime.now(UTC) - timedelta(minutes=1)
@@ -142,11 +136,6 @@ def test_reminder_job_posts_once_per_reminder(client: TestClient, db: Session) -
         assert jobs.send_reminders(ctx) == 0  # deduped
 
 
-@pytest.mark.xfail(
-    raises=NotImplementedError,
-    strict=False,
-    reason="dashboard.notify is a stub until merge",
-)
 def test_digest_job(client: TestClient, db: Session) -> None:
     user, headers = signed_in(db)
     ok(

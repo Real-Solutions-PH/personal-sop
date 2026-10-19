@@ -136,12 +136,18 @@ def deliver(items: list[_Event | _Push]) -> None:
 
 
 def _after_commit(session: OrmSession) -> None:
+    # SQLAlchemy fires this on a SAVEPOINT release too; only the outermost
+    # commit has made the rows visible to other connections.
+    if session.get_nested_transaction() is not None:
+        return
     items = session.info.pop(_KEY, None)
     if items:
         deliver(items)
 
 
 def _after_rollback(session: OrmSession) -> None:
+    if session.get_nested_transaction() is not None:
+        return  # a savepoint rolled back; the outer transaction goes on
     session.info.pop(_KEY, None)
 
 
