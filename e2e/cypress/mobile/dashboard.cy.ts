@@ -134,7 +134,11 @@ describe("dashboard (live)", {
       cy.findByText("Choose a metric").should("exist")
       cy.findByRole("textbox", { name: "Search metrics" }).type("Tasks done")
       cy.findAllByText("Tasks done").last().click()
-      cy.findByRole("textbox", { name: "Target" }).clear().type("3")
+      // The picker sets a suggested target when it closes; type after that.
+      cy.findByText("Choose a metric").should("not.exist")
+      cy.findByText("METRIC").next().should("contain.text", "Tasks done")
+      cy.findByRole("textbox", { name: "Target" }).type("{selectall}3")
+      cy.findByRole("textbox", { name: "Target" }).should("have.value", "3")
       cy.findByRole("button", { name: "Save goal" }).click()
       slowRows(
         `select id::text as id, metric, target, comparator, period, status, via
@@ -165,7 +169,8 @@ describe("dashboard (live)", {
         // Edit: target 3 → 4.
         cy.findByText("Tasks done", { exact: false }).click()
         cy.findByText("Edit goal").should("exist")
-        cy.findByRole("textbox", { name: "Target" }).clear().type("4")
+        cy.findByRole("textbox", { name: "Target" }).type("{selectall}4")
+        cy.findByRole("textbox", { name: "Target" }).should("have.value", "4")
         cy.findByRole("button", { name: "Save goal" }).click()
         slowRows("select 1 from goal where id = $1 and target = 4", [id])
 
@@ -184,7 +189,7 @@ describe("dashboard (live)", {
         )
 
         // Delete from the edit sheet (confirm auto-accepted).
-        cy.findByRole("tab", { name: /^In play|^Hit/ }).click()
+        cy.findByRole("tab", { name: /^In play/ }).click()
         cy.findAllByText("Tasks done", { exact: false }).first().click()
         cy.findByRole("button", { name: "Delete goal" }).click()
         slowRows(
@@ -402,6 +407,7 @@ describe("dashboard (live)", {
           id("Call the bank"),
         ])
         // Mark all read.
+        cy.visit("/today/inbox")
         cy.findByText("Mark all read").click()
         slowRows(
           "select 1 from notification where owner_id = $1 and deleted_at is null and read",
