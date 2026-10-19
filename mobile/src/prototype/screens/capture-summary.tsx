@@ -45,6 +45,7 @@ export function CaptureSummary({
           {p.kind === "expense" ? (
             <Line style={{ gap: 6, marginTop: 6, flexWrap: "wrap" }}>
               <Tap
+                label={`Account: ${acct(p.accountId) === "—" ? "none" : acct(p.accountId)}`}
                 onPress={onAccount ?? (() => {})}
                 style={{
                   minHeight: 44,

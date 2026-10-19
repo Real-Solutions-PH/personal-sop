@@ -67,7 +67,7 @@ import {
   withItems,
 } from "./mappers/capture"
 import { messageFromServer, withMessages } from "./mappers/companion"
-import { categoryIds } from "./mappers/finance"
+import { categoryIds, fromMinor } from "./mappers/finance"
 import { type UploadInput, uploadMedia } from "./media"
 import { syncNow } from "./runtime"
 
@@ -149,6 +149,25 @@ async function errorCode(res: Response): Promise<string | undefined> {
 
 export function createLiveCapture(deps: LiveCaptureDeps) {
   const { cats } = deps
+
+  /** The AI spend meter is a REST read (sync's ai_settings row carries no
+   * meter): this month's spend and calls from GET /capture/settings. */
+  async function refreshSpend() {
+    if (!deps.online()) return
+    try {
+      const st = await deps.http.request<Row>("GET", "/capture/settings")
+      S.set((s) => ({
+        ...s,
+        spend: {
+          ...s.spend,
+          amount: fromMinor(Number(st.spend_minor ?? 0)),
+          calls: Number(st.calls ?? 0),
+        },
+      }))
+    } catch {
+      // Keep the last known meter; the next capture refreshes it.
+    }
+  }
 
   const detail = (d: Row) => {
     const id = String(d.id)
@@ -396,6 +415,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
       toast("Connection lost — it's queued and will send when you're back")
     } finally {
       deps.kick()
+      void refreshSpend()
     }
   }
 
@@ -690,6 +710,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
     } finally {
       thinking.setState({ on: false })
       deps.kick()
+      void refreshSpend()
     }
   }
 
@@ -703,7 +724,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
     void runAsk(text, hint)
   }
 
-  return { backend, ask }
+  return { backend, ask, refreshSpend }
 }
 
 // ---------------------------------------------------------------------------
@@ -744,6 +765,7 @@ export function installLiveCapture(deps: LiveCaptureDeps) {
   const live = createLiveCapture(deps)
   setCaptureBackend(live.backend)
   setAskBackend(live.ask)
+  void live.refreshSpend()
   return live
 }
 

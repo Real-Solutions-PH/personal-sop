@@ -72,8 +72,10 @@ export type Route =
 const first = () => dashStore.get().profile.name.split(/\s+/)[0] || "friend"
 const pick = <T>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)]
 
-/** Decide how to answer. Pure apart from trackers/memories it records. */
-export function route(raw: string): Route {
+/** Decide how to answer. Pure apart from trackers/memories it records;
+ * ``record: false`` only classifies (live mode, where the server records
+ * them and a local copy would sync up as a second row). */
+export function route(raw: string, { record = true } = {}): Route {
   const q = raw.toLowerCase().trim()
   const name = first()
 
@@ -128,7 +130,7 @@ export function route(raw: string): Route {
 
   if (/^remember( that)? /.test(q)) {
     const fact = raw.replace(/^remember( that)?\s*/i, "").trim()
-    if (fact) remember(fact)
+    if (fact && record) remember(fact)
     return {
       kind: "reply",
       text: `Got it — I'll remember that ${fact.replace(/\.$/, "")}.`,
@@ -152,12 +154,13 @@ export function route(raw: string): Route {
         ?.replace(/,/g, ""),
     )
     const direction = /(over|above|at least)/.test(q) ? "above" : "below"
-    const id = addTracker({
+    const tracker = {
       metric,
       label: metricLabel(metric),
       goal: Number.isFinite(goal) && goal > 0 ? goal : undefined,
       direction: Number.isFinite(goal) && goal > 0 ? direction : undefined,
-    })
+    } as const
+    const id = record ? addTracker(tracker) : metric
     return {
       kind: "reply",
       text: `Tracking ${metricLabel(metric).toLowerCase()} for you. I'll flag it on Today when it drifts.`,
@@ -251,9 +254,9 @@ export function route(raw: string): Route {
 export function ask(text: string, hint?: string) {
   const v = text.trim()
   if (!v) return
-  const r = route(v)
   const live = liveAsk()
-  if (live) return live(v, hint, r.kind === "capture")
+  if (live) return live(v, hint, route(v, { record: false }).kind === "capture")
+  const r = route(v)
   if (r.kind === "capture") {
     A.sendCapture({ text: v, source: "text", hint })
     return

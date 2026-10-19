@@ -1,7 +1,8 @@
-import { route } from "../companion/brain"
-import { companionStore } from "../companion/store"
+import { ask, route } from "../companion/brain"
+import { companionStore, setAskBackend } from "../companion/store"
 
 beforeEach(() => companionStore.reset())
+afterEach(() => setAskBackend(null))
 
 const blocks = (q: string) => {
   const r = route(q)
@@ -40,4 +41,21 @@ test("tracking a metric records a goal; remember stores a fact", () => {
   expect(companionStore.get().memories.at(-1)?.text).toBe(
     "I'm vegetarian on Mondays",
   )
+})
+
+test("live mode: the server records memories and trackers, the phone does not", () => {
+  const before = companionStore.get()
+  const calls: [string, boolean][] = []
+  setAskBackend((text, _hint, toCapture) => calls.push([text, toCapture]))
+  ask("remember that I swim on Sundays")
+  ask("track weight below 80")
+  ask("spent 180 on lunch")
+  expect(calls).toEqual([
+    ["remember that I swim on Sundays", false],
+    ["track weight below 80", false],
+    ["spent 180 on lunch", true],
+  ])
+  // A local copy would sync up as a second row next to the server's own.
+  expect(companionStore.get().memories).toEqual(before.memories)
+  expect(companionStore.get().trackers).toEqual(before.trackers)
 })
