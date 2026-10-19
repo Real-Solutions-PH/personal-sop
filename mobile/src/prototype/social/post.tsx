@@ -128,6 +128,7 @@ function CommentRow({
             </Text>
           )}
           <Text
+            accessibilityRole="button"
             onPress={() => onReply(c)}
             style={{ color: t.muted, fontSize: 12, fontFamily: fonts.semibold }}
           >

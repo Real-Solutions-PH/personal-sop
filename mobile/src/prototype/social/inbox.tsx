@@ -10,7 +10,7 @@ import {
   Trash2,
   Users,
 } from "lucide-react-native"
-import { useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import {
   FlatList,
   Pressable,
@@ -41,6 +41,7 @@ import {
   directChat,
   ME,
   type Note,
+  searchLive,
   sendMessage,
   setNote,
   simulateReply,
@@ -588,7 +589,7 @@ export function Inbox() {
                     >
                       <Pressable
                         accessibilityRole="button"
-                        accessibilityLabel={`Note from ${n.by}: ${n.text}`}
+                        accessibilityLabel={`Note from ${people.find((p) => p.id === n.by)?.username ?? n.by}: ${n.text}`}
                         onPress={() => setViewNote(n)}
                         style={{ alignItems: "center", width: 80, gap: 6 }}
                       >
@@ -671,6 +672,11 @@ export function NewChat() {
   const [q, setQ] = useState("")
   const [picked, setPicked] = useState<string[]>([])
   const [name, setName] = useState("")
+  // Live mode: server search fills the store this list filters.
+  useEffect(() => {
+    const h = setTimeout(() => void searchLive(q), 300)
+    return () => clearTimeout(h)
+  }, [q])
   const list = people.filter(
     (p) =>
       p.name.toLowerCase().includes(q.toLowerCase()) ||

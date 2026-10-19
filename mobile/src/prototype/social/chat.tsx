@@ -16,6 +16,7 @@ import {
 } from "lucide-react-native"
 import { useEffect, useMemo, useRef, useState } from "react"
 import {
+  ActivityIndicator,
   FlatList,
   Image,
   KeyboardAvoidingView,
@@ -45,6 +46,7 @@ import Animated, {
 } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
+import { liveMode } from "@/live/config"
 import { back, go } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import { confirm, Field, Sheet, Toggle } from "../ui"
@@ -55,6 +57,7 @@ import {
   addMembers,
   type Chat,
   deleteChat,
+  leaveGroup,
   ME,
   type Message,
   markChatRead,
@@ -713,6 +716,10 @@ function ChatInfo({
   const [name, setName] = useState(chat.name ?? "")
   const [adding, setAdding] = useState(false)
   const group = !!chat.name
+  const rename = () => {
+    const next = name.trim()
+    if (next && next !== chat.name) renameChat(chat.id, next)
+  }
   return (
     <Sheet
       title={group ? "Group details" : "Details"}
@@ -724,7 +731,9 @@ function ChatInfo({
           label="Group name"
           value={name}
           onChangeText={setName}
-          onEndEditing={() => name.trim() && renameChat(chat.id, name.trim())}
+          // onEndEditing never fires on web; blur and submit do everywhere.
+          onBlur={rename}
+          onSubmitEditing={rename}
           returnKeyType="done"
         />
       )}
@@ -813,10 +822,12 @@ function ChatInfo({
                   accessibilityLabel={`Add ${p.name}`}
                   onPress={() => {
                     addMembers(chat.id, [p.id])
-                    sendMessage(chat.id, {
-                      text: `You added ${p.name}`,
-                      system: true,
-                    })
+                    // Live mode: the server writes the "added" line itself.
+                    if (!liveMode)
+                      sendMessage(chat.id, {
+                        text: `You added ${p.name}`,
+                        system: true,
+                      })
                     haptic.tap()
                   }}
                   style={{
@@ -850,7 +861,8 @@ function ChatInfo({
               : "This removes the conversation from your inbox.",
             () => {
               onClose()
-              deleteChat(chat.id)
+              if (group) leaveGroup(chat.id)
+              else deleteChat(chat.id)
               back("/social/inbox")
             },
           )
@@ -880,7 +892,11 @@ export function ChatScreen({ id }: { id: string }) {
   const [simulated, setTyping] = useState<string | null>(null)
   const typing = useTyping(id) ?? simulated
   const input = useRef<TextInput>(null)
-  useEffect(() => void openChatLive(id), [id])
+  const [opening, setOpening] = useState(true)
+  useEffect(() => {
+    setOpening(true)
+    void openChatLive(id).finally(() => setOpening(false))
+  }, [id])
   const count = chat?.messages.length ?? 0
   // Mark read and drop the typing dots whenever a message lands. Keyed on the
   // count: depending on `chat` would loop, since marking read changes it.
@@ -904,7 +920,11 @@ export function ChatScreen({ id }: { id: string }) {
           justifyContent: "center",
         }}
       >
-        <Text style={{ color: t.muted }}>This chat no longer exists.</Text>
+        {opening ? (
+          <ActivityIndicator accessibilityLabel="Loading chat" />
+        ) : (
+          <Text style={{ color: t.muted }}>This chat no longer exists.</Text>
+        )}
       </View>
     )
   const group = !!chat.name

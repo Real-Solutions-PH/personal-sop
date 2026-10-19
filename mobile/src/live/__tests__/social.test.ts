@@ -5,9 +5,16 @@
 import {
   connectSocial,
   createPost,
+  deletePost,
   ME,
+  openPersonLive,
+  openPostLive,
+  sendMessage,
+  setNote,
+  setPostDraft,
   socialStore,
   toggleLike,
+  toggleShowScores,
   typingStore,
 } from "@/prototype/social/store"
 import { ApiError, type Http } from "../http"
@@ -395,4 +402,232 @@ test("a new post uploads its media first and sends the media ids, with no fake l
   } finally {
     jest.useRealTimers()
   }
+})
+
+test("a screen that loads before the session connects waits for it", async () => {
+  const person = {
+    ...brief(ANA, "Ana Reyes", "ana.lifts"),
+    bio: "",
+    followers: 1,
+    following: 0,
+    is_me: false,
+    is_following: false,
+    close_friend: false,
+    scores_visible: false,
+  }
+  const { http, calls } = fakeHttp({
+    [`GET /social/people/${ANA}`]: () => person,
+    [`GET /social/people/${ANA}/posts`]: () => empty,
+    [`GET /social/people/${ANA}/followers`]: () => ({
+      data: [{ ...person, ...brief(MEID, "Me", "me"), is_me: true }],
+      count: 1,
+    }),
+    [`GET /social/people/${ANA}/following`]: () => empty,
+  })
+  // The profile mounts (cold open) before startup connects the remote.
+  const loaded = openPersonLive(ANA)
+  await settle()
+  expect(calls).toEqual([])
+  connectSocial(createSocialLive({ http, userId: MEID }))
+  await loaded
+  expect(calls.map((c) => c.path.split("?")[0])).toContain(
+    `/social/people/${ANA}`,
+  )
+  // The follows screen lists the server's graph, me as ME.
+  expect(socialStore.get().graph?.[ANA]).toEqual({
+    followers: [ME],
+    following: [],
+  })
+})
+
+test("a post draft is saved without the inline web image", async () => {
+  const { http, calls } = fakeHttp({
+    "PUT /social/drafts/post": (c) => ({
+      kind: "post",
+      body: (c.body as { body: unknown }).body,
+      updated_at: null,
+    }),
+  })
+  connectSocial(createSocialLive({ http, userId: MEID }))
+  setPostDraft({
+    caption: "Tasks this week",
+    media: [{ kind: "image", uri: "data:image/png;base64,AAAA", ratio: 1 }],
+  })
+  await settle()
+  expect(calls).toEqual([
+    {
+      method: "PUT",
+      path: "/social/drafts/post",
+      body: { body: { caption: "Tasks this week", media: [] } },
+    },
+  ])
+})
+
+test("a read in flight when I delete a post does not bring it back", async () => {
+  let answer: (v: unknown) => void = () => {}
+  const { http } = fakeHttp({
+    [`GET /social/posts/${POST}`]: () =>
+      new Promise((resolve) => {
+        answer = resolve
+      }),
+    [`GET /social/posts/${POST}/comments`]: () => empty,
+    [`DELETE /social/posts/${POST}`]: () => undefined,
+  })
+  socialStore.set((s) => ({
+    ...s,
+    posts: [
+      {
+        id: POST,
+        by: ME,
+        at: 0,
+        caption: "",
+        media: [],
+        likes: 0,
+        liked: false,
+        saved: false,
+        likedBy: [],
+        comments: [],
+      },
+    ],
+  }))
+  connectSocial(createSocialLive({ http, userId: MEID }))
+  const opened = openPostLive(POST)
+  await settle()
+  deletePost(POST)
+  answer(wirePost({ author: brief(MEID, "Me", "me") }))
+  await opened
+  await settle()
+  expect(socialStore.get().posts).toEqual([])
+})
+
+test("a note left while the notes list loads survives that list", async () => {
+  let answer: (v: unknown) => void = () => {}
+  const { http } = fakeHttp({
+    "GET /social/notes": () =>
+      new Promise((resolve) => {
+        answer = resolve
+      }),
+    "PUT /social/notes/me": () => ({
+      id: "n1",
+      person: brief(MEID, "Me", "me"),
+      text: "Deep work",
+      created_at: "2026-10-19T08:00:00Z",
+      liked: false,
+      likes: 0,
+    }),
+  })
+  const live = createSocialLive({ http, userId: MEID })
+  connectSocial(live)
+  const refreshing = live.refresh().catch(() => {})
+  await settle()
+  setNote("Deep work")
+  await settle()
+  answer(empty)
+  await refreshing
+  await settle()
+  expect(socialStore.get().notes.map((n) => [n.by, n.text])).toEqual([
+    [ME, "Deep work"],
+  ])
+})
+
+test("messages sent back to back reach the server in order", async () => {
+  socialStore.set((s) => ({
+    ...s,
+    chats: [
+      {
+        id: CHAT,
+        members: [ANA],
+        messages: [],
+        muted: false,
+        pinned: false,
+        readAt: 0,
+      },
+    ],
+  }))
+  const answers: ((v: unknown) => void)[] = []
+  const { http, calls } = fakeHttp({
+    [`POST /social/chats/${CHAT}/messages`]: (c) =>
+      new Promise((resolve) =>
+        answers.push(() =>
+          resolve({
+            id: (c.body as { id: string }).id,
+            chat_id: CHAT,
+            sender_id: MEID,
+            at: "2026-10-19T08:00:00Z",
+            text: (c.body as { text: string }).text,
+            media: null,
+            post_id: null,
+            story_id: null,
+            reply_to_id: null,
+            system: false,
+            reactions: {},
+          }),
+        ),
+      ),
+  })
+  connectSocial(createSocialLive({ http, userId: MEID }))
+  sendMessage(CHAT, { text: "Hi" })
+  sendMessage(CHAT, { text: "❤️" })
+  await settle()
+  // The second waits until the first has been stored.
+  expect(calls.map((c) => (c.body as { text: string }).text)).toEqual(["Hi"])
+  answers[0](undefined)
+  await settle()
+  expect(calls.map((c) => (c.body as { text: string }).text)).toEqual([
+    "Hi",
+    "❤️",
+  ])
+})
+
+test("a write made before the session connects is sent once it does", async () => {
+  const { http, calls } = fakeHttp({
+    "PATCH /social/me": () => ({}),
+  })
+  toggleShowScores()
+  await settle()
+  expect(calls).toEqual([])
+  connectSocial(createSocialLive({ http, userId: MEID }))
+  await settle()
+  expect(calls).toEqual([
+    { method: "PATCH", path: "/social/me", body: { show_scores: false } },
+  ])
+  expect(mockToasts).toEqual([])
+})
+
+test("undo right after delete restores only once the delete has landed", async () => {
+  let deleted: (v: unknown) => void = () => {}
+  const { http, calls } = fakeHttp({
+    [`DELETE /social/posts/${POST}`]: () =>
+      new Promise((resolve) => {
+        deleted = resolve
+      }),
+    [`POST /social/posts/${POST}/restore`]: () =>
+      wirePost({ author: brief(MEID, "Me", "me") }),
+  })
+  socialStore.set((s) => ({
+    ...s,
+    posts: [
+      {
+        id: POST,
+        by: ME,
+        at: 0,
+        caption: "",
+        media: [],
+        likes: 0,
+        liked: false,
+        saved: false,
+        likedBy: [],
+        comments: [],
+      },
+    ],
+  }))
+  connectSocial(createSocialLive({ http, userId: MEID }))
+  const restore = deletePost(POST)
+  restore()
+  await settle()
+  expect(calls.map((c) => c.method)).toEqual(["DELETE"])
+  deleted(undefined)
+  await settle()
+  expect(calls.map((c) => c.method)).toEqual(["DELETE", "POST"])
+  expect(socialStore.get().posts.map((p) => p.id)).toEqual([POST])
 })

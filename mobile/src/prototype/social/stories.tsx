@@ -159,7 +159,7 @@ export function StoryViewer({ id }: { id: string }) {
   const height = Math.min(h - safe.top - safe.bottom - 64, width * (16 / 9))
   // Freeze the group order when the viewer opens so marking stories seen
   // doesn't reshuffle the queue mid-viewing.
-  const [groups] = useState(() =>
+  const [groups, setGroups] = useState(() =>
     storyGroups(socialStore.get()).filter((g) => g.items.length),
   )
   const stories = socialStore.use((s) => s.stories)
@@ -170,6 +170,19 @@ export function StoryViewer({ id }: { id: string }) {
       groups.findIndex((g) => g.id === id),
     ),
   )
+  // Opened cold (a link or a reload in live mode): the tray loads after
+  // mount, so take the first snapshot that has stories.
+  useEffect(() => {
+    if (groups.length || !stories.length) return
+    const next = storyGroups(socialStore.get()).filter((g) => g.items.length)
+    setGroups(next)
+    setGi(
+      Math.max(
+        0,
+        next.findIndex((g) => g.id === id),
+      ),
+    )
+  }, [groups.length, stories.length, id])
   const group = groups[gi]
   const items = useMemo(
     () =>

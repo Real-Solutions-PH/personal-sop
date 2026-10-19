@@ -145,6 +145,8 @@ export type SocialState = {
   showScores: boolean
   /** Live mode: my own bio and counts from GET /social/me. */
   me?: { bio: string; followers: number; following: number }
+  /** Live mode: who follows / is followed by a person, from the server. */
+  graph?: Record<string, { followers: string[]; following: string[] }>
 }
 
 export const ME = "me"
@@ -780,6 +782,7 @@ export interface SocialRemote {
   renameChat(chatId: string, name: string): Promise<unknown>
   addMembers(chatId: string, ids: string[]): Promise<unknown>
   hideChat(chatId: string): Promise<unknown>
+  leaveChat(chatId: string): Promise<unknown>
   restoreChat(chatId: string): Promise<unknown>
   saveDraft(
     kind: "post" | "story",
@@ -789,10 +792,21 @@ export interface SocialRemote {
 }
 
 let remote: SocialRemote | null = null
+let waiting: ((r: SocialRemote) => void)[] = []
 /** Live mode: route actions to the server (null disconnects at sign-out). */
 export function connectSocial(next: SocialRemote | null) {
   remote = next
+  if (!next) return
+  const ready = waiting
+  waiting = []
+  for (const resolve of ready) resolve(next)
 }
+/** The connected remote; a screen that mounts before startup has restored
+ * the session waits for it rather than loading nothing. */
+const connected = (): Promise<SocialRemote> =>
+  remote
+    ? Promise.resolve(remote)
+    : new Promise((resolve) => waiting.push(resolve))
 
 /** Live mode only: send a write; on failure undo the optimistic change and
  * say so. Offline (or signed out) fails at once — social is not queued. */
@@ -802,33 +816,44 @@ function send(
   what: string,
 ) {
   if (!liveMode) return
-  const r = remote
-  if (!r || !getConnectivity()) {
+  const offline = () => {
     undo()
     toast(`You're offline. Couldn't ${what}.`)
-    return
   }
-  call(r).catch(() => {
-    undo()
-    toast(`Couldn't ${what}. Please try again.`)
-  })
+  if (!getConnectivity()) return offline()
+  const run = (r: SocialRemote) =>
+    call(r).catch(() => {
+      undo()
+      toast(`Couldn't ${what}. Please try again.`)
+    })
+  if (remote) return void run(remote)
+  // Online but startup is still restoring the session: wait for it, briefly.
+  const late = new Promise<null>((resolve) =>
+    setTimeout(() => resolve(null), CONNECT_WAIT_MS),
+  )
+  void Promise.race([connected(), late]).then((r) => (r ? run(r) : offline()))
 }
+const CONNECT_WAIT_MS = 10_000
 /** Passive sync the person did not ask for (seen, read, typing): no toast,
  * nothing to undo, skipped offline. */
 function nudge(call: (r: SocialRemote) => Promise<unknown>) {
-  if (!liveMode || !remote || !getConnectivity()) return
-  call(remote).catch(() => {})
+  if (!liveMode || !getConnectivity()) return
+  void connected()
+    .then(call)
+    .catch(() => {})
 }
 /** Loaders the screens call on open/refresh; no-ops in prototype mode. A
  * failed load keeps the cached data; only an explicit refresh reports. */
 function load(call: (r: SocialRemote) => Promise<unknown>, report?: string) {
-  if (!liveMode || !remote) return Promise.resolve()
-  return call(remote).then(
-    () => {},
-    () => {
-      if (report) toast(report)
-    },
-  )
+  if (!liveMode) return Promise.resolve()
+  return connected()
+    .then(call)
+    .then(
+      () => {},
+      () => {
+        if (report) toast(report)
+      },
+    )
 }
 export const refreshSocial = () =>
   load((r) => r.refresh(), "Couldn't refresh. Showing what was saved.")
@@ -1402,6 +1427,17 @@ export function deleteChat(chatId: string) {
       "restore the chat",
     )
   }
+}
+/** Leave a group for good (unlike deleteChat, new messages don't bring it
+ * back). */
+export function leaveGroup(chatId: string) {
+  const before = socialStore.get().chats
+  set((s) => ({ ...s, chats: s.chats.filter((c) => c.id !== chatId) }))
+  send(
+    (r) => r.leaveChat(chatId),
+    () => set((s) => ({ ...s, chats: before })),
+    "leave the group",
+  )
 }
 export function setPostDraft(post: Partial<Post>) {
   set((s) => ({ ...s, drafts: { ...s.drafts, post } }))

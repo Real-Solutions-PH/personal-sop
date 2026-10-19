@@ -180,6 +180,31 @@ export type SocialLive = SocialRemote & {
   handleEvent(e: ServerEvent): void
 }
 
+/** A share card rendered on web is an inline `data:` image, far over the
+ * server's draft size limit; the draft is saved without it and the image
+ * stays on this device. */
+function draftForServer(
+  body: Record<string, unknown>,
+): Record<string, unknown> {
+  const b = body as { media?: { uri?: string }[] }
+  if (!b.media) return { ...body }
+  return {
+    ...body,
+    media: b.media.filter((m) => !m.uri?.startsWith("data:")),
+  }
+}
+
+/** The server's copy of my post draft, keeping the image only this device
+ * holds (see ``draftForServer``) while it is still the same draft. */
+function withLocalMedia(
+  server: Partial<Post>,
+  local: Partial<Post> | undefined,
+): Partial<Post> {
+  if (server.media?.length || !local?.media?.length) return server
+  if ((local.caption ?? "") !== (server.caption ?? "")) return server
+  return { ...server, media: local.media }
+}
+
 export function createSocialLive(deps: SocialDeps): SocialLive {
   const { http } = deps
   const me = deps.userId
@@ -207,6 +232,15 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
   const chatReady = new Map<string, Promise<unknown>>()
   // Posts and messages still being created: a refresh keeps them.
   const pending = new Set<string>()
+  /** Posts I deleted this session (until restored): stale reads skip them. */
+  const deleted = new Set<string>()
+  const deleting = new Map<string, Promise<unknown>>()
+  /** The last message send per chat; the next one waits for it. */
+  const sending = new Map<string, Promise<unknown>>()
+  // When I last wrote my note / each story (client clock): a list read that
+  // started earlier does not know about them yet.
+  let noteWrittenAt = Number.NEGATIVE_INFINITY
+  const storyWrittenAt = new Map<string, number>()
   let followingCursor: string | null | undefined
   let foryouSkip = 0
   const lastTyping = new Map<string, number>()
@@ -407,7 +441,9 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
   })
 
   // ------------------------------------------------------------ merges
-  function mergePosts(list: WPost[], replace = false) {
+  function mergePosts(all: WPost[], replace = false) {
+    // A read that was in flight when I deleted a post must not restore it.
+    const list = all.filter((w) => !deleted.has(w.id))
     set((s) => {
       const byId = new Map(s.posts.map((p) => [p.id, p]))
       const fresh = list.map((w) => mapPost(w, byId.get(w.id)))
@@ -491,31 +527,50 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
       return page.data
     },
     async stories() {
+      const asked = now()
       const tray = await http.request<WTray>("GET", "/social/stories")
       const items = tray.data.flatMap((g) => g.items)
       set((s) => {
         const byId = new Map(s.stories.map((x) => [x.id, x]))
+        const ids = new Set(items.map((w) => w.id))
+        // A story I posted while this read was in flight is not in it.
+        const mine = s.stories.filter(
+          (x) =>
+            !ids.has(x.id) &&
+            (storyWrittenAt.get(x.id) ?? Number.NEGATIVE_INFINITY) >= asked,
+        )
         return {
           ...s,
           people: upsertPeople(
             s,
             tray.data.map((g) => g.person),
           ),
-          stories: items.map((w) => mapStory(w, byId.get(w.id))),
-          seen: items.filter((w) => w.seen).map((w) => w.id),
+          stories: [...items.map((w) => mapStory(w, byId.get(w.id))), ...mine],
+          seen: [
+            ...items.filter((w) => w.seen).map((w) => w.id),
+            ...mine.map((x) => x.id),
+          ],
         }
       })
     },
     async notes() {
+      const asked = now()
       const list = await http.request<List<WNote>>("GET", "/social/notes")
-      set((s) => ({
-        ...s,
-        people: upsertPeople(
-          s,
-          list.data.map((n) => n.person),
-        ),
-        notes: list.data.map(mapNote),
-      }))
+      set((s) => {
+        const notes = list.data.map(mapNote)
+        // A note I left while this read was in flight is not in it.
+        const mine =
+          noteWrittenAt >= asked ? s.notes.find((n) => n.by === ME) : undefined
+        return {
+          ...s,
+          people: upsertPeople(
+            s,
+            list.data.map((n) => n.person),
+          ),
+          notes:
+            mine && !notes.some((n) => n.by === ME) ? [mine, ...notes] : notes,
+        }
+      })
     },
     async chats() {
       const list = await http.request<List<WChat>>(
@@ -579,7 +634,9 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
       set((s) => ({
         ...s,
         drafts: {
-          post: has(post.body) ? (post.body as Partial<Post>) : undefined,
+          post: has(post.body)
+            ? withLocalMedia(post.body as Partial<Post>, s.drafts.post)
+            : undefined,
           story: has(story.body)
             ? (story.body as Partial<StoryItem>)
             : undefined,
@@ -652,60 +709,73 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
 
   async function openPerson(id: string) {
     const uid = sid(id)
-    const [person, posts, card] = await Promise.all([
-      http.request<WPerson>("GET", `/social/people/${uid}`),
-      http.request<WPosts>(
-        "GET",
-        `/social/people/${uid}/posts${q({ limit: 30 })}`,
-      ),
-      http
-        .request<WScorecard>("GET", `/social/people/${uid}/scorecard`)
-        .catch((e: unknown) => {
-          // Not visible to me (followers only, scores hidden): no card.
-          if (e instanceof ApiError && e.status === 404) return null
-          throw e
-        }),
-    ])
-    mergePosts(posts.data)
-    if (person.is_me) {
-      set((s) => ({
-        ...s,
-        me: {
-          bio: person.bio,
-          followers: person.followers,
-          following: person.following,
-        },
-      }))
-      return
-    }
-    set((s) => ({
-      ...s,
-      people: upsertPeople(s, [], [person]).map((p) =>
-        p.id === person.id
-          ? { ...p, card: card ? mapCard(card) : undefined }
-          : p,
-      ),
-    }))
-    const graph = await Promise.all(
+    // The follows lists show as soon as they arrive, not after the
+    // (slower) scorecard.
+    const graph = Promise.all(
       (["followers", "following"] as const).map((d) =>
         http.request<List<WPerson>>(
           "GET",
           `/social/people/${uid}/${d}${q({ limit: 50 })}`,
         ),
       ),
+    ).then(([followers, following]) =>
+      set((s) => ({
+        ...s,
+        people: upsertPeople(s, [], [...followers.data, ...following.data]),
+        graph: {
+          ...s.graph,
+          [pid(uid)]: {
+            followers: followers.data.map((p) => pid(p.id)),
+            following: following.data.map((p) => pid(p.id)),
+          },
+        },
+      })),
     )
-    set((s) => ({
-      ...s,
-      people: upsertPeople(
-        s,
-        [],
-        graph.flatMap((g) => g.data),
-      ),
-    }))
+    void graph.catch(() => {}) // reported by the await below
+    // Each part shows as soon as it arrives; the scorecard is the slowest.
+    const person = http
+      .request<WPerson>("GET", `/social/people/${uid}`)
+      .then((p) => {
+        set((s) =>
+          p.is_me
+            ? {
+                ...s,
+                me: {
+                  bio: p.bio,
+                  followers: p.followers,
+                  following: p.following,
+                },
+              }
+            : { ...s, people: upsertPeople(s, [], [p]) },
+        )
+        return p
+      })
+    const posts = http
+      .request<WPosts>("GET", `/social/people/${uid}/posts${q({ limit: 30 })}`)
+      .then((page) => mergePosts(page.data))
+    const card = http
+      .request<WScorecard>("GET", `/social/people/${uid}/scorecard`)
+      .catch((e: unknown) => {
+        // Not visible to me (followers only, scores hidden): no card.
+        if (e instanceof ApiError && e.status === 404) return null
+        throw e
+      })
+    const [p, w] = await Promise.all([person, card, posts])
+    if (!p.is_me)
+      set((s) => ({
+        ...s,
+        people: s.people.map((x) =>
+          x.id === p.id ? { ...x, card: w ? mapCard(w) : undefined } : x,
+        ),
+      }))
+    await graph
   }
 
   async function openChat(id: string) {
     await chatReady.get(id)
+    // Opened cold (a link or a reload): the chat list may not be here yet.
+    if (!get().chats.some((c) => c.id === id))
+      mergeChat(await http.request<WChat>("GET", `/social/chats/${cid(id)}`))
     const page = await http.request<List<WMessage>>(
       "GET",
       `/social/chats/${cid(id)}/messages${q({ limit: 50 })}`,
@@ -793,6 +863,23 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
   }
   const chatPath = (id: string, rest = "") => `/social/chats/${cid(id)}${rest}`
 
+  async function postMessage(chatId: string, m: Message) {
+    const media_id = m.media ? await upload(m.media.uri, m.media.kind) : null
+    const w = await http.request<WMessage>(
+      "POST",
+      chatPath(chatId, "/messages"),
+      {
+        id: m.id,
+        text: m.text ?? null,
+        media_id,
+        post_id: m.postId ?? null,
+        story_id: m.storyReply ?? null,
+        reply_to_id: m.replyTo ?? null,
+      },
+    )
+    replaceMessage(chatId, w)
+  }
+
   const remote: SocialRemote = {
     refresh,
     loadMoreFeed,
@@ -827,8 +914,23 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
     },
     updateCaption: (id, caption) =>
       postWrite("PATCH", `/social/posts/${id}`, { caption }),
-    deletePost: (id) => http.request("DELETE", `/social/posts/${id}`),
-    restorePost: (id) => postWrite("POST", `/social/posts/${id}/restore`),
+    deletePost(id) {
+      deleted.add(id)
+      const done = http.request("DELETE", `/social/posts/${id}`).catch((e) => {
+        deleted.delete(id)
+        throw e
+      })
+      deleting.set(id, done)
+      return done
+    },
+    async restorePost(id) {
+      // Undo right after delete: the delete must land first, or it would
+      // land after the restore and win.
+      await deleting.get(id)?.catch(() => {})
+      deleting.delete(id)
+      deleted.delete(id)
+      return postWrite("POST", `/social/posts/${id}/restore`)
+    },
     async addComment(postId, comment) {
       const w = await http.request<WComment>(
         "POST",
@@ -859,6 +961,7 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
     deleteComment: (postId, id) =>
       http.request("DELETE", commentPath(postId, id)),
     async createStory(story) {
+      storyWrittenAt.set(story.id, now())
       const media_id =
         (story.kind === "image" || story.kind === "video") && story.uri
           ? await upload(story.uri, story.kind)
@@ -882,6 +985,7 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
     likeStory: (id, on) =>
       http.request(onOff(on), `/social/stories/${id}/like`),
     async setNote(text) {
+      noteWrittenAt = now()
       const w = await http.request<WNote>("PUT", "/social/notes/me", { text })
       set((s) => ({
         ...s,
@@ -890,8 +994,11 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
     },
     clearNote: () => http.request("DELETE", "/social/notes/me"),
     likeNote: (id, on) => http.request(onOff(on), `/social/notes/${id}/like`),
-    follow: (personId, on) =>
-      personWrite(onOff(on), `/social/people/${personId}/follow`),
+    async follow(personId, on) {
+      await personWrite(onOff(on), `/social/people/${personId}/follow`)
+      // Following unlocks the followers-only scorecard: load it now.
+      if (on) quietly(openPerson(personId))
+    },
     closeFriend: (personId, on) =>
       personWrite("PUT", `/social/people/${personId}/close-friend`, {
         close_friend: on,
@@ -925,22 +1032,17 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
       chatReady.set(chat.id, ready)
       return ready
     },
-    async sendMessage(chatId, m) {
-      await chatReady.get(chatId)
-      const media_id = m.media ? await upload(m.media.uri, m.media.kind) : null
-      const w = await http.request<WMessage>(
-        "POST",
-        chatPath(chatId, "/messages"),
-        {
-          id: m.id,
-          text: m.text ?? null,
-          media_id,
-          post_id: m.postId ?? null,
-          story_id: m.storyReply ?? null,
-          reply_to_id: m.replyTo ?? null,
-        },
-      )
-      replaceMessage(chatId, w)
+    sendMessage(chatId, m) {
+      // One at a time per chat, so the server keeps the order they were sent.
+      const prev = sending.get(chatId) ?? chatReady.get(chatId)
+      const next = Promise.resolve(prev)
+        .catch(() => {})
+        .then(() => postMessage(chatId, m))
+      sending.set(chatId, next)
+      void next.finally(() => {
+        if (sending.get(chatId) === next) sending.delete(chatId)
+      })
+      return next
     },
     react: (chatId, messageId, emoji) =>
       emoji
@@ -970,10 +1072,13 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
         user_ids: ids.map(sid),
       }),
     hideChat: (chatId) => http.request("DELETE", chatPath(chatId)),
+    leaveChat: (chatId) => http.request("POST", chatPath(chatId, "/leave")),
     restoreChat: (chatId) => chatWrite("POST", chatPath(chatId, "/restore")),
     saveDraft: (kind, body) =>
       body
-        ? http.request("PUT", `/social/drafts/${kind}`, { body })
+        ? http.request("PUT", `/social/drafts/${kind}`, {
+            body: draftForServer(body),
+          })
         : http.request("DELETE", `/social/drafts/${kind}`),
     async typing(chatId) {
       const t = now()
