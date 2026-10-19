@@ -373,6 +373,11 @@ describe("dashboard (live)", {
   it("inbox: read and read all", () => {
     cy.newLiveUser("dashinbox").then((user) => {
       const ago = (m: number) => new Date(Date.now() - m * 60000).toISOString()
+      // No quiet hours (default 22:00–07:00 would hold the reminders at night).
+      cy.liveApi(user, "PATCH", "/tasks/settings", {
+        quiet_start: "00:00",
+        quiet_end: "00:00",
+      })
       for (const [title, m] of [
         ["Call the bank", 3],
         ["Book flights", 2],
