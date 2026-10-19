@@ -98,7 +98,7 @@ describe("fitness · nutrition (live)", { defaultCommandTimeout: 60000 }, () => 
         })
 
       // Manual meal: picker items, a custom item, qty, remove, label.
-      cy.findByText("Manual").click()
+      cy.findAllByText("Manual").filter(":visible").first().click()
       cy.location("pathname").should("eq", "/fitness/nutrition/new")
       cy.findByRole("textbox", { name: "Add food" }).type("rice")
       cy.findByText("Steamed rice").click()
@@ -113,7 +113,11 @@ describe("fitness · nutrition (live)", { defaultCommandTimeout: 60000 }, () => 
       cy.findAllByRole("button", { name: "More" }).first().click()
       cy.findByText("1.5 cup").should("exist")
       cy.findAllByRole("button", { name: "Remove item" }).eq(1).click()
-      cy.findByText("Fried egg").should("not.exist")
+      // (The food picker's chips also show "Fried egg": count item rows.)
+      cy.findAllByRole("button", { name: "Remove item" }).should(
+        "have.length",
+        2,
+      )
       cy.findByText("dinner").click()
       cy.findByRole("button", { name: /^Save meal · \d+ kcal$/ }).click()
       cy.location("search").should("contain", "tab=eat")
@@ -228,7 +232,7 @@ describe("fitness · nutrition (live)", { defaultCommandTimeout: 60000 }, () => 
           rows("select 1 from meal_item where id = $1 and kcal = 333", [
             first.id,
           ])
-          cy.findByText("Done").click()
+          cy.findAllByText("Done").last().click()
           cy.findAllByRole("button", { name: "Remove item" }).first().click()
           rows(
             "select 1 from meal_item where id = $1 and deleted_at is not null",
@@ -249,7 +253,7 @@ describe("fitness · nutrition (live)", { defaultCommandTimeout: 60000 }, () => 
             new Date(m.eaten_at as string).toTimeString().slice(0, 5),
           ).to.eq("07:30"),
         )
-        cy.findByText("Done").click()
+        cy.findAllByText("Done").filter(":visible").first().click()
 
         // Duplicate to today.
         cy.findByRole("button", { name: "Duplicate to today" }).click()
