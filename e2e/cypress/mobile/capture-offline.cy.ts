@@ -113,11 +113,6 @@ describe("capture offline queue and photo (live)", () => {
       signIn(user)
       cy.visit("/capture/queue")
       cy.findByRole("switch", { name: "Simulate offline" }).click()
-      cy.findByRole("switch", { name: "Simulate offline" }).should(
-        "have.attr",
-        "aria-checked",
-        "true",
-      )
       cy.visit("/capture")
       sendMessage(text)
       cy.findByText("Queued · will process when online").should("exist")

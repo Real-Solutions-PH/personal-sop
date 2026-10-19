@@ -166,11 +166,12 @@ describe("AI providers and AI settings (live)", () => {
         // The app now tries that model; it can't answer, so the rules do.
         revisit("/capture")
         sendMessage("buy eggs")
-        cy.findByText(
-          "The AI didn't answer — the built-in rules read this",
-        ).should("exist")
         captureRow(user, "buy eggs", "done").then((cap) => {
           expect(cap.engine).to.eq("rules")
+          rows(
+            "select 1 from reply_item where capture_id = $1 and body->>'title' = $2",
+            [cap.id, "The AI didn't answer — the built-in rules read this"],
+          )
           cardIn(user, cap.id, "saved").then((card) => {
             rows("select title from task where id = $1", [card.refs[0]]).then(
               ([t]) => expect(t.title).to.eq("Eggs"),
@@ -180,7 +181,11 @@ describe("AI providers and AI settings (live)", () => {
         rows(
           "select model from ai_usage where owner_id = $1 and purpose = 'capture' and ok = false",
           [user.id],
-        )
+        ).then(([u]) => expect(u.model).to.eq("fake-capture-model"))
+        revisit("/capture")
+        cy.findByText(
+          "The AI didn't answer — the built-in rules read this",
+        ).should("exist")
 
         // Remove one assignment, then the credential.
         cy.liveApi(user, "DELETE", "/ai/assignments/vision")
@@ -218,7 +223,8 @@ describe("AI providers and AI settings (live)", () => {
         )
 
       // Spend cap.
-      cy.findByRole("button", { name: "₱1,000" }).click()
+      // The cap chips come before the threshold chips (₱1,000 is in both).
+      cy.findAllByRole("button", { name: "₱1,000" }).first().click()
       setting("spend_cap_minor = 100000")
 
       // Tier: tasks need confirming.
