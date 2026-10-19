@@ -14,6 +14,7 @@ import { SyncEngine } from "./engine"
 import { runEventStream, type ServerEvent } from "./events"
 import type { AnyMapper } from "./mapper"
 import { modulePrefMapper, weatherPrefMapper } from "./mappers/reference"
+import "./mappers/tasks"
 import { createOutbox } from "./outbox"
 
 export type MapperFactory = (userId: string) => AnyMapper[]

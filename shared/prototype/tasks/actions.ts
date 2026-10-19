@@ -1,5 +1,6 @@
 "use client"
 import { dayKey } from "../lib/day"
+import { derivedId } from "../lib/ids"
 import { uid } from "../lib/store"
 import type {
   ListColor,
@@ -166,6 +167,10 @@ export function completeTask(id: string): Task | null {
         },
         t.order,
       ),
+      // The server spawns the same occurrence under the same id
+      // (tasks ops.next_occurrence_id), so an offline tick and its replay
+      // never make two.
+      id: derivedId("task-next", t.id, due),
       remindAt: t.remindAt
         ? new Date(
             new Date(t.remindAt).getTime() + shift * 86400000,
