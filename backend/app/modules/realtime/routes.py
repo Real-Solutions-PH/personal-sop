@@ -5,6 +5,7 @@ comment heartbeat every ``EVENTS_HEARTBEAT_SECONDS`` keeps proxies from
 closing an idle stream. Resume with the standard ``Last-Event-ID`` header.
 """
 
+import uuid
 from collections.abc import AsyncIterator
 
 import redis.asyncio as aioredis
@@ -13,6 +14,7 @@ from fastapi.responses import StreamingResponse
 
 from app.core.config import settings
 from app.modules.iam.deps import CurrentUser, require_permission
+from app.modules.realtime import presence
 from app.shared.events import stream_key
 
 router = APIRouter(prefix="/events", tags=["events"])
@@ -24,9 +26,14 @@ def sse_frame(event_id: str, type_: str, data: str) -> str:
     return "\n".join(lines) + "\n\n"
 
 
-async def _tail(request: Request, key: str, last_id: str) -> AsyncIterator[str]:
+async def _tail(
+    request: Request, user_id: uuid.UUID, last_id: str
+) -> AsyncIterator[str]:
+    key = stream_key(user_id)
+    conn_id = uuid.uuid4().hex
     client = aioredis.Redis.from_url(settings.REDIS_URL, decode_responses=True)
     try:
+        await presence.touch(client, user_id, conn_id)
         yield "retry: 3000\n\n"
         cursor = last_id
         if cursor == "$":
@@ -36,6 +43,7 @@ async def _tail(request: Request, key: str, last_id: str) -> AsyncIterator[str]:
             cursor = newest[0][0] if newest else "0-0"
         block_ms = settings.EVENTS_HEARTBEAT_SECONDS * 1000
         while not await request.is_disconnected():
+            await presence.touch(client, user_id, conn_id)
             got = await client.xread({key: cursor}, block=block_ms, count=100)
             if not got:
                 yield ": ping\n\n"
@@ -49,6 +57,7 @@ async def _tail(request: Request, key: str, last_id: str) -> AsyncIterator[str]:
                         fields.get("data", "{}"),
                     )
     finally:
+        await presence.leave(client, user_id, conn_id)
         await client.aclose()
 
 
@@ -65,7 +74,7 @@ async def stream(
     # "$" = only new events; a known id resumes after it (within the window).
     start = last_event_id if last_event_id else "$"
     return StreamingResponse(
-        _tail(request, stream_key(current_user.id), start),
+        _tail(request, current_user.id, start),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
