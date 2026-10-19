@@ -9,10 +9,12 @@ import { fetch as expoFetch } from "expo/fetch"
 import { AppState } from "react-native"
 import { http, tokens } from "./auth"
 import { clearToBlank } from "./blank"
+import { captureMappers } from "./capture"
 import { API_PREFIX, API_URL } from "./config"
 import { SyncEngine } from "./engine"
 import { runEventStream, type ServerEvent } from "./events"
 import type { AnyMapper } from "./mapper"
+import { companionMappers } from "./mappers/companion"
 import { financeMappers } from "./mappers/finance"
 import { habitsMappers } from "./mappers/habits"
 import { modulePrefMapper, weatherPrefMapper } from "./mappers/reference"
@@ -27,6 +29,8 @@ const factories: MapperFactory[] = [
   financeMappers,
   habitsMappers,
   tasksMappers,
+  captureMappers,
+  companionMappers,
 ]
 export const registerMappers = (f: MapperFactory) => void factories.push(f)
 
