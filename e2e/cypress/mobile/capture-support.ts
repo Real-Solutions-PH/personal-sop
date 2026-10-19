@@ -63,7 +63,8 @@ export function api<T>(user: LiveUser, path: string, check: (b: T) => boolean) {
 /**
  * Wait for the app's first sync pull after sign-in: the live runtime stores
  * its cursor once a pull lands. A capture sent before then races the first
- * sync on the server (see the capture spec's defect note).
+ * sync on the server (see the capture spec's defect note). Twice the usual
+ * budget: a failed first pull is retried by the app's 60 s sync timer.
  */
 export function settle() {
   let end = 0
@@ -76,7 +77,7 @@ export function settle() {
       return attempt()
     })
   return cy.then(() => {
-    end = Date.now() + BUDGET_MS
+    end = Date.now() + 2 * BUDGET_MS
     return attempt()
   })
 }
