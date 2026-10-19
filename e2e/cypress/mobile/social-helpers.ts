@@ -70,8 +70,23 @@ export function apiCall(
           method,
           url: `${Cypress.env("API_URL")}/api/v1${path}`,
           headers: { Authorization: `Bearer ${t}` },
-          body,
+          body: body as Cypress.RequestBody,
         })
         .its("status"),
     )
+}
+
+/** ``cy.signInLive`` with one more wait: on a busy host the Email field can
+ * still be read-only (mid route transition) when the shared helper types. */
+export function signIn(user: LiveUser) {
+  cy.visit("/welcome")
+  cy.findByRole("button", { name: "I already have an account" }).click()
+  cy.findByRole("textbox", { name: "Email" })
+    .should("not.be.disabled")
+    .and("not.have.attr", "readonly")
+    .clear()
+    .type(user.email)
+  cy.findByLabelText("Password").type(user.password, { log: false })
+  cy.findByRole("button", { name: "Sign in" }).click()
+  cy.location("pathname", { timeout: 30000 }).should("eq", "/today")
 }

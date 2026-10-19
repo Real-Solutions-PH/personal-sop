@@ -15,12 +15,12 @@
 // | /social/u/[id]       | Scores tab: followers-only scorecard     | "the scorecard is followers-only …" |
 // | /social/activity     | B follows A → row appears without reload | "B following A reaches A's open Activity screen …" |
 // | /social/activity     | Leaving it marks activity read           | "B following A reaches A's open Activity screen …" |
-import { namedUser, rows } from "./social-helpers"
+import { namedUser, rows, signIn } from "./social-helpers"
 
 describe("social profile & follows (live)", () => {
   it("edits the profile and the show-scores switch; both reach the server", () => {
     namedUser("Ann").then((a) => {
-      cy.signInLive(a)
+      signIn(a)
       cy.visit("/social/u/me")
       cy.findByRole("button", { name: "Edit profile" }).click()
       cy.location("pathname").should("eq", "/me/profile")
@@ -54,7 +54,7 @@ describe("social profile & follows (live)", () => {
   it("follows, unfollows and close-friends another user from their profile", () => {
     namedUser("Bea").then((b) => {
       namedUser("Ann").then((a) => {
-        cy.signInLive(a)
+        signIn(a)
         cy.visit(`/social/u/${b.id}`)
         // The header button (the scores tab's lock has a second one).
         cy.findAllByRole("button", { name: `Follow ${b.name}` })
@@ -152,7 +152,7 @@ describe("social profile & follows (live)", () => {
 
         // A, not following B, sees the lock on B's scores tab; after
         // following, the scorecard itself.
-        cy.signInLive(a)
+        signIn(a)
         cy.visit(`/social/u/${b.id}`)
         cy.findByRole("tab", { name: "Scores" }).click()
         cy.findByText("Scores are for followers").should("exist")
@@ -175,7 +175,7 @@ describe("social profile & follows (live)", () => {
   it("B following A reaches A's open Activity screen without a reload", () => {
     namedUser("Bea").then((b) => {
       namedUser("Ann").then((a) => {
-        cy.signInLive(a)
+        signIn(a)
         cy.visit("/social/activity")
         cy.findByText("No activity yet").should("exist")
         cy.window().then((win) => {

@@ -13,7 +13,7 @@
 // | /social/stories/[me] | Delete my story                              | "shares a text story …" |
 // | /social/inbox        | Leave a note, delete it                      | "leaves a note …" |
 // | /social/inbox        | Open B's note, like it, reply to it          | "likes B's note …" |
-import { namedUser } from "./social-helpers"
+import { namedUser, signIn } from "./social-helpers"
 
 const stamp = () => Date.now().toString(36)
 
@@ -23,7 +23,7 @@ describe("social stories & notes (live)", () => {
       namedUser("Ann").then((a) => {
         const text = `Morning run ${stamp()}`
         cy.liveApi(b, "PUT", `/social/people/${a.id}/follow`)
-        cy.signInLive(a)
+        signIn(a)
         cy.visit("/social/story-new")
         cy.findByRole("textbox", { name: "Story text" }).type(text)
         cy.findByRole("button", { name: "Share to your story" }).click()
@@ -72,7 +72,7 @@ describe("social stories & notes (live)", () => {
           cy.liveApi(a, "PUT", `/social/people/${b.id}/close-friend`, {
             close_friend: true,
           })
-          cy.signInLive(a)
+          signIn(a)
           cy.visit("/social/story-new")
           cy.findByRole("textbox", { name: "Story text" }).type(text)
           cy.findByRole("button", { name: "Share to close friends" }).click()
@@ -109,7 +109,7 @@ describe("social stories & notes (live)", () => {
           text,
           audience: "everyone",
         }).then((story) => {
-          cy.signInLive(a)
+          signIn(a)
           cy.visit(`/social/stories/${b.id}`)
           cy.findByText(text).should("exist")
           // Act while the story is on screen: the viewer moves on when its
@@ -153,7 +153,7 @@ describe("social stories & notes (live)", () => {
       namedUser("Ann").then((a) => {
         const text = `Deep work ${stamp()}`.slice(0, 40)
         cy.liveApi(b, "PUT", `/social/people/${a.id}/follow`)
-        cy.signInLive(a)
+        signIn(a)
         cy.visit("/social/inbox")
         cy.findByRole("button", { name: "Leave a note" }).click()
         cy.findByRole("textbox", { name: "Note text" }).type(text)
@@ -194,7 +194,7 @@ describe("social stories & notes (live)", () => {
         cy.liveApi<{ id: string }>(b, "PUT", "/social/notes/me", {
           text,
         }).then((note) => {
-          cy.signInLive(a)
+          signIn(a)
           cy.visit("/social/inbox")
           cy.findByRole("button", {
             name: `Note from ${b.handle}: ${text}`,

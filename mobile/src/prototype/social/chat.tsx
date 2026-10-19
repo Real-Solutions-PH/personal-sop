@@ -716,6 +716,10 @@ function ChatInfo({
   const [name, setName] = useState(chat.name ?? "")
   const [adding, setAdding] = useState(false)
   const group = !!chat.name
+  const rename = () => {
+    const next = name.trim()
+    if (next && next !== chat.name) renameChat(chat.id, next)
+  }
   return (
     <Sheet
       title={group ? "Group details" : "Details"}
@@ -727,7 +731,9 @@ function ChatInfo({
           label="Group name"
           value={name}
           onChangeText={setName}
-          onEndEditing={() => name.trim() && renameChat(chat.id, name.trim())}
+          // onEndEditing never fires on web; blur and submit do everywhere.
+          onBlur={rename}
+          onSubmitEditing={rename}
           returnKeyType="done"
         />
       )}

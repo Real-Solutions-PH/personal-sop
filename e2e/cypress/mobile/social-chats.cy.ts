@@ -21,7 +21,7 @@
 // | chat Details sheet  | Rename group, mute, add a member, leave       | "group details: rename, mute, add, leave" |
 // | chat Details sheet  | Delete a direct chat                          | "deletes a direct chat from its details" |
 // | /social/inbox       | Swipe row: pin / mute / delete               | NOT COVERABLE ON WEB: swipe-only gesture; mute and delete are covered through the Details sheet (same store actions) |
-import { apiCall, longPress, namedUser, rows } from "./social-helpers"
+import { apiCall, longPress, namedUser, rows, signIn } from "./social-helpers"
 import type { LiveUser } from "./support"
 
 const stamp = () => Date.now().toString(36)
@@ -37,7 +37,7 @@ describe("social chats (live)", () => {
   it("opens a direct chat from search and sends messages", () => {
     namedUser("Bea").then((b) => {
       namedUser("Ann").then((a) => {
-        cy.signInLive(a)
+        signIn(a)
         cy.visit("/social/new-chat")
         cy.findByRole("textbox", { name: "Search people" }).type(b.handle)
         cy.findByRole("checkbox", { name: b.name }).click()
@@ -89,7 +89,7 @@ describe("social chats (live)", () => {
             `/social/chats/${chat.id}/messages`,
             { text: "React to me" },
           ).then((theirs) => {
-            cy.signInLive(a)
+            signIn(a)
             cy.visit(`/social/chat/${chat.id}`)
             cy.findByText("React to me").then(($m) => longPress($m))
             cy.findAllByRole("button", { name: /^React / })
@@ -148,7 +148,7 @@ describe("social chats (live)", () => {
       namedUser("Bea").then((b) => {
         namedUser("Ann").then((a) => {
           const name = `Crew ${stamp()}`
-          cy.signInLive(a)
+          signIn(a)
           cy.visit("/social/new-chat")
           cy.findByRole("textbox", { name: "Search people" }).type(b.handle)
           cy.findByRole("checkbox", { name: b.name }).click()
@@ -197,7 +197,7 @@ describe("social chats (live)", () => {
           cy.liveApi(b, "POST", `/social/chats/${chat.id}/messages`, {
             text: "Opening line",
           })
-          cy.signInLive(a)
+          signIn(a)
           cy.visit(`/social/chat/${chat.id}`)
           cy.findByText("Opening line").should("exist")
           cy.findByRole("textbox", { name: "Message" }).type("Mine")
@@ -250,7 +250,7 @@ describe("social chats (live)", () => {
             "/social/chats",
             (l) => l.data.some((c) => c.id === chat.id && c.unread === 2),
           )
-          cy.signInLive(a)
+          signIn(a)
           cy.visit("/social")
           cy.findByRole("button", { name: "Messages, 1 unread" }).should(
             "exist",
@@ -288,7 +288,7 @@ describe("social chats (live)", () => {
               stats: [],
             },
           }).then((post) => {
-            cy.signInLive(a)
+            signIn(a)
             cy.visit(`/social/post/${post.id}`)
             cy.findByRole("button", { name: "Send" }).click()
             cy.findByRole("button", { name: `Send to ${b.name}` }).click()
@@ -316,7 +316,7 @@ describe("social chats (live)", () => {
             name: "Old name",
             member_ids: [a.id],
           }).then((chat) => {
-            cy.signInLive(a)
+            signIn(a)
             cy.visit(`/social/chat/${chat.id}`)
             cy.findByRole("button", { name: "Details" }).click()
             cy.findByRole("textbox", { name: "Group name" })
@@ -377,7 +377,7 @@ describe("social chats (live)", () => {
           cy.liveApi(b, "POST", `/social/chats/${chat.id}/messages`, {
             text: "Hello",
           })
-          cy.signInLive(a)
+          signIn(a)
           cy.visit(`/social/chat/${chat.id}`)
           cy.findByText("Hello").should("exist")
           cy.findByRole("button", { name: "Details" }).click()

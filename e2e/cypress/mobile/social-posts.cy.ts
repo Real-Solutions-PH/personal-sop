@@ -19,7 +19,7 @@
 // | post options           | Copy link / Report                            | NOT COVERABLE ON WEB: clipboard / toast only, no server effect |
 // | /social/explore        | #tag search, leaderboard, people search       | "explore: #tag search …" |
 // | /social/activity       | B likes + comments on A's post, live          | "B liking and commenting reach A's open Activity …" |
-import { longPress, namedUser, rows } from "./social-helpers"
+import { longPress, namedUser, rows, signIn } from "./social-helpers"
 
 const stamp = () => Date.now().toString(36)
 const PROGRESS = { accent: "tsk", kind: "tasks", title: "This week", stats: [] }
@@ -27,7 +27,7 @@ const PROGRESS = { accent: "tsk", kind: "tasks", title: "This week", stats: [] }
 describe("social posts (live)", () => {
   it("a share card becomes a server draft, then an image post that clears it", () => {
     namedUser("Ann").then((a) => {
-      cy.signInLive(a)
+      signIn(a)
       cy.visit("/tasks/share")
       cy.findByRole("button", { name: "Post" }).click()
       cy.location("pathname").should("eq", "/social/compose")
@@ -49,7 +49,7 @@ describe("social posts (live)", () => {
       // The draft survives a reload: its caption comes back from the server.
       // (The web-rendered card image is device-only and may not survive.)
       cy.reload()
-      cy.findByRole("textbox", { name: "Caption" }, { timeout: 60000 }).should(
+      cy.findByRole("textbox", { name: "Caption", timeout: 60000 }).should(
         "contain.value",
         "Tasks this week",
       )
@@ -86,7 +86,7 @@ describe("social posts (live)", () => {
   it("creates a progress post with a caption, #tag and location", () => {
     namedUser("Ann").then((a) => {
       const tag = `e2e${stamp()}`
-      cy.signInLive(a)
+      signIn(a)
       cy.visit("/social/compose?progress=1")
       cy.findAllByRole("button", { name: /^Attach / })
         .first()
@@ -129,7 +129,7 @@ describe("social posts (live)", () => {
           media: [],
           progress: PROGRESS,
         }).then((post) => {
-          cy.signInLive(a)
+          signIn(a)
           // For you shows every post in the tenant; Following only followees.
           cy.visit("/social")
           cy.findByRole("tab", { name: "For you" }).click()
@@ -208,7 +208,7 @@ describe("social posts (live)", () => {
             `/social/posts/${post.id}/comments`,
             { text: "First from Bea" },
           ).then((theirs) => {
-            cy.signInLive(a)
+            signIn(a)
             cy.visit(`/social/post/${post.id}`)
             cy.findByText("First from Bea").should("exist")
             cy.findAllByRole("button", { name: "Like comment" }).first().click()
@@ -275,7 +275,7 @@ describe("social posts (live)", () => {
             v0 = Number(r.version)
           },
         )
-        cy.signInLive(a)
+        signIn(a)
         cy.visit(`/social/post/${post.id}`)
         cy.findByRole("button", { name: "Post options" }).click()
         cy.findByRole("button", { name: "Delete" }).click()
@@ -322,7 +322,7 @@ describe("social posts (live)", () => {
           media: [],
           progress: PROGRESS,
         })
-        cy.signInLive(a)
+        signIn(a)
         cy.visit("/social/explore")
         // The friends leaderboard: me plus the people I follow.
         cy.findByText("Friends leaderboard").should("exist")
@@ -358,7 +358,7 @@ describe("social posts (live)", () => {
           media: [],
           progress: PROGRESS,
         }).then((post) => {
-          cy.signInLive(a)
+          signIn(a)
           cy.visit("/social/activity")
           cy.findByText("No activity yet").should("exist")
           cy.window().then((win) => {
