@@ -1,0 +1,4053 @@
+{
+  "frozenNow": "2026-10-18T04:00:00.000Z",
+  "source": "shared/prototype",
+  "data": {
+    "cases": [
+      {
+        "name": "seed",
+        "state": {
+          "enabled": {
+            "habits": true,
+            "tasks": true,
+            "fitness": true,
+            "finance": true
+          },
+          "threshold": 0.8,
+          "wrapups": [],
+          "goals": [
+            {
+              "id": "g1",
+              "metric": "life",
+              "label": "Life Score",
+              "target": 75,
+              "unit": "",
+              "comparator": "gte",
+              "period": "month",
+              "createdAt": "2026-09-08",
+              "status": "active",
+              "via": "manual"
+            },
+            {
+              "id": "g2",
+              "metric": "fitness:sessions",
+              "label": "Workouts",
+              "target": 4,
+              "unit": "",
+              "comparator": "gte",
+              "period": "week",
+              "createdAt": "2026-08-19",
+              "status": "active",
+              "via": "onboarding"
+            },
+            {
+              "id": "g3",
+              "metric": "finance:savings-rate",
+              "label": "Savings rate",
+              "target": 25,
+              "unit": "%",
+              "comparator": "gte",
+              "period": "month",
+              "createdAt": "2026-08-19",
+              "status": "active",
+              "via": "onboarding"
+            },
+            {
+              "id": "g4",
+              "metric": "habits:habits.rate",
+              "label": "Habit completion",
+              "target": 85,
+              "unit": "%",
+              "comparator": "gte",
+              "period": "week",
+              "createdAt": "2026-09-28",
+              "status": "active",
+              "via": "review"
+            },
+            {
+              "id": "g5",
+              "metric": "tasks:tasks.overdue",
+              "label": "Overdue now",
+              "target": 2,
+              "unit": "",
+              "comparator": "lte",
+              "period": "week",
+              "createdAt": "2026-08-04",
+              "status": "archived",
+              "via": "manual"
+            }
+          ]
+        },
+        "current": 5,
+        "goals": [
+          {
+            "goal": {
+              "id": "g1",
+              "metric": "life",
+              "label": "Life Score",
+              "target": 75,
+              "unit": "",
+              "comparator": "gte",
+              "period": "month",
+              "createdAt": "2026-09-08",
+              "status": "active",
+              "via": "manual"
+            },
+            "entry": {
+              "ref": "life",
+              "label": "Life Score",
+              "module": "life",
+              "value": "79",
+              "n": 79,
+              "unit": "",
+              "goodWhen": "up",
+              "shareable": true
+            },
+            "pct": 1.0533333333333332,
+            "hit": true
+          },
+          {
+            "goal": {
+              "id": "g2",
+              "metric": "fitness:sessions",
+              "label": "Workouts",
+              "target": 4,
+              "unit": "",
+              "comparator": "gte",
+              "period": "week",
+              "createdAt": "2026-08-19",
+              "status": "active",
+              "via": "onboarding"
+            },
+            "entry": {
+              "ref": "fitness:sessions",
+              "label": "Workouts",
+              "module": "fitness",
+              "value": "3",
+              "n": 3,
+              "unit": "",
+              "goodWhen": "up",
+              "shareable": true,
+              "delta": -1
+            },
+            "pct": 0.75,
+            "hit": false
+          },
+          {
+            "goal": {
+              "id": "g3",
+              "metric": "finance:savings-rate",
+              "label": "Savings rate",
+              "target": 25,
+              "unit": "%",
+              "comparator": "gte",
+              "period": "month",
+              "createdAt": "2026-08-19",
+              "status": "active",
+              "via": "onboarding"
+            },
+            "entry": {
+              "ref": "finance:savings-rate",
+              "label": "Savings rate",
+              "module": "finance",
+              "value": "33%",
+              "n": 33,
+              "unit": "%",
+              "goodWhen": "up",
+              "shareable": true,
+              "delta": 0
+            },
+            "pct": 1.32,
+            "hit": true
+          },
+          {
+            "goal": {
+              "id": "g4",
+              "metric": "habits:habits.rate",
+              "label": "Habit completion",
+              "target": 85,
+              "unit": "%",
+              "comparator": "gte",
+              "period": "week",
+              "createdAt": "2026-09-28",
+              "status": "active",
+              "via": "review"
+            },
+            "entry": {
+              "ref": "habits:habits.rate",
+              "label": "Habit completion",
+              "module": "habits",
+              "value": "91%",
+              "n": 91,
+              "unit": "%",
+              "goodWhen": "up",
+              "shareable": true,
+              "delta": 17
+            },
+            "pct": 1.0705882352941176,
+            "hit": true
+          },
+          {
+            "goal": {
+              "id": "g5",
+              "metric": "tasks:tasks.overdue",
+              "label": "Overdue now",
+              "target": 2,
+              "unit": "",
+              "comparator": "lte",
+              "period": "week",
+              "createdAt": "2026-08-04",
+              "status": "archived",
+              "via": "manual"
+            },
+            "entry": {
+              "ref": "tasks:tasks.overdue",
+              "label": "Overdue now",
+              "module": "tasks",
+              "value": "6",
+              "n": 6,
+              "unit": "",
+              "goodWhen": "down",
+              "shareable": false
+            },
+            "pct": 0.3333333333333333,
+            "hit": false
+          }
+        ],
+        "achievements": [
+          {
+            "id": "pr-30",
+            "type": "pr",
+            "title": "PR this month",
+            "requirement": "Set a new best lift (est. 1-rep max) in the last 30 days",
+            "progress": {
+              "pct": 1,
+              "text": "1 / 1 PR"
+            },
+            "trophy": {
+              "id": "pr-30",
+              "type": "pr",
+              "title": "PR this month",
+              "value": "34",
+              "detail": "34 new best lifts in 30 days",
+              "day": "2026-10-17",
+              "href": "/fitness/stats"
+            }
+          },
+          {
+            "id": "pr-90-5",
+            "type": "pr",
+            "title": "5 PRs in 90 days",
+            "requirement": "Set 5 new best lifts within 90 days",
+            "progress": {
+              "pct": 1,
+              "text": "5 / 5 PRs"
+            },
+            "trophy": {
+              "id": "pr-90-5",
+              "type": "pr",
+              "title": "5 PRs in 90 days",
+              "value": "76",
+              "detail": "76 new best lifts in 90 days",
+              "day": "2026-10-17",
+              "href": "/fitness/stats"
+            }
+          },
+          {
+            "id": "pr-90-10",
+            "type": "pr",
+            "title": "10 PRs in 90 days",
+            "requirement": "Set 10 new best lifts within 90 days",
+            "progress": {
+              "pct": 1,
+              "text": "10 / 10 PRs"
+            },
+            "trophy": {
+              "id": "pr-90-10",
+              "type": "pr",
+              "title": "10 PRs in 90 days",
+              "value": "76",
+              "detail": "76 new best lifts in 90 days",
+              "day": "2026-10-17",
+              "href": "/fitness/stats"
+            }
+          },
+          {
+            "id": "streak-7",
+            "type": "streak",
+            "title": "7-day on-target streak",
+            "requirement": "Hit your daily target 7 days in a row",
+            "progress": {
+              "pct": 0.7142857142857143,
+              "text": "5 / 7 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "streak-30",
+            "type": "streak",
+            "title": "30-day on-target streak",
+            "requirement": "Hit your daily target 30 days in a row",
+            "progress": {
+              "pct": 0.16666666666666666,
+              "text": "5 / 30 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "streak-100",
+            "type": "streak",
+            "title": "100-day on-target streak",
+            "requirement": "Hit your daily target 100 days in a row",
+            "progress": {
+              "pct": 0.05,
+              "text": "5 / 100 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "streak-365",
+            "type": "streak",
+            "title": "365-day on-target streak",
+            "requirement": "Hit your daily target 365 days in a row",
+            "progress": {
+              "pct": 0.0136986301369863,
+              "text": "5 / 365 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "habit-streak-7",
+            "type": "streak",
+            "title": "7-day habit streak",
+            "requirement": "Reach a 7-day streak on any habit",
+            "progress": {
+              "pct": 1,
+              "text": "7 / 7 days"
+            },
+            "trophy": {
+              "id": "habit-streak-7",
+              "type": "streak",
+              "title": "7-day streak · Morning workout",
+              "value": "7d",
+              "detail": "Current top habit streak: 17 days",
+              "day": "2026-10-08",
+              "href": "/habits",
+              "shareRef": "streak"
+            }
+          },
+          {
+            "id": "habit-streak-30",
+            "type": "streak",
+            "title": "30-day habit streak",
+            "requirement": "Reach a 30-day streak on any habit",
+            "progress": {
+              "pct": 0.5666666666666667,
+              "text": "17 / 30 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "habit-streak-100",
+            "type": "streak",
+            "title": "100-day habit streak",
+            "requirement": "Reach a 100-day streak on any habit",
+            "progress": {
+              "pct": 0.17,
+              "text": "17 / 100 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "habit-streak-365",
+            "type": "streak",
+            "title": "365-day habit streak",
+            "requirement": "Reach a 365-day streak on any habit",
+            "progress": {
+              "pct": 0.04657534246575343,
+              "text": "17 / 365 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "best-week",
+            "type": "best",
+            "title": "Best week",
+            "requirement": "Have an on-target day",
+            "progress": {
+              "pct": 1,
+              "text": "1 / 1 days"
+            },
+            "trophy": {
+              "id": "best-week-2026-10-15",
+              "type": "best",
+              "title": "Best week",
+              "value": "6/7",
+              "detail": "6 on-target days in 7",
+              "day": "2026-10-15",
+              "href": "/stats",
+              "shareRef": "weekly"
+            }
+          },
+          {
+            "id": "best-month",
+            "type": "best",
+            "title": "Best month",
+            "requirement": "Have an on-target day",
+            "progress": {
+              "pct": 1,
+              "text": "1 / 1 days"
+            },
+            "trophy": {
+              "id": "best-month-2026-10-17",
+              "type": "best",
+              "title": "Best month",
+              "value": "11/30",
+              "detail": "11 on-target days in 30",
+              "day": "2026-10-17",
+              "href": "/stats",
+              "shareRef": "monthly"
+            }
+          },
+          {
+            "id": "perfect-week",
+            "type": "best",
+            "title": "Perfect week",
+            "requirement": "Hit your daily target on all 7 days of a week",
+            "progress": {
+              "pct": 0.8571428571428571,
+              "text": "6 / 7 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "perfect-month",
+            "type": "best",
+            "title": "Perfect month",
+            "requirement": "Hit your daily target on all 30 days of a month",
+            "progress": {
+              "pct": 0.36666666666666664,
+              "text": "11 / 30 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "goal-g1",
+            "type": "goal",
+            "title": "Life Score ≥ 75 / month",
+            "requirement": "Reach at least 75 this month",
+            "progress": {
+              "pct": 1,
+              "text": "79 / 75"
+            },
+            "trophy": {
+              "id": "goal-g1",
+              "type": "goal",
+              "title": "Life Score ≥ 75 / month",
+              "value": "79",
+              "detail": "Target 75",
+              "day": "2026-10-18",
+              "href": "/stats/goals",
+              "shareRef": "goal"
+            }
+          },
+          {
+            "id": "goal-g2",
+            "type": "goal",
+            "title": "Workouts ≥ 4 / week",
+            "requirement": "Reach at least 4 this week",
+            "progress": {
+              "pct": 0.75,
+              "text": "3 / 4"
+            },
+            "trophy": null
+          },
+          {
+            "id": "goal-g3",
+            "type": "goal",
+            "title": "Savings rate ≥ 25% / month",
+            "requirement": "Reach at least 25% this month",
+            "progress": {
+              "pct": 1,
+              "text": "33% / 25%"
+            },
+            "trophy": {
+              "id": "goal-g3",
+              "type": "goal",
+              "title": "Savings rate ≥ 25% / month",
+              "value": "33%",
+              "detail": "Target 25%",
+              "day": "2026-10-18",
+              "href": "/stats/goals",
+              "shareRef": "goal"
+            }
+          },
+          {
+            "id": "goal-g4",
+            "type": "goal",
+            "title": "Habit completion ≥ 85% / week",
+            "requirement": "Reach at least 85% this week",
+            "progress": {
+              "pct": 1,
+              "text": "91% / 85%"
+            },
+            "trophy": {
+              "id": "goal-g4",
+              "type": "goal",
+              "title": "Habit completion ≥ 85% / week",
+              "value": "91%",
+              "detail": "Target 85%",
+              "day": "2026-10-18",
+              "href": "/stats/goals",
+              "shareRef": "goal"
+            }
+          },
+          {
+            "id": "goal-hat-trick",
+            "type": "goal",
+            "title": "Hat trick",
+            "requirement": "Hit 3 goals at the same time",
+            "progress": {
+              "pct": 1,
+              "text": "3 / 3 goals"
+            },
+            "trophy": {
+              "id": "goal-hat-trick",
+              "type": "goal",
+              "title": "Hat trick",
+              "value": "3",
+              "detail": "3 goals hit at once",
+              "day": "2026-10-18",
+              "href": "/stats/goals",
+              "shareRef": "goal"
+            }
+          },
+          {
+            "id": "first-on-target",
+            "type": "first",
+            "title": "First on-target day",
+            "requirement": "Hit your daily target once",
+            "progress": {
+              "pct": 1,
+              "text": "1 / 1"
+            },
+            "trophy": {
+              "id": "first-on-target-2026-07-17",
+              "type": "first",
+              "title": "First on-target day",
+              "value": "1st",
+              "detail": "Where the streaks began",
+              "day": "2026-07-17",
+              "href": "/stats"
+            }
+          },
+          {
+            "id": "first-wrap",
+            "type": "first",
+            "title": "First day wrapped up",
+            "requirement": "Seal a day with an evening wrap-up",
+            "progress": {
+              "pct": 0,
+              "text": "0 / 1"
+            },
+            "trophy": null
+          },
+          {
+            "id": "first-goal",
+            "type": "first",
+            "title": "First goal set",
+            "requirement": "Set a goal on any metric",
+            "progress": {
+              "pct": 1,
+              "text": "1 / 1"
+            },
+            "trophy": {
+              "id": "first-goal-2026-08-04",
+              "type": "first",
+              "title": "First goal set",
+              "value": "1st",
+              "detail": "Put a number on it",
+              "day": "2026-08-04",
+              "href": "/stats/goals"
+            }
+          }
+        ],
+        "trophies": [
+          {
+            "id": "goal-g1",
+            "type": "goal",
+            "title": "Life Score ≥ 75 / month",
+            "value": "79",
+            "detail": "Target 75",
+            "day": "2026-10-18",
+            "href": "/stats/goals",
+            "shareRef": "goal"
+          },
+          {
+            "id": "goal-g3",
+            "type": "goal",
+            "title": "Savings rate ≥ 25% / month",
+            "value": "33%",
+            "detail": "Target 25%",
+            "day": "2026-10-18",
+            "href": "/stats/goals",
+            "shareRef": "goal"
+          },
+          {
+            "id": "goal-g4",
+            "type": "goal",
+            "title": "Habit completion ≥ 85% / week",
+            "value": "91%",
+            "detail": "Target 85%",
+            "day": "2026-10-18",
+            "href": "/stats/goals",
+            "shareRef": "goal"
+          },
+          {
+            "id": "goal-hat-trick",
+            "type": "goal",
+            "title": "Hat trick",
+            "value": "3",
+            "detail": "3 goals hit at once",
+            "day": "2026-10-18",
+            "href": "/stats/goals",
+            "shareRef": "goal"
+          },
+          {
+            "id": "pr-30",
+            "type": "pr",
+            "title": "PR this month",
+            "value": "34",
+            "detail": "34 new best lifts in 30 days",
+            "day": "2026-10-17",
+            "href": "/fitness/stats"
+          },
+          {
+            "id": "pr-90-5",
+            "type": "pr",
+            "title": "5 PRs in 90 days",
+            "value": "76",
+            "detail": "76 new best lifts in 90 days",
+            "day": "2026-10-17",
+            "href": "/fitness/stats"
+          },
+          {
+            "id": "pr-90-10",
+            "type": "pr",
+            "title": "10 PRs in 90 days",
+            "value": "76",
+            "detail": "76 new best lifts in 90 days",
+            "day": "2026-10-17",
+            "href": "/fitness/stats"
+          },
+          {
+            "id": "best-month-2026-10-17",
+            "type": "best",
+            "title": "Best month",
+            "value": "11/30",
+            "detail": "11 on-target days in 30",
+            "day": "2026-10-17",
+            "href": "/stats",
+            "shareRef": "monthly"
+          },
+          {
+            "id": "best-week-2026-10-15",
+            "type": "best",
+            "title": "Best week",
+            "value": "6/7",
+            "detail": "6 on-target days in 7",
+            "day": "2026-10-15",
+            "href": "/stats",
+            "shareRef": "weekly"
+          },
+          {
+            "id": "habit-streak-7",
+            "type": "streak",
+            "title": "7-day streak · Morning workout",
+            "value": "7d",
+            "detail": "Current top habit streak: 17 days",
+            "day": "2026-10-08",
+            "href": "/habits",
+            "shareRef": "streak"
+          },
+          {
+            "id": "first-goal-2026-08-04",
+            "type": "first",
+            "title": "First goal set",
+            "value": "1st",
+            "detail": "Put a number on it",
+            "day": "2026-08-04",
+            "href": "/stats/goals"
+          },
+          {
+            "id": "first-on-target-2026-07-17",
+            "type": "first",
+            "title": "First on-target day",
+            "value": "1st",
+            "detail": "Where the streaks began",
+            "day": "2026-07-17",
+            "href": "/stats"
+          }
+        ]
+      },
+      {
+        "name": "wrapups",
+        "state": {
+          "enabled": {
+            "habits": true,
+            "tasks": true,
+            "fitness": true,
+            "finance": true
+          },
+          "threshold": 0.8,
+          "wrapups": [
+            "2026-10-15",
+            "2026-10-18"
+          ],
+          "goals": [
+            {
+              "id": "g1",
+              "metric": "life",
+              "label": "Life Score",
+              "target": 75,
+              "unit": "",
+              "comparator": "gte",
+              "period": "month",
+              "createdAt": "2026-09-08",
+              "status": "active",
+              "via": "manual"
+            },
+            {
+              "id": "g2",
+              "metric": "fitness:sessions",
+              "label": "Workouts",
+              "target": 4,
+              "unit": "",
+              "comparator": "gte",
+              "period": "week",
+              "createdAt": "2026-08-19",
+              "status": "active",
+              "via": "onboarding"
+            },
+            {
+              "id": "g3",
+              "metric": "finance:savings-rate",
+              "label": "Savings rate",
+              "target": 25,
+              "unit": "%",
+              "comparator": "gte",
+              "period": "month",
+              "createdAt": "2026-08-19",
+              "status": "active",
+              "via": "onboarding"
+            },
+            {
+              "id": "g4",
+              "metric": "habits:habits.rate",
+              "label": "Habit completion",
+              "target": 85,
+              "unit": "%",
+              "comparator": "gte",
+              "period": "week",
+              "createdAt": "2026-09-28",
+              "status": "active",
+              "via": "review"
+            },
+            {
+              "id": "g5",
+              "metric": "tasks:tasks.overdue",
+              "label": "Overdue now",
+              "target": 2,
+              "unit": "",
+              "comparator": "lte",
+              "period": "week",
+              "createdAt": "2026-08-04",
+              "status": "archived",
+              "via": "manual"
+            }
+          ]
+        },
+        "current": 0,
+        "goals": [
+          {
+            "goal": {
+              "id": "g1",
+              "metric": "life",
+              "label": "Life Score",
+              "target": 75,
+              "unit": "",
+              "comparator": "gte",
+              "period": "month",
+              "createdAt": "2026-09-08",
+              "status": "active",
+              "via": "manual"
+            },
+            "entry": {
+              "ref": "life",
+              "label": "Life Score",
+              "module": "life",
+              "value": "79",
+              "n": 79,
+              "unit": "",
+              "goodWhen": "up",
+              "shareable": true
+            },
+            "pct": 1.0533333333333332,
+            "hit": true
+          },
+          {
+            "goal": {
+              "id": "g2",
+              "metric": "fitness:sessions",
+              "label": "Workouts",
+              "target": 4,
+              "unit": "",
+              "comparator": "gte",
+              "period": "week",
+              "createdAt": "2026-08-19",
+              "status": "active",
+              "via": "onboarding"
+            },
+            "entry": {
+              "ref": "fitness:sessions",
+              "label": "Workouts",
+              "module": "fitness",
+              "value": "3",
+              "n": 3,
+              "unit": "",
+              "goodWhen": "up",
+              "shareable": true,
+              "delta": -1
+            },
+            "pct": 0.75,
+            "hit": false
+          },
+          {
+            "goal": {
+              "id": "g3",
+              "metric": "finance:savings-rate",
+              "label": "Savings rate",
+              "target": 25,
+              "unit": "%",
+              "comparator": "gte",
+              "period": "month",
+              "createdAt": "2026-08-19",
+              "status": "active",
+              "via": "onboarding"
+            },
+            "entry": {
+              "ref": "finance:savings-rate",
+              "label": "Savings rate",
+              "module": "finance",
+              "value": "33%",
+              "n": 33,
+              "unit": "%",
+              "goodWhen": "up",
+              "shareable": true,
+              "delta": 0
+            },
+            "pct": 1.32,
+            "hit": true
+          },
+          {
+            "goal": {
+              "id": "g4",
+              "metric": "habits:habits.rate",
+              "label": "Habit completion",
+              "target": 85,
+              "unit": "%",
+              "comparator": "gte",
+              "period": "week",
+              "createdAt": "2026-09-28",
+              "status": "active",
+              "via": "review"
+            },
+            "entry": {
+              "ref": "habits:habits.rate",
+              "label": "Habit completion",
+              "module": "habits",
+              "value": "91%",
+              "n": 91,
+              "unit": "%",
+              "goodWhen": "up",
+              "shareable": true,
+              "delta": 17
+            },
+            "pct": 1.0705882352941176,
+            "hit": true
+          },
+          {
+            "goal": {
+              "id": "g5",
+              "metric": "tasks:tasks.overdue",
+              "label": "Overdue now",
+              "target": 2,
+              "unit": "",
+              "comparator": "lte",
+              "period": "week",
+              "createdAt": "2026-08-04",
+              "status": "archived",
+              "via": "manual"
+            },
+            "entry": {
+              "ref": "tasks:tasks.overdue",
+              "label": "Overdue now",
+              "module": "tasks",
+              "value": "6",
+              "n": 6,
+              "unit": "",
+              "goodWhen": "down",
+              "shareable": false
+            },
+            "pct": 0.3333333333333333,
+            "hit": false
+          }
+        ],
+        "achievements": [
+          {
+            "id": "pr-30",
+            "type": "pr",
+            "title": "PR this month",
+            "requirement": "Set a new best lift (est. 1-rep max) in the last 30 days",
+            "progress": {
+              "pct": 1,
+              "text": "1 / 1 PR"
+            },
+            "trophy": {
+              "id": "pr-30",
+              "type": "pr",
+              "title": "PR this month",
+              "value": "34",
+              "detail": "34 new best lifts in 30 days",
+              "day": "2026-10-17",
+              "href": "/fitness/stats"
+            }
+          },
+          {
+            "id": "pr-90-5",
+            "type": "pr",
+            "title": "5 PRs in 90 days",
+            "requirement": "Set 5 new best lifts within 90 days",
+            "progress": {
+              "pct": 1,
+              "text": "5 / 5 PRs"
+            },
+            "trophy": {
+              "id": "pr-90-5",
+              "type": "pr",
+              "title": "5 PRs in 90 days",
+              "value": "76",
+              "detail": "76 new best lifts in 90 days",
+              "day": "2026-10-17",
+              "href": "/fitness/stats"
+            }
+          },
+          {
+            "id": "pr-90-10",
+            "type": "pr",
+            "title": "10 PRs in 90 days",
+            "requirement": "Set 10 new best lifts within 90 days",
+            "progress": {
+              "pct": 1,
+              "text": "10 / 10 PRs"
+            },
+            "trophy": {
+              "id": "pr-90-10",
+              "type": "pr",
+              "title": "10 PRs in 90 days",
+              "value": "76",
+              "detail": "76 new best lifts in 90 days",
+              "day": "2026-10-17",
+              "href": "/fitness/stats"
+            }
+          },
+          {
+            "id": "streak-7",
+            "type": "streak",
+            "title": "7-day on-target streak",
+            "requirement": "Hit your daily target 7 days in a row",
+            "progress": {
+              "pct": 0,
+              "text": "0 / 7 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "streak-30",
+            "type": "streak",
+            "title": "30-day on-target streak",
+            "requirement": "Hit your daily target 30 days in a row",
+            "progress": {
+              "pct": 0,
+              "text": "0 / 30 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "streak-100",
+            "type": "streak",
+            "title": "100-day on-target streak",
+            "requirement": "Hit your daily target 100 days in a row",
+            "progress": {
+              "pct": 0,
+              "text": "0 / 100 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "streak-365",
+            "type": "streak",
+            "title": "365-day on-target streak",
+            "requirement": "Hit your daily target 365 days in a row",
+            "progress": {
+              "pct": 0,
+              "text": "0 / 365 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "habit-streak-7",
+            "type": "streak",
+            "title": "7-day habit streak",
+            "requirement": "Reach a 7-day streak on any habit",
+            "progress": {
+              "pct": 1,
+              "text": "7 / 7 days"
+            },
+            "trophy": {
+              "id": "habit-streak-7",
+              "type": "streak",
+              "title": "7-day streak · Morning workout",
+              "value": "7d",
+              "detail": "Current top habit streak: 17 days",
+              "day": "2026-10-08",
+              "href": "/habits",
+              "shareRef": "streak"
+            }
+          },
+          {
+            "id": "habit-streak-30",
+            "type": "streak",
+            "title": "30-day habit streak",
+            "requirement": "Reach a 30-day streak on any habit",
+            "progress": {
+              "pct": 0.5666666666666667,
+              "text": "17 / 30 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "habit-streak-100",
+            "type": "streak",
+            "title": "100-day habit streak",
+            "requirement": "Reach a 100-day streak on any habit",
+            "progress": {
+              "pct": 0.17,
+              "text": "17 / 100 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "habit-streak-365",
+            "type": "streak",
+            "title": "365-day habit streak",
+            "requirement": "Reach a 365-day streak on any habit",
+            "progress": {
+              "pct": 0.04657534246575343,
+              "text": "17 / 365 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "best-week",
+            "type": "best",
+            "title": "Best week",
+            "requirement": "Have an on-target day",
+            "progress": {
+              "pct": 1,
+              "text": "1 / 1 days"
+            },
+            "trophy": {
+              "id": "best-week-2026-10-15",
+              "type": "best",
+              "title": "Best week",
+              "value": "6/7",
+              "detail": "6 on-target days in 7",
+              "day": "2026-10-15",
+              "href": "/stats",
+              "shareRef": "weekly"
+            }
+          },
+          {
+            "id": "best-month",
+            "type": "best",
+            "title": "Best month",
+            "requirement": "Have an on-target day",
+            "progress": {
+              "pct": 1,
+              "text": "1 / 1 days"
+            },
+            "trophy": {
+              "id": "best-month-2026-10-17",
+              "type": "best",
+              "title": "Best month",
+              "value": "11/30",
+              "detail": "11 on-target days in 30",
+              "day": "2026-10-17",
+              "href": "/stats",
+              "shareRef": "monthly"
+            }
+          },
+          {
+            "id": "perfect-week",
+            "type": "best",
+            "title": "Perfect week",
+            "requirement": "Hit your daily target on all 7 days of a week",
+            "progress": {
+              "pct": 0.8571428571428571,
+              "text": "6 / 7 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "perfect-month",
+            "type": "best",
+            "title": "Perfect month",
+            "requirement": "Hit your daily target on all 30 days of a month",
+            "progress": {
+              "pct": 0.36666666666666664,
+              "text": "11 / 30 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "goal-g1",
+            "type": "goal",
+            "title": "Life Score ≥ 75 / month",
+            "requirement": "Reach at least 75 this month",
+            "progress": {
+              "pct": 1,
+              "text": "79 / 75"
+            },
+            "trophy": {
+              "id": "goal-g1",
+              "type": "goal",
+              "title": "Life Score ≥ 75 / month",
+              "value": "79",
+              "detail": "Target 75",
+              "day": "2026-10-18",
+              "href": "/stats/goals",
+              "shareRef": "goal"
+            }
+          },
+          {
+            "id": "goal-g2",
+            "type": "goal",
+            "title": "Workouts ≥ 4 / week",
+            "requirement": "Reach at least 4 this week",
+            "progress": {
+              "pct": 0.75,
+              "text": "3 / 4"
+            },
+            "trophy": null
+          },
+          {
+            "id": "goal-g3",
+            "type": "goal",
+            "title": "Savings rate ≥ 25% / month",
+            "requirement": "Reach at least 25% this month",
+            "progress": {
+              "pct": 1,
+              "text": "33% / 25%"
+            },
+            "trophy": {
+              "id": "goal-g3",
+              "type": "goal",
+              "title": "Savings rate ≥ 25% / month",
+              "value": "33%",
+              "detail": "Target 25%",
+              "day": "2026-10-18",
+              "href": "/stats/goals",
+              "shareRef": "goal"
+            }
+          },
+          {
+            "id": "goal-g4",
+            "type": "goal",
+            "title": "Habit completion ≥ 85% / week",
+            "requirement": "Reach at least 85% this week",
+            "progress": {
+              "pct": 1,
+              "text": "91% / 85%"
+            },
+            "trophy": {
+              "id": "goal-g4",
+              "type": "goal",
+              "title": "Habit completion ≥ 85% / week",
+              "value": "91%",
+              "detail": "Target 85%",
+              "day": "2026-10-18",
+              "href": "/stats/goals",
+              "shareRef": "goal"
+            }
+          },
+          {
+            "id": "goal-hat-trick",
+            "type": "goal",
+            "title": "Hat trick",
+            "requirement": "Hit 3 goals at the same time",
+            "progress": {
+              "pct": 1,
+              "text": "3 / 3 goals"
+            },
+            "trophy": {
+              "id": "goal-hat-trick",
+              "type": "goal",
+              "title": "Hat trick",
+              "value": "3",
+              "detail": "3 goals hit at once",
+              "day": "2026-10-18",
+              "href": "/stats/goals",
+              "shareRef": "goal"
+            }
+          },
+          {
+            "id": "first-on-target",
+            "type": "first",
+            "title": "First on-target day",
+            "requirement": "Hit your daily target once",
+            "progress": {
+              "pct": 1,
+              "text": "1 / 1"
+            },
+            "trophy": {
+              "id": "first-on-target-2026-07-17",
+              "type": "first",
+              "title": "First on-target day",
+              "value": "1st",
+              "detail": "Where the streaks began",
+              "day": "2026-07-17",
+              "href": "/stats"
+            }
+          },
+          {
+            "id": "first-wrap",
+            "type": "first",
+            "title": "First day wrapped up",
+            "requirement": "Seal a day with an evening wrap-up",
+            "progress": {
+              "pct": 1,
+              "text": "1 / 1"
+            },
+            "trophy": {
+              "id": "first-wrap-2026-10-15",
+              "type": "first",
+              "title": "First day wrapped up",
+              "value": "1st",
+              "detail": "Sealed a day with a reflection",
+              "day": "2026-10-15",
+              "href": "/today/wrap-up"
+            }
+          },
+          {
+            "id": "first-goal",
+            "type": "first",
+            "title": "First goal set",
+            "requirement": "Set a goal on any metric",
+            "progress": {
+              "pct": 1,
+              "text": "1 / 1"
+            },
+            "trophy": {
+              "id": "first-goal-2026-08-04",
+              "type": "first",
+              "title": "First goal set",
+              "value": "1st",
+              "detail": "Put a number on it",
+              "day": "2026-08-04",
+              "href": "/stats/goals"
+            }
+          }
+        ],
+        "trophies": [
+          {
+            "id": "goal-g1",
+            "type": "goal",
+            "title": "Life Score ≥ 75 / month",
+            "value": "79",
+            "detail": "Target 75",
+            "day": "2026-10-18",
+            "href": "/stats/goals",
+            "shareRef": "goal"
+          },
+          {
+            "id": "goal-g3",
+            "type": "goal",
+            "title": "Savings rate ≥ 25% / month",
+            "value": "33%",
+            "detail": "Target 25%",
+            "day": "2026-10-18",
+            "href": "/stats/goals",
+            "shareRef": "goal"
+          },
+          {
+            "id": "goal-g4",
+            "type": "goal",
+            "title": "Habit completion ≥ 85% / week",
+            "value": "91%",
+            "detail": "Target 85%",
+            "day": "2026-10-18",
+            "href": "/stats/goals",
+            "shareRef": "goal"
+          },
+          {
+            "id": "goal-hat-trick",
+            "type": "goal",
+            "title": "Hat trick",
+            "value": "3",
+            "detail": "3 goals hit at once",
+            "day": "2026-10-18",
+            "href": "/stats/goals",
+            "shareRef": "goal"
+          },
+          {
+            "id": "pr-30",
+            "type": "pr",
+            "title": "PR this month",
+            "value": "34",
+            "detail": "34 new best lifts in 30 days",
+            "day": "2026-10-17",
+            "href": "/fitness/stats"
+          },
+          {
+            "id": "pr-90-5",
+            "type": "pr",
+            "title": "5 PRs in 90 days",
+            "value": "76",
+            "detail": "76 new best lifts in 90 days",
+            "day": "2026-10-17",
+            "href": "/fitness/stats"
+          },
+          {
+            "id": "pr-90-10",
+            "type": "pr",
+            "title": "10 PRs in 90 days",
+            "value": "76",
+            "detail": "76 new best lifts in 90 days",
+            "day": "2026-10-17",
+            "href": "/fitness/stats"
+          },
+          {
+            "id": "best-month-2026-10-17",
+            "type": "best",
+            "title": "Best month",
+            "value": "11/30",
+            "detail": "11 on-target days in 30",
+            "day": "2026-10-17",
+            "href": "/stats",
+            "shareRef": "monthly"
+          },
+          {
+            "id": "best-week-2026-10-15",
+            "type": "best",
+            "title": "Best week",
+            "value": "6/7",
+            "detail": "6 on-target days in 7",
+            "day": "2026-10-15",
+            "href": "/stats",
+            "shareRef": "weekly"
+          },
+          {
+            "id": "first-wrap-2026-10-15",
+            "type": "first",
+            "title": "First day wrapped up",
+            "value": "1st",
+            "detail": "Sealed a day with a reflection",
+            "day": "2026-10-15",
+            "href": "/today/wrap-up"
+          },
+          {
+            "id": "habit-streak-7",
+            "type": "streak",
+            "title": "7-day streak · Morning workout",
+            "value": "7d",
+            "detail": "Current top habit streak: 17 days",
+            "day": "2026-10-08",
+            "href": "/habits",
+            "shareRef": "streak"
+          },
+          {
+            "id": "first-goal-2026-08-04",
+            "type": "first",
+            "title": "First goal set",
+            "value": "1st",
+            "detail": "Put a number on it",
+            "day": "2026-08-04",
+            "href": "/stats/goals"
+          },
+          {
+            "id": "first-on-target-2026-07-17",
+            "type": "first",
+            "title": "First on-target day",
+            "value": "1st",
+            "detail": "Where the streaks began",
+            "day": "2026-07-17",
+            "href": "/stats"
+          }
+        ]
+      },
+      {
+        "name": "fitness-off",
+        "state": {
+          "enabled": {
+            "habits": true,
+            "tasks": true,
+            "fitness": false,
+            "finance": true
+          },
+          "threshold": 0.8,
+          "wrapups": [],
+          "goals": [
+            {
+              "id": "g1",
+              "metric": "life",
+              "label": "Life Score",
+              "target": 75,
+              "unit": "",
+              "comparator": "gte",
+              "period": "month",
+              "createdAt": "2026-09-08",
+              "status": "active",
+              "via": "manual"
+            },
+            {
+              "id": "g2",
+              "metric": "fitness:sessions",
+              "label": "Workouts",
+              "target": 4,
+              "unit": "",
+              "comparator": "gte",
+              "period": "week",
+              "createdAt": "2026-08-19",
+              "status": "active",
+              "via": "onboarding"
+            },
+            {
+              "id": "g3",
+              "metric": "finance:savings-rate",
+              "label": "Savings rate",
+              "target": 25,
+              "unit": "%",
+              "comparator": "gte",
+              "period": "month",
+              "createdAt": "2026-08-19",
+              "status": "active",
+              "via": "onboarding"
+            },
+            {
+              "id": "g4",
+              "metric": "habits:habits.rate",
+              "label": "Habit completion",
+              "target": 85,
+              "unit": "%",
+              "comparator": "gte",
+              "period": "week",
+              "createdAt": "2026-09-28",
+              "status": "active",
+              "via": "review"
+            },
+            {
+              "id": "g5",
+              "metric": "tasks:tasks.overdue",
+              "label": "Overdue now",
+              "target": 2,
+              "unit": "",
+              "comparator": "lte",
+              "period": "week",
+              "createdAt": "2026-08-04",
+              "status": "archived",
+              "via": "manual"
+            }
+          ]
+        },
+        "current": 5,
+        "goals": [
+          {
+            "goal": {
+              "id": "g1",
+              "metric": "life",
+              "label": "Life Score",
+              "target": 75,
+              "unit": "",
+              "comparator": "gte",
+              "period": "month",
+              "createdAt": "2026-09-08",
+              "status": "active",
+              "via": "manual"
+            },
+            "entry": {
+              "ref": "life",
+              "label": "Life Score",
+              "module": "life",
+              "value": "84",
+              "n": 84,
+              "unit": "",
+              "goodWhen": "up",
+              "shareable": true
+            },
+            "pct": 1.12,
+            "hit": true
+          },
+          {
+            "goal": {
+              "id": "g2",
+              "metric": "fitness:sessions",
+              "label": "Workouts",
+              "target": 4,
+              "unit": "",
+              "comparator": "gte",
+              "period": "week",
+              "createdAt": "2026-08-19",
+              "status": "active",
+              "via": "onboarding"
+            },
+            "entry": null,
+            "pct": 0,
+            "hit": false
+          },
+          {
+            "goal": {
+              "id": "g3",
+              "metric": "finance:savings-rate",
+              "label": "Savings rate",
+              "target": 25,
+              "unit": "%",
+              "comparator": "gte",
+              "period": "month",
+              "createdAt": "2026-08-19",
+              "status": "active",
+              "via": "onboarding"
+            },
+            "entry": {
+              "ref": "finance:savings-rate",
+              "label": "Savings rate",
+              "module": "finance",
+              "value": "33%",
+              "n": 33,
+              "unit": "%",
+              "goodWhen": "up",
+              "shareable": true,
+              "delta": 0
+            },
+            "pct": 1.32,
+            "hit": true
+          },
+          {
+            "goal": {
+              "id": "g4",
+              "metric": "habits:habits.rate",
+              "label": "Habit completion",
+              "target": 85,
+              "unit": "%",
+              "comparator": "gte",
+              "period": "week",
+              "createdAt": "2026-09-28",
+              "status": "active",
+              "via": "review"
+            },
+            "entry": {
+              "ref": "habits:habits.rate",
+              "label": "Habit completion",
+              "module": "habits",
+              "value": "91%",
+              "n": 91,
+              "unit": "%",
+              "goodWhen": "up",
+              "shareable": true,
+              "delta": 17
+            },
+            "pct": 1.0705882352941176,
+            "hit": true
+          },
+          {
+            "goal": {
+              "id": "g5",
+              "metric": "tasks:tasks.overdue",
+              "label": "Overdue now",
+              "target": 2,
+              "unit": "",
+              "comparator": "lte",
+              "period": "week",
+              "createdAt": "2026-08-04",
+              "status": "archived",
+              "via": "manual"
+            },
+            "entry": {
+              "ref": "tasks:tasks.overdue",
+              "label": "Overdue now",
+              "module": "tasks",
+              "value": "6",
+              "n": 6,
+              "unit": "",
+              "goodWhen": "down",
+              "shareable": false
+            },
+            "pct": 0.3333333333333333,
+            "hit": false
+          }
+        ],
+        "achievements": [
+          {
+            "id": "streak-7",
+            "type": "streak",
+            "title": "7-day on-target streak",
+            "requirement": "Hit your daily target 7 days in a row",
+            "progress": {
+              "pct": 0.7142857142857143,
+              "text": "5 / 7 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "streak-30",
+            "type": "streak",
+            "title": "30-day on-target streak",
+            "requirement": "Hit your daily target 30 days in a row",
+            "progress": {
+              "pct": 0.16666666666666666,
+              "text": "5 / 30 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "streak-100",
+            "type": "streak",
+            "title": "100-day on-target streak",
+            "requirement": "Hit your daily target 100 days in a row",
+            "progress": {
+              "pct": 0.05,
+              "text": "5 / 100 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "streak-365",
+            "type": "streak",
+            "title": "365-day on-target streak",
+            "requirement": "Hit your daily target 365 days in a row",
+            "progress": {
+              "pct": 0.0136986301369863,
+              "text": "5 / 365 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "habit-streak-7",
+            "type": "streak",
+            "title": "7-day habit streak",
+            "requirement": "Reach a 7-day streak on any habit",
+            "progress": {
+              "pct": 1,
+              "text": "7 / 7 days"
+            },
+            "trophy": {
+              "id": "habit-streak-7",
+              "type": "streak",
+              "title": "7-day streak · Morning workout",
+              "value": "7d",
+              "detail": "Current top habit streak: 17 days",
+              "day": "2026-10-08",
+              "href": "/habits",
+              "shareRef": "streak"
+            }
+          },
+          {
+            "id": "habit-streak-30",
+            "type": "streak",
+            "title": "30-day habit streak",
+            "requirement": "Reach a 30-day streak on any habit",
+            "progress": {
+              "pct": 0.5666666666666667,
+              "text": "17 / 30 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "habit-streak-100",
+            "type": "streak",
+            "title": "100-day habit streak",
+            "requirement": "Reach a 100-day streak on any habit",
+            "progress": {
+              "pct": 0.17,
+              "text": "17 / 100 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "habit-streak-365",
+            "type": "streak",
+            "title": "365-day habit streak",
+            "requirement": "Reach a 365-day streak on any habit",
+            "progress": {
+              "pct": 0.04657534246575343,
+              "text": "17 / 365 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "best-week",
+            "type": "best",
+            "title": "Best week",
+            "requirement": "Have an on-target day",
+            "progress": {
+              "pct": 1,
+              "text": "1 / 1 days"
+            },
+            "trophy": {
+              "id": "best-week-2026-10-15",
+              "type": "best",
+              "title": "Best week",
+              "value": "6/7",
+              "detail": "6 on-target days in 7",
+              "day": "2026-10-15",
+              "href": "/stats",
+              "shareRef": "weekly"
+            }
+          },
+          {
+            "id": "best-month",
+            "type": "best",
+            "title": "Best month",
+            "requirement": "Have an on-target day",
+            "progress": {
+              "pct": 1,
+              "text": "1 / 1 days"
+            },
+            "trophy": {
+              "id": "best-month-2026-10-17",
+              "type": "best",
+              "title": "Best month",
+              "value": "11/30",
+              "detail": "11 on-target days in 30",
+              "day": "2026-10-17",
+              "href": "/stats",
+              "shareRef": "monthly"
+            }
+          },
+          {
+            "id": "perfect-week",
+            "type": "best",
+            "title": "Perfect week",
+            "requirement": "Hit your daily target on all 7 days of a week",
+            "progress": {
+              "pct": 0.8571428571428571,
+              "text": "6 / 7 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "perfect-month",
+            "type": "best",
+            "title": "Perfect month",
+            "requirement": "Hit your daily target on all 30 days of a month",
+            "progress": {
+              "pct": 0.36666666666666664,
+              "text": "11 / 30 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "goal-g1",
+            "type": "goal",
+            "title": "Life Score ≥ 75 / month",
+            "requirement": "Reach at least 75 this month",
+            "progress": {
+              "pct": 1,
+              "text": "84 / 75"
+            },
+            "trophy": {
+              "id": "goal-g1",
+              "type": "goal",
+              "title": "Life Score ≥ 75 / month",
+              "value": "84",
+              "detail": "Target 75",
+              "day": "2026-10-18",
+              "href": "/stats/goals",
+              "shareRef": "goal"
+            }
+          },
+          {
+            "id": "goal-g2",
+            "type": "goal",
+            "title": "Workouts ≥ 4 / week",
+            "requirement": "Reach at least 4 this week",
+            "progress": {
+              "pct": 0,
+              "text": "— / 4"
+            },
+            "trophy": null
+          },
+          {
+            "id": "goal-g3",
+            "type": "goal",
+            "title": "Savings rate ≥ 25% / month",
+            "requirement": "Reach at least 25% this month",
+            "progress": {
+              "pct": 1,
+              "text": "33% / 25%"
+            },
+            "trophy": {
+              "id": "goal-g3",
+              "type": "goal",
+              "title": "Savings rate ≥ 25% / month",
+              "value": "33%",
+              "detail": "Target 25%",
+              "day": "2026-10-18",
+              "href": "/stats/goals",
+              "shareRef": "goal"
+            }
+          },
+          {
+            "id": "goal-g4",
+            "type": "goal",
+            "title": "Habit completion ≥ 85% / week",
+            "requirement": "Reach at least 85% this week",
+            "progress": {
+              "pct": 1,
+              "text": "91% / 85%"
+            },
+            "trophy": {
+              "id": "goal-g4",
+              "type": "goal",
+              "title": "Habit completion ≥ 85% / week",
+              "value": "91%",
+              "detail": "Target 85%",
+              "day": "2026-10-18",
+              "href": "/stats/goals",
+              "shareRef": "goal"
+            }
+          },
+          {
+            "id": "goal-hat-trick",
+            "type": "goal",
+            "title": "Hat trick",
+            "requirement": "Hit 3 goals at the same time",
+            "progress": {
+              "pct": 1,
+              "text": "3 / 3 goals"
+            },
+            "trophy": {
+              "id": "goal-hat-trick",
+              "type": "goal",
+              "title": "Hat trick",
+              "value": "3",
+              "detail": "3 goals hit at once",
+              "day": "2026-10-18",
+              "href": "/stats/goals",
+              "shareRef": "goal"
+            }
+          },
+          {
+            "id": "first-on-target",
+            "type": "first",
+            "title": "First on-target day",
+            "requirement": "Hit your daily target once",
+            "progress": {
+              "pct": 1,
+              "text": "1 / 1"
+            },
+            "trophy": {
+              "id": "first-on-target-2026-07-17",
+              "type": "first",
+              "title": "First on-target day",
+              "value": "1st",
+              "detail": "Where the streaks began",
+              "day": "2026-07-17",
+              "href": "/stats"
+            }
+          },
+          {
+            "id": "first-wrap",
+            "type": "first",
+            "title": "First day wrapped up",
+            "requirement": "Seal a day with an evening wrap-up",
+            "progress": {
+              "pct": 0,
+              "text": "0 / 1"
+            },
+            "trophy": null
+          },
+          {
+            "id": "first-goal",
+            "type": "first",
+            "title": "First goal set",
+            "requirement": "Set a goal on any metric",
+            "progress": {
+              "pct": 1,
+              "text": "1 / 1"
+            },
+            "trophy": {
+              "id": "first-goal-2026-08-04",
+              "type": "first",
+              "title": "First goal set",
+              "value": "1st",
+              "detail": "Put a number on it",
+              "day": "2026-08-04",
+              "href": "/stats/goals"
+            }
+          }
+        ],
+        "trophies": [
+          {
+            "id": "goal-g1",
+            "type": "goal",
+            "title": "Life Score ≥ 75 / month",
+            "value": "84",
+            "detail": "Target 75",
+            "day": "2026-10-18",
+            "href": "/stats/goals",
+            "shareRef": "goal"
+          },
+          {
+            "id": "goal-g3",
+            "type": "goal",
+            "title": "Savings rate ≥ 25% / month",
+            "value": "33%",
+            "detail": "Target 25%",
+            "day": "2026-10-18",
+            "href": "/stats/goals",
+            "shareRef": "goal"
+          },
+          {
+            "id": "goal-g4",
+            "type": "goal",
+            "title": "Habit completion ≥ 85% / week",
+            "value": "91%",
+            "detail": "Target 85%",
+            "day": "2026-10-18",
+            "href": "/stats/goals",
+            "shareRef": "goal"
+          },
+          {
+            "id": "goal-hat-trick",
+            "type": "goal",
+            "title": "Hat trick",
+            "value": "3",
+            "detail": "3 goals hit at once",
+            "day": "2026-10-18",
+            "href": "/stats/goals",
+            "shareRef": "goal"
+          },
+          {
+            "id": "best-month-2026-10-17",
+            "type": "best",
+            "title": "Best month",
+            "value": "11/30",
+            "detail": "11 on-target days in 30",
+            "day": "2026-10-17",
+            "href": "/stats",
+            "shareRef": "monthly"
+          },
+          {
+            "id": "best-week-2026-10-15",
+            "type": "best",
+            "title": "Best week",
+            "value": "6/7",
+            "detail": "6 on-target days in 7",
+            "day": "2026-10-15",
+            "href": "/stats",
+            "shareRef": "weekly"
+          },
+          {
+            "id": "habit-streak-7",
+            "type": "streak",
+            "title": "7-day streak · Morning workout",
+            "value": "7d",
+            "detail": "Current top habit streak: 17 days",
+            "day": "2026-10-08",
+            "href": "/habits",
+            "shareRef": "streak"
+          },
+          {
+            "id": "first-goal-2026-08-04",
+            "type": "first",
+            "title": "First goal set",
+            "value": "1st",
+            "detail": "Put a number on it",
+            "day": "2026-08-04",
+            "href": "/stats/goals"
+          },
+          {
+            "id": "first-on-target-2026-07-17",
+            "type": "first",
+            "title": "First on-target day",
+            "value": "1st",
+            "detail": "Where the streaks began",
+            "day": "2026-07-17",
+            "href": "/stats"
+          }
+        ]
+      },
+      {
+        "name": "habits-off",
+        "state": {
+          "enabled": {
+            "habits": false,
+            "tasks": true,
+            "fitness": true,
+            "finance": true
+          },
+          "threshold": 0.8,
+          "wrapups": [],
+          "goals": [
+            {
+              "id": "g1",
+              "metric": "life",
+              "label": "Life Score",
+              "target": 75,
+              "unit": "",
+              "comparator": "gte",
+              "period": "month",
+              "createdAt": "2026-09-08",
+              "status": "active",
+              "via": "manual"
+            },
+            {
+              "id": "g2",
+              "metric": "fitness:sessions",
+              "label": "Workouts",
+              "target": 4,
+              "unit": "",
+              "comparator": "gte",
+              "period": "week",
+              "createdAt": "2026-08-19",
+              "status": "active",
+              "via": "onboarding"
+            },
+            {
+              "id": "g3",
+              "metric": "finance:savings-rate",
+              "label": "Savings rate",
+              "target": 25,
+              "unit": "%",
+              "comparator": "gte",
+              "period": "month",
+              "createdAt": "2026-08-19",
+              "status": "active",
+              "via": "onboarding"
+            },
+            {
+              "id": "g4",
+              "metric": "habits:habits.rate",
+              "label": "Habit completion",
+              "target": 85,
+              "unit": "%",
+              "comparator": "gte",
+              "period": "week",
+              "createdAt": "2026-09-28",
+              "status": "active",
+              "via": "review"
+            },
+            {
+              "id": "g5",
+              "metric": "tasks:tasks.overdue",
+              "label": "Overdue now",
+              "target": 2,
+              "unit": "",
+              "comparator": "lte",
+              "period": "week",
+              "createdAt": "2026-08-04",
+              "status": "archived",
+              "via": "manual"
+            }
+          ]
+        },
+        "current": 0,
+        "goals": [
+          {
+            "goal": {
+              "id": "g1",
+              "metric": "life",
+              "label": "Life Score",
+              "target": 75,
+              "unit": "",
+              "comparator": "gte",
+              "period": "month",
+              "createdAt": "2026-09-08",
+              "status": "active",
+              "via": "manual"
+            },
+            "entry": {
+              "ref": "life",
+              "label": "Life Score",
+              "module": "life",
+              "value": "82",
+              "n": 82,
+              "unit": "",
+              "goodWhen": "up",
+              "shareable": true
+            },
+            "pct": 1.0933333333333333,
+            "hit": true
+          },
+          {
+            "goal": {
+              "id": "g2",
+              "metric": "fitness:sessions",
+              "label": "Workouts",
+              "target": 4,
+              "unit": "",
+              "comparator": "gte",
+              "period": "week",
+              "createdAt": "2026-08-19",
+              "status": "active",
+              "via": "onboarding"
+            },
+            "entry": {
+              "ref": "fitness:sessions",
+              "label": "Workouts",
+              "module": "fitness",
+              "value": "3",
+              "n": 3,
+              "unit": "",
+              "goodWhen": "up",
+              "shareable": true,
+              "delta": -1
+            },
+            "pct": 0.75,
+            "hit": false
+          },
+          {
+            "goal": {
+              "id": "g3",
+              "metric": "finance:savings-rate",
+              "label": "Savings rate",
+              "target": 25,
+              "unit": "%",
+              "comparator": "gte",
+              "period": "month",
+              "createdAt": "2026-08-19",
+              "status": "active",
+              "via": "onboarding"
+            },
+            "entry": {
+              "ref": "finance:savings-rate",
+              "label": "Savings rate",
+              "module": "finance",
+              "value": "33%",
+              "n": 33,
+              "unit": "%",
+              "goodWhen": "up",
+              "shareable": true,
+              "delta": 0
+            },
+            "pct": 1.32,
+            "hit": true
+          },
+          {
+            "goal": {
+              "id": "g4",
+              "metric": "habits:habits.rate",
+              "label": "Habit completion",
+              "target": 85,
+              "unit": "%",
+              "comparator": "gte",
+              "period": "week",
+              "createdAt": "2026-09-28",
+              "status": "active",
+              "via": "review"
+            },
+            "entry": null,
+            "pct": 0,
+            "hit": false
+          },
+          {
+            "goal": {
+              "id": "g5",
+              "metric": "tasks:tasks.overdue",
+              "label": "Overdue now",
+              "target": 2,
+              "unit": "",
+              "comparator": "lte",
+              "period": "week",
+              "createdAt": "2026-08-04",
+              "status": "archived",
+              "via": "manual"
+            },
+            "entry": {
+              "ref": "tasks:tasks.overdue",
+              "label": "Overdue now",
+              "module": "tasks",
+              "value": "6",
+              "n": 6,
+              "unit": "",
+              "goodWhen": "down",
+              "shareable": false
+            },
+            "pct": 0.3333333333333333,
+            "hit": false
+          }
+        ],
+        "achievements": [
+          {
+            "id": "pr-30",
+            "type": "pr",
+            "title": "PR this month",
+            "requirement": "Set a new best lift (est. 1-rep max) in the last 30 days",
+            "progress": {
+              "pct": 1,
+              "text": "1 / 1 PR"
+            },
+            "trophy": {
+              "id": "pr-30",
+              "type": "pr",
+              "title": "PR this month",
+              "value": "34",
+              "detail": "34 new best lifts in 30 days",
+              "day": "2026-10-17",
+              "href": "/fitness/stats"
+            }
+          },
+          {
+            "id": "pr-90-5",
+            "type": "pr",
+            "title": "5 PRs in 90 days",
+            "requirement": "Set 5 new best lifts within 90 days",
+            "progress": {
+              "pct": 1,
+              "text": "5 / 5 PRs"
+            },
+            "trophy": {
+              "id": "pr-90-5",
+              "type": "pr",
+              "title": "5 PRs in 90 days",
+              "value": "76",
+              "detail": "76 new best lifts in 90 days",
+              "day": "2026-10-17",
+              "href": "/fitness/stats"
+            }
+          },
+          {
+            "id": "pr-90-10",
+            "type": "pr",
+            "title": "10 PRs in 90 days",
+            "requirement": "Set 10 new best lifts within 90 days",
+            "progress": {
+              "pct": 1,
+              "text": "10 / 10 PRs"
+            },
+            "trophy": {
+              "id": "pr-90-10",
+              "type": "pr",
+              "title": "10 PRs in 90 days",
+              "value": "76",
+              "detail": "76 new best lifts in 90 days",
+              "day": "2026-10-17",
+              "href": "/fitness/stats"
+            }
+          },
+          {
+            "id": "streak-7",
+            "type": "streak",
+            "title": "7-day on-target streak",
+            "requirement": "Hit your daily target 7 days in a row",
+            "progress": {
+              "pct": 0,
+              "text": "0 / 7 days"
+            },
+            "trophy": {
+              "id": "streak-7-2026-07-27",
+              "type": "streak",
+              "title": "7-day on-target streak",
+              "value": "7d",
+              "detail": "7 on-target days in a row",
+              "day": "2026-07-27",
+              "href": "/stats",
+              "shareRef": "streak"
+            }
+          },
+          {
+            "id": "streak-30",
+            "type": "streak",
+            "title": "30-day on-target streak",
+            "requirement": "Hit your daily target 30 days in a row",
+            "progress": {
+              "pct": 0,
+              "text": "0 / 30 days"
+            },
+            "trophy": {
+              "id": "streak-30-2026-08-22",
+              "type": "streak",
+              "title": "30-day on-target streak",
+              "value": "30d",
+              "detail": "30 on-target days in a row",
+              "day": "2026-08-22",
+              "href": "/stats",
+              "shareRef": "streak"
+            }
+          },
+          {
+            "id": "streak-100",
+            "type": "streak",
+            "title": "100-day on-target streak",
+            "requirement": "Hit your daily target 100 days in a row",
+            "progress": {
+              "pct": 0,
+              "text": "0 / 100 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "streak-365",
+            "type": "streak",
+            "title": "365-day on-target streak",
+            "requirement": "Hit your daily target 365 days in a row",
+            "progress": {
+              "pct": 0,
+              "text": "0 / 365 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "best-week",
+            "type": "best",
+            "title": "Best week",
+            "requirement": "Have an on-target day",
+            "progress": {
+              "pct": 1,
+              "text": "1 / 1 days"
+            },
+            "trophy": {
+              "id": "best-week-2026-08-09",
+              "type": "best",
+              "title": "Best week",
+              "value": "7/7",
+              "detail": "7 on-target days in 7",
+              "day": "2026-08-09",
+              "href": "/stats",
+              "shareRef": "weekly"
+            }
+          },
+          {
+            "id": "best-month",
+            "type": "best",
+            "title": "Best month",
+            "requirement": "Have an on-target day",
+            "progress": {
+              "pct": 1,
+              "text": "1 / 1 days"
+            },
+            "trophy": {
+              "id": "best-month-2026-08-28",
+              "type": "best",
+              "title": "Best month",
+              "value": "28/30",
+              "detail": "28 on-target days in 30",
+              "day": "2026-08-28",
+              "href": "/stats",
+              "shareRef": "monthly"
+            }
+          },
+          {
+            "id": "perfect-week",
+            "type": "best",
+            "title": "Perfect week",
+            "requirement": "Hit your daily target on all 7 days of a week",
+            "progress": {
+              "pct": 1,
+              "text": "7 / 7 days"
+            },
+            "trophy": {
+              "id": "perfect-week-2026-08-09",
+              "type": "best",
+              "title": "Perfect week",
+              "value": "7/7",
+              "detail": "7 on-target days in 7",
+              "day": "2026-08-09",
+              "href": "/stats",
+              "shareRef": "weekly"
+            }
+          },
+          {
+            "id": "perfect-month",
+            "type": "best",
+            "title": "Perfect month",
+            "requirement": "Hit your daily target on all 30 days of a month",
+            "progress": {
+              "pct": 0.9333333333333333,
+              "text": "28 / 30 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "goal-g1",
+            "type": "goal",
+            "title": "Life Score ≥ 75 / month",
+            "requirement": "Reach at least 75 this month",
+            "progress": {
+              "pct": 1,
+              "text": "82 / 75"
+            },
+            "trophy": {
+              "id": "goal-g1",
+              "type": "goal",
+              "title": "Life Score ≥ 75 / month",
+              "value": "82",
+              "detail": "Target 75",
+              "day": "2026-10-18",
+              "href": "/stats/goals",
+              "shareRef": "goal"
+            }
+          },
+          {
+            "id": "goal-g2",
+            "type": "goal",
+            "title": "Workouts ≥ 4 / week",
+            "requirement": "Reach at least 4 this week",
+            "progress": {
+              "pct": 0.75,
+              "text": "3 / 4"
+            },
+            "trophy": null
+          },
+          {
+            "id": "goal-g3",
+            "type": "goal",
+            "title": "Savings rate ≥ 25% / month",
+            "requirement": "Reach at least 25% this month",
+            "progress": {
+              "pct": 1,
+              "text": "33% / 25%"
+            },
+            "trophy": {
+              "id": "goal-g3",
+              "type": "goal",
+              "title": "Savings rate ≥ 25% / month",
+              "value": "33%",
+              "detail": "Target 25%",
+              "day": "2026-10-18",
+              "href": "/stats/goals",
+              "shareRef": "goal"
+            }
+          },
+          {
+            "id": "goal-g4",
+            "type": "goal",
+            "title": "Habit completion ≥ 85% / week",
+            "requirement": "Reach at least 85% this week",
+            "progress": {
+              "pct": 0,
+              "text": "— / 85%"
+            },
+            "trophy": null
+          },
+          {
+            "id": "goal-hat-trick",
+            "type": "goal",
+            "title": "Hat trick",
+            "requirement": "Hit 3 goals at the same time",
+            "progress": {
+              "pct": 0.6666666666666666,
+              "text": "2 / 3 goals"
+            },
+            "trophy": null
+          },
+          {
+            "id": "first-on-target",
+            "type": "first",
+            "title": "First on-target day",
+            "requirement": "Hit your daily target once",
+            "progress": {
+              "pct": 1,
+              "text": "1 / 1"
+            },
+            "trophy": {
+              "id": "first-on-target-2026-07-17",
+              "type": "first",
+              "title": "First on-target day",
+              "value": "1st",
+              "detail": "Where the streaks began",
+              "day": "2026-07-17",
+              "href": "/stats"
+            }
+          },
+          {
+            "id": "first-wrap",
+            "type": "first",
+            "title": "First day wrapped up",
+            "requirement": "Seal a day with an evening wrap-up",
+            "progress": {
+              "pct": 0,
+              "text": "0 / 1"
+            },
+            "trophy": null
+          },
+          {
+            "id": "first-goal",
+            "type": "first",
+            "title": "First goal set",
+            "requirement": "Set a goal on any metric",
+            "progress": {
+              "pct": 1,
+              "text": "1 / 1"
+            },
+            "trophy": {
+              "id": "first-goal-2026-08-04",
+              "type": "first",
+              "title": "First goal set",
+              "value": "1st",
+              "detail": "Put a number on it",
+              "day": "2026-08-04",
+              "href": "/stats/goals"
+            }
+          }
+        ],
+        "trophies": [
+          {
+            "id": "goal-g1",
+            "type": "goal",
+            "title": "Life Score ≥ 75 / month",
+            "value": "82",
+            "detail": "Target 75",
+            "day": "2026-10-18",
+            "href": "/stats/goals",
+            "shareRef": "goal"
+          },
+          {
+            "id": "goal-g3",
+            "type": "goal",
+            "title": "Savings rate ≥ 25% / month",
+            "value": "33%",
+            "detail": "Target 25%",
+            "day": "2026-10-18",
+            "href": "/stats/goals",
+            "shareRef": "goal"
+          },
+          {
+            "id": "pr-30",
+            "type": "pr",
+            "title": "PR this month",
+            "value": "34",
+            "detail": "34 new best lifts in 30 days",
+            "day": "2026-10-17",
+            "href": "/fitness/stats"
+          },
+          {
+            "id": "pr-90-5",
+            "type": "pr",
+            "title": "5 PRs in 90 days",
+            "value": "76",
+            "detail": "76 new best lifts in 90 days",
+            "day": "2026-10-17",
+            "href": "/fitness/stats"
+          },
+          {
+            "id": "pr-90-10",
+            "type": "pr",
+            "title": "10 PRs in 90 days",
+            "value": "76",
+            "detail": "76 new best lifts in 90 days",
+            "day": "2026-10-17",
+            "href": "/fitness/stats"
+          },
+          {
+            "id": "best-month-2026-08-28",
+            "type": "best",
+            "title": "Best month",
+            "value": "28/30",
+            "detail": "28 on-target days in 30",
+            "day": "2026-08-28",
+            "href": "/stats",
+            "shareRef": "monthly"
+          },
+          {
+            "id": "streak-30-2026-08-22",
+            "type": "streak",
+            "title": "30-day on-target streak",
+            "value": "30d",
+            "detail": "30 on-target days in a row",
+            "day": "2026-08-22",
+            "href": "/stats",
+            "shareRef": "streak"
+          },
+          {
+            "id": "best-week-2026-08-09",
+            "type": "best",
+            "title": "Best week",
+            "value": "7/7",
+            "detail": "7 on-target days in 7",
+            "day": "2026-08-09",
+            "href": "/stats",
+            "shareRef": "weekly"
+          },
+          {
+            "id": "perfect-week-2026-08-09",
+            "type": "best",
+            "title": "Perfect week",
+            "value": "7/7",
+            "detail": "7 on-target days in 7",
+            "day": "2026-08-09",
+            "href": "/stats",
+            "shareRef": "weekly"
+          },
+          {
+            "id": "first-goal-2026-08-04",
+            "type": "first",
+            "title": "First goal set",
+            "value": "1st",
+            "detail": "Put a number on it",
+            "day": "2026-08-04",
+            "href": "/stats/goals"
+          },
+          {
+            "id": "streak-7-2026-07-27",
+            "type": "streak",
+            "title": "7-day on-target streak",
+            "value": "7d",
+            "detail": "7 on-target days in a row",
+            "day": "2026-07-27",
+            "href": "/stats",
+            "shareRef": "streak"
+          },
+          {
+            "id": "first-on-target-2026-07-17",
+            "type": "first",
+            "title": "First on-target day",
+            "value": "1st",
+            "detail": "Where the streaks began",
+            "day": "2026-07-17",
+            "href": "/stats"
+          }
+        ]
+      },
+      {
+        "name": "threshold-half",
+        "state": {
+          "enabled": {
+            "habits": true,
+            "tasks": true,
+            "fitness": true,
+            "finance": true
+          },
+          "threshold": 0.5,
+          "wrapups": [],
+          "goals": [
+            {
+              "id": "g1",
+              "metric": "life",
+              "label": "Life Score",
+              "target": 75,
+              "unit": "",
+              "comparator": "gte",
+              "period": "month",
+              "createdAt": "2026-09-08",
+              "status": "active",
+              "via": "manual"
+            },
+            {
+              "id": "g2",
+              "metric": "fitness:sessions",
+              "label": "Workouts",
+              "target": 4,
+              "unit": "",
+              "comparator": "gte",
+              "period": "week",
+              "createdAt": "2026-08-19",
+              "status": "active",
+              "via": "onboarding"
+            },
+            {
+              "id": "g3",
+              "metric": "finance:savings-rate",
+              "label": "Savings rate",
+              "target": 25,
+              "unit": "%",
+              "comparator": "gte",
+              "period": "month",
+              "createdAt": "2026-08-19",
+              "status": "active",
+              "via": "onboarding"
+            },
+            {
+              "id": "g4",
+              "metric": "habits:habits.rate",
+              "label": "Habit completion",
+              "target": 85,
+              "unit": "%",
+              "comparator": "gte",
+              "period": "week",
+              "createdAt": "2026-09-28",
+              "status": "active",
+              "via": "review"
+            },
+            {
+              "id": "g5",
+              "metric": "tasks:tasks.overdue",
+              "label": "Overdue now",
+              "target": 2,
+              "unit": "",
+              "comparator": "lte",
+              "period": "week",
+              "createdAt": "2026-08-04",
+              "status": "archived",
+              "via": "manual"
+            }
+          ]
+        },
+        "current": 9,
+        "goals": [
+          {
+            "goal": {
+              "id": "g1",
+              "metric": "life",
+              "label": "Life Score",
+              "target": 75,
+              "unit": "",
+              "comparator": "gte",
+              "period": "month",
+              "createdAt": "2026-09-08",
+              "status": "active",
+              "via": "manual"
+            },
+            "entry": {
+              "ref": "life",
+              "label": "Life Score",
+              "module": "life",
+              "value": "79",
+              "n": 79,
+              "unit": "",
+              "goodWhen": "up",
+              "shareable": true
+            },
+            "pct": 1.0533333333333332,
+            "hit": true
+          },
+          {
+            "goal": {
+              "id": "g2",
+              "metric": "fitness:sessions",
+              "label": "Workouts",
+              "target": 4,
+              "unit": "",
+              "comparator": "gte",
+              "period": "week",
+              "createdAt": "2026-08-19",
+              "status": "active",
+              "via": "onboarding"
+            },
+            "entry": {
+              "ref": "fitness:sessions",
+              "label": "Workouts",
+              "module": "fitness",
+              "value": "3",
+              "n": 3,
+              "unit": "",
+              "goodWhen": "up",
+              "shareable": true,
+              "delta": -1
+            },
+            "pct": 0.75,
+            "hit": false
+          },
+          {
+            "goal": {
+              "id": "g3",
+              "metric": "finance:savings-rate",
+              "label": "Savings rate",
+              "target": 25,
+              "unit": "%",
+              "comparator": "gte",
+              "period": "month",
+              "createdAt": "2026-08-19",
+              "status": "active",
+              "via": "onboarding"
+            },
+            "entry": {
+              "ref": "finance:savings-rate",
+              "label": "Savings rate",
+              "module": "finance",
+              "value": "33%",
+              "n": 33,
+              "unit": "%",
+              "goodWhen": "up",
+              "shareable": true,
+              "delta": 0
+            },
+            "pct": 1.32,
+            "hit": true
+          },
+          {
+            "goal": {
+              "id": "g4",
+              "metric": "habits:habits.rate",
+              "label": "Habit completion",
+              "target": 85,
+              "unit": "%",
+              "comparator": "gte",
+              "period": "week",
+              "createdAt": "2026-09-28",
+              "status": "active",
+              "via": "review"
+            },
+            "entry": {
+              "ref": "habits:habits.rate",
+              "label": "Habit completion",
+              "module": "habits",
+              "value": "91%",
+              "n": 91,
+              "unit": "%",
+              "goodWhen": "up",
+              "shareable": true,
+              "delta": 17
+            },
+            "pct": 1.0705882352941176,
+            "hit": true
+          },
+          {
+            "goal": {
+              "id": "g5",
+              "metric": "tasks:tasks.overdue",
+              "label": "Overdue now",
+              "target": 2,
+              "unit": "",
+              "comparator": "lte",
+              "period": "week",
+              "createdAt": "2026-08-04",
+              "status": "archived",
+              "via": "manual"
+            },
+            "entry": {
+              "ref": "tasks:tasks.overdue",
+              "label": "Overdue now",
+              "module": "tasks",
+              "value": "6",
+              "n": 6,
+              "unit": "",
+              "goodWhen": "down",
+              "shareable": false
+            },
+            "pct": 0.3333333333333333,
+            "hit": false
+          }
+        ],
+        "achievements": [
+          {
+            "id": "pr-30",
+            "type": "pr",
+            "title": "PR this month",
+            "requirement": "Set a new best lift (est. 1-rep max) in the last 30 days",
+            "progress": {
+              "pct": 1,
+              "text": "1 / 1 PR"
+            },
+            "trophy": {
+              "id": "pr-30",
+              "type": "pr",
+              "title": "PR this month",
+              "value": "34",
+              "detail": "34 new best lifts in 30 days",
+              "day": "2026-10-17",
+              "href": "/fitness/stats"
+            }
+          },
+          {
+            "id": "pr-90-5",
+            "type": "pr",
+            "title": "5 PRs in 90 days",
+            "requirement": "Set 5 new best lifts within 90 days",
+            "progress": {
+              "pct": 1,
+              "text": "5 / 5 PRs"
+            },
+            "trophy": {
+              "id": "pr-90-5",
+              "type": "pr",
+              "title": "5 PRs in 90 days",
+              "value": "76",
+              "detail": "76 new best lifts in 90 days",
+              "day": "2026-10-17",
+              "href": "/fitness/stats"
+            }
+          },
+          {
+            "id": "pr-90-10",
+            "type": "pr",
+            "title": "10 PRs in 90 days",
+            "requirement": "Set 10 new best lifts within 90 days",
+            "progress": {
+              "pct": 1,
+              "text": "10 / 10 PRs"
+            },
+            "trophy": {
+              "id": "pr-90-10",
+              "type": "pr",
+              "title": "10 PRs in 90 days",
+              "value": "76",
+              "detail": "76 new best lifts in 90 days",
+              "day": "2026-10-17",
+              "href": "/fitness/stats"
+            }
+          },
+          {
+            "id": "streak-7",
+            "type": "streak",
+            "title": "7-day on-target streak",
+            "requirement": "Hit your daily target 7 days in a row",
+            "progress": {
+              "pct": 1,
+              "text": "7 / 7 days"
+            },
+            "trophy": {
+              "id": "streak-7-2026-10-15",
+              "type": "streak",
+              "title": "7-day on-target streak",
+              "value": "7d",
+              "detail": "7 on-target days in a row",
+              "day": "2026-10-15",
+              "href": "/stats",
+              "shareRef": "streak"
+            }
+          },
+          {
+            "id": "streak-30",
+            "type": "streak",
+            "title": "30-day on-target streak",
+            "requirement": "Hit your daily target 30 days in a row",
+            "progress": {
+              "pct": 0.3,
+              "text": "9 / 30 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "streak-100",
+            "type": "streak",
+            "title": "100-day on-target streak",
+            "requirement": "Hit your daily target 100 days in a row",
+            "progress": {
+              "pct": 0.09,
+              "text": "9 / 100 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "streak-365",
+            "type": "streak",
+            "title": "365-day on-target streak",
+            "requirement": "Hit your daily target 365 days in a row",
+            "progress": {
+              "pct": 0.024657534246575342,
+              "text": "9 / 365 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "habit-streak-7",
+            "type": "streak",
+            "title": "7-day habit streak",
+            "requirement": "Reach a 7-day streak on any habit",
+            "progress": {
+              "pct": 1,
+              "text": "7 / 7 days"
+            },
+            "trophy": {
+              "id": "habit-streak-7",
+              "type": "streak",
+              "title": "7-day streak · Morning workout",
+              "value": "7d",
+              "detail": "Current top habit streak: 17 days",
+              "day": "2026-10-08",
+              "href": "/habits",
+              "shareRef": "streak"
+            }
+          },
+          {
+            "id": "habit-streak-30",
+            "type": "streak",
+            "title": "30-day habit streak",
+            "requirement": "Reach a 30-day streak on any habit",
+            "progress": {
+              "pct": 0.5666666666666667,
+              "text": "17 / 30 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "habit-streak-100",
+            "type": "streak",
+            "title": "100-day habit streak",
+            "requirement": "Reach a 100-day streak on any habit",
+            "progress": {
+              "pct": 0.17,
+              "text": "17 / 100 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "habit-streak-365",
+            "type": "streak",
+            "title": "365-day habit streak",
+            "requirement": "Reach a 365-day streak on any habit",
+            "progress": {
+              "pct": 0.04657534246575343,
+              "text": "17 / 365 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "best-week",
+            "type": "best",
+            "title": "Best week",
+            "requirement": "Have an on-target day",
+            "progress": {
+              "pct": 1,
+              "text": "1 / 1 days"
+            },
+            "trophy": {
+              "id": "best-week-2026-09-04",
+              "type": "best",
+              "title": "Best week",
+              "value": "7/7",
+              "detail": "7 on-target days in 7",
+              "day": "2026-09-04",
+              "href": "/stats",
+              "shareRef": "weekly"
+            }
+          },
+          {
+            "id": "best-month",
+            "type": "best",
+            "title": "Best month",
+            "requirement": "Have an on-target day",
+            "progress": {
+              "pct": 1,
+              "text": "1 / 1 days"
+            },
+            "trophy": {
+              "id": "best-month-2026-10-13",
+              "type": "best",
+              "title": "Best month",
+              "value": "25/30",
+              "detail": "25 on-target days in 30",
+              "day": "2026-10-13",
+              "href": "/stats",
+              "shareRef": "monthly"
+            }
+          },
+          {
+            "id": "perfect-week",
+            "type": "best",
+            "title": "Perfect week",
+            "requirement": "Hit your daily target on all 7 days of a week",
+            "progress": {
+              "pct": 1,
+              "text": "7 / 7 days"
+            },
+            "trophy": {
+              "id": "perfect-week-2026-09-04",
+              "type": "best",
+              "title": "Perfect week",
+              "value": "7/7",
+              "detail": "7 on-target days in 7",
+              "day": "2026-09-04",
+              "href": "/stats",
+              "shareRef": "weekly"
+            }
+          },
+          {
+            "id": "perfect-month",
+            "type": "best",
+            "title": "Perfect month",
+            "requirement": "Hit your daily target on all 30 days of a month",
+            "progress": {
+              "pct": 0.8333333333333334,
+              "text": "25 / 30 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "goal-g1",
+            "type": "goal",
+            "title": "Life Score ≥ 75 / month",
+            "requirement": "Reach at least 75 this month",
+            "progress": {
+              "pct": 1,
+              "text": "79 / 75"
+            },
+            "trophy": {
+              "id": "goal-g1",
+              "type": "goal",
+              "title": "Life Score ≥ 75 / month",
+              "value": "79",
+              "detail": "Target 75",
+              "day": "2026-10-18",
+              "href": "/stats/goals",
+              "shareRef": "goal"
+            }
+          },
+          {
+            "id": "goal-g2",
+            "type": "goal",
+            "title": "Workouts ≥ 4 / week",
+            "requirement": "Reach at least 4 this week",
+            "progress": {
+              "pct": 0.75,
+              "text": "3 / 4"
+            },
+            "trophy": null
+          },
+          {
+            "id": "goal-g3",
+            "type": "goal",
+            "title": "Savings rate ≥ 25% / month",
+            "requirement": "Reach at least 25% this month",
+            "progress": {
+              "pct": 1,
+              "text": "33% / 25%"
+            },
+            "trophy": {
+              "id": "goal-g3",
+              "type": "goal",
+              "title": "Savings rate ≥ 25% / month",
+              "value": "33%",
+              "detail": "Target 25%",
+              "day": "2026-10-18",
+              "href": "/stats/goals",
+              "shareRef": "goal"
+            }
+          },
+          {
+            "id": "goal-g4",
+            "type": "goal",
+            "title": "Habit completion ≥ 85% / week",
+            "requirement": "Reach at least 85% this week",
+            "progress": {
+              "pct": 1,
+              "text": "91% / 85%"
+            },
+            "trophy": {
+              "id": "goal-g4",
+              "type": "goal",
+              "title": "Habit completion ≥ 85% / week",
+              "value": "91%",
+              "detail": "Target 85%",
+              "day": "2026-10-18",
+              "href": "/stats/goals",
+              "shareRef": "goal"
+            }
+          },
+          {
+            "id": "goal-hat-trick",
+            "type": "goal",
+            "title": "Hat trick",
+            "requirement": "Hit 3 goals at the same time",
+            "progress": {
+              "pct": 1,
+              "text": "3 / 3 goals"
+            },
+            "trophy": {
+              "id": "goal-hat-trick",
+              "type": "goal",
+              "title": "Hat trick",
+              "value": "3",
+              "detail": "3 goals hit at once",
+              "day": "2026-10-18",
+              "href": "/stats/goals",
+              "shareRef": "goal"
+            }
+          },
+          {
+            "id": "first-on-target",
+            "type": "first",
+            "title": "First on-target day",
+            "requirement": "Hit your daily target once",
+            "progress": {
+              "pct": 1,
+              "text": "1 / 1"
+            },
+            "trophy": {
+              "id": "first-on-target-2026-07-17",
+              "type": "first",
+              "title": "First on-target day",
+              "value": "1st",
+              "detail": "Where the streaks began",
+              "day": "2026-07-17",
+              "href": "/stats"
+            }
+          },
+          {
+            "id": "first-wrap",
+            "type": "first",
+            "title": "First day wrapped up",
+            "requirement": "Seal a day with an evening wrap-up",
+            "progress": {
+              "pct": 0,
+              "text": "0 / 1"
+            },
+            "trophy": null
+          },
+          {
+            "id": "first-goal",
+            "type": "first",
+            "title": "First goal set",
+            "requirement": "Set a goal on any metric",
+            "progress": {
+              "pct": 1,
+              "text": "1 / 1"
+            },
+            "trophy": {
+              "id": "first-goal-2026-08-04",
+              "type": "first",
+              "title": "First goal set",
+              "value": "1st",
+              "detail": "Put a number on it",
+              "day": "2026-08-04",
+              "href": "/stats/goals"
+            }
+          }
+        ],
+        "trophies": [
+          {
+            "id": "goal-g1",
+            "type": "goal",
+            "title": "Life Score ≥ 75 / month",
+            "value": "79",
+            "detail": "Target 75",
+            "day": "2026-10-18",
+            "href": "/stats/goals",
+            "shareRef": "goal"
+          },
+          {
+            "id": "goal-g3",
+            "type": "goal",
+            "title": "Savings rate ≥ 25% / month",
+            "value": "33%",
+            "detail": "Target 25%",
+            "day": "2026-10-18",
+            "href": "/stats/goals",
+            "shareRef": "goal"
+          },
+          {
+            "id": "goal-g4",
+            "type": "goal",
+            "title": "Habit completion ≥ 85% / week",
+            "value": "91%",
+            "detail": "Target 85%",
+            "day": "2026-10-18",
+            "href": "/stats/goals",
+            "shareRef": "goal"
+          },
+          {
+            "id": "goal-hat-trick",
+            "type": "goal",
+            "title": "Hat trick",
+            "value": "3",
+            "detail": "3 goals hit at once",
+            "day": "2026-10-18",
+            "href": "/stats/goals",
+            "shareRef": "goal"
+          },
+          {
+            "id": "pr-30",
+            "type": "pr",
+            "title": "PR this month",
+            "value": "34",
+            "detail": "34 new best lifts in 30 days",
+            "day": "2026-10-17",
+            "href": "/fitness/stats"
+          },
+          {
+            "id": "pr-90-5",
+            "type": "pr",
+            "title": "5 PRs in 90 days",
+            "value": "76",
+            "detail": "76 new best lifts in 90 days",
+            "day": "2026-10-17",
+            "href": "/fitness/stats"
+          },
+          {
+            "id": "pr-90-10",
+            "type": "pr",
+            "title": "10 PRs in 90 days",
+            "value": "76",
+            "detail": "76 new best lifts in 90 days",
+            "day": "2026-10-17",
+            "href": "/fitness/stats"
+          },
+          {
+            "id": "streak-7-2026-10-15",
+            "type": "streak",
+            "title": "7-day on-target streak",
+            "value": "7d",
+            "detail": "7 on-target days in a row",
+            "day": "2026-10-15",
+            "href": "/stats",
+            "shareRef": "streak"
+          },
+          {
+            "id": "best-month-2026-10-13",
+            "type": "best",
+            "title": "Best month",
+            "value": "25/30",
+            "detail": "25 on-target days in 30",
+            "day": "2026-10-13",
+            "href": "/stats",
+            "shareRef": "monthly"
+          },
+          {
+            "id": "habit-streak-7",
+            "type": "streak",
+            "title": "7-day streak · Morning workout",
+            "value": "7d",
+            "detail": "Current top habit streak: 17 days",
+            "day": "2026-10-08",
+            "href": "/habits",
+            "shareRef": "streak"
+          },
+          {
+            "id": "best-week-2026-09-04",
+            "type": "best",
+            "title": "Best week",
+            "value": "7/7",
+            "detail": "7 on-target days in 7",
+            "day": "2026-09-04",
+            "href": "/stats",
+            "shareRef": "weekly"
+          },
+          {
+            "id": "perfect-week-2026-09-04",
+            "type": "best",
+            "title": "Perfect week",
+            "value": "7/7",
+            "detail": "7 on-target days in 7",
+            "day": "2026-09-04",
+            "href": "/stats",
+            "shareRef": "weekly"
+          },
+          {
+            "id": "first-goal-2026-08-04",
+            "type": "first",
+            "title": "First goal set",
+            "value": "1st",
+            "detail": "Put a number on it",
+            "day": "2026-08-04",
+            "href": "/stats/goals"
+          },
+          {
+            "id": "first-on-target-2026-07-17",
+            "type": "first",
+            "title": "First on-target day",
+            "value": "1st",
+            "detail": "Where the streaks began",
+            "day": "2026-07-17",
+            "href": "/stats"
+          }
+        ]
+      },
+      {
+        "name": "goals-hit",
+        "state": {
+          "enabled": {
+            "habits": true,
+            "tasks": true,
+            "fitness": true,
+            "finance": true
+          },
+          "threshold": 0.8,
+          "wrapups": [],
+          "goals": [
+            {
+              "id": "g1",
+              "metric": "life",
+              "label": "Life Score",
+              "target": 1,
+              "unit": "",
+              "comparator": "gte",
+              "period": "month",
+              "createdAt": "2026-09-08",
+              "status": "active",
+              "via": "manual"
+            },
+            {
+              "id": "g2",
+              "metric": "fitness:sessions",
+              "label": "Workouts",
+              "target": 1,
+              "unit": "",
+              "comparator": "gte",
+              "period": "week",
+              "createdAt": "2026-08-19",
+              "status": "active",
+              "via": "onboarding"
+            },
+            {
+              "id": "g3",
+              "metric": "finance:savings-rate",
+              "label": "Savings rate",
+              "target": 1,
+              "unit": "%",
+              "comparator": "gte",
+              "period": "month",
+              "createdAt": "2026-08-19",
+              "status": "active",
+              "via": "onboarding"
+            },
+            {
+              "id": "g4",
+              "metric": "habits:habits.rate",
+              "label": "Habit completion",
+              "target": 1,
+              "unit": "%",
+              "comparator": "gte",
+              "period": "week",
+              "createdAt": "2026-09-28",
+              "status": "active",
+              "via": "review"
+            },
+            {
+              "id": "g5",
+              "metric": "tasks:tasks.overdue",
+              "label": "Overdue now",
+              "target": 99,
+              "unit": "",
+              "comparator": "lte",
+              "period": "week",
+              "createdAt": "2026-08-04",
+              "status": "archived",
+              "via": "manual"
+            }
+          ]
+        },
+        "current": 5,
+        "goals": [
+          {
+            "goal": {
+              "id": "g1",
+              "metric": "life",
+              "label": "Life Score",
+              "target": 1,
+              "unit": "",
+              "comparator": "gte",
+              "period": "month",
+              "createdAt": "2026-09-08",
+              "status": "active",
+              "via": "manual"
+            },
+            "entry": {
+              "ref": "life",
+              "label": "Life Score",
+              "module": "life",
+              "value": "79",
+              "n": 79,
+              "unit": "",
+              "goodWhen": "up",
+              "shareable": true
+            },
+            "pct": 79,
+            "hit": true
+          },
+          {
+            "goal": {
+              "id": "g2",
+              "metric": "fitness:sessions",
+              "label": "Workouts",
+              "target": 1,
+              "unit": "",
+              "comparator": "gte",
+              "period": "week",
+              "createdAt": "2026-08-19",
+              "status": "active",
+              "via": "onboarding"
+            },
+            "entry": {
+              "ref": "fitness:sessions",
+              "label": "Workouts",
+              "module": "fitness",
+              "value": "3",
+              "n": 3,
+              "unit": "",
+              "goodWhen": "up",
+              "shareable": true,
+              "delta": -1
+            },
+            "pct": 3,
+            "hit": true
+          },
+          {
+            "goal": {
+              "id": "g3",
+              "metric": "finance:savings-rate",
+              "label": "Savings rate",
+              "target": 1,
+              "unit": "%",
+              "comparator": "gte",
+              "period": "month",
+              "createdAt": "2026-08-19",
+              "status": "active",
+              "via": "onboarding"
+            },
+            "entry": {
+              "ref": "finance:savings-rate",
+              "label": "Savings rate",
+              "module": "finance",
+              "value": "33%",
+              "n": 33,
+              "unit": "%",
+              "goodWhen": "up",
+              "shareable": true,
+              "delta": 0
+            },
+            "pct": 33,
+            "hit": true
+          },
+          {
+            "goal": {
+              "id": "g4",
+              "metric": "habits:habits.rate",
+              "label": "Habit completion",
+              "target": 1,
+              "unit": "%",
+              "comparator": "gte",
+              "period": "week",
+              "createdAt": "2026-09-28",
+              "status": "active",
+              "via": "review"
+            },
+            "entry": {
+              "ref": "habits:habits.rate",
+              "label": "Habit completion",
+              "module": "habits",
+              "value": "91%",
+              "n": 91,
+              "unit": "%",
+              "goodWhen": "up",
+              "shareable": true,
+              "delta": 17
+            },
+            "pct": 91,
+            "hit": true
+          },
+          {
+            "goal": {
+              "id": "g5",
+              "metric": "tasks:tasks.overdue",
+              "label": "Overdue now",
+              "target": 99,
+              "unit": "",
+              "comparator": "lte",
+              "period": "week",
+              "createdAt": "2026-08-04",
+              "status": "archived",
+              "via": "manual"
+            },
+            "entry": {
+              "ref": "tasks:tasks.overdue",
+              "label": "Overdue now",
+              "module": "tasks",
+              "value": "6",
+              "n": 6,
+              "unit": "",
+              "goodWhen": "down",
+              "shareable": false
+            },
+            "pct": 1,
+            "hit": true
+          }
+        ],
+        "achievements": [
+          {
+            "id": "pr-30",
+            "type": "pr",
+            "title": "PR this month",
+            "requirement": "Set a new best lift (est. 1-rep max) in the last 30 days",
+            "progress": {
+              "pct": 1,
+              "text": "1 / 1 PR"
+            },
+            "trophy": {
+              "id": "pr-30",
+              "type": "pr",
+              "title": "PR this month",
+              "value": "34",
+              "detail": "34 new best lifts in 30 days",
+              "day": "2026-10-17",
+              "href": "/fitness/stats"
+            }
+          },
+          {
+            "id": "pr-90-5",
+            "type": "pr",
+            "title": "5 PRs in 90 days",
+            "requirement": "Set 5 new best lifts within 90 days",
+            "progress": {
+              "pct": 1,
+              "text": "5 / 5 PRs"
+            },
+            "trophy": {
+              "id": "pr-90-5",
+              "type": "pr",
+              "title": "5 PRs in 90 days",
+              "value": "76",
+              "detail": "76 new best lifts in 90 days",
+              "day": "2026-10-17",
+              "href": "/fitness/stats"
+            }
+          },
+          {
+            "id": "pr-90-10",
+            "type": "pr",
+            "title": "10 PRs in 90 days",
+            "requirement": "Set 10 new best lifts within 90 days",
+            "progress": {
+              "pct": 1,
+              "text": "10 / 10 PRs"
+            },
+            "trophy": {
+              "id": "pr-90-10",
+              "type": "pr",
+              "title": "10 PRs in 90 days",
+              "value": "76",
+              "detail": "76 new best lifts in 90 days",
+              "day": "2026-10-17",
+              "href": "/fitness/stats"
+            }
+          },
+          {
+            "id": "streak-7",
+            "type": "streak",
+            "title": "7-day on-target streak",
+            "requirement": "Hit your daily target 7 days in a row",
+            "progress": {
+              "pct": 0.7142857142857143,
+              "text": "5 / 7 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "streak-30",
+            "type": "streak",
+            "title": "30-day on-target streak",
+            "requirement": "Hit your daily target 30 days in a row",
+            "progress": {
+              "pct": 0.16666666666666666,
+              "text": "5 / 30 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "streak-100",
+            "type": "streak",
+            "title": "100-day on-target streak",
+            "requirement": "Hit your daily target 100 days in a row",
+            "progress": {
+              "pct": 0.05,
+              "text": "5 / 100 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "streak-365",
+            "type": "streak",
+            "title": "365-day on-target streak",
+            "requirement": "Hit your daily target 365 days in a row",
+            "progress": {
+              "pct": 0.0136986301369863,
+              "text": "5 / 365 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "habit-streak-7",
+            "type": "streak",
+            "title": "7-day habit streak",
+            "requirement": "Reach a 7-day streak on any habit",
+            "progress": {
+              "pct": 1,
+              "text": "7 / 7 days"
+            },
+            "trophy": {
+              "id": "habit-streak-7",
+              "type": "streak",
+              "title": "7-day streak · Morning workout",
+              "value": "7d",
+              "detail": "Current top habit streak: 17 days",
+              "day": "2026-10-08",
+              "href": "/habits",
+              "shareRef": "streak"
+            }
+          },
+          {
+            "id": "habit-streak-30",
+            "type": "streak",
+            "title": "30-day habit streak",
+            "requirement": "Reach a 30-day streak on any habit",
+            "progress": {
+              "pct": 0.5666666666666667,
+              "text": "17 / 30 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "habit-streak-100",
+            "type": "streak",
+            "title": "100-day habit streak",
+            "requirement": "Reach a 100-day streak on any habit",
+            "progress": {
+              "pct": 0.17,
+              "text": "17 / 100 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "habit-streak-365",
+            "type": "streak",
+            "title": "365-day habit streak",
+            "requirement": "Reach a 365-day streak on any habit",
+            "progress": {
+              "pct": 0.04657534246575343,
+              "text": "17 / 365 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "best-week",
+            "type": "best",
+            "title": "Best week",
+            "requirement": "Have an on-target day",
+            "progress": {
+              "pct": 1,
+              "text": "1 / 1 days"
+            },
+            "trophy": {
+              "id": "best-week-2026-10-15",
+              "type": "best",
+              "title": "Best week",
+              "value": "6/7",
+              "detail": "6 on-target days in 7",
+              "day": "2026-10-15",
+              "href": "/stats",
+              "shareRef": "weekly"
+            }
+          },
+          {
+            "id": "best-month",
+            "type": "best",
+            "title": "Best month",
+            "requirement": "Have an on-target day",
+            "progress": {
+              "pct": 1,
+              "text": "1 / 1 days"
+            },
+            "trophy": {
+              "id": "best-month-2026-10-17",
+              "type": "best",
+              "title": "Best month",
+              "value": "11/30",
+              "detail": "11 on-target days in 30",
+              "day": "2026-10-17",
+              "href": "/stats",
+              "shareRef": "monthly"
+            }
+          },
+          {
+            "id": "perfect-week",
+            "type": "best",
+            "title": "Perfect week",
+            "requirement": "Hit your daily target on all 7 days of a week",
+            "progress": {
+              "pct": 0.8571428571428571,
+              "text": "6 / 7 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "perfect-month",
+            "type": "best",
+            "title": "Perfect month",
+            "requirement": "Hit your daily target on all 30 days of a month",
+            "progress": {
+              "pct": 0.36666666666666664,
+              "text": "11 / 30 days"
+            },
+            "trophy": null
+          },
+          {
+            "id": "goal-g1",
+            "type": "goal",
+            "title": "Life Score ≥ 1 / month",
+            "requirement": "Reach at least 1 this month",
+            "progress": {
+              "pct": 1,
+              "text": "79 / 1"
+            },
+            "trophy": {
+              "id": "goal-g1",
+              "type": "goal",
+              "title": "Life Score ≥ 1 / month",
+              "value": "79",
+              "detail": "Target 1",
+              "day": "2026-10-18",
+              "href": "/stats/goals",
+              "shareRef": "goal"
+            }
+          },
+          {
+            "id": "goal-g2",
+            "type": "goal",
+            "title": "Workouts ≥ 1 / week",
+            "requirement": "Reach at least 1 this week",
+            "progress": {
+              "pct": 1,
+              "text": "3 / 1"
+            },
+            "trophy": {
+              "id": "goal-g2",
+              "type": "goal",
+              "title": "Workouts ≥ 1 / week",
+              "value": "3",
+              "detail": "Target 1",
+              "day": "2026-10-18",
+              "href": "/stats/goals",
+              "shareRef": "goal"
+            }
+          },
+          {
+            "id": "goal-g3",
+            "type": "goal",
+            "title": "Savings rate ≥ 1% / month",
+            "requirement": "Reach at least 1% this month",
+            "progress": {
+              "pct": 1,
+              "text": "33% / 1%"
+            },
+            "trophy": {
+              "id": "goal-g3",
+              "type": "goal",
+              "title": "Savings rate ≥ 1% / month",
+              "value": "33%",
+              "detail": "Target 1%",
+              "day": "2026-10-18",
+              "href": "/stats/goals",
+              "shareRef": "goal"
+            }
+          },
+          {
+            "id": "goal-g4",
+            "type": "goal",
+            "title": "Habit completion ≥ 1% / week",
+            "requirement": "Reach at least 1% this week",
+            "progress": {
+              "pct": 1,
+              "text": "91% / 1%"
+            },
+            "trophy": {
+              "id": "goal-g4",
+              "type": "goal",
+              "title": "Habit completion ≥ 1% / week",
+              "value": "91%",
+              "detail": "Target 1%",
+              "day": "2026-10-18",
+              "href": "/stats/goals",
+              "shareRef": "goal"
+            }
+          },
+          {
+            "id": "goal-hat-trick",
+            "type": "goal",
+            "title": "Hat trick",
+            "requirement": "Hit 3 goals at the same time",
+            "progress": {
+              "pct": 1,
+              "text": "3 / 3 goals"
+            },
+            "trophy": {
+              "id": "goal-hat-trick",
+              "type": "goal",
+              "title": "Hat trick",
+              "value": "4",
+              "detail": "4 goals hit at once",
+              "day": "2026-10-18",
+              "href": "/stats/goals",
+              "shareRef": "goal"
+            }
+          },
+          {
+            "id": "first-on-target",
+            "type": "first",
+            "title": "First on-target day",
+            "requirement": "Hit your daily target once",
+            "progress": {
+              "pct": 1,
+              "text": "1 / 1"
+            },
+            "trophy": {
+              "id": "first-on-target-2026-07-17",
+              "type": "first",
+              "title": "First on-target day",
+              "value": "1st",
+              "detail": "Where the streaks began",
+              "day": "2026-07-17",
+              "href": "/stats"
+            }
+          },
+          {
+            "id": "first-wrap",
+            "type": "first",
+            "title": "First day wrapped up",
+            "requirement": "Seal a day with an evening wrap-up",
+            "progress": {
+              "pct": 0,
+              "text": "0 / 1"
+            },
+            "trophy": null
+          },
+          {
+            "id": "first-goal",
+            "type": "first",
+            "title": "First goal set",
+            "requirement": "Set a goal on any metric",
+            "progress": {
+              "pct": 1,
+              "text": "1 / 1"
+            },
+            "trophy": {
+              "id": "first-goal-2026-08-04",
+              "type": "first",
+              "title": "First goal set",
+              "value": "1st",
+              "detail": "Put a number on it",
+              "day": "2026-08-04",
+              "href": "/stats/goals"
+            }
+          }
+        ],
+        "trophies": [
+          {
+            "id": "goal-g1",
+            "type": "goal",
+            "title": "Life Score ≥ 1 / month",
+            "value": "79",
+            "detail": "Target 1",
+            "day": "2026-10-18",
+            "href": "/stats/goals",
+            "shareRef": "goal"
+          },
+          {
+            "id": "goal-g2",
+            "type": "goal",
+            "title": "Workouts ≥ 1 / week",
+            "value": "3",
+            "detail": "Target 1",
+            "day": "2026-10-18",
+            "href": "/stats/goals",
+            "shareRef": "goal"
+          },
+          {
+            "id": "goal-g3",
+            "type": "goal",
+            "title": "Savings rate ≥ 1% / month",
+            "value": "33%",
+            "detail": "Target 1%",
+            "day": "2026-10-18",
+            "href": "/stats/goals",
+            "shareRef": "goal"
+          },
+          {
+            "id": "goal-g4",
+            "type": "goal",
+            "title": "Habit completion ≥ 1% / week",
+            "value": "91%",
+            "detail": "Target 1%",
+            "day": "2026-10-18",
+            "href": "/stats/goals",
+            "shareRef": "goal"
+          },
+          {
+            "id": "goal-hat-trick",
+            "type": "goal",
+            "title": "Hat trick",
+            "value": "4",
+            "detail": "4 goals hit at once",
+            "day": "2026-10-18",
+            "href": "/stats/goals",
+            "shareRef": "goal"
+          },
+          {
+            "id": "pr-30",
+            "type": "pr",
+            "title": "PR this month",
+            "value": "34",
+            "detail": "34 new best lifts in 30 days",
+            "day": "2026-10-17",
+            "href": "/fitness/stats"
+          },
+          {
+            "id": "pr-90-5",
+            "type": "pr",
+            "title": "5 PRs in 90 days",
+            "value": "76",
+            "detail": "76 new best lifts in 90 days",
+            "day": "2026-10-17",
+            "href": "/fitness/stats"
+          },
+          {
+            "id": "pr-90-10",
+            "type": "pr",
+            "title": "10 PRs in 90 days",
+            "value": "76",
+            "detail": "76 new best lifts in 90 days",
+            "day": "2026-10-17",
+            "href": "/fitness/stats"
+          },
+          {
+            "id": "best-month-2026-10-17",
+            "type": "best",
+            "title": "Best month",
+            "value": "11/30",
+            "detail": "11 on-target days in 30",
+            "day": "2026-10-17",
+            "href": "/stats",
+            "shareRef": "monthly"
+          },
+          {
+            "id": "best-week-2026-10-15",
+            "type": "best",
+            "title": "Best week",
+            "value": "6/7",
+            "detail": "6 on-target days in 7",
+            "day": "2026-10-15",
+            "href": "/stats",
+            "shareRef": "weekly"
+          },
+          {
+            "id": "habit-streak-7",
+            "type": "streak",
+            "title": "7-day streak · Morning workout",
+            "value": "7d",
+            "detail": "Current top habit streak: 17 days",
+            "day": "2026-10-08",
+            "href": "/habits",
+            "shareRef": "streak"
+          },
+          {
+            "id": "first-goal-2026-08-04",
+            "type": "first",
+            "title": "First goal set",
+            "value": "1st",
+            "detail": "Put a number on it",
+            "day": "2026-08-04",
+            "href": "/stats/goals"
+          },
+          {
+            "id": "first-on-target-2026-07-17",
+            "type": "first",
+            "title": "First on-target day",
+            "value": "1st",
+            "detail": "Where the streaks began",
+            "day": "2026-07-17",
+            "href": "/stats"
+          }
+        ]
+      }
+    ]
+  }
+}
