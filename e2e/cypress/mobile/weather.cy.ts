@@ -19,7 +19,7 @@
 // | Weather           | temperature unit °C ↔ °F (Today card follows)  | weather · unit preference |
 // | Weather sheet     | Use current location (browser geolocation stub) | weather · use current location |
 // | (server)          | forecast proxy and city search via the API     | weather · server forecast proxy and city search |
-import { rows, settled, signIn, trackSync } from "./tasks-helpers"
+import { go, rows, settled, signIn, trackSync } from "./tasks-helpers"
 
 Cypress.config("responseTimeout", 90000)
 
@@ -104,7 +104,7 @@ describe("weather (live)", () => {
     stubGeolocation("denied")
     cy.newLiveUser("weather").then((user) => {
       signIn(user)
-      cy.visit("/weather")
+      go("/weather")
       pref(user.id, "asked")
       settled()
       cy.findByRole("button", { name: "Search for a city" }).click()
@@ -142,7 +142,7 @@ describe("weather (live)", () => {
     stubGeolocation("denied")
     cy.newLiveUser("weather").then((user) => {
       signIn(user)
-      cy.visit("/weather")
+      go("/weather")
       settled()
       cy.findByRole("button", { name: /^Temperature unit Celsius/ }).click()
       pref(user.id, "unit = 'f'")
@@ -150,11 +150,11 @@ describe("weather (live)", () => {
       cy.findByRole("button", { name: /^Temperature unit Fahrenheit/ }).should(
         "exist",
       )
-      cy.visit("/today")
+      go("/today")
       cy.findByRole("button", { name: /^Weather in .*°F/, ...FORECAST }).should(
         "exist",
       )
-      cy.visit("/weather")
+      go("/weather")
       settled()
       cy.findByRole("button", { name: /^Temperature unit Fahrenheit/ }).click()
       pref(user.id, "unit = 'c'")
@@ -165,7 +165,7 @@ describe("weather (live)", () => {
     stubGeolocation("granted")
     cy.newLiveUser("weather").then((user) => {
       signIn(user)
-      cy.visit("/weather")
+      go("/weather")
       // Granted on the first-visit ask: the device location is used.
       pref(user.id, "asked and source = 'device'")
       cy.findByRole("button", {

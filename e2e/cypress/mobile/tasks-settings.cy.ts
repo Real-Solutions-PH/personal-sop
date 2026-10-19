@@ -4,6 +4,7 @@
 import {
   api,
   day,
+  go,
   rows,
   type ServerTask,
   seedTask,
@@ -111,7 +112,7 @@ describe("tasks settings (live)", () => {
           [user.id, ...values],
         )
       notif("platform = 'ios' and not installed")
-      cy.visit("/tasks/settings")
+      go("/tasks/settings")
       settled()
       cy.findByText("This device").click()
       cy.location("pathname").should("eq", "/tasks/reminders")
@@ -233,7 +234,7 @@ describe("tasks settings (live)", () => {
           titleButton("Unrelated chore").should("not.exist")
 
           // Complete it, then the stats count it, as the server does.
-          cy.visit(`/tasks/task/${t.id}`)
+          go(`/tasks/task/${t.id}`)
           settled()
           cy.findByRole("button", { name: "Complete" }).click()
           rows("select id from task where id = $1 and status = 'done'", [t.id])

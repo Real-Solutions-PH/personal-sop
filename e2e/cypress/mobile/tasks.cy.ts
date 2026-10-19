@@ -48,6 +48,7 @@ import {
   api,
   day,
   dbTask,
+  go,
   rows,
   type ServerTask,
   seedList,
@@ -67,7 +68,7 @@ describe("tasks (live)", () => {
   it("captures tasks, completes one, deletes one — all reach the server", () => {
     cy.newLiveUser("tasks").then((user) => {
       signIn(user)
-      cy.visit("/tasks/capture")
+      go("/tasks/capture")
       cy.findByRole("textbox", { name: "Capture text" })
         .clear()
         .type("Pay electric bill, call dentist")
@@ -91,7 +92,7 @@ describe("tasks (live)", () => {
         )
 
         // Complete one from its detail screen: a domain action on the server.
-        cy.visit(`/tasks/task/${dentist.id}`)
+        go(`/tasks/task/${dentist.id}`)
         cy.findByRole("button", { name: "Complete" }).click()
         rows(
           "select status, completed_at from task where id = $1 and status = 'done' and completed_at is not null",
@@ -103,7 +104,7 @@ describe("tasks (live)", () => {
         )
 
         // Delete the other: a tombstone, so other devices drop it too.
-        cy.visit(`/tasks/task/${bill.id}`)
+        go(`/tasks/task/${bill.id}`)
         cy.findByRole("button", { name: "Delete" }).click()
         rows(
           "select status from task where id = $1 and status = 'deleted' and deleted_at is not null",
@@ -121,7 +122,7 @@ describe("tasks (live)", () => {
   it("natural-language quick add: date, time, repeat and source reach the server", () => {
     cy.newLiveUser("tasks").then((user) => {
       signIn(user)
-      cy.visit("/tasks/capture")
+      go("/tasks/capture")
       cy.findByRole("button", { name: "Voice" }).click()
       cy.findByRole("textbox", { name: "Capture text" })
         .clear()
@@ -170,7 +171,7 @@ describe("tasks (live)", () => {
   it("capture undo: removing one row and Undo all reach the server", () => {
     cy.newLiveUser("tasks").then((user) => {
       signIn(user)
-      cy.visit("/tasks/capture")
+      go("/tasks/capture")
       cy.findByRole("textbox", { name: "Capture text" })
         .clear()
         .type("Book flights, renew passport, pack bags")
@@ -210,7 +211,7 @@ describe("tasks (live)", () => {
   it("capture follow-up: the 1pm reminder offer sets time and reminder", () => {
     cy.newLiveUser("tasks").then((user) => {
       signIn(user)
-      cy.visit("/tasks/capture")
+      go("/tasks/capture")
       // "after lunch" is vague: no time, so the result card offers a reminder.
       cy.findByRole("textbox", { name: "Capture text" })
         .clear()
@@ -228,7 +229,7 @@ describe("tasks (live)", () => {
   it("list quick add parses the phrase into the Inbox", () => {
     cy.newLiveUser("tasks").then((user) => {
       signIn(user)
-      cy.visit("/tasks/list/inbox")
+      go("/tasks/list/inbox")
       cy.findByRole("textbox", { name: "Add task" }).type(
         "Call mom tomorrow 9am{enter}",
       )

@@ -93,8 +93,18 @@ export const tick = (title: string) =>
 
 /** Visit a path and wait until the pulled data shows ``text``. */
 export function visitAndWait(path: string, text: string | RegExp) {
+  go(path)
+  cy.findAllByText(text, { timeout: 90000 }).should("have.length.at.least", 1)
+}
+
+/**
+ * Navigate (a full reload) only once sync is quiet: a reload while a push
+ * is unanswered loses the device-local state of that change (e.g. a task
+ * this device deleted drops out of its Recently deleted list).
+ */
+export function go(path: string) {
+  settled()
   cy.visit(path)
-  cy.findAllByText(text, { timeout: 30000 }).should("have.length.at.least", 1)
 }
 
 // The shared stack serves several E2E sessions at once and the API can take

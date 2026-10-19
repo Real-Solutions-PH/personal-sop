@@ -3,7 +3,7 @@
 // Postgres. Inventory: see tasks.cy.ts.
 import {
   api,
-  pushed,
+  go,
   rows,
   type ServerList,
   type ServerTask,
@@ -31,7 +31,7 @@ describe("task lists (live)", () => {
   it("create, edit, reorder, archive and unarchive lists", () => {
     cy.newLiveUser("tasks").then((user) => {
       signIn(user)
-      cy.visit("/tasks/lists")
+      go("/tasks/lists")
       cy.findByText("No lists yet").should("exist")
 
       // New standard list with a colour and an icon.
@@ -185,36 +185,35 @@ describe("task lists (live)", () => {
         cy.findByText("In cart · 1").should("exist")
         settled()
 
-        // Clear checked, then Undo while its toast is still up (6 s): wait
-        // only until the clear has been SENT, then prove both on the server.
+        // Clear checked reaches the server.
         cy.findByText("Clear checked").click()
         cy.findByText("In cart · 1").should("not.exist")
-        pushed(
-          (op) =>
-            op.kind === "upsert" && op.name === "task" && !!op.data?.cleared_at,
-        )
-        cy.findByRole("button", { name: "Undo" }).click()
         rows(
-          `select r.op_id from sync_op_receipt r where r.owner_id = $1
-             and r.entity = 'task' and r.status = 'applied'
-             and r.result->'row'->>'title' = 'Milk'
-             and r.result->'row'->>'cleared_at' is not null`,
+          "select id from task where owner_id = $1 and title = 'Milk' and cleared_at is not null",
           [user.id],
         )
-        rows(
-          "select id from task where owner_id = $1 and title = 'Milk' and status = 'done' and cleared_at is null",
-          [user.id],
-        )
-        // The clear landed before the undo did.
-        rows(
-          `select r.op_id from sync_op_receipt r where r.owner_id = $1
-             and r.entity = 'task' and r.result->'row'->>'title' = 'Milk'
-             and r.result->'row'->>'cleared_at' is null
-             and r.applied_at > (select min(applied_at) from sync_op_receipt
-               where owner_id = $1 and result->'row'->>'cleared_at' is not null)`,
-          [user.id],
-        )
+        settled()
+
+        // Check Eggs, clear, and Undo from the toast at once (6 s; the
+        // action has no button role, so it is found by text): Eggs stays
+        // in the cart, Milk stays cleared.
+        tick("Eggs")
         cy.findByText("In cart · 1").should("exist")
+        // Ticking shows its own "Task complete" toast with an Undo.
+        cy.findByText("Task complete", { timeout: 15000 }).should("not.exist")
+        settled()
+        cy.findByText("Clear checked").click()
+        cy.findByText("Undo").click()
+        cy.findByText("In cart · 1").should("exist")
+        settled()
+        rows(
+          "select id from task where owner_id = $1 and title = 'Eggs' and status = 'done' and cleared_at is null",
+          [user.id],
+        )
+        rows(
+          "select id from task where owner_id = $1 and title = 'Milk' and cleared_at is not null",
+          [user.id],
+        )
         titleButton("Eggs").should("exist")
       })
     })

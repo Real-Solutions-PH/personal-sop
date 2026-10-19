@@ -4,7 +4,7 @@
 import {
   api,
   day,
-  pushed,
+  go,
   rows,
   type ServerTask,
   seedTask,
@@ -99,7 +99,7 @@ describe("tasks lifecycle (live)", () => {
             [user.id],
             2,
           ).then((all) => expect(all).to.have.length(2))
-          cy.visit(`/tasks/task/${nextId}`)
+          go(`/tasks/task/${nextId}`)
           cy.findByRole("textbox", { name: "Title" }).should(
             "have.value",
             "Stretch",
@@ -108,13 +108,13 @@ describe("tasks lifecycle (live)", () => {
 
           // Uncomplete: the untouched spawned occurrence goes away again,
           // on the server and on the device.
-          cy.visit(`/tasks/task/${first.id}`)
+          go(`/tasks/task/${first.id}`)
           cy.findByRole("button", { name: "Mark not done" }).click()
           rows(open, [first.id])
           rows("select id from task where id = $1 and deleted_at is not null", [
             nextId,
           ])
-          cy.visit(`/tasks/task/${nextId}`)
+          go(`/tasks/task/${nextId}`)
           cy.findByText("Task not found").should("exist")
         })
       })
@@ -160,14 +160,20 @@ describe("tasks lifecycle (live)", () => {
             )
             rows(event, [t.id, "rescheduled"])
 
-            // Delete, then Undo while its toast is up (6 s): wait only until
-            // the delete has been SENT, then prove both on the server.
+            // Delete, then Undo from its toast (6 s; sonner-native renders
+            // the action without a button role, so it is found by text).
+            // The restore op itself is proven by "delete and restore".
             action("Delete")
-            pushed((op) => op.kind === "delete" && op.id === t.id)
-            cy.findByRole("button", { name: "Undo" }).click()
-            rows(event, [t.id, "deleted"])
-            rows(event, [t.id, "restored"])
+            titleButton("Sheet task").should("not.exist")
+            cy.findByText("Undo").click()
+            titleButton("Sheet task").should("exist")
+            settled()
             rows(open, [t.id])
+            api<{ data: { id: string }[] }>(
+              user,
+              "/tasks/deleted",
+              (b) => !b.data.some((x) => x.id === t.id),
+            )
 
             action("Complete")
             rows(done, [t.id])
@@ -256,7 +262,7 @@ describe("tasks lifecycle (live)", () => {
         )
 
         // Completed & deleted → Recently deleted → Restore.
-        cy.visit("/tasks/completed")
+        go("/tasks/completed")
         cy.findByRole("tab", { name: /Recently deleted · 1/ }).click()
         cy.findByText("Old task").should("exist")
         cy.findByRole("button", { name: "Restore" }).click()
@@ -264,10 +270,10 @@ describe("tasks lifecycle (live)", () => {
         rows(event, [t.id, "restored"])
 
         // Delete again and restore from the detail screen's own button.
-        cy.visit(`/tasks/task/${t.id}`)
+        go(`/tasks/task/${t.id}`)
         cy.findByRole("button", { name: "Delete" }).click()
         rows("select id from task where id = $1 and status = 'deleted'", [t.id])
-        cy.visit(`/tasks/task/${t.id}`)
+        go(`/tasks/task/${t.id}`)
         cy.findByText(/^Deleted /).should("exist")
         cy.findAllByRole("button", { name: "Restore" }).last().click()
         rows(open, [t.id])
@@ -276,7 +282,7 @@ describe("tasks lifecycle (live)", () => {
         settled()
         cy.findByRole("button", { name: "Complete" }).click()
         rows(done, [t.id])
-        cy.visit("/tasks/completed")
+        go("/tasks/completed")
         cy.findByText("Old task").should("exist")
         cy.findByRole("button", { name: "Reopen" }).click()
         rows(open, [t.id])
@@ -308,7 +314,7 @@ describe("tasks lifecycle (live)", () => {
              and recurrence is not null`,
           [user.id, day(1)],
         ).then(([next]) => {
-          cy.visit(`/tasks/task/${next.id}`)
+          go(`/tasks/task/${next.id}`)
           cy.findByRole("button", { name: "Delete" }).click()
           cy.findByRole("button", { name: "All future" }).click()
           rows("select id from task where id = $1 and status = 'deleted'", [
