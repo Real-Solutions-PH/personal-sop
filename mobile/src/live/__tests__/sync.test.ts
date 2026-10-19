@@ -253,7 +253,11 @@ test("an edit captured while a sync is in flight is pushed right after it", asyn
     release = r
   })
   const slow: Http = {
-    request: async <T>(method: string, path: string, body?: unknown): Promise<T> => {
+    request: async <T>(
+      method: string,
+      path: string,
+      body?: unknown,
+    ): Promise<T> => {
       if (path.startsWith("/sync/pull")) await gate
       return server.request<T>(method, path, body)
     },
@@ -268,7 +272,9 @@ test("an edit captured while a sync is in flight is pushed right after it", asyn
     online: () => true,
   })
   const first = e.sync() // blocks in its pull
-  todoStore.set({ todos: [{ id: "late", title: "Arrived mid-sync", done: false }] })
+  todoStore.set({
+    todos: [{ id: "late", title: "Arrived mid-sync", done: false }],
+  })
   e.capture()
   const second = e.sync() // must not be dropped
   release()
