@@ -44,6 +44,8 @@ export interface EngineDeps {
 const SNAP_KEY = "sop-live:snapshot"
 const CURSOR_KEY = "sop-live:cursor"
 export const DEAD_LETTER_KEY = "sop-live:dead-letter"
+const DELETED_KEY = "sop-live:deleted"
+const DELETED_LIMIT = 500
 const DEAD_LETTER_LIMIT = 200
 
 // The server refused the request itself (a malformed op fails validation for
@@ -54,6 +56,8 @@ const MALFORMED = new Set([400, 413, 422])
 export class SyncEngine {
   private snapshot: Record<string, Record<string, Payload>> = {}
   private previous: Record<string, Record<string, unknown>> = {}
+  /** Ids this device deleted, per entity: re-creating one is an undo. */
+  private deleted: Record<string, string[]> = {}
   private cursor = 0
   private applying = false
   private timer: ReturnType<typeof setTimeout> | null = null
@@ -67,6 +71,7 @@ export class SyncEngine {
     try {
       this.snapshot = JSON.parse(deps.storage.getItem(SNAP_KEY) ?? "{}")
       this.cursor = Number(deps.storage.getItem(CURSOR_KEY) ?? 0) || 0
+      this.deleted = JSON.parse(deps.storage.getItem(DELETED_KEY) ?? "{}")
     } catch {
       this.snapshot = {}
       this.cursor = 0
@@ -86,6 +91,7 @@ export class SyncEngine {
   private persist() {
     this.deps.storage.setItem(SNAP_KEY, JSON.stringify(this.snapshot))
     this.deps.storage.setItem(CURSOR_KEY, String(this.cursor))
+    this.deps.storage.setItem(DELETED_KEY, JSON.stringify(this.deleted))
   }
 
   /** Watch the mapped stores. Call once at app start (after sign-in). */
@@ -131,7 +137,24 @@ export class SyncEngine {
       const d = diffEntity(m, state, snap, this.previous[m.entity] ?? {})
       for (const a of d.actions)
         ops.push({ op_id: newId(), kind: "action", name: a.name, data: a.data })
+      const gone = new Set(this.deleted[m.entity] ?? [])
+      // Rows a mapper action already names (e.g. tasks.restore {task_id}).
+      const acted = new Set(
+        d.actions.flatMap((a) => Object.values(a.data ?? {}).map(String)),
+      )
       for (const u of d.upserts) {
+        // Undo of this device's own delete: the server keeps the tombstone
+        // and refuses a plain upsert onto it (so another device's stale edit
+        // cannot revive a row), so restore it explicitly first, unless the
+        // mapper's own action already restores it.
+        if (u.create && gone.delete(u.id) && !acted.has(u.id))
+          ops.push({
+            op_id: newId(),
+            kind: "upsert",
+            name: m.entity,
+            id: u.id,
+            data: { deleted_at: null },
+          })
         ops.push({
           op_id: newId(),
           kind: "upsert",
@@ -147,7 +170,9 @@ export class SyncEngine {
       for (const id of d.deletes) {
         ops.push({ op_id: newId(), kind: "delete", name: m.entity, id })
         delete snap[id]
+        gone.add(id)
       }
+      this.deleted[m.entity] = [...gone].slice(-DELETED_LIMIT)
       this.previous[m.entity] = this.index(m, state)
     }
     // Actions run first in the batch only within one capture: a create of a

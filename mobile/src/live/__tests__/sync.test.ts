@@ -59,6 +59,9 @@ class FakeServer implements Http {
   /** Answer a push containing a matching op with this status for the whole
    * request, as request-level validation does (no per-op receipts). */
   refuse: { match: (op: SyncOp) => boolean; status: number } | null = null
+  /** Keep tombstones and refuse a plain upsert onto one, as the server does. */
+  tombstones = false
+  dead = new Set<string>()
   log: { id: string; version: number; deleted: boolean }[] = []
 
   async request<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -69,6 +72,30 @@ class FakeServer implements Http {
       if (this.refuse && ops.some(this.refuse.match))
         throw new ApiError(this.refuse.status, "validation_error", "Invalid")
       const results = ops.map((op) => {
+        if (this.tombstones && op.kind === "upsert" && op.id) {
+          if (
+            op.data?.deleted_at === null &&
+            Object.keys(op.data).length === 1
+          ) {
+            if (!this.dead.delete(op.id))
+              return { op_id: op.op_id, status: "rejected", code: "not_found" }
+            this.rows.set(op.id, { id: op.id, status: "open" })
+            this.log.push({
+              id: op.id,
+              version: ++this.version,
+              deleted: false,
+            })
+            return { op_id: op.op_id, status: "applied" }
+          }
+          if (this.dead.has(op.id))
+            return {
+              op_id: op.op_id,
+              status: "conflict",
+              code: "deleted_on_server",
+            }
+        }
+        if (this.tombstones && op.kind === "delete" && op.id)
+          this.dead.add(op.id)
         if (op.kind === "upsert" && op.id) {
           const row = {
             ...(this.rows.get(op.id) ?? { id: op.id, status: "open" }),
@@ -409,4 +436,34 @@ test("flush queues an edit still in the debounce window, durably", () => {
   // A fresh engine on the same storage (the reloaded page) still has it.
   const reloaded = engine(server, storage)
   expect(reloaded.pending()).toBe(1)
+})
+
+test("undoing this device's delete restores the row instead of conflicting", async () => {
+  const server = new FakeServer()
+  server.tombstones = true
+  const e = engine(server)
+  const row = { id: "a", title: "Rest day", done: false }
+  todoStore.set({ todos: [row] })
+  e.capture()
+  await e.sync()
+  todoStore.set({ todos: [] }) // delete
+  e.capture()
+  await e.sync()
+  expect(server.dead.has("a")).toBe(true)
+  todoStore.set({ todos: [row] }) // undo
+  const ops = e.capture()
+  expect(ops.map((o) => [o.kind, o.data])).toEqual([
+    ["upsert", { deleted_at: null }],
+    ["upsert", { title: "Rest day" }],
+  ])
+  await e.sync()
+  expect(e.rejected).toEqual([])
+  expect(server.rows.get("a")).toMatchObject({ title: "Rest day" })
+  expect(todoStore.get().todos).toEqual([row])
+})
+
+test("a brand-new row is never sent a restore", () => {
+  const e = engine(new FakeServer())
+  todoStore.set({ todos: [{ id: "n", title: "New", done: false }] })
+  expect(e.capture().map((o) => o.data)).toEqual([{ title: "New" }])
 })
