@@ -192,7 +192,16 @@ test("round trip: accounts, categories, budgets, planned, settings", () => {
   roundTrip(budgetMapper(), s)
   roundTrip(plannedMapper(cats), s)
   const settings = settingsMapper(USER, cats)
-  const [only] = settings.list(s)
+  const [seeded] = settings.list(s)
+  // Live account ids are UUIDs; the demo's slugs are not sent (see below).
+  const only = {
+    ...seeded,
+    value: {
+      ...seeded.value,
+      defaultAccountId: "3b0c5a3e-0d3f-4e7b-9a43-6a0f2a8f1c01",
+      lastAccountId: "3b0c5a3e-0d3f-4e7b-9a43-6a0f2a8f1c02",
+    },
+  }
   expect(settings.fromServer(settings.toServer(only, s), s)).toEqual(only)
 })
 
@@ -689,6 +698,18 @@ test("settings: one row, centavos, the server-remembered fields never written", 
 // ---------------------------------------------------------------------------
 // Pull: natural keys and no echo
 // ---------------------------------------------------------------------------
+
+test("settings never send a demo slug as the default account", () => {
+  const settings = settingsMapper(USER, cats)
+  const s = finStore.get()
+  const [row] = settings.list(s)
+  const send = (defaultAccountId: string) =>
+    settings.toServer({ ...row, value: { ...row.value, defaultAccountId } }, s)
+  // The seed's "gcash" survives until the first pull replaces it.
+  expect(send("gcash").default_account_id).toBeNull()
+  const id = "0d6f1c1e-6f4a-4c11-9a51-3a3b8f2f0a10"
+  expect(send(id).default_account_id).toBe(id)
+})
 
 test("a pulled look-back for a period held under another id replaces the local one", () => {
   const e = synced()

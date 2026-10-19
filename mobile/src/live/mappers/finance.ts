@@ -36,7 +36,7 @@ import {
   type PlannedItem,
 } from "@domain/finance/data"
 import { finStore } from "@domain/finance/store"
-import { derivedId } from "@domain/lib/ids"
+import { derivedId, isUuid } from "@domain/lib/ids"
 import type { ActionOp, Mapper, Payload } from "../mapper"
 import { singleton } from "./helpers"
 
@@ -773,7 +773,11 @@ export function settingsMapper(userId: string, cats: Cats) {
     read: (s) => s.settings,
     write: (s, v) => ({ ...s, settings: v }),
     toServer: (v) => ({
-      default_account_id: v.defaultAccountId || null,
+      // Before the first pull the device still holds the demo seed's
+      // "gcash": a slug is no account id, and the server refused the row.
+      default_account_id: isUuid(v.defaultAccountId)
+        ? v.defaultAccountId
+        : null,
       month_start_day: v.monthStartDay,
       horizon: v.horizon,
       include_unplanned: v.includeUnplanned,
@@ -783,7 +787,8 @@ export function settingsMapper(userId: string, cats: Cats) {
       nudge_days: v.nudgeDays,
       proj_excluded_planned: v.projExcludedPlanned,
       // Server-owned: it remembers these when a record is written.
-      last_account_id: v.lastAccountId ?? null,
+      last_account_id:
+        v.lastAccountId && isUuid(v.lastAccountId) ? v.lastAccountId : null,
       last_category_id: cats.out(v.lastCategoryId),
     }),
     fromServer: (row, cur) => ({
