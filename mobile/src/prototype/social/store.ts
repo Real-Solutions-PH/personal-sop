@@ -1,10 +1,14 @@
 import { dashStore } from "@domain/dash/store"
+import { newId } from "@domain/lib/ids"
+import { getConnectivity, toast } from "@domain/lib/platform"
 import { createStore, uid } from "@domain/lib/store"
 import { create } from "zustand"
+import { liveMode } from "@/live/config"
 import type { Accent } from "../theme"
 
-// ponytail: social is UI-only for the prototype — every action mutates this
-// local store. Swap the actions for API calls once the social contract exists.
+// Prototype mode: every action mutates this local store only. Live mode:
+// the same actions also call the server (see "live mode" below), and
+// src/live/social.ts fills the store from the /social routes and events.
 
 export type Media = { kind: "image" | "video"; uri: string; ratio?: number }
 export type ProgressStat = { label: string; value: string; unit?: string }
@@ -70,6 +74,8 @@ export type Post = {
   saved: boolean
   likedBy: string[]
   comments: Comment[]
+  /** Live mode: the server's comment total (comments load on open). */
+  commentCount?: number
 }
 export type StoryItem = {
   id: string
@@ -84,7 +90,14 @@ export type StoryItem = {
   likes?: number
   liked?: boolean
 }
-export type Note = { by: string; text: string; at: number; liked?: boolean }
+export type Note = {
+  by: string
+  text: string
+  at: number
+  liked?: boolean
+  /** Live mode: the server's note id (likes address it). */
+  id?: string
+}
 export type Message = {
   id: string
   by: string
@@ -105,6 +118,10 @@ export type Chat = {
   muted: boolean
   pinned: boolean
   readAt: number
+  /** Live mode: the server's unread count before messages are loaded. */
+  unread?: number
+  /** Live mode: when each other member last read (chat.read events). */
+  readBy?: Record<string, number>
 }
 export type Activity = {
   id: string
@@ -126,6 +143,8 @@ export type SocialState = {
   drafts: { post?: Partial<Post>; story?: Partial<StoryItem> }
   /** Whether followers can see your scores and achievements. */
   showScores: boolean
+  /** Live mode: my own bio and counts from GET /social/me. */
+  me?: { bio: string; followers: number; following: number }
 }
 
 export const ME = "me"
@@ -705,6 +724,150 @@ const mapPost = (id: string, fn: (p: Post) => Post) =>
 const mapChat = (id: string, fn: (c: Chat) => Chat) =>
   set((s) => ({ ...s, chats: s.chats.map((c) => (c.id === id ? fn(c) : c)) }))
 
+// ---------------------------------------------------------------- live mode
+//
+// In live mode the screens still read this store; every action applies its
+// change here first (optimistic), then calls the server through the remote
+// that src/live/social.ts connects at sign-in. A failed call puts the
+// previous value back and tells the person. Social is never queued: a write
+// made offline fails at once with a toast, while the last fetched data
+// (persisted with this store) stays on screen.
+
+/** What the store needs from the server; implemented by src/live/social.ts. */
+export interface SocialRemote {
+  refresh(): Promise<void>
+  loadMoreFeed(tab: "following" | "foryou"): Promise<void>
+  openPost(id: string): Promise<void>
+  openPerson(id: string): Promise<void>
+  openChat(id: string): Promise<void>
+  /** Explore search: people, or posts by tag when it starts with #. */
+  search(q: string): Promise<void>
+  loadExplore(): Promise<void>
+  likePost(id: string, on: boolean): Promise<unknown>
+  savePost(id: string, on: boolean): Promise<unknown>
+  createPost(post: Post): Promise<unknown>
+  updateCaption(id: string, caption: string): Promise<unknown>
+  deletePost(id: string): Promise<unknown>
+  restorePost(id: string): Promise<unknown>
+  addComment(postId: string, comment: Comment): Promise<unknown>
+  likeComment(postId: string, id: string, on: boolean): Promise<unknown>
+  deleteComment(postId: string, id: string): Promise<unknown>
+  createStory(story: StoryItem): Promise<unknown>
+  deleteStory(id: string): Promise<unknown>
+  seen(id: string): Promise<unknown>
+  likeStory(id: string, on: boolean): Promise<unknown>
+  setNote(text: string): Promise<unknown>
+  clearNote(): Promise<unknown>
+  likeNote(id: string, on: boolean): Promise<unknown>
+  follow(personId: string, on: boolean): Promise<unknown>
+  closeFriend(personId: string, on: boolean): Promise<unknown>
+  showScores(on: boolean): Promise<unknown>
+  markActivityRead(): Promise<unknown>
+  openDirect(chatId: string, personId: string): Promise<unknown>
+  createGroup(chat: Chat): Promise<unknown>
+  sendMessage(chatId: string, message: Message): Promise<unknown>
+  react(
+    chatId: string,
+    messageId: string,
+    emoji: string | null,
+  ): Promise<unknown>
+  unsend(chatId: string, messageId: string): Promise<unknown>
+  markRead(chatId: string): Promise<unknown>
+  chatSettings(
+    chatId: string,
+    body: { muted?: boolean; pinned?: boolean },
+  ): Promise<unknown>
+  renameChat(chatId: string, name: string): Promise<unknown>
+  addMembers(chatId: string, ids: string[]): Promise<unknown>
+  hideChat(chatId: string): Promise<unknown>
+  restoreChat(chatId: string): Promise<unknown>
+  saveDraft(
+    kind: "post" | "story",
+    body: Record<string, unknown> | null,
+  ): Promise<unknown>
+  typing(chatId: string): Promise<unknown>
+}
+
+let remote: SocialRemote | null = null
+/** Live mode: route actions to the server (null disconnects at sign-out). */
+export function connectSocial(next: SocialRemote | null) {
+  remote = next
+}
+
+/** Live mode only: send a write; on failure undo the optimistic change and
+ * say so. Offline (or signed out) fails at once — social is not queued. */
+function send(
+  call: (r: SocialRemote) => Promise<unknown>,
+  undo: () => void,
+  what: string,
+) {
+  if (!liveMode) return
+  const r = remote
+  if (!r || !getConnectivity()) {
+    undo()
+    toast(`You're offline. Couldn't ${what}.`)
+    return
+  }
+  call(r).catch(() => {
+    undo()
+    toast(`Couldn't ${what}. Please try again.`)
+  })
+}
+/** Passive sync the person did not ask for (seen, read, typing): no toast,
+ * nothing to undo, skipped offline. */
+function nudge(call: (r: SocialRemote) => Promise<unknown>) {
+  if (!liveMode || !remote || !getConnectivity()) return
+  call(remote).catch(() => {})
+}
+/** Loaders the screens call on open/refresh; no-ops in prototype mode. A
+ * failed load keeps the cached data; only an explicit refresh reports. */
+function load(call: (r: SocialRemote) => Promise<unknown>, report?: string) {
+  if (!liveMode || !remote) return Promise.resolve()
+  return call(remote).then(
+    () => {},
+    () => {
+      if (report) toast(report)
+    },
+  )
+}
+export const refreshSocial = () =>
+  load((r) => r.refresh(), "Couldn't refresh. Showing what was saved.")
+export const loadMoreFeed = (tab: "following" | "foryou") =>
+  load((r) => r.loadMoreFeed(tab))
+export const openPostLive = (id: string) => load((r) => r.openPost(id))
+export const openPersonLive = (id: string) => load((r) => r.openPerson(id))
+export const openChatLive = (id: string) => load((r) => r.openChat(id))
+export const searchLive = (q: string) => load((r) => r.search(q))
+export const loadExploreLive = () => load((r) => r.loadExplore())
+/** The composer changed: tell the other members (throttled by the remote). */
+export const noteTyping = (chatId: string) => nudge((r) => r.typing(chatId))
+
+/** Who is typing in which chat (live events); deliberately not persisted. */
+export const typingStore = create<
+  Record<string, { by: string; until: number }>
+>(() => ({}))
+export function useTyping(chatId: string | undefined): string | null {
+  const t = typingStore((s) => (chatId ? s[chatId] : undefined))
+  return t && t.until > Date.now() ? t.by : null
+}
+
+const mkId = () => (liveMode ? newId() : uid())
+const postOf = (id: string) => socialStore.get().posts.find((p) => p.id === id)
+const chatOf = (id: string) => socialStore.get().chats.find((c) => c.id === id)
+const personOf = (id: string) =>
+  socialStore.get().people.find((p) => p.id === id)
+const putPost = (prev: Post) => mapPost(prev.id, () => prev)
+const putChat = (prev: Chat) => mapChat(prev.id, () => prev)
+const putPerson = (prev: Person) =>
+  set((s) => ({
+    ...s,
+    people: s.people.map((p) => (p.id === prev.id ? prev : p)),
+  }))
+const dropPost = (id: string) =>
+  set((s) => ({ ...s, posts: s.posts.filter((p) => p.id !== id) }))
+const dropChat = (id: string) =>
+  set((s) => ({ ...s, chats: s.chats.filter((c) => c.id !== id) }))
+
 export function useMe(): Person {
   const profile = dashStore.use((s) => s.profile)
   const followers = socialStore.use(
@@ -713,6 +876,7 @@ export function useMe(): Person {
   const following = socialStore.use(
     (s) => s.people.filter((p) => p.isFollowing).length,
   )
+  const live = socialStore.use((s) => s.me)
   const name = profile.name || "You"
   return {
     id: ME,
@@ -721,11 +885,11 @@ export function useMe(): Person {
       profile.handle?.replace(/^@/, "") ||
       name.toLowerCase().replace(/[^a-z0-9]+/g, ".") ||
       "you",
-    bio: "Building better days, one rep at a time.",
+    bio: live ? live.bio : "Building better days, one rep at a time.",
     accent: "primary",
     photo: profile.photo || undefined,
-    followers: 128 + followers,
-    following: 90 + following,
+    followers: live ? live.followers : 128 + followers,
+    following: live ? live.following : 90 + following,
     isFollowing: false,
   }
 }
@@ -735,19 +899,43 @@ export function usePerson(id: string): Person | undefined {
   return id === ME ? me : other
 }
 
-export const toggleLike = (id: string) =>
+export function toggleLike(id: string) {
+  const prev = postOf(id)
   mapPost(id, (p) => ({
     ...p,
     liked: !p.liked,
     likes: p.likes + (p.liked ? -1 : 1),
   }))
-export const like = (id: string) =>
+  if (prev)
+    send(
+      (r) => r.likePost(id, !prev.liked),
+      () => putPost(prev),
+      prev.liked ? "unlike the post" : "like the post",
+    )
+}
+export function like(id: string) {
+  const prev = postOf(id)
   mapPost(id, (p) => (p.liked ? p : { ...p, liked: true, likes: p.likes + 1 }))
-export const toggleSave = (id: string) =>
+  if (prev && !prev.liked)
+    send(
+      (r) => r.likePost(id, true),
+      () => putPost(prev),
+      "like the post",
+    )
+}
+export function toggleSave(id: string) {
+  const prev = postOf(id)
   mapPost(id, (p) => ({ ...p, saved: !p.saved }))
+  if (prev)
+    send(
+      (r) => r.savePost(id, !prev.saved),
+      () => putPost(prev),
+      prev.saved ? "unsave the post" : "save the post",
+    )
+}
 export function addComment(postId: string, text: string, replyTo?: string) {
   const comment: Comment = {
-    id: uid(),
+    id: mkId(),
     by: ME,
     text,
     at: Date.now(),
@@ -756,9 +944,20 @@ export function addComment(postId: string, text: string, replyTo?: string) {
     replyTo,
   }
   mapPost(postId, (p) => ({ ...p, comments: [...p.comments, comment] }))
+  send(
+    (r) => r.addComment(postId, comment),
+    () =>
+      mapPost(postId, (p) => ({
+        ...p,
+        comments: p.comments.filter((c) => c.id !== comment.id),
+      })),
+    "post your comment",
+  )
   return comment
 }
-export const toggleCommentLike = (postId: string, commentId: string) =>
+export function toggleCommentLike(postId: string, commentId: string) {
+  const prev = postOf(postId)
+  const was = prev?.comments.find((c) => c.id === commentId)?.liked
   mapPost(postId, (p) => ({
     ...p,
     comments: p.comments.map((c) =>
@@ -767,17 +966,32 @@ export const toggleCommentLike = (postId: string, commentId: string) =>
         : c,
     ),
   }))
-export const deleteComment = (postId: string, commentId: string) =>
+  if (prev && was !== undefined)
+    send(
+      (r) => r.likeComment(postId, commentId, !was),
+      () => putPost(prev),
+      "update the comment",
+    )
+}
+export function deleteComment(postId: string, commentId: string) {
+  const prev = postOf(postId)
   mapPost(postId, (p) => ({
     ...p,
     comments: p.comments.filter((c) => c.id !== commentId),
   }))
+  if (prev)
+    send(
+      (r) => r.deleteComment(postId, commentId),
+      () => putPost(prev),
+      "delete the comment",
+    )
+}
 export function createPost(
   p: Pick<Post, "caption" | "media"> &
     Partial<Pick<Post, "progress" | "location">>,
 ) {
   const post: Post = {
-    id: uid(),
+    id: mkId(),
     by: ME,
     at: Date.now(),
     likes: 0,
@@ -793,6 +1007,14 @@ export function createPost(
     progress: post.progress,
     at: Date.now(),
   })
+  if (liveMode) {
+    send(
+      (r) => r.createPost(post),
+      () => dropPost(post.id),
+      "share your post",
+    )
+    return post
+  }
   // Friends react a moment later so the post feels alive.
   setTimeout(() => {
     mapPost(post.id, (x) => ({
@@ -816,35 +1038,80 @@ export function createPost(
   }, 4000)
   return post
 }
-export const updateCaption = (id: string, caption: string) =>
+export function updateCaption(id: string, caption: string) {
+  const prev = postOf(id)
   mapPost(id, (p) => ({ ...p, caption }))
+  if (prev)
+    send(
+      (r) => r.updateCaption(id, caption),
+      () => putPost(prev),
+      "save the caption",
+    )
+}
 export function deletePost(id: string) {
   const before = socialStore.get().posts
   set((s) => ({ ...s, posts: s.posts.filter((p) => p.id !== id) }))
-  return () => set((s) => ({ ...s, posts: before }))
+  send(
+    (r) => r.deletePost(id),
+    () => set((s) => ({ ...s, posts: before })),
+    "delete the post",
+  )
+  return () => {
+    set((s) => ({ ...s, posts: before }))
+    send(
+      (r) => r.restorePost(id),
+      () => dropPost(id),
+      "restore the post",
+    )
+  }
 }
 export function addStory(item: Omit<StoryItem, "id" | "by" | "at">) {
-  const story: StoryItem = { id: uid(), by: ME, at: Date.now(), ...item }
+  const story: StoryItem = { id: mkId(), by: ME, at: Date.now(), ...item }
   set((s) => ({
     ...s,
     stories: [...s.stories, story],
     seen: [...s.seen, story.id],
     drafts: {},
   }))
+  send(
+    (r) => r.createStory(story),
+    () =>
+      set((s) => ({
+        ...s,
+        stories: s.stories.filter((x) => x.id !== story.id),
+      })),
+    "share your story",
+  )
   return story
 }
-export const deleteStory = (id: string) =>
+export function deleteStory(id: string) {
+  const before = socialStore.get().stories
   set((s) => ({ ...s, stories: s.stories.filter((x) => x.id !== id) }))
-export const markSeen = (id: string) =>
+  send(
+    (r) => r.deleteStory(id),
+    () => set((s) => ({ ...s, stories: before })),
+    "delete the story",
+  )
+}
+export function markSeen(id: string) {
+  const already = socialStore.get().seen.includes(id)
   set((s) => (s.seen.includes(id) ? s : { ...s, seen: [...s.seen, id] }))
-export const toggleStoryLike = (id: string) =>
-  set((s) => ({
-    ...s,
-    stories: s.stories.map((x) =>
-      x.id === id ? { ...x, liked: !x.liked } : x,
-    ),
-  }))
-export const setNote = (text: string) =>
+  if (!already) nudge((r) => r.seen(id))
+}
+export function toggleStoryLike(id: string) {
+  const was = socialStore.get().stories.find((x) => x.id === id)?.liked
+  const flip = () =>
+    set((s) => ({
+      ...s,
+      stories: s.stories.map((x) =>
+        x.id === id ? { ...x, liked: !x.liked } : x,
+      ),
+    }))
+  flip()
+  send((r) => r.likeStory(id, !was), flip, "like the story")
+}
+export function setNote(text: string) {
+  const before = socialStore.get().notes
   set((s) => ({
     ...s,
     notes: [
@@ -852,14 +1119,35 @@ export const setNote = (text: string) =>
       ...s.notes.filter((n) => n.by !== ME),
     ],
   }))
-export const clearNote = () =>
+  send(
+    (r) => r.setNote(text),
+    () => set((s) => ({ ...s, notes: before })),
+    "share your note",
+  )
+}
+export function clearNote() {
+  const before = socialStore.get().notes
   set((s) => ({ ...s, notes: s.notes.filter((n) => n.by !== ME) }))
-export const toggleNoteLike = (by: string) =>
-  set((s) => ({
-    ...s,
-    notes: s.notes.map((n) => (n.by === by ? { ...n, liked: !n.liked } : n)),
-  }))
+  send(
+    (r) => r.clearNote(),
+    () => set((s) => ({ ...s, notes: before })),
+    "remove your note",
+  )
+}
+export function toggleNoteLike(by: string) {
+  const note = socialStore.get().notes.find((n) => n.by === by)
+  const flip = () =>
+    set((s) => ({
+      ...s,
+      notes: s.notes.map((n) => (n.by === by ? { ...n, liked: !n.liked } : n)),
+    }))
+  flip()
+  const noteId = note?.id
+  if (noteId)
+    send((r) => r.likeNote(noteId, !note.liked), flip, "like the note")
+}
 export function toggleFollow(id: string) {
+  const prev = personOf(id)
   set((s) => ({
     ...s,
     people: s.people.map((p) =>
@@ -872,18 +1160,41 @@ export function toggleFollow(id: string) {
         : p,
     ),
   }))
+  if (prev)
+    send(
+      (r) => r.follow(id, !prev.isFollowing),
+      () => putPerson(prev),
+      prev.isFollowing ? `unfollow ${prev.name}` : `follow ${prev.name}`,
+    )
 }
-export const toggleCloseFriend = (id: string) =>
+export function toggleCloseFriend(id: string) {
+  const prev = personOf(id)
   set((s) => ({
     ...s,
     people: s.people.map((p) =>
       p.id === id ? { ...p, closeFriend: !p.closeFriend } : p,
     ),
   }))
-export const toggleShowScores = () =>
+  if (prev)
+    send(
+      (r) => r.closeFriend(id, !prev.closeFriend),
+      () => putPerson(prev),
+      "update close friends",
+    )
+}
+export function toggleShowScores() {
+  const was = socialStore.get().showScores
   set((s) => ({ ...s, showScores: !s.showScores }))
-export const markActivityRead = () =>
+  send(
+    (r) => r.showScores(!was),
+    () => set((s) => ({ ...s, showScores: was })),
+    "update who sees your scores",
+  )
+}
+export function markActivityRead() {
   set((s) => ({ ...s, activityReadAt: Date.now() }))
+  nudge((r) => r.markActivityRead())
+}
 
 /** Open (or create) the 1:1 chat with a person; returns its id. */
 export function directChat(personId: string) {
@@ -894,7 +1205,7 @@ export function directChat(personId: string) {
     )
   if (existing) return existing.id
   const chat: Chat = {
-    id: uid(),
+    id: mkId(),
     members: [personId],
     messages: [],
     muted: false,
@@ -902,11 +1213,16 @@ export function directChat(personId: string) {
     readAt: Date.now(),
   }
   set((s) => ({ ...s, chats: [chat, ...s.chats] }))
+  send(
+    (r) => r.openDirect(chat.id, personId),
+    () => dropChat(chat.id),
+    "start the chat",
+  )
   return chat.id
 }
 export function createGroup(members: string[], name: string) {
   const chat: Chat = {
-    id: uid(),
+    id: mkId(),
     members,
     name,
     muted: false,
@@ -924,6 +1240,11 @@ export function createGroup(members: string[], name: string) {
     ],
   }
   set((s) => ({ ...s, chats: [chat, ...s.chats] }))
+  send(
+    (r) => r.createGroup(chat),
+    () => dropChat(chat.id),
+    "create the group",
+  )
   return chat.id
 }
 export function sendMessage(
@@ -931,7 +1252,7 @@ export function sendMessage(
   m: Omit<Message, "id" | "by" | "at" | "reactions">,
 ) {
   const message: Message = {
-    id: uid(),
+    id: mkId(),
     by: ME,
     at: Date.now(),
     reactions: {},
@@ -942,6 +1263,15 @@ export function sendMessage(
     readAt: Date.now(),
     messages: [...c.messages, message],
   }))
+  send(
+    (r) => r.sendMessage(chatId, message),
+    () =>
+      mapChat(chatId, (c) => ({
+        ...c,
+        messages: c.messages.filter((x) => x.id !== message.id),
+      })),
+    "send the message",
+  )
   return message
 }
 const replies = [
@@ -953,8 +1283,10 @@ const replies = [
   "Proud of you fr",
   "Ok I'm stealing this idea",
 ]
-/** Simulated friend reply; returns the replying person's id, if any. */
+/** Simulated friend reply; returns the replying person's id, if any. Live
+ * mode never simulates: real replies arrive on the event stream. */
 export function simulateReply(chatId: string, delay = 1800) {
+  if (liveMode) return null
   const chat = socialStore.get().chats.find((c) => c.id === chatId)
   if (!chat || chat.members.length === 0) return null
   const by = chat.members[Math.floor(Math.random() * chat.members.length)]
@@ -970,7 +1302,9 @@ export function simulateReply(chatId: string, delay = 1800) {
   }, delay)
   return by
 }
-export const reactTo = (chatId: string, messageId: string, emoji: string) =>
+export function reactTo(chatId: string, messageId: string, emoji: string) {
+  const prev = chatOf(chatId)
+  const mine = prev?.messages.find((m) => m.id === messageId)?.reactions[ME]
   mapChat(chatId, (c) => ({
     ...c,
     messages: c.messages.map((m) => {
@@ -981,36 +1315,115 @@ export const reactTo = (chatId: string, messageId: string, emoji: string) =>
       return { ...m, reactions }
     }),
   }))
-export const unsend = (chatId: string, messageId: string) =>
+  if (prev)
+    send(
+      (r) => r.react(chatId, messageId, mine === emoji ? null : emoji),
+      () => putChat(prev),
+      "react to the message",
+    )
+}
+export function unsend(chatId: string, messageId: string) {
+  const prev = chatOf(chatId)
   mapChat(chatId, (c) => ({
     ...c,
     messages: c.messages.filter((m) => m.id !== messageId),
   }))
-export const markChatRead = (chatId: string) =>
-  mapChat(chatId, (c) => ({ ...c, readAt: Date.now() }))
-export const toggleMute = (chatId: string) =>
+  if (prev)
+    send(
+      (r) => r.unsend(chatId, messageId),
+      () => putChat(prev),
+      "unsend the message",
+    )
+}
+export function markChatRead(chatId: string) {
+  mapChat(chatId, (c) =>
+    liveMode
+      ? { ...c, readAt: Date.now(), unread: 0 }
+      : { ...c, readAt: Date.now() },
+  )
+  nudge((r) => r.markRead(chatId))
+}
+export function toggleMute(chatId: string) {
+  const prev = chatOf(chatId)
   mapChat(chatId, (c) => ({ ...c, muted: !c.muted }))
-export const togglePin = (chatId: string) =>
+  if (prev)
+    send(
+      (r) => r.chatSettings(chatId, { muted: !prev.muted }),
+      () => putChat(prev),
+      prev.muted ? "unmute the chat" : "mute the chat",
+    )
+}
+export function togglePin(chatId: string) {
+  const prev = chatOf(chatId)
   mapChat(chatId, (c) => ({ ...c, pinned: !c.pinned }))
-export const renameChat = (chatId: string, name: string) =>
+  if (prev)
+    send(
+      (r) => r.chatSettings(chatId, { pinned: !prev.pinned }),
+      () => putChat(prev),
+      prev.pinned ? "unpin the chat" : "pin the chat",
+    )
+}
+export function renameChat(chatId: string, name: string) {
+  const prev = chatOf(chatId)
   mapChat(chatId, (c) => ({ ...c, name }))
-export const addMembers = (chatId: string, ids: string[]) =>
+  if (prev)
+    send(
+      (r) => r.renameChat(chatId, name),
+      () => putChat(prev),
+      "rename the group",
+    )
+}
+export function addMembers(chatId: string, ids: string[]) {
+  const prev = chatOf(chatId)
   mapChat(chatId, (c) => ({
     ...c,
     members: [...new Set([...c.members, ...ids])],
   }))
+  if (prev)
+    send(
+      (r) => r.addMembers(chatId, ids),
+      () => putChat(prev),
+      "add to the group",
+    )
+}
 export function deleteChat(chatId: string) {
   const before = socialStore.get().chats
   set((s) => ({ ...s, chats: s.chats.filter((c) => c.id !== chatId) }))
-  return () => set((s) => ({ ...s, chats: before }))
+  send(
+    (r) => r.hideChat(chatId),
+    () => set((s) => ({ ...s, chats: before })),
+    "delete the chat",
+  )
+  return () => {
+    set((s) => ({ ...s, chats: before }))
+    send(
+      (r) => r.restoreChat(chatId),
+      () => dropChat(chatId),
+      "restore the chat",
+    )
+  }
 }
-export const setPostDraft = (post: Partial<Post>) =>
+export function setPostDraft(post: Partial<Post>) {
   set((s) => ({ ...s, drafts: { ...s.drafts, post } }))
-export const setStoryDraft = (story: Partial<StoryItem>) =>
+  send(
+    (r) => r.saveDraft("post", post),
+    () => {},
+    "save your draft",
+  )
+}
+export function setStoryDraft(story: Partial<StoryItem>) {
   set((s) => ({ ...s, drafts: { ...s.drafts, story } }))
-
+  send(
+    (r) => r.saveDraft("story", story),
+    () => {},
+    "save your draft",
+  )
+}
 export const unread = (c: Chat) =>
-  c.messages.filter((m) => m.by !== ME && m.at > c.readAt).length
+  Math.max(
+    c.unread ?? 0,
+    c.messages.filter((m) => m.by !== ME && m.at > c.readAt).length,
+  )
 export function timeAgo(at: number, now = Date.now()) {
   const d = Math.max(0, now - at)
   if (d < MIN) return "now"
@@ -1053,7 +1466,14 @@ export function agoText(at: number) {
   const x = timeAgo(at)
   return x === "now" ? "Just now" : /\d[mhd]$/.test(x) ? `${x} ago` : x
 }
-export const clearDrafts = () => set((s) => ({ ...s, drafts: {} }))
+export function clearDrafts() {
+  set((s) => ({ ...s, drafts: {} }))
+  send(
+    (r) => Promise.all([r.saveDraft("post", null), r.saveDraft("story", null)]),
+    () => {},
+    "discard your draft",
+  )
+}
 
 /** Transient "Posting…" banner state; deliberately not persisted. */
 export const postingStore = create<{

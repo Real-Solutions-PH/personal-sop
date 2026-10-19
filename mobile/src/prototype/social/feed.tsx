@@ -35,15 +35,18 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { liveMode } from "@/live/config"
 import { back, go } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import { Sheet } from "../ui"
 import { Avatar, Bounce, haptic, ProgressCard } from "./kit"
 import { PostCard } from "./post-card"
 import {
+  loadMoreFeed,
   ME,
   type Post,
   postingStore,
+  refreshSocial,
   socialStore,
   storyGroups,
   unread,
@@ -368,7 +371,8 @@ export function SocialFeed() {
   const refresh = () => {
     setRefreshing(true)
     haptic.tap()
-    setTimeout(() => setRefreshing(false), 900)
+    if (liveMode) void refreshSocial().finally(() => setRefreshing(false))
+    else setTimeout(() => setRefreshing(false), 900)
   }
   // Swipe in from the right edge to open messages. Edge-only so swiping
   // through a photo carousel never navigates away.
@@ -454,6 +458,7 @@ export function SocialFeed() {
           data={data}
           keyExtractor={(p) => p.id}
           onViewableItemsChanged={onViewable}
+          onEndReached={() => void loadMoreFeed(tab)}
           viewabilityConfig={{ itemVisiblePercentThreshold: 60 }}
           refreshControl={
             <RefreshControl

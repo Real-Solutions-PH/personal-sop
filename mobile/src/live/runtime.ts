@@ -18,6 +18,7 @@ import { habitsMappers } from "./mappers/habits"
 import { modulePrefMapper, weatherPrefMapper } from "./mappers/reference"
 import { tasksMappers } from "./mappers/tasks"
 import { createOutbox } from "./outbox"
+import { startSocialLive } from "./social"
 
 export type MapperFactory = (userId: string) => AnyMapper[]
 
@@ -101,6 +102,7 @@ export function startLive(userId: string, storage: StorageAdapter) {
     },
   })
   const interval = setInterval(() => void engine.sync(), 60_000)
+  const stopSocial = startSocialLive(userId, onServerEvent)
   void engine.sync()
   active = {
     engine,
@@ -109,6 +111,7 @@ export function startLive(userId: string, storage: StorageAdapter) {
       appState.remove()
       clearInterval(interval)
       void stream.stop()
+      stopSocial()
     },
   }
   return engine

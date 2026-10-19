@@ -1,5 +1,5 @@
 import { ChevronLeft, Heart, X } from "lucide-react-native"
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
   FlatList,
   KeyboardAvoidingView,
@@ -26,6 +26,7 @@ import {
   type Comment,
   deleteComment,
   ME,
+  openPostLive,
   socialStore,
   timeAgo,
   toggleCommentLike,
@@ -156,6 +157,7 @@ export function PostDetail({ id }: { id: string }) {
   const width = Math.min(useWindowDimensions().width, 600)
   const post = socialStore.use((s) => s.posts.find((p) => p.id === id))
   const author = usePerson(post?.by ?? "")
+  useEffect(() => void openPostLive(id), [id])
   const [text, setText] = useState("")
   const [replyTo, setReplyTo] = useState<Comment | null>(null)
   const input = useRef<TextInput>(null)

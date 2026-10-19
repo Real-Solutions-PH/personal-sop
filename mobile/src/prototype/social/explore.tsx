@@ -1,6 +1,6 @@
 import { useFocusEffect, useLocalSearchParams } from "expo-router"
 import { Layers, Search, Trophy, Video, X } from "lucide-react-native"
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import {
   FlatList,
   Image,
@@ -23,9 +23,11 @@ import { useMyScorecard } from "./sources"
 import {
   type Activity,
   agoText,
+  loadExploreLive,
   ME,
   markActivityRead,
   type Post,
+  searchLive,
   socialStore,
   usePerson,
 } from "./store"
@@ -201,6 +203,12 @@ export function Explore() {
   const people = socialStore.use((s) => s.people)
   const posts = socialStore.use((s) => s.posts)
   const query = q.trim().toLowerCase()
+  useEffect(() => void loadExploreLive(), [])
+  // Live mode: server search fills the store this screen filters.
+  useEffect(() => {
+    const h = setTimeout(() => void searchLive(query), 300)
+    return () => clearTimeout(h)
+  }, [query])
   const tag = query.startsWith("#") ? query : null
   const results =
     query && !tag

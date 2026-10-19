@@ -400,6 +400,7 @@ export const PostCard = memo(function PostCard({
   const hasMedia = post.media.length > 0 || !!post.progress
   const likedBy = post.likedBy[0]
   const liker = usePerson(likedBy ?? "")
+  const commentCount = Math.max(post.commentCount ?? 0, post.comments.length)
   return (
     <View style={{ paddingBottom: 16 }}>
       <View
@@ -494,14 +495,13 @@ export const PostCard = memo(function PostCard({
         {!!post.caption && (
           <Caption by={post.by} text={post.caption} full={detail} />
         )}
-        {!detail && post.comments.length > 0 && (
+        {!detail && commentCount > 0 && (
           <Text
             onPress={() => go(`/social/post/${post.id}`)}
             style={{ color: t.muted, fontSize: 14, fontFamily: fonts.body }}
           >
-            View{" "}
-            {post.comments.length > 1 ? `all ${post.comments.length} ` : ""}
-            comment{post.comments.length > 1 ? "s" : ""}
+            View {commentCount > 1 ? `all ${commentCount} ` : ""}
+            comment{commentCount > 1 ? "s" : ""}
           </Text>
         )}
         <Text
