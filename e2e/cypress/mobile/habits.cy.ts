@@ -28,8 +28,7 @@
 // | /habits/manage/archived    | Restore, Delete                          | core: pauses, resumes, archives |
 // | /habits/settings           | Week starts on, default reminder, streak nudge | core: settings |
 // | /habits/settings           | Notifications Enable sheet               | core: settings (client sheet, nothing to persist) |
-// | /habits/settings           | Reset habits demo data                   | core: reset demo data |
-// | /habits/settings           | Reset every section                      | core: reset every section |
+// | /habits/settings           | Reset habits demo data / Reset every section | core: live mode offers no demo resets (prototype-only since the fix; they deleted the user's server habits) |
 // | /habits/share              | card composer, layout, toggles           | core: share card (renders server data) |
 // | /habits/share              | share / save image                       | NOT COVERABLE ON WEB: native share sheet / image capture |
 // | /habits (home analytics)   | period, sort chips, links                | core: home analytics (client-side over synced data) |
@@ -460,50 +459,27 @@ describe("habits (live)", () => {
     })
   })
 
-  it("reset demo data does not touch the user's server habits", () => {
+  // DEFECT (fixed in habit-secondary.tsx; green once the web build has it):
+  // in live mode "Reset habits demo data" replaced the store with the demo
+  // seed and the sync engine deleted the user's real habits on the server
+  // (measured: "Keep me" soft-deleted seconds after the tap). The demo
+  // resets are now prototype-only.
+  it("live mode offers no demo resets, and the user's habits stay", () => {
     cy.newLiveUser("habits").then((user) => {
       seedHabit(user, { name: "Keep me" }).then((h) => {
         signIn(user)
         cy.visit("/habits/manage")
         pulled("Keep me")
-        cy.findByText("Keep me").should("exist")
         cy.visit("/habits/settings")
-        cy.findByRole("button", { name: "Reset habits demo data" }).click()
-        // Give the 400 ms push debounce time to run, then check the server.
-        cy.wait(3000)
+        cy.findByText("Week starts on").should("exist")
+        cy.findByRole("button", { name: "Reset habits demo data" }).should(
+          "not.exist",
+        )
+        cy.findByText("Reset every section").should("not.exist")
         cy.task<unknown[]>("sql", {
           text: "select 1 from habit where id = $1 and deleted_at is null",
           values: [h.id],
         }).should("have.length", 1)
-        cy.task<unknown[]>("sql", {
-          text: "select 1 from habit where owner_id = $1 and id <> $2",
-          values: [user.id, h.id],
-        }).should("have.length", 0)
-      })
-    })
-  })
-
-  it("reset every section does not touch the user's server rows", () => {
-    cy.newLiveUser("habits").then((user) => {
-      seedHabit(user, { name: "Keep me too" }).then((h) => {
-        signIn(user)
-        cy.visit("/habits/settings")
-        cy.visit("/habits/manage")
-        pulled("Keep me too")
-        cy.visit("/habits/settings")
-        cy.findByText("Reset every section").click()
-        cy.findByText("All sections reset").should("exist")
-        // Give the 400 ms push debounce time to run, then check the server.
-        cy.wait(5000)
-        cy.task<unknown[]>("sql", {
-          text: "select 1 from habit where id = $1 and deleted_at is null",
-          values: [h.id],
-        }).should("have.length", 1)
-        cy.task<unknown[]>("sql", {
-          text: `select 'habit' from habit where owner_id = $1 and id <> $2
-                 union all select 'task' from task where owner_id = $1`,
-          values: [user.id, h.id],
-        }).should("have.length", 0)
       })
     })
   })

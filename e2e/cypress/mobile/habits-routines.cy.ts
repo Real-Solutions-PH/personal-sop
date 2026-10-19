@@ -5,7 +5,7 @@
 // | /habits/routines              | New routine (+)                           | builds a routine |
 // | /habits/routines/new (form)   | name, icon, schedule, reminder, Create & add steps | builds a routine |
 // | /habits/routines/[id]         | Add steps picker: pick habits, Add N steps | builds a routine |
-// | /habits/routines/[id]         | picker: New habit "<query>" → added as a step | builds a routine |
+// | /habits/routines/[id]         | picker: New habit "<query>" → added as a step | builds a routine (FAILS after a removal: deleted_on_server — see the DEFECT note) |
 // | /habits/routines/[id]         | More / Less time for a step               | builds a routine |
 // | /habits/routines/[id]         | Remove step                               | builds a routine |
 // | /habits/routines/[id]         | Reorder step (drag handle)                | NOT COVERABLE ON WEB: PanResponder drag / screen-reader actions only; step order is still proven through the picker order |
@@ -52,6 +52,10 @@ const steps = (routineId: string, expected: string) =>
   )
 
 describe("habits routines (live)", () => {
+  // DEFECT (reported, not in this write set): after "Remove Stretch" the
+  // new-habit step takes position 1, whose derived id (routine + position)
+  // is Stretch's tombstone; the server answers `conflict deleted_on_server`
+  // and the step never lands (same revive-on-upsert gap as the re-pause).
   it("builds a routine: form, add steps, minutes, remove, new-habit step, edit", () => {
     cy.newLiveUser("habits").then((user) => {
       seedHabit(user, "Water", "💧").then((w) =>
@@ -373,12 +377,14 @@ describe("habits routines (live)", () => {
                 [r.id],
               )
 
-              cy.findByText("Resume 1/2").click()
+              cy.findByRole("button", { name: /Resume 1\/2/ }).click()
               cy.location("pathname").should(
                 "eq",
                 `/habits/routines/${r.id}/play`,
               )
-              cy.findByText("2/2").should("exist")
+              cy.findAllByText("2/2")
+                .filter(":visible")
+                .should("have.length", 1)
               cy.visit(`/habits/routines/${r.id}`)
               cy.findByRole("button", { name: /Resume · step 2\/2/ }).should(
                 "exist",

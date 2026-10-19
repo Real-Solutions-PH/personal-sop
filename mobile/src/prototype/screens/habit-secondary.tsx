@@ -9,6 +9,7 @@ import { BellOff, ChevronLeft, ChevronRight } from "lucide-react-native"
 import { useState } from "react"
 import { TextInput, View } from "react-native"
 import { toast } from "sonner-native"
+import { liveMode } from "@/live/config"
 import {
   border,
   Copy,
@@ -135,28 +136,34 @@ export function HabitSettings() {
             </Button>
           </Line>
         </Frame>
-        <SectionHeading>Prototype</SectionHeading>
-        <Frame style={{ padding: 16, gap: 8 }}>
-          <Button
-            tone="danger"
-            onPress={() => {
-              habitsStore.reset()
-              toast("Habits data reset to the demo seed")
-            }}
-          >
-            Reset habits demo data
-          </Button>
-          <Tap
-            onPress={() => {
-              resetAll()
-              toast("All sections reset")
-            }}
-          >
-            <Copy size={12} muted style={{ textAlign: "center" }}>
-              Reset every section
-            </Copy>
-          </Tap>
-        </Frame>
+        {/* Demo-only: a live account's habits are real and synced, so the
+            demo resets would delete them on the server. */}
+        {!liveMode && (
+          <>
+            <SectionHeading>Prototype</SectionHeading>
+            <Frame style={{ padding: 16, gap: 8 }}>
+              <Button
+                tone="danger"
+                onPress={() => {
+                  habitsStore.reset()
+                  toast("Habits data reset to the demo seed")
+                }}
+              >
+                Reset habits demo data
+              </Button>
+              <Tap
+                onPress={() => {
+                  resetAll()
+                  toast("All sections reset")
+                }}
+              >
+                <Copy size={12} muted style={{ textAlign: "center" }}>
+                  Reset every section
+                </Copy>
+              </Tap>
+            </Frame>
+          </>
+        )}
       </View>
       <Sheet
         title="Turn on reminders"
