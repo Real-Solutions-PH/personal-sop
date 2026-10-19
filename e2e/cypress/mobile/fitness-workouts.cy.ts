@@ -189,11 +189,13 @@ describe("fitness · workouts (live)", { defaultCommandTimeout: 60000 }, () => {
         )
         cy.findByRole("button", { name: "Options for Lateral Raise" }).click()
         cy.findByRole("button", { name: "Move up" }).click()
+        // Poll until the move lands: Lateral Raise holds the lowest position.
         rows(
-          `select e.name from workout_exercise we join exercise e on e.id = we.exercise_id
-           where we.workout_id = $1 and we.deleted_at is null order by we.position limit 1`,
+          `select 1 from (select e.name from workout_exercise we join exercise e on e.id = we.exercise_id
+             where we.workout_id = $1 and we.deleted_at is null order by we.position limit 1) t
+           where t.name = 'Lateral Raise'`,
           [wid],
-        ).then((r) => expect(r[0].name).to.eq("Lateral Raise"))
+        )
         cy.findByRole("button", { name: "Options for Lateral Raise" }).click()
         cy.findByRole("button", { name: "Remove" }).click()
         rows(

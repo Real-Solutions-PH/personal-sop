@@ -20,8 +20,10 @@
 import { api, rows, signIn } from "./fitness.helpers"
 import type { LiveUser } from "./support"
 
+// The app's business day starts at 04:00 (DAY_START_HOUR in
+// shared/prototype/lib/day.ts): 00:30 still belongs to yesterday.
 const today = () => {
-  const d = new Date()
+  const d = new Date(Date.now() - 4 * 3600000)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
 }
 
