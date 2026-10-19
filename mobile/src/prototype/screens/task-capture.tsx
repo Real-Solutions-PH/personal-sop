@@ -13,6 +13,7 @@ import {
 } from "lucide-react-native"
 import { useState } from "react"
 import { TextInput, View } from "react-native"
+import { liveMode } from "@/live/config"
 import { Copy, Frame, IconTap, Line, SectionHeading, Tap } from "../native-kit"
 import { go } from "../navigation"
 import { fonts, useTheme } from "../theme"
@@ -66,7 +67,9 @@ export function TaskCapture({
     <Screen title="Capture → tasks" prototypeLayout>
       <View style={{ padding: 16, gap: 16 }}>
         <Copy size={14} muted>
-          Simulated AI split. The Capture sheet renders the same result card.
+          {liveMode
+            ? "Split into tasks and saved to your account. The Capture sheet renders the same result card."
+            : "Simulated AI split. The Capture sheet renders the same result card."}
         </Copy>
         {results.map((r, i) => (
           <View key={i} style={{ gap: 8 }}>

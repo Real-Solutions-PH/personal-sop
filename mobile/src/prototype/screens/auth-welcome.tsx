@@ -25,6 +25,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg"
 import { toast } from "sonner-native"
+import { liveMode } from "@/live/config"
 import {
   AuthButton,
   haptic,
@@ -394,8 +395,10 @@ export function Welcome() {
                 color: t.muted,
               }}
             >
-              By continuing you agree to the Terms and Privacy Policy. Your data
-              stays on this device in the prototype.
+              By continuing you agree to the Terms and Privacy Policy.
+              {liveMode
+                ? " Your data syncs to your account so it is safe across devices."
+                : " Your data stays on this device in the prototype."}
             </Text>
           </Rise>
         </View>

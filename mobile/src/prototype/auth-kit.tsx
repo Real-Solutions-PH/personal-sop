@@ -45,6 +45,7 @@ import Animated, {
 } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import Svg, { Path } from "react-native-svg"
+import { liveMode } from "@/live/config"
 import { back } from "./navigation"
 import { passwordStrength } from "./session"
 import { fonts, useTheme } from "./theme"
@@ -681,6 +682,8 @@ export function ErrorBanner({
 /** Muted note explaining how to trigger the prototype's simulated cases. */
 export function DemoTip({ children }: { children: string }) {
   const t = useTheme()
+  // Demo hints describe the simulated account; a live account has none.
+  if (liveMode) return null
   return (
     <View
       style={{

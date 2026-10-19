@@ -2,6 +2,7 @@ import { AtSign, LockKeyhole, Mail, User } from "lucide-react-native"
 import { useEffect, useRef, useState } from "react"
 import { Text, type TextInput, View } from "react-native"
 import { toast } from "sonner-native"
+import { liveMode } from "@/live/config"
 import {
   AuthButton,
   AuthField,
@@ -158,7 +159,11 @@ export function SignUp() {
   return (
     <AuthScreen
       title="Create your account"
-      subtitle="One minute to set up. Everything stays on this device."
+      subtitle={
+        liveMode
+          ? "One minute to set up. Your data syncs to your account."
+          : "One minute to set up. Everything stays on this device."
+      }
       footer={
         <SwitchPrompt
           question="Already have an account?"

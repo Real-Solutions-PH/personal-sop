@@ -37,6 +37,7 @@ import {
 } from "lucide-react-native"
 import { Platform, View } from "react-native"
 import { toast } from "sonner-native"
+import { liveMode } from "@/live/config"
 import { AppLauncher } from "../app-launcher"
 import {
   Bar,
@@ -391,28 +392,34 @@ export function Me() {
             icon={ListChecks}
             href="/setup"
           />
-          <LinkRow
-            title="Start as a new user"
-            detail="Demo: empty every section and run first-time setup"
-            icon={UserPlus}
-            onPress={fresh}
-          />
-          <LinkRow
-            title="Reset demo data"
-            detail="Restores every section's sample data"
-            icon={RotateCcw}
-            onPress={() =>
-              confirm(
-                "Reset all demo data?",
-                "Every section goes back to its sample data. Anything you logged in this walkthrough is gone.",
-                () => {
-                  resetAll()
-                  toast.success("Demo data reset")
-                  go("/today")
-                },
-              )
-            }
-          />
+          {/* Demo-only: a live account's data is real and synced, so it is
+              never replaced by samples or wiped from here. */}
+          {!liveMode && (
+            <>
+              <LinkRow
+                title="Start as a new user"
+                detail="Demo: empty every section and run first-time setup"
+                icon={UserPlus}
+                onPress={fresh}
+              />
+              <LinkRow
+                title="Reset demo data"
+                detail="Restores every section's sample data"
+                icon={RotateCcw}
+                onPress={() =>
+                  confirm(
+                    "Reset all demo data?",
+                    "Every section goes back to its sample data. Anything you logged in this walkthrough is gone.",
+                    () => {
+                      resetAll()
+                      toast.success("Demo data reset")
+                      go("/today")
+                    },
+                  )
+                }
+              />
+            </>
+          )}
           <LinkRow
             title="Sign out"
             detail={account ? `Signed in as ${account}` : undefined}
@@ -420,7 +427,9 @@ export function Me() {
             onPress={() =>
               confirm(
                 "Sign out?",
-                "Your data stays on this device. Sign back in any time.",
+                liveMode
+                  ? "Anything not yet synced is sent first, then this device is cleared. Sign back in any time."
+                  : "Your data stays on this device. Sign back in any time.",
                 () => {
                   signOut()
                   replace("/welcome")
@@ -431,7 +440,7 @@ export function Me() {
           />
         </Frame>
         <Copy size={12} muted style={{ textAlign: "center", marginTop: 16 }}>
-          Personal SOP · prototype build
+          {liveMode ? "Personal SOP" : "Personal SOP · prototype build"}
         </Copy>
       </View>
     </Screen>
