@@ -322,7 +322,10 @@ describe("tasks (live)", () => {
           cy.findByRole("button", { name: "Clear Repeat" }).click()
           cy.findByRole("button", { name: "Clear Add date" }).click()
           rows(
-            "select id from task where id = $1 and recurrence is null and due_date is null and remind_at is null",
+            // The server stores a cleared recurrence as JSON null, not SQL NULL.
+            `select id from task where id = $1
+               and (recurrence is null or jsonb_typeof(recurrence) = 'null')
+               and due_date is null and remind_at is null`,
             [task.id],
           )
 
