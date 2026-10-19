@@ -845,6 +845,30 @@ describe("pulled rows", () => {
     expect(t.id).not.toBe(serverId)
   })
 
+  test("re-saving today's target edits the synced row, never deletes it", () => {
+    // Live E2E: a second save on the same day sent upsert(new id) + delete(old
+    // id); the server merged the upsert into the old row by day, then the
+    // delete tombstoned it, leaving no target for today.
+    const e = engine()
+    const serverId = derivedId("macro-target", USER, "2026-10-19")
+    e.apply([
+      change("macro_target", {
+        id: serverId,
+        effective_from: "2026-10-19",
+        kcal: 2000,
+        protein: 140,
+        carbs: 200,
+        fat: 65,
+      }),
+    ])
+    e.capture()
+    const t = setMacroTarget({ kcal: 2050, protein: 158, carbs: 215, fat: 62 })
+    const ops = e.capture().filter((o) => o.name === "macro_target")
+    expect(t.id).toBe(serverId)
+    expect(ops.map((o) => `${o.kind}:${o.id}`)).toEqual([`upsert:${serverId}`])
+    expect(fitStore.get().targets.map((x) => x.id)).toEqual([serverId])
+  })
+
   test("the rest timer: pulled starts and clears never echo", () => {
     const e = engine()
     e.apply([
