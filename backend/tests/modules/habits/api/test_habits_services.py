@@ -12,6 +12,7 @@ from app.modules.habits.models import Habit, HabitLog, RoutineStepResult
 from app.modules.habits.schema import HabitCreate, RoutineCreate, StepIn
 from app.modules.habits.stats import contributor
 from app.modules.stats.contract import Window
+from app.modules.stats.models import DailyModuleStat
 from app.modules.stats.public import DIRTY_KEY
 from app.shared.ids import derived_id
 from tests.utils.mobile import ctx_for, signed_in
@@ -111,7 +112,17 @@ def test_stats_contributor(db: Session) -> None:
             svc.check_habit(ctx, habit_id=hid, day=today - timedelta(days=i))
         svc.skip_habit(ctx, habit_id=oid, day=today - timedelta(days=1))
         svc.check_habit(ctx, habit_id=oid, day=today)
-        assert ctx.session.info.get(DIRTY_KEY)
+        # Each write marked the day dirty; the stats module drained the marks
+        # after commit into the daily rollup.
+        rollup = ctx.session.exec(
+            select(DailyModuleStat).where(
+                DailyModuleStat.owner_id == ctx.user_id,
+                DailyModuleStat.module == "habits",
+                DailyModuleStat.day == today,
+            )
+        ).first()
+        assert rollup is not None and rollup.done >= 2
+        assert not ctx.session.info.get(DIRTY_KEY)
 
         week = Window(first=today - timedelta(days=6), last=today)
         prev = Window(first=today - timedelta(days=13), last=today - timedelta(days=7))

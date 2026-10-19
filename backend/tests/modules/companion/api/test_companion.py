@@ -190,11 +190,6 @@ def test_sync_entities(client: TestClient, db: Session) -> None:
     assert d["status"] == "applied"
 
 
-@pytest.mark.xfail(
-    raises=NotImplementedError,
-    strict=False,
-    reason="stats.public.series is a stub until stats merges",
-)
 def test_series_block_data(client: TestClient, db: Session) -> None:
     api = user(client, db)
     out = api.get("/companion/series/spend", days=30)
@@ -202,11 +197,6 @@ def test_series_block_data(client: TestClient, db: Session) -> None:
     api.get("/companion/series/bogus", status=422)
 
 
-@pytest.mark.xfail(
-    raises=NotImplementedError,
-    strict=False,
-    reason="stats.public.overview is a stub until stats merges",
-)
 def test_insights_block_data(client: TestClient, db: Session) -> None:
     api = user(client, db)
     out = api.get("/companion/insights")

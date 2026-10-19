@@ -141,7 +141,13 @@ def test_push_and_pull_every_entity(client: TestClient, db: Session) -> None:
     assert f.get(f"/planned/{ids['plan']}")["skipped"] == [anchor]
     assert f.get("/settings")["month_start_day"] == 5
     pulled = f.pull()
-    names = {c["entity"] for c in pulled["changes"]}
+    # The stats rollups (daily_module_stat, life_score_daily) ride the same
+    # pull once a finance write moves a day; this test is about finance's own.
+    names = {
+        c["entity"]
+        for c in pulled["changes"]
+        if c["entity"] not in ("daily_module_stat", "life_score_daily")
+    }
     assert names == {
         "account",
         "category",

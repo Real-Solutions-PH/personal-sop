@@ -3,7 +3,6 @@
 import uuid
 from collections.abc import Callable
 
-import pytest
 from fastapi.testclient import TestClient
 
 from tests.modules.social.api.conftest import Person, Trio
@@ -187,11 +186,6 @@ def test_scorecard_respects_show_scores(client: TestClient, trio: Trio) -> None:
     assert r.status_code == 404
 
 
-@pytest.mark.xfail(
-    raises=NotImplementedError,
-    strict=False,
-    reason="stats.public.overview is a stub until merge",
-)
 def test_scorecard_for_a_follower(client: TestClient, trio: Trio) -> None:
     card = ok(
         client.get(f"{API}/people/{trio.ana.id}/scorecard", headers=trio.ben.headers)
@@ -208,11 +202,6 @@ def test_scorecard_for_a_follower(client: TestClient, trio: Trio) -> None:
     } <= card.keys()
 
 
-@pytest.mark.xfail(
-    raises=NotImplementedError,
-    strict=False,
-    reason="stats.public.overview is a stub until merge",
-)
 def test_leaderboard_respects_show_scores(client: TestClient, trio: Trio) -> None:
     ok(client.put(f"{API}/people/{trio.cy.id}/follow", headers=trio.ben.headers))
     ok(client.patch(f"{API}/me", headers=trio.cy.headers, json={"show_scores": False}))

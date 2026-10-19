@@ -81,6 +81,23 @@ export type AccountView = {
     reconciled_days_ago: (number | null);
 };
 
+export type AchievementOut = {
+    id: string;
+    type: string;
+    title: string;
+    requirement: string;
+    pct: number;
+    text: string;
+    trophy: (TrophyOut | null);
+};
+
+export type AchievementsOut = {
+    data: Array<AchievementOut>;
+    count: number;
+    trophies: Array<TrophyOut>;
+    unseen: number;
+};
+
 export type ActivitiesPublic = {
     data: Array<ActivityPublic>;
     count: number;
@@ -143,6 +160,116 @@ export type AdvicePublic = {
 
 export type tone = 'good' | 'warn' | 'bad';
 
+export type AISettingsPublic = {
+    id: string;
+    rules: {
+        [key: string]: (string);
+    };
+    money_threshold_minor: number;
+    language: string;
+    transcription: string;
+    send_photos: boolean;
+    journal_in_qa: boolean;
+    finance_scope: string;
+    spend_cap_minor: number;
+    ai_enabled: boolean;
+    retention_days: number;
+    version: number;
+    spend_minor?: number;
+    calls?: number;
+};
+
+export type AISettingsUpdate = {
+    rules?: ({
+    [key: string]: ('auto' | 'confirm');
+} | null);
+    money_threshold_minor?: (number | null);
+    language?: ('en-tl' | 'en' | null);
+    transcription?: ('server' | 'browser' | null);
+    send_photos?: (boolean | null);
+    journal_in_qa?: (boolean | null);
+    finance_scope?: ('aggregates' | 'records' | null);
+    spend_cap_minor?: (number | null);
+    ai_enabled?: (boolean | null);
+    retention_days?: (number | null);
+};
+
+export type AnswerIn = {
+    value: string;
+};
+
+/**
+ * ``POST /capture``: idempotent on ``client_uuid`` (an offline replay
+ * returns the capture it already made).
+ */
+export type app__modules__capture__schema__CaptureIn = {
+    id?: (string | null);
+    client_uuid: string;
+    at?: (string | null);
+    source?: 'text' | 'voice' | 'photo' | 'file' | 'quick_add' | 'connector';
+    text?: string;
+    transcript?: (string | null);
+    duration_sec?: (number | null);
+    hint?: ('auto' | 'meal' | 'receipt' | 'label' | 'statement' | 'whiteboard' | 'journal' | 'expense' | 'task' | 'weigh-in' | null);
+    file_name?: (string | null);
+    media_id?: (string | null);
+    account_id?: (string | null);
+    queue_only?: boolean;
+};
+
+export type source = 'text' | 'voice' | 'photo' | 'file' | 'quick_add' | 'connector';
+
+export type app__modules__companion__schema__AskIn = {
+    text: string;
+    id?: (string | null);
+    hint?: (string | null);
+};
+
+export type app__modules__companion__schema__MessagePublic = {
+    id: string;
+    role: string;
+    text: (string | null);
+    blocks: Array<{
+        [key: string]: unknown;
+    }>;
+    created_at: string;
+    version: number;
+    deleted_at?: (string | null);
+};
+
+export type app__modules__companion__schema__MessagesPublic = {
+    data: Array<app__modules__companion__schema__MessagePublic>;
+    count: number;
+};
+
+export type app__modules__companion__schema__SeriesOut = {
+    metric: string;
+    label: string;
+    days: number;
+    points: Array<Point>;
+};
+
+/**
+ * Everything a share card renders. Never a money amount (IA X-5).
+ */
+export type app__modules__dashboard__schema__ShareCardOut = {
+    template: 'life' | 'weekly' | 'monthly' | 'streak' | 'finance' | 'profile' | 'goal';
+    fields: {
+        [key: string]: (boolean);
+    };
+    data: {
+        [key: string]: unknown;
+    };
+};
+
+export type template = 'life' | 'weekly' | 'monthly' | 'streak' | 'finance' | 'profile' | 'goal';
+
+export type app__modules__finance__advisor_ai__AskIn = {
+    text: string;
+    id?: (string | null);
+    scope?: ('aggregates' | 'records' | null);
+};
+
 export type app__modules__finance__schema__MessageCreate = {
     id?: (string | null);
     role: 'user' | 'ai';
@@ -183,6 +310,36 @@ export type app__modules__finance__schema__SettingsPublic = {
     proj_excluded_planned: Array<(string)>;
     setup_done: boolean;
     version: number;
+};
+
+export type app__modules__fitness__schema__OverviewOut = {
+    active: (WorkoutPublic | null);
+    next_template: (TemplateOut | null);
+    last_workout: (WorkoutSummary | null);
+    week: WeekOut;
+    weekly_target: number;
+    streak: number;
+    latest_weight: (WeighInPublic | null);
+    weekly_rate: (WeeklyRateOut | null);
+    macros_left: (MacrosOut | null);
+    today_totals: MacrosOut;
+    pending_meals: number;
+    weighed_today: boolean;
+};
+
+export type app__modules__fitness__schema__ShareCardOut = {
+    workout: WorkoutPublic;
+    totals: TotalsOut;
+    prs: Array<PrOut>;
+    lines: Array<ShareLineOut>;
+    focus_exercise_id: (string | null);
+    focus_pr: (PrOut | null);
+    series: Array<(number)>;
+    week_sessions: number;
+    weekly_target: number;
+    streak: number;
+    bodyweight: (number | null);
+    day_macros: MacrosOut;
 };
 
 export type app__modules__fitness__schema__StatsOut = {
@@ -255,6 +412,12 @@ export type app__modules__social__schema__MessagePublic = {
     };
 };
 
+export type app__modules__social__schema__MessagesPublic = {
+    data: Array<app__modules__social__schema__MessagePublic>;
+    count: number;
+    next_cursor?: (string | null);
+};
+
 /**
  * The Today screen's community card.
  */
@@ -264,6 +427,49 @@ export type app__modules__social__schema__TodayPublic = {
     unseen_story_people: Array<PersonBrief>;
     latest_post: (PostPublic | null);
 };
+
+export type app__modules__stats__schema__OverviewOut = {
+    range: '7d' | '30d' | '90d' | '1y';
+    days: number;
+    first: string;
+    last: string;
+    life_score: (number | null);
+    prev_score: (number | null);
+    delta: (number | null);
+    level: LevelOut;
+    areas: Array<AreaOut>;
+    on_target: OnTargetOut;
+    days_series: Array<DayOut>;
+    logged_days: number;
+    gate_open: boolean;
+    today: RingOut;
+    facets: Array<FacetOut>;
+    metrics: Array<MetricOut>;
+};
+
+export type range = '7d' | '30d' | '90d' | '1y';
+
+export type app__modules__stats__schema__SeriesOut = {
+    metric: string;
+    days: number;
+    kind: 'line' | 'bars' | 'donut';
+    unit: string;
+    values: Array<(number)>;
+    labels: Array<(string)>;
+    headline: string;
+    sub: string;
+    points: Array<PointOut>;
+    slices: Array<SliceOut>;
+};
+
+export type kind2 = 'line' | 'bars' | 'donut';
+
+export type app__modules__tasks__schema__CaptureIn = {
+    text: string;
+    source?: 'manual' | 'capture-text' | 'capture-voice' | 'capture-photo';
+};
+
+export type source2 = 'manual' | 'capture-text' | 'capture-voice' | 'capture-photo';
 
 export type app__modules__tasks__schema__SettingsPublic = {
     id: string;
@@ -317,10 +523,35 @@ export type ArchiveIn = {
     archived: boolean;
 };
 
+export type AreaOut = {
+    module: string;
+    enabled: boolean;
+    weight: number;
+    rate: (number | null);
+    prev: (number | null);
+};
+
 export type AreaRatePublic = {
     module: string;
     rate: (number | null);
 };
+
+/**
+ * A reply (``me`` + ``sol`` messages) or, for a log, the capture it
+ * became (the chat shows captures in line with messages).
+ */
+export type AskOut = {
+    kind: 'reply' | 'capture';
+    engine: 'ai' | 'rules';
+    messages?: Array<app__modules__companion__schema__MessagePublic>;
+    capture?: ({
+    [key: string]: unknown;
+} | null);
+};
+
+export type kind3 = 'reply' | 'capture';
+
+export type engine = 'ai' | 'rules';
 
 export type AssignmentIn = {
     credential_id: string;
@@ -342,6 +573,15 @@ export type purpose = 'chat' | 'capture' | 'vision' | 'transcription' | 'advisor
 export type AssignmentsOut = {
     data: Array<AssignmentPublic>;
     count: number;
+};
+
+export type AttachmentPublic = {
+    id: string;
+    capture_id: string;
+    media_id: string;
+    kind: string;
+    version?: number;
+    deleted_at?: (string | null);
 };
 
 /**
@@ -384,6 +624,20 @@ export type BodyOut = {
     goal_direction: string;
     goal_weight: (number | null);
 };
+
+export type BookEntryOut = {
+    ref: string;
+    label: string;
+    module: string;
+    value: string;
+    n: (number | null);
+    unit: string;
+    good_when: 'up' | 'down';
+    shareable: boolean;
+    delta: (number | null);
+};
+
+export type good_when = 'up' | 'down';
 
 export type BrokenOut = {
     day: string;
@@ -447,16 +701,82 @@ export type BudgetViewOut = {
     today_allowance_minor: number;
 };
 
-export type CaptureIn = {
-    text: string;
-    source?: 'manual' | 'capture-text' | 'capture-voice' | 'capture-photo';
+export type CalendarItemOut = {
+    id: string;
+    day: string;
+    time: (string | null);
+    title: string;
+    module: string;
+    done: (boolean | null);
+    href: string;
 };
 
-export type source = 'manual' | 'capture-text' | 'capture-voice' | 'capture-photo';
+export type CalendarOut = {
+    data: Array<CalendarItemOut>;
+    count: number;
+};
+
+export type CaptureDetail = {
+    id: string;
+    client_uuid: string;
+    at: string;
+    source: string;
+    text: string;
+    transcript: (string | null);
+    duration_sec: (number | null);
+    hint: (string | null);
+    file_name: (string | null);
+    status: string;
+    reply_text: (string | null);
+    error_code: (string | null);
+    started_at: (string | null);
+    engine: (string | null);
+    created_at: string;
+    version: number;
+    deleted_at?: (string | null);
+    cards?: Array<CardPublic>;
+    replies?: Array<ReplyPublic>;
+    attachments?: Array<AttachmentPublic>;
+};
 
 export type CaptureResult = {
     tasks: Array<TaskPublic>;
     follow_up: (string | null);
+};
+
+export type CapturesPublic = {
+    data: Array<CaptureDetail>;
+    count: number;
+};
+
+export type CardioIn = {
+    km?: (number | null);
+    min?: (number | null);
+    activity?: string;
+};
+
+export type CardPublic = {
+    t?: "record";
+    id: string;
+    capture_id: string;
+    position: number;
+    kind: string;
+    target: string;
+    tier: string;
+    state: string;
+    payload: {
+        [key: string]: unknown;
+    };
+    refs: Array<(string)>;
+    ask: ({
+    [key: string]: unknown;
+} | null);
+    note: (string | null);
+    warn: (string | null);
+    confidence: (number | null);
+    day_offset: (number | null);
+    version: number;
+    log?: Array<WriteLogPublic>;
 };
 
 export type CategoriesPublic = {
@@ -475,7 +795,7 @@ export type CategoryCreate = {
     id?: (string | null);
 };
 
-export type kind2 = 'expense' | 'income';
+export type kind4 = 'expense' | 'income';
 
 export type CategoryFields = {
     name?: (string | null);
@@ -534,11 +854,20 @@ export type CheckIn = {
     source?: 'tap' | 'timer' | 'routine' | 'capture' | 'workout';
 };
 
-export type source2 = 'tap' | 'timer' | 'routine' | 'capture' | 'workout';
+export type source3 = 'tap' | 'timer' | 'routine' | 'capture' | 'workout';
 
 export type CloseFriendIn = {
     close_friend: boolean;
 };
+
+export type CommandPayload = {
+    kind: "command";
+    op: 'edit' | 'delete';
+    record_id?: (string | null);
+    amount_minor?: (number | null);
+};
+
+export type op = 'edit' | 'delete';
 
 export type CommentCreate = {
     id?: (string | null);
@@ -574,6 +903,12 @@ export type CommitOut = {
     ignored: number;
 };
 
+export type CompanionState = {
+    name: string;
+    trackers: Array<TrackerPublic>;
+    memories: Array<MemoryPublic>;
+};
+
 export type CompletedDay = {
     day: string;
     tasks: Array<TaskPublic>;
@@ -597,6 +932,10 @@ export type CompleteSignup = {
     name: string;
     handle: string;
     timezone?: (string | null);
+};
+
+export type Count = {
+    count: number;
 };
 
 export type CountResult = {
@@ -691,6 +1030,13 @@ export type DayIn = {
     entries: Array<DayEntry>;
 };
 
+export type DayOut = {
+    day: string;
+    due: number;
+    done: number;
+    on_target: (boolean | null);
+};
+
 export type DayPublic = {
     day: string;
     habits: Array<DayHabit>;
@@ -726,7 +1072,7 @@ export type DraftPublic = {
     updated_at: (string | null);
 };
 
-export type kind3 = 'post' | 'story';
+export type kind5 = 'post' | 'story';
 
 export type DueIn = {
     due_date: (string | null);
@@ -791,6 +1137,11 @@ export type ExerciseDetail = {
     prs: Array<PrOut>;
 };
 
+export type ExerciseIn = {
+    exercise: string;
+    sets: Array<SetIn>;
+};
+
 export type ExerciseNote = {
     note: string;
 };
@@ -850,6 +1201,17 @@ export type ExerciseWithStats = {
     stalled: boolean;
 };
 
+export type ExpensePayload = {
+    kind: "expense";
+    amount_minor: number;
+    category_id?: (string | null);
+    account_id?: (string | null);
+    payee?: (string | null);
+    note?: (string | null);
+    currency?: (string | null);
+    from_receipt?: (boolean | null);
+};
+
 export type ExplorePublic = {
     suggested: Array<PersonBrief>;
     popular: Array<PostPublic>;
@@ -877,6 +1239,23 @@ export type ExtractedRow = {
 };
 
 export type direction = 'in' | 'out';
+
+export type FacetOut = {
+    key: string;
+    label: string;
+    module: string;
+    value: number;
+    prev: number;
+    off: boolean;
+    href: string;
+    metric_keys: (Array<(string)> | null);
+    extra: Array<MetricOut>;
+};
+
+export type FacetsOut = {
+    range: '7d' | '30d' | '90d' | '1y';
+    data: Array<FacetOut>;
+};
 
 /**
  * Measured minutes (editable on the finish sheet); omitted = the server's
@@ -943,6 +1322,69 @@ export type FollowUpAnswerIn = {
     option: string;
 };
 
+export type GoalCreate = {
+    id?: (string | null);
+    metric: string;
+    label: string;
+    target: number;
+    unit?: string;
+    comparator?: 'gte' | 'lte';
+    period?: 'week' | 'month';
+    via?: 'manual' | 'onboarding' | 'review';
+};
+
+export type comparator = 'gte' | 'lte';
+
+export type period = 'week' | 'month';
+
+export type via = 'manual' | 'onboarding' | 'review';
+
+export type GoalProgressOut = {
+    id: (string);
+    metric: string;
+    label: string;
+    target: number;
+    unit: string;
+    comparator: 'gte' | 'lte';
+    period: 'week' | 'month';
+    status: 'active' | 'archived';
+    current: (number | null);
+    value: (string | null);
+    pct: number;
+    hit: boolean;
+};
+
+export type status = 'active' | 'archived';
+
+export type GoalPublic = {
+    id: string;
+    metric: string;
+    label: string;
+    target: number;
+    unit: string;
+    comparator: 'gte' | 'lte';
+    period: 'week' | 'month';
+    status: 'active' | 'archived';
+    via: 'manual' | 'onboarding' | 'review';
+    created_at: string;
+    updated_at: string;
+    version: number;
+};
+
+export type GoalsOut = {
+    data: Array<GoalProgressOut>;
+    count: number;
+};
+
+export type GoalUpdate = {
+    metric?: (string | null);
+    label?: (string | null);
+    target?: (number | null);
+    unit?: (string | null);
+    comparator?: ('gte' | 'lte' | null);
+    period?: ('week' | 'month' | null);
+};
+
 export type GroupCreate = {
     id?: (string | null);
     name: string;
@@ -962,6 +1404,20 @@ export type HabitCreate = {
     id?: (string | null);
 };
 
+export type HabitCreatePayload = {
+    kind: "habitCreate";
+    name: string;
+    icon?: string;
+    type?: 'check' | 'duration' | 'count';
+    target?: (number | null);
+    unit?: (string | null);
+    days?: Array<(number)>;
+    time?: (string | null);
+    log_today?: (boolean | null);
+};
+
+export type type2 = 'check' | 'duration' | 'count';
+
 export type HabitDetail = {
     habit: HabitPublic;
     effective_status: string;
@@ -973,6 +1429,13 @@ export type HabitDetail = {
     heat: Array<(string)>;
     recent_logs: Array<LogPublic>;
     log_count: number;
+};
+
+export type HabitLogPayload = {
+    kind: "habitLog";
+    habit_id: string;
+    value?: (number | null);
+    add?: (boolean | null);
 };
 
 export type HabitPublic = {
@@ -1052,7 +1515,7 @@ export type HandleCheck = {
     reason?: (string | null);
 };
 
-export type status = 'available' | 'taken' | 'invalid';
+export type status2 = 'available' | 'taken' | 'invalid';
 
 export type HistoryPointOut = {
     workout_id: string;
@@ -1176,9 +1639,29 @@ export type ImportStart = {
 
 export type file_type = 'pdf' | 'csv' | 'image';
 
+export type IncomePayload = {
+    kind: "income";
+    amount_minor: number;
+    category_id?: (string | null);
+    account_id?: (string | null);
+    payee?: (string | null);
+};
+
 export type IncrementIn = {
     by?: (number | null);
     day?: (string | null);
+};
+
+export type Insight = {
+    accent: string;
+    title: string;
+    body: string;
+    track?: (string | null);
+    href?: (string | null);
+};
+
+export type InsightsOut = {
+    data: Array<Insight>;
 };
 
 export type ItemCreate = {
@@ -1225,6 +1708,61 @@ export type ItemUpdate = {
     description?: (string | null);
 };
 
+export type JournalIn = {
+    id?: (string | null);
+    body: string;
+    day?: (string | null);
+    source?: 'voice' | 'text' | 'wrapup';
+    mood?: (number | null);
+    tags?: Array<(string)>;
+    area?: (string | null);
+    private?: boolean;
+    transcript?: (string | null);
+};
+
+export type source4 = 'voice' | 'text' | 'wrapup';
+
+export type JournalPayload = {
+    kind: "journal";
+    body: string;
+    mood?: (number | null);
+    area?: (string | null);
+    tags?: Array<(string)>;
+    transcript?: (string | null);
+};
+
+export type JournalPublic = {
+    id: string;
+    day: string;
+    body: string;
+    source: string;
+    capture_id: (string | null);
+    mood: (number | null);
+    tags: Array<(string)>;
+    area: (string | null);
+    private: boolean;
+    transcript: (string | null);
+    created_at: string;
+    version: number;
+    deleted_at?: (string | null);
+};
+
+export type JournalsPublic = {
+    data: Array<JournalPublic>;
+    count: number;
+    streak: number;
+};
+
+export type JournalUpdate = {
+    body?: (string | null);
+    day?: (string | null);
+    mood?: (number | null);
+    tags?: (Array<(string)> | null);
+    area?: (string | null);
+    private?: (boolean | null);
+    transcript?: (string | null);
+};
+
 export type LeaderboardPublic = {
     data: Array<LeaderRow>;
     count: number;
@@ -1244,6 +1782,13 @@ export type LeakOut = {
     category_id: (string | null);
 };
 
+export type LevelOut = {
+    name: string;
+    floor: number;
+    next_name: (string | null);
+    next_floor: (number | null);
+};
+
 export type ListCountPublic = {
     id: (string | null);
     name: string;
@@ -1258,7 +1803,7 @@ export type ListCreate = {
     icon?: 'briefcase' | 'laptop' | 'home' | 'cart' | 'heart' | 'book' | 'plane' | 'gift' | 'list';
 };
 
-export type kind4 = 'standard' | 'shopping';
+export type kind6 = 'standard' | 'shopping';
 
 export type color = 'tsk' | 'fin' | 'hab' | 'fit' | 'life' | 'warn';
 
@@ -1311,7 +1856,7 @@ export type LivePublic = {
     paused_sec: number;
 };
 
-export type kind5 = 'timer' | 'routine' | 'workout';
+export type kind7 = 'timer' | 'routine' | 'workout';
 
 export type LiveState = {
     live: (LivePublic | null);
@@ -1428,7 +1973,7 @@ export type MealCreate = {
     id?: (string | null);
 };
 
-export type source3 = 'photo' | 'voice' | 'text' | 'manual' | 'connector';
+export type source5 = 'photo' | 'voice' | 'text' | 'manual' | 'connector';
 
 export type MealEstimate = {
     text: string;
@@ -1438,7 +1983,18 @@ export type MealEstimate = {
     id?: (string | null);
 };
 
-export type source4 = 'text' | 'voice' | 'photo';
+export type source6 = 'text' | 'voice' | 'photo';
+
+export type MealItemIn = {
+    name: string;
+    qty: number;
+    unit: string;
+    kcal: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    assumption?: (string | null);
+};
 
 export type MealItemPublic = {
     id: string;
@@ -1472,6 +2028,15 @@ export type MealOut = {
 } | null);
     items: Array<MealItemPublic>;
     totals: MacrosOut;
+};
+
+export type MealPayload = {
+    kind: "meal";
+    raw?: string;
+    label?: ('breakfast' | 'lunch' | 'dinner' | 'snack' | null);
+    items: Array<MealItemIn>;
+    confidence?: number;
+    from_photo?: (boolean | null);
 };
 
 export type MealPhoto = {
@@ -1509,7 +2074,7 @@ export type MediaIn = {
     ratio?: (number | null);
 };
 
-export type kind6 = 'image' | 'video';
+export type kind8 = 'image' | 'video';
 
 export type MediaPublic = {
     media_id: string;
@@ -1532,7 +2097,7 @@ export type MediaWithUrl = {
     url?: (string | null);
 };
 
-export type kind7 = 'image' | 'video' | 'audio' | 'file';
+export type kind9 = 'image' | 'video' | 'audio' | 'file';
 
 export type state = 'pending' | 'ready' | 'rejected';
 
@@ -1545,14 +2110,59 @@ export type MembersIn = {
     user_ids: Array<(string)>;
 };
 
+export type MemoryIn = {
+    id?: (string | null);
+    text: string;
+};
+
+export type MemoryPublic = {
+    id: string;
+    text: string;
+    created_at: string;
+    version: number;
+    deleted_at?: (string | null);
+};
+
 export type Message = {
     message: string;
 };
 
-export type MessagesPublic = {
-    data: Array<app__modules__social__schema__MessagePublic>;
+export type MetricDetailOut = {
+    ref: string;
+    week: (BookEntryOut | null);
+    month: (BookEntryOut | null);
+    goals: Array<GoalProgressOut>;
+};
+
+export type MetricOut = {
+    module: string;
+    key: string;
+    ref: string;
+    label: string;
+    value: string;
+    number: (number | null);
+    delta: (number | null);
+    good_when: ('up' | 'down' | null);
+    shareable: boolean;
+};
+
+export type MissesOut = {
+    data: Array<MissOut>;
     count: number;
-    next_cursor?: (string | null);
+};
+
+export type MissNoteIn = {
+    note: string;
+};
+
+export type MissOut = {
+    id: string;
+    day: string;
+    title: string;
+    module: string;
+    href: string;
+    kind: string;
+    note: (string | null);
 };
 
 export type ModelOut = {
@@ -1615,6 +2225,14 @@ export type MoveTaskIn = {
     ids: Array<(string)>;
 };
 
+export type NextUpOut = {
+    id: string;
+    title: string;
+    module: string;
+    time: (string | null);
+    href: string;
+};
+
 export type NoteIn = {
     text: string;
 };
@@ -1631,6 +2249,26 @@ export type NotePublic = {
 export type NotesPublic = {
     data: Array<NotePublic>;
     count: number;
+};
+
+export type NotificationPublic = {
+    id: string;
+    at: string;
+    kind: 'reminder' | 'achievement' | 'review' | 'system' | 'social';
+    title: string;
+    body: string;
+    href: string;
+    read: boolean;
+    updated_at: string;
+    version: number;
+};
+
+export type kind10 = 'reminder' | 'achievement' | 'review' | 'system' | 'social';
+
+export type NotificationsOut = {
+    data: Array<NotificationPublic>;
+    count: number;
+    unread: number;
 };
 
 export type NotifPublic = {
@@ -1679,7 +2317,7 @@ export type OccurrenceOut = {
     record_id: (string | null);
 };
 
-export type status2 = 'paid' | 'skipped' | 'due' | 'upcoming' | 'overdue';
+export type status3 = 'paid' | 'skipped' | 'due' | 'upcoming' | 'overdue';
 
 export type OccurrenceRef = {
     planned_id: string;
@@ -1696,9 +2334,35 @@ export type Ok = {
     ids?: Array<(string)>;
 };
 
+export type OnboardingIn = {
+    modules: Array<('habits' | 'tasks' | 'fitness' | 'finance')>;
+    pace?: 'gentle' | 'steady' | 'ambitious';
+    targets?: {
+        [key: string]: (number);
+    };
+};
+
+export type pace = 'gentle' | 'steady' | 'ambitious';
+
+export type OnboardingOut = {
+    created: Array<GoalPublic>;
+    skipped: Array<('habits' | 'tasks' | 'fitness' | 'finance')>;
+};
+
 export type OnceSchedule = {
     kind: "once";
     date: string;
+};
+
+export type OnTargetOut = {
+    threshold: number;
+    rate: (number | null);
+    prev_rate: (number | null);
+    on_target: number;
+    scored: number;
+    current: number;
+    best: number;
+    logged: number;
 };
 
 export type OverallOut = {
@@ -1740,24 +2404,9 @@ export type OverdueTask = {
     days_late: number;
 };
 
-export type status3 = 'open' | 'done' | 'deleted';
+export type status4 = 'open' | 'done' | 'deleted';
 
 export type parse_state = 'parsed' | 'pending';
-
-export type OverviewOut = {
-    active: (WorkoutPublic | null);
-    next_template: (TemplateOut | null);
-    last_workout: (WorkoutSummary | null);
-    week: WeekOut;
-    weekly_target: number;
-    streak: number;
-    latest_weight: (WeighInPublic | null);
-    weekly_rate: (WeeklyRateOut | null);
-    macros_left: (MacrosOut | null);
-    today_totals: MacrosOut;
-    pending_meals: number;
-    weighed_today: boolean;
-};
 
 export type ParseIn = {
     text: string;
@@ -1783,6 +2432,10 @@ export type PausePublic = {
     to_day: (string | null);
     reason: (string | null);
     version: number;
+};
+
+export type PayloadIn = {
+    payload: (ExpensePayload | IncomePayload | TransferPayload | PlannedPayload | TaskPayload | TaskCompletePayload | HabitLogPayload | HabitCreatePayload | RoutineStartPayload | WorkoutPayload | WeighInPayload | MealPayload | JournalPayload | PhotoPayload | CommandPayload);
 };
 
 export type PeoplePublic = {
@@ -1847,6 +2500,11 @@ export type PersonPublic = {
     scores_visible: boolean;
 };
 
+export type PhotoPayload = {
+    kind: "photo";
+    caption?: string;
+};
+
 export type PlacePublic = {
     name: string;
     detail?: (string | null);
@@ -1873,7 +2531,7 @@ export type PlannedCreate = {
     id?: (string | null);
 };
 
-export type type2 = 'expense' | 'income' | 'transfer';
+export type type3 = 'expense' | 'income' | 'transfer';
 
 export type PlannedFields = {
     name?: (string | null);
@@ -1898,6 +2556,15 @@ export type PlannedList = {
     count: number;
     monthly_in_minor: number;
     monthly_out_minor: number;
+};
+
+export type PlannedPayload = {
+    kind: "planned";
+    name: string;
+    amount_minor: number;
+    day: number;
+    account_id?: (string | null);
+    category_id?: (string | null);
 };
 
 export type PlannedPublic = {
@@ -1941,6 +2608,16 @@ export type PlayerState = {
     step_planned_sec: number;
     total_actual_sec: number;
     planned_min: number;
+};
+
+export type Point = {
+    day: string;
+    value: (number | null);
+};
+
+export type PointOut = {
+    day: string;
+    value: number;
 };
 
 export type PostCreate = {
@@ -2064,6 +2741,11 @@ export type ProgressIn = {
     spark?: (Array<(number)> | null);
 };
 
+export type ProgressOut = {
+    due: number;
+    done: number;
+};
+
 export type ProgressStat = {
     label: string;
     value: string;
@@ -2127,6 +2809,15 @@ export type PushDevicePublic = {
     platform: string;
     last_seen_at: (string | null);
     disabled_at: (string | null);
+};
+
+/**
+ * CAP-10: a hand-entered record, saved at once (still undoable).
+ */
+export type QuickAddIn = {
+    client_uuid: string;
+    text?: string;
+    payload: (ExpensePayload | IncomePayload | TransferPayload | PlannedPayload | TaskPayload | TaskCompletePayload | HabitLogPayload | HabitCreatePayload | RoutineStartPayload | WorkoutPayload | WeighInPayload | MealPayload | JournalPayload | PhotoPayload | CommandPayload);
 };
 
 export type ReactionIn = {
@@ -2235,12 +2926,28 @@ export type Reestimate = {
     hint?: (string | null);
 };
 
+export type RenameIn = {
+    name: string;
+};
+
 export type ReorderIn = {
     dir: -1 | 1;
 };
 
 export type ReplaceExercise = {
     exercise_id: string;
+};
+
+export type ReplyPublic = {
+    id: string;
+    capture_id: string;
+    position: number;
+    kind: string;
+    body: {
+        [key: string]: unknown;
+    };
+    version?: number;
+    deleted_at?: (string | null);
 };
 
 export type ReportOut = {
@@ -2267,7 +2974,11 @@ export type ReportOut = {
     net_worth_minor: Array<(number)>;
 };
 
-export type period = 'this' | 'last' | '3m';
+export type period2 = 'this' | 'last' | '3m';
+
+export type RerunIn = {
+    text?: (string | null);
+};
 
 export type RescheduleIn = {
     days: number;
@@ -2291,6 +3002,37 @@ export type RestTimerPublic = {
     updated_at: string;
     ends_at: string;
     duration_sec: number;
+};
+
+export type ReviewIn = {
+    done?: (boolean | null);
+    reflection?: (string | null);
+    focus?: (string | null);
+    journal?: boolean;
+};
+
+export type ReviewPublic = {
+    id: string;
+    key: string;
+    done: boolean;
+    done_at: (string | null);
+    reflection: (string | null);
+    focus: (string | null);
+    updated_at: string;
+    version: number;
+};
+
+export type ReviewsOut = {
+    data: Array<ReviewPublic>;
+    count: number;
+};
+
+export type RingOut = {
+    due: number;
+    done: number;
+    per: {
+        [key: string]: ProgressOut;
+    };
 };
 
 export type RolePermissionsPublic = {
@@ -2360,6 +3102,12 @@ export type RoutineRow = {
 export type RoutinesPublic = {
     data: Array<RoutineRow>;
     count: number;
+};
+
+export type RoutineStartPayload = {
+    kind: "routineStart";
+    routine_id?: (string | null);
+    query?: string;
 };
 
 export type RoutineStatsOut = {
@@ -2450,6 +3198,12 @@ export type ScorecardPublic = {
     trophies: Array<TrophyPublic>;
 };
 
+export type SealIn = {
+    day?: (string | null);
+    reflection?: (string | null);
+    id?: (string | null);
+};
+
 export type SemimonthlySchedule = {
     kind: "semimonthly";
     days: [
@@ -2463,6 +3217,11 @@ export type SeriesDay = {
     due: number;
     done: number;
     rate: (number | null);
+};
+
+export type SetIn = {
+    reps: number;
+    weight: number;
 };
 
 export type SetOut = {
@@ -2520,19 +3279,27 @@ export type Settle = {
     paid_on?: (string | null);
 };
 
-export type ShareCardOut = {
-    workout: WorkoutPublic;
-    totals: TotalsOut;
-    prs: Array<PrOut>;
-    lines: Array<ShareLineOut>;
-    focus_exercise_id: (string | null);
-    focus_pr: (PrOut | null);
-    series: Array<(number)>;
-    week_sessions: number;
-    weekly_target: number;
-    streak: number;
-    bodyweight: (number | null);
-    day_macros: MacrosOut;
+export type ShareDefaultPublic = {
+    id: string;
+    template: 'life' | 'weekly' | 'monthly' | 'streak' | 'finance' | 'profile' | 'goal';
+    fields: {
+        [key: string]: (boolean);
+    };
+    updated_at: string;
+    version: number;
+};
+
+export type ShareDefaultsIn = {
+    fields: {
+        [key: string]: (boolean);
+    };
+};
+
+export type ShareFieldOut = {
+    key: string;
+    label: string;
+    on: boolean;
+    sensitive: (string | null);
 };
 
 export type ShareLineOut = {
@@ -2559,9 +3326,23 @@ export type SharePublic = {
     previous: StatsPublic;
 };
 
+export type ShareTemplateOut = {
+    key: 'life' | 'weekly' | 'monthly' | 'streak' | 'finance' | 'profile' | 'goal';
+    label: string;
+    formats: Array<(string)>;
+    fields: Array<ShareFieldOut>;
+};
+
+export type key = 'life' | 'weekly' | 'monthly' | 'streak' | 'finance' | 'profile' | 'goal';
+
 export type SkipIn = {
     day?: (string | null);
     note?: (string | null);
+};
+
+export type SliceOut = {
+    label: string;
+    value: number;
 };
 
 export type Snapshot = {
@@ -2593,7 +3374,7 @@ export type StartWorkout = {
     id?: (string | null);
 };
 
-export type source5 = 'empty' | 'template' | 'repeat';
+export type source7 = 'empty' | 'template' | 'repeat';
 
 export type StartWorkoutOut = {
     workout: WorkoutOut;
@@ -2668,7 +3449,7 @@ export type StoryCreate = {
     audience?: 'everyone' | 'close';
 };
 
-export type kind8 = 'image' | 'video' | 'text' | 'progress';
+export type kind11 = 'image' | 'video' | 'text' | 'progress';
 
 export type audience = 'everyone' | 'close';
 
@@ -2751,7 +3532,7 @@ export type SyncOp = {
     base_version?: (number | null);
 };
 
-export type kind9 = 'upsert' | 'delete' | 'action';
+export type kind12 = 'upsert' | 'delete' | 'action';
 
 export type SyncOpResult = {
     op_id: string;
@@ -2767,7 +3548,7 @@ export type SyncOpResult = {
     replayed?: boolean;
 };
 
-export type status4 = 'applied' | 'conflict' | 'rejected';
+export type status5 = 'applied' | 'conflict' | 'rejected';
 
 export type SyncPull = {
     changes: Array<SyncChange>;
@@ -2794,6 +3575,12 @@ export type TargetSet = {
 export type TargetsOut = {
     current: (MacroTargetPublic | null);
     history: Array<MacroTargetPublic>;
+};
+
+export type TaskCompletePayload = {
+    kind: "taskComplete";
+    task_id?: (string | null);
+    query?: string;
 };
 
 export type TaskCreate = {
@@ -2835,6 +3622,19 @@ export type TaskDetail = {
     version: number;
     repeat_text?: (string | null);
     list_name?: string;
+};
+
+export type TaskDraftIn = {
+    title: string;
+    list_id?: (string | null);
+    due_date?: (string | null);
+    due_time?: (string | null);
+    remind?: boolean;
+};
+
+export type TaskPayload = {
+    kind: "task";
+    tasks: Array<TaskDraftIn>;
 };
 
 export type TaskPublic = {
@@ -2975,11 +3775,47 @@ export type TimerState = {
     elapsed_sec: number;
 };
 
+export type TodayBundle = {
+    day: string;
+    ring: RingOut;
+    threshold: number;
+    on_target_now: boolean;
+    life_score: (number | null);
+    level: string;
+    delta: (number | null);
+    streak: number;
+    next_up: (NextUpOut | null);
+    counts: TodayCounts;
+    wrap_up: (WrapUpPublic | null);
+    evening: boolean;
+    top_trophy: (TrophyOut | null);
+};
+
+export type TodayCounts = {
+    items: number;
+    items_done: number;
+    misses_yesterday: number;
+    unread: number;
+    goals_active: number;
+    goals_hit: number;
+    trophies_unseen: number;
+};
+
 export type TodayHabit = {
     habit: HabitPublic;
     group: string;
     time: (string | null);
     log: (LogPublic | null);
+    streak: number;
+};
+
+export type TodayOut = {
+    day: string;
+    ring: RingOut;
+    life_score: (number | null);
+    level: string;
+    on_target_now: boolean;
+    threshold: number;
     streak: number;
 };
 
@@ -3014,10 +3850,46 @@ export type TotalsOut = {
     duration_sec: number;
 };
 
+export type TrackerIn = {
+    label?: (string | null);
+    goal?: (number | null);
+    direction?: ('below' | 'above' | null);
+};
+
+export type TrackerPublic = {
+    id: string;
+    metric: string;
+    label: string;
+    goal: (number | null);
+    direction: (string | null);
+    created_at: string;
+    version: number;
+    deleted_at?: (string | null);
+};
+
+export type TransferPayload = {
+    kind: "transfer";
+    amount_minor: number;
+    from?: (string | null);
+    to?: (string | null);
+};
+
 export type TrendPointOut = {
     day: string;
     raw: (number | null);
     avg: (number | null);
+};
+
+export type TrophyOut = {
+    id: string;
+    type: string;
+    title: string;
+    value: string;
+    detail: string;
+    day: string;
+    href: string;
+    share_ref: (string | null);
+    seen: boolean;
 };
 
 export type TrophyPublic = {
@@ -3026,7 +3898,7 @@ export type TrophyPublic = {
     value: string;
 };
 
-export type type3 = 'pr' | 'streak' | 'best' | 'goal' | 'first';
+export type type4 = 'pr' | 'streak' | 'best' | 'goal' | 'first';
 
 export type UpcomingPublic = {
     day: string;
@@ -3140,7 +4012,7 @@ export type WeatherPrefPublic = {
     version: number;
 };
 
-export type source6 = 'device' | 'city';
+export type source8 = 'device' | 'city';
 
 export type unit = 'c' | 'f';
 
@@ -3214,6 +4086,12 @@ export type WeighInCreate = {
     body_fat_pct?: (number | null);
     note?: (string | null);
     id?: (string | null);
+};
+
+export type WeighInPayload = {
+    kind: "weighIn";
+    kg: number;
+    prev_kg?: (number | null);
 };
 
 export type WeighInPublic = {
@@ -3290,6 +4168,14 @@ export type WorkoutOut = {
     prs: Array<PrOut>;
 };
 
+export type WorkoutPayload = {
+    kind: "workout";
+    name: string;
+    exercises?: Array<ExerciseIn>;
+    cardio?: (CardioIn | null);
+    new_exercises?: (Array<(string)> | null);
+};
+
 export type WorkoutPublic = {
     id: string;
     version: number;
@@ -3328,6 +4214,50 @@ export type WorkoutSummary = {
     exercise_count: number;
     totals: TotalsOut;
     pr_count: number;
+};
+
+export type WrapActionIn = {
+    kind: 'complete_task' | 'move_task_tomorrow' | 'check_habit' | 'skip_habit';
+    id: string;
+    day?: (string | null);
+    note?: (string | null);
+};
+
+export type kind13 = 'complete_task' | 'move_task_tomorrow' | 'check_habit' | 'skip_habit';
+
+export type WrapActionOut = {
+    kind: string;
+    id: string;
+    ring: RingOut;
+};
+
+export type WrapUpPublic = {
+    id: string;
+    day: string;
+    at: string;
+    on_target: boolean;
+    done: number;
+    due: number;
+    reflection: (string | null);
+    journal_entry_id: (string | null);
+    updated_at: string;
+    version: number;
+};
+
+export type WrapUpState = {
+    day: string;
+    sealed: (WrapUpPublic | null);
+    ring: RingOut;
+    threshold: number;
+    on_target_now: boolean;
+    evening: boolean;
+};
+
+export type WriteLogPublic = {
+    id: string;
+    at: string;
+    action: string;
+    actor: string;
 };
 
 export type AiProvidersPresetsResponse = (PresetsOut);
@@ -3403,6 +4333,351 @@ export type AuditReadAuditLogsData = {
 };
 
 export type AuditReadAuditLogsResponse = (AuditLogsPublic);
+
+export type CaptureGetSettingsResponse = (AISettingsPublic);
+
+export type CaptureUpdateSettingsData = {
+    requestBody: AISettingsUpdate;
+};
+
+export type CaptureUpdateSettingsResponse = (AISettingsPublic);
+
+export type CaptureThreadData = {
+    limit?: number;
+    q?: (string | null);
+    skip?: number;
+    source?: (string | null);
+    status?: (string | null);
+};
+
+export type CaptureThreadResponse = (CapturesPublic);
+
+export type CaptureSubmitData = {
+    requestBody: app__modules__capture__schema__CaptureIn;
+};
+
+export type CaptureSubmitResponse = (CaptureDetail);
+
+export type CapturePendingData = {
+    limit?: number;
+    skip?: number;
+};
+
+export type CapturePendingResponse = (CapturesPublic);
+
+export type CaptureSubmitStreamData = {
+    requestBody: app__modules__capture__schema__CaptureIn;
+};
+
+export type CaptureSubmitStreamResponse = (unknown);
+
+export type CaptureQuickAddData = {
+    requestBody: QuickAddIn;
+};
+
+export type CaptureQuickAddResponse = (CaptureDetail);
+
+export type CaptureClearThreadResponse = (Count);
+
+export type CaptureRunRetentionResponse = (Count);
+
+export type CaptureResumeStuckResponse = (Count);
+
+export type CaptureGetCardData = {
+    cardId: string;
+};
+
+export type CaptureGetCardResponse = (CardPublic);
+
+export type CaptureEditCardData = {
+    cardId: string;
+    requestBody: PayloadIn;
+};
+
+export type CaptureEditCardResponse = (CardPublic);
+
+export type CaptureConfirmCardData = {
+    cardId: string;
+};
+
+export type CaptureConfirmCardResponse = (CardPublic);
+
+export type CaptureDiscardCardData = {
+    cardId: string;
+};
+
+export type CaptureDiscardCardResponse = (CardPublic);
+
+export type CaptureUndoCardData = {
+    cardId: string;
+};
+
+export type CaptureUndoCardResponse = (CardPublic);
+
+export type CaptureRedoCardData = {
+    cardId: string;
+};
+
+export type CaptureRedoCardResponse = (CardPublic);
+
+export type CaptureAnswerCardData = {
+    cardId: string;
+    requestBody: AnswerIn;
+};
+
+export type CaptureAnswerCardResponse = (CaptureDetail);
+
+export type CaptureSkipAskData = {
+    cardId: string;
+};
+
+export type CaptureSkipAskResponse = (CardPublic);
+
+export type CaptureGetCaptureData = {
+    captureId: string;
+};
+
+export type CaptureGetCaptureResponse = (CaptureDetail);
+
+export type CaptureDeleteCaptureData = {
+    captureId: string;
+};
+
+export type CaptureDeleteCaptureResponse = (void);
+
+export type CaptureRetryData = {
+    captureId: string;
+};
+
+export type CaptureRetryResponse = (CaptureDetail);
+
+export type CaptureRerunData = {
+    captureId: string;
+    requestBody: RerunIn;
+};
+
+export type CaptureRerunResponse = (CaptureDetail);
+
+export type CaptureResumeData = {
+    captureId: string;
+};
+
+export type CaptureResumeResponse = (CaptureDetail);
+
+export type CaptureConfirmAllData = {
+    captureId: string;
+};
+
+export type CaptureConfirmAllResponse = (Array<CardPublic>);
+
+export type CompanionGetStateResponse = (CompanionState);
+
+export type CompanionRenameData = {
+    requestBody: RenameIn;
+};
+
+export type CompanionRenameResponse = (CompanionState);
+
+export type CompanionAskData = {
+    requestBody: app__modules__companion__schema__AskIn;
+};
+
+export type CompanionAskResponse = (AskOut);
+
+export type CompanionAskStreamData = {
+    requestBody: app__modules__companion__schema__AskIn;
+};
+
+export type CompanionAskStreamResponse = (unknown);
+
+export type CompanionListMessagesData = {
+    limit?: number;
+    skip?: number;
+};
+
+export type CompanionListMessagesResponse = (app__modules__companion__schema__MessagesPublic);
+
+export type CompanionClearConversationResponse = (Message);
+
+export type CompanionUpsertTrackerData = {
+    metric: 'life' | 'habits' | 'tasks' | 'spend' | 'spendCats' | 'netWorth' | 'workouts' | 'weight' | 'nutrition';
+    requestBody: TrackerIn;
+};
+
+export type CompanionUpsertTrackerResponse = (TrackerPublic);
+
+export type CompanionRemoveTrackerData = {
+    trackerId: string;
+};
+
+export type CompanionRemoveTrackerResponse = (void);
+
+export type CompanionRememberData = {
+    requestBody: MemoryIn;
+};
+
+export type CompanionRememberResponse = (MemoryPublic);
+
+export type CompanionForgetData = {
+    memoryId: string;
+};
+
+export type CompanionForgetResponse = (void);
+
+export type CompanionSeriesData = {
+    days?: number;
+    metric: 'life' | 'habits' | 'tasks' | 'spend' | 'spendCats' | 'netWorth' | 'workouts' | 'weight' | 'nutrition';
+};
+
+export type CompanionSeriesResponse = (app__modules__companion__schema__SeriesOut);
+
+export type CompanionInsightsResponse = (InsightsOut);
+
+export type DashboardTodayResponse = (TodayBundle);
+
+export type DashboardListGoalsData = {
+    limit?: number;
+    skip?: number;
+};
+
+export type DashboardListGoalsResponse = (GoalsOut);
+
+export type DashboardCreateGoalData = {
+    requestBody: GoalCreate;
+};
+
+export type DashboardCreateGoalResponse = (GoalProgressOut);
+
+export type DashboardReadGoalData = {
+    goalId: string;
+};
+
+export type DashboardReadGoalResponse = (GoalProgressOut);
+
+export type DashboardUpdateGoalData = {
+    goalId: string;
+    requestBody: GoalUpdate;
+};
+
+export type DashboardUpdateGoalResponse = (GoalProgressOut);
+
+export type DashboardDeleteGoalData = {
+    goalId: string;
+};
+
+export type DashboardDeleteGoalResponse = (Message);
+
+export type DashboardArchiveGoalData = {
+    goalId: string;
+};
+
+export type DashboardArchiveGoalResponse = (GoalProgressOut);
+
+export type DashboardRestoreGoalData = {
+    goalId: string;
+};
+
+export type DashboardRestoreGoalResponse = (GoalProgressOut);
+
+export type DashboardUndeleteGoalData = {
+    goalId: string;
+};
+
+export type DashboardUndeleteGoalResponse = (GoalProgressOut);
+
+export type DashboardListReviewsData = {
+    limit?: number;
+    skip?: number;
+};
+
+export type DashboardListReviewsResponse = (ReviewsOut);
+
+export type DashboardSaveReviewData = {
+    key: string;
+    requestBody: ReviewIn;
+};
+
+export type DashboardSaveReviewResponse = (ReviewPublic);
+
+export type DashboardWrapUpStateData = {
+    day?: (string | null);
+};
+
+export type DashboardWrapUpStateResponse = (WrapUpState);
+
+export type DashboardSealDayData = {
+    requestBody: SealIn;
+};
+
+export type DashboardSealDayResponse = (WrapUpPublic);
+
+export type DashboardUnsealDayData = {
+    day?: (string | null);
+};
+
+export type DashboardUnsealDayResponse = (Message);
+
+export type DashboardWrapActionData = {
+    requestBody: WrapActionIn;
+};
+
+export type DashboardWrapActionResponse = (WrapActionOut);
+
+export type DashboardListNotificationsData = {
+    limit?: number;
+    skip?: number;
+};
+
+export type DashboardListNotificationsResponse = (NotificationsOut);
+
+export type DashboardMarkAllReadResponse = (Message);
+
+export type DashboardMarkReadData = {
+    notificationId: string;
+};
+
+export type DashboardMarkReadResponse = (NotificationPublic);
+
+export type DashboardDismissData = {
+    notificationId: string;
+};
+
+export type DashboardDismissResponse = (Message);
+
+export type DashboardUndismissData = {
+    notificationId: string;
+};
+
+export type DashboardUndismissResponse = (NotificationPublic);
+
+export type DashboardNoteMissData = {
+    missKey: string;
+    requestBody: MissNoteIn;
+};
+
+export type DashboardNoteMissResponse = (Message);
+
+export type DashboardShareTemplatesResponse = (Array<ShareTemplateOut>);
+
+export type DashboardSaveShareDefaultsData = {
+    requestBody: ShareDefaultsIn;
+    template: 'life' | 'weekly' | 'monthly' | 'streak' | 'finance' | 'profile' | 'goal';
+};
+
+export type DashboardSaveShareDefaultsResponse = (ShareDefaultPublic);
+
+export type DashboardShareCardData = {
+    goalId?: (string | null);
+    template: 'life' | 'weekly' | 'monthly' | 'streak' | 'finance' | 'profile' | 'goal';
+};
+
+export type DashboardShareCardResponse = (app__modules__dashboard__schema__ShareCardOut);
+
+export type DashboardOnboardingData = {
+    requestBody: OnboardingIn;
+};
+
+export type DashboardOnboardingResponse = (OnboardingOut);
 
 export type EventsStreamData = {
     lastEventId?: (string | null);
@@ -3865,6 +5140,13 @@ export type FinanceDeleteMessageData = {
 
 export type FinanceDeleteMessageResponse = (Ok);
 
+export type FinanceAdvisorAskStreamData = {
+    requestBody: app__modules__finance__advisor_ai__AskIn;
+    threadId: string;
+};
+
+export type FinanceAdvisorAskStreamResponse = (unknown);
+
 export type FinanceAdvisorAnswerData = {
     requestBody: AdviceIn;
 };
@@ -3873,7 +5155,7 @@ export type FinanceAdvisorAnswerResponse = ({
     [key: string]: unknown;
 });
 
-export type FitnessOverviewResponse = (OverviewOut);
+export type FitnessOverviewResponse = (app__modules__fitness__schema__OverviewOut);
 
 export type FitnessStatsData = {
     days?: number;
@@ -3949,7 +5231,7 @@ export type FitnessShareCardData = {
     workoutId: string;
 };
 
-export type FitnessShareCardResponse = (ShareCardOut);
+export type FitnessShareCardResponse = (app__modules__fitness__schema__ShareCardOut);
 
 export type FitnessAddExercisesData = {
     requestBody: AddExercises;
@@ -4577,6 +5859,48 @@ export type ItemsDeleteItemData = {
 
 export type ItemsDeleteItemResponse = (Message);
 
+export type JournalListEntriesData = {
+    area?: (string | null);
+    limit?: number;
+    mood?: (number | null);
+    q?: (string | null);
+    skip?: number;
+    tag?: (string | null);
+};
+
+export type JournalListEntriesResponse = (JournalsPublic);
+
+export type JournalCreateEntryData = {
+    requestBody: JournalIn;
+};
+
+export type JournalCreateEntryResponse = (JournalPublic);
+
+export type JournalGetEntryData = {
+    entryId: string;
+};
+
+export type JournalGetEntryResponse = (JournalPublic);
+
+export type JournalUpdateEntryData = {
+    entryId: string;
+    requestBody: JournalUpdate;
+};
+
+export type JournalUpdateEntryResponse = (JournalPublic);
+
+export type JournalDeleteEntryData = {
+    entryId: string;
+};
+
+export type JournalDeleteEntryResponse = (void);
+
+export type JournalRestoreEntryData = {
+    entryId: string;
+};
+
+export type JournalRestoreEntryResponse = (JournalPublic);
+
 export type MediaRequestUploadData = {
     requestBody: UploadRequest;
 };
@@ -5076,7 +6400,7 @@ export type SocialReadMessagesData = {
     limit?: number;
 };
 
-export type SocialReadMessagesResponse = (MessagesPublic);
+export type SocialReadMessagesResponse = (app__modules__social__schema__MessagesPublic);
 
 export type SocialSendMessageData = {
     chatId: string;
@@ -5134,6 +6458,55 @@ export type SocialClearDraftData = {
 };
 
 export type SocialClearDraftResponse = (void);
+
+export type StatsOverviewData = {
+    range?: '7d' | '30d' | '90d' | '1y';
+};
+
+export type StatsOverviewResponse = (app__modules__stats__schema__OverviewOut);
+
+export type StatsSeriesData = {
+    days?: number;
+    metric: 'life' | 'habits' | 'tasks' | 'spend' | 'spendCats' | 'netWorth' | 'workouts' | 'weight' | 'nutrition';
+};
+
+export type StatsSeriesResponse = (app__modules__stats__schema__SeriesOut);
+
+export type StatsSeriesMetricsResponse = (Array<(string)>);
+
+export type StatsMetricDetailData = {
+    ref: string;
+};
+
+export type StatsMetricDetailResponse = (MetricDetailOut);
+
+export type StatsMissesData = {
+    _from?: (string | null);
+    limit?: number;
+    skip?: number;
+    to?: (string | null);
+};
+
+export type StatsMissesResponse = (MissesOut);
+
+export type StatsCalendarData = {
+    _from?: (string | null);
+    limit?: number;
+    skip?: number;
+    to?: (string | null);
+};
+
+export type StatsCalendarResponse = (CalendarOut);
+
+export type StatsAchievementsResponse = (AchievementsOut);
+
+export type StatsTodayResponse = (TodayOut);
+
+export type StatsFacetsData = {
+    range?: '7d' | '30d' | '90d' | '1y';
+};
+
+export type StatsFacetsResponse = (FacetsOut);
 
 export type SyncPushData = {
     requestBody: SyncPush;
@@ -5300,7 +6673,7 @@ export type TasksCreateTasksData = {
 export type TasksCreateTasksResponse = (TasksPublic);
 
 export type TasksCaptureData = {
-    requestBody: CaptureIn;
+    requestBody: app__modules__tasks__schema__CaptureIn;
 };
 
 export type TasksCaptureResponse = (CaptureResult);

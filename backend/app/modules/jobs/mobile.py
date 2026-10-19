@@ -54,3 +54,29 @@ def run_finance_auto_log(now: datetime | None = None) -> int:
                 session.rollback()
                 app_logger.exception("finance auto-log failed for one user")
     return logged
+
+
+def _each_user_with(model: type, session: Session) -> list[User]:
+    owners = session.exec(select(model.owner_id).distinct()).all()  # type: ignore[attr-defined]
+    return list(session.exec(select(User).where(col(User.id).in_(list(owners)))).all())
+
+
+def run_capture_maintenance(now: datetime | None = None) -> dict[str, int]:
+    """Retention (captures past ``retention_days`` are tombstoned) and the
+    recovery of captures stuck in ``processing`` after a crash."""
+    from app.modules.capture import engine as capture_engine
+    from app.modules.capture.models import Capture
+
+    at = now or datetime.now(timezone.utc)
+    out = {"purged": 0, "resumed": 0}
+    with Session(engine) as session:
+        for user in _each_user_with(Capture, session):
+            try:
+                ctx = make_ctx(session, user, now=at)
+                out["purged"] += capture_engine.purge_expired(ctx)
+                out["resumed"] += capture_engine.resume_stuck(ctx)
+                session.commit()  # resume_stuck leaves the commit to its caller
+            except Exception:  # one user's bad data must not stop the rest
+                session.rollback()
+                app_logger.exception("capture maintenance failed for one user")
+    return out

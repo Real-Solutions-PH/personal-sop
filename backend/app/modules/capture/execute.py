@@ -153,6 +153,7 @@ def execute(
             account_id=_opt_uuid(p.get("account_id"), "account"),
             category_id=_opt_uuid(p.get("category_id"), "category"),
             planned_id=rid(0),
+            repeat="monthly",
         )
         return Result(
             [str(pl.id)], note="Shows on your Plan calendar and in the projection."

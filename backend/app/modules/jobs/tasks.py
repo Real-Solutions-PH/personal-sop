@@ -41,3 +41,14 @@ def finance_auto_log(timestamp: int) -> int:
 
     del timestamp
     return run_finance_auto_log()
+
+
+@jobs_app.periodic(cron="17 * * * *")
+@jobs_app.task(
+    name="mobile.capture.maintenance", queueing_lock="mobile.capture.maintenance"
+)
+def capture_maintenance(timestamp: int) -> dict[str, int]:
+    from app.modules.jobs.mobile import run_capture_maintenance
+
+    del timestamp
+    return run_capture_maintenance()

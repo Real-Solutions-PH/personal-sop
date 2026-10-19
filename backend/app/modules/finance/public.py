@@ -210,8 +210,11 @@ def add_planned(
     category_id: uuid.UUID | None = None,
     type: Literal["expense", "income"] = "expense",
     planned_id: uuid.UUID | None = None,
+    repeat: Literal["once", "monthly"] = "once",
 ) -> PlannedItem:
-    """A one-off planned item on ``day`` (chat: "netflix 549 on the 5th")."""
+    """A planned item starting on ``day``: one-off, or monthly on that day of
+    the month (chat: "netflix 549 every 5th" is monthly, as in the
+    prototype's capture engine)."""
     data = S.PlannedCreate(
         id=planned_id,
         name=name,
@@ -219,7 +222,11 @@ def add_planned(
         amount_minor=amount_minor,
         account_id=_account_or_default(ctx, account_id, for_income=type == "income"),
         category_id=category_id,
-        schedule=S.OnceSchedule(kind="once", date=day),
+        schedule=(
+            S.MonthlySchedule(kind="monthly", day=day.day)
+            if repeat == "monthly"
+            else S.OnceSchedule(kind="once", date=day)
+        ),
         start=day,
     )
     values = services._planned_values(data)

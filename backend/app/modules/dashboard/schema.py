@@ -155,7 +155,7 @@ class WrapUpState(BaseModel):
 
 
 class WrapActionIn(BaseModel):
-    kind: Literal["complete_task", "check_habit", "skip_habit"]
+    kind: Literal["complete_task", "move_task_tomorrow", "check_habit", "skip_habit"]
     id: uuid.UUID
     day: date | None = None
     note: str | None = Field(default=None, max_length=200)

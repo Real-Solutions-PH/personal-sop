@@ -28,12 +28,6 @@ STATS = f"{settings.API_V1_STR}/stats"
 PROFILE = f"{settings.API_V1_STR}/profile"
 SYNC = f"{settings.API_V1_STR}/sync"
 
-CAPTURE_STUB = pytest.mark.xfail(
-    raises=NotImplementedError,
-    strict=False,
-    reason="capture.add_journal_entry is a stub until merge",
-)
-
 
 def ok(r: Any, status: int = 200) -> Any:
     assert r.status_code == status, r.text
@@ -229,7 +223,6 @@ def test_reviews(client: TestClient, db: Session) -> None:
     assert ok(client.get(f"{API}/reviews", headers=h))["count"] == 1
 
 
-@CAPTURE_STUB
 def test_review_reflection_goes_to_journal(client: TestClient, db: Session) -> None:
     _, h = signed_in(db)
     key = monday_key(ok(client.get(f"{STATS}/today", headers=h))["day"])
@@ -280,7 +273,6 @@ def test_seal_future_day_refused(client: TestClient, db: Session) -> None:
         "wrapup_future")  # fmt: skip
 
 
-@CAPTURE_STUB
 def test_seal_with_reflection_goes_to_journal(client: TestClient, db: Session) -> None:
     _, h = signed_in(db)
     ok(client.post(f"{API}/wrap-up/seal", headers=h, json={"reflection": "Calm day"}))

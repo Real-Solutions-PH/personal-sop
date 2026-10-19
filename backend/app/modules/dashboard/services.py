@@ -213,11 +213,14 @@ def unseal_day(ctx: Ctx, day: date) -> None:
 
 
 def wrap_action(ctx: Ctx, data: WrapActionIn) -> None:
-    """One wrap-up row action: tick a task, check a habit, or skip a habit
-    ("didn't happen"). Through the owning module's public functions."""
+    """One wrap-up row action: tick a task, move it to tomorrow, check a
+    habit, or skip a habit ("didn't happen"). Through the owning module's
+    public functions."""
     day = data.day or ctx.today
     if data.kind == "complete_task":
         tasks_public.complete_task(ctx, task_id=data.id)
+    elif data.kind == "move_task_tomorrow":
+        tasks_public.reschedule_by(ctx, task_id=data.id, days=1)
     elif data.kind == "check_habit":
         habits_public.log_habit(
             ctx, habit_id=data.id, day=day, status="done", source="tap"

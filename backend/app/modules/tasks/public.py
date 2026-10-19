@@ -74,3 +74,9 @@ def find_open_tasks(ctx: Ctx, query: str, *, limit: int = 5) -> list[Task]:
     if not query.strip():
         return []
     return repo.find_open(ctx, query, limit=max(1, min(limit, 50)))
+
+
+def reschedule_by(ctx: Ctx, *, task_id: uuid.UUID, days: int) -> Task:
+    """Move a task's due date by ``days`` (counted as a reschedule). Flushes
+    only; the calling use case commits."""
+    return ops.reschedule_by(ctx, repo.live_task(ctx, task_id), days)
