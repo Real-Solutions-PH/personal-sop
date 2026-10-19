@@ -177,6 +177,7 @@ describe("task lists (live)", () => {
           2,
         )
 
+        settled()
         tick("Milk")
         rows(
           "select id from task where owner_id = $1 and title = 'Milk' and status = 'done'",
