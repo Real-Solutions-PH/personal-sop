@@ -65,7 +65,9 @@ class JournalSync(BaseModel):
     body: Annotated[str, Field(min_length=1, max_length=20000)] | None = None
     source: Literal["voice", "text", "wrapup"] | None = None
     mood: Annotated[int, Field(ge=1, le=5)] | None = None
-    tags: list[Annotated[str, Field(max_length=40)]] | None = Field(default=None, max_length=20)
+    tags: list[Annotated[str, Field(max_length=40)]] | None = Field(
+        default=None, max_length=20
+    )
     area: Annotated[str, Field(max_length=40)] | None = None
     private: bool | None = None
     transcript: Annotated[str, Field(max_length=20000)] | None = None
@@ -141,7 +143,11 @@ def upsert_capture(ctx: Ctx, capture_id: uuid.UUID, payload: BaseModel) -> Owned
         data_in = CaptureIn(
             id=capture_id,
             client_uuid=data.get("client_uuid") or capture_id,
-            **{k: v for k, v in data.items() if k not in ("client_uuid",) and v is not None},
+            **{
+                k: v
+                for k, v in data.items()
+                if k not in ("client_uuid",) and v is not None
+            },
         )
     except ValidationError:
         raise invalid("capture_invalid", "That capture can't be stored") from None
@@ -205,7 +211,11 @@ def reset_settings(ctx: Ctx, row_id: uuid.UUID) -> None:
     from app.modules.capture.rules import DEFAULT_MONEY_THRESHOLD_MINOR, DEFAULT_RULES
 
     journal.patch_settings_row(
-        ctx, {"rules": dict(DEFAULT_RULES), "money_threshold_minor": DEFAULT_MONEY_THRESHOLD_MINOR}
+        ctx,
+        {
+            "rules": dict(DEFAULT_RULES),
+            "money_threshold_minor": DEFAULT_MONEY_THRESHOLD_MINOR,
+        },
     )
     ctx.commit()
 

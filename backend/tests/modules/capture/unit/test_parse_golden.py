@@ -27,9 +27,7 @@ def _drafts(text: str, **ctx: Any) -> list[dict[str, Any]]:
 def test_parse_capture(case: dict[str, Any]) -> None:
     if GROUPED.search(case["text"]) and len(case["segments"]) > 1:
         pytest.skip("server ruling, see test_parse_rulings.py")
-    segs = [
-        {"seg": s.seg, "kind": s.kind} for s in P.segment(WORLD, case["text"])
-    ]
+    segs = [{"seg": s.seg, "kind": s.kind} for s in P.segment(WORLD, case["text"])]
     assert segs == case["segments"]
     assert _drafts(case["text"]) == server_shape(case["drafts"])
 

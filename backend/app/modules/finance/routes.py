@@ -13,8 +13,8 @@ from fastapi.responses import Response
 from sqlmodel import col
 
 from app.modules.finance import advisor, calc, imports, repo, services
-from app.modules.finance.advisor_ai import AskIn as AdvisorAskIn
 from app.modules.finance import schema as S
+from app.modules.finance.advisor_ai import AskIn as AdvisorAskIn
 from app.modules.finance.models import LookBack
 from app.modules.iam.deps import require_permission
 from app.shared import owned_repo

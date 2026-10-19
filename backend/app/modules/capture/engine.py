@@ -164,13 +164,21 @@ def submit(ctx: Ctx, data: CaptureIn) -> Submitted:
         return Submitted(existing, False)
     if data.source == "photo" and data.media_id is None:
         raise invalid("photo_required", "Attach the photo first")
-    if data.source == "voice" and data.media_id is None and not (data.transcript or data.text):
+    if (
+        data.source == "voice"
+        and data.media_id is None
+        and not (data.transcript or data.text)
+    ):
         raise invalid("audio_required", "Attach the recording or its transcript")
     if data.source == "file" and data.media_id is None:
         raise invalid("file_required", "Attach the statement file first")
     if data.source in ("text", "quick_add", "connector") and not data.text.strip():
         raise invalid("text_required", "Type something to capture")
-    hint = data.hint if data.hint in ("auto", "meal", "receipt", "label", "statement", "whiteboard") else None
+    hint = (
+        data.hint
+        if data.hint in ("auto", "meal", "receipt", "label", "statement", "whiteboard")
+        else None
+    )
     values: dict[str, Any] = {
         "client_uuid": data.client_uuid,
         "at": data.at or ctx.now,
@@ -261,7 +269,11 @@ def preflight(ctx: Ctx, cap: Capture) -> Plan:
     needs_model = (
         resolved is not None
         or (cap.source == "photo" and ai.resolve_model(ctx, "vision") is not None)
-        or (cap.source == "voice" and not (cap.transcript or cap.text) and st.transcription == "server")
+        or (
+            cap.source == "voice"
+            and not (cap.transcript or cap.text)
+            and st.transcription == "server"
+        )
     )
     try:
         if not st.ai_enabled or needs_model:
@@ -286,7 +298,11 @@ def preflight(ctx: Ctx, cap: Capture) -> Plan:
         _transcript(ctx, cap, st.transcription, st.language)
     hints = ctx.session.info.get("capture_hints", {})
     accounts = ctx.session.info.get("capture_accounts", {})
-    return Plan(resolved=resolved, hint=hints.get(cap.id) or cap.hint, account_id=accounts.get(cap.id))
+    return Plan(
+        resolved=resolved,
+        hint=hints.get(cap.id) or cap.hint,
+        account_id=accounts.get(cap.id),
+    )
 
 
 def _transcript(ctx: Ctx, cap: Capture, mode: str, language: str) -> None:
@@ -294,8 +310,15 @@ def _transcript(ctx: Ctx, cap: Capture, mode: str, language: str) -> None:
         cap.transcript = cap.transcript or cap.text
         cap.text = cap.text or cap.transcript
         return
+
     def refuse(code: str, title: str) -> None:
-        _fail(ctx, cap, code, title, "Your recording is saved. Type what you said, or retry.")
+        _fail(
+            ctx,
+            cap,
+            code,
+            title,
+            "Your recording is saved. Type what you said, or retry.",
+        )
         ctx.commit()
         raise domain_error(422, code, title, {"capture_id": str(cap.id)})
 
@@ -377,7 +400,11 @@ def photo_env(
     def text_path(text: str, hint: str) -> list[Draft]:
         if resolved is None:
             return Ph.rules_text_path(world)(text, hint)
-        prefix = f"Text read from a {hint} photo:\n" if hint != "auto" else "Text read from a photo:\n"
+        prefix = (
+            f"Text read from a {hint} photo:\n"
+            if hint != "auto"
+            else "Text read from a photo:\n"
+        )
         try:
             _, r = agent.run_capture_agent(
                 ctx,
@@ -396,13 +423,24 @@ def photo_env(
         return []
 
     env = Ph.PhotoEnv(
-        world=world, image=(img[1], img[2]) if img else None, vision=vision, text_path=text_path
+        world=world,
+        image=(img[1], img[2]) if img else None,
+        vision=vision,
+        text_path=text_path,
     )
     env.made = made  # type: ignore[attr-defined]
     return env
 
 
-def _persist(ctx: Ctx, cap: Capture, drafts: list[Draft], emit: Emit, pos: Pos, *, actor: str = "ai") -> None:
+def _persist(
+    ctx: Ctx,
+    cap: Capture,
+    drafts: list[Draft],
+    emit: Emit,
+    pos: Pos,
+    *,
+    actor: str = "ai",
+) -> None:
     st = settings_row(ctx)
     built = C.add_drafts(
         ctx,
@@ -422,16 +460,29 @@ def _persist(ctx: Ctx, cap: Capture, drafts: list[Draft], emit: Emit, pos: Pos, 
             _emit_reply_row(emit, it)
 
 
-def _interpret(ctx: Ctx, cap: Capture, plan: Plan, emit: Emit, pos: Pos) -> tuple[str, str | None]:
+def _interpret(
+    ctx: Ctx, cap: Capture, plan: Plan, emit: Emit, pos: Pos
+) -> tuple[str, str | None]:
     """Returns (engine, the model's reply text if any)."""
     st = settings_row(ctx)
     if cap.source == "file":
-        _persist(ctx, cap, [Ph.statement_handoff(ctx, cap, rows=None, account_id=plan.account_id)], emit, pos)
+        _persist(
+            ctx,
+            cap,
+            [Ph.statement_handoff(ctx, cap, rows=None, account_id=plan.account_id)],
+            emit,
+            pos,
+        )
         return "rules", None
     if cap.source == "photo":
         env = photo_env(ctx, cap, resolved=plan.resolved, emit=emit, pos=pos)
         drafts = Ph.interpret(
-            ctx, cap, env, hint=(plan.hint or "auto").lower(), caption=cap.text, account_id=plan.account_id
+            ctx,
+            cap,
+            env,
+            hint=(plan.hint or "auto").lower(),
+            caption=cap.text,
+            account_id=plan.account_id,
         )
         _persist(ctx, cap, drafts, emit, pos)
         used_ai = env.vision is not None or bool(getattr(env, "made", []))
@@ -458,7 +509,9 @@ def _interpret(ctx: Ctx, cap: Capture, plan: Plan, emit: Emit, pos: Pos) -> tupl
             if C.cards_of(ctx, cap.id) or C.replies_of(ctx, cap.id):
                 emit_reply(ctx, emit, cap, dict(UNAVAILABLE_CARD), position=pos.take())
                 return "ai", None
-            drafts = parse_capture(world, cap.text, ParseCtx(source=cap.source, hint=hint))
+            drafts = parse_capture(
+                world, cap.text, ParseCtx(source=cap.source, hint=hint)
+            )
             _persist(ctx, cap, drafts, emit, pos, actor="ai")
             emit_reply(ctx, emit, cap, dict(UNAVAILABLE_CARD), position=pos.take())
             return "rules", None
@@ -471,7 +524,9 @@ def _interpret(ctx: Ctx, cap: Capture, plan: Plan, emit: Emit, pos: Pos) -> tupl
 def _views(ctx: Ctx, cap: Capture) -> list[rules.ItemView]:
     v = [rules.ItemView("record", c.state) for c in C.cards_of(ctx, cap.id)]
     v += [
-        rules.ItemView("answer" if r.kind == "answer" else "info", tone=str(r.body.get("tone")))
+        rules.ItemView(
+            "answer" if r.kind == "answer" else "info", tone=str(r.body.get("tone"))
+        )
         for r in C.replies_of(ctx, cap.id)
     ]
     return v
@@ -494,9 +549,17 @@ def run(ctx: Ctx, cap: Capture, plan: Plan, emit: Emit = _noop) -> Capture:
     except Exception:  # noqa: BLE001 - any failure keeps the input and says so
         sp.rollback()
         ctx.session.refresh(cap)
-        _fail(ctx, cap, "interpret_failed", "Couldn't process that", "Your input is kept.")
+        _fail(
+            ctx, cap, "interpret_failed", "Couldn't process that", "Your input is kept."
+        )
         ctx.commit()
-        emit("error", {"code": "interpret_failed", "message": "Couldn't process that. Your input is kept."})
+        emit(
+            "error",
+            {
+                "code": "interpret_failed",
+                "message": "Couldn't process that. Your input is kept.",
+            },
+        )
         emit("done", detail(ctx, cap).model_dump(mode="json"))
         return cap
     views = _views(ctx, cap)
@@ -521,7 +584,9 @@ def sse(event: str, data: dict[str, Any]) -> str:
     return f"event: {event}\ndata: {body}\n\n"
 
 
-def stream_work(work: Callable[[Emit], None], *, name: str = "ai-reply") -> Iterator[str]:
+def stream_work(
+    work: Callable[[Emit], None], *, name: str = "ai-reply"
+) -> Iterator[str]:
     """Run ``work(emit)`` on a worker thread and yield its frames as SSE as
     they come. The generator waits for the worker before it ends, so the
     request's database session outlives every use of it. An unexpected
@@ -532,7 +597,12 @@ def stream_work(work: Callable[[Emit], None], *, name: str = "ai-reply") -> Iter
         try:
             work(lambda e, d: q.put((e, d)))
         except Exception:  # noqa: BLE001 - reported as a frame, never as text
-            q.put(("error", {"code": "reply_failed", "message": "Couldn't finish that reply."}))
+            q.put(
+                (
+                    "error",
+                    {"code": "reply_failed", "message": "Couldn't finish that reply."},
+                )
+            )
         finally:
             q.put(None)
 
@@ -549,7 +619,9 @@ def stream_work(work: Callable[[Emit], None], *, name: str = "ai-reply") -> Iter
 
 
 def stream(ctx: Ctx, cap: Capture, plan: Plan) -> Iterator[str]:
-    return stream_work(lambda emit: _run_quiet(ctx, cap, plan, emit), name=f"capture-{cap.id}")
+    return stream_work(
+        lambda emit: _run_quiet(ctx, cap, plan, emit), name=f"capture-{cap.id}"
+    )
 
 
 def _run_quiet(ctx: Ctx, cap: Capture, plan: Plan, emit: Emit) -> None:
@@ -627,7 +699,9 @@ def _tombstone(ctx: Ctx, cap: Capture) -> None:
         owned_repo.soft_delete(ctx, c)
     for r in C.replies_of(ctx, cap.id):
         owned_repo.soft_delete(ctx, r)
-    for a in owned_repo.list_rows(ctx, CaptureAttachment, col(CaptureAttachment.capture_id) == cap.id):
+    for a in owned_repo.list_rows(
+        ctx, CaptureAttachment, col(CaptureAttachment.capture_id) == cap.id
+    ):
         owned_repo.soft_delete(ctx, a)
     owned_repo.soft_delete(ctx, cap)
 
@@ -659,7 +733,9 @@ def purge_expired(ctx: Ctx) -> int:
     return len(rows)
 
 
-def quick_add(ctx: Ctx, *, client_uuid: uuid.UUID, text: str, payload: dict[str, Any]) -> Capture:
+def quick_add(
+    ctx: Ctx, *, client_uuid: uuid.UUID, text: str, payload: dict[str, Any]
+) -> Capture:
     """CAP-09/10 ``logQuickAdd``: a hand-entered record saved at once, kept
     as a capture with one card so the toast's Undo works the same way."""
     existing = owned_repo.find_one(
@@ -681,7 +757,13 @@ def quick_add(ctx: Ctx, *, client_uuid: uuid.UUID, text: str, payload: dict[str,
         },
     )
     kind = str(payload["kind"])
-    d = RecordDraft(kind=kind, target=C.TARGET_OF.get(kind, "finance"), rule="structure", payload=payload, confirm=True)
+    d = RecordDraft(
+        kind=kind,
+        target=C.TARGET_OF.get(kind, "finance"),
+        rule="structure",
+        payload=payload,
+        confirm=True,
+    )
     card = C.new_card(ctx, cap, d, position=0, actor="user")
     if not C.save(ctx, card, cap, actor="user"):
         raise invalid("card_save_failed", C.SAVE_FAILED)
@@ -690,7 +772,13 @@ def quick_add(ctx: Ctx, *, client_uuid: uuid.UUID, text: str, payload: dict[str,
 
 
 def thread(
-    ctx: Ctx, *, status: str | None, source: str | None, q: str | None, skip: int, limit: int
+    ctx: Ctx,
+    *,
+    status: str | None,
+    source: str | None,
+    q: str | None,
+    skip: int,
+    limit: int,
 ) -> tuple[list[Capture], int]:
     where: list[Any] = []
     if status:

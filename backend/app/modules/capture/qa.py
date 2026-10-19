@@ -20,11 +20,28 @@ from app.shared.day import js_weekday
 
 Out = dict[str, Any]
 SMTWTFS = "SMTWTFS"
-MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+MONTHS = (
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+)
 
 SPEND_CATS: list[tuple[str, str, str]] = [
     (r"\b(food|eating|kain)\b", "food", "Food"),
-    (r"\b(dining|eating out|restaurants?|takeout|grab ?food)\b", "dining", "Dining out"),
+    (
+        r"\b(dining|eating out|restaurants?|takeout|grab ?food)\b",
+        "dining",
+        "Dining out",
+    ),
     (r"\b(coffee|kape)\b", "coffee", "Coffee"),
     (r"\bgroceries|grocery\b", "groceries", "Groceries"),
     (r"\bgrab\b", "grab", "Grab rides"),
@@ -119,7 +136,11 @@ def spend_answer(ctx: Ctx, q: str) -> Out:
             for b in s.budgets
             if not b.archived
             and (
-                (b.category_ids is not None and len(b.category_ids) == 1 and b.category_ids[0] == cid)
+                (
+                    b.category_ids is not None
+                    and len(b.category_ids) == 1
+                    and b.category_ids[0] == cid
+                )
                 if ids
                 else b.category_ids is None
             )
@@ -144,7 +165,9 @@ def spend_answer(ctx: Ctx, q: str) -> Out:
             data.append(sum(r.amount for r in recs if r.day in chunk))
     by_payee: dict[str, int] = {}
     for r in recs:
-        key = r.payee or (cats[r.category_id].name if r.category_id in cats else "Other")
+        key = r.payee or (
+            cats[r.category_id].name if r.category_id in cats else "Other"
+        )
         by_payee[key] = by_payee.get(key, 0) + r.amount
     top = sorted(by_payee.items(), key=lambda kv: -kv[1])[:3]
     n = len(recs)
@@ -157,7 +180,11 @@ def spend_answer(ctx: Ctx, q: str) -> Out:
         "list": [{"label": k, "value": peso(v)} for k, v in top],
         "basis": f"Based on {n} transaction{_plural(n, '', 's')} · {label}",
         "links": [{"label": "Open in Finance", "href": "/finance/reports/category"}]
-        + ([{"label": "Budget", "href": f"/finance/budgets/{budget.id}"}] if budget else []),
+        + (
+            [{"label": "Budget", "href": f"/finance/budgets/{budget.id}"}]
+            if budget
+            else []
+        ),
     }
     if bv is not None and budget is not None:
         out["sub"] = (
@@ -184,7 +211,9 @@ def balance_answer(ctx: Ctx, q: str) -> Out:
             "money": v,
             "accent": "fin",
             "basis": "As of your last entry",
-            "links": [{"label": "Open account", "href": f"/finance/accounts/{acct.id}"}],
+            "links": [
+                {"label": "Open account", "href": f"/finance/accounts/{acct.id}"}
+            ],
         }
     nw = FC.net_worth(s, bal)
     return {
@@ -210,9 +239,7 @@ def pr_answer(ctx: Ctx, q: str) -> Out:
     _, XC, _ = ports.calc_modules()
     s = ports.fitness_state(ctx)
     key = next((k for rx, k in EX_Q if _t(rx, q)), None)
-    ex = (
-        next((e for e in s.exercises if key in e.name.lower()), None) if key else None
-    )
+    ex = next((e for e in s.exercises if key in e.name.lower()), None) if key else None
     if ex is None:
         return {
             "t": "info",
@@ -244,7 +271,9 @@ def pr_answer(ctx: Ctx, q: str) -> Out:
     return {
         "t": "answer",
         "title": f"{ex.name} PR",
-        "value": f"{_n(top.weight)} kg × {top.reps}" if top else f"{js_round(best.stats.best_e1rm)} kg",
+        "value": f"{_n(top.weight)} kg × {top.reps}"
+        if top
+        else f"{js_round(best.stats.best_e1rm)} kg",
         "sub": f"{when} · est. 1-rep max {js_round(best.stats.best_e1rm)} kg · heaviest {_n(heaviest)} kg",
         "accent": "fit",
         "spark": [js_round(h.stats.best_e1rm) for h in hist[-12:]],
@@ -327,7 +356,11 @@ def streak_answer(ctx: Ctx) -> Out:
         "value": f"{rows[0][1]} days" if rows else "No streaks yet",
         "accent": "hab",
         "list": [
-            {"label": f"{v.icon} {v.name}", "value": f"{n} d", "href": f"/habits/{v.id}"}
+            {
+                "label": f"{v.icon} {v.name}",
+                "value": f"{n} d",
+                "href": f"/habits/{v.id}",
+            }
             for v, n in rows[1:]
         ],
         "links": [{"label": "Open habits", "href": "/habits"}],
@@ -389,7 +422,9 @@ def tasks_answer(ctx: Ctx, q: str) -> Out:
         "list": [
             {
                 "label": x.title,
-                "value": "overdue" if x.due_date and x.due_date < t else (x.due_time or ""),
+                "value": "overdue"
+                if x.due_date and x.due_date < t
+                else (x.due_time or ""),
                 "href": f"/tasks/task/{x.id}",
             }
             for x in hit[:6]
@@ -452,7 +487,9 @@ def journal_answer(ctx: Ctx, q: str, *, allowed: bool) -> Out:
                 {"label": "AI settings", "do": "link", "href": "/capture/settings"},
             ],
         }
-    stripped = re.sub(r"\b(what|did|i|write|wrote|about|journal|my|in|the)\b", "", q.lower(), flags=A)
+    stripped = re.sub(
+        r"\b(what|did|i|write|wrote|about|journal|my|in|the)\b", "", q.lower(), flags=A
+    )
     ws = [w for w in re.split(r"\s+", stripped.strip()) if len(w) > 2]
     rows = owned_repo.list_rows(ctx, JournalEntry, order_by=[JournalEntry.created_at])
     hits = [j for j in rows if any(w in j.body.lower() for w in ws)]
@@ -477,9 +514,13 @@ def journal_answer(ctx: Ctx, q: str, *, allowed: bool) -> Out:
 def advice_answer(ctx: Ctx, q: str) -> Out:
     FC, _, _ = ports.calc_modules()
     m = re.search(r"(\d[\d,]*)(k)?", q, A)
-    amount = int(m.group(1).replace(",", "")) * (1000 if m.group(2) else 1) if m else None
+    amount = (
+        int(m.group(1).replace(",", "")) * (1000 if m.group(2) else 1) if m else None
+    )
     tm = re.search(
-        r"\bbuy (?:a |an |this |the )?([a-z ]{2,20}?)(?: on| for| with|\?|$)", q, re.I | A
+        r"\bbuy (?:a |an |this |the )?([a-z ]{2,20}?)(?: on| for| with|\?|$)",
+        q,
+        re.I | A,
     )
     thing = tm.group(1).strip() if tm else "this"
     inst = _t(r"install?ment|0%|hulugan", q)

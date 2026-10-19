@@ -87,7 +87,9 @@ class QuestionArgs(BaseModel):
     question: Annotated[str, Field(min_length=1, max_length=500)]
 
 
-def advisor_tools(ctx: Ctx, s: calc.State, scope: Scope, safety_floor_minor: int) -> list[BaseTool]:
+def advisor_tools(
+    s: calc.State, scope: Scope, safety_floor_minor: int
+) -> list[BaseTool]:
     cats = calc.cat_map(s)
 
     def summary(**kw: Any) -> dict[str, Any]:
@@ -133,7 +135,10 @@ def advisor_tools(ctx: Ctx, s: calc.State, scope: Scope, safety_floor_minor: int
             "total_spend": f.spend / 100,
             "total_income": f.income / 100,
             "by_category": [
-                {"category": cats[k].name if k in cats else "Uncategorised", "amount": v / 100}
+                {
+                    "category": cats[k].name if k in cats else "Uncategorised",
+                    "amount": v / 100,
+                }
                 for k, v in top
             ],
         }
@@ -141,9 +146,14 @@ def advisor_tools(ctx: Ctx, s: calc.State, scope: Scope, safety_floor_minor: int
     def recent_transactions(**kw: Any) -> dict[str, Any]:
         a = DaysArgs(**kw)
         if scope != "records":
-            return {"error": "records_not_shared", "hint": "Totals only: the user shares aggregates."}
+            return {
+                "error": "records_not_shared",
+                "hint": "Totals only: the user shares aggregates.",
+            }
         since = s.today - timedelta(days=a.days - 1)
-        rows = [r for r in s.records if r.day >= since and calc.is_flow(r)][-MAX_RECORDS:]
+        rows = [r for r in s.records if r.day >= since and calc.is_flow(r)][
+            -MAX_RECORDS:
+        ]
         return {
             "transactions": [
                 {
@@ -151,7 +161,9 @@ def advisor_tools(ctx: Ctx, s: calc.State, scope: Scope, safety_floor_minor: int
                     "type": r.type,
                     "amount": r.amount / 100,
                     "payee": r.payee,
-                    "category": cats[r.category_id].name if r.category_id in cats else None,
+                    "category": cats[r.category_id].name
+                    if r.category_id in cats
+                    else None,
                 }
                 for r in rows
             ]
@@ -160,7 +172,10 @@ def advisor_tools(ctx: Ctx, s: calc.State, scope: Scope, safety_floor_minor: int
     def worked_answer(**kw: Any) -> dict[str, Any]:
         a = QuestionArgs(**kw)
         out = advisor.answer(
-            s, advisor.advisor_question(a.question), scope=scope, safety_floor_minor=safety_floor_minor
+            s,
+            advisor.advisor_question(a.question),
+            scope=scope,
+            safety_floor_minor=safety_floor_minor,
         )
         return {
             "text": flatten(out["paragraphs"]),
@@ -172,11 +187,21 @@ def advisor_tools(ctx: Ctx, s: calc.State, scope: Scope, safety_floor_minor: int
     specs: list[tuple[Callable[..., Any], type[BaseModel], str]] = [
         (summary, NoArgs, "Balances, averages, 12-month projection and budgets."),
         (spending_by_category, DaysArgs, "Spending by category over the last N days."),
-        (recent_transactions, DaysArgs, "Individual transactions (only when records are shared)."),
-        (worked_answer, QuestionArgs, "The app's own worked answer for afford/financing/leaks/emergency/invest/review questions."),
+        (
+            recent_transactions,
+            DaysArgs,
+            "Individual transactions (only when records are shared).",
+        ),
+        (
+            worked_answer,
+            QuestionArgs,
+            "The app's own worked answer for afford/financing/leaks/emergency/invest/review questions.",
+        ),
     ]
     return [
-        StructuredTool.from_function(func=fn, name=fn.__name__, description=d, args_schema=sch)
+        StructuredTool.from_function(
+            func=fn, name=fn.__name__, description=d, args_schema=sch
+        )
         for fn, sch, d in specs
     ]
 
@@ -213,7 +238,8 @@ def _history(ctx: Ctx, thread_id: uuid.UUID) -> list[BaseMessage]:
         limit=HISTORY,
     )
     return [
-        HumanMessage(m.text) if m.role == "user" else AIMessage(m.text) for m in reversed(rows)
+        HumanMessage(m.text) if m.role == "user" else AIMessage(m.text)
+        for m in reversed(rows)
     ]
 
 
@@ -227,7 +253,9 @@ def ask(
     """Store the question and its answer (replay-safe on ``data.id``)."""
     thread = require_thread(ctx, thread_id)
     st = repo.settings_row(ctx)
-    scope: Scope = data.scope or ("records" if st.ai_scope == "records" else "aggregates")
+    scope: Scope = data.scope or (
+        "records" if st.ai_scope == "records" else "aggregates"
+    )
     q_id = data.id or uuid.uuid4()
     a_id = derived_id("advisor-answer", q_id, "ai")
     existing = owned_repo.get(ctx, AdvisorMessage, q_id)
@@ -237,7 +265,9 @@ def ask(
             return existing, ans
     history = _history(ctx, thread.id)
     q = existing or services._add_message(
-        ctx, thread.id, S.MessageCreate(id=q_id, role="user", text=data.text, scope=scope)
+        ctx,
+        thread.id,
+        S.MessageCreate(id=q_id, role="user", text=data.text, scope=scope),
     )
     emit("message", S.MessagePublic.model_validate(q).model_dump(mode="json"))
     s = repo.load_state(ctx, st)
@@ -250,22 +280,32 @@ def ask(
                 ctx,
                 resolved,
                 system=SYSTEM.format(
-                    scope="individual transactions" if scope == "records" else "totals only",
+                    scope="individual transactions"
+                    if scope == "records"
+                    else "totals only",
                     disclaimer=advisor.DISCLAIMER,
                 ),
                 messages=[*history, HumanMessage(data.text)],
-                tools=advisor_tools(ctx, s, scope, st.safety_floor_minor),
+                tools=advisor_tools(s, scope, st.safety_floor_minor),
                 on_text=lambda d: emit("text.delta", {"text": d}),
             )
             text = reply.strip()
             if advisor.DISCLAIMER not in text:
                 text = f"{text}\n\n{advisor.DISCLAIMER}".strip()
-            answer = {"intent": "ai", "engine": "ai", "disclaimer": advisor.DISCLAIMER, "scope": scope}
+            answer = {
+                "intent": "ai",
+                "engine": "ai",
+                "disclaimer": advisor.DISCLAIMER,
+                "scope": scope,
+            }
         except capture.SeamError:
             text = None
     if text is None:
         answer = advisor.answer(
-            s, advisor.advisor_question(data.text), scope=scope, safety_floor_minor=st.safety_floor_minor
+            s,
+            advisor.advisor_question(data.text),
+            scope=scope,
+            safety_floor_minor=st.safety_floor_minor,
         )
         answer["engine"] = "rules"
         text = flatten(answer["paragraphs"]) or advisor.DISCLAIMER
@@ -273,7 +313,9 @@ def ask(
     a = services._add_message(
         ctx,
         thread.id,
-        S.MessageCreate(id=a_id, role="ai", text=text[:8000], answer=answer, scope=scope),
+        S.MessageCreate(
+            id=a_id, role="ai", text=text[:8000], answer=answer, scope=scope
+        ),
     )
     # Both rows are stamped with the request's ``now``; the thread orders by
     # ``at``, so the answer sorts after its question.

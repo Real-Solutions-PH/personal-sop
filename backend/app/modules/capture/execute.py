@@ -42,7 +42,9 @@ def _uuid(v: object, what: str) -> uuid.UUID:
     try:
         return uuid.UUID(str(v))
     except (TypeError, ValueError):
-        raise invalid(f"{what}_invalid", "That card points at something unknown") from None
+        raise invalid(
+            f"{what}_invalid", "That card points at something unknown"
+        ) from None
 
 
 def _opt_uuid(v: object, what: str) -> uuid.UUID | None:
@@ -109,7 +111,8 @@ def execute(
             category_id=_opt_uuid(p.get("category_id"), "category"),
             account_id=_opt_uuid(p.get("account_id"), "account"),
             payee=p.get("payee"),
-            note=p.get("note") or (f"{p['currency']} converted" if p.get("currency") else None),
+            note=p.get("note")
+            or (f"{p['currency']} converted" if p.get("currency") else None),
             source=_fin_source(cap.source),
             at=at,
             receipt_media_id=photo_media_id if p.get("from_receipt") else None,
@@ -151,13 +154,17 @@ def execute(
             category_id=_opt_uuid(p.get("category_id"), "category"),
             planned_id=rid(0),
         )
-        return Result([str(pl.id)], note="Shows on your Plan calendar and in the projection.")
+        return Result(
+            [str(pl.id)], note="Shows on your Plan calendar and in the projection."
+        )
     if kind == "task":
         drafts = [
             TaskDraft(
                 title=str(t["title"]),
                 list_id=_opt_uuid(t.get("list_id"), "list"),
-                due_date=date.fromisoformat(t["due_date"]) if t.get("due_date") else None,
+                due_date=date.fromisoformat(t["due_date"])
+                if t.get("due_date")
+                else None,
                 due_time=t.get("due_time"),
                 remind=bool(t.get("remind")),
                 task_id=rid(i),
@@ -172,7 +179,8 @@ def execute(
         t = ports.tasks.complete_task(ctx, task_id=_uuid(p["task_id"], "task"))
         left = ports.open_tasks_due_by(ctx, ctx.today)
         return Result(
-            [str(t.id)], note=f"{left} left for today" if left else "Nothing else due today"
+            [str(t.id)],
+            note=f"{left} left for today" if left else "Nothing else due today",
         )
     if kind == "habitLog":
         hid = _uuid(p["habit_id"], "habit")
@@ -210,7 +218,9 @@ def execute(
                 ctx, habit_id=h.id, day=day, source="capture", log_id=rid(1)
             )
             refs.append(str(lg.id))
-        return Result(refs, note="Created and checked for today." if p.get("log_today") else None)
+        return Result(
+            refs, note="Created and checked for today." if p.get("log_today") else None
+        )
     if kind == "routineStart":
         if not p.get("routine_id"):
             raise invalid("routine_required", "Pick the routine first")

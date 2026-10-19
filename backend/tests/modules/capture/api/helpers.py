@@ -31,7 +31,9 @@ def call(name: str, **args: Any) -> dict[str, Any]:
     return {"name": name, "args": args, "id": f"call-{uuid.uuid4().hex[:8]}"}
 
 
-def say(text: str = "", *calls: dict[str, Any], tokens: tuple[int, int] = (120, 30)) -> AIMessage:
+def say(
+    text: str = "", *calls: dict[str, Any], tokens: tuple[int, int] = (120, 30)
+) -> AIMessage:
     return AIMessage(
         content=text,
         tool_calls=list(calls),
@@ -106,7 +108,9 @@ class ScriptedModel(BaseChatModel):
         )
 
 
-def install(monkeypatch: pytest.MonkeyPatch, *script: AIMessage, fail: bool = False) -> ScriptedModel:
+def install(
+    monkeypatch: pytest.MonkeyPatch, *script: AIMessage, fail: bool = False
+) -> ScriptedModel:
     model = ScriptedModel(script=list(script), seen=[], fail=fail)
     monkeypatch.setattr(ai_public, "model_factory", lambda resolved: model)
     return model
@@ -126,7 +130,12 @@ class Api:
         self.texts.append(r.text)
         if status is not None:
             assert r.status_code == status, r.text
-        return r.json() if r.content and r.headers.get("content-type", "").startswith("application/json") else r
+        return (
+            r.json()
+            if r.content
+            and r.headers.get("content-type", "").startswith("application/json")
+            else r
+        )
 
     def get(self, path: str, status: int = 200, **params: Any) -> Any:
         return self._go("GET", path, status, params=params)
@@ -149,7 +158,9 @@ class Api:
         body = {"client_uuid": str(uuid.uuid4()), "text": text, **extra}
         return self.post("/capture/", body, status=status)
 
-    def stream(self, text: str = "", status: int = 200, **extra: Any) -> tuple[int, list[tuple[str, Any]], str]:
+    def stream(
+        self, text: str = "", status: int = 200, **extra: Any
+    ) -> tuple[int, list[tuple[str, Any]], str]:
         body = {"client_uuid": str(uuid.uuid4()), "text": text, **extra}
         r = self.c.post(f"{API}/capture/stream", headers=self.h, json=body)
         self.texts.append(r.text)
@@ -166,10 +177,16 @@ class Api:
         rows = self.get("/finance/categories", limit=100)["data"]
         return {c["slug"]: c["id"] for c in rows if c["slug"]}
 
-    def assign(self, purpose: str, *, vision: bool = False, model: str = "gpt-test") -> None:
+    def assign(
+        self, purpose: str, *, vision: bool = False, model: str = "gpt-test"
+    ) -> None:
         cred = self.post(
             "/ai/providers",
-            {"provider": "custom", "api_key": KEY, "base_url": "https://llm.example.com/v1"},
+            {
+                "provider": "custom",
+                "api_key": KEY,
+                "base_url": "https://llm.example.com/v1",
+            },
             status=201,
         )
         self.put(

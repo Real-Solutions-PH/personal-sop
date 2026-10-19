@@ -619,7 +619,9 @@ def classify(world: World, seg: str, hint: str | None = None) -> Kind:
         return "command"
     if _test(r"^(new habit|add (a )?habit|create (a )?habit|start a habit)\b", s):
         return "habitCreate"
-    if _test(r"\broutine\b", s) and _test(r"\b(start|started|starting|begin|play)\b", s):
+    if _test(r"\broutine\b", s) and _test(
+        r"\b(start|started|starting|begin|play)\b", s
+    ):
         return "routine"
     if hint == "journal":
         return "journal"
@@ -659,7 +661,10 @@ def classify(world: World, seg: str, hint: str | None = None) -> Kind:
     if _has_ex(s) and _test(r"\d\s?x\s?\d", s):
         return "strength"
     if (
-        (_test(r"\b(weigh(ed|t|ing)?|timbang|scale)\b", s) and _test(r"\d{2,3}(\.\d)?", s))
+        (
+            _test(r"\b(weigh(ed|t|ing)?|timbang|scale)\b", s)
+            and _test(r"\d{2,3}(\.\d)?", s)
+        )
         or (hint == "weigh-in" and _test(r"\d{2,3}(\.\d)?", s))
         or _test(r"^\d{2,3}(\.\d)?\s?kg\Z", s)
     ):
@@ -677,7 +682,8 @@ def classify(world: World, seg: str, hint: str | None = None) -> Kind:
             return "meal"
         return "expense"
     if _test(
-        r"^(done with|finished|completed|tapos na|natapos|sent the|submitted|did the)\b", s
+        r"^(done with|finished|completed|tapos na|natapos|sent the|submitted|did the)\b",
+        s,
     ):
         if match_habits(world, s) and not match_tasks(world, s):
             return "habit"
@@ -688,7 +694,9 @@ def classify(world: World, seg: str, hint: str | None = None) -> Kind:
         s,
     ) and (match_habits(world, s) or _test(r"^did my\b", s)):
         return "habit"
-    if match_habits(world, s) and _test(r"\d+\s?(min|mins|minutes|pages|glasses|cups)\b", s):
+    if match_habits(world, s) and _test(
+        r"\d+\s?(min|mins|minutes|pages|glasses|cups)\b", s
+    ):
         return "habit"
     if hint == "task":
         return "task"
@@ -749,7 +757,9 @@ def segment(world: World, text: str, hint: str | None = None) -> list[Segment]:
                 and bare
             )
             or (prev.kind == "strength" and kind in ("strength", "unknown"))
-            or (prev.kind == "meal" and (kind == "meal" or (kind == "unknown" and bare)))
+            or (
+                prev.kind == "meal" and (kind == "meal" or (kind == "unknown" and bare))
+            )
             or (prev.kind == "habitCreate" and kind == "unknown")
         ):
             prev.seg = f"{prev.seg}, {seg}"
@@ -832,7 +842,9 @@ def task_draft(world: World, seg: str, source: str) -> RecordDraft:
                 "due_date": d.due_date,
                 "due_time": d.due_time,
                 "remind": reminder
-                or (bool(d.due_date) and bool(d.due_time) and d.list_key != "groceries"),
+                or (
+                    bool(d.due_date) and bool(d.due_time) and d.list_key != "groceries"
+                ),
             }
         )
     needs_time = reminder and any(not t["due_date"] for t in tasks)
@@ -923,7 +935,9 @@ def habit_draft(world: World, seg: str) -> RecordDraft:
     mins = re.search(r"(\d+)\s?(min|mins|minutes)\b", low, A)
     cnt = re.search(r"(\d+)\s?(pages|glasses|cups|x|times)\b", low, A)
     if not hs:
-        name = re.sub(r"^(did|done|finished|completed)\s+(my|the)?\s*", "", seg, flags=AI)
+        name = re.sub(
+            r"^(did|done|finished|completed)\s+(my|the)?\s*", "", seg, flags=AI
+        )
         name = re.sub(r"\b(today|already|na)\b", "", name, flags=AI).strip()
         d = habit_create_draft(name or seg, True)
         d.warn = f"No habit called “{title(name)}” yet — create it and check today?"
@@ -1128,7 +1142,11 @@ def routine_draft(world: World, seg: str) -> RecordDraft:
         rule="structure",
         confirm=True,
         payload=_clean(
-            {"kind": "routineStart", "routine_id": hit.id if hit else None, "query": seg}
+            {
+                "kind": "routineStart",
+                "routine_id": hit.id if hit else None,
+                "query": seg,
+            }
         ),
         ask=None
         if hit
@@ -1265,15 +1283,21 @@ def facts_in_journal(world: World, text: str, ctx: ParseCtx) -> list[RecordDraft
     return out
 
 
-def _info(tone: str, title_: str, body: str, actions: list[dict[str, Any]]) -> InfoDraft:
+def _info(
+    tone: str, title_: str, body: str, actions: list[dict[str, Any]]
+) -> InfoDraft:
     return InfoDraft({"tone": tone, "title": title_, "body": body, "actions": actions})
+
+
+def _push(out: list[Draft], d: RecordDraft | None) -> None:
+    if d is not None:
+        out.append(d)
 
 
 def parse_capture(world: World, text: str, ctx: ParseCtx) -> list[Draft]:
     out: list[Draft] = []
     for s in segment(world, text, ctx.hint):
         seg, kind = s.seg, s.kind
-        d: Draft | None
         if kind == "journal":
             out.append(journal_draft(seg, ctx.source))
             out.extend(facts_in_journal(world, seg, ctx))
@@ -1309,17 +1333,18 @@ def parse_capture(world: World, text: str, ctx: ParseCtx) -> list[Draft]:
             out.append(habit_create_draft(spec))
         elif kind == "routine":
             out.append(routine_draft(world, seg))
-        elif kind in ("planned", "transfer", "income", "strength", "weighIn", "expense"):
-            d = {
-                "planned": lambda: planned_draft(world, seg),
-                "transfer": lambda: transfer_draft(world, seg),
-                "income": lambda: income_draft(world, seg),
-                "strength": lambda: strength_draft(seg),
-                "weighIn": lambda: weigh_draft(world, seg),
-                "expense": lambda: expense_draft(world, seg, ctx),
-            }[kind]()
-            if d is not None:
-                out.append(d)
+        elif kind == "planned":
+            _push(out, planned_draft(world, seg))
+        elif kind == "transfer":
+            _push(out, transfer_draft(world, seg))
+        elif kind == "income":
+            _push(out, income_draft(world, seg))
+        elif kind == "strength":
+            _push(out, strength_draft(seg))
+        elif kind == "weighIn":
+            _push(out, weigh_draft(world, seg))
+        elif kind == "expense":
+            _push(out, expense_draft(world, seg, ctx))
         elif kind == "task":
             out.append(task_draft(world, seg, ctx.source))
         elif kind == "cardio":
@@ -1371,7 +1396,11 @@ def parse_capture(world: World, text: str, ctx: ParseCtx) -> list[Draft]:
                     [
                         {"label": "Quick add", "do": "quickadd"},
                         {"label": "Save as journal", "do": "journal", "prompt": seg},
-                        {"label": "Make it a task", "do": "prompt", "prompt": f"todo {seg}"},
+                        {
+                            "label": "Make it a task",
+                            "do": "prompt",
+                            "prompt": f"todo {seg}",
+                        },
                     ],
                 )
             )

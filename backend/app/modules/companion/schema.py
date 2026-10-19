@@ -9,7 +9,15 @@ from pydantic import BaseModel, ConfigDict, Field
 from app.modules.companion.models import METRICS
 
 Metric = Literal[
-    "life", "habits", "tasks", "spend", "spendCats", "netWorth", "workouts", "weight", "nutrition"
+    "life",
+    "habits",
+    "tasks",
+    "spend",
+    "spendCats",
+    "netWorth",
+    "workouts",
+    "weight",
+    "nutrition",
 ]
 assert set(METRICS) == set(Metric.__args__)  # type: ignore[attr-defined]
 

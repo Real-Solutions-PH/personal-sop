@@ -18,7 +18,15 @@ from typing import Any, Literal
 A = re.ASCII
 
 Metric = Literal[
-    "life", "habits", "tasks", "spend", "spendCats", "netWorth", "workouts", "weight", "nutrition"
+    "life",
+    "habits",
+    "tasks",
+    "spend",
+    "spendCats",
+    "netWorth",
+    "workouts",
+    "weight",
+    "nutrition",
 ]
 
 METRICS: list[tuple[Metric, str, str]] = [
@@ -103,7 +111,16 @@ def route(raw: str, *, user_name: str, sol_name: str = "Sol") -> Route:
         return Route(
             "reply",
             f"Hey {name}! I'm here. Want a quick read on how today's going?",
-            [{"t": "chips", "prompts": ["How am I doing?", "Plan my day", "Show my spending this week"]}],
+            [
+                {
+                    "t": "chips",
+                    "prompts": [
+                        "How am I doing?",
+                        "Plan my day",
+                        "Show my spending this week",
+                    ],
+                }
+            ],
         )
     if t(r"\b(thanks|thank you|salamat|ty)\b"):
         return Route("reply", "Anytime. I've got your back.")
@@ -117,7 +134,13 @@ def route(raw: str, *, user_name: str, sol_name: str = "Sol") -> Route:
             "Here's what I'm seeing, gently:",
             [
                 {"t": "coach", "mood": "low"},
-                {"t": "chips", "prompts": ["Just one thing for today", "Log how I feel in my journal"]},
+                {
+                    "t": "chips",
+                    "prompts": [
+                        "Just one thing for today",
+                        "Log how I feel in my journal",
+                    ],
+                },
             ],
         )
     if t(r"^remember( that)? "):
@@ -131,12 +154,16 @@ def route(raw: str, *, user_name: str, sol_name: str = "Sol") -> Route:
         )
     if t(r"(what do you know|about me|remember about me|my memories)"):
         return Route(
-            "reply", "Here's what I know about you so far — tap one to forget it.", [{"t": "memory"}]
+            "reply",
+            "Here's what I know about you so far — tap one to forget it.",
+            [{"t": "memory"}],
         )
     if t(r"(track|keep an eye|monitor|watch|alert me|notify me)"):
         metric: Metric = find_metric(q) or "life"
         m = re.search(
-            r"(?:under|below|less than|max|at most|over|above|at least)\s*₱?\s*([\d,.]+)", q, A
+            r"(?:under|below|less than|max|at most|over|above|at least)\s*₱?\s*([\d,.]+)",
+            q,
+            A,
         )
         goal = js_number(m.group(1).replace(",", "")) if m else None
         has_goal = goal is not None and goal > 0
@@ -184,7 +211,10 @@ def route(raw: str, *, user_name: str, sol_name: str = "Sol") -> Route:
             "Here's what stands out from your records:",
             [
                 {"t": "insights"},
-                {"t": "chips", "prompts": ["Coach me on this", "Show my life score this month"]},
+                {
+                    "t": "chips",
+                    "prompts": ["Coach me on this", "Show my life score this month"],
+                },
             ],
         )
     if t(r"(who are you|what can you do|help$|^help)"):

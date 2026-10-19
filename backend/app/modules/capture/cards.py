@@ -173,7 +173,9 @@ def refresh_status(ctx: Ctx, cap: Capture) -> None:
         return
     views = [rules.ItemView("record", c.state) for c in cards_of(ctx, cap.id)]
     views += [
-        rules.ItemView("answer" if r.kind == "answer" else "info", tone=str(r.body.get("tone")))
+        rules.ItemView(
+            "answer" if r.kind == "answer" else "info", tone=str(r.body.get("tone"))
+        )
         for r in replies_of(ctx, cap.id)
     ]
     cap.status = rules.status_of(views)
@@ -258,7 +260,9 @@ def new_card(
             "refs": [],
             "ask": d.ask,
             "warn": warn,
-            "confidence": max(0.0, min(1.0, d.confidence)) if d.confidence is not None else None,
+            "confidence": max(0.0, min(1.0, d.confidence))
+            if d.confidence is not None
+            else None,
             "day_offset": d.day_offset,
         },
     )
@@ -272,7 +276,9 @@ def new_card(
     return card
 
 
-def new_reply(ctx: Ctx, cap: Capture, kind: str, body: dict[str, Any], *, position: int) -> ReplyItem:
+def new_reply(
+    ctx: Ctx, cap: Capture, kind: str, body: dict[str, Any], *, position: int
+) -> ReplyItem:
     return owned_repo.insert(
         ctx,
         ReplyItem,
@@ -280,7 +286,9 @@ def new_reply(ctx: Ctx, cap: Capture, kind: str, body: dict[str, Any], *, positi
     )
 
 
-def save(ctx: Ctx, card: RecordCard, cap: Capture, *, actor: str, action: str = "saved") -> bool:
+def save(
+    ctx: Ctx, card: RecordCard, cap: Capture, *, actor: str, action: str = "saved"
+) -> bool:
     """Write the card into its module. ``False`` (with a warning on the card)
     when the module refused; nothing of the attempt is kept then."""
     before = _snap(card)
@@ -292,7 +300,9 @@ def save(ctx: Ctx, card: RecordCard, cap: Capture, *, actor: str, action: str = 
         if card.payload.get("kind") == "command":
             res = _run_command(ctx, card, cap)
         else:
-            res = X.execute(ctx, card, cap, gen=gen, photo_media_id=photo_media(ctx, cap.id))
+            res = X.execute(
+                ctx, card, cap, gen=gen, photo_media_id=photo_media(ctx, cap.id)
+            )
         sp.commit()
     except (HTTPException, ValueError, KeyError, SQLAlchemyError):
         sp.rollback()
@@ -315,7 +325,11 @@ def save(ctx: Ctx, card: RecordCard, cap: Capture, *, actor: str, action: str = 
 def _run_command(ctx: Ctx, card: RecordCard, cap: Capture) -> X.Result:
     del cap
     target_id = card.payload.get("record_id")
-    target = owned_repo.get(ctx, RecordCard, uuid.UUID(str(target_id))) if target_id else None
+    target = (
+        owned_repo.get(ctx, RecordCard, uuid.UUID(str(target_id)))
+        if target_id
+        else None
+    )
     if target is None or target.state not in rules.WRITTEN:
         raise invalid("command_target_missing", "Nothing recent to change")
     tcap = require_capture(ctx, target.capture_id)
@@ -345,7 +359,9 @@ def _revert_written(ctx: Ctx, card: RecordCard, cap: Capture, *, actor: str) -> 
 
 def _undo_command(ctx: Ctx, card: RecordCard) -> None:
     prior: dict[str, Any] = dict(card.prior or {})
-    target = owned_repo.get(ctx, RecordCard, uuid.UUID(card.refs[0])) if card.refs else None
+    target = (
+        owned_repo.get(ctx, RecordCard, uuid.UUID(card.refs[0])) if card.refs else None
+    )
     if target is None:
         return
     tcap = require_capture(ctx, target.capture_id)
@@ -590,7 +606,9 @@ def answer_row(ctx: Ctx, card: RecordCard, value: str) -> Answered:
             ]
             card.payload = p
             card.ask = {
-                "question": "To which account?" if missing == "to" else "From which account?",
+                "question": "To which account?"
+                if missing == "to"
+                else "From which account?",
                 "field": missing,
                 "options": opts,
             }
@@ -701,7 +719,9 @@ def add_drafts(
             body = answer_fn(d.text)
             replies.append(new_reply(ctx, cap, str(body.get("t")), body, position=i))
         elif isinstance(d, InfoDraft):
-            replies.append(new_reply(ctx, cap, "info", {"t": "info", **d.card}, position=i))
+            replies.append(
+                new_reply(ctx, cap, "info", {"t": "info", **d.card}, position=i)
+            )
     if auto_save:
         for c in cards:
             if c.tier == "auto" and c.state == "proposed":

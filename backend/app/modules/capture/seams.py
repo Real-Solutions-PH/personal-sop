@@ -50,7 +50,9 @@ class SeamError(Exception):
 def estimate_cost(input_tokens: int, output_tokens: int) -> int:
     if input_tokens <= 0 and output_tokens <= 0:
         return 0
-    raw = (input_tokens * INPUT_CENTAVOS_PER_1K + output_tokens * OUTPUT_CENTAVOS_PER_1K) / 1000
+    raw = (
+        input_tokens * INPUT_CENTAVOS_PER_1K + output_tokens * OUTPUT_CENTAVOS_PER_1K
+    ) / 1000
     return max(1, math.ceil(raw))
 
 
@@ -59,7 +61,9 @@ def usage_of(msg: BaseMessage) -> tuple[int, int]:
     return int(meta.get("input_tokens") or 0), int(meta.get("output_tokens") or 0)
 
 
-def meter(ctx: Ctx, resolved: ai.ResolvedModel, msg: BaseMessage | None, *, ok: bool = True) -> None:
+def meter(
+    ctx: Ctx, resolved: ai.ResolvedModel, msg: BaseMessage | None, *, ok: bool = True
+) -> None:
     """One ``ai_usage`` row for one model call (flushes only)."""
     i, o = usage_of(msg) if msg is not None else (0, 0)
     ai.record_usage(
@@ -76,17 +80,26 @@ def meter(ctx: Ctx, resolved: ai.ResolvedModel, msg: BaseMessage | None, *, ok: 
 
 
 def transcribe(
-    resolved: ai.ResolvedModel, audio: bytes, *, filename: str, mime: str, language: str | None
+    resolved: ai.ResolvedModel,
+    audio: bytes,
+    *,
+    filename: str,
+    mime: str,
+    language: str | None,
 ) -> str:
     """Speech to text through ``POST {base_url}/audio/transcriptions``."""
     data = {"model": resolved.model, "response_format": "json"}
     if language:
         data["language"] = language
     try:
-        with httpx.Client(timeout=settings.AI_REQUEST_TIMEOUT_SECONDS, trust_env=False) as c:
+        with httpx.Client(
+            timeout=settings.AI_REQUEST_TIMEOUT_SECONDS, trust_env=False
+        ) as c:
             r = c.post(
                 f"{resolved.base_url.rstrip('/')}/audio/transcriptions",
-                headers={"Authorization": f"Bearer {resolved.api_key.get_secret_value()}"},
+                headers={
+                    "Authorization": f"Bearer {resolved.api_key.get_secret_value()}"
+                },
                 data=data,
                 files={"file": (filename, audio, mime)},
             )
@@ -160,7 +173,10 @@ def ask_json(
         b64 = base64.b64encode(image[0]).decode()
         content = [
             {"type": "text", "text": text},
-            {"type": "image_url", "image_url": {"url": f"data:{image[1]};base64,{b64}"}},
+            {
+                "type": "image_url",
+                "image_url": {"url": f"data:{image[1]};base64,{b64}"},
+            },
         ]
     msgs: list[BaseMessage] = [SystemMessage(system), HumanMessage(content=content)]
     try:

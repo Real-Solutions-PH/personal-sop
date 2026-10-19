@@ -9,7 +9,9 @@ import pytest
 from app.modules.companion import brain
 
 FX = json.loads(
-    (Path(__file__).resolve().parents[3] / "golden" / "companion-brain.json").read_text()
+    (
+        Path(__file__).resolve().parents[3] / "golden" / "companion-brain.json"
+    ).read_text()
 )["data"]
 
 

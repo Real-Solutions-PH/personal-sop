@@ -23,6 +23,7 @@ from datetime import date as Date
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
+from sqlmodel import col
 
 from app.modules.ai_providers import public as ai
 from app.modules.capture import ports, seams
@@ -48,7 +49,15 @@ HINT_OPTIONS = [
     {"label": "Both", "value": "both"},
     {"label": "Just a note", "value": "note"},
 ]
-ANSWERABLE_HINTS = ("meal", "receipt", "label", "statement", "whiteboard", "both", "note")
+ANSWERABLE_HINTS = (
+    "meal",
+    "receipt",
+    "label",
+    "statement",
+    "whiteboard",
+    "both",
+    "note",
+)
 
 
 # ---------------------------------------------------------------- vision JSON
@@ -214,7 +223,9 @@ def _receipt_draft(ctx: Ctx, cap: Capture, world: World, r: ReceiptOut) -> Recor
         confirm=True,
         confidence=r.confidence,
         day_offset=offset,
-        warn="Read from the receipt · date from receipt" if offset else "Read from the receipt",
+        warn="Read from the receipt · date from receipt"
+        if offset
+        else "Read from the receipt",
         payload={
             k: v
             for k, v in {
@@ -269,7 +280,13 @@ def _board_drafts(ctx: Ctx, world: World, b: BoardOut) -> list[Draft]:
                 payload={
                     "kind": "task",
                     "tasks": [
-                        {"title": t[:280], "list_id": None, "due_date": None, "due_time": None, "remind": False}
+                        {
+                            "title": t[:280],
+                            "list_id": None,
+                            "due_date": None,
+                            "due_time": None,
+                            "remind": False,
+                        }
                         for t in b.tasks
                         if t.strip()
                     ],
@@ -309,7 +326,11 @@ def unreadable(caption: str) -> InfoDraft:
         "I couldn't read this photo. Describe it in a line, or log it by hand.",
         [
             {"label": "Quick add", "do": "quickadd"},
-            {"label": "Save as note", "do": "journal", "prompt": caption or "Photo note"},
+            {
+                "label": "Save as note",
+                "do": "journal",
+                "prompt": caption or "Photo note",
+            },
         ],
     )
 
@@ -347,8 +368,8 @@ def image_of(ctx: Ctx, cap: Capture) -> tuple[uuid.UUID, bytes, str] | None:
     att = owned_repo.find_one(
         ctx,
         CaptureAttachment,
-        CaptureAttachment.capture_id == cap.id,  # type: ignore[arg-type]
-        CaptureAttachment.kind == "image",  # type: ignore[arg-type]
+        col(CaptureAttachment.capture_id) == cap.id,
+        col(CaptureAttachment.kind) == "image",
     )
     if att is None:
         return None
@@ -371,11 +392,15 @@ def statement_handoff(
             [{"label": "Open Finance", "do": "link", "href": "/finance"}],
         )
     media_id = None
-    att = owned_repo.find_one(ctx, CaptureAttachment, CaptureAttachment.capture_id == cap.id)  # type: ignore[arg-type]
+    att = owned_repo.find_one(
+        ctx, CaptureAttachment, col(CaptureAttachment.capture_id) == cap.id
+    )
     if att is not None:
         media_id = att.media_id
-    ftype = "image" if cap.source == "photo" else (
-        "csv" if (cap.file_name or "").lower().endswith(".csv") else "pdf"
+    ftype = (
+        "image"
+        if cap.source == "photo"
+        else ("csv" if (cap.file_name or "").lower().endswith(".csv") else "pdf")
     )
     imp = ports.start_statement_import(
         ctx,
@@ -411,10 +436,14 @@ def statement_handoff(
     )
 
 
-def _vision(ctx: Ctx, env: PhotoEnv, hint: str, caption: str, schema: type[seams.M]) -> seams.M:
+def _vision(
+    ctx: Ctx, env: PhotoEnv, hint: str, caption: str, schema: type[seams.M]
+) -> seams.M:
     assert env.vision is not None and env.image is not None
     text = PROMPTS[hint] + (f"\nThe user says: {caption}" if caption else "")
-    return seams.ask_json(ctx, env.vision, schema, system=SYSTEM, text=text, image=env.image)
+    return seams.ask_json(
+        ctx, env.vision, schema, system=SYSTEM, text=text, image=env.image
+    )
 
 
 def interpret(
@@ -427,14 +456,19 @@ def interpret(
     account_id: uuid.UUID | None = None,
 ) -> list[Draft]:
     """Drafts for one photo under ``hint`` (``photoDrafts``)."""
-    world = env.world
     if hint == "note":
         return [
             _info(
                 "journal-suggest",
                 "Saved as a note",
                 "Kept in Capture history — nothing logged.",
-                [{"label": "Save as journal", "do": "journal", "prompt": caption or "Photo note"}],
+                [
+                    {
+                        "label": "Save as journal",
+                        "do": "journal",
+                        "prompt": caption or "Photo note",
+                    }
+                ],
             )
         ]
     if hint == "both":
@@ -450,12 +484,21 @@ def interpret(
 
 
 def _by_vision(
-    ctx: Ctx, cap: Capture, env: PhotoEnv, hint: str, caption: str, account_id: uuid.UUID | None
+    ctx: Ctx,
+    cap: Capture,
+    env: PhotoEnv,
+    hint: str,
+    caption: str,
+    account_id: uuid.UUID | None,
 ) -> list[Draft]:
     if hint == "auto":
         hint = _vision(ctx, env, "auto", caption, AutoOut).hint
         if hint == "other":
-            return [unreadable(caption)] if not caption.strip() else env.text_path(caption, "auto")
+            return (
+                [unreadable(caption)]
+                if not caption.strip()
+                else env.text_path(caption, "auto")
+            )
     if hint == "meal":
         m = _vision(ctx, env, "meal", caption, MealOut)
         if not m.items:
@@ -471,20 +514,31 @@ def _by_vision(
             )
         ]
     if hint == "receipt":
-        return [_receipt_draft(ctx, cap, env.world, _vision(ctx, env, "receipt", caption, ReceiptOut))]
+        return [
+            _receipt_draft(
+                ctx, cap, env.world, _vision(ctx, env, "receipt", caption, ReceiptOut)
+            )
+        ]
     if hint == "label":
         return [_label_draft(_vision(ctx, env, "label", caption, LabelOut))]
     if hint == "statement":
         st = _vision(ctx, env, "statement", caption, StatementOut)
         return [statement_handoff(ctx, cap, rows=st.rows, account_id=account_id)]
     if hint == "whiteboard":
-        drafts = _board_drafts(ctx, env.world, _vision(ctx, env, "whiteboard", caption, BoardOut))
+        drafts = _board_drafts(
+            ctx, env.world, _vision(ctx, env, "whiteboard", caption, BoardOut)
+        )
         return drafts or [unreadable(caption)]
     return [unreadable(caption)]
 
 
 def _without_vision(
-    ctx: Ctx, cap: Capture, env: PhotoEnv, hint: str, caption: str, account_id: uuid.UUID | None
+    ctx: Ctx,
+    cap: Capture,
+    env: PhotoEnv,
+    hint: str,
+    caption: str,
+    account_id: uuid.UUID | None,
 ) -> list[Draft]:
     text = seams.ocr_text(*env.image) if env.image is not None else None
     if hint == "statement":
@@ -514,7 +568,9 @@ def _without_vision(
     return [unreadable(caption)]
 
 
-_TOTAL = re.compile(r"^(?!.*sub\s*-?\s*total).*\b(total|amount due|grand total)\b", re.I)
+_TOTAL = re.compile(
+    r"^(?!.*sub\s*-?\s*total).*\b(total|amount due|grand total)\b", re.I
+)
 _MONEY = re.compile(r"(\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{2})?")
 
 
@@ -553,7 +609,9 @@ def rules_text_path(world: World) -> Callable[[str, str], list[Draft]]:
     return run
 
 
-def answer_hint(ctx: Ctx, cap: Capture, card: RecordCard, value: str) -> list[RecordCard]:
+def answer_hint(
+    ctx: Ctx, cap: Capture, card: RecordCard, value: str
+) -> list[RecordCard]:
     """The "what should I log from this photo?" chip: replace the question
     card with the hint's cards (the prototype's ``answerCard`` photo path)."""
     from app.modules.capture import cards as C
@@ -569,7 +627,11 @@ def answer_hint(ctx: Ctx, cap: Capture, card: RecordCard, value: str) -> list[Re
         cap.hint = value
         ctx.session.add(cap)
     start = max((c.position for c in C.cards_of(ctx, cap.id)), default=0) + 1
-    start = max(start, max((r.position for r in C.replies_of(ctx, cap.id)), default=0) + 1)
-    built = C.add_drafts(ctx, cap, drafts, answer_fn=lambda q: {"t": "info"}, start=start, actor="user")
+    start = max(
+        start, max((r.position for r in C.replies_of(ctx, cap.id)), default=0) + 1
+    )
+    built = C.add_drafts(
+        ctx, cap, drafts, answer_fn=lambda q: {"t": "info"}, start=start, actor="user"
+    )
     C.refresh_status(ctx, cap)
     return built.cards

@@ -11,18 +11,32 @@ from sqlmodel import Session, select
 
 from app.core.db import engine as db_engine
 from app.modules.ai_providers.models import AIUsage
-from tests.modules.capture.api.helpers import KEY, Api, call, install, parse_sse, say, user
+from tests.modules.capture.api.helpers import (
+    KEY,
+    Api,
+    call,
+    install,
+    parse_sse,
+    say,
+    user,
+)
 
 
 def ask(api: Api, text: str, **extra: Any) -> dict[str, Any]:
     return dict(api.post("/companion/ask", {"text": text, **extra}))
 
 
-def test_router_replies_and_records_trackers_and_memories(client: TestClient, db: Session) -> None:
+def test_router_replies_and_records_trackers_and_memories(
+    client: TestClient, db: Session
+) -> None:
     api = user(client, db)
-    api.patch("/profile/", {"name": "Kai Tecson"}, status=None)  # best effort: profile name
+    api.patch(
+        "/profile/", {"name": "Kai Tecson"}, status=None
+    )  # best effort: profile name
     state = api.get("/companion/")
-    assert state["name"] == "Sol" and state["trackers"] == [] and state["memories"] == []
+    assert (
+        state["name"] == "Sol" and state["trackers"] == [] and state["memories"] == []
+    )
     hi = ask(api, "hi")
     assert hi["kind"] == "reply" and hi["engine"] == "rules"
     me, sol = hi["messages"]
@@ -32,11 +46,18 @@ def test_router_replies_and_records_trackers_and_memories(client: TestClient, db
     block = t["messages"][1]["blocks"][0]
     trackers = api.get("/companion/")["trackers"]
     assert block == {"t": "tracker", "id": trackers[0]["id"]}
-    assert (trackers[0]["metric"], trackers[0]["goal"], trackers[0]["direction"]) == ("spend", 1500, "below")
+    assert (trackers[0]["metric"], trackers[0]["goal"], trackers[0]["direction"]) == (
+        "spend",
+        1500,
+        "below",
+    )
     # a second tracker on the same metric updates it
     ask(api, "track spending above 2000")
     again = api.get("/companion/")["trackers"]
-    assert len(again) == 1 and (again[0]["goal"], again[0]["direction"]) == (2000, "above")
+    assert len(again) == 1 and (again[0]["goal"], again[0]["direction"]) == (
+        2000,
+        "above",
+    )
     ask(api, "remember that I'm training for a 10K.")
     mems = api.get("/companion/")["memories"]
     assert [m["text"] for m in mems] == ["I'm training for a 10K."]
@@ -75,7 +96,9 @@ def test_crud_rename_clear_and_validation(client: TestClient, db: Session) -> No
     m = api.post("/companion/memories", {"text": "Likes early runs"}, status=201)
     api.post("/companion/memories", {"text": ""}, status=422)
     ask(api, "hello")
-    assert api.delete("/companion/messages", status=200)["message"].startswith("Cleared 4")
+    assert api.delete("/companion/messages", status=200)["message"].startswith(
+        "Cleared 4"
+    )
     assert api.get("/companion/messages")["count"] == 0
     other = user(client, db, accounts=False)
     other.delete(f"/companion/memories/{m['id']}", status=404)
@@ -99,8 +122,14 @@ def test_agent_blocks_and_capture_handoff_stream(
         ),
         say("Nice run. Here's your month and I'll watch your sessions."),
     )
-    r = client.post("/api/v1/companion/ask/stream", headers=api.h, json={"text": "ran 5k today, how's my training?"})
-    assert r.status_code == 200 and r.headers["content-type"].startswith("text/event-stream")
+    r = client.post(
+        "/api/v1/companion/ask/stream",
+        headers=api.h,
+        json={"text": "ran 5k today, how's my training?"},
+    )
+    assert r.status_code == 200 and r.headers["content-type"].startswith(
+        "text/event-stream"
+    )
     frames = parse_sse(r.text)
     events = [e for e, _ in frames]
     assert events[0] == "message" and events[-1] == "done"
@@ -114,7 +143,12 @@ def test_agent_blocks_and_capture_handoff_stream(
     system = model.seen[0][0].content
     assert "Training for a 10K" in system
     with Session(db_engine) as s:
-        purposes = [u.purpose for u in s.exec(select(AIUsage).where(AIUsage.owner_id == api.user.id)).all()]  # type: ignore[attr-defined]
+        purposes = [
+            u.purpose
+            for u in s.exec(
+                select(AIUsage).where(AIUsage.owner_id == api.user.id)
+            ).all()
+        ]  # type: ignore[attr-defined]
     assert purposes == ["chat", "chat"]
     assert KEY not in r.text
 
@@ -156,7 +190,11 @@ def test_sync_entities(client: TestClient, db: Session) -> None:
     assert d["status"] == "applied"
 
 
-@pytest.mark.xfail(raises=NotImplementedError, strict=False, reason="stats.public.series is a stub until stats merges")
+@pytest.mark.xfail(
+    raises=NotImplementedError,
+    strict=False,
+    reason="stats.public.series is a stub until stats merges",
+)
 def test_series_block_data(client: TestClient, db: Session) -> None:
     api = user(client, db)
     out = api.get("/companion/series/spend", days=30)
@@ -164,7 +202,11 @@ def test_series_block_data(client: TestClient, db: Session) -> None:
     api.get("/companion/series/bogus", status=422)
 
 
-@pytest.mark.xfail(raises=NotImplementedError, strict=False, reason="stats.public.overview is a stub until stats merges")
+@pytest.mark.xfail(
+    raises=NotImplementedError,
+    strict=False,
+    reason="stats.public.overview is a stub until stats merges",
+)
 def test_insights_block_data(client: TestClient, db: Session) -> None:
     api = user(client, db)
     out = api.get("/companion/insights")

@@ -92,7 +92,9 @@ def ask_stream(ctx: CtxDep, data: AskIn) -> StreamingResponse:
 @router.get("/messages", response_model=MessagesPublic, dependencies=READ)
 def list_messages(ctx: CtxDep, page: PaginationDep) -> Any:
     rows, count = services.messages(ctx, skip=page.skip, limit=page.limit)
-    return MessagesPublic(data=[MessagePublic.model_validate(m) for m in rows], count=count)
+    return MessagesPublic(
+        data=[MessagePublic.model_validate(m) for m in rows], count=count
+    )
 
 
 @router.delete("/messages", response_model=Message, dependencies=WRITE)
@@ -112,7 +114,9 @@ def remove_tracker(ctx: CtxDep, tracker_id: uuid.UUID) -> None:
     services.remove_tracker(ctx, tracker_id=tracker_id)
 
 
-@router.post("/memories", response_model=MemoryPublic, status_code=201, dependencies=WRITE)
+@router.post(
+    "/memories", response_model=MemoryPublic, status_code=201, dependencies=WRITE
+)
 def remember(ctx: CtxDep, data: MemoryIn) -> Any:
     return services.remember(ctx, text=data.text, memory_id=data.id)
 
@@ -123,7 +127,9 @@ def forget(ctx: CtxDep, memory_id: uuid.UUID) -> None:
 
 
 @router.get("/series/{metric}", response_model=SeriesOut, dependencies=READ)
-def series(ctx: CtxDep, metric: Metric, days: Annotated[int, Query(ge=7, le=365)] = 30) -> Any:
+def series(
+    ctx: CtxDep, metric: Metric, days: Annotated[int, Query(ge=7, le=365)] = 30
+) -> Any:
     """Chart block data (``stats.public.series``)."""
     return services.series(ctx, metric=metric, days=days)
 

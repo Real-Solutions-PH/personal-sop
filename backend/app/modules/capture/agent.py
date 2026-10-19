@@ -115,7 +115,9 @@ def run_loop(
                     result = {"error": exc.code}
             out.append(
                 ToolMessage(
-                    content=result if isinstance(result, str) else json.dumps(result, default=str),
+                    content=result
+                    if isinstance(result, str)
+                    else json.dumps(result, default=str),
                     tool_call_id=tc.get("id") or str(uuid.uuid4()),
                     name=tc["name"],
                 )
@@ -252,8 +254,13 @@ class MealArgs(BaseModel):
 class JournalArgs(BaseModel):
     body: Annotated[str, Field(min_length=1, max_length=20000)]
     mood: Annotated[int, Field(ge=1, le=5)] | None = None
-    area: Literal["identity", "career", "health", "money", "relationships", "growth"] | None = None
-    tags: list[Annotated[str, Field(max_length=40)]] = Field(default_factory=list, max_length=10)
+    area: (
+        Literal["identity", "career", "health", "money", "relationships", "growth"]
+        | None
+    ) = None
+    tags: list[Annotated[str, Field(max_length=40)]] = Field(
+        default_factory=list, max_length=10
+    )
 
 
 class EditLastArgs(BaseModel):
@@ -306,7 +313,9 @@ def _account_id(run: Run, hint: str | None, *, default: bool) -> str | None:
     return run.world.default_account if default else None
 
 
-def _category_id(run: Run, hint: str | None, kind: Literal["expense", "income"]) -> str | None:
+def _category_id(
+    run: Run, hint: str | None, kind: Literal["expense", "income"]
+) -> str | None:
     if not hint:
         return None
     c = ports.finance.resolve_category(run.ctx, hint, kind=kind)
@@ -321,7 +330,12 @@ def _card(run: Run, d: RecordDraft) -> dict[str, Any]:
         C.save(run.ctx, card, run.cap, actor="ai")
     run.made.append(card.id)
     engine.emit_card(run.ctx, run.emit, card)
-    return {"card_id": str(card.id), "state": card.state, "tier": card.tier, "warn": card.warn}
+    return {
+        "card_id": str(card.id),
+        "state": card.state,
+        "tier": card.tier,
+        "warn": card.warn,
+    }
 
 
 def capture_tools(run: Run) -> list[BaseTool]:
@@ -404,7 +418,12 @@ def capture_tools(run: Run) -> list[BaseTool]:
                 "field": "to",
                 "options": [o for o in w.account_options if o["value"] != frm],
             }
-        payload = {"kind": "transfer", "amount_minor": _minor(a.amount), "from": frm, "to": to}
+        payload = {
+            "kind": "transfer",
+            "amount_minor": _minor(a.amount),
+            "from": frm,
+            "to": to,
+        }
         d = RecordDraft(
             kind="transfer",
             target="finance",
@@ -490,7 +509,11 @@ def capture_tools(run: Run) -> list[BaseTool]:
             return _card(run, d)
         h = hits[0]
         payload: dict[str, Any] = {"kind": "habitLog", "habit_id": str(h.id)}
-        value = a.value if a.value is not None else (h.target if h.type != "check" else None)
+        value = (
+            a.value
+            if a.value is not None
+            else (h.target if h.type != "check" else None)
+        )
         if value is not None:
             payload["value"] = value
         payload["add"] = h.type == "count" and a.value is not None
@@ -578,7 +601,11 @@ def capture_tools(run: Run) -> list[BaseTool]:
             warn=f"That's {off * 100:.1f}% off your last weigh-in ({prev} kg) — typo?"
             if off > 0.03
             else None,
-            payload={k: v for k, v in {"kind": "weighIn", "kg": a.kg, "prev_kg": prev}.items() if v is not None},
+            payload={
+                k: v
+                for k, v in {"kind": "weighIn", "kg": a.kg, "prev_kg": prev}.items()
+                if v is not None
+            },
         )
         return _card(run, d)
 
@@ -658,8 +685,14 @@ def capture_tools(run: Run) -> list[BaseTool]:
 
         a = LookupArgs(**kw)
         body = qa.answer(run.ctx, a.question, journal_in_qa=run.journal_in_qa)
-        engine.emit_reply(run.ctx, run.emit, run.cap, body, position=run.next_position())
-        return {k: body.get(k) for k in ("title", "value", "sub", "basis", "body") if body.get(k)}
+        engine.emit_reply(
+            run.ctx, run.emit, run.cap, body, position=run.next_position()
+        )
+        return {
+            k: body.get(k)
+            for k in ("title", "value", "sub", "basis", "body")
+            if body.get(k)
+        }
 
     def stats_overview(**kw: Any) -> dict[str, Any]:
         a = OverviewArgs(**kw)
@@ -672,27 +705,57 @@ def capture_tools(run: Run) -> list[BaseTool]:
             "level": o.level,
             "delta": o.delta,
             "streak": o.streak,
-            "areas": [{"module": x.module, "rate": x.rate} for x in o.areas if x.enabled],
+            "areas": [
+                {"module": x.module, "rate": x.rate} for x in o.areas if x.enabled
+            ],
             "today": {"due": o.today_due, "done": o.today_done},
         }
 
     specs: list[tuple[Callable[..., Any], type[BaseModel], str]] = [
         (log_expense, ExpenseArgs, "Log money spent. One call per expense."),
-        (log_income, IncomeArgs, "Log money received (salary, client payment, refund)."),
-        (log_transfer, TransferArgs, "Log money moved between two of the user's accounts."),
+        (
+            log_income,
+            IncomeArgs,
+            "Log money received (salary, client payment, refund).",
+        ),
+        (
+            log_transfer,
+            TransferArgs,
+            "Log money moved between two of the user's accounts.",
+        ),
         (add_planned, PlannedArgs, "Add a monthly bill or planned payment."),
-        (create_tasks, TasksArgs, "Create to-dos or reminders (one call, several tasks)."),
-        (complete_task, QueryArgs, "Mark an open task done, found by words in its title."),
-        (log_habit, HabitLogArgs, "Check off a habit for a day (e.g. meditated 10 min)."),
+        (
+            create_tasks,
+            TasksArgs,
+            "Create to-dos or reminders (one call, several tasks).",
+        ),
+        (
+            complete_task,
+            QueryArgs,
+            "Mark an open task done, found by words in its title.",
+        ),
+        (
+            log_habit,
+            HabitLogArgs,
+            "Check off a habit for a day (e.g. meditated 10 min).",
+        ),
         (create_habit, HabitCreateArgs, "Create a new habit the user asked for."),
         (start_routine, QueryArgs, "Start one of the user's routines."),
         (log_workout, WorkoutArgs, "Log a finished workout: strength sets or cardio."),
         (log_weigh_in, WeighArgs, "Log a body-weight reading in kilograms."),
-        (log_meal, MealArgs, "Log a meal; give items with macros when you can estimate them."),
+        (
+            log_meal,
+            MealArgs,
+            "Log a meal; give items with macros when you can estimate them.",
+        ),
         (save_journal, JournalArgs, "Save a reflective journal entry (private)."),
         (edit_last, EditLastArgs, "Change the amount of the most recent entry."),
         (delete_last, NoArgs, "Delete (undo) the most recent entry."),
-        (lookup, LookupArgs, "Answer a question about the user's own data with a card."),
+        (
+            lookup,
+            LookupArgs,
+            "Answer a question about the user's own data with a card.",
+        ),
         (stats_overview, OverviewArgs, "The user's Life Score and area rates."),
     ]
     return [
@@ -722,11 +785,20 @@ def run_capture_agent(
     journal_in_qa: bool,
     start: int = 0,
 ) -> tuple[str, Run]:
-    run = Run(ctx=ctx, cap=cap, world=world, emit=emit, journal_in_qa=journal_in_qa, position=start)
+    run = Run(
+        ctx=ctx,
+        cap=cap,
+        world=world,
+        emit=emit,
+        journal_in_qa=journal_in_qa,
+        position=start,
+    )
     day = ctx.clock.day_of(cap.at)
     system = SYSTEM.format(today=day.isoformat(), zone=ctx.clock.zone)
     if day != ctx.today:
-        system += f"\nThis note was written on {day.isoformat()}; 'today' means that day."
+        system += (
+            f"\nThis note was written on {day.isoformat()}; 'today' means that day."
+        )
     reply = run_loop(
         ctx,
         resolved,

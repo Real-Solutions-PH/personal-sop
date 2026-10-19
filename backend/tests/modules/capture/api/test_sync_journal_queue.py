@@ -36,16 +36,28 @@ def pull(api: Api, cursor: int = 0) -> dict[str, list[dict[str, Any]]]:
     return by
 
 
-def test_a_pushed_raw_capture_is_read_on_the_server(client: TestClient, db: Session) -> None:
+def test_a_pushed_raw_capture_is_read_on_the_server(
+    client: TestClient, db: Session
+) -> None:
     api = user(client, db)
     cap_id, cu = uuid.uuid4(), uuid.uuid4()
-    first = op("upsert", "capture", cap_id, client_uuid=str(cu), source="text", text="spent 1500 on groceries")
+    first = op(
+        "upsert",
+        "capture",
+        cap_id,
+        client_uuid=str(cu),
+        source="text",
+        text="spent 1500 on groceries",
+    )
     [res] = push(api, first)
     assert res["status"] == "applied" and res["row"]["status"] == "done"
     # replaying the same op (and a new op for the same capture) writes nothing new
     [again] = push(api, first)
     assert again["replayed"] is True
-    [dup] = push(api, op("upsert", "capture", cap_id, client_uuid=str(cu), source="text", text="x"))
+    [dup] = push(
+        api,
+        op("upsert", "capture", cap_id, client_uuid=str(cu), source="text", text="x"),
+    )
     assert dup["status"] == "applied"
     changes = pull(api)
     [card] = [c["row"] for c in changes["record_card"]]
@@ -58,7 +70,10 @@ def test_a_pushed_raw_capture_is_read_on_the_server(client: TestClient, db: Sess
     [undo] = push(api, op("action", "capture.undo", card_id=card["id"]))
     assert undo["result"]["card"]["state"] == "undone"
     [redo] = push(api, op("action", "capture.redo", card_id=card["id"]))
-    assert redo["result"]["card"]["state"] == "saved" and redo["result"]["card"]["refs"] != refs
+    assert (
+        redo["result"]["card"]["state"] == "saved"
+        and redo["result"]["card"]["refs"] != refs
+    )
     [bad] = push(api, op("action", "capture.discard", card_id=card["id"]))
     assert (bad["status"], bad["code"]) == ("rejected", "card_state")
     # deleting the capture ships tombstones
@@ -66,26 +81,50 @@ def test_a_pushed_raw_capture_is_read_on_the_server(client: TestClient, db: Sess
     [gone] = push(api, op("delete", "capture", cap_id))
     assert gone["status"] == "applied"
     later = pull(api, cursor)
-    assert any(c["deleted"] for c in later["capture"]) and any(c["deleted"] for c in later["record_card"])
+    assert any(c["deleted"] for c in later["capture"]) and any(
+        c["deleted"] for c in later["record_card"]
+    )
 
 
-def test_a_pushed_capture_refused_by_the_cap_is_kept_failed(client: TestClient, db: Session) -> None:
+def test_a_pushed_capture_refused_by_the_cap_is_kept_failed(
+    client: TestClient, db: Session
+) -> None:
     api = user(client, db)
     api.patch("/capture/settings", {"ai_enabled": False})
-    [res] = push(api, op("upsert", "capture", uuid.uuid4(), client_uuid=str(uuid.uuid4()), source="text", text="hi"))
+    [res] = push(
+        api,
+        op(
+            "upsert",
+            "capture",
+            uuid.uuid4(),
+            client_uuid=str(uuid.uuid4()),
+            source="text",
+            text="hi",
+        ),
+    )
     assert res["status"] == "applied" and res["row"]["status"] == "failed"
     assert res["row"]["error_code"] == "ai_disabled"
 
 
-def test_answer_and_edit_actions_and_read_only_entities(client: TestClient, db: Session) -> None:
+def test_answer_and_edit_actions_and_read_only_entities(
+    client: TestClient, db: Session
+) -> None:
     api = user(client, db)
     cats = api.cats()
     card = card_of(api.capture("paid 300"), "expense")
-    [ans] = push(api, op("action", "capture.answer", card_id=card["id"], value=cats["electricity"]))
+    [ans] = push(
+        api,
+        op("action", "capture.answer", card_id=card["id"], value=cats["electricity"]),
+    )
     assert ans["result"]["card"]["state"] == "saved"
     [ed] = push(
         api,
-        op("action", "capture.edit", card_id=card["id"], payload={"kind": "expense", "amount_minor": 32000}),
+        op(
+            "action",
+            "capture.edit",
+            card_id=card["id"],
+            payload={"kind": "expense", "amount_minor": 32000},
+        ),
     )
     assert ed["result"]["card"]["state"] == "edited"
     [ro] = push(api, op("upsert", "record_card", uuid.uuid4(), state="saved"))
@@ -107,7 +146,16 @@ def test_journal_and_settings_sync(client: TestClient, db: Session) -> None:
     [restored] = push(api, op("upsert", "journal_entry", jid, deleted_at=None))
     assert restored["status"] == "applied"
     assert api.get(f"/journal/{jid}")["body"] == "Quiet day."
-    [st] = push(api, op("upsert", "ai_settings", uuid.uuid4(), retention_days=7, rules={"meal": "auto"}))
+    [st] = push(
+        api,
+        op(
+            "upsert",
+            "ai_settings",
+            uuid.uuid4(),
+            retention_days=7,
+            rules={"meal": "auto"},
+        ),
+    )
     assert st["row"]["retention_days"] == 7 and st["row"]["rules"]["meal"] == "auto"
     assert st["row"]["rules"]["income"] == "confirm"
     changes = pull(api)
@@ -117,7 +165,11 @@ def test_journal_and_settings_sync(client: TestClient, db: Session) -> None:
 def test_journal_screens(client: TestClient, db: Session) -> None:
     api = user(client, db)
     api.post("/habits/", {"name": "Journal"})
-    e = api.post("/journal/", {"body": "Grateful for the long walk", "tags": ["gratitude"], "area": "health"}, status=201)
+    e = api.post(
+        "/journal/",
+        {"body": "Grateful for the long walk", "tags": ["gratitude"], "area": "health"},
+        status=201,
+    )
     assert e["private"] is True and e["source"] == "text"
     api.post("/journal/", {"body": "Shipped it", "mood": 5}, status=201)
     listing = api.get("/journal/")
@@ -144,7 +196,9 @@ def test_journal_screens(client: TestClient, db: Session) -> None:
         assert [(lg.status, lg.source) for lg in logs] == [("done", "capture")]
 
 
-def test_queue_retry_rerun_resume_delete_clear_retention(client: TestClient, db: Session) -> None:
+def test_queue_retry_rerun_resume_delete_clear_retention(
+    client: TestClient, db: Session
+) -> None:
     from app.modules.finance.models import FinRecord
 
     api = user(client, db)
@@ -187,14 +241,33 @@ def test_quick_add_saves_at_once_with_undo(client: TestClient, db: Session) -> N
     cu = str(uuid.uuid4())
     cap = api.post(
         "/capture/quick-add",
-        {"client_uuid": cu, "text": "Coffee", "payload": {"kind": "expense", "amount_minor": 16500, "category_id": cats["coffee"]}},
+        {
+            "client_uuid": cu,
+            "text": "Coffee",
+            "payload": {
+                "kind": "expense",
+                "amount_minor": 16500,
+                "category_id": cats["coffee"],
+            },
+        },
     )
     card = card_of(cap, "expense")
     assert cap["source"] == "quick_add" and card["state"] == "saved"
-    again = api.post("/capture/quick-add", {"client_uuid": cu, "text": "Coffee", "payload": {"kind": "expense", "amount_minor": 16500}})
+    again = api.post(
+        "/capture/quick-add",
+        {
+            "client_uuid": cu,
+            "text": "Coffee",
+            "payload": {"kind": "expense", "amount_minor": 16500},
+        },
+    )
     assert again["id"] == cap["id"]
     assert api.post(f"/capture/cards/{card['id']}/undo")["state"] == "undone"
-    api.post("/capture/quick-add", {"client_uuid": str(uuid.uuid4()), "payload": {"kind": "nope"}}, status=422)
+    api.post(
+        "/capture/quick-add",
+        {"client_uuid": str(uuid.uuid4()), "payload": {"kind": "nope"}},
+        status=422,
+    )
 
 
 def test_pagination_and_settings_meter(client: TestClient, db: Session) -> None:
@@ -203,7 +276,10 @@ def test_pagination_and_settings_meter(client: TestClient, db: Session) -> None:
         api.capture(f"spent {100 + i} on coffee")
     page = api.get("/capture/", limit=2)
     assert page["count"] == 3 and len(page["data"]) == 2
-    assert api.get("/capture/", skip=2, limit=2)["data"][0]["text"] == "spent 100 on coffee"
+    assert (
+        api.get("/capture/", skip=2, limit=2)["data"][0]["text"]
+        == "spent 100 on coffee"
+    )
     st = api.get("/capture/settings")
     assert st["spend_cap_minor"] == 50000 and st["money_threshold_minor"] == 100000
     assert st["spend_minor"] == 0 and st["calls"] == 0

@@ -110,7 +110,10 @@ def build_world(ctx: Ctx, *, at: datetime | None = None) -> World:
     finance.default_account(ctx)  # seeds finance settings + categories
     accounts = owned_repo.list_rows(ctx, Account, order_by=[col(Account.sort_order)])
     cats = owned_repo.list_rows(
-        ctx, Category, col(Category.archived).is_(False), order_by=[col(Category.sort_order)]
+        ctx,
+        Category,
+        col(Category.archived).is_(False),
+        order_by=[col(Category.sort_order)],
     )
     by_id = {c.id: c for c in cats}
     slugs = {c.slug: str(c.id) for c in cats if c.slug}
@@ -227,10 +230,9 @@ def budget_note(ctx: Ctx, category_id: str | None) -> str | None:
     ``budgetNote``). GAP: finance.public has no budget read."""
     if not category_id:
         return None
+    from app.modules.capture.money import peso
     from app.modules.finance import calc as FC
     from app.modules.finance import repo as FR
-
-    from app.modules.capture.money import peso
 
     s = FR.load_state(ctx)
     cats = FC.cat_map(s)
@@ -298,7 +300,9 @@ def delete_habit(ctx: Ctx, habit_id: uuid.UUID) -> None:
     HS._delete_habit(ctx, habit_id)
 
 
-def put_back_habit_log(ctx: Ctx, prior: dict[str, Any], habit_id: uuid.UUID, day: date) -> None:
+def put_back_habit_log(
+    ctx: Ctx, prior: dict[str, Any], habit_id: uuid.UUID, day: date
+) -> None:
     """Undo of a capture that edited an existing (habit, day) log: write the
     prior values back through the public log call."""
     habits.log_habit(
@@ -372,7 +376,9 @@ def start_statement_import(
     was = ctx.in_batch
     ctx.in_batch = True
     try:
-        return _start_import(ctx, FI, FS, account_id, file_name, file_type, media_id, import_id, rows)
+        return _start_import(
+            ctx, FI, FS, account_id, file_name, file_type, media_id, import_id, rows
+        )
     finally:
         ctx.in_batch = was
 

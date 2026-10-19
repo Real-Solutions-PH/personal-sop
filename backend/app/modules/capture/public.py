@@ -110,7 +110,9 @@ def run_agent(
     )
 
 
-def meter(ctx: Ctx, resolved: ResolvedModel, msg: BaseMessage | None, *, ok: bool = True) -> None:
+def meter(
+    ctx: Ctx, resolved: ResolvedModel, msg: BaseMessage | None, *, ok: bool = True
+) -> None:
     seams.meter(ctx, resolved, msg, ok=ok)
 
 
@@ -118,4 +120,6 @@ def answer_question(ctx: Ctx, question: str) -> dict[str, Any]:
     """The deterministic answer card for a question about the user's data."""
     from app.modules.capture import qa
 
-    return qa.answer(ctx, question, journal_in_qa=journal.settings_row(ctx).journal_in_qa)
+    return qa.answer(
+        ctx, question, journal_in_qa=journal.settings_row(ctx).journal_in_qa
+    )

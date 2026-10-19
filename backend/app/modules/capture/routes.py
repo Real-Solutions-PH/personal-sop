@@ -97,10 +97,16 @@ def pending(ctx: CtxDep, page: PaginationDep) -> Any:
 
     where = [col(Capture.status).in_(("queued", "failed", "processing"))]
     rows = owned_repo.list_rows(
-        ctx, Capture, *where, order_by=[col(Capture.at)], skip=page.skip, limit=page.limit
+        ctx,
+        Capture,
+        *where,
+        order_by=[col(Capture.at)],
+        skip=page.skip,
+        limit=page.limit,
     )
     return CapturesPublic(
-        data=[_detail(ctx, c) for c in rows], count=owned_repo.count_rows(ctx, Capture, *where)
+        data=[_detail(ctx, c) for c in rows],
+        count=owned_repo.count_rows(ctx, Capture, *where),
     )
 
 
@@ -120,7 +126,10 @@ def submit(ctx: CtxDep, data: CaptureIn, response: Response) -> Any:
 
 def _replay_frames(ctx: Ctx, cap: Capture) -> Iterator[str]:
     d = _detail(ctx, cap)
-    yield engine.sse("capture", d.model_dump(mode="json", exclude={"cards", "replies", "attachments"}))
+    yield engine.sse(
+        "capture",
+        d.model_dump(mode="json", exclude={"cards", "replies", "attachments"}),
+    )
     yield engine.sse("done", d.model_dump(mode="json"))
 
 
@@ -139,11 +148,15 @@ def submit_stream(ctx: CtxDep, data: CaptureIn) -> StreamingResponse:
     if not out.created or data.queue_only:
         ctx.commit()
         return StreamingResponse(
-            _replay_frames(ctx, out.capture), media_type="text/event-stream", headers=SSE_HEADERS
+            _replay_frames(ctx, out.capture),
+            media_type="text/event-stream",
+            headers=SSE_HEADERS,
         )
     plan = engine.preflight(ctx, out.capture)
     return StreamingResponse(
-        engine.stream(ctx, out.capture, plan), media_type="text/event-stream", headers=SSE_HEADERS
+        engine.stream(ctx, out.capture, plan),
+        media_type="text/event-stream",
+        headers=SSE_HEADERS,
     )
 
 
@@ -151,7 +164,10 @@ def submit_stream(ctx: CtxDep, data: CaptureIn) -> StreamingResponse:
 def quick_add(ctx: CtxDep, data: QuickAddIn) -> Any:
     """CAP-10: a hand-entered record, saved at once with Undo."""
     cap = engine.quick_add(
-        ctx, client_uuid=data.client_uuid, text=data.text, payload=dump_payload(data.payload)
+        ctx,
+        client_uuid=data.client_uuid,
+        text=data.text,
+        payload=dump_payload(data.payload),
     )
     return _detail(ctx, cap)
 
@@ -210,7 +226,9 @@ def edit_card(ctx: CtxDep, card_id: uuid.UUID, data: PayloadIn) -> Any:
     return _card(ctx, C.edit(ctx, card_id=card_id, payload=dump_payload(data.payload)))
 
 
-@router.post("/cards/{card_id}/answer", response_model=CaptureDetail, dependencies=WRITE)
+@router.post(
+    "/cards/{card_id}/answer", response_model=CaptureDetail, dependencies=WRITE
+)
 def answer_card(ctx: CtxDep, card_id: uuid.UUID, data: AnswerIn) -> Any:
     """CAP-07 follow-up chip or free reply. Returns the whole capture (a
     photo's "what is this?" answer replaces the card with new ones)."""

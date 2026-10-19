@@ -54,7 +54,10 @@ def companion_row(ctx: Ctx) -> Companion:
     row = owned_repo.find_one(ctx, Companion, include_deleted=True)
     if row is None:
         row = owned_repo.insert(
-            ctx, Companion, {"name": "Sol"}, row_id=derived_id("companion", ctx.user_id, "row")
+            ctx,
+            Companion,
+            {"name": "Sol"},
+            row_id=derived_id("companion", ctx.user_id, "row"),
         )
     elif row.deleted_at is not None:
         owned_repo.restore(ctx, row)
@@ -103,7 +106,9 @@ def upsert_tracker(ctx: Ctx, *, metric: str, data: TrackerIn) -> Tracker:
 
 
 def remove_tracker(ctx: Ctx, *, tracker_id: uuid.UUID) -> None:
-    owned_repo.soft_delete(ctx, owned_repo.require(ctx, Tracker, tracker_id, what="tracker"))
+    owned_repo.soft_delete(
+        ctx, owned_repo.require(ctx, Tracker, tracker_id, what="tracker")
+    )
     ctx.commit()
 
 
@@ -123,7 +128,9 @@ def remember(ctx: Ctx, *, text: str, memory_id: uuid.UUID | None = None) -> Memo
 
 
 def forget(ctx: Ctx, *, memory_id: uuid.UUID) -> None:
-    owned_repo.soft_delete(ctx, owned_repo.require(ctx, Memory, memory_id, what="memory"))
+    owned_repo.soft_delete(
+        ctx, owned_repo.require(ctx, Memory, memory_id, what="memory")
+    )
     ctx.commit()
 
 
@@ -149,7 +156,11 @@ def clear_conversation(ctx: Ctx) -> int:
 
 
 def _message(
-    ctx: Ctx, role: str, text: str | None, blocks: list[dict[str, Any]], row_id: uuid.UUID
+    ctx: Ctx,
+    role: str,
+    text: str | None,
+    blocks: list[dict[str, Any]],
+    row_id: uuid.UUID,
 ) -> CompanionMessage:
     return owned_repo.insert(
         ctx,
@@ -206,7 +217,9 @@ def _to_capture(ctx: Ctx, text: str, me_id: uuid.UUID, emit: Emit) -> dict[str, 
         raise
 
 
-def ask(ctx: Ctx, *, text: str, message_id: uuid.UUID | None = None, emit: Emit = _noop) -> AskOut:
+def ask(
+    ctx: Ctx, *, text: str, message_id: uuid.UUID | None = None, emit: Emit = _noop
+) -> AskOut:
     me_id = message_id or uuid.uuid4()
     sol_id = derived_id("companion-reply", me_id, "sol")
     existing = owned_repo.get(ctx, CompanionMessage, me_id, include_deleted=True)
@@ -219,7 +232,9 @@ def ask(ctx: Ctx, *, text: str, message_id: uuid.UUID | None = None, emit: Emit 
     resolved = _resolve(ctx)
     if resolved is not None:
         try:
-            return _ask_ai(ctx, resolved, text, me_id, sol_id, sol.name, user_name, emit)
+            return _ask_ai(
+                ctx, resolved, text, me_id, sol_id, sol.name, user_name, emit
+            )
         except capture.SeamError:
             # The provider failed (metered as a failed call): the router
             # answers instead, reusing the question already stored.
@@ -229,14 +244,18 @@ def ask(ctx: Ctx, *, text: str, message_id: uuid.UUID | None = None, emit: Emit 
         cap = _to_capture(ctx, text, me_id, emit)
         ctx.commit()
         return AskOut(kind="capture", engine="rules", capture=cap)
-    me = owned_repo.get(ctx, CompanionMessage, me_id) or _message(ctx, "me", text, [], me_id)
+    me = owned_repo.get(ctx, CompanionMessage, me_id) or _message(
+        ctx, "me", text, [], me_id
+    )
     emit("message", _pub(ctx, me).model_dump(mode="json"))
     blocks = _apply(ctx, r)
     for b in blocks:
         emit("block", b)
     out = _message(ctx, "sol", r.text, blocks, sol_id)
     ctx.commit()
-    return AskOut(kind="reply", engine="rules", messages=[_pub(ctx, me), _pub(ctx, out)])
+    return AskOut(
+        kind="reply", engine="rules", messages=[_pub(ctx, me), _pub(ctx, out)]
+    )
 
 
 # ---------------------------------------------------------------- AI
@@ -266,7 +285,9 @@ class ForgetArgs(BaseModel):
 
 
 class ChipsArgs(BaseModel):
-    prompts: list[Annotated[str, Field(min_length=1, max_length=80)]] = Field(min_length=1, max_length=4)
+    prompts: list[Annotated[str, Field(min_length=1, max_length=80)]] = Field(
+        min_length=1, max_length=4
+    )
 
 
 class LogArgs(BaseModel):
@@ -323,7 +344,9 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
     def track(**kw: Any) -> dict[str, Any]:
         a = TrackArgs(**kw)
         t = upsert_tracker_row(
-            ctx, a.metric, {"goal": a.goal, "direction": a.direction or ("below" if a.goal else None)}
+            ctx,
+            a.metric,
+            {"goal": a.goal, "direction": a.direction or ("below" if a.goal else None)},
         )
         return run.block({"t": "tracker", "id": str(t.id)})
 
@@ -350,7 +373,12 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
 
     def log_to_capture(**kw: Any) -> dict[str, Any]:
         a = LogArgs(**kw)
-        cap = _to_capture(ctx, a.text, derived_id("sol-log", run.me_id, str(len(run.captures))), run.emit)
+        cap = _to_capture(
+            ctx,
+            a.text,
+            derived_id("sol-log", run.me_id, str(len(run.captures))),
+            run.emit,
+        )
         run.captures.append(cap)
         run.emit("capture", cap)
         return {
@@ -362,7 +390,11 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
     def lookup(**kw: Any) -> dict[str, Any]:
         a = LookupArgs(**kw)
         body = capture.answer_question(ctx, a.question)
-        return {k: body.get(k) for k in ("title", "value", "sub", "basis", "body") if body.get(k)}
+        return {
+            k: body.get(k)
+            for k in ("title", "value", "sub", "basis", "body")
+            if body.get(k)
+        }
 
     def stats_overview(**kw: Any) -> dict[str, Any]:
         a = OverviewArgs(**kw)
@@ -376,7 +408,9 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
             "delta": o.delta,
             "streak": o.streak,
             "best_streak": o.best_streak,
-            "areas": [{"module": x.module, "rate": x.rate} for x in o.areas if x.enabled],
+            "areas": [
+                {"module": x.module, "rate": x.rate} for x in o.areas if x.enabled
+            ],
         }
 
     specs: list[tuple[Callable[..., Any], type[BaseModel], str]] = [
@@ -385,16 +419,26 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
         (coach, CoachArgs, "Show the coach card (mood 'low' for a gentle check-in)."),
         (plan_day, NoArgs, "Show today's plan card."),
         (track, TrackArgs, "Track a metric, optionally against a goal."),
-        (remember_fact, RememberArgs, "Remember a fact the user told you about themselves."),
+        (
+            remember_fact,
+            RememberArgs,
+            "Remember a fact the user told you about themselves.",
+        ),
         (forget_fact, ForgetArgs, "Forget one remembered fact by its id."),
         (show_memories, NoArgs, "Show what you remember about the user."),
         (suggest, ChipsArgs, "Offer up to four follow-up prompts as chips."),
-        (log_to_capture, LogArgs, "Hand a log (spent, ate, did, weighed...) to capture."),
+        (
+            log_to_capture,
+            LogArgs,
+            "Hand a log (spent, ate, did, weighed...) to capture.",
+        ),
         (lookup, LookupArgs, "Look up a number in the user's own data."),
         (stats_overview, OverviewArgs, "The user's Life Score and area rates."),
     ]
     return [
-        StructuredTool.from_function(func=fn, name=fn.__name__, description=desc, args_schema=schema)
+        StructuredTool.from_function(
+            func=fn, name=fn.__name__, description=desc, args_schema=schema
+        )
         for fn, schema, desc in specs
     ]
 
@@ -446,7 +490,12 @@ def _ask_ai(
         memories="\n".join(f"- [{m.id}] {m.text}" for m in mems) or "(nothing yet)",
         trackers=json.dumps(
             [
-                {"metric": t.metric, "label": t.label, "goal": t.goal, "direction": t.direction}
+                {
+                    "metric": t.metric,
+                    "label": t.label,
+                    "goal": t.goal,
+                    "direction": t.direction,
+                }
                 for t in trackers(ctx)
             ]
         ),

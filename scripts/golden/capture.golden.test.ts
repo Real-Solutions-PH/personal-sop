@@ -222,3 +222,92 @@ test("capture parser, segmenter and tier rules over the prototype seed", async (
 		answers: ANSWERS,
 	});
 });
+
+// The engine end to end (sendCapture -> processCapture after its simulated
+// think time): which tier each card got, which auto-saved, the capture's
+// status and its one-line reply, under three AI-settings variants.
+const ENGINE: string[] = [
+	"spent 250 on grab",
+	"spent 1200 on groceries",
+	"paid 777",
+	"ran 5k 32 min, spent 251 on grab, remind me to pay rent on the 30th",
+	"buy eggs, milk, rice",
+	"got paid 35k",
+	"moved 2k from gcash to bpi",
+	"netflix 549 every 5th",
+	"weighed 78.4",
+	"lunch adobo with 1 cup rice",
+	"meditated 10 min",
+	"journal: proud of today",
+	"how much did I spend on food this month?",
+	"ugh long day",
+	"asdf qwerty",
+	"new habit: floss at 10pm",
+	"$20 netflix",
+];
+const VARIANTS = [
+	{ name: "default", patch: {} },
+	{ name: "threshold-500", patch: { moneyThreshold: 500 } },
+	{
+		name: "all-confirm",
+		patch: {
+			rules: {
+				habit: "confirm",
+				task: "confirm",
+				reminder: "confirm",
+				workout: "confirm",
+				weighIn: "confirm",
+				meal: "confirm",
+				expense: "confirm",
+				income: "confirm",
+				transfer: "confirm",
+				journal: "confirm",
+				structure: "confirm",
+			},
+		},
+	},
+];
+
+test("capture engine: tiers, auto-save, status and reply text", async () => {
+	const A = await import("../../shared/prototype/capture/actions");
+	const P = await import("../../shared/prototype/capture/parse");
+	const { captureStore } = await import("../../shared/prototype/capture/store");
+	const out: unknown[] = [];
+	for (const v of VARIANTS) {
+		A.updateAISettings({ ...captureStore.get().settings, ...v.patch } as never);
+		const ids = ENGINE.map((text) => ({
+			text,
+			drafts: P.parseCapture(text, {
+				source: "text",
+				at: new Date().toISOString(),
+			}).filter((d) => d.t === "record"),
+			id: A.sendCapture({ text }),
+		}));
+		// processCapture waits 650ms + 12ms/char (capped) before it reads.
+		await new Promise((r) => setTimeout(r, 2300));
+		const st = captureStore.get();
+		for (const { text, drafts, id } of ids) {
+			const cap = st.captures.find((c) => c.id === id);
+			const items = cap?.reply?.items ?? [];
+			out.push({
+				variant: v.name,
+				settings: {
+					rules: st.settings.rules,
+					moneyThreshold: st.settings.moneyThreshold,
+				},
+				text,
+				status: cap?.status,
+				reply: cap?.reply?.text,
+				items: items.map((it) =>
+					it.t === "record"
+						? { t: "record", kind: it.kind, tier: it.tier, state: it.state, warn: it.warn }
+						: it.t === "info"
+							? { t: "info", tone: it.tone }
+							: { t: "answer" },
+				),
+				drafts,
+			});
+		}
+	}
+	emit("capture-engine", { cases: out });
+}, 20000);

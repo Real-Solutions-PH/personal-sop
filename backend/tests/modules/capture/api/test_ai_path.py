@@ -16,7 +16,9 @@ from tests.modules.capture.api.helpers import KEY, call, card_of, install, say, 
 
 def _usage(api: object) -> list[AIUsage]:
     with Session(db_engine) as s:
-        return list(s.exec(select(AIUsage).where(AIUsage.owner_id == api.user.id)).all())  # type: ignore[attr-defined]
+        return list(
+            s.exec(select(AIUsage).where(AIUsage.owner_id == api.user.id)).all()
+        )  # type: ignore[attr-defined]
 
 
 def test_stream_frames_cards_and_metering(
@@ -29,7 +31,10 @@ def test_stream_frames_cards_and_metering(
         say(
             "",
             call("log_expense", amount=250, category="grab", payee="Grab"),
-            call("create_tasks", tasks=[{"title": "Pay rent", "due_date": "2026-10-30", "remind": True}]),
+            call(
+                "create_tasks",
+                tasks=[{"title": "Pay rent", "due_date": "2026-10-30", "remind": True}],
+            ),
         ),
         say("Logged your ride and the rent reminder."),
     )
@@ -48,7 +53,10 @@ def test_stream_frames_cards_and_metering(
     # two model calls, both metered with their tokens and a cost estimate
     rows = _usage(api)
     assert len(rows) == 2 and all(r.purpose == "capture" and r.ok for r in rows)
-    assert all(r.input_tokens == 120 and r.output_tokens == 30 and r.cost_minor > 0 for r in rows)
+    assert all(
+        r.input_tokens == 120 and r.output_tokens == 30 and r.cost_minor > 0
+        for r in rows
+    )
     assert len(model.seen) == 2
     assert KEY not in raw and all(KEY not in t for t in api.texts)
 
@@ -60,7 +68,11 @@ def test_lookup_tool_answers_with_a_card_and_asks_stream_an_ask_frame(
     api.assign("capture")
     install(
         monkeypatch,
-        say("", call("lookup", question="how much did I spend this week?"), call("log_expense", amount=1500)),
+        say(
+            "",
+            call("lookup", question="how much did I spend this week?"),
+            call("log_expense", amount=1500),
+        ),
         say("Here you go."),
     )
     _, frames, _ = api.stream("how much this week? also paid 1500")
@@ -84,7 +96,9 @@ def test_refused_before_the_stream_opens_when_disabled_or_over_cap(
     assert '"ai_spend_cap_reached"' in raw
     # the input is kept as a failed capture with its error card; no model call
     caps = api._go("GET", "/capture/", 200, params={"status": "failed"})["data"]
-    assert len(caps) == 2 and all(c["replies"][0]["body"]["tone"] == "error" for c in caps)
+    assert len(caps) == 2 and all(
+        c["replies"][0]["body"]["tone"] == "error" for c in caps
+    )
     assert model.seen == []
     # the plain endpoint refuses the same way
     api.capture("spent 100 on coffee", status=402)
@@ -120,11 +134,21 @@ def test_no_model_streams_the_rules_reading(client: TestClient, db: Session) -> 
     assert frames[2][1]["body"]["tone"] == "fallback"
 
 
-def test_replayed_stream_returns_the_stored_capture(client: TestClient, db: Session) -> None:
+def test_replayed_stream_returns_the_stored_capture(
+    client: TestClient, db: Session
+) -> None:
     api = user(client, db)
     cu = str(uuid.uuid4())
-    r1 = client.post("/api/v1/capture/stream", headers=api.h, json={"client_uuid": cu, "text": "spent 90 on coffee"})
-    r2 = client.post("/api/v1/capture/stream", headers=api.h, json={"client_uuid": cu, "text": "spent 90 on coffee"})
+    r1 = client.post(
+        "/api/v1/capture/stream",
+        headers=api.h,
+        json={"client_uuid": cu, "text": "spent 90 on coffee"},
+    )
+    r2 = client.post(
+        "/api/v1/capture/stream",
+        headers=api.h,
+        json={"client_uuid": cu, "text": "spent 90 on coffee"},
+    )
     from tests.modules.capture.api.helpers import parse_sse
 
     f1, f2 = parse_sse(r1.text), parse_sse(r2.text)
