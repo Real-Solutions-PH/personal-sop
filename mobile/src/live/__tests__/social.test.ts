@@ -680,3 +680,70 @@ test("a read in flight when I unsend a message does not bring it back", async ()
   await settle()
   expect(socialStore.get().chats[0].messages).toEqual([])
 })
+
+test("a chat list read in flight when I unsend does not bring the message back", async () => {
+  const msg = {
+    id: "m1",
+    chat_id: CHAT,
+    sender_id: MEID,
+    at: "2026-10-19T08:00:00Z",
+    text: "Oops typo",
+    media: null,
+    post_id: null,
+    story_id: null,
+    reply_to_id: null,
+    system: false,
+    reactions: {},
+  }
+  socialStore.set((s) => ({
+    ...s,
+    chats: [
+      {
+        id: CHAT,
+        members: [ANA],
+        messages: [
+          { id: "m1", by: ME, at: 0, text: "Oops typo", reactions: {} },
+        ],
+        muted: false,
+        pinned: false,
+        readAt: 0,
+      },
+    ],
+  }))
+  let answer: (v: unknown) => void = () => {}
+  const { http } = fakeHttp({
+    "GET /social/chats": () =>
+      new Promise((resolve) => {
+        answer = resolve
+      }),
+    [`DELETE /social/chats/${CHAT}/messages/m1`]: () => undefined,
+  })
+  const live = createSocialLive({ http, userId: MEID })
+  connectSocial(live)
+  const refreshing = live.refresh().catch(() => {})
+  await settle()
+  unsend(CHAT, "m1")
+  answer({
+    data: [
+      {
+        id: CHAT,
+        name: null,
+        is_group: false,
+        members: [
+          brief(MEID, "Me", "me"),
+          brief(ANA, "Ana Reyes", "ana.lifts"),
+        ],
+        muted: false,
+        pinned: false,
+        read_at: null,
+        unread: 0,
+        last_message: msg,
+        last_message_at: msg.at,
+      },
+    ],
+    count: 1,
+  })
+  await refreshing
+  await settle()
+  expect(socialStore.get().chats[0].messages).toEqual([])
+})
