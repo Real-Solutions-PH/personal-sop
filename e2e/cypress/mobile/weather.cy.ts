@@ -142,18 +142,34 @@ describe("weather (live)", () => {
     stubGeolocation("denied")
     cy.newLiveUser("weather").then((user) => {
       signIn(user)
-      go("/weather")
-      settled()
-      cy.findByRole("button", { name: /^Temperature unit Celsius/ }).click()
-      pref(user.id, "unit = 'f'")
-      settled()
-      cy.findByRole("button", { name: /^Temperature unit Fahrenheit/ }).should(
-        "exist",
-      )
-      go("/today")
-      cy.findByRole("button", { name: /^Weather in .*°F/, ...FORECAST }).should(
-        "exist",
-      )
+      // The Today card in °C first; its label reads "Weather in X: 26°, …".
+      const temp = (label: string | null) =>
+        Number(/: (-?\d+)°/.exec(label ?? "")?.[1])
+      cy.findByRole("button", { name: /^Weather in .*: -?\d+°/, ...FORECAST })
+        .invoke("attr", "aria-label")
+        .then((celsiusLabel) => {
+          const c = temp(String(celsiusLabel))
+          go("/weather")
+          settled()
+          cy.findByRole("button", {
+            name: /^Temperature unit Celsius/,
+          }).click()
+          pref(user.id, "unit = 'f'")
+          settled()
+          cy.findByRole("button", {
+            name: /^Temperature unit Fahrenheit/,
+          }).should("exist")
+          // The card follows: the same reading in °F (±2° for a refresh).
+          go("/today")
+          cy.findByRole("button", {
+            name: /^Weather in .*: -?\d+°/,
+            ...FORECAST,
+          })
+            .invoke("attr", "aria-label")
+            .then((f) => {
+              expect(temp(String(f))).to.be.closeTo((c * 9) / 5 + 32, 2)
+            })
+        })
       go("/weather")
       settled()
       cy.findByRole("button", { name: /^Temperature unit Fahrenheit/ }).click()
@@ -182,7 +198,9 @@ describe("weather (live)", () => {
       settled()
       cy.findByRole("button", { name: "Search for a city" }).click()
       settled()
-      cy.findByRole("button", { name: /^Use current location/ }).click()
+      // The header has its own "Use current location" button; this is the
+      // sheet row ("Use current location, Last: …").
+      cy.findByRole("button", { name: /^Use current location, / }).click()
       pref(user.id, "source = 'device'")
       cy.liveApi<{ source: string }>(user, "GET", "/weather/prefs")
         .its("source")
