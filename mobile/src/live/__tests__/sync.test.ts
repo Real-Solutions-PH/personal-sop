@@ -387,3 +387,26 @@ test("an edit made while a push response is in flight is not overwritten", async
   expect(server.rows.get("a")).toMatchObject({ title: "Pay rent today" })
   expect(e.pending()).toBe(0)
 })
+
+test("flush queues an edit still in the debounce window, durably", () => {
+  const server = new FakeServer()
+  const storage = memoryStorage()
+  const e = new SyncEngine({
+    http: server,
+    storage,
+    outbox: createOutbox(storage),
+    mappers: [todoMapper],
+    online: () => false, // the page is going away; nothing reaches the server
+    debounceMs: 60_000,
+  })
+  e.start((m, onChange) => m.store.subscribe(onChange))
+  todoStore.set({
+    todos: [{ id: "a", title: "Typed then reloaded", done: false }],
+  })
+  expect(e.pending()).toBe(0) // still waiting out the debounce
+  e.flush()
+  e.stop()
+  // A fresh engine on the same storage (the reloaded page) still has it.
+  const reloaded = engine(server, storage)
+  expect(reloaded.pending()).toBe(1)
+})

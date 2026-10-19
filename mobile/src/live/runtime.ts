@@ -107,7 +107,14 @@ export function startLive(userId: string, storage: StorageAdapter) {
   })
   const appState = AppState.addEventListener("change", (s) => {
     if (s === "active") void engine.sync()
+    // Leaving the foreground: an edit still in the debounce window would be
+    // lost if the OS kills the app, so queue it now.
+    else engine.flush()
   })
+  // Web: a reload or a closed tab never reaches the debounce either.
+  const onPageHide = () => engine.flush()
+  const page = typeof window !== "undefined" ? window : null
+  page?.addEventListener?.("pagehide", onPageHide)
   const stream = runEventStream({
     online: getConnectivity,
     open: async (lastId, signal) => {
@@ -139,6 +146,7 @@ export function startLive(userId: string, storage: StorageAdapter) {
       engine.stop()
       stats.stop()
       appState.remove()
+      page?.removeEventListener?.("pagehide", onPageHide)
       clearInterval(interval)
       void stream.stop()
       stopSocial()

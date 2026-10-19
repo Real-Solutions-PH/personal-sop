@@ -111,6 +111,17 @@ export class SyncEngine {
     }, this.deps.debounceMs ?? 400)
   }
 
+  /** Capture an edit still inside the debounce window, now. The outbox is
+   * persisted synchronously, so an edit made just before the app is
+   * backgrounded or the page reloads survives and is pushed on next start. */
+  flush() {
+    if (!this.timer) return
+    clearTimeout(this.timer)
+    this.timer = null
+    this.capture()
+    void this.sync()
+  }
+
   /** Diff every mapper into the outbox (synchronous; testable). */
   capture() {
     const ops: SyncOp[] = []
