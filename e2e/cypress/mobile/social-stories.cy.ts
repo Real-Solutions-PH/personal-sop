@@ -112,8 +112,9 @@ describe("social stories & notes (live)", () => {
           signIn(a)
           cy.visit(`/social/stories/${b.id}`)
           cy.findByText(text).should("exist")
-          // Act while the story is on screen: the viewer moves on when its
-          // timer ends (typing a reply pauses it).
+          // The viewer moves on when the story's timer ends; focusing the
+          // reply box pauses it, so act from there.
+          cy.findByRole("textbox", { name: "Reply to story" }).focus()
           cy.findByRole("button", { name: "Like story" }).click()
           cy.findByRole("button", { name: "Unlike story" }).should("exist")
           // A reply is a direct message that quotes the story.
