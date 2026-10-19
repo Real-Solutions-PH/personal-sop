@@ -51,6 +51,7 @@ export class SyncEngine {
   private applying = false
   private timer: ReturnType<typeof setTimeout> | null = null
   private running: Promise<void> | null = null
+  private again = false
   private unsubscribe: (() => void)[] = []
   private backoffMs = 0
   readonly rejected: OpResult[] = []
@@ -147,10 +148,21 @@ export class SyncEngine {
 
   /** Push the outbox, then pull until caught up. Single-flight. */
   sync(): Promise<void> {
-    if (!this.running)
-      this.running = this.run().finally(() => {
-        this.running = null
-      })
+    if (this.running) {
+      // A sync is in flight: edits captured after its push began would
+      // otherwise wait for the next trigger (up to a minute). Run once more
+      // as soon as this one finishes.
+      this.again = true
+      return this.running
+    }
+    this.running = (async () => {
+      do {
+        this.again = false
+        await this.run()
+      } while (this.again && this.deps.online())
+    })().finally(() => {
+      this.running = null
+    })
     return this.running
   }
 

@@ -245,3 +245,35 @@ test("sse parser handles split chunks, comments and multi-line data", () => {
     { id: "2-0", type: "message", data: "plain" },
   ])
 })
+
+test("an edit captured while a sync is in flight is pushed right after it", async () => {
+  const server = new FakeServer()
+  let release: () => void = () => {}
+  const gate = new Promise<void>((r) => {
+    release = r
+  })
+  const slow: Http = {
+    request: async <T>(method: string, path: string, body?: unknown): Promise<T> => {
+      if (path.startsWith("/sync/pull")) await gate
+      return server.request<T>(method, path, body)
+    },
+    raw: server.raw,
+  }
+  const storage = memoryStorage()
+  const e = new SyncEngine({
+    http: slow,
+    storage,
+    outbox: createOutbox(storage),
+    mappers: [todoMapper],
+    online: () => true,
+  })
+  const first = e.sync() // blocks in its pull
+  todoStore.set({ todos: [{ id: "late", title: "Arrived mid-sync", done: false }] })
+  e.capture()
+  const second = e.sync() // must not be dropped
+  release()
+  await first
+  await second
+  expect(server.rows.get("late")).toMatchObject({ title: "Arrived mid-sync" })
+  expect(e.pending()).toBe(0)
+})
