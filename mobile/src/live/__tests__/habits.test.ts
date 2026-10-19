@@ -8,6 +8,7 @@ import {
   createRoutine,
   deleteHabit,
   discardTimer,
+  exitRoutine,
   extendTimer,
   finishTimer,
   incrementCount,
@@ -542,6 +543,63 @@ describe("diffs on store edits", () => {
       "habits.run.done",
       "habits.run.skip",
       "habits.run.continue",
+    ])
+  })
+
+  test("leaving the player mid-run sends exit; coming back sends start", () => {
+    const a = createHabit({ name: "Water" })
+    const b = createHabit({ name: "Read" })
+    const r = createRoutine({
+      name: "Morning",
+      steps: [
+        { habitId: a.id, minutes: 2 },
+        { habitId: b.id, minutes: 5 },
+      ],
+    })
+    const e = engineAfterSetup()
+    const run = startRoutine(r.id)
+    if (!run) throw new Error("no run")
+    record(e.capture())
+    // exitRoutine: only the Live bar changes, the run stays in progress.
+    exitRoutine()
+    expect(shape(record(e.capture()))).toEqual([
+      { kind: "action", name: "habits.run.exit", data: { run_id: run.id } },
+    ])
+    expect(shape(record(e.capture()))).toEqual([])
+    startRoutine(r.id)
+    expect(shape(record(e.capture()))).toEqual([
+      {
+        kind: "action",
+        name: "habits.run.start",
+        data: { routine_id: r.id, run_id: run.id },
+      },
+    ])
+  })
+
+  test("a run that completes releases the Live bar without an exit", () => {
+    const base = {
+      id: "run-1",
+      routineId: "r",
+      day: "2026-10-19",
+      startedAt: "x",
+      steps: [{ habitId: "a", minutes: 1 }],
+      results: [],
+      current: 0,
+      stepStartedAt: "x",
+      stepPausedSec: 0,
+      stepBonusSec: 0,
+      state: "in_progress" as const,
+      live: true,
+    }
+    const done = {
+      ...base,
+      current: 1,
+      results: [{ habitId: "a", status: "done" as const, actualSec: 60 }],
+      state: "completed" as const,
+      live: false,
+    }
+    expect(runActions(base, done).map((x) => x.name)).toEqual([
+      "habits.run.done",
     ])
   })
 
