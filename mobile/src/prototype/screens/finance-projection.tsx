@@ -76,7 +76,7 @@ export function Projection() {
     [month, setMonth] = useState(p.month ?? C.addMonths(cur, 3)),
     [mode, setMode] = useState("lump"),
     [n, setN] = useState(12),
-    [acct, setAcct] = useState("bpi"),
+    [picked, setAcct] = useState<string>(),
     [excluded, setExcluded] = useState<string[]>([]),
     [assump, setAssump] = useState(false),
     horizon = s.settings.horizon,
@@ -116,16 +116,36 @@ export function Projection() {
       .reduce((a, r) => a + r.amount, 0)
   }
   const runway = expense ? proj.start / (expense / 3) : 0
+  // The accounts a purchase can come from, and the card an installment plan
+  // runs on: the user's own (live accounts are UUIDs, not the demo's
+  // "bpi" / "bpicc", which the server refused).
+  const payable = s.accounts.filter((a) => a.inProjection && !a.archived),
+    acct = (
+      payable.find((a) => a.id === picked) ??
+      payable.find((a) => a.id === s.settings.defaultAccountId) ??
+      payable[0]
+    )?.id,
+    card = s.accounts.find((a) => a.type === "credit" && !a.archived),
+    instFrom = (payable.find((a) => a.type === "bank") ?? payable[0])?.id
   const save = (draft: boolean) => {
     if (!whatIf) return
+    const from = mode === "inst" ? instFrom : acct
+    if (!from || (mode === "inst" && !card)) {
+      toast.error(
+        mode === "inst"
+          ? "Add a credit card to plan installments"
+          : "Add an account first",
+      )
+      return
+    }
     const date = `${month}-15`
     A.addPlanned({
       name: name || "Planned purchase",
       type: mode === "inst" ? "transfer" : "expense",
       amount: mode === "inst" ? Math.round(Number(amount) / n) : Number(amount),
       estimated: false,
-      accountId: mode === "inst" ? "bpi" : acct,
-      toAccountId: mode === "inst" ? "bpicc" : undefined,
+      accountId: from,
+      toAccountId: mode === "inst" ? card?.id : undefined,
       categoryId: mode === "inst" ? undefined : "shopping",
       schedule:
         mode === "inst" ? { kind: "monthly", day: 8 } : { kind: "once", date },
@@ -371,21 +391,20 @@ export function Projection() {
                 ))}
               </Line>
               <Copy size={12} muted>
-                {money(Math.round(Number(amount || 0) / n))}/mo on BPI card
+                {money(Math.round(Number(amount || 0) / n))}/mo on{" "}
+                {card?.name ?? "a credit card"}
               </Copy>
             </>
           ) : (
             chiprow(
-              s.accounts
-                .filter((a) => a.inProjection && !a.archived)
-                .map((a) => (
-                  <FinChip
-                    key={a.id}
-                    label={a.name}
-                    active={acct === a.id}
-                    onPress={() => setAcct(a.id)}
-                  />
-                )),
+              payable.map((a) => (
+                <FinChip
+                  key={a.id}
+                  label={a.name}
+                  active={acct === a.id}
+                  onPress={() => setAcct(a.id)}
+                />
+              )),
             )
           )}
           {whatIf && (

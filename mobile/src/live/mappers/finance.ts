@@ -36,7 +36,7 @@ import {
   type PlannedItem,
 } from "@domain/finance/data"
 import { finStore } from "@domain/finance/store"
-import { derivedId } from "@domain/lib/ids"
+import { derivedId, isUuid } from "@domain/lib/ids"
 import type { ActionOp, Mapper, Payload } from "../mapper"
 import { singleton } from "./helpers"
 
@@ -51,6 +51,16 @@ export const toMinor = (pesos: number): number =>
 
 /** Centavos -> pesos. */
 export const fromMinor = (minor: unknown): number => Number(minor) / 100
+
+/** The device keeps an account colour as a theme variable
+ * ("var(--acct-emerald)", up to 19 characters); the server's column holds 16.
+ * The wire carries the bare token ("emerald"); anything else passes as is. */
+const ACCT_VAR = /^var\(--acct-([a-z]+)\)$/
+export const colorOut = (c: string): string => ACCT_VAR.exec(c)?.[1] ?? c
+export const colorIn = (v: unknown): string => {
+  const c = String(v)
+  return /^[a-z]+$/.test(c) && c !== "fin" ? `var(--acct-${c})` : c
+}
 
 const str = (v: unknown): string | undefined =>
   v === null || v === undefined ? undefined : String(v)
@@ -116,7 +126,7 @@ export function accountMapper(): Mapper<FinState, Account> {
       opening_minor: toMinor(a.opening),
       opening_date: a.openingDate,
       limit_minor: a.limit === undefined ? null : toMinor(a.limit),
-      color: a.color,
+      color: colorOut(a.color),
       in_net_worth: a.inNetWorth,
       in_projection: a.inProjection,
       archived: a.archived,
@@ -131,7 +141,7 @@ export function accountMapper(): Mapper<FinState, Account> {
       opening: fromMinor(row.opening_minor),
       openingDate: String(row.opening_date),
       limit: row.limit_minor == null ? undefined : fromMinor(row.limit_minor),
-      color: String(row.color),
+      color: colorIn(row.color),
       inNetWorth: Boolean(row.in_net_worth),
       inProjection: Boolean(row.in_projection),
       archived: Boolean(row.archived),
@@ -763,7 +773,11 @@ export function settingsMapper(userId: string, cats: Cats) {
     read: (s) => s.settings,
     write: (s, v) => ({ ...s, settings: v }),
     toServer: (v) => ({
-      default_account_id: v.defaultAccountId || null,
+      // Before the first pull the device still holds the demo seed's
+      // "gcash": a slug is no account id, and the server refused the row.
+      default_account_id: isUuid(v.defaultAccountId)
+        ? v.defaultAccountId
+        : null,
       month_start_day: v.monthStartDay,
       horizon: v.horizon,
       include_unplanned: v.includeUnplanned,
@@ -773,7 +787,8 @@ export function settingsMapper(userId: string, cats: Cats) {
       nudge_days: v.nudgeDays,
       proj_excluded_planned: v.projExcludedPlanned,
       // Server-owned: it remembers these when a record is written.
-      last_account_id: v.lastAccountId ?? null,
+      last_account_id:
+        v.lastAccountId && isUuid(v.lastAccountId) ? v.lastAccountId : null,
       last_category_id: cats.out(v.lastCategoryId),
     }),
     fromServer: (row, cur) => ({

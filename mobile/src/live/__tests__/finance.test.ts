@@ -35,6 +35,8 @@ import {
   budgetMapper,
   categoryIds,
   categoryMapper,
+  colorIn,
+  colorOut,
   financeMappers,
   fromMinor,
   lookBackMapper,
@@ -190,7 +192,16 @@ test("round trip: accounts, categories, budgets, planned, settings", () => {
   roundTrip(budgetMapper(), s)
   roundTrip(plannedMapper(cats), s)
   const settings = settingsMapper(USER, cats)
-  const [only] = settings.list(s)
+  const [seeded] = settings.list(s)
+  // Live account ids are UUIDs; the demo's slugs are not sent (see below).
+  const only = {
+    ...seeded,
+    value: {
+      ...seeded.value,
+      defaultAccountId: "3b0c5a3e-0d3f-4e7b-9a43-6a0f2a8f1c01",
+      lastAccountId: "3b0c5a3e-0d3f-4e7b-9a43-6a0f2a8f1c02",
+    },
+  }
   expect(settings.fromServer(settings.toServer(only, s), s)).toEqual(only)
 })
 
@@ -351,6 +362,30 @@ test("a new account is a full create with centavos and snake_case", () => {
     sort_order: 0,
     last_reconciled: null,
   })
+})
+
+test("an account colour travels as its bare token; the server column holds 16", () => {
+  const e = synced()
+  // "var(--acct-emerald)" is 19 characters: sent whole, the server refused
+  // the account (validation_error on color) and it never left the device.
+  addAccount({
+    name: "Cash",
+    type: "cash",
+    opening: 1234.56,
+    color: "var(--acct-emerald)",
+    inNetWorth: true,
+    inProjection: true,
+  })
+  const [op] = upserts(captureWire(e, seen), "account")
+  expect(op.data?.color).toBe("emerald")
+  for (const c of ["green", "emerald", "violet", "orange", "slate"])
+    expect(colorOut(`var(--acct-${c})`).length).toBeLessThanOrEqual(16)
+  expect(colorIn("emerald")).toBe("var(--acct-emerald)")
+  // Rows written before the change, and other shapes, pass through.
+  expect(colorIn("var(--acct-blue)")).toBe("var(--acct-blue)")
+  expect(colorIn("#000")).toBe("#000")
+  expect(colorIn("fin")).toBe("fin")
+  expect(colorOut("#000")).toBe("#000")
 })
 
 test("an expense translates its seeded category; delete sends a delete", () => {
@@ -663,6 +698,18 @@ test("settings: one row, centavos, the server-remembered fields never written", 
 // ---------------------------------------------------------------------------
 // Pull: natural keys and no echo
 // ---------------------------------------------------------------------------
+
+test("settings never send a demo slug as the default account", () => {
+  const settings = settingsMapper(USER, cats)
+  const s = finStore.get()
+  const [row] = settings.list(s)
+  const send = (defaultAccountId: string) =>
+    settings.toServer({ ...row, value: { ...row.value, defaultAccountId } }, s)
+  // The seed's "gcash" survives until the first pull replaces it.
+  expect(send("gcash").default_account_id).toBeNull()
+  const id = "0d6f1c1e-6f4a-4c11-9a51-3a3b8f2f0a10"
+  expect(send(id).default_account_id).toBe(id)
+})
 
 test("a pulled look-back for a period held under another id replaces the local one", () => {
   const e = synced()
