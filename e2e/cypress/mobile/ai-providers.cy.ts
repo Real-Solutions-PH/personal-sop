@@ -230,15 +230,14 @@ describe("AI providers and AI settings (live)", () => {
       cy.visit("/capture/settings")
       cy.findByText("AI is on").should("exist")
       cy.findByText("AI spend this month").should("exist")
-      // Each edit waits for the server, then 2 s more before the next one:
-      // the sync engine drops an edit made while the previous edit's push
-      // response is still landing (engine.ts apply() overwrites it — reported
-      // separately). The rows' own wiring is what this test proves.
+      // No pause between edits: an edit made while the previous edit's push
+      // response is landing must survive (the sync engine captures pending
+      // edits before it applies server rows).
       const setting = (where: string) =>
         rows(
           `select * from ai_settings where owner_id = $1 and deleted_at is null and ${where}`,
           [user.id],
-        ).then(() => cy.wait(2000))
+        )
 
       // Spend cap.
       // The cap chips come before the threshold chips (₱1,000 is in both).
