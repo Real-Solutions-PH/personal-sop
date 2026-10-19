@@ -48,6 +48,11 @@ const flush = async () => {
   for (let i = 0; i < 20; i++) await Promise.resolve()
 }
 
+// A failing assertion must not leave startLive's interval keeping jest alive.
+afterEach(() => {
+  ;(require("../runtime") as typeof import("../runtime")).stopLive()
+})
+
 test("runtime registers the dash mappers, push and pulls on a notification", async () => {
   const rt = require("../runtime") as typeof import("../runtime")
   const push = require("../push") as typeof import("../push")
@@ -76,9 +81,15 @@ test("runtime registers the dash mappers, push and pulls on a notification", asy
   onEvent?.({ id: "1", type: "chat.message", data: {} })
   await flush()
   expect(pulls()).toBe(before)
+  // A watched statistic is refetched after every sync.
+  rt.liveStats()?.source.watch("today")
+  await flush()
+  const todays = () => requests.filter((r) => r === "GET /dashboard/today")
+  expect(todays()).toHaveLength(1)
   onEvent?.({ id: "2", type: "dashboard.notification", data: {} })
   await flush()
   expect(pulls()).toBe(before + 1)
+  expect(todays()).toHaveLength(2)
   expect(rt.liveStats()).not.toBeNull()
   rt.stopLive()
   expect(rt.liveStats()).toBeNull()
