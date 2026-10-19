@@ -4,8 +4,8 @@
 // Inventory (screen → action → test):
 // | Screen                              | Action                                         | Test |
 // |-------------------------------------|------------------------------------------------|------|
-// | Targets (/fitness/nutrition/targets)| Set calories + protein, "Help me pick", Save   | N1   |
-// | Targets                             | "Suggest" → "Use" → Save (same day: one row)   | N1   |
+// | Targets (/fitness/nutrition/targets)| Set calories + protein, "Auto-split carbs/fat", Save  | N1   |
+// | Targets                             | "Help me pick" → Suggest → Use → Save (same day: one row) | N1   |
 // | Eat (/fitness?tab=eat)              | Macros left (kcal + protein) = target − eaten  | N1   |
 // | Log meal (/fitness/nutrition/new)   | Food picker add, custom item, qty ±, remove item, label, Save | N1 |
 // | Log meal                            | Describe it → Estimate macros                  | N2   |
@@ -48,19 +48,21 @@ describe("fitness · nutrition (live)", () => {
       cy.location("pathname").should("eq", "/fitness/nutrition/targets")
 
       setStepper("Calories", 2000)
-      setStepper("Protein", 150)
-      cy.findByText("Help me pick").click()
+      // 180 g protein with the default 210 g carbs / 70 g fat overshoots
+      // 2,000 kcal by more than 5 %, so the auto-split is offered.
+      setStepper("Protein", 180)
+      cy.findByText("Auto-split carbs/fat").click()
       cy.findByRole("textbox", { name: "Fat" }).should("have.value", "60")
-      cy.findByRole("textbox", { name: "Carbs" }).should("have.value", "215")
+      cy.findByRole("textbox", { name: "Carbs" }).should("have.value", "185")
       cy.findByRole("button", { name: "Save · effective today" }).click()
       cy.location("search").should("eq", "?tab=eat")
       const TARGET =
-        "select id, effective_from::text day, kcal, protein, carbs, fat from macro_target where owner_id = $1 and deleted_at is null"
+        "select id, effective_from::text as day, kcal, protein, carbs, fat from macro_target where owner_id = $1 and deleted_at is null"
       cy.eventuallyRows(`${TARGET} and kcal = 2000`, [user.id]).then(([t]) => {
         expect(t).to.include({
           day: today(),
-          protein: 150,
-          carbs: 215,
+          protein: 180,
+          carbs: 185,
           fat: 60,
         })
       })
