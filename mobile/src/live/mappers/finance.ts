@@ -52,6 +52,16 @@ export const toMinor = (pesos: number): number =>
 /** Centavos -> pesos. */
 export const fromMinor = (minor: unknown): number => Number(minor) / 100
 
+/** The device keeps an account colour as a theme variable
+ * ("var(--acct-emerald)", up to 19 characters); the server's column holds 16.
+ * The wire carries the bare token ("emerald"); anything else passes as is. */
+const ACCT_VAR = /^var\(--acct-([a-z]+)\)$/
+export const colorOut = (c: string): string => ACCT_VAR.exec(c)?.[1] ?? c
+export const colorIn = (v: unknown): string => {
+  const c = String(v)
+  return /^[a-z]+$/.test(c) && c !== "fin" ? `var(--acct-${c})` : c
+}
+
 const str = (v: unknown): string | undefined =>
   v === null || v === undefined ? undefined : String(v)
 
@@ -116,7 +126,7 @@ export function accountMapper(): Mapper<FinState, Account> {
       opening_minor: toMinor(a.opening),
       opening_date: a.openingDate,
       limit_minor: a.limit === undefined ? null : toMinor(a.limit),
-      color: a.color,
+      color: colorOut(a.color),
       in_net_worth: a.inNetWorth,
       in_projection: a.inProjection,
       archived: a.archived,
@@ -131,7 +141,7 @@ export function accountMapper(): Mapper<FinState, Account> {
       opening: fromMinor(row.opening_minor),
       openingDate: String(row.opening_date),
       limit: row.limit_minor == null ? undefined : fromMinor(row.limit_minor),
-      color: String(row.color),
+      color: colorIn(row.color),
       inNetWorth: Boolean(row.in_net_worth),
       inProjection: Boolean(row.in_projection),
       archived: Boolean(row.archived),

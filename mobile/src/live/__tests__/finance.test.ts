@@ -35,6 +35,8 @@ import {
   budgetMapper,
   categoryIds,
   categoryMapper,
+  colorIn,
+  colorOut,
   financeMappers,
   fromMinor,
   lookBackMapper,
@@ -351,6 +353,30 @@ test("a new account is a full create with centavos and snake_case", () => {
     sort_order: 0,
     last_reconciled: null,
   })
+})
+
+test("an account colour travels as its bare token; the server column holds 16", () => {
+  const e = synced()
+  // "var(--acct-emerald)" is 19 characters: sent whole, the server refused
+  // the account (validation_error on color) and it never left the device.
+  addAccount({
+    name: "Cash",
+    type: "cash",
+    opening: 1234.56,
+    color: "var(--acct-emerald)",
+    inNetWorth: true,
+    inProjection: true,
+  })
+  const [op] = upserts(captureWire(e, seen), "account")
+  expect(op.data?.color).toBe("emerald")
+  for (const c of ["green", "emerald", "violet", "orange", "slate"])
+    expect(colorOut(`var(--acct-${c})`).length).toBeLessThanOrEqual(16)
+  expect(colorIn("emerald")).toBe("var(--acct-emerald)")
+  // Rows written before the change, and other shapes, pass through.
+  expect(colorIn("var(--acct-blue)")).toBe("var(--acct-blue)")
+  expect(colorIn("#000")).toBe("#000")
+  expect(colorIn("fin")).toBe("fin")
+  expect(colorOut("#000")).toBe("#000")
 })
 
 test("an expense translates its seeded category; delete sends a delete", () => {
