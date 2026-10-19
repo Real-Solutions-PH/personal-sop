@@ -367,13 +367,37 @@ def start_statement_import(
     from app.modules.finance import imports as FI
     from app.modules.finance import schema as FS
 
+    # Both use cases end in ctx.commit(); inside the capture's SAVEPOINT that
+    # must only flush (the capture commits once, at the end).
+    was = ctx.in_batch
+    ctx.in_batch = True
+    try:
+        return _start_import(ctx, FI, FS, account_id, file_name, file_type, media_id, import_id, rows)
+    finally:
+        ctx.in_batch = was
+
+
+def _start_import(
+    ctx: Ctx,
+    FI: Any,
+    FS: Any,
+    account_id: uuid.UUID,
+    file_name: str,
+    file_type: str,
+    media_id: uuid.UUID | None,
+    import_id: uuid.UUID,
+    rows: list[dict[str, Any]] | None,
+) -> uuid.UUID:
+    existing = owned_repo.get(ctx, FI.StatementImport, import_id)
+    if existing is not None:
+        return existing.id  # type: ignore[no-any-return]
     imp = FI.start_import(
         ctx,
         data=FS.ImportStart(
             id=import_id,
             account_id=account_id,
             file_name=file_name[:255] or "statement",
-            file_type=file_type,  # type: ignore[arg-type]
+            file_type=file_type,
             file_media_id=media_id,
         ),
     )
@@ -383,7 +407,7 @@ def start_statement_import(
             import_id=imp.id,
             data=FS.ExtractedIn.model_validate({"rows": rows}),
         )
-    return imp.id
+    return imp.id  # type: ignore[no-any-return]
 
 
 # ---------------------------------------------------------------- Q&A reads

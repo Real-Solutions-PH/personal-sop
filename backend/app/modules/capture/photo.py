@@ -15,6 +15,7 @@ The prototype simulated every photo (a fixed adobo plate, a rotating set of
 three receipts); the server never invents what a photo shows.
 """
 
+import re
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -513,10 +514,40 @@ def _without_vision(
     return [unreadable(caption)]
 
 
+_TOTAL = re.compile(r"^(?!.*sub\s*-?\s*total).*\b(total|amount due|grand total)\b", re.I)
+_MONEY = re.compile(r"(\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{2})?")
+
+
+def receipt_text(text: str) -> str:
+    """What the rules parser can read from OCR'd receipt text: the first
+    line (the merchant) and the amount on the TOTAL line (else the largest
+    amount on the slip)."""
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    if not lines:
+        return text
+    amounts: list[int] = []
+    total: int | None = None
+    for ln in lines:
+        found = [int(m.group(1).replace(",", "")) for m in _MONEY.finditer(ln)]
+        amounts.extend(found)
+        if found and _TOTAL.search(ln):
+            total = found[-1]
+    amount = total if total is not None else (max(amounts) if amounts else None)
+    merchant = re.sub(r"[^\w &'.-]", " ", lines[0]).strip()
+    return f"{merchant} {amount}" if amount else " ".join(lines)
+
+
+PHOTO_HINT_TO_PARSER = {"receipt": "expense", "meal": "meal", "label": "meal"}
+
+
 def rules_text_path(world: World) -> Callable[[str, str], list[Draft]]:
     def run(text: str, hint: str) -> list[Draft]:
+        if hint == "receipt":
+            text = receipt_text(text)
         return parse_capture(
-            world, text, ParseCtx(source="photo", hint=None if hint == "auto" else hint, photo=True)
+            world,
+            text,
+            ParseCtx(source="photo", hint=PHOTO_HINT_TO_PARSER.get(hint), photo=True),
         )
 
     return run

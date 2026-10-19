@@ -260,8 +260,11 @@ class QuickAddIn(BaseModel):
 class AttachmentPublic(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID
+    capture_id: uuid.UUID
     media_id: uuid.UUID
     kind: str
+    version: int = 0
+    deleted_at: datetime | None = None
 
 
 class WriteLogPublic(BaseModel):
@@ -300,6 +303,8 @@ class ReplyPublic(BaseModel):
     position: int
     kind: str
     body: dict[str, Any]
+    version: int = 0
+    deleted_at: datetime | None = None
 
 
 class CapturePublic(BaseModel):
