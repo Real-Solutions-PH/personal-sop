@@ -58,6 +58,7 @@ import {
   compact,
   directChat,
   ME,
+  openPersonLive,
   type Person,
   type Post,
   type Scorecard,
@@ -442,6 +443,7 @@ export function Profile({ id }: { id: string }) {
   const width = Math.min(useWindowDimensions().width, 600)
   const person = usePerson(id)
   const ring = useRing(id)
+  useEffect(() => void openPersonLive(id), [id])
   const posts = socialStore.use((s) => s.posts)
   const showScores = socialStore.use((s) => s.showScores)
   const myCard = useMyScorecard()

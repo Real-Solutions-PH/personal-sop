@@ -58,6 +58,8 @@ import {
   ME,
   type Message,
   markChatRead,
+  noteTyping,
+  openChatLive,
   reactTo,
   renameChat,
   sendMessage,
@@ -67,6 +69,7 @@ import {
   toggleMute,
   unsend,
   usePerson,
+  useTyping,
 } from "./store"
 
 const MINE: readonly [string, string] = ["#7a3cf0", "#3d5afe"]
@@ -874,8 +877,10 @@ export function ChatScreen({ id }: { id: string }) {
   const [replyTo, setReplyTo] = useState<Message | null>(null)
   const [menu, setMenu] = useState<Message | null>(null)
   const [info, setInfo] = useState(false)
-  const [typing, setTyping] = useState<string | null>(null)
+  const [simulated, setTyping] = useState<string | null>(null)
+  const typing = useTyping(id) ?? simulated
   const input = useRef<TextInput>(null)
+  useEffect(() => void openChatLive(id), [id])
   const count = chat?.messages.length ?? 0
   // Mark read and drop the typing dots whenever a message lands. Keyed on the
   // count: depending on `chat` would loop, since marking read changes it.
@@ -1164,7 +1169,10 @@ export function ChatScreen({ id }: { id: string }) {
         <TextInput
           ref={input}
           value={text}
-          onChangeText={setText}
+          onChangeText={(v) => {
+            setText(v)
+            if (v) noteTyping(chat.id)
+          }}
           placeholder="Message…"
           placeholderTextColor={t.muted}
           accessibilityLabel="Message"
