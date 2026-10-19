@@ -62,7 +62,6 @@ function signIn(user: LiveUser) {
   cy.location("pathname").should("eq", "/login")
   cy.findByRole("textbox", { name: "Email" })
     .should("be.enabled")
-    .clear()
     .type(user.email)
   cy.findByLabelText("Password").should("be.enabled").type(user.password, {
     log: false,
@@ -99,13 +98,11 @@ function slowRows(text: string, values: unknown[], min = 1, left = 60) {
     })
 }
 
-/** Sign in and wait until the first pull has landed (a sync cursor). */
+/** Sign in and wait until the first pull has answered. */
 function ready(user: LiveUser) {
+  cy.intercept("GET", "**/api/v1/sync/pull*").as("firstPull")
   signIn(user)
-  cy.window({ timeout: 120000 })
-    .its("localStorage")
-    .invoke("getItem", "sop-live:cursor")
-    .should((c) => expect(Number(c), "sync cursor").to.be.greaterThan(0))
+  cy.wait("@firstPull", { timeout: 120000 })
 }
 
 describe("profile & settings (live)", {
@@ -183,6 +180,12 @@ describe("profile & settings (live)", {
           .type("I ship every week")
         cy.findByRole("button", { name: "Remove statement 1" }).click()
         cy.findByRole("button", { name: "Save" }).click()
+        // Wait for the delete as well as the edit, then check the whole set.
+        slowRows(
+          `select 1 from identity where owner_id = $1 and deleted_at is not null
+             and text = 'I read daily'`,
+          [user.id],
+        )
         slowRows(
           "select text from identity where owner_id = $1 and deleted_at is null",
           [user.id],

@@ -40,7 +40,6 @@ function signIn(user: LiveUser) {
   cy.location("pathname").should("eq", "/login")
   cy.findByRole("textbox", { name: "Email" })
     .should("be.enabled")
-    .clear()
     .type(user.email)
   cy.findByLabelText("Password").should("be.enabled").type(user.password, {
     log: false,
@@ -86,13 +85,29 @@ const shift = (day: string, n: number) => {
 const today = (user: LiveUser) =>
   cy.liveApi<{ day: string }>(user, "GET", "/stats/today").its("day")
 
-/** Sign in and wait until the first pull has landed (a sync cursor). */
+/** Sign in and wait until the first pull has answered. */
 function ready(user: LiveUser) {
+  cy.intercept("GET", "**/api/v1/sync/pull*").as("firstPull")
   signIn(user)
-  cy.window({ timeout: 120000 })
-    .its("localStorage")
-    .invoke("getItem", "sop-live:cursor")
-    .should((c) => expect(Number(c), "sync cursor").to.be.greaterThan(0))
+  cy.wait("@firstPull", { timeout: 120000 })
+}
+
+/** Post due reminders for ONE user by running the reminder job's body
+ * (tasks.jobs.send_reminders) — the scheduler is off on the local stack. */
+function sendReminders(user: LiveUser) {
+  cy.exec(
+    `uv run --frozen --directory ../backend python -c "
+import sys, uuid
+from sqlmodel import Session
+from app.core.db import engine
+from app.modules.iam.users.models import User
+from app.shared.context import make_ctx
+from app.modules.tasks.jobs import send_reminders
+with Session(engine) as s:
+    print(send_reminders(make_ctx(s, s.get(User, uuid.UUID(sys.argv[1])))))
+" ${user.id}`,
+    { timeout: 240000 },
+  )
 }
 
 describe("dashboard (live)", {
@@ -114,7 +129,9 @@ describe("dashboard (live)", {
       ready(user)
       cy.visit("/stats/goals")
       cy.findByRole("button", { name: "New goal" }).click()
-      cy.findByText("Choose a metric").click()
+      // The metric row (defaults to Life Score) opens the picker.
+      cy.findByText("METRIC").next().click()
+      cy.findByText("Choose a metric").should("exist")
       cy.findByRole("textbox", { name: "Search metrics" }).type("Tasks done")
       cy.findAllByText("Tasks done").last().click()
       cy.findByRole("textbox", { name: "Target" }).clear().type("3")

@@ -34,7 +34,6 @@ function signIn(user: LiveUser) {
   cy.location("pathname").should("eq", "/login")
   cy.findByRole("textbox", { name: "Email" })
     .should("be.enabled")
-    .clear()
     .type(user.email)
   cy.findByLabelText("Password").should("be.enabled").type(user.password, {
     log: false,
@@ -167,10 +166,7 @@ describe("today (live)", {
           (s) => s.ring.per.habits.due === 2,
         ).then((before) => {
           cy.reload()
-          cy.findByRole("button", {
-            name: "Complete Journal",
-            timeout: 120000,
-          }).click()
+          cy.findByRole("checkbox", { name: "Complete Journal" }).click()
           slowApi<TodayStat>(
             user,
             "/stats/today",

@@ -64,7 +64,6 @@ function signIn(user: LiveUser) {
   cy.location("pathname").should("eq", "/login")
   cy.findByRole("textbox", { name: "Email" })
     .should("be.enabled")
-    .clear()
     .type(user.email)
   cy.findByLabelText("Password").should("be.enabled").type(user.password, {
     log: false,
