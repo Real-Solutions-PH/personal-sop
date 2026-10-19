@@ -19,7 +19,7 @@
     "name": "task",
     "data": {
       "title": "Draft the landing page",
-      "list_id": "ce35b0e2-209c-499c-a137-1457f5299dc2",
+      "list_id": "4eafde6a-8bc5-4fcf-86ba-59d937bc0cbc",
       "due_date": "2026-10-19",
       "due_time": "14:00",
       "remind_at": "2026-10-19T06:00:00.000Z",
@@ -53,7 +53,7 @@
     "kind": "upsert",
     "name": "task",
     "data": {
-      "cleared_at": "2026-10-19T04:29:32.430Z"
+      "cleared_at": "2026-10-19T04:46:48.056Z"
     }
   },
   {
@@ -61,8 +61,8 @@
     "kind": "action",
     "name": "tasks.complete",
     "data": {
-      "task_id": "310e03cf-0b9d-43eb-a0c4-019f627f4cbf",
-      "completed_at": "2026-10-19T04:29:32.432Z"
+      "task_id": "2ea10962-8b8d-4dd4-a13b-7cf5780db20c",
+      "completed_at": "2026-10-19T04:46:48.061Z"
     }
   },
   {
@@ -70,8 +70,8 @@
     "kind": "action",
     "name": "tasks.complete",
     "data": {
-      "task_id": "d16642ef-d501-4b53-860c-cd9d693e5a4f",
-      "completed_at": "2026-10-19T04:29:32.435Z"
+      "task_id": "41af4060-c2f9-4325-9b08-3c893a9504f2",
+      "completed_at": "2026-10-19T04:46:48.066Z"
     }
   },
   {
@@ -103,7 +103,7 @@
     "kind": "action",
     "name": "tasks.uncomplete",
     "data": {
-      "task_id": "ec63d840-48a0-45bd-a743-b01b65fdcefe"
+      "task_id": "6d31bf5e-1cb4-45c0-ab5c-0d5aa41f9ba2"
     }
   },
   {
@@ -111,7 +111,7 @@
     "kind": "action",
     "name": "tasks.restore",
     "data": {
-      "task_id": "24f449c3-8323-4790-8f57-8fd6f57e08d4"
+      "task_id": "38b6a8e5-e8cd-4ccd-a47e-ac8ba672394e"
     }
   },
   {

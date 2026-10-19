@@ -30,7 +30,6 @@ import type {
 } from "@domain/tasks/data"
 import { tasksStore } from "@domain/tasks/store"
 import type { ActionOp, Mapper, Payload } from "../mapper"
-import { registerMappers } from "../runtime"
 import { singleton } from "./helpers"
 
 const str = (v: unknown): string | null =>
@@ -269,9 +268,3 @@ export const tasksMappers = (userId: string) => [
   settingsMapper(userId),
   notifMapper(userId),
 ]
-
-// runtime.ts imports this module for its side effect, which makes an import
-// cycle: while this file evaluates, runtime.ts has not yet initialised
-// registerMappers. Registering one microtask later runs after runtime.ts
-// finishes and before any sign-in or session restore can call startLive.
-void Promise.resolve().then(() => registerMappers(tasksMappers))

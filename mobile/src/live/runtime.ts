@@ -13,9 +13,10 @@ import { API_PREFIX, API_URL } from "./config"
 import { SyncEngine } from "./engine"
 import { runEventStream, type ServerEvent } from "./events"
 import type { AnyMapper } from "./mapper"
-import "./mappers/habits"
+import { financeMappers } from "./mappers/finance"
+import { habitsMappers } from "./mappers/habits"
 import { modulePrefMapper, weatherPrefMapper } from "./mappers/reference"
-import "./mappers/tasks"
+import { tasksMappers } from "./mappers/tasks"
 import { createOutbox } from "./outbox"
 
 export type MapperFactory = (userId: string) => AnyMapper[]
@@ -23,6 +24,9 @@ export type MapperFactory = (userId: string) => AnyMapper[]
 // Module mapper factories register here (one per domain module).
 const factories: MapperFactory[] = [
   (uid) => [weatherPrefMapper(uid), modulePrefMapper(uid)],
+  financeMappers,
+  habitsMappers,
+  tasksMappers,
 ]
 export const registerMappers = (f: MapperFactory) => void factories.push(f)
 

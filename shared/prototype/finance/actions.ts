@@ -1,4 +1,5 @@
 "use client"
+import { derivedId } from "../lib/ids"
 import { uid } from "../lib/store"
 import {
   addDays,
@@ -26,14 +27,14 @@ import { finStore, sampleStatements } from "./store"
 const set = (fn: (s: FinState) => FinState) => finStore.set(fn)
 const nowIso = () => new Date().toISOString()
 export type NewRecord = Omit<FinRecord, "id" | "status" | "source" | "at"> &
-  Partial<Pick<FinRecord, "status" | "source" | "at">>
+  Partial<Pick<FinRecord, "id" | "status" | "source" | "at">>
 export function addRecord(input: NewRecord): FinRecord {
   const r: FinRecord = {
     status: "cleared",
     source: "manual",
     at: nowIso(),
     ...input,
-    id: `r-${uid()}`,
+    id: input.id ?? uid(),
   }
   set((s) => ({
     ...s,
@@ -119,6 +120,8 @@ export function logTransfer(input: {
   })
   const fee = input.fee
     ? addRecord({
+        // The server derives the same id when it writes a transfer's fee.
+        id: derivedId("transfer-fee", transfer.id, "fee"),
         type: "expense",
         amount: input.fee,
         accountId: input.from,
@@ -186,7 +189,7 @@ export function addAccount(
   const acc: Account = {
     openingDate: today(),
     ...input,
-    id: `a-${uid()}`,
+    id: uid(),
     archived: false,
     order: finStore.get().accounts.length,
   }
@@ -230,7 +233,7 @@ export function adjustBalance(
 export function addCategory(
   input: Omit<Category, "id" | "archived">,
 ): Category {
-  const c: Category = { ...input, id: `c-${uid()}`, archived: false }
+  const c: Category = { ...input, id: uid(), archived: false }
   set((s) => ({ ...s, categories: [...s.categories, c] }))
   return c
 }
@@ -376,7 +379,7 @@ export function addBudget(
 ): Budget {
   const b: Budget = {
     ...input,
-    id: `b-${uid()}`,
+    id: uid(),
     archived: false,
     period: "monthly",
     startDate: today(),
@@ -404,7 +407,7 @@ export function addPlanned(
   const p: PlannedItem = {
     start: today(),
     ...input,
-    id: `p-${uid()}`,
+    id: uid(),
     archived: false,
     skipped: [],
     snoozed: {},
@@ -441,6 +444,8 @@ export function settleOccurrence(
     `${d}T${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:00`,
   ).toISOString()
   return addRecord({
+    // One record per occurrence, the id the server derives when it settles.
+    id: derivedId("planned-record", p.id, day),
     type: p.type,
     amount: input.amount,
     accountId: input.accountId ?? p.accountId,
@@ -648,7 +653,7 @@ export function commitImport(importId: string): {
       updates.set(target.id, patch)
     } else if (r.state === "new" || r.decision === "accept") {
       const base = {
-        id: `r-${uid()}`,
+        id: uid(),
         at: iso(r.date, r.time),
         status: "cleared" as const,
         source: "import" as const,
@@ -742,16 +747,20 @@ export function saveLookBack(
     spend: number
   },
 ) {
-  set((s) => ({
-    ...s,
-    lookbacks: [
-      ...s.lookbacks.filter((l) => l.period !== period),
-      { id: `lb-${uid()}`, period, note, savedAt: nowIso(), snapshot },
-    ],
-  }))
+  set((s) => {
+    // A period has one review: re-saving keeps its id.
+    const id = s.lookbacks.find((l) => l.period === period)?.id ?? uid()
+    return {
+      ...s,
+      lookbacks: [
+        ...s.lookbacks.filter((l) => l.period !== period),
+        { id, period, note, savedAt: nowIso(), snapshot },
+      ],
+    }
+  })
 }
 export function newThread(title: string): string {
-  const id = `t-${uid()}`
+  const id = uid()
   set((s) => ({
     ...s,
     threads: [{ id, title, createdAt: nowIso(), messages: [] }, ...s.threads],

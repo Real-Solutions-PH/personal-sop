@@ -42,7 +42,6 @@ import { derivedId } from "@domain/lib/ids"
 import { type Live, liveStore } from "@domain/lib/live"
 import type { Store } from "@domain/lib/store"
 import type { ActionOp, Mapper } from "../mapper"
-import { registerMappers } from "../runtime"
 import { singleton } from "./helpers"
 
 type S = HabitsState
@@ -843,8 +842,3 @@ export function habitsMappers(userId: string) {
     settingsMapper(userId),
   ]
 }
-
-// runtime.ts imports this file, and this file imports registerMappers from
-// runtime.ts: registering one microtask later runs after runtime.ts has
-// finished evaluating.
-void Promise.resolve().then(() => registerMappers(habitsMappers))
