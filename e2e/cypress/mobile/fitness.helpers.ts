@@ -45,6 +45,10 @@ export function api<T>(
 export function signIn(user: LiveUser) {
   cy.visit("/welcome")
   cy.findByRole("button", { name: "I already have an account" }).click()
+  // Let the Welcome → Sign in transition settle: the field flips disabled
+  // while it runs, and cy.type() refuses a disabled field without retrying.
+  cy.findByRole("button", { name: "Sign in" }).should("be.visible")
+  cy.wait(1500)
   cy.findByRole("textbox", { name: "Email" })
     .should("not.be.disabled")
     .type(user.email)

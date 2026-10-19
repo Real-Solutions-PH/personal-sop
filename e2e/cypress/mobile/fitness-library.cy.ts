@@ -141,7 +141,7 @@ describe("fitness · library (live)", { defaultCommandTimeout: 60000 }, () => {
 
         // Delete, then Undo from the toast.
         cy.findAllByText("E2E upper v2").filter(":visible").first().click()
-        cy.findByText("Delete template").click()
+        cy.findAllByText("Delete template").filter(":visible").first().click()
         cy.location("pathname").should("eq", "/fitness/templates")
         rows(
           "select 1 from workout_template where id = $1 and deleted_at is not null",
@@ -268,7 +268,7 @@ describe("fitness · library (live)", { defaultCommandTimeout: 60000 }, () => {
 
           // Exercise detail: one PR row (with a Share PR button) per server PR.
           cy.visit(`/fitness/exercises/${bench.id}`)
-          cy.findByText("PR history", { timeout: 90000 }).should("exist")
+          cy.findByText(/^pr history$/i, { timeout: 90000 }).should("exist")
           cy.findAllByRole("button", { name: "Share PR" }).should(
             "have.length",
             Math.min(8, benchPrs),
@@ -287,7 +287,7 @@ describe("fitness · library (live)", { defaultCommandTimeout: 60000 }, () => {
 
         // Train: the key-lift progress block appears once a lift has 2 sessions.
         cy.visit("/fitness")
-        cy.findByText("Progress · 8 weeks").should("exist")
+        cy.findByText(/^progress · 8 weeks$/i).should("exist")
 
         // Progression: 65 × 10 on every set tops the 6–10 range, so the
         // next Push A plans +2.5 kg at the bottom of the range.
