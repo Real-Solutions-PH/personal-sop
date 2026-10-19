@@ -5,6 +5,7 @@ import {
   addTracker,
   type Block,
   companionStore,
+  liveAsk,
   type Metric,
   remember,
   thinking,
@@ -251,6 +252,8 @@ export function ask(text: string, hint?: string) {
   const v = text.trim()
   if (!v) return
   const r = route(v)
+  const live = liveAsk()
+  if (live) return live(v, hint, r.kind === "capture")
   if (r.kind === "capture") {
     A.sendCapture({ text: v, source: "text", hint })
     return

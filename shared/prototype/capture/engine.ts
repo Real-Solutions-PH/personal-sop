@@ -58,6 +58,52 @@ import { toast } from "./toast"
 
 const S = captureStore
 const nowIso = () => new Date().toISOString()
+
+/** What a capture send carries. ``audio`` and ``fileUri`` are local file
+ * URIs the live path uploads; the on-device engine ignores them. */
+export interface SendInput {
+  text: string
+  source?: CaptureSource
+  hint?: string
+  photo?: string
+  durationSec?: number
+  fileName?: string
+  fileUri?: string
+  fileMime?: string
+  audio?: string
+}
+
+/**
+ * The capture actions' mode switch. The prototype (and the whole web build)
+ * never installs a backend, so every action below runs the on-device engine.
+ * Live mode on the phone installs one at sign-in (mobile/src/live/capture.ts):
+ * captures then stream from the server and card decisions go to its card
+ * endpoints, while the stores stay what the screens read.
+ */
+export interface CaptureBackend {
+  send(input: SendInput): string
+  confirm(cardId: string): void
+  confirmAll(captureId: string): void
+  discard(cardId: string): void
+  undo(cardId: string, quiet: boolean): void
+  redo(cardId: string): void
+  edit(cardId: string, payload: Payload): void
+  answer(cardId: string, value: string): void
+  skip(cardId: string): void
+  retry(id: string): void
+  rerun(id: string, text?: string): void
+  processQueue(): number
+  resumeStuck(): void
+  quickAdd(
+    text: string,
+    payload: Payload,
+    target: RecordCard["target"],
+  ): RecordCard
+}
+let backend: CaptureBackend | null = null
+export function setCaptureBackend(b: CaptureBackend | null) {
+  backend = b
+}
 export function addJournalEntry(input: {
   body: string
   day?: string
@@ -70,7 +116,7 @@ export function addJournalEntry(input: {
   captureId?: string
 }): JournalEntry {
   const e: JournalEntry = {
-    id: `j-${uid()}`,
+    id: uid(),
     day: input.day ?? dayKey(),
     createdAt: nowIso(),
     body: input.body.trim(),
@@ -472,17 +518,20 @@ function saveCard(
   }
 }
 export function confirmCard(cardId: string) {
+  if (backend) return backend.confirm(cardId)
   const hit = findCard(cardId)
   if (hit?.card.state !== "proposed") return
   const saved = saveCard(hit.card, hit.cap, "user")
   patchCard(cardId, () => saved)
 }
 export function confirmAll(captureId: string) {
+  if (backend) return backend.confirmAll(captureId)
   const cap = S.get().captures.find((c) => c.id === captureId)
   for (const it of cap?.reply?.items ?? [])
     if (it.t === "record" && it.state === "proposed") confirmCard(it.id)
 }
 export function discardCard(cardId: string) {
+  if (backend) return backend.discard(cardId)
   patchCard(cardId, (c) => ({
     ...logged(c, "discarded"),
     state: "discarded",
@@ -490,6 +539,7 @@ export function discardCard(cardId: string) {
   }))
 }
 export function undoCard(cardId: string, quiet = false) {
+  if (backend) return backend.undo(cardId, quiet)
   const hit = findCard(cardId)
   if (!hit || (hit.card.state !== "saved" && hit.card.state !== "edited"))
     return
@@ -508,6 +558,7 @@ export function undoCard(cardId: string, quiet = false) {
     })
 }
 export function redoCard(cardId: string) {
+  if (backend) return backend.redo(cardId)
   const hit = findCard(cardId)
   if (hit?.card.state !== "undone") return
   const saved = saveCard(hit.card, hit.cap, "user")
@@ -517,6 +568,7 @@ export function redoCard(cardId: string) {
   }))
 }
 export function editCard(cardId: string, payload: Payload) {
+  if (backend) return backend.edit(cardId, payload)
   const hit = findCard(cardId)
   if (!hit) return
   const { card, cap } = hit
@@ -537,6 +589,7 @@ export function editCard(cardId: string, payload: Payload) {
     }))
 }
 export function answerCard(cardId: string, value: string) {
+  if (backend) return backend.answer(cardId, value)
   const hit = findCard(cardId)
   if (!hit?.card.ask) return
   const { card, cap } = hit
@@ -657,6 +710,7 @@ export function answerCard(cardId: string, value: string) {
   else patchCard(cardId, () => ready)
 }
 export function skipAsk(cardId: string) {
+  if (backend) return backend.skip(cardId)
   patchCard(cardId, (c) => ({
     ...c,
     warn: "Skipped — waiting in History until you answer.",
@@ -1063,14 +1117,8 @@ export function processCapture(id: string) {
       )
   }, THINK_MS(cap.text))
 }
-export function sendCapture(input: {
-  text: string
-  source?: CaptureSource
-  hint?: string
-  photo?: string
-  durationSec?: number
-  fileName?: string
-}): string {
+export function sendCapture(input: SendInput): string {
+  if (backend) return backend.send(input)
   const cap: Capture = {
     id: `c-${uid()}`,
     at: nowIso(),
@@ -1090,6 +1138,7 @@ export function sendCapture(input: {
   return cap.id
 }
 export function processQueue(): number {
+  if (backend) return backend.processQueue()
   const q = S.get().captures.filter((c) => c.status === "queued")
   if (!q.length || !isOnline()) return 0
   const seen = new Set<string>()
@@ -1101,6 +1150,7 @@ export function processQueue(): number {
   return q.length
 }
 export function retryCapture(id: string) {
+  if (backend) return backend.retry(id)
   if (!isOnline()) {
     toast("Still offline — it stays queued")
     return
@@ -1108,6 +1158,7 @@ export function retryCapture(id: string) {
   processCapture(id)
 }
 export function rerunCapture(id: string, text?: string) {
+  if (backend) return backend.rerun(id, text)
   const cap = S.get().captures.find((c) => c.id === id)
   if (!cap) return
   for (const it of cap.reply?.items ?? [])
@@ -1123,6 +1174,7 @@ export function clearThread() {
   S.set((s) => ({ ...s, captures: [] }))
 }
 export function resumeStuck() {
+  if (backend) return backend.resumeStuck()
   for (const c of S.get().captures)
     if (
       c.status === "processing" &&
@@ -1134,7 +1186,8 @@ export function logQuickAdd(
   text: string,
   payload: Payload,
   target: RecordCard["target"],
-) {
+): RecordCard {
+  if (backend) return backend.quickAdd(text, payload, target)
   const cap: Capture = {
     id: `c-${uid()}`,
     at: nowIso(),

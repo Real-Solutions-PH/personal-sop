@@ -78,6 +78,23 @@ const seed = (): CompanionState => ({
 })
 
 export const companionStore = createStore<CompanionState>("companion", seed)
+/**
+ * Sol's mode switch. Prototype mode answers on the device (`brain.ts`);
+ * live mode installs the server's streaming ask at sign-in
+ * (mobile/src/live/capture.ts). `routedToCapture` is the on-device router's
+ * verdict, used only when the phone is offline.
+ */
+export type AskBackend = (
+  text: string,
+  hint: string | undefined,
+  routedToCapture: boolean,
+) => void
+let askBackend: AskBackend | null = null
+export const setAskBackend = (b: AskBackend | null) => {
+  askBackend = b
+}
+export const liveAsk = () => askBackend
+
 /** Transient "Sol is thinking" indicator; not persisted. */
 export const thinking = create<{ on: boolean }>(() => ({ on: false }))
 

@@ -1,0 +1,2277 @@
+{
+  "stream_rules": {
+    "request": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "client_uuid": "00000000-0000-4000-8000-000000000002",
+      "text": "coffee 165 at tims, weighed 72.6"
+    },
+    "status": 200,
+    "frames": [
+      [
+        "capture",
+        {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "client_uuid": "00000000-0000-4000-8000-000000000002",
+          "at": "2026-10-19T04:00:00.000000Z",
+          "source": "text",
+          "text": "coffee 165 at tims, weighed 72.6",
+          "transcript": null,
+          "duration_sec": null,
+          "hint": null,
+          "file_name": null,
+          "status": "processing",
+          "reply_text": null,
+          "error_code": null,
+          "started_at": "2026-10-19T04:00:00.000000Z",
+          "engine": null,
+          "created_at": "2026-10-19T04:00:00.000000Z",
+          "version": 1,
+          "deleted_at": null
+        }
+      ],
+      [
+        "card",
+        {
+          "t": "record",
+          "id": "00000000-0000-4000-8000-000000000003",
+          "capture_id": "00000000-0000-4000-8000-000000000001",
+          "position": 0,
+          "kind": "expense",
+          "target": "finance",
+          "tier": "auto",
+          "state": "saved",
+          "payload": {
+            "kind": "expense",
+            "payee": "Tim Hortons",
+            "account_id": "00000000-0000-4000-8000-000000000004",
+            "category_id": "4b96b151-99ce-5eb4-a892-5109d4a91a19",
+            "amount_minor": 16500
+          },
+          "refs": ["00000000-0000-4000-8000-000000000005"],
+          "ask": null,
+          "note": null,
+          "warn": null,
+          "confidence": null,
+          "day_offset": 0,
+          "version": 1,
+          "log": [
+            {
+              "id": "00000000-0000-4000-8000-000000000006",
+              "at": "2026-10-19T04:00:00.000000Z",
+              "action": "proposed",
+              "actor": "ai"
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000007",
+              "at": "2026-10-19T04:00:00.000000Z",
+              "action": "saved",
+              "actor": "ai"
+            }
+          ]
+        }
+      ],
+      [
+        "card",
+        {
+          "t": "record",
+          "id": "00000000-0000-4000-8000-000000000008",
+          "capture_id": "00000000-0000-4000-8000-000000000001",
+          "position": 1,
+          "kind": "weighIn",
+          "target": "fitness",
+          "tier": "auto",
+          "state": "saved",
+          "payload": {
+            "kg": 72.6,
+            "kind": "weighIn"
+          },
+          "refs": ["00000000-0000-4000-8000-000000000009"],
+          "ask": null,
+          "note": null,
+          "warn": null,
+          "confidence": null,
+          "day_offset": null,
+          "version": 1,
+          "log": [
+            {
+              "id": "00000000-0000-4000-8000-00000000000a",
+              "at": "2026-10-19T04:00:00.000000Z",
+              "action": "proposed",
+              "actor": "ai"
+            },
+            {
+              "id": "00000000-0000-4000-8000-00000000000b",
+              "at": "2026-10-19T04:00:00.000000Z",
+              "action": "saved",
+              "actor": "ai"
+            }
+          ]
+        }
+      ],
+      [
+        "info",
+        {
+          "id": "00000000-0000-4000-8000-00000000000c",
+          "capture_id": "00000000-0000-4000-8000-000000000001",
+          "position": 2,
+          "kind": "info",
+          "body": {
+            "t": "info",
+            "tone": "fallback",
+            "title": "Read by the built-in rules",
+            "body": "No AI model is set up for capture, so the built-in rules read this. Add a provider in AI settings for smarter reads.",
+            "actions": [
+              {
+                "label": "AI settings",
+                "do": "link",
+                "href": "/capture/settings"
+              }
+            ]
+          },
+          "version": 1,
+          "deleted_at": null
+        }
+      ],
+      [
+        "done",
+        {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "client_uuid": "00000000-0000-4000-8000-000000000002",
+          "at": "2026-10-19T04:00:00.000000Z",
+          "source": "text",
+          "text": "coffee 165 at tims, weighed 72.6",
+          "transcript": null,
+          "duration_sec": null,
+          "hint": null,
+          "file_name": null,
+          "status": "done",
+          "reply_text": "Logged 2 things.",
+          "error_code": null,
+          "started_at": "2026-10-19T04:00:00.000000Z",
+          "engine": "rules",
+          "created_at": "2026-10-19T04:00:00.000000Z",
+          "version": 1,
+          "deleted_at": null,
+          "cards": [
+            {
+              "t": "record",
+              "id": "00000000-0000-4000-8000-000000000003",
+              "capture_id": "00000000-0000-4000-8000-000000000001",
+              "position": 0,
+              "kind": "expense",
+              "target": "finance",
+              "tier": "auto",
+              "state": "saved",
+              "payload": {
+                "kind": "expense",
+                "payee": "Tim Hortons",
+                "account_id": "00000000-0000-4000-8000-000000000004",
+                "category_id": "4b96b151-99ce-5eb4-a892-5109d4a91a19",
+                "amount_minor": 16500
+              },
+              "refs": ["00000000-0000-4000-8000-000000000005"],
+              "ask": null,
+              "note": null,
+              "warn": null,
+              "confidence": null,
+              "day_offset": 0,
+              "version": 1,
+              "log": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000006",
+                  "at": "2026-10-19T04:00:00.000000Z",
+                  "action": "proposed",
+                  "actor": "ai"
+                },
+                {
+                  "id": "00000000-0000-4000-8000-000000000007",
+                  "at": "2026-10-19T04:00:00.000000Z",
+                  "action": "saved",
+                  "actor": "ai"
+                }
+              ]
+            },
+            {
+              "t": "record",
+              "id": "00000000-0000-4000-8000-000000000008",
+              "capture_id": "00000000-0000-4000-8000-000000000001",
+              "position": 1,
+              "kind": "weighIn",
+              "target": "fitness",
+              "tier": "auto",
+              "state": "saved",
+              "payload": {
+                "kg": 72.6,
+                "kind": "weighIn"
+              },
+              "refs": ["00000000-0000-4000-8000-000000000009"],
+              "ask": null,
+              "note": null,
+              "warn": null,
+              "confidence": null,
+              "day_offset": null,
+              "version": 1,
+              "log": [
+                {
+                  "id": "00000000-0000-4000-8000-00000000000a",
+                  "at": "2026-10-19T04:00:00.000000Z",
+                  "action": "proposed",
+                  "actor": "ai"
+                },
+                {
+                  "id": "00000000-0000-4000-8000-00000000000b",
+                  "at": "2026-10-19T04:00:00.000000Z",
+                  "action": "saved",
+                  "actor": "ai"
+                }
+              ]
+            }
+          ],
+          "replies": [
+            {
+              "id": "00000000-0000-4000-8000-00000000000c",
+              "capture_id": "00000000-0000-4000-8000-000000000001",
+              "position": 2,
+              "kind": "info",
+              "body": {
+                "t": "info",
+                "body": "No AI model is set up for capture, so the built-in rules read this. Add a provider in AI settings for smarter reads.",
+                "tone": "fallback",
+                "title": "Read by the built-in rules",
+                "actions": [
+                  {
+                    "do": "link",
+                    "href": "/capture/settings",
+                    "label": "AI settings"
+                  }
+                ]
+              },
+              "version": 1,
+              "deleted_at": null
+            }
+          ],
+          "attachments": []
+        }
+      ]
+    ]
+  },
+  "stream_ask": {
+    "request": {
+      "id": "00000000-0000-4000-8000-00000000000d",
+      "client_uuid": "00000000-0000-4000-8000-00000000000e",
+      "text": "paid 1500"
+    },
+    "status": 200,
+    "frames": [
+      [
+        "capture",
+        {
+          "id": "00000000-0000-4000-8000-00000000000d",
+          "client_uuid": "00000000-0000-4000-8000-00000000000e",
+          "at": "2026-10-19T04:00:00.000000Z",
+          "source": "text",
+          "text": "paid 1500",
+          "transcript": null,
+          "duration_sec": null,
+          "hint": null,
+          "file_name": null,
+          "status": "processing",
+          "reply_text": null,
+          "error_code": null,
+          "started_at": "2026-10-19T04:00:00.000000Z",
+          "engine": null,
+          "created_at": "2026-10-19T04:00:00.000000Z",
+          "version": 1,
+          "deleted_at": null
+        }
+      ],
+      [
+        "card",
+        {
+          "t": "record",
+          "id": "00000000-0000-4000-8000-00000000000f",
+          "capture_id": "00000000-0000-4000-8000-00000000000d",
+          "position": 0,
+          "kind": "expense",
+          "target": "finance",
+          "tier": "confirm",
+          "state": "needs_input",
+          "payload": {
+            "kind": "expense",
+            "account_id": "00000000-0000-4000-8000-000000000004",
+            "amount_minor": 150000
+          },
+          "refs": [],
+          "ask": {
+            "free": true,
+            "field": "category_id",
+            "options": [
+              {
+                "label": "☕ Coffee",
+                "value": "4b96b151-99ce-5eb4-a892-5109d4a91a19"
+              },
+              {
+                "label": "💡 Electricity",
+                "value": "a746cff5-7a1e-5b36-ab11-3a2cd1ca7cde"
+              },
+              {
+                "label": "📶 Internet",
+                "value": "b24e4575-a624-59e1-bb2d-ba144ed5c16d"
+              },
+              {
+                "label": "🛒 Groceries",
+                "value": "2ba08af9-18c3-5e37-91a9-09fa8fa79082"
+              },
+              {
+                "label": "🎁 Gifts",
+                "value": "d5733fe1-ceb6-5b10-a4b4-31f3f7283773"
+              }
+            ],
+            "question": "What was ₱1,500 for?"
+          },
+          "note": null,
+          "warn": null,
+          "confidence": null,
+          "day_offset": 0,
+          "version": 1,
+          "log": [
+            {
+              "id": "00000000-0000-4000-8000-000000000010",
+              "at": "2026-10-19T04:00:00.000000Z",
+              "action": "proposed",
+              "actor": "ai"
+            }
+          ]
+        }
+      ],
+      [
+        "ask",
+        {
+          "card_id": "00000000-0000-4000-8000-00000000000f",
+          "ask": {
+            "free": true,
+            "field": "category_id",
+            "options": [
+              {
+                "label": "☕ Coffee",
+                "value": "4b96b151-99ce-5eb4-a892-5109d4a91a19"
+              },
+              {
+                "label": "💡 Electricity",
+                "value": "a746cff5-7a1e-5b36-ab11-3a2cd1ca7cde"
+              },
+              {
+                "label": "📶 Internet",
+                "value": "b24e4575-a624-59e1-bb2d-ba144ed5c16d"
+              },
+              {
+                "label": "🛒 Groceries",
+                "value": "2ba08af9-18c3-5e37-91a9-09fa8fa79082"
+              },
+              {
+                "label": "🎁 Gifts",
+                "value": "d5733fe1-ceb6-5b10-a4b4-31f3f7283773"
+              }
+            ],
+            "question": "What was ₱1,500 for?"
+          }
+        }
+      ],
+      [
+        "info",
+        {
+          "id": "00000000-0000-4000-8000-000000000011",
+          "capture_id": "00000000-0000-4000-8000-00000000000d",
+          "position": 1,
+          "kind": "info",
+          "body": {
+            "t": "info",
+            "tone": "fallback",
+            "title": "Read by the built-in rules",
+            "body": "No AI model is set up for capture, so the built-in rules read this. Add a provider in AI settings for smarter reads.",
+            "actions": [
+              {
+                "label": "AI settings",
+                "do": "link",
+                "href": "/capture/settings"
+              }
+            ]
+          },
+          "version": 1,
+          "deleted_at": null
+        }
+      ],
+      [
+        "done",
+        {
+          "id": "00000000-0000-4000-8000-00000000000d",
+          "client_uuid": "00000000-0000-4000-8000-00000000000e",
+          "at": "2026-10-19T04:00:00.000000Z",
+          "source": "text",
+          "text": "paid 1500",
+          "transcript": null,
+          "duration_sec": null,
+          "hint": null,
+          "file_name": null,
+          "status": "needs_input",
+          "reply_text": "One quick question.",
+          "error_code": null,
+          "started_at": "2026-10-19T04:00:00.000000Z",
+          "engine": "rules",
+          "created_at": "2026-10-19T04:00:00.000000Z",
+          "version": 1,
+          "deleted_at": null,
+          "cards": [
+            {
+              "t": "record",
+              "id": "00000000-0000-4000-8000-00000000000f",
+              "capture_id": "00000000-0000-4000-8000-00000000000d",
+              "position": 0,
+              "kind": "expense",
+              "target": "finance",
+              "tier": "confirm",
+              "state": "needs_input",
+              "payload": {
+                "kind": "expense",
+                "account_id": "00000000-0000-4000-8000-000000000004",
+                "amount_minor": 150000
+              },
+              "refs": [],
+              "ask": {
+                "free": true,
+                "field": "category_id",
+                "options": [
+                  {
+                    "label": "☕ Coffee",
+                    "value": "4b96b151-99ce-5eb4-a892-5109d4a91a19"
+                  },
+                  {
+                    "label": "💡 Electricity",
+                    "value": "a746cff5-7a1e-5b36-ab11-3a2cd1ca7cde"
+                  },
+                  {
+                    "label": "📶 Internet",
+                    "value": "b24e4575-a624-59e1-bb2d-ba144ed5c16d"
+                  },
+                  {
+                    "label": "🛒 Groceries",
+                    "value": "2ba08af9-18c3-5e37-91a9-09fa8fa79082"
+                  },
+                  {
+                    "label": "🎁 Gifts",
+                    "value": "d5733fe1-ceb6-5b10-a4b4-31f3f7283773"
+                  }
+                ],
+                "question": "What was ₱1,500 for?"
+              },
+              "note": null,
+              "warn": null,
+              "confidence": null,
+              "day_offset": 0,
+              "version": 1,
+              "log": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000010",
+                  "at": "2026-10-19T04:00:00.000000Z",
+                  "action": "proposed",
+                  "actor": "ai"
+                }
+              ]
+            }
+          ],
+          "replies": [
+            {
+              "id": "00000000-0000-4000-8000-000000000011",
+              "capture_id": "00000000-0000-4000-8000-00000000000d",
+              "position": 1,
+              "kind": "info",
+              "body": {
+                "t": "info",
+                "body": "No AI model is set up for capture, so the built-in rules read this. Add a provider in AI settings for smarter reads.",
+                "tone": "fallback",
+                "title": "Read by the built-in rules",
+                "actions": [
+                  {
+                    "do": "link",
+                    "href": "/capture/settings",
+                    "label": "AI settings"
+                  }
+                ]
+              },
+              "version": 1,
+              "deleted_at": null
+            }
+          ],
+          "attachments": []
+        }
+      ]
+    ]
+  },
+  "answer": {
+    "id": "00000000-0000-4000-8000-00000000000d",
+    "client_uuid": "00000000-0000-4000-8000-00000000000e",
+    "at": "2026-10-19T04:00:00.000000Z",
+    "source": "text",
+    "text": "paid 1500",
+    "transcript": null,
+    "duration_sec": null,
+    "hint": null,
+    "file_name": null,
+    "status": "done",
+    "reply_text": "One quick question.",
+    "error_code": null,
+    "started_at": "2026-10-19T04:00:00.000000Z",
+    "engine": "rules",
+    "created_at": "2026-10-19T04:00:00.000000Z",
+    "version": 1,
+    "deleted_at": null,
+    "cards": [
+      {
+        "t": "record",
+        "id": "00000000-0000-4000-8000-00000000000f",
+        "capture_id": "00000000-0000-4000-8000-00000000000d",
+        "position": 0,
+        "kind": "expense",
+        "target": "finance",
+        "tier": "confirm",
+        "state": "proposed",
+        "payload": {
+          "kind": "expense",
+          "account_id": "00000000-0000-4000-8000-000000000004",
+          "category_id": "2ba08af9-18c3-5e37-91a9-09fa8fa79082",
+          "amount_minor": 150000
+        },
+        "refs": [],
+        "ask": null,
+        "note": null,
+        "warn": null,
+        "confidence": null,
+        "day_offset": 0,
+        "version": 1,
+        "log": [
+          {
+            "id": "00000000-0000-4000-8000-000000000010",
+            "at": "2026-10-19T04:00:00.000000Z",
+            "action": "proposed",
+            "actor": "ai"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000012",
+            "at": "2026-10-19T04:00:00.000000Z",
+            "action": "edited",
+            "actor": "user"
+          }
+        ]
+      }
+    ],
+    "replies": [
+      {
+        "id": "00000000-0000-4000-8000-000000000011",
+        "capture_id": "00000000-0000-4000-8000-00000000000d",
+        "position": 1,
+        "kind": "info",
+        "body": {
+          "t": "info",
+          "body": "No AI model is set up for capture, so the built-in rules read this. Add a provider in AI settings for smarter reads.",
+          "tone": "fallback",
+          "title": "Read by the built-in rules",
+          "actions": [
+            {
+              "do": "link",
+              "href": "/capture/settings",
+              "label": "AI settings"
+            }
+          ]
+        },
+        "version": 1,
+        "deleted_at": null
+      }
+    ],
+    "attachments": []
+  },
+  "undo": {
+    "t": "record",
+    "id": "00000000-0000-4000-8000-000000000003",
+    "capture_id": "00000000-0000-4000-8000-000000000001",
+    "position": 0,
+    "kind": "expense",
+    "target": "finance",
+    "tier": "auto",
+    "state": "undone",
+    "payload": {
+      "kind": "expense",
+      "payee": "Tim Hortons",
+      "account_id": "00000000-0000-4000-8000-000000000004",
+      "category_id": "4b96b151-99ce-5eb4-a892-5109d4a91a19",
+      "amount_minor": 16500
+    },
+    "refs": ["00000000-0000-4000-8000-000000000005"],
+    "ask": null,
+    "note": null,
+    "warn": null,
+    "confidence": null,
+    "day_offset": 0,
+    "version": 1,
+    "log": [
+      {
+        "id": "00000000-0000-4000-8000-000000000006",
+        "at": "2026-10-19T04:00:00.000000Z",
+        "action": "proposed",
+        "actor": "ai"
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000007",
+        "at": "2026-10-19T04:00:00.000000Z",
+        "action": "saved",
+        "actor": "ai"
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000013",
+        "at": "2026-10-19T04:00:00.000000Z",
+        "action": "undone",
+        "actor": "user"
+      }
+    ]
+  },
+  "redo": {
+    "t": "record",
+    "id": "00000000-0000-4000-8000-000000000003",
+    "capture_id": "00000000-0000-4000-8000-000000000001",
+    "position": 0,
+    "kind": "expense",
+    "target": "finance",
+    "tier": "auto",
+    "state": "saved",
+    "payload": {
+      "kind": "expense",
+      "payee": "Tim Hortons",
+      "account_id": "00000000-0000-4000-8000-000000000004",
+      "category_id": "4b96b151-99ce-5eb4-a892-5109d4a91a19",
+      "amount_minor": 16500
+    },
+    "refs": ["00000000-0000-4000-8000-000000000014"],
+    "ask": null,
+    "note": null,
+    "warn": null,
+    "confidence": null,
+    "day_offset": 0,
+    "version": 1,
+    "log": [
+      {
+        "id": "00000000-0000-4000-8000-000000000006",
+        "at": "2026-10-19T04:00:00.000000Z",
+        "action": "proposed",
+        "actor": "ai"
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000007",
+        "at": "2026-10-19T04:00:00.000000Z",
+        "action": "saved",
+        "actor": "ai"
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000013",
+        "at": "2026-10-19T04:00:00.000000Z",
+        "action": "undone",
+        "actor": "user"
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000015",
+        "at": "2026-10-19T04:00:00.000000Z",
+        "action": "redone",
+        "actor": "user"
+      }
+    ]
+  },
+  "edit": {
+    "t": "record",
+    "id": "00000000-0000-4000-8000-000000000008",
+    "capture_id": "00000000-0000-4000-8000-000000000001",
+    "position": 1,
+    "kind": "weighIn",
+    "target": "fitness",
+    "tier": "auto",
+    "state": "edited",
+    "payload": {
+      "kg": 72.4,
+      "kind": "weighIn"
+    },
+    "refs": ["00000000-0000-4000-8000-000000000016"],
+    "ask": null,
+    "note": null,
+    "warn": null,
+    "confidence": null,
+    "day_offset": null,
+    "version": 1,
+    "log": [
+      {
+        "id": "00000000-0000-4000-8000-00000000000a",
+        "at": "2026-10-19T04:00:00.000000Z",
+        "action": "proposed",
+        "actor": "ai"
+      },
+      {
+        "id": "00000000-0000-4000-8000-00000000000b",
+        "at": "2026-10-19T04:00:00.000000Z",
+        "action": "saved",
+        "actor": "ai"
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000017",
+        "at": "2026-10-19T04:00:00.000000Z",
+        "action": "edited",
+        "actor": "user"
+      }
+    ]
+  },
+  "stream_confirm": {
+    "request": {
+      "id": "00000000-0000-4000-8000-000000000018",
+      "client_uuid": "00000000-0000-4000-8000-000000000019",
+      "text": "groceries 2500"
+    },
+    "status": 200,
+    "frames": [
+      [
+        "capture",
+        {
+          "id": "00000000-0000-4000-8000-000000000018",
+          "client_uuid": "00000000-0000-4000-8000-000000000019",
+          "at": "2026-10-19T04:00:00.000000Z",
+          "source": "text",
+          "text": "groceries 2500",
+          "transcript": null,
+          "duration_sec": null,
+          "hint": null,
+          "file_name": null,
+          "status": "processing",
+          "reply_text": null,
+          "error_code": null,
+          "started_at": "2026-10-19T04:00:00.000000Z",
+          "engine": null,
+          "created_at": "2026-10-19T04:00:00.000000Z",
+          "version": 1,
+          "deleted_at": null
+        }
+      ],
+      [
+        "card",
+        {
+          "t": "record",
+          "id": "00000000-0000-4000-8000-00000000001a",
+          "capture_id": "00000000-0000-4000-8000-000000000018",
+          "position": 0,
+          "kind": "expense",
+          "target": "finance",
+          "tier": "confirm",
+          "state": "proposed",
+          "payload": {
+            "kind": "expense",
+            "account_id": "00000000-0000-4000-8000-000000000004",
+            "category_id": "2ba08af9-18c3-5e37-91a9-09fa8fa79082",
+            "amount_minor": 250000
+          },
+          "refs": [],
+          "ask": null,
+          "note": null,
+          "warn": null,
+          "confidence": null,
+          "day_offset": 0,
+          "version": 1,
+          "log": [
+            {
+              "id": "00000000-0000-4000-8000-00000000001b",
+              "at": "2026-10-19T04:00:00.000000Z",
+              "action": "proposed",
+              "actor": "ai"
+            }
+          ]
+        }
+      ],
+      [
+        "info",
+        {
+          "id": "00000000-0000-4000-8000-00000000001c",
+          "capture_id": "00000000-0000-4000-8000-000000000018",
+          "position": 1,
+          "kind": "info",
+          "body": {
+            "t": "info",
+            "tone": "fallback",
+            "title": "Read by the built-in rules",
+            "body": "No AI model is set up for capture, so the built-in rules read this. Add a provider in AI settings for smarter reads.",
+            "actions": [
+              {
+                "label": "AI settings",
+                "do": "link",
+                "href": "/capture/settings"
+              }
+            ]
+          },
+          "version": 1,
+          "deleted_at": null
+        }
+      ],
+      [
+        "done",
+        {
+          "id": "00000000-0000-4000-8000-000000000018",
+          "client_uuid": "00000000-0000-4000-8000-000000000019",
+          "at": "2026-10-19T04:00:00.000000Z",
+          "source": "text",
+          "text": "groceries 2500",
+          "transcript": null,
+          "duration_sec": null,
+          "hint": null,
+          "file_name": null,
+          "status": "done",
+          "reply_text": "One to confirm.",
+          "error_code": null,
+          "started_at": "2026-10-19T04:00:00.000000Z",
+          "engine": "rules",
+          "created_at": "2026-10-19T04:00:00.000000Z",
+          "version": 1,
+          "deleted_at": null,
+          "cards": [
+            {
+              "t": "record",
+              "id": "00000000-0000-4000-8000-00000000001a",
+              "capture_id": "00000000-0000-4000-8000-000000000018",
+              "position": 0,
+              "kind": "expense",
+              "target": "finance",
+              "tier": "confirm",
+              "state": "proposed",
+              "payload": {
+                "kind": "expense",
+                "account_id": "00000000-0000-4000-8000-000000000004",
+                "category_id": "2ba08af9-18c3-5e37-91a9-09fa8fa79082",
+                "amount_minor": 250000
+              },
+              "refs": [],
+              "ask": null,
+              "note": null,
+              "warn": null,
+              "confidence": null,
+              "day_offset": 0,
+              "version": 1,
+              "log": [
+                {
+                  "id": "00000000-0000-4000-8000-00000000001b",
+                  "at": "2026-10-19T04:00:00.000000Z",
+                  "action": "proposed",
+                  "actor": "ai"
+                }
+              ]
+            }
+          ],
+          "replies": [
+            {
+              "id": "00000000-0000-4000-8000-00000000001c",
+              "capture_id": "00000000-0000-4000-8000-000000000018",
+              "position": 1,
+              "kind": "info",
+              "body": {
+                "t": "info",
+                "body": "No AI model is set up for capture, so the built-in rules read this. Add a provider in AI settings for smarter reads.",
+                "tone": "fallback",
+                "title": "Read by the built-in rules",
+                "actions": [
+                  {
+                    "do": "link",
+                    "href": "/capture/settings",
+                    "label": "AI settings"
+                  }
+                ]
+              },
+              "version": 1,
+              "deleted_at": null
+            }
+          ],
+          "attachments": []
+        }
+      ]
+    ]
+  },
+  "confirm_all": [
+    {
+      "t": "record",
+      "id": "00000000-0000-4000-8000-00000000001a",
+      "capture_id": "00000000-0000-4000-8000-000000000018",
+      "position": 0,
+      "kind": "expense",
+      "target": "finance",
+      "tier": "confirm",
+      "state": "saved",
+      "payload": {
+        "kind": "expense",
+        "account_id": "00000000-0000-4000-8000-000000000004",
+        "category_id": "2ba08af9-18c3-5e37-91a9-09fa8fa79082",
+        "amount_minor": 250000
+      },
+      "refs": ["00000000-0000-4000-8000-00000000001d"],
+      "ask": null,
+      "note": null,
+      "warn": null,
+      "confidence": null,
+      "day_offset": 0,
+      "version": 1,
+      "log": [
+        {
+          "id": "00000000-0000-4000-8000-00000000001b",
+          "at": "2026-10-19T04:00:00.000000Z",
+          "action": "proposed",
+          "actor": "ai"
+        },
+        {
+          "id": "00000000-0000-4000-8000-00000000001e",
+          "at": "2026-10-19T04:00:00.000000Z",
+          "action": "saved",
+          "actor": "user"
+        }
+      ]
+    }
+  ],
+  "push": {
+    "request": {
+      "ops": [
+        {
+          "op_id": "00000000-0000-4000-8000-00000000001f",
+          "kind": "upsert",
+          "name": "capture",
+          "id": "00000000-0000-4000-8000-000000000020",
+          "data": {
+            "client_uuid": "00000000-0000-4000-8000-000000000021",
+            "at": "2026-10-19T04:00:00.000000Z",
+            "source": "text",
+            "text": "spent 250 on grab"
+          }
+        }
+      ]
+    },
+    "response": {
+      "results": [
+        {
+          "op_id": "00000000-0000-4000-8000-00000000001f",
+          "status": "applied",
+          "code": null,
+          "message": null,
+          "row": {
+            "id": "00000000-0000-4000-8000-000000000020",
+            "client_uuid": "00000000-0000-4000-8000-000000000021",
+            "at": "2026-10-19T04:00:00.000000Z",
+            "source": "text",
+            "text": "spent 250 on grab",
+            "transcript": null,
+            "duration_sec": null,
+            "hint": null,
+            "file_name": null,
+            "status": "done",
+            "reply_text": "Logged it.",
+            "error_code": null,
+            "started_at": "2026-10-19T04:00:00.000000Z",
+            "engine": "rules",
+            "created_at": "2026-10-19T04:00:00.000000Z",
+            "version": 1,
+            "deleted_at": null
+          },
+          "result": null,
+          "replayed": false
+        }
+      ],
+      "cursor": 1
+    }
+  },
+  "pull": [
+    {
+      "entity": "ai_settings",
+      "id": "00000000-0000-4000-8000-000000000022",
+      "version": 1,
+      "deleted": false,
+      "row": {
+        "id": "00000000-0000-4000-8000-000000000022",
+        "rules": {
+          "meal": "confirm",
+          "task": "auto",
+          "habit": "auto",
+          "income": "confirm",
+          "expense": "auto",
+          "journal": "auto",
+          "weighIn": "auto",
+          "workout": "auto",
+          "reminder": "confirm",
+          "transfer": "confirm",
+          "structure": "confirm"
+        },
+        "money_threshold_minor": 100000,
+        "language": "en-tl",
+        "transcription": "server",
+        "send_photos": true,
+        "journal_in_qa": false,
+        "finance_scope": "aggregates",
+        "spend_cap_minor": 50000,
+        "ai_enabled": true,
+        "retention_days": 30,
+        "version": 1,
+        "spend_minor": 0,
+        "calls": 0
+      }
+    },
+    {
+      "entity": "card_write_log",
+      "id": "00000000-0000-4000-8000-000000000023",
+      "version": 1,
+      "deleted": false,
+      "row": {
+        "id": "00000000-0000-4000-8000-000000000023",
+        "card_id": "00000000-0000-4000-8000-000000000024",
+        "at": "2026-10-19T04:00:00.000000Z",
+        "action": "proposed",
+        "actor": "ai",
+        "version": 1,
+        "deleted_at": null
+      }
+    },
+    {
+      "entity": "record_card",
+      "id": "00000000-0000-4000-8000-000000000024",
+      "version": 1,
+      "deleted": false,
+      "row": {
+        "id": "00000000-0000-4000-8000-000000000024",
+        "capture_id": "00000000-0000-4000-8000-000000000020",
+        "position": 0,
+        "kind": "expense",
+        "target": "finance",
+        "tier": "auto",
+        "state": "saved",
+        "payload": {
+          "kind": "expense",
+          "payee": "Grab",
+          "account_id": "00000000-0000-4000-8000-000000000004",
+          "category_id": "d734945e-f134-542f-a0b6-f3ccbb011dbc",
+          "amount_minor": 25000
+        },
+        "refs": ["00000000-0000-4000-8000-000000000025"],
+        "ask": null,
+        "note": null,
+        "warn": null,
+        "confidence": null,
+        "day_offset": 0,
+        "version": 1,
+        "deleted_at": null
+      }
+    },
+    {
+      "entity": "card_write_log",
+      "id": "00000000-0000-4000-8000-000000000026",
+      "version": 1,
+      "deleted": false,
+      "row": {
+        "id": "00000000-0000-4000-8000-000000000026",
+        "card_id": "00000000-0000-4000-8000-000000000024",
+        "at": "2026-10-19T04:00:00.000000Z",
+        "action": "saved",
+        "actor": "ai",
+        "version": 1,
+        "deleted_at": null
+      }
+    },
+    {
+      "entity": "reply_item",
+      "id": "00000000-0000-4000-8000-000000000027",
+      "version": 1,
+      "deleted": false,
+      "row": {
+        "id": "00000000-0000-4000-8000-000000000027",
+        "capture_id": "00000000-0000-4000-8000-000000000020",
+        "position": 1,
+        "kind": "info",
+        "body": {
+          "t": "info",
+          "body": "No AI model is set up for capture, so the built-in rules read this. Add a provider in AI settings for smarter reads.",
+          "tone": "fallback",
+          "title": "Read by the built-in rules",
+          "actions": [
+            {
+              "do": "link",
+              "href": "/capture/settings",
+              "label": "AI settings"
+            }
+          ]
+        },
+        "version": 1,
+        "deleted_at": null
+      }
+    },
+    {
+      "entity": "capture",
+      "id": "00000000-0000-4000-8000-000000000020",
+      "version": 1,
+      "deleted": false,
+      "row": {
+        "id": "00000000-0000-4000-8000-000000000020",
+        "client_uuid": "00000000-0000-4000-8000-000000000021",
+        "at": "2026-10-19T04:00:00.000000Z",
+        "source": "text",
+        "text": "spent 250 on grab",
+        "transcript": null,
+        "duration_sec": null,
+        "hint": null,
+        "file_name": null,
+        "status": "done",
+        "reply_text": "Logged it.",
+        "error_code": null,
+        "started_at": "2026-10-19T04:00:00.000000Z",
+        "engine": "rules",
+        "created_at": "2026-10-19T04:00:00.000000Z",
+        "version": 1,
+        "deleted_at": null
+      }
+    }
+  ],
+  "refused": {
+    "request": {
+      "id": "00000000-0000-4000-8000-000000000028",
+      "client_uuid": "00000000-0000-4000-8000-000000000029",
+      "text": "spent 90 on jeep"
+    },
+    "status": 403,
+    "body": {
+      "code": "ai_disabled",
+      "message": "AI is switched off in your settings.",
+      "details": {
+        "capture_id": "00000000-0000-4000-8000-000000000028"
+      }
+    },
+    "detail": {
+      "id": "00000000-0000-4000-8000-000000000028",
+      "client_uuid": "00000000-0000-4000-8000-000000000029",
+      "at": "2026-10-19T04:00:00.000000Z",
+      "source": "text",
+      "text": "spent 90 on jeep",
+      "transcript": null,
+      "duration_sec": null,
+      "hint": null,
+      "file_name": null,
+      "status": "failed",
+      "reply_text": "I kept your message.",
+      "error_code": "ai_disabled",
+      "started_at": null,
+      "engine": null,
+      "created_at": "2026-10-19T04:00:00.000000Z",
+      "version": 1,
+      "deleted_at": null,
+      "cards": [],
+      "replies": [
+        {
+          "id": "00000000-0000-4000-8000-00000000002a",
+          "capture_id": "00000000-0000-4000-8000-000000000028",
+          "position": 0,
+          "kind": "info",
+          "body": {
+            "t": "info",
+            "body": "Your input is saved. Log it by hand, or retry once AI is back.",
+            "tone": "error",
+            "title": "AI is off",
+            "actions": [
+              {
+                "do": "quickadd",
+                "label": "Quick add"
+              },
+              {
+                "do": "retry",
+                "label": "Retry"
+              },
+              {
+                "do": "journal",
+                "label": "Save as journal",
+                "prompt": "spent 90 on jeep"
+              }
+            ]
+          },
+          "version": 1,
+          "deleted_at": null
+        }
+      ],
+      "attachments": []
+    }
+  },
+  "ask_reply": {
+    "request": {
+      "text": "how am I doing?",
+      "id": "00000000-0000-4000-8000-00000000002b"
+    },
+    "status": 200,
+    "frames": [
+      [
+        "message",
+        {
+          "id": "00000000-0000-4000-8000-00000000002b",
+          "role": "me",
+          "text": "how am I doing?",
+          "blocks": [],
+          "created_at": "2026-10-19T04:00:00.000000Z",
+          "version": 1,
+          "deleted_at": null
+        }
+      ],
+      [
+        "block",
+        {
+          "t": "insights"
+        }
+      ],
+      [
+        "block",
+        {
+          "t": "chips",
+          "prompts": ["Coach me on this", "Show my life score this month"]
+        }
+      ],
+      [
+        "done",
+        {
+          "kind": "reply",
+          "engine": "rules",
+          "messages": [
+            {
+              "id": "00000000-0000-4000-8000-00000000002b",
+              "role": "me",
+              "text": "how am I doing?",
+              "blocks": [],
+              "created_at": "2026-10-19T04:00:00.000000Z",
+              "version": 1,
+              "deleted_at": null
+            },
+            {
+              "id": "00000000-0000-4000-8000-00000000002c",
+              "role": "sol",
+              "text": "Here's what stands out from your records:",
+              "blocks": [
+                {
+                  "t": "insights"
+                },
+                {
+                  "t": "chips",
+                  "prompts": [
+                    "Coach me on this",
+                    "Show my life score this month"
+                  ]
+                }
+              ],
+              "created_at": "2026-10-19T04:00:00.000000Z",
+              "version": 1,
+              "deleted_at": null
+            }
+          ],
+          "capture": null
+        }
+      ]
+    ]
+  },
+  "ask_capture": {
+    "request": {
+      "text": "spent 120 on lunch",
+      "id": "00000000-0000-4000-8000-00000000002d"
+    },
+    "status": 200,
+    "frames": [
+      [
+        "capture",
+        {
+          "id": "00000000-0000-4000-8000-00000000002e",
+          "client_uuid": "00000000-0000-4000-8000-00000000002f",
+          "at": "2026-10-19T04:00:00.000000Z",
+          "source": "text",
+          "text": "spent 120 on lunch",
+          "transcript": null,
+          "duration_sec": null,
+          "hint": null,
+          "file_name": null,
+          "status": "processing",
+          "reply_text": null,
+          "error_code": null,
+          "started_at": "2026-10-19T04:00:00.000000Z",
+          "engine": null,
+          "created_at": "2026-10-19T04:00:00.000000Z",
+          "version": 1,
+          "deleted_at": null
+        }
+      ],
+      [
+        "card",
+        {
+          "t": "record",
+          "id": "00000000-0000-4000-8000-000000000030",
+          "capture_id": "00000000-0000-4000-8000-00000000002e",
+          "position": 0,
+          "kind": "expense",
+          "target": "finance",
+          "tier": "auto",
+          "state": "saved",
+          "payload": {
+            "kind": "expense",
+            "payee": "Lunch",
+            "account_id": "00000000-0000-4000-8000-000000000004",
+            "category_id": "b435522e-86a8-52ac-a606-fad321ad3e62",
+            "amount_minor": 12000
+          },
+          "refs": ["00000000-0000-4000-8000-000000000031"],
+          "ask": null,
+          "note": null,
+          "warn": null,
+          "confidence": null,
+          "day_offset": 0,
+          "version": 1,
+          "log": [
+            {
+              "id": "00000000-0000-4000-8000-000000000032",
+              "at": "2026-10-19T04:00:00.000000Z",
+              "action": "proposed",
+              "actor": "ai"
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000033",
+              "at": "2026-10-19T04:00:00.000000Z",
+              "action": "saved",
+              "actor": "ai"
+            }
+          ]
+        }
+      ],
+      [
+        "info",
+        {
+          "id": "00000000-0000-4000-8000-000000000034",
+          "capture_id": "00000000-0000-4000-8000-00000000002e",
+          "position": 1,
+          "kind": "info",
+          "body": {
+            "t": "info",
+            "tone": "fallback",
+            "title": "Read by the built-in rules",
+            "body": "No AI model is set up for capture, so the built-in rules read this. Add a provider in AI settings for smarter reads.",
+            "actions": [
+              {
+                "label": "AI settings",
+                "do": "link",
+                "href": "/capture/settings"
+              }
+            ]
+          },
+          "version": 1,
+          "deleted_at": null
+        }
+      ],
+      [
+        "done",
+        {
+          "id": "00000000-0000-4000-8000-00000000002e",
+          "client_uuid": "00000000-0000-4000-8000-00000000002f",
+          "at": "2026-10-19T04:00:00.000000Z",
+          "source": "text",
+          "text": "spent 120 on lunch",
+          "transcript": null,
+          "duration_sec": null,
+          "hint": null,
+          "file_name": null,
+          "status": "done",
+          "reply_text": "Logged it.",
+          "error_code": null,
+          "started_at": "2026-10-19T04:00:00.000000Z",
+          "engine": "rules",
+          "created_at": "2026-10-19T04:00:00.000000Z",
+          "version": 1,
+          "deleted_at": null,
+          "cards": [
+            {
+              "t": "record",
+              "id": "00000000-0000-4000-8000-000000000030",
+              "capture_id": "00000000-0000-4000-8000-00000000002e",
+              "position": 0,
+              "kind": "expense",
+              "target": "finance",
+              "tier": "auto",
+              "state": "saved",
+              "payload": {
+                "kind": "expense",
+                "payee": "Lunch",
+                "account_id": "00000000-0000-4000-8000-000000000004",
+                "category_id": "b435522e-86a8-52ac-a606-fad321ad3e62",
+                "amount_minor": 12000
+              },
+              "refs": ["00000000-0000-4000-8000-000000000031"],
+              "ask": null,
+              "note": null,
+              "warn": null,
+              "confidence": null,
+              "day_offset": 0,
+              "version": 1,
+              "log": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000032",
+                  "at": "2026-10-19T04:00:00.000000Z",
+                  "action": "proposed",
+                  "actor": "ai"
+                },
+                {
+                  "id": "00000000-0000-4000-8000-000000000033",
+                  "at": "2026-10-19T04:00:00.000000Z",
+                  "action": "saved",
+                  "actor": "ai"
+                }
+              ]
+            }
+          ],
+          "replies": [
+            {
+              "id": "00000000-0000-4000-8000-000000000034",
+              "capture_id": "00000000-0000-4000-8000-00000000002e",
+              "position": 1,
+              "kind": "info",
+              "body": {
+                "t": "info",
+                "body": "No AI model is set up for capture, so the built-in rules read this. Add a provider in AI settings for smarter reads.",
+                "tone": "fallback",
+                "title": "Read by the built-in rules",
+                "actions": [
+                  {
+                    "do": "link",
+                    "href": "/capture/settings",
+                    "label": "AI settings"
+                  }
+                ]
+              },
+              "version": 1,
+              "deleted_at": null
+            }
+          ],
+          "attachments": []
+        }
+      ],
+      [
+        "done",
+        {
+          "kind": "capture",
+          "engine": "rules",
+          "messages": [],
+          "capture": {
+            "id": "00000000-0000-4000-8000-00000000002e",
+            "client_uuid": "00000000-0000-4000-8000-00000000002f",
+            "at": "2026-10-19T04:00:00.000000Z",
+            "source": "text",
+            "text": "spent 120 on lunch",
+            "transcript": null,
+            "duration_sec": null,
+            "hint": null,
+            "file_name": null,
+            "status": "done",
+            "reply_text": "Logged it.",
+            "error_code": null,
+            "started_at": "2026-10-19T04:00:00.000000Z",
+            "engine": "rules",
+            "created_at": "2026-10-19T04:00:00.000000Z",
+            "version": 1,
+            "deleted_at": null,
+            "cards": [
+              {
+                "t": "record",
+                "id": "00000000-0000-4000-8000-000000000030",
+                "capture_id": "00000000-0000-4000-8000-00000000002e",
+                "position": 0,
+                "kind": "expense",
+                "target": "finance",
+                "tier": "auto",
+                "state": "saved",
+                "payload": {
+                  "kind": "expense",
+                  "payee": "Lunch",
+                  "account_id": "00000000-0000-4000-8000-000000000004",
+                  "category_id": "b435522e-86a8-52ac-a606-fad321ad3e62",
+                  "amount_minor": 12000
+                },
+                "refs": ["00000000-0000-4000-8000-000000000031"],
+                "ask": null,
+                "note": null,
+                "warn": null,
+                "confidence": null,
+                "day_offset": 0,
+                "version": 1,
+                "log": [
+                  {
+                    "id": "00000000-0000-4000-8000-000000000032",
+                    "at": "2026-10-19T04:00:00.000000Z",
+                    "action": "proposed",
+                    "actor": "ai"
+                  },
+                  {
+                    "id": "00000000-0000-4000-8000-000000000033",
+                    "at": "2026-10-19T04:00:00.000000Z",
+                    "action": "saved",
+                    "actor": "ai"
+                  }
+                ]
+              }
+            ],
+            "replies": [
+              {
+                "id": "00000000-0000-4000-8000-000000000034",
+                "capture_id": "00000000-0000-4000-8000-00000000002e",
+                "position": 1,
+                "kind": "info",
+                "body": {
+                  "t": "info",
+                  "body": "No AI model is set up for capture, so the built-in rules read this. Add a provider in AI settings for smarter reads.",
+                  "tone": "fallback",
+                  "title": "Read by the built-in rules",
+                  "actions": [
+                    {
+                      "do": "link",
+                      "href": "/capture/settings",
+                      "label": "AI settings"
+                    }
+                  ]
+                },
+                "version": 1,
+                "deleted_at": null
+              }
+            ],
+            "attachments": []
+          }
+        }
+      ]
+    ]
+  },
+  "ask_ai": {
+    "request": {
+      "text": "ran 5k today, how's my training?",
+      "id": "00000000-0000-4000-8000-000000000035"
+    },
+    "status": 200,
+    "frames": [
+      [
+        "message",
+        {
+          "id": "00000000-0000-4000-8000-000000000035",
+          "role": "me",
+          "text": "ran 5k today, how's my training?",
+          "blocks": [],
+          "created_at": "2026-10-19T04:00:00.000000Z",
+          "version": 1,
+          "deleted_at": null
+        }
+      ],
+      [
+        "block",
+        {
+          "t": "chart",
+          "metric": "workouts",
+          "days": 30
+        }
+      ],
+      [
+        "block",
+        {
+          "t": "tracker",
+          "id": "00000000-0000-4000-8000-000000000036"
+        }
+      ],
+      [
+        "capture",
+        {
+          "id": "00000000-0000-4000-8000-000000000037",
+          "client_uuid": "00000000-0000-4000-8000-000000000038",
+          "at": "2026-10-19T04:00:00.000000Z",
+          "source": "text",
+          "text": "ran 5k 32 min",
+          "transcript": null,
+          "duration_sec": null,
+          "hint": null,
+          "file_name": null,
+          "status": "processing",
+          "reply_text": null,
+          "error_code": null,
+          "started_at": "2026-10-19T04:00:00.000000Z",
+          "engine": null,
+          "created_at": "2026-10-19T04:00:00.000000Z",
+          "version": 1,
+          "deleted_at": null
+        }
+      ],
+      [
+        "card",
+        {
+          "t": "record",
+          "id": "00000000-0000-4000-8000-000000000039",
+          "capture_id": "00000000-0000-4000-8000-000000000037",
+          "position": 0,
+          "kind": "workout",
+          "target": "fitness",
+          "tier": "auto",
+          "state": "saved",
+          "payload": {
+            "kind": "workout",
+            "name": "5 km run",
+            "cardio": {
+              "km": 5,
+              "min": 32,
+              "activity": "Run"
+            },
+            "exercises": []
+          },
+          "refs": ["00000000-0000-4000-8000-00000000003a"],
+          "ask": null,
+          "note": "6:24 /km · 1 sessions in 7 days",
+          "warn": null,
+          "confidence": null,
+          "day_offset": 0,
+          "version": 1,
+          "log": [
+            {
+              "id": "00000000-0000-4000-8000-00000000003b",
+              "at": "2026-10-19T04:00:00.000000Z",
+              "action": "proposed",
+              "actor": "ai"
+            },
+            {
+              "id": "00000000-0000-4000-8000-00000000003c",
+              "at": "2026-10-19T04:00:00.000000Z",
+              "action": "saved",
+              "actor": "ai"
+            }
+          ]
+        }
+      ],
+      [
+        "info",
+        {
+          "id": "00000000-0000-4000-8000-00000000003d",
+          "capture_id": "00000000-0000-4000-8000-000000000037",
+          "position": 1,
+          "kind": "info",
+          "body": {
+            "t": "info",
+            "tone": "fallback",
+            "title": "Read by the built-in rules",
+            "body": "No AI model is set up for capture, so the built-in rules read this. Add a provider in AI settings for smarter reads.",
+            "actions": [
+              {
+                "label": "AI settings",
+                "do": "link",
+                "href": "/capture/settings"
+              }
+            ]
+          },
+          "version": 1,
+          "deleted_at": null
+        }
+      ],
+      [
+        "done",
+        {
+          "id": "00000000-0000-4000-8000-000000000037",
+          "client_uuid": "00000000-0000-4000-8000-000000000038",
+          "at": "2026-10-19T04:00:00.000000Z",
+          "source": "text",
+          "text": "ran 5k 32 min",
+          "transcript": null,
+          "duration_sec": null,
+          "hint": null,
+          "file_name": null,
+          "status": "done",
+          "reply_text": "Logged it.",
+          "error_code": null,
+          "started_at": "2026-10-19T04:00:00.000000Z",
+          "engine": "rules",
+          "created_at": "2026-10-19T04:00:00.000000Z",
+          "version": 1,
+          "deleted_at": null,
+          "cards": [
+            {
+              "t": "record",
+              "id": "00000000-0000-4000-8000-000000000039",
+              "capture_id": "00000000-0000-4000-8000-000000000037",
+              "position": 0,
+              "kind": "workout",
+              "target": "fitness",
+              "tier": "auto",
+              "state": "saved",
+              "payload": {
+                "kind": "workout",
+                "name": "5 km run",
+                "cardio": {
+                  "km": 5,
+                  "min": 32,
+                  "activity": "Run"
+                },
+                "exercises": []
+              },
+              "refs": ["00000000-0000-4000-8000-00000000003a"],
+              "ask": null,
+              "note": "6:24 /km · 1 sessions in 7 days",
+              "warn": null,
+              "confidence": null,
+              "day_offset": 0,
+              "version": 1,
+              "log": [
+                {
+                  "id": "00000000-0000-4000-8000-00000000003b",
+                  "at": "2026-10-19T04:00:00.000000Z",
+                  "action": "proposed",
+                  "actor": "ai"
+                },
+                {
+                  "id": "00000000-0000-4000-8000-00000000003c",
+                  "at": "2026-10-19T04:00:00.000000Z",
+                  "action": "saved",
+                  "actor": "ai"
+                }
+              ]
+            }
+          ],
+          "replies": [
+            {
+              "id": "00000000-0000-4000-8000-00000000003d",
+              "capture_id": "00000000-0000-4000-8000-000000000037",
+              "position": 1,
+              "kind": "info",
+              "body": {
+                "t": "info",
+                "body": "No AI model is set up for capture, so the built-in rules read this. Add a provider in AI settings for smarter reads.",
+                "tone": "fallback",
+                "title": "Read by the built-in rules",
+                "actions": [
+                  {
+                    "do": "link",
+                    "href": "/capture/settings",
+                    "label": "AI settings"
+                  }
+                ]
+              },
+              "version": 1,
+              "deleted_at": null
+            }
+          ],
+          "attachments": []
+        }
+      ],
+      [
+        "capture",
+        {
+          "id": "00000000-0000-4000-8000-000000000037",
+          "client_uuid": "00000000-0000-4000-8000-000000000038",
+          "at": "2026-10-19T04:00:00.000000Z",
+          "source": "text",
+          "text": "ran 5k 32 min",
+          "transcript": null,
+          "duration_sec": null,
+          "hint": null,
+          "file_name": null,
+          "status": "done",
+          "reply_text": "Logged it.",
+          "error_code": null,
+          "started_at": "2026-10-19T04:00:00.000000Z",
+          "engine": "rules",
+          "created_at": "2026-10-19T04:00:00.000000Z",
+          "version": 1,
+          "deleted_at": null,
+          "cards": [
+            {
+              "t": "record",
+              "id": "00000000-0000-4000-8000-000000000039",
+              "capture_id": "00000000-0000-4000-8000-000000000037",
+              "position": 0,
+              "kind": "workout",
+              "target": "fitness",
+              "tier": "auto",
+              "state": "saved",
+              "payload": {
+                "kind": "workout",
+                "name": "5 km run",
+                "cardio": {
+                  "km": 5,
+                  "min": 32,
+                  "activity": "Run"
+                },
+                "exercises": []
+              },
+              "refs": ["00000000-0000-4000-8000-00000000003a"],
+              "ask": null,
+              "note": "6:24 /km · 1 sessions in 7 days",
+              "warn": null,
+              "confidence": null,
+              "day_offset": 0,
+              "version": 1,
+              "log": [
+                {
+                  "id": "00000000-0000-4000-8000-00000000003b",
+                  "at": "2026-10-19T04:00:00.000000Z",
+                  "action": "proposed",
+                  "actor": "ai"
+                },
+                {
+                  "id": "00000000-0000-4000-8000-00000000003c",
+                  "at": "2026-10-19T04:00:00.000000Z",
+                  "action": "saved",
+                  "actor": "ai"
+                }
+              ]
+            }
+          ],
+          "replies": [
+            {
+              "id": "00000000-0000-4000-8000-00000000003d",
+              "capture_id": "00000000-0000-4000-8000-000000000037",
+              "position": 1,
+              "kind": "info",
+              "body": {
+                "t": "info",
+                "body": "No AI model is set up for capture, so the built-in rules read this. Add a provider in AI settings for smarter reads.",
+                "tone": "fallback",
+                "title": "Read by the built-in rules",
+                "actions": [
+                  {
+                    "do": "link",
+                    "href": "/capture/settings",
+                    "label": "AI settings"
+                  }
+                ]
+              },
+              "version": 1,
+              "deleted_at": null
+            }
+          ],
+          "attachments": []
+        }
+      ],
+      [
+        "text.delta",
+        {
+          "text": "Nice"
+        }
+      ],
+      [
+        "text.delta",
+        {
+          "text": " run."
+        }
+      ],
+      [
+        "text.delta",
+        {
+          "text": " Here's"
+        }
+      ],
+      [
+        "text.delta",
+        {
+          "text": " your"
+        }
+      ],
+      [
+        "text.delta",
+        {
+          "text": " month"
+        }
+      ],
+      [
+        "text.delta",
+        {
+          "text": " and"
+        }
+      ],
+      [
+        "text.delta",
+        {
+          "text": " I'll"
+        }
+      ],
+      [
+        "text.delta",
+        {
+          "text": " watch"
+        }
+      ],
+      [
+        "text.delta",
+        {
+          "text": " your"
+        }
+      ],
+      [
+        "text.delta",
+        {
+          "text": " sessions."
+        }
+      ],
+      [
+        "done",
+        {
+          "kind": "reply",
+          "engine": "ai",
+          "messages": [
+            {
+              "id": "00000000-0000-4000-8000-000000000035",
+              "role": "me",
+              "text": "ran 5k today, how's my training?",
+              "blocks": [],
+              "created_at": "2026-10-19T04:00:00.000000Z",
+              "version": 1,
+              "deleted_at": null
+            },
+            {
+              "id": "00000000-0000-4000-8000-00000000003e",
+              "role": "sol",
+              "text": "Nice run. Here's your month and I'll watch your sessions.",
+              "blocks": [
+                {
+                  "t": "chart",
+                  "days": 30,
+                  "metric": "workouts"
+                },
+                {
+                  "t": "tracker",
+                  "id": "00000000-0000-4000-8000-000000000036"
+                }
+              ],
+              "created_at": "2026-10-19T04:00:00.000000Z",
+              "version": 1,
+              "deleted_at": null
+            }
+          ],
+          "capture": {
+            "id": "00000000-0000-4000-8000-000000000037",
+            "client_uuid": "00000000-0000-4000-8000-000000000038",
+            "at": "2026-10-19T04:00:00.000000Z",
+            "source": "text",
+            "text": "ran 5k 32 min",
+            "transcript": null,
+            "duration_sec": null,
+            "hint": null,
+            "file_name": null,
+            "status": "done",
+            "reply_text": "Logged it.",
+            "error_code": null,
+            "started_at": "2026-10-19T04:00:00.000000Z",
+            "engine": "rules",
+            "created_at": "2026-10-19T04:00:00.000000Z",
+            "version": 1,
+            "deleted_at": null,
+            "cards": [
+              {
+                "t": "record",
+                "id": "00000000-0000-4000-8000-000000000039",
+                "capture_id": "00000000-0000-4000-8000-000000000037",
+                "position": 0,
+                "kind": "workout",
+                "target": "fitness",
+                "tier": "auto",
+                "state": "saved",
+                "payload": {
+                  "kind": "workout",
+                  "name": "5 km run",
+                  "cardio": {
+                    "km": 5,
+                    "min": 32,
+                    "activity": "Run"
+                  },
+                  "exercises": []
+                },
+                "refs": ["00000000-0000-4000-8000-00000000003a"],
+                "ask": null,
+                "note": "6:24 /km · 1 sessions in 7 days",
+                "warn": null,
+                "confidence": null,
+                "day_offset": 0,
+                "version": 1,
+                "log": [
+                  {
+                    "id": "00000000-0000-4000-8000-00000000003b",
+                    "at": "2026-10-19T04:00:00.000000Z",
+                    "action": "proposed",
+                    "actor": "ai"
+                  },
+                  {
+                    "id": "00000000-0000-4000-8000-00000000003c",
+                    "at": "2026-10-19T04:00:00.000000Z",
+                    "action": "saved",
+                    "actor": "ai"
+                  }
+                ]
+              }
+            ],
+            "replies": [
+              {
+                "id": "00000000-0000-4000-8000-00000000003d",
+                "capture_id": "00000000-0000-4000-8000-000000000037",
+                "position": 1,
+                "kind": "info",
+                "body": {
+                  "t": "info",
+                  "body": "No AI model is set up for capture, so the built-in rules read this. Add a provider in AI settings for smarter reads.",
+                  "tone": "fallback",
+                  "title": "Read by the built-in rules",
+                  "actions": [
+                    {
+                      "do": "link",
+                      "href": "/capture/settings",
+                      "label": "AI settings"
+                    }
+                  ]
+                },
+                "version": 1,
+                "deleted_at": null
+              }
+            ],
+            "attachments": []
+          }
+        }
+      ]
+    ]
+  },
+  "stream_ai": {
+    "request": {
+      "id": "00000000-0000-4000-8000-00000000003f",
+      "client_uuid": "00000000-0000-4000-8000-000000000040",
+      "text": "spent 250 on grab, remind me to pay rent on the 30th"
+    },
+    "status": 200,
+    "frames": [
+      [
+        "capture",
+        {
+          "id": "00000000-0000-4000-8000-00000000003f",
+          "client_uuid": "00000000-0000-4000-8000-000000000040",
+          "at": "2026-10-19T04:00:00.000000Z",
+          "source": "text",
+          "text": "spent 250 on grab, remind me to pay rent on the 30th",
+          "transcript": null,
+          "duration_sec": null,
+          "hint": null,
+          "file_name": null,
+          "status": "processing",
+          "reply_text": null,
+          "error_code": null,
+          "started_at": "2026-10-19T04:00:00.000000Z",
+          "engine": null,
+          "created_at": "2026-10-19T04:00:00.000000Z",
+          "version": 1,
+          "deleted_at": null
+        }
+      ],
+      [
+        "card",
+        {
+          "t": "record",
+          "id": "00000000-0000-4000-8000-000000000041",
+          "capture_id": "00000000-0000-4000-8000-00000000003f",
+          "position": 0,
+          "kind": "expense",
+          "target": "finance",
+          "tier": "confirm",
+          "state": "proposed",
+          "payload": {
+            "kind": "expense",
+            "payee": "Grab",
+            "account_id": "00000000-0000-4000-8000-000000000004",
+            "category_id": "d734945e-f134-542f-a0b6-f3ccbb011dbc",
+            "amount_minor": 25000
+          },
+          "refs": [],
+          "ask": null,
+          "note": null,
+          "warn": "Looks like the ₱250 you logged at 11:00 am (Grab). Keep both?",
+          "confidence": null,
+          "day_offset": 0,
+          "version": 1,
+          "log": [
+            {
+              "id": "00000000-0000-4000-8000-000000000042",
+              "at": "2026-10-19T04:00:00.000000Z",
+              "action": "proposed",
+              "actor": "ai"
+            }
+          ]
+        }
+      ],
+      [
+        "card",
+        {
+          "t": "record",
+          "id": "00000000-0000-4000-8000-000000000043",
+          "capture_id": "00000000-0000-4000-8000-00000000003f",
+          "position": 1,
+          "kind": "task",
+          "target": "tasks",
+          "tier": "confirm",
+          "state": "proposed",
+          "payload": {
+            "kind": "task",
+            "tasks": [
+              {
+                "title": "Pay rent",
+                "remind": true,
+                "list_id": null,
+                "due_date": "2026-10-30",
+                "due_time": null
+              }
+            ]
+          },
+          "refs": [],
+          "ask": null,
+          "note": null,
+          "warn": null,
+          "confidence": null,
+          "day_offset": null,
+          "version": 1,
+          "log": [
+            {
+              "id": "00000000-0000-4000-8000-000000000044",
+              "at": "2026-10-19T04:00:00.000000Z",
+              "action": "proposed",
+              "actor": "ai"
+            }
+          ]
+        }
+      ],
+      [
+        "text.delta",
+        {
+          "text": "Logged"
+        }
+      ],
+      [
+        "text.delta",
+        {
+          "text": " your"
+        }
+      ],
+      [
+        "text.delta",
+        {
+          "text": " ride"
+        }
+      ],
+      [
+        "text.delta",
+        {
+          "text": " and"
+        }
+      ],
+      [
+        "text.delta",
+        {
+          "text": " the"
+        }
+      ],
+      [
+        "text.delta",
+        {
+          "text": " rent"
+        }
+      ],
+      [
+        "text.delta",
+        {
+          "text": " reminder."
+        }
+      ],
+      [
+        "done",
+        {
+          "id": "00000000-0000-4000-8000-00000000003f",
+          "client_uuid": "00000000-0000-4000-8000-000000000040",
+          "at": "2026-10-19T04:00:00.000000Z",
+          "source": "text",
+          "text": "spent 250 on grab, remind me to pay rent on the 30th",
+          "transcript": null,
+          "duration_sec": null,
+          "hint": null,
+          "file_name": null,
+          "status": "done",
+          "reply_text": "Logged your ride and the rent reminder.",
+          "error_code": null,
+          "started_at": "2026-10-19T04:00:00.000000Z",
+          "engine": "ai",
+          "created_at": "2026-10-19T04:00:00.000000Z",
+          "version": 1,
+          "deleted_at": null,
+          "cards": [
+            {
+              "t": "record",
+              "id": "00000000-0000-4000-8000-000000000041",
+              "capture_id": "00000000-0000-4000-8000-00000000003f",
+              "position": 0,
+              "kind": "expense",
+              "target": "finance",
+              "tier": "confirm",
+              "state": "proposed",
+              "payload": {
+                "kind": "expense",
+                "payee": "Grab",
+                "account_id": "00000000-0000-4000-8000-000000000004",
+                "category_id": "d734945e-f134-542f-a0b6-f3ccbb011dbc",
+                "amount_minor": 25000
+              },
+              "refs": [],
+              "ask": null,
+              "note": null,
+              "warn": "Looks like the ₱250 you logged at 11:00 am (Grab). Keep both?",
+              "confidence": null,
+              "day_offset": 0,
+              "version": 1,
+              "log": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000042",
+                  "at": "2026-10-19T04:00:00.000000Z",
+                  "action": "proposed",
+                  "actor": "ai"
+                }
+              ]
+            },
+            {
+              "t": "record",
+              "id": "00000000-0000-4000-8000-000000000043",
+              "capture_id": "00000000-0000-4000-8000-00000000003f",
+              "position": 1,
+              "kind": "task",
+              "target": "tasks",
+              "tier": "confirm",
+              "state": "proposed",
+              "payload": {
+                "kind": "task",
+                "tasks": [
+                  {
+                    "title": "Pay rent",
+                    "remind": true,
+                    "list_id": null,
+                    "due_date": "2026-10-30",
+                    "due_time": null
+                  }
+                ]
+              },
+              "refs": [],
+              "ask": null,
+              "note": null,
+              "warn": null,
+              "confidence": null,
+              "day_offset": null,
+              "version": 1,
+              "log": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000044",
+                  "at": "2026-10-19T04:00:00.000000Z",
+                  "action": "proposed",
+                  "actor": "ai"
+                }
+              ]
+            }
+          ],
+          "replies": [],
+          "attachments": []
+        }
+      ]
+    ]
+  }
+}
