@@ -63,6 +63,20 @@ function token(user: LiveUser) {
   )
 }
 
+/** DELETE as ``user``: 204, no body (cy.liveApi reads a body). */
+function del(user: LiveUser, path: string) {
+  return token(user).then((t) =>
+    cy
+      .request({
+        method: "DELETE",
+        url: `${Cypress.env("API_URL")}/api/v1${path}`,
+        headers: { Authorization: `Bearer ${t}` },
+      })
+      .its("status")
+      .should("eq", 204),
+  )
+}
+
 function expectNoKey(body: unknown) {
   const json = JSON.stringify(body)
   expect(json, "response never carries the key").not.to.contain(FAKE_KEY)
@@ -188,12 +202,12 @@ describe("AI providers and AI settings (live)", () => {
         ).should("exist")
 
         // Remove one assignment, then the credential.
-        cy.liveApi(user, "DELETE", "/ai/assignments/vision")
+        del(user, "/ai/assignments/vision")
         noRows(
           "select 1 from ai_model_assignment where owner_id = $1 and purpose = 'vision'",
           [user.id],
         )
-        cy.liveApi(user, "DELETE", `/ai/providers/${cred.id}`)
+        del(user, `/ai/providers/${cred.id}`)
         noRows(
           "select 1 from ai_provider_credential where id = $1 and deleted_at is null",
           [cred.id],
@@ -245,7 +259,7 @@ describe("AI providers and AI settings (live)", () => {
       cy.findByRole("tab", { name: "English" }).click()
       cy.findByRole("tab", { name: "On-device preview" }).click()
       setting(
-        "send_photos = false and journal_in_qa = false and finance_scope = 'records' and language = 'en' and transcription = 'browser'",
+        "send_photos = false and journal_in_qa = true and finance_scope = 'records' and language = 'en' and transcription = 'browser'",
       )
       api<{ spend_cap_minor: number; rules: Record<string, string> }>(
         user,
