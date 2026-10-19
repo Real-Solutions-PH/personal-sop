@@ -13,6 +13,7 @@ import { API_PREFIX, API_URL } from "./config"
 import { SyncEngine } from "./engine"
 import { runEventStream, type ServerEvent } from "./events"
 import type { AnyMapper } from "./mapper"
+import "./mappers/finance"
 import { modulePrefMapper, weatherPrefMapper } from "./mappers/reference"
 import { createOutbox } from "./outbox"
 

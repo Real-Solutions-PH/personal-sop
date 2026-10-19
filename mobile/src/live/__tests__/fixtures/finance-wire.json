@@ -1,0 +1,1226 @@
+[
+  {
+    "entity": "account",
+    "create": true,
+    "data": {
+      "name": "GCash",
+      "type": "ewallet",
+      "opening_minor": 150050,
+      "opening_date": "2026-10-19",
+      "limit_minor": null,
+      "color": "#1e88e5",
+      "in_net_worth": true,
+      "in_projection": true,
+      "archived": false,
+      "manual": false,
+      "sort_order": 0,
+      "last_reconciled": null
+    }
+  },
+  {
+    "entity": "account",
+    "create": true,
+    "data": {
+      "name": "BPI",
+      "type": "bank",
+      "opening_minor": 2000000,
+      "opening_date": "2026-10-19",
+      "limit_minor": null,
+      "color": "#c62828",
+      "in_net_worth": true,
+      "in_projection": true,
+      "archived": false,
+      "manual": false,
+      "sort_order": 1,
+      "last_reconciled": null
+    }
+  },
+  {
+    "entity": "category",
+    "create": true,
+    "data": {
+      "name": "Food",
+      "kind": "expense",
+      "parent_id": null,
+      "icon": "🍽️",
+      "discretionary": true,
+      "archived": false,
+      "sort_order": 0
+    }
+  },
+  {
+    "entity": "category",
+    "create": true,
+    "data": {
+      "name": "Dining out",
+      "kind": "expense",
+      "parent_id": "64449c4f-d903-515f-9041-992798fda226",
+      "icon": "🍗",
+      "discretionary": true,
+      "archived": false,
+      "sort_order": 1
+    }
+  },
+  {
+    "entity": "category",
+    "create": true,
+    "data": {
+      "name": "Coffee",
+      "kind": "expense",
+      "parent_id": "64449c4f-d903-515f-9041-992798fda226",
+      "icon": "☕",
+      "discretionary": true,
+      "archived": false,
+      "sort_order": 2
+    }
+  },
+  {
+    "entity": "category",
+    "create": true,
+    "data": {
+      "name": "Groceries",
+      "kind": "expense",
+      "parent_id": "64449c4f-d903-515f-9041-992798fda226",
+      "icon": "🛒",
+      "discretionary": false,
+      "archived": false,
+      "sort_order": 3
+    }
+  },
+  {
+    "entity": "category",
+    "create": true,
+    "data": {
+      "name": "Transport",
+      "kind": "expense",
+      "parent_id": null,
+      "icon": "🚌",
+      "discretionary": false,
+      "archived": false,
+      "sort_order": 4
+    }
+  },
+  {
+    "entity": "category",
+    "create": true,
+    "data": {
+      "name": "Grab rides",
+      "kind": "expense",
+      "parent_id": "43e8cac6-ae74-569c-bfbd-45798e15e6ba",
+      "icon": "🚗",
+      "discretionary": false,
+      "archived": false,
+      "sort_order": 5
+    }
+  },
+  {
+    "entity": "category",
+    "create": true,
+    "data": {
+      "name": "Commute",
+      "kind": "expense",
+      "parent_id": "43e8cac6-ae74-569c-bfbd-45798e15e6ba",
+      "icon": "🚇",
+      "discretionary": false,
+      "archived": false,
+      "sort_order": 6
+    }
+  },
+  {
+    "entity": "category",
+    "create": true,
+    "data": {
+      "name": "Bills",
+      "kind": "expense",
+      "parent_id": null,
+      "icon": "🧾",
+      "discretionary": false,
+      "archived": false,
+      "sort_order": 7
+    }
+  },
+  {
+    "entity": "category",
+    "create": true,
+    "data": {
+      "name": "Electricity",
+      "kind": "expense",
+      "parent_id": "60d48d20-1dc6-5e6a-b575-f3078c75c08d",
+      "icon": "💡",
+      "discretionary": false,
+      "archived": false,
+      "sort_order": 8
+    }
+  },
+  {
+    "entity": "category",
+    "create": true,
+    "data": {
+      "name": "Internet",
+      "kind": "expense",
+      "parent_id": "60d48d20-1dc6-5e6a-b575-f3078c75c08d",
+      "icon": "📶",
+      "discretionary": false,
+      "archived": false,
+      "sort_order": 9
+    }
+  },
+  {
+    "entity": "category",
+    "create": true,
+    "data": {
+      "name": "Mobile plan",
+      "kind": "expense",
+      "parent_id": "60d48d20-1dc6-5e6a-b575-f3078c75c08d",
+      "icon": "📱",
+      "discretionary": false,
+      "archived": false,
+      "sort_order": 10
+    }
+  },
+  {
+    "entity": "category",
+    "create": true,
+    "data": {
+      "name": "Rent",
+      "kind": "expense",
+      "parent_id": null,
+      "icon": "🏠",
+      "discretionary": false,
+      "archived": false,
+      "sort_order": 11
+    }
+  },
+  {
+    "entity": "category",
+    "create": true,
+    "data": {
+      "name": "Subscriptions",
+      "kind": "expense",
+      "parent_id": null,
+      "icon": "🎬",
+      "discretionary": true,
+      "archived": false,
+      "sort_order": 12
+    }
+  },
+  {
+    "entity": "category",
+    "create": true,
+    "data": {
+      "name": "Shopping",
+      "kind": "expense",
+      "parent_id": null,
+      "icon": "🛍️",
+      "discretionary": true,
+      "archived": false,
+      "sort_order": 13
+    }
+  },
+  {
+    "entity": "category",
+    "create": true,
+    "data": {
+      "name": "Entertainment",
+      "kind": "expense",
+      "parent_id": null,
+      "icon": "🎟️",
+      "discretionary": true,
+      "archived": false,
+      "sort_order": 14
+    }
+  },
+  {
+    "entity": "category",
+    "create": true,
+    "data": {
+      "name": "Health",
+      "kind": "expense",
+      "parent_id": null,
+      "icon": "💊",
+      "discretionary": false,
+      "archived": false,
+      "sort_order": 15
+    }
+  },
+  {
+    "entity": "category",
+    "create": true,
+    "data": {
+      "name": "Personal care",
+      "kind": "expense",
+      "parent_id": null,
+      "icon": "💈",
+      "discretionary": true,
+      "archived": false,
+      "sort_order": 16
+    }
+  },
+  {
+    "entity": "category",
+    "create": true,
+    "data": {
+      "name": "Gifts",
+      "kind": "expense",
+      "parent_id": null,
+      "icon": "🎁",
+      "discretionary": true,
+      "archived": false,
+      "sort_order": 17
+    }
+  },
+  {
+    "entity": "category",
+    "create": true,
+    "data": {
+      "name": "Fees",
+      "kind": "expense",
+      "parent_id": null,
+      "icon": "🏦",
+      "discretionary": false,
+      "archived": false,
+      "sort_order": 18
+    }
+  },
+  {
+    "entity": "category",
+    "create": true,
+    "data": {
+      "name": "Balance adjustment",
+      "kind": "expense",
+      "parent_id": null,
+      "icon": "⚖️",
+      "discretionary": false,
+      "archived": false,
+      "sort_order": 19
+    }
+  },
+  {
+    "entity": "category",
+    "create": true,
+    "data": {
+      "name": "Salary",
+      "kind": "income",
+      "parent_id": null,
+      "icon": "💼",
+      "discretionary": false,
+      "archived": false,
+      "sort_order": 20
+    }
+  },
+  {
+    "entity": "category",
+    "create": true,
+    "data": {
+      "name": "Side income",
+      "kind": "income",
+      "parent_id": null,
+      "icon": "💻",
+      "discretionary": false,
+      "archived": false,
+      "sort_order": 21
+    }
+  },
+  {
+    "entity": "category",
+    "create": true,
+    "data": {
+      "name": "Interest",
+      "kind": "income",
+      "parent_id": null,
+      "icon": "📈",
+      "discretionary": false,
+      "archived": false,
+      "sort_order": 22
+    }
+  },
+  {
+    "entity": "category",
+    "create": true,
+    "data": {
+      "name": "Other income",
+      "kind": "income",
+      "parent_id": null,
+      "icon": "💰",
+      "discretionary": false,
+      "archived": false,
+      "sort_order": 23
+    }
+  },
+  {
+    "entity": "finance_settings",
+    "create": true,
+    "data": {
+      "default_account_id": "2af005c7-6cde-4032-90c3-8e98a09a5952",
+      "month_start_day": 1,
+      "horizon": 12,
+      "include_unplanned": true,
+      "safety_floor_minor": 3000000,
+      "ai_scope": "aggregates",
+      "disclaimer_ack": false,
+      "nudge_days": 21,
+      "proj_excluded_planned": []
+    }
+  },
+  {
+    "entity": "account",
+    "create": false,
+    "data": {
+      "name": "GCash wallet"
+    }
+  },
+  {
+    "entity": "account",
+    "create": true,
+    "data": {
+      "name": "Card",
+      "type": "credit",
+      "opening_minor": -123456,
+      "opening_date": "2026-10-19",
+      "limit_minor": 5000000,
+      "color": "#000",
+      "in_net_worth": true,
+      "in_projection": false,
+      "archived": false,
+      "manual": false,
+      "sort_order": 0,
+      "last_reconciled": null
+    }
+  },
+  {
+    "entity": "category",
+    "create": false,
+    "data": {
+      "name": "Food",
+      "kind": "expense",
+      "parent_id": null,
+      "icon": "🍽️",
+      "discretionary": true,
+      "archived": false,
+      "sort_order": 0
+    }
+  },
+  {
+    "entity": "category",
+    "create": false,
+    "data": {
+      "name": "Dining out",
+      "kind": "expense",
+      "parent_id": "64449c4f-d903-515f-9041-992798fda226",
+      "icon": "🍗",
+      "discretionary": true,
+      "archived": false,
+      "sort_order": 1
+    }
+  },
+  {
+    "entity": "category",
+    "create": false,
+    "data": {
+      "name": "Coffee",
+      "kind": "expense",
+      "parent_id": "64449c4f-d903-515f-9041-992798fda226",
+      "icon": "☕",
+      "discretionary": true,
+      "archived": false,
+      "sort_order": 2
+    }
+  },
+  {
+    "entity": "category",
+    "create": false,
+    "data": {
+      "name": "Groceries",
+      "kind": "expense",
+      "parent_id": "64449c4f-d903-515f-9041-992798fda226",
+      "icon": "🛒",
+      "discretionary": false,
+      "archived": false,
+      "sort_order": 3
+    }
+  },
+  {
+    "entity": "category",
+    "create": false,
+    "data": {
+      "name": "Transport",
+      "kind": "expense",
+      "parent_id": null,
+      "icon": "🚌",
+      "discretionary": false,
+      "archived": false,
+      "sort_order": 4
+    }
+  },
+  {
+    "entity": "category",
+    "create": false,
+    "data": {
+      "name": "Grab rides",
+      "kind": "expense",
+      "parent_id": "43e8cac6-ae74-569c-bfbd-45798e15e6ba",
+      "icon": "🚗",
+      "discretionary": false,
+      "archived": false,
+      "sort_order": 5
+    }
+  },
+  {
+    "entity": "category",
+    "create": false,
+    "data": {
+      "name": "Commute",
+      "kind": "expense",
+      "parent_id": "43e8cac6-ae74-569c-bfbd-45798e15e6ba",
+      "icon": "🚇",
+      "discretionary": false,
+      "archived": false,
+      "sort_order": 6
+    }
+  },
+  {
+    "entity": "category",
+    "create": false,
+    "data": {
+      "name": "Bills",
+      "kind": "expense",
+      "parent_id": null,
+      "icon": "🧾",
+      "discretionary": false,
+      "archived": false,
+      "sort_order": 7
+    }
+  },
+  {
+    "entity": "category",
+    "create": false,
+    "data": {
+      "name": "Electricity",
+      "kind": "expense",
+      "parent_id": "60d48d20-1dc6-5e6a-b575-f3078c75c08d",
+      "icon": "💡",
+      "discretionary": false,
+      "archived": false,
+      "sort_order": 8
+    }
+  },
+  {
+    "entity": "category",
+    "create": false,
+    "data": {
+      "name": "Internet",
+      "kind": "expense",
+      "parent_id": "60d48d20-1dc6-5e6a-b575-f3078c75c08d",
+      "icon": "📶",
+      "discretionary": false,
+      "archived": false,
+      "sort_order": 9
+    }
+  },
+  {
+    "entity": "category",
+    "create": false,
+    "data": {
+      "name": "Mobile plan",
+      "kind": "expense",
+      "parent_id": "60d48d20-1dc6-5e6a-b575-f3078c75c08d",
+      "icon": "📱",
+      "discretionary": false,
+      "archived": false,
+      "sort_order": 10
+    }
+  },
+  {
+    "entity": "category",
+    "create": false,
+    "data": {
+      "name": "Rent",
+      "kind": "expense",
+      "parent_id": null,
+      "icon": "🏠",
+      "discretionary": false,
+      "archived": false,
+      "sort_order": 11
+    }
+  },
+  {
+    "entity": "category",
+    "create": false,
+    "data": {
+      "name": "Subscriptions",
+      "kind": "expense",
+      "parent_id": null,
+      "icon": "🎬",
+      "discretionary": true,
+      "archived": false,
+      "sort_order": 12
+    }
+  },
+  {
+    "entity": "category",
+    "create": false,
+    "data": {
+      "name": "Shopping",
+      "kind": "expense",
+      "parent_id": null,
+      "icon": "🛍️",
+      "discretionary": true,
+      "archived": false,
+      "sort_order": 13
+    }
+  },
+  {
+    "entity": "category",
+    "create": false,
+    "data": {
+      "name": "Entertainment",
+      "kind": "expense",
+      "parent_id": null,
+      "icon": "🎟️",
+      "discretionary": true,
+      "archived": false,
+      "sort_order": 14
+    }
+  },
+  {
+    "entity": "category",
+    "create": false,
+    "data": {
+      "name": "Health",
+      "kind": "expense",
+      "parent_id": null,
+      "icon": "💊",
+      "discretionary": false,
+      "archived": false,
+      "sort_order": 15
+    }
+  },
+  {
+    "entity": "category",
+    "create": false,
+    "data": {
+      "name": "Personal care",
+      "kind": "expense",
+      "parent_id": null,
+      "icon": "💈",
+      "discretionary": true,
+      "archived": false,
+      "sort_order": 16
+    }
+  },
+  {
+    "entity": "category",
+    "create": false,
+    "data": {
+      "name": "Gifts",
+      "kind": "expense",
+      "parent_id": null,
+      "icon": "🎁",
+      "discretionary": true,
+      "archived": false,
+      "sort_order": 17
+    }
+  },
+  {
+    "entity": "category",
+    "create": false,
+    "data": {
+      "name": "Fees",
+      "kind": "expense",
+      "parent_id": null,
+      "icon": "🏦",
+      "discretionary": false,
+      "archived": false,
+      "sort_order": 18
+    }
+  },
+  {
+    "entity": "category",
+    "create": false,
+    "data": {
+      "name": "Balance adjustment",
+      "kind": "expense",
+      "parent_id": null,
+      "icon": "⚖️",
+      "discretionary": false,
+      "archived": false,
+      "sort_order": 19
+    }
+  },
+  {
+    "entity": "category",
+    "create": false,
+    "data": {
+      "name": "Salary",
+      "kind": "income",
+      "parent_id": null,
+      "icon": "💼",
+      "discretionary": false,
+      "archived": false,
+      "sort_order": 20
+    }
+  },
+  {
+    "entity": "category",
+    "create": false,
+    "data": {
+      "name": "Side income",
+      "kind": "income",
+      "parent_id": null,
+      "icon": "💻",
+      "discretionary": false,
+      "archived": false,
+      "sort_order": 21
+    }
+  },
+  {
+    "entity": "category",
+    "create": false,
+    "data": {
+      "name": "Interest",
+      "kind": "income",
+      "parent_id": null,
+      "icon": "📈",
+      "discretionary": false,
+      "archived": false,
+      "sort_order": 22
+    }
+  },
+  {
+    "entity": "category",
+    "create": false,
+    "data": {
+      "name": "Other income",
+      "kind": "income",
+      "parent_id": null,
+      "icon": "💰",
+      "discretionary": false,
+      "archived": false,
+      "sort_order": 23
+    }
+  },
+  {
+    "entity": "finance_settings",
+    "create": false,
+    "data": {
+      "default_account_id": "dd7f1c74-f505-4db2-9ba8-728ef75454d4",
+      "month_start_day": 1,
+      "horizon": 12,
+      "include_unplanned": true,
+      "safety_floor_minor": 3000000,
+      "ai_scope": "aggregates",
+      "disclaimer_ack": false,
+      "nudge_days": 21,
+      "proj_excluded_planned": []
+    }
+  },
+  {
+    "entity": "fin_record",
+    "create": true,
+    "data": {
+      "type": "expense",
+      "amount_minor": 18975,
+      "account_id": "dd7f1c74-f505-4db2-9ba8-728ef75454d4",
+      "to_account_id": null,
+      "category_id": "b435522e-86a8-52ac-a606-fad321ad3e62",
+      "payee": null,
+      "note": null,
+      "source": "chat",
+      "is_refund": false,
+      "status": "cleared"
+    }
+  },
+  {
+    "entity": "finance_settings",
+    "create": false,
+    "data": {
+      "default_account_id": "e929d3ee-e049-4ea3-9080-4ea2d9d0720a",
+      "month_start_day": 1,
+      "horizon": 12,
+      "include_unplanned": true,
+      "safety_floor_minor": 3000000,
+      "ai_scope": "aggregates",
+      "disclaimer_ack": false,
+      "nudge_days": 21,
+      "proj_excluded_planned": []
+    }
+  },
+  {
+    "entity": "planned_item",
+    "create": true,
+    "data": {
+      "name": "Rent",
+      "type": "expense",
+      "amount_minor": 1500000,
+      "estimated": false,
+      "account_id": "e929d3ee-e049-4ea3-9080-4ea2d9d0720a",
+      "to_account_id": null,
+      "category_id": "b4bc53d0-1332-591f-8ad8-a776f40923df",
+      "schedule": {
+        "kind": "monthly",
+        "day": 5
+      },
+      "start": "2026-10-19",
+      "end_rule": {
+        "kind": "never"
+      },
+      "auto_log": false,
+      "is_what_if": false,
+      "is_installment": false,
+      "in_projection": true,
+      "archived": false
+    }
+  },
+  {
+    "action": "finance.settle",
+    "data": {
+      "planned_id": "fc31602d-bd56-4c5d-8e8d-7443cb86d599",
+      "day": "2026-10-05",
+      "amount_minor": 1525050,
+      "account_id": "e929d3ee-e049-4ea3-9080-4ea2d9d0720a",
+      "paid_on": "2026-10-19"
+    }
+  },
+  {
+    "entity": "fin_record",
+    "create": true,
+    "data": {
+      "type": "expense",
+      "amount_minor": 1525050,
+      "account_id": "e929d3ee-e049-4ea3-9080-4ea2d9d0720a",
+      "to_account_id": null,
+      "category_id": "b4bc53d0-1332-591f-8ad8-a776f40923df",
+      "at": "2026-10-19T04:25:00.000Z",
+      "payee": "Rent",
+      "note": null,
+      "source": "planned",
+      "is_refund": false,
+      "status": "cleared"
+    }
+  },
+  {
+    "entity": "finance_settings",
+    "create": false,
+    "data": {
+      "default_account_id": "35a8f0f7-937d-4a22-8a9d-33fb2fe9412a",
+      "month_start_day": 1,
+      "horizon": 12,
+      "include_unplanned": true,
+      "safety_floor_minor": 3000000,
+      "ai_scope": "aggregates",
+      "disclaimer_ack": false,
+      "nudge_days": 21,
+      "proj_excluded_planned": []
+    }
+  },
+  {
+    "entity": "fin_record",
+    "create": true,
+    "data": {
+      "type": "transfer",
+      "amount_minor": 500000,
+      "account_id": "6005aee8-7fca-4338-9748-92fc11d7d7cf",
+      "to_account_id": "35a8f0f7-937d-4a22-8a9d-33fb2fe9412a",
+      "category_id": null,
+      "at": "2026-10-19T04:25:21.562Z",
+      "payee": null,
+      "note": null,
+      "source": "manual",
+      "is_refund": false,
+      "status": "cleared",
+      "fee_minor": 1500
+    }
+  },
+  {
+    "entity": "fin_record",
+    "create": true,
+    "data": {
+      "type": "expense",
+      "amount_minor": 1500,
+      "account_id": "6005aee8-7fca-4338-9748-92fc11d7d7cf",
+      "to_account_id": null,
+      "category_id": "4d247a35-0077-50ec-a922-51763d1997b5",
+      "at": "2026-10-19T04:25:21.562Z",
+      "payee": "Transfer fee",
+      "note": null,
+      "source": "manual",
+      "is_refund": false,
+      "status": "cleared"
+    }
+  },
+  {
+    "entity": "finance_settings",
+    "create": false,
+    "data": {
+      "default_account_id": "57525fca-6b0c-4e7b-98a0-8e7f371d5ec5",
+      "month_start_day": 1,
+      "horizon": 12,
+      "include_unplanned": true,
+      "safety_floor_minor": 3000000,
+      "ai_scope": "aggregates",
+      "disclaimer_ack": false,
+      "nudge_days": 21,
+      "proj_excluded_planned": []
+    }
+  },
+  {
+    "entity": "fin_record",
+    "create": true,
+    "data": {
+      "type": "expense",
+      "amount_minor": 20000,
+      "account_id": "57525fca-6b0c-4e7b-98a0-8e7f371d5ec5",
+      "to_account_id": null,
+      "category_id": "4b96b151-99ce-5eb4-a892-5109d4a91a19",
+      "payee": null,
+      "note": null,
+      "source": "chat",
+      "is_refund": false,
+      "status": "cleared"
+    }
+  },
+  {
+    "action": "finance.adjust_balance",
+    "data": {
+      "account_id": "57525fca-6b0c-4e7b-98a0-8e7f371d5ec5",
+      "actual_minor": 100000,
+      "note": "counted cash",
+      "record_id": "bf5c43ee-b5ac-4fb3-b8da-d0e6f84fe45e"
+    }
+  },
+  {
+    "entity": "fin_record",
+    "create": false,
+    "data": {
+      "amount_minor": 30050,
+      "category_id": "341cd3cd-57d7-56c7-b01c-9c713641b195",
+      "at": "2026-10-19T04:25:21.567Z",
+      "payee": "Balance adjustment",
+      "note": "counted cash",
+      "source": "adjustment",
+      "is_refund": false,
+      "status": "cleared"
+    }
+  },
+  {
+    "entity": "finance_settings",
+    "create": false,
+    "data": {
+      "default_account_id": "bd0ccf62-5bf1-4aa0-b771-4d984a01113c",
+      "month_start_day": 1,
+      "horizon": 12,
+      "include_unplanned": true,
+      "safety_floor_minor": 3000000,
+      "ai_scope": "aggregates",
+      "disclaimer_ack": false,
+      "nudge_days": 21,
+      "proj_excluded_planned": []
+    }
+  },
+  {
+    "entity": "fin_record",
+    "create": true,
+    "data": {
+      "type": "expense",
+      "amount_minor": 9900,
+      "account_id": "bd0ccf62-5bf1-4aa0-b771-4d984a01113c",
+      "to_account_id": null,
+      "category_id": null,
+      "payee": null,
+      "note": null,
+      "source": "chat",
+      "is_refund": false,
+      "status": "pending"
+    }
+  },
+  {
+    "action": "finance.confirm_record",
+    "data": {
+      "record_id": "9b88d03e-b57b-4de1-93c3-ce106d733fed"
+    }
+  },
+  {
+    "entity": "fin_record",
+    "create": false,
+    "data": {
+      "status": "cleared"
+    }
+  },
+  {
+    "entity": "finance_settings",
+    "create": false,
+    "data": {
+      "default_account_id": "f9188933-db65-4451-a9b4-207d9bf00a79",
+      "month_start_day": 1,
+      "horizon": 12,
+      "include_unplanned": true,
+      "safety_floor_minor": 3000000,
+      "ai_scope": "aggregates",
+      "disclaimer_ack": false,
+      "nudge_days": 21,
+      "proj_excluded_planned": []
+    }
+  },
+  {
+    "entity": "planned_item",
+    "create": true,
+    "data": {
+      "name": "Internet",
+      "type": "expense",
+      "amount_minor": 169900,
+      "estimated": false,
+      "account_id": "f9188933-db65-4451-a9b4-207d9bf00a79",
+      "to_account_id": null,
+      "category_id": "b24e4575-a624-59e1-bb2d-ba144ed5c16d",
+      "schedule": {
+        "kind": "monthly",
+        "day": 20
+      },
+      "start": "2026-10-19",
+      "end_rule": {
+        "kind": "never"
+      },
+      "auto_log": false,
+      "is_what_if": false,
+      "is_installment": false,
+      "in_projection": true,
+      "archived": false
+    }
+  },
+  {
+    "entity": "planned_skip",
+    "create": true,
+    "data": {
+      "planned_id": "57dd9981-fba7-41ef-97a9-c15f15113d52",
+      "on_day": "2026-10-20"
+    }
+  },
+  {
+    "action": "finance.unskip",
+    "data": {
+      "planned_id": "57dd9981-fba7-41ef-97a9-c15f15113d52",
+      "day": "2026-10-20"
+    }
+  },
+  {
+    "entity": "planned_snooze",
+    "create": true,
+    "data": {
+      "planned_id": "57dd9981-fba7-41ef-97a9-c15f15113d52",
+      "on_day": "2026-10-20",
+      "until_day": "2026-10-22"
+    }
+  },
+  {
+    "entity": "planned_snooze",
+    "create": false,
+    "data": {
+      "until_day": "2026-10-23"
+    }
+  },
+  {
+    "entity": "finance_settings",
+    "create": false,
+    "data": {
+      "default_account_id": "75c9d770-755a-4dcc-ad81-001bb8df17a9",
+      "month_start_day": 1,
+      "horizon": 12,
+      "include_unplanned": true,
+      "safety_floor_minor": 3000000,
+      "ai_scope": "aggregates",
+      "disclaimer_ack": false,
+      "nudge_days": 21,
+      "proj_excluded_planned": []
+    }
+  },
+  {
+    "entity": "budget",
+    "create": true,
+    "data": {
+      "name": "Food",
+      "limit_minor": 1800000,
+      "rollover": false,
+      "start_date": "2026-10-19",
+      "archived": false
+    }
+  },
+  {
+    "entity": "budget_category",
+    "create": true,
+    "data": {
+      "budget_id": "990aa515-6f35-4492-9e0d-932d161a6503",
+      "category_id": "64449c4f-d903-515f-9041-992798fda226"
+    }
+  },
+  {
+    "entity": "budget_category",
+    "create": true,
+    "data": {
+      "budget_id": "990aa515-6f35-4492-9e0d-932d161a6503",
+      "category_id": "4b96b151-99ce-5eb4-a892-5109d4a91a19"
+    }
+  },
+  {
+    "entity": "budget",
+    "create": false,
+    "data": {
+      "name": "Food & drink"
+    }
+  },
+  {
+    "entity": "finance_settings",
+    "create": false,
+    "data": {
+      "default_account_id": "c3c1cb37-4562-4d2f-8380-85d281c22731",
+      "month_start_day": 1,
+      "horizon": 12,
+      "include_unplanned": true,
+      "safety_floor_minor": 3000000,
+      "ai_scope": "aggregates",
+      "disclaimer_ack": false,
+      "nudge_days": 21,
+      "proj_excluded_planned": []
+    }
+  },
+  {
+    "entity": "fin_record",
+    "create": true,
+    "data": {
+      "type": "expense",
+      "amount_minor": 4500,
+      "account_id": "c3c1cb37-4562-4d2f-8380-85d281c22731",
+      "to_account_id": null,
+      "category_id": "ad920462-7bb6-41de-b493-eb9fe63abe0d",
+      "payee": null,
+      "note": null,
+      "source": "chat",
+      "is_refund": false,
+      "status": "cleared"
+    }
+  },
+  {
+    "entity": "category",
+    "create": true,
+    "data": {
+      "name": "Snacks",
+      "kind": "expense",
+      "parent_id": null,
+      "icon": "🍪",
+      "discretionary": true,
+      "archived": false,
+      "sort_order": 24
+    }
+  },
+  {
+    "entity": "fin_record",
+    "create": false,
+    "data": {
+      "category_id": "64449c4f-d903-515f-9041-992798fda226"
+    }
+  },
+  {
+    "entity": "look_back",
+    "create": true,
+    "data": {
+      "period": "2026-09",
+      "note": "first",
+      "snapshot": {
+        "savings_rate": 0.2,
+        "income_minor": 5000000,
+        "spend_minor": 4000000
+      }
+    }
+  },
+  {
+    "entity": "look_back",
+    "create": false,
+    "data": {
+      "note": "second"
+    }
+  },
+  {
+    "entity": "advisor_thread",
+    "create": true,
+    "data": {
+      "title": "Can I afford a phone?"
+    }
+  },
+  {
+    "entity": "advisor_message",
+    "create": true,
+    "data": {
+      "thread_id": "4e32ef49-7ca9-4500-861c-3e5643e841e6",
+      "role": "user",
+      "text": "₱24,999 phone?",
+      "answer": null,
+      "scope": "aggregates"
+    }
+  },
+  {
+    "entity": "advisor_message",
+    "create": true,
+    "data": {
+      "thread_id": "4e32ef49-7ca9-4500-861c-3e5643e841e6",
+      "role": "ai",
+      "text": "Pick a scope",
+      "answer": {
+        "text": "needs-scope"
+      },
+      "scope": "aggregates"
+    }
+  },
+  {
+    "entity": "finance_settings",
+    "create": false,
+    "data": {
+      "default_account_id": "859748da-4b98-4432-a60a-94b7e242ebfe",
+      "month_start_day": 1,
+      "horizon": 12,
+      "include_unplanned": true,
+      "safety_floor_minor": 3000000,
+      "ai_scope": "aggregates",
+      "disclaimer_ack": false,
+      "nudge_days": 21,
+      "proj_excluded_planned": []
+    }
+  },
+  {
+    "entity": "fin_record",
+    "create": true,
+    "data": {
+      "type": "expense",
+      "amount_minor": 1000,
+      "account_id": "859748da-4b98-4432-a60a-94b7e242ebfe",
+      "to_account_id": null,
+      "category_id": "4b96b151-99ce-5eb4-a892-5109d4a91a19",
+      "payee": null,
+      "note": null,
+      "source": "chat",
+      "is_refund": false,
+      "status": "cleared"
+    }
+  },
+  {
+    "entity": "finance_settings",
+    "create": false,
+    "data": {
+      "horizon": 24,
+      "safety_floor_minor": 2500050
+    }
+  },
+  {
+    "entity": "finance_settings",
+    "create": false,
+    "data": {
+      "default_account_id": "47002b0e-da95-40bf-81b9-40580d7424e3",
+      "month_start_day": 1,
+      "horizon": 12,
+      "include_unplanned": true,
+      "safety_floor_minor": 3000000,
+      "ai_scope": "aggregates",
+      "disclaimer_ack": false,
+      "nudge_days": 21,
+      "proj_excluded_planned": []
+    }
+  }
+]
