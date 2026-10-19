@@ -18,6 +18,9 @@
 // | /social/chat/[id]   | B typing → "typing…" live (SSE)              | "B's message, typing and reaction reach A live …" |
 // | /social/inbox       | Unread counts (inbox row, feed header)       | "unread counts …" |
 // | post card           | Send a post into a chat                      | "shares a post into a chat" |
+// | chat Details sheet  | Rename group, mute, add a member, leave       | "group details: rename, mute, add, leave" |
+// | chat Details sheet  | Delete a direct chat                          | "deletes a direct chat from its details" |
+// | /social/inbox       | Swipe row: pin / mute / delete               | NOT COVERABLE ON WEB: swipe-only gesture; mute and delete are covered through the Details sheet (same store actions) |
 import { apiCall, longPress, namedUser, rows } from "./social-helpers"
 import type { LiveUser } from "./support"
 
@@ -298,6 +301,97 @@ describe("social chats (live)", () => {
               [chat.id],
             ).should("have.length", 1)
           })
+        })
+      })
+    })
+  })
+
+  it("group details: rename, mute, add a member, leave", () => {
+    namedUser("Cy").then((c) => {
+      namedUser("Bea").then((b) => {
+        namedUser("Ann").then((a) => {
+          // A follows C, so C is someone A can add.
+          cy.liveApi(a, "PUT", `/social/people/${c.id}/follow`)
+          cy.liveApi<{ id: string }>(b, "POST", "/social/chats/groups", {
+            name: "Old name",
+            member_ids: [a.id],
+          }).then((chat) => {
+            cy.signInLive(a)
+            cy.visit(`/social/chat/${chat.id}`)
+            cy.findByRole("button", { name: "Details" }).click()
+            cy.findByRole("textbox", { name: "Group name" })
+              .clear()
+              .type("New name")
+              .blur()
+            cy.eventuallyRows(
+              "select id from chat where id = $1 and name = 'New name'",
+              [chat.id],
+            )
+            cy.findByRole("switch", { name: "Mute messages" }).click()
+            cy.eventuallyRows(
+              "select id from chat_member where chat_id = $1 and owner_id = $2 and muted = true",
+              [chat.id, a.id],
+            )
+            cy.findByRole("button", { name: "Add people" }).click()
+            cy.findByRole("button", { name: `Add ${c.name}` }).click()
+            cy.eventuallyRows(
+              "select id from chat_member where chat_id = $1 and owner_id = $2 and left_at is null",
+              [chat.id, c.id],
+            )
+            // The server writes the "added" line; A sends no text message.
+            rows(
+              "select id from chat_message where chat_id = $1 and owner_id = $2 and system = false",
+              [chat.id, a.id],
+            ).should("have.length", 0)
+            cy.eventuallyApi<{ data: { id: string }[] }>(
+              c,
+              "/social/chats",
+              (l) => l.data.some((x) => x.id === chat.id),
+            )
+
+            cy.findByRole("button", { name: "Leave group" }).click()
+            cy.location("pathname").should("eq", "/social/inbox")
+            cy.eventuallyRows(
+              "select id from chat_member where chat_id = $1 and owner_id = $2 and left_at is not null",
+              [chat.id, a.id],
+            )
+            // Leaving is for good: a new message does not bring it back.
+            cy.liveApi(b, "POST", `/social/chats/${chat.id}/messages`, {
+              text: "Still there?",
+            })
+            cy.eventuallyApi<{ data: { id: string }[] }>(
+              a,
+              "/social/chats",
+              (l) => !l.data.some((x) => x.id === chat.id),
+            )
+          })
+        })
+      })
+    })
+  })
+
+  it("deletes a direct chat from its details", () => {
+    namedUser("Bea").then((b) => {
+      namedUser("Ann").then((a) => {
+        directFrom(b, a.id).then((chat) => {
+          cy.liveApi(b, "POST", `/social/chats/${chat.id}/messages`, {
+            text: "Hello",
+          })
+          cy.signInLive(a)
+          cy.visit(`/social/chat/${chat.id}`)
+          cy.findByText("Hello").should("exist")
+          cy.findByRole("button", { name: "Details" }).click()
+          cy.findByRole("button", { name: "Delete chat" }).click()
+          cy.location("pathname").should("eq", "/social/inbox")
+          cy.eventuallyRows(
+            "select id from chat_member where chat_id = $1 and owner_id = $2 and deleted_at is not null",
+            [chat.id, a.id],
+          )
+          cy.eventuallyApi<{ data: { id: string }[] }>(
+            a,
+            "/social/chats",
+            (l) => !l.data.some((x) => x.id === chat.id),
+          )
         })
       })
     })

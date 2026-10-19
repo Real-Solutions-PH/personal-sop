@@ -1072,6 +1072,7 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
         user_ids: ids.map(sid),
       }),
     hideChat: (chatId) => http.request("DELETE", chatPath(chatId)),
+    leaveChat: (chatId) => http.request("POST", chatPath(chatId, "/leave")),
     restoreChat: (chatId) => chatWrite("POST", chatPath(chatId, "/restore")),
     saveDraft: (kind, body) =>
       body

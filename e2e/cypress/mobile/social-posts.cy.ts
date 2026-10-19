@@ -9,12 +9,12 @@
 // | /social/compose        | Draft restored after a reload (caption)       | "a share card becomes a server draft …" |
 // | /social/compose        | Share a post with an image (media upload)     | "a share card becomes a server draft …" |
 // | /social/compose        | Share a progress post with a caption + #tag   | "creates a progress post …" |
-// | /social/compose        | Location, also-share-to-story                 | "creates a progress post …" (location); story path in social-stories |
+// | /social/compose        | Location, also-share-to-story                 | "creates a progress post …" |
 // | /social/compose        | Library / Camera pickers                      | NOT COVERABLE ON WEB: native picker; the image path is covered via the share card |
 // | /social (feed)         | Following / For you tabs                      | "both feeds, like, save …" |
 // | post card              | Like / unlike, save / unsave                  | "both feeds, like, save …" |
 // | post card              | Send to a chat                                | social-chats "shares a post into a chat" |
-// | /social/post/[id]      | Comment, like a comment, delete own comment   | "comments, likes a comment …" |
+// | /social/post/[id]      | Comment, reply, like a comment, delete own    | "comments, likes a comment …" |
 // | post options           | Delete post, Undo (restore), delete for good  | "deletes a post, undoes it …" |
 // | post options           | Copy link / Report                            | NOT COVERABLE ON WEB: clipboard / toast only, no server effect |
 // | /social/explore        | #tag search, leaderboard, people search       | "explore: #tag search …" |
@@ -95,6 +95,7 @@ describe("social posts (live)", () => {
         .clear()
         .type(`Progress check #${tag}`)
       cy.findByRole("textbox", { name: "Location" }).type("Manila")
+      cy.findByRole("switch", { name: "Also share to your story" }).click()
       cy.findByRole("button", { name: "Share" }).click()
       cy.location("pathname").should("eq", "/social")
       cy.eventuallyRows(
@@ -111,6 +112,11 @@ describe("social posts (live)", () => {
           (w) => w.tags.includes(tag),
         )
       })
+      // "Also share to your story" adds the progress card as a story.
+      cy.eventuallyRows(
+        "select id from story where owner_id = $1 and kind = 'progress' and deleted_at is null",
+        [a.id],
+      )
     })
   })
 
@@ -214,6 +220,15 @@ describe("social posts (live)", () => {
               [a.id, theirs.id],
             )
 
+            // Reply to B's comment.
+            cy.findAllByRole("button", { name: "Reply" }).first().click()
+            cy.findByRole("textbox", { name: "Add a comment" }).type("Thanks!")
+            cy.findByRole("button", { name: "Post" }).click()
+            cy.eventuallyRows(
+              "select id from comment where owner_id = $1 and post_id = $2 and text like '%Thanks!%' and reply_to_id = $3",
+              [a.id, post.id, theirs.id],
+            )
+
             cy.findByRole("textbox", { name: "Add a comment" }).type(
               "Nice work, Bea",
             )
@@ -254,6 +269,12 @@ describe("social posts (live)", () => {
         media: [],
         progress: PROGRESS,
       }).then((post) => {
+        let v0 = 0
+        rows("select version from post where id = $1", [post.id]).then(
+          ([r]) => {
+            v0 = Number(r.version)
+          },
+        )
         cy.signInLive(a)
         cy.visit(`/social/post/${post.id}`)
         cy.findByRole("button", { name: "Post options" }).click()
@@ -263,9 +284,12 @@ describe("social posts (live)", () => {
         // (sonner-native renders its action without a button role.)
         cy.findByText("Undo").click()
         cy.findByText("Post not found").should("not.exist")
-        cy.eventuallyRows(
-          "select id from post where id = $1 and deleted_at is null",
-          [post.id],
+        // Live again only after both writes landed: delete, then restore.
+        cy.then(() =>
+          cy.eventuallyRows(
+            "select id from post where id = $1 and deleted_at is null and version >= $2::bigint + 2",
+            [post.id, v0],
+          ),
         )
         cy.eventuallyApi<{ caption: string }>(
           a,

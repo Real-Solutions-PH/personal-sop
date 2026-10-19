@@ -11,8 +11,8 @@
 // | /social/stories/[id] | View B's story (seen), like it               | "sees and likes B's story …" |
 // | /social/stories/[id] | Reply / quick reaction                       | "sees and likes B's story …" (reply lands as a chat message) |
 // | /social/stories/[me] | Delete my story                              | "shares a text story …" |
-// | /social/inbox        | Leave a note                                 | "leaves a note …" |
-// | /social/inbox        | Open B's note, like it                       | "likes B's note …" |
+// | /social/inbox        | Leave a note, delete it                      | "leaves a note …" |
+// | /social/inbox        | Open B's note, like it, reply to it          | "likes B's note …" |
 import { namedUser } from "./social-helpers"
 
 const stamp = () => Date.now().toString(36)
@@ -169,6 +169,18 @@ describe("social stories & notes (live)", () => {
             "/social/notes",
             (l) => l.data.some((x) => x.id === n.id && x.text === text),
           )
+          // Delete it from the same sheet.
+          cy.findByRole("button", { name: `Your note: ${text}` }).click()
+          cy.findByRole("button", { name: "Delete note" }).click()
+          cy.eventuallyRows(
+            "select id from note where id = $1 and deleted_at is not null",
+            [n.id],
+          )
+          cy.eventuallyApi<{ data: { id: string }[] }>(
+            b,
+            "/social/notes",
+            (l) => !l.data.some((x) => x.id === n.id),
+          )
         })
       })
     })
@@ -197,6 +209,14 @@ describe("social stories & notes (live)", () => {
             a,
             "/social/notes",
             (l) => l.data.some((x) => x.id === note.id && x.liked),
+          )
+          // A reply to a note is a direct message to its author.
+          cy.findByRole("textbox", { name: "Reply to note" }).type(
+            "Same here{enter}",
+          )
+          cy.eventuallyRows(
+            "select m.id from chat_message m join chat_member cm on cm.chat_id = m.chat_id and cm.owner_id = $2 where m.owner_id = $1 and m.text like '%Same here%'",
+            [a.id, b.id],
           )
         })
       })

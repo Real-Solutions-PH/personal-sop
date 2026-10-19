@@ -46,6 +46,7 @@ import Animated, {
 } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
+import { liveMode } from "@/live/config"
 import { back, go } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import { confirm, Field, Sheet, Toggle } from "../ui"
@@ -56,6 +57,7 @@ import {
   addMembers,
   type Chat,
   deleteChat,
+  leaveGroup,
   ME,
   type Message,
   markChatRead,
@@ -814,10 +816,12 @@ function ChatInfo({
                   accessibilityLabel={`Add ${p.name}`}
                   onPress={() => {
                     addMembers(chat.id, [p.id])
-                    sendMessage(chat.id, {
-                      text: `You added ${p.name}`,
-                      system: true,
-                    })
+                    // Live mode: the server writes the "added" line itself.
+                    if (!liveMode)
+                      sendMessage(chat.id, {
+                        text: `You added ${p.name}`,
+                        system: true,
+                      })
                     haptic.tap()
                   }}
                   style={{
@@ -851,7 +855,8 @@ function ChatInfo({
               : "This removes the conversation from your inbox.",
             () => {
               onClose()
-              deleteChat(chat.id)
+              if (group) leaveGroup(chat.id)
+              else deleteChat(chat.id)
               back("/social/inbox")
             },
           )

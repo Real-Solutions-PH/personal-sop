@@ -782,6 +782,7 @@ export interface SocialRemote {
   renameChat(chatId: string, name: string): Promise<unknown>
   addMembers(chatId: string, ids: string[]): Promise<unknown>
   hideChat(chatId: string): Promise<unknown>
+  leaveChat(chatId: string): Promise<unknown>
   restoreChat(chatId: string): Promise<unknown>
   saveDraft(
     kind: "post" | "story",
@@ -1426,6 +1427,17 @@ export function deleteChat(chatId: string) {
       "restore the chat",
     )
   }
+}
+/** Leave a group for good (unlike deleteChat, new messages don't bring it
+ * back). */
+export function leaveGroup(chatId: string) {
+  const before = socialStore.get().chats
+  set((s) => ({ ...s, chats: s.chats.filter((c) => c.id !== chatId) }))
+  send(
+    (r) => r.leaveChat(chatId),
+    () => set((s) => ({ ...s, chats: before })),
+    "leave the group",
+  )
 }
 export function setPostDraft(post: Partial<Post>) {
   set((s) => ({ ...s, drafts: { ...s.drafts, post } }))

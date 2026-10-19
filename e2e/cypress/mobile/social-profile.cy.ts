@@ -14,6 +14,7 @@
 // | /social/follows/[id] | Followers / following tabs               | "follows, unfollows …" |
 // | /social/u/[id]       | Scores tab: followers-only scorecard     | "the scorecard is followers-only …" |
 // | /social/activity     | B follows A → row appears without reload | "B following A reaches A's open Activity screen …" |
+// | /social/activity     | Leaving it marks activity read           | "B following A reaches A's open Activity screen …" |
 import { namedUser, rows } from "./social-helpers"
 
 describe("social profile & follows (live)", () => {
@@ -194,6 +195,17 @@ describe("social profile & follows (live)", () => {
         cy.eventuallyRows(
           "select id from follow where owner_id = $1 and followee_id = $2 and deleted_at is null",
           [b.id, a.id],
+        )
+        // Leaving the Activity screen marks it read.
+        cy.visit("/social")
+        cy.eventuallyApi<{ activity_unread: number }>(
+          a,
+          "/social/badges",
+          (x) => x.activity_unread === 0,
+        )
+        cy.eventuallyRows(
+          "select activity_read_at from social_profile where owner_id = $1 and activity_read_at is not null",
+          [a.id],
         )
       })
     })
