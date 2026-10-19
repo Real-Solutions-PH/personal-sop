@@ -50,6 +50,7 @@ export function WorkoutLogger() {
     [finish, setFinish] = useState(false),
     [start, setStart] = useState(false),
     [rename, setRename] = useState(false),
+    [nameDraft, setNameDraft] = useState<string | null>(null),
     [resume, setResume] = useState(
       () =>
         !!w &&
@@ -129,8 +130,14 @@ export function WorkoutLogger() {
       {rename && (
         <Field
           label="Workout name"
-          value={w.name}
-          onChangeText={(name) => A.updateWorkoutMeta(w.id, { name })}
+          value={nameDraft ?? w.name}
+          onChangeText={(name) => {
+            // A blank name is never stored: live sync would push it, the
+            // server refuses it, and the old name snaps back mid-typing.
+            setNameDraft(name)
+            if (name.trim()) A.updateWorkoutMeta(w.id, { name })
+          }}
+          onBlur={() => setNameDraft(null)}
         />
       )}
       {!p.edit && (

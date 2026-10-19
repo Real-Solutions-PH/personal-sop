@@ -12,6 +12,7 @@ import {
 import { useState } from "react"
 import { View } from "react-native"
 import { toast } from "sonner-native"
+import { liveMode } from "@/live/config"
 import {
   Copy,
   Frame,
@@ -237,20 +238,24 @@ export function FitnessSettings() {
           />
         </Frame>
       </View>
-      <Tap
-        onPress={() => {
-          A.resetFitness()
-          toast.success("Fitness demo data restored")
-        }}
-        style={{ paddingVertical: 16, alignItems: "center" }}
-      >
-        <Line style={{ gap: 8 }}>
-          <RotateCcw size={16} color={t.muted} />
-          <Copy size={14} muted>
-            Reset fitness demo data
-          </Copy>
-        </Line>
-      </Tap>
+      {/* Demo-only, as on Me: a live account's data is real and synced, so
+          it is never replaced by samples from here. */}
+      {!liveMode && (
+        <Tap
+          onPress={() => {
+            A.resetFitness()
+            toast.success("Fitness demo data restored")
+          }}
+          style={{ paddingVertical: 16, alignItems: "center" }}
+        >
+          <Line style={{ gap: 8 }}>
+            <RotateCcw size={16} color={t.muted} />
+            <Copy size={14} muted>
+              Reset fitness demo data
+            </Copy>
+          </Line>
+        </Tap>
+      )}
       {goal && <GoalSheet open={goal} onClose={() => setGoal(false)} />}
     </Screen>
   )

@@ -33,6 +33,13 @@ export function clearToBlank() {
     meals: [],
     activeId: null,
     rest: null,
+    // The demo's goal (lose weight → 76 kg) is sample data, not a setting:
+    // start from the server's default so the first sync does not push it.
+    settings: {
+      ...s.settings,
+      goalDirection: "maintain",
+      goalWeight: undefined,
+    },
   }))
   finStore.set((s) => ({
     ...s,

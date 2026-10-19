@@ -785,7 +785,10 @@ export function duplicateMeal(id: string, day = dayKey()): Meal | undefined {
 }
 export function setMacroTarget(m: Macros): MacroTarget {
   const today = dayKey()
-  const t: MacroTarget = { ...m, id: uid(), effectiveFrom: today }
+  // One target per day: re-saving today edits today's row under its id, so
+  // sync sends an edit rather than a create plus a delete of the same row.
+  const same = fitStore.get().targets.find((x) => x.effectiveFrom === today)
+  const t: MacroTarget = { ...m, id: same?.id ?? uid(), effectiveFrom: today }
   fitStore.set((s) => ({
     ...s,
     targets: [...s.targets.filter((x) => x.effectiveFrom !== today), t],

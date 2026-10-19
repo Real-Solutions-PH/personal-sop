@@ -1,4 +1,5 @@
 import { at, dayKey } from "../lib/day"
+import { newId } from "../lib/ids"
 export type Equipment =
   | "barbell"
   | "dumbbell"
@@ -760,9 +761,10 @@ let seeding = false
 export function itemFromFood(f: Food, mult = 1): MealItem {
   itemSeq++
   return {
-    id: seeding
-      ? `mi-${f.key}-${itemSeq}`
-      : `mi-${f.key}-${Math.random().toString(36).slice(2, 8)}`,
+    // A UUID once the user makes the item: synced ids must be UUIDs, and a
+    // "mi-…" id gets the whole /sync/push batch refused. Demo ids stay
+    // readable.
+    id: seeding ? `mi-${f.key}-${itemSeq}` : newId(),
     name: f.name,
     qty: Math.round(f.qty * mult * 100) / 100,
     unit: f.unit,

@@ -9,6 +9,7 @@ import {
   deleteTemplate,
   deleteWeighIn,
   discardWorkout,
+  estimateMeal,
   finishWorkout,
   logMeal,
   logWeighIn,
@@ -30,6 +31,7 @@ import { fitStore } from "@domain/fitness/store"
 import { derivedId } from "@domain/lib/ids"
 import { liveStore } from "@domain/lib/live"
 import type { StorageAdapter } from "@domain/lib/store"
+import { clearToBlank } from "../blank"
 import { SyncEngine } from "../engine"
 import type { Http } from "../http"
 import type { AnyMapper, Payload } from "../mapper"
@@ -223,6 +225,33 @@ function step(e: SyncEngine, seen: Set<string>) {
   }
   return ops
 }
+
+test("a blank live account starts with the server's goal, not the demo's", () => {
+  // Live E2E: a new account's first fitness_settings push carried the
+  // prototype's demo goal (cut, 76 kg) over the server default (maintain).
+  fitStore.set((s) => ({ ...s, settings: seed().settings }))
+  clearToBlank()
+  const st = fitStore.get().settings
+  expect(st.goalDirection).toBe("maintain")
+  expect(st.goalWeight).toBeUndefined()
+})
+
+test("estimated and picked meal items carry UUID ids", () => {
+  // Live E2E: estimator items had ids like "mi-adobo-lnxell"; /sync/push
+  // validates every op id as a UUID, so the whole batch got a 422 and the
+  // meal (and everything queued after it) never reached the server.
+  const e = engine()
+  const m = estimateMeal("lunch: rice, chicken adobo", {
+    source: "text",
+    eatenAt: T0.toISOString(),
+    label: "lunch",
+  })
+  addMealItem(m!.id, "egg")
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+  const ids = e.capture().flatMap((o) => (o.id ? [o.id] : []))
+  expect(ids.length).toBeGreaterThan(2)
+  for (const id of ids) expect(id).toMatch(uuid)
+})
 
 test("runtime.ts lists the fitness mappers", () => {
   const rt = require("../runtime") as typeof import("../runtime")
@@ -843,6 +872,30 @@ describe("pulled rows", () => {
     ])
     expect(fitStore.get().targets.map((x) => x.id)).toEqual([serverId])
     expect(t.id).not.toBe(serverId)
+  })
+
+  test("re-saving today's target edits the synced row, never deletes it", () => {
+    // Live E2E: a second save on the same day sent upsert(new id) + delete(old
+    // id); the server merged the upsert into the old row by day, then the
+    // delete tombstoned it, leaving no target for today.
+    const e = engine()
+    const serverId = derivedId("macro-target", USER, "2026-10-19")
+    e.apply([
+      change("macro_target", {
+        id: serverId,
+        effective_from: "2026-10-19",
+        kcal: 2000,
+        protein: 140,
+        carbs: 200,
+        fat: 65,
+      }),
+    ])
+    e.capture()
+    const t = setMacroTarget({ kcal: 2050, protein: 158, carbs: 215, fat: 62 })
+    const ops = e.capture().filter((o) => o.name === "macro_target")
+    expect(t.id).toBe(serverId)
+    expect(ops.map((o) => `${o.kind}:${o.id}`)).toEqual([`upsert:${serverId}`])
+    expect(fitStore.get().targets.map((x) => x.id)).toEqual([serverId])
   })
 
   test("the rest timer: pulled starts and clears never echo", () => {
