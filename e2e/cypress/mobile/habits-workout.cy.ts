@@ -14,7 +14,7 @@ describe("habits ↔ fitness (live)", () => {
     cy.newLiveUser("habits").then((user) => {
       signIn(user)
       cy.visit("/habits/new")
-      cy.findByLabelText("Name").type("Move")
+      cy.findByRole("textbox", { name: "Name" }).type("Move")
       cy.findByRole("switch", { name: "Link to workouts" }).click()
       cy.findByRole("button", { name: "Create habit" }).click()
       cy.location("pathname").should("match", /^\/habits\/[0-9a-f-]{36}$/)

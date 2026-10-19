@@ -75,7 +75,7 @@ describe("habits (live)", () => {
     cy.newLiveUser("habits").then((user) => {
       signIn(user)
       cy.visit("/habits/new")
-      cy.findByLabelText("Name").type("Water")
+      cy.findByRole("textbox", { name: "Name" }).type("Water")
       cy.findByRole("button", { name: "Choose 💧" }).click()
       cy.findByRole("tab", { name: "# Count" }).click()
       cy.findByLabelText("Target").clear().type("8")
@@ -126,7 +126,7 @@ describe("habits (live)", () => {
 
         // Edit: rename and raise the target.
         cy.findByRole("button", { name: "Edit habit" }).click()
-        cy.findByLabelText("Name").clear().type("Water intake")
+        cy.findByRole("textbox", { name: "Name" }).clear().type("Water intake")
         cy.findByLabelText("Target").clear().type("10")
         cy.findByRole("button", { name: "Save changes" }).click()
         dbRows(
@@ -324,7 +324,10 @@ describe("habits (live)", () => {
       seedHabit(user, { name: "Yoga", type: "check" }).then((h) => {
         signIn(user)
         cy.visit(`/habits/${h.id}/edit`)
-        pulled("Yoga")
+        cy.findByRole("textbox", { name: "Name" }, { timeout: 120000 }).should(
+          "have.value",
+          "Yoga",
+        )
         cy.findByRole("button", { name: "Pause" }).click()
         dbRows(
           `select 1 from habit h join habit_pause p on p.habit_id = h.id
@@ -354,7 +357,10 @@ describe("habits (live)", () => {
       seedHabit(user, { name: "Tea", type: "check" }).then((h) => {
         signIn(user)
         cy.visit(`/habits/${h.id}/edit`)
-        pulled("Tea")
+        cy.findByRole("textbox", { name: "Name" }, { timeout: 120000 }).should(
+          "have.value",
+          "Tea",
+        )
         cy.findByRole("button", { name: "Pause" }).click()
         dbRows("select 1 from habit where id = $1 and status = 'paused'", [
           h.id,
@@ -418,13 +424,14 @@ describe("habits (live)", () => {
     cy.newLiveUser("habits").then((user) => {
       signIn(user)
       cy.visit("/habits/settings")
-      // The device pushes its settings on first sync; flip from those values.
+      cy.findByRole("tab", { name: "Sunday" }).click()
+      // The first write creates the row from the device's whole settings,
+      // so after it lands the server matches what the switches show.
       dbRows(
         `select week_start, default_reminder, streak_nudge from habit_settings
-          where owner_id = $1 and deleted_at is null`,
+          where owner_id = $1 and deleted_at is null and week_start = 0`,
         [user.id],
       ).then(([before]) => {
-        cy.findByRole("tab", { name: "Sunday" }).click()
         cy.findByRole("switch", { name: "Default reminder" }).click()
         cy.findByRole("switch", { name: "Streak nudge" }).click()
         dbRows(
