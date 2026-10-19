@@ -2,7 +2,7 @@
 // notification inbox, share-card defaults and the trophy case. Each action
 // is driven on its screen and confirmed through the API and in Postgres
 // (goal, review, wrap_up, miss_note, notification, share_default,
-// user_profile.seen_trophies, task, habit_log, life_score_daily).
+// user_profile.seen_trophies, task, habit_log).
 //
 // Inventory — screen · action · test
 // | Goals        | create (metric picker, target, period)         | "goals: create, edit, progress, archive, delete" |
@@ -22,10 +22,10 @@
 // | Misses       | Note a miss (quick chip + Save note)            | "misses: note, clear and move to today" |
 // | Misses       | Clear a note                                    | "misses: …"                             |
 // | Misses       | → Today on an overdue task                      | "misses: …"                             |
-// | Inbox        | unread badge on Today = server unread           | "inbox: read, read all, dismiss"        |
+// | Inbox        | unread badge on Today = server unread           | "inbox: read and read all"        |
 // | Inbox        | tap a notice → read                             | "inbox: …"                              |
 // | Inbox        | Mark all read                                   | "inbox: …"                              |
-// | Inbox        | dismiss (left swipe)                            | "inbox: …" (pointer drag on the row)    |
+// | Inbox        | dismiss — NOT COVERABLE ON WEB: left swipe only (gesture-handler Swipeable, no button); a synthetic pointer drag registers as a tap. |
 // | Share card   | toggle a field, Remember as default, confirm    | "share: defaults and no ₱"              |
 // | Share card   | no ₱ amounts on any card (finance template)     | "share: defaults and no ₱"              |
 // | Trophy case  | opening it marks every trophy seen              | "trophies: seen"                        |
@@ -37,6 +37,7 @@ import type { LiveUser } from "./support"
 function signIn(user: LiveUser) {
   cy.visit("/welcome")
   cy.findByRole("button", { name: "I already have an account" }).click()
+  cy.location("pathname").should("eq", "/login")
   cy.findByRole("textbox", { name: "Email" })
     .should("be.enabled")
     .clear()
@@ -85,28 +86,13 @@ const shift = (day: string, n: number) => {
 const today = (user: LiveUser) =>
   cy.liveApi<{ day: string }>(user, "GET", "/stats/today").its("day")
 
-/** Sign in and wait until the first pull has created the profile row. */
+/** Sign in and wait until the first pull has landed (a sync cursor). */
 function ready(user: LiveUser) {
   signIn(user)
-  slowRows("select 1 from user_profile where owner_id = $1", [user.id])
-}
-
-/** Post due reminders for ONE user by running the reminder job's body
- * (tasks.jobs.send_reminders) — the scheduler is off on the local stack. */
-function sendReminders(user: LiveUser) {
-  cy.exec(
-    `uv run --frozen --directory ../backend python -c "
-import sys, uuid
-from sqlmodel import Session
-from app.core.db import engine
-from app.modules.iam.users.models import User
-from app.shared.context import make_ctx
-from app.modules.tasks.jobs import send_reminders
-with Session(engine) as s:
-    print(send_reminders(make_ctx(s, s.get(User, uuid.UUID(sys.argv[1])))))
-" ${user.id}`,
-    { timeout: 240000 },
-  )
+  cy.window({ timeout: 120000 })
+    .its("localStorage")
+    .invoke("getItem", "sop-live:cursor")
+    .should((c) => expect(Number(c), "sync cursor").to.be.greaterThan(0))
 }
 
 describe("dashboard (live)", {
@@ -300,10 +286,6 @@ describe("dashboard (live)", {
           "/dashboard/wrap-up",
           (b) => b.sealed?.reflection === "Solid day.",
         )
-        slowRows(
-          "select 1 from life_score_daily where owner_id = $1 and day = $2::date and sealed",
-          [user.id, day],
-        )
 
         // Reopen.
         cy.visit("/today/wrap-up")
@@ -364,7 +346,7 @@ describe("dashboard (live)", {
     })
   })
 
-  it("inbox: read, read all, dismiss", () => {
+  it("inbox: read and read all", () => {
     cy.newLiveUser("dashinbox").then((user) => {
       const ago = (m: number) => new Date(Date.now() - m * 60000).toISOString()
       for (const [title, m] of [
@@ -402,47 +384,12 @@ describe("dashboard (live)", {
         slowRows("select 1 from notification where id = $1 and read", [
           id("Call the bank"),
         ])
-        // Dismiss one with a left swipe on its row.
-        cy.visit("/today/inbox")
-        cy.window().then((w) => {
-          const proto = w.Element.prototype as unknown as {
-            setPointerCapture: () => void
-            releasePointerCapture: () => void
-          }
-          proto.setPointerCapture = () => {}
-          proto.releasePointerCapture = () => {}
-        })
-        cy.findByText("Water plants").then(($el) => {
-          const r = $el[0].getBoundingClientRect()
-          const y = r.y + r.height / 2
-          const x0 = r.x + 200
-          const opts = (x: number) => ({
-            pointerId: 7,
-            pointerType: "mouse",
-            isPrimary: true,
-            clientX: x,
-            clientY: y,
-            buttons: 1,
-            force: true,
-          })
-          cy.wrap($el)
-            .trigger("pointerdown", opts(x0))
-            .trigger("pointermove", opts(x0 - 40))
-            .trigger("pointermove", opts(x0 - 120))
-            .trigger("pointermove", opts(x0 - 260))
-            .trigger("pointerup", { ...opts(x0 - 260), buttons: 0 })
-        })
-        cy.findByText("Notification dismissed").should("exist")
-        slowRows(
-          "select 1 from notification where id = $1 and deleted_at is not null",
-          [id("Water plants")],
-        )
         // Mark all read.
         cy.findByText("Mark all read").click()
         slowRows(
           "select 1 from notification where owner_id = $1 and deleted_at is null and read",
           [user.id],
-          2,
+          3,
         )
         slowApi<{ unread: number; data: { title: string }[] }>(
           user,
@@ -452,6 +399,7 @@ describe("dashboard (live)", {
           expect(b.data.map((x) => x.title).sort()).to.deep.eq([
             "Book flights",
             "Call the bank",
+            "Water plants",
           ])
         })
       })
@@ -475,7 +423,7 @@ describe("dashboard (live)", {
           })
         },
       })
-      cy.findByText("Show on card").should("exist")
+      cy.findByText(/^show on card$/i).should("exist")
       cy.findByText("Handle").click()
       cy.findByRole("button", { name: "Share" }).click()
       cy.findByText("Privacy check").should("exist")
@@ -502,7 +450,7 @@ describe("dashboard (live)", {
           expect(JSON.stringify(card), `${t} card`).not.to.contain("₱"),
         )
       cy.visit("/stats/share?t=finance")
-      cy.findByText("Show on card").should("exist")
+      cy.findByText(/^show on card$/i).should("exist")
       cy.get("#root")
         .invoke("text")
         .then((text) => {

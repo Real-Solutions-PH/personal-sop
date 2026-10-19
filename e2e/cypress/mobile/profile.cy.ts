@@ -59,6 +59,7 @@ interface Me {
 function signIn(user: LiveUser) {
   cy.visit("/welcome")
   cy.findByRole("button", { name: "I already have an account" }).click()
+  cy.location("pathname").should("eq", "/login")
   cy.findByRole("textbox", { name: "Email" })
     .should("be.enabled")
     .clear()
@@ -98,10 +99,13 @@ function slowRows(text: string, values: unknown[], min = 1, left = 60) {
     })
 }
 
-/** Sign in and wait for the first pull to land (Me shows the account). */
+/** Sign in and wait until the first pull has landed (a sync cursor). */
 function ready(user: LiveUser) {
   signIn(user)
-  slowRows("select 1 from user_profile where owner_id = $1", [user.id])
+  cy.window({ timeout: 120000 })
+    .its("localStorage")
+    .invoke("getItem", "sop-live:cursor")
+    .should((c) => expect(Number(c), "sync cursor").to.be.greaterThan(0))
 }
 
 describe("profile & settings (live)", {
@@ -138,7 +142,9 @@ describe("profile & settings (live)", {
         cy.findByRole("button", { name: "Add statement" }).should("not.exist")
         cy.findByText("Identity statements · 3/3").should("exist")
         // Link the first to the goal; remove the third.
-        cy.findAllByText("Tasks done ≥ 5/wk", { exact: false }).first().click()
+        cy.findAllByText("Tasks done ≥ 5 / week", { exact: false })
+          .first()
+          .click()
         cy.findByRole("button", { name: "Remove statement 3" }).click()
         cy.findByRole("button", { name: "Save" }).click()
         cy.location("pathname").should("eq", "/me")

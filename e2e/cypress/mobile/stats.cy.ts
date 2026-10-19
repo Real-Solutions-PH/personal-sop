@@ -61,6 +61,7 @@ interface Overview {
 function signIn(user: LiveUser) {
   cy.visit("/welcome")
   cy.findByRole("button", { name: "I already have an account" }).click()
+  cy.location("pathname").should("eq", "/login")
   cy.findByRole("textbox", { name: "Email" })
     .should("be.enabled")
     .clear()
@@ -201,7 +202,7 @@ describe("stats (live)", {
               }[a.module]
               cy.findByText(`${label} · rate ${pct(a.rate)}`).should("exist")
             }
-            cy.get("body").type("{esc}")
+            cy.findAllByLabelText("Close dialog").last().click({ force: true })
             cy.findByText(/^Life Score = weighted mean/).should("not.exist")
             // Server metric values in the "All metrics" sheet.
             const done = o.metrics.find((m) => m.ref === "tasks:tasks.done")
@@ -210,7 +211,7 @@ describe("stats (live)", {
             cy.findByText("Tasks done")
               .parent()
               .should("contain.text", done?.value)
-            cy.get("body").type("{esc}")
+            cy.findAllByLabelText("Close dialog").last().click({ force: true })
             cy.findByText("Tasks done").should("not.exist")
           })
         }
@@ -268,7 +269,7 @@ describe("stats (live)", {
       cy.visit("/stats")
       cy.findByText("How it's weighted").click()
       cy.findByRole("textbox", { name: "Tasks weight" }).type("{selectall}5")
-      cy.get("body").type("{esc}")
+      cy.findAllByLabelText("Close dialog").last().click({ force: true })
       slowRows(
         "select weight from module_pref where owner_id = $1 and module = 'tasks' and weight = 5",
         [user.id],

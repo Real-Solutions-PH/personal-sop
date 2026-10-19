@@ -31,6 +31,7 @@ interface TodayStat {
 function signIn(user: LiveUser) {
   cy.visit("/welcome")
   cy.findByRole("button", { name: "I already have an account" }).click()
+  cy.location("pathname").should("eq", "/login")
   cy.findByRole("textbox", { name: "Email" })
     .should("be.enabled")
     .clear()
@@ -166,7 +167,10 @@ describe("today (live)", {
           (s) => s.ring.per.habits.due === 2,
         ).then((before) => {
           cy.reload()
-          cy.findByRole("button", { name: /^Complete .*Journal$/ }).click()
+          cy.findByRole("button", {
+            name: "Complete Journal",
+            timeout: 120000,
+          }).click()
           slowApi<TodayStat>(
             user,
             "/stats/today",
