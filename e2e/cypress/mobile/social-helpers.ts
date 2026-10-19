@@ -28,6 +28,8 @@ export function rows(text: string, values: unknown[] = []) {
  * satisfy. Chrome only. */
 export function longPress(subject: JQuery<HTMLElement>, holdMs = 700) {
   const el = subject[0]
+  // A real press hits whatever is on top: keep clear of the tab bar.
+  el.scrollIntoView({ block: "center" })
   const r = el.getBoundingClientRect()
   const frame = window.top?.document.querySelector(
     "iframe.aut-iframe",
