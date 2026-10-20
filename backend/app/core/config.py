@@ -194,8 +194,11 @@ class Settings(BaseSettings):
 
     # LLM Providers
     NEBIUS_API_KEY: str | None = None
-    NEBIUS_BASE_URL: str = "https://api.studio.nebius.com/v1/"
-    NEBIUS_MODEL: str = "meta-llama/Meta-Llama-3.1-70B-Instruct"
+    NEBIUS_BASE_URL: str = "https://api.tokenfactory.nebius.com/v1/"
+    # Server defaults on the Nebius key (app.modules.ai_providers.catalog lists
+    # what a user may pick instead): text for chat/capture, vision for photos.
+    NEBIUS_MODEL: str = "deepseek-ai/DeepSeek-V4-Flash-0731"
+    NEBIUS_VISION_MODEL: str = "zai-org/GLM-5.3-Flash"
 
     OPENROUTER_API_KEY: str | None = None
     OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"

@@ -7,6 +7,7 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.modules.ai_providers import catalog
 from app.modules.capture.rules import RULE_KEYS
 from app.shared.money import MAX_MINOR
 
@@ -411,6 +412,14 @@ class AISettingsUpdate(BaseModel):
     spend_cap_minor: Annotated[int, Field(ge=0, le=MAX_MINOR)] | None = None
     ai_enabled: bool | None = None
     retention_days: Annotated[int, Field(ge=1, le=3650)] | None = None
+    model: str | None = None
+
+    @field_validator("model")
+    @classmethod
+    def _offered_model(cls, v: str | None) -> str | None:
+        if v is not None and v not in catalog.NEBIUS_IDS:
+            raise ValueError("not a model the app offers")
+        return v
 
     @field_validator("rules")
     @classmethod
@@ -433,6 +442,7 @@ class AISettingsPublic(BaseModel):
     spend_cap_minor: int
     ai_enabled: bool
     retention_days: int
+    model: str | None = None
     version: int
     # The meter (ai_providers.public.budget), read-only.
     spend_minor: int = 0

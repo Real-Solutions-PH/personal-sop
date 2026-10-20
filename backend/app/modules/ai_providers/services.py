@@ -19,7 +19,7 @@ from typing import Any
 from sqlalchemy import select as sa_select
 from sqlmodel import col, func
 
-from app.modules.ai_providers import cache, provider_http
+from app.modules.ai_providers import cache, catalog, provider_http, public
 from app.modules.ai_providers import schema as S
 from app.modules.ai_providers.models import (
     AIModelAssignment,
@@ -101,10 +101,19 @@ def presets() -> S.PresetsOut:
             default_base_url=p.default_base_url,
             custom_base_url=p.custom_base_url,
             vision_models=list(p.vision_models),
+            models=[
+                S.CatalogModelOut(**vars(m))
+                for m in (catalog.NEBIUS if p.name == "nebius" else ())
+            ],
         )
         for p in PRESETS
     ]
-    return S.PresetsOut(data=rows, count=len(rows))
+    summary = public.server_default_summary()
+    return S.PresetsOut(
+        data=rows,
+        count=len(rows),
+        server_default=S.ServerDefaultOut(**summary) if summary else None,
+    )
 
 
 def list_credentials(ctx: Ctx, *, skip: int, limit: int) -> dict[str, Any]:

@@ -20,6 +20,13 @@ from tests.utils.utils import get_superuser_token_headers
 _APP_USER_PASSWORD = settings.POSTGRES_APP_PASSWORD or secrets.token_urlsafe(24)
 
 
+@pytest.fixture(autouse=True)
+def no_server_ai_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The dev .env answers key-less users with the server's real Nebius key.
+    Tests never spend it: a test that wants the fallback switches it on."""
+    monkeypatch.setattr(settings, "AI_SERVER_FALLBACK", False)
+
+
 @pytest.fixture(scope="session", autouse=True)
 def db() -> Generator[Session, None, None]:
     # init_db needs the local Supabase stack running (make supabase-up):

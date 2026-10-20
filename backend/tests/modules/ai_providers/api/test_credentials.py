@@ -58,6 +58,34 @@ def test_presets(client: TestClient, db: Session) -> None:
         "custom_base_url": True,
     }
     assert all(p["vision_models"] for p in out["data"])
+    # Nebius carries the hand-checked catalogue; the others none.
+    nebius = by_name["nebius"]
+    assert nebius["default_base_url"] == "https://api.tokenfactory.nebius.com/v1"
+    ids = {m["id"] for m in nebius["models"]}
+    assert "deepseek-ai/DeepSeek-V4-Flash-0731" in ids
+    assert all(m["kind"] in ("text", "vision") for m in nebius["models"])
+    assert set(nebius["vision_models"]) <= ids
+    assert all(not p["models"] for p in out["data"] if p["name"] != "nebius")
+
+
+def test_presets_name_the_server_default(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.core.config import settings
+
+    ai = _ai(client, db)
+    monkeypatch.setattr(settings, "AI_SERVER_FALLBACK", False)
+    assert ai.get("/providers/presets")["server_default"] is None
+    monkeypatch.setattr(settings, "AI_SERVER_FALLBACK", True)
+    monkeypatch.setattr(settings, "DEFAULT_LLM_PROVIDER", "nebius")
+    monkeypatch.setattr(settings, "NEBIUS_API_KEY", "server-nebius-key")
+    got = ai.get("/providers/presets")["server_default"]
+    assert got == {
+        "provider": "nebius",
+        "model": settings.NEBIUS_MODEL,
+        "vision_model": settings.NEBIUS_VISION_MODEL,
+    }
+    assert "server-nebius-key" not in str(ai.get("/providers/presets"))
 
 
 def test_crud_happy_path(client: TestClient, db: Session) -> None:

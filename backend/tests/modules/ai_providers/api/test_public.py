@@ -258,3 +258,67 @@ def test_requires_a_session(client: TestClient) -> None:
     ]:
         r = client.request(method, f"{settings.API_V1_STR}/ai{path}")
         assert r.status_code == 401, (method, path)
+
+
+def _nebius_server(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "AI_SERVER_FALLBACK", True)
+    monkeypatch.setattr(settings, "DEFAULT_LLM_PROVIDER", "nebius")
+    monkeypatch.setattr(settings, "NEBIUS_API_KEY", "server-nebius-key")
+
+
+def test_nebius_server_default_uses_the_users_pick(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _nebius_server(monkeypatch)
+    user, _ = _user(client, db)
+    with ctx_for(user) as ctx:
+        chat = public.resolve_model(ctx, "chat")
+        photo = public.resolve_model(ctx, "vision")
+        assert public.resolve_model(ctx, "transcription") is None
+    assert chat is not None and chat.provider == "nebius"
+    assert chat.model == settings.NEBIUS_MODEL
+    assert chat.base_url == settings.NEBIUS_BASE_URL
+    assert photo is not None and photo.model == settings.NEBIUS_VISION_MODEL
+    assert photo.supports_vision is True
+    # A text model picked: chat uses it, photos keep the vision default.
+    _settings(user, model="Qwen/Qwen3-30B-A3B-Instruct-2507")
+    with ctx_for(user) as ctx:
+        chat = public.resolve_model(ctx, "chat")
+        photo = public.resolve_model(ctx, "vision")
+    assert chat is not None and chat.model == "Qwen/Qwen3-30B-A3B-Instruct-2507"
+    assert photo is not None and photo.model == settings.NEBIUS_VISION_MODEL
+    # A vision model picked: it answers both.
+    _settings(user, model="moonshotai/Kimi-K2.6")
+    with ctx_for(user) as ctx:
+        chat = public.resolve_model(ctx, "chat")
+        photo = public.resolve_model(ctx, "vision")
+    assert chat is not None and chat.model == "moonshotai/Kimi-K2.6"
+    assert photo is not None and photo.model == "moonshotai/Kimi-K2.6"
+
+
+def test_a_pick_no_longer_offered_falls_back_to_the_default(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _nebius_server(monkeypatch)
+    user, _ = _user(client, db)
+    _settings(user, model="retired/model-from-last-year")
+    with ctx_for(user) as ctx:
+        chat = public.resolve_model(ctx, "chat")
+    assert chat is not None and chat.model == settings.NEBIUS_MODEL
+
+
+def test_the_users_own_provider_beats_the_pick(
+    client: TestClient,
+    db: Session,
+    provider: Provider,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    del provider  # armed only: credential calls go to the mock transport
+    _nebius_server(monkeypatch)
+    user, ai = _user(client, db)
+    _settings(user, model="moonshotai/Kimi-K2.6")
+    cred = ai.credential("openai", KEY)["id"]
+    ai.put("/assignments/chat", {"credential_id": cred, "model": "gpt-4o"})
+    with ctx_for(user) as ctx:
+        chat = public.resolve_model(ctx, "chat")
+    assert chat is not None and chat.source == "user" and chat.model == "gpt-4o"

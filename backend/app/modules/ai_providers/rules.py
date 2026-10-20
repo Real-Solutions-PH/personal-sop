@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from typing import Any, Literal
 from urllib.parse import urlsplit
 
+from app.modules.ai_providers import catalog
 from app.modules.ai_providers.public import PRESET_BASE_URLS
 
 VerifyCode = Literal[
@@ -52,7 +53,7 @@ _VISION: dict[str, tuple[str, ...]] = {
         "meta-llama/llama-4-scout-17b-16e-instruct",
         "meta-llama/llama-4-maverick-17b-128e-instruct",
     ),
-    "nebius": ("Qwen/Qwen2.5-VL-72B-Instruct", "google/gemma-3-27b-it"),
+    "nebius": tuple(m.id for m in catalog.NEBIUS if m.kind == "vision"),
     "together": (
         "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
         "Qwen/Qwen2.5-VL-72B-Instruct",

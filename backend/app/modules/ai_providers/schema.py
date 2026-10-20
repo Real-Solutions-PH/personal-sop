@@ -41,17 +41,37 @@ def _check_key(v: SecretStr | None) -> SecretStr | None:
     return SecretStr(raw)
 
 
+class CatalogModelOut(BaseModel):
+    id: str
+    label: str
+    vendor: str
+    kind: Literal["text", "vision"]
+    usd_in: float
+    usd_out: float
+
+
 class PresetOut(BaseModel):
     name: Provider
     label: str
     default_base_url: str | None
     custom_base_url: bool
     vision_models: list[str]
+    # Models checked for this preset (Nebius only today); empty otherwise.
+    models: list[CatalogModelOut] = []
+
+
+class ServerDefaultOut(BaseModel):
+    provider: str
+    model: str
+    vision_model: str
 
 
 class PresetsOut(BaseModel):
     data: list[PresetOut]
     count: int
+    # What answers a user with no provider of their own; null when the server
+    # fallback is off or unkeyed (the rule-based engine answers instead).
+    server_default: ServerDefaultOut | None = None
 
 
 class CredentialCreate(BaseModel):

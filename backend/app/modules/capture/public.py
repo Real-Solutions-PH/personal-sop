@@ -13,8 +13,9 @@ from langchain_core.tools import BaseTool
 
 from app.modules.ai_providers.public import ResolvedModel
 from app.modules.capture import agent, engine, journal, seams
-from app.modules.capture.models import Capture, JournalEntry
+from app.modules.capture.models import AISettings, Capture, JournalEntry
 from app.modules.capture.schema import CaptureIn
+from app.shared import owned_repo
 from app.shared.context import Ctx
 
 SeamError = seams.SeamError
@@ -73,6 +74,13 @@ def capture_detail(ctx: Ctx, capture_id: uuid.UUID) -> dict[str, Any]:
     from app.modules.capture.cards import require_capture
 
     return engine.detail(ctx, require_capture(ctx, capture_id)).model_dump(mode="json")
+
+
+def preferred_model(ctx: Ctx) -> str | None:
+    """The model this user picked for the server's own key, if any. Reads
+    only: resolving a model never creates the settings row."""
+    row = owned_repo.find_one(ctx, AISettings)
+    return row.model if row is not None else None
 
 
 def ai_settings(ctx: Ctx) -> dict[str, Any]:

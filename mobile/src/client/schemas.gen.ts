@@ -50,6 +50,17 @@ export const AISettingsPublicSchema = {
             type: 'integer',
             title: 'Retention Days'
         },
+        model: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Model'
+        },
         version: {
             type: 'integer',
             title: 'Version'
@@ -194,6 +205,17 @@ export const AISettingsUpdateSchema = {
                 }
             ],
             title: 'Retention Days'
+        },
+        model: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Model'
         }
     },
     type: 'object',
@@ -2391,6 +2413,39 @@ export const CardioInSchema = {
     additionalProperties: false,
     type: 'object',
     title: 'CardioIn'
+} as const;
+
+export const CatalogModelOutSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            title: 'Id'
+        },
+        label: {
+            type: 'string',
+            title: 'Label'
+        },
+        vendor: {
+            type: 'string',
+            title: 'Vendor'
+        },
+        kind: {
+            type: 'string',
+            enum: ['text', 'vision'],
+            title: 'Kind'
+        },
+        usd_in: {
+            type: 'number',
+            title: 'Usd In'
+        },
+        usd_out: {
+            type: 'number',
+            title: 'Usd Out'
+        }
+    },
+    type: 'object',
+    required: ['id', 'label', 'vendor', 'kind', 'usd_in', 'usd_out'],
+    title: 'CatalogModelOut'
 } as const;
 
 export const CategoriesPublicSchema = {
@@ -11977,6 +12032,14 @@ export const PresetOutSchema = {
             },
             type: 'array',
             title: 'Vision Models'
+        },
+        models: {
+            items: {
+                '$ref': '#/components/schemas/CatalogModelOut'
+            },
+            type: 'array',
+            title: 'Models',
+            default: []
         }
     },
     type: 'object',
@@ -11996,6 +12059,16 @@ export const PresetsOutSchema = {
         count: {
             type: 'integer',
             title: 'Count'
+        },
+        server_default: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/ServerDefaultOut'
+                },
+                {
+                    type: 'null'
+                }
+            ]
         }
     },
     type: 'object',
@@ -14954,6 +15027,26 @@ export const SeriesDaySchema = {
     type: 'object',
     required: ['day', 'due', 'done', 'rate'],
     title: 'SeriesDay'
+} as const;
+
+export const ServerDefaultOutSchema = {
+    properties: {
+        provider: {
+            type: 'string',
+            title: 'Provider'
+        },
+        model: {
+            type: 'string',
+            title: 'Model'
+        },
+        vision_model: {
+            type: 'string',
+            title: 'Vision Model'
+        }
+    },
+    type: 'object',
+    required: ['provider', 'model', 'vision_model'],
+    title: 'ServerDefaultOut'
 } as const;
 
 export const SetInSchema = {

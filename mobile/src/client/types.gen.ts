@@ -174,6 +174,7 @@ export type AISettingsPublic = {
     spend_cap_minor: number;
     ai_enabled: boolean;
     retention_days: number;
+    model?: (string | null);
     version: number;
     spend_minor?: number;
     calls?: number;
@@ -192,6 +193,7 @@ export type AISettingsUpdate = {
     spend_cap_minor?: (number | null);
     ai_enabled?: (boolean | null);
     retention_days?: (number | null);
+    model?: (string | null);
 };
 
 export type AnswerIn = {
@@ -779,6 +781,17 @@ export type CardPublic = {
     log?: Array<WriteLogPublic>;
 };
 
+export type CatalogModelOut = {
+    id: string;
+    label: string;
+    vendor: string;
+    kind: 'text' | 'vision';
+    usd_in: number;
+    usd_out: number;
+};
+
+export type kind4 = 'text' | 'vision';
+
 export type CategoriesPublic = {
     data: Array<CategoryPublic>;
     count: number;
@@ -795,7 +808,7 @@ export type CategoryCreate = {
     id?: (string | null);
 };
 
-export type kind4 = 'expense' | 'income';
+export type kind5 = 'expense' | 'income';
 
 export type CategoryFields = {
     name?: (string | null);
@@ -1072,7 +1085,7 @@ export type DraftPublic = {
     updated_at: (string | null);
 };
 
-export type kind5 = 'post' | 'story';
+export type kind6 = 'post' | 'story';
 
 export type DueIn = {
     due_date: (string | null);
@@ -1803,7 +1816,7 @@ export type ListCreate = {
     icon?: 'briefcase' | 'laptop' | 'home' | 'cart' | 'heart' | 'book' | 'plane' | 'gift' | 'list';
 };
 
-export type kind6 = 'standard' | 'shopping';
+export type kind7 = 'standard' | 'shopping';
 
 export type color = 'tsk' | 'fin' | 'hab' | 'fit' | 'life' | 'warn';
 
@@ -1856,7 +1869,7 @@ export type LivePublic = {
     paused_sec: number;
 };
 
-export type kind7 = 'timer' | 'routine' | 'workout';
+export type kind8 = 'timer' | 'routine' | 'workout';
 
 export type LiveState = {
     live: (LivePublic | null);
@@ -2074,7 +2087,7 @@ export type MediaIn = {
     ratio?: (number | null);
 };
 
-export type kind8 = 'image' | 'video';
+export type kind9 = 'image' | 'video';
 
 export type MediaPublic = {
     media_id: string;
@@ -2097,7 +2110,7 @@ export type MediaWithUrl = {
     url?: (string | null);
 };
 
-export type kind9 = 'image' | 'video' | 'audio' | 'file';
+export type kind10 = 'image' | 'video' | 'audio' | 'file';
 
 export type state = 'pending' | 'ready' | 'rejected';
 
@@ -2263,7 +2276,7 @@ export type NotificationPublic = {
     version: number;
 };
 
-export type kind10 = 'reminder' | 'achievement' | 'review' | 'system' | 'social';
+export type kind11 = 'reminder' | 'achievement' | 'review' | 'system' | 'social';
 
 export type NotificationsOut = {
     data: Array<NotificationPublic>;
@@ -2662,6 +2675,7 @@ export type PresetOut = {
     default_base_url: (string | null);
     custom_base_url: boolean;
     vision_models: Array<(string)>;
+    models?: Array<CatalogModelOut>;
 };
 
 export type name = 'openrouter' | 'openai' | 'anthropic' | 'gemini' | 'groq' | 'nebius' | 'together' | 'custom';
@@ -2669,6 +2683,7 @@ export type name = 'openrouter' | 'openai' | 'anthropic' | 'gemini' | 'groq' | '
 export type PresetsOut = {
     data: Array<PresetOut>;
     count: number;
+    server_default?: (ServerDefaultOut | null);
 };
 
 export type PrivateUserCreate = {
@@ -3219,6 +3234,12 @@ export type SeriesDay = {
     rate: (number | null);
 };
 
+export type ServerDefaultOut = {
+    provider: string;
+    model: string;
+    vision_model: string;
+};
+
 export type SetIn = {
     reps: number;
     weight: number;
@@ -3449,7 +3470,7 @@ export type StoryCreate = {
     audience?: 'everyone' | 'close';
 };
 
-export type kind11 = 'image' | 'video' | 'text' | 'progress';
+export type kind12 = 'image' | 'video' | 'text' | 'progress';
 
 export type audience = 'everyone' | 'close';
 
@@ -3532,7 +3553,7 @@ export type SyncOp = {
     base_version?: (number | null);
 };
 
-export type kind12 = 'upsert' | 'delete' | 'action';
+export type kind13 = 'upsert' | 'delete' | 'action';
 
 export type SyncOpResult = {
     op_id: string;
@@ -4223,7 +4244,7 @@ export type WrapActionIn = {
     note?: (string | null);
 };
 
-export type kind13 = 'complete_task' | 'move_task_tomorrow' | 'check_habit' | 'skip_habit';
+export type kind14 = 'complete_task' | 'move_task_tomorrow' | 'check_habit' | 'skip_habit';
 
 export type WrapActionOut = {
     kind: string;

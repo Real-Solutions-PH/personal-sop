@@ -29,6 +29,7 @@ from pydantic import SecretStr
 from sqlmodel import col, func, select
 
 from app.core.config import settings
+from app.modules.ai_providers import catalog
 from app.modules.ai_providers.models import (
     AIModelAssignment,
     AIProviderCredential,
@@ -47,7 +48,7 @@ PRESET_BASE_URLS: dict[str, str] = {
     "anthropic": "https://api.anthropic.com/v1",
     "gemini": "https://generativelanguage.googleapis.com/v1beta/openai",
     "groq": "https://api.groq.com/openai/v1",
-    "nebius": "https://api.studio.nebius.com/v1",
+    "nebius": "https://api.tokenfactory.nebius.com/v1",
     "together": "https://api.together.xyz/v1",
 }
 
@@ -119,12 +120,22 @@ def resolve_model(ctx: Ctx, purpose: Purpose) -> ResolvedModel | None:
             source="user",
         )
     if settings.AI_SERVER_FALLBACK:
-        return _server_default(purpose)
+        return _server_default(purpose, _preferred_model(ctx))
     return None
 
 
-def _server_default(purpose: Purpose) -> ResolvedModel | None:
+def _preferred_model(ctx: Ctx) -> str | None:
+    # Imported lazily: capture imports this module to resolve its models.
+    from app.modules.capture import public as capture
+
+    return capture.preferred_model(ctx)
+
+
+def _server_default(
+    purpose: Purpose, preferred: str | None = None
+) -> ResolvedModel | None:
     provider = settings.DEFAULT_LLM_PROVIDER
+    vision = False
     if provider == "openrouter" and settings.OPENROUTER_API_KEY:
         key, model, base = (
             settings.OPENROUTER_API_KEY,
@@ -132,11 +143,20 @@ def _server_default(purpose: Purpose) -> ResolvedModel | None:
             settings.OPENROUTER_BASE_URL,
         )
     elif provider == "nebius" and settings.NEBIUS_API_KEY:
-        key, model, base = (
-            settings.NEBIUS_API_KEY,
-            settings.NEBIUS_MODEL,
-            settings.NEBIUS_BASE_URL,
-        )
+        if purpose == "transcription":
+            return None  # Token Factory serves no speech-to-text endpoint
+        key, base = settings.NEBIUS_API_KEY, settings.NEBIUS_BASE_URL
+        picked = catalog.find(preferred) if preferred else None
+        if purpose == "vision":
+            # The user's pick only when it can see; else the vision default.
+            model = (
+                picked.id
+                if picked and picked.kind == "vision"
+                else settings.NEBIUS_VISION_MODEL
+            )
+            vision = True
+        else:
+            model = picked.id if picked else settings.NEBIUS_MODEL
     else:
         return None
     return ResolvedModel(
@@ -146,9 +166,25 @@ def _server_default(purpose: Purpose) -> ResolvedModel | None:
         base_url=base,
         api_key=SecretStr(key),
         credential_id=None,
-        supports_vision=False,
+        supports_vision=vision,
         source="server",
     )
+
+
+def server_default_summary() -> dict[str, str] | None:
+    """What the server key answers with when a user has no provider of their
+    own (None when the fallback is off or has no key)."""
+    if not settings.AI_SERVER_FALLBACK:
+        return None
+    text = _server_default("chat")
+    if text is None:
+        return None
+    photo = _server_default("vision")
+    return {
+        "provider": text.provider,
+        "model": text.model,
+        "vision_model": photo.model if photo else text.model,
+    }
 
 
 def record_usage(

@@ -210,3 +210,6 @@ class AISettings(OwnedRow, table=True):
     spend_cap_minor: int = Field(default=50_000)
     ai_enabled: bool = True
     retention_days: int = 30
+    # The model the server's own key answers this user with, from the Nebius
+    # catalogue (app.modules.ai_providers.catalog); None: the server default.
+    model: str | None = Field(default=None, sa_type=String(160))  # type: ignore
