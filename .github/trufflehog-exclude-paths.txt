@@ -1,0 +1,1 @@
+^backend/tests/modules/ai_providers/unit/test_rules\.py$
