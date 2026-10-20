@@ -14,7 +14,7 @@
 // | Meal detail                         | Duplicate to today                             | N2   |
 // | Meal detail                         | Delete, then Undo                              | N2   |
 // | Eat                                 | Previous / next day                            | N2   |
-// | Nutrition history                   | Day row opens that day                         | N2   |
+// | Nutrition history                   | Lists a completed logged day (today excluded)  | N2   |
 // | Eat                                 | Photo meal estimate — NOT COVERABLE ON WEB: needs the camera / a native image picker, and the live mapper does not upload photos (REST upload path only). Covered by its manual equivalent, "Describe it", in N2. | — |
 // | Eat                                 | Chat / Voice capture buttons open the capture module (capture module's specs) | — |
 import { api, rows, signIn } from "./fitness.helpers"
@@ -181,6 +181,25 @@ describe("fitness · nutrition (live)", { defaultCommandTimeout: 60000 }, () => 
   it("N2: estimate review, edit items, duplicate, delete + undo, days, history", () => {
     cy.newLiveUser("fitness").then((user) => {
       seedLibrary(user)
+      // History covers completed days only (today is left out by design),
+      // so it needs a meal logged yesterday.
+      const noon = new Date(Date.now() - 864e5)
+      noon.setHours(12, 0, 0, 0)
+      cy.liveApi(user, "POST", "/fitness/meals", {
+        label: "lunch",
+        eaten_at: noon.toISOString(),
+        items: [
+          {
+            name: "E2E yesterday rice",
+            qty: 1,
+            unit: "cup",
+            kcal: 205,
+            protein: 4,
+            carbs: 45,
+            fat: 0,
+          },
+        ],
+      })
       signIn(user)
       cy.visit(`/fitness/nutrition/new?day=${today()}`)
       cy.findByRole("textbox", { name: "Describe your meal" }).type(
@@ -269,7 +288,7 @@ describe("fitness · nutrition (live)", { defaultCommandTimeout: 60000 }, () => 
         // Duplicate to today.
         cy.findByRole("button", { name: "Duplicate to today" }).click()
         rows(
-          "select id from meal where owner_id = $1 and deleted_at is null and id <> $2",
+          "select id from meal where owner_id = $1 and deleted_at is null and id <> $2 and raw_input like 'lunch:%'",
           [user.id, mid],
         ).then(([copy]) =>
           cy
@@ -292,10 +311,13 @@ describe("fitness · nutrition (live)", { defaultCommandTimeout: 60000 }, () => 
         )
 
         // Day navigation and history.
+        // Day navigation: yesterday holds the seeded meal, today the edited one.
+        const visible = (text: RegExp) =>
+          cy.findAllByText(text).filter(":visible")
         cy.findByRole("button", { name: "Previous day" }).click()
-        cy.findByText("Nothing logged — snap your plate").should("exist")
+        visible(/E2E yesterday rice/).should("have.length.at.least", 1)
         cy.findByRole("button", { name: "Next day" }).click()
-        cy.findByText("Nothing logged — snap your plate").should("not.exist")
+        visible(/Banana/).should("have.length.at.least", 1)
         cy.findByRole("button", { name: "History" }).click()
         cy.location("pathname").should("eq", "/fitness/nutrition/history")
         cy.findByText("No meals logged in this range").should("not.exist")
