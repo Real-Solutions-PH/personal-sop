@@ -1,12 +1,11 @@
 // Finance — statement import.
 //
-// The mobile import screen (/finance/import) runs the prototype's local
-// pipeline: a fixed list of four sample files, no file picker, and no call
-// to the server's import API (the finance mappers say "Statement imports
-// are REST-only": there is no import mapper and no REST client for it). So
-// the server pipeline — upload → reconcile → commit → undo → restore — is
-// proven here through the API with a small CSV fixture, and the screen's
-// own flow is driven separately to show what of it reaches Postgres.
+// The server pipeline — upload → reconcile → commit → undo → restore — is
+// proven through the API with a small CSV fixture. The mobile import screen
+// runs that same pipeline in live mode (mobile/src/live/finance-import.ts):
+// its sample statements upload as GCash/BPI CSV exports, the server matches
+// them against the user's real accounts, and the commit is the server's, so
+// the records it writes carry the import's id.
 //
 // | Screen / surface         | Action                                         | Test |
 // |--------------------------|------------------------------------------------|------|
@@ -15,13 +14,17 @@
 // | API /finance/imports     | commit, undo, restore, re-commit (same ids)    | server pipeline |
 // | API /finance/imports     | discard draft → restore                        | discard and restore |
 // | /finance/import          | pick account + sample file, "Upload & read"    | screen flow |
-// | /finance/import/[id]     | review tabs, "Accept all new", Apply           | screen flow |
+// | /finance/import/[id]     | wrong account → "Use detected account"         | screen flow |
+// | /finance/import/[id]     | Fix row → Ignore; Apply; transfer account      | screen flow |
 // | /finance/import/[id]     | "Undo import"                                  | screen flow |
-// | /finance/imports         | history, Resume, Undo, Discard (+ toast Undo)  | screen flow (history card) |
-// | /finance/import          | a real CSV/PDF file from disk                  | NOT COVERABLE ON WEB: the screen has no file picker ("Browse files" is a mock that picks a sample) |
+// | /finance/imports         | Save draft, history, Discard (+ toast Undo)    | screen flow (history) |
+// | /finance/import          | "Browse files" (a real CSV from disk)          | NOT COVERED ON WEB: expo-document-picker opens the OS file dialog from a detached <input>, which Cypress cannot drive; the picked-CSV path is covered by jest (detectCsv + the shared upload) |
 import {
   categoryId,
+  clickUndo,
+  derivedId,
   eventuallyBalances,
+  openFinance,
   rowsSoon,
   seedAccount,
 } from "./finance.helpers"
@@ -314,43 +317,204 @@ describe("finance statement import (live)", {
     })
   })
 
-  it("screen flow: the sample statement import reaches the server", () => {
+  it("screen flow: a sample statement is read, reviewed and committed on the server", () => {
     cy.newLiveUser("fin").then((user) => {
       seedAccount(user, {
         name: "GCash",
         type: "ewallet",
         opening_minor: 500000,
-      }).then((acct) => {
-        cy.signInLive(user)
-        cy.visit(`/finance/import?account=${acct.id}`)
-        cy.contains("GCash_Transaction_History.pdf").click()
-        cy.findByRole("button", { name: "Upload & read" }).click()
-        cy.location("pathname").should("match", /^\/finance\/import\/.+/)
-        // Live accounts have UUIDs; the prototype's detection compares the
-        // seed id "gcash", so this prompt always appears (defect, reported).
-        cy.findByRole("button", {
-          name: "Use selected account anyway",
-          timeout: 30000,
-        }).click()
-        cy.findByRole("tab", { name: /^New \d+$/, timeout: 30000 }).click()
-        cy.findByRole("button", {
-          name: "Accept all new",
-          timeout: 30000,
-        }).click()
-        cy.findByRole("button", { name: /^Apply \d+ changes$/ }).click()
-        cy.findByText(/^Imported — \d+ added/).should("exist")
+      }).then((gcash) => {
+        seedAccount(user, {
+          name: "BPI",
+          type: "bank",
+          opening_minor: 1000000,
+        }).then((bpi) => {
+          // Start on the bank account with the GCash export: the server's
+          // layout check refuses it, and the prompt offers the user's own
+          // GCash account (not a demo id).
+          openFinance(user, `/finance/import?account=${bpi.id}`, "GCash")
+          cy.contains("GCash_Transaction_History.csv").click()
+          cy.findByRole("button", { name: "Upload & read" }).click()
+          cy.location("pathname").should("match", /^\/finance\/import\/.+/)
+          cy.findByText("This looks like a different account", {
+            timeout: 120000,
+          }).should("exist")
+          cy.contains("the file looks like GCash.").should("exist")
+          cy.findByRole("button", { name: "Use detected account" }).click()
+          cy.findByText("Match with statement", { timeout: 120000 }).should(
+            "exist",
+          )
 
-        // What the screen committed must exist on the server: the records
-        // it added, then the import itself.
-        rowsSoon(
-          `select id from fin_record where owner_id = $1 and import_id is not null
-             and deleted_at is null`,
-          [user.id],
+          rowsSoon(
+            `select id, account_id::text as account_id, status, file_type, file_name
+               from statement_import where owner_id = $1`,
+            [user.id],
+          ).then(([imp]) => {
+            expect(imp).to.deep.include({
+              account_id: gcash.id,
+              status: "review",
+              file_type: "csv",
+              file_name: "GCash_Transaction_History.csv",
+            })
+            const importId = imp.id as string
+            // The screen shows the server's rows: its row count is the
+            // number of import_row rows in Postgres.
+            cy.contains(/· \d+ rows$/)
+              .invoke("text")
+              .then((text) => {
+                const n = Number(/(\d+) rows$/.exec(text)?.[1])
+                expect(n).to.be.greaterThan(0)
+                rowsSoon(
+                  "select id from import_row where import_id = $1 and deleted_at is null",
+                  [importId],
+                  n,
+                ).then((rows) => expect(rows).to.have.length(n))
+              })
+            // The sample has cash-in lines, which the server reads as
+            // transfers (they need the account on the other side).
+            rowsSoon(
+              "select id from import_row where import_id = $1 and is_transfer",
+              [importId],
+            )
+
+            // Fix row → Ignore on the first new row: a server row patch.
+            cy.findByRole("tab", { name: /^New \d+$/ }).click()
+            // A row's "new" pill sits inside its tappable row (the first
+            // "new" on the page is the counts label, so take the last).
+            cy.findAllByText("new").last().click()
+            cy.findByText("Fix row").should("exist")
+            cy.findByRole("button", { name: "Ignore" }).click()
+            rowsSoon(
+              `select position from import_row
+                where import_id = $1 and decision = 'ignore'`,
+              [importId],
+            ).then(([ignored]) => {
+              // Apply: the transfer rows ask for their other account.
+              cy.findByRole("button", { name: /^Apply \d+ changes$/ }).click()
+              cy.findByText("Transfers came from", { timeout: 30000 }).should(
+                "exist",
+              )
+              // The sheet renders above the review (react-native-web
+              // keeps a copy of the modal's content behind it).
+              cy.findAllByText("BPI").last().click()
+              cy.findByText(/^Imported — \d+ added/, {
+                timeout: 120000,
+              }).should("exist")
+
+              rowsSoon(
+                `select created_ids, counts from statement_import
+                  where id = $1 and status = 'done'`,
+                [importId],
+              ).then(([done]) => {
+                const created = done.created_ids as string[]
+                expect(created.length).to.be.greaterThan(0)
+                // Every record the commit wrote carries the import's id.
+                rowsSoon(
+                  `select id, type, account_id::text as account_id,
+                          to_account_id::text as to_account_id
+                     from fin_record
+                    where owner_id = $1 and import_id = $2 and deleted_at is null`,
+                  [user.id, importId],
+                  created.length,
+                ).then((recs) => {
+                  expect(recs.map((r) => r.id).sort()).to.deep.eq(
+                    [...created].sort(),
+                  )
+                  // Cash-in: from BPI into GCash (no demo "bpi" id).
+                  const transfers = recs.filter((r) => r.type === "transfer")
+                  expect(transfers.length).to.be.greaterThan(0)
+                  for (const t of transfers)
+                    expect([t.account_id, t.to_account_id]).to.have.members([
+                      bpi.id,
+                      gcash.id,
+                    ])
+                })
+                // Record ids are the server's derived ids (computed here
+                // independently); the ignored row wrote nothing.
+                derivedId(
+                  "import-record",
+                  importId,
+                  String(ignored.position),
+                ).then((skipped) => {
+                  expect(created).to.not.include(skipped)
+                })
+                rowsSoon(
+                  `select position from import_row
+                    where import_id = $1 and state = 'new' and decision = 'accept'
+                    order by position limit 1`,
+                  [importId],
+                ).then(([first]) =>
+                  derivedId(
+                    "import-record",
+                    importId,
+                    String(first.position),
+                  ).then((id) => expect(created).to.include(id)),
+                )
+                // Nothing the screen imported arrived unlinked.
+                cy.task<Record<string, unknown>[]>("sql", {
+                  text: `select id from fin_record where owner_id = $1
+                          and source = 'import' and import_id is null`,
+                  values: [user.id],
+                }).then((orphans) => expect(orphans).to.have.length(0))
+
+                // Undo on the summary screen reverts it on the server.
+                cy.findByText("GCash matched with statement", {
+                  timeout: 120000,
+                }).should("exist")
+                cy.findByRole("button", { name: "Undo import" }).click()
+                cy.findByText("Import undone", { timeout: 120000 }).should(
+                  "exist",
+                )
+                rowsSoon(
+                  "select id from statement_import where id = $1 and status = 'undone'",
+                  [importId],
+                )
+                rowsSoon(
+                  `select id from fin_record where id = any($1::uuid[])
+                    and deleted_at is not null`,
+                  [created],
+                  created.length,
+                )
+              })
+            })
+          })
+        })
+      })
+    })
+  })
+
+  it("screen flow (history): a saved draft is discarded and restored on the server", () => {
+    cy.newLiveUser("fin").then((user) => {
+      seedAccount(user, {
+        name: "GCash",
+        type: "ewallet",
+        opening_minor: 500000,
+      }).then((gcash) => {
+        openFinance(user, `/finance/import?account=${gcash.id}`, "GCash")
+        cy.contains("GCash_Transaction_History.csv").click()
+        cy.findByRole("button", { name: "Upload & read" }).click()
+        cy.findByText("Match with statement", { timeout: 120000 }).should(
+          "exist",
         )
         rowsSoon(
-          "select id, status from statement_import where owner_id = $1",
+          "select id from statement_import where owner_id = $1 and status = 'review'",
           [user.id],
-        )
+        ).then(([imp]) => {
+          cy.findByRole("button", { name: "Save draft" }).click()
+          cy.location("pathname").should("eq", "/finance/imports")
+          cy.findByRole("button", { name: "Discard import" }).click()
+          rowsSoon(
+            "select id from statement_import where id = $1 and deleted_at is not null",
+            [imp.id],
+          )
+          clickUndo()
+          rowsSoon(
+            `select id from statement_import
+              where id = $1 and deleted_at is null and status = 'review'`,
+            [imp.id],
+          )
+          cy.findByRole("button", { name: "Resume" }).should("exist")
+        })
       })
     })
   })

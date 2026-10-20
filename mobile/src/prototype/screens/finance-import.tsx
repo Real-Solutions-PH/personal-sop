@@ -6,6 +6,7 @@ import {
   signedFor,
 } from "@domain/finance/data"
 import { finStore } from "@domain/finance/store"
+import * as DocumentPicker from "expo-document-picker"
 import { useLocalSearchParams } from "expo-router"
 import {
   Camera,
@@ -20,8 +21,18 @@ import {
   Upload,
 } from "lucide-react-native"
 import { useEffect, useRef, useState } from "react"
-import { ActivityIndicator, ScrollView, View } from "react-native"
+import { ActivityIndicator, Platform, ScrollView, View } from "react-native"
 import { toast } from "sonner-native"
+import { liveMode } from "@/live/config"
+import {
+  detectCsv,
+  detectedAccount,
+  failureText,
+  LIVE_SAMPLE_META,
+  liveImport,
+  type StatementSource,
+  sampleSource,
+} from "@/live/finance-import"
 import {
   Copy,
   Frame,
@@ -47,10 +58,47 @@ import { useMoney } from "./finance"
 import { AccountIcon } from "./finance-accounts"
 import { FinPill } from "./finance-planned"
 import { FinChip } from "./finance-projection"
+
+// Live mode: a review edit goes to the server; prototype mode edits the store.
+function editRows(importId: string, ids: string[], patch: Partial<ImportRow>) {
+  if (!liveMode) return A.patchRows(importId, ids, patch)
+  void liveImport()
+    .patchRows(importId, ids, patch)
+    .catch((e) => toast(failureText(e)))
+}
+const liveError = (e: unknown) => void toast(failureText(e))
+// The server keeps an import's before-images; live mode counts them.
+const changedCount = (i: StatementImport) =>
+  liveMode && i.counts ? i.counts.matched + i.counts.updated : i.changed.length
+/** A picked file's text (web hands over a File, native a cache uri). */
+async function pickedText(asset: DocumentPicker.DocumentPickerAsset) {
+  if (Platform.OS === "web")
+    return asset.file ? asset.file.text() : (await fetch(asset.uri)).text()
+  const { File } = await import("expo-file-system")
+  return new File(asset.uri).text()
+}
 export function ImportStatement({ id }: { id?: string }) {
   const s = finStore.use((s) => s),
-    imp = s.imports.find((i) => i.id === id)
+    imp = s.imports.find((i) => i.id === id),
+    [loading, setLoading] = useState(liveMode && !!id && !imp)
+  // Live: read the server's copy (rows, counts) unless the device is
+  // reading the file right now.
+  useEffect(() => {
+    if (!liveMode || !id) return
+    const cur = finStore.get().imports.find((i) => i.id === id)
+    if (cur?.status === "parsing" || cur?.status === "failed") return
+    liveImport()
+      .load(id)
+      .catch(liveError)
+      .finally(() => setLoading(false))
+  }, [id])
   if (!id) return <ImportStart />
+  if (!imp && loading)
+    return (
+      <Screen title="Import">
+        <ActivityIndicator style={{ paddingVertical: 40 }} />
+      </Screen>
+    )
   if (!imp)
     return (
       <Screen title="Import">
@@ -76,10 +124,55 @@ function ImportStart() {
   const s = finStore.use((s) => s),
     t = useTheme(),
     p = useLocalSearchParams<{ account?: string }>(),
-    [acct, setAcct] = useState(p.account ?? "gcash"),
-    [file, setFile] = useState<A.SampleFile | null>(null),
+    [chosen, setAcct] = useState(p.account ?? (liveMode ? "" : "gcash")),
+    [file, setFileKey] = useState<A.SampleFile | null>(null),
+    [picked, setPicked] = useState<{
+      name: string
+      size: string
+      source: StatementSource
+    } | null>(null),
+    eligible = s.accounts.filter((a) => !a.archived && a.type !== "investment"),
+    // Live: no demo "gcash"; start on the default (or first) real account.
+    acct =
+      chosen ||
+      (
+        eligible.find((a) => a.id === s.settings.defaultAccountId) ??
+        eligible[0]
+      )?.id ||
+      "",
     a = s.accounts.find((a) => a.id === acct),
-    days = a ? C.lastReconciledDays(a) : null
+    days = a ? C.lastReconciledDays(a) : null,
+    samples = A.SAMPLE_FILES.map((f) =>
+      liveMode ? { ...f, ...LIVE_SAMPLE_META[f.key] } : f,
+    ),
+    setFile = (f: A.SampleFile) => {
+      setPicked(null)
+      setFileKey(f)
+    },
+    browse = async () => {
+      const res = await DocumentPicker.getDocumentAsync({
+        type: [
+          "text/csv",
+          "text/comma-separated-values",
+          "application/vnd.ms-excel",
+          "text/plain",
+        ],
+        copyToCacheDirectory: true,
+      })
+      const asset = res.canceled ? undefined : res.assets[0]
+      if (!asset) return
+      const source = detectCsv(await pickedText(asset))
+      if (!source) {
+        toast("Couldn't find date, description and amount columns in that file")
+        return
+      }
+      setFileKey(null)
+      setPicked({
+        name: asset.name,
+        size: `${Math.max(1, Math.round((asset.size ?? 0) / 1024))} KB`,
+        source,
+      })
+    }
   return (
     <Screen title="Import statement">
       <Copy size={14} muted style={{ paddingHorizontal: 4 }}>
@@ -91,17 +184,15 @@ function ImportStart() {
       </Copy>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <Line style={{ gap: 8 }}>
-          {s.accounts
-            .filter((a) => !a.archived && a.type !== "investment")
-            .map((a) => (
-              <FinChip
-                key={a.id}
-                label={a.name}
-                active={acct === a.id}
-                onPress={() => setAcct(a.id)}
-                leading={<AccountIcon account={a} size={24} />}
-              />
-            ))}
+          {eligible.map((a) => (
+            <FinChip
+              key={a.id}
+              label={a.name}
+              active={acct === a.id}
+              onPress={() => setAcct(a.id)}
+              leading={<AccountIcon account={a} size={24} />}
+            />
+          ))}
         </Line>
       </ScrollView>
       {a && (
@@ -121,7 +212,40 @@ function ImportStart() {
         File
       </Copy>
       <View style={{ gap: 8 }}>
-        {A.SAMPLE_FILES.map((f) => {
+        {picked && (
+          <Frame
+            style={{
+              padding: 12,
+              borderColor: t.fin,
+              backgroundColor: `${t.fin}1a`,
+            }}
+          >
+            <Line>
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  backgroundColor: t.soft,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <FileText size={20} color={t.text} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Copy size={14} weight="medium" lines={1}>
+                  {picked.name}
+                </Copy>
+                <Copy size={12} muted>
+                  {picked.size} · Your file
+                </Copy>
+              </View>
+              <Check size={20} color={t.fin} />
+            </Line>
+          </Frame>
+        )}
+        {samples.map((f) => {
           const Icon =
             f.type === "image"
               ? ImageIcon
@@ -169,7 +293,9 @@ function ImportStart() {
             <Button
               tone="quiet"
               icon={Upload}
-              onPress={() => setFile("gcash-pdf")}
+              onPress={() =>
+                liveMode ? void browse().catch(liveError) : setFile("gcash-pdf")
+              }
             >
               Browse files
             </Button>
@@ -186,7 +312,9 @@ function ImportStart() {
         </Line>
       </View>
       <Copy size={11} muted>
-        Prototype: pick one of these sample files.
+        {liveMode
+          ? "Pick a sample statement, or Browse files for a CSV export."
+          : "Prototype: pick one of these sample files."}
       </Copy>
       <Frame style={{ padding: 16, backgroundColor: t.soft }}>
         <Copy size={12} weight="medium" style={{ marginBottom: 4 }}>
@@ -200,9 +328,17 @@ function ImportStart() {
         </Copy>
       </Frame>
       <Button
-        disabled={!file}
+        disabled={liveMode ? !acct || (!file && !picked) : !file}
         onPress={() => {
-          if (file) {
+          if (liveMode) {
+            const meta = picked
+                ? { name: picked.name, type: "csv" as const }
+                : samples.find((f) => f.key === file),
+              source = picked?.source ?? (file ? sampleSource(file) : null)
+            if (!meta || !source || !acct) return
+            const id = liveImport().begin(acct, meta, source)
+            go(`/finance/import/${id}`)
+          } else if (file) {
             const id = A.startImport(acct, file)
             go(`/finance/import/${id}?file=${file}`)
           }
@@ -225,13 +361,46 @@ function Parsing({ imp }: { imp: StatementImport }) {
     [prompt, setPrompt] = useState(""),
     [pw, setPw] = useState(""),
     timers = useRef<ReturnType<typeof setTimeout>[]>([]),
-    detected =
-      file === "bpi-pdf" ? "bpi" : file === "maya-shot" ? "maya" : "gcash",
+    source = liveMode ? liveImport().sourceOf(imp.id, p.file) : undefined,
+    liveDetected = liveMode
+      ? detectedAccount(s.accounts, source, imp.accountId)
+      : undefined,
+    detected = liveMode
+      ? (liveDetected?.id ?? "")
+      : file === "bpi-pdf"
+        ? "bpi"
+        : file === "maya-shot"
+          ? "maya"
+          : "gcash",
+    detectedName =
+      liveDetected?.name ??
+      (source?.kind === "csv" && source.layout === "bpi"
+        ? "a BPI account"
+        : liveMode
+          ? "a GCash account"
+          : detected),
     acct = s.accounts.find((a) => a.id === imp.accountId)
   const run = (force?: string) => {
     setPrompt("")
     setStep(1)
     timers.current.forEach(clearTimeout)
+    if (liveMode) {
+      // The server reads, parses and matches; "force" is the account the
+      // person chose on the wrong-account prompt.
+      timers.current = [setTimeout(() => setStep(2), 700)]
+      void liveImport()
+        .read(imp.id, source, {
+          accountId: force,
+          force: force === imp.accountId,
+        })
+        .then((r) => {
+          if (r === "wrong-account") {
+            setPrompt(r)
+            setStep(0)
+          } else setStep(3)
+        })
+      return
+    }
     timers.current = [
       setTimeout(() => setStep(2), 700),
       setTimeout(() => {
@@ -301,9 +470,11 @@ function Parsing({ imp }: { imp: StatementImport }) {
           <Copy weight="semibold">This looks like a different account</Copy>
           <Copy size={14} muted>
             Selected {acct?.name}, but the file looks like{" "}
-            {s.accounts.find((a) => a.id === detected)?.name ?? detected}.
+            {s.accounts.find((a) => a.id === detected)?.name ?? detectedName}.
           </Copy>
-          <Button onPress={() => run(detected)}>Use detected account</Button>
+          {(!liveMode || !!liveDetected) && (
+            <Button onPress={() => run(detected)}>Use detected account</Button>
+          )}
           <Button tone="quiet" onPress={() => run(imp.accountId)}>
             Use selected account anyway
           </Button>
@@ -349,7 +520,11 @@ function Failed({ imp }: { imp: StatementImport }) {
               icon={RotateCcw}
               onPress={() => {
                 A.patchImport(imp.id, { status: "parsing", error: undefined })
-                go(`/finance/import/${imp.id}?file=gcash-pdf`)
+                go(
+                  liveMode
+                    ? `/finance/import/${imp.id}`
+                    : `/finance/import/${imp.id}?file=gcash-pdf`,
+                )
               }}
             >
               Retry
@@ -408,6 +583,8 @@ function Review({ imp }: { imp: StatementImport }) {
     [sel, setSel] = useState<string[]>([]),
     [fix, setFix] = useState<string | null>(null),
     [picker, setPicker] = useState(false),
+    [transferPick, setTransferPick] = useState(false),
+    [busy, setBusy] = useState(false),
     acct = s.accounts.find((a) => a.id === imp.accountId),
     rows = imp.rows,
     attention = rows.filter(C.needsAttention),
@@ -440,7 +617,29 @@ function Review({ imp }: { imp: StatementImport }) {
   const gap = imp.closing - after,
     caught =
       counts.matched /
-      Math.max(1, counts.matched + counts.new + counts.probable)
+      Math.max(1, counts.matched + counts.new + counts.probable),
+    report = (res: { gap: number; created: number; updated: number }) => {
+      toast(`Imported — ${res.created} added, ${res.updated} updated`)
+      if (Math.abs(res.gap) >= 1 && acct)
+        confirm(
+          "Balance adjustment",
+          `The statement differs by ${money(res.gap)}. Log an adjustment to match it?`,
+          () =>
+            A.adjustBalance(
+              acct.id,
+              C.balanceOf(finStore.get(), acct) + res.gap,
+              `Gap after ${imp.fileName}`,
+            ),
+        )
+    },
+    // Live: the server writes the records (linked to this import).
+    applyLive = (transferAccountId?: string) => {
+      setBusy(true)
+      liveImport()
+        .commit(imp.id, transferAccountId)
+        .then(report, liveError)
+        .finally(() => setBusy(false))
+    }
   return (
     <Screen
       title="Match with statement"
@@ -458,22 +657,12 @@ function Review({ imp }: { imp: StatementImport }) {
             </Button>
             <View style={{ flex: 1 }}>
               <Button
+                disabled={busy}
                 onPress={() => {
-                  const res = A.commitImport(imp.id)
-                  toast(
-                    `Imported — ${res.created} added, ${res.updated} updated`,
-                  )
-                  if (Math.abs(res.gap) >= 1 && acct)
-                    confirm(
-                      "Balance adjustment",
-                      `The statement differs by ${money(res.gap)}. Log an adjustment to match it?`,
-                      () =>
-                        A.adjustBalance(
-                          acct.id,
-                          C.balanceOf(finStore.get(), acct) + res.gap,
-                          `Gap after ${imp.fileName}`,
-                        ),
-                    )
+                  if (!liveMode) report(A.commitImport(imp.id))
+                  else if (liveImport().needsTransferAccount(imp))
+                    setTransferPick(true)
+                  else applyLive()
                 }}
               >{`Apply ${rows.filter((r) => r.decision !== "ignore").length} changes`}</Button>
             </View>
@@ -557,7 +746,7 @@ function Review({ imp }: { imp: StatementImport }) {
               small
               icon={Check}
               onPress={() => {
-                A.patchRows(
+                editRows(
                   imp.id,
                   rows.filter((r) => r.state === "new").map((r) => r.id),
                   { decision: "accept" },
@@ -792,7 +981,7 @@ function Review({ imp }: { imp: StatementImport }) {
               <Tap
                 key={c.id}
                 onPress={() => {
-                  A.patchRows(imp.id, sel, {
+                  editRows(imp.id, sel, {
                     categoryId: c.id,
                     decision: "accept",
                   })
@@ -807,6 +996,40 @@ function Review({ imp }: { imp: StatementImport }) {
                 </Copy>
               </Tap>
             ))}
+        </Sheet>
+      )}
+      {transferPick && (
+        <Sheet
+          title="Transfers came from"
+          open
+          onClose={() => setTransferPick(false)}
+        >
+          <Copy size={14} muted>
+            Some rows are transfers between your accounts. Pick the account on
+            the other side.
+          </Copy>
+          {s.accounts
+            .filter((a) => !a.archived && a.id !== imp.accountId)
+            .map((a) => (
+              <Tap
+                key={a.id}
+                onPress={() => {
+                  setTransferPick(false)
+                  applyLive(a.id)
+                }}
+                style={{ paddingVertical: 12 }}
+              >
+                <Line>
+                  <AccountIcon account={a} size={24} />
+                  <Copy>{a.name}</Copy>
+                </Line>
+              </Tap>
+            ))}
+          {!s.accounts.some((a) => !a.archived && a.id !== imp.accountId) && (
+            <Copy size={14} muted>
+              Add the other account first, or ignore the transfer rows.
+            </Copy>
+          )}
         </Sheet>
       )}
       {fix && <RowFix imp={imp} rowId={fix} onClose={() => setFix(null)} />}
@@ -829,7 +1052,7 @@ function RowFix({
     rec = s.records.find((x) => x.id === r?.matchId)
   if (!r) return null
   const set = (patch: Partial<ImportRow>, message: string) => {
-      A.patchRows(imp.id, [r.id], patch)
+      editRows(imp.id, [r.id], patch)
       toast(message)
       onClose()
     },
@@ -917,7 +1140,7 @@ function RowFix({
             )
             .map((c) => ({ value: c.id, label: `${c.icon} ${c.name}` }))}
           onChange={(categoryId) =>
-            A.patchRows(imp.id, [r.id], { categoryId, decision: "accept" })
+            editRows(imp.id, [r.id], { categoryId, decision: "accept" })
           }
         />
       )}
@@ -1088,10 +1311,16 @@ function Done({ imp }: { imp: StatementImport }) {
           onPress={() =>
             confirm(
               "Undo this import?",
-              `Reverts only what it did: removes ${imp.createdIds.length} added transactions and restores ${imp.changed.length} edited ones.`,
+              `Reverts only what it did: removes ${imp.createdIds.length} added transactions and restores ${changedCount(imp)} edited ones.`,
               () => {
-                A.undoImport(imp.id)
-                toast("Import undone")
+                if (liveMode)
+                  void liveImport()
+                    .undo(imp.id)
+                    .then(() => toast("Import undone"), liveError)
+                else {
+                  A.undoImport(imp.id)
+                  toast("Import undone")
+                }
               },
             )
           }
@@ -1122,6 +1351,10 @@ export function Imports() {
             ? ["done", "undone"].includes(i.status)
             : true,
       )
+  // Live: the server's history (another device's imports included).
+  useEffect(() => {
+    if (liveMode) void liveImport().loadList().catch(liveError)
+  }, [])
   return (
     <Screen
       title="Imports"
@@ -1209,7 +1442,7 @@ export function Imports() {
                     </Button>
                   )}
                   {i.status === "done" &&
-                    i.createdIds.length + i.changed.length > 0 && (
+                    i.createdIds.length + changedCount(i) > 0 && (
                       <Button
                         small
                         tone="quiet"
@@ -1217,10 +1450,16 @@ export function Imports() {
                         onPress={() =>
                           confirm(
                             "Undo this import?",
-                            `Removes ${i.createdIds.length} transactions it added and restores ${i.changed.length} it edited. Nothing else changes.`,
+                            `Removes ${i.createdIds.length} transactions it added and restores ${changedCount(i)} it edited. Nothing else changes.`,
                             () => {
-                              A.undoImport(i.id)
-                              toast("Import undone")
+                              if (liveMode)
+                                void liveImport()
+                                  .undo(i.id)
+                                  .then(() => toast("Import undone"), liveError)
+                              else {
+                                A.undoImport(i.id)
+                                toast("Import undone")
+                              }
                             },
                           )
                         }
@@ -1233,8 +1472,17 @@ export function Imports() {
                       small
                       tone="quiet"
                       onPress={() => {
-                        A.patchImport(i.id, { fileKept: false })
-                        toast("Statement file deleted")
+                        if (liveMode)
+                          void liveImport()
+                            .discardFile(i.id)
+                            .then(
+                              () => toast("Statement file deleted"),
+                              liveError,
+                            )
+                        else {
+                          A.patchImport(i.id, { fileKept: false })
+                          toast("Statement file deleted")
+                        }
                       }}
                     >
                       Delete file
@@ -1245,8 +1493,24 @@ export function Imports() {
                       icon={Trash2}
                       label="Discard import"
                       onPress={() => {
-                        A.deleteImport(i.id)
-                        undo("Import discarded", () => A.restoreImport(i))
+                        if (liveMode)
+                          void liveImport()
+                            .discard(i.id)
+                            .then(
+                              () =>
+                                undo(
+                                  "Import discarded",
+                                  () =>
+                                    void liveImport()
+                                      .restore(i)
+                                      .catch(liveError),
+                                ),
+                              liveError,
+                            )
+                        else {
+                          A.deleteImport(i.id)
+                          undo("Import discarded", () => A.restoreImport(i))
+                        }
                       }}
                     />
                   )}
