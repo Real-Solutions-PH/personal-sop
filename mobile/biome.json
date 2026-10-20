@@ -7,6 +7,7 @@
       "!expo-env.d.ts",
       "!**/.expo",
       "!**/node_modules",
+      "!openapi.json",
       "!**/src/client",
       "!**/src/components/ui",
       "!**/src/live/__tests__/fixtures"

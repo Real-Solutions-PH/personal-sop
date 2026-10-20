@@ -81,7 +81,7 @@ Cypress.Commands.add(
           method,
           url: `${Cypress.env("API_URL")}/api/v1${path}`,
           headers: { Authorization: `Bearer ${t}` },
-          body,
+          body: body as Cypress.RequestBody,
         })
         .its("body"),
     ),
