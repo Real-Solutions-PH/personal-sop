@@ -91,7 +91,7 @@ describe("social chats (live)", () => {
           ).then((theirs) => {
             signIn(a)
             cy.visit(`/social/chat/${chat.id}`)
-            cy.findByText("React to me").then(($m) => longPress($m))
+            longPress("React to me")
             cy.findAllByRole("button", { name: /^React / })
               .first()
               .click()
@@ -108,7 +108,7 @@ describe("social chats (live)", () => {
             )
 
             // Reply: the long-press menu's Reply quotes the message.
-            cy.findByText("React to me").then(($m) => longPress($m))
+            longPress("React to me")
             cy.findByRole("button", { name: "Reply" }).click()
             cy.findByRole("textbox", { name: "Message" }).type("Replying")
             cy.findByRole("button", { name: "Send" }).click()
@@ -124,7 +124,9 @@ describe("social chats (live)", () => {
               "select id from chat_message where chat_id = $1 and owner_id = $2 and text = 'Oops typo' and deleted_at is null",
               [chat.id, a.id],
             ).then(([mine]) => {
-              cy.findByText("Oops typo").then(($m) => longPress($m))
+              longPress("Oops typo")
+              // The menu previews the pressed message: it must be this one.
+              cy.findAllByText("Oops typo").should("have.length", 2)
               cy.findByRole("button", { name: "Unsend" }).click()
               cy.findByText("Oops typo").should("not.exist")
               cy.eventuallyRows(

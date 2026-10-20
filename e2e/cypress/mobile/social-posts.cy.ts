@@ -250,7 +250,7 @@ describe("social posts (live)", () => {
                 [b.id, a.id],
               )
               // Long press deletes my own comment (confirm auto-accepted).
-              cy.findByText("Nice work, Bea").then(($t) => longPress($t))
+              longPress("Nice work, Bea")
               cy.findByText("Nice work, Bea").should("not.exist")
               cy.eventuallyRows(
                 "select id from comment where id = $1 and deleted_at is not null",

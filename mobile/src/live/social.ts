@@ -407,8 +407,9 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
   })
   function mapChat(w: WChat, prev?: Chat): Chat {
     let messages = prev?.messages ?? []
-    if (w.last_message && !messages.some((m) => m.id === w.last_message?.id))
-      messages = [...messages, mapMessage(w.last_message)]
+    const last = w.last_message
+    if (last && !unsent.has(last.id) && !messages.some((m) => m.id === last.id))
+      messages = [...messages, mapMessage(last)]
     return {
       id: lid(w.id),
       members: w.members.filter((b) => b.id !== me).map((b) => b.id),
