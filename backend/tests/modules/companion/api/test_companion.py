@@ -204,3 +204,25 @@ def test_insights_block_data(client: TestClient, db: Session) -> None:
     api = user(client, db)
     out = api.get("/companion/insights")
     assert any("on-target streak" in i["title"] for i in out["data"])
+
+
+def test_a_failed_model_hands_a_log_to_capture_with_the_question_stored_once(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from tests.modules.capture.api.test_sync_journal_queue import pull
+
+    api = user(client, db)
+    api.assign("chat")
+    install(monkeypatch, fail=True)
+    me_id = uuid.uuid4()
+    out = ask(api, "spent 250 on grab", id=str(me_id))
+    assert out["kind"] == "capture" and out["capture"]["text"] == "spent 250 on grab"
+    # the capture carries the question in the thread; no companion copy of it
+    msgs = api.get("/companion/messages")["data"]
+    assert [m for m in msgs if m["text"] == "spent 250 on grab"] == []
+    # the copy the AI path streamed before its provider failed is tombstoned,
+    # so a device that received it drops it on the next pull
+    changes = [
+        c for c in pull(api).get("companion_message", []) if c["id"] == str(me_id)
+    ]
+    assert changes and all(c["deleted"] for c in changes)

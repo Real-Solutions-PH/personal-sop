@@ -288,6 +288,31 @@ def test_verify_maps_every_outcome(
     assert req.headers["authorization"] == f"Bearer {KEY}"
 
 
+@pytest.mark.parametrize(
+    "exc",
+    [
+        # what httpx raises for a closed port and for a host that does not resolve
+        httpx.ConnectError("[Errno 61] Connection refused"),
+        httpx.ConnectError("[Errno 8] nodename nor servname provided, or not known"),
+    ],
+)
+def test_verify_of_a_dead_local_server_is_unreachable(
+    client: TestClient, db: Session, provider: Provider, exc: Exception
+) -> None:
+    ai = _ai(client, db)
+    cid = ai.credential("custom", KEY, base_url="http://localhost:59999/v1")["id"]
+
+    def down(_r: httpx.Request) -> httpx.Response:
+        raise exc
+
+    provider.respond = down
+    out = ai.post(f"/providers/{cid}/verify")
+    assert (out["code"], out["ok"]) == ("unreachable", False)
+    assert out["credential"]["last_error_code"] == "unreachable"
+    assert str(provider.seen[-1].url) == "http://localhost:59999/v1/models"
+    assert KEY not in ai.texts[-1] and "Errno" not in ai.texts[-1]
+
+
 def test_models_cached_and_invalidated_on_key_change(
     client: TestClient, db: Session, provider: Provider
 ) -> None:

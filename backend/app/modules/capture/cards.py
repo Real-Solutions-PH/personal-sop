@@ -59,6 +59,9 @@ TARGET_OF = {
     "journal": "journal",
 }
 SAVE_FAILED = "Couldn't save — try again or edit."
+# Refusals a person can act on: the owning module's code and its message,
+# shown on the card in place of SAVE_FAILED. Any other refusal stays generic.
+REFUSALS = {"no_account": "Add an account first"}
 CHANGED_SINCE = "Changed or deleted since — open the entry instead."
 SKIPPED = "Skipped — waiting in History until you answer."
 SAVES = ("saved", "edited", "redone")
@@ -286,11 +289,41 @@ def new_reply(
     )
 
 
+@dataclass
+class Refusal:
+    code: str
+    message: str
+
+    def error(self) -> HTTPException:
+        return invalid(self.code, self.message)
+
+
+GENERIC = Refusal("card_save_failed", SAVE_FAILED)
+# Every warning a refusal leaves on a card; a later save clears these and
+# keeps any other warning the card was drafted with.
+REFUSAL_WARNS = frozenset({SAVE_FAILED, *REFUSALS.values()})
+
+
+def refusal_of(exc: Exception) -> Refusal:
+    detail = exc.detail if isinstance(exc, HTTPException) else None
+    code = detail.get("code") if isinstance(detail, dict) else None
+    if isinstance(code, str) and code in REFUSALS:
+        return Refusal(code, REFUSALS[code])
+    return GENERIC
+
+
 def save(
     ctx: Ctx, card: RecordCard, cap: Capture, *, actor: str, action: str = "saved"
 ) -> bool:
     """Write the card into its module. ``False`` (with a warning on the card)
     when the module refused; nothing of the attempt is kept then."""
+    return try_save(ctx, card, cap, actor=actor, action=action) is None
+
+
+def try_save(
+    ctx: Ctx, card: RecordCard, cap: Capture, *, actor: str, action: str = "saved"
+) -> Refusal | None:
+    """:func:`save`, returning why the module refused (``None`` when saved)."""
     before = _snap(card)
     gen = _generation(ctx, card.id)
     ctx.session.add(card)
@@ -304,22 +337,25 @@ def save(
                 ctx, card, cap, gen=gen, photo_media_id=photo_media(ctx, cap.id)
             )
         sp.commit()
-    except (HTTPException, ValueError, KeyError, SQLAlchemyError):
+    except (HTTPException, ValueError, KeyError, SQLAlchemyError) as exc:
         sp.rollback()
         ctx.session.refresh(card)
-        card.warn = SAVE_FAILED
+        why = refusal_of(exc)
+        card.warn = why.message
         ctx.session.add(card)
         ctx.session.flush()
-        return False
+        return why
     card.refs = res.refs
     card.prior = res.prior
     card.note = res.note or card.note
     card.state = "saved"
     card.ask = None
+    if card.warn in REFUSAL_WARNS:
+        card.warn = None
     ctx.session.add(card)
     ctx.session.flush()
     _log(ctx, card, action, actor, before=before, after=_snap(card))
-    return True
+    return None
 
 
 def _run_command(ctx: Ctx, card: RecordCard, cap: Capture) -> X.Result:
@@ -481,8 +517,9 @@ def redo_row(ctx: Ctx, card: RecordCard) -> RecordCard:
         return card
     _require(card, "redo")
     cap = require_capture(ctx, card.capture_id)
-    if not save(ctx, card, cap, actor="user", action="redone"):
-        raise invalid("card_save_failed", SAVE_FAILED)
+    why = try_save(ctx, card, cap, actor="user", action="redone")
+    if why is not None:
+        raise why.error()
     refresh_status(ctx, cap)
     return card
 
@@ -509,7 +546,7 @@ def edit_row(ctx: Ctx, card: RecordCard, payload: dict[str, Any]) -> RecordCard:
         except HTTPException as exc:
             sp.rollback()
             ctx.session.refresh(card)
-            raise invalid("card_save_failed", SAVE_FAILED) from exc
+            raise refusal_of(exc).error() from exc
     else:
         before = _snap(card)
         card.payload = payload
