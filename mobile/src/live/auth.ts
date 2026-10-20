@@ -7,14 +7,26 @@ import type { AuthError as GoTrueError } from "@supabase/supabase-js"
 import { getSupabase } from "@/lib/supabase"
 import { createHttp, type TokenSource } from "./http"
 
+let sessionLost: (() => void) | null = null
+
+/** Called once the auth server refuses to refresh the session (signed out
+ * elsewhere, revoked, expired refresh token). A network failure is not a
+ * lost session: the request is simply retried later. */
+export function onSessionLost(handler: (() => void) | null) {
+  sessionLost = handler
+}
+
 export const tokens: TokenSource = {
   async current() {
     const { data } = await getSupabase().auth.getSession()
     return data.session?.access_token ?? null
   },
   async refresh() {
-    const { data } = await getSupabase().auth.refreshSession()
-    return data.session?.access_token ?? null
+    const { data, error } = await getSupabase().auth.refreshSession()
+    const token = data.session?.access_token ?? null
+    // supabase-js names a transport failure AuthRetryableFetchError.
+    if (!token && error?.name !== "AuthRetryableFetchError") sessionLost?.()
+    return token
   },
 }
 

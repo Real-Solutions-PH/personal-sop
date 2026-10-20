@@ -24,9 +24,27 @@ async function viaLive<T>(run: () => Promise<T>): Promise<T> {
 
 /** Live mode: start sync for the signed-in Supabase user. */
 export async function startLiveSession() {
+  live().onSessionLost(sessionEnded)
   const uid = await live().currentUserId()
   if (uid) runtime().startLive(uid, storage())
   return uid
+}
+
+/** Live mode: the auth server no longer accepts this device's session, so
+ * every request would fail with 401 forever. Stop syncing and return to sign
+ * in, but keep the outbox and snapshot: signing back in to the same account
+ * pushes the edits that were still queued (startLive keeps them when the
+ * owner matches). */
+export function sessionEnded() {
+  if (!sessionStore.get().signedIn) return
+  runtime().stopLive()
+  sessionStore.set((s) => ({
+    ...signedOut(),
+    rememberedEmail: s.rememberedEmail,
+  }))
+  ;(
+    require("@domain/capture/toast") as typeof import("@domain/capture/toast")
+  ).toast("Your session ended. Sign in again to keep syncing.")
 }
 
 // Simulated account session for the UX prototype. Nothing leaves the device:

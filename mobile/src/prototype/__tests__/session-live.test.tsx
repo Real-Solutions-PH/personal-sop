@@ -32,6 +32,7 @@ jest.mock("@/live/auth", () => ({
   checkHandle: (...a: unknown[]) => mockCheckHandle(...a),
   completeProfile: (...a: unknown[]) => mockCompleteProfile(...a),
   currentUserId: () => Promise.resolve("uid-1"),
+  onSessionLost: () => {},
 }))
 const mockStartLive = jest.fn()
 jest.mock("@/live/runtime", () => ({
