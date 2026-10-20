@@ -359,3 +359,39 @@ def test_meal_actions(client: TestClient, db: Session) -> None:
         client, h, op("action", "fitness.answer_follow_up", meal_id=m["id"], option="")
     )[0]
     assert (bad["status"], bad["code"]) == ("rejected", "validation_error")
+
+
+def test_rest_timer_round_trips_through_its_actions(
+    client: TestClient, db: Session
+) -> None:
+    """rest_timer is a synced table written only by the fitness.rest.*
+    actions: each action's effect comes back on the next pull, and a field
+    write stays refused (the device's mapper sends none)."""
+    _, h = signed_in(db)
+
+    def last_rest() -> dict[str, Any]:
+        rows = [c for c in pull_all(client, h) if c["entity"] == "rest_timer"]
+        assert len({c["id"] for c in rows}) == 1, "one timer row per user"
+        return rows[-1]
+
+    started = push(client, h, op("action", "fitness.rest.start", sec=90))[0]
+    assert started["status"] == "applied"
+    first = last_rest()
+    assert first["deleted"] is False and first["row"]["duration_sec"] == 90
+    assert first["row"]["ends_at"] == started["result"]["rest"]["ends_at"]
+
+    assert (
+        push(client, h, op("action", "fitness.rest.adjust", delta=-15))[0]["status"]
+        == "applied"
+    )
+    adjusted = last_rest()
+    assert adjusted["id"] == first["id"] and adjusted["row"]["duration_sec"] == 75
+
+    refused = push(client, h, op("upsert", "rest_timer", first["id"], duration_sec=5))[
+        0
+    ]
+    assert (refused["status"], refused["code"]) == ("rejected", "unknown_entity")
+    assert last_rest()["row"]["duration_sec"] == 75
+
+    assert push(client, h, op("action", "fitness.rest.skip"))[0]["status"] == "applied"
+    assert last_rest()["deleted"] is True
