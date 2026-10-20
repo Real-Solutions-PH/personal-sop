@@ -20,6 +20,9 @@
     "testMatch": [
       "<rootDir>/src/**/__tests__/**/*.test.ts?(x)"
     ],
+    "modulePaths": [
+      "<rootDir>/node_modules"
+    ],
     "moduleNameMapper": {
       "^@/(.*)$": "<rootDir>/src/$1",
       "^@domain/(.*)$": "<rootDir>/../shared/prototype/$1",
