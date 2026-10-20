@@ -446,13 +446,21 @@ test("round trip: captures, journal and settings from the prototype seed", () =>
     }
     expect(journalFromServer(row)).toEqual(j)
   }
-  expect(settingsFromServer(settingsToServer(s.settings), s.settings)).toEqual(
-    s.settings,
-  )
+  const picked = { ...s.settings, model: "zai-org/GLM-5.3-Flash" }
+  expect(settingsFromServer(settingsToServer(picked), picked)).toEqual(picked)
   expect(settingsToServer(s.settings)).toMatchObject({
     money_threshold_minor: 100000,
     spend_cap_minor: 50000,
   })
+  // The prototype's demo label never reaches the server (it would refuse the
+  // whole row); "" is the server default both ways.
+  expect(s.settings.model).toContain(" ")
+  expect(settingsToServer(s.settings).model).toBeNull()
+  const fallback = { ...s.settings, model: "" }
+  expect(settingsToServer(fallback).model).toBeNull()
+  expect(settingsFromServer(settingsToServer(fallback), fallback)).toEqual(
+    fallback,
+  )
 })
 
 // ---------------------------------------------------------------------------

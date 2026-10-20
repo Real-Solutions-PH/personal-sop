@@ -11,6 +11,7 @@ import { BarlowCondensed_700Bold } from "@expo-google-fonts/barlow-condensed/700
 import { BarlowCondensed_800ExtraBold } from "@expo-google-fonts/barlow-condensed/800ExtraBold"
 import { BarlowCondensed_900Black } from "@expo-google-fonts/barlow-condensed/900Black"
 import NetInfo from "@react-native-community/netinfo"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { useFonts } from "expo-font"
 import { type ReactNode, useCallback, useEffect, useState } from "react"
 import { ActivityIndicator, Pressable, Text, View } from "react-native"
@@ -27,6 +28,11 @@ if (liveMode)
   (
     require("@/live/stats") as typeof import("@/live/stats")
   ).installFocusRefresh()
+
+// Server reads that are not synced rows (e.g. the AI model catalogue).
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
+})
 
 export function PrototypeProviders({ children }: { children: ReactNode }) {
   const [fontsLoaded, fontError] = useFonts({
@@ -99,39 +105,41 @@ export function PrototypeProviders({ children }: { children: ReactNode }) {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        {error && (
-          <View
-            accessibilityRole="alert"
-            style={{ padding: 16, backgroundColor: "#FDE8DE" }}
-          >
-            <Text style={{ color: "#7E2D16" }}>{error}</Text>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => {
-                setError(null)
-                initialize()
-              }}
-              style={{ padding: 12 }}
+        <QueryClientProvider client={queryClient}>
+          {error && (
+            <View
+              accessibilityRole="alert"
+              style={{ padding: 16, backgroundColor: "#FDE8DE" }}
             >
-              <Text>Retry storage</Text>
-            </Pressable>
-          </View>
-        )}
-        {!error && (!ready || (!fontsLoaded && !fontError)) && (
-          <View
-            style={{
-              flex: 1,
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 12,
-            }}
-          >
-            <ActivityIndicator accessibilityLabel="Opening Personal SOP" />
-            <Text>Opening Personal SOP…</Text>
-          </View>
-        )}
-        {ready && (fontsLoaded || fontError) && children}
-        <Toaster />
+              <Text style={{ color: "#7E2D16" }}>{error}</Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  setError(null)
+                  initialize()
+                }}
+                style={{ padding: 12 }}
+              >
+                <Text>Retry storage</Text>
+              </Pressable>
+            </View>
+          )}
+          {!error && (!ready || (!fontsLoaded && !fontError)) && (
+            <View
+              style={{
+                flex: 1,
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 12,
+              }}
+            >
+              <ActivityIndicator accessibilityLabel="Opening Personal SOP" />
+              <Text>Opening Personal SOP…</Text>
+            </View>
+          )}
+          {ready && (fontsLoaded || fontError) && children}
+          <Toaster />
+        </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   )

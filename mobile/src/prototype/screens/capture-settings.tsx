@@ -6,6 +6,7 @@ import { Bot, ChevronRight, Cpu, Link2, Lock, Power } from "lucide-react-native"
 import { useState } from "react"
 import { View } from "react-native"
 import { toast } from "sonner-native"
+import { priceText, useServerModels } from "../../live/ai-models"
 import {
   Bar,
   border,
@@ -23,23 +24,6 @@ import { Button, confirm, Screen } from "../ui"
 
 const peso = (n: number) =>
   `₱${n.toLocaleString("en-PH", { maximumFractionDigits: 2 })}`
-const models = [
-  {
-    v: "anthropic/claude-sonnet (OpenRouter)",
-    label: "Claude Sonnet",
-    sub: "Best Taglish + photos · ~₱0.40/capture",
-  },
-  {
-    v: "anthropic/claude-haiku (OpenRouter)",
-    label: "Claude Haiku",
-    sub: "Fastest, cheapest · ~₱0.08/capture",
-  },
-  {
-    v: "google/gemini-flash (OpenRouter)",
-    label: "Gemini Flash",
-    sub: "Cheap, good photos · ~₱0.10/capture",
-  },
-]
 export function CaptureSettings({
   connector = false,
 }: {
@@ -317,50 +301,7 @@ function Settings() {
           </View>
         </Frame>
         <SectionHeading>Model</SectionHeading>
-        <Frame style={{ padding: 8, gap: 6 }}>
-          {models.map((m) => (
-            <Tap
-              key={m.v}
-              onPress={() => updateAISettings({ model: m.v })}
-              style={{
-                paddingHorizontal: 12,
-                paddingVertical: 8,
-                minHeight: 56,
-                borderRadius: 12,
-                backgroundColor:
-                  st.model === m.v ? border(t.primary, 0.12) : "transparent",
-                borderWidth: st.model === m.v ? 1 : 0,
-                borderColor: border(t.primary, 0.5),
-              }}
-            >
-              <Line style={{ gap: 12 }}>
-                <Cpu size={20} color={st.model === m.v ? t.primary : t.muted} />
-                <View style={{ flex: 1 }}>
-                  <Copy weight="medium">{m.label}</Copy>
-                  <Copy size={12} muted>
-                    {m.sub}
-                  </Copy>
-                </View>
-                {st.model === m.v && (
-                  <Copy
-                    size={12}
-                    weight="semibold"
-                    style={{ color: t.primary }}
-                  >
-                    In use
-                  </Copy>
-                )}
-              </Line>
-            </Tap>
-          ))}
-          <Copy
-            size={11}
-            muted
-            style={{ paddingHorizontal: 12, paddingBottom: 4 }}
-          >
-            Via OpenRouter — only providers that don't train on your data.
-          </Copy>
-        </Frame>
+        <ModelPicker picked={st.model} />
         <SectionHeading>How it's going</SectionHeading>
         <Frame style={{ padding: 16 }}>
           <Line style={{ gap: 12 }}>
@@ -635,5 +576,141 @@ function Connector() {
         )}
       </View>
     </Screen>
+  )
+}
+
+const SHOWN = 6
+
+/** The models the server's own key answers with (Nebius Token Factory).
+ * "" is the server default. A provider key of the user's own, when assigned
+ * through the API, takes precedence over this pick. */
+function ModelPicker({ picked }: { picked: string }) {
+  const t = useTheme()
+  const q = useServerModels()
+  const [all, setAll] = useState(false)
+  const pick = (model: string) => updateAISettings({ model })
+  const row = (key: string, title: string, sub: string, on: boolean) => (
+    <Tap
+      key={key}
+      label={`${title}${on ? ", in use" : ""}`}
+      onPress={() => pick(key)}
+      style={{
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        minHeight: 56,
+        borderRadius: 12,
+        backgroundColor: on ? border(t.primary, 0.12) : "transparent",
+        borderWidth: on ? 1 : 0,
+        borderColor: border(t.primary, 0.5),
+      }}
+    >
+      <Line style={{ gap: 12 }}>
+        <Cpu size={20} color={on ? t.primary : t.muted} />
+        <View style={{ flex: 1 }}>
+          <Copy weight="medium">{title}</Copy>
+          <Copy size={12} muted>
+            {sub}
+          </Copy>
+        </View>
+        {on && (
+          <Copy size={12} weight="semibold" style={{ color: t.primary }}>
+            In use
+          </Copy>
+        )}
+      </Line>
+    </Tap>
+  )
+  if (q.isPending)
+    return (
+      <Frame style={{ padding: 16 }}>
+        <Copy size={14} muted>
+          Loading models…
+        </Copy>
+      </Frame>
+    )
+  if (q.isError)
+    return (
+      <Frame style={{ padding: 16, gap: 10 }}>
+        <Copy size={14} muted>
+          Couldn't load the models. Your pick is kept.
+        </Copy>
+        <Button small tone="quiet" onPress={() => void q.refetch()}>
+          Try again
+        </Button>
+      </Frame>
+    )
+  const { models, serverDefault } = q.data
+  if (!models.length)
+    return (
+      <Frame style={{ padding: 16 }}>
+        <Copy size={14} muted>
+          No models are offered yet, so replies come from the built-in rules.
+        </Copy>
+      </Frame>
+    )
+  const byId = new Map(models.map((m) => [m.id, m]))
+  const fallback = serverDefault ? byId.get(serverDefault.model) : undefined
+  const photos = serverDefault
+    ? byId.get(serverDefault.vision_model)
+    : undefined
+  const sorted = [...models].sort(
+    (a, b) => a.usd_in + a.usd_out - (b.usd_in + b.usd_out),
+  )
+  const current = picked && byId.has(picked) ? picked : ""
+  const shown = all
+    ? sorted
+    : sorted
+        .slice(0, SHOWN)
+        .concat(
+          current && !sorted.slice(0, SHOWN).some((m) => m.id === current)
+            ? [byId.get(current) as (typeof models)[number]]
+            : [],
+        )
+  return (
+    <Frame style={{ padding: 8, gap: 6 }}>
+      {row(
+        "",
+        "Server default",
+        fallback
+          ? `${fallback.label} · photos with ${photos?.label ?? "a vision model"}`
+          : "Picked by the server",
+        current === "",
+      )}
+      {shown.map((m) =>
+        row(
+          m.id,
+          m.label,
+          `${m.vendor} · ${m.kind === "vision" ? "reads photos · " : ""}${priceText(m)}`,
+          current === m.id,
+        ),
+      )}
+      {sorted.length > SHOWN && (
+        <Tap
+          label={all ? "Show fewer models" : `Show all ${sorted.length} models`}
+          onPress={() => setAll((v) => !v)}
+          style={{ paddingHorizontal: 12, paddingVertical: 10 }}
+        >
+          <Line style={{ gap: 6 }}>
+            <Copy size={13} weight="medium" style={{ color: t.primary }}>
+              {all ? "Show fewer" : `Show all ${sorted.length} models`}
+            </Copy>
+            <ChevronRight size={14} color={t.primary} />
+          </Line>
+        </Tap>
+      )}
+      {!serverDefault && (
+        <Copy
+          size={12}
+          style={{ paddingHorizontal: 12, paddingTop: 2, color: t.warn }}
+        >
+          The server has no AI key yet: replies come from the built-in rules
+          until one is added. Your pick is kept for then.
+        </Copy>
+      )}
+      <Copy size={11} muted style={{ paddingHorizontal: 12, paddingBottom: 4 }}>
+        Runs on Nebius Token Factory. Photos use{" "}
+        {photos?.label ?? "a vision model"} unless your pick reads them.
+      </Copy>
+    </Frame>
   )
 }

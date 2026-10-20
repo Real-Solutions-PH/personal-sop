@@ -178,7 +178,8 @@
         "finance_scope": "aggregates",
         "spend_cap_minor": 30000,
         "ai_enabled": false,
-        "retention_days": 30
+        "retention_days": 30,
+        "model": null
       }
     }
   ],

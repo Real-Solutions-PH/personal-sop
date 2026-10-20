@@ -631,6 +631,7 @@ type SettingsWire = Pick<
   | "spendCap"
   | "aiEnabled"
   | "retentionDays"
+  | "model"
 >
 
 export function settingsToServer(v: SettingsWire): Payload {
@@ -645,6 +646,10 @@ export function settingsToServer(v: SettingsWire): Payload {
     spend_cap_minor: toMinor(v.spendCap),
     ai_enabled: v.aiEnabled,
     retention_days: v.retentionDays,
+    // "" on the device: the server's default model. Older devices still hold
+    // the prototype's demo label ("… (OpenRouter)"), which the server would
+    // refuse along with the rest of the row; ids never contain spaces.
+    model: v.model && !/\s/.test(v.model) ? v.model : null,
   }
 }
 
@@ -667,10 +672,12 @@ export function settingsFromServer(row: Payload, cur: AISettings): AISettings {
     spendCap: fromMinor(row.spend_cap_minor),
     aiEnabled: Boolean(row.ai_enabled),
     retentionDays: num(row.retention_days) ?? cur.retentionDays,
+    model: typeof row.model === "string" ? row.model : "",
   }
 }
 
-/** One row per user. ``model`` and ``simulateOffline`` stay on the device;
+/** One row per user. ``simulateOffline`` stays on the device; ``model`` is
+ * the pick for the server's own key ("" = its default);
  * the spend meter is a REST read (``GET /capture/settings``). */
 export function aiSettingsMapper(userId: string) {
   return singleton<CaptureState, AISettings>({

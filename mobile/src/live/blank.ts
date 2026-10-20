@@ -59,6 +59,8 @@ export function clearToBlank() {
     captures: [],
     journal: [],
     spend: { ...s.spend, amount: 0, calls: 0 },
+    // The demo's OpenRouter model is sample data: "" is the server default.
+    settings: { ...s.settings, model: "" },
   }))
   dashStore.set((s) => ({
     ...s,
