@@ -1522,13 +1522,21 @@ export type HabitUpdate = {
     sort_order?: (number | null);
 };
 
+/**
+ * Sign-up's check, made before any account exists: the verdict only —
+ * never the handle back, and nothing about the account holding it.
+ */
+export type HandleAvailability = {
+    status: 'available' | 'taken' | 'invalid';
+};
+
+export type status2 = 'available' | 'taken' | 'invalid';
+
 export type HandleCheck = {
     handle: string;
     status: 'available' | 'taken' | 'invalid';
     reason?: (string | null);
 };
-
-export type status2 = 'available' | 'taken' | 'invalid';
 
 export type HistoryPointOut = {
     workout_id: string;
@@ -5978,6 +5986,12 @@ export type ProfileHandleAvailableData = {
 };
 
 export type ProfileHandleAvailableResponse = (HandleCheck);
+
+export type ProfileSignupHandleAvailableData = {
+    handle: string;
+};
+
+export type ProfileSignupHandleAvailableResponse = (HandleAvailability);
 
 export type ProfileCompleteSignupData = {
     requestBody: CompleteSignup;

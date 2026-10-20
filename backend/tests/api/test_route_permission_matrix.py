@@ -102,6 +102,27 @@ def test_role_is_denied_by_permission_gate(
     )
 
 
+# (method, path) — public by design: answered with NO credentials, and the
+# same for a role holding nothing beyond the default grants.
+_PUBLIC = [
+    # Sign-up asks before the person has an account (rate-limited per client
+    # address instead of gated by a permission).
+    ("GET", "/profile/signup/handle-available?handle=matrix.public"),
+]
+
+
+@pytest.mark.parametrize("method,path", _PUBLIC)
+def test_public_route_needs_no_credentials(
+    client: TestClient, db: Session, method: str, path: str
+) -> None:
+    anonymous = client.request(method, _url(path))
+    assert anonymous.status_code == 200, (
+        f"{method} {path} should be public; got {anonymous.status_code}"
+    )
+    as_user = client.request(method, _url(path), headers=_headers_for_role(db, "user"))
+    assert as_user.status_code == 200
+
+
 def test_superuser_bypasses_every_admin_gate(
     client: TestClient, superuser_token_headers: dict[str, str]
 ) -> None:

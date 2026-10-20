@@ -60,3 +60,21 @@ def test_create_item_unaffected_by_default_null_backend(
     )
 
     assert r.status_code == 200
+
+
+def test_public_handle_check_returns_429_envelope_when_backend_denies(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # No credentials: the seam is keyed on the client address, not a tenant.
+    monkeypatch.setattr(rate_limit, "backend", _DenyBackend())
+
+    r = client.get(
+        f"{settings.API_V1_STR}/profile/signup/handle-available",
+        params={"handle": "seam.check"},
+    )
+
+    assert r.status_code == 429
+    body = r.json()
+    assert set(body) == {"code", "message", "details"}
+    assert body["code"] == "too_many_requests"
