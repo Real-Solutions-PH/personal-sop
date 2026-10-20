@@ -67,6 +67,15 @@ CATEGORY_WORDS: dict[str, tuple[str, ...]] = {
 }
 
 
+def seed_default_categories(ctx: Ctx) -> None:
+    """Create the user's default categories (ids derived from the slug, as
+    the device mints them) unless they exist already, live or deleted: a
+    default the user deleted is not brought back. Called when sign-up
+    completes, so the first ``/sync/pull`` already carries them; finance's
+    own first-touch bootstrap seeds the same rows and skips existing ones."""
+    repo.seed_categories(ctx)
+
+
 def default_account(ctx: Ctx) -> Account | None:
     """Settings' default account, else the last used, else the first cash."""
     st = repo.settings_row(ctx)

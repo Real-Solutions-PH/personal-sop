@@ -7,6 +7,7 @@ import uuid
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import col, func, select
 
+from app.modules.finance import public as finance_public
 from app.modules.profile import public
 from app.modules.profile.models import (
     MODULE_KEYS,
@@ -117,6 +118,9 @@ def complete_signup(ctx: Ctx, data: CompleteSignup) -> UserProfile:
         profile.since = ctx.today
     ctx.session.add(profile)
     _flush_unique(ctx)
+    # The defaults exist from the moment the app can show finance: the
+    # device's first pull follows sign-up and must carry them.
+    finance_public.seed_default_categories(ctx)
     ctx.commit()
     ctx.session.refresh(profile)
     return profile

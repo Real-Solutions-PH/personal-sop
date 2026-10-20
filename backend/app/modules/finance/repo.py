@@ -66,7 +66,9 @@ def category_id_for(ctx: Ctx, slug: str) -> uuid.UUID:
 
 def seed_categories(ctx: Ctx) -> None:
     """Create the default categories that do not exist yet (live or dead:
-    a category the user deleted stays deleted)."""
+    a category the user deleted stays deleted). Idempotent, and safe when
+    sign-up completion and the first finance request seed at once: each row
+    is inserted by its derived id through ``insert_once``. Flushes only."""
     existing = {
         c.slug
         for c in owned_repo.list_rows(
@@ -76,7 +78,7 @@ def seed_categories(ctx: Ctx) -> None:
     for slug, name, icon, disc, parent, kind in DEFAULT_CATEGORIES:
         if slug in existing:
             continue
-        owned_repo.insert(
+        owned_repo.insert_once(
             ctx,
             Category,
             {
