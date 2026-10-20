@@ -9,6 +9,7 @@ line with the companion's messages.
 """
 
 import json
+import re
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -22,7 +23,7 @@ from sqlmodel import col
 
 from app.modules.ai_providers import public as ai
 from app.modules.capture import public as capture
-from app.modules.companion import brain
+from app.modules.companion import brain, grounding
 from app.modules.companion.defaults import COMPANION_NAME
 from app.modules.companion.models import Companion, CompanionMessage, Memory, Tracker
 from app.modules.companion.schema import (
@@ -40,7 +41,13 @@ from app.shared.context import Ctx
 from app.shared.ids import derived_id
 
 Emit = Callable[[str, dict[str, Any]], None]
-HISTORY = 12  # recent turns sent to the model (IA edge case: long thread)
+# What one companion answer may cost. The model sees the last HISTORY messages,
+# each cut to HISTORY_CHARS, and gets at most MAX_STEPS model calls (a tool
+# round, then the answer, with one spare); tool results are cut in capture's
+# loop (``agent.MAX_TOOL_RESULT_CHARS``).
+HISTORY = 6
+HISTORY_CHARS = 600
+MAX_STEPS = 3
 MAX_MEMORIES_IN_CONTEXT = 50
 
 
@@ -332,21 +339,36 @@ class SolRun:
 def sol_tools(run: SolRun) -> list[BaseTool]:
     ctx = run.ctx
 
+    # Each block tool returns the facts its card shows, so the reply can talk
+    # about the card without inventing it.
     def show_chart(**kw: Any) -> dict[str, Any]:
         a = ChartArgs(**kw)
-        return run.block({"t": "chart", "metric": a.metric, "days": a.days})
+        shown = run.block({"t": "chart", "metric": a.metric, "days": a.days})
+        vals = [v for _, v in stats.series(ctx, metric=a.metric, days=a.days)]
+        logged = [v for v in vals if v is not None]
+        return {
+            **shown,
+            "days": a.days,
+            "days_with_data": len(logged),
+            "latest": logged[-1] if logged else None,
+            "total": round(sum(logged), 2) if logged else None,
+        }
 
     def show_insights(**kw: Any) -> dict[str, Any]:
         NoArgs(**kw)
-        return run.block({"t": "insights"})
+        shown = run.block({"t": "insights"})
+        return {**shown, "insights": [i.title for i in insights(ctx)]}
 
     def coach(**kw: Any) -> dict[str, Any]:
         a = CoachArgs(**kw)
-        return run.block({"t": "coach", **({"mood": a.mood} if a.mood else {})})
+        shown = run.block({"t": "coach", **({"mood": a.mood} if a.mood else {})})
+        return {**shown, **grounding.scores(ctx)}
 
     def plan_day(**kw: Any) -> dict[str, Any]:
         NoArgs(**kw)
-        return run.block({"t": "plan"})
+        shown = run.block({"t": "plan"})
+        items = grounding.plan(ctx)
+        return {**shown, "items": items, "nothing_pending": not items}
 
     def track(**kw: Any) -> dict[str, Any]:
         a = TrackArgs(**kw)
@@ -372,7 +394,7 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
 
     def show_memories(**kw: Any) -> dict[str, Any]:
         NoArgs(**kw)
-        return run.block({"t": "memory"})
+        return {**run.block({"t": "memory"}), "count": len(memories(ctx))}
 
     def suggest(**kw: Any) -> dict[str, Any]:
         a = ChipsArgs(**kw)
@@ -450,18 +472,64 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
     ]
 
 
-SYSTEM = """You are {sol}, the warm, direct companion inside Personal SOP, a
-life-logging app. The user is {user}. Reply in short plain sentences (English,
-or Taglish if they write it). Use the tools to show charts, insights, coaching,
-plans, trackers and memories instead of describing them; hand anything the
-user did, spent, ate or weighed to `log_to_capture`. Never invent numbers:
-look them up. Today is {today}.
+SYSTEM = """You are {sol}, the companion inside Personal SOP, a life-logging
+app. The user is {user}. Today is {today}.
+
+Voice: calm, plain, specific, like a steady friend who pays attention. One idea
+per message, at most three short sentences in one paragraph. English, or Taglish if they write it.
+
+Format: plain text only. No markdown: no asterisks, no headings, no bullet or
+numbered lists, no tables. The cards you show carry any list.
+
+Facts: every fact you state about the user (habits, tasks, streaks, scores,
+money, training, food, plans, projects, people) must come from TODAY below, from
+what you remember, or from a tool result in this conversation. Never invent
+one, never guess a number, never assume a habit, project or goal. If something
+is missing, say plainly that you don't have it yet and suggest logging it. Zero
+or empty means none, so say so ("Nothing is due today."), never praise
+consistency you cannot see.
+
+Tools: show charts, insights, coaching, plans, trackers and memories with the
+tools instead of describing them; each tool returns what its card shows, so
+speak only to that and do not repeat the card. Hand anything the user did,
+spent, ate or weighed to `log_to_capture`. Use `lookup` for a number not in
+TODAY. Call each tool at most once.
+
+TODAY (JSON, from the user's records; a missing key is unknown, not zero;
+money is in pesos, written ₱):
+{today_facts}
 
 What you remember about the user (ids for forgetting):
 {memories}
 
 What you are tracking for them:
 {trackers}"""
+
+_MD = [
+    (re.compile(r"\*\*(.+?)\*\*", re.S), r"\1"),
+    (re.compile(r"__(.+?)__", re.S), r"\1"),
+    (re.compile(r"(?<![\w*])\*(?!\s)(.+?)(?<!\s)\*(?![\w*])"), r"\1"),
+    (re.compile(r"`([^`]*)`"), r"\1"),
+    (re.compile(r"^[ \t]{0,3}#{1,6}[ \t]+", re.M), ""),
+    (re.compile(r"^[ \t]*(?:[-*+]|\d+[.)])[ \t]+", re.M), ""),
+    (re.compile(r"[ \t]+$", re.M), ""),
+    (re.compile(r"\n{3,}"), "\n\n"),
+]
+
+
+def plain_text(text: str) -> str:
+    """The reply as plain text: the chat shows text as written, so markdown the
+    model adds anyway (bold, headings, list markers) is removed, keeping the
+    words and the line breaks."""
+    for rx, sub in _MD:
+        text = rx.sub(sub, text)
+    return text.strip()
+
+
+def _strip_marks(delta: str) -> str:
+    """A streamed piece without emphasis marks; the stored reply goes through
+    :func:`plain_text` and replaces the streamed one."""
+    return delta.replace("*", "").replace("`", "")
 
 
 def _history(ctx: Ctx) -> list[BaseMessage]:
@@ -475,7 +543,8 @@ def _history(ctx: Ctx) -> list[BaseMessage]:
     for m in reversed(rows):
         if not m.text:
             continue
-        out.append(HumanMessage(m.text) if m.role == "me" else AIMessage(m.text))
+        text = m.text[:HISTORY_CHARS]
+        out.append(HumanMessage(text) if m.role == "me" else AIMessage(text))
     return out
 
 
@@ -494,6 +563,7 @@ def _ask_ai(
         sol=sol_name,
         user=brain.first_name(user_name),
         today=ctx.today.isoformat(),
+        today_facts=json.dumps(grounding.snapshot(ctx), ensure_ascii=False),
         memories="\n".join(f"- [{m.id}] {m.text}" for m in mems) or "(nothing yet)",
         trackers=json.dumps(
             [
@@ -517,10 +587,11 @@ def _ask_ai(
         system=system,
         messages=[*history, HumanMessage(text)],
         tools=sol_tools(run),
-        on_text=lambda d: emit("text.delta", {"text": d}),
+        on_text=lambda d: emit("text.delta", {"text": _strip_marks(d)}),
+        max_turns=MAX_STEPS,
     )
     blocks = list(run.blocks)
-    out = _message(ctx, "sol", reply or None, blocks, sol_id)
+    out = _message(ctx, "sol", plain_text(reply) or None, blocks, sol_id)
     ctx.commit()
     return AskOut(
         kind="reply",

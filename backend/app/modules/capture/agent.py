@@ -45,6 +45,12 @@ from app.shared.context import Ctx
 from app.shared.money import MAX_MINOR
 
 MAX_TURNS = 6
+# Bounds on what one model call is sent. A tool result past MAX_TOOL_RESULT_CHARS
+# is cut (the model sees that it was); calls past MAX_TOOL_CALLS_PER_TURN in one
+# turn are answered with an error instead of run, so a runaway turn cannot grow
+# the next call's input without limit.
+MAX_TOOL_RESULT_CHARS = 2000
+MAX_TOOL_CALLS_PER_TURN = 8
 Emit = Callable[[str, dict[str, Any]], None]
 
 
@@ -58,6 +64,27 @@ class LoopState(TypedDict):
 
 def _text(msg: BaseMessage) -> str:
     return seams.text_of(msg)
+
+
+def _stream_usage(chunks_usage: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """One call's usage from its streamed chunks: the largest figure each
+    chunk reported, never their sum. Providers differ: OpenAI reports usage
+    once at the end, some OpenAI-compatible servers (Nebius Token Factory)
+    repeat the running total on every chunk, and Anthropic reports input at
+    the start and output at the end. ``AIMessageChunk.__add__`` sums them,
+    which for a running total meters a 7k-token call as 228k."""
+    if not chunks_usage:
+        return None
+    i = max(int(u.get("input_tokens") or 0) for u in chunks_usage)
+    o = max(int(u.get("output_tokens") or 0) for u in chunks_usage)
+    return {"input_tokens": i, "output_tokens": o, "total_tokens": i + o}
+
+
+def _tool_content(result: Any) -> str:
+    text = result if isinstance(result, str) else json.dumps(result, default=str)
+    if len(text) <= MAX_TOOL_RESULT_CHARS:
+        return text
+    return text[:MAX_TOOL_RESULT_CHARS] + " …[cut: result too long]"
 
 
 def run_loop(
@@ -78,11 +105,15 @@ def run_loop(
 
     def call_model(state: LoopState) -> dict[str, Any]:
         acc: BaseMessage | None = None
+        usages: list[dict[str, Any]] = []
         try:
             for chunk in bound.stream([SystemMessage(system), *state["messages"]]):
                 delta = _text(chunk)
                 if delta:
                     on_text(delta)
+                u = getattr(chunk, "usage_metadata", None)
+                if u:
+                    usages.append(dict(u))
                 acc = chunk if acc is None else acc + chunk  # type: ignore[assignment]
         except Exception:  # noqa: BLE001 - a provider error becomes a stable code
             seams.meter(ctx, resolved, None, ok=False)
@@ -91,7 +122,7 @@ def run_loop(
             msg: BaseMessage = AIMessage(
                 content=acc.content,
                 tool_calls=acc.tool_calls,
-                usage_metadata=acc.usage_metadata,
+                usage_metadata=_stream_usage(usages),
                 id=acc.id,
             )
         else:
@@ -102,10 +133,12 @@ def run_loop(
     def call_tools(state: LoopState) -> dict[str, Any]:
         last = state["messages"][-1]
         out: list[BaseMessage] = []
-        for tc in getattr(last, "tool_calls", None) or []:
+        for n, tc in enumerate(getattr(last, "tool_calls", None) or []):
             tool = by_name.get(tc["name"])
-            if tool is None:
-                result: Any = {"error": "unknown_tool"}
+            if n >= MAX_TOOL_CALLS_PER_TURN:
+                result: Any = {"error": "too_many_calls_in_one_turn"}
+            elif tool is None:
+                result = {"error": "unknown_tool"}
             else:
                 try:
                     result = tool.invoke(tc["args"])
@@ -115,9 +148,7 @@ def run_loop(
                     result = {"error": exc.code}
             out.append(
                 ToolMessage(
-                    content=result
-                    if isinstance(result, str)
-                    else json.dumps(result, default=str),
+                    content=_tool_content(result),
                     tool_call_id=tc.get("id") or str(uuid.uuid4()),
                     name=tc["name"],
                 )
