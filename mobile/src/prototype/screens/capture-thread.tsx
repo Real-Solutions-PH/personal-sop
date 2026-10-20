@@ -250,6 +250,17 @@ export function ThreadComposer({
             })
             onSent?.(id)
           }}
+          onRecording={(audio, durationSec) => {
+            setMode(undefined)
+            const id = A.sendCapture({
+              source: "voice",
+              hint,
+              text: "",
+              durationSec,
+              audio,
+            })
+            onSent?.(id)
+          }}
         />
       )}
       {quick && <QuickAdd onClose={() => setQuick(false)} />}
