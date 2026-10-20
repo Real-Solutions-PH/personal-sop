@@ -10,6 +10,7 @@ import { LinearGradient } from "expo-linear-gradient"
 import { Mic, MicOff, Pause, Play, Send, Trash2 } from "lucide-react-native"
 import { useEffect, useRef, useState } from "react"
 import { AppState, View } from "react-native"
+import { liveMode } from "@/live/config"
 import { Copy, IconTap, Line } from "../native-kit"
 import { useTheme } from "../theme"
 import { Button, Sheet } from "../ui"
@@ -27,11 +28,15 @@ export function CaptureVoice({
   onClose,
   onDone,
   maxSec = 300,
+  onRecording,
 }: {
   hint?: string
   onClose: () => void
   onDone: (text: string, seconds: number) => void
   maxSec?: number
+  /** Live mode: the real recording, for the server to transcribe. Without
+   * it (or in the prototype) the sheet hands back a sample transcript. */
+  onRecording?: (uri: string, seconds: number) => void
 }) {
   const t = useTheme(),
     recorder = useAudioRecorder({
@@ -47,6 +52,7 @@ export function CaptureVoice({
     finishing = useRef(false),
     timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const seconds = Math.min(maxSec, status.durationMillis / 1000)
+  const serverTranscribes = liveMode && onRecording !== undefined
   async function start() {
     setPhase("requesting")
     try {
@@ -79,6 +85,10 @@ export function CaptureVoice({
     } catch {}
     await setAudioModeAsync({ allowsRecording: false }).catch(() => {})
     if (!mounted.current) return
+    if (liveMode && onRecording && recorder.uri) {
+      onRecording(recorder.uri, Math.max(1, Math.round(seconds)))
+      return
+    }
     setPhase("transcribing")
     timer.current = setTimeout(() => {
       if (mounted.current)
@@ -263,7 +273,9 @@ export function CaptureVoice({
             <Line style={{ gap: 4 }}>
               <Mic size={12} color={t.muted} />
               <Copy size={11} muted>
-                Transcription is simulated in this prototype.
+                {serverTranscribes
+                  ? "Your recording is sent and transcribed on the server."
+                  : "Transcription is simulated in this prototype."}
               </Copy>
             </Line>
           </View>
