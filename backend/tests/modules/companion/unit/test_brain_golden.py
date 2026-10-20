@@ -1,4 +1,4 @@
-"""Sol's router against the prototype (``companion-brain.json``)."""
+"""The companion's router against the prototype (``companion-brain.json``)."""
 
 import json
 from pathlib import Path

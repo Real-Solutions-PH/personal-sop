@@ -3,7 +3,7 @@
   "source": "shared/prototype",
   "data": {
     "seed": {
-      "name": "Sol",
+      "name": "Fern",
       "trackers": [
         {
           "metric": "spend",
@@ -50,7 +50,7 @@
         ]
       },
       {
-        "text": "Good morning Sol",
+        "text": "Good morning Fern",
         "route": {
           "kind": "reply",
           "text": "Hey Kai! I'm here. Want a quick read on how today's going?",
@@ -982,7 +982,7 @@
         "text": "who are you",
         "route": {
           "kind": "reply",
-          "text": "I'm Sol, your companion inside Personal SOP. I know your habits, tasks, training, food, money and journal — and I remember what you tell me. I can log things for you, spot patterns, chart anything, coach you, and keep an eye on what matters.",
+          "text": "I'm Fern, your companion inside Personal SOP. I know your habits, tasks, training, food, money and journal — and I remember what you tell me. I can log things for you, spot patterns, chart anything, coach you, and keep an eye on what matters.",
           "blocks": [
             {
               "t": "chips",
@@ -1029,7 +1029,7 @@
         "text": "help",
         "route": {
           "kind": "reply",
-          "text": "I'm Sol, your companion inside Personal SOP. I know your habits, tasks, training, food, money and journal — and I remember what you tell me. I can log things for you, spot patterns, chart anything, coach you, and keep an eye on what matters.",
+          "text": "I'm Fern, your companion inside Personal SOP. I know your habits, tasks, training, food, money and journal — and I remember what you tell me. I can log things for you, spot patterns, chart anything, coach you, and keep an eye on what matters.",
           "blocks": [
             {
               "t": "chips",

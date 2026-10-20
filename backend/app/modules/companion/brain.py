@@ -1,4 +1,4 @@
-"""Sol's deterministic router: a port of
+"""The companion's deterministic router: a port of
 ``mobile/src/prototype/companion/brain.ts`` ``route``.
 
 It answers when no chat model resolves (ADR-0012). Pure: what the prototype
@@ -14,6 +14,8 @@ phrasing, so the same message gets the same reply (the golden fixture pins
 import re
 from dataclasses import dataclass, field
 from typing import Any, Literal
+
+from app.modules.companion.defaults import COMPANION_NAME
 
 A = re.ASCII
 
@@ -100,7 +102,7 @@ def js_number(s: str | None) -> float | None:
         return None
 
 
-def route(raw: str, *, user_name: str, sol_name: str = "Sol") -> Route:
+def route(raw: str, *, user_name: str, sol_name: str = COMPANION_NAME) -> Route:
     q = raw.lower().strip()
     name = first_name(user_name)
 

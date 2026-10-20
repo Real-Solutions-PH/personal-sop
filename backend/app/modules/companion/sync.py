@@ -10,6 +10,7 @@ import uuid
 from pydantic import BaseModel
 
 from app.modules.companion import services
+from app.modules.companion.defaults import COMPANION_NAME
 from app.modules.companion.models import Companion, CompanionMessage, Memory, Tracker
 from app.modules.companion.schema import (
     CompanionPublic,
@@ -31,7 +32,7 @@ def upsert_companion(ctx: Ctx, row_id: uuid.UUID, payload: BaseModel) -> OwnedRo
     data = payload.model_dump(exclude_unset=True)
     row = services.companion_row(ctx)
     if "name" in data:
-        row.name = (data["name"] or "").strip() or "Sol"
+        row.name = (data["name"] or "").strip() or COMPANION_NAME
         ctx.session.add(row)
     ctx.commit()
     return row

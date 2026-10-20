@@ -6,7 +6,7 @@
 
 ## Context
 
-The capture engine, the photo flows (meal, receipt, label, statement, whiteboard), voice notes, Sol and the finance advisor are simulated on the device. The owner wants them real, built on the existing `app/modules/ai` (LangChain/LangGraph). They also want each user to choose their own provider, model and API key. The existing factory (`app/modules/ai/llm.py`) only knows server-wide Nebius/OpenRouter keys. IA ruling X-10 fixed OpenRouter as the v1 built-in provider.
+The capture engine, the photo flows (meal, receipt, label, statement, whiteboard), voice notes, the companion (Fern) and the finance advisor are simulated on the device. The owner wants them real, built on the existing `app/modules/ai` (LangChain/LangGraph). They also want each user to choose their own provider, model and API key. The existing factory (`app/modules/ai/llm.py`) only knows server-wide Nebius/OpenRouter keys. IA ruling X-10 fixed OpenRouter as the v1 built-in provider.
 
 ## Decision
 

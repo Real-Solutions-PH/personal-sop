@@ -1,4 +1,4 @@
-// Capture (live, no AI provider): text captures on the Sol screen are read by
+// Capture (live, no AI provider): text captures on the Fern screen are read by
 // the server's deterministic rules engine, and every card decision writes in
 // the target module. Each step is proven in the UI, through the API and in
 // Postgres (`capture`, `record_card`, `card_write_log`, `reply_item` and the
@@ -6,7 +6,7 @@
 //
 // | Screen            | Action                                         | Test |
 // |-------------------|------------------------------------------------|------|
-// | /capture (Sol)    | text capture → expense card                    | expense: confirm, undo, redo |
+// | /capture (Fern)    | text capture → expense card                    | expense: confirm, undo, redo |
 // | /capture          | card Confirm                                   | expense: confirm, undo, redo |
 // | /capture          | expense card: pick an account (Account ⌄)      | expense: confirm, undo, redo |
 // | /capture          | card ↶ Undo                                    | expense: confirm, undo, redo; habit log |
@@ -53,7 +53,7 @@ interface CaptureDetail {
   replies: { kind: string; body: { title?: string } }[]
 }
 
-function openSol(user: LiveUser) {
+function openCompanion(user: LiveUser) {
   signIn(user)
   cy.visit("/capture")
   cy.findByRole("textbox", { name: "Capture message" }).should("exist")
@@ -70,7 +70,7 @@ describe("capture (live, rules engine)", () => {
   it("expense: confirm, undo, redo — with the built-in-rules info card", () => {
     const text = "spent 250 on lunch"
     cy.newLiveUser("capture").then((user) => {
-      openSol(user)
+      openCompanion(user)
       sendMessage(text)
 
       // The rules engine proposes an expense and says no model read it.
@@ -158,7 +158,7 @@ describe("capture (live, rules engine)", () => {
 
   it("task: edit an auto-saved card, discard a proposed one", () => {
     cy.newLiveUser("capture").then((user) => {
-      openSol(user)
+      openCompanion(user)
       sendMessage("buy eggs")
       cy.findByText("✓ Saved").should("exist")
 
@@ -226,7 +226,7 @@ describe("capture (live, rules engine)", () => {
 
   it("follow-up ask: answer it, skip it, discard it", () => {
     cy.newLiveUser("capture").then((user) => {
-      openSol(user)
+      openCompanion(user)
 
       // Answer by typing.
       sendMessage("paid 1500")
@@ -319,7 +319,7 @@ describe("capture (live, rules engine)", () => {
 
   it("weigh-in and journal: each lands in its module", () => {
     cy.newLiveUser("capture").then((user) => {
-      openSol(user)
+      openCompanion(user)
       sendMessage("weighed 78.4")
       cy.findAllByText("✓ Saved").should("have.length", 1)
       captureRow(user, "weighed 78.4", "done").then((cap) => {

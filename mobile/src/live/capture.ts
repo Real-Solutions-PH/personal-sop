@@ -1,4 +1,4 @@
-// Capture and Sol in live mode: the server reads every capture and answers
+// Capture and the companion (Fern) in live mode: the server reads every capture and answers
 // every ask; the phone streams the reply into the same stores the screens
 // already render (captureStore's ``reply`` and companionStore's messages).
 //
@@ -14,14 +14,14 @@
 //   confirm all, retry, re-run, quick add) call the card endpoints and
 //   apply the server's card; the rows they write in other modules arrive
 //   with the next pull, which every decision triggers.
-// - Sol: POST /companion/ask/stream. ``message`` is the stored question,
+// - The companion: POST /companion/ask/stream. ``message`` is the stored question,
 //   ``text.delta`` and ``block`` build the reply, and a log is a capture
 //   whose own frames arrive in the middle of the stream (between its
 //   ``capture`` frame and a ``done`` carrying ``client_uuid``). The final
 //   ``done`` is the whole answer.
 //
 // The shared capture actions reach this file through ``setCaptureBackend``
-// and Sol's ``ask`` through ``setAskBackend``, both installed when live mode
+// and the companion's ``ask`` through ``setAskBackend``, both installed when live mode
 // starts (``captureMappers``). The web build never installs either.
 
 import type {
@@ -42,6 +42,7 @@ import { fetch as expoFetch } from "expo/fetch"
 import {
   type AskBackend,
   type Block,
+  COMPANION_NAME,
   companionStore,
   setAskBackend,
   thinking,
@@ -70,6 +71,9 @@ import { messageFromServer, withMessages } from "./mappers/companion"
 import { categoryIds, fromMinor } from "./mappers/finance"
 import { type UploadInput, uploadMedia } from "./media"
 import { syncNow } from "./runtime"
+
+/** The companion as the user named it (toasts speak in its name). */
+const companionName = () => companionStore.get().name || COMPANION_NAME
 
 type Row = Record<string, unknown>
 
@@ -200,7 +204,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
     }))
   }
 
-  /** One frame of the capture pipeline (also nested inside Sol's stream). */
+  /** One frame of the capture pipeline (also nested inside the companion's stream). */
   function captureFrame(type: string, data: Row, capId: string | undefined) {
     switch (type) {
       case "capture": {
@@ -622,7 +626,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
   }
 
   // -------------------------------------------------------------------------
-  // Sol
+  // The companion
   // -------------------------------------------------------------------------
 
   const putMessages = (ms: ReturnType<typeof messageFromServer>[]) =>
@@ -660,7 +664,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
         ...(hint ? { hint: hint.slice(0, 20) } : {}),
       })
       if (!res.ok) {
-        toast("Sol couldn't answer that. Try again.")
+        toast(`${companionName()} couldn't answer that. Try again.`)
         return
       }
       await readSse(res, (e) => {
@@ -695,7 +699,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
               detail(d.capture as Row)
             return
           case "error":
-            toast("Sol couldn't finish that reply.")
+            toast(`${companionName()} couldn't finish that reply.`)
             return
           default:
             return captureFrame(e.type, d, open)
@@ -705,7 +709,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
       toast(
         error instanceof NetworkError || error instanceof ApiError
           ? OFFLINE
-          : "Sol couldn't finish that reply.",
+          : `${companionName()} couldn't finish that reply.`,
       )
     } finally {
       thinking.setState({ on: false })
@@ -718,7 +722,9 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
     if (!deps.online()) {
       if (routedToCapture) send({ text, source: "text", hint })
       else
-        toast("Sol needs a connection to answer. Try again when you're online.")
+        toast(
+          `${companionName()} needs a connection to answer. Try again when you're online.`,
+        )
       return
     }
     void runAsk(text, hint)
@@ -760,7 +766,7 @@ const anyFetch: Fetch = (url, init) =>
     ? (expoFetch(url, init as never) as unknown as Promise<Response>)
     : fetch(url, init)
 
-/** Install the live capture path and Sol's streaming ask. */
+/** Install the live capture path and the companion's streaming ask. */
 export function installLiveCapture(deps: LiveCaptureDeps) {
   const live = createLiveCapture(deps)
   setCaptureBackend(live.backend)
@@ -770,7 +776,7 @@ export function installLiveCapture(deps: LiveCaptureDeps) {
 }
 
 /** The capture module's mapper factory (runtime.ts). Starting live mode for
- * a user also routes the capture actions and Sol through the server. */
+ * a user also routes the capture actions and the companion through the server. */
 export function captureMappers(userId: string) {
   installLiveCapture({
     http,

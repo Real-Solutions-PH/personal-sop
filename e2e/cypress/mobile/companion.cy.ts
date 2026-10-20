@@ -1,18 +1,18 @@
-// Sol, the companion (live, no AI provider): questions stream over SSE from
+// Fern, the companion (live, no AI provider): questions stream over SSE from
 // POST /companion/ask/stream and the server's deterministic router answers.
-// Memories and trackers are written by the server when Sol hears "remember
+// Memories and trackers are written by the server when Fern hears "remember
 // that …" / "track …", and removed from the screen through sync.
 //
 // | Screen          | Action                                        | Test |
 // |-----------------|-----------------------------------------------|------|
-// | /capture (Sol)  | ask a question → streamed reply               | asks and gets a streamed reply |
+// | /capture (Fern)  | ask a question → streamed reply               | asks and gets a streamed reply |
 // | /capture        | capability card on the welcome screen         | asks and gets a streamed reply |
 // | /capture        | suggestion chip under a reply                 | asks and gets a streamed reply |
 // | /capture        | "remember that …" → memory                    | memories: create and forget |
 // | /capture        | memory block: tap a memory to forget it       | memories: create and forget |
 // | /capture        | "track …" → tracker card                      | trackers: create and stop |
 // | /capture        | tracker card: Stop tracking                   | trackers: create and stop |
-// | /capture        | no-provider info card                         | a log through Sol shows the built-in-rules card |
+// | /capture        | no-provider info card                         | a log through Fern shows the built-in-rules card |
 // | /capture        | plain question: no-provider indication        | NOT PRESENT: a rules-engine reply carries no info card (only captures do) — reported |
 // | Companion drawer (+ button) | same composer as the full chat    | covered by the full chat (same ThreadComposer and ask()) |
 // | /capture/settings | "Clear thread"                              | capture-settings.cy.ts |
@@ -27,17 +27,17 @@ interface Msg {
   blocks: { t: string }[]
 }
 
-function openSol(user: LiveUser) {
+function openCompanion(user: LiveUser) {
   signIn(user)
   cy.visit("/capture")
   cy.findByRole("textbox", { name: "Capture message" }).should("exist")
 }
 
-describe("Sol (live, rules engine)", () => {
+describe("Fern (live, rules engine)", () => {
   it("asks and gets a streamed reply", () => {
     cy.newLiveUser("sol").then((user) => {
       cy.intercept("POST", "**/api/v1/companion/ask/stream").as("ask")
-      openSol(user)
+      openCompanion(user)
 
       // A capability card on the welcome screen asks for real.
       cy.findByRole("button", { name: /^Coach\./ }).click()
@@ -79,7 +79,7 @@ describe("Sol (live, rules engine)", () => {
 
   it("memories: create and forget", () => {
     cy.newLiveUser("sol").then((user) => {
-      openSol(user)
+      openCompanion(user)
       sendMessage("remember that I train for a half marathon in March")
       cy.findByText(/Got it — I'll remember that/).should("exist")
       cy.findByRole("button", {
@@ -125,7 +125,7 @@ describe("Sol (live, rules engine)", () => {
 
   it("trackers: create and stop", () => {
     cy.newLiveUser("sol").then((user) => {
-      openSol(user)
+      openCompanion(user)
       sendMessage("Track spending under 1500 a day")
       cy.findByText(/Tracking daily spending for you/).should("exist")
 
@@ -160,9 +160,9 @@ describe("Sol (live, rules engine)", () => {
     })
   })
 
-  it("a log through Sol shows the built-in-rules card (no AI provider)", () => {
+  it("a log through Fern shows the built-in-rules card (no AI provider)", () => {
     cy.newLiveUser("sol").then((user) => {
-      openSol(user)
+      openCompanion(user)
       sendMessage("weighed 80.2")
       cy.findByText("Read by the built-in rules").should("exist")
       cy.findByText(/No AI model is set up for capture/).should("exist")

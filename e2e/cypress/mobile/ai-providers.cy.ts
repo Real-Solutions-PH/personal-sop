@@ -4,7 +4,7 @@
 // no screen in the mobile app (nor in the web frontend) on this branch: the
 // /ai/* endpoints are REST-only. They are exercised through the API here,
 // with the end-to-end effect proven in the app: once a capture model is
-// assigned to an unreachable provider, a capture on the Sol screen falls back
+// assigned to an unreachable provider, a capture on the Fern screen falls back
 // to the built-in rules and says the AI didn't answer.
 //
 // | Screen / surface          | Action                                     | Test |
@@ -15,7 +15,7 @@
 // | (no screen)               | verify fails cleanly (unreachable)         | credential lifecycle |
 // | (no screen)               | model assignment per purpose (5 purposes)  | credential lifecycle |
 // | (no screen)               | vision refused for a model without images  | credential lifecycle |
-// | /capture (Sol)            | capture with an unreachable model assigned | credential lifecycle |
+// | /capture (Fern)            | capture with an unreachable model assigned | credential lifecycle |
 // | (no screen)               | remove an assignment, delete the credential | credential lifecycle |
 // | /capture/settings         | AI on switch (kill switch) + its effect    | AI settings rows |
 // | /capture/settings         | monthly spend cap chips                    | AI settings rows |

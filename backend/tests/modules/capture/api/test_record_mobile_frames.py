@@ -154,14 +154,14 @@ def test_record(
     rec["refused"]["detail"] = api.get(f"/capture/{rid}")
     api.patch("/capture/settings", {"ai_enabled": True})
 
-    # 6. Sol, rules: a reply with blocks, and a log handed to capture
+    # 6. The companion, rules: a reply with blocks, and a log handed to capture
     mid = str(uuid.uuid4())
     req = {"text": "how am I doing?", "id": mid}
     rec["ask_reply"] = {"request": req, **_stream(api, "/companion/ask/stream", req)}
     req = {"text": "spent 120 on lunch", "id": str(uuid.uuid4())}
     rec["ask_capture"] = {"request": req, **_stream(api, "/companion/ask/stream", req)}
 
-    # 7. Sol, AI: streamed text, blocks and a nested capture
+    # 7. The companion, AI: streamed text, blocks and a nested capture
     api.assign("chat")
     install(
         monkeypatch,

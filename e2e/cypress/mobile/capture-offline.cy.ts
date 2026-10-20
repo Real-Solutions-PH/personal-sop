@@ -8,7 +8,7 @@
 //
 // | Screen         | Action                                        | Test |
 // |----------------|-----------------------------------------------|------|
-// | /capture (Sol) | send while offline → "Queued" (nothing sent)  | queues offline and flushes online |
+// | /capture (Fern) | send while offline → "Queued" (nothing sent)  | queues offline and flushes online |
 // | /capture       | reconnect → queue flushes, server reads it    | queues offline and flushes online |
 // | /capture/queue | "Pending & offline" lists the queued capture  | queues offline and flushes online |
 // | /capture/queue | "Simulate offline" switch → capture queues     | the simulate-offline switch |

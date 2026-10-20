@@ -50,8 +50,12 @@ export type CompanionState = {
   memories: { id: string; text: string; at: number }[]
 }
 
+/** The companion's default name (brand: docs/brand/fern.md). A user may
+ * rename it; this is the fallback. */
+export const COMPANION_NAME = "Fern"
+
 const seed = (): CompanionState => ({
-  name: "Sol",
+  name: COMPANION_NAME,
   messages: [],
   trackers: [
     {
@@ -79,7 +83,7 @@ const seed = (): CompanionState => ({
 
 export const companionStore = createStore<CompanionState>("companion", seed)
 /**
- * Sol's mode switch. Prototype mode answers on the device (`brain.ts`);
+ * The companion's mode switch. Prototype mode answers on the device (`brain.ts`);
  * live mode installs the server's streaming ask at sign-in
  * (mobile/src/live/capture.ts). `routedToCapture` is the on-device router's
  * verdict, used only when the phone is offline.
@@ -95,7 +99,7 @@ export const setAskBackend = (b: AskBackend | null) => {
 }
 export const liveAsk = () => askBackend
 
-/** Transient "Sol is thinking" indicator; not persisted. */
+/** Transient "Fern is thinking" indicator; not persisted. */
 export const thinking = create<{ on: boolean }>(() => ({ on: false }))
 
 const set = companionStore.set
@@ -131,5 +135,5 @@ export const remember = (text: string) =>
 export const forget = (id: string) =>
   set((s) => ({ ...s, memories: s.memories.filter((m) => m.id !== id) }))
 export const renameCompanion = (name: string) =>
-  set((s) => ({ ...s, name: name.trim() || "Sol" }))
+  set((s) => ({ ...s, name: name.trim() || COMPANION_NAME }))
 export const clearConversation = () => set((s) => ({ ...s, messages: [] }))

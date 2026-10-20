@@ -1,4 +1,4 @@
-"""The mobile companion mappers' ops and Sol's ask body against the server's
+"""The mobile companion mappers' ops and the companion's ask body against the server's
 schemas (``mobile/src/live/__tests__/fixtures/companion-wire.json``, written
 by ``companion.test.ts``). Pure validation: no database."""
 

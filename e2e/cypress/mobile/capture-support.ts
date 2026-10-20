@@ -1,4 +1,4 @@
-// Helpers shared by the capture, journal, Sol and AI-provider specs.
+// Helpers shared by the capture, journal, Fern and AI-provider specs.
 //
 // The polls here have a 90 s budget instead of the harness's 20 s: several
 // E2E sessions share one API, and a sync push or pull under that load can
@@ -137,7 +137,7 @@ export function logged(cardId: string, action: string) {
   )
 }
 
-/** Send a message through the composer of the open Sol / capture screen. */
+/** Send a message through the composer of the open Fern / capture screen. */
 export function sendMessage(text: string) {
   cy.findByRole("textbox", { name: "Capture message" }).clear().type(text)
   cy.findByRole("button", { name: "Send" }).click()

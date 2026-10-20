@@ -1,4 +1,4 @@
-"""REST routes of the companion (Sol): ask (JSON or SSE), the conversation,
+"""REST routes of the companion (Fern by default): ask (JSON or SSE), the conversation,
 trackers, memories, rename, and the data behind the chart and insights
 blocks."""
 
@@ -50,20 +50,20 @@ def _state(ctx: Ctx) -> CompanionState:
 
 @router.get("/", response_model=CompanionState, dependencies=READ)
 def get_state(ctx: CtxDep) -> Any:
-    """Sol's name, trackers and memories."""
+    """The companion's name, trackers and memories."""
     return _state(ctx)
 
 
 @router.patch("/", response_model=CompanionState, dependencies=WRITE)
 def rename(ctx: CtxDep, data: RenameIn) -> Any:
-    """Rename the companion (blank resets to "Sol")."""
+    """Rename the companion (blank resets to the default, Fern)."""
     services.rename(ctx, name=data.name)
     return _state(ctx)
 
 
 @router.post("/ask", response_model=AskOut, dependencies=WRITE)
 def ask(ctx: CtxDep, data: AskIn) -> Any:
-    """Ask Sol. A replayed message id returns the reply it already got."""
+    """Ask the companion. A replayed message id returns the reply it already got."""
     return services.ask(ctx, text=data.text, message_id=data.id)
 
 
@@ -74,7 +74,7 @@ def ask(ctx: CtxDep, data: AskIn) -> Any:
     responses={200: {"content": {"text/event-stream": {}}}},
 )
 def ask_stream(ctx: CtxDep, data: AskIn) -> StreamingResponse:
-    """Ask Sol over SSE: ``message`` (the stored question), ``text.delta``,
+    """Ask the companion over SSE: ``message`` (the stored question), ``text.delta``,
     ``block``, ``capture`` / the capture frames for a log, ``done`` (the
     whole answer) and ``error``. Validation happens before the stream."""
 

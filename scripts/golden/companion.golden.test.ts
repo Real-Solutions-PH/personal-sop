@@ -1,7 +1,7 @@
 import { beforeAll, expect, mock, test } from "bun:test";
 import { emit, freeze } from "./harness";
 
-// Sol's deterministic router (mobile/src/prototype/companion/brain.ts) over
+// The companion's deterministic router (mobile/src/prototype/companion/brain.ts) over
 // a grid of messages: every intent branch, the tracker goal/direction
 // reader, the day-range reader, and fall-through to capture. `Math.random`
 // is pinned to 0 so `pick` always takes the first phrasing (the server's
@@ -39,7 +39,7 @@ beforeAll(() => {
 
 const INPUTS = [
 	"hi",
-	"Good morning Sol",
+	"Good morning Fern",
 	"kumusta",
 	"thanks!",
 	"salamat po",
@@ -71,7 +71,7 @@ const INPUTS = [
 	"weighed 72.4",
 ];
 
-test("Sol's router over the grid", async () => {
+test("the companion's router over the grid", async () => {
 	const B = await import("../../mobile/src/prototype/companion/brain");
 	const S = await import("../../mobile/src/prototype/companion/store");
 	const cases = INPUTS.map((text) => {
@@ -102,7 +102,7 @@ test("Sol's router over the grid", async () => {
 	expect(cases.length).toBe(INPUTS.length);
 	emit("companion-brain", {
 		seed: {
-			name: "Sol",
+			name: S.COMPANION_NAME,
 			trackers: [
 				{ metric: "spend", label: "Daily spending", goal: 1500, direction: "below" },
 			],

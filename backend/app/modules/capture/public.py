@@ -58,7 +58,7 @@ def submit_capture(
     emit: Callable[[str, dict[str, Any]], None] | None = None,
 ) -> Capture:
     """Record (idempotently on ``client_uuid``) and process a text capture;
-    used by Sol when a message is a log rather than a question. A replay
+    used by the companion when a message is a log rather than a question. A replay
     returns the capture already made. COMMITS (it is a whole use case: the
     capture pipeline commits its own savepoints). A budget refusal keeps the
     capture as ``failed`` and raises the 402/403."""
@@ -105,7 +105,7 @@ def run_agent(
     max_turns: int = agent.MAX_TURNS,
 ) -> str:
     """The metered model/tools LangGraph loop capture runs, for the other AI
-    surfaces (Sol, the finance advisor). Raises :class:`SeamError` when the
+    surfaces (the companion, the finance advisor). Raises :class:`SeamError` when the
     provider fails; nothing a provider said reaches the error."""
     return agent.run_loop(
         ctx,

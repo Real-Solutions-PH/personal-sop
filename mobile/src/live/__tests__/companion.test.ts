@@ -8,6 +8,7 @@ import type { StorageAdapter } from "@domain/lib/store"
 import { ask } from "@/prototype/companion/brain"
 import {
   addTracker,
+  COMPANION_NAME,
   type CompanionState,
   companionStore,
   forget,
@@ -54,7 +55,7 @@ function swap<T>(value: T, ids: Record<string, string>): T {
   return JSON.parse(text) as T
 }
 
-/** Recorded Sol frames re-addressed to the question the device asked: the
+/** Recorded companion frames re-addressed to the question the device asked: the
  * server derives the reply's id from the question's, so both move. */
 function replayAsk(rec: Recorded, body: Row): Frame[] {
   const done = rec.frames.at(-1)?.[1] as { messages: Row[] }
@@ -157,7 +158,7 @@ function engine() {
 }
 
 const blank = (): CompanionState => ({
-  name: "Sol",
+  name: COMPANION_NAME,
   messages: [],
   trackers: [],
   memories: [],
@@ -278,10 +279,10 @@ test("a pulled tracker replaces the device's tracker for the same metric", () =>
 })
 
 // ---------------------------------------------------------------------------
-// Sol's streaming ask
+// The companion's streaming ask
 // ---------------------------------------------------------------------------
 
-test("Sol (rules): the question and the reply arrive as server messages", async () => {
+test("companion (rules): the question and the reply arrive as server messages", async () => {
   const { post, kick } = install(async (_p, body) =>
     sseResponse(replayAsk(REC.ask_reply, body)),
   )
@@ -303,7 +304,7 @@ test("Sol (rules): the question and the reply arrive as server messages", async 
   expect(kick).toHaveBeenCalled()
 })
 
-test("Sol (AI): blocks, a nested capture, then the streamed text", async () => {
+test("companion (AI): blocks, a nested capture, then the streamed text", async () => {
   const solTexts: string[] = []
   let solId = ""
   install(async (_p, body) => {
@@ -325,7 +326,7 @@ test("Sol (AI): blocks, a nested capture, then the streamed text", async () => {
   // the text grew delta by delta before the final message landed
   expect(solTexts.length).toBeGreaterThan(3)
   expect(solTexts[0].length).toBeLessThan(solTexts.at(-1)?.length ?? 0)
-  // the log became a capture with its own cards; Sol's text stayed out of it
+  // the log became a capture with its own cards; the companion's text stayed out of it
   const [cap] = captureStore.get().captures
   expect(cap.text).toBe("ran 5k 32 min")
   expect(cap.reply?.items.filter((i) => i.t === "record")).toEqual([
@@ -334,7 +335,7 @@ test("Sol (AI): blocks, a nested capture, then the streamed text", async () => {
   expect(cap.reply?.text).not.toContain("Nice run")
 })
 
-test("Sol (rules) hands a log to capture: no messages, one capture", async () => {
+test("companion (rules) hands a log to capture: no messages, one capture", async () => {
   install(async (_p, body) => sseResponse(replayAsk(REC.ask_capture, body)))
   ask("spent 120 on lunch")
   await flush()
@@ -347,7 +348,7 @@ test("Sol (rules) hands a log to capture: no messages, one capture", async () =>
   })
 })
 
-test("Sol offline: a log is queued as a capture, a question says it needs a connection", async () => {
+test("companion offline: a log is queued as a capture, a question says it needs a connection", async () => {
   const { post } = install(
     async () => {
       throw new Error("no stream offline")
@@ -362,9 +363,24 @@ test("Sol offline: a log is queued as a capture, a question says it needs a conn
     ["spent 200 on lunch", "queued"],
   ])
   expect(toasts).toContain(
-    "Sol needs a connection to answer. Try again when you're online.",
+    `${COMPANION_NAME} needs a connection to answer. Try again when you're online.`,
   )
   expect(companionStore.get().messages).toEqual([])
+})
+
+test("a renamed companion speaks in its own name", async () => {
+  companionStore.set((s) => ({ ...s, name: "Juniper" }))
+  install(
+    async () => {
+      throw new Error("no stream offline")
+    },
+    () => false,
+  )
+  ask("how am I doing?")
+  await flush()
+  expect(toasts).toContain(
+    "Juniper needs a connection to answer. Try again when you're online.",
+  )
 })
 
 // ---------------------------------------------------------------------------

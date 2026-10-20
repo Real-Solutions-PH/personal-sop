@@ -1,4 +1,4 @@
-"""Request and response schemas of the companion (Sol)."""
+"""Request and response schemas of the companion (Fern by default)."""
 
 import uuid
 from datetime import date, datetime

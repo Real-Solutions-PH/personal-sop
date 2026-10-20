@@ -20,7 +20,7 @@ ADR-0007 already streams web chat as AG-UI over SSE.
 |---|---|
 | CRUD and reads | REST/JSON (OpenAPI contract) |
 | Offline writes and catch-up | `POST /sync/push`, `GET /sync/pull` (ADR-0011) |
-| Capture, Sol and advisor replies | SSE on the request: `text.delta`, `card`, `ask`, `done`, `error`. The status is resolved before the stream opens. |
+| Capture, companion (Fern) and advisor replies | SSE on the request: `text.delta`, `card`, `ask`, `done`, `error`. The status is resolved before the stream opens. |
 | Jobs and live social | **One per-user SSE stream, `GET /events/stream`.** It is backed by Redis Streams (`events:{user}`, capped, with a 5-minute replay via `Last-Event-ID`) and sends a heartbeat every 25 s. Typing is a plain `POST`. |
 | App closed | Expo push, sent from jobs through the single `push_sender` seam. Dead tokens are disabled. |
 | An external system calls us | Webhook: `POST /webhooks/supabase-auth` (Supabase Auth hook, Standard Webhooks signature). |

@@ -28,7 +28,7 @@ The owner wants one number that sums up the user across every module. Every scre
    - The on-target rate and streaks use the user's `target_threshold`.
    - It also produces the facets and headline metrics.
 
-3. **`GET /stats/overview?range=7d|30d|90d|1y`** is the one endpoint for the overall statistic. Today, Stats, the social scorecard, share cards, Sol insights and trackers all read it, or `stats.public.overview`.
+3. **`GET /stats/overview?range=7d|30d|90d|1y`** is the one endpoint for the overall statistic. Today, Stats, the social scorecard, share cards, the companion's insights and trackers all read it, or `stats.public.overview`.
 
 4. **Rollups.** Results are materialised per day in `daily_module_stat` and `life_score_daily`. These tables are caches, rebuildable from the module tables.
    - Writes call `stats.public.mark_dirty(module, day)`, which queues a debounced recompute.

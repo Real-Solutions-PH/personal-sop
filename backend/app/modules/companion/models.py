@@ -1,8 +1,10 @@
-"""Sol, the companion: its name, the conversation, trackers and memories."""
+"""The companion (Fern by default): its name, the conversation, trackers and
+memories."""
 
 from sqlalchemy import CheckConstraint, Float, String, UniqueConstraint
 from sqlmodel import Field
 
+from app.modules.companion.defaults import COMPANION_NAME
 from app.shared.owned import JSONB, OwnedRow, enum_check
 
 METRICS = (
@@ -22,7 +24,7 @@ class Companion(OwnedRow, table=True):
     __tablename__ = "companion"
     __table_args__ = (UniqueConstraint("owner_id", name="uq_companion_owner"),)
 
-    name: str = Field(default="Sol", max_length=40)
+    name: str = Field(default=COMPANION_NAME, max_length=40)
 
 
 class CompanionMessage(OwnedRow, table=True):

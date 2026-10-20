@@ -1,11 +1,11 @@
-"""Sol, the companion: ask, the conversation, trackers and memories.
+"""The companion (Fern by default): ask, the conversation, trackers and memories.
 
 ``ask`` answers with the user's chat model when one resolves and the AI
-switch and spend cap allow it (a LangGraph agent whose tools emit Sol's
+switch and spend cap allow it (a LangGraph agent whose tools emit the companion's
 render blocks and hand logs to capture); otherwise with the deterministic
 router (:mod:`brain`). A message that is a log or a question about the data
 becomes a capture, as in the prototype, where the chat shows captures in
-line with Sol's messages.
+line with the companion's messages.
 """
 
 import json
@@ -23,6 +23,7 @@ from sqlmodel import col
 from app.modules.ai_providers import public as ai
 from app.modules.capture import public as capture
 from app.modules.companion import brain
+from app.modules.companion.defaults import COMPANION_NAME
 from app.modules.companion.models import Companion, CompanionMessage, Memory, Tracker
 from app.modules.companion.schema import (
     AskOut,
@@ -56,7 +57,7 @@ def companion_row(ctx: Ctx) -> Companion:
         row, _ = owned_repo.insert_once(
             ctx,
             Companion,
-            {"name": "Sol"},
+            {"name": COMPANION_NAME},
             row_id=derived_id("companion", ctx.user_id, "row"),
         )
     elif row.deleted_at is not None:
@@ -66,7 +67,7 @@ def companion_row(ctx: Ctx) -> Companion:
 
 def rename(ctx: Ctx, *, name: str) -> Companion:
     row = companion_row(ctx)
-    row.name = name.strip() or "Sol"
+    row.name = name.strip() or COMPANION_NAME
     ctx.session.add(row)
     ctx.commit()
     return row
@@ -198,7 +199,7 @@ def _resolve(ctx: Ctx) -> ai.ResolvedModel | None:
     try:
         ai.check_budget(ctx)
     except HTTPException:
-        # Sol falls back to the router when the AI is off or capped; a log it
+        # The companion falls back to the router when the AI is off or capped; a log it
         # hands to capture is refused there and kept as a failed capture.
         return None
     return resolved

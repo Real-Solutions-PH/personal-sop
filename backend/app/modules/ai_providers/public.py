@@ -1,6 +1,6 @@
 """Cross-module AI contract: which model serves a purpose for this user.
 
-Every AI call in the product (capture interpretation, photo, voice, Sol, the
+Every AI call in the product (capture interpretation, photo, voice, the companion, the
 finance advisor) gets its model from :func:`resolve_model` and builds it with
 :data:`model_factory`. ``model_factory`` is the ONE substitution seam for
 tests: replace it with a factory returning a scripted fake chat model. Nothing

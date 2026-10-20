@@ -1,4 +1,4 @@
-"""Sol over REST, SSE and sync: the router without a model, the agent's
+"""The companion over REST, SSE and sync: the router without a model, the agent's
 block tools with a scripted model, the hand-off of logs to capture,
 trackers, memories, rename, and the blocks' data endpoints."""
 
@@ -11,6 +11,7 @@ from sqlmodel import Session, select
 
 from app.core.db import engine as db_engine
 from app.modules.ai_providers.models import AIUsage
+from app.modules.companion.defaults import COMPANION_NAME
 from tests.modules.capture.api.helpers import (
     KEY,
     Api,
@@ -35,7 +36,9 @@ def test_router_replies_and_records_trackers_and_memories(
     )  # best effort: profile name
     state = api.get("/companion/")
     assert (
-        state["name"] == "Sol" and state["trackers"] == [] and state["memories"] == []
+        state["name"] == COMPANION_NAME
+        and state["trackers"] == []
+        and state["memories"] == []
     )
     hi = ask(api, "hi")
     assert hi["kind"] == "reply" and hi["engine"] == "rules"
@@ -87,7 +90,7 @@ def test_crud_rename_clear_and_validation(client: TestClient, db: Session) -> No
     api = user(client, db)
     assert api.patch("/companion/", {"name": "  Luz "})["name"] == "Luz"
     assert ask(api, "who are you")["messages"][1]["text"].startswith("I'm Luz,")
-    assert api.patch("/companion/", {"name": ""})["name"] == "Sol"
+    assert api.patch("/companion/", {"name": ""})["name"] == COMPANION_NAME
     tr = api.put("/companion/trackers/weight", {"goal": 70, "direction": "below"})
     assert tr["label"] == "Weight"
     api.put("/companion/trackers/bogus", {}, status=422)

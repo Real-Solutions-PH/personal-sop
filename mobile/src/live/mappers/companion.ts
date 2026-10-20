@@ -1,4 +1,4 @@
-// Live mappers for the companion (Sol): its name, the trackers (one per
+// Live mappers for the companion (Fern by default): its name, the trackers (one per
 // metric) and the memories are field writes; the conversation is pulled
 // only, because a message exists only as one side of an ask the server
 // answered (live/capture.ts streams the ask itself).
@@ -10,6 +10,7 @@
 import { isUuid } from "@domain/lib/ids"
 import {
   type Block,
+  COMPANION_NAME,
   type CompanionState,
   companionStore,
   type Metric,
@@ -65,7 +66,7 @@ export function companionMapper(userId: string) {
     read: (s) => s.name,
     write: (s, name) => ({ ...s, name }),
     toServer: (name) => ({ name }),
-    fromServer: (row) => String(row.name ?? "").trim() || "Sol",
+    fromServer: (row) => String(row.name ?? "").trim() || COMPANION_NAME,
   })
 }
 

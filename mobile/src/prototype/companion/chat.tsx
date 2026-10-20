@@ -265,8 +265,8 @@ function Welcome({
         }}
       >
         {left
-          ? `${left} thing${left === 1 ? "" : "s"} left on today's plan. Log anything, ask anything — I know your habits, money, training and days.`
-          : "Today's plan is done. Want a recap, or should we look ahead?"}
+          ? `${left} thing${left === 1 ? "" : "s"} left today. Tell me what happened or ask me anything; I keep track of your habits, money and training.`
+          : "Today's plan is done. Steady work. Want a recap, or a look at tomorrow?"}
       </Text>
       <View
         style={{
