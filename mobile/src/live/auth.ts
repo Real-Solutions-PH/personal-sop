@@ -109,8 +109,26 @@ export async function currentUserId(): Promise<string | null> {
   return data.session?.user.id ?? null
 }
 
+/** Sign-up's "is this handle free?" check, asked before the account exists
+ * (a public endpoint, limited per device address). Any failure — offline,
+ * rate limited, a server error — reads as "unknown", never "available". */
+export async function checkHandle(
+  username: string,
+): Promise<"available" | "taken" | "unknown"> {
+  try {
+    const { status } = await http.request<{ status: string }>(
+      "GET",
+      `/profile/signup/handle-available?handle=${encodeURIComponent(username)}`,
+    )
+    return status === "available" || status === "taken" ? status : "unknown"
+  } catch {
+    return "unknown"
+  }
+}
+
 /** Claim the handle and name after the email code is accepted. A taken
- * handle is reported to the screen; the account stays signed in. */
+ * handle is reported to the screen as a username error; anything else as a
+ * retryable error. The Supabase session stays signed in either way. */
 export async function completeProfile(name: string, username: string) {
   try {
     await http.request("POST", "/profile/complete-signup", {
@@ -121,7 +139,9 @@ export async function completeProfile(name: string, username: string) {
   } catch (error) {
     const code = (error as { code?: string }).code
     if (code === "handle_taken")
-      throw new LiveAuthError("That username was just taken", "username")
-    throw error
+      throw new LiveAuthError(`@${username} is already taken`, "username")
+    throw new LiveAuthError(
+      "Could not finish setting up your account. Check your connection and try again.",
+    )
   }
 }

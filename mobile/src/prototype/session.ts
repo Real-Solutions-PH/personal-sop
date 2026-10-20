@@ -39,6 +39,9 @@ export type Session = {
   rememberedEmail: string
   /** Account created on sign-up, waiting for its email verification code. */
   pending: User | null
+  /** Verified account whose username the server refused (taken meanwhile):
+   * Sign up asks for another before the person is let in. */
+  claim: User | null
   /** Address a password-reset link was sent to. */
   resetEmail: string
 }
@@ -48,6 +51,7 @@ const signedOut = (): Session => ({
   user: null,
   rememberedEmail: "",
   pending: null,
+  claim: null,
   resetEmail: "",
 })
 export const sessionStore = createStore<Session>("auth-session", signedOut)
@@ -130,7 +134,12 @@ const nameFromEmail = (email: string) => {
     .trim()
   return local ? local.replace(/\b\w/g, (c) => c.toUpperCase()) : "Friend"
 }
-export async function checkUsername(username: string) {
+/** "unknown" (offline, rate limited, server error) is never shown as
+ * available: the screen keeps its neutral hint and the claim decides. */
+export async function checkUsername(
+  username: string,
+): Promise<"available" | "taken" | "unknown"> {
+  if (liveMode) return live().checkHandle(username)
   await wait(450)
   return TAKEN_USERNAMES.includes(username) ? "taken" : "available"
 }
@@ -162,6 +171,7 @@ export async function signIn({
     ...s,
     signedIn: true,
     pending: null,
+    claim: null,
     user: { name: nameFromEmail(address), username: "", email: address },
     rememberedEmail: remember ? address : "",
   }))
@@ -176,6 +186,7 @@ export async function continueWith(provider: "apple" | "google") {
     ...s,
     signedIn: true,
     pending: null,
+    claim: null,
     user: {
       name: dashStore.get().profile.name,
       username: dashStore.get().profile.handle.replace(/^@/, ""),
@@ -192,6 +203,7 @@ export async function signUp(user: User & { password: string }) {
     sessionStore.set((s) => ({
       ...s,
       pending: { name: user.name.trim(), username: user.username, email },
+      claim: null,
     }))
     return
   }
@@ -206,6 +218,7 @@ export async function signUp(user: User & { password: string }) {
   sessionStore.set((s) => ({
     ...s,
     pending: { name: user.name.trim(), username: user.username, email },
+    claim: null,
   }))
 }
 export async function resendCode() {
@@ -229,20 +242,41 @@ export async function verifyEmail(code: string) {
     throw new AuthError("Your sign-up expired. Please start again.")
 }
 /** Signs in the verified account. Kept separate from verifyEmail so the
- * screen can show its success state before the auth routes unmount. */
-export function completeSignUp() {
-  const user = sessionStore.get().pending
+ * screen can show its success state before the auth routes unmount.
+ *
+ * Live mode claims the username on the server first and lets the person in
+ * only once it is theirs. A username taken meanwhile rejects with a
+ * "username" AuthError and parks the account in `claim`, so Sign up can ask
+ * for another; any other failure rejects and can be retried. */
+export async function completeSignUp() {
+  const { pending, claim } = sessionStore.get()
+  const user = pending ?? claim
   if (!user) return
-  updateProfile({ name: user.name, handle: `@${user.username}` })
-  sessionStore.set((s) => ({ ...s, signedIn: true, user, pending: null }))
   if (liveMode) {
-    void startLiveSession()
-    void live()
-      .completeProfile(user.name, user.username)
-      .catch(() => {
-        // The handle stays editable in Me → Profile; sign-in already worked.
-      })
+    try {
+      await viaLive(() => live().completeProfile(user.name, user.username))
+    } catch (error) {
+      if (error instanceof AuthError && error.field === "username")
+        sessionStore.set((s) => ({ ...s, pending: null, claim: user }))
+      throw error
+    }
   }
+  updateProfile({ name: user.name, handle: `@${user.username}` })
+  sessionStore.set((s) => ({
+    ...s,
+    signedIn: true,
+    user,
+    pending: null,
+    claim: null,
+  }))
+  if (liveMode) void startLiveSession()
+}
+/** Sign up's second try after the server refused the username. */
+export async function chooseUsername(username: string) {
+  const claim = sessionStore.get().claim
+  if (!claim) throw new AuthError("Your sign-up expired. Please start again.")
+  sessionStore.set((s) => ({ ...s, claim: { ...claim, username } }))
+  await completeSignUp()
 }
 export async function requestPasswordReset(email: string) {
   if (liveMode)

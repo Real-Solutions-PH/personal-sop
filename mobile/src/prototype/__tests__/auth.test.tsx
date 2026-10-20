@@ -10,6 +10,7 @@ import type { ReactNode } from "react"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 import { SignIn } from "../screens/auth-sign-in"
 import {
+  checkUsername,
   completeSignUp,
   emailError,
   maskEmail,
@@ -127,10 +128,17 @@ test("sign up rejects a registered email and verifies any code but 000000", asyn
   await expect(verifyEmail("000000")).rejects.toThrow(/incorrect/)
   await verifyEmail("123456")
   expect(sessionStore.get().signedIn).toBe(false)
-  completeSignUp()
+  await completeSignUp()
   expect(sessionStore.get()).toMatchObject({
     signedIn: true,
     pending: null,
+    claim: null,
     user: { username: "kai.new" },
   })
+})
+
+test("prototype mode checks usernames against the demo list", async () => {
+  await expect(checkUsername("kai")).resolves.toBe("taken")
+  await expect(checkUsername("admin")).resolves.toBe("taken")
+  await expect(checkUsername("kai.new")).resolves.toBe("available")
 })
