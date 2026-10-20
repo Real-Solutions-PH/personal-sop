@@ -353,6 +353,7 @@ function PostMenu({
     <Sheet title="Post options" open={open} onClose={onClose}>
       {rows.map(({ label, Icon, run, ...r }) => (
         <Pressable
+          cssInterop={false}
           key={label}
           accessibilityRole="button"
           onPress={() => {

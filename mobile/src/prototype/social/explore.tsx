@@ -99,6 +99,7 @@ function LeaderRow({
   const p = usePerson(id)
   return (
     <Pressable
+      cssInterop={false}
       accessibilityRole="button"
       onPress={() => go(`/social/u/${id}`)}
       style={({ pressed }) => ({
@@ -331,6 +332,7 @@ export function Explore() {
             renderItem={({ item }) => (
               <Animated.View entering={FadeIn}>
                 <Pressable
+                  cssInterop={false}
                   accessibilityRole="button"
                   onPress={() => go(`/social/u/${item.id}`)}
                   style={({ pressed }) => ({
@@ -464,6 +466,7 @@ function ActivityRow({ a, isNew }: { a: Activity; isNew: boolean }) {
       }}
     >
       <Pressable
+        cssInterop={false}
         accessibilityRole="button"
         onPress={() =>
           go(a.postId ? `/social/post/${a.postId}` : `/social/u/${a.by}`)

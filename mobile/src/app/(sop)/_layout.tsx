@@ -213,6 +213,9 @@ export default function PrototypeLayout() {
             Offline · changes stay on this device
           </Text>
         )}
+        {/* Before the bar: the + button rises above the bar into the room the
+            drawer leaves for it, so it must draw over the drawer. */}
+        <CaptureOverlay bottom={focus ? 0 : bar} />
         {!focus && (
           <View
             onLayout={(e) => setBar(e.nativeEvent.layout.height)}
@@ -295,7 +298,6 @@ export default function PrototypeLayout() {
             })}
           </View>
         )}
-        <CaptureOverlay bottom={focus ? 0 : bar} />
       </View>
     </AccentContext.Provider>
   )

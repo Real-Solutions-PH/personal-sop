@@ -174,6 +174,7 @@ function ChatRow({ chat }: { chat: Chat }) {
       )}
     >
       <Pressable
+        cssInterop={false}
         accessibilityRole="button"
         accessibilityLabel={`${title}${n ? `, ${n} unread` : ""}`}
         onPress={() => go(`/social/chat/${chat.id}`)}
@@ -827,6 +828,7 @@ export function NewChat() {
           const on = picked.includes(item.id)
           return (
             <Pressable
+              cssInterop={false}
               accessibilityRole="checkbox"
               accessibilityState={{ checked: on }}
               accessibilityLabel={item.name}

@@ -18,6 +18,7 @@ import {
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react"
 import {
   BackHandler,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -282,6 +283,7 @@ function Welcome({
             style={{ width: "48.5%" }}
           >
             <Pressable
+              cssInterop={false}
               accessibilityRole="button"
               accessibilityLabel={`${c.label}. ${c.body}`}
               onPress={() => ask(c.prompt)}
@@ -444,6 +446,9 @@ export function CompanionChat() {
   )
 }
 
+/** How far the tab bar's + button rises above the bar, with its shadow. */
+const FAB_RISE = 30
+
 /**
  * Drawer that rises from the + button. Drag it down to close, or drag it up
  * to grow it to full screen and land in the full chat.
@@ -465,6 +470,17 @@ export function CompanionDrawer({ bottom }: { bottom: number }) {
   const grow = useSharedValue(0)
   const scroller = useRef<ScrollView>(null)
   const timeline = useTimeline(since)
+  const [typing, setTyping] = useState(false)
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardWillShow", () => setTyping(true))
+    const hide = Keyboard.addListener("keyboardWillHide", () =>
+      setTyping(false),
+    )
+    return () => {
+      show.remove()
+      hide.remove()
+    }
+  }, [])
   // biome-ignore lint/correctness/useExhaustiveDependencies: open/close only
   useEffect(() => {
     if (open) {
@@ -656,6 +672,10 @@ export function CompanionDrawer({ bottom }: { bottom: number }) {
             initialMode={ctx.mode}
             placeholder={`Message ${name}…`}
           />
+          {/* The tab bar's + button rises 23 pt above the bar (plus its
+              shadow) into the sheet; keep the composer clear of it. The
+              keyboard covers the bar, so the room is not needed then. */}
+          {bottom > 0 && !typing && <View style={{ height: FAB_RISE }} />}
         </KeyboardAvoidingView>
       </Animated.View>
     </View>

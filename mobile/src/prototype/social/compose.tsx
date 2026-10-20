@@ -72,6 +72,7 @@ export function ProgressPicker({
         const on = value?.kind === p.kind && value.title === p.title
         return (
           <Pressable
+            cssInterop={false}
             key={p.kind + p.title}
             accessibilityRole="button"
             accessibilityState={{ selected: on }}
@@ -382,6 +383,7 @@ export function Compose() {
             },
           ].map(({ label, Icon, run, on }) => (
             <Pressable
+              cssInterop={false}
               key={label}
               accessibilityRole="button"
               accessibilityState={{

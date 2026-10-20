@@ -744,6 +744,7 @@ function PlanBlock() {
     <Panel accent={t.tsk}>
       {items.map((x, i) => (
         <Pressable
+          cssInterop={false}
           key={x.id}
           accessibilityRole="button"
           onPress={() => go(x.href)}
@@ -909,6 +910,7 @@ export function Chips({ prompts }: { prompts: string[] }) {
       {prompts.map((p, i) => (
         <Animated.View key={p} entering={FadeInDown.delay(150 + i * 60)}>
           <Pressable
+            cssInterop={false}
             accessibilityRole="button"
             onPress={() => ask(p)}
             style={({ pressed }) => ({

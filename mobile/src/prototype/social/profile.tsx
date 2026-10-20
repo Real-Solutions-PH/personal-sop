@@ -376,6 +376,7 @@ function Tile({ post, size }: { post: Post; size: number }) {
   const first = post.media[0]
   return (
     <Pressable
+      cssInterop={false}
       accessibilityRole="button"
       accessibilityLabel={post.caption || "Post"}
       onPress={() => go(`/social/post/${post.id}`)}
@@ -829,6 +830,7 @@ function ProfileButton({
   const t = useTheme()
   return (
     <Pressable
+      cssInterop={false}
       accessibilityRole="button"
       onPress={onPress}
       style={({ pressed }) => ({
@@ -859,6 +861,7 @@ export function FollowButton({
   const on = person.isFollowing
   return (
     <Pressable
+      cssInterop={false}
       accessibilityRole="button"
       accessibilityState={{ selected: on }}
       accessibilityLabel={
@@ -986,6 +989,7 @@ export function Follows({
               }}
             >
               <Pressable
+                cssInterop={false}
                 accessibilityRole="button"
                 onPress={() => go(`/social/u/${item.id}`)}
                 style={({ pressed }) => ({

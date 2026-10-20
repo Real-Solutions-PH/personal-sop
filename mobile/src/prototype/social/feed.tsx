@@ -281,6 +281,7 @@ export function CreateSheet({
     <Sheet title="Create" open={open} onClose={onClose}>
       {rows.map(({ label, detail, Icon, href }) => (
         <Pressable
+          cssInterop={false}
           key={label}
           accessibilityRole="button"
           accessibilityLabel={`${label}. ${detail}`}

@@ -587,6 +587,7 @@ function ActionMenu({
           {REACTIONS.map((e, i) => (
             <Animated.View key={e} entering={FadeInUp.delay(i * 35)}>
               <Pressable
+                cssInterop={false}
                 accessibilityRole="button"
                 accessibilityLabel={`React ${e}`}
                 onPress={() => {
@@ -667,6 +668,7 @@ function ActionMenu({
               : []),
           ].map(({ label, Icon, run, ...r }) => (
             <Pressable
+              cssInterop={false}
               key={label}
               accessibilityRole="button"
               onPress={() => {

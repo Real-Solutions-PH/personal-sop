@@ -278,6 +278,7 @@ export function PostDetail({ id }: { id: string }) {
         >
           {QUICK.map((e) => (
             <Pressable
+              cssInterop={false}
               key={e}
               accessibilityRole="button"
               accessibilityLabel={`Comment ${e}`}
