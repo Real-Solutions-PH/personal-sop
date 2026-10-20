@@ -242,6 +242,12 @@ def ask(
             pass
     r = brain.route(text, user_name=user_name, sol_name=sol.name)
     if r.kind == "capture":
+        stored = owned_repo.get(ctx, CompanionMessage, me_id)
+        if stored is not None:
+            # The AI path stored (and streamed) the question before its
+            # provider failed; the capture carries it in the thread now. A
+            # tombstone, not a hard delete, so a device that got it drops it.
+            owned_repo.soft_delete(ctx, stored)
         cap = _to_capture(ctx, text, me_id, emit)
         ctx.commit()
         return AskOut(kind="capture", engine="rules", capture=cap)
