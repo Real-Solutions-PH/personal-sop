@@ -220,3 +220,10 @@ def load_state(ctx: Ctx) -> C.FitState:
     """The user's whole fitness state: the input to every ``calc``
     calculation."""
     return repo.load_state(ctx)
+
+
+def items_due_today(ctx: Ctx) -> list[tuple[str, bool]]:
+    """Today's fitness ring items by name, as (item, done)."""
+    from app.modules.fitness.stats import items_due
+
+    return items_due(repo.load_state(ctx), ctx.today)

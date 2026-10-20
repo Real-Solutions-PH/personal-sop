@@ -107,6 +107,30 @@ def test_the_plan_and_the_prompt_carry_the_users_real_items(
     assert results["coach"]["on_target_streak_days"] == 0
 
 
+def test_fitness_items_due_are_named_so_a_day_without_habits_is_not_empty(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """With no habits or tasks, the ring still counts fitness items; the
+    prompt must name them, or the model reports "nothing due" next to
+    "1 of 2 done"."""
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    api.post("/fitness/weigh-ins", {"weight_kg": 70})
+    model = install(monkeypatch, say("Weighed in; a workout is left."))
+    ask(api, "How am I doing today?")
+    facts = today_facts(model)
+    assert facts["habits_due_today"] == [] and facts["tasks_due_today_count"] == 0
+    due = {i["item"]: i["done"] for i in facts["fitness_due_today"]}
+    assert due["weigh-in"] is True
+    assert due.get("workout") is False
+    # Every named item is one the ring counts, and no more.
+    ring = facts["today_ring_by_area"]["fitness"]
+    assert ring == {"due": len(due), "done": sum(due.values())}
+    assert "life_score_7_days_shown_on_today" in facts
+    system = str(model.seen[0][0].content)
+    assert "only when all three are empty" in system
+
+
 # ---------------------------------------------------------------- plain text
 
 

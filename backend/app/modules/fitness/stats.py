@@ -35,6 +35,21 @@ def _pct(x: float) -> str:
     return f"{C.js_round(x * 100)}%"
 
 
+def items_due(s: C.FitState, day: date) -> list[tuple[str, bool]]:
+    """What fitness counts as due on ``day``, as (item, done): the ring's
+    items by name, so the companion can say which one is left."""
+    trained = [s.day(w.started_at) for w in C.finished(s)]
+    week = C.week_start(day)
+    in_week = sum(1 for d in trained if week <= d <= day)
+    trained_today = day in trained
+    out = [("weigh-in", day in C.daily_weights(s))]
+    if trained_today or in_week < s.settings.weekly_target:
+        out.append(("workout", trained_today))
+    if C.target_for(s, day) is not None:
+        out.append(("protein target", C.nutrition_day(s, day).protein_hit))
+    return out
+
+
 class FitnessContributor:
     key: ModuleKey = KEY
     label = "Fitness"
@@ -50,22 +65,12 @@ class FitnessContributor:
         target applies. The week counts sessions up to that day, which on
         today is the prototype's ``useTodayProgress``."""
         s = repo.load_state(ctx)
-        weighed = C.daily_weights(s)
-        trained = [s.day(w.started_at) for w in C.finished(s)]
         out: dict[date, DayProgress] = {}
         for day in days:
-            week = C.week_start(day)
-            in_week = sum(1 for d in trained if week <= d <= day)
-            trained_today = day in trained
-            workout_due = trained_today or in_week < s.settings.weekly_target
-            due, done = 1, 1 if day in weighed else 0
-            if workout_due:
-                due += 1
-                done += 1 if trained_today else 0
-            if C.target_for(s, day) is not None:
-                due += 1
-                done += 1 if C.nutrition_day(s, day).protein_hit else 0
-            out[day] = DayProgress(due=due, done=done)
+            items = items_due(s, day)
+            out[day] = DayProgress(
+                due=len(items), done=sum(1 for _, done in items if done)
+            )
         return out
 
     def metrics(self, ctx: Ctx, window: Window, prev: Window) -> list[Metric]:

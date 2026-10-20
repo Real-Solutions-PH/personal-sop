@@ -12,6 +12,7 @@ and the prompt tells the model that a missing fact is unknown, not zero.
 
 from typing import Any
 
+from app.modules.fitness import public as fitness
 from app.modules.habits import public as habits
 from app.modules.stats import public as stats
 from app.modules.tasks import public as tasks
@@ -33,8 +34,11 @@ def scores(ctx: Ctx) -> dict[str, Any]:
         o = stats.overview(ctx, days=30)
     except NotImplementedError:
         return {}
+    week = stats.overview(ctx, days=7)
     return {
-        "life_score": o.life_score,
+        # Today shows the 7-day score; the Stats screen defaults to 30 days.
+        "life_score_7_days_shown_on_today": week.life_score,
+        "life_score_30_days": o.life_score,
         "life_score_change_vs_previous_30_days": o.delta,
         "on_target_streak_days": o.streak,
         "best_streak_days": o.best_streak,
@@ -108,6 +112,11 @@ def snapshot(ctx: Ctx) -> dict[str, Any]:
     out.update(scores(ctx))
     hs = _habits_due(ctx)
     out["habits_due_today"] = hs
+    # Named, so the model knows what is left: the ring's fitness count alone
+    # read as "nothing due" whenever no habit or task was.
+    out["fitness_due_today"] = [
+        {"item": item, "done": done} for item, done in fitness.items_due_today(ctx)
+    ]
     overdue, due, open_total = _tasks_due(ctx)
     out["tasks_overdue"] = overdue[:5]
     out["tasks_overdue_count"] = len(overdue)
