@@ -7,6 +7,7 @@ from app.modules.profile import public, services
 from app.modules.profile.models import MODULE_KEYS
 from app.modules.profile.schema import (
     CompleteSignup,
+    HandleAvailability,
     HandleCheck,
     IdentityIn,
     IdentityPublic,
@@ -21,7 +22,8 @@ from app.modules.profile.schema import (
     PushDevicePublic,
 )
 from app.shared.context import CtxDep
-from app.shared.rate_limit import rate_limited
+from app.shared.deps import SessionDep
+from app.shared.rate_limit import rate_limited, rate_limited_by_client
 from app.shared.schema import Message
 
 router = APIRouter(prefix="/profile", tags=["profile"])
@@ -59,6 +61,19 @@ def handle_available(
     ctx: CtxDep, handle: str = Query(min_length=1, max_length=40)
 ) -> HandleCheck:
     return services.check_handle_availability(ctx, handle)
+
+
+# Public: the sign-up screen asks before the person has an account, so there
+# is no token to check. Limited per client address instead of per tenant.
+@router.get(
+    "/signup/handle-available",
+    response_model=HandleAvailability,
+    dependencies=[rate_limited_by_client("signup-handle")],
+)
+def signup_handle_available(
+    session: SessionDep, handle: str = Query(min_length=1, max_length=40)
+) -> HandleAvailability:
+    return services.signup_handle_availability(session, handle)
 
 
 @router.post("/complete-signup", response_model=ProfilePublic, dependencies=WRITE)

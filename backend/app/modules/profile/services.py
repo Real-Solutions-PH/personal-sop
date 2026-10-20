@@ -5,9 +5,10 @@ devices."""
 import uuid
 
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import col, func, select
+from sqlmodel import Session, col, func, select
 
 from app.modules.finance import public as finance_public
+from app.modules.iam.tenants import services as tenant_service
 from app.modules.profile import public
 from app.modules.profile.models import (
     MODULE_KEYS,
@@ -20,6 +21,7 @@ from app.modules.profile.models import (
 from app.modules.profile.schema import (
     RESERVED_HANDLES,
     CompleteSignup,
+    HandleAvailability,
     HandleCheck,
     IdentityIn,
     ModulePrefPublic,
@@ -57,6 +59,32 @@ def check_handle_availability(ctx: Ctx, handle: str) -> HandleCheck:
     if handle in RESERVED_HANDLES or _handle_taken(ctx, handle):
         return HandleCheck(handle=handle, status="taken")
     return HandleCheck(handle=handle, status="available")
+
+
+def signup_handle_availability(session: Session, handle: str) -> HandleAvailability:
+    """The sign-up screen's check, asked before the person has an account.
+
+    Compared case-insensitively against every profile in the tenant new
+    sign-ups join (the default tenant), so "Kai" reads as taken when "kai"
+    is held. Nothing is excluded as "yours": the caller is anonymous.
+    """
+    candidate = handle.strip().lower()
+    try:
+        check_handle(candidate)
+    except ValueError:
+        return HandleAvailability(status="invalid")
+    if candidate in RESERVED_HANDLES:
+        return HandleAvailability(status="taken")
+    tenant = tenant_service.get_default_tenant(session=session)
+    held = session.exec(
+        select(func.count())
+        .select_from(UserProfile)
+        .where(
+            UserProfile.tenant_id == tenant.id,
+            func.lower(UserProfile.handle) == candidate,
+        )
+    ).one()
+    return HandleAvailability(status="taken" if held else "available")
 
 
 def _claim_handle(ctx: Ctx, profile: UserProfile, handle: str) -> None:

@@ -10,6 +10,7 @@ import {
   CodeInput,
   clock,
   DemoTip,
+  ErrorBanner,
   haptic,
   Rise,
   TextLink,
@@ -18,6 +19,7 @@ import {
 } from "../auth-kit"
 import { back, replace } from "../navigation"
 import {
+  AuthError,
   completeSignUp,
   maskEmail,
   resendCode,
@@ -31,6 +33,8 @@ export function VerifyEmail() {
   const pending = sessionStore.use((s) => s.pending)
   const [code, setCode] = useState("")
   const [verified, setVerified] = useState(false)
+  const [finishError, setFinishError] = useState<string | null>(null)
+  const [finishTry, setFinishTry] = useState(0)
   const [resending, setResending] = useState(false)
   const input = useRef<TextInput>(null)
   const submit = useSubmit()
@@ -48,12 +52,35 @@ export function VerifyEmail() {
   }
   useEffect(() => {
     if (!verified) return
-    const id = setTimeout(() => {
-      completeSignUp()
-      replace("/onboarding")
-    }, 1100)
-    return () => clearTimeout(id)
-  }, [verified])
+    let alive = true
+    setFinishError(null)
+    const id = setTimeout(
+      async () => {
+        try {
+          await completeSignUp()
+          // Not gated on `alive`: signing in removes this route from the
+          // stack (unmounting the screen) in the same tick.
+          replace("/onboarding")
+        } catch (e) {
+          if (!alive) return
+          // Taken while the code was on its way: pick another on Sign up.
+          if (e instanceof AuthError && e.field === "username")
+            replace("/signup")
+          else {
+            haptic.error()
+            setFinishError(
+              e instanceof Error ? e.message : "Something went wrong",
+            )
+          }
+        }
+      },
+      finishTry ? 0 : 1100,
+    )
+    return () => {
+      alive = false
+      clearTimeout(id)
+    }
+  }, [verified, finishTry])
 
   if (!pending && !verified) return <Redirect href="/signup" />
   if (verified)
@@ -64,11 +91,20 @@ export function VerifyEmail() {
         title="You're verified"
         subtitle="Setting up your Personal SOP…"
       >
-        <ActivityIndicator
-          accessibilityLabel="Setting up your account"
-          color={t.primary}
-          style={{ alignSelf: "flex-start" }}
-        />
+        {finishError ? (
+          <>
+            <ErrorBanner message={finishError} shakeKey={finishTry} />
+            <AuthButton onPress={() => setFinishTry((n) => n + 1)}>
+              Try again
+            </AuthButton>
+          </>
+        ) : (
+          <ActivityIndicator
+            accessibilityLabel="Setting up your account"
+            color={t.primary}
+            style={{ alignSelf: "flex-start" }}
+          />
+        )}
       </AuthScreen>
     )
 

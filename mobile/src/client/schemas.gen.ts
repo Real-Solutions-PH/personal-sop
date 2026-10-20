@@ -6060,6 +6060,21 @@ export const HabitsPublicSchema = {
     title: 'HabitsPublic'
 } as const;
 
+export const HandleAvailabilitySchema = {
+    properties: {
+        status: {
+            type: 'string',
+            enum: ['available', 'taken', 'invalid'],
+            title: 'Status'
+        }
+    },
+    type: 'object',
+    required: ['status'],
+    title: 'HandleAvailability',
+    description: `Sign-up's check, made before any account exists: the verdict only —
+never the handle back, and nothing about the account holding it.`
+} as const;
+
 export const HandleCheckSchema = {
     properties: {
         handle: {

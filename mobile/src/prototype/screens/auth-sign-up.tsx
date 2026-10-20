@@ -25,11 +25,13 @@ import { go, replace } from "../navigation"
 import {
   AuthError,
   checkUsername,
+  chooseUsername,
   continueWith,
   emailError,
   handOffEmail,
   nameError,
   passwordStrength,
+  sessionStore,
   signUp,
   usernameError,
 } from "../session"
@@ -38,7 +40,8 @@ import { fonts, useTheme } from "../theme"
 type Availability = "idle" | "checking" | "available" | "taken"
 type Key = "name" | "username" | "email" | "password" | "terms"
 
-/** Debounced, simulated "is this handle free?" lookup. */
+/** Debounced "is this handle free?" lookup (the server's in live mode). A
+ * check that could not be answered stays neutral, never "available". */
 function useAvailability(username: string) {
   const [state, setState] = useState<Availability>("idle")
   useEffect(() => {
@@ -50,7 +53,7 @@ function useAvailability(username: string) {
     setState("checking")
     const id = setTimeout(async () => {
       const result = await checkUsername(username)
-      if (live) setState(result)
+      if (live) setState(result === "unknown" ? "idle" : result)
     }, 350)
     return () => {
       live = false
@@ -60,7 +63,107 @@ function useAvailability(username: string) {
   return state
 }
 
+const statusOf = (availability: Availability) =>
+  availability === "checking"
+    ? "checking"
+    : availability === "available"
+      ? "ok"
+      : availability === "taken"
+        ? "bad"
+        : "idle"
+
 export function SignUp() {
+  const claim = sessionStore.use((s) => s.claim)
+  return claim ? <ChooseUsername refused={claim.username} /> : <NewAccount />
+}
+
+/** The account is verified but the server refused its username (claimed by
+ * someone else meanwhile): ask for another before letting the person in. */
+function ChooseUsername({ refused }: { refused: string }) {
+  const t = useTheme()
+  const [username, setUsername] = useState(refused)
+  const [refusedNow, setRefusedNow] = useState(refused)
+  const availability = useAvailability(username)
+  const submit = useSubmit()
+  const taken = availability === "taken" || username === refusedNow
+  const error =
+    usernameError(username) ??
+    (taken ? `@${username} is already taken` : undefined)
+
+  const onSubmit = async () => {
+    if (error) {
+      haptic.error()
+      return
+    }
+    const ok = await submit.run(
+      () => chooseUsername(username),
+      (e) => {
+        if (e instanceof AuthError && e.field === "username")
+          setRefusedNow(username)
+      },
+    )
+    if (ok) {
+      haptic.success()
+      replace("/onboarding")
+    }
+  }
+
+  return (
+    <AuthScreen
+      showBack={false}
+      title="Choose another username"
+      subtitle="Your email is verified. Someone took your username while you were confirming it, so pick another to finish."
+    >
+      {submit.error && username !== refusedNow && (
+        <ErrorBanner message={submit.error} shakeKey={submit.shakeKey} />
+      )}
+      <Rise i={1}>
+        <AuthField
+          label="Username"
+          icon={AtSign}
+          value={username}
+          onChangeText={(v) => setUsername(v.toLowerCase().replace(/\s/g, ""))}
+          error={error}
+          hint={
+            availability === "available" && !error ? (
+              <Text
+                style={{
+                  fontFamily: fonts.medium,
+                  fontSize: 13,
+                  color: t.good,
+                }}
+              >
+                @{username} is available
+              </Text>
+            ) : undefined
+          }
+          right={<FieldStatus status={statusOf(availability)} />}
+          placeholder="kai.sop"
+          textContentType="nickname"
+          autoComplete="username-new"
+          autoCapitalize="none"
+          autoCorrect={false}
+          maxLength={20}
+          returnKeyType="done"
+          submitBehavior="blurAndSubmit"
+          onSubmitEditing={onSubmit}
+          editable={!submit.busy}
+        />
+      </Rise>
+      <Rise i={2}>
+        <AuthButton
+          onPress={onSubmit}
+          loading={submit.busy}
+          loadingLabel="Saving…"
+        >
+          Continue
+        </AuthButton>
+      </Rise>
+    </AuthScreen>
+  )
+}
+
+function NewAccount() {
   const t = useTheme()
   const [name, setName] = useState("")
   const [username, setUsername] = useState("")
@@ -204,19 +307,7 @@ export function SignUp() {
           onBlur={() => blur("username", !!username)}
           error={availability === "taken" ? errors.username : show("username")}
           hint={usernameHint}
-          right={
-            <FieldStatus
-              status={
-                availability === "checking"
-                  ? "checking"
-                  : availability === "available"
-                    ? "ok"
-                    : availability === "taken"
-                      ? "bad"
-                      : "idle"
-              }
-            />
-          }
+          right={<FieldStatus status={statusOf(availability)} />}
           placeholder="kai.sop"
           textContentType="nickname"
           autoComplete="username-new"

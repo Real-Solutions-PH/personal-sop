@@ -111,6 +111,13 @@ class HandleCheck(BaseModel):
     reason: str | None = None
 
 
+class HandleAvailability(BaseModel):
+    """Sign-up's check, made before any account exists: the verdict only —
+    never the handle back, and nothing about the account holding it."""
+
+    status: Literal["available", "taken", "invalid"]
+
+
 class ModulePrefPublic(BaseModel):
     module: ModuleKey
     enabled: bool
