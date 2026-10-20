@@ -37,9 +37,9 @@
 //     rice item's assumption. The rescaled items still follow as field
 //     writes, with the same values the action computes;
 //   - the rest timer: fitness.rest.start / adjust / skip. rest_timer is
-//     written only by those actions, so its mapper owns every field; the
-//     one row it lists is constant, which costs a single refused create the
-//     first time a device syncs.
+//     written only by those actions (the server registers it read-only), so
+//     its mapper is actionsOnly: the one constant row it lists never becomes
+//     a field write, which the server would refuse as unknown_entity.
 //
 // Children pulled before their parent (a later page of the same pull) are
 // held here and attached when the parent arrives; they are then pushed once
@@ -1010,6 +1010,7 @@ export function restMapper(userId: string): Mapper<S, RestRow> {
           ? { ...s, rest: null }
           : s,
     actionFields: ["ends_at", "duration_sec"],
+    actionsOnly: true,
     actions: (prev, next) =>
       restActions(prev?.rest ?? null, next?.rest ?? null),
   }

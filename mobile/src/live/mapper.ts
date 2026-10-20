@@ -38,6 +38,9 @@ export interface Mapper<S = unknown, L = unknown> {
   actions?(prev: L | undefined, next: L | undefined, state: S): ActionOp[]
   /** Pull-only entity (server-derived rows). */
   readOnly?: boolean
+  /** Written only through ``actions``: no field writes or deletes are sent
+   * (the server registers the entity read-only and refuses them). */
+  actionsOnly?: boolean
 }
 
 export type AnyMapper = Mapper<any, any>
@@ -68,6 +71,7 @@ export function diffEntity(
     const prev = snapshot[id]
     if (mapper.actions)
       out.actions.push(...mapper.actions(previous[id], local, state))
+    if (mapper.actionsOnly) continue
     if (!prev) {
       const data: Payload = {}
       for (const [k, v] of Object.entries(next)) if (!owned.has(k)) data[k] = v
@@ -86,7 +90,7 @@ export function diffEntity(
     if (seen.has(id)) continue
     if (mapper.actions)
       out.actions.push(...mapper.actions(previous[id], undefined, state))
-    out.deletes.push(id)
+    if (!mapper.actionsOnly) out.deletes.push(id)
   }
   return out
 }

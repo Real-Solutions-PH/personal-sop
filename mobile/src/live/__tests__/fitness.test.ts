@@ -107,7 +107,7 @@ const blank = (): FitnessState => ({
 })
 
 // Every upsert and action the suite produces, for the backend schema test.
-// (rest_timer is action-written: its one constant row's create is refused.)
+// (rest_timer is action-written: its mapper sends no field writes.)
 const wire: {
   entity: string
   kind: string
@@ -212,7 +212,7 @@ function step(e: SyncEngine, seen: Set<string>) {
         create: false,
         data: o.data ?? {},
       })
-    if (o.kind !== "upsert" || o.name === "rest_timer") continue
+    if (o.kind !== "upsert") continue
     const id = o.id ?? ""
     wire.push({
       entity: o.name,
@@ -896,6 +896,30 @@ describe("pulled rows", () => {
     expect(t.id).toBe(serverId)
     expect(ops.map((o) => `${o.kind}:${o.id}`)).toEqual([`upsert:${serverId}`])
     expect(fitStore.get().targets.map((x) => x.id)).toEqual([serverId])
+  })
+
+  test("the rest timer is never sent as a field write", () => {
+    // Live E2E: every sign-in pushed a create for the mapper's constant
+    // rest_timer row, which the server (rest_timer is read-only there,
+    // written by fitness.rest.* only) refused as unknown_entity.
+    fitStore.set((s) => ({ ...s, rest: null }))
+    const storage = memoryStorage()
+    const e = new SyncEngine({
+      http: quietHttp,
+      storage,
+      outbox: createOutbox(storage),
+      mappers: fitnessMappers(USER),
+      online: () => false,
+    })
+    const first = e.capture()
+    expect(first.filter((o) => o.name === "rest_timer")).toEqual([])
+    fitStore.set((s) => ({
+      ...s,
+      rest: { endsAt: "2026-10-19T10:02:00.000Z", durationSec: 120 },
+    }))
+    expect(names(e.capture())).toEqual(["fitness.rest.start"])
+    fitStore.set((s) => ({ ...s, rest: null }))
+    expect(names(e.capture())).toEqual(["fitness.rest.skip"])
   })
 
   test("the rest timer: pulled starts and clears never echo", () => {
