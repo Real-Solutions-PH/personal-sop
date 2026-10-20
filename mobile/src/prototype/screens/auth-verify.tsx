@@ -58,7 +58,9 @@ export function VerifyEmail() {
       async () => {
         try {
           await completeSignUp()
-          if (alive) replace("/onboarding")
+          // Not gated on `alive`: signing in removes this route from the
+          // stack (unmounting the screen) in the same tick.
+          replace("/onboarding")
         } catch (e) {
           if (!alive) return
           // Taken while the code was on its way: pick another on Sign up.
