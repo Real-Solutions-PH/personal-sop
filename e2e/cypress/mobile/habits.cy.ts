@@ -9,7 +9,7 @@
 // | /habits/new (form)         | name, icon, type, target/unit/step, schedule sheet, reminder, create | core: creates a count habit |
 // | /habits/[id]/edit          | rename, change target, save              | core: creates a count habit |
 // | /habits/[id]/edit          | Pause / Resume buttons                   | core: pauses and resumes from the edit form |
-// | /habits/[id]/edit          | Pause again the day of a resume          | core: pauses again on the day of a resume (FAILS: server keeps the habit paused — see the DEFECT note on the test) |
+// | /habits/[id]/edit          | Pause again the day of a resume          | core: pauses again on the day of a resume (regression check for the deleted-id restore) |
 // | /habits/[id]/edit          | Archive button                           | core: pauses, resumes, archives (form archive) |
 // | /habits/[id] (detail)      | + step (increment)                       | core: creates a count habit |
 // | /habits/[id] (detail)      | Mark done today / undo (check, clear)    | core: checks, clears, skips |
@@ -344,12 +344,9 @@ describe("habits (live)", () => {
     })
   })
 
-  // DEFECT (reported, not in this write set): a second pause on the same day
-  // reuses the first pause's derived id (habit + from day). That row is a
-  // tombstone after the resume, the server refuses the upsert
-  // (`deleted_on_server`) and the habit ends up `paused` on the server after
-  // the user pressed Resume. Fix belongs in the sync engine / server apply
-  // (revive a tombstoned derived id on upsert).
+  // Regression check: a second pause on the same day reuses the first
+  // pause's derived id (habit + from day), deleted by the resume; the engine
+  // restores it before the upsert instead of hitting `deleted_on_server`.
   it("pauses again on the day of a resume, then resumes", () => {
     cy.newLiveUser("habits").then((user) => {
       seedHabit(user, { name: "Tea", type: "check" }).then((h) => {
@@ -459,11 +456,8 @@ describe("habits (live)", () => {
     })
   })
 
-  // DEFECT (fixed in habit-secondary.tsx; green once the web build has it):
-  // in live mode "Reset habits demo data" replaced the store with the demo
-  // seed and the sync engine deleted the user's real habits on the server
-  // (measured: "Keep me" soft-deleted seconds after the tap). The demo
-  // resets are now prototype-only.
+  // Regression check: in live mode "Reset habits demo data" used to replace
+  // the store with the demo seed, and sync deleted the user's real habits.
   it("live mode offers no demo resets, and the user's habits stay", () => {
     cy.newLiveUser("habits").then((user) => {
       seedHabit(user, { name: "Keep me" }).then((h) => {

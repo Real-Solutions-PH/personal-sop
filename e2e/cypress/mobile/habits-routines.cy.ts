@@ -5,7 +5,7 @@
 // | /habits/routines              | New routine (+)                           | builds a routine |
 // | /habits/routines/new (form)   | name, icon, schedule, reminder, Create & add steps | builds a routine |
 // | /habits/routines/[id]         | Add steps picker: pick habits, Add N steps | builds a routine |
-// | /habits/routines/[id]         | picker: New habit "<query>" → added as a step | builds a routine (FAILS after a removal: deleted_on_server — see the DEFECT note) |
+// | /habits/routines/[id]         | picker: New habit "<query>" → added as a step | builds a routine (regression check: re-creating a step at a removed position) |
 // | /habits/routines/[id]         | More / Less time for a step               | builds a routine |
 // | /habits/routines/[id]         | Remove step                               | builds a routine |
 // | /habits/routines/[id]         | Reorder step (drag handle)                | NOT COVERABLE ON WEB: PanResponder drag / screen-reader actions only; step order is still proven through the picker order |
@@ -17,7 +17,7 @@
 // | /habits/routines/[id]         | Share routine                             | NOT COVERABLE ON WEB: opens the share composer whose output is a native share sheet |
 // | /habits/routines/[id]/play    | Start, +1 min, Pause/Resume, Done, Skip, Back, Continue (already logged) | plays a routine |
 // | /habits/routines/[id]/summary | steps, Done                               | plays a routine |
-// | /habits/routines/[id]/play    | Leave routine (exit)                      | leaves a routine (fails against a build without the habits.run.exit mapper fix) |
+// | /habits/routines/[id]/play    | Leave routine (exit)                      | leaves a routine |
 // | /habits/routines/[id]         | Start routine / Resume · step n           | leaves a routine |
 // | Today → Habits card           | routine Start / Resume                    | leaves a routine |
 import {
@@ -52,10 +52,9 @@ const steps = (routineId: string, expected: string) =>
   )
 
 describe("habits routines (live)", () => {
-  // DEFECT (reported, not in this write set): after "Remove Stretch" the
-  // new-habit step takes position 1, whose derived id (routine + position)
-  // is Stretch's tombstone; the server answers `conflict deleted_on_server`
-  // and the step never lands (same revive-on-upsert gap as the re-pause).
+  // Regression check: after "Remove Stretch" the new-habit step takes
+  // position 1, whose derived id is the removed step's; the engine restores
+  // it before the upsert.
   it("builds a routine: form, add steps, minutes, remove, new-habit step, edit", () => {
     cy.newLiveUser("habits").then((user) => {
       seedHabit(user, "Water", "💧").then((w) =>
