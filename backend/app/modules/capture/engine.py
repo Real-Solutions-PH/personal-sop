@@ -773,8 +773,9 @@ def quick_add(
         confirm=True,
     )
     card = C.new_card(ctx, cap, d, position=0, actor="user")
-    if not C.save(ctx, card, cap, actor="user"):
-        raise invalid("card_save_failed", C.SAVE_FAILED)
+    why = C.try_save(ctx, card, cap, actor="user")
+    if why is not None:
+        raise why.error()
     ctx.commit()
     return cap
 
