@@ -12166,6 +12166,10 @@ export const ProfilePublicSchema = {
             type: 'string',
             title: 'Timezone'
         },
+        currency: {
+            type: 'string',
+            title: 'Currency'
+        },
         day_start_hour: {
             type: 'integer',
             title: 'Day Start Hour'
@@ -12248,7 +12252,7 @@ export const ProfilePublicSchema = {
         }
     },
     type: 'object',
-    required: ['id', 'name', 'handle', 'photo_media_id', 'since', 'timezone', 'day_start_hour', 'evening_start', 'target_threshold', 'appearance', 'privacy_hidden', 'onboarded', 'setup_hidden', 'install_dismissed', 'push_permission', 'push_morning', 'push_evening', 'push_review', 'seen_trophies', 'version', 'updated_at'],
+    required: ['id', 'name', 'handle', 'photo_media_id', 'since', 'timezone', 'currency', 'day_start_hour', 'evening_start', 'target_threshold', 'appearance', 'privacy_hidden', 'onboarded', 'setup_hidden', 'install_dismissed', 'push_permission', 'push_morning', 'push_evening', 'push_review', 'seen_trophies', 'version', 'updated_at'],
     title: 'ProfilePublic'
 } as const;
 
@@ -12301,6 +12305,19 @@ export const ProfileUpdateSchema = {
                 }
             ],
             title: 'Timezone'
+        },
+        currency: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 3,
+                    minLength: 3
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Currency'
         },
         day_start_hour: {
             anyOf: [

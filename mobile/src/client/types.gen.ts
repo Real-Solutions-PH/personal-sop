@@ -2708,6 +2708,7 @@ export type ProfilePublic = {
     photo_media_id: (string | null);
     since: (string | null);
     timezone: string;
+    currency: string;
     day_start_hour: number;
     evening_start: string;
     target_threshold: number;
@@ -2737,6 +2738,7 @@ export type ProfileUpdate = {
     handle?: (string | null);
     photo_media_id?: (string | null);
     timezone?: (string | null);
+    currency?: (string | null);
     day_start_hour?: (number | null);
     evening_start?: (string | null);
     target_threshold?: (number | null);
