@@ -355,28 +355,18 @@ export default function PrototypeLayout() {
                       <TabIcon icon={Icon} active={active} />
                     </View>
                   )}
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      marginTop: tab.label === "Fern" ? -6 : 0,
-                      fontFamily:
-                        tab.label === "Fern" ? fonts.bold : fonts.medium,
-                      color:
-                        tab.label === "Fern"
-                          ? t.dark
-                            ? fern.frond
-                            : fern.moss
-                          : active
-                            ? t.text
-                            : t.muted,
-                    }}
-                  >
-                    {tab.label === "Fern"
-                      ? drawer
-                        ? "Close"
-                        : "Ask Fern"
-                      : tab.label}
-                  </Text>
+                  {/* The orb speaks for itself; its name is for screen readers. */}
+                  {tab.label !== "Fern" && (
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        fontFamily: fonts.medium,
+                        color: active ? t.text : t.muted,
+                      }}
+                    >
+                      {tab.label}
+                    </Text>
+                  )}
                 </Pressable>
               )
             })}
