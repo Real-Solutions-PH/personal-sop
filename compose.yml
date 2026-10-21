@@ -31,8 +31,10 @@ services:
       - app-redis-data:/data
 
   minio:
-    # Docker Hub no longer serves minio/minio; pull the same release from quay.io.
-    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
+    # MinIO no longer publishes free images (Docker Hub and quay.io both refuse
+    # anonymous pulls); Chainguard's build is public. Its free tier only tags
+    # `latest`, so it is pinned by digest. It has no curl: health uses `mc`.
+    image: cgr.dev/chainguard/minio:latest@sha256:32c504bea4574d8f29d719b37bc0dad920ecf3e22b81dc5cea0bb105af2ce10f
     restart: always
     command: server /data --console-address ":9001"
     env_file:
@@ -41,7 +43,7 @@ services:
       - MINIO_ROOT_USER=${MINIO_ROOT_USER?Variable not set}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD?Variable not set}
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      test: ["CMD", "mc", "ready", "local"]
       interval: 10s
       timeout: 5s
       retries: 5
