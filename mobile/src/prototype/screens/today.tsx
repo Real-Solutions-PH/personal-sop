@@ -668,7 +668,7 @@ function TasksCard() {
             label="Add task"
             color={t.tsk}
             background={`${t.tsk}26`}
-            onPress={() => go("/tasks/capture")}
+            onPress={() => go("/tasks/new")}
           />
         </Line>
         {d.overdue.length > 0 && (

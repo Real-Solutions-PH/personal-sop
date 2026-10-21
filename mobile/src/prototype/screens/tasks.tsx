@@ -377,9 +377,7 @@ export function Tasks({
             label="Add task"
             accent="tsk"
             filled
-            onPress={() =>
-              go(`/tasks/capture${list ? `?list=${list.id}` : ""}`)
-            }
+            onPress={() => go(`/tasks/new${list ? `?list=${list.id}` : ""}`)}
           />
         </View>
       }
@@ -604,7 +602,6 @@ export function Tasks({
     />
   )
 }
-export { TaskCapture } from "./task-capture"
 
 function ListEditor({
   list,

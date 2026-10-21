@@ -65,15 +65,15 @@ Cypress.config("responseTimeout", 90000)
 describe("tasks (live)", () => {
   beforeEach(trackSync)
 
-  it("captures tasks, completes one, deletes one — all reach the server", () => {
+  it("adds tasks from the form, completes one, deletes one — all reach the server", () => {
     cy.newLiveUser("tasks").then((user) => {
       signIn(user)
-      go("/tasks/capture")
-      cy.findByRole("textbox", { name: "Capture text" })
-        .clear()
-        .type("Pay electric bill, call dentist")
-      cy.findByRole("button", { name: "Send" }).click()
-      cy.findByText(/saved 2 tasks/i).should("exist")
+      for (const title of ["Pay electric bill", "Call dentist"]) {
+        go("/tasks/new")
+        cy.findByRole("textbox", { name: "Task" }).type(title)
+        cy.findByRole("button", { name: "Add task" }).click()
+        cy.findByText("Task added").should("exist")
+      }
 
       rows(
         "select id, title, status from task where owner_id = $1 and deleted_at is null order by title",

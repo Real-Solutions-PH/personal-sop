@@ -559,7 +559,7 @@ export function Reply({
                 A.addJournalEntry({ body: capture.text })
                 toast.success("Saved to journal")
               } else if (action.prompt) A.sendCapture({ text: action.prompt })
-              else go("/tasks/capture")
+              else go("/tasks/new")
             }}
           >
             {action.label}
