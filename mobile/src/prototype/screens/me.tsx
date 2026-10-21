@@ -52,6 +52,7 @@ import {
 } from "../native-kit"
 import { go, replace } from "../navigation"
 import { ProfileAvatar } from "../profile-avatar"
+import { enableReminders } from "../reminders"
 import { sessionStore, signOut } from "../session"
 import { Switch } from "../switch"
 import { fonts, useTheme } from "../theme"
@@ -237,11 +238,9 @@ export function Me() {
               <SmallButton
                 accent="primary"
                 onPress={() =>
-                  go(
-                    Platform.OS === "web"
-                      ? "/onboarding?step=install"
-                      : "/onboarding?step=notifications",
-                  )
+                  Platform.OS === "web"
+                    ? go("/onboarding?step=install")
+                    : void enableReminders()
                 }
               >
                 Fix
