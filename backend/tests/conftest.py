@@ -1,8 +1,10 @@
+import base64
 import secrets
 from collections.abc import Generator
 
 import pytest
 from fastapi.testclient import TestClient
+from pydantic import SecretStr
 from sqlalchemy import Engine, create_engine, text
 from sqlmodel import Session, delete
 
@@ -18,6 +20,26 @@ from tests.utils.utils import get_superuser_token_headers
 # the configured one so the app engine — built from settings at import — can
 # actually connect; otherwise a throwaway (the role only needs SOME login here).
 _APP_USER_PASSWORD = settings.POSTGRES_APP_PASSWORD or secrets.token_urlsafe(24)
+
+
+@pytest.fixture(autouse=True)
+def no_server_ai_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The dev .env answers key-less users with the server's real Nebius key.
+    Tests never spend it: a test that wants the fallback switches it on."""
+    monkeypatch.setattr(settings, "AI_SERVER_FALLBACK", False)
+
+
+# Saving a provider key needs the key-encryption key. CI seeds .env from
+# .env.example, which carries none, so the suite brings a throwaway one; the
+# crypto tests set their own.
+_TEST_KEK = SecretStr(base64.b64encode(secrets.token_bytes(32)).decode())
+
+
+@pytest.fixture(autouse=True)
+def credentials_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    kek = settings.AI_CREDENTIALS_KEK
+    if kek is None or not kek.get_secret_value():
+        monkeypatch.setattr(settings, "AI_CREDENTIALS_KEK", _TEST_KEK)
 
 
 @pytest.fixture(scope="session", autouse=True)

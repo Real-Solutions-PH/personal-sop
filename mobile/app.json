@@ -1,25 +1,66 @@
 {
   "expo": {
-    "name": "FastAPI Mobile",
-    "slug": "fastapi-mobile",
+    "name": "Personal SOP",
+    "slug": "personal-sop",
     "version": "0.0.0",
     "orientation": "portrait",
-    "scheme": "fastapimobile",
+    "scheme": "personalsop",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.schadenkai.personal-sop"
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#ffffff"
-      }
+      },
+      "permissions": [
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "bundler": "metro",
-      "output": "static"
+      "output": "single"
     },
-    "plugins": ["expo-router", "expo-sqlite", "@sentry/react-native/expo"],
+    "plugins": [
+      "expo-router",
+      "expo-sqlite",
+      "@sentry/react-native/expo",
+      "expo-secure-store",
+      "expo-status-bar",
+      "expo-sharing",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow Personal SOP to record voice captures.",
+          "enableBackgroundPlayback": false,
+          "enableBackgroundRecording": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Choose a profile picture or capture photo.",
+          "cameraPermission": "Take a photo for a capture.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow Personal SOP to use your location to show local weather and the forecast for planning outdoor work.",
+          "locationAlwaysAndWhenInUsePermission": false,
+          "locationAlwaysPermission": false,
+          "motionUsagePermission": false
+        }
+      ],
+      "@react-native-community/datetimepicker",
+      "expo-asset",
+      "expo-font",
+      "expo-video"
+    ],
     "experiments": {
       "typedRoutes": true,
       "tsconfigPaths": true

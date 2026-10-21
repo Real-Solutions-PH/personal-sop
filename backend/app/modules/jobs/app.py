@@ -25,7 +25,7 @@ def create_jobs_app() -> procrastinate.App:
     )
     return procrastinate.App(
         connector=connector,
-        import_paths=["app.modules.jobs.tasks"],
+        import_paths=["app.modules.jobs.tasks", "app.modules.stats.jobs"],
     )
 
 

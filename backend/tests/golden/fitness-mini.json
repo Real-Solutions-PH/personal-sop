@@ -1,0 +1,1934 @@
+{
+  "frozenNow": "2026-10-18T04:00:00.000Z",
+  "source": "shared/prototype",
+  "data": {
+    "state": {
+      "exercises": [
+        {
+          "id": "maxed",
+          "name": "maxed",
+          "equipment": "barbell",
+          "muscle": "core",
+          "loadType": "weight",
+          "repMin": 5,
+          "repMax": 8,
+          "increment": 2.5
+        },
+        {
+          "id": "highrep",
+          "name": "highrep",
+          "equipment": "barbell",
+          "muscle": "core",
+          "loadType": "weight",
+          "repMin": 12,
+          "repMax": 20,
+          "increment": 1
+        },
+        {
+          "id": "dips",
+          "name": "dips",
+          "equipment": "bodyweight",
+          "muscle": "core",
+          "loadType": "bodyweight",
+          "repMin": 6,
+          "repMax": 10,
+          "increment": 2.5
+        },
+        {
+          "id": "situp",
+          "name": "situp",
+          "equipment": "bodyweight",
+          "muscle": "core",
+          "loadType": "reps",
+          "repMin": 10,
+          "repMax": 30,
+          "increment": 0
+        },
+        {
+          "id": "hold",
+          "name": "hold",
+          "equipment": "bodyweight",
+          "muscle": "core",
+          "loadType": "time",
+          "repMin": 30,
+          "repMax": 60,
+          "increment": 0
+        },
+        {
+          "id": "warmonly",
+          "name": "warmonly",
+          "equipment": "barbell",
+          "muscle": "core",
+          "loadType": "weight",
+          "repMin": 8,
+          "repMax": 12,
+          "increment": 2.5
+        },
+        {
+          "id": "fresh",
+          "name": "fresh",
+          "equipment": "barbell",
+          "muscle": "core",
+          "loadType": "weight",
+          "repMin": 8,
+          "repMax": 12,
+          "increment": 2.5
+        }
+      ],
+      "templates": [
+        {
+          "id": "ta",
+          "name": "A",
+          "items": [
+            {
+              "exerciseId": "maxed",
+              "sets": 3
+            }
+          ]
+        },
+        {
+          "id": "tb",
+          "name": "B",
+          "items": [
+            {
+              "exerciseId": "dips",
+              "sets": 2
+            }
+          ]
+        }
+      ],
+      "workouts": [
+        {
+          "id": "mw1",
+          "name": "mw1",
+          "templateId": "ta",
+          "startedAt": "2026-09-18T10:00:00.000Z",
+          "endedAt": "2026-09-18T11:05:00.000Z",
+          "status": "finished",
+          "exercises": [
+            {
+              "id": "mw1-a",
+              "exerciseId": "maxed",
+              "sets": [
+                {
+                  "id": "a1",
+                  "reps": 6,
+                  "weight": 100,
+                  "kind": "working",
+                  "completedAt": "2026-10-15T10:30:00.000Z"
+                },
+                {
+                  "id": "a2",
+                  "reps": 6,
+                  "weight": 100,
+                  "kind": "working",
+                  "completedAt": "2026-10-15T10:30:00.000Z"
+                },
+                {
+                  "id": "a3",
+                  "reps": 5,
+                  "weight": 100,
+                  "kind": "drop",
+                  "completedAt": "2026-10-15T10:30:00.000Z"
+                }
+              ]
+            },
+            {
+              "id": "mw1-b",
+              "exerciseId": "highrep",
+              "sets": [
+                {
+                  "id": "b1",
+                  "reps": 15,
+                  "weight": 20,
+                  "kind": "working",
+                  "completedAt": "2026-10-15T10:30:00.000Z"
+                },
+                {
+                  "id": "b2",
+                  "reps": 13,
+                  "weight": 20,
+                  "kind": "working",
+                  "completedAt": "2026-10-15T10:30:00.000Z"
+                }
+              ]
+            },
+            {
+              "id": "mw1-c",
+              "exerciseId": "dips",
+              "sets": [
+                {
+                  "id": "c1",
+                  "reps": 8,
+                  "weight": 0,
+                  "kind": "working",
+                  "completedAt": "2026-10-15T10:30:00.000Z"
+                },
+                {
+                  "id": "c2",
+                  "reps": 7,
+                  "weight": 10,
+                  "kind": "working",
+                  "completedAt": "2026-10-15T10:30:00.000Z"
+                }
+              ]
+            }
+          ],
+          "clientId": "c-mw1",
+          "source": "live"
+        },
+        {
+          "id": "mw2",
+          "name": "mw2",
+          "templateId": "tb",
+          "startedAt": "2026-09-23T10:00:00.000Z",
+          "endedAt": "2026-09-23T11:05:00.000Z",
+          "status": "finished",
+          "exercises": [
+            {
+              "id": "mw2-a",
+              "exerciseId": "maxed",
+              "sets": [
+                {
+                  "id": "a4",
+                  "reps": 8,
+                  "weight": 100,
+                  "kind": "working",
+                  "completedAt": "2026-10-15T10:30:00.000Z"
+                },
+                {
+                  "id": "a5",
+                  "reps": 8,
+                  "weight": 100,
+                  "kind": "working",
+                  "completedAt": "2026-10-15T10:30:00.000Z"
+                },
+                {
+                  "id": "a6",
+                  "reps": 9,
+                  "weight": 100,
+                  "kind": "working",
+                  "completedAt": "2026-10-15T10:30:00.000Z"
+                }
+              ]
+            },
+            {
+              "id": "mw2-s",
+              "exerciseId": "situp",
+              "sets": [
+                {
+                  "id": "s1",
+                  "reps": 20,
+                  "weight": 0,
+                  "kind": "working",
+                  "completedAt": "2026-10-15T10:30:00.000Z"
+                },
+                {
+                  "id": "s2",
+                  "reps": 18,
+                  "weight": 0,
+                  "kind": "working",
+                  "completedAt": "2026-10-15T10:30:00.000Z"
+                }
+              ]
+            },
+            {
+              "id": "mw2-h",
+              "exerciseId": "hold",
+              "sets": [
+                {
+                  "id": "h1",
+                  "reps": 45,
+                  "weight": 0,
+                  "kind": "working",
+                  "completedAt": "2026-10-15T10:30:00.000Z"
+                },
+                {
+                  "id": "h2",
+                  "reps": 40,
+                  "weight": 0,
+                  "kind": "failure",
+                  "completedAt": "2026-10-15T10:30:00.000Z"
+                }
+              ]
+            },
+            {
+              "id": "mw2-w",
+              "exerciseId": "warmonly",
+              "sets": [
+                {
+                  "id": "w1",
+                  "reps": 10,
+                  "weight": 40,
+                  "kind": "warmup",
+                  "completedAt": "2026-10-15T10:30:00.000Z"
+                }
+              ]
+            }
+          ],
+          "clientId": "c-mw2",
+          "source": "live"
+        },
+        {
+          "id": "mw3",
+          "name": "mw3",
+          "templateId": "ta",
+          "startedAt": "2026-10-08T10:00:00.000Z",
+          "endedAt": "2026-10-08T11:05:00.000Z",
+          "status": "finished",
+          "exercises": [
+            {
+              "id": "mw3-a",
+              "exerciseId": "maxed",
+              "sets": [
+                {
+                  "id": "a7",
+                  "reps": 8,
+                  "weight": 102.5,
+                  "kind": "working",
+                  "completedAt": "2026-10-15T10:30:00.000Z"
+                },
+                {
+                  "id": "a8",
+                  "reps": 7,
+                  "weight": 102.5,
+                  "kind": "working",
+                  "completedAt": "2026-10-15T10:30:00.000Z"
+                },
+                {
+                  "id": "a9",
+                  "reps": 8,
+                  "weight": 102.5,
+                  "kind": "working"
+                }
+              ]
+            },
+            {
+              "id": "mw3-c",
+              "exerciseId": "dips",
+              "sets": [
+                {
+                  "id": "c3",
+                  "reps": 10,
+                  "weight": 5,
+                  "kind": "working",
+                  "completedAt": "2026-10-15T10:30:00.000Z"
+                },
+                {
+                  "id": "c4",
+                  "reps": 9,
+                  "weight": 5,
+                  "kind": "working",
+                  "completedAt": "2026-10-15T10:30:00.000Z"
+                }
+              ]
+            }
+          ],
+          "clientId": "c-mw3",
+          "source": "live"
+        },
+        {
+          "id": "mw4",
+          "name": "mw4",
+          "startedAt": "2026-10-14T10:00:00.000Z",
+          "status": "discarded",
+          "exercises": [
+            {
+              "id": "mw4-a",
+              "exerciseId": "maxed",
+              "sets": [
+                {
+                  "id": "a10",
+                  "reps": 8,
+                  "weight": 100,
+                  "kind": "working",
+                  "completedAt": "2026-10-15T10:30:00.000Z"
+                },
+                {
+                  "id": "a11",
+                  "reps": 7,
+                  "weight": 100,
+                  "kind": "working",
+                  "completedAt": "2026-10-15T10:30:00.000Z"
+                }
+              ]
+            }
+          ],
+          "clientId": "c-mw4",
+          "source": "live"
+        }
+      ],
+      "weighIns": [
+        {
+          "id": "mwi1",
+          "measuredAt": "2026-10-15T22:30:00.000Z",
+          "weightKg": 80.4
+        },
+        {
+          "id": "mwi2",
+          "measuredAt": "2026-10-16T13:00:00.000Z",
+          "weightKg": 81
+        },
+        {
+          "id": "mwi3",
+          "measuredAt": "2026-10-16T23:00:00.000Z",
+          "weightKg": 80.2
+        }
+      ],
+      "targets": [
+        {
+          "id": "mt1",
+          "effectiveFrom": "2026-10-10",
+          "kcal": 2000,
+          "protein": 150,
+          "carbs": 200,
+          "fat": 60
+        },
+        {
+          "id": "mt2",
+          "effectiveFrom": "2026-10-16",
+          "kcal": 1800,
+          "protein": 140,
+          "carbs": 180,
+          "fat": 55
+        }
+      ],
+      "meals": [],
+      "settings": {
+        "units": "kg",
+        "restSec": 90,
+        "weeklyTarget": 2,
+        "weighInReminder": "06:30",
+        "progression": "double",
+        "aiSource": "builtin",
+        "goalDirection": "bulk"
+      },
+      "activeId": null,
+      "rest": null
+    },
+    "calc": {
+      "latestBodyweight": 80.2,
+      "exStats": [
+        {
+          "workoutId": "mw1",
+          "weId": "mw1-a",
+          "bestE1rm": 120,
+          "heaviest": 100,
+          "volume": 1700,
+          "topSetId": "a1",
+          "doneSets": 3
+        },
+        {
+          "workoutId": "mw1",
+          "weId": "mw1-b",
+          "bestE1rm": 30,
+          "heaviest": 20,
+          "volume": 560,
+          "topSetId": "b1",
+          "doneSets": 2
+        },
+        {
+          "workoutId": "mw1",
+          "weId": "mw1-c",
+          "bestE1rm": 111.24666666666667,
+          "heaviest": 10,
+          "volume": 1273,
+          "topSetId": "c2",
+          "doneSets": 2
+        },
+        {
+          "workoutId": "mw2",
+          "weId": "mw2-a",
+          "bestE1rm": 130,
+          "heaviest": 100,
+          "volume": 2500,
+          "topSetId": "a6",
+          "doneSets": 3
+        },
+        {
+          "workoutId": "mw2",
+          "weId": "mw2-s",
+          "bestE1rm": 0,
+          "heaviest": 0,
+          "volume": 0,
+          "topSetId": "s1",
+          "doneSets": 2
+        },
+        {
+          "workoutId": "mw2",
+          "weId": "mw2-h",
+          "bestE1rm": 0,
+          "heaviest": 0,
+          "volume": 0,
+          "topSetId": "h1",
+          "doneSets": 2
+        },
+        {
+          "workoutId": "mw2",
+          "weId": "mw2-w",
+          "bestE1rm": 0,
+          "heaviest": 0,
+          "volume": 0,
+          "topSetId": null,
+          "doneSets": 0
+        },
+        {
+          "workoutId": "mw3",
+          "weId": "mw3-a",
+          "bestE1rm": 129.83333333333331,
+          "heaviest": 102.5,
+          "volume": 1537.5,
+          "topSetId": "a7",
+          "doneSets": 2
+        },
+        {
+          "workoutId": "mw3",
+          "weId": "mw3-c",
+          "bestE1rm": 113.6,
+          "heaviest": 5,
+          "volume": 1618.8000000000002,
+          "topSetId": "c3",
+          "doneSets": 2
+        },
+        {
+          "workoutId": "mw4",
+          "weId": "mw4-a",
+          "bestE1rm": 126.66666666666666,
+          "heaviest": 100,
+          "volume": 1500,
+          "topSetId": "a10",
+          "doneSets": 2
+        }
+      ],
+      "workoutTotals": [
+        {
+          "workoutId": "mw1",
+          "volume": 3533,
+          "done": 7,
+          "planned": 7,
+          "durationSec": 3900
+        },
+        {
+          "workoutId": "mw2",
+          "volume": 2500,
+          "done": 7,
+          "planned": 7,
+          "durationSec": 3900
+        },
+        {
+          "workoutId": "mw3",
+          "volume": 3156.3,
+          "done": 4,
+          "planned": 5,
+          "durationSec": 3900
+        },
+        {
+          "workoutId": "mw4",
+          "volume": 1500,
+          "done": 2,
+          "planned": 2,
+          "durationSec": 324000
+        }
+      ],
+      "allPrs": [
+        {
+          "workoutId": "mw2",
+          "exerciseId": "maxed",
+          "kind": "e1rm",
+          "value": 130,
+          "prev": 120,
+          "at": "2026-09-23T10:00:00.000Z"
+        },
+        {
+          "workoutId": "mw3",
+          "exerciseId": "maxed",
+          "kind": "weight",
+          "value": 102.5,
+          "prev": 100,
+          "at": "2026-10-08T10:00:00.000Z"
+        },
+        {
+          "workoutId": "mw3",
+          "exerciseId": "dips",
+          "kind": "e1rm",
+          "value": 113.6,
+          "prev": 111.24666666666667,
+          "at": "2026-10-08T10:00:00.000Z"
+        }
+      ],
+      "prsByWorkout": {
+        "mw2": [
+          "e1rm"
+        ],
+        "mw3": [
+          "weight",
+          "e1rm"
+        ]
+      },
+      "extraPrs": [],
+      "suggestions": {
+        "maxed": {
+          "kind": "reps",
+          "weight": 102.5,
+          "reps": 8,
+          "badge": "+1 rep",
+          "detail": "Stay at 102.5 kg; aim 8+ reps on every set. Move up at 8×2.",
+          "last": {
+            "weight": 102.5,
+            "reps": [
+              8,
+              7
+            ]
+          }
+        },
+        "highrep": {
+          "kind": "reps",
+          "weight": 20,
+          "reps": 14,
+          "badge": "+1 rep",
+          "detail": "Stay at 20 kg; aim 14+ reps on every set. Move up at 20×2.",
+          "last": {
+            "weight": 20,
+            "reps": [
+              15,
+              13
+            ]
+          }
+        },
+        "dips": {
+          "kind": "reps",
+          "weight": 5,
+          "reps": 10,
+          "badge": "+1 rep",
+          "detail": "Stay at 5 kg; aim 10+ reps on every set. Move up at 10×2.",
+          "last": {
+            "weight": 5,
+            "reps": [
+              10,
+              9
+            ]
+          }
+        },
+        "situp": {
+          "kind": "reps",
+          "weight": 0,
+          "reps": 19,
+          "badge": "+1 rep",
+          "detail": "Beat last time by one.",
+          "last": {
+            "weight": 0,
+            "reps": [
+              20,
+              18
+            ]
+          }
+        },
+        "hold": {
+          "kind": "reps",
+          "weight": 0,
+          "reps": 41,
+          "badge": "+1 rep",
+          "detail": "Beat last time by one.",
+          "last": {
+            "weight": 0,
+            "reps": [
+              45,
+              40
+            ]
+          }
+        },
+        "warmonly": {
+          "kind": "new",
+          "weight": 0,
+          "reps": 8,
+          "badge": "New",
+          "detail": "First time — pick a weight you can do for 8–12 reps."
+        },
+        "fresh": {
+          "kind": "new",
+          "weight": 0,
+          "reps": 8,
+          "badge": "New",
+          "detail": "First time — pick a weight you can do for 8–12 reps."
+        }
+      },
+      "linearSuggestions": {
+        "maxed": {
+          "kind": "weight",
+          "weight": 105,
+          "reps": 5,
+          "badge": "+2.5 kg",
+          "detail": "Linear: add 2.5 kg each session.",
+          "last": {
+            "weight": 102.5,
+            "reps": [
+              8,
+              7
+            ]
+          }
+        },
+        "highrep": {
+          "kind": "weight",
+          "weight": 21,
+          "reps": 12,
+          "badge": "+1 kg",
+          "detail": "Linear: add 1 kg each session.",
+          "last": {
+            "weight": 20,
+            "reps": [
+              15,
+              13
+            ]
+          }
+        },
+        "dips": {
+          "kind": "weight",
+          "weight": 7.5,
+          "reps": 6,
+          "badge": "+2.5 kg",
+          "detail": "Linear: add 2.5 kg each session.",
+          "last": {
+            "weight": 5,
+            "reps": [
+              10,
+              9
+            ]
+          }
+        },
+        "situp": {
+          "kind": "reps",
+          "weight": 0,
+          "reps": 19,
+          "badge": "+1 rep",
+          "detail": "Beat last time by one.",
+          "last": {
+            "weight": 0,
+            "reps": [
+              20,
+              18
+            ]
+          }
+        },
+        "hold": {
+          "kind": "reps",
+          "weight": 0,
+          "reps": 41,
+          "badge": "+1 rep",
+          "detail": "Beat last time by one.",
+          "last": {
+            "weight": 0,
+            "reps": [
+              45,
+              40
+            ]
+          }
+        },
+        "warmonly": {
+          "kind": "new",
+          "weight": 0,
+          "reps": 8,
+          "badge": "New",
+          "detail": "First time — pick a weight you can do for 8–12 reps."
+        },
+        "fresh": {
+          "kind": "new",
+          "weight": 0,
+          "reps": 8,
+          "badge": "New",
+          "detail": "First time — pick a weight you can do for 8–12 reps."
+        }
+      },
+      "stalled": {
+        "maxed": false,
+        "highrep": false,
+        "dips": false,
+        "situp": false,
+        "hold": false,
+        "warmonly": false,
+        "fresh": false
+      },
+      "history": {
+        "maxed": [
+          {
+            "workoutId": "mw1",
+            "bestE1rm": 120
+          },
+          {
+            "workoutId": "mw2",
+            "bestE1rm": 130
+          },
+          {
+            "workoutId": "mw3",
+            "bestE1rm": 129.83333333333331
+          }
+        ],
+        "highrep": [
+          {
+            "workoutId": "mw1",
+            "bestE1rm": 30
+          }
+        ],
+        "dips": [
+          {
+            "workoutId": "mw1",
+            "bestE1rm": 111.24666666666667
+          },
+          {
+            "workoutId": "mw3",
+            "bestE1rm": 113.6
+          }
+        ],
+        "situp": [
+          {
+            "workoutId": "mw2",
+            "bestE1rm": 0
+          }
+        ],
+        "hold": [
+          {
+            "workoutId": "mw2",
+            "bestE1rm": 0
+          }
+        ],
+        "warmonly": [],
+        "fresh": []
+      },
+      "sessionsByWeek": [
+        {
+          "start": "2026-06-01",
+          "count": 0
+        },
+        {
+          "start": "2026-06-08",
+          "count": 0
+        },
+        {
+          "start": "2026-06-15",
+          "count": 0
+        },
+        {
+          "start": "2026-06-22",
+          "count": 0
+        },
+        {
+          "start": "2026-06-29",
+          "count": 0
+        },
+        {
+          "start": "2026-07-06",
+          "count": 0
+        },
+        {
+          "start": "2026-07-13",
+          "count": 0
+        },
+        {
+          "start": "2026-07-20",
+          "count": 0
+        },
+        {
+          "start": "2026-07-27",
+          "count": 0
+        },
+        {
+          "start": "2026-08-03",
+          "count": 0
+        },
+        {
+          "start": "2026-08-10",
+          "count": 0
+        },
+        {
+          "start": "2026-08-17",
+          "count": 0
+        },
+        {
+          "start": "2026-08-24",
+          "count": 0
+        },
+        {
+          "start": "2026-08-31",
+          "count": 0
+        },
+        {
+          "start": "2026-09-07",
+          "count": 0
+        },
+        {
+          "start": "2026-09-14",
+          "count": 1
+        },
+        {
+          "start": "2026-09-21",
+          "count": 1
+        },
+        {
+          "start": "2026-09-28",
+          "count": 0
+        },
+        {
+          "start": "2026-10-05",
+          "count": 1
+        },
+        {
+          "start": "2026-10-12",
+          "count": 0
+        }
+      ],
+      "consistencyStreak": 0,
+      "dailyWeights": {
+        "2026-10-16": 80.4,
+        "2026-10-17": 80.2
+      },
+      "weightTrend30": [
+        {
+          "day": "2026-09-19"
+        },
+        {
+          "day": "2026-09-20"
+        },
+        {
+          "day": "2026-09-21"
+        },
+        {
+          "day": "2026-09-22"
+        },
+        {
+          "day": "2026-09-23"
+        },
+        {
+          "day": "2026-09-24"
+        },
+        {
+          "day": "2026-09-25"
+        },
+        {
+          "day": "2026-09-26"
+        },
+        {
+          "day": "2026-09-27"
+        },
+        {
+          "day": "2026-09-28"
+        },
+        {
+          "day": "2026-09-29"
+        },
+        {
+          "day": "2026-09-30"
+        },
+        {
+          "day": "2026-10-01"
+        },
+        {
+          "day": "2026-10-02"
+        },
+        {
+          "day": "2026-10-03"
+        },
+        {
+          "day": "2026-10-04"
+        },
+        {
+          "day": "2026-10-05"
+        },
+        {
+          "day": "2026-10-06"
+        },
+        {
+          "day": "2026-10-07"
+        },
+        {
+          "day": "2026-10-08"
+        },
+        {
+          "day": "2026-10-09"
+        },
+        {
+          "day": "2026-10-10"
+        },
+        {
+          "day": "2026-10-11"
+        },
+        {
+          "day": "2026-10-12"
+        },
+        {
+          "day": "2026-10-13"
+        },
+        {
+          "day": "2026-10-14"
+        },
+        {
+          "day": "2026-10-15"
+        },
+        {
+          "day": "2026-10-16",
+          "raw": 80.4,
+          "avg": 80.4
+        },
+        {
+          "day": "2026-10-17",
+          "raw": 80.2,
+          "avg": 80.30000000000001
+        },
+        {
+          "day": "2026-10-18",
+          "avg": 80.30000000000001
+        }
+      ],
+      "weightTrend90": [
+        {
+          "day": "2026-07-21"
+        },
+        {
+          "day": "2026-07-22"
+        },
+        {
+          "day": "2026-07-23"
+        },
+        {
+          "day": "2026-07-24"
+        },
+        {
+          "day": "2026-07-25"
+        },
+        {
+          "day": "2026-07-26"
+        },
+        {
+          "day": "2026-07-27"
+        },
+        {
+          "day": "2026-07-28"
+        },
+        {
+          "day": "2026-07-29"
+        },
+        {
+          "day": "2026-07-30"
+        },
+        {
+          "day": "2026-07-31"
+        },
+        {
+          "day": "2026-08-01"
+        },
+        {
+          "day": "2026-08-02"
+        },
+        {
+          "day": "2026-08-03"
+        },
+        {
+          "day": "2026-08-04"
+        },
+        {
+          "day": "2026-08-05"
+        },
+        {
+          "day": "2026-08-06"
+        },
+        {
+          "day": "2026-08-07"
+        },
+        {
+          "day": "2026-08-08"
+        },
+        {
+          "day": "2026-08-09"
+        },
+        {
+          "day": "2026-08-10"
+        },
+        {
+          "day": "2026-08-11"
+        },
+        {
+          "day": "2026-08-12"
+        },
+        {
+          "day": "2026-08-13"
+        },
+        {
+          "day": "2026-08-14"
+        },
+        {
+          "day": "2026-08-15"
+        },
+        {
+          "day": "2026-08-16"
+        },
+        {
+          "day": "2026-08-17"
+        },
+        {
+          "day": "2026-08-18"
+        },
+        {
+          "day": "2026-08-19"
+        },
+        {
+          "day": "2026-08-20"
+        },
+        {
+          "day": "2026-08-21"
+        },
+        {
+          "day": "2026-08-22"
+        },
+        {
+          "day": "2026-08-23"
+        },
+        {
+          "day": "2026-08-24"
+        },
+        {
+          "day": "2026-08-25"
+        },
+        {
+          "day": "2026-08-26"
+        },
+        {
+          "day": "2026-08-27"
+        },
+        {
+          "day": "2026-08-28"
+        },
+        {
+          "day": "2026-08-29"
+        },
+        {
+          "day": "2026-08-30"
+        },
+        {
+          "day": "2026-08-31"
+        },
+        {
+          "day": "2026-09-01"
+        },
+        {
+          "day": "2026-09-02"
+        },
+        {
+          "day": "2026-09-03"
+        },
+        {
+          "day": "2026-09-04"
+        },
+        {
+          "day": "2026-09-05"
+        },
+        {
+          "day": "2026-09-06"
+        },
+        {
+          "day": "2026-09-07"
+        },
+        {
+          "day": "2026-09-08"
+        },
+        {
+          "day": "2026-09-09"
+        },
+        {
+          "day": "2026-09-10"
+        },
+        {
+          "day": "2026-09-11"
+        },
+        {
+          "day": "2026-09-12"
+        },
+        {
+          "day": "2026-09-13"
+        },
+        {
+          "day": "2026-09-14"
+        },
+        {
+          "day": "2026-09-15"
+        },
+        {
+          "day": "2026-09-16"
+        },
+        {
+          "day": "2026-09-17"
+        },
+        {
+          "day": "2026-09-18"
+        },
+        {
+          "day": "2026-09-19"
+        },
+        {
+          "day": "2026-09-20"
+        },
+        {
+          "day": "2026-09-21"
+        },
+        {
+          "day": "2026-09-22"
+        },
+        {
+          "day": "2026-09-23"
+        },
+        {
+          "day": "2026-09-24"
+        },
+        {
+          "day": "2026-09-25"
+        },
+        {
+          "day": "2026-09-26"
+        },
+        {
+          "day": "2026-09-27"
+        },
+        {
+          "day": "2026-09-28"
+        },
+        {
+          "day": "2026-09-29"
+        },
+        {
+          "day": "2026-09-30"
+        },
+        {
+          "day": "2026-10-01"
+        },
+        {
+          "day": "2026-10-02"
+        },
+        {
+          "day": "2026-10-03"
+        },
+        {
+          "day": "2026-10-04"
+        },
+        {
+          "day": "2026-10-05"
+        },
+        {
+          "day": "2026-10-06"
+        },
+        {
+          "day": "2026-10-07"
+        },
+        {
+          "day": "2026-10-08"
+        },
+        {
+          "day": "2026-10-09"
+        },
+        {
+          "day": "2026-10-10"
+        },
+        {
+          "day": "2026-10-11"
+        },
+        {
+          "day": "2026-10-12"
+        },
+        {
+          "day": "2026-10-13"
+        },
+        {
+          "day": "2026-10-14"
+        },
+        {
+          "day": "2026-10-15"
+        },
+        {
+          "day": "2026-10-16",
+          "raw": 80.4,
+          "avg": 80.4
+        },
+        {
+          "day": "2026-10-17",
+          "raw": 80.2,
+          "avg": 80.30000000000001
+        },
+        {
+          "day": "2026-10-18",
+          "avg": 80.30000000000001
+        }
+      ],
+      "weeklyRate": null,
+      "nutritionDays30": [
+        {
+          "day": "2026-09-19",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-09-20",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-09-21",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-09-22",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-09-23",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-09-24",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-09-25",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-09-26",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-09-27",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-09-28",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-09-29",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-09-30",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-10-01",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-10-02",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-10-03",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-10-04",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-10-05",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-10-06",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-10-07",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-10-08",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-10-09",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-10-10",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "mt1",
+            "effectiveFrom": "2026-10-10",
+            "kcal": 2000,
+            "protein": 150,
+            "carbs": 200,
+            "fat": 60
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-10-11",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "mt1",
+            "effectiveFrom": "2026-10-10",
+            "kcal": 2000,
+            "protein": 150,
+            "carbs": 200,
+            "fat": 60
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-10-12",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "mt1",
+            "effectiveFrom": "2026-10-10",
+            "kcal": 2000,
+            "protein": 150,
+            "carbs": 200,
+            "fat": 60
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-10-13",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "mt1",
+            "effectiveFrom": "2026-10-10",
+            "kcal": 2000,
+            "protein": 150,
+            "carbs": 200,
+            "fat": 60
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-10-14",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "mt1",
+            "effectiveFrom": "2026-10-10",
+            "kcal": 2000,
+            "protein": 150,
+            "carbs": 200,
+            "fat": 60
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-10-15",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "mt1",
+            "effectiveFrom": "2026-10-10",
+            "kcal": 2000,
+            "protein": 150,
+            "carbs": 200,
+            "fat": 60
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-10-16",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "mt2",
+            "effectiveFrom": "2026-10-16",
+            "kcal": 1800,
+            "protein": 140,
+            "carbs": 180,
+            "fat": 55
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-10-17",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "mt2",
+            "effectiveFrom": "2026-10-16",
+            "kcal": 1800,
+            "protein": 140,
+            "carbs": 180,
+            "fat": 55
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        },
+        {
+          "day": "2026-10-18",
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "target": {
+            "id": "mt2",
+            "effectiveFrom": "2026-10-16",
+            "kcal": 1800,
+            "protein": 140,
+            "carbs": 180,
+            "fat": 55
+          },
+          "meals": 0,
+          "kcalOk": false,
+          "proteinHit": false,
+          "over": false,
+          "verdict": "none"
+        }
+      ],
+      "adherence": [
+        {
+          "days": 7,
+          "offset": 0,
+          "logged": 0,
+          "calorie": 0,
+          "protein": 0,
+          "overDays": 0,
+          "coverage": 0
+        },
+        {
+          "days": 7,
+          "offset": 7,
+          "logged": 0,
+          "calorie": 0,
+          "protein": 0,
+          "overDays": 0,
+          "coverage": 0
+        },
+        {
+          "days": 14,
+          "offset": 0,
+          "logged": 0,
+          "calorie": 0,
+          "protein": 0,
+          "overDays": 0,
+          "coverage": 0
+        },
+        {
+          "days": 30,
+          "offset": 0,
+          "logged": 0,
+          "calorie": 0,
+          "protein": 0,
+          "overDays": 0,
+          "coverage": 0
+        },
+        {
+          "days": 30,
+          "offset": 30,
+          "logged": 0,
+          "calorie": 0,
+          "protein": 0,
+          "overDays": 0,
+          "coverage": 0
+        },
+        {
+          "days": 3,
+          "offset": 2,
+          "logged": 0,
+          "calorie": 0,
+          "protein": 0,
+          "overDays": 0,
+          "coverage": 0
+        }
+      ],
+      "overloadRate": {
+        "7": 0,
+        "28": 0,
+        "90": 1
+      },
+      "periodSummary": [
+        {
+          "days": 7,
+          "endOffset": 0,
+          "sessions": 0,
+          "target": 2,
+          "sessionRate": 0,
+          "missed": 2,
+          "prs": 0,
+          "volume": 0
+        },
+        {
+          "days": 7,
+          "endOffset": -7,
+          "sessions": 1,
+          "target": 2,
+          "sessionRate": 0.5,
+          "missed": 1,
+          "prs": 2,
+          "volume": 3156.3
+        },
+        {
+          "days": 30,
+          "endOffset": 0,
+          "sessions": 2,
+          "target": 8.571428571428571,
+          "sessionRate": 0.23333333333333334,
+          "missed": 7,
+          "prs": 3,
+          "volume": 5656.3
+        },
+        {
+          "days": 30,
+          "endOffset": -30,
+          "sessions": 1,
+          "target": 8.571428571428571,
+          "sessionRate": 0.11666666666666667,
+          "missed": 8,
+          "prs": 0,
+          "volume": 3533
+        },
+        {
+          "days": 90,
+          "endOffset": 0,
+          "sessions": 3,
+          "target": 25.714285714285715,
+          "sessionRate": 0.11666666666666667,
+          "missed": 23,
+          "prs": 3,
+          "volume": 9189.3
+        },
+        {
+          "days": 1,
+          "endOffset": 0,
+          "sessions": 0,
+          "target": 0.2857142857142857,
+          "sessionRate": 0,
+          "missed": 0,
+          "prs": 0,
+          "volume": 0
+        }
+      ],
+      "targetFor": {
+        "2026-06-20": null,
+        "2026-07-19": null,
+        "2026-07-20": null,
+        "2026-09-12": null,
+        "2026-09-13": null,
+        "2026-09-14": null,
+        "2026-10-17": "mt2",
+        "2026-10-18": "mt2"
+      },
+      "nextTemplate": "tb",
+      "dayTotals": {
+        "2026-10-18": {
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "pending": 0,
+          "toReview": 0,
+          "count": 0
+        },
+        "2026-10-17": {
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "pending": 0,
+          "toReview": 0,
+          "count": 0
+        },
+        "2026-10-16": {
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "pending": 0,
+          "toReview": 0,
+          "count": 0
+        },
+        "2026-10-15": {
+          "totals": {
+            "kcal": 0,
+            "protein": 0,
+            "carbs": 0,
+            "fat": 0
+          },
+          "pending": 0,
+          "toReview": 0,
+          "count": 0
+        }
+      }
+    }
+  }
+}

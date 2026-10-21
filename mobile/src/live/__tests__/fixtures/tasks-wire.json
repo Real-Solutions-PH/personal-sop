@@ -1,0 +1,171 @@
+[
+  {
+    "entity": "task_list",
+    "kind": "upsert",
+    "name": "task_list",
+    "data": {
+      "name": "Side project",
+      "kind": "standard",
+      "color": "life",
+      "icon": "laptop",
+      "sort_order": 0,
+      "archived_at": null,
+      "is_default": false
+    }
+  },
+  {
+    "entity": "task",
+    "kind": "upsert",
+    "name": "task",
+    "data": {
+      "title": "Draft the landing page",
+      "list_id": "00000000-0000-4000-8000-000000000001",
+      "due_date": "2026-10-19",
+      "due_time": "14:00",
+      "remind_at": "2026-10-19T04:00:00.000Z",
+      "recurrence": null,
+      "notes": "hero + pricing",
+      "starred": true,
+      "cleared_at": null,
+      "source": "manual",
+      "parse_state": "parsed",
+      "sort_order": 0
+    }
+  },
+  {
+    "entity": "task",
+    "kind": "upsert",
+    "name": "task",
+    "data": {
+      "notes": "ask about the card fee"
+    }
+  },
+  {
+    "entity": "task",
+    "kind": "upsert",
+    "name": "task",
+    "data": {
+      "due_date": "2026-10-19"
+    }
+  },
+  {
+    "entity": "task",
+    "kind": "upsert",
+    "name": "task",
+    "data": {
+      "cleared_at": "2026-10-19T04:00:00.000Z"
+    }
+  },
+  {
+    "entity": "",
+    "kind": "action",
+    "name": "tasks.complete",
+    "data": {
+      "task_id": "00000000-0000-4000-8000-000000000002",
+      "completed_at": "2026-10-19T04:00:00.000Z"
+    }
+  },
+  {
+    "entity": "",
+    "kind": "action",
+    "name": "tasks.complete",
+    "data": {
+      "task_id": "00000000-0000-4000-8000-000000000003",
+      "completed_at": "2026-10-19T04:00:00.000Z"
+    }
+  },
+  {
+    "entity": "task",
+    "kind": "upsert",
+    "name": "task",
+    "data": {
+      "title": "Submit timesheet",
+      "list_id": null,
+      "due_date": "2026-10-19",
+      "due_time": null,
+      "remind_at": null,
+      "recurrence": {
+        "rule": {
+          "kind": "daily"
+        },
+        "mode": "fixed"
+      },
+      "notes": null,
+      "starred": false,
+      "cleared_at": null,
+      "source": "manual",
+      "parse_state": "parsed",
+      "sort_order": 0
+    }
+  },
+  {
+    "entity": "",
+    "kind": "action",
+    "name": "tasks.uncomplete",
+    "data": {
+      "task_id": "00000000-0000-4000-8000-000000000004"
+    }
+  },
+  {
+    "entity": "",
+    "kind": "action",
+    "name": "tasks.restore",
+    "data": {
+      "task_id": "00000000-0000-4000-8000-000000000005"
+    }
+  },
+  {
+    "entity": "task",
+    "kind": "upsert",
+    "name": "task",
+    "data": {
+      "title": "Try new gym",
+      "list_id": null,
+      "due_date": null,
+      "due_time": null,
+      "remind_at": null,
+      "recurrence": null,
+      "notes": null,
+      "starred": false,
+      "cleared_at": null,
+      "source": "manual",
+      "parse_state": "parsed",
+      "sort_order": 0
+    }
+  },
+  {
+    "entity": "",
+    "kind": "action",
+    "name": "tasks.remove",
+    "data": {
+      "task_ids": [
+        "00000000-0000-4000-8000-000000000006"
+      ]
+    }
+  },
+  {
+    "entity": "task",
+    "kind": "upsert",
+    "name": "task",
+    "data": {
+      "list_id": null
+    }
+  },
+  {
+    "entity": "task_settings",
+    "kind": "upsert",
+    "name": "task_settings",
+    "data": {
+      "digest_on": true,
+      "quiet_start": "23:00"
+    }
+  },
+  {
+    "entity": "task_notif_state",
+    "kind": "upsert",
+    "name": "task_notif_state",
+    "data": {
+      "permission": "granted"
+    }
+  }
+]

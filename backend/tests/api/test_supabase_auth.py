@@ -312,3 +312,45 @@ def test_bootstrap_is_idempotent(db: Session) -> None:
     assert rows[0].id == supabase_auth.admin_get_or_create_user(
         email=settings.FIRST_SUPERUSER, password=settings.FIRST_SUPERUSER_PASSWORD
     )
+
+
+def _refresh(refresh_token: str) -> int:
+    import httpx
+
+    return httpx.post(
+        f"{settings.SUPABASE_URL}/auth/v1/token",
+        params={"grant_type": "refresh_token"},
+        headers={"apikey": settings.SUPABASE_ANON_KEY},
+        json={"refresh_token": refresh_token},
+        timeout=10,
+    ).status_code
+
+
+def test_adopting_an_existing_user_keeps_its_sessions_when_the_password_matches() -> (
+    None
+):
+    """The bootstrap adopts FIRST_SUPERUSER on every API start and test run.
+    A password reset signs out every session, so it only happens when the
+    password does not already work."""
+    import httpx
+
+    email, password = random_email(), random_lower_string()
+    supabase_auth.admin_get_or_create_user(email=email, password=password)
+    r = httpx.post(
+        f"{settings.SUPABASE_URL}/auth/v1/token",
+        params={"grant_type": "password"},
+        headers={"apikey": settings.SUPABASE_ANON_KEY},
+        json={"email": email, "password": password},
+        timeout=10,
+    )
+    r.raise_for_status()
+    device = r.json()["refresh_token"]
+
+    supabase_auth.admin_get_or_create_user(email=email, password=password)
+    assert _refresh(device) == 200  # still signed in
+
+    other = random_lower_string()
+    supabase_auth.admin_get_or_create_user(email=email, password=other)
+    assert supabase_password_grant(email, other)  # a different password is set
+    with pytest.raises(httpx.HTTPStatusError):
+        supabase_password_grant(email, password)

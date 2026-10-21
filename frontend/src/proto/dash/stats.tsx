@@ -790,7 +790,7 @@ function MetricDetail({
   mod,
   metricKey,
 }: {
-  mod: ModuleContract
+  mod: Omit<ModuleContract, "TodayCard">
   metricKey: string
 }) {
   const state = useViewState()

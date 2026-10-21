@@ -1,0 +1,1220 @@
+{
+  "frozenNow": "2026-10-18T04:00:00.000Z",
+  "source": "shared/prototype",
+  "data": {
+    "seed": {
+      "name": "Fern",
+      "trackers": [
+        {
+          "metric": "spend",
+          "label": "Daily spending",
+          "goal": 1500,
+          "direction": "below"
+        }
+      ],
+      "memories": [
+        "Training for a 10K before December",
+        "Paying off the BPI card in full every month"
+      ]
+    },
+    "profileName": "Kai Tecson",
+    "cases": [
+      {
+        "text": "hi",
+        "route": {
+          "kind": "reply",
+          "text": "Hey Kai! I'm here. Want a quick read on how today's going?",
+          "blocks": [
+            {
+              "t": "chips",
+              "prompts": [
+                "How am I doing?",
+                "Plan my day",
+                "Show my spending this week"
+              ]
+            }
+          ]
+        },
+        "trackers": [
+          {
+            "metric": "spend",
+            "label": "Daily spending",
+            "goal": 1500,
+            "direction": "below"
+          }
+        ],
+        "trackerChanged": false,
+        "memories": [
+          "Training for a 10K before December",
+          "Paying off the BPI card in full every month"
+        ]
+      },
+      {
+        "text": "Good morning Fern",
+        "route": {
+          "kind": "reply",
+          "text": "Hey Kai! I'm here. Want a quick read on how today's going?",
+          "blocks": [
+            {
+              "t": "chips",
+              "prompts": [
+                "How am I doing?",
+                "Plan my day",
+                "Show my spending this week"
+              ]
+            }
+          ]
+        },
+        "trackers": [
+          {
+            "metric": "spend",
+            "label": "Daily spending",
+            "goal": 1500,
+            "direction": "below"
+          }
+        ],
+        "trackerChanged": false,
+        "memories": [
+          "Training for a 10K before December",
+          "Paying off the BPI card in full every month"
+        ]
+      },
+      {
+        "text": "kumusta",
+        "route": {
+          "kind": "reply",
+          "text": "Hey Kai! I'm here. Want a quick read on how today's going?",
+          "blocks": [
+            {
+              "t": "chips",
+              "prompts": [
+                "How am I doing?",
+                "Plan my day",
+                "Show my spending this week"
+              ]
+            }
+          ]
+        },
+        "trackers": [
+          {
+            "metric": "spend",
+            "label": "Daily spending",
+            "goal": 1500,
+            "direction": "below"
+          }
+        ],
+        "trackerChanged": false,
+        "memories": [
+          "Training for a 10K before December",
+          "Paying off the BPI card in full every month"
+        ]
+      },
+      {
+        "text": "thanks!",
+        "route": {
+          "kind": "reply",
+          "text": "Anytime. I've got your back."
+        },
+        "trackers": [
+          {
+            "metric": "spend",
+            "label": "Daily spending",
+            "goal": 1500,
+            "direction": "below"
+          }
+        ],
+        "trackerChanged": false,
+        "memories": [
+          "Training for a 10K before December",
+          "Paying off the BPI card in full every month"
+        ]
+      },
+      {
+        "text": "salamat po",
+        "route": {
+          "kind": "reply",
+          "text": "Anytime. I've got your back."
+        },
+        "trackers": [
+          {
+            "metric": "spend",
+            "label": "Daily spending",
+            "goal": 1500,
+            "direction": "below"
+          }
+        ],
+        "trackerChanged": false,
+        "memories": [
+          "Training for a 10K before December",
+          "Paying off the BPI card in full every month"
+        ]
+      },
+      {
+        "text": "I'm so tired today",
+        "route": {
+          "kind": "reply",
+          "text": "That sounds heavy, Kai. Let's make today smaller, not harder. Here's what I'm seeing, gently:",
+          "blocks": [
+            {
+              "t": "coach",
+              "mood": "low"
+            },
+            {
+              "t": "chips",
+              "prompts": [
+                "Just one thing for today",
+                "Log how I feel in my journal"
+              ]
+            }
+          ]
+        },
+        "trackers": [
+          {
+            "metric": "spend",
+            "label": "Daily spending",
+            "goal": 1500,
+            "direction": "below"
+          }
+        ],
+        "trackerChanged": false,
+        "memories": [
+          "Training for a 10K before December",
+          "Paying off the BPI card in full every month"
+        ]
+      },
+      {
+        "text": "feeling overwhelmed and burnt out",
+        "route": {
+          "kind": "reply",
+          "text": "That sounds heavy, Kai. Let's make today smaller, not harder. Here's what I'm seeing, gently:",
+          "blocks": [
+            {
+              "t": "coach",
+              "mood": "low"
+            },
+            {
+              "t": "chips",
+              "prompts": [
+                "Just one thing for today",
+                "Log how I feel in my journal"
+              ]
+            }
+          ]
+        },
+        "trackers": [
+          {
+            "metric": "spend",
+            "label": "Daily spending",
+            "goal": 1500,
+            "direction": "below"
+          }
+        ],
+        "trackerChanged": false,
+        "memories": [
+          "Training for a 10K before December",
+          "Paying off the BPI card in full every month"
+        ]
+      },
+      {
+        "text": "can't focus",
+        "route": {
+          "kind": "reply",
+          "text": "That sounds heavy, Kai. Let's make today smaller, not harder. Here's what I'm seeing, gently:",
+          "blocks": [
+            {
+              "t": "coach",
+              "mood": "low"
+            },
+            {
+              "t": "chips",
+              "prompts": [
+                "Just one thing for today",
+                "Log how I feel in my journal"
+              ]
+            }
+          ]
+        },
+        "trackers": [
+          {
+            "metric": "spend",
+            "label": "Daily spending",
+            "goal": 1500,
+            "direction": "below"
+          }
+        ],
+        "trackerChanged": false,
+        "memories": [
+          "Training for a 10K before December",
+          "Paying off the BPI card in full every month"
+        ]
+      },
+      {
+        "text": "remember that I'm training for a 10K",
+        "route": {
+          "kind": "reply",
+          "text": "Got it — I'll remember that I'm training for a 10K.",
+          "blocks": [
+            {
+              "t": "memory"
+            }
+          ]
+        },
+        "trackers": [
+          {
+            "metric": "spend",
+            "label": "Daily spending",
+            "goal": 1500,
+            "direction": "below"
+          }
+        ],
+        "trackerChanged": false,
+        "memories": [
+          "Training for a 10K before December",
+          "Paying off the BPI card in full every month",
+          "I'm training for a 10K"
+        ]
+      },
+      {
+        "text": "Remember my sister's birthday is May 3.",
+        "route": {
+          "kind": "reply",
+          "text": "Got it — I'll remember that my sister's birthday is May 3.",
+          "blocks": [
+            {
+              "t": "memory"
+            }
+          ]
+        },
+        "trackers": [
+          {
+            "metric": "spend",
+            "label": "Daily spending",
+            "goal": 1500,
+            "direction": "below"
+          }
+        ],
+        "trackerChanged": false,
+        "memories": [
+          "Training for a 10K before December",
+          "Paying off the BPI card in full every month",
+          "I'm training for a 10K",
+          "my sister's birthday is May 3."
+        ]
+      },
+      {
+        "text": "what do you know about me?",
+        "route": {
+          "kind": "reply",
+          "text": "Here's what I know about you so far — tap one to forget it.",
+          "blocks": [
+            {
+              "t": "memory"
+            }
+          ]
+        },
+        "trackers": [
+          {
+            "metric": "spend",
+            "label": "Daily spending",
+            "goal": 1500,
+            "direction": "below"
+          }
+        ],
+        "trackerChanged": false,
+        "memories": [
+          "Training for a 10K before December",
+          "Paying off the BPI card in full every month",
+          "I'm training for a 10K",
+          "my sister's birthday is May 3."
+        ]
+      },
+      {
+        "text": "track my spending under 1,500",
+        "route": {
+          "kind": "reply",
+          "text": "Tracking daily spending for you. I'll flag it on Today when it drifts.",
+          "blocks": [
+            {
+              "t": "tracker",
+              "id": "t-spend"
+            }
+          ]
+        },
+        "trackers": [
+          {
+            "metric": "spend",
+            "label": "Daily spending",
+            "goal": 1500,
+            "direction": "below"
+          }
+        ],
+        "trackerChanged": true,
+        "memories": [
+          "Training for a 10K before December",
+          "Paying off the BPI card in full every month",
+          "I'm training for a 10K",
+          "my sister's birthday is May 3."
+        ]
+      },
+      {
+        "text": "keep an eye on my weight",
+        "route": {
+          "kind": "reply",
+          "text": "Tracking weight for you. I'll flag it on Today when it drifts.",
+          "blocks": [
+            {
+              "t": "tracker",
+              "id": "id-3"
+            }
+          ]
+        },
+        "trackers": [
+          {
+            "metric": "spend",
+            "label": "Daily spending",
+            "goal": 1500,
+            "direction": "below"
+          },
+          {
+            "metric": "weight",
+            "label": "Weight"
+          }
+        ],
+        "trackerChanged": true,
+        "memories": [
+          "Training for a 10K before December",
+          "Paying off the BPI card in full every month",
+          "I'm training for a 10K",
+          "my sister's birthday is May 3."
+        ]
+      },
+      {
+        "text": "alert me if workouts go above 4",
+        "route": {
+          "kind": "reply",
+          "text": "Tracking workouts for you. I'll flag it on Today when it drifts.",
+          "blocks": [
+            {
+              "t": "tracker",
+              "id": "id-4"
+            }
+          ]
+        },
+        "trackers": [
+          {
+            "metric": "spend",
+            "label": "Daily spending",
+            "goal": 1500,
+            "direction": "below"
+          },
+          {
+            "metric": "weight",
+            "label": "Weight"
+          },
+          {
+            "metric": "workouts",
+            "label": "Workouts",
+            "goal": 4,
+            "direction": "above"
+          }
+        ],
+        "trackerChanged": true,
+        "memories": [
+          "Training for a 10K before December",
+          "Paying off the BPI card in full every month",
+          "I'm training for a 10K",
+          "my sister's birthday is May 3."
+        ]
+      },
+      {
+        "text": "monitor tasks",
+        "route": {
+          "kind": "reply",
+          "text": "Tracking tasks done for you. I'll flag it on Today when it drifts.",
+          "blocks": [
+            {
+              "t": "tracker",
+              "id": "id-5"
+            }
+          ]
+        },
+        "trackers": [
+          {
+            "metric": "spend",
+            "label": "Daily spending",
+            "goal": 1500,
+            "direction": "below"
+          },
+          {
+            "metric": "weight",
+            "label": "Weight"
+          },
+          {
+            "metric": "workouts",
+            "label": "Workouts",
+            "goal": 4,
+            "direction": "above"
+          },
+          {
+            "metric": "tasks",
+            "label": "Tasks done"
+          }
+        ],
+        "trackerChanged": true,
+        "memories": [
+          "Training for a 10K before December",
+          "Paying off the BPI card in full every month",
+          "I'm training for a 10K",
+          "my sister's birthday is May 3."
+        ]
+      },
+      {
+        "text": "show my spending this week",
+        "route": {
+          "kind": "reply",
+          "text": "Here's your daily spending for the last 7 days.",
+          "blocks": [
+            {
+              "t": "chart",
+              "metric": "spend",
+              "days": 7
+            },
+            {
+              "t": "chips",
+              "prompts": [
+                "Track daily spending",
+                "What does this mean?"
+              ]
+            }
+          ]
+        },
+        "trackers": [
+          {
+            "metric": "spend",
+            "label": "Daily spending",
+            "goal": 1500,
+            "direction": "below"
+          },
+          {
+            "metric": "weight",
+            "label": "Weight"
+          },
+          {
+            "metric": "workouts",
+            "label": "Workouts",
+            "goal": 4,
+            "direction": "above"
+          },
+          {
+            "metric": "tasks",
+            "label": "Tasks done"
+          }
+        ],
+        "trackerChanged": false,
+        "memories": [
+          "Training for a 10K before December",
+          "Paying off the BPI card in full every month",
+          "I'm training for a 10K",
+          "my sister's birthday is May 3."
+        ]
+      },
+      {
+        "text": "chart my workouts",
+        "route": {
+          "kind": "reply",
+          "text": "Here's your workouts for the last 30 days.",
+          "blocks": [
+            {
+              "t": "chart",
+              "metric": "workouts",
+              "days": 30
+            },
+            {
+              "t": "chips",
+              "prompts": [
+                "Track workouts",
+                "What does this mean?"
+              ]
+            }
+          ]
+        },
+        "trackers": [
+          {
+            "metric": "spend",
+            "label": "Daily spending",
+            "goal": 1500,
+            "direction": "below"
+          },
+          {
+            "metric": "weight",
+            "label": "Weight"
+          },
+          {
+            "metric": "workouts",
+            "label": "Workouts",
+            "goal": 4,
+            "direction": "above"
+          },
+          {
+            "metric": "tasks",
+            "label": "Tasks done"
+          }
+        ],
+        "trackerChanged": false,
+        "memories": [
+          "Training for a 10K before December",
+          "Paying off the BPI card in full every month",
+          "I'm training for a 10K",
+          "my sister's birthday is May 3."
+        ]
+      },
+      {
+        "text": "graph my weight over the last 90 days",
+        "route": {
+          "kind": "reply",
+          "text": "Here's your weight for the last 90 days.",
+          "blocks": [
+            {
+              "t": "chart",
+              "metric": "weight",
+              "days": 90
+            },
+            {
+              "t": "chips",
+              "prompts": [
+                "Track weight",
+                "What does this mean?"
+              ]
+            }
+          ]
+        },
+        "trackers": [
+          {
+            "metric": "spend",
+            "label": "Daily spending",
+            "goal": 1500,
+            "direction": "below"
+          },
+          {
+            "metric": "weight",
+            "label": "Weight"
+          },
+          {
+            "metric": "workouts",
+            "label": "Workouts",
+            "goal": 4,
+            "direction": "above"
+          },
+          {
+            "metric": "tasks",
+            "label": "Tasks done"
+          }
+        ],
+        "trackerChanged": false,
+        "memories": [
+          "Training for a 10K before December",
+          "Paying off the BPI card in full every month",
+          "I'm training for a 10K",
+          "my sister's birthday is May 3."
+        ]
+      },
+      {
+        "text": "compare habits this year",
+        "route": {
+          "kind": "reply",
+          "text": "Here's your habit completion for the last year.",
+          "blocks": [
+            {
+              "t": "chart",
+              "metric": "habits",
+              "days": 365
+            },
+            {
+              "t": "chips",
+              "prompts": [
+                "Track habit completion",
+                "What does this mean?"
+              ]
+            }
+          ]
+        },
+        "trackers": [
+          {
+            "metric": "spend",
+            "label": "Daily spending",
+            "goal": 1500,
+            "direction": "below"
+          },
+          {
+            "metric": "weight",
+            "label": "Weight"
+          },
+          {
+            "metric": "workouts",
+            "label": "Workouts",
+            "goal": 4,
+            "direction": "above"
+          },
+          {
+            "metric": "tasks",
+            "label": "Tasks done"
+          }
+        ],
+        "trackerChanged": false,
+        "memories": [
+          "Training for a 10K before December",
+          "Paying off the BPI card in full every month",
+          "I'm training for a 10K",
+          "my sister's birthday is May 3."
+        ]
+      },
+      {
+        "text": "show me today",
+        "route": {
+          "kind": "reply",
+          "text": "Here's your life score for the last 7 days.",
+          "blocks": [
+            {
+              "t": "chart",
+              "metric": "life",
+              "days": 7
+            },
+            {
+              "t": "chips",
+              "prompts": [
+                "Track life score",
+                "What does this mean?"
+              ]
+            }
+          ]
+        },
+        "trackers": [
+          {
+            "metric": "spend",
+            "label": "Daily spending",
+            "goal": 1500,
+            "direction": "below"
+          },
+          {
+            "metric": "weight",
+            "label": "Weight"
+          },
+          {
+            "metric": "workouts",
+            "label": "Workouts",
+            "goal": 4,
+            "direction": "above"
+          },
+          {
+            "metric": "tasks",
+            "label": "Tasks done"
+          }
+        ],
+        "trackerChanged": false,
+        "memories": [
+          "Training for a 10K before December",
+          "Paying off the BPI card in full every month",
+          "I'm training for a 10K",
+          "my sister's birthday is May 3."
+        ]
+      },
+      {
+        "text": "plan my day",
+        "route": {
+          "kind": "reply",
+          "text": "Here's how I'd run today, Kai:",
+          "blocks": [
+            {
+              "t": "plan"
+            }
+          ]
+        },
+        "trackers": [
+          {
+            "metric": "spend",
+            "label": "Daily spending",
+            "goal": 1500,
+            "direction": "below"
+          },
+          {
+            "metric": "weight",
+            "label": "Weight"
+          },
+          {
+            "metric": "workouts",
+            "label": "Workouts",
+            "goal": 4,
+            "direction": "above"
+          },
+          {
+            "metric": "tasks",
+            "label": "Tasks done"
+          }
+        ],
+        "trackerChanged": false,
+        "memories": [
+          "Training for a 10K before December",
+          "Paying off the BPI card in full every month",
+          "I'm training for a 10K",
+          "my sister's birthday is May 3."
+        ]
+      },
+      {
+        "text": "what should i do next?",
+        "route": {
+          "kind": "reply",
+          "text": "Here's how I'd run today, Kai:",
+          "blocks": [
+            {
+              "t": "plan"
+            }
+          ]
+        },
+        "trackers": [
+          {
+            "metric": "spend",
+            "label": "Daily spending",
+            "goal": 1500,
+            "direction": "below"
+          },
+          {
+            "metric": "weight",
+            "label": "Weight"
+          },
+          {
+            "metric": "workouts",
+            "label": "Workouts",
+            "goal": 4,
+            "direction": "above"
+          },
+          {
+            "metric": "tasks",
+            "label": "Tasks done"
+          }
+        ],
+        "trackerChanged": false,
+        "memories": [
+          "Training for a 10K before December",
+          "Paying off the BPI card in full every month",
+          "I'm training for a 10K",
+          "my sister's birthday is May 3."
+        ]
+      },
+      {
+        "text": "coach me",
+        "route": {
+          "kind": "reply",
+          "text": "Honest read, coach hat on:",
+          "blocks": [
+            {
+              "t": "coach"
+            }
+          ]
+        },
+        "trackers": [
+          {
+            "metric": "spend",
+            "label": "Daily spending",
+            "goal": 1500,
+            "direction": "below"
+          },
+          {
+            "metric": "weight",
+            "label": "Weight"
+          },
+          {
+            "metric": "workouts",
+            "label": "Workouts",
+            "goal": 4,
+            "direction": "above"
+          },
+          {
+            "metric": "tasks",
+            "label": "Tasks done"
+          }
+        ],
+        "trackerChanged": false,
+        "memories": [
+          "Training for a 10K before December",
+          "Paying off the BPI card in full every month",
+          "I'm training for a 10K",
+          "my sister's birthday is May 3."
+        ]
+      },
+      {
+        "text": "give me honest feedback",
+        "route": {
+          "kind": "reply",
+          "text": "Honest read, coach hat on:",
+          "blocks": [
+            {
+              "t": "coach"
+            }
+          ]
+        },
+        "trackers": [
+          {
+            "metric": "spend",
+            "label": "Daily spending",
+            "goal": 1500,
+            "direction": "below"
+          },
+          {
+            "metric": "weight",
+            "label": "Weight"
+          },
+          {
+            "metric": "workouts",
+            "label": "Workouts",
+            "goal": 4,
+            "direction": "above"
+          },
+          {
+            "metric": "tasks",
+            "label": "Tasks done"
+          }
+        ],
+        "trackerChanged": false,
+        "memories": [
+          "Training for a 10K before December",
+          "Paying off the BPI card in full every month",
+          "I'm training for a 10K",
+          "my sister's birthday is May 3."
+        ]
+      },
+      {
+        "text": "how am I doing?",
+        "route": {
+          "kind": "reply",
+          "text": "Here's what stands out from your records:",
+          "blocks": [
+            {
+              "t": "insights"
+            },
+            {
+              "t": "chips",
+              "prompts": [
+                "Coach me on this",
+                "Show my life score this month"
+              ]
+            }
+          ]
+        },
+        "trackers": [
+          {
+            "metric": "spend",
+            "label": "Daily spending",
+            "goal": 1500,
+            "direction": "below"
+          },
+          {
+            "metric": "weight",
+            "label": "Weight"
+          },
+          {
+            "metric": "workouts",
+            "label": "Workouts",
+            "goal": 4,
+            "direction": "above"
+          },
+          {
+            "metric": "tasks",
+            "label": "Tasks done"
+          }
+        ],
+        "trackerChanged": false,
+        "memories": [
+          "Training for a 10K before December",
+          "Paying off the BPI card in full every month",
+          "I'm training for a 10K",
+          "my sister's birthday is May 3."
+        ]
+      },
+      {
+        "text": "any patterns lately",
+        "route": {
+          "kind": "reply",
+          "text": "Here's what stands out from your records:",
+          "blocks": [
+            {
+              "t": "insights"
+            },
+            {
+              "t": "chips",
+              "prompts": [
+                "Coach me on this",
+                "Show my life score this month"
+              ]
+            }
+          ]
+        },
+        "trackers": [
+          {
+            "metric": "spend",
+            "label": "Daily spending",
+            "goal": 1500,
+            "direction": "below"
+          },
+          {
+            "metric": "weight",
+            "label": "Weight"
+          },
+          {
+            "metric": "workouts",
+            "label": "Workouts",
+            "goal": 4,
+            "direction": "above"
+          },
+          {
+            "metric": "tasks",
+            "label": "Tasks done"
+          }
+        ],
+        "trackerChanged": false,
+        "memories": [
+          "Training for a 10K before December",
+          "Paying off the BPI card in full every month",
+          "I'm training for a 10K",
+          "my sister's birthday is May 3."
+        ]
+      },
+      {
+        "text": "who are you",
+        "route": {
+          "kind": "reply",
+          "text": "I'm Fern, your companion inside Personal SOP. I know your habits, tasks, training, food, money and journal — and I remember what you tell me. I can log things for you, spot patterns, chart anything, coach you, and keep an eye on what matters.",
+          "blocks": [
+            {
+              "t": "chips",
+              "prompts": [
+                "How am I doing?",
+                "Chart my workouts",
+                "Track spending under 1500",
+                "Coach me"
+              ]
+            }
+          ]
+        },
+        "trackers": [
+          {
+            "metric": "spend",
+            "label": "Daily spending",
+            "goal": 1500,
+            "direction": "below"
+          },
+          {
+            "metric": "weight",
+            "label": "Weight"
+          },
+          {
+            "metric": "workouts",
+            "label": "Workouts",
+            "goal": 4,
+            "direction": "above"
+          },
+          {
+            "metric": "tasks",
+            "label": "Tasks done"
+          }
+        ],
+        "trackerChanged": false,
+        "memories": [
+          "Training for a 10K before December",
+          "Paying off the BPI card in full every month",
+          "I'm training for a 10K",
+          "my sister's birthday is May 3."
+        ]
+      },
+      {
+        "text": "help",
+        "route": {
+          "kind": "reply",
+          "text": "I'm Fern, your companion inside Personal SOP. I know your habits, tasks, training, food, money and journal — and I remember what you tell me. I can log things for you, spot patterns, chart anything, coach you, and keep an eye on what matters.",
+          "blocks": [
+            {
+              "t": "chips",
+              "prompts": [
+                "How am I doing?",
+                "Chart my workouts",
+                "Track spending under 1500",
+                "Coach me"
+              ]
+            }
+          ]
+        },
+        "trackers": [
+          {
+            "metric": "spend",
+            "label": "Daily spending",
+            "goal": 1500,
+            "direction": "below"
+          },
+          {
+            "metric": "weight",
+            "label": "Weight"
+          },
+          {
+            "metric": "workouts",
+            "label": "Workouts",
+            "goal": 4,
+            "direction": "above"
+          },
+          {
+            "metric": "tasks",
+            "label": "Tasks done"
+          }
+        ],
+        "trackerChanged": false,
+        "memories": [
+          "Training for a 10K before December",
+          "Paying off the BPI card in full every month",
+          "I'm training for a 10K",
+          "my sister's birthday is May 3."
+        ]
+      },
+      {
+        "text": "spent 250 on grab",
+        "route": {
+          "kind": "capture"
+        },
+        "trackers": [
+          {
+            "metric": "spend",
+            "label": "Daily spending",
+            "goal": 1500,
+            "direction": "below"
+          },
+          {
+            "metric": "weight",
+            "label": "Weight"
+          },
+          {
+            "metric": "workouts",
+            "label": "Workouts",
+            "goal": 4,
+            "direction": "above"
+          },
+          {
+            "metric": "tasks",
+            "label": "Tasks done"
+          }
+        ],
+        "trackerChanged": false,
+        "memories": [
+          "Training for a 10K before December",
+          "Paying off the BPI card in full every month",
+          "I'm training for a 10K",
+          "my sister's birthday is May 3."
+        ]
+      },
+      {
+        "text": "how much did I spend on food this month?",
+        "route": {
+          "kind": "capture"
+        },
+        "trackers": [
+          {
+            "metric": "spend",
+            "label": "Daily spending",
+            "goal": 1500,
+            "direction": "below"
+          },
+          {
+            "metric": "weight",
+            "label": "Weight"
+          },
+          {
+            "metric": "workouts",
+            "label": "Workouts",
+            "goal": 4,
+            "direction": "above"
+          },
+          {
+            "metric": "tasks",
+            "label": "Tasks done"
+          }
+        ],
+        "trackerChanged": false,
+        "memories": [
+          "Training for a 10K before December",
+          "Paying off the BPI card in full every month",
+          "I'm training for a 10K",
+          "my sister's birthday is May 3."
+        ]
+      },
+      {
+        "text": "weighed 72.4",
+        "route": {
+          "kind": "capture"
+        },
+        "trackers": [
+          {
+            "metric": "spend",
+            "label": "Daily spending",
+            "goal": 1500,
+            "direction": "below"
+          },
+          {
+            "metric": "weight",
+            "label": "Weight"
+          },
+          {
+            "metric": "workouts",
+            "label": "Workouts",
+            "goal": 4,
+            "direction": "above"
+          },
+          {
+            "metric": "tasks",
+            "label": "Tasks done"
+          }
+        ],
+        "trackerChanged": false,
+        "memories": [
+          "Training for a 10K before December",
+          "Paying off the BPI card in full every month",
+          "I'm training for a 10K",
+          "my sister's birthday is May 3."
+        ]
+      }
+    ],
+    "labels": [
+      {
+        "metric": "life",
+        "label": "Life score"
+      },
+      {
+        "metric": "habits",
+        "label": "Habit completion"
+      },
+      {
+        "metric": "tasks",
+        "label": "Tasks done"
+      },
+      {
+        "metric": "spend",
+        "label": "Daily spending"
+      },
+      {
+        "metric": "spendCats",
+        "label": "Where your money went"
+      },
+      {
+        "metric": "netWorth",
+        "label": "Net worth"
+      },
+      {
+        "metric": "workouts",
+        "label": "Workouts"
+      },
+      {
+        "metric": "weight",
+        "label": "Weight"
+      },
+      {
+        "metric": "nutrition",
+        "label": "Calories"
+      }
+    ]
+  }
+}

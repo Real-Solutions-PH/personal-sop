@@ -82,7 +82,27 @@ def get_current_user(request: Request, session: SessionDep, token: TokenDep) -> 
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user"
         )
+    release_connection(session)
     return user
+
+
+def release_connection(session: Session) -> None:
+    """End the read-only auth transaction so its pooled connection goes back
+    now, not when the request ends.
+
+    The request session lazily checks out a connection again if the route
+    queries it. Without this, every request held its auth connection idle in
+    transaction while the route opened a second one (the tenant session), so
+    under load the pool filled with requests each waiting for a second
+    connection. Loaded objects stay attached and populated: the commit skips
+    expiry, and only this commit.
+    """
+    expire = session.expire_on_commit
+    session.expire_on_commit = False
+    try:
+        session.commit()
+    finally:
+        session.expire_on_commit = expire
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
@@ -116,6 +136,7 @@ def require_permission(permission: str) -> Callable[..., User]:
         held = rbac_repo.get_user_permission_names(
             session=session, user_id=current_user.id
         )
+        release_connection(session)
         if permission not in held:
             raise HTTPException(
                 status_code=403, detail="The user doesn't have enough privileges"

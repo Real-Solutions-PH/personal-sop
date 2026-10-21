@@ -4,9 +4,27 @@
     {
       "name": "prototype",
       "runtimeExecutable": "bun",
-      "runtimeArgs": ["run", "--cwd", "frontend", "dev"],
+      "runtimeArgs": [
+        "run",
+        "--cwd",
+        "frontend",
+        "dev"
+      ],
       "port": 3100,
       "autoPort": true
+    },
+    {
+      "name": "mobile-web",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": [
+        "run",
+        "--cwd",
+        "mobile",
+        "web",
+        "--port",
+        "8099"
+      ],
+      "port": 8099
     }
   ]
 }

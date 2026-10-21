@@ -1,21 +1,10 @@
-import { Redirect, Tabs } from "expo-router"
-import { View } from "react-native"
-import { OfflineBanner } from "@/components/offline-banner"
-import { useAuthStore } from "@/stores/auth-store"
+import { Redirect } from "expo-router"
+import { prototypeMode } from "@/prototype/mode"
 
-export default function AppLayout() {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-
-  if (!isAuthenticated) return <Redirect href="/login" />
-
-  return (
-    <View className="flex-1">
-      <OfflineBanner />
-      <Tabs screenOptions={{ headerShown: true }}>
-        <Tabs.Screen name="index" options={{ title: "Home" }} />
-        <Tabs.Screen name="items" options={{ title: "Items" }} />
-        <Tabs.Screen name="settings" options={{ title: "Settings" }} />
-      </Tabs>
-    </View>
-  )
+// Route discovery evaluates every route, including inactive protected screens.
+// Keep connected-only native dependencies behind the mode check.
+export default function Page() {
+  if (prototypeMode) return <Redirect href="/today" />
+  const Screen = require("@/connected/layout").default
+  return <Screen />
 }

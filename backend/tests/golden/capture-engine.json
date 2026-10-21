@@ -1,0 +1,2655 @@
+{
+  "frozenNow": "2026-10-18T04:00:00.000Z",
+  "source": "shared/prototype",
+  "data": {
+    "cases": [
+      {
+        "variant": "default",
+        "settings": {
+          "rules": {
+            "habit": "auto",
+            "task": "auto",
+            "reminder": "confirm",
+            "workout": "auto",
+            "weighIn": "auto",
+            "meal": "confirm",
+            "expense": "auto",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "auto",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 1000
+        },
+        "text": "spent 250 on grab",
+        "status": "done",
+        "reply": "Logged it.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "tier": "auto",
+            "state": "saved"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "target": "finance",
+            "rule": "expense",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "expense",
+              "amount": 250,
+              "categoryId": "grab",
+              "accountId": "gcash",
+              "payee": "Grab"
+            }
+          }
+        ]
+      },
+      {
+        "variant": "default",
+        "settings": {
+          "rules": {
+            "habit": "auto",
+            "task": "auto",
+            "reminder": "confirm",
+            "workout": "auto",
+            "weighIn": "auto",
+            "meal": "confirm",
+            "expense": "auto",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "auto",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 1000
+        },
+        "text": "spent 1200 on groceries",
+        "status": "done",
+        "reply": "One to confirm.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "tier": "confirm",
+            "state": "proposed"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "target": "finance",
+            "rule": "expense",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "expense",
+              "amount": 1200,
+              "categoryId": "groceries",
+              "accountId": "gcash",
+              "payee": "Groceries"
+            }
+          }
+        ]
+      },
+      {
+        "variant": "default",
+        "settings": {
+          "rules": {
+            "habit": "auto",
+            "task": "auto",
+            "reminder": "confirm",
+            "workout": "auto",
+            "weighIn": "auto",
+            "meal": "confirm",
+            "expense": "auto",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "auto",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 1000
+        },
+        "text": "paid 777",
+        "status": "needs_input",
+        "reply": "One quick question.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "tier": "confirm",
+            "state": "needs_input"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "target": "finance",
+            "rule": "expense",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "expense",
+              "amount": 777,
+              "accountId": "gcash"
+            },
+            "ask": {
+              "question": "What was ₱777 for?",
+              "field": "categoryId",
+              "free": true,
+              "options": [
+                {
+                  "label": "🚇 Commute",
+                  "value": "commute"
+                },
+                {
+                  "label": "🍗 Dining out",
+                  "value": "dining"
+                },
+                {
+                  "label": "🚗 Grab rides",
+                  "value": "grab"
+                },
+                {
+                  "label": "☕ Coffee",
+                  "value": "coffee"
+                },
+                {
+                  "label": "🛒 Groceries",
+                  "value": "groceries"
+                },
+                {
+                  "label": "💊 Health",
+                  "value": "health"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "variant": "default",
+        "settings": {
+          "rules": {
+            "habit": "auto",
+            "task": "auto",
+            "reminder": "confirm",
+            "workout": "auto",
+            "weighIn": "auto",
+            "meal": "confirm",
+            "expense": "auto",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "auto",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 1000
+        },
+        "text": "ran 5k 32 min, spent 251 on grab, remind me to pay rent on the 30th",
+        "status": "done",
+        "reply": "Logged 2 things, one to confirm.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "workout",
+            "tier": "auto",
+            "state": "saved"
+          },
+          {
+            "t": "record",
+            "kind": "expense",
+            "tier": "auto",
+            "state": "saved"
+          },
+          {
+            "t": "record",
+            "kind": "task",
+            "tier": "confirm",
+            "state": "proposed"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "workout",
+            "target": "fitness",
+            "rule": "workout",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "workout",
+              "name": "5 km run",
+              "exercises": [],
+              "cardio": {
+                "km": 5,
+                "min": 32,
+                "activity": "Run"
+              }
+            }
+          },
+          {
+            "t": "record",
+            "kind": "expense",
+            "target": "finance",
+            "rule": "expense",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "expense",
+              "amount": 251,
+              "categoryId": "grab",
+              "accountId": "gcash",
+              "payee": "Grab"
+            }
+          },
+          {
+            "t": "record",
+            "kind": "task",
+            "target": "tasks",
+            "rule": "reminder",
+            "payload": {
+              "kind": "task",
+              "tasks": [
+                {
+                  "title": "Pay rent",
+                  "listId": "life",
+                  "dueDate": "2026-10-30",
+                  "dueTime": null,
+                  "remind": true
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "variant": "default",
+        "settings": {
+          "rules": {
+            "habit": "auto",
+            "task": "auto",
+            "reminder": "confirm",
+            "workout": "auto",
+            "weighIn": "auto",
+            "meal": "confirm",
+            "expense": "auto",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "auto",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 1000
+        },
+        "text": "buy eggs, milk, rice",
+        "status": "done",
+        "reply": "Logged it.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "task",
+            "tier": "auto",
+            "state": "saved"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "task",
+            "target": "tasks",
+            "rule": "task",
+            "payload": {
+              "kind": "task",
+              "tasks": [
+                {
+                  "title": "Eggs",
+                  "listId": "groceries",
+                  "dueDate": null,
+                  "dueTime": null,
+                  "remind": false
+                },
+                {
+                  "title": "Milk",
+                  "listId": "groceries",
+                  "dueDate": null,
+                  "dueTime": null,
+                  "remind": false
+                },
+                {
+                  "title": "Rice",
+                  "listId": "groceries",
+                  "dueDate": null,
+                  "dueTime": null,
+                  "remind": false
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "variant": "default",
+        "settings": {
+          "rules": {
+            "habit": "auto",
+            "task": "auto",
+            "reminder": "confirm",
+            "workout": "auto",
+            "weighIn": "auto",
+            "meal": "confirm",
+            "expense": "auto",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "auto",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 1000
+        },
+        "text": "got paid 35k",
+        "status": "needs_input",
+        "reply": "One quick question.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "income",
+            "tier": "confirm",
+            "state": "needs_input"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "income",
+            "target": "finance",
+            "rule": "income",
+            "payload": {
+              "kind": "income",
+              "amount": 35000,
+              "categoryId": "salary",
+              "payee": "Employer"
+            },
+            "ask": {
+              "question": "Which account did the ₱35,000 land in?",
+              "field": "accountId",
+              "options": [
+                {
+                  "label": "Cash",
+                  "value": "cash"
+                },
+                {
+                  "label": "GCash",
+                  "value": "gcash"
+                },
+                {
+                  "label": "Maya",
+                  "value": "maya"
+                },
+                {
+                  "label": "BPI Savings",
+                  "value": "bpi"
+                },
+                {
+                  "label": "BPI Credit Card",
+                  "value": "bpicc"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "variant": "default",
+        "settings": {
+          "rules": {
+            "habit": "auto",
+            "task": "auto",
+            "reminder": "confirm",
+            "workout": "auto",
+            "weighIn": "auto",
+            "meal": "confirm",
+            "expense": "auto",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "auto",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 1000
+        },
+        "text": "moved 2k from gcash to bpi",
+        "status": "done",
+        "reply": "One to confirm.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "transfer",
+            "tier": "confirm",
+            "state": "proposed"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "transfer",
+            "target": "finance",
+            "rule": "transfer",
+            "payload": {
+              "kind": "transfer",
+              "amount": 2000,
+              "from": "gcash",
+              "to": "bpi"
+            }
+          }
+        ]
+      },
+      {
+        "variant": "default",
+        "settings": {
+          "rules": {
+            "habit": "auto",
+            "task": "auto",
+            "reminder": "confirm",
+            "workout": "auto",
+            "weighIn": "auto",
+            "meal": "confirm",
+            "expense": "auto",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "auto",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 1000
+        },
+        "text": "netflix 549 every 5th",
+        "status": "done",
+        "reply": "One to confirm.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "planned",
+            "tier": "confirm",
+            "state": "proposed"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "planned",
+            "target": "finance",
+            "rule": "structure",
+            "confirm": true,
+            "payload": {
+              "kind": "planned",
+              "name": "Netflix",
+              "amount": 549,
+              "day": 5,
+              "accountId": "gcash",
+              "categoryId": "subs"
+            }
+          }
+        ]
+      },
+      {
+        "variant": "default",
+        "settings": {
+          "rules": {
+            "habit": "auto",
+            "task": "auto",
+            "reminder": "confirm",
+            "workout": "auto",
+            "weighIn": "auto",
+            "meal": "confirm",
+            "expense": "auto",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "auto",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 1000
+        },
+        "text": "weighed 78.4",
+        "status": "done",
+        "reply": "Logged it.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "weighIn",
+            "tier": "auto",
+            "state": "saved"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "weighIn",
+            "target": "fitness",
+            "rule": "weighIn",
+            "confirm": false,
+            "payload": {
+              "kind": "weighIn",
+              "kg": 78.4,
+              "prevKg": 78.6
+            }
+          }
+        ]
+      },
+      {
+        "variant": "default",
+        "settings": {
+          "rules": {
+            "habit": "auto",
+            "task": "auto",
+            "reminder": "confirm",
+            "workout": "auto",
+            "weighIn": "auto",
+            "meal": "confirm",
+            "expense": "auto",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "auto",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 1000
+        },
+        "text": "lunch adobo with 1 cup rice",
+        "status": "done",
+        "reply": "One to confirm.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "meal",
+            "tier": "confirm",
+            "state": "proposed"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "meal",
+            "target": "fitness",
+            "rule": "meal",
+            "confirm": false,
+            "confidence": 0.76,
+            "payload": {
+              "kind": "meal",
+              "raw": "lunch adobo with 1 cup rice",
+              "label": "lunch",
+              "items": [
+                {
+                  "name": "Chicken adobo (thigh)",
+                  "qty": 2,
+                  "unit": "pc",
+                  "kcal": 380,
+                  "protein": 32,
+                  "carbs": 4,
+                  "fat": 26,
+                  "assumption": "2 thigh pieces with sauce"
+                },
+                {
+                  "name": "Steamed rice",
+                  "qty": 1,
+                  "unit": "cup",
+                  "kcal": 205,
+                  "protein": 4,
+                  "carbs": 45,
+                  "fat": 0,
+                  "assumption": "~1 cup cooked, 160 g"
+                }
+              ],
+              "confidence": 0.76
+            },
+            "dayOffset": 0
+          }
+        ]
+      },
+      {
+        "variant": "default",
+        "settings": {
+          "rules": {
+            "habit": "auto",
+            "task": "auto",
+            "reminder": "confirm",
+            "workout": "auto",
+            "weighIn": "auto",
+            "meal": "confirm",
+            "expense": "auto",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "auto",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 1000
+        },
+        "text": "meditated 10 min",
+        "status": "done",
+        "reply": "Logged it.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "habitLog",
+            "tier": "auto",
+            "state": "saved"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "habitLog",
+            "target": "habits",
+            "rule": "habit",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "habitLog",
+              "habitId": "h-meditate",
+              "value": 10,
+              "add": false
+            }
+          }
+        ]
+      },
+      {
+        "variant": "default",
+        "settings": {
+          "rules": {
+            "habit": "auto",
+            "task": "auto",
+            "reminder": "confirm",
+            "workout": "auto",
+            "weighIn": "auto",
+            "meal": "confirm",
+            "expense": "auto",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "auto",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 1000
+        },
+        "text": "journal: proud of today",
+        "status": "done",
+        "reply": "Logged it.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "journal",
+            "tier": "auto",
+            "state": "saved"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "journal",
+            "target": "journal",
+            "rule": "journal",
+            "payload": {
+              "kind": "journal",
+              "body": "Proud of today",
+              "mood": 5,
+              "tags": [
+                "win"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "variant": "default",
+        "settings": {
+          "rules": {
+            "habit": "auto",
+            "task": "auto",
+            "reminder": "confirm",
+            "workout": "auto",
+            "weighIn": "auto",
+            "meal": "confirm",
+            "expense": "auto",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "auto",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 1000
+        },
+        "text": "how much did I spend on food this month?",
+        "status": "answered",
+        "reply": "Here's what your data says.",
+        "items": [
+          {
+            "t": "answer"
+          }
+        ],
+        "drafts": []
+      },
+      {
+        "variant": "default",
+        "settings": {
+          "rules": {
+            "habit": "auto",
+            "task": "auto",
+            "reminder": "confirm",
+            "workout": "auto",
+            "weighIn": "auto",
+            "meal": "confirm",
+            "expense": "auto",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "auto",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 1000
+        },
+        "text": "ugh long day",
+        "status": "done",
+        "reply": "Heard you.",
+        "items": [
+          {
+            "t": "info",
+            "tone": "journal-suggest"
+          }
+        ],
+        "drafts": []
+      },
+      {
+        "variant": "default",
+        "settings": {
+          "rules": {
+            "habit": "auto",
+            "task": "auto",
+            "reminder": "confirm",
+            "workout": "auto",
+            "weighIn": "auto",
+            "meal": "confirm",
+            "expense": "auto",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "auto",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 1000
+        },
+        "text": "asdf qwerty",
+        "status": "done",
+        "reply": "Hmm.",
+        "items": [
+          {
+            "t": "info",
+            "tone": "fallback"
+          }
+        ],
+        "drafts": []
+      },
+      {
+        "variant": "default",
+        "settings": {
+          "rules": {
+            "habit": "auto",
+            "task": "auto",
+            "reminder": "confirm",
+            "workout": "auto",
+            "weighIn": "auto",
+            "meal": "confirm",
+            "expense": "auto",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "auto",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 1000
+        },
+        "text": "new habit: floss at 10pm",
+        "status": "done",
+        "reply": "One to confirm.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "habitCreate",
+            "tier": "confirm",
+            "state": "proposed"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "habitCreate",
+            "target": "habits",
+            "rule": "structure",
+            "confirm": true,
+            "payload": {
+              "kind": "habitCreate",
+              "name": "Floss",
+              "icon": "🦷",
+              "type": "check",
+              "days": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              "time": "22:00",
+              "logToday": false
+            }
+          }
+        ]
+      },
+      {
+        "variant": "default",
+        "settings": {
+          "rules": {
+            "habit": "auto",
+            "task": "auto",
+            "reminder": "confirm",
+            "workout": "auto",
+            "weighIn": "auto",
+            "meal": "confirm",
+            "expense": "auto",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "auto",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 1000
+        },
+        "text": "$20 netflix",
+        "status": "done",
+        "reply": "One to confirm.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "tier": "confirm",
+            "state": "proposed",
+            "warn": "Foreign currency: $20 ≈ ₱1,120 at ₱56/$ (FX rules are an open question in Finance)."
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "target": "finance",
+            "rule": "expense",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "expense",
+              "amount": 1120,
+              "categoryId": "subs",
+              "accountId": "gcash",
+              "payee": "Netflix",
+              "currency": "USD"
+            },
+            "confirm": true,
+            "warn": "Foreign currency: $20 ≈ ₱1,120 at ₱56/$ (FX rules are an open question in Finance)."
+          }
+        ]
+      },
+      {
+        "variant": "threshold-500",
+        "settings": {
+          "rules": {
+            "habit": "auto",
+            "task": "auto",
+            "reminder": "confirm",
+            "workout": "auto",
+            "weighIn": "auto",
+            "meal": "confirm",
+            "expense": "auto",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "auto",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 500
+        },
+        "text": "spent 250 on grab",
+        "status": "done",
+        "reply": "One to confirm.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "tier": "confirm",
+            "state": "proposed",
+            "warn": "Looks like the ₱250 you logged at 12:00 PM (Grab). Keep both?"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "target": "finance",
+            "rule": "expense",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "expense",
+              "amount": 250,
+              "categoryId": "grab",
+              "accountId": "gcash",
+              "payee": "Grab"
+            }
+          }
+        ]
+      },
+      {
+        "variant": "threshold-500",
+        "settings": {
+          "rules": {
+            "habit": "auto",
+            "task": "auto",
+            "reminder": "confirm",
+            "workout": "auto",
+            "weighIn": "auto",
+            "meal": "confirm",
+            "expense": "auto",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "auto",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 500
+        },
+        "text": "spent 1200 on groceries",
+        "status": "done",
+        "reply": "One to confirm.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "tier": "confirm",
+            "state": "proposed"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "target": "finance",
+            "rule": "expense",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "expense",
+              "amount": 1200,
+              "categoryId": "groceries",
+              "accountId": "gcash",
+              "payee": "Groceries"
+            }
+          }
+        ]
+      },
+      {
+        "variant": "threshold-500",
+        "settings": {
+          "rules": {
+            "habit": "auto",
+            "task": "auto",
+            "reminder": "confirm",
+            "workout": "auto",
+            "weighIn": "auto",
+            "meal": "confirm",
+            "expense": "auto",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "auto",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 500
+        },
+        "text": "paid 777",
+        "status": "needs_input",
+        "reply": "One quick question.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "tier": "confirm",
+            "state": "needs_input"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "target": "finance",
+            "rule": "expense",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "expense",
+              "amount": 777,
+              "accountId": "gcash"
+            },
+            "ask": {
+              "question": "What was ₱777 for?",
+              "field": "categoryId",
+              "free": true,
+              "options": [
+                {
+                  "label": "🚇 Commute",
+                  "value": "commute"
+                },
+                {
+                  "label": "🍗 Dining out",
+                  "value": "dining"
+                },
+                {
+                  "label": "🚗 Grab rides",
+                  "value": "grab"
+                },
+                {
+                  "label": "☕ Coffee",
+                  "value": "coffee"
+                },
+                {
+                  "label": "🛒 Groceries",
+                  "value": "groceries"
+                },
+                {
+                  "label": "💊 Health",
+                  "value": "health"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "variant": "threshold-500",
+        "settings": {
+          "rules": {
+            "habit": "auto",
+            "task": "auto",
+            "reminder": "confirm",
+            "workout": "auto",
+            "weighIn": "auto",
+            "meal": "confirm",
+            "expense": "auto",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "auto",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 500
+        },
+        "text": "ran 5k 32 min, spent 251 on grab, remind me to pay rent on the 30th",
+        "status": "done",
+        "reply": "Logged it, 2 to confirm.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "workout",
+            "tier": "auto",
+            "state": "saved"
+          },
+          {
+            "t": "record",
+            "kind": "expense",
+            "tier": "confirm",
+            "state": "proposed",
+            "warn": "Looks like the ₱251 you logged at 12:00 PM (Grab). Keep both?"
+          },
+          {
+            "t": "record",
+            "kind": "task",
+            "tier": "confirm",
+            "state": "proposed"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "workout",
+            "target": "fitness",
+            "rule": "workout",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "workout",
+              "name": "5 km run",
+              "exercises": [],
+              "cardio": {
+                "km": 5,
+                "min": 32,
+                "activity": "Run"
+              }
+            }
+          },
+          {
+            "t": "record",
+            "kind": "expense",
+            "target": "finance",
+            "rule": "expense",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "expense",
+              "amount": 251,
+              "categoryId": "grab",
+              "accountId": "gcash",
+              "payee": "Grab"
+            }
+          },
+          {
+            "t": "record",
+            "kind": "task",
+            "target": "tasks",
+            "rule": "reminder",
+            "payload": {
+              "kind": "task",
+              "tasks": [
+                {
+                  "title": "Pay rent",
+                  "listId": "life",
+                  "dueDate": "2026-10-30",
+                  "dueTime": null,
+                  "remind": true
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "variant": "threshold-500",
+        "settings": {
+          "rules": {
+            "habit": "auto",
+            "task": "auto",
+            "reminder": "confirm",
+            "workout": "auto",
+            "weighIn": "auto",
+            "meal": "confirm",
+            "expense": "auto",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "auto",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 500
+        },
+        "text": "buy eggs, milk, rice",
+        "status": "done",
+        "reply": "Logged it.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "task",
+            "tier": "auto",
+            "state": "saved"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "task",
+            "target": "tasks",
+            "rule": "task",
+            "payload": {
+              "kind": "task",
+              "tasks": [
+                {
+                  "title": "Eggs",
+                  "listId": "groceries",
+                  "dueDate": null,
+                  "dueTime": null,
+                  "remind": false
+                },
+                {
+                  "title": "Milk",
+                  "listId": "groceries",
+                  "dueDate": null,
+                  "dueTime": null,
+                  "remind": false
+                },
+                {
+                  "title": "Rice",
+                  "listId": "groceries",
+                  "dueDate": null,
+                  "dueTime": null,
+                  "remind": false
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "variant": "threshold-500",
+        "settings": {
+          "rules": {
+            "habit": "auto",
+            "task": "auto",
+            "reminder": "confirm",
+            "workout": "auto",
+            "weighIn": "auto",
+            "meal": "confirm",
+            "expense": "auto",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "auto",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 500
+        },
+        "text": "got paid 35k",
+        "status": "needs_input",
+        "reply": "One quick question.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "income",
+            "tier": "confirm",
+            "state": "needs_input"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "income",
+            "target": "finance",
+            "rule": "income",
+            "payload": {
+              "kind": "income",
+              "amount": 35000,
+              "categoryId": "salary",
+              "payee": "Employer"
+            },
+            "ask": {
+              "question": "Which account did the ₱35,000 land in?",
+              "field": "accountId",
+              "options": [
+                {
+                  "label": "Cash",
+                  "value": "cash"
+                },
+                {
+                  "label": "GCash",
+                  "value": "gcash"
+                },
+                {
+                  "label": "Maya",
+                  "value": "maya"
+                },
+                {
+                  "label": "BPI Savings",
+                  "value": "bpi"
+                },
+                {
+                  "label": "BPI Credit Card",
+                  "value": "bpicc"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "variant": "threshold-500",
+        "settings": {
+          "rules": {
+            "habit": "auto",
+            "task": "auto",
+            "reminder": "confirm",
+            "workout": "auto",
+            "weighIn": "auto",
+            "meal": "confirm",
+            "expense": "auto",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "auto",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 500
+        },
+        "text": "moved 2k from gcash to bpi",
+        "status": "done",
+        "reply": "One to confirm.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "transfer",
+            "tier": "confirm",
+            "state": "proposed"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "transfer",
+            "target": "finance",
+            "rule": "transfer",
+            "payload": {
+              "kind": "transfer",
+              "amount": 2000,
+              "from": "gcash",
+              "to": "bpi"
+            }
+          }
+        ]
+      },
+      {
+        "variant": "threshold-500",
+        "settings": {
+          "rules": {
+            "habit": "auto",
+            "task": "auto",
+            "reminder": "confirm",
+            "workout": "auto",
+            "weighIn": "auto",
+            "meal": "confirm",
+            "expense": "auto",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "auto",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 500
+        },
+        "text": "netflix 549 every 5th",
+        "status": "done",
+        "reply": "One to confirm.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "planned",
+            "tier": "confirm",
+            "state": "proposed"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "planned",
+            "target": "finance",
+            "rule": "structure",
+            "confirm": true,
+            "payload": {
+              "kind": "planned",
+              "name": "Netflix",
+              "amount": 549,
+              "day": 5,
+              "accountId": "gcash",
+              "categoryId": "subs"
+            }
+          }
+        ]
+      },
+      {
+        "variant": "threshold-500",
+        "settings": {
+          "rules": {
+            "habit": "auto",
+            "task": "auto",
+            "reminder": "confirm",
+            "workout": "auto",
+            "weighIn": "auto",
+            "meal": "confirm",
+            "expense": "auto",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "auto",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 500
+        },
+        "text": "weighed 78.4",
+        "status": "done",
+        "reply": "Logged it.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "weighIn",
+            "tier": "auto",
+            "state": "saved"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "weighIn",
+            "target": "fitness",
+            "rule": "weighIn",
+            "confirm": false,
+            "payload": {
+              "kind": "weighIn",
+              "kg": 78.4,
+              "prevKg": 78.4
+            }
+          }
+        ]
+      },
+      {
+        "variant": "threshold-500",
+        "settings": {
+          "rules": {
+            "habit": "auto",
+            "task": "auto",
+            "reminder": "confirm",
+            "workout": "auto",
+            "weighIn": "auto",
+            "meal": "confirm",
+            "expense": "auto",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "auto",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 500
+        },
+        "text": "lunch adobo with 1 cup rice",
+        "status": "done",
+        "reply": "One to confirm.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "meal",
+            "tier": "confirm",
+            "state": "proposed"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "meal",
+            "target": "fitness",
+            "rule": "meal",
+            "confirm": false,
+            "confidence": 0.76,
+            "payload": {
+              "kind": "meal",
+              "raw": "lunch adobo with 1 cup rice",
+              "label": "lunch",
+              "items": [
+                {
+                  "name": "Chicken adobo (thigh)",
+                  "qty": 2,
+                  "unit": "pc",
+                  "kcal": 380,
+                  "protein": 32,
+                  "carbs": 4,
+                  "fat": 26,
+                  "assumption": "2 thigh pieces with sauce"
+                },
+                {
+                  "name": "Steamed rice",
+                  "qty": 1,
+                  "unit": "cup",
+                  "kcal": 205,
+                  "protein": 4,
+                  "carbs": 45,
+                  "fat": 0,
+                  "assumption": "~1 cup cooked, 160 g"
+                }
+              ],
+              "confidence": 0.76
+            },
+            "dayOffset": 0
+          }
+        ]
+      },
+      {
+        "variant": "threshold-500",
+        "settings": {
+          "rules": {
+            "habit": "auto",
+            "task": "auto",
+            "reminder": "confirm",
+            "workout": "auto",
+            "weighIn": "auto",
+            "meal": "confirm",
+            "expense": "auto",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "auto",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 500
+        },
+        "text": "meditated 10 min",
+        "status": "done",
+        "reply": "Logged it.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "habitLog",
+            "tier": "auto",
+            "state": "saved"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "habitLog",
+            "target": "habits",
+            "rule": "habit",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "habitLog",
+              "habitId": "h-meditate",
+              "value": 10,
+              "add": false
+            }
+          }
+        ]
+      },
+      {
+        "variant": "threshold-500",
+        "settings": {
+          "rules": {
+            "habit": "auto",
+            "task": "auto",
+            "reminder": "confirm",
+            "workout": "auto",
+            "weighIn": "auto",
+            "meal": "confirm",
+            "expense": "auto",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "auto",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 500
+        },
+        "text": "journal: proud of today",
+        "status": "done",
+        "reply": "Logged it.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "journal",
+            "tier": "auto",
+            "state": "saved"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "journal",
+            "target": "journal",
+            "rule": "journal",
+            "payload": {
+              "kind": "journal",
+              "body": "Proud of today",
+              "mood": 5,
+              "tags": [
+                "win"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "variant": "threshold-500",
+        "settings": {
+          "rules": {
+            "habit": "auto",
+            "task": "auto",
+            "reminder": "confirm",
+            "workout": "auto",
+            "weighIn": "auto",
+            "meal": "confirm",
+            "expense": "auto",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "auto",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 500
+        },
+        "text": "how much did I spend on food this month?",
+        "status": "answered",
+        "reply": "Here's what your data says.",
+        "items": [
+          {
+            "t": "answer"
+          }
+        ],
+        "drafts": []
+      },
+      {
+        "variant": "threshold-500",
+        "settings": {
+          "rules": {
+            "habit": "auto",
+            "task": "auto",
+            "reminder": "confirm",
+            "workout": "auto",
+            "weighIn": "auto",
+            "meal": "confirm",
+            "expense": "auto",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "auto",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 500
+        },
+        "text": "ugh long day",
+        "status": "done",
+        "reply": "Heard you.",
+        "items": [
+          {
+            "t": "info",
+            "tone": "journal-suggest"
+          }
+        ],
+        "drafts": []
+      },
+      {
+        "variant": "threshold-500",
+        "settings": {
+          "rules": {
+            "habit": "auto",
+            "task": "auto",
+            "reminder": "confirm",
+            "workout": "auto",
+            "weighIn": "auto",
+            "meal": "confirm",
+            "expense": "auto",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "auto",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 500
+        },
+        "text": "asdf qwerty",
+        "status": "done",
+        "reply": "Hmm.",
+        "items": [
+          {
+            "t": "info",
+            "tone": "fallback"
+          }
+        ],
+        "drafts": []
+      },
+      {
+        "variant": "threshold-500",
+        "settings": {
+          "rules": {
+            "habit": "auto",
+            "task": "auto",
+            "reminder": "confirm",
+            "workout": "auto",
+            "weighIn": "auto",
+            "meal": "confirm",
+            "expense": "auto",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "auto",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 500
+        },
+        "text": "new habit: floss at 10pm",
+        "status": "done",
+        "reply": "One to confirm.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "habitCreate",
+            "tier": "confirm",
+            "state": "proposed"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "habitCreate",
+            "target": "habits",
+            "rule": "structure",
+            "confirm": true,
+            "payload": {
+              "kind": "habitCreate",
+              "name": "Floss",
+              "icon": "🦷",
+              "type": "check",
+              "days": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              "time": "22:00",
+              "logToday": false
+            }
+          }
+        ]
+      },
+      {
+        "variant": "threshold-500",
+        "settings": {
+          "rules": {
+            "habit": "auto",
+            "task": "auto",
+            "reminder": "confirm",
+            "workout": "auto",
+            "weighIn": "auto",
+            "meal": "confirm",
+            "expense": "auto",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "auto",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 500
+        },
+        "text": "$20 netflix",
+        "status": "done",
+        "reply": "One to confirm.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "tier": "confirm",
+            "state": "proposed",
+            "warn": "Foreign currency: $20 ≈ ₱1,120 at ₱56/$ (FX rules are an open question in Finance)."
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "target": "finance",
+            "rule": "expense",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "expense",
+              "amount": 1120,
+              "categoryId": "subs",
+              "accountId": "gcash",
+              "payee": "Netflix",
+              "currency": "USD"
+            },
+            "confirm": true,
+            "warn": "Foreign currency: $20 ≈ ₱1,120 at ₱56/$ (FX rules are an open question in Finance)."
+          }
+        ]
+      },
+      {
+        "variant": "all-confirm",
+        "settings": {
+          "rules": {
+            "habit": "confirm",
+            "task": "confirm",
+            "reminder": "confirm",
+            "workout": "confirm",
+            "weighIn": "confirm",
+            "meal": "confirm",
+            "expense": "confirm",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "confirm",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 500
+        },
+        "text": "spent 250 on grab",
+        "status": "done",
+        "reply": "One to confirm.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "tier": "confirm",
+            "state": "proposed",
+            "warn": "Looks like the ₱250 you logged at 12:00 PM (Grab). Keep both?"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "target": "finance",
+            "rule": "expense",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "expense",
+              "amount": 250,
+              "categoryId": "grab",
+              "accountId": "gcash",
+              "payee": "Grab"
+            }
+          }
+        ]
+      },
+      {
+        "variant": "all-confirm",
+        "settings": {
+          "rules": {
+            "habit": "confirm",
+            "task": "confirm",
+            "reminder": "confirm",
+            "workout": "confirm",
+            "weighIn": "confirm",
+            "meal": "confirm",
+            "expense": "confirm",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "confirm",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 500
+        },
+        "text": "spent 1200 on groceries",
+        "status": "done",
+        "reply": "One to confirm.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "tier": "confirm",
+            "state": "proposed"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "target": "finance",
+            "rule": "expense",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "expense",
+              "amount": 1200,
+              "categoryId": "groceries",
+              "accountId": "gcash",
+              "payee": "Groceries"
+            }
+          }
+        ]
+      },
+      {
+        "variant": "all-confirm",
+        "settings": {
+          "rules": {
+            "habit": "confirm",
+            "task": "confirm",
+            "reminder": "confirm",
+            "workout": "confirm",
+            "weighIn": "confirm",
+            "meal": "confirm",
+            "expense": "confirm",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "confirm",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 500
+        },
+        "text": "paid 777",
+        "status": "needs_input",
+        "reply": "One quick question.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "tier": "confirm",
+            "state": "needs_input"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "target": "finance",
+            "rule": "expense",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "expense",
+              "amount": 777,
+              "accountId": "gcash"
+            },
+            "ask": {
+              "question": "What was ₱777 for?",
+              "field": "categoryId",
+              "free": true,
+              "options": [
+                {
+                  "label": "🚇 Commute",
+                  "value": "commute"
+                },
+                {
+                  "label": "🍗 Dining out",
+                  "value": "dining"
+                },
+                {
+                  "label": "🚗 Grab rides",
+                  "value": "grab"
+                },
+                {
+                  "label": "☕ Coffee",
+                  "value": "coffee"
+                },
+                {
+                  "label": "🛒 Groceries",
+                  "value": "groceries"
+                },
+                {
+                  "label": "💊 Health",
+                  "value": "health"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "variant": "all-confirm",
+        "settings": {
+          "rules": {
+            "habit": "confirm",
+            "task": "confirm",
+            "reminder": "confirm",
+            "workout": "confirm",
+            "weighIn": "confirm",
+            "meal": "confirm",
+            "expense": "confirm",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "confirm",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 500
+        },
+        "text": "ran 5k 32 min, spent 251 on grab, remind me to pay rent on the 30th",
+        "status": "done",
+        "reply": "3 to confirm.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "workout",
+            "tier": "confirm",
+            "state": "proposed"
+          },
+          {
+            "t": "record",
+            "kind": "expense",
+            "tier": "confirm",
+            "state": "proposed",
+            "warn": "Looks like the ₱251 you logged at 12:00 PM (Grab). Keep both?"
+          },
+          {
+            "t": "record",
+            "kind": "task",
+            "tier": "confirm",
+            "state": "proposed"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "workout",
+            "target": "fitness",
+            "rule": "workout",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "workout",
+              "name": "5 km run",
+              "exercises": [],
+              "cardio": {
+                "km": 5,
+                "min": 32,
+                "activity": "Run"
+              }
+            }
+          },
+          {
+            "t": "record",
+            "kind": "expense",
+            "target": "finance",
+            "rule": "expense",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "expense",
+              "amount": 251,
+              "categoryId": "grab",
+              "accountId": "gcash",
+              "payee": "Grab"
+            }
+          },
+          {
+            "t": "record",
+            "kind": "task",
+            "target": "tasks",
+            "rule": "reminder",
+            "payload": {
+              "kind": "task",
+              "tasks": [
+                {
+                  "title": "Pay rent",
+                  "listId": "life",
+                  "dueDate": "2026-10-30",
+                  "dueTime": null,
+                  "remind": true
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "variant": "all-confirm",
+        "settings": {
+          "rules": {
+            "habit": "confirm",
+            "task": "confirm",
+            "reminder": "confirm",
+            "workout": "confirm",
+            "weighIn": "confirm",
+            "meal": "confirm",
+            "expense": "confirm",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "confirm",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 500
+        },
+        "text": "buy eggs, milk, rice",
+        "status": "done",
+        "reply": "One to confirm.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "task",
+            "tier": "confirm",
+            "state": "proposed"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "task",
+            "target": "tasks",
+            "rule": "task",
+            "payload": {
+              "kind": "task",
+              "tasks": [
+                {
+                  "title": "Eggs",
+                  "listId": "groceries",
+                  "dueDate": null,
+                  "dueTime": null,
+                  "remind": false
+                },
+                {
+                  "title": "Milk",
+                  "listId": "groceries",
+                  "dueDate": null,
+                  "dueTime": null,
+                  "remind": false
+                },
+                {
+                  "title": "Rice",
+                  "listId": "groceries",
+                  "dueDate": null,
+                  "dueTime": null,
+                  "remind": false
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "variant": "all-confirm",
+        "settings": {
+          "rules": {
+            "habit": "confirm",
+            "task": "confirm",
+            "reminder": "confirm",
+            "workout": "confirm",
+            "weighIn": "confirm",
+            "meal": "confirm",
+            "expense": "confirm",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "confirm",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 500
+        },
+        "text": "got paid 35k",
+        "status": "needs_input",
+        "reply": "One quick question.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "income",
+            "tier": "confirm",
+            "state": "needs_input"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "income",
+            "target": "finance",
+            "rule": "income",
+            "payload": {
+              "kind": "income",
+              "amount": 35000,
+              "categoryId": "salary",
+              "payee": "Employer"
+            },
+            "ask": {
+              "question": "Which account did the ₱35,000 land in?",
+              "field": "accountId",
+              "options": [
+                {
+                  "label": "Cash",
+                  "value": "cash"
+                },
+                {
+                  "label": "GCash",
+                  "value": "gcash"
+                },
+                {
+                  "label": "Maya",
+                  "value": "maya"
+                },
+                {
+                  "label": "BPI Savings",
+                  "value": "bpi"
+                },
+                {
+                  "label": "BPI Credit Card",
+                  "value": "bpicc"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "variant": "all-confirm",
+        "settings": {
+          "rules": {
+            "habit": "confirm",
+            "task": "confirm",
+            "reminder": "confirm",
+            "workout": "confirm",
+            "weighIn": "confirm",
+            "meal": "confirm",
+            "expense": "confirm",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "confirm",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 500
+        },
+        "text": "moved 2k from gcash to bpi",
+        "status": "done",
+        "reply": "One to confirm.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "transfer",
+            "tier": "confirm",
+            "state": "proposed"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "transfer",
+            "target": "finance",
+            "rule": "transfer",
+            "payload": {
+              "kind": "transfer",
+              "amount": 2000,
+              "from": "gcash",
+              "to": "bpi"
+            }
+          }
+        ]
+      },
+      {
+        "variant": "all-confirm",
+        "settings": {
+          "rules": {
+            "habit": "confirm",
+            "task": "confirm",
+            "reminder": "confirm",
+            "workout": "confirm",
+            "weighIn": "confirm",
+            "meal": "confirm",
+            "expense": "confirm",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "confirm",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 500
+        },
+        "text": "netflix 549 every 5th",
+        "status": "done",
+        "reply": "One to confirm.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "planned",
+            "tier": "confirm",
+            "state": "proposed"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "planned",
+            "target": "finance",
+            "rule": "structure",
+            "confirm": true,
+            "payload": {
+              "kind": "planned",
+              "name": "Netflix",
+              "amount": 549,
+              "day": 5,
+              "accountId": "gcash",
+              "categoryId": "subs"
+            }
+          }
+        ]
+      },
+      {
+        "variant": "all-confirm",
+        "settings": {
+          "rules": {
+            "habit": "confirm",
+            "task": "confirm",
+            "reminder": "confirm",
+            "workout": "confirm",
+            "weighIn": "confirm",
+            "meal": "confirm",
+            "expense": "confirm",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "confirm",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 500
+        },
+        "text": "weighed 78.4",
+        "status": "done",
+        "reply": "One to confirm.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "weighIn",
+            "tier": "confirm",
+            "state": "proposed"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "weighIn",
+            "target": "fitness",
+            "rule": "weighIn",
+            "confirm": false,
+            "payload": {
+              "kind": "weighIn",
+              "kg": 78.4,
+              "prevKg": 78.4
+            }
+          }
+        ]
+      },
+      {
+        "variant": "all-confirm",
+        "settings": {
+          "rules": {
+            "habit": "confirm",
+            "task": "confirm",
+            "reminder": "confirm",
+            "workout": "confirm",
+            "weighIn": "confirm",
+            "meal": "confirm",
+            "expense": "confirm",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "confirm",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 500
+        },
+        "text": "lunch adobo with 1 cup rice",
+        "status": "done",
+        "reply": "One to confirm.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "meal",
+            "tier": "confirm",
+            "state": "proposed"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "meal",
+            "target": "fitness",
+            "rule": "meal",
+            "confirm": false,
+            "confidence": 0.76,
+            "payload": {
+              "kind": "meal",
+              "raw": "lunch adobo with 1 cup rice",
+              "label": "lunch",
+              "items": [
+                {
+                  "name": "Chicken adobo (thigh)",
+                  "qty": 2,
+                  "unit": "pc",
+                  "kcal": 380,
+                  "protein": 32,
+                  "carbs": 4,
+                  "fat": 26,
+                  "assumption": "2 thigh pieces with sauce"
+                },
+                {
+                  "name": "Steamed rice",
+                  "qty": 1,
+                  "unit": "cup",
+                  "kcal": 205,
+                  "protein": 4,
+                  "carbs": 45,
+                  "fat": 0,
+                  "assumption": "~1 cup cooked, 160 g"
+                }
+              ],
+              "confidence": 0.76
+            },
+            "dayOffset": 0
+          }
+        ]
+      },
+      {
+        "variant": "all-confirm",
+        "settings": {
+          "rules": {
+            "habit": "confirm",
+            "task": "confirm",
+            "reminder": "confirm",
+            "workout": "confirm",
+            "weighIn": "confirm",
+            "meal": "confirm",
+            "expense": "confirm",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "confirm",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 500
+        },
+        "text": "meditated 10 min",
+        "status": "done",
+        "reply": "One to confirm.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "habitLog",
+            "tier": "confirm",
+            "state": "proposed"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "habitLog",
+            "target": "habits",
+            "rule": "habit",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "habitLog",
+              "habitId": "h-meditate",
+              "value": 10,
+              "add": false
+            }
+          }
+        ]
+      },
+      {
+        "variant": "all-confirm",
+        "settings": {
+          "rules": {
+            "habit": "confirm",
+            "task": "confirm",
+            "reminder": "confirm",
+            "workout": "confirm",
+            "weighIn": "confirm",
+            "meal": "confirm",
+            "expense": "confirm",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "confirm",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 500
+        },
+        "text": "journal: proud of today",
+        "status": "done",
+        "reply": "One to confirm.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "journal",
+            "tier": "confirm",
+            "state": "proposed"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "journal",
+            "target": "journal",
+            "rule": "journal",
+            "payload": {
+              "kind": "journal",
+              "body": "Proud of today",
+              "mood": 5,
+              "tags": [
+                "win"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "variant": "all-confirm",
+        "settings": {
+          "rules": {
+            "habit": "confirm",
+            "task": "confirm",
+            "reminder": "confirm",
+            "workout": "confirm",
+            "weighIn": "confirm",
+            "meal": "confirm",
+            "expense": "confirm",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "confirm",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 500
+        },
+        "text": "how much did I spend on food this month?",
+        "status": "answered",
+        "reply": "Here's what your data says.",
+        "items": [
+          {
+            "t": "answer"
+          }
+        ],
+        "drafts": []
+      },
+      {
+        "variant": "all-confirm",
+        "settings": {
+          "rules": {
+            "habit": "confirm",
+            "task": "confirm",
+            "reminder": "confirm",
+            "workout": "confirm",
+            "weighIn": "confirm",
+            "meal": "confirm",
+            "expense": "confirm",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "confirm",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 500
+        },
+        "text": "ugh long day",
+        "status": "done",
+        "reply": "Heard you.",
+        "items": [
+          {
+            "t": "info",
+            "tone": "journal-suggest"
+          }
+        ],
+        "drafts": []
+      },
+      {
+        "variant": "all-confirm",
+        "settings": {
+          "rules": {
+            "habit": "confirm",
+            "task": "confirm",
+            "reminder": "confirm",
+            "workout": "confirm",
+            "weighIn": "confirm",
+            "meal": "confirm",
+            "expense": "confirm",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "confirm",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 500
+        },
+        "text": "asdf qwerty",
+        "status": "done",
+        "reply": "Hmm.",
+        "items": [
+          {
+            "t": "info",
+            "tone": "fallback"
+          }
+        ],
+        "drafts": []
+      },
+      {
+        "variant": "all-confirm",
+        "settings": {
+          "rules": {
+            "habit": "confirm",
+            "task": "confirm",
+            "reminder": "confirm",
+            "workout": "confirm",
+            "weighIn": "confirm",
+            "meal": "confirm",
+            "expense": "confirm",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "confirm",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 500
+        },
+        "text": "new habit: floss at 10pm",
+        "status": "done",
+        "reply": "One to confirm.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "habitCreate",
+            "tier": "confirm",
+            "state": "proposed"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "habitCreate",
+            "target": "habits",
+            "rule": "structure",
+            "confirm": true,
+            "payload": {
+              "kind": "habitCreate",
+              "name": "Floss",
+              "icon": "🦷",
+              "type": "check",
+              "days": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              "time": "22:00",
+              "logToday": false
+            }
+          }
+        ]
+      },
+      {
+        "variant": "all-confirm",
+        "settings": {
+          "rules": {
+            "habit": "confirm",
+            "task": "confirm",
+            "reminder": "confirm",
+            "workout": "confirm",
+            "weighIn": "confirm",
+            "meal": "confirm",
+            "expense": "confirm",
+            "income": "confirm",
+            "transfer": "confirm",
+            "journal": "confirm",
+            "structure": "confirm"
+          },
+          "moneyThreshold": 500
+        },
+        "text": "$20 netflix",
+        "status": "done",
+        "reply": "One to confirm.",
+        "items": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "tier": "confirm",
+            "state": "proposed",
+            "warn": "Foreign currency: $20 ≈ ₱1,120 at ₱56/$ (FX rules are an open question in Finance)."
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "target": "finance",
+            "rule": "expense",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "expense",
+              "amount": 1120,
+              "categoryId": "subs",
+              "accountId": "gcash",
+              "payee": "Netflix",
+              "currency": "USD"
+            },
+            "confirm": true,
+            "warn": "Foreign currency: $20 ≈ ₱1,120 at ₱56/$ (FX rules are an open question in Finance)."
+          }
+        ]
+      }
+    ]
+  }
+}

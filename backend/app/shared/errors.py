@@ -14,6 +14,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from sqlalchemy.exc import IntegrityError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.core.config import settings
@@ -88,6 +89,20 @@ async def validation_exception_handler(
     )
 
 
+async def integrity_error_handler(
+    _request: Request, _exc: IntegrityError
+) -> JSONResponse:
+    # A uniqueness or foreign-key race the service did not pre-check (e.g. a
+    # client-minted id another user already holds). The constraint name and
+    # the offending values stay in the server log, never in the response.
+    logger.warning("Integrity conflict", exc_info=_exc)
+    return _envelope_response(
+        409,
+        "integrity_conflict",
+        "That conflicts with existing data. Refresh and try again.",
+    )
+
+
 async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     # Registering an Exception handler stops ServerErrorMiddleware from
     # printing the traceback, so log it here; the envelope never carries
@@ -112,4 +127,5 @@ def register_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(
         RequestValidationError, cast(Any, validation_exception_handler)
     )
+    app.add_exception_handler(IntegrityError, cast(Any, integrity_error_handler))
     app.add_exception_handler(Exception, unhandled_exception_handler)

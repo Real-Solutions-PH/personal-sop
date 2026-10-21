@@ -14,7 +14,7 @@ import uuid
 from typing import Any, Protocol
 
 import redis
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from redis.exceptions import RedisError
 
 from app.core.config import settings
@@ -161,5 +161,36 @@ def rate_limited(key: str = "api", *, cost: int = 1) -> Any:
 
     def _check(tenant: TenantDep) -> None:
         check_rate_limit(tenant, key, cost=cost)
+
+    return Depends(_check)
+
+
+# Anonymous routes have no tenant, so their buckets are keyed on the client
+# address instead: a name-based UUID stands in for the tenant id, keeping the
+# one ``backend`` seam (and its test substitution) for both kinds of caller.
+_CLIENT_NAMESPACE = uuid.UUID("6f1d3c2a-8b4e-5a17-9c60-2d7e1f0b4a93")
+
+
+def client_bucket(request: Request) -> uuid.UUID:
+    """The per-client-address bucket id for an unauthenticated request.
+
+    Uses the address the ASGI server reports, which is the proxy's unless the
+    server is run with trusted proxy headers.
+    """
+    host = request.client.host if request.client else "unknown"
+    return uuid.uuid5(_CLIENT_NAMESPACE, host)
+
+
+def rate_limited_by_client(key: str, *, cost: int = 1) -> Any:
+    """``dependencies=[...]`` marker for routes that take no credentials:
+    limits per client address through the same backend as
+    :func:`rate_limited`."""
+
+    def _check(request: Request) -> None:
+        if not backend.allow(client_bucket(request), f"client:{key}", cost):
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Too many requests. Try again in a minute.",
+            )
 
     return Depends(_check)

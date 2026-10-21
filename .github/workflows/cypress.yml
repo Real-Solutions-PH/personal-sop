@@ -33,6 +33,7 @@ jobs:
           changed:
             - backend/**
             - frontend/**
+            - shared/**
             - e2e/**
             - .env
             - compose*.yml

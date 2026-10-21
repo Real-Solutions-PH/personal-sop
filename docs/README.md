@@ -12,7 +12,7 @@ Context pack for human + AI programmers building this SaaS. Fill each template; 
 | [03-user-personas.md](03-user-personas.md) | Target users, jobs-to-be-done | PM/Design |
 | [04-user-journeys.md](04-user-journeys.md) | Flows, touchpoints, edge cases | Design |
 | [05-project-plan.md](05-project-plan.md) | Milestones, timeline, resources | PM |
-| [08-data-model.md](08-data-model.md) | Entities, schema, relationships | Backend |
+| [08-data-model.md](08-data-model.md) | Entities, schema, relationships (incl. the mobile API domain ERD, 2026-10-18) | Backend |
 | [10-implementation-plan.md](10-implementation-plan.md) | Phases, tasks, dependencies | Tech lead |
 | [13-deployment.md](13-deployment.md) | Single-environment policy, manual promotion | DevOps |
 | [14-observability.md](14-observability.md) | Logs, metrics, traces, alerts | DevOps |
@@ -25,6 +25,8 @@ Context pack for human + AI programmers building this SaaS. Fill each template; 
 | [21-onboarding.md](21-onboarding.md) | Dev setup, repo tour, runbook | Eng |
 | [22-ai-module.md](22-ai-module.md) | AI module — LLM provider/key setup, chat transport, spend-cap posture | Backend |
 | [22-data-protection.md](22-data-protection.md) | Deletion, retention, GDPR export/erase, audit trail | Backend |
+| [mobile.md](mobile.md) | Native Expo prototype, shared domain, running and verification | Eng |
+| [brand/fern.md](brand/fern.md) | Fern, the AI companion: mark, orb, colour, voice (2026-10-20) | Design |
 | [constitution.md](constitution.md) | Engineering Constitution — stack defaults and conventions | All |
 | [ia/](ia/README.md) | Information architecture — screens, flows, open questions per module | Design |
 | [adr/](adr/) | Architecture Decision Records — one file per decision | Tech lead |

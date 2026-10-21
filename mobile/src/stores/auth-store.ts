@@ -42,6 +42,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: "auth-store",
+      skipHydration: process.env.EXPO_PUBLIC_APP_MODE !== "connected",
       storage: createJSONStorage(() => mmkvStorage),
     },
   ),

@@ -1,0 +1,5059 @@
+{
+  "frozenNow": "2026-10-18T04:00:00.000Z",
+  "source": "shared/prototype",
+  "data": {
+    "latestBodyweight": 78.6,
+    "exStats": [
+      {
+        "workoutId": "w69",
+        "weId": "we-69-0",
+        "bestE1rm": 70.91666666666667,
+        "heaviest": 57.5,
+        "volume": 1150,
+        "topSetId": "s-69-0-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w69",
+        "weId": "we-69-1",
+        "bestE1rm": 43.16666666666667,
+        "heaviest": 35,
+        "volume": 735,
+        "topSetId": "s-69-1-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w69",
+        "weId": "we-69-2",
+        "bestE1rm": 23.400000000000002,
+        "heaviest": 18,
+        "volume": 486,
+        "topSetId": "s-69-2-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w69",
+        "weId": "we-69-3",
+        "bestE1rm": 9.799999999999999,
+        "heaviest": 7,
+        "volume": 252,
+        "topSetId": "s-69-3-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w69",
+        "weId": "we-69-4",
+        "bestE1rm": 30.75,
+        "heaviest": 22.5,
+        "volume": 720,
+        "topSetId": "s-69-4-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w68",
+        "weId": "we-68-0",
+        "bestE1rm": 61.66666666666667,
+        "heaviest": 50,
+        "volume": 1000,
+        "topSetId": "s-68-0-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w68",
+        "weId": "we-68-1",
+        "bestE1rm": 58.5,
+        "heaviest": 45,
+        "volume": 1215,
+        "topSetId": "s-68-1-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w68",
+        "weId": "we-68-2",
+        "bestE1rm": 94.32,
+        "heaviest": 0,
+        "volume": 1414.8,
+        "topSetId": "s-68-2-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w68",
+        "weId": "we-68-3",
+        "bestE1rm": 24.5,
+        "heaviest": 17.5,
+        "volume": 612.5,
+        "topSetId": "s-68-3-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w68",
+        "weId": "we-68-4",
+        "bestE1rm": 13,
+        "heaviest": 10,
+        "volume": 260,
+        "topSetId": "s-68-4-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w66",
+        "weId": "we-66-0",
+        "bestE1rm": 93.33333333333334,
+        "heaviest": 80,
+        "volume": 1200,
+        "topSetId": "s-66-0-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w66",
+        "weId": "we-66-1",
+        "bestE1rm": 86.33333333333334,
+        "heaviest": 70,
+        "volume": 1470,
+        "topSetId": "s-66-1-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w66",
+        "weId": "we-66-2",
+        "bestE1rm": 164,
+        "heaviest": 120,
+        "volume": 3960,
+        "topSetId": "s-66-2-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w64",
+        "weId": "we-64-0",
+        "bestE1rm": 72.83333333333333,
+        "heaviest": 57.5,
+        "volume": 1380,
+        "topSetId": "s-64-0-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w64",
+        "weId": "we-64-1",
+        "bestE1rm": 43.16666666666667,
+        "heaviest": 35,
+        "volume": 665,
+        "topSetId": "s-64-1-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w64",
+        "weId": "we-64-2",
+        "bestE1rm": 24,
+        "heaviest": 18,
+        "volume": 522,
+        "topSetId": "s-64-2-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w64",
+        "weId": "we-64-3",
+        "bestE1rm": 9.799999999999999,
+        "heaviest": 7,
+        "volume": 252,
+        "topSetId": "s-64-3-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w64",
+        "weId": "we-64-4",
+        "bestE1rm": 31.499999999999996,
+        "heaviest": 22.5,
+        "volume": 810,
+        "topSetId": "s-64-4-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w62",
+        "weId": "we-62-0",
+        "bestE1rm": 63.33333333333333,
+        "heaviest": 50,
+        "volume": 1200,
+        "topSetId": "s-62-0-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w62",
+        "weId": "we-62-1",
+        "bestE1rm": 58.5,
+        "heaviest": 45,
+        "volume": 1170,
+        "topSetId": "s-62-1-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w62",
+        "weId": "we-62-2",
+        "bestE1rm": 94.32,
+        "heaviest": 0,
+        "volume": 1257.6,
+        "topSetId": "s-62-2-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w62",
+        "weId": "we-62-3",
+        "bestE1rm": 24.5,
+        "heaviest": 17.5,
+        "volume": 612.5,
+        "topSetId": "s-62-3-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w62",
+        "weId": "we-62-4",
+        "bestE1rm": 13,
+        "heaviest": 10,
+        "volume": 260,
+        "topSetId": "s-62-4-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w61",
+        "weId": "we-61-0",
+        "bestE1rm": 96,
+        "heaviest": 80,
+        "volume": 1360,
+        "topSetId": "s-61-0-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w61",
+        "weId": "we-61-1",
+        "bestE1rm": 86.33333333333334,
+        "heaviest": 70,
+        "volume": 1400,
+        "topSetId": "s-61-1-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w61",
+        "weId": "we-61-2",
+        "bestE1rm": 164,
+        "heaviest": 120,
+        "volume": 3960,
+        "topSetId": "s-61-2-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w59",
+        "weId": "we-59-0",
+        "bestE1rm": 74.75,
+        "heaviest": 57.5,
+        "volume": 1552.5,
+        "topSetId": "s-59-0-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w59",
+        "weId": "we-59-1",
+        "bestE1rm": 44.33333333333333,
+        "heaviest": 35,
+        "volume": 840,
+        "topSetId": "s-59-1-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w59",
+        "weId": "we-59-2",
+        "bestE1rm": 24.6,
+        "heaviest": 18,
+        "volume": 594,
+        "topSetId": "s-59-2-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w59",
+        "weId": "we-59-3",
+        "bestE1rm": 9.799999999999999,
+        "heaviest": 7,
+        "volume": 266,
+        "topSetId": "s-59-3-2",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w59",
+        "weId": "we-59-4",
+        "bestE1rm": 31.499999999999996,
+        "heaviest": 22.5,
+        "volume": 810,
+        "topSetId": "s-59-4-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w57",
+        "weId": "we-57-0",
+        "bestE1rm": 63.33333333333333,
+        "heaviest": 50,
+        "volume": 1200,
+        "topSetId": "s-57-0-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w57",
+        "weId": "we-57-1",
+        "bestE1rm": 60,
+        "heaviest": 45,
+        "volume": 1305,
+        "topSetId": "s-57-1-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w57",
+        "weId": "we-57-2",
+        "bestE1rm": 94.32,
+        "heaviest": 0,
+        "volume": 1414.8,
+        "topSetId": "s-57-2-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w57",
+        "weId": "we-57-3",
+        "bestE1rm": 24.5,
+        "heaviest": 17.5,
+        "volume": 665,
+        "topSetId": "s-57-3-2",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w57",
+        "weId": "we-57-4",
+        "bestE1rm": 13,
+        "heaviest": 10,
+        "volume": 270,
+        "topSetId": "s-57-4-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w55",
+        "weId": "we-55-0",
+        "bestE1rm": 98.66666666666667,
+        "heaviest": 80,
+        "volume": 1680,
+        "topSetId": "s-55-0-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w55",
+        "weId": "we-55-1",
+        "bestE1rm": 86.33333333333334,
+        "heaviest": 70,
+        "volume": 1400,
+        "topSetId": "s-55-1-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w55",
+        "weId": "we-55-2",
+        "bestE1rm": 164,
+        "heaviest": 120,
+        "volume": 3960,
+        "topSetId": "s-55-2-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w54",
+        "weId": "we-54-0",
+        "bestE1rm": 74.75,
+        "heaviest": 57.5,
+        "volume": 1495,
+        "topSetId": "s-54-0-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w54",
+        "weId": "we-54-1",
+        "bestE1rm": 44.33333333333333,
+        "heaviest": 35,
+        "volume": 805,
+        "topSetId": "s-54-1-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w54",
+        "weId": "we-54-2",
+        "bestE1rm": 24.6,
+        "heaviest": 18,
+        "volume": 594,
+        "topSetId": "s-54-2-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w54",
+        "weId": "we-54-3",
+        "bestE1rm": 10.033333333333333,
+        "heaviest": 7,
+        "volume": 273,
+        "topSetId": "s-54-3-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w54",
+        "weId": "we-54-4",
+        "bestE1rm": 32.25,
+        "heaviest": 22.5,
+        "volume": 877.5,
+        "topSetId": "s-54-4-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w52",
+        "weId": "we-52-0",
+        "bestE1rm": 63.33333333333333,
+        "heaviest": 50,
+        "volume": 1150,
+        "topSetId": "s-52-0-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w52",
+        "weId": "we-52-1",
+        "bestE1rm": 60,
+        "heaviest": 45,
+        "volume": 1305,
+        "topSetId": "s-52-1-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w52",
+        "weId": "we-52-2",
+        "bestE1rm": 96.94,
+        "heaviest": 0,
+        "volume": 1650.6,
+        "topSetId": "s-52-2-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w52",
+        "weId": "we-52-3",
+        "bestE1rm": 25.666666666666668,
+        "heaviest": 17.5,
+        "volume": 717.5,
+        "topSetId": "s-52-3-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w52",
+        "weId": "we-52-4",
+        "bestE1rm": 13.333333333333332,
+        "heaviest": 10,
+        "volume": 290,
+        "topSetId": "s-52-4-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w50",
+        "weId": "we-50-0",
+        "bestE1rm": 98.66666666666667,
+        "heaviest": 80,
+        "volume": 1680,
+        "topSetId": "s-50-0-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w50",
+        "weId": "we-50-1",
+        "bestE1rm": 88.66666666666666,
+        "heaviest": 70,
+        "volume": 1610,
+        "topSetId": "s-50-1-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w50",
+        "weId": "we-50-2",
+        "bestE1rm": 168,
+        "heaviest": 120,
+        "volume": 4200,
+        "topSetId": "s-50-2-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w43",
+        "weId": "we-43-0",
+        "bestE1rm": 76.66666666666666,
+        "heaviest": 57.5,
+        "volume": 1725,
+        "topSetId": "s-43-0-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w43",
+        "weId": "we-43-1",
+        "bestE1rm": 45.5,
+        "heaviest": 35,
+        "volume": 945,
+        "topSetId": "s-43-1-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w43",
+        "weId": "we-43-2",
+        "bestE1rm": 24.6,
+        "heaviest": 18,
+        "volume": 576,
+        "topSetId": "s-43-2-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w43",
+        "weId": "we-43-3",
+        "bestE1rm": 10.266666666666667,
+        "heaviest": 7,
+        "volume": 294,
+        "topSetId": "s-43-3-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w43",
+        "weId": "we-43-4",
+        "bestE1rm": 31.499999999999996,
+        "heaviest": 22.5,
+        "volume": 855,
+        "topSetId": "s-43-4-2",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w41",
+        "weId": "we-41-0",
+        "bestE1rm": 63.33333333333333,
+        "heaviest": 50,
+        "volume": 1150,
+        "topSetId": "s-41-0-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w41",
+        "weId": "we-41-1",
+        "bestE1rm": 61.5,
+        "heaviest": 45,
+        "volume": 1485,
+        "topSetId": "s-41-1-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w41",
+        "weId": "we-41-2",
+        "bestE1rm": 96.94,
+        "heaviest": 0,
+        "volume": 1571.9999999999998,
+        "topSetId": "s-41-2-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w41",
+        "weId": "we-41-3",
+        "bestE1rm": 25.666666666666668,
+        "heaviest": 17.5,
+        "volume": 717.5,
+        "topSetId": "s-41-3-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w41",
+        "weId": "we-41-4",
+        "bestE1rm": 13.666666666666668,
+        "heaviest": 10,
+        "volume": 320,
+        "topSetId": "s-41-4-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w40",
+        "weId": "we-40-0",
+        "bestE1rm": 101.33333333333333,
+        "heaviest": 80,
+        "volume": 1840,
+        "topSetId": "s-40-0-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w40",
+        "weId": "we-40-1",
+        "bestE1rm": 91,
+        "heaviest": 70,
+        "volume": 1890,
+        "topSetId": "s-40-1-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w40",
+        "weId": "we-40-2",
+        "bestE1rm": 172,
+        "heaviest": 120,
+        "volume": 4680,
+        "topSetId": "s-40-2-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w38",
+        "weId": "we-38-0",
+        "bestE1rm": 72,
+        "heaviest": 60,
+        "volume": 1080,
+        "topSetId": "s-38-0-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w38",
+        "weId": "we-38-1",
+        "bestE1rm": 45.5,
+        "heaviest": 35,
+        "volume": 945,
+        "topSetId": "s-38-1-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w38",
+        "weId": "we-38-2",
+        "bestE1rm": 24.6,
+        "heaviest": 18,
+        "volume": 594,
+        "topSetId": "s-38-2-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w38",
+        "weId": "we-38-3",
+        "bestE1rm": 10.5,
+        "heaviest": 7,
+        "volume": 308,
+        "topSetId": "s-38-3-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w38",
+        "weId": "we-38-4",
+        "bestE1rm": 31.499999999999996,
+        "heaviest": 22.5,
+        "volume": 832.5,
+        "topSetId": "s-38-4-1",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w36",
+        "weId": "we-36-0",
+        "bestE1rm": 65,
+        "heaviest": 50,
+        "volume": 1300,
+        "topSetId": "s-36-0-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w36",
+        "weId": "we-36-1",
+        "bestE1rm": 62.99999999999999,
+        "heaviest": 45,
+        "volume": 1620,
+        "topSetId": "s-36-1-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w36",
+        "weId": "we-36-2",
+        "bestE1rm": 99.55999999999999,
+        "heaviest": 0,
+        "volume": 1807.7999999999997,
+        "topSetId": "s-36-2-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w36",
+        "weId": "we-36-3",
+        "bestE1rm": 26.25,
+        "heaviest": 17.5,
+        "volume": 770,
+        "topSetId": "s-36-3-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w36",
+        "weId": "we-36-4",
+        "bestE1rm": 13.666666666666668,
+        "heaviest": 10,
+        "volume": 320,
+        "topSetId": "s-36-4-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w34",
+        "weId": "we-34-0",
+        "bestE1rm": 101.33333333333333,
+        "heaviest": 80,
+        "volume": 1920,
+        "topSetId": "s-34-0-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w34",
+        "weId": "we-34-1",
+        "bestE1rm": 93.33333333333333,
+        "heaviest": 70,
+        "volume": 2030,
+        "topSetId": "s-34-1-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w34",
+        "weId": "we-34-2",
+        "bestE1rm": 172,
+        "heaviest": 120,
+        "volume": 4680,
+        "topSetId": "s-34-2-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w33",
+        "weId": "we-33-0",
+        "bestE1rm": 74,
+        "heaviest": 60,
+        "volume": 1260,
+        "topSetId": "s-33-0-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w33",
+        "weId": "we-33-1",
+        "bestE1rm": 45.5,
+        "heaviest": 35,
+        "volume": 945,
+        "topSetId": "s-33-1-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w33",
+        "weId": "we-33-2",
+        "bestE1rm": 24.6,
+        "heaviest": 18,
+        "volume": 576,
+        "topSetId": "s-33-2-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w33",
+        "weId": "we-33-3",
+        "bestE1rm": 10.5,
+        "heaviest": 7,
+        "volume": 308,
+        "topSetId": "s-33-3-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w33",
+        "weId": "we-33-4",
+        "bestE1rm": 33,
+        "heaviest": 22.5,
+        "volume": 945,
+        "topSetId": "s-33-4-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w31",
+        "weId": "we-31-0",
+        "bestE1rm": 65,
+        "heaviest": 50,
+        "volume": 1350,
+        "topSetId": "s-31-0-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w31",
+        "weId": "we-31-1",
+        "bestE1rm": 60.166666666666664,
+        "heaviest": 47.5,
+        "volume": 1092.5,
+        "topSetId": "s-31-1-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w31",
+        "weId": "we-31-2",
+        "bestE1rm": 99.55999999999999,
+        "heaviest": 0,
+        "volume": 1886.3999999999999,
+        "topSetId": "s-31-2-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w31",
+        "weId": "we-31-3",
+        "bestE1rm": 26.25,
+        "heaviest": 17.5,
+        "volume": 787.5,
+        "topSetId": "s-31-3-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w31",
+        "weId": "we-31-4",
+        "bestE1rm": 14,
+        "heaviest": 10,
+        "volume": 350,
+        "topSetId": "s-31-4-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w27",
+        "weId": "we-27-0",
+        "bestE1rm": 96.25,
+        "heaviest": 82.5,
+        "volume": 1237.5,
+        "topSetId": "s-27-0-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w27",
+        "weId": "we-27-1",
+        "bestE1rm": 93.33333333333333,
+        "heaviest": 70,
+        "volume": 2100,
+        "topSetId": "s-27-1-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w27",
+        "weId": "we-27-2",
+        "bestE1rm": 168,
+        "heaviest": 120,
+        "volume": 4560,
+        "topSetId": "s-27-2-2",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w26",
+        "weId": "we-26-0",
+        "bestE1rm": 76,
+        "heaviest": 60,
+        "volume": 1380,
+        "topSetId": "s-26-0-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w26",
+        "weId": "we-26-1",
+        "bestE1rm": 45.5,
+        "heaviest": 35,
+        "volume": 910,
+        "topSetId": "s-26-1-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w26",
+        "weId": "we-26-2",
+        "bestE1rm": 24.6,
+        "heaviest": 18,
+        "volume": 594,
+        "topSetId": "s-26-2-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w26",
+        "weId": "we-26-3",
+        "bestE1rm": 10.5,
+        "heaviest": 7,
+        "volume": 308,
+        "topSetId": "s-26-3-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w26",
+        "weId": "we-26-4",
+        "bestE1rm": 33.75,
+        "heaviest": 22.5,
+        "volume": 1012.5,
+        "topSetId": "s-26-4-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w24",
+        "weId": "we-24-0",
+        "bestE1rm": 65,
+        "heaviest": 50,
+        "volume": 1350,
+        "topSetId": "s-24-0-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w24",
+        "weId": "we-24-1",
+        "bestE1rm": 61.75,
+        "heaviest": 47.5,
+        "volume": 1235,
+        "topSetId": "s-24-1-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w24",
+        "weId": "we-24-2",
+        "bestE1rm": 102.17999999999999,
+        "heaviest": 0,
+        "volume": 2043.6,
+        "topSetId": "s-24-2-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w24",
+        "weId": "we-24-3",
+        "bestE1rm": 28,
+        "heaviest": 20,
+        "volume": 720,
+        "topSetId": "s-24-3-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w24",
+        "weId": "we-24-4",
+        "bestE1rm": 14,
+        "heaviest": 10,
+        "volume": 360,
+        "topSetId": "s-24-4-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w22",
+        "weId": "we-22-0",
+        "bestE1rm": 99,
+        "heaviest": 82.5,
+        "volume": 1485,
+        "topSetId": "s-22-0-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w22",
+        "weId": "we-22-1",
+        "bestE1rm": 87,
+        "heaviest": 72.5,
+        "volume": 1232.5,
+        "topSetId": "s-22-1-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w22",
+        "weId": "we-22-2",
+        "bestE1rm": 176,
+        "heaviest": 120,
+        "volume": 4920,
+        "topSetId": "s-22-2-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w20",
+        "weId": "we-20-0",
+        "bestE1rm": 76,
+        "heaviest": 60,
+        "volume": 1380,
+        "topSetId": "s-20-0-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w20",
+        "weId": "we-20-1",
+        "bestE1rm": 44.33333333333333,
+        "heaviest": 35,
+        "volume": 840,
+        "topSetId": "s-20-1-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w20",
+        "weId": "we-20-2",
+        "bestE1rm": 24.6,
+        "heaviest": 18,
+        "volume": 576,
+        "topSetId": "s-20-2-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w20",
+        "weId": "we-20-3",
+        "bestE1rm": 10.5,
+        "heaviest": 7,
+        "volume": 308,
+        "topSetId": "s-20-3-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w20",
+        "weId": "we-20-4",
+        "bestE1rm": 33.33333333333333,
+        "heaviest": 25,
+        "volume": 725,
+        "topSetId": "s-20-4-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w19",
+        "weId": "we-19-0",
+        "bestE1rm": 65,
+        "heaviest": 50,
+        "volume": 1350,
+        "topSetId": "s-19-0-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w19",
+        "weId": "we-19-1",
+        "bestE1rm": 63.33333333333333,
+        "heaviest": 47.5,
+        "volume": 1377.5,
+        "topSetId": "s-19-1-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w19",
+        "weId": "we-19-2",
+        "bestE1rm": 104.79999999999998,
+        "heaviest": 0,
+        "volume": 2279.4,
+        "topSetId": "s-19-2-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w19",
+        "weId": "we-19-3",
+        "bestE1rm": 28,
+        "heaviest": 20,
+        "volume": 760,
+        "topSetId": "s-19-3-2",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w19",
+        "weId": "we-19-4",
+        "bestE1rm": 13.933333333333334,
+        "heaviest": 11,
+        "volume": 264,
+        "topSetId": "s-19-4-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w17",
+        "weId": "we-17-0",
+        "bestE1rm": 99,
+        "heaviest": 82.5,
+        "volume": 1485,
+        "topSetId": "s-17-0-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w17",
+        "weId": "we-17-1",
+        "bestE1rm": 87,
+        "heaviest": 72.5,
+        "volume": 1232.5,
+        "topSetId": "s-17-1-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w17",
+        "weId": "we-17-2",
+        "bestE1rm": 176,
+        "heaviest": 120,
+        "volume": 4920,
+        "topSetId": "s-17-2-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w15",
+        "weId": "we-15-0",
+        "bestE1rm": 76,
+        "heaviest": 60,
+        "volume": 1380,
+        "topSetId": "s-15-0-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w15",
+        "weId": "we-15-1",
+        "bestE1rm": 44.33333333333333,
+        "heaviest": 35,
+        "volume": 840,
+        "topSetId": "s-15-1-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w15",
+        "weId": "we-15-2",
+        "bestE1rm": 25.2,
+        "heaviest": 18,
+        "volume": 630,
+        "topSetId": "s-15-2-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w15",
+        "weId": "we-15-3",
+        "bestE1rm": 10.5,
+        "heaviest": 7,
+        "volume": 308,
+        "topSetId": "s-15-3-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w15",
+        "weId": "we-15-4",
+        "bestE1rm": 34.166666666666664,
+        "heaviest": 25,
+        "volume": 800,
+        "topSetId": "s-15-4-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w13",
+        "weId": "we-13-0",
+        "bestE1rm": 65,
+        "heaviest": 50,
+        "volume": 1300,
+        "topSetId": "s-13-0-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w13",
+        "weId": "we-13-1",
+        "bestE1rm": 64.91666666666667,
+        "heaviest": 47.5,
+        "volume": 1520,
+        "topSetId": "s-13-1-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w13",
+        "weId": "we-13-2",
+        "bestE1rm": 104.79999999999998,
+        "heaviest": 0,
+        "volume": 2279.4,
+        "topSetId": "s-13-2-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w13",
+        "weId": "we-13-3",
+        "bestE1rm": 29.333333333333336,
+        "heaviest": 20,
+        "volume": 840,
+        "topSetId": "s-13-3-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w13",
+        "weId": "we-13-4",
+        "bestE1rm": 13.933333333333334,
+        "heaviest": 11,
+        "volume": 264,
+        "topSetId": "s-13-4-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w12",
+        "weId": "we-12-0",
+        "bestE1rm": 101.75,
+        "heaviest": 82.5,
+        "volume": 1732.5,
+        "topSetId": "s-12-0-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w12",
+        "weId": "we-12-1",
+        "bestE1rm": 89.41666666666667,
+        "heaviest": 72.5,
+        "volume": 1450,
+        "topSetId": "s-12-1-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w12",
+        "weId": "we-12-2",
+        "bestE1rm": 180,
+        "heaviest": 120,
+        "volume": 5160,
+        "topSetId": "s-12-2-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w10",
+        "weId": "we-10-0",
+        "bestE1rm": 76,
+        "heaviest": 60,
+        "volume": 1440,
+        "topSetId": "s-10-0-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w10",
+        "weId": "we-10-1",
+        "bestE1rm": 44.33333333333333,
+        "heaviest": 35,
+        "volume": 840,
+        "topSetId": "s-10-1-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w10",
+        "weId": "we-10-2",
+        "bestE1rm": 25.2,
+        "heaviest": 18,
+        "volume": 648,
+        "topSetId": "s-10-2-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w10",
+        "weId": "we-10-3",
+        "bestE1rm": 10.5,
+        "heaviest": 7,
+        "volume": 315,
+        "topSetId": "s-10-3-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w10",
+        "weId": "we-10-4",
+        "bestE1rm": 35,
+        "heaviest": 25,
+        "volume": 875,
+        "topSetId": "s-10-4-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w8",
+        "weId": "we-8-0",
+        "bestE1rm": 66.66666666666666,
+        "heaviest": 50,
+        "volume": 1500,
+        "topSetId": "s-8-0-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w8",
+        "weId": "we-8-1",
+        "bestE1rm": 66.5,
+        "heaviest": 47.5,
+        "volume": 1710,
+        "topSetId": "s-8-1-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w8",
+        "weId": "we-8-2",
+        "bestE1rm": 104.79999999999998,
+        "heaviest": 0,
+        "volume": 2358,
+        "topSetId": "s-8-2-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w8",
+        "weId": "we-8-3",
+        "bestE1rm": 29.333333333333336,
+        "heaviest": 20,
+        "volume": 840,
+        "topSetId": "s-8-3-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w8",
+        "weId": "we-8-4",
+        "bestE1rm": 14.3,
+        "heaviest": 11,
+        "volume": 297,
+        "topSetId": "s-8-4-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w5",
+        "weId": "we-5-0",
+        "bestE1rm": 104.5,
+        "heaviest": 82.5,
+        "volume": 1980,
+        "topSetId": "s-5-0-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w5",
+        "weId": "we-5-1",
+        "bestE1rm": 91.83333333333333,
+        "heaviest": 72.5,
+        "volume": 1667.5,
+        "topSetId": "s-5-1-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w5",
+        "weId": "we-5-2",
+        "bestE1rm": 180,
+        "heaviest": 120,
+        "volume": 5280,
+        "topSetId": "s-5-2-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w3",
+        "weId": "we-3-0",
+        "bestE1rm": 78,
+        "heaviest": 60,
+        "volume": 1560,
+        "topSetId": "s-3-0-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w3",
+        "weId": "we-3-1",
+        "bestE1rm": 44.33333333333333,
+        "heaviest": 35,
+        "volume": 805,
+        "topSetId": "s-3-1-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w3",
+        "weId": "we-3-2",
+        "bestE1rm": 25.333333333333332,
+        "heaviest": 20,
+        "volume": 460,
+        "topSetId": "s-3-2-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w3",
+        "weId": "we-3-3",
+        "bestE1rm": 11.2,
+        "heaviest": 8,
+        "volume": 280,
+        "topSetId": "s-3-3-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w3",
+        "weId": "we-3-4",
+        "bestE1rm": 35,
+        "heaviest": 25,
+        "volume": 875,
+        "topSetId": "s-3-4-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w1",
+        "weId": "we-1-0",
+        "bestE1rm": 63,
+        "heaviest": 52.5,
+        "volume": 945,
+        "topSetId": "s-1-0-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w1",
+        "weId": "we-1-1",
+        "bestE1rm": 63.33333333333333,
+        "heaviest": 50,
+        "volume": 1200,
+        "topSetId": "s-1-1-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w1",
+        "weId": "we-1-2",
+        "bestE1rm": 94.61666666666666,
+        "heaviest": 2.5,
+        "volume": 1216.5,
+        "topSetId": "s-1-2-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w1",
+        "weId": "we-1-3",
+        "bestE1rm": 30,
+        "heaviest": 20,
+        "volume": 880,
+        "topSetId": "s-1-3-0",
+        "doneSets": 3
+      },
+      {
+        "workoutId": "w1",
+        "weId": "we-1-4",
+        "bestE1rm": 14.666666666666666,
+        "heaviest": 11,
+        "volume": 330,
+        "topSetId": "s-1-4-0",
+        "doneSets": 3
+      }
+    ],
+    "workoutTotals": [
+      {
+        "workoutId": "w69",
+        "volume": 3343,
+        "done": 15,
+        "planned": 15,
+        "durationSec": 3469.29
+      },
+      {
+        "workoutId": "w68",
+        "volume": 4502.3,
+        "done": 15,
+        "planned": 15,
+        "durationSec": 3808.502
+      },
+      {
+        "workoutId": "w66",
+        "volume": 6630,
+        "done": 9,
+        "planned": 9,
+        "durationSec": 2587.64
+      },
+      {
+        "workoutId": "w64",
+        "volume": 3629,
+        "done": 15,
+        "planned": 15,
+        "durationSec": 3623.493
+      },
+      {
+        "workoutId": "w62",
+        "volume": 4500.1,
+        "done": 15,
+        "planned": 15,
+        "durationSec": 3433.796
+      },
+      {
+        "workoutId": "w61",
+        "volume": 6720,
+        "done": 9,
+        "planned": 9,
+        "durationSec": 2274.994
+      },
+      {
+        "workoutId": "w59",
+        "volume": 4062.5,
+        "done": 15,
+        "planned": 15,
+        "durationSec": 3640.296
+      },
+      {
+        "workoutId": "w57",
+        "volume": 4854.8,
+        "done": 15,
+        "planned": 15,
+        "durationSec": 3770.83
+      },
+      {
+        "workoutId": "w55",
+        "volume": 7040,
+        "done": 9,
+        "planned": 9,
+        "durationSec": 2383.772
+      },
+      {
+        "workoutId": "w54",
+        "volume": 4044.5,
+        "done": 15,
+        "planned": 15,
+        "durationSec": 3690.942
+      },
+      {
+        "workoutId": "w52",
+        "volume": 5113.1,
+        "done": 15,
+        "planned": 15,
+        "durationSec": 3508.613
+      },
+      {
+        "workoutId": "w50",
+        "volume": 7490,
+        "done": 9,
+        "planned": 9,
+        "durationSec": 2223.936
+      },
+      {
+        "workoutId": "w43",
+        "volume": 4395,
+        "done": 15,
+        "planned": 15,
+        "durationSec": 3578.614
+      },
+      {
+        "workoutId": "w41",
+        "volume": 5244.5,
+        "done": 15,
+        "planned": 15,
+        "durationSec": 3718.903
+      },
+      {
+        "workoutId": "w40",
+        "volume": 8410,
+        "done": 9,
+        "planned": 9,
+        "durationSec": 2427.769
+      },
+      {
+        "workoutId": "w38",
+        "volume": 3759.5,
+        "done": 15,
+        "planned": 15,
+        "durationSec": 3645.457
+      },
+      {
+        "workoutId": "w36",
+        "volume": 5817.799999999999,
+        "done": 15,
+        "planned": 15,
+        "durationSec": 3740.468
+      },
+      {
+        "workoutId": "w34",
+        "volume": 8630,
+        "done": 9,
+        "planned": 9,
+        "durationSec": 2291.696
+      },
+      {
+        "workoutId": "w33",
+        "volume": 4034,
+        "done": 15,
+        "planned": 15,
+        "durationSec": 3690.872
+      },
+      {
+        "workoutId": "w31",
+        "volume": 5466.4,
+        "done": 15,
+        "planned": 15,
+        "durationSec": 3561.386
+      },
+      {
+        "workoutId": "w27",
+        "volume": 7897.5,
+        "done": 9,
+        "planned": 9,
+        "durationSec": 2305.157
+      },
+      {
+        "workoutId": "w26",
+        "volume": 4204.5,
+        "done": 15,
+        "planned": 15,
+        "durationSec": 3723.531
+      },
+      {
+        "workoutId": "w24",
+        "volume": 5708.6,
+        "done": 15,
+        "planned": 15,
+        "durationSec": 3522.872
+      },
+      {
+        "workoutId": "w22",
+        "volume": 7637.5,
+        "done": 9,
+        "planned": 9,
+        "durationSec": 2327.839
+      },
+      {
+        "workoutId": "w20",
+        "volume": 3829,
+        "done": 15,
+        "planned": 15,
+        "durationSec": 3702.151
+      },
+      {
+        "workoutId": "w19",
+        "volume": 6030.9,
+        "done": 15,
+        "planned": 15,
+        "durationSec": 3489.151
+      },
+      {
+        "workoutId": "w17",
+        "volume": 7637.5,
+        "done": 9,
+        "planned": 9,
+        "durationSec": 2123.711
+      },
+      {
+        "workoutId": "w15",
+        "volume": 3958,
+        "done": 15,
+        "planned": 15,
+        "durationSec": 3576.492
+      },
+      {
+        "workoutId": "w13",
+        "volume": 6203.4,
+        "done": 15,
+        "planned": 15,
+        "durationSec": 3675.919
+      },
+      {
+        "workoutId": "w12",
+        "volume": 8342.5,
+        "done": 9,
+        "planned": 9,
+        "durationSec": 2499.536
+      },
+      {
+        "workoutId": "w10",
+        "volume": 4118,
+        "done": 15,
+        "planned": 15,
+        "durationSec": 3669.881
+      },
+      {
+        "workoutId": "w8",
+        "volume": 6705,
+        "done": 15,
+        "planned": 15,
+        "durationSec": 3647.378
+      },
+      {
+        "workoutId": "w5",
+        "volume": 8927.5,
+        "done": 9,
+        "planned": 9,
+        "durationSec": 2391.519
+      },
+      {
+        "workoutId": "w3",
+        "volume": 3980,
+        "done": 15,
+        "planned": 15,
+        "durationSec": 3532.856
+      },
+      {
+        "workoutId": "w1",
+        "volume": 4571.5,
+        "done": 15,
+        "planned": 15,
+        "durationSec": 3432.281
+      }
+    ],
+    "allPrs": [
+      {
+        "workoutId": "w64",
+        "exerciseId": "bench",
+        "kind": "e1rm",
+        "value": 72.83333333333333,
+        "prev": 70.91666666666667,
+        "at": "2026-08-15T00:11:00.000Z"
+      },
+      {
+        "workoutId": "w64",
+        "exerciseId": "incline-db",
+        "kind": "e1rm",
+        "value": 24,
+        "prev": 23.400000000000002,
+        "at": "2026-08-15T00:11:00.000Z"
+      },
+      {
+        "workoutId": "w64",
+        "exerciseId": "pushdown",
+        "kind": "e1rm",
+        "value": 31.499999999999996,
+        "prev": 30.75,
+        "at": "2026-08-15T00:11:00.000Z"
+      },
+      {
+        "workoutId": "w62",
+        "exerciseId": "row",
+        "kind": "e1rm",
+        "value": 63.33333333333333,
+        "prev": 61.66666666666667,
+        "at": "2026-08-17T10:48:00.000Z"
+      },
+      {
+        "workoutId": "w61",
+        "exerciseId": "squat",
+        "kind": "e1rm",
+        "value": 96,
+        "prev": 93.33333333333334,
+        "at": "2026-08-18T10:31:00.000Z"
+      },
+      {
+        "workoutId": "w59",
+        "exerciseId": "bench",
+        "kind": "e1rm",
+        "value": 74.75,
+        "prev": 72.83333333333333,
+        "at": "2026-08-20T10:22:00.000Z"
+      },
+      {
+        "workoutId": "w59",
+        "exerciseId": "ohp",
+        "kind": "e1rm",
+        "value": 44.33333333333333,
+        "prev": 43.16666666666667,
+        "at": "2026-08-20T10:22:00.000Z"
+      },
+      {
+        "workoutId": "w59",
+        "exerciseId": "incline-db",
+        "kind": "e1rm",
+        "value": 24.6,
+        "prev": 24,
+        "at": "2026-08-20T10:22:00.000Z"
+      },
+      {
+        "workoutId": "w59",
+        "exerciseId": "lateral",
+        "kind": "volume",
+        "value": 266,
+        "prev": 252,
+        "at": "2026-08-20T10:22:00.000Z"
+      },
+      {
+        "workoutId": "w57",
+        "exerciseId": "pulldown",
+        "kind": "e1rm",
+        "value": 60,
+        "prev": 58.5,
+        "at": "2026-08-22T00:11:00.000Z"
+      },
+      {
+        "workoutId": "w57",
+        "exerciseId": "facepull",
+        "kind": "volume",
+        "value": 665,
+        "prev": 612.5,
+        "at": "2026-08-22T00:11:00.000Z"
+      },
+      {
+        "workoutId": "w57",
+        "exerciseId": "curl",
+        "kind": "volume",
+        "value": 270,
+        "prev": 260,
+        "at": "2026-08-22T00:11:00.000Z"
+      },
+      {
+        "workoutId": "w55",
+        "exerciseId": "squat",
+        "kind": "e1rm",
+        "value": 98.66666666666667,
+        "prev": 96,
+        "at": "2026-08-24T10:36:00.000Z"
+      },
+      {
+        "workoutId": "w54",
+        "exerciseId": "lateral",
+        "kind": "e1rm",
+        "value": 10.033333333333333,
+        "prev": 9.799999999999999,
+        "at": "2026-08-25T10:24:00.000Z"
+      },
+      {
+        "workoutId": "w54",
+        "exerciseId": "pushdown",
+        "kind": "e1rm",
+        "value": 32.25,
+        "prev": 31.499999999999996,
+        "at": "2026-08-25T10:24:00.000Z"
+      },
+      {
+        "workoutId": "w52",
+        "exerciseId": "pullup",
+        "kind": "e1rm",
+        "value": 96.94,
+        "prev": 94.32,
+        "at": "2026-08-27T10:36:00.000Z"
+      },
+      {
+        "workoutId": "w52",
+        "exerciseId": "facepull",
+        "kind": "e1rm",
+        "value": 25.666666666666668,
+        "prev": 24.5,
+        "at": "2026-08-27T10:36:00.000Z"
+      },
+      {
+        "workoutId": "w52",
+        "exerciseId": "curl",
+        "kind": "e1rm",
+        "value": 13.333333333333332,
+        "prev": 13,
+        "at": "2026-08-27T10:36:00.000Z"
+      },
+      {
+        "workoutId": "w50",
+        "exerciseId": "rdl",
+        "kind": "e1rm",
+        "value": 88.66666666666666,
+        "prev": 86.33333333333334,
+        "at": "2026-08-29T00:20:00.000Z"
+      },
+      {
+        "workoutId": "w50",
+        "exerciseId": "legpress",
+        "kind": "e1rm",
+        "value": 168,
+        "prev": 164,
+        "at": "2026-08-29T00:20:00.000Z"
+      },
+      {
+        "workoutId": "w43",
+        "exerciseId": "bench",
+        "kind": "e1rm",
+        "value": 76.66666666666666,
+        "prev": 74.75,
+        "at": "2026-09-05T00:24:00.000Z"
+      },
+      {
+        "workoutId": "w43",
+        "exerciseId": "ohp",
+        "kind": "e1rm",
+        "value": 45.5,
+        "prev": 44.33333333333333,
+        "at": "2026-09-05T00:24:00.000Z"
+      },
+      {
+        "workoutId": "w43",
+        "exerciseId": "lateral",
+        "kind": "e1rm",
+        "value": 10.266666666666667,
+        "prev": 10.033333333333333,
+        "at": "2026-09-05T00:24:00.000Z"
+      },
+      {
+        "workoutId": "w41",
+        "exerciseId": "pulldown",
+        "kind": "e1rm",
+        "value": 61.5,
+        "prev": 60,
+        "at": "2026-09-07T10:32:00.000Z"
+      },
+      {
+        "workoutId": "w41",
+        "exerciseId": "curl",
+        "kind": "e1rm",
+        "value": 13.666666666666668,
+        "prev": 13.333333333333332,
+        "at": "2026-09-07T10:32:00.000Z"
+      },
+      {
+        "workoutId": "w40",
+        "exerciseId": "squat",
+        "kind": "e1rm",
+        "value": 101.33333333333333,
+        "prev": 98.66666666666667,
+        "at": "2026-09-08T10:32:00.000Z"
+      },
+      {
+        "workoutId": "w40",
+        "exerciseId": "rdl",
+        "kind": "e1rm",
+        "value": 91,
+        "prev": 88.66666666666666,
+        "at": "2026-09-08T10:32:00.000Z"
+      },
+      {
+        "workoutId": "w40",
+        "exerciseId": "legpress",
+        "kind": "e1rm",
+        "value": 172,
+        "prev": 168,
+        "at": "2026-09-08T10:32:00.000Z"
+      },
+      {
+        "workoutId": "w38",
+        "exerciseId": "bench",
+        "kind": "weight",
+        "value": 60,
+        "prev": 57.5,
+        "at": "2026-09-10T10:41:00.000Z"
+      },
+      {
+        "workoutId": "w38",
+        "exerciseId": "lateral",
+        "kind": "e1rm",
+        "value": 10.5,
+        "prev": 10.266666666666667,
+        "at": "2026-09-10T10:41:00.000Z"
+      },
+      {
+        "workoutId": "w36",
+        "exerciseId": "row",
+        "kind": "e1rm",
+        "value": 65,
+        "prev": 63.33333333333333,
+        "at": "2026-09-12T00:04:00.000Z"
+      },
+      {
+        "workoutId": "w36",
+        "exerciseId": "pulldown",
+        "kind": "e1rm",
+        "value": 62.99999999999999,
+        "prev": 61.5,
+        "at": "2026-09-12T00:04:00.000Z"
+      },
+      {
+        "workoutId": "w36",
+        "exerciseId": "pullup",
+        "kind": "e1rm",
+        "value": 99.55999999999999,
+        "prev": 96.94,
+        "at": "2026-09-12T00:04:00.000Z"
+      },
+      {
+        "workoutId": "w36",
+        "exerciseId": "facepull",
+        "kind": "e1rm",
+        "value": 26.25,
+        "prev": 25.666666666666668,
+        "at": "2026-09-12T00:04:00.000Z"
+      },
+      {
+        "workoutId": "w34",
+        "exerciseId": "squat",
+        "kind": "volume",
+        "value": 1920,
+        "prev": 1840,
+        "at": "2026-09-14T10:34:00.000Z"
+      },
+      {
+        "workoutId": "w34",
+        "exerciseId": "rdl",
+        "kind": "e1rm",
+        "value": 93.33333333333333,
+        "prev": 91,
+        "at": "2026-09-14T10:34:00.000Z"
+      },
+      {
+        "workoutId": "w33",
+        "exerciseId": "pushdown",
+        "kind": "e1rm",
+        "value": 33,
+        "prev": 32.25,
+        "at": "2026-09-15T10:24:00.000Z"
+      },
+      {
+        "workoutId": "w31",
+        "exerciseId": "row",
+        "kind": "volume",
+        "value": 1350,
+        "prev": 1300,
+        "at": "2026-09-17T10:27:00.000Z"
+      },
+      {
+        "workoutId": "w31",
+        "exerciseId": "pulldown",
+        "kind": "weight",
+        "value": 47.5,
+        "prev": 45,
+        "at": "2026-09-17T10:27:00.000Z"
+      },
+      {
+        "workoutId": "w31",
+        "exerciseId": "pullup",
+        "kind": "volume",
+        "value": 1886.3999999999999,
+        "prev": 1807.7999999999997,
+        "at": "2026-09-17T10:27:00.000Z"
+      },
+      {
+        "workoutId": "w31",
+        "exerciseId": "facepull",
+        "kind": "volume",
+        "value": 787.5,
+        "prev": 770,
+        "at": "2026-09-17T10:27:00.000Z"
+      },
+      {
+        "workoutId": "w31",
+        "exerciseId": "curl",
+        "kind": "e1rm",
+        "value": 14,
+        "prev": 13.666666666666668,
+        "at": "2026-09-17T10:27:00.000Z"
+      },
+      {
+        "workoutId": "w27",
+        "exerciseId": "squat",
+        "kind": "weight",
+        "value": 82.5,
+        "prev": 80,
+        "at": "2026-09-21T10:31:00.000Z"
+      },
+      {
+        "workoutId": "w27",
+        "exerciseId": "rdl",
+        "kind": "volume",
+        "value": 2100,
+        "prev": 2030,
+        "at": "2026-09-21T10:31:00.000Z"
+      },
+      {
+        "workoutId": "w26",
+        "exerciseId": "pushdown",
+        "kind": "e1rm",
+        "value": 33.75,
+        "prev": 33,
+        "at": "2026-09-22T10:41:00.000Z"
+      },
+      {
+        "workoutId": "w24",
+        "exerciseId": "pullup",
+        "kind": "e1rm",
+        "value": 102.17999999999999,
+        "prev": 99.55999999999999,
+        "at": "2026-09-24T10:27:00.000Z"
+      },
+      {
+        "workoutId": "w24",
+        "exerciseId": "facepull",
+        "kind": "e1rm",
+        "value": 28,
+        "prev": 26.25,
+        "at": "2026-09-24T10:27:00.000Z"
+      },
+      {
+        "workoutId": "w24",
+        "exerciseId": "curl",
+        "kind": "volume",
+        "value": 360,
+        "prev": 350,
+        "at": "2026-09-24T10:27:00.000Z"
+      },
+      {
+        "workoutId": "w22",
+        "exerciseId": "rdl",
+        "kind": "weight",
+        "value": 72.5,
+        "prev": 70,
+        "at": "2026-09-26T00:17:00.000Z"
+      },
+      {
+        "workoutId": "w22",
+        "exerciseId": "legpress",
+        "kind": "e1rm",
+        "value": 176,
+        "prev": 172,
+        "at": "2026-09-26T00:17:00.000Z"
+      },
+      {
+        "workoutId": "w20",
+        "exerciseId": "pushdown",
+        "kind": "weight",
+        "value": 25,
+        "prev": 22.5,
+        "at": "2026-09-28T10:26:00.000Z"
+      },
+      {
+        "workoutId": "w19",
+        "exerciseId": "pulldown",
+        "kind": "e1rm",
+        "value": 63.33333333333333,
+        "prev": 62.99999999999999,
+        "at": "2026-09-29T10:32:00.000Z"
+      },
+      {
+        "workoutId": "w19",
+        "exerciseId": "pullup",
+        "kind": "e1rm",
+        "value": 104.79999999999998,
+        "prev": 102.17999999999999,
+        "at": "2026-09-29T10:32:00.000Z"
+      },
+      {
+        "workoutId": "w19",
+        "exerciseId": "curl",
+        "kind": "weight",
+        "value": 11,
+        "prev": 10,
+        "at": "2026-09-29T10:32:00.000Z"
+      },
+      {
+        "workoutId": "w15",
+        "exerciseId": "incline-db",
+        "kind": "e1rm",
+        "value": 25.2,
+        "prev": 24.6,
+        "at": "2026-10-03T00:13:00.000Z"
+      },
+      {
+        "workoutId": "w15",
+        "exerciseId": "pushdown",
+        "kind": "e1rm",
+        "value": 34.166666666666664,
+        "prev": 33.75,
+        "at": "2026-10-03T00:13:00.000Z"
+      },
+      {
+        "workoutId": "w13",
+        "exerciseId": "pulldown",
+        "kind": "e1rm",
+        "value": 64.91666666666667,
+        "prev": 63.33333333333333,
+        "at": "2026-10-05T10:37:00.000Z"
+      },
+      {
+        "workoutId": "w13",
+        "exerciseId": "facepull",
+        "kind": "e1rm",
+        "value": 29.333333333333336,
+        "prev": 28,
+        "at": "2026-10-05T10:37:00.000Z"
+      },
+      {
+        "workoutId": "w12",
+        "exerciseId": "squat",
+        "kind": "e1rm",
+        "value": 101.75,
+        "prev": 101.33333333333333,
+        "at": "2026-10-06T10:38:00.000Z"
+      },
+      {
+        "workoutId": "w12",
+        "exerciseId": "legpress",
+        "kind": "e1rm",
+        "value": 180,
+        "prev": 176,
+        "at": "2026-10-06T10:38:00.000Z"
+      },
+      {
+        "workoutId": "w10",
+        "exerciseId": "incline-db",
+        "kind": "volume",
+        "value": 648,
+        "prev": 630,
+        "at": "2026-10-08T10:33:00.000Z"
+      },
+      {
+        "workoutId": "w10",
+        "exerciseId": "lateral",
+        "kind": "volume",
+        "value": 315,
+        "prev": 308,
+        "at": "2026-10-08T10:33:00.000Z"
+      },
+      {
+        "workoutId": "w10",
+        "exerciseId": "pushdown",
+        "kind": "e1rm",
+        "value": 35,
+        "prev": 34.166666666666664,
+        "at": "2026-10-08T10:33:00.000Z"
+      },
+      {
+        "workoutId": "w8",
+        "exerciseId": "row",
+        "kind": "e1rm",
+        "value": 66.66666666666666,
+        "prev": 65,
+        "at": "2026-10-10T00:03:00.000Z"
+      },
+      {
+        "workoutId": "w8",
+        "exerciseId": "pulldown",
+        "kind": "e1rm",
+        "value": 66.5,
+        "prev": 64.91666666666667,
+        "at": "2026-10-10T00:03:00.000Z"
+      },
+      {
+        "workoutId": "w8",
+        "exerciseId": "pullup",
+        "kind": "volume",
+        "value": 2358,
+        "prev": 2279.4,
+        "at": "2026-10-10T00:03:00.000Z"
+      },
+      {
+        "workoutId": "w8",
+        "exerciseId": "curl",
+        "kind": "e1rm",
+        "value": 14.3,
+        "prev": 14,
+        "at": "2026-10-10T00:03:00.000Z"
+      },
+      {
+        "workoutId": "w5",
+        "exerciseId": "squat",
+        "kind": "e1rm",
+        "value": 104.5,
+        "prev": 101.75,
+        "at": "2026-10-13T10:40:00.000Z"
+      },
+      {
+        "workoutId": "w5",
+        "exerciseId": "legpress",
+        "kind": "volume",
+        "value": 5280,
+        "prev": 5160,
+        "at": "2026-10-13T10:40:00.000Z"
+      },
+      {
+        "workoutId": "w3",
+        "exerciseId": "bench",
+        "kind": "e1rm",
+        "value": 78,
+        "prev": 76.66666666666666,
+        "at": "2026-10-15T10:45:00.000Z"
+      },
+      {
+        "workoutId": "w3",
+        "exerciseId": "incline-db",
+        "kind": "e1rm",
+        "value": 25.333333333333332,
+        "prev": 25.2,
+        "at": "2026-10-15T10:45:00.000Z"
+      },
+      {
+        "workoutId": "w3",
+        "exerciseId": "lateral",
+        "kind": "e1rm",
+        "value": 11.2,
+        "prev": 10.5,
+        "at": "2026-10-15T10:45:00.000Z"
+      },
+      {
+        "workoutId": "w1",
+        "exerciseId": "row",
+        "kind": "weight",
+        "value": 52.5,
+        "prev": 50,
+        "at": "2026-10-17T00:15:00.000Z"
+      },
+      {
+        "workoutId": "w1",
+        "exerciseId": "pulldown",
+        "kind": "weight",
+        "value": 50,
+        "prev": 47.5,
+        "at": "2026-10-17T00:15:00.000Z"
+      },
+      {
+        "workoutId": "w1",
+        "exerciseId": "facepull",
+        "kind": "e1rm",
+        "value": 30,
+        "prev": 29.333333333333336,
+        "at": "2026-10-17T00:15:00.000Z"
+      },
+      {
+        "workoutId": "w1",
+        "exerciseId": "curl",
+        "kind": "e1rm",
+        "value": 14.666666666666666,
+        "prev": 14.3,
+        "at": "2026-10-17T00:15:00.000Z"
+      }
+    ],
+    "prsByWorkout": {
+      "w64": [
+        "e1rm",
+        "e1rm",
+        "e1rm"
+      ],
+      "w62": [
+        "e1rm"
+      ],
+      "w61": [
+        "e1rm"
+      ],
+      "w59": [
+        "e1rm",
+        "e1rm",
+        "e1rm",
+        "volume"
+      ],
+      "w57": [
+        "e1rm",
+        "volume",
+        "volume"
+      ],
+      "w55": [
+        "e1rm"
+      ],
+      "w54": [
+        "e1rm",
+        "e1rm"
+      ],
+      "w52": [
+        "e1rm",
+        "e1rm",
+        "e1rm"
+      ],
+      "w50": [
+        "e1rm",
+        "e1rm"
+      ],
+      "w43": [
+        "e1rm",
+        "e1rm",
+        "e1rm"
+      ],
+      "w41": [
+        "e1rm",
+        "e1rm"
+      ],
+      "w40": [
+        "e1rm",
+        "e1rm",
+        "e1rm"
+      ],
+      "w38": [
+        "weight",
+        "e1rm"
+      ],
+      "w36": [
+        "e1rm",
+        "e1rm",
+        "e1rm",
+        "e1rm"
+      ],
+      "w34": [
+        "volume",
+        "e1rm"
+      ],
+      "w33": [
+        "e1rm"
+      ],
+      "w31": [
+        "volume",
+        "weight",
+        "volume",
+        "volume",
+        "e1rm"
+      ],
+      "w27": [
+        "weight",
+        "volume"
+      ],
+      "w26": [
+        "e1rm"
+      ],
+      "w24": [
+        "e1rm",
+        "e1rm",
+        "volume"
+      ],
+      "w22": [
+        "weight",
+        "e1rm"
+      ],
+      "w20": [
+        "weight"
+      ],
+      "w19": [
+        "e1rm",
+        "e1rm",
+        "weight"
+      ],
+      "w15": [
+        "e1rm",
+        "e1rm"
+      ],
+      "w13": [
+        "e1rm",
+        "e1rm"
+      ],
+      "w12": [
+        "e1rm",
+        "e1rm"
+      ],
+      "w10": [
+        "volume",
+        "volume",
+        "e1rm"
+      ],
+      "w8": [
+        "e1rm",
+        "e1rm",
+        "volume",
+        "e1rm"
+      ],
+      "w5": [
+        "e1rm",
+        "volume"
+      ],
+      "w3": [
+        "e1rm",
+        "e1rm",
+        "e1rm"
+      ],
+      "w1": [
+        "weight",
+        "weight",
+        "e1rm",
+        "e1rm"
+      ]
+    },
+    "extraPrs": [],
+    "suggestions": {
+      "bench": {
+        "kind": "reps",
+        "weight": 60,
+        "reps": 9,
+        "badge": "+1 rep",
+        "detail": "Stay at 60 kg; aim 9+ reps on every set. Move up at 10×3.",
+        "last": {
+          "weight": 60,
+          "reps": [
+            9,
+            9,
+            8
+          ]
+        }
+      },
+      "incline-db": {
+        "kind": "reps",
+        "weight": 20,
+        "reps": 8,
+        "badge": "+1 rep",
+        "detail": "Stay at 20 kg; aim 8+ reps on every set. Move up at 12×3.",
+        "last": {
+          "weight": 20,
+          "reps": [
+            8,
+            8,
+            7
+          ]
+        }
+      },
+      "ohp": {
+        "kind": "reps",
+        "weight": 35,
+        "reps": 8,
+        "badge": "+1 rep",
+        "detail": "Stay at 35 kg; aim 8+ reps on every set. Move up at 10×3.",
+        "last": {
+          "weight": 35,
+          "reps": [
+            8,
+            8,
+            7
+          ]
+        }
+      },
+      "lateral": {
+        "kind": "reps",
+        "weight": 8,
+        "reps": 12,
+        "badge": "+1 rep",
+        "detail": "Stay at 8 kg; aim 12+ reps on every set. Move up at 15×3.",
+        "last": {
+          "weight": 8,
+          "reps": [
+            12,
+            12,
+            11
+          ]
+        }
+      },
+      "pushdown": {
+        "kind": "reps",
+        "weight": 25,
+        "reps": 12,
+        "badge": "+1 rep",
+        "detail": "Stay at 25 kg; aim 12+ reps on every set. Move up at 15×3.",
+        "last": {
+          "weight": 25,
+          "reps": [
+            12,
+            12,
+            11
+          ]
+        }
+      },
+      "row": {
+        "kind": "reps",
+        "weight": 52.5,
+        "reps": 7,
+        "badge": "+1 rep",
+        "detail": "Stay at 52.5 kg; aim 7+ reps on every set. Move up at 10×3.",
+        "last": {
+          "weight": 52.5,
+          "reps": [
+            6,
+            6,
+            6
+          ]
+        }
+      },
+      "pulldown": {
+        "kind": "reps",
+        "weight": 50,
+        "reps": 9,
+        "badge": "+1 rep",
+        "detail": "Stay at 50 kg; aim 9+ reps on every set. Move up at 12×3.",
+        "last": {
+          "weight": 50,
+          "reps": [
+            8,
+            8,
+            8
+          ]
+        }
+      },
+      "pullup": {
+        "kind": "reps",
+        "weight": 2.5,
+        "reps": 6,
+        "badge": "+1 rep",
+        "detail": "Stay at 2.5 kg; aim 6+ reps on every set. Move up at 10×3.",
+        "last": {
+          "weight": 2.5,
+          "reps": [
+            5,
+            5,
+            5
+          ]
+        }
+      },
+      "facepull": {
+        "kind": "reps",
+        "weight": 20,
+        "reps": 15,
+        "badge": "+1 rep",
+        "detail": "Stay at 20 kg; aim 15+ reps on every set. Move up at 15×3.",
+        "last": {
+          "weight": 20,
+          "reps": [
+            15,
+            15,
+            14
+          ]
+        }
+      },
+      "curl": {
+        "kind": "reps",
+        "weight": 11,
+        "reps": 11,
+        "badge": "+1 rep",
+        "detail": "Stay at 11 kg; aim 11+ reps on every set. Move up at 12×3.",
+        "last": {
+          "weight": 11,
+          "reps": [
+            10,
+            10,
+            10
+          ]
+        }
+      },
+      "squat": {
+        "kind": "weight",
+        "weight": 85,
+        "reps": 5,
+        "badge": "+2.5 kg",
+        "detail": "All sets hit 8 last time — go 85 kg × 5.",
+        "last": {
+          "weight": 82.5,
+          "reps": [
+            8,
+            8,
+            8
+          ]
+        }
+      },
+      "rdl": {
+        "kind": "reps",
+        "weight": 72.5,
+        "reps": 8,
+        "badge": "+1 rep",
+        "detail": "Stay at 72.5 kg; aim 8+ reps on every set. Move up at 10×3.",
+        "last": {
+          "weight": 72.5,
+          "reps": [
+            8,
+            8,
+            7
+          ]
+        }
+      },
+      "legpress": {
+        "kind": "reps",
+        "weight": 120,
+        "reps": 15,
+        "badge": "+1 rep",
+        "detail": "Stay at 120 kg; aim 15+ reps on every set. Move up at 15×3.",
+        "last": {
+          "weight": 120,
+          "reps": [
+            15,
+            15,
+            14
+          ]
+        }
+      },
+      "plank": {
+        "kind": "new",
+        "weight": 0,
+        "reps": 30,
+        "badge": "New",
+        "detail": "First time — pick a weight you can do for 30–60 reps."
+      }
+    },
+    "linearSuggestions": {
+      "bench": {
+        "kind": "weight",
+        "weight": 62.5,
+        "reps": 6,
+        "badge": "+2.5 kg",
+        "detail": "Linear: add 2.5 kg each session.",
+        "last": {
+          "weight": 60,
+          "reps": [
+            9,
+            9,
+            8
+          ]
+        }
+      },
+      "incline-db": {
+        "kind": "weight",
+        "weight": 22,
+        "reps": 8,
+        "badge": "+2 kg",
+        "detail": "Linear: add 2 kg each session.",
+        "last": {
+          "weight": 20,
+          "reps": [
+            8,
+            8,
+            7
+          ]
+        }
+      },
+      "ohp": {
+        "kind": "weight",
+        "weight": 37.5,
+        "reps": 6,
+        "badge": "+2.5 kg",
+        "detail": "Linear: add 2.5 kg each session.",
+        "last": {
+          "weight": 35,
+          "reps": [
+            8,
+            8,
+            7
+          ]
+        }
+      },
+      "lateral": {
+        "kind": "weight",
+        "weight": 9,
+        "reps": 12,
+        "badge": "+1 kg",
+        "detail": "Linear: add 1 kg each session.",
+        "last": {
+          "weight": 8,
+          "reps": [
+            12,
+            12,
+            11
+          ]
+        }
+      },
+      "pushdown": {
+        "kind": "weight",
+        "weight": 27.5,
+        "reps": 10,
+        "badge": "+2.5 kg",
+        "detail": "Linear: add 2.5 kg each session.",
+        "last": {
+          "weight": 25,
+          "reps": [
+            12,
+            12,
+            11
+          ]
+        }
+      },
+      "row": {
+        "kind": "weight",
+        "weight": 55,
+        "reps": 6,
+        "badge": "+2.5 kg",
+        "detail": "Linear: add 2.5 kg each session.",
+        "last": {
+          "weight": 52.5,
+          "reps": [
+            6,
+            6,
+            6
+          ]
+        }
+      },
+      "pulldown": {
+        "kind": "weight",
+        "weight": 52.5,
+        "reps": 8,
+        "badge": "+2.5 kg",
+        "detail": "Linear: add 2.5 kg each session.",
+        "last": {
+          "weight": 50,
+          "reps": [
+            8,
+            8,
+            8
+          ]
+        }
+      },
+      "pullup": {
+        "kind": "weight",
+        "weight": 5,
+        "reps": 5,
+        "badge": "+2.5 kg",
+        "detail": "Linear: add 2.5 kg each session.",
+        "last": {
+          "weight": 2.5,
+          "reps": [
+            5,
+            5,
+            5
+          ]
+        }
+      },
+      "facepull": {
+        "kind": "weight",
+        "weight": 22.5,
+        "reps": 12,
+        "badge": "+2.5 kg",
+        "detail": "Linear: add 2.5 kg each session.",
+        "last": {
+          "weight": 20,
+          "reps": [
+            15,
+            15,
+            14
+          ]
+        }
+      },
+      "curl": {
+        "kind": "weight",
+        "weight": 12,
+        "reps": 8,
+        "badge": "+1 kg",
+        "detail": "Linear: add 1 kg each session.",
+        "last": {
+          "weight": 11,
+          "reps": [
+            10,
+            10,
+            10
+          ]
+        }
+      },
+      "squat": {
+        "kind": "weight",
+        "weight": 85,
+        "reps": 5,
+        "badge": "+2.5 kg",
+        "detail": "Linear: add 2.5 kg each session.",
+        "last": {
+          "weight": 82.5,
+          "reps": [
+            8,
+            8,
+            8
+          ]
+        }
+      },
+      "rdl": {
+        "kind": "weight",
+        "weight": 75,
+        "reps": 6,
+        "badge": "+2.5 kg",
+        "detail": "Linear: add 2.5 kg each session.",
+        "last": {
+          "weight": 72.5,
+          "reps": [
+            8,
+            8,
+            7
+          ]
+        }
+      },
+      "legpress": {
+        "kind": "weight",
+        "weight": 125,
+        "reps": 10,
+        "badge": "+5 kg",
+        "detail": "Linear: add 5 kg each session.",
+        "last": {
+          "weight": 120,
+          "reps": [
+            15,
+            15,
+            14
+          ]
+        }
+      },
+      "plank": {
+        "kind": "new",
+        "weight": 0,
+        "reps": 30,
+        "badge": "New",
+        "detail": "First time — pick a weight you can do for 30–60 reps."
+      }
+    },
+    "stalled": {
+      "bench": false,
+      "incline-db": false,
+      "ohp": true,
+      "lateral": false,
+      "pushdown": false,
+      "row": false,
+      "pulldown": false,
+      "pullup": false,
+      "facepull": false,
+      "curl": false,
+      "squat": false,
+      "rdl": true,
+      "legpress": false,
+      "plank": false
+    },
+    "history": {
+      "bench": [
+        {
+          "workoutId": "w69",
+          "bestE1rm": 70.91666666666667
+        },
+        {
+          "workoutId": "w64",
+          "bestE1rm": 72.83333333333333
+        },
+        {
+          "workoutId": "w59",
+          "bestE1rm": 74.75
+        },
+        {
+          "workoutId": "w54",
+          "bestE1rm": 74.75
+        },
+        {
+          "workoutId": "w43",
+          "bestE1rm": 76.66666666666666
+        },
+        {
+          "workoutId": "w38",
+          "bestE1rm": 72
+        },
+        {
+          "workoutId": "w33",
+          "bestE1rm": 74
+        },
+        {
+          "workoutId": "w26",
+          "bestE1rm": 76
+        },
+        {
+          "workoutId": "w20",
+          "bestE1rm": 76
+        },
+        {
+          "workoutId": "w15",
+          "bestE1rm": 76
+        },
+        {
+          "workoutId": "w10",
+          "bestE1rm": 76
+        },
+        {
+          "workoutId": "w3",
+          "bestE1rm": 78
+        }
+      ],
+      "incline-db": [
+        {
+          "workoutId": "w69",
+          "bestE1rm": 23.400000000000002
+        },
+        {
+          "workoutId": "w64",
+          "bestE1rm": 24
+        },
+        {
+          "workoutId": "w59",
+          "bestE1rm": 24.6
+        },
+        {
+          "workoutId": "w54",
+          "bestE1rm": 24.6
+        },
+        {
+          "workoutId": "w43",
+          "bestE1rm": 24.6
+        },
+        {
+          "workoutId": "w38",
+          "bestE1rm": 24.6
+        },
+        {
+          "workoutId": "w33",
+          "bestE1rm": 24.6
+        },
+        {
+          "workoutId": "w26",
+          "bestE1rm": 24.6
+        },
+        {
+          "workoutId": "w20",
+          "bestE1rm": 24.6
+        },
+        {
+          "workoutId": "w15",
+          "bestE1rm": 25.2
+        },
+        {
+          "workoutId": "w10",
+          "bestE1rm": 25.2
+        },
+        {
+          "workoutId": "w3",
+          "bestE1rm": 25.333333333333332
+        }
+      ],
+      "ohp": [
+        {
+          "workoutId": "w69",
+          "bestE1rm": 43.16666666666667
+        },
+        {
+          "workoutId": "w64",
+          "bestE1rm": 43.16666666666667
+        },
+        {
+          "workoutId": "w59",
+          "bestE1rm": 44.33333333333333
+        },
+        {
+          "workoutId": "w54",
+          "bestE1rm": 44.33333333333333
+        },
+        {
+          "workoutId": "w43",
+          "bestE1rm": 45.5
+        },
+        {
+          "workoutId": "w38",
+          "bestE1rm": 45.5
+        },
+        {
+          "workoutId": "w33",
+          "bestE1rm": 45.5
+        },
+        {
+          "workoutId": "w26",
+          "bestE1rm": 45.5
+        },
+        {
+          "workoutId": "w20",
+          "bestE1rm": 44.33333333333333
+        },
+        {
+          "workoutId": "w15",
+          "bestE1rm": 44.33333333333333
+        },
+        {
+          "workoutId": "w10",
+          "bestE1rm": 44.33333333333333
+        },
+        {
+          "workoutId": "w3",
+          "bestE1rm": 44.33333333333333
+        }
+      ],
+      "lateral": [
+        {
+          "workoutId": "w69",
+          "bestE1rm": 9.799999999999999
+        },
+        {
+          "workoutId": "w64",
+          "bestE1rm": 9.799999999999999
+        },
+        {
+          "workoutId": "w59",
+          "bestE1rm": 9.799999999999999
+        },
+        {
+          "workoutId": "w54",
+          "bestE1rm": 10.033333333333333
+        },
+        {
+          "workoutId": "w43",
+          "bestE1rm": 10.266666666666667
+        },
+        {
+          "workoutId": "w38",
+          "bestE1rm": 10.5
+        },
+        {
+          "workoutId": "w33",
+          "bestE1rm": 10.5
+        },
+        {
+          "workoutId": "w26",
+          "bestE1rm": 10.5
+        },
+        {
+          "workoutId": "w20",
+          "bestE1rm": 10.5
+        },
+        {
+          "workoutId": "w15",
+          "bestE1rm": 10.5
+        },
+        {
+          "workoutId": "w10",
+          "bestE1rm": 10.5
+        },
+        {
+          "workoutId": "w3",
+          "bestE1rm": 11.2
+        }
+      ],
+      "pushdown": [
+        {
+          "workoutId": "w69",
+          "bestE1rm": 30.75
+        },
+        {
+          "workoutId": "w64",
+          "bestE1rm": 31.499999999999996
+        },
+        {
+          "workoutId": "w59",
+          "bestE1rm": 31.499999999999996
+        },
+        {
+          "workoutId": "w54",
+          "bestE1rm": 32.25
+        },
+        {
+          "workoutId": "w43",
+          "bestE1rm": 31.499999999999996
+        },
+        {
+          "workoutId": "w38",
+          "bestE1rm": 31.499999999999996
+        },
+        {
+          "workoutId": "w33",
+          "bestE1rm": 33
+        },
+        {
+          "workoutId": "w26",
+          "bestE1rm": 33.75
+        },
+        {
+          "workoutId": "w20",
+          "bestE1rm": 33.33333333333333
+        },
+        {
+          "workoutId": "w15",
+          "bestE1rm": 34.166666666666664
+        },
+        {
+          "workoutId": "w10",
+          "bestE1rm": 35
+        },
+        {
+          "workoutId": "w3",
+          "bestE1rm": 35
+        }
+      ],
+      "row": [
+        {
+          "workoutId": "w68",
+          "bestE1rm": 61.66666666666667
+        },
+        {
+          "workoutId": "w62",
+          "bestE1rm": 63.33333333333333
+        },
+        {
+          "workoutId": "w57",
+          "bestE1rm": 63.33333333333333
+        },
+        {
+          "workoutId": "w52",
+          "bestE1rm": 63.33333333333333
+        },
+        {
+          "workoutId": "w41",
+          "bestE1rm": 63.33333333333333
+        },
+        {
+          "workoutId": "w36",
+          "bestE1rm": 65
+        },
+        {
+          "workoutId": "w31",
+          "bestE1rm": 65
+        },
+        {
+          "workoutId": "w24",
+          "bestE1rm": 65
+        },
+        {
+          "workoutId": "w19",
+          "bestE1rm": 65
+        },
+        {
+          "workoutId": "w13",
+          "bestE1rm": 65
+        },
+        {
+          "workoutId": "w8",
+          "bestE1rm": 66.66666666666666
+        },
+        {
+          "workoutId": "w1",
+          "bestE1rm": 63
+        }
+      ],
+      "pulldown": [
+        {
+          "workoutId": "w68",
+          "bestE1rm": 58.5
+        },
+        {
+          "workoutId": "w62",
+          "bestE1rm": 58.5
+        },
+        {
+          "workoutId": "w57",
+          "bestE1rm": 60
+        },
+        {
+          "workoutId": "w52",
+          "bestE1rm": 60
+        },
+        {
+          "workoutId": "w41",
+          "bestE1rm": 61.5
+        },
+        {
+          "workoutId": "w36",
+          "bestE1rm": 62.99999999999999
+        },
+        {
+          "workoutId": "w31",
+          "bestE1rm": 60.166666666666664
+        },
+        {
+          "workoutId": "w24",
+          "bestE1rm": 61.75
+        },
+        {
+          "workoutId": "w19",
+          "bestE1rm": 63.33333333333333
+        },
+        {
+          "workoutId": "w13",
+          "bestE1rm": 64.91666666666667
+        },
+        {
+          "workoutId": "w8",
+          "bestE1rm": 66.5
+        },
+        {
+          "workoutId": "w1",
+          "bestE1rm": 63.33333333333333
+        }
+      ],
+      "pullup": [
+        {
+          "workoutId": "w68",
+          "bestE1rm": 94.32
+        },
+        {
+          "workoutId": "w62",
+          "bestE1rm": 94.32
+        },
+        {
+          "workoutId": "w57",
+          "bestE1rm": 94.32
+        },
+        {
+          "workoutId": "w52",
+          "bestE1rm": 96.94
+        },
+        {
+          "workoutId": "w41",
+          "bestE1rm": 96.94
+        },
+        {
+          "workoutId": "w36",
+          "bestE1rm": 99.55999999999999
+        },
+        {
+          "workoutId": "w31",
+          "bestE1rm": 99.55999999999999
+        },
+        {
+          "workoutId": "w24",
+          "bestE1rm": 102.17999999999999
+        },
+        {
+          "workoutId": "w19",
+          "bestE1rm": 104.79999999999998
+        },
+        {
+          "workoutId": "w13",
+          "bestE1rm": 104.79999999999998
+        },
+        {
+          "workoutId": "w8",
+          "bestE1rm": 104.79999999999998
+        },
+        {
+          "workoutId": "w1",
+          "bestE1rm": 94.61666666666666
+        }
+      ],
+      "facepull": [
+        {
+          "workoutId": "w68",
+          "bestE1rm": 24.5
+        },
+        {
+          "workoutId": "w62",
+          "bestE1rm": 24.5
+        },
+        {
+          "workoutId": "w57",
+          "bestE1rm": 24.5
+        },
+        {
+          "workoutId": "w52",
+          "bestE1rm": 25.666666666666668
+        },
+        {
+          "workoutId": "w41",
+          "bestE1rm": 25.666666666666668
+        },
+        {
+          "workoutId": "w36",
+          "bestE1rm": 26.25
+        },
+        {
+          "workoutId": "w31",
+          "bestE1rm": 26.25
+        },
+        {
+          "workoutId": "w24",
+          "bestE1rm": 28
+        },
+        {
+          "workoutId": "w19",
+          "bestE1rm": 28
+        },
+        {
+          "workoutId": "w13",
+          "bestE1rm": 29.333333333333336
+        },
+        {
+          "workoutId": "w8",
+          "bestE1rm": 29.333333333333336
+        },
+        {
+          "workoutId": "w1",
+          "bestE1rm": 30
+        }
+      ],
+      "curl": [
+        {
+          "workoutId": "w68",
+          "bestE1rm": 13
+        },
+        {
+          "workoutId": "w62",
+          "bestE1rm": 13
+        },
+        {
+          "workoutId": "w57",
+          "bestE1rm": 13
+        },
+        {
+          "workoutId": "w52",
+          "bestE1rm": 13.333333333333332
+        },
+        {
+          "workoutId": "w41",
+          "bestE1rm": 13.666666666666668
+        },
+        {
+          "workoutId": "w36",
+          "bestE1rm": 13.666666666666668
+        },
+        {
+          "workoutId": "w31",
+          "bestE1rm": 14
+        },
+        {
+          "workoutId": "w24",
+          "bestE1rm": 14
+        },
+        {
+          "workoutId": "w19",
+          "bestE1rm": 13.933333333333334
+        },
+        {
+          "workoutId": "w13",
+          "bestE1rm": 13.933333333333334
+        },
+        {
+          "workoutId": "w8",
+          "bestE1rm": 14.3
+        },
+        {
+          "workoutId": "w1",
+          "bestE1rm": 14.666666666666666
+        }
+      ],
+      "squat": [
+        {
+          "workoutId": "w66",
+          "bestE1rm": 93.33333333333334
+        },
+        {
+          "workoutId": "w61",
+          "bestE1rm": 96
+        },
+        {
+          "workoutId": "w55",
+          "bestE1rm": 98.66666666666667
+        },
+        {
+          "workoutId": "w50",
+          "bestE1rm": 98.66666666666667
+        },
+        {
+          "workoutId": "w40",
+          "bestE1rm": 101.33333333333333
+        },
+        {
+          "workoutId": "w34",
+          "bestE1rm": 101.33333333333333
+        },
+        {
+          "workoutId": "w27",
+          "bestE1rm": 96.25
+        },
+        {
+          "workoutId": "w22",
+          "bestE1rm": 99
+        },
+        {
+          "workoutId": "w17",
+          "bestE1rm": 99
+        },
+        {
+          "workoutId": "w12",
+          "bestE1rm": 101.75
+        },
+        {
+          "workoutId": "w5",
+          "bestE1rm": 104.5
+        }
+      ],
+      "rdl": [
+        {
+          "workoutId": "w66",
+          "bestE1rm": 86.33333333333334
+        },
+        {
+          "workoutId": "w61",
+          "bestE1rm": 86.33333333333334
+        },
+        {
+          "workoutId": "w55",
+          "bestE1rm": 86.33333333333334
+        },
+        {
+          "workoutId": "w50",
+          "bestE1rm": 88.66666666666666
+        },
+        {
+          "workoutId": "w40",
+          "bestE1rm": 91
+        },
+        {
+          "workoutId": "w34",
+          "bestE1rm": 93.33333333333333
+        },
+        {
+          "workoutId": "w27",
+          "bestE1rm": 93.33333333333333
+        },
+        {
+          "workoutId": "w22",
+          "bestE1rm": 87
+        },
+        {
+          "workoutId": "w17",
+          "bestE1rm": 87
+        },
+        {
+          "workoutId": "w12",
+          "bestE1rm": 89.41666666666667
+        },
+        {
+          "workoutId": "w5",
+          "bestE1rm": 91.83333333333333
+        }
+      ],
+      "legpress": [
+        {
+          "workoutId": "w66",
+          "bestE1rm": 164
+        },
+        {
+          "workoutId": "w61",
+          "bestE1rm": 164
+        },
+        {
+          "workoutId": "w55",
+          "bestE1rm": 164
+        },
+        {
+          "workoutId": "w50",
+          "bestE1rm": 168
+        },
+        {
+          "workoutId": "w40",
+          "bestE1rm": 172
+        },
+        {
+          "workoutId": "w34",
+          "bestE1rm": 172
+        },
+        {
+          "workoutId": "w27",
+          "bestE1rm": 168
+        },
+        {
+          "workoutId": "w22",
+          "bestE1rm": 176
+        },
+        {
+          "workoutId": "w17",
+          "bestE1rm": 176
+        },
+        {
+          "workoutId": "w12",
+          "bestE1rm": 180
+        },
+        {
+          "workoutId": "w5",
+          "bestE1rm": 180
+        }
+      ],
+      "plank": []
+    },
+    "sessionsByWeek": [
+      {
+        "start": "2026-06-01",
+        "count": 0
+      },
+      {
+        "start": "2026-06-08",
+        "count": 0
+      },
+      {
+        "start": "2026-06-15",
+        "count": 0
+      },
+      {
+        "start": "2026-06-22",
+        "count": 0
+      },
+      {
+        "start": "2026-06-29",
+        "count": 0
+      },
+      {
+        "start": "2026-07-06",
+        "count": 0
+      },
+      {
+        "start": "2026-07-13",
+        "count": 0
+      },
+      {
+        "start": "2026-07-20",
+        "count": 0
+      },
+      {
+        "start": "2026-07-27",
+        "count": 0
+      },
+      {
+        "start": "2026-08-03",
+        "count": 0
+      },
+      {
+        "start": "2026-08-10",
+        "count": 4
+      },
+      {
+        "start": "2026-08-17",
+        "count": 4
+      },
+      {
+        "start": "2026-08-24",
+        "count": 4
+      },
+      {
+        "start": "2026-08-31",
+        "count": 1
+      },
+      {
+        "start": "2026-09-07",
+        "count": 4
+      },
+      {
+        "start": "2026-09-14",
+        "count": 3
+      },
+      {
+        "start": "2026-09-21",
+        "count": 4
+      },
+      {
+        "start": "2026-09-28",
+        "count": 4
+      },
+      {
+        "start": "2026-10-05",
+        "count": 4
+      },
+      {
+        "start": "2026-10-12",
+        "count": 3
+      }
+    ],
+    "consistencyStreak": 3,
+    "dailyWeights": {
+      "2026-07-21": 81.9,
+      "2026-07-22": 81.8,
+      "2026-07-23": 82.1,
+      "2026-07-24": 81.5,
+      "2026-07-25": 81.7,
+      "2026-07-26": 81.8,
+      "2026-07-27": 82,
+      "2026-07-28": 81.5,
+      "2026-07-29": 81.8,
+      "2026-07-30": 81.5,
+      "2026-07-31": 81.8,
+      "2026-08-01": 81.9,
+      "2026-08-02": 81.5,
+      "2026-08-03": 81.5,
+      "2026-08-04": 81.4,
+      "2026-08-05": 81.5,
+      "2026-08-06": 81.3,
+      "2026-08-07": 81.2,
+      "2026-08-08": 81.4,
+      "2026-08-09": 81.1,
+      "2026-08-10": 81.3,
+      "2026-08-11": 81,
+      "2026-08-12": 80.8,
+      "2026-08-13": 80.9,
+      "2026-08-14": 81.2,
+      "2026-08-15": 80.9,
+      "2026-08-18": 80.7,
+      "2026-08-20": 80.5,
+      "2026-08-21": 80.9,
+      "2026-08-22": 80.9,
+      "2026-08-23": 80.5,
+      "2026-08-24": 80.8,
+      "2026-08-25": 80.4,
+      "2026-08-26": 80.6,
+      "2026-08-27": 80.7,
+      "2026-08-28": 80.2,
+      "2026-08-29": 80.6,
+      "2026-08-30": 80.5,
+      "2026-08-31": 80.8,
+      "2026-09-01": 80.1,
+      "2026-09-03": 80.4,
+      "2026-09-04": 80.4,
+      "2026-09-05": 80.2,
+      "2026-09-06": 79.9,
+      "2026-09-07": 80.7,
+      "2026-09-08": 79.8,
+      "2026-09-09": 79.9,
+      "2026-09-10": 79.9,
+      "2026-09-11": 80.2,
+      "2026-09-12": 79.6,
+      "2026-09-13": 79.8,
+      "2026-09-14": 80.2,
+      "2026-09-15": 80,
+      "2026-09-16": 79.8,
+      "2026-09-18": 79.6,
+      "2026-09-19": 79.8,
+      "2026-09-20": 79.7,
+      "2026-09-21": 79.9,
+      "2026-09-22": 79.8,
+      "2026-09-23": 79.6,
+      "2026-09-24": 79.3,
+      "2026-09-25": 79.7,
+      "2026-09-26": 79.6,
+      "2026-09-27": 79.5,
+      "2026-09-28": 79.4,
+      "2026-09-29": 78.9,
+      "2026-09-30": 79.4,
+      "2026-10-01": 79,
+      "2026-10-02": 79.3,
+      "2026-10-03": 78.9,
+      "2026-10-04": 78.8,
+      "2026-10-05": 79.3,
+      "2026-10-06": 79,
+      "2026-10-07": 78.6,
+      "2026-10-08": 78.9,
+      "2026-10-11": 78.6,
+      "2026-10-12": 79.1,
+      "2026-10-13": 78.3,
+      "2026-10-14": 78.3,
+      "2026-10-15": 78.5,
+      "2026-10-17": 78.6
+    },
+    "weightTrend30": [
+      {
+        "day": "2026-09-19",
+        "raw": 79.8,
+        "avg": 79.86666666666666
+      },
+      {
+        "day": "2026-09-20",
+        "raw": 79.7,
+        "avg": 79.85
+      },
+      {
+        "day": "2026-09-21",
+        "raw": 79.9,
+        "avg": 79.8
+      },
+      {
+        "day": "2026-09-22",
+        "raw": 79.8,
+        "avg": 79.76666666666667
+      },
+      {
+        "day": "2026-09-23",
+        "raw": 79.6,
+        "avg": 79.73333333333333
+      },
+      {
+        "day": "2026-09-24",
+        "raw": 79.3,
+        "avg": 79.67142857142858
+      },
+      {
+        "day": "2026-09-25",
+        "raw": 79.7,
+        "avg": 79.68571428571428
+      },
+      {
+        "day": "2026-09-26",
+        "raw": 79.6,
+        "avg": 79.65714285714287
+      },
+      {
+        "day": "2026-09-27",
+        "raw": 79.5,
+        "avg": 79.62857142857145
+      },
+      {
+        "day": "2026-09-28",
+        "raw": 79.4,
+        "avg": 79.55714285714285
+      },
+      {
+        "day": "2026-09-29",
+        "raw": 78.9,
+        "avg": 79.42857142857143
+      },
+      {
+        "day": "2026-09-30",
+        "raw": 79.4,
+        "avg": 79.4
+      },
+      {
+        "day": "2026-10-01",
+        "raw": 79,
+        "avg": 79.35714285714288
+      },
+      {
+        "day": "2026-10-02",
+        "raw": 79.3,
+        "avg": 79.3
+      },
+      {
+        "day": "2026-10-03",
+        "raw": 78.9,
+        "avg": 79.2
+      },
+      {
+        "day": "2026-10-04",
+        "raw": 78.8,
+        "avg": 79.1
+      },
+      {
+        "day": "2026-10-05",
+        "raw": 79.3,
+        "avg": 79.08571428571429
+      },
+      {
+        "day": "2026-10-06",
+        "raw": 79,
+        "avg": 79.10000000000001
+      },
+      {
+        "day": "2026-10-07",
+        "raw": 78.6,
+        "avg": 78.9857142857143
+      },
+      {
+        "day": "2026-10-08",
+        "raw": 78.9,
+        "avg": 78.97142857142856
+      },
+      {
+        "day": "2026-10-09",
+        "avg": 78.91666666666667
+      },
+      {
+        "day": "2026-10-10",
+        "avg": 78.92
+      },
+      {
+        "day": "2026-10-11",
+        "raw": 78.6,
+        "avg": 78.88000000000001
+      },
+      {
+        "day": "2026-10-12",
+        "raw": 79.1,
+        "avg": 78.84
+      },
+      {
+        "day": "2026-10-13",
+        "raw": 78.3,
+        "avg": 78.7
+      },
+      {
+        "day": "2026-10-14",
+        "raw": 78.3,
+        "avg": 78.63999999999999
+      },
+      {
+        "day": "2026-10-15",
+        "raw": 78.5,
+        "avg": 78.56000000000002
+      },
+      {
+        "day": "2026-10-16",
+        "avg": 78.56000000000002
+      },
+      {
+        "day": "2026-10-17",
+        "raw": 78.6,
+        "avg": 78.56666666666666
+      },
+      {
+        "day": "2026-10-18",
+        "avg": 78.55999999999999
+      }
+    ],
+    "weightTrend90": [
+      {
+        "day": "2026-07-21",
+        "raw": 81.9,
+        "avg": 81.9
+      },
+      {
+        "day": "2026-07-22",
+        "raw": 81.8,
+        "avg": 81.85
+      },
+      {
+        "day": "2026-07-23",
+        "raw": 82.1,
+        "avg": 81.93333333333332
+      },
+      {
+        "day": "2026-07-24",
+        "raw": 81.5,
+        "avg": 81.82499999999999
+      },
+      {
+        "day": "2026-07-25",
+        "raw": 81.7,
+        "avg": 81.8
+      },
+      {
+        "day": "2026-07-26",
+        "raw": 81.8,
+        "avg": 81.80000000000001
+      },
+      {
+        "day": "2026-07-27",
+        "raw": 82,
+        "avg": 81.82857142857144
+      },
+      {
+        "day": "2026-07-28",
+        "raw": 81.5,
+        "avg": 81.77142857142857
+      },
+      {
+        "day": "2026-07-29",
+        "raw": 81.8,
+        "avg": 81.77142857142857
+      },
+      {
+        "day": "2026-07-30",
+        "raw": 81.5,
+        "avg": 81.68571428571428
+      },
+      {
+        "day": "2026-07-31",
+        "raw": 81.8,
+        "avg": 81.72857142857143
+      },
+      {
+        "day": "2026-08-01",
+        "raw": 81.9,
+        "avg": 81.75714285714285
+      },
+      {
+        "day": "2026-08-02",
+        "raw": 81.5,
+        "avg": 81.71428571428571
+      },
+      {
+        "day": "2026-08-03",
+        "raw": 81.5,
+        "avg": 81.64285714285714
+      },
+      {
+        "day": "2026-08-04",
+        "raw": 81.4,
+        "avg": 81.62857142857142
+      },
+      {
+        "day": "2026-08-05",
+        "raw": 81.5,
+        "avg": 81.58571428571427
+      },
+      {
+        "day": "2026-08-06",
+        "raw": 81.3,
+        "avg": 81.55714285714285
+      },
+      {
+        "day": "2026-08-07",
+        "raw": 81.2,
+        "avg": 81.47142857142856
+      },
+      {
+        "day": "2026-08-08",
+        "raw": 81.4,
+        "avg": 81.4
+      },
+      {
+        "day": "2026-08-09",
+        "raw": 81.1,
+        "avg": 81.34285714285714
+      },
+      {
+        "day": "2026-08-10",
+        "raw": 81.3,
+        "avg": 81.31428571428572
+      },
+      {
+        "day": "2026-08-11",
+        "raw": 81,
+        "avg": 81.25714285714285
+      },
+      {
+        "day": "2026-08-12",
+        "raw": 80.8,
+        "avg": 81.15714285714286
+      },
+      {
+        "day": "2026-08-13",
+        "raw": 80.9,
+        "avg": 81.10000000000001
+      },
+      {
+        "day": "2026-08-14",
+        "raw": 81.2,
+        "avg": 81.10000000000001
+      },
+      {
+        "day": "2026-08-15",
+        "raw": 80.9,
+        "avg": 81.02857142857144
+      },
+      {
+        "day": "2026-08-16",
+        "avg": 81.01666666666667
+      },
+      {
+        "day": "2026-08-17",
+        "avg": 80.96000000000001
+      },
+      {
+        "day": "2026-08-18",
+        "raw": 80.7,
+        "avg": 80.9
+      },
+      {
+        "day": "2026-08-19",
+        "avg": 80.92500000000001
+      },
+      {
+        "day": "2026-08-20",
+        "raw": 80.5,
+        "avg": 80.825
+      },
+      {
+        "day": "2026-08-21",
+        "raw": 80.9,
+        "avg": 80.75
+      },
+      {
+        "day": "2026-08-22",
+        "raw": 80.9,
+        "avg": 80.75
+      },
+      {
+        "day": "2026-08-23",
+        "raw": 80.5,
+        "avg": 80.7
+      },
+      {
+        "day": "2026-08-24",
+        "raw": 80.8,
+        "avg": 80.71666666666667
+      },
+      {
+        "day": "2026-08-25",
+        "raw": 80.4,
+        "avg": 80.66666666666667
+      },
+      {
+        "day": "2026-08-26",
+        "raw": 80.6,
+        "avg": 80.65714285714286
+      },
+      {
+        "day": "2026-08-27",
+        "raw": 80.7,
+        "avg": 80.68571428571428
+      },
+      {
+        "day": "2026-08-28",
+        "raw": 80.2,
+        "avg": 80.58571428571429
+      },
+      {
+        "day": "2026-08-29",
+        "raw": 80.6,
+        "avg": 80.54285714285713
+      },
+      {
+        "day": "2026-08-30",
+        "raw": 80.5,
+        "avg": 80.54285714285713
+      },
+      {
+        "day": "2026-08-31",
+        "raw": 80.8,
+        "avg": 80.54285714285713
+      },
+      {
+        "day": "2026-09-01",
+        "raw": 80.1,
+        "avg": 80.5
+      },
+      {
+        "day": "2026-09-02",
+        "avg": 80.48333333333333
+      },
+      {
+        "day": "2026-09-03",
+        "raw": 80.4,
+        "avg": 80.43333333333332
+      },
+      {
+        "day": "2026-09-04",
+        "raw": 80.4,
+        "avg": 80.46666666666665
+      },
+      {
+        "day": "2026-09-05",
+        "raw": 80.2,
+        "avg": 80.4
+      },
+      {
+        "day": "2026-09-06",
+        "raw": 79.9,
+        "avg": 80.3
+      },
+      {
+        "day": "2026-09-07",
+        "raw": 80.7,
+        "avg": 80.28333333333335
+      },
+      {
+        "day": "2026-09-08",
+        "raw": 79.8,
+        "avg": 80.23333333333333
+      },
+      {
+        "day": "2026-09-09",
+        "raw": 79.9,
+        "avg": 80.18571428571428
+      },
+      {
+        "day": "2026-09-10",
+        "raw": 79.9,
+        "avg": 80.11428571428573
+      },
+      {
+        "day": "2026-09-11",
+        "raw": 80.2,
+        "avg": 80.08571428571429
+      },
+      {
+        "day": "2026-09-12",
+        "raw": 79.6,
+        "avg": 80
+      },
+      {
+        "day": "2026-09-13",
+        "raw": 79.8,
+        "avg": 79.98571428571428
+      },
+      {
+        "day": "2026-09-14",
+        "raw": 80.2,
+        "avg": 79.91428571428571
+      },
+      {
+        "day": "2026-09-15",
+        "raw": 80,
+        "avg": 79.94285714285715
+      },
+      {
+        "day": "2026-09-16",
+        "raw": 79.8,
+        "avg": 79.92857142857143
+      },
+      {
+        "day": "2026-09-17",
+        "avg": 79.93333333333332
+      },
+      {
+        "day": "2026-09-18",
+        "raw": 79.6,
+        "avg": 79.83333333333333
+      },
+      {
+        "day": "2026-09-19",
+        "raw": 79.8,
+        "avg": 79.86666666666666
+      },
+      {
+        "day": "2026-09-20",
+        "raw": 79.7,
+        "avg": 79.85
+      },
+      {
+        "day": "2026-09-21",
+        "raw": 79.9,
+        "avg": 79.8
+      },
+      {
+        "day": "2026-09-22",
+        "raw": 79.8,
+        "avg": 79.76666666666667
+      },
+      {
+        "day": "2026-09-23",
+        "raw": 79.6,
+        "avg": 79.73333333333333
+      },
+      {
+        "day": "2026-09-24",
+        "raw": 79.3,
+        "avg": 79.67142857142858
+      },
+      {
+        "day": "2026-09-25",
+        "raw": 79.7,
+        "avg": 79.68571428571428
+      },
+      {
+        "day": "2026-09-26",
+        "raw": 79.6,
+        "avg": 79.65714285714287
+      },
+      {
+        "day": "2026-09-27",
+        "raw": 79.5,
+        "avg": 79.62857142857145
+      },
+      {
+        "day": "2026-09-28",
+        "raw": 79.4,
+        "avg": 79.55714285714285
+      },
+      {
+        "day": "2026-09-29",
+        "raw": 78.9,
+        "avg": 79.42857142857143
+      },
+      {
+        "day": "2026-09-30",
+        "raw": 79.4,
+        "avg": 79.4
+      },
+      {
+        "day": "2026-10-01",
+        "raw": 79,
+        "avg": 79.35714285714288
+      },
+      {
+        "day": "2026-10-02",
+        "raw": 79.3,
+        "avg": 79.3
+      },
+      {
+        "day": "2026-10-03",
+        "raw": 78.9,
+        "avg": 79.2
+      },
+      {
+        "day": "2026-10-04",
+        "raw": 78.8,
+        "avg": 79.1
+      },
+      {
+        "day": "2026-10-05",
+        "raw": 79.3,
+        "avg": 79.08571428571429
+      },
+      {
+        "day": "2026-10-06",
+        "raw": 79,
+        "avg": 79.10000000000001
+      },
+      {
+        "day": "2026-10-07",
+        "raw": 78.6,
+        "avg": 78.9857142857143
+      },
+      {
+        "day": "2026-10-08",
+        "raw": 78.9,
+        "avg": 78.97142857142856
+      },
+      {
+        "day": "2026-10-09",
+        "avg": 78.91666666666667
+      },
+      {
+        "day": "2026-10-10",
+        "avg": 78.92
+      },
+      {
+        "day": "2026-10-11",
+        "raw": 78.6,
+        "avg": 78.88000000000001
+      },
+      {
+        "day": "2026-10-12",
+        "raw": 79.1,
+        "avg": 78.84
+      },
+      {
+        "day": "2026-10-13",
+        "raw": 78.3,
+        "avg": 78.7
+      },
+      {
+        "day": "2026-10-14",
+        "raw": 78.3,
+        "avg": 78.63999999999999
+      },
+      {
+        "day": "2026-10-15",
+        "raw": 78.5,
+        "avg": 78.56000000000002
+      },
+      {
+        "day": "2026-10-16",
+        "avg": 78.56000000000002
+      },
+      {
+        "day": "2026-10-17",
+        "raw": 78.6,
+        "avg": 78.56666666666666
+      },
+      {
+        "day": "2026-10-18",
+        "avg": 78.55999999999999
+      }
+    ],
+    "weeklyRate": {
+      "kg": -0.3200000000000074,
+      "pct": -0.40567951318459355,
+      "avg": 78.55999999999999
+    },
+    "nutritionDays30": [
+      {
+        "day": "2026-09-19",
+        "totals": {
+          "kcal": 0,
+          "protein": 0,
+          "carbs": 0,
+          "fat": 0
+        },
+        "target": {
+          "id": "t2",
+          "effectiveFrom": "2026-09-13",
+          "kcal": 2100,
+          "protein": 150,
+          "carbs": 220,
+          "fat": 70
+        },
+        "meals": 0,
+        "kcalOk": false,
+        "proteinHit": false,
+        "over": false,
+        "verdict": "none"
+      },
+      {
+        "day": "2026-09-20",
+        "totals": {
+          "kcal": 0,
+          "protein": 0,
+          "carbs": 0,
+          "fat": 0
+        },
+        "target": {
+          "id": "t2",
+          "effectiveFrom": "2026-09-13",
+          "kcal": 2100,
+          "protein": 150,
+          "carbs": 220,
+          "fat": 70
+        },
+        "meals": 0,
+        "kcalOk": false,
+        "proteinHit": false,
+        "over": false,
+        "verdict": "none"
+      },
+      {
+        "day": "2026-09-21",
+        "totals": {
+          "kcal": 0,
+          "protein": 0,
+          "carbs": 0,
+          "fat": 0
+        },
+        "target": {
+          "id": "t2",
+          "effectiveFrom": "2026-09-13",
+          "kcal": 2100,
+          "protein": 150,
+          "carbs": 220,
+          "fat": 70
+        },
+        "meals": 0,
+        "kcalOk": false,
+        "proteinHit": false,
+        "over": false,
+        "verdict": "none"
+      },
+      {
+        "day": "2026-09-22",
+        "totals": {
+          "kcal": 0,
+          "protein": 0,
+          "carbs": 0,
+          "fat": 0
+        },
+        "target": {
+          "id": "t2",
+          "effectiveFrom": "2026-09-13",
+          "kcal": 2100,
+          "protein": 150,
+          "carbs": 220,
+          "fat": 70
+        },
+        "meals": 0,
+        "kcalOk": false,
+        "proteinHit": false,
+        "over": false,
+        "verdict": "none"
+      },
+      {
+        "day": "2026-09-23",
+        "totals": {
+          "kcal": 0,
+          "protein": 0,
+          "carbs": 0,
+          "fat": 0
+        },
+        "target": {
+          "id": "t2",
+          "effectiveFrom": "2026-09-13",
+          "kcal": 2100,
+          "protein": 150,
+          "carbs": 220,
+          "fat": 70
+        },
+        "meals": 0,
+        "kcalOk": false,
+        "proteinHit": false,
+        "over": false,
+        "verdict": "none"
+      },
+      {
+        "day": "2026-09-24",
+        "totals": {
+          "kcal": 0,
+          "protein": 0,
+          "carbs": 0,
+          "fat": 0
+        },
+        "target": {
+          "id": "t2",
+          "effectiveFrom": "2026-09-13",
+          "kcal": 2100,
+          "protein": 150,
+          "carbs": 220,
+          "fat": 70
+        },
+        "meals": 0,
+        "kcalOk": false,
+        "proteinHit": false,
+        "over": false,
+        "verdict": "none"
+      },
+      {
+        "day": "2026-09-25",
+        "totals": {
+          "kcal": 0,
+          "protein": 0,
+          "carbs": 0,
+          "fat": 0
+        },
+        "target": {
+          "id": "t2",
+          "effectiveFrom": "2026-09-13",
+          "kcal": 2100,
+          "protein": 150,
+          "carbs": 220,
+          "fat": 70
+        },
+        "meals": 0,
+        "kcalOk": false,
+        "proteinHit": false,
+        "over": false,
+        "verdict": "none"
+      },
+      {
+        "day": "2026-09-26",
+        "totals": {
+          "kcal": 0,
+          "protein": 0,
+          "carbs": 0,
+          "fat": 0
+        },
+        "target": {
+          "id": "t2",
+          "effectiveFrom": "2026-09-13",
+          "kcal": 2100,
+          "protein": 150,
+          "carbs": 220,
+          "fat": 70
+        },
+        "meals": 0,
+        "kcalOk": false,
+        "proteinHit": false,
+        "over": false,
+        "verdict": "none"
+      },
+      {
+        "day": "2026-09-27",
+        "totals": {
+          "kcal": 0,
+          "protein": 0,
+          "carbs": 0,
+          "fat": 0
+        },
+        "target": {
+          "id": "t2",
+          "effectiveFrom": "2026-09-13",
+          "kcal": 2100,
+          "protein": 150,
+          "carbs": 220,
+          "fat": 70
+        },
+        "meals": 0,
+        "kcalOk": false,
+        "proteinHit": false,
+        "over": false,
+        "verdict": "none"
+      },
+      {
+        "day": "2026-09-28",
+        "totals": {
+          "kcal": 0,
+          "protein": 0,
+          "carbs": 0,
+          "fat": 0
+        },
+        "target": {
+          "id": "t2",
+          "effectiveFrom": "2026-09-13",
+          "kcal": 2100,
+          "protein": 150,
+          "carbs": 220,
+          "fat": 70
+        },
+        "meals": 0,
+        "kcalOk": false,
+        "proteinHit": false,
+        "over": false,
+        "verdict": "none"
+      },
+      {
+        "day": "2026-09-29",
+        "totals": {
+          "kcal": 0,
+          "protein": 0,
+          "carbs": 0,
+          "fat": 0
+        },
+        "target": {
+          "id": "t2",
+          "effectiveFrom": "2026-09-13",
+          "kcal": 2100,
+          "protein": 150,
+          "carbs": 220,
+          "fat": 70
+        },
+        "meals": 0,
+        "kcalOk": false,
+        "proteinHit": false,
+        "over": false,
+        "verdict": "none"
+      },
+      {
+        "day": "2026-09-30",
+        "totals": {
+          "kcal": 0,
+          "protein": 0,
+          "carbs": 0,
+          "fat": 0
+        },
+        "target": {
+          "id": "t2",
+          "effectiveFrom": "2026-09-13",
+          "kcal": 2100,
+          "protein": 150,
+          "carbs": 220,
+          "fat": 70
+        },
+        "meals": 0,
+        "kcalOk": false,
+        "proteinHit": false,
+        "over": false,
+        "verdict": "none"
+      },
+      {
+        "day": "2026-10-01",
+        "totals": {
+          "kcal": 0,
+          "protein": 0,
+          "carbs": 0,
+          "fat": 0
+        },
+        "target": {
+          "id": "t2",
+          "effectiveFrom": "2026-09-13",
+          "kcal": 2100,
+          "protein": 150,
+          "carbs": 220,
+          "fat": 70
+        },
+        "meals": 0,
+        "kcalOk": false,
+        "proteinHit": false,
+        "over": false,
+        "verdict": "none"
+      },
+      {
+        "day": "2026-10-02",
+        "totals": {
+          "kcal": 0,
+          "protein": 0,
+          "carbs": 0,
+          "fat": 0
+        },
+        "target": {
+          "id": "t2",
+          "effectiveFrom": "2026-09-13",
+          "kcal": 2100,
+          "protein": 150,
+          "carbs": 220,
+          "fat": 70
+        },
+        "meals": 0,
+        "kcalOk": false,
+        "proteinHit": false,
+        "over": false,
+        "verdict": "none"
+      },
+      {
+        "day": "2026-10-03",
+        "totals": {
+          "kcal": 0,
+          "protein": 0,
+          "carbs": 0,
+          "fat": 0
+        },
+        "target": {
+          "id": "t2",
+          "effectiveFrom": "2026-09-13",
+          "kcal": 2100,
+          "protein": 150,
+          "carbs": 220,
+          "fat": 70
+        },
+        "meals": 0,
+        "kcalOk": false,
+        "proteinHit": false,
+        "over": false,
+        "verdict": "none"
+      },
+      {
+        "day": "2026-10-04",
+        "totals": {
+          "kcal": 0,
+          "protein": 0,
+          "carbs": 0,
+          "fat": 0
+        },
+        "target": {
+          "id": "t2",
+          "effectiveFrom": "2026-09-13",
+          "kcal": 2100,
+          "protein": 150,
+          "carbs": 220,
+          "fat": 70
+        },
+        "meals": 0,
+        "kcalOk": false,
+        "proteinHit": false,
+        "over": false,
+        "verdict": "none"
+      },
+      {
+        "day": "2026-10-05",
+        "totals": {
+          "kcal": 2450,
+          "protein": 157,
+          "carbs": 202,
+          "fat": 110
+        },
+        "target": {
+          "id": "t2",
+          "effectiveFrom": "2026-09-13",
+          "kcal": 2100,
+          "protein": 150,
+          "carbs": 220,
+          "fat": 70
+        },
+        "meals": 5,
+        "kcalOk": false,
+        "proteinHit": true,
+        "over": true,
+        "verdict": "over"
+      },
+      {
+        "day": "2026-10-06",
+        "totals": {
+          "kcal": 1468,
+          "protein": 84,
+          "carbs": 195,
+          "fat": 37
+        },
+        "target": {
+          "id": "t2",
+          "effectiveFrom": "2026-09-13",
+          "kcal": 2100,
+          "protein": 150,
+          "carbs": 220,
+          "fat": 70
+        },
+        "meals": 4,
+        "kcalOk": false,
+        "proteinHit": false,
+        "over": false,
+        "verdict": "under"
+      },
+      {
+        "day": "2026-10-07",
+        "totals": {
+          "kcal": 2313,
+          "protein": 138,
+          "carbs": 280,
+          "fat": 67
+        },
+        "target": {
+          "id": "t2",
+          "effectiveFrom": "2026-09-13",
+          "kcal": 2100,
+          "protein": 150,
+          "carbs": 220,
+          "fat": 70
+        },
+        "meals": 5,
+        "kcalOk": false,
+        "proteinHit": true,
+        "over": true,
+        "verdict": "over"
+      },
+      {
+        "day": "2026-10-08",
+        "totals": {
+          "kcal": 2280,
+          "protein": 143,
+          "carbs": 241,
+          "fat": 79
+        },
+        "target": {
+          "id": "t2",
+          "effectiveFrom": "2026-09-13",
+          "kcal": 2100,
+          "protein": 150,
+          "carbs": 220,
+          "fat": 70
+        },
+        "meals": 5,
+        "kcalOk": true,
+        "proteinHit": true,
+        "over": false,
+        "verdict": "hit"
+      },
+      {
+        "day": "2026-10-09",
+        "totals": {
+          "kcal": 2070,
+          "protein": 133,
+          "carbs": 214,
+          "fat": 72
+        },
+        "target": {
+          "id": "t2",
+          "effectiveFrom": "2026-09-13",
+          "kcal": 2100,
+          "protein": 150,
+          "carbs": 220,
+          "fat": 70
+        },
+        "meals": 4,
+        "kcalOk": true,
+        "proteinHit": false,
+        "over": false,
+        "verdict": "hit"
+      },
+      {
+        "day": "2026-10-10",
+        "totals": {
+          "kcal": 2183,
+          "protein": 138,
+          "carbs": 239,
+          "fat": 73
+        },
+        "target": {
+          "id": "t2",
+          "effectiveFrom": "2026-09-13",
+          "kcal": 2100,
+          "protein": 150,
+          "carbs": 220,
+          "fat": 70
+        },
+        "meals": 5,
+        "kcalOk": true,
+        "proteinHit": true,
+        "over": false,
+        "verdict": "hit"
+      },
+      {
+        "day": "2026-10-11",
+        "totals": {
+          "kcal": 1245,
+          "protein": 58,
+          "carbs": 169,
+          "fat": 35
+        },
+        "target": {
+          "id": "t2",
+          "effectiveFrom": "2026-09-13",
+          "kcal": 2100,
+          "protein": 150,
+          "carbs": 220,
+          "fat": 70
+        },
+        "meals": 3,
+        "kcalOk": false,
+        "proteinHit": false,
+        "over": false,
+        "verdict": "under"
+      },
+      {
+        "day": "2026-10-12",
+        "totals": {
+          "kcal": 1395,
+          "protein": 94,
+          "carbs": 131,
+          "fat": 56
+        },
+        "target": {
+          "id": "t2",
+          "effectiveFrom": "2026-09-13",
+          "kcal": 2100,
+          "protein": 150,
+          "carbs": 220,
+          "fat": 70
+        },
+        "meals": 3,
+        "kcalOk": false,
+        "proteinHit": false,
+        "over": false,
+        "verdict": "under"
+      },
+      {
+        "day": "2026-10-13",
+        "totals": {
+          "kcal": 2173,
+          "protein": 142,
+          "carbs": 215,
+          "fat": 80
+        },
+        "target": {
+          "id": "t2",
+          "effectiveFrom": "2026-09-13",
+          "kcal": 2100,
+          "protein": 150,
+          "carbs": 220,
+          "fat": 70
+        },
+        "meals": 5,
+        "kcalOk": true,
+        "proteinHit": true,
+        "over": false,
+        "verdict": "hit"
+      },
+      {
+        "day": "2026-10-14",
+        "totals": {
+          "kcal": 1285,
+          "protein": 92,
+          "carbs": 140,
+          "fat": 39
+        },
+        "target": {
+          "id": "t2",
+          "effectiveFrom": "2026-09-13",
+          "kcal": 2100,
+          "protein": 150,
+          "carbs": 220,
+          "fat": 70
+        },
+        "meals": 3,
+        "kcalOk": false,
+        "proteinHit": false,
+        "over": false,
+        "verdict": "under"
+      },
+      {
+        "day": "2026-10-15",
+        "totals": {
+          "kcal": 2190,
+          "protein": 157,
+          "carbs": 217,
+          "fat": 74
+        },
+        "target": {
+          "id": "t2",
+          "effectiveFrom": "2026-09-13",
+          "kcal": 2100,
+          "protein": 150,
+          "carbs": 220,
+          "fat": 70
+        },
+        "meals": 5,
+        "kcalOk": true,
+        "proteinHit": true,
+        "over": false,
+        "verdict": "hit"
+      },
+      {
+        "day": "2026-10-16",
+        "totals": {
+          "kcal": 845,
+          "protein": 46,
+          "carbs": 109,
+          "fat": 23
+        },
+        "target": {
+          "id": "t2",
+          "effectiveFrom": "2026-09-13",
+          "kcal": 2100,
+          "protein": 150,
+          "carbs": 220,
+          "fat": 70
+        },
+        "meals": 2,
+        "kcalOk": false,
+        "proteinHit": false,
+        "over": false,
+        "verdict": "under"
+      },
+      {
+        "day": "2026-10-17",
+        "totals": {
+          "kcal": 1950,
+          "protein": 160,
+          "carbs": 192,
+          "fat": 59
+        },
+        "target": {
+          "id": "t2",
+          "effectiveFrom": "2026-09-13",
+          "kcal": 2100,
+          "protein": 150,
+          "carbs": 220,
+          "fat": 70
+        },
+        "meals": 5,
+        "kcalOk": true,
+        "proteinHit": true,
+        "over": false,
+        "verdict": "hit"
+      },
+      {
+        "day": "2026-10-18",
+        "totals": {
+          "kcal": 1355,
+          "protein": 77,
+          "carbs": 121,
+          "fat": 61
+        },
+        "target": {
+          "id": "t2",
+          "effectiveFrom": "2026-09-13",
+          "kcal": 2100,
+          "protein": 150,
+          "carbs": 220,
+          "fat": 70
+        },
+        "meals": 3,
+        "kcalOk": false,
+        "proteinHit": false,
+        "over": false,
+        "verdict": "under"
+      }
+    ],
+    "adherence": [
+      {
+        "days": 7,
+        "offset": 0,
+        "logged": 7,
+        "calorie": 0.42857142857142855,
+        "protein": 0.42857142857142855,
+        "overDays": 0,
+        "coverage": 1
+      },
+      {
+        "days": 7,
+        "offset": 7,
+        "logged": 6,
+        "calorie": 0.5,
+        "protein": 0.6666666666666666,
+        "overDays": 2,
+        "coverage": 0.8571428571428571
+      },
+      {
+        "days": 14,
+        "offset": 0,
+        "logged": 13,
+        "calorie": 0.46153846153846156,
+        "protein": 0.5384615384615384,
+        "overDays": 2,
+        "coverage": 0.9285714285714286
+      },
+      {
+        "days": 30,
+        "offset": 0,
+        "logged": 13,
+        "calorie": 0.46153846153846156,
+        "protein": 0.5384615384615384,
+        "overDays": 2,
+        "coverage": 0.43333333333333335
+      },
+      {
+        "days": 30,
+        "offset": 30,
+        "logged": 0,
+        "calorie": 0,
+        "protein": 0,
+        "overDays": 0,
+        "coverage": 0
+      },
+      {
+        "days": 3,
+        "offset": 2,
+        "logged": 3,
+        "calorie": 0.6666666666666666,
+        "protein": 0.6666666666666666,
+        "overDays": 0,
+        "coverage": 1
+      }
+    ],
+    "overloadRate": {
+      "7": 0,
+      "28": 0.6923076923076923,
+      "90": 1
+    },
+    "periodSummary": [
+      {
+        "days": 7,
+        "endOffset": 0,
+        "sessions": 3,
+        "target": 4,
+        "sessionRate": 0.75,
+        "missed": 1,
+        "prs": 9,
+        "volume": 17479
+      },
+      {
+        "days": 7,
+        "endOffset": -7,
+        "sessions": 4,
+        "target": 4,
+        "sessionRate": 1,
+        "missed": 0,
+        "prs": 11,
+        "volume": 25368.9
+      },
+      {
+        "days": 30,
+        "endOffset": 0,
+        "sessions": 15,
+        "target": 17.142857142857142,
+        "sessionRate": 0.875,
+        "missed": 2,
+        "prs": 34,
+        "volume": 89751.4
+      },
+      {
+        "days": 30,
+        "endOffset": -30,
+        "sessions": 14,
+        "target": 17.142857142857142,
+        "sessionRate": 0.8166666666666667,
+        "missed": 3,
+        "prs": 37,
+        "volume": 78362.09999999999
+      },
+      {
+        "days": 90,
+        "endOffset": 0,
+        "sessions": 35,
+        "target": 51.42857142857143,
+        "sessionRate": 0.6805555555555556,
+        "missed": 16,
+        "prs": 76,
+        "volume": 197437.9
+      },
+      {
+        "days": 1,
+        "endOffset": 0,
+        "sessions": 0,
+        "target": 0.5714285714285714,
+        "sessionRate": 0,
+        "missed": 1,
+        "prs": 0,
+        "volume": 0
+      }
+    ],
+    "targetFor": {
+      "2026-06-20": null,
+      "2026-07-19": null,
+      "2026-07-20": "t1",
+      "2026-09-12": "t1",
+      "2026-09-13": "t2",
+      "2026-09-14": "t2",
+      "2026-10-17": "t2",
+      "2026-10-18": "t2"
+    },
+    "nextTemplate": "legs-a",
+    "dayTotals": {
+      "2026-10-18": {
+        "totals": {
+          "kcal": 1355,
+          "protein": 77,
+          "carbs": 121,
+          "fat": 61
+        },
+        "pending": 1,
+        "toReview": 1,
+        "count": 3
+      },
+      "2026-10-17": {
+        "totals": {
+          "kcal": 1950,
+          "protein": 160,
+          "carbs": 192,
+          "fat": 59
+        },
+        "pending": 0,
+        "toReview": 0,
+        "count": 5
+      },
+      "2026-10-16": {
+        "totals": {
+          "kcal": 845,
+          "protein": 46,
+          "carbs": 109,
+          "fat": 23
+        },
+        "pending": 0,
+        "toReview": 0,
+        "count": 2
+      },
+      "2026-10-15": {
+        "totals": {
+          "kcal": 2190,
+          "protein": 157,
+          "carbs": 217,
+          "fat": 74
+        },
+        "pending": 0,
+        "toReview": 0,
+        "count": 5
+      }
+    },
+    "macrosLeftToday": {
+      "kcal": 745,
+      "protein": 73,
+      "carbs": 99,
+      "fat": 9
+    }
+  }
+}

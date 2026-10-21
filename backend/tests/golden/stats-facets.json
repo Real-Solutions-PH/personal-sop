@@ -1,0 +1,734 @@
+{
+  "frozenNow": "2026-10-18T04:00:00.000Z",
+  "source": "shared/prototype",
+  "data": {
+    "cases": [
+      {
+        "days": 7,
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "finance": true
+        },
+        "rates": {
+          "habits": 0.9148936170212766,
+          "tasks": 0.8125,
+          "fitness": 0.5892857142857143,
+          "finance": 1
+        },
+        "prevRates": {
+          "habits": 0.74,
+          "tasks": 0.8888888888888888,
+          "fitness": 0.75,
+          "finance": 1
+        },
+        "facets": [
+          {
+            "key": "habits",
+            "label": "Habits",
+            "module": "habits",
+            "value": 0.9148936170212766,
+            "prev": 0.74,
+            "href": "/habits",
+            "off": false,
+            "metricKeys": null,
+            "extra": null
+          },
+          {
+            "key": "routines",
+            "label": "Routines",
+            "module": "habits",
+            "value": 0.9,
+            "prev": 0.3333333333333333,
+            "href": "/habits/routines",
+            "off": false,
+            "metricKeys": [],
+            "extra": [
+              {
+                "key": "routines.rate",
+                "label": "Routines completed",
+                "value": "90%",
+                "delta": 57,
+                "goodWhen": "up",
+                "shareable": true
+              },
+              {
+                "key": "routines.runs",
+                "label": "Runs finished",
+                "value": "9",
+                "delta": 5,
+                "goodWhen": "up",
+                "shareable": true
+              },
+              {
+                "key": "routines.avg",
+                "label": "Avg run time",
+                "value": "52m",
+                "shareable": true
+              }
+            ]
+          },
+          {
+            "key": "tasks",
+            "label": "Tasks",
+            "module": "tasks",
+            "value": 0.8125,
+            "prev": 0.8888888888888888,
+            "href": "/tasks/stats",
+            "off": false,
+            "metricKeys": null,
+            "extra": null
+          },
+          {
+            "key": "training",
+            "label": "Training",
+            "module": "fitness",
+            "value": 0.75,
+            "prev": 1,
+            "href": "/fitness?tab=train",
+            "off": false,
+            "metricKeys": [
+              "sessions",
+              "prs",
+              "volume",
+              "overload"
+            ],
+            "extra": null
+          },
+          {
+            "key": "nutrition",
+            "label": "Nutrition",
+            "module": "fitness",
+            "value": 0.42857142857142855,
+            "prev": 0.5,
+            "href": "/fitness?tab=eat",
+            "off": false,
+            "metricKeys": [
+              "calories",
+              "protein",
+              "weight"
+            ],
+            "extra": null
+          },
+          {
+            "key": "finance",
+            "label": "Finance",
+            "module": "finance",
+            "value": 1,
+            "prev": 1,
+            "href": "/finance/reports",
+            "off": false,
+            "metricKeys": null,
+            "extra": null
+          }
+        ]
+      },
+      {
+        "days": 7,
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": false,
+          "finance": true
+        },
+        "rates": {
+          "habits": 0.9148936170212766,
+          "tasks": 0.8125,
+          "fitness": 0.5892857142857143,
+          "finance": 1
+        },
+        "prevRates": {
+          "habits": 0.74,
+          "tasks": 0.8888888888888888,
+          "fitness": 0.75,
+          "finance": 1
+        },
+        "facets": [
+          {
+            "key": "habits",
+            "label": "Habits",
+            "module": "habits",
+            "value": 0.9148936170212766,
+            "prev": 0.74,
+            "href": "/habits",
+            "off": false,
+            "metricKeys": null,
+            "extra": null
+          },
+          {
+            "key": "routines",
+            "label": "Routines",
+            "module": "habits",
+            "value": 0.9,
+            "prev": 0.3333333333333333,
+            "href": "/habits/routines",
+            "off": false,
+            "metricKeys": [],
+            "extra": [
+              {
+                "key": "routines.rate",
+                "label": "Routines completed",
+                "value": "90%",
+                "delta": 57,
+                "goodWhen": "up",
+                "shareable": true
+              },
+              {
+                "key": "routines.runs",
+                "label": "Runs finished",
+                "value": "9",
+                "delta": 5,
+                "goodWhen": "up",
+                "shareable": true
+              },
+              {
+                "key": "routines.avg",
+                "label": "Avg run time",
+                "value": "52m",
+                "shareable": true
+              }
+            ]
+          },
+          {
+            "key": "tasks",
+            "label": "Tasks",
+            "module": "tasks",
+            "value": 0.8125,
+            "prev": 0.8888888888888888,
+            "href": "/tasks/stats",
+            "off": false,
+            "metricKeys": null,
+            "extra": null
+          },
+          {
+            "key": "training",
+            "label": "Training",
+            "module": "fitness",
+            "value": 0.75,
+            "prev": 1,
+            "href": "/fitness?tab=train",
+            "off": true,
+            "metricKeys": [
+              "sessions",
+              "prs",
+              "volume",
+              "overload"
+            ],
+            "extra": null
+          },
+          {
+            "key": "nutrition",
+            "label": "Nutrition",
+            "module": "fitness",
+            "value": 0.42857142857142855,
+            "prev": 0.5,
+            "href": "/fitness?tab=eat",
+            "off": true,
+            "metricKeys": [
+              "calories",
+              "protein",
+              "weight"
+            ],
+            "extra": null
+          },
+          {
+            "key": "finance",
+            "label": "Finance",
+            "module": "finance",
+            "value": 1,
+            "prev": 1,
+            "href": "/finance/reports",
+            "off": false,
+            "metricKeys": null,
+            "extra": null
+          }
+        ]
+      },
+      {
+        "days": 7,
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": false,
+          "finance": false
+        },
+        "rates": {
+          "habits": 0.9148936170212766,
+          "tasks": 0.8125,
+          "fitness": 0.5892857142857143,
+          "finance": 1
+        },
+        "prevRates": {
+          "habits": 0.74,
+          "tasks": 0.8888888888888888,
+          "fitness": 0.75,
+          "finance": 1
+        },
+        "facets": [
+          {
+            "key": "habits",
+            "label": "Habits",
+            "module": "habits",
+            "value": 0.9148936170212766,
+            "prev": 0.74,
+            "href": "/habits",
+            "off": false,
+            "metricKeys": null,
+            "extra": null
+          },
+          {
+            "key": "routines",
+            "label": "Routines",
+            "module": "habits",
+            "value": 0.9,
+            "prev": 0.3333333333333333,
+            "href": "/habits/routines",
+            "off": false,
+            "metricKeys": [],
+            "extra": [
+              {
+                "key": "routines.rate",
+                "label": "Routines completed",
+                "value": "90%",
+                "delta": 57,
+                "goodWhen": "up",
+                "shareable": true
+              },
+              {
+                "key": "routines.runs",
+                "label": "Runs finished",
+                "value": "9",
+                "delta": 5,
+                "goodWhen": "up",
+                "shareable": true
+              },
+              {
+                "key": "routines.avg",
+                "label": "Avg run time",
+                "value": "52m",
+                "shareable": true
+              }
+            ]
+          },
+          {
+            "key": "tasks",
+            "label": "Tasks",
+            "module": "tasks",
+            "value": 0.8125,
+            "prev": 0.8888888888888888,
+            "href": "/tasks/stats",
+            "off": false,
+            "metricKeys": null,
+            "extra": null
+          },
+          {
+            "key": "training",
+            "label": "Training",
+            "module": "fitness",
+            "value": 0.75,
+            "prev": 1,
+            "href": "/fitness?tab=train",
+            "off": true,
+            "metricKeys": [
+              "sessions",
+              "prs",
+              "volume",
+              "overload"
+            ],
+            "extra": null
+          },
+          {
+            "key": "nutrition",
+            "label": "Nutrition",
+            "module": "fitness",
+            "value": 0.42857142857142855,
+            "prev": 0.5,
+            "href": "/fitness?tab=eat",
+            "off": true,
+            "metricKeys": [
+              "calories",
+              "protein",
+              "weight"
+            ],
+            "extra": null
+          },
+          {
+            "key": "finance",
+            "label": "Finance",
+            "module": "finance",
+            "value": 1,
+            "prev": 1,
+            "href": "/finance/reports",
+            "off": true,
+            "metricKeys": null,
+            "extra": null
+          }
+        ]
+      },
+      {
+        "days": 30,
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": false,
+          "finance": false
+        },
+        "rates": {
+          "habits": 0.7101449275362319,
+          "tasks": 0.8703703703703703,
+          "fitness": 0.6682692307692308,
+          "finance": 1
+        },
+        "prevRates": {
+          "habits": 0.5502392344497608,
+          "tasks": 0.7857142857142857,
+          "fitness": 0.8166666666666667,
+          "finance": 1
+        },
+        "facets": [
+          {
+            "key": "habits",
+            "label": "Habits",
+            "module": "habits",
+            "value": 0.7101449275362319,
+            "prev": 0.5502392344497608,
+            "href": "/habits",
+            "off": false,
+            "metricKeys": null,
+            "extra": null
+          },
+          {
+            "key": "routines",
+            "label": "Routines",
+            "module": "habits",
+            "value": 0.5111111111111111,
+            "prev": 0.32653061224489793,
+            "href": "/habits/routines",
+            "off": false,
+            "metricKeys": [],
+            "extra": [
+              {
+                "key": "routines.rate",
+                "label": "Routines completed",
+                "value": "51%",
+                "delta": 18,
+                "goodWhen": "up",
+                "shareable": true
+              },
+              {
+                "key": "routines.runs",
+                "label": "Runs finished",
+                "value": "23",
+                "delta": 8,
+                "goodWhen": "up",
+                "shareable": true
+              },
+              {
+                "key": "routines.avg",
+                "label": "Avg run time",
+                "value": "46m",
+                "shareable": true
+              }
+            ]
+          },
+          {
+            "key": "tasks",
+            "label": "Tasks",
+            "module": "tasks",
+            "value": 0.8703703703703703,
+            "prev": 0.7857142857142857,
+            "href": "/tasks/stats",
+            "off": false,
+            "metricKeys": null,
+            "extra": null
+          },
+          {
+            "key": "training",
+            "label": "Training",
+            "module": "fitness",
+            "value": 0.875,
+            "prev": 0.8166666666666667,
+            "href": "/fitness?tab=train",
+            "off": true,
+            "metricKeys": [
+              "sessions",
+              "prs",
+              "volume",
+              "overload"
+            ],
+            "extra": null
+          },
+          {
+            "key": "nutrition",
+            "label": "Nutrition",
+            "module": "fitness",
+            "value": 0.46153846153846156,
+            "prev": 0,
+            "href": "/fitness?tab=eat",
+            "off": true,
+            "metricKeys": [
+              "calories",
+              "protein",
+              "weight"
+            ],
+            "extra": null
+          },
+          {
+            "key": "finance",
+            "label": "Finance",
+            "module": "finance",
+            "value": 1,
+            "prev": 1,
+            "href": "/finance/reports",
+            "off": true,
+            "metricKeys": null,
+            "extra": null
+          }
+        ]
+      },
+      {
+        "days": 30,
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": false,
+          "finance": false
+        },
+        "rates": {
+          "habits": 0.7101449275362319,
+          "tasks": 0.8703703703703703,
+          "fitness": 0.6682692307692308,
+          "finance": 1
+        },
+        "prevRates": {
+          "habits": 0.5502392344497608,
+          "tasks": 0.7857142857142857,
+          "fitness": 0.8166666666666667,
+          "finance": 1
+        },
+        "facets": [
+          {
+            "key": "habits",
+            "label": "Habits",
+            "module": "habits",
+            "value": 0.7101449275362319,
+            "prev": 0.5502392344497608,
+            "href": "/habits",
+            "off": false,
+            "metricKeys": null,
+            "extra": null
+          },
+          {
+            "key": "routines",
+            "label": "Routines",
+            "module": "habits",
+            "value": 0.5111111111111111,
+            "prev": 0.32653061224489793,
+            "href": "/habits/routines",
+            "off": false,
+            "metricKeys": [],
+            "extra": [
+              {
+                "key": "routines.rate",
+                "label": "Routines completed",
+                "value": "51%",
+                "delta": 18,
+                "goodWhen": "up",
+                "shareable": true
+              },
+              {
+                "key": "routines.runs",
+                "label": "Runs finished",
+                "value": "23",
+                "delta": 8,
+                "goodWhen": "up",
+                "shareable": true
+              },
+              {
+                "key": "routines.avg",
+                "label": "Avg run time",
+                "value": "46m",
+                "shareable": true
+              }
+            ]
+          },
+          {
+            "key": "tasks",
+            "label": "Tasks",
+            "module": "tasks",
+            "value": 0.8703703703703703,
+            "prev": 0.7857142857142857,
+            "href": "/tasks/stats",
+            "off": false,
+            "metricKeys": null,
+            "extra": null
+          },
+          {
+            "key": "training",
+            "label": "Training",
+            "module": "fitness",
+            "value": 0.875,
+            "prev": 0.8166666666666667,
+            "href": "/fitness?tab=train",
+            "off": true,
+            "metricKeys": [
+              "sessions",
+              "prs",
+              "volume",
+              "overload"
+            ],
+            "extra": null
+          },
+          {
+            "key": "nutrition",
+            "label": "Nutrition",
+            "module": "fitness",
+            "value": 0.46153846153846156,
+            "prev": 0,
+            "href": "/fitness?tab=eat",
+            "off": true,
+            "metricKeys": [
+              "calories",
+              "protein",
+              "weight"
+            ],
+            "extra": null
+          },
+          {
+            "key": "finance",
+            "label": "Finance",
+            "module": "finance",
+            "value": 1,
+            "prev": 1,
+            "href": "/finance/reports",
+            "off": true,
+            "metricKeys": null,
+            "extra": null
+          }
+        ]
+      },
+      {
+        "days": 30,
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": false,
+          "finance": false
+        },
+        "rates": {
+          "habits": 0.7101449275362319,
+          "tasks": 0.8703703703703703,
+          "fitness": 0.6682692307692308,
+          "finance": 1
+        },
+        "prevRates": {
+          "habits": 0.5502392344497608,
+          "tasks": 0.7857142857142857,
+          "fitness": 0.8166666666666667,
+          "finance": 1
+        },
+        "facets": [
+          {
+            "key": "habits",
+            "label": "Habits",
+            "module": "habits",
+            "value": 0.7101449275362319,
+            "prev": 0.5502392344497608,
+            "href": "/habits",
+            "off": false,
+            "metricKeys": null,
+            "extra": null
+          },
+          {
+            "key": "routines",
+            "label": "Routines",
+            "module": "habits",
+            "value": 0.5111111111111111,
+            "prev": 0.32653061224489793,
+            "href": "/habits/routines",
+            "off": false,
+            "metricKeys": [],
+            "extra": [
+              {
+                "key": "routines.rate",
+                "label": "Routines completed",
+                "value": "51%",
+                "delta": 18,
+                "goodWhen": "up",
+                "shareable": true
+              },
+              {
+                "key": "routines.runs",
+                "label": "Runs finished",
+                "value": "23",
+                "delta": 8,
+                "goodWhen": "up",
+                "shareable": true
+              },
+              {
+                "key": "routines.avg",
+                "label": "Avg run time",
+                "value": "46m",
+                "shareable": true
+              }
+            ]
+          },
+          {
+            "key": "tasks",
+            "label": "Tasks",
+            "module": "tasks",
+            "value": 0.8703703703703703,
+            "prev": 0.7857142857142857,
+            "href": "/tasks/stats",
+            "off": false,
+            "metricKeys": null,
+            "extra": null
+          },
+          {
+            "key": "training",
+            "label": "Training",
+            "module": "fitness",
+            "value": 0.875,
+            "prev": 0.8166666666666667,
+            "href": "/fitness?tab=train",
+            "off": true,
+            "metricKeys": [
+              "sessions",
+              "prs",
+              "volume",
+              "overload"
+            ],
+            "extra": null
+          },
+          {
+            "key": "nutrition",
+            "label": "Nutrition",
+            "module": "fitness",
+            "value": 0.46153846153846156,
+            "prev": 0,
+            "href": "/fitness?tab=eat",
+            "off": true,
+            "metricKeys": [
+              "calories",
+              "protein",
+              "weight"
+            ],
+            "extra": null
+          },
+          {
+            "key": "finance",
+            "label": "Finance",
+            "module": "finance",
+            "value": 1,
+            "prev": 1,
+            "href": "/finance/reports",
+            "off": true,
+            "metricKeys": null,
+            "extra": null
+          }
+        ]
+      }
+    ]
+  }
+}

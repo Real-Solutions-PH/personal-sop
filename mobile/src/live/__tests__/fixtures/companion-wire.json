@@ -1,0 +1,59 @@
+{
+  "ops": [
+    {
+      "kind": "upsert",
+      "name": "companion",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "data": {
+        "name": "Fern"
+      }
+    },
+    {
+      "kind": "upsert",
+      "name": "companion",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "data": {
+        "name": "Luna"
+      }
+    },
+    {
+      "kind": "upsert",
+      "name": "tracker",
+      "id": "00000000-0000-4000-8000-000000000002",
+      "data": {
+        "metric": "spend",
+        "label": "Daily spending",
+        "goal": 1500,
+        "direction": "below"
+      }
+    },
+    {
+      "kind": "upsert",
+      "name": "tracker",
+      "id": "00000000-0000-4000-8000-000000000003",
+      "data": {
+        "metric": "workouts",
+        "label": "Workouts",
+        "goal": null,
+        "direction": null
+      }
+    },
+    {
+      "kind": "upsert",
+      "name": "memory",
+      "id": "00000000-0000-4000-8000-000000000004",
+      "data": {
+        "text": "Training for a 10K"
+      }
+    }
+  ],
+  "rest": [
+    {
+      "model": "AskIn",
+      "data": {
+        "text": "how am I doing?",
+        "id": "00000000-0000-4000-8000-000000000005"
+      }
+    }
+  ]
+}

@@ -1,0 +1,191 @@
+[
+  {
+    "op_id": "00000000-0000-4000-8000-000000000001",
+    "kind": "upsert",
+    "name": "profile",
+    "id": "00000000-0000-4000-8000-000000000002",
+    "data": {
+      "evening_start": "18:00",
+      "target_threshold": 0.8,
+      "appearance": "system",
+      "privacy_hidden": false,
+      "onboarded": true,
+      "setup_hidden": false,
+      "install_dismissed": false,
+      "push_permission": "default",
+      "push_morning": "07:00",
+      "push_evening": "21:00",
+      "push_review": true,
+      "seen_trophies": [],
+      "name": "Kai Tecson",
+      "handle": "kai.sop"
+    }
+  },
+  {
+    "op_id": "00000000-0000-4000-8000-000000000003",
+    "kind": "upsert",
+    "name": "profile",
+    "id": "00000000-0000-4000-8000-000000000002",
+    "data": {
+      "appearance": "light"
+    }
+  },
+  {
+    "op_id": "00000000-0000-4000-8000-000000000004",
+    "kind": "upsert",
+    "name": "profile",
+    "id": "00000000-0000-4000-8000-000000000002",
+    "data": {
+      "privacy_hidden": true
+    }
+  },
+  {
+    "op_id": "00000000-0000-4000-8000-000000000005",
+    "kind": "upsert",
+    "name": "profile",
+    "id": "00000000-0000-4000-8000-000000000002",
+    "data": {
+      "onboarded": false
+    }
+  },
+  {
+    "op_id": "00000000-0000-4000-8000-000000000006",
+    "kind": "upsert",
+    "name": "goal",
+    "id": "00000000-0000-4000-8000-000000000007",
+    "data": {
+      "metric": "life",
+      "label": "Life Score",
+      "target": 75,
+      "unit": "",
+      "comparator": "gte",
+      "period": "month",
+      "status": "active",
+      "via": "manual"
+    }
+  },
+  {
+    "op_id": "00000000-0000-4000-8000-000000000008",
+    "kind": "upsert",
+    "name": "goal",
+    "id": "00000000-0000-4000-8000-000000000007",
+    "data": {
+      "target": 80
+    }
+  },
+  {
+    "op_id": "00000000-0000-4000-8000-000000000009",
+    "kind": "upsert",
+    "name": "goal",
+    "id": "00000000-0000-4000-8000-000000000007",
+    "data": {
+      "status": "archived"
+    }
+  },
+  {
+    "op_id": "00000000-0000-4000-8000-00000000000a",
+    "kind": "upsert",
+    "name": "identity",
+    "id": "00000000-0000-4000-8000-00000000000b",
+    "data": {
+      "text": "I keep score",
+      "goal_id": "00000000-0000-4000-8000-000000000007",
+      "sort_order": 0
+    }
+  },
+  {
+    "op_id": "00000000-0000-4000-8000-00000000000c",
+    "kind": "delete",
+    "name": "goal",
+    "id": "00000000-0000-4000-8000-000000000007"
+  },
+  {
+    "op_id": "00000000-0000-4000-8000-00000000000d",
+    "kind": "upsert",
+    "name": "identity",
+    "id": "00000000-0000-4000-8000-00000000000b",
+    "data": {
+      "goal_id": null
+    }
+  },
+  {
+    "op_id": "00000000-0000-4000-8000-00000000000e",
+    "kind": "upsert",
+    "name": "setup_skip",
+    "id": "00000000-0000-4000-8000-00000000000f",
+    "data": {
+      "module": "finance"
+    }
+  },
+  {
+    "op_id": "00000000-0000-4000-8000-000000000010",
+    "kind": "upsert",
+    "name": "review",
+    "id": "00000000-0000-4000-8000-000000000011",
+    "data": {
+      "key": "w-2026-10-12",
+      "done": true,
+      "done_at": "2026-10-19T04:00:00.000Z",
+      "reflection": null,
+      "focus": null
+    }
+  },
+  {
+    "op_id": "00000000-0000-4000-8000-000000000012",
+    "kind": "upsert",
+    "name": "wrap_up",
+    "id": "00000000-0000-4000-8000-000000000013",
+    "data": {
+      "day": "2026-10-19",
+      "at": "2026-10-19T04:00:00.000Z",
+      "on_target": true,
+      "done": 4,
+      "due": 5,
+      "reflection": "ok"
+    }
+  },
+  {
+    "op_id": "00000000-0000-4000-8000-000000000014",
+    "kind": "upsert",
+    "name": "miss_note",
+    "id": "00000000-0000-4000-8000-000000000015",
+    "data": {
+      "miss_key": "task-a:2026-10-14",
+      "note": "sick"
+    }
+  },
+  {
+    "op_id": "00000000-0000-4000-8000-000000000016",
+    "kind": "upsert",
+    "name": "share_default",
+    "id": "00000000-0000-4000-8000-000000000017",
+    "data": {
+      "template": "streak",
+      "fields": {
+        "grid": true,
+        "best": false
+      }
+    }
+  },
+  {
+    "op_id": "00000000-0000-4000-8000-000000000018",
+    "kind": "delete",
+    "name": "wrap_up",
+    "id": "00000000-0000-4000-8000-000000000013"
+  },
+  {
+    "op_id": "00000000-0000-4000-8000-000000000019",
+    "kind": "delete",
+    "name": "miss_note",
+    "id": "00000000-0000-4000-8000-000000000015"
+  },
+  {
+    "op_id": "00000000-0000-4000-8000-00000000001a",
+    "kind": "upsert",
+    "name": "notification",
+    "id": "00000000-0000-4000-8000-00000000001b",
+    "data": {
+      "read": true
+    }
+  }
+]

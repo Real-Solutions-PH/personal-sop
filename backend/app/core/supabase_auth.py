@@ -141,6 +141,30 @@ def admin_update_email(auth_uid: uuid.UUID, email: str) -> None:
     ).raise_for_status()
 
 
+def _password_works(email: str, password: str) -> bool:
+    """Whether ``password`` signs ``email`` in. The session the check opens
+    is closed again (only that one: ``scope=local``)."""
+    r = httpx.post(
+        _auth_url("/token?grant_type=password"),
+        headers={"apikey": settings.SUPABASE_SERVICE_ROLE_KEY},
+        json={"email": email, "password": password},
+        timeout=10,
+    )
+    if r.status_code != 200:
+        return False
+    token = r.json().get("access_token")
+    if token:
+        httpx.post(
+            _auth_url("/logout?scope=local"),
+            headers={
+                "apikey": settings.SUPABASE_SERVICE_ROLE_KEY,
+                "Authorization": f"Bearer {token}",
+            },
+            timeout=10,
+        )
+    return True
+
+
 class EmailExistsError(Exception):
     """The email is already registered with the auth provider and the
     caller opted out of adopting the existing identity."""
@@ -178,7 +202,11 @@ def admin_get_or_create_user(
         user_id = admin_get_user_id_by_email(email)
         if user_id is None:  # pragma: no cover - create/lookup race
             raise RuntimeError(f"GoTrue reports {email} exists but lookup failed")
-        if password is not None:
+        # GoTrue signs out every session of a user whose password changes,
+        # so only reset one that does not already work: the bootstrap runs on
+        # every API start and test run, and would otherwise sign the
+        # superuser out of every device each time.
+        if password is not None and not _password_works(email, password):
             httpx.put(
                 _auth_url(f"/admin/users/{user_id}"),
                 headers=_admin_headers(),

@@ -71,6 +71,24 @@ def test_validation_error_never_reflects_submitted_values(
         assert set(item) == {"loc", "msg", "type"}
 
 
+def test_public_route_validation_error_is_an_envelope_without_the_input(
+    client: TestClient,
+) -> None:
+    # The sign-up handle check takes no credentials, so its 422 is reachable
+    # by anyone: it must still be the envelope and must not echo the query.
+    probe = "q" * 41
+    response = client.get(
+        f"{settings.API_V1_STR}/profile/signup/handle-available",
+        params={"handle": probe},
+    )
+    assert response.status_code == 422
+    content = response.json()
+    assert content["code"] == "validation_error"
+    assert probe not in response.text
+    for item in content["details"]:
+        assert set(item) == {"loc", "msg", "type"}
+
+
 def test_unhandled_exception_returns_internal_error_envelope_with_cors() -> None:
     route_path = "/boom-t29"
 

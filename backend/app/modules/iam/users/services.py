@@ -125,10 +125,23 @@ def provision_user_from_claims(
     """
     if not supabase_auth.admin_user_exists(user_id):
         raise HTTPException(status_code=401, detail="Auth user no longer exists")
+    # The default role is committed WITH the user row. A first sign-in fires
+    # several requests at once; with the role in a second commit, a request
+    # landing between the two found a role-less user and got a 403. Look the
+    # role up before adding the user so no autoflush inserts the user early.
+    from app.modules.iam.rbac.models import UserRole
+    from app.modules.iam.roles import repo as role_repo
+
     tenant = tenant_service.get_default_tenant(session=session)
+    role = role_repo.get_by_name(session=session, name=DEFAULT_ROLE_NAME)
     user = User(id=user_id, email=email, is_active=True, tenant_id=tenant.id)
     session.add(user)
     try:
+        # Flush the user first (the link has no ORM relationship to order the
+        # inserts), then commit user + role together.
+        session.flush()
+        if role is not None:
+            session.add(UserRole(user_id=user_id, role_id=role.id))
         session.commit()
     except IntegrityError:
         session.rollback()
@@ -141,7 +154,6 @@ def provision_user_from_claims(
             )
         return existing
     session.refresh(user)
-    assign_default_role(session=session, user_id=user.id)
     return user
 
 

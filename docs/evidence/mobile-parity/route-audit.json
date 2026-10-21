@@ -1,0 +1,2009 @@
+{
+  "date": "2026-10-02",
+  "reference": "https://personal-sop-seven.vercel.app",
+  "baseline": {
+    "width": 414,
+    "height": 896,
+    "theme": "dark",
+    "seedTime": "2026-10-02T09:30:00+08:00"
+  },
+  "routes": [
+    {
+      "route": "/capture/connector",
+      "url": "/capture/connector",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/capture/history/[id]",
+      "url": "/capture/history/c-seed-1",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/capture/history",
+      "url": "/capture/history",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/capture",
+      "url": "/capture",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/capture/queue",
+      "url": "/capture/queue",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/capture/settings",
+      "url": "/capture/settings",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/finance/accounts/[id]",
+      "url": "/finance/accounts/gcash",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/finance/accounts",
+      "url": "/finance/accounts",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/finance/advisor",
+      "url": "/finance/advisor",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/finance/archived",
+      "url": "/finance/archived",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/finance/budgets/[id]",
+      "url": "/finance/budgets/bg-food",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/finance/budgets",
+      "url": "/finance/budgets",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/finance/categories",
+      "url": "/finance/categories",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/finance/import/[id]",
+      "url": "/finance/import/imp-gcash-prev",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/finance/import",
+      "url": "/finance/import",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/finance/imports",
+      "url": "/finance/imports",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/finance",
+      "url": "/finance",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/finance/planned/[id]",
+      "url": "/finance/planned/pl-sal1",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/finance/planned",
+      "url": "/finance/planned",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/finance/projection",
+      "url": "/finance/projection",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/finance/records/[id]",
+      "url": "/finance/records/r11-1",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/finance/records",
+      "url": "/finance/records",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/finance/reports/[kind]",
+      "url": "/finance/reports/category",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/finance/reports",
+      "url": "/finance/reports",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/finance/review",
+      "url": "/finance/review",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/finance/settings",
+      "url": "/finance/settings",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/finance/setup",
+      "url": "/finance/setup",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/fitness/body",
+      "url": "/fitness/body",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/fitness/exercises/[id]",
+      "url": "/fitness/exercises/bench",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/fitness/exercises",
+      "url": "/fitness/exercises",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/fitness/nutrition/history",
+      "url": "/fitness/nutrition/history",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/fitness/nutrition/meals/[id]",
+      "url": "/fitness/nutrition/meals/m13b",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/fitness/nutrition/new",
+      "url": "/fitness/nutrition/new",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/fitness/nutrition",
+      "url": "/fitness/nutrition",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/fitness/nutrition/targets",
+      "url": "/fitness/nutrition/targets",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/fitness",
+      "url": "/fitness",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/fitness/settings",
+      "url": "/fitness/settings",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/fitness/share/[id]",
+      "url": "/fitness/share/w69",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/fitness/stats",
+      "url": "/fitness/stats",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/fitness/templates/[id]",
+      "url": "/fitness/templates/push-a",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/fitness/templates",
+      "url": "/fitness/templates",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/fitness/workout",
+      "url": "/fitness/workout",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/fitness/workouts/[id]",
+      "url": "/fitness/workouts/w69",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/fitness/workouts/[id]/summary",
+      "url": "/fitness/workouts/w69/summary",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/fitness/workouts",
+      "url": "/fitness/workouts",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/habits/[id]/edit",
+      "url": "/habits/h-meditate/edit",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/habits/[id]",
+      "url": "/habits/h-meditate",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/habits/[id]/timer",
+      "url": "/habits/h-meditate/timer",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/habits/day/[day]",
+      "url": "/habits/day/2026-10-02",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/habits/manage/archived",
+      "url": "/habits/manage/archived",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/habits/manage",
+      "url": "/habits/manage",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/habits/new",
+      "url": "/habits/new",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/habits",
+      "url": "/habits",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/habits/routines/[id]/edit",
+      "url": "/habits/routines/r-morning/edit",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/habits/routines/[id]",
+      "url": "/habits/routines/r-morning",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/habits/routines/[id]/play",
+      "url": "/habits/routines/r-morning/play",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/habits/routines/[id]/summary",
+      "url": "/habits/routines/r-morning/summary",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/habits/routines/new",
+      "url": "/habits/routines/new",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/habits/routines",
+      "url": "/habits/routines",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/habits/settings",
+      "url": "/habits/settings",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/habits/share",
+      "url": "/habits/share",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/habits/today",
+      "url": "/habits/today",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/habits/week",
+      "url": "/habits/week",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/journal/[id]",
+      "url": "/journal/j-seed-0",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/journal/new",
+      "url": "/journal/new",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/journal",
+      "url": "/journal",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/me",
+      "url": "/me",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/me/profile",
+      "url": "/me/profile",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/me/settings",
+      "url": "/me/settings",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/onboarding",
+      "url": "/onboarding",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/plan",
+      "url": "/plan",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/setup",
+      "url": "/setup",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/stats/goals",
+      "url": "/stats/goals",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/stats/metric/[key]",
+      "url": "/stats/metric/habits:habits.rate",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/stats/misses",
+      "url": "/stats/misses",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/stats",
+      "url": "/stats",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/stats/reviews/[id]",
+      "url": "/stats/reviews/w-2026-09-21",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/stats/reviews",
+      "url": "/stats/reviews",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/stats/share",
+      "url": "/stats/share",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/stats/trophies",
+      "url": "/stats/trophies",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/tasks/capture",
+      "url": "/tasks/capture",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/tasks/completed",
+      "url": "/tasks/completed",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/tasks/list/[id]",
+      "url": "/tasks/list/work",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/tasks/lists",
+      "url": "/tasks/lists",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/tasks/notification",
+      "url": "/tasks/notification",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/tasks",
+      "url": "/tasks",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/tasks/reminders",
+      "url": "/tasks/reminders",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/tasks/search",
+      "url": "/tasks/search",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/tasks/settings",
+      "url": "/tasks/settings",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/tasks/share",
+      "url": "/tasks/share",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/tasks/stats",
+      "url": "/tasks/stats",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/tasks/task/[id]",
+      "url": "/tasks/task/h-89_0",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/today/inbox",
+      "url": "/today/inbox",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/today",
+      "url": "/today",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    },
+    {
+      "route": "/today/wrap-up",
+      "url": "/today/wrap-up",
+      "visualReview": "contact-sheet reviewed; not pixel-diff acceptance",
+      "referenceErrors": [],
+      "mobileErrors": []
+    }
+  ],
+  "responsiveChecks": [
+    {
+      "route": "/capture/connector",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/capture/history/[id]",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/capture/history",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/capture",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/capture/queue",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/capture/settings",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/accounts/[id]",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/accounts",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/advisor",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/archived",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/budgets/[id]",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/budgets",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/categories",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/import/[id]",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/import",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/imports",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/planned/[id]",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/planned",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/projection",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/records/[id]",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/records",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/reports/[kind]",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/reports",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/review",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/settings",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/setup",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/fitness/body",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/fitness/exercises/[id]",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/fitness/exercises",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/fitness/nutrition/history",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/fitness/nutrition/meals/[id]",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/fitness/nutrition/new",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/fitness/nutrition",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/fitness/nutrition/targets",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/fitness",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/fitness/settings",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/fitness/share/[id]",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/fitness/stats",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/fitness/templates/[id]",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/fitness/templates",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/fitness/workout",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/fitness/workouts/[id]",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/fitness/workouts/[id]/summary",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/fitness/workouts",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/habits/[id]/edit",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/habits/[id]",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/habits/[id]/timer",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/habits/day/[day]",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/habits/manage/archived",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/habits/manage",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/habits/new",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/habits",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/habits/routines/[id]/edit",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/habits/routines/[id]",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/habits/routines/[id]/play",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/habits/routines/[id]/summary",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/habits/routines/new",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/habits/routines",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/habits/settings",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/habits/share",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/habits/today",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/habits/week",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/journal/[id]",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/journal/new",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/journal",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/me",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/me/profile",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/me/settings",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/onboarding",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/plan",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/setup",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/stats/goals",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/stats/metric/[key]",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/stats/misses",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/stats",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/stats/reviews/[id]",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/stats/reviews",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/stats/share",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/stats/trophies",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/tasks/capture",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/tasks/completed",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/tasks/list/[id]",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/tasks/lists",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/tasks/notification",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/tasks",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/tasks/reminders",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/tasks/search",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/tasks/settings",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/tasks/share",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/tasks/stats",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/tasks/task/[id]",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/today/inbox",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/today",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/today/wrap-up",
+      "width": 320,
+      "theme": "dark",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/capture/connector",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/capture/history/[id]",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/capture/history",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/capture",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/capture/queue",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/capture/settings",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/accounts/[id]",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/accounts",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/advisor",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/archived",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/budgets/[id]",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/budgets",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/categories",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/import/[id]",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/import",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/imports",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/planned/[id]",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/planned",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/projection",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/records/[id]",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/records",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/reports/[kind]",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/reports",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/review",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/settings",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/finance/setup",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/fitness/body",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/fitness/exercises/[id]",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/fitness/exercises",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/fitness/nutrition/history",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/fitness/nutrition/meals/[id]",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/fitness/nutrition/new",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/fitness/nutrition",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/fitness/nutrition/targets",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/fitness",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/fitness/settings",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/fitness/share/[id]",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/fitness/stats",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/fitness/templates/[id]",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/fitness/templates",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/fitness/workout",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/fitness/workouts/[id]",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/fitness/workouts/[id]/summary",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/fitness/workouts",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/habits/[id]/edit",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/habits/[id]",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/habits/[id]/timer",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/habits/day/[day]",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/habits/manage/archived",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/habits/manage",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/habits/new",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/habits",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/habits/routines/[id]/edit",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/habits/routines/[id]",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/habits/routines/[id]/play",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/habits/routines/[id]/summary",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/habits/routines/new",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/habits/routines",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/habits/settings",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/habits/share",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/habits/today",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/habits/week",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/journal/[id]",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/journal/new",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/journal",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/me",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/me/profile",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/me/settings",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/onboarding",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/plan",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/setup",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/stats/goals",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/stats/metric/[key]",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/stats/misses",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/stats",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/stats/reviews/[id]",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/stats/reviews",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/stats/share",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/stats/trophies",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/tasks/capture",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/tasks/completed",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/tasks/list/[id]",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/tasks/lists",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/tasks/notification",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/tasks",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/tasks/reminders",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/tasks/search",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/tasks/settings",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/tasks/share",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/tasks/stats",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/tasks/task/[id]",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/today/inbox",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/today",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    },
+    {
+      "route": "/today/wrap-up",
+      "width": 414,
+      "theme": "light",
+      "errors": [],
+      "documentOverflow": false
+    }
+  ]
+}

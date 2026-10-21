@@ -1,0 +1,977 @@
+import * as D from "@domain/dash/hooks"
+import { dashStore } from "@domain/dash/store"
+import { catMap, flowIn, netWorthSeries, spendIn } from "@domain/finance/calc"
+import { finStore } from "@domain/finance/store"
+import * as C from "@domain/fitness/calc"
+import { fitStore } from "@domain/fitness/store"
+import * as H from "@domain/habits/logic"
+import { habitsStore } from "@domain/habits/store"
+import { dayKey, dayOffset } from "@domain/lib/day"
+import { useTodayData } from "@domain/tasks/hooks"
+import { tasksStore } from "@domain/tasks/store"
+import {
+  ArrowRight,
+  Brain,
+  CalendarClock,
+  Dumbbell,
+  Flame,
+  type Lightbulb,
+  Radar,
+  Repeat2,
+  Sparkles,
+  Target,
+  TrendingDown,
+  TrendingUp,
+  Wallet,
+  X,
+} from "lucide-react-native"
+import { useMemo } from "react"
+import { Pressable, Text, View } from "react-native"
+import Animated, { FadeInDown } from "react-native-reanimated"
+import { Trend } from "../chart"
+import { Donut, FIN_PALETTE } from "../finance-charts"
+import { GrowBar } from "../motion"
+import { go } from "../navigation"
+import { useMoney } from "../screens/finance"
+import { type Accent, fonts, useTheme } from "../theme"
+import { ask, metricLabel } from "./brain"
+import {
+  addTracker,
+  type Block,
+  companionStore,
+  forget,
+  type Metric,
+  removeTracker,
+} from "./store"
+
+const accentOf: Record<Metric, Accent> = {
+  life: "life",
+  habits: "hab",
+  tasks: "tsk",
+  spend: "fin",
+  spendCats: "fin",
+  netWorth: "fin",
+  workouts: "fit",
+  weight: "fit",
+  nutrition: "nut",
+}
+const days = (n: number) =>
+  Array.from({ length: n }, (_, i) => dayOffset(i - n + 1))
+/** Sum a daily series into weeks when it is too long to show as bars. */
+const weekly = (vals: number[]) => {
+  const out: number[] = []
+  for (let i = 0; i < vals.length; i += 7)
+    out.push(vals.slice(i, i + 7).reduce((a, b) => a + b, 0))
+  return out
+}
+const short = (k: string) =>
+  new Date(`${k}T12:00:00`).toLocaleDateString("en-PH", { weekday: "narrow" })
+
+type Series = {
+  kind: "line" | "bars" | "donut"
+  values: number[]
+  labels: string[]
+  slices?: { label: string; value: number }[]
+  headline: string
+  sub: string
+}
+
+/** Live series for a metric, computed from the user's own records. */
+export function useSeries(metric: Metric, n: number): Series {
+  const series = D.useDaySeries(Math.max(n, 7))
+  const habits = habitsStore.use((s) => s)
+  const tasks = tasksStore.use((s) => s.tasks)
+  const fin = finStore.use((s) => s)
+  const fit = fitStore.use((s) => s)
+  const money = useMoney()
+  return useMemo((): Series => {
+    const keys = days(n)
+    const avg = (xs: number[]) =>
+      xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0
+    const bars = (vals: number[], fmt: (v: number) => string, label: string) =>
+      n > 31
+        ? {
+            kind: "line" as const,
+            values: weekly(vals),
+            labels: [],
+            headline: fmt(avg(vals)),
+            sub: `${label} · daily average`,
+          }
+        : {
+            kind: "bars" as const,
+            values: vals,
+            labels: keys.map(short),
+            headline: fmt(avg(vals)),
+            sub: `${label} · daily average`,
+          }
+    switch (metric) {
+      case "life": {
+        const vals = series
+          .slice(-n)
+          .map((d) => (d.due ? Math.round((d.done / d.due) * 100) : 0))
+        return {
+          kind: "line",
+          values: vals,
+          labels: [],
+          headline: `${Math.round(avg(vals))}%`,
+          sub: "Of each day's plan done, on average",
+        }
+      }
+      case "habits": {
+        const idx = H.logIndex(habits.logs)
+        const hs = habits.habits.filter((h) => h.status !== "archived")
+        const vals = H.overallDays(hs, idx, keys[0], dayKey()).map((d) =>
+          Math.round((d.rate ?? 0) * 100),
+        )
+        return {
+          kind: "line",
+          values: vals,
+          labels: [],
+          headline: `${Math.round(avg(vals))}%`,
+          sub: "Habits completed per day",
+        }
+      }
+      case "tasks": {
+        const vals = keys.map(
+          (k) =>
+            tasks.filter(
+              (t) => t.completedAt && dayKey(new Date(t.completedAt)) === k,
+            ).length,
+        )
+        return bars(vals, (v) => v.toFixed(1), "Tasks done")
+      }
+      case "spend": {
+        const vals = keys.map((k) => Math.max(0, spendIn(fin, k, k, null)))
+        return bars(vals, money, "Spending")
+      }
+      case "spendCats": {
+        const f = flowIn(fin, keys[0], dayKey())
+        const cats = catMap(fin)
+        const slices = [...f.byCat.entries()]
+          .filter(([, v]) => v > 0)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 6)
+          .map(([id, value]) => ({
+            label: cats.get(id)?.name ?? "Other",
+            value,
+          }))
+        return {
+          kind: "donut",
+          values: slices.map((s) => s.value),
+          labels: [],
+          slices,
+          headline: money(f.spend),
+          sub: `Spent in the last ${n} days`,
+        }
+      }
+      case "netWorth": {
+        const vals = netWorthSeries(fin, n)
+        const change = vals.length ? vals[vals.length - 1] - vals[0] : 0
+        return {
+          kind: "line",
+          values: vals,
+          labels: [],
+          headline: `${change >= 0 ? "+" : "−"}${money(Math.abs(change))}`,
+          sub: `Net worth change over ${n} days`,
+        }
+      }
+      case "workouts": {
+        const weeks = C.sessionsByWeek(fit, Math.max(2, Math.ceil(n / 7)))
+        return {
+          kind: "bars",
+          values: weeks.map((w) => w.count),
+          labels: weeks.map((w) =>
+            new Date(`${w.start}T12:00:00`).toLocaleDateString("en-PH", {
+              month: "numeric",
+              day: "numeric",
+            }),
+          ),
+          headline: avg(weeks.map((w) => w.count)).toFixed(1),
+          sub: "Sessions per week",
+        }
+      }
+      case "weight": {
+        const pts = C.weightTrend(fit, n).filter((p) => p.avg !== undefined)
+        const vals = pts.map((p) => p.avg as number)
+        const change = vals.length > 1 ? vals[vals.length - 1] - vals[0] : 0
+        return {
+          kind: "line",
+          values: vals,
+          labels: [],
+          headline: vals.length
+            ? `${vals[vals.length - 1].toFixed(1)} kg`
+            : "—",
+          sub: `${change <= 0 ? "▼" : "▲"} ${Math.abs(change).toFixed(1)} kg over ${n} days (7-day average)`,
+        }
+      }
+      case "nutrition": {
+        const vals = C.nutritionDays(fit, n).map((d) =>
+          Math.round(d.totals.kcal),
+        )
+        return bars(vals, (v) => `${Math.round(v)} kcal`, "Calories")
+      }
+    }
+  }, [metric, n, series, habits, tasks, fin, fit, money])
+}
+
+function Panel({
+  children,
+  accent,
+  index = 0,
+}: {
+  children: React.ReactNode
+  accent?: string
+  index?: number
+}) {
+  const t = useTheme()
+  return (
+    <Animated.View
+      entering={FadeInDown.delay(index * 90)
+        .springify()
+        .damping(18)}
+      style={{
+        borderRadius: 18,
+        padding: 14,
+        gap: 10,
+        backgroundColor: t.card,
+        borderWidth: 1,
+        borderColor: accent ? `${accent}40` : t.line,
+      }}
+    >
+      {children}
+    </Animated.View>
+  )
+}
+
+function ChartBlock({ metric, n }: { metric: Metric; n: number }) {
+  const t = useTheme()
+  const s = useSeries(metric, n)
+  const color = t[accentOf[metric]]
+  const max = Math.max(1, ...s.values)
+  return (
+    <Panel accent={color}>
+      <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8 }}>
+        <View style={{ flex: 1 }}>
+          <Text
+            style={{ color: t.muted, fontFamily: fonts.medium, fontSize: 12 }}
+          >
+            {metricLabel(metric).toUpperCase()} · {n === 365 ? "1Y" : `${n}D`}
+          </Text>
+          <Text
+            style={{ color: t.text, fontFamily: fonts.display, fontSize: 28 }}
+          >
+            {s.headline}
+          </Text>
+          <Text
+            style={{ color: t.muted, fontFamily: fonts.body, fontSize: 12 }}
+          >
+            {s.sub}
+          </Text>
+        </View>
+      </View>
+      {s.kind === "donut" ? (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+          <Donut values={s.values} size={120} />
+          <View style={{ flex: 1, gap: 6 }}>
+            {s.slices?.map((x, i) => (
+              <View
+                key={x.label}
+                style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+              >
+                <View
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: t[FIN_PALETTE[i % FIN_PALETTE.length]],
+                  }}
+                />
+                <Text
+                  numberOfLines={1}
+                  style={{
+                    flex: 1,
+                    color: t.text,
+                    fontFamily: fonts.body,
+                    fontSize: 12,
+                  }}
+                >
+                  {x.label}
+                </Text>
+                <Text
+                  style={{
+                    color: t.muted,
+                    fontFamily: fonts.medium,
+                    fontSize: 12,
+                  }}
+                >
+                  {Math.round(
+                    (x.value /
+                      Math.max(
+                        1,
+                        s.values.reduce((a, b) => a + b, 0),
+                      )) *
+                      100,
+                  )}
+                  %
+                </Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      ) : s.kind === "bars" ? (
+        <View>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "flex-end",
+              gap: 3,
+              height: 96,
+            }}
+          >
+            {s.values.map((v, i) => (
+              <GrowBar
+                key={i}
+                index={i}
+                height={Math.max(2, (v / max) * 96)}
+                style={{
+                  flex: 1,
+                  borderTopLeftRadius: 4,
+                  borderTopRightRadius: 4,
+                  backgroundColor: color,
+                  opacity: i === s.values.length - 1 ? 1 : 0.55,
+                }}
+              />
+            ))}
+          </View>
+          {s.labels.length <= 14 && (
+            <View style={{ flexDirection: "row", gap: 3, marginTop: 4 }}>
+              {s.labels.map((l, i) => (
+                <Text
+                  key={i}
+                  style={{
+                    flex: 1,
+                    textAlign: "center",
+                    color: t.muted,
+                    fontSize: 10,
+                    fontFamily: fonts.body,
+                  }}
+                >
+                  {l}
+                </Text>
+              ))}
+            </View>
+          )}
+        </View>
+      ) : (
+        <Trend
+          values={s.values}
+          label={`${metricLabel(metric)} trend`}
+          color={color}
+          filled
+          height={110}
+          includeZero={metric !== "weight" && metric !== "netWorth"}
+        />
+      )}
+    </Panel>
+  )
+}
+
+type Insight = {
+  icon: typeof Lightbulb
+  accent: Accent | "good" | "warn"
+  title: string
+  body: string
+  track?: Metric
+  href?: string
+}
+
+/** Patterns pulled from the last 30 days of records. */
+function useInsights(): Insight[] {
+  const life = D.useLifeScore(30)
+  const target = D.useOnTarget(30)
+  const habits = habitsStore.use((s) => s)
+  const fin = finStore.use((s) => s)
+  const fit = fitStore.use((s) => s)
+  const money = useMoney()
+  const today = useTodayData()
+  return useMemo(() => {
+    const out: Insight[] = []
+    if (life.score !== null && life.delta !== null)
+      out.push({
+        icon: life.delta >= 0 ? TrendingUp : TrendingDown,
+        accent: life.delta >= 0 ? "good" : "warn",
+        title: `Life score ${life.score} · ${life.delta >= 0 ? "up" : "down"} ${Math.abs(life.delta)}`,
+        body:
+          life.delta >= 0
+            ? "You're trending up versus the previous 30 days. Momentum is real — protect it."
+            : "A dip versus the previous 30 days. Usually that's one area slipping, not everything.",
+        track: "life",
+      })
+    const areas = Object.entries(life.rates) as [string, number][]
+    if (areas.length) {
+      const sorted = [...areas].sort((a, b) => b[1] - a[1])
+      const [bestK, bestV] = sorted[0]
+      const [worstK, worstV] = sorted[sorted.length - 1]
+      out.push({
+        icon: Radar,
+        accent: "hab",
+        title: `${cap(bestK)} is carrying you (${Math.round(bestV * 100)}%)`,
+        body: `${cap(worstK)} is your softest area at ${Math.round(worstV * 100)}%. A small, daily win there moves your score the most.`,
+        track: worstK === "finance" ? "spend" : (worstK as Metric),
+      })
+    }
+    const idx = H.logIndex(habits.logs)
+    const hs = habits.habits.filter((h) => h.status !== "archived")
+    const missed = H.mostMissedWeekday(hs, idx, dayOffset(-29))
+    const FULL: Record<string, string> = {
+      Sun: "Sunday",
+      Mon: "Monday",
+      Tue: "Tuesday",
+      Wed: "Wednesday",
+      Thu: "Thursday",
+      Fri: "Friday",
+      Sat: "Saturday",
+    }
+    const dayName = missed ? (FULL[missed.day] ?? missed.day) : ""
+    if (missed)
+      out.push({
+        icon: Repeat2,
+        accent: "hab",
+        title: `${dayName}s are your hardest day`,
+        body: `${missed.count} missed habit check-ins on ${dayName}s this month. Try lighter versions that day instead of skipping.`,
+        track: "habits",
+      })
+    const now = flowIn(fin, dayOffset(-29), dayKey())
+    const prev = flowIn(fin, dayOffset(-59), dayOffset(-30))
+    const cats = catMap(fin)
+    const top = [...now.byCat.entries()].sort((a, b) => b[1] - a[1])[0]
+    if (top) {
+      const before = prev.byCat.get(top[0]) ?? 0
+      const change = before ? Math.round(((top[1] - before) / before) * 100) : 0
+      out.push({
+        icon: Wallet,
+        accent: "fin",
+        title: `${cats.get(top[0])?.name ?? "Top category"}: ${money(top[1])} in 30 days`,
+        body: before
+          ? `${change >= 0 ? "Up" : "Down"} ${Math.abs(change)}% from the month before. ${change > 15 ? "Worth a budget?" : "Holding steady."}`
+          : "Your biggest category this month.",
+        track: "spend",
+        href: "/finance/reports",
+      })
+    }
+    const weeks = C.sessionsByWeek(fit, 5)
+    const thisWeek = weeks[weeks.length - 1]?.count ?? 0
+    const avg =
+      weeks.slice(0, -1).reduce((a, w) => a + w.count, 0) /
+      Math.max(1, weeks.length - 1)
+    out.push({
+      icon: Dumbbell,
+      accent: "fit",
+      title: `${thisWeek} workout${thisWeek === 1 ? "" : "s"} this week`,
+      body:
+        thisWeek >= avg
+          ? `At or above your ${avg.toFixed(1)}/week average. Keep the rhythm.`
+          : `Below your ${avg.toFixed(1)}/week average — one short session keeps the streak alive.`,
+      track: "workouts",
+    })
+    if (today.overdue.length)
+      out.push({
+        icon: CalendarClock,
+        accent: "warn",
+        title: `${today.overdue.length} overdue task${today.overdue.length === 1 ? "" : "s"}`,
+        body: "Old tasks drain focus. Do one, reschedule one, delete one.",
+        href: "/tasks?filter=overdue",
+      })
+    out.push({
+      icon: Flame,
+      accent: "life",
+      title: `${target.current}-day on-target streak`,
+      body: `Your best is ${target.best}. ${target.current >= target.best && target.best > 0 ? "You're at your record — today extends it." : `${Math.max(0, target.best - target.current)} more days to match it.`}`,
+      track: "life",
+    })
+    return out
+  }, [life, target, habits, fin, fit, money, today.overdue.length])
+}
+const cap = (s: string) => s[0].toUpperCase() + s.slice(1)
+
+function InsightsBlock() {
+  const t = useTheme()
+  const items = useInsights()
+  return (
+    <View style={{ gap: 8 }}>
+      {items.map((x, i) => (
+        <Panel key={x.title} accent={t[x.accent]} index={i}>
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            <View
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 10,
+                backgroundColor: `${t[x.accent]}26`,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <x.icon size={16} color={t[x.accent]} />
+            </View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text
+                style={{
+                  color: t.text,
+                  fontFamily: fonts.semibold,
+                  fontSize: 14,
+                }}
+              >
+                {x.title}
+              </Text>
+              <Text
+                style={{
+                  color: t.muted,
+                  fontFamily: fonts.body,
+                  fontSize: 13,
+                  lineHeight: 18,
+                }}
+              >
+                {x.body}
+              </Text>
+              <View style={{ flexDirection: "row", gap: 12, marginTop: 4 }}>
+                {x.track && (
+                  <Text
+                    onPress={() =>
+                      ask(
+                        `Track ${metricLabel(x.track as Metric).toLowerCase()}`,
+                      )
+                    }
+                    style={{
+                      color: t[x.accent],
+                      fontFamily: fonts.semibold,
+                      fontSize: 12,
+                    }}
+                  >
+                    Track this
+                  </Text>
+                )}
+                {x.track && (
+                  <Text
+                    onPress={() =>
+                      ask(
+                        `Chart my ${metricLabel(x.track as Metric).toLowerCase()} this month`,
+                      )
+                    }
+                    style={{
+                      color: t[x.accent],
+                      fontFamily: fonts.semibold,
+                      fontSize: 12,
+                    }}
+                  >
+                    See chart
+                  </Text>
+                )}
+                {x.href && (
+                  <Text
+                    onPress={() => go(x.href as string)}
+                    style={{
+                      color: t[x.accent],
+                      fontFamily: fonts.semibold,
+                      fontSize: 12,
+                    }}
+                  >
+                    Open →
+                  </Text>
+                )}
+              </View>
+            </View>
+          </View>
+        </Panel>
+      ))}
+    </View>
+  )
+}
+
+/** Life-coach evaluation: what's working, what to focus on, one next step. */
+function CoachBlock({ mood }: { mood?: string }) {
+  const t = useTheme()
+  const life = D.useLifeScore(30)
+  const target = D.useOnTarget(30)
+  const today = useTodayData()
+  const habits = habitsStore.use((s) => s)
+  const goals = dashStore.use((s) => s.profile.identities)
+  const low = mood === "low"
+  const { best, worst, next } = useMemo(() => {
+    const areas = (Object.entries(life.rates) as [string, number][]).sort(
+      (a, b) => b[1] - a[1],
+    )
+    const idx = H.logIndex(habits.logs)
+    const k = dayKey()
+    const dueHabit = habits.habits.find(
+      (h) =>
+        h.status !== "archived" &&
+        H.isDue(h, k) &&
+        idx.get(H.lk(h.id, k))?.status !== "done",
+    )
+    const task = today.overdue[0] ?? today.due[0]
+    return {
+      best: areas[0],
+      worst: areas[areas.length - 1],
+      next: low
+        ? dueHabit
+          ? `${dueHabit.icon} ${dueHabit.name} — the smallest version counts`
+          : "Drink a glass of water and take a 10-minute walk"
+        : task
+          ? `☑︎ ${task.title}`
+          : dueHabit
+            ? `${dueHabit.icon} ${dueHabit.name}`
+            : "Plan tomorrow's top three before bed",
+    }
+  }, [life.rates, habits, today, low])
+  const rows = [
+    {
+      label: "WORKING",
+      accent: "good" as const,
+      text: best
+        ? `${cap(best[0])} at ${Math.round(best[1] * 100)}% — that consistency is who you're becoming.`
+        : "You keep showing up.",
+    },
+    {
+      label: low ? "GO EASY ON" : "FOCUS",
+      accent: "warn" as const,
+      text: worst
+        ? low
+          ? `Skip perfect. ${cap(worst[0])} can wait until you've rested.`
+          : `${cap(worst[0])} at ${Math.round(worst[1] * 100)}%. One small daily rep here beats a big weekend push.`
+        : "Pick one area for this week.",
+    },
+    { label: "NEXT STEP", accent: "primary" as const, text: next },
+  ]
+  return (
+    <Panel accent={t.hab}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <Brain size={16} color={t.hab} />
+        <Text style={{ flex: 1, color: t.text, fontFamily: fonts.semibold }}>
+          {low
+            ? "Gentle check-in"
+            : `Coach's read · score ${life.score ?? "—"}`}
+        </Text>
+        <Text
+          style={{ color: t.life, fontFamily: fonts.semibold, fontSize: 12 }}
+        >
+          🔥 {target.current}d
+        </Text>
+      </View>
+      {rows.map((r) => (
+        <View key={r.label} style={{ gap: 2 }}>
+          <Text
+            style={{
+              color: t[r.accent],
+              fontFamily: fonts.bold,
+              fontSize: 11,
+              letterSpacing: 0.8,
+            }}
+          >
+            {r.label}
+          </Text>
+          <Text
+            style={{
+              color: t.text,
+              fontFamily: fonts.body,
+              fontSize: 14,
+              lineHeight: 20,
+            }}
+          >
+            {r.text}
+          </Text>
+        </View>
+      ))}
+      {goals.length > 0 && !low && (
+        <Text
+          style={{
+            color: t.muted,
+            fontFamily: fonts.body,
+            fontSize: 12,
+            fontStyle: "italic",
+          }}
+        >
+          Remember: “{goals[0].text}”
+        </Text>
+      )}
+    </Panel>
+  )
+}
+
+function PlanBlock() {
+  const t = useTheme()
+  const today = useTodayData()
+  const habits = habitsStore.use((s) => s)
+  const items = useMemo(() => {
+    const k = dayKey()
+    const idx = H.logIndex(habits.logs)
+    const hs = habits.habits
+      .filter(
+        (h) =>
+          h.status !== "archived" &&
+          H.isDue(h, k) &&
+          idx.get(H.lk(h.id, k))?.status !== "done",
+      )
+      .map((h) => ({
+        id: h.id,
+        time: H.slotFor(h.schedule, k)?.time ?? "",
+        title: `${h.icon} ${h.name}`,
+        href: `/habits/${h.id}`,
+        accent: "hab" as const,
+      }))
+    const ts = [...today.overdue.slice(0, 2), ...today.due]
+      .slice(0, 5)
+      .map((x) => ({
+        id: x.id,
+        time: x.dueTime ?? "",
+        title: x.title,
+        href: `/tasks/task/${x.id}`,
+        accent: "tsk" as const,
+      }))
+    return [...hs, ...ts]
+      .sort((a, b) => (a.time || "99").localeCompare(b.time || "99"))
+      .slice(0, 7)
+  }, [today, habits])
+  if (!items.length)
+    return (
+      <Panel>
+        <Text style={{ color: t.text, fontFamily: fonts.body }}>
+          Nothing pending — today's yours. Rest counts as progress.
+        </Text>
+      </Panel>
+    )
+  return (
+    <Panel accent={t.tsk}>
+      {items.map((x, i) => (
+        <Pressable
+          cssInterop={false}
+          key={x.id}
+          accessibilityRole="button"
+          onPress={() => go(x.href)}
+          style={({ pressed }) => ({
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 10,
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <Text
+            style={{
+              width: 22,
+              color: t.muted,
+              fontFamily: fonts.display,
+              fontSize: 16,
+            }}
+          >
+            {i + 1}
+          </Text>
+          <View
+            style={{
+              width: 4,
+              height: 28,
+              borderRadius: 2,
+              backgroundColor: t[x.accent],
+            }}
+          />
+          <Text
+            numberOfLines={1}
+            style={{ flex: 1, color: t.text, fontFamily: fonts.medium }}
+          >
+            {x.title}
+          </Text>
+          <Text
+            style={{ color: t.muted, fontFamily: fonts.body, fontSize: 12 }}
+          >
+            {x.time || "any time"}
+          </Text>
+        </Pressable>
+      ))}
+      <Text style={{ color: t.muted, fontFamily: fonts.body, fontSize: 12 }}>
+        Hardest first, while your energy is high. I'll check in tonight.
+      </Text>
+    </Panel>
+  )
+}
+
+/** A tracked metric with today's value against its goal and a mini trend. */
+export function TrackerCard({
+  id,
+  compact = false,
+}: {
+  id: string
+  compact?: boolean
+}) {
+  const t = useTheme()
+  const tracker = companionStore.use((s) => s.trackers.find((x) => x.id === id))
+  const s = useSeries(tracker?.metric ?? "life", 14)
+  if (!tracker) return null
+  const color = t[accentOf[tracker.metric]]
+  const latest = s.values[s.values.length - 1] ?? 0
+  const ok =
+    tracker.goal === undefined
+      ? null
+      : tracker.direction === "above"
+        ? latest >= tracker.goal
+        : latest <= tracker.goal
+  return (
+    <Panel accent={color}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <Target size={16} color={color} />
+        <Text style={{ flex: 1, color: t.text, fontFamily: fonts.semibold }}>
+          {tracker.label}
+        </Text>
+        {ok !== null && (
+          <View
+            style={{
+              paddingHorizontal: 8,
+              paddingVertical: 2,
+              borderRadius: 10,
+              backgroundColor: ok ? `${t.good}26` : `${t.warn}26`,
+            }}
+          >
+            <Text
+              style={{
+                color: ok ? t.good : t.warn,
+                fontFamily: fonts.semibold,
+                fontSize: 11,
+              }}
+            >
+              {ok ? "On track" : "Drifting"}
+            </Text>
+          </View>
+        )}
+        {!compact && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Stop tracking ${tracker.label}`}
+            onPress={() => removeTracker(id)}
+            hitSlop={8}
+          >
+            <X size={14} color={t.muted} />
+          </Pressable>
+        )}
+      </View>
+      <Text style={{ color: t.muted, fontFamily: fonts.body, fontSize: 12 }}>
+        {s.headline} · {s.sub.toLowerCase()}
+        {tracker.goal !== undefined
+          ? ` · goal ${tracker.direction === "above" ? "≥" : "≤"} ${tracker.goal.toLocaleString()}`
+          : ""}
+      </Text>
+      {!compact && (
+        <Trend
+          values={s.values}
+          label={`${tracker.label} trend`}
+          color={color}
+          filled
+          height={60}
+        />
+      )}
+    </Panel>
+  )
+}
+
+function MemoryBlock() {
+  const t = useTheme()
+  const memories = companionStore.use((s) => s.memories)
+  const identities = dashStore.use((s) => s.profile.identities)
+  return (
+    <Panel accent={t.hab}>
+      {identities.map((i) => (
+        <Text key={i.id} style={{ color: t.text, fontFamily: fonts.body }}>
+          ✦ {i.text}
+        </Text>
+      ))}
+      {memories.map((m) => (
+        <Pressable
+          key={m.id}
+          accessibilityRole="button"
+          accessibilityHint="Forget this"
+          onPress={() => forget(m.id)}
+          style={{ flexDirection: "row", gap: 8, alignItems: "center" }}
+        >
+          <Sparkles size={14} color={t.hab} />
+          <Text style={{ flex: 1, color: t.text, fontFamily: fonts.body }}>
+            {m.text}
+          </Text>
+          <X size={12} color={t.muted} />
+        </Pressable>
+      ))}
+      <Text style={{ color: t.muted, fontSize: 12, fontFamily: fonts.body }}>
+        Say “remember that …” to teach me something new.
+      </Text>
+    </Panel>
+  )
+}
+
+export function Chips({ prompts }: { prompts: string[] }) {
+  const t = useTheme()
+  return (
+    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+      {prompts.map((p, i) => (
+        <Animated.View key={p} entering={FadeInDown.delay(150 + i * 60)}>
+          <Pressable
+            cssInterop={false}
+            accessibilityRole="button"
+            onPress={() => ask(p)}
+            style={({ pressed }) => ({
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 4,
+              paddingHorizontal: 12,
+              minHeight: 34,
+              borderRadius: 17,
+              borderWidth: 1,
+              borderColor: `${t.primary}66`,
+              backgroundColor: pressed ? `${t.primary}26` : "transparent",
+            })}
+          >
+            <Text
+              style={{
+                color: t.primary,
+                fontFamily: fonts.medium,
+                fontSize: 13,
+              }}
+            >
+              {p}
+            </Text>
+            <ArrowRight size={12} color={t.primary} />
+          </Pressable>
+        </Animated.View>
+      ))}
+    </View>
+  )
+}
+
+export function BlockView({ block }: { block: Block }) {
+  const t = useTheme()
+  switch (block.t) {
+    case "text":
+      return (
+        <Text
+          style={{
+            color: t.text,
+            fontFamily: fonts.body,
+            fontSize: 15,
+            lineHeight: 21,
+          }}
+        >
+          {block.text}
+        </Text>
+      )
+    case "chart":
+      return <ChartBlock metric={block.metric} n={block.days} />
+    case "insights":
+      return <InsightsBlock />
+    case "coach":
+      return <CoachBlock mood={block.mood} />
+    case "plan":
+      return <PlanBlock />
+    case "tracker":
+      return <TrackerCard id={block.id} />
+    case "memory":
+      return <MemoryBlock />
+    case "chips":
+      return <Chips prompts={block.prompts} />
+  }
+}
+export { addTracker }

@@ -50,8 +50,17 @@ function createNativeStore(): KVStore {
   }
 }
 
-export const mmkv: KVStore =
-  Platform.OS === "web" ? createWebStore() : createNativeStore()
+let generalStore: KVStore | undefined
+function getGeneralStore() {
+  generalStore ??=
+    Platform.OS === "web" ? createWebStore() : createNativeStore()
+  return generalStore
+}
+export const mmkv: KVStore = {
+  getString: (key) => getGeneralStore().getString(key),
+  set: (key, value) => getGeneralStore().set(key, value),
+  remove: (key) => getGeneralStore().remove(key),
+}
 
 export const mmkvStorage: StateStorage = {
   getItem: (name) => mmkv.getString(name) ?? null,

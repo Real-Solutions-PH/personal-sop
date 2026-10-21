@@ -1,0 +1,3457 @@
+{
+  "frozenNow": "2026-10-18T04:00:00.000Z",
+  "source": "shared/prototype",
+  "data": {
+    "world": {
+      "today": "2026-10-18",
+      "habits": [
+        {
+          "id": "h-workout",
+          "name": "Morning workout",
+          "type": "check",
+          "target": null,
+          "status": "active"
+        },
+        {
+          "id": "h-meditate",
+          "name": "Meditate 10m",
+          "type": "duration",
+          "target": 10,
+          "status": "active"
+        },
+        {
+          "id": "h-water",
+          "name": "Drink water ×8",
+          "type": "count",
+          "target": 8,
+          "status": "active"
+        },
+        {
+          "id": "h-deepwork",
+          "name": "Deep work 90m",
+          "type": "duration",
+          "target": 90,
+          "status": "active"
+        },
+        {
+          "id": "h-nosocial",
+          "name": "No social media before 10am",
+          "type": "check",
+          "target": null,
+          "status": "active"
+        },
+        {
+          "id": "h-read",
+          "name": "Read 20 pages",
+          "type": "count",
+          "target": 20,
+          "status": "active"
+        },
+        {
+          "id": "h-journal",
+          "name": "Journal",
+          "type": "check",
+          "target": null,
+          "status": "active"
+        },
+        {
+          "id": "h-sleep",
+          "name": "Sleep by 11:30pm",
+          "type": "check",
+          "target": null,
+          "status": "active"
+        }
+      ],
+      "routines": [
+        {
+          "id": "r-morning",
+          "name": "Morning routine",
+          "icon": "🌅",
+          "status": "active"
+        },
+        {
+          "id": "r-winddown",
+          "name": "Wind-down",
+          "icon": "🌙",
+          "status": "active"
+        }
+      ],
+      "tasks": [
+        {
+          "id": "t0",
+          "title": "Reply to Anna re: vendor contract"
+        },
+        {
+          "id": "t1",
+          "title": "Sprint planning notes"
+        },
+        {
+          "id": "t2",
+          "title": "Review PR #214 (payments refactor)"
+        },
+        {
+          "id": "t3",
+          "title": "Submit timesheet"
+        },
+        {
+          "id": "t4",
+          "title": "Expense report — Cebu trip"
+        },
+        {
+          "id": "t5",
+          "title": "1:1 prep with Jomar"
+        },
+        {
+          "id": "t6",
+          "title": "Finish Q4 deck"
+        },
+        {
+          "id": "t7",
+          "title": "Update Jira board before standup"
+        },
+        {
+          "id": "t8",
+          "title": "Draft hiring rubric for QA role"
+        },
+        {
+          "id": "t9",
+          "title": "Book meeting room for Oct offsite"
+        },
+        {
+          "id": "t10",
+          "title": "Deliver logo revisions to client"
+        },
+        {
+          "id": "t11",
+          "title": "Invoice Tita Baby's Bakery (₱8,500)"
+        },
+        {
+          "id": "t12",
+          "title": "Fix mobile nav bug on client site"
+        },
+        {
+          "id": "t13",
+          "title": "Call with Marco re: scope"
+        },
+        {
+          "id": "t14",
+          "title": "Update portfolio case study"
+        },
+        {
+          "id": "t15",
+          "title": "Back up client files to drive"
+        },
+        {
+          "id": "t16",
+          "title": "Pay Meralco bill"
+        },
+        {
+          "id": "t17",
+          "title": "Renew NBI clearance"
+        },
+        {
+          "id": "t18",
+          "title": "Call Mama"
+        },
+        {
+          "id": "t19",
+          "title": "Dentist — cleaning"
+        },
+        {
+          "id": "t21",
+          "title": "Pick up package at LBC"
+        },
+        {
+          "id": "t22",
+          "title": "Book flights to Iloilo for Christmas"
+        },
+        {
+          "id": "t23",
+          "title": "Water the plants"
+        },
+        {
+          "id": "t24",
+          "title": "Renew car registration (LTO)"
+        },
+        {
+          "id": "t25",
+          "title": "Clean aircon filter"
+        },
+        {
+          "id": "t26",
+          "title": "Call Mark"
+        },
+        {
+          "id": "t27",
+          "title": "Look into BPI time deposit rates"
+        },
+        {
+          "id": "t28",
+          "title": "Gift for Jessa's birthday"
+        },
+        {
+          "id": "t29",
+          "title": "Eggs (1 tray)"
+        },
+        {
+          "id": "t30",
+          "title": "Rice 5kg"
+        },
+        {
+          "id": "t31",
+          "title": "Chicken breast 1kg"
+        },
+        {
+          "id": "t32",
+          "title": "Garlic & onions"
+        },
+        {
+          "id": "t33",
+          "title": "Barako coffee"
+        },
+        {
+          "id": "t34",
+          "title": "Soy sauce"
+        },
+        {
+          "id": "t35",
+          "title": "Bananas (lakatan)"
+        },
+        {
+          "id": "t38",
+          "title": "Dish soap"
+        }
+      ],
+      "accounts": [
+        {
+          "id": "cash",
+          "name": "Cash",
+          "type": "cash",
+          "archived": false
+        },
+        {
+          "id": "gcash",
+          "name": "GCash",
+          "type": "ewallet",
+          "archived": false
+        },
+        {
+          "id": "maya",
+          "name": "Maya",
+          "type": "ewallet",
+          "archived": false
+        },
+        {
+          "id": "bpi",
+          "name": "BPI Savings",
+          "type": "bank",
+          "archived": false
+        },
+        {
+          "id": "bpicc",
+          "name": "BPI Credit Card",
+          "type": "credit",
+          "archived": false
+        },
+        {
+          "id": "col",
+          "name": "COL Financial",
+          "type": "investment",
+          "archived": false
+        }
+      ],
+      "categories": [
+        {
+          "id": "food",
+          "name": "Food",
+          "icon": "🍽️",
+          "kind": "expense"
+        },
+        {
+          "id": "dining",
+          "name": "Dining out",
+          "icon": "🍗",
+          "kind": "expense"
+        },
+        {
+          "id": "coffee",
+          "name": "Coffee",
+          "icon": "☕",
+          "kind": "expense"
+        },
+        {
+          "id": "groceries",
+          "name": "Groceries",
+          "icon": "🛒",
+          "kind": "expense"
+        },
+        {
+          "id": "transport",
+          "name": "Transport",
+          "icon": "🚌",
+          "kind": "expense"
+        },
+        {
+          "id": "grab",
+          "name": "Grab rides",
+          "icon": "🚗",
+          "kind": "expense"
+        },
+        {
+          "id": "commute",
+          "name": "Commute",
+          "icon": "🚇",
+          "kind": "expense"
+        },
+        {
+          "id": "bills",
+          "name": "Bills",
+          "icon": "🧾",
+          "kind": "expense"
+        },
+        {
+          "id": "electricity",
+          "name": "Electricity",
+          "icon": "💡",
+          "kind": "expense"
+        },
+        {
+          "id": "internet",
+          "name": "Internet",
+          "icon": "📶",
+          "kind": "expense"
+        },
+        {
+          "id": "phone",
+          "name": "Mobile plan",
+          "icon": "📱",
+          "kind": "expense"
+        },
+        {
+          "id": "rent",
+          "name": "Rent",
+          "icon": "🏠",
+          "kind": "expense"
+        },
+        {
+          "id": "subs",
+          "name": "Subscriptions",
+          "icon": "🎬",
+          "kind": "expense"
+        },
+        {
+          "id": "shopping",
+          "name": "Shopping",
+          "icon": "🛍️",
+          "kind": "expense"
+        },
+        {
+          "id": "entertainment",
+          "name": "Entertainment",
+          "icon": "🎟️",
+          "kind": "expense"
+        },
+        {
+          "id": "health",
+          "name": "Health",
+          "icon": "💊",
+          "kind": "expense"
+        },
+        {
+          "id": "personal",
+          "name": "Personal care",
+          "icon": "💈",
+          "kind": "expense"
+        },
+        {
+          "id": "gifts",
+          "name": "Gifts",
+          "icon": "🎁",
+          "kind": "expense"
+        },
+        {
+          "id": "fees",
+          "name": "Fees",
+          "icon": "🏦",
+          "kind": "expense"
+        },
+        {
+          "id": "adjust",
+          "name": "Balance adjustment",
+          "icon": "⚖️",
+          "kind": "expense"
+        },
+        {
+          "id": "salary",
+          "name": "Salary",
+          "icon": "💼",
+          "kind": "income"
+        },
+        {
+          "id": "freelance",
+          "name": "Side income",
+          "icon": "💻",
+          "kind": "income"
+        },
+        {
+          "id": "interest",
+          "name": "Interest",
+          "icon": "📈",
+          "kind": "income"
+        },
+        {
+          "id": "other-in",
+          "name": "Other income",
+          "icon": "💰",
+          "kind": "income"
+        }
+      ],
+      "defaultAccount": "gcash",
+      "latestKg": 78.6,
+      "recentCats": [
+        {
+          "label": "🚇 Commute",
+          "value": "commute"
+        },
+        {
+          "label": "🍗 Dining out",
+          "value": "dining"
+        },
+        {
+          "label": "🚗 Grab rides",
+          "value": "grab"
+        },
+        {
+          "label": "☕ Coffee",
+          "value": "coffee"
+        },
+        {
+          "label": "🛒 Groceries",
+          "value": "groceries"
+        },
+        {
+          "label": "💊 Health",
+          "value": "health"
+        }
+      ],
+      "accountOptions": [
+        {
+          "label": "Cash",
+          "value": "cash"
+        },
+        {
+          "label": "GCash",
+          "value": "gcash"
+        },
+        {
+          "label": "Maya",
+          "value": "maya"
+        },
+        {
+          "label": "BPI Savings",
+          "value": "bpi"
+        },
+        {
+          "label": "BPI Credit Card",
+          "value": "bpicc"
+        }
+      ]
+    },
+    "defaultRules": {
+      "habit": "auto",
+      "task": "auto",
+      "reminder": "confirm",
+      "workout": "auto",
+      "weighIn": "auto",
+      "meal": "confirm",
+      "expense": "auto",
+      "income": "confirm",
+      "transfer": "confirm",
+      "journal": "auto",
+      "structure": "confirm"
+    },
+    "moneyThreshold": 1000,
+    "parse": [
+      {
+        "text": "spent 250 on grab",
+        "segments": [
+          {
+            "seg": "spent 250 on grab",
+            "kind": "expense"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "target": "finance",
+            "rule": "expense",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "expense",
+              "amount": 250,
+              "categoryId": "grab",
+              "accountId": "gcash",
+              "payee": "Grab"
+            }
+          }
+        ]
+      },
+      {
+        "text": "coffee 165 at tims",
+        "segments": [
+          {
+            "seg": "coffee 165 at tims",
+            "kind": "expense"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "target": "finance",
+            "rule": "expense",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "expense",
+              "amount": 165,
+              "categoryId": "coffee",
+              "accountId": "gcash",
+              "payee": "Tim Hortons"
+            }
+          }
+        ]
+      },
+      {
+        "text": "paid 1500",
+        "segments": [
+          {
+            "seg": "paid 1500",
+            "kind": "expense"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "target": "finance",
+            "rule": "expense",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "expense",
+              "amount": 1500,
+              "accountId": "gcash"
+            },
+            "ask": {
+              "question": "What was ₱1,500 for?",
+              "field": "categoryId",
+              "free": true,
+              "options": [
+                {
+                  "label": "🚇 Commute",
+                  "value": "commute"
+                },
+                {
+                  "label": "🍗 Dining out",
+                  "value": "dining"
+                },
+                {
+                  "label": "🚗 Grab rides",
+                  "value": "grab"
+                },
+                {
+                  "label": "☕ Coffee",
+                  "value": "coffee"
+                },
+                {
+                  "label": "🛒 Groceries",
+                  "value": "groceries"
+                },
+                {
+                  "label": "💊 Health",
+                  "value": "health"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "text": "gastos 150 sa jeep",
+        "segments": [
+          {
+            "seg": "gastos 150 sa jeep",
+            "kind": "expense"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "target": "finance",
+            "rule": "expense",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "expense",
+              "amount": 150,
+              "categoryId": "commute",
+              "accountId": "gcash",
+              "payee": "Jeep / MRT"
+            }
+          }
+        ]
+      },
+      {
+        "text": "lunch 320 jollibee",
+        "segments": [
+          {
+            "seg": "lunch 320 jollibee",
+            "kind": "expense"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "target": "finance",
+            "rule": "expense",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "expense",
+              "amount": 320,
+              "categoryId": "dining",
+              "accountId": "gcash",
+              "payee": "Jollibee"
+            }
+          }
+        ]
+      },
+      {
+        "text": "bought shoes 2,499 on shopee",
+        "segments": [
+          {
+            "seg": "bought shoes 2",
+            "kind": "expense"
+          },
+          {
+            "seg": "499 on shopee",
+            "kind": "expense"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "target": "finance",
+            "rule": "expense",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "expense",
+              "amount": 2,
+              "categoryId": "shopping",
+              "accountId": "gcash"
+            }
+          },
+          {
+            "t": "record",
+            "kind": "expense",
+            "target": "finance",
+            "rule": "expense",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "expense",
+              "amount": 499,
+              "categoryId": "shopping",
+              "accountId": "gcash",
+              "payee": "Shopee"
+            }
+          }
+        ]
+      },
+      {
+        "text": "spent 1.5k on groceries at puregold",
+        "segments": [
+          {
+            "seg": "spent 1.5k on groceries at puregold",
+            "kind": "expense"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "target": "finance",
+            "rule": "expense",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "expense",
+              "amount": 1500,
+              "categoryId": "groceries",
+              "accountId": "gcash",
+              "payee": "Puregold"
+            }
+          }
+        ]
+      },
+      {
+        "text": "$20 netflix",
+        "segments": [
+          {
+            "seg": "$20 netflix",
+            "kind": "expense"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "target": "finance",
+            "rule": "expense",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "expense",
+              "amount": 1120,
+              "categoryId": "subs",
+              "accountId": "gcash",
+              "payee": "Netflix",
+              "currency": "USD"
+            },
+            "confirm": true,
+            "warn": "Foreign currency: $20 ≈ ₱1,120 at ₱56/$ (FX rules are an open question in Finance)."
+          }
+        ]
+      },
+      {
+        "text": "paid 20 dollars for spotify",
+        "segments": [
+          {
+            "seg": "paid 20 dollars for spotify",
+            "kind": "expense"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "target": "finance",
+            "rule": "expense",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "expense",
+              "amount": 1120,
+              "categoryId": "subs",
+              "accountId": "gcash",
+              "payee": "Spotify",
+              "currency": "USD"
+            },
+            "confirm": true,
+            "warn": "Foreign currency: $20 ≈ ₱1,120 at ₱56/$ (FX rules are an open question in Finance)."
+          }
+        ]
+      },
+      {
+        "text": "spent 250 on grab yesterday",
+        "segments": [
+          {
+            "seg": "spent 250 on grab yesterday",
+            "kind": "expense"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "target": "finance",
+            "rule": "expense",
+            "dayOffset": -1,
+            "payload": {
+              "kind": "expense",
+              "amount": 250,
+              "categoryId": "grab",
+              "accountId": "gcash",
+              "payee": "Grab"
+            }
+          }
+        ]
+      },
+      {
+        "text": "meralco 2350 paid via bpi",
+        "segments": [
+          {
+            "seg": "meralco 2350 paid via bpi",
+            "kind": "expense"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "target": "finance",
+            "rule": "expense",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "expense",
+              "amount": 2350,
+              "categoryId": "electricity",
+              "accountId": "bpi",
+              "payee": "Meralco"
+            }
+          }
+        ]
+      },
+      {
+        "text": "got paid 35k",
+        "segments": [
+          {
+            "seg": "got paid 35k",
+            "kind": "income"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "income",
+            "target": "finance",
+            "rule": "income",
+            "payload": {
+              "kind": "income",
+              "amount": 35000,
+              "categoryId": "salary",
+              "payee": "Employer"
+            },
+            "ask": {
+              "question": "Which account did the ₱35,000 land in?",
+              "field": "accountId",
+              "options": [
+                {
+                  "label": "Cash",
+                  "value": "cash"
+                },
+                {
+                  "label": "GCash",
+                  "value": "gcash"
+                },
+                {
+                  "label": "Maya",
+                  "value": "maya"
+                },
+                {
+                  "label": "BPI Savings",
+                  "value": "bpi"
+                },
+                {
+                  "label": "BPI Credit Card",
+                  "value": "bpicc"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "text": "salary 42,000 to bpi",
+        "segments": [
+          {
+            "seg": "salary 42",
+            "kind": "income"
+          },
+          {
+            "seg": "000 to bpi",
+            "kind": "unknown"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "income",
+            "target": "finance",
+            "rule": "income",
+            "payload": {
+              "kind": "income",
+              "amount": 42,
+              "categoryId": "salary",
+              "payee": "Employer"
+            },
+            "ask": {
+              "question": "Which account did the ₱42 land in?",
+              "field": "accountId",
+              "options": [
+                {
+                  "label": "Cash",
+                  "value": "cash"
+                },
+                {
+                  "label": "GCash",
+                  "value": "gcash"
+                },
+                {
+                  "label": "Maya",
+                  "value": "maya"
+                },
+                {
+                  "label": "BPI Savings",
+                  "value": "bpi"
+                },
+                {
+                  "label": "BPI Credit Card",
+                  "value": "bpicc"
+                }
+              ]
+            }
+          },
+          {
+            "t": "info",
+            "card": {
+              "tone": "fallback",
+              "title": "Not sure what to do with “000 to bpi”",
+              "body": "Try saying it like you'd text a friend, or add it by hand.",
+              "actions": [
+                {
+                  "label": "Quick add",
+                  "do": "quickadd"
+                },
+                {
+                  "label": "Save as journal",
+                  "do": "journal",
+                  "prompt": "000 to bpi"
+                },
+                {
+                  "label": "Make it a task",
+                  "do": "prompt",
+                  "prompt": "todo 000 to bpi"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "text": "client paid 8000 gcash",
+        "segments": [
+          {
+            "seg": "client paid 8000 gcash",
+            "kind": "income"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "income",
+            "target": "finance",
+            "rule": "income",
+            "payload": {
+              "kind": "income",
+              "amount": 8000,
+              "categoryId": "freelance",
+              "accountId": "gcash"
+            }
+          }
+        ]
+      },
+      {
+        "text": "received refund 450",
+        "segments": [
+          {
+            "seg": "received refund 450",
+            "kind": "income"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "income",
+            "target": "finance",
+            "rule": "income",
+            "payload": {
+              "kind": "income",
+              "amount": 450,
+              "categoryId": "other-in"
+            },
+            "ask": {
+              "question": "Which account did the ₱450 land in?",
+              "field": "accountId",
+              "options": [
+                {
+                  "label": "Cash",
+                  "value": "cash"
+                },
+                {
+                  "label": "GCash",
+                  "value": "gcash"
+                },
+                {
+                  "label": "Maya",
+                  "value": "maya"
+                },
+                {
+                  "label": "BPI Savings",
+                  "value": "bpi"
+                },
+                {
+                  "label": "BPI Credit Card",
+                  "value": "bpicc"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "text": "moved 2k from gcash to bpi",
+        "segments": [
+          {
+            "seg": "moved 2k from gcash to bpi",
+            "kind": "transfer"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "transfer",
+            "target": "finance",
+            "rule": "transfer",
+            "payload": {
+              "kind": "transfer",
+              "amount": 2000,
+              "from": "gcash",
+              "to": "bpi"
+            }
+          }
+        ]
+      },
+      {
+        "text": "transfer 5000 to maya",
+        "segments": [
+          {
+            "seg": "transfer 5000 to maya",
+            "kind": "transfer"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "transfer",
+            "target": "finance",
+            "rule": "transfer",
+            "payload": {
+              "kind": "transfer",
+              "amount": 5000,
+              "to": "maya"
+            },
+            "ask": {
+              "question": "Moved ₱5,000 from which account?",
+              "field": "from",
+              "options": [
+                {
+                  "label": "Cash",
+                  "value": "cash"
+                },
+                {
+                  "label": "GCash",
+                  "value": "gcash"
+                },
+                {
+                  "label": "BPI Savings",
+                  "value": "bpi"
+                },
+                {
+                  "label": "BPI Credit Card",
+                  "value": "bpicc"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "text": "topped up 500 to gcash from bpi",
+        "segments": [
+          {
+            "seg": "topped up 500 to gcash from bpi",
+            "kind": "transfer"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "transfer",
+            "target": "finance",
+            "rule": "transfer",
+            "payload": {
+              "kind": "transfer",
+              "amount": 500,
+              "from": "bpi",
+              "to": "gcash"
+            }
+          }
+        ]
+      },
+      {
+        "text": "netflix 549 every 5th",
+        "segments": [
+          {
+            "seg": "netflix 549 every 5th",
+            "kind": "planned"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "planned",
+            "target": "finance",
+            "rule": "structure",
+            "confirm": true,
+            "payload": {
+              "kind": "planned",
+              "name": "Netflix",
+              "amount": 549,
+              "day": 5,
+              "accountId": "gcash",
+              "categoryId": "subs"
+            }
+          }
+        ]
+      },
+      {
+        "text": "rent 15000 monthly",
+        "segments": [
+          {
+            "seg": "rent 15000 monthly",
+            "kind": "planned"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "planned",
+            "target": "finance",
+            "rule": "structure",
+            "confirm": true,
+            "payload": {
+              "kind": "planned",
+              "name": "Rent Monthly",
+              "amount": 15000,
+              "day": 18,
+              "accountId": "gcash",
+              "categoryId": "rent"
+            }
+          }
+        ]
+      },
+      {
+        "text": "remind me to pay rent on the 30th",
+        "segments": [
+          {
+            "seg": "remind me to pay rent on the 30th",
+            "kind": "task"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "task",
+            "target": "tasks",
+            "rule": "reminder",
+            "payload": {
+              "kind": "task",
+              "tasks": [
+                {
+                  "title": "Pay rent",
+                  "listId": "life",
+                  "dueDate": "2026-10-30",
+                  "dueTime": null,
+                  "remind": true
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "text": "remind me to call mama",
+        "segments": [
+          {
+            "seg": "remind me to call mama",
+            "kind": "task"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "task",
+            "target": "tasks",
+            "rule": "reminder",
+            "payload": {
+              "kind": "task",
+              "tasks": [
+                {
+                  "title": "Call mama",
+                  "listId": "life",
+                  "dueDate": null,
+                  "dueTime": null,
+                  "remind": true
+                }
+              ]
+            },
+            "ask": {
+              "question": "When should I remind you?",
+              "field": "due",
+              "options": [
+                {
+                  "label": "Tonight 8 PM",
+                  "value": "0|20:00"
+                },
+                {
+                  "label": "Tomorrow 9 AM",
+                  "value": "1|09:00"
+                },
+                {
+                  "label": "Sat 10 AM",
+                  "value": "sat|10:00"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "text": "buy eggs, milk, rice",
+        "segments": [
+          {
+            "seg": "buy eggs, milk, rice",
+            "kind": "task"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "task",
+            "target": "tasks",
+            "rule": "task",
+            "payload": {
+              "kind": "task",
+              "tasks": [
+                {
+                  "title": "Eggs",
+                  "listId": "groceries",
+                  "dueDate": null,
+                  "dueTime": null,
+                  "remind": false
+                },
+                {
+                  "title": "Milk",
+                  "listId": "groceries",
+                  "dueDate": null,
+                  "dueTime": null,
+                  "remind": false
+                },
+                {
+                  "title": "Rice",
+                  "listId": "groceries",
+                  "dueDate": null,
+                  "dueTime": null,
+                  "remind": false
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "text": "buy eggs and bread",
+        "segments": [
+          {
+            "seg": "buy eggs and bread",
+            "kind": "task"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "task",
+            "target": "tasks",
+            "rule": "task",
+            "payload": {
+              "kind": "task",
+              "tasks": [
+                {
+                  "title": "Eggs",
+                  "listId": "groceries",
+                  "dueDate": null,
+                  "dueTime": null,
+                  "remind": false
+                },
+                {
+                  "title": "Bread",
+                  "listId": "groceries",
+                  "dueDate": null,
+                  "dueTime": null,
+                  "remind": false
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "text": "call the dentist tomorrow 3pm",
+        "segments": [
+          {
+            "seg": "call the dentist tomorrow 3pm",
+            "kind": "task"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "task",
+            "target": "tasks",
+            "rule": "reminder",
+            "payload": {
+              "kind": "task",
+              "tasks": [
+                {
+                  "title": "Call the dentist",
+                  "listId": "life",
+                  "dueDate": "2026-10-19",
+                  "dueTime": "15:00",
+                  "remind": true
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "text": "email client the deck by friday",
+        "segments": [
+          {
+            "seg": "email client the deck by friday",
+            "kind": "task"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "task",
+            "target": "tasks",
+            "rule": "task",
+            "payload": {
+              "kind": "task",
+              "tasks": [
+                {
+                  "title": "Email client the deck",
+                  "listId": "work",
+                  "dueDate": "2026-10-23",
+                  "dueTime": null,
+                  "remind": false
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "text": "todo: renew passport next week",
+        "segments": [
+          {
+            "seg": "todo: renew passport next week",
+            "kind": "task"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "task",
+            "target": "tasks",
+            "rule": "task",
+            "payload": {
+              "kind": "task",
+              "tasks": [
+                {
+                  "title": "Renew passport",
+                  "listId": null,
+                  "dueDate": "2026-10-19",
+                  "dueTime": null,
+                  "remind": false
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "text": "pay rent",
+        "segments": [
+          {
+            "seg": "pay rent",
+            "kind": "task"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "task",
+            "target": "tasks",
+            "rule": "task",
+            "payload": {
+              "kind": "task",
+              "tasks": [
+                {
+                  "title": "Pay rent",
+                  "listId": "life",
+                  "dueDate": null,
+                  "dueTime": null,
+                  "remind": false
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "text": "done with the report",
+        "segments": [
+          {
+            "seg": "done with the report",
+            "kind": "taskComplete"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "taskComplete",
+            "target": "tasks",
+            "rule": "task",
+            "payload": {
+              "kind": "taskComplete",
+              "taskId": "t4",
+              "query": "the report"
+            }
+          }
+        ]
+      },
+      {
+        "text": "finished the deck",
+        "segments": [
+          {
+            "seg": "finished the deck",
+            "kind": "taskComplete"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "taskComplete",
+            "target": "tasks",
+            "rule": "task",
+            "payload": {
+              "kind": "taskComplete",
+              "taskId": "t6",
+              "query": "the deck"
+            }
+          }
+        ]
+      },
+      {
+        "text": "ran 5k 32 min",
+        "segments": [
+          {
+            "seg": "ran 5k 32 min",
+            "kind": "cardio"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "workout",
+            "target": "fitness",
+            "rule": "workout",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "workout",
+              "name": "5 km run",
+              "exercises": [],
+              "cardio": {
+                "km": 5,
+                "min": 32,
+                "activity": "Run"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "text": "jogged 3.5 km in 25 minutes",
+        "segments": [
+          {
+            "seg": "jogged 3.5 km in 25 minutes",
+            "kind": "cardio"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "workout",
+            "target": "fitness",
+            "rule": "workout",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "workout",
+              "name": "3.5 km run",
+              "exercises": [],
+              "cardio": {
+                "km": 3.5,
+                "min": 25,
+                "activity": "Run"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "text": "walked 40 min",
+        "segments": [
+          {
+            "seg": "walked 40 min",
+            "kind": "cardio"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "workout",
+            "target": "fitness",
+            "rule": "workout",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "workout",
+              "name": "Walk",
+              "exercises": [],
+              "cardio": {
+                "min": 40,
+                "activity": "Walk"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "text": "biked 1 hour",
+        "segments": [
+          {
+            "seg": "biked 1 hour",
+            "kind": "cardio"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "workout",
+            "target": "fitness",
+            "rule": "workout",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "workout",
+              "name": "Ride",
+              "exercises": [],
+              "cardio": {
+                "min": 60,
+                "activity": "Ride"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "text": "swam 30 min yesterday",
+        "segments": [
+          {
+            "seg": "swam 30 min yesterday",
+            "kind": "cardio"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "workout",
+            "target": "fitness",
+            "rule": "workout",
+            "dayOffset": -1,
+            "payload": {
+              "kind": "workout",
+              "name": "Swim",
+              "exercises": [],
+              "cardio": {
+                "min": 30,
+                "activity": "Swim"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "text": "bench 80x5x3",
+        "segments": [
+          {
+            "seg": "bench 80x5x3",
+            "kind": "strength"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "workout",
+            "target": "fitness",
+            "rule": "workout",
+            "confirm": false,
+            "dayOffset": 0,
+            "payload": {
+              "kind": "workout",
+              "name": "Barbell Bench Press",
+              "exercises": [
+                {
+                  "exercise": "Barbell Bench Press",
+                  "sets": [
+                    {
+                      "reps": 5,
+                      "weight": 80
+                    },
+                    {
+                      "reps": 5,
+                      "weight": 80
+                    },
+                    {
+                      "reps": 5,
+                      "weight": 80
+                    }
+                  ]
+                }
+              ],
+              "newExercises": []
+            }
+          }
+        ]
+      },
+      {
+        "text": "bench 3x5 60, overhead press 3x8 40, row 3x8 55",
+        "segments": [
+          {
+            "seg": "bench 3x5 60, overhead press 3x8 40, row 3x8 55",
+            "kind": "strength"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "workout",
+            "target": "fitness",
+            "rule": "workout",
+            "confirm": false,
+            "dayOffset": 0,
+            "payload": {
+              "kind": "workout",
+              "name": "Workout",
+              "exercises": [
+                {
+                  "exercise": "Barbell Bench Press",
+                  "sets": [
+                    {
+                      "reps": 5,
+                      "weight": 60
+                    },
+                    {
+                      "reps": 5,
+                      "weight": 60
+                    },
+                    {
+                      "reps": 5,
+                      "weight": 60
+                    }
+                  ]
+                },
+                {
+                  "exercise": "Overhead Press",
+                  "sets": [
+                    {
+                      "reps": 8,
+                      "weight": 40
+                    },
+                    {
+                      "reps": 8,
+                      "weight": 40
+                    },
+                    {
+                      "reps": 8,
+                      "weight": 40
+                    }
+                  ]
+                },
+                {
+                  "exercise": "Barbell Row",
+                  "sets": [
+                    {
+                      "reps": 8,
+                      "weight": 55
+                    },
+                    {
+                      "reps": 8,
+                      "weight": 55
+                    },
+                    {
+                      "reps": 8,
+                      "weight": 55
+                    }
+                  ]
+                }
+              ],
+              "newExercises": []
+            }
+          }
+        ]
+      },
+      {
+        "text": "did legs: squats 3x5 100, leg press 3x10 140",
+        "segments": [
+          {
+            "seg": "did legs: squats 3x5 100, leg press 3x10 140",
+            "kind": "strength"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "workout",
+            "target": "fitness",
+            "rule": "workout",
+            "confirm": false,
+            "dayOffset": 0,
+            "payload": {
+              "kind": "workout",
+              "name": "Legs day",
+              "exercises": [
+                {
+                  "exercise": "Back Squat",
+                  "sets": [
+                    {
+                      "reps": 5,
+                      "weight": 100
+                    },
+                    {
+                      "reps": 5,
+                      "weight": 100
+                    },
+                    {
+                      "reps": 5,
+                      "weight": 100
+                    }
+                  ]
+                },
+                {
+                  "exercise": "Leg Press",
+                  "sets": [
+                    {
+                      "reps": 10,
+                      "weight": 140
+                    },
+                    {
+                      "reps": 10,
+                      "weight": 140
+                    },
+                    {
+                      "reps": 10,
+                      "weight": 140
+                    }
+                  ]
+                }
+              ],
+              "newExercises": []
+            }
+          }
+        ]
+      },
+      {
+        "text": "zercher squat 3x5 60",
+        "segments": [
+          {
+            "seg": "zercher squat 3x5 60",
+            "kind": "strength"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "workout",
+            "target": "fitness",
+            "rule": "workout",
+            "confirm": false,
+            "dayOffset": 0,
+            "payload": {
+              "kind": "workout",
+              "name": "Back Squat",
+              "exercises": [
+                {
+                  "exercise": "Back Squat",
+                  "sets": [
+                    {
+                      "reps": 5,
+                      "weight": 60
+                    },
+                    {
+                      "reps": 5,
+                      "weight": 60
+                    },
+                    {
+                      "reps": 5,
+                      "weight": 60
+                    }
+                  ]
+                }
+              ],
+              "newExercises": []
+            }
+          }
+        ]
+      },
+      {
+        "text": "weighed 72.4",
+        "segments": [
+          {
+            "seg": "weighed 72.4",
+            "kind": "weighIn"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "weighIn",
+            "target": "fitness",
+            "rule": "weighIn",
+            "confirm": true,
+            "warn": "That's 7.9% off your last weigh-in (78.6 kg) — typo?",
+            "payload": {
+              "kind": "weighIn",
+              "kg": 72.4,
+              "prevKg": 78.6
+            }
+          }
+        ]
+      },
+      {
+        "text": "weighed 74.9",
+        "segments": [
+          {
+            "seg": "weighed 74.9",
+            "kind": "weighIn"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "weighIn",
+            "target": "fitness",
+            "rule": "weighIn",
+            "confirm": true,
+            "warn": "That's 4.7% off your last weigh-in (78.6 kg) — typo?",
+            "payload": {
+              "kind": "weighIn",
+              "kg": 74.9,
+              "prevKg": 78.6
+            }
+          }
+        ]
+      },
+      {
+        "text": "timbang 160 lbs",
+        "segments": [
+          {
+            "seg": "timbang 160 lbs",
+            "kind": "weighIn"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "weighIn",
+            "target": "fitness",
+            "rule": "weighIn",
+            "confirm": true,
+            "warn": "That's 7.6% off your last weigh-in (78.6 kg) — typo?",
+            "payload": {
+              "kind": "weighIn",
+              "kg": 72.6,
+              "prevKg": 78.6
+            }
+          }
+        ]
+      },
+      {
+        "text": "72.1 kg",
+        "segments": [
+          {
+            "seg": "72.1 kg",
+            "kind": "weighIn"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "weighIn",
+            "target": "fitness",
+            "rule": "weighIn",
+            "confirm": true,
+            "warn": "That's 8.3% off your last weigh-in (78.6 kg) — typo?",
+            "payload": {
+              "kind": "weighIn",
+              "kg": 72.1,
+              "prevKg": 78.6
+            }
+          }
+        ]
+      },
+      {
+        "text": "did my meditation",
+        "segments": [
+          {
+            "seg": "did my meditation",
+            "kind": "habit"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "habitLog",
+            "target": "habits",
+            "rule": "habit",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "habitLog",
+              "habitId": "h-meditate",
+              "value": 10,
+              "add": false
+            }
+          }
+        ]
+      },
+      {
+        "text": "meditated 10 min",
+        "segments": [
+          {
+            "seg": "meditated 10 min",
+            "kind": "habit"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "habitLog",
+            "target": "habits",
+            "rule": "habit",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "habitLog",
+              "habitId": "h-meditate",
+              "value": 10,
+              "add": false
+            }
+          }
+        ]
+      },
+      {
+        "text": "read 20 pages",
+        "segments": [
+          {
+            "seg": "read 20 pages",
+            "kind": "habit"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "habitLog",
+            "target": "habits",
+            "rule": "habit",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "habitLog",
+              "habitId": "h-read",
+              "value": 20,
+              "add": true
+            }
+          }
+        ]
+      },
+      {
+        "text": "drank 6 glasses",
+        "segments": [
+          {
+            "seg": "drank 6 glasses",
+            "kind": "unknown"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "info",
+            "card": {
+              "tone": "fallback",
+              "title": "Not sure what to do with “drank 6 glasses”",
+              "body": "Try saying it like you'd text a friend, or add it by hand.",
+              "actions": [
+                {
+                  "label": "Quick add",
+                  "do": "quickadd"
+                },
+                {
+                  "label": "Save as journal",
+                  "do": "journal",
+                  "prompt": "drank 6 glasses"
+                },
+                {
+                  "label": "Make it a task",
+                  "do": "prompt",
+                  "prompt": "todo drank 6 glasses"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "text": "did my stretch",
+        "segments": [
+          {
+            "seg": "did my stretch",
+            "kind": "habit"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "habitCreate",
+            "target": "habits",
+            "rule": "structure",
+            "confirm": true,
+            "payload": {
+              "kind": "habitCreate",
+              "name": "Stretch",
+              "icon": "🤸",
+              "type": "check",
+              "days": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              "logToday": true
+            },
+            "warn": "No habit called “Stretch” yet — create it and check today?"
+          }
+        ]
+      },
+      {
+        "text": "new habit: read 20 min every weekday 9pm",
+        "segments": [
+          {
+            "seg": "new habit: read 20 min every weekday 9pm",
+            "kind": "habitCreate"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "habitCreate",
+            "target": "habits",
+            "rule": "structure",
+            "confirm": true,
+            "payload": {
+              "kind": "habitCreate",
+              "name": "Read",
+              "icon": "📖",
+              "type": "duration",
+              "target": 20,
+              "days": [
+                1,
+                2,
+                3,
+                4,
+                5
+              ],
+              "time": "21:00",
+              "logToday": false
+            }
+          }
+        ]
+      },
+      {
+        "text": "add habit drink water 8 glasses",
+        "segments": [
+          {
+            "seg": "add habit drink water 8 glasses",
+            "kind": "habitCreate"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "habitCreate",
+            "target": "habits",
+            "rule": "structure",
+            "confirm": true,
+            "payload": {
+              "kind": "habitCreate",
+              "name": "Drink Water",
+              "icon": "💧",
+              "type": "count",
+              "target": 8,
+              "unit": "glasses",
+              "days": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              "logToday": false
+            }
+          }
+        ]
+      },
+      {
+        "text": "create a habit floss at 10pm on weekends",
+        "segments": [
+          {
+            "seg": "create a habit floss at 10pm on weekends",
+            "kind": "habitCreate"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "habitCreate",
+            "target": "habits",
+            "rule": "structure",
+            "confirm": true,
+            "payload": {
+              "kind": "habitCreate",
+              "name": "Floss",
+              "icon": "🦷",
+              "type": "check",
+              "days": [
+                0,
+                6
+              ],
+              "time": "22:00",
+              "logToday": false
+            }
+          }
+        ]
+      },
+      {
+        "text": "started morning routine",
+        "segments": [
+          {
+            "seg": "started morning routine",
+            "kind": "routine"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "routineStart",
+            "target": "habits",
+            "rule": "structure",
+            "confirm": true,
+            "payload": {
+              "kind": "routineStart",
+              "routineId": "r-morning",
+              "query": "started morning routine"
+            }
+          }
+        ]
+      },
+      {
+        "text": "start routine",
+        "segments": [
+          {
+            "seg": "start routine",
+            "kind": "routine"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "routineStart",
+            "target": "habits",
+            "rule": "structure",
+            "confirm": true,
+            "payload": {
+              "kind": "routineStart",
+              "query": "start routine"
+            },
+            "ask": {
+              "question": "Which routine?",
+              "field": "routineId",
+              "options": [
+                {
+                  "label": "🌅 Morning routine",
+                  "value": "r-morning"
+                },
+                {
+                  "label": "🌙 Wind-down",
+                  "value": "r-winddown"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "text": "2 eggs and toast for breakfast",
+        "segments": [
+          {
+            "seg": "2 eggs and toast for breakfast",
+            "kind": "expense"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "target": "finance",
+            "rule": "expense",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "expense",
+              "amount": 2,
+              "categoryId": "dining",
+              "accountId": "gcash",
+              "payee": "Breakfast"
+            }
+          }
+        ]
+      },
+      {
+        "text": "lunch adobo with 1 cup rice",
+        "segments": [
+          {
+            "seg": "lunch adobo with 1 cup rice",
+            "kind": "meal"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "meal",
+            "target": "fitness",
+            "rule": "meal",
+            "confirm": false,
+            "confidence": 0.76,
+            "payload": {
+              "kind": "meal",
+              "raw": "lunch adobo with 1 cup rice",
+              "label": "lunch",
+              "items": [
+                {
+                  "name": "Chicken adobo (thigh)",
+                  "qty": 2,
+                  "unit": "pc",
+                  "kcal": 380,
+                  "protein": 32,
+                  "carbs": 4,
+                  "fat": 26,
+                  "assumption": "2 thigh pieces with sauce"
+                },
+                {
+                  "name": "Steamed rice",
+                  "qty": 1,
+                  "unit": "cup",
+                  "kcal": 205,
+                  "protein": 4,
+                  "carbs": 45,
+                  "fat": 0,
+                  "assumption": "~1 cup cooked, 160 g"
+                }
+              ],
+              "confidence": 0.76
+            },
+            "dayOffset": 0
+          }
+        ]
+      },
+      {
+        "text": "had sinigang and rice",
+        "segments": [
+          {
+            "seg": "had sinigang and rice",
+            "kind": "meal"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "meal",
+            "target": "fitness",
+            "rule": "meal",
+            "confirm": false,
+            "confidence": 0.76,
+            "ask": {
+              "question": "How much rice?",
+              "field": "rice",
+              "options": [
+                {
+                  "label": "1 cup",
+                  "value": "1 cup"
+                },
+                {
+                  "label": "1.5 cups",
+                  "value": "1.5 cups"
+                },
+                {
+                  "label": "2 cups",
+                  "value": "2 cups"
+                }
+              ]
+            },
+            "payload": {
+              "kind": "meal",
+              "raw": "had sinigang and rice",
+              "items": [
+                {
+                  "name": "Sinigang na baboy",
+                  "qty": 1,
+                  "unit": "bowl",
+                  "kcal": 320,
+                  "protein": 22,
+                  "carbs": 10,
+                  "fat": 21,
+                  "assumption": "1 bowl, pork belly + kangkong, radish"
+                },
+                {
+                  "name": "Steamed rice",
+                  "qty": 1,
+                  "unit": "cup",
+                  "kcal": 205,
+                  "protein": 4,
+                  "carbs": 45,
+                  "fat": 0,
+                  "assumption": "~1 cup cooked, 160 g"
+                }
+              ],
+              "confidence": 0.76
+            },
+            "dayOffset": 0
+          }
+        ]
+      },
+      {
+        "text": "ate something nice",
+        "segments": [
+          {
+            "seg": "ate something nice",
+            "kind": "unknown"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "info",
+            "card": {
+              "tone": "fallback",
+              "title": "Not sure what to do with “ate something nice”",
+              "body": "Try saying it like you'd text a friend, or add it by hand.",
+              "actions": [
+                {
+                  "label": "Quick add",
+                  "do": "quickadd"
+                },
+                {
+                  "label": "Save as journal",
+                  "do": "journal",
+                  "prompt": "ate something nice"
+                },
+                {
+                  "label": "Make it a task",
+                  "do": "prompt",
+                  "prompt": "todo ate something nice"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "text": "kumain ng pancit",
+        "segments": [
+          {
+            "seg": "kumain ng pancit",
+            "kind": "meal"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "meal",
+            "target": "fitness",
+            "rule": "meal",
+            "confirm": true,
+            "confidence": 0.6799999999999999,
+            "payload": {
+              "kind": "meal",
+              "raw": "kumain ng pancit",
+              "items": [
+                {
+                  "name": "Pancit canton",
+                  "qty": 1,
+                  "unit": "plate",
+                  "kcal": 400,
+                  "protein": 12,
+                  "carbs": 60,
+                  "fat": 12,
+                  "assumption": "1 plate, with veggies"
+                }
+              ],
+              "confidence": 0.6799999999999999
+            },
+            "dayOffset": 0
+          }
+        ]
+      },
+      {
+        "text": "journal: shipped the deck early, proud of it. slept at 1am again though",
+        "segments": [
+          {
+            "seg": "journal: shipped the deck early, proud of it. slept at 1am again though",
+            "kind": "journal"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "journal",
+            "target": "journal",
+            "rule": "journal",
+            "payload": {
+              "kind": "journal",
+              "body": "Shipped the deck early, proud of it. slept at 1am again though",
+              "mood": 5,
+              "area": "career",
+              "tags": [
+                "sleep",
+                "win"
+              ]
+            }
+          },
+          {
+            "t": "record",
+            "kind": "habitLog",
+            "target": "habits",
+            "rule": "habit",
+            "confirm": true,
+            "warn": "From your journal — I won't save it unless you confirm.",
+            "payload": {
+              "kind": "habitLog",
+              "habitId": "h-sleep"
+            }
+          }
+        ]
+      },
+      {
+        "text": "dear diary - tired, long day, spent 300 on grabfood again",
+        "segments": [
+          {
+            "seg": "dear diary - tired, long day, spent 300 on grabfood again",
+            "kind": "journal"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "journal",
+            "target": "journal",
+            "rule": "journal",
+            "payload": {
+              "kind": "journal",
+              "body": "Tired, long day, spent 300 on grabfood again",
+              "mood": 2,
+              "area": "money",
+              "tags": []
+            }
+          },
+          {
+            "t": "record",
+            "kind": "expense",
+            "target": "finance",
+            "rule": "expense",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "expense",
+              "amount": 300,
+              "categoryId": "dining",
+              "accountId": "gcash",
+              "payee": "GrabFood"
+            },
+            "confirm": true,
+            "warn": "From your journal — confirm to log it."
+          }
+        ]
+      },
+      {
+        "text": "how much did I spend on food this month?",
+        "segments": [
+          {
+            "seg": "how much did I spend on food this month?",
+            "kind": "question"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "question",
+            "text": "how much did I spend on food this month?"
+          }
+        ]
+      },
+      {
+        "text": "what's my bench PR?",
+        "segments": [
+          {
+            "seg": "what's my bench PR?",
+            "kind": "question"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "question",
+            "text": "what's my bench PR?"
+          }
+        ]
+      },
+      {
+        "text": "how many habits did I do this week?",
+        "segments": [
+          {
+            "seg": "how many habits did I do this week?",
+            "kind": "question"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "question",
+            "text": "how many habits did I do this week?"
+          }
+        ]
+      },
+      {
+        "text": "should I buy this phone on 0% installment for 24,999?",
+        "segments": [
+          {
+            "seg": "should I buy this phone on 0% installment for 24,999?",
+            "kind": "advice"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "question",
+            "text": "should I buy this phone on 0% installment for 24,999?"
+          }
+        ]
+      },
+      {
+        "text": "change that to 300",
+        "segments": [
+          {
+            "seg": "change that to 300",
+            "kind": "command"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "command",
+            "target": "finance",
+            "rule": "structure",
+            "confirm": true,
+            "payload": {
+              "kind": "command",
+              "op": "edit",
+              "amount": 300
+            }
+          }
+        ]
+      },
+      {
+        "text": "delete the last one",
+        "segments": [
+          {
+            "seg": "delete the last one",
+            "kind": "command"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "command",
+            "target": "finance",
+            "rule": "structure",
+            "confirm": true,
+            "payload": {
+              "kind": "command",
+              "op": "delete"
+            }
+          }
+        ]
+      },
+      {
+        "text": "ugh long day",
+        "segments": [
+          {
+            "seg": "ugh long day",
+            "kind": "feel"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "info",
+            "card": {
+              "tone": "journal-suggest",
+              "title": "Nothing to log — want to keep it?",
+              "body": "“ugh long day”",
+              "actions": [
+                {
+                  "label": "Save as journal",
+                  "do": "journal",
+                  "prompt": "ugh long day"
+                },
+                {
+                  "label": "Just venting",
+                  "do": "link",
+                  "href": ""
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "text": "asdf qwerty",
+        "segments": [
+          {
+            "seg": "asdf qwerty",
+            "kind": "unknown"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "info",
+            "card": {
+              "tone": "fallback",
+              "title": "Not sure what to do with “asdf qwerty”",
+              "body": "Try saying it like you'd text a friend, or add it by hand.",
+              "actions": [
+                {
+                  "label": "Quick add",
+                  "do": "quickadd"
+                },
+                {
+                  "label": "Save as journal",
+                  "do": "journal",
+                  "prompt": "asdf qwerty"
+                },
+                {
+                  "label": "Make it a task",
+                  "do": "prompt",
+                  "prompt": "todo asdf qwerty"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "text": "ran 5k 32 min, spent 250 on grab, remind me to pay rent on the 30th",
+        "segments": [
+          {
+            "seg": "ran 5k 32 min",
+            "kind": "cardio"
+          },
+          {
+            "seg": "spent 250 on grab",
+            "kind": "expense"
+          },
+          {
+            "seg": "remind me to pay rent on the 30th",
+            "kind": "task"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "workout",
+            "target": "fitness",
+            "rule": "workout",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "workout",
+              "name": "5 km run",
+              "exercises": [],
+              "cardio": {
+                "km": 5,
+                "min": 32,
+                "activity": "Run"
+              }
+            }
+          },
+          {
+            "t": "record",
+            "kind": "expense",
+            "target": "finance",
+            "rule": "expense",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "expense",
+              "amount": 250,
+              "categoryId": "grab",
+              "accountId": "gcash",
+              "payee": "Grab"
+            }
+          },
+          {
+            "t": "record",
+            "kind": "task",
+            "target": "tasks",
+            "rule": "reminder",
+            "payload": {
+              "kind": "task",
+              "tasks": [
+                {
+                  "title": "Pay rent",
+                  "listId": "life",
+                  "dueDate": "2026-10-30",
+                  "dueTime": null,
+                  "remind": true
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "text": "spent 120 on lunch and weighed 72.4",
+        "segments": [
+          {
+            "seg": "spent 120 on lunch",
+            "kind": "expense"
+          },
+          {
+            "seg": "weighed 72.4",
+            "kind": "weighIn"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "target": "finance",
+            "rule": "expense",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "expense",
+              "amount": 120,
+              "categoryId": "dining",
+              "accountId": "gcash",
+              "payee": "Lunch"
+            }
+          },
+          {
+            "t": "record",
+            "kind": "weighIn",
+            "target": "fitness",
+            "rule": "weighIn",
+            "confirm": true,
+            "warn": "That's 7.9% off your last weigh-in (78.6 kg) — typo?",
+            "payload": {
+              "kind": "weighIn",
+              "kg": 72.4,
+              "prevKg": 78.6
+            }
+          }
+        ]
+      },
+      {
+        "text": "coffee 165 then bench 80x5x3",
+        "segments": [
+          {
+            "seg": "coffee 165",
+            "kind": "expense"
+          },
+          {
+            "seg": "bench 80x5x3",
+            "kind": "strength"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "target": "finance",
+            "rule": "expense",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "expense",
+              "amount": 165,
+              "categoryId": "coffee",
+              "accountId": "gcash"
+            }
+          },
+          {
+            "t": "record",
+            "kind": "workout",
+            "target": "fitness",
+            "rule": "workout",
+            "confirm": false,
+            "dayOffset": 0,
+            "payload": {
+              "kind": "workout",
+              "name": "Barbell Bench Press",
+              "exercises": [
+                {
+                  "exercise": "Barbell Bench Press",
+                  "sets": [
+                    {
+                      "reps": 5,
+                      "weight": 80
+                    },
+                    {
+                      "reps": 5,
+                      "weight": 80
+                    },
+                    {
+                      "reps": 5,
+                      "weight": 80
+                    }
+                  ]
+                }
+              ],
+              "newExercises": []
+            }
+          }
+        ]
+      },
+      {
+        "text": "how much did I spend this week and what's my bench PR?",
+        "segments": [
+          {
+            "seg": "how much did I spend this week and what's my bench PR?",
+            "kind": "question"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "question",
+            "text": "how much did I spend this week and what's my bench PR?"
+          }
+        ]
+      },
+      {
+        "text": "spent 99 on load; meditated 10 min",
+        "segments": [
+          {
+            "seg": "spent 99 on load",
+            "kind": "expense"
+          },
+          {
+            "seg": "meditated 10 min",
+            "kind": "habit"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "target": "finance",
+            "rule": "expense",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "expense",
+              "amount": 99,
+              "categoryId": "phone",
+              "accountId": "gcash",
+              "payee": "Load"
+            }
+          },
+          {
+            "t": "record",
+            "kind": "habitLog",
+            "target": "habits",
+            "rule": "habit",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "habitLog",
+              "habitId": "h-meditate",
+              "value": 10,
+              "add": false
+            }
+          }
+        ]
+      },
+      {
+        "text": "I had a long reflective day today. Work was hard, the client changed the scope again and again, and I barely had time to breathe. But I went to the gym anyway and that helped. Grateful for small wins like that one.",
+        "segments": [
+          {
+            "seg": "I had a long reflective day today. Work was hard",
+            "kind": "unknown"
+          },
+          {
+            "seg": "the client changed the scope again and again",
+            "kind": "unknown"
+          },
+          {
+            "seg": "I barely had time to breathe. But I went to the gym anyway and that helped. Grateful for small wins like that one.",
+            "kind": "unknown"
+          }
+        ],
+        "drafts": [
+          {
+            "t": "info",
+            "card": {
+              "tone": "fallback",
+              "title": "Not sure what to do with “I had a long reflective day today. Work …”",
+              "body": "Try saying it like you'd text a friend, or add it by hand.",
+              "actions": [
+                {
+                  "label": "Quick add",
+                  "do": "quickadd"
+                },
+                {
+                  "label": "Save as journal",
+                  "do": "journal",
+                  "prompt": "I had a long reflective day today. Work was hard"
+                },
+                {
+                  "label": "Make it a task",
+                  "do": "prompt",
+                  "prompt": "todo I had a long reflective day today. Work was hard"
+                }
+              ]
+            }
+          },
+          {
+            "t": "info",
+            "card": {
+              "tone": "fallback",
+              "title": "Not sure what to do with “the client changed the scope again and a…”",
+              "body": "Try saying it like you'd text a friend, or add it by hand.",
+              "actions": [
+                {
+                  "label": "Quick add",
+                  "do": "quickadd"
+                },
+                {
+                  "label": "Save as journal",
+                  "do": "journal",
+                  "prompt": "the client changed the scope again and again"
+                },
+                {
+                  "label": "Make it a task",
+                  "do": "prompt",
+                  "prompt": "todo the client changed the scope again and again"
+                }
+              ]
+            }
+          },
+          {
+            "t": "info",
+            "card": {
+              "tone": "fallback",
+              "title": "Not sure what to do with “I barely had time to breathe. But I went…”",
+              "body": "Try saying it like you'd text a friend, or add it by hand.",
+              "actions": [
+                {
+                  "label": "Quick add",
+                  "do": "quickadd"
+                },
+                {
+                  "label": "Save as journal",
+                  "do": "journal",
+                  "prompt": "I barely had time to breathe. But I went to the gym anyway and that helped. Grateful for small wins like that one."
+                },
+                {
+                  "label": "Make it a task",
+                  "do": "prompt",
+                  "prompt": "todo I barely had time to breathe. But I went to the gym anyway and that helped. Grateful for small wins like that one."
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "hinted": [
+      {
+        "text": "half rice, 2 pcs chicken adobo",
+        "hint": "meal",
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "meal",
+            "target": "fitness",
+            "rule": "meal",
+            "confirm": false,
+            "confidence": 0.76,
+            "payload": {
+              "kind": "meal",
+              "raw": "half rice, 2 pcs chicken adobo",
+              "items": [
+                {
+                  "name": "Chicken adobo (thigh)",
+                  "qty": 2,
+                  "unit": "pc",
+                  "kcal": 380,
+                  "protein": 32,
+                  "carbs": 4,
+                  "fat": 26,
+                  "assumption": "2 thigh pieces with sauce"
+                },
+                {
+                  "name": "Steamed rice",
+                  "qty": 0.5,
+                  "unit": "cup",
+                  "kcal": 103,
+                  "protein": 2,
+                  "carbs": 23,
+                  "fat": 0,
+                  "assumption": "~1 cup cooked, 160 g"
+                }
+              ],
+              "confidence": 0.76
+            },
+            "dayOffset": 0
+          }
+        ]
+      },
+      {
+        "text": "250",
+        "hint": "expense",
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "expense",
+            "target": "finance",
+            "rule": "expense",
+            "dayOffset": 0,
+            "payload": {
+              "kind": "expense",
+              "amount": 250,
+              "accountId": "gcash"
+            },
+            "ask": {
+              "question": "What was ₱250 for?",
+              "field": "categoryId",
+              "free": true,
+              "options": [
+                {
+                  "label": "🚇 Commute",
+                  "value": "commute"
+                },
+                {
+                  "label": "🍗 Dining out",
+                  "value": "dining"
+                },
+                {
+                  "label": "🚗 Grab rides",
+                  "value": "grab"
+                },
+                {
+                  "label": "☕ Coffee",
+                  "value": "coffee"
+                },
+                {
+                  "label": "🛒 Groceries",
+                  "value": "groceries"
+                },
+                {
+                  "label": "💊 Health",
+                  "value": "health"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "text": "72.4",
+        "hint": "weigh-in",
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "weighIn",
+            "target": "fitness",
+            "rule": "weighIn",
+            "confirm": true,
+            "warn": "That's 7.9% off your last weigh-in (78.6 kg) — typo?",
+            "payload": {
+              "kind": "weighIn",
+              "kg": 72.4,
+              "prevKg": 78.6
+            }
+          }
+        ]
+      },
+      {
+        "text": "call Mark",
+        "hint": "task",
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "task",
+            "target": "tasks",
+            "rule": "task",
+            "payload": {
+              "kind": "task",
+              "tasks": [
+                {
+                  "title": "Call Mark",
+                  "listId": null,
+                  "dueDate": null,
+                  "dueTime": null,
+                  "remind": false
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "text": "",
+        "hint": "journal",
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "journal",
+            "target": "journal",
+            "rule": "journal",
+            "payload": {
+              "kind": "journal",
+              "body": "",
+              "tags": []
+            }
+          }
+        ]
+      },
+      {
+        "text": "felt calm today",
+        "hint": "journal",
+        "drafts": [
+          {
+            "t": "record",
+            "kind": "journal",
+            "target": "journal",
+            "rule": "journal",
+            "payload": {
+              "kind": "journal",
+              "body": "Felt calm today",
+              "mood": 4,
+              "tags": []
+            }
+          }
+        ]
+      }
+    ],
+    "voice": [
+      {
+        "text": "um so today was uh good, like, i finished the deck. you know, proud",
+        "draft": {
+          "t": "record",
+          "kind": "journal",
+          "target": "journal",
+          "rule": "journal",
+          "payload": {
+            "kind": "journal",
+            "body": "So today was good, i finished the deck. Proud",
+            "mood": 5,
+            "area": "career",
+            "tags": [
+              "win"
+            ],
+            "transcript": "um so today was uh good, like, i finished the deck. you know, proud"
+          }
+        }
+      }
+    ],
+    "photo": [
+      {
+        "raw": "",
+        "draft": {
+          "t": "record",
+          "kind": "meal",
+          "target": "fitness",
+          "rule": "meal",
+          "confirm": true,
+          "confidence": 0.68,
+          "ask": {
+            "question": "How much rice?",
+            "field": "rice",
+            "options": [
+              {
+                "label": "1 cup",
+                "value": "1 cup"
+              },
+              {
+                "label": "1.5 cups",
+                "value": "1.5 cups"
+              },
+              {
+                "label": "2 cups",
+                "value": "2 cups"
+              }
+            ]
+          },
+          "payload": {
+            "kind": "meal",
+            "raw": "",
+            "items": [
+              {
+                "name": "Chicken adobo (thigh)",
+                "qty": 2,
+                "unit": "pc",
+                "kcal": 380,
+                "protein": 32,
+                "carbs": 4,
+                "fat": 26,
+                "assumption": "2 thigh pieces with sauce"
+              },
+              {
+                "name": "Steamed rice",
+                "qty": 1,
+                "unit": "cup",
+                "kcal": 205,
+                "protein": 4,
+                "carbs": 45,
+                "fat": 0,
+                "assumption": "~1 cup cooked, 160 g"
+              }
+            ],
+            "confidence": 0.76,
+            "fromPhoto": true
+          }
+        }
+      },
+      {
+        "raw": "half rice and adobo",
+        "draft": {
+          "t": "record",
+          "kind": "meal",
+          "target": "fitness",
+          "rule": "meal",
+          "confirm": true,
+          "confidence": 0.68,
+          "payload": {
+            "kind": "meal",
+            "raw": "half rice and adobo",
+            "items": [
+              {
+                "name": "Chicken adobo (thigh)",
+                "qty": 2,
+                "unit": "pc",
+                "kcal": 380,
+                "protein": 32,
+                "carbs": 4,
+                "fat": 26,
+                "assumption": "2 thigh pieces with sauce"
+              },
+              {
+                "name": "Steamed rice",
+                "qty": 0.5,
+                "unit": "cup",
+                "kcal": 103,
+                "protein": 2,
+                "carbs": 23,
+                "fat": 0,
+                "assumption": "~1 cup cooked, 160 g"
+              }
+            ],
+            "confidence": 0.76,
+            "fromPhoto": true
+          }
+        }
+      },
+      {
+        "raw": "chicken inasal",
+        "draft": {
+          "t": "record",
+          "kind": "meal",
+          "target": "fitness",
+          "rule": "meal",
+          "confirm": true,
+          "confidence": 0.6,
+          "payload": {
+            "kind": "meal",
+            "raw": "chicken inasal",
+            "items": [
+              {
+                "name": "Chicken inasal (breast)",
+                "qty": 150,
+                "unit": "g",
+                "kcal": 260,
+                "protein": 46,
+                "carbs": 2,
+                "fat": 7,
+                "assumption": "~150 g grilled breast, no skin"
+              }
+            ],
+            "confidence": 0.6799999999999999,
+            "fromPhoto": true
+          }
+        }
+      }
+    ],
+    "amounts": [
+      {
+        "s": "250",
+        "out": {
+          "amount": 250,
+          "usd": false
+        }
+      },
+      {
+        "s": "₱1,250.50",
+        "out": {
+          "amount": 1250,
+          "usd": false
+        }
+      },
+      {
+        "s": "php 99",
+        "out": {
+          "amount": 99,
+          "usd": false
+        }
+      },
+      {
+        "s": "p300",
+        "out": {
+          "amount": 300,
+          "usd": false
+        }
+      },
+      {
+        "s": "1.5k",
+        "out": {
+          "amount": 1500,
+          "usd": false
+        }
+      },
+      {
+        "s": "12k salary",
+        "out": {
+          "amount": 12000,
+          "usd": false
+        }
+      },
+      {
+        "s": "$20",
+        "out": {
+          "amount": 20,
+          "usd": true
+        }
+      },
+      {
+        "s": "20 usd",
+        "out": {
+          "amount": 20,
+          "usd": true
+        }
+      },
+      {
+        "s": "5 min",
+        "out": null
+      },
+      {
+        "s": "3x5",
+        "out": {
+          "amount": 5,
+          "usd": false
+        }
+      },
+      {
+        "s": "80x5",
+        "out": {
+          "amount": 8,
+          "usd": false
+        }
+      },
+      {
+        "s": "5 km",
+        "out": null
+      },
+      {
+        "s": "9am",
+        "out": null
+      },
+      {
+        "s": "on the 30th",
+        "out": {
+          "amount": 3,
+          "usd": false
+        }
+      },
+      {
+        "s": "2 cups",
+        "out": null
+      },
+      {
+        "s": "0",
+        "out": null
+      },
+      {
+        "s": "no number",
+        "out": null
+      },
+      {
+        "s": "72.4",
+        "out": {
+          "amount": 72,
+          "usd": false
+        }
+      },
+      {
+        "s": "1,000,000",
+        "out": {
+          "amount": 1000000,
+          "usd": false
+        }
+      }
+    ],
+    "titles": [
+      {
+        "s": "read 20 min",
+        "out": "Read 20 Min"
+      },
+      {
+        "s": "o'neil's gym",
+        "out": "O'Neil'S Gym"
+      },
+      {
+        "s": "x-ray day",
+        "out": "X-Ray Day"
+      }
+    ],
+    "answers": [
+      [
+        "1500",
+        "categoryId"
+      ],
+      [
+        "electricity",
+        "categoryId"
+      ],
+      [
+        "gifts",
+        "categoryId"
+      ]
+    ]
+  }
+}

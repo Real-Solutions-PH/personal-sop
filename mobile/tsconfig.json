@@ -2,8 +2,12 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
-    "baseUrl": ".",
-    "paths": { "@/*": ["./src/*"] }
+    "paths": {
+      "@/*": ["./src/*"],
+      "@domain/*": ["../shared/prototype/*"]
+    },
+    "types": ["react", "jest", "node"],
+    "typeRoots": ["./node_modules/@types"]
   },
   "include": [
     "**/*.ts",

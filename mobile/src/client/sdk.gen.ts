@@ -3,7 +3,5494 @@
 import type { CancelablePromise } from './core/CancelablePromise';
 import { OpenAPI } from './core/OpenAPI';
 import { request as __request } from './core/request';
-import type { ItemsReadItemsData, ItemsReadItemsResponse, ItemsCreateItemData, ItemsCreateItemResponse, ItemsReadItemData, ItemsReadItemResponse, ItemsUpdateItemData, ItemsUpdateItemResponse, ItemsDeleteItemData, ItemsDeleteItemResponse, PermissionsReadPermissionsData, PermissionsReadPermissionsResponse, PermissionsReadPermissionData, PermissionsReadPermissionResponse, PrivateCreateUserData, PrivateCreateUserResponse, RolesReadRolesData, RolesReadRolesResponse, RolesReadRoleData, RolesReadRoleResponse, TenantsReadTenantsData, TenantsReadTenantsResponse, TenantsReadTenantData, TenantsReadTenantResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
+import type { AiProvidersPresetsResponse, AiProvidersListCredentialsData, AiProvidersListCredentialsResponse, AiProvidersCreateCredentialData, AiProvidersCreateCredentialResponse, AiProvidersGetCredentialData, AiProvidersGetCredentialResponse, AiProvidersUpdateCredentialData, AiProvidersUpdateCredentialResponse, AiProvidersDeleteCredentialData, AiProvidersDeleteCredentialResponse, AiProvidersVerifyCredentialData, AiProvidersVerifyCredentialResponse, AiProvidersListModelsData, AiProvidersListModelsResponse, AiProvidersListAssignmentsResponse, AiProvidersPutAssignmentData, AiProvidersPutAssignmentResponse, AiProvidersDeleteAssignmentData, AiProvidersDeleteAssignmentResponse, AiProvidersUsageData, AiProvidersUsageResponse, AuditReadAuditLogsData, AuditReadAuditLogsResponse, CaptureGetSettingsResponse, CaptureUpdateSettingsData, CaptureUpdateSettingsResponse, CaptureThreadData, CaptureThreadResponse, CaptureSubmitData, CaptureSubmitResponse, CapturePendingData, CapturePendingResponse, CaptureSubmitStreamData, CaptureSubmitStreamResponse, CaptureQuickAddData, CaptureQuickAddResponse, CaptureClearThreadResponse, CaptureRunRetentionResponse, CaptureResumeStuckResponse, CaptureGetCardData, CaptureGetCardResponse, CaptureEditCardData, CaptureEditCardResponse, CaptureConfirmCardData, CaptureConfirmCardResponse, CaptureDiscardCardData, CaptureDiscardCardResponse, CaptureUndoCardData, CaptureUndoCardResponse, CaptureRedoCardData, CaptureRedoCardResponse, CaptureAnswerCardData, CaptureAnswerCardResponse, CaptureSkipAskData, CaptureSkipAskResponse, CaptureGetCaptureData, CaptureGetCaptureResponse, CaptureDeleteCaptureData, CaptureDeleteCaptureResponse, CaptureRetryData, CaptureRetryResponse, CaptureRerunData, CaptureRerunResponse, CaptureResumeData, CaptureResumeResponse, CaptureConfirmAllData, CaptureConfirmAllResponse, CompanionGetStateResponse, CompanionRenameData, CompanionRenameResponse, CompanionAskData, CompanionAskResponse, CompanionAskStreamData, CompanionAskStreamResponse, CompanionListMessagesData, CompanionListMessagesResponse, CompanionClearConversationResponse, CompanionUpsertTrackerData, CompanionUpsertTrackerResponse, CompanionRemoveTrackerData, CompanionRemoveTrackerResponse, CompanionRememberData, CompanionRememberResponse, CompanionForgetData, CompanionForgetResponse, CompanionSeriesData, CompanionSeriesResponse, CompanionInsightsResponse, DashboardTodayResponse, DashboardListGoalsData, DashboardListGoalsResponse, DashboardCreateGoalData, DashboardCreateGoalResponse, DashboardReadGoalData, DashboardReadGoalResponse, DashboardUpdateGoalData, DashboardUpdateGoalResponse, DashboardDeleteGoalData, DashboardDeleteGoalResponse, DashboardArchiveGoalData, DashboardArchiveGoalResponse, DashboardRestoreGoalData, DashboardRestoreGoalResponse, DashboardUndeleteGoalData, DashboardUndeleteGoalResponse, DashboardListReviewsData, DashboardListReviewsResponse, DashboardSaveReviewData, DashboardSaveReviewResponse, DashboardWrapUpStateData, DashboardWrapUpStateResponse, DashboardSealDayData, DashboardSealDayResponse, DashboardUnsealDayData, DashboardUnsealDayResponse, DashboardWrapActionData, DashboardWrapActionResponse, DashboardListNotificationsData, DashboardListNotificationsResponse, DashboardMarkAllReadResponse, DashboardMarkReadData, DashboardMarkReadResponse, DashboardDismissData, DashboardDismissResponse, DashboardUndismissData, DashboardUndismissResponse, DashboardNoteMissData, DashboardNoteMissResponse, DashboardShareTemplatesResponse, DashboardSaveShareDefaultsData, DashboardSaveShareDefaultsResponse, DashboardShareCardData, DashboardShareCardResponse, DashboardOnboardingData, DashboardOnboardingResponse, EventsStreamData, EventsStreamResponse, FinanceHomeResponse, FinanceGetSettingsResponse, FinanceUpdateSettingsData, FinanceUpdateSettingsResponse, FinanceStartFreshResponse, FinanceResetResponse, FinanceExportCsvResponse, FinanceListAccountsData, FinanceListAccountsResponse, FinanceAddAccountData, FinanceAddAccountResponse, FinanceAccountDetailData, FinanceAccountDetailResponse, FinanceUpdateAccountData, FinanceUpdateAccountResponse, FinanceDeleteAccountData, FinanceDeleteAccountResponse, FinanceAdjustBalanceData, FinanceAdjustBalanceResponse, FinanceListCategoriesData, FinanceListCategoriesResponse, FinanceAddCategoryData, FinanceAddCategoryResponse, FinanceSuggestCategoryData, FinanceSuggestCategoryResponse, FinanceRecentCategoriesResponse, FinanceUpdateCategoryData, FinanceUpdateCategoryResponse, FinanceDeleteCategoryData, FinanceDeleteCategoryResponse, FinanceMoveCategoryData, FinanceMoveCategoryResponse, FinanceCategoryUsesData, FinanceCategoryUsesResponse, FinanceListRecordsData, FinanceListRecordsResponse, FinanceAddRecordData, FinanceAddRecordResponse, FinanceDeleteRecordsData, FinanceDeleteRecordsResponse, FinanceRestoreRecordsData, FinanceRestoreRecordsResponse, FinanceRecategoriseData, FinanceRecategoriseResponse, FinanceGetRecordData, FinanceGetRecordResponse, FinanceUpdateRecordData, FinanceUpdateRecordResponse, FinanceDeleteRecordData, FinanceDeleteRecordResponse, FinanceDuplicateRecordData, FinanceDuplicateRecordResponse, FinanceConfirmRecordData, FinanceConfirmRecordResponse, FinanceListBudgetsData, FinanceListBudgetsResponse, FinanceAddBudgetData, FinanceAddBudgetResponse, FinanceBudgetDetailData, FinanceBudgetDetailResponse, FinanceUpdateBudgetData, FinanceUpdateBudgetResponse, FinanceDeleteBudgetData, FinanceDeleteBudgetResponse, FinanceBudgetAverageData, FinanceBudgetAverageResponse, FinanceListPlannedData, FinanceListPlannedResponse, FinanceAddPlannedData, FinanceAddPlannedResponse, FinanceDueResponse, FinanceSettleData, FinanceSettleResponse, FinanceSkipData, FinanceSkipResponse, FinanceUnskipData, FinanceUnskipResponse, FinanceSnoozeData, FinanceSnoozeResponse, FinanceAutoLogResponse, FinancePlannedDetailData, FinancePlannedDetailResponse, FinanceUpdatePlannedData, FinanceUpdatePlannedResponse, FinanceDeletePlannedData, FinanceDeletePlannedResponse, FinanceOccurrencesData, FinanceOccurrencesResponse, FinanceProjectionDefaultResponse, FinanceProjectionData, FinanceProjectionResponse, FinanceReportData, FinanceReportResponse, FinanceReviewData, FinanceReviewResponse, FinanceSaveReviewData, FinanceSaveReviewResponse, FinanceListLookBacksData, FinanceListLookBacksResponse, FinanceListImportsData, FinanceListImportsResponse, FinanceStartImportData, FinanceStartImportResponse, FinanceImportDetailData, FinanceImportDetailResponse, FinanceImportDeleteData, FinanceImportDeleteResponse, FinanceImportCsvData, FinanceImportCsvResponse, FinanceImportRowsData, FinanceImportRowsResponse, FinancePatchRowsData, FinancePatchRowsResponse, FinanceImportFailData, FinanceImportFailResponse, FinanceImportRetryData, FinanceImportRetryResponse, FinanceImportCommitData, FinanceImportCommitResponse, FinanceImportUndoData, FinanceImportUndoResponse, FinanceImportRestoreData, FinanceImportRestoreResponse, FinanceImportDiscardFileData, FinanceImportDiscardFileResponse, FinanceListThreadsData, FinanceListThreadsResponse, FinanceCreateThreadData, FinanceCreateThreadResponse, FinanceThreadDetailData, FinanceThreadDetailResponse, FinanceRenameThreadData, FinanceRenameThreadResponse, FinanceDeleteThreadData, FinanceDeleteThreadResponse, FinanceAddMessageData, FinanceAddMessageResponse, FinanceDeleteMessageData, FinanceDeleteMessageResponse, FinanceAdvisorAskStreamData, FinanceAdvisorAskStreamResponse, FinanceAdvisorAnswerData, FinanceAdvisorAnswerResponse, FitnessOverviewResponse, FitnessStatsData, FitnessStatsResponse, FitnessListWorkoutsData, FitnessListWorkoutsResponse, FitnessActiveWorkoutResponse, FitnessStartWorkoutData, FitnessStartWorkoutResponse, FitnessReadWorkoutData, FitnessReadWorkoutResponse, FitnessUpdateWorkoutData, FitnessUpdateWorkoutResponse, FitnessDeleteWorkoutData, FitnessDeleteWorkoutResponse, FitnessFinishWorkoutData, FitnessFinishWorkoutResponse, FitnessDiscardWorkoutData, FitnessDiscardWorkoutResponse, FitnessRestoreWorkoutData, FitnessRestoreWorkoutResponse, FitnessSaveAsTemplateData, FitnessSaveAsTemplateResponse, FitnessShareCardData, FitnessShareCardResponse, FitnessAddExercisesData, FitnessAddExercisesResponse, FitnessSetExerciseNoteData, FitnessSetExerciseNoteResponse, FitnessRemoveExerciseData, FitnessRemoveExerciseResponse, FitnessMoveExerciseData, FitnessMoveExerciseResponse, FitnessReplaceExerciseData, FitnessReplaceExerciseResponse, FitnessAddSetData, FitnessAddSetResponse, FitnessUpdateSetData, FitnessUpdateSetResponse, FitnessRemoveSetData, FitnessRemoveSetResponse, FitnessToggleSetData, FitnessToggleSetResponse, FitnessReadRestResponse, FitnessStartRestData, FitnessStartRestResponse, FitnessAdjustRestData, FitnessAdjustRestResponse, FitnessSkipRestResponse, FitnessListTemplatesData, FitnessListTemplatesResponse, FitnessCreateTemplateData, FitnessCreateTemplateResponse, FitnessReadTemplateData, FitnessReadTemplateResponse, FitnessPutTemplateData, FitnessPutTemplateResponse, FitnessDeleteTemplateData, FitnessDeleteTemplateResponse, FitnessRestoreTemplateData, FitnessRestoreTemplateResponse, FitnessListExercisesData, FitnessListExercisesResponse, FitnessCreateExerciseData, FitnessCreateExerciseResponse, FitnessReadExerciseData, FitnessReadExerciseResponse, FitnessPutExerciseData, FitnessPutExerciseResponse, FitnessArchiveExerciseData, FitnessArchiveExerciseResponse, FitnessBodyWeightData, FitnessBodyWeightResponse, FitnessListWeighInsData, FitnessListWeighInsResponse, FitnessLogWeighInData, FitnessLogWeighInResponse, FitnessUpdateWeighInData, FitnessUpdateWeighInResponse, FitnessDeleteWeighInData, FitnessDeleteWeighInResponse, FitnessRestoreWeighInData, FitnessRestoreWeighInResponse, FitnessNutritionDayData, FitnessNutritionDayResponse, FitnessNutritionHistoryData, FitnessNutritionHistoryResponse, FitnessReadTargetsResponse, FitnessSetTargetsData, FitnessSetTargetsResponse, FitnessListMealsData, FitnessListMealsResponse, FitnessLogMealData, FitnessLogMealResponse, FitnessEstimateMealData, FitnessEstimateMealResponse, FitnessQueueMealPhotoData, FitnessQueueMealPhotoResponse, FitnessReadMealData, FitnessReadMealResponse, FitnessUpdateMealData, FitnessUpdateMealResponse, FitnessDeleteMealData, FitnessDeleteMealResponse, FitnessReestimateMealData, FitnessReestimateMealResponse, FitnessConfirmMealData, FitnessConfirmMealResponse, FitnessAnswerFollowUpData, FitnessAnswerFollowUpResponse, FitnessAddMealItemData, FitnessAddMealItemResponse, FitnessPatchMealItemData, FitnessPatchMealItemResponse, FitnessRemoveMealItemData, FitnessRemoveMealItemResponse, FitnessRestoreMealData, FitnessRestoreMealResponse, FitnessDuplicateMealData, FitnessDuplicateMealResponse, FitnessReadSettingsResponse, FitnessUpdateSettingsData, FitnessUpdateSettingsResponse, FitnessResetResponse, FitnessStartFreshResponse, HabitsHabitsHomeData, HabitsHabitsHomeResponse, HabitsHabitsTodayResponse, HabitsArchivedHabitsData, HabitsArchivedHabitsResponse, HabitsReadSettingsResponse, HabitsUpdateSettingsData, HabitsUpdateSettingsResponse, HabitsReadTimerResponse, HabitsPauseTimerResponse, HabitsResumeTimerResponse, HabitsExtendTimerData, HabitsExtendTimerResponse, HabitsFinishTimerData, HabitsFinishTimerResponse, HabitsDiscardTimerResponse, HabitsReadDayData, HabitsReadDayResponse, HabitsSaveDayData, HabitsSaveDayResponse, HabitsDeleteLogData, HabitsDeleteLogResponse, HabitsRestoreLogData, HabitsRestoreLogResponse, HabitsListRoutinesData, HabitsListRoutinesResponse, HabitsCreateRoutineData, HabitsCreateRoutineResponse, HabitsReadRoutineData, HabitsReadRoutineResponse, HabitsUpdateRoutineData, HabitsUpdateRoutineResponse, HabitsDeleteRoutineData, HabitsDeleteRoutineResponse, HabitsSetStepsData, HabitsSetStepsResponse, HabitsArchiveRoutineData, HabitsArchiveRoutineResponse, HabitsRestoreRoutineData, HabitsRestoreRoutineResponse, HabitsStartRoutineData, HabitsStartRoutineResponse, HabitsReadPlayerData, HabitsReadPlayerResponse, HabitsRunSummaryData, HabitsRunSummaryResponse, HabitsRunActionData, HabitsRunActionResponse, HabitsListHabitsData, HabitsListHabitsResponse, HabitsCreateHabitData, HabitsCreateHabitResponse, HabitsReadHabitData, HabitsReadHabitResponse, HabitsUpdateHabitData, HabitsUpdateHabitResponse, HabitsDeleteHabitData, HabitsDeleteHabitResponse, HabitsPauseHabitData, HabitsPauseHabitResponse, HabitsResumeHabitData, HabitsResumeHabitResponse, HabitsArchiveHabitData, HabitsArchiveHabitResponse, HabitsRestoreHabitData, HabitsRestoreHabitResponse, HabitsReorderHabitData, HabitsReorderHabitResponse, HabitsListLogsData, HabitsListLogsResponse, HabitsLogHabitData, HabitsLogHabitResponse, HabitsClearLogData, HabitsClearLogResponse, HabitsCheckHabitData, HabitsCheckHabitResponse, HabitsIncrementHabitData, HabitsIncrementHabitResponse, HabitsSkipHabitData, HabitsSkipHabitResponse, HabitsStartTimerData, HabitsStartTimerResponse, ItemsReadItemsData, ItemsReadItemsResponse, ItemsCreateItemData, ItemsCreateItemResponse, ItemsReadItemData, ItemsReadItemResponse, ItemsUpdateItemData, ItemsUpdateItemResponse, ItemsDeleteItemData, ItemsDeleteItemResponse, JournalListEntriesData, JournalListEntriesResponse, JournalCreateEntryData, JournalCreateEntryResponse, JournalGetEntryData, JournalGetEntryResponse, JournalUpdateEntryData, JournalUpdateEntryResponse, JournalDeleteEntryData, JournalDeleteEntryResponse, JournalRestoreEntryData, JournalRestoreEntryResponse, MediaRequestUploadData, MediaRequestUploadResponse, MediaCompleteUploadData, MediaCompleteUploadResponse, MediaReadMediaData, MediaReadMediaResponse, MediaDeleteMediaData, MediaDeleteMediaResponse, PermissionsReadPermissionsData, PermissionsReadPermissionsResponse, PermissionsReadPermissionData, PermissionsReadPermissionResponse, PrivateCreateUserData, PrivateCreateUserResponse, ProfileReadMeResponse, ProfileUpdateMeData, ProfileUpdateMeResponse, ProfileHandleAvailableData, ProfileHandleAvailableResponse, ProfileSignupHandleAvailableData, ProfileSignupHandleAvailableResponse, ProfileCompleteSignupData, ProfileCompleteSignupResponse, ProfileReadModulesResponse, ProfileUpdateModuleData, ProfileUpdateModuleResponse, ProfileResetWeightsResponse, ProfileReadIdentitiesResponse, ProfileReplaceIdentitiesData, ProfileReplaceIdentitiesResponse, ProfileSkipSetupData, ProfileSkipSetupResponse, ProfileReadLiveResponse, ProfilePauseLiveResponse, ProfileResumeLiveResponse, ProfileReadPushDevicesResponse, ProfileRegisterPushDeviceData, ProfileRegisterPushDeviceResponse, ProfileUnregisterPushDeviceData, ProfileUnregisterPushDeviceResponse, RbacReadUserPermissionsData, RbacReadUserPermissionsResponse, RbacAssignRoleData, RbacAssignRoleResponse, RbacRemoveRoleData, RbacRemoveRoleResponse, RbacReadRolePermissionsData, RbacReadRolePermissionsResponse, RbacAddPermissionData, RbacAddPermissionResponse, RbacRemovePermissionData, RbacRemovePermissionResponse, RolesReadRolesData, RolesReadRolesResponse, RolesReadRoleData, RolesReadRoleResponse, SocialReadMeResponse, SocialUpdateMeData, SocialUpdateMeResponse, SocialReadBadgesResponse, SocialReadTodayResponse, SocialReadExploreResponse, SocialReadLeaderboardResponse, SocialSearchPeopleData, SocialSearchPeopleResponse, SocialSearchTagsData, SocialSearchTagsResponse, SocialReadCloseFriendsResponse, SocialReadPersonData, SocialReadPersonResponse, SocialReadScorecardData, SocialReadScorecardResponse, SocialReadFollowersData, SocialReadFollowersResponse, SocialReadFollowingData, SocialReadFollowingResponse, SocialReadPersonPostsData, SocialReadPersonPostsResponse, SocialFollowData, SocialFollowResponse, SocialUnfollowData, SocialUnfollowResponse, SocialSetCloseFriendData, SocialSetCloseFriendResponse, SocialReadFeedData, SocialReadFeedResponse, SocialReadSavedData, SocialReadSavedResponse, SocialCreatePostData, SocialCreatePostResponse, SocialReadPostData, SocialReadPostResponse, SocialUpdatePostData, SocialUpdatePostResponse, SocialDeletePostData, SocialDeletePostResponse, SocialRestorePostData, SocialRestorePostResponse, SocialLikePostData, SocialLikePostResponse, SocialUnlikePostData, SocialUnlikePostResponse, SocialSavePostData, SocialSavePostResponse, SocialUnsavePostData, SocialUnsavePostResponse, SocialReadCommentsData, SocialReadCommentsResponse, SocialAddCommentData, SocialAddCommentResponse, SocialLikeCommentData, SocialLikeCommentResponse, SocialUnlikeCommentData, SocialUnlikeCommentResponse, SocialDeleteCommentData, SocialDeleteCommentResponse, SocialReadTrayResponse, SocialCreateStoryData, SocialCreateStoryResponse, SocialReadStoryData, SocialReadStoryResponse, SocialDeleteStoryData, SocialDeleteStoryResponse, SocialMarkSeenData, SocialMarkSeenResponse, SocialLikeStoryData, SocialLikeStoryResponse, SocialUnlikeStoryData, SocialUnlikeStoryResponse, SocialReadNotesResponse, SocialSetNoteData, SocialSetNoteResponse, SocialClearNoteResponse, SocialLikeNoteData, SocialLikeNoteResponse, SocialUnlikeNoteData, SocialUnlikeNoteResponse, SocialReadChatsData, SocialReadChatsResponse, SocialOpenDirectData, SocialOpenDirectResponse, SocialCreateGroupData, SocialCreateGroupResponse, SocialReadChatData, SocialReadChatResponse, SocialRenameChatData, SocialRenameChatResponse, SocialHideChatData, SocialHideChatResponse, SocialUnhideChatData, SocialUnhideChatResponse, SocialUpdateMembershipData, SocialUpdateMembershipResponse, SocialAddMembersData, SocialAddMembersResponse, SocialLeaveChatData, SocialLeaveChatResponse, SocialMarkReadData, SocialMarkReadResponse, SocialTypingData, SocialTypingResponse, SocialReadMessagesData, SocialReadMessagesResponse, SocialSendMessageData, SocialSendMessageResponse, SocialUnsendData, SocialUnsendResponse, SocialReactData, SocialReactResponse, SocialUnreactData, SocialUnreactResponse, SocialReadActivityData, SocialReadActivityResponse, SocialMarkActivityReadResponse, SocialReadDraftData, SocialReadDraftResponse, SocialPutDraftData, SocialPutDraftResponse, SocialClearDraftData, SocialClearDraftResponse, StatsOverviewData, StatsOverviewResponse, StatsSeriesData, StatsSeriesResponse, StatsSeriesMetricsResponse, StatsMetricDetailData, StatsMetricDetailResponse, StatsMissesData, StatsMissesResponse, StatsCalendarData, StatsCalendarResponse, StatsAchievementsResponse, StatsTodayResponse, StatsFacetsData, StatsFacetsResponse, SyncPushData, SyncPushResponse, SyncPullData, SyncPullResponse, SyncEntitiesResponse, TasksTodayResponse, TasksListTasksData, TasksListTasksResponse, TasksCreateTaskData, TasksCreateTaskResponse, TasksSearchData, TasksSearchResponse, TasksCompletedData, TasksCompletedResponse, TasksRecentlyDeletedData, TasksRecentlyDeletedResponse, TasksOverdueResponse, TasksStatsData, TasksStatsResponse, TasksShareData, TasksShareResponse, TasksParseData, TasksParseResponse, TasksGetSettingsResponse, TasksUpdateSettingsData, TasksUpdateSettingsResponse, TasksGetNotifResponse, TasksUpdateNotifData, TasksUpdateNotifResponse, TasksListsData, TasksListsResponse, TasksCreateListData, TasksCreateListResponse, TasksEnsureDefaultListsResponse, TasksGetListData, TasksGetListResponse, TasksUpdateListData, TasksUpdateListResponse, TasksDeleteListData, TasksDeleteListResponse, TasksArchiveListData, TasksArchiveListResponse, TasksMoveListData, TasksMoveListResponse, TasksClearCheckedData, TasksClearCheckedResponse, TasksCreateTasksData, TasksCreateTasksResponse, TasksCaptureData, TasksCaptureResponse, TasksRemoveTasksData, TasksRemoveTasksResponse, TasksUnclearData, TasksUnclearResponse, TasksMoveOverdueToTodayResponse, TasksGetTaskData, TasksGetTaskResponse, TasksUpdateTaskData, TasksUpdateTaskResponse, TasksDeleteTaskData, TasksDeleteTaskResponse, TasksSetDueData, TasksSetDueResponse, TasksCompleteData, TasksCompleteResponse, TasksUncompleteData, TasksUncompleteResponse, TasksToggleData, TasksToggleResponse, TasksRescheduleData, TasksRescheduleResponse, TasksSnoozeData, TasksSnoozeResponse, TasksDuplicateData, TasksDuplicateResponse, TasksRestoreData, TasksRestoreResponse, TasksMoveData, TasksMoveResponse, TenantsReadTenantsData, TenantsReadTenantsResponse, TenantsReadTenantData, TenantsReadTenantResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersExportMyDataResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UsersExportUserDataData, UsersExportUserDataResponse, UsersEraseUserDataData, UsersEraseUserDataResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse, WeatherReadPrefsResponse, WeatherUpdatePrefsData, WeatherUpdatePrefsResponse, WeatherReadForecastData, WeatherReadForecastResponse, WeatherSearchCitiesData, WeatherSearchCitiesResponse, WebhooksSupabaseAuthEventData, WebhooksSupabaseAuthEventResponse } from './types.gen';
+
+export class AiProvidersService {
+    /**
+     * Presets
+     * @returns PresetsOut Successful Response
+     * @throws ApiError
+     */
+    public static presets(): CancelablePromise<AiProvidersPresetsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/ai/providers/presets',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * List Credentials
+     * @param data The data for the request.
+     * @param data.skip
+     * @param data.limit
+     * @returns CredentialsOut Successful Response
+     * @throws ApiError
+     */
+    public static listCredentials(data: AiProvidersListCredentialsData = {}): CancelablePromise<AiProvidersListCredentialsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/ai/providers',
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Create Credential
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns CredentialPublic Successful Response
+     * @throws ApiError
+     */
+    public static createCredential(data: AiProvidersCreateCredentialData): CancelablePromise<AiProvidersCreateCredentialResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/ai/providers',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Get Credential
+     * @param data The data for the request.
+     * @param data.credentialId
+     * @returns CredentialPublic Successful Response
+     * @throws ApiError
+     */
+    public static getCredential(data: AiProvidersGetCredentialData): CancelablePromise<AiProvidersGetCredentialResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/ai/providers/{credential_id}',
+            path: {
+                credential_id: data.credentialId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Credential
+     * @param data The data for the request.
+     * @param data.credentialId
+     * @param data.requestBody
+     * @returns CredentialPublic Successful Response
+     * @throws ApiError
+     */
+    public static updateCredential(data: AiProvidersUpdateCredentialData): CancelablePromise<AiProvidersUpdateCredentialResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/ai/providers/{credential_id}',
+            path: {
+                credential_id: data.credentialId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Credential
+     * @param data The data for the request.
+     * @param data.credentialId
+     * @returns void Successful Response
+     * @throws ApiError
+     */
+    public static deleteCredential(data: AiProvidersDeleteCredentialData): CancelablePromise<AiProvidersDeleteCredentialResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/ai/providers/{credential_id}',
+            path: {
+                credential_id: data.credentialId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Verify Credential
+     * @param data The data for the request.
+     * @param data.credentialId
+     * @returns VerifyOut Successful Response
+     * @throws ApiError
+     */
+    public static verifyCredential(data: AiProvidersVerifyCredentialData): CancelablePromise<AiProvidersVerifyCredentialResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/ai/providers/{credential_id}/verify',
+            path: {
+                credential_id: data.credentialId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * List Models
+     * @param data The data for the request.
+     * @param data.credentialId
+     * @returns ModelsOut Successful Response
+     * @throws ApiError
+     */
+    public static listModels(data: AiProvidersListModelsData): CancelablePromise<AiProvidersListModelsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/ai/providers/{credential_id}/models',
+            path: {
+                credential_id: data.credentialId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * List Assignments
+     * @returns AssignmentsOut Successful Response
+     * @throws ApiError
+     */
+    public static listAssignments(): CancelablePromise<AiProvidersListAssignmentsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/ai/assignments',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Put Assignment
+     * @param data The data for the request.
+     * @param data.purpose
+     * @param data.requestBody
+     * @returns AssignmentPublic Successful Response
+     * @throws ApiError
+     */
+    public static putAssignment(data: AiProvidersPutAssignmentData): CancelablePromise<AiProvidersPutAssignmentResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/ai/assignments/{purpose}',
+            path: {
+                purpose: data.purpose
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Assignment
+     * @param data The data for the request.
+     * @param data.purpose
+     * @returns void Successful Response
+     * @throws ApiError
+     */
+    public static deleteAssignment(data: AiProvidersDeleteAssignmentData): CancelablePromise<AiProvidersDeleteAssignmentResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/ai/assignments/{purpose}',
+            path: {
+                purpose: data.purpose
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Usage
+     * @param data The data for the request.
+     * @param data.month
+     * @returns UsageOut Successful Response
+     * @throws ApiError
+     */
+    public static usage(data: AiProvidersUsageData = {}): CancelablePromise<AiProvidersUsageResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/ai/usage',
+            query: {
+                month: data.month
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+}
+
+export class AuditService {
+    /**
+     * Read Audit Logs
+     * @param data The data for the request.
+     * @param data.skip
+     * @param data.limit
+     * @returns AuditLogsPublic Successful Response
+     * @throws ApiError
+     */
+    public static readAuditLogs(data: AuditReadAuditLogsData = {}): CancelablePromise<AuditReadAuditLogsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/audit/logs',
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+}
+
+export class CaptureService {
+    /**
+     * Get Settings
+     * CAP-17 AI settings, seeded with the prototype's auto-save rules.
+     * @returns AISettingsPublic Successful Response
+     * @throws ApiError
+     */
+    public static getSettings(): CancelablePromise<CaptureGetSettingsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/capture/settings',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Settings
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns AISettingsPublic Successful Response
+     * @throws ApiError
+     */
+    public static updateSettings(data: CaptureUpdateSettingsData): CancelablePromise<CaptureUpdateSettingsResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/capture/settings',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Thread
+     * CAP-01 thread and CAP-12 history (newest first, filterable).
+     * @param data The data for the request.
+     * @param data.status
+     * @param data.source
+     * @param data.q
+     * @param data.skip
+     * @param data.limit
+     * @returns CapturesPublic Successful Response
+     * @throws ApiError
+     */
+    public static thread(data: CaptureThreadData = {}): CancelablePromise<CaptureThreadResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/capture/',
+            query: {
+                status: data.status,
+                source: data.source,
+                q: data.q,
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Submit
+     * F-CAP-01: store and read a capture; a replayed ``client_uuid``
+     * returns the capture it already made (200 instead of 201).
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns CaptureDetail Successful Response
+     * @throws ApiError
+     */
+    public static submit(data: CaptureSubmitData): CancelablePromise<CaptureSubmitResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/capture/',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Pending
+     * CAP-14 pending sheet: queued and failed captures, oldest first.
+     * @param data The data for the request.
+     * @param data.skip
+     * @param data.limit
+     * @returns CapturesPublic Successful Response
+     * @throws ApiError
+     */
+    public static pending(data: CapturePendingData = {}): CancelablePromise<CapturePendingResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/capture/queue',
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Submit Stream
+     * F-CAP-01 streamed: SSE frames ``capture``, ``text.delta``, ``card``,
+     * ``ask``, ``info``, ``done``, ``error``. Validation, the AI switch, the
+     * spend cap and voice transcription are resolved before the stream opens:
+     * a refusal is an HTTP error (the capture is kept as ``failed``).
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns unknown Successful Response
+     * @throws ApiError
+     */
+    public static submitStream(data: CaptureSubmitStreamData): CancelablePromise<CaptureSubmitStreamResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/capture/stream',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Quick Add
+     * CAP-10: a hand-entered record, saved at once with Undo.
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns CaptureDetail Successful Response
+     * @throws ApiError
+     */
+    public static quickAdd(data: CaptureQuickAddData): CancelablePromise<CaptureQuickAddResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/capture/quick-add',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Clear Thread
+     * CAP-17 clear thread: captures leave the thread; records stay.
+     * @returns Count Successful Response
+     * @throws ApiError
+     */
+    public static clearThread(): CancelablePromise<CaptureClearThreadResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/capture/clear',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Run Retention
+     * Remove captures older than ``retention_days`` (the job body).
+     * @returns Count Successful Response
+     * @throws ApiError
+     */
+    public static runRetention(): CancelablePromise<CaptureRunRetentionResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/capture/retention/run',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Resume Stuck
+     * Re-read every capture stuck in ``processing`` (app open).
+     * @returns Count Successful Response
+     * @throws ApiError
+     */
+    public static resumeStuck(): CancelablePromise<CaptureResumeStuckResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/capture/resume-stuck',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Get Card
+     * @param data The data for the request.
+     * @param data.cardId
+     * @returns CardPublic Successful Response
+     * @throws ApiError
+     */
+    public static getCard(data: CaptureGetCardData): CancelablePromise<CaptureGetCardResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/capture/cards/{card_id}',
+            path: {
+                card_id: data.cardId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Edit Card
+     * CAP-06 edit sheet: a saved card is rewritten in its module.
+     * @param data The data for the request.
+     * @param data.cardId
+     * @param data.requestBody
+     * @returns CardPublic Successful Response
+     * @throws ApiError
+     */
+    public static editCard(data: CaptureEditCardData): CancelablePromise<CaptureEditCardResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/capture/cards/{card_id}',
+            path: {
+                card_id: data.cardId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Confirm Card
+     * CAP-05 Confirm (a replay on a saved card is a no-op).
+     * @param data The data for the request.
+     * @param data.cardId
+     * @returns CardPublic Successful Response
+     * @throws ApiError
+     */
+    public static confirmCard(data: CaptureConfirmCardData): CancelablePromise<CaptureConfirmCardResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/capture/cards/{card_id}/confirm',
+            path: {
+                card_id: data.cardId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Discard Card
+     * @param data The data for the request.
+     * @param data.cardId
+     * @returns CardPublic Successful Response
+     * @throws ApiError
+     */
+    public static discardCard(data: CaptureDiscardCardData): CancelablePromise<CaptureDiscardCardResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/capture/cards/{card_id}/discard',
+            path: {
+                card_id: data.cardId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Undo Card
+     * CAP-05/08 Undo: removes exactly the rows the card wrote.
+     * @param data The data for the request.
+     * @param data.cardId
+     * @returns CardPublic Successful Response
+     * @throws ApiError
+     */
+    public static undoCard(data: CaptureUndoCardData): CancelablePromise<CaptureUndoCardResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/capture/cards/{card_id}/undo',
+            path: {
+                card_id: data.cardId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Redo Card
+     * @param data The data for the request.
+     * @param data.cardId
+     * @returns CardPublic Successful Response
+     * @throws ApiError
+     */
+    public static redoCard(data: CaptureRedoCardData): CancelablePromise<CaptureRedoCardResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/capture/cards/{card_id}/redo',
+            path: {
+                card_id: data.cardId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Answer Card
+     * CAP-07 follow-up chip or free reply. Returns the whole capture (a
+     * photo's "what is this?" answer replaces the card with new ones).
+     * @param data The data for the request.
+     * @param data.cardId
+     * @param data.requestBody
+     * @returns CaptureDetail Successful Response
+     * @throws ApiError
+     */
+    public static answerCard(data: CaptureAnswerCardData): CancelablePromise<CaptureAnswerCardResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/capture/cards/{card_id}/answer',
+            path: {
+                card_id: data.cardId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Skip Ask
+     * CAP-07 Skip: keeps the card waiting in History.
+     * @param data The data for the request.
+     * @param data.cardId
+     * @returns CardPublic Successful Response
+     * @throws ApiError
+     */
+    public static skipAsk(data: CaptureSkipAskData): CancelablePromise<CaptureSkipAskResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/capture/cards/{card_id}/skip',
+            path: {
+                card_id: data.cardId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Get Capture
+     * CAP-13 capture detail: input, cards with their write log, replies.
+     * @param data The data for the request.
+     * @param data.captureId
+     * @returns CaptureDetail Successful Response
+     * @throws ApiError
+     */
+    public static getCapture(data: CaptureGetCaptureData): CancelablePromise<CaptureGetCaptureResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/capture/{capture_id}',
+            path: {
+                capture_id: data.captureId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Capture
+     * CAP-13/14 Delete capture (its records stay in their modules).
+     * @param data The data for the request.
+     * @param data.captureId
+     * @returns void Successful Response
+     * @throws ApiError
+     */
+    public static deleteCapture(data: CaptureDeleteCaptureData): CancelablePromise<CaptureDeleteCaptureResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/capture/{capture_id}',
+            path: {
+                capture_id: data.captureId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Retry
+     * CAP-14/19 Retry (also "process now" for a queued capture).
+     * @param data The data for the request.
+     * @param data.captureId
+     * @returns CaptureDetail Successful Response
+     * @throws ApiError
+     */
+    public static retry(data: CaptureRetryData): CancelablePromise<CaptureRetryResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/capture/{capture_id}/retry',
+            path: {
+                capture_id: data.captureId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Rerun
+     * CAP-13 Re-run AI (optionally on an edited text or transcript).
+     * @param data The data for the request.
+     * @param data.captureId
+     * @param data.requestBody
+     * @returns CaptureDetail Successful Response
+     * @throws ApiError
+     */
+    public static rerun(data: CaptureRerunData): CancelablePromise<CaptureRerunResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/capture/{capture_id}/rerun',
+            path: {
+                capture_id: data.captureId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Resume
+     * @param data The data for the request.
+     * @param data.captureId
+     * @returns CaptureDetail Successful Response
+     * @throws ApiError
+     */
+    public static resume(data: CaptureResumeData): CancelablePromise<CaptureResumeResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/capture/{capture_id}/resume',
+            path: {
+                capture_id: data.captureId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Confirm All
+     * F-CAP-08 Confirm all (two or more proposed cards).
+     * @param data The data for the request.
+     * @param data.captureId
+     * @returns CardPublic Successful Response
+     * @throws ApiError
+     */
+    public static confirmAll(data: CaptureConfirmAllData): CancelablePromise<CaptureConfirmAllResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/capture/{capture_id}/confirm-all',
+            path: {
+                capture_id: data.captureId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+}
+
+export class CompanionService {
+    /**
+     * Get State
+     * The companion's name, trackers and memories.
+     * @returns CompanionState Successful Response
+     * @throws ApiError
+     */
+    public static getState(): CancelablePromise<CompanionGetStateResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/companion/',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Rename
+     * Rename the companion (blank resets to the default, Fern).
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns CompanionState Successful Response
+     * @throws ApiError
+     */
+    public static rename(data: CompanionRenameData): CancelablePromise<CompanionRenameResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/companion/',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Ask
+     * Ask the companion. A replayed message id returns the reply it already got.
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns AskOut Successful Response
+     * @throws ApiError
+     */
+    public static ask(data: CompanionAskData): CancelablePromise<CompanionAskResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/companion/ask',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Ask Stream
+     * Ask the companion over SSE: ``message`` (the stored question), ``text.delta``,
+     * ``block``, ``capture`` / the capture frames for a log, ``done`` (the
+     * whole answer) and ``error``. Validation happens before the stream.
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns unknown Successful Response
+     * @throws ApiError
+     */
+    public static askStream(data: CompanionAskStreamData): CancelablePromise<CompanionAskStreamResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/companion/ask/stream',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * List Messages
+     * @param data The data for the request.
+     * @param data.skip
+     * @param data.limit
+     * @returns app__modules__companion__schema__MessagesPublic Successful Response
+     * @throws ApiError
+     */
+    public static listMessages(data: CompanionListMessagesData = {}): CancelablePromise<CompanionListMessagesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/companion/messages',
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Clear Conversation
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static clearConversation(): CancelablePromise<CompanionClearConversationResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/companion/messages',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Upsert Tracker
+     * Track a metric (one tracker per metric: a second call updates it).
+     * @param data The data for the request.
+     * @param data.metric
+     * @param data.requestBody
+     * @returns TrackerPublic Successful Response
+     * @throws ApiError
+     */
+    public static upsertTracker(data: CompanionUpsertTrackerData): CancelablePromise<CompanionUpsertTrackerResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/companion/trackers/{metric}',
+            path: {
+                metric: data.metric
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Remove Tracker
+     * @param data The data for the request.
+     * @param data.trackerId
+     * @returns void Successful Response
+     * @throws ApiError
+     */
+    public static removeTracker(data: CompanionRemoveTrackerData): CancelablePromise<CompanionRemoveTrackerResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/companion/trackers/{tracker_id}',
+            path: {
+                tracker_id: data.trackerId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Remember
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns MemoryPublic Successful Response
+     * @throws ApiError
+     */
+    public static remember(data: CompanionRememberData): CancelablePromise<CompanionRememberResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/companion/memories',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Forget
+     * @param data The data for the request.
+     * @param data.memoryId
+     * @returns void Successful Response
+     * @throws ApiError
+     */
+    public static forget(data: CompanionForgetData): CancelablePromise<CompanionForgetResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/companion/memories/{memory_id}',
+            path: {
+                memory_id: data.memoryId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Series
+     * Chart block data (``stats.public.series``).
+     * @param data The data for the request.
+     * @param data.metric
+     * @param data.days
+     * @returns app__modules__companion__schema__SeriesOut Successful Response
+     * @throws ApiError
+     */
+    public static series(data: CompanionSeriesData): CancelablePromise<CompanionSeriesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/companion/series/{metric}',
+            path: {
+                metric: data.metric
+            },
+            query: {
+                days: data.days
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Insights
+     * Insights block data (``stats.public.overview``).
+     * @returns InsightsOut Successful Response
+     * @throws ApiError
+     */
+    public static insights(): CancelablePromise<CompanionInsightsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/companion/insights',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+}
+
+export class DashboardService {
+    /**
+     * Today
+     * The Today bundle: ring, Life Score, next up, card counts and the
+     * wrap-up state.
+     * @returns TodayBundle Successful Response
+     * @throws ApiError
+     */
+    public static today(): CancelablePromise<DashboardTodayResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/dashboard/today',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * List Goals
+     * Every goal with its progress against the current metric value.
+     * @param data The data for the request.
+     * @param data.skip
+     * @param data.limit
+     * @returns GoalsOut Successful Response
+     * @throws ApiError
+     */
+    public static listGoals(data: DashboardListGoalsData = {}): CancelablePromise<DashboardListGoalsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/dashboard/goals',
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Create Goal
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns GoalProgressOut Successful Response
+     * @throws ApiError
+     */
+    public static createGoal(data: DashboardCreateGoalData): CancelablePromise<DashboardCreateGoalResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/dashboard/goals',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Goal
+     * @param data The data for the request.
+     * @param data.goalId
+     * @returns GoalProgressOut Successful Response
+     * @throws ApiError
+     */
+    public static readGoal(data: DashboardReadGoalData): CancelablePromise<DashboardReadGoalResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/dashboard/goals/{goal_id}',
+            path: {
+                goal_id: data.goalId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Goal
+     * @param data The data for the request.
+     * @param data.goalId
+     * @param data.requestBody
+     * @returns GoalProgressOut Successful Response
+     * @throws ApiError
+     */
+    public static updateGoal(data: DashboardUpdateGoalData): CancelablePromise<DashboardUpdateGoalResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/dashboard/goals/{goal_id}',
+            path: {
+                goal_id: data.goalId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Goal
+     * @param data The data for the request.
+     * @param data.goalId
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static deleteGoal(data: DashboardDeleteGoalData): CancelablePromise<DashboardDeleteGoalResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/dashboard/goals/{goal_id}',
+            path: {
+                goal_id: data.goalId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Archive Goal
+     * @param data The data for the request.
+     * @param data.goalId
+     * @returns GoalProgressOut Successful Response
+     * @throws ApiError
+     */
+    public static archiveGoal(data: DashboardArchiveGoalData): CancelablePromise<DashboardArchiveGoalResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/dashboard/goals/{goal_id}/archive',
+            path: {
+                goal_id: data.goalId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Restore Goal
+     * Un-archive.
+     * @param data The data for the request.
+     * @param data.goalId
+     * @returns GoalProgressOut Successful Response
+     * @throws ApiError
+     */
+    public static restoreGoal(data: DashboardRestoreGoalData): CancelablePromise<DashboardRestoreGoalResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/dashboard/goals/{goal_id}/restore',
+            path: {
+                goal_id: data.goalId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Undelete Goal
+     * Undo of a delete.
+     * @param data The data for the request.
+     * @param data.goalId
+     * @returns GoalProgressOut Successful Response
+     * @throws ApiError
+     */
+    public static undeleteGoal(data: DashboardUndeleteGoalData): CancelablePromise<DashboardUndeleteGoalResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/dashboard/goals/{goal_id}/undelete',
+            path: {
+                goal_id: data.goalId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * List Reviews
+     * @param data The data for the request.
+     * @param data.skip
+     * @param data.limit
+     * @returns ReviewsOut Successful Response
+     * @throws ApiError
+     */
+    public static listReviews(data: DashboardListReviewsData = {}): CancelablePromise<DashboardListReviewsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/dashboard/reviews',
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Save Review
+     * ``saveReview``: ``w-<Monday>`` or ``m-<1st>``.
+     * @param data The data for the request.
+     * @param data.key
+     * @param data.requestBody
+     * @returns ReviewPublic Successful Response
+     * @throws ApiError
+     */
+    public static saveReview(data: DashboardSaveReviewData): CancelablePromise<DashboardSaveReviewResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/dashboard/reviews/{key}',
+            path: {
+                key: data.key
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Wrap Up State
+     * @param data The data for the request.
+     * @param data.day
+     * @returns WrapUpState Successful Response
+     * @throws ApiError
+     */
+    public static wrapUpState(data: DashboardWrapUpStateData = {}): CancelablePromise<DashboardWrapUpStateResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/dashboard/wrap-up',
+            query: {
+                day: data.day
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Seal Day
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns WrapUpPublic Successful Response
+     * @throws ApiError
+     */
+    public static sealDay(data: DashboardSealDayData): CancelablePromise<DashboardSealDayResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/dashboard/wrap-up/seal',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Unseal Day
+     * @param data The data for the request.
+     * @param data.day
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static unsealDay(data: DashboardUnsealDayData = {}): CancelablePromise<DashboardUnsealDayResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/dashboard/wrap-up/unseal',
+            query: {
+                day: data.day
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Wrap Action
+     * Tick a task, check a habit or skip a habit from the wrap-up list.
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns WrapActionOut Successful Response
+     * @throws ApiError
+     */
+    public static wrapAction(data: DashboardWrapActionData): CancelablePromise<DashboardWrapActionResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/dashboard/wrap-up/actions',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * List Notifications
+     * @param data The data for the request.
+     * @param data.skip
+     * @param data.limit
+     * @returns NotificationsOut Successful Response
+     * @throws ApiError
+     */
+    public static listNotifications(data: DashboardListNotificationsData = {}): CancelablePromise<DashboardListNotificationsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/dashboard/notifications',
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Mark All Read
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static markAllRead(): CancelablePromise<DashboardMarkAllReadResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/dashboard/notifications/read-all',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Mark Read
+     * @param data The data for the request.
+     * @param data.notificationId
+     * @returns NotificationPublic Successful Response
+     * @throws ApiError
+     */
+    public static markRead(data: DashboardMarkReadData): CancelablePromise<DashboardMarkReadResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/dashboard/notifications/{notification_id}/read',
+            path: {
+                notification_id: data.notificationId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Dismiss
+     * @param data The data for the request.
+     * @param data.notificationId
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static dismiss(data: DashboardDismissData): CancelablePromise<DashboardDismissResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/dashboard/notifications/{notification_id}',
+            path: {
+                notification_id: data.notificationId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Undismiss
+     * Undo of a dismiss.
+     * @param data The data for the request.
+     * @param data.notificationId
+     * @returns NotificationPublic Successful Response
+     * @throws ApiError
+     */
+    public static undismiss(data: DashboardUndismissData): CancelablePromise<DashboardUndismissResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/dashboard/notifications/{notification_id}/restore',
+            path: {
+                notification_id: data.notificationId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Note Miss
+     * ``noteMiss``: a blank note removes it.
+     * @param data The data for the request.
+     * @param data.missKey
+     * @param data.requestBody
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static noteMiss(data: DashboardNoteMissData): CancelablePromise<DashboardNoteMissResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/dashboard/misses/{miss_key}/note',
+            path: {
+                miss_key: data.missKey
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Share Templates
+     * Every card template with its fields, defaults overlaid with the
+     * user's saved choices.
+     * @returns ShareTemplateOut Successful Response
+     * @throws ApiError
+     */
+    public static shareTemplates(): CancelablePromise<DashboardShareTemplatesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/dashboard/share/templates',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Save Share Defaults
+     * @param data The data for the request.
+     * @param data.template
+     * @param data.requestBody
+     * @returns ShareDefaultPublic Successful Response
+     * @throws ApiError
+     */
+    public static saveShareDefaults(data: DashboardSaveShareDefaultsData): CancelablePromise<DashboardSaveShareDefaultsResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/dashboard/share/{template}/defaults',
+            path: {
+                template: data.template
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Share Card
+     * @param data The data for the request.
+     * @param data.template
+     * @param data.goalId
+     * @returns app__modules__dashboard__schema__ShareCardOut Successful Response
+     * @throws ApiError
+     */
+    public static shareCard(data: DashboardShareCardData): CancelablePromise<DashboardShareCardResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/dashboard/share/{template}/card',
+            path: {
+                template: data.template
+            },
+            query: {
+                goal_id: data.goalId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Onboarding
+     * Starter goals for the chosen modules at the chosen pace.
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns OnboardingOut Successful Response
+     * @throws ApiError
+     */
+    public static onboarding(data: DashboardOnboardingData): CancelablePromise<DashboardOnboardingResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/dashboard/onboarding',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+}
+
+export class EventsService {
+    /**
+     * Stream
+     * @param data The data for the request.
+     * @param data.lastEventId
+     * @returns unknown Successful Response
+     * @throws ApiError
+     */
+    public static stream(data: EventsStreamData = {}): CancelablePromise<EventsStreamResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/events/stream',
+            headers: {
+                'Last-Event-ID': data.lastEventId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+}
+
+export class FinanceService {
+    /**
+     * Home
+     * FIN-01.
+     * @returns HomeOut Successful Response
+     * @throws ApiError
+     */
+    public static home(): CancelablePromise<FinanceHomeResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/finance/home',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Get Settings
+     * @returns app__modules__finance__schema__SettingsPublic Successful Response
+     * @throws ApiError
+     */
+    public static getSettings(): CancelablePromise<FinanceGetSettingsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/finance/settings',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Settings
+     * FIN-35 / FIN-34 (disclaimer, data scope).
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns app__modules__finance__schema__SettingsPublic Successful Response
+     * @throws ApiError
+     */
+    public static updateSettings(data: FinanceUpdateSettingsData): CancelablePromise<FinanceUpdateSettingsResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/finance/settings',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Start Fresh
+     * @returns app__modules__finance__schema__SettingsPublic Successful Response
+     * @throws ApiError
+     */
+    public static startFresh(): CancelablePromise<FinanceStartFreshResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/finance/start-fresh',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Reset
+     * @returns app__modules__finance__schema__SettingsPublic Successful Response
+     * @throws ApiError
+     */
+    public static reset(): CancelablePromise<FinanceResetResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/finance/reset',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Export Csv
+     * F-FIN-45: every record as CSV.
+     * @returns unknown Successful Response
+     * @throws ApiError
+     */
+    public static exportCsv(): CancelablePromise<FinanceExportCsvResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/finance/export.csv',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * List Accounts
+     * FIN-09: accounts with balances, net worth and the liquid total.
+     * @param data The data for the request.
+     * @param data.skip
+     * @param data.limit
+     * @returns AccountsPublic Successful Response
+     * @throws ApiError
+     */
+    public static listAccounts(data: FinanceListAccountsData = {}): CancelablePromise<FinanceListAccountsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/finance/accounts',
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Add Account
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns AccountPublic Successful Response
+     * @throws ApiError
+     */
+    public static addAccount(data: FinanceAddAccountData): CancelablePromise<FinanceAddAccountResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/finance/accounts',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Account Detail
+     * FIN-10: balance and its trend.
+     * @param data The data for the request.
+     * @param data.accountId
+     * @param data.days
+     * @returns AccountDetail Successful Response
+     * @throws ApiError
+     */
+    public static accountDetail(data: FinanceAccountDetailData): CancelablePromise<FinanceAccountDetailResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/finance/accounts/{account_id}',
+            path: {
+                account_id: data.accountId
+            },
+            query: {
+                days: data.days
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Account
+     * @param data The data for the request.
+     * @param data.accountId
+     * @param data.requestBody
+     * @returns AccountPublic Successful Response
+     * @throws ApiError
+     */
+    public static updateAccount(data: FinanceUpdateAccountData): CancelablePromise<FinanceUpdateAccountResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/finance/accounts/{account_id}',
+            path: {
+                account_id: data.accountId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Account
+     * @param data The data for the request.
+     * @param data.accountId
+     * @returns Ok Successful Response
+     * @throws ApiError
+     */
+    public static deleteAccount(data: FinanceDeleteAccountData): CancelablePromise<FinanceDeleteAccountResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/finance/accounts/{account_id}',
+            path: {
+                account_id: data.accountId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Adjust Balance
+     * FIN-12: ``null`` when the balance already matches.
+     * @param data The data for the request.
+     * @param data.accountId
+     * @param data.requestBody
+     * @returns unknown Successful Response
+     * @throws ApiError
+     */
+    public static adjustBalance(data: FinanceAdjustBalanceData): CancelablePromise<FinanceAdjustBalanceResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/finance/accounts/{account_id}/adjust',
+            path: {
+                account_id: data.accountId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * List Categories
+     * @param data The data for the request.
+     * @param data.kind
+     * @param data.includeArchived
+     * @param data.skip
+     * @param data.limit
+     * @returns CategoriesPublic Successful Response
+     * @throws ApiError
+     */
+    public static listCategories(data: FinanceListCategoriesData = {}): CancelablePromise<FinanceListCategoriesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/finance/categories',
+            query: {
+                kind: data.kind,
+                include_archived: data.includeArchived,
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Add Category
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns CategoryPublic Successful Response
+     * @throws ApiError
+     */
+    public static addCategory(data: FinanceAddCategoryData): CancelablePromise<FinanceAddCategoryResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/finance/categories',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Suggest Category
+     * FIN-15 "AI suggestion first": the category last used with this payee.
+     * @param data The data for the request.
+     * @param data.payee
+     * @returns unknown Successful Response
+     * @throws ApiError
+     */
+    public static suggestCategory(data: FinanceSuggestCategoryData): CancelablePromise<FinanceSuggestCategoryResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/finance/categories/suggest',
+            query: {
+                payee: data.payee
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Recent Categories
+     * FIN-05 chips: the last category first, then the most used (30 days).
+     * @returns unknown Successful Response
+     * @throws ApiError
+     */
+    public static recentCategories(): CancelablePromise<FinanceRecentCategoriesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/finance/categories/recent',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Category
+     * @param data The data for the request.
+     * @param data.categoryId
+     * @param data.requestBody
+     * @returns CategoryPublic Successful Response
+     * @throws ApiError
+     */
+    public static updateCategory(data: FinanceUpdateCategoryData): CancelablePromise<FinanceUpdateCategoryResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/finance/categories/{category_id}',
+            path: {
+                category_id: data.categoryId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Category
+     * Delete, moving records, planned items and budget scope to ``move_to``.
+     * @param data The data for the request.
+     * @param data.categoryId
+     * @param data.moveTo
+     * @returns Ok Successful Response
+     * @throws ApiError
+     */
+    public static deleteCategory(data: FinanceDeleteCategoryData): CancelablePromise<FinanceDeleteCategoryResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/finance/categories/{category_id}',
+            path: {
+                category_id: data.categoryId
+            },
+            query: {
+                move_to: data.moveTo
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Move Category
+     * @param data The data for the request.
+     * @param data.categoryId
+     * @param data.requestBody
+     * @returns CategoryPublic Successful Response
+     * @throws ApiError
+     */
+    public static moveCategory(data: FinanceMoveCategoryData): CancelablePromise<FinanceMoveCategoryResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/finance/categories/{category_id}/move',
+            path: {
+                category_id: data.categoryId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Category Uses
+     * @param data The data for the request.
+     * @param data.categoryId
+     * @returns CategoryUses Successful Response
+     * @throws ApiError
+     */
+    public static categoryUses(data: FinanceCategoryUsesData): CancelablePromise<FinanceCategoryUsesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/finance/categories/{category_id}/uses',
+            path: {
+                category_id: data.categoryId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * List Records
+     * FIN-02 with the FIN-08 filter and sort; newest first by default.
+     * @param data The data for the request.
+     * @param data.f
+     * @param data.skip
+     * @param data.limit
+     * @returns RecordsPublic Successful Response
+     * @throws ApiError
+     */
+    public static listRecords(data: FinanceListRecordsData): CancelablePromise<FinanceListRecordsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/finance/records',
+            query: {
+                f: data.f,
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Add Record
+     * FIN-04/05: returns the record and, for a transfer with a fee, the fee.
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns RecordsPublic Successful Response
+     * @throws ApiError
+     */
+    public static addRecord(data: FinanceAddRecordData): CancelablePromise<FinanceAddRecordResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/finance/records',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Records
+     * Bulk delete (fees go with their transfer). Returns every id deleted,
+     * which is what ``/records/restore`` takes for the undo toast.
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns Ok Successful Response
+     * @throws ApiError
+     */
+    public static deleteRecords(data: FinanceDeleteRecordsData): CancelablePromise<FinanceDeleteRecordsResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/finance/records/delete',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Restore Records
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns Ok Successful Response
+     * @throws ApiError
+     */
+    public static restoreRecords(data: FinanceRestoreRecordsData): CancelablePromise<FinanceRestoreRecordsResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/finance/records/restore',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Recategorise
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns RecordsPublic Successful Response
+     * @throws ApiError
+     */
+    public static recategorise(data: FinanceRecategoriseData): CancelablePromise<FinanceRecategoriseResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/finance/records/recategorise',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Get Record
+     * FIN-03.
+     * @param data The data for the request.
+     * @param data.recordId
+     * @returns RecordPublic Successful Response
+     * @throws ApiError
+     */
+    public static getRecord(data: FinanceGetRecordData): CancelablePromise<FinanceGetRecordResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/finance/records/{record_id}',
+            path: {
+                record_id: data.recordId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Record
+     * @param data The data for the request.
+     * @param data.recordId
+     * @param data.requestBody
+     * @returns RecordPublic Successful Response
+     * @throws ApiError
+     */
+    public static updateRecord(data: FinanceUpdateRecordData): CancelablePromise<FinanceUpdateRecordResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/finance/records/{record_id}',
+            path: {
+                record_id: data.recordId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Record
+     * @param data The data for the request.
+     * @param data.recordId
+     * @returns Ok Successful Response
+     * @throws ApiError
+     */
+    public static deleteRecord(data: FinanceDeleteRecordData): CancelablePromise<FinanceDeleteRecordResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/finance/records/{record_id}',
+            path: {
+                record_id: data.recordId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Duplicate Record
+     * @param data The data for the request.
+     * @param data.recordId
+     * @param data.requestBody
+     * @returns RecordPublic Successful Response
+     * @throws ApiError
+     */
+    public static duplicateRecord(data: FinanceDuplicateRecordData): CancelablePromise<FinanceDuplicateRecordResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/finance/records/{record_id}/duplicate',
+            path: {
+                record_id: data.recordId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Confirm Record
+     * Pending review -> cleared.
+     * @param data The data for the request.
+     * @param data.recordId
+     * @returns RecordPublic Successful Response
+     * @throws ApiError
+     */
+    public static confirmRecord(data: FinanceConfirmRecordData): CancelablePromise<FinanceConfirmRecordResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/finance/records/{record_id}/confirm',
+            path: {
+                record_id: data.recordId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * List Budgets
+     * FIN-16: spent, limit, pace, days left, safe per day.
+     * @param data The data for the request.
+     * @param data.includeArchived
+     * @param data.month
+     * @param data.skip
+     * @param data.limit
+     * @returns BudgetsPublic Successful Response
+     * @throws ApiError
+     */
+    public static listBudgets(data: FinanceListBudgetsData = {}): CancelablePromise<FinanceListBudgetsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/finance/budgets',
+            query: {
+                include_archived: data.includeArchived,
+                month: data.month,
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Add Budget
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns BudgetPublic Successful Response
+     * @throws ApiError
+     */
+    public static addBudget(data: FinanceAddBudgetData): CancelablePromise<FinanceAddBudgetResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/finance/budgets',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Budget Detail
+     * FIN-17: this month, six past months and the 3-month average hint.
+     * @param data The data for the request.
+     * @param data.budgetId
+     * @returns BudgetDetail Successful Response
+     * @throws ApiError
+     */
+    public static budgetDetail(data: FinanceBudgetDetailData): CancelablePromise<FinanceBudgetDetailResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/finance/budgets/{budget_id}',
+            path: {
+                budget_id: data.budgetId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Budget
+     * @param data The data for the request.
+     * @param data.budgetId
+     * @param data.requestBody
+     * @returns BudgetPublic Successful Response
+     * @throws ApiError
+     */
+    public static updateBudget(data: FinanceUpdateBudgetData): CancelablePromise<FinanceUpdateBudgetResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/finance/budgets/{budget_id}',
+            path: {
+                budget_id: data.budgetId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Budget
+     * @param data The data for the request.
+     * @param data.budgetId
+     * @returns Ok Successful Response
+     * @throws ApiError
+     */
+    public static deleteBudget(data: FinanceDeleteBudgetData): CancelablePromise<FinanceDeleteBudgetResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/finance/budgets/{budget_id}',
+            path: {
+                budget_id: data.budgetId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Budget Average
+     * FIN-18 limit hint: the 3-month average spend of a scope.
+     * @param data The data for the request.
+     * @param data.categoryIds
+     * @returns number Successful Response
+     * @throws ApiError
+     */
+    public static budgetAverage(data: FinanceBudgetAverageData = {}): CancelablePromise<FinanceBudgetAverageResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/finance/budgets-average',
+            query: {
+                category_ids: data.categoryIds
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * List Planned
+     * FIN-19 with its tabs and the monthly totals in and out.
+     * @param data The data for the request.
+     * @param data.tab
+     * @param data.includeArchived
+     * @param data.skip
+     * @param data.limit
+     * @returns PlannedList Successful Response
+     * @throws ApiError
+     */
+    public static listPlanned(data: FinanceListPlannedData = {}): CancelablePromise<FinanceListPlannedResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/finance/planned',
+            query: {
+                tab: data.tab,
+                include_archived: data.includeArchived,
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Add Planned
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns PlannedPublic Successful Response
+     * @throws ApiError
+     */
+    public static addPlanned(data: FinanceAddPlannedData): CancelablePromise<FinanceAddPlannedResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/finance/planned',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Due
+     * Today cards: overdue (two weeks back) and due today or tomorrow.
+     * @returns OccurrencesPublic Successful Response
+     * @throws ApiError
+     */
+    public static due(): CancelablePromise<FinanceDueResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/finance/planned/due',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Settle
+     * FIN-22 Paid.
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns RecordPublic Successful Response
+     * @throws ApiError
+     */
+    public static settle(data: FinanceSettleData): CancelablePromise<FinanceSettleResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/finance/planned/settle',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Skip
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns Ok Successful Response
+     * @throws ApiError
+     */
+    public static skip(data: FinanceSkipData): CancelablePromise<FinanceSkipResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/finance/planned/skip',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Unskip
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns Ok Successful Response
+     * @throws ApiError
+     */
+    public static unskip(data: FinanceUnskipData): CancelablePromise<FinanceUnskipResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/finance/planned/unskip',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Snooze
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns unknown Successful Response
+     * @throws ApiError
+     */
+    public static snooze(data: FinanceSnoozeData): CancelablePromise<FinanceSnoozeResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/finance/planned/snooze',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Auto Log
+     * F-FIN-22: materialise due auto-log items on app open.
+     * @returns RecordsPublic Successful Response
+     * @throws ApiError
+     */
+    public static autoLog(): CancelablePromise<FinanceAutoLogResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/finance/planned/auto-log',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Planned Detail
+     * FIN-20 (its occurrences: ``/occurrences?planned_id=``).
+     * @param data The data for the request.
+     * @param data.plannedId
+     * @returns PlannedPublic Successful Response
+     * @throws ApiError
+     */
+    public static plannedDetail(data: FinancePlannedDetailData): CancelablePromise<FinancePlannedDetailResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/finance/planned/{planned_id}',
+            path: {
+                planned_id: data.plannedId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Planned
+     * @param data The data for the request.
+     * @param data.plannedId
+     * @param data.requestBody
+     * @returns PlannedPublic Successful Response
+     * @throws ApiError
+     */
+    public static updatePlanned(data: FinanceUpdatePlannedData): CancelablePromise<FinanceUpdatePlannedResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/finance/planned/{planned_id}',
+            path: {
+                planned_id: data.plannedId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Planned
+     * @param data The data for the request.
+     * @param data.plannedId
+     * @returns Ok Successful Response
+     * @throws ApiError
+     */
+    public static deletePlanned(data: FinanceDeletePlannedData): CancelablePromise<FinanceDeletePlannedResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/finance/planned/{planned_id}',
+            path: {
+                planned_id: data.plannedId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Occurrences
+     * Occurrences with status (paid, skipped, due, upcoming, overdue).
+     * @param data The data for the request.
+     * @param data.first
+     * @param data.last
+     * @param data.includeWhatIf
+     * @param data.plannedId
+     * @returns OccurrencesPublic Successful Response
+     * @throws ApiError
+     */
+    public static occurrences(data: FinanceOccurrencesData): CancelablePromise<FinanceOccurrencesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/finance/occurrences',
+            query: {
+                first: data.first,
+                last: data.last,
+                include_what_if: data.includeWhatIf,
+                planned_id: data.plannedId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Projection Default
+     * FIN-23 with the saved assumptions.
+     * @returns ProjectionOut Successful Response
+     * @throws ApiError
+     */
+    public static projectionDefault(): CancelablePromise<FinanceProjectionDefaultResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/finance/projection',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Projection
+     * FIN-23/24: a scenario (what-if, exclusions, horizon). Read-only.
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns ProjectionOut Successful Response
+     * @throws ApiError
+     */
+    public static projection(data: FinanceProjectionData): CancelablePromise<FinanceProjectionResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/finance/projection',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Report
+     * FIN-30/31.
+     * @param data The data for the request.
+     * @param data.period
+     * @returns ReportOut Successful Response
+     * @throws ApiError
+     */
+    public static report(data: FinanceReportData = {}): CancelablePromise<FinanceReportResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/finance/reports',
+            query: {
+                period: data.period
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Review
+     * FIN-32 for a month (default: last month) or a custom range.
+     * @param data The data for the request.
+     * @param data.period
+     * @param data.first
+     * @param data.last
+     * @returns LookbackOut Successful Response
+     * @throws ApiError
+     */
+    public static review(data: FinanceReviewData = {}): CancelablePromise<FinanceReviewResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/finance/review',
+            query: {
+                period: data.period,
+                first: data.first,
+                last: data.last
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Save Review
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns LookBackPublic Successful Response
+     * @throws ApiError
+     */
+    public static saveReview(data: FinanceSaveReviewData): CancelablePromise<FinanceSaveReviewResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/finance/review',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * List Look Backs
+     * @param data The data for the request.
+     * @param data.skip
+     * @param data.limit
+     * @returns LookBacksPublic Successful Response
+     * @throws ApiError
+     */
+    public static listLookBacks(data: FinanceListLookBacksData = {}): CancelablePromise<FinanceListLookBacksResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/finance/look-backs',
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * List Imports
+     * FIN-29: drafts first.
+     * @param data The data for the request.
+     * @param data.accountId
+     * @param data.skip
+     * @param data.limit
+     * @returns ImportsPublic Successful Response
+     * @throws ApiError
+     */
+    public static listImports(data: FinanceListImportsData = {}): CancelablePromise<FinanceListImportsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/finance/imports',
+            query: {
+                account_id: data.accountId,
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Start Import
+     * FIN-25.
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns ImportPublic Successful Response
+     * @throws ApiError
+     */
+    public static startImport(data: FinanceStartImportData): CancelablePromise<FinanceStartImportResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/finance/imports',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Import Detail
+     * FIN-27 review: rows, needs-attention flags and the balance check.
+     * @param data The data for the request.
+     * @param data.importId
+     * @returns ImportDetail Successful Response
+     * @throws ApiError
+     */
+    public static importDetail(data: FinanceImportDetailData): CancelablePromise<FinanceImportDetailResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/finance/imports/{import_id}',
+            path: {
+                import_id: data.importId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Import Delete
+     * @param data The data for the request.
+     * @param data.importId
+     * @returns Ok Successful Response
+     * @throws ApiError
+     */
+    public static importDelete(data: FinanceImportDeleteData): CancelablePromise<FinanceImportDeleteResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/finance/imports/{import_id}',
+            path: {
+                import_id: data.importId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Import Csv
+     * FIN-26: parse a CSV (generic mapping, GCash or BPI layout).
+     * @param data The data for the request.
+     * @param data.importId
+     * @param data.requestBody
+     * @returns ImportPublic Successful Response
+     * @throws ApiError
+     */
+    public static importCsv(data: FinanceImportCsvData): CancelablePromise<FinanceImportCsvResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/finance/imports/{import_id}/csv',
+            path: {
+                import_id: data.importId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Import Rows
+     * FIN-26: rows a vision/OCR step read from a PDF or screenshot.
+     * @param data The data for the request.
+     * @param data.importId
+     * @param data.requestBody
+     * @returns ImportPublic Successful Response
+     * @throws ApiError
+     */
+    public static importRows(data: FinanceImportRowsData): CancelablePromise<FinanceImportRowsResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/finance/imports/{import_id}/rows',
+            path: {
+                import_id: data.importId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Patch Rows
+     * FIN-27/28: bulk accept, set category, ignore, keep/take/merge, re-match.
+     * @param data The data for the request.
+     * @param data.importId
+     * @param data.requestBody
+     * @returns ImportRowPublic Successful Response
+     * @throws ApiError
+     */
+    public static patchRows(data: FinancePatchRowsData): CancelablePromise<FinancePatchRowsResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/finance/imports/{import_id}/rows',
+            path: {
+                import_id: data.importId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Import Fail
+     * @param data The data for the request.
+     * @param data.importId
+     * @param data.requestBody
+     * @returns ImportPublic Successful Response
+     * @throws ApiError
+     */
+    public static importFail(data: FinanceImportFailData): CancelablePromise<FinanceImportFailResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/finance/imports/{import_id}/fail',
+            path: {
+                import_id: data.importId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Import Retry
+     * @param data The data for the request.
+     * @param data.importId
+     * @returns ImportPublic Successful Response
+     * @throws ApiError
+     */
+    public static importRetry(data: FinanceImportRetryData): CancelablePromise<FinanceImportRetryResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/finance/imports/{import_id}/retry',
+            path: {
+                import_id: data.importId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Import Commit
+     * @param data The data for the request.
+     * @param data.importId
+     * @param data.requestBody
+     * @returns CommitOut Successful Response
+     * @throws ApiError
+     */
+    public static importCommit(data: FinanceImportCommitData): CancelablePromise<FinanceImportCommitResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/finance/imports/{import_id}/commit',
+            path: {
+                import_id: data.importId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Import Undo
+     * @param data The data for the request.
+     * @param data.importId
+     * @returns ImportPublic Successful Response
+     * @throws ApiError
+     */
+    public static importUndo(data: FinanceImportUndoData): CancelablePromise<FinanceImportUndoResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/finance/imports/{import_id}/undo',
+            path: {
+                import_id: data.importId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Import Restore
+     * @param data The data for the request.
+     * @param data.importId
+     * @returns ImportPublic Successful Response
+     * @throws ApiError
+     */
+    public static importRestore(data: FinanceImportRestoreData): CancelablePromise<FinanceImportRestoreResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/finance/imports/{import_id}/restore',
+            path: {
+                import_id: data.importId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Import Discard File
+     * @param data The data for the request.
+     * @param data.importId
+     * @returns ImportPublic Successful Response
+     * @throws ApiError
+     */
+    public static importDiscardFile(data: FinanceImportDiscardFileData): CancelablePromise<FinanceImportDiscardFileResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/finance/imports/{import_id}/discard-file',
+            path: {
+                import_id: data.importId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * List Threads
+     * @param data The data for the request.
+     * @param data.skip
+     * @param data.limit
+     * @returns ThreadsPublic Successful Response
+     * @throws ApiError
+     */
+    public static listThreads(data: FinanceListThreadsData = {}): CancelablePromise<FinanceListThreadsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/finance/advisor/threads',
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Create Thread
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns ThreadPublic Successful Response
+     * @throws ApiError
+     */
+    public static createThread(data: FinanceCreateThreadData): CancelablePromise<FinanceCreateThreadResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/finance/advisor/threads',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Thread Detail
+     * @param data The data for the request.
+     * @param data.threadId
+     * @returns ThreadDetail Successful Response
+     * @throws ApiError
+     */
+    public static threadDetail(data: FinanceThreadDetailData): CancelablePromise<FinanceThreadDetailResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/finance/advisor/threads/{thread_id}',
+            path: {
+                thread_id: data.threadId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Rename Thread
+     * @param data The data for the request.
+     * @param data.threadId
+     * @param data.requestBody
+     * @returns ThreadPublic Successful Response
+     * @throws ApiError
+     */
+    public static renameThread(data: FinanceRenameThreadData): CancelablePromise<FinanceRenameThreadResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/finance/advisor/threads/{thread_id}',
+            path: {
+                thread_id: data.threadId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Thread
+     * @param data The data for the request.
+     * @param data.threadId
+     * @returns Ok Successful Response
+     * @throws ApiError
+     */
+    public static deleteThread(data: FinanceDeleteThreadData): CancelablePromise<FinanceDeleteThreadResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/finance/advisor/threads/{thread_id}',
+            path: {
+                thread_id: data.threadId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Add Message
+     * @param data The data for the request.
+     * @param data.threadId
+     * @param data.requestBody
+     * @returns app__modules__finance__schema__MessagePublic Successful Response
+     * @throws ApiError
+     */
+    public static addMessage(data: FinanceAddMessageData): CancelablePromise<FinanceAddMessageResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/finance/advisor/threads/{thread_id}/messages',
+            path: {
+                thread_id: data.threadId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Message
+     * @param data The data for the request.
+     * @param data.threadId
+     * @param data.messageId
+     * @returns Ok Successful Response
+     * @throws ApiError
+     */
+    public static deleteMessage(data: FinanceDeleteMessageData): CancelablePromise<FinanceDeleteMessageResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/finance/advisor/threads/{thread_id}/messages/{message_id}',
+            path: {
+                thread_id: data.threadId,
+                message_id: data.messageId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Advisor Ask Stream
+     * Ask the advisor in a thread; the answer streams as SSE (AI when the
+     * user's advisor model resolves, else the deterministic answer).
+     * @param data The data for the request.
+     * @param data.threadId
+     * @param data.requestBody
+     * @returns unknown Successful Response
+     * @throws ApiError
+     */
+    public static advisorAskStream(data: FinanceAdvisorAskStreamData): CancelablePromise<FinanceAdvisorAskStreamResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/finance/advisor/threads/{thread_id}/ask/stream',
+            path: {
+                thread_id: data.threadId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Advisor Answer
+     * The deterministic answer for a question (the AI answer's fallback).
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns unknown Successful Response
+     * @throws ApiError
+     */
+    public static advisorAnswer(data: FinanceAdvisorAnswerData): CancelablePromise<FinanceAdvisorAnswerResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/finance/advisor/answer',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+}
+
+export class FitnessService {
+    /**
+     * Overview
+     * Fitness hub (FIT-01) and the Today cards.
+     * @returns app__modules__fitness__schema__OverviewOut Successful Response
+     * @throws ApiError
+     */
+    public static overview(): CancelablePromise<FitnessOverviewResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fitness/overview',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Stats
+     * Fitness stats (FIT-26).
+     * @param data The data for the request.
+     * @param data.days
+     * @returns app__modules__fitness__schema__StatsOut Successful Response
+     * @throws ApiError
+     */
+    public static stats(data: FitnessStatsData = {}): CancelablePromise<FitnessStatsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fitness/stats',
+            query: {
+                days: data.days
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * List Workouts
+     * Workout history (FIT-02): finished workouts, newest first.
+     * @param data The data for the request.
+     * @param data.templateId
+     * @param data.exerciseId
+     * @param data.q
+     * @param data.skip
+     * @param data.limit
+     * @returns WorkoutsOut Successful Response
+     * @throws ApiError
+     */
+    public static listWorkouts(data: FitnessListWorkoutsData = {}): CancelablePromise<FitnessListWorkoutsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fitness/workouts',
+            query: {
+                template_id: data.templateId,
+                exercise_id: data.exerciseId,
+                q: data.q,
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Active Workout
+     * The workout in progress, if any (resume sheet FIT-24).
+     * @returns unknown Successful Response
+     * @throws ApiError
+     */
+    public static activeWorkout(): CancelablePromise<FitnessActiveWorkoutResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fitness/workouts/active',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Start Workout
+     * Start sheet (FIT-04): empty, from a template, or repeat a workout.
+     * 409 ``live_session_busy`` when a timer or routine holds the Live bar.
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns StartWorkoutOut Successful Response
+     * @throws ApiError
+     */
+    public static startWorkout(data: FitnessStartWorkoutData): CancelablePromise<FitnessStartWorkoutResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fitness/workouts/start',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Workout
+     * Workout detail (FIT-03) or the live logger (FIT-05).
+     * @param data The data for the request.
+     * @param data.workoutId
+     * @returns WorkoutOut Successful Response
+     * @throws ApiError
+     */
+    public static readWorkout(data: FitnessReadWorkoutData): CancelablePromise<FitnessReadWorkoutResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fitness/workouts/{workout_id}',
+            path: {
+                workout_id: data.workoutId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Workout
+     * @param data The data for the request.
+     * @param data.workoutId
+     * @param data.requestBody
+     * @returns WorkoutOut Successful Response
+     * @throws ApiError
+     */
+    public static updateWorkout(data: FitnessUpdateWorkoutData): CancelablePromise<FitnessUpdateWorkoutResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/fitness/workouts/{workout_id}',
+            path: {
+                workout_id: data.workoutId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Workout
+     * @param data The data for the request.
+     * @param data.workoutId
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static deleteWorkout(data: FitnessDeleteWorkoutData): CancelablePromise<FitnessDeleteWorkoutResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/fitness/workouts/{workout_id}',
+            path: {
+                workout_id: data.workoutId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Finish Workout
+     * Finish (FIT-09): unchecked sets removed or marked done.
+     * @param data The data for the request.
+     * @param data.workoutId
+     * @param data.requestBody
+     * @returns WorkoutOut Successful Response
+     * @throws ApiError
+     */
+    public static finishWorkout(data: FitnessFinishWorkoutData): CancelablePromise<FitnessFinishWorkoutResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fitness/workouts/{workout_id}/finish',
+            path: {
+                workout_id: data.workoutId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Discard Workout
+     * @param data The data for the request.
+     * @param data.workoutId
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static discardWorkout(data: FitnessDiscardWorkoutData): CancelablePromise<FitnessDiscardWorkoutResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fitness/workouts/{workout_id}/discard',
+            path: {
+                workout_id: data.workoutId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Restore Workout
+     * Undo a delete.
+     * @param data The data for the request.
+     * @param data.workoutId
+     * @returns WorkoutOut Successful Response
+     * @throws ApiError
+     */
+    public static restoreWorkout(data: FitnessRestoreWorkoutData): CancelablePromise<FitnessRestoreWorkoutResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fitness/workouts/{workout_id}/restore',
+            path: {
+                workout_id: data.workoutId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Save As Template
+     * @param data The data for the request.
+     * @param data.workoutId
+     * @param data.requestBody
+     * @returns TemplateOut Successful Response
+     * @throws ApiError
+     */
+    public static saveAsTemplate(data: FitnessSaveAsTemplateData): CancelablePromise<FitnessSaveAsTemplateResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fitness/workouts/{workout_id}/save-as-template',
+            path: {
+                workout_id: data.workoutId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Share Card
+     * Numbers for the share card composer (FIT-23).
+     * @param data The data for the request.
+     * @param data.workoutId
+     * @param data.exerciseId
+     * @returns app__modules__fitness__schema__ShareCardOut Successful Response
+     * @throws ApiError
+     */
+    public static shareCard(data: FitnessShareCardData): CancelablePromise<FitnessShareCardResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fitness/workouts/{workout_id}/share-card',
+            path: {
+                workout_id: data.workoutId
+            },
+            query: {
+                exercise_id: data.exerciseId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Add Exercises
+     * Exercise picker (FIT-07): append lifts with planned sets.
+     * @param data The data for the request.
+     * @param data.workoutId
+     * @param data.requestBody
+     * @returns WorkoutOut Successful Response
+     * @throws ApiError
+     */
+    public static addExercises(data: FitnessAddExercisesData): CancelablePromise<FitnessAddExercisesResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fitness/workouts/{workout_id}/exercises',
+            path: {
+                workout_id: data.workoutId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Set Exercise Note
+     * @param data The data for the request.
+     * @param data.workoutId
+     * @param data.weId
+     * @param data.requestBody
+     * @returns WorkoutExercisePublic Successful Response
+     * @throws ApiError
+     */
+    public static setExerciseNote(data: FitnessSetExerciseNoteData): CancelablePromise<FitnessSetExerciseNoteResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/fitness/workouts/{workout_id}/exercises/{we_id}',
+            path: {
+                workout_id: data.workoutId,
+                we_id: data.weId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Remove Exercise
+     * @param data The data for the request.
+     * @param data.workoutId
+     * @param data.weId
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static removeExercise(data: FitnessRemoveExerciseData): CancelablePromise<FitnessRemoveExerciseResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/fitness/workouts/{workout_id}/exercises/{we_id}',
+            path: {
+                workout_id: data.workoutId,
+                we_id: data.weId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Move Exercise
+     * @param data The data for the request.
+     * @param data.workoutId
+     * @param data.weId
+     * @param data.requestBody
+     * @returns WorkoutExercisePublic Successful Response
+     * @throws ApiError
+     */
+    public static moveExercise(data: FitnessMoveExerciseData): CancelablePromise<FitnessMoveExerciseResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fitness/workouts/{workout_id}/exercises/{we_id}/move',
+            path: {
+                workout_id: data.workoutId,
+                we_id: data.weId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Replace Exercise
+     * @param data The data for the request.
+     * @param data.workoutId
+     * @param data.weId
+     * @param data.requestBody
+     * @returns WorkoutOut Successful Response
+     * @throws ApiError
+     */
+    public static replaceExercise(data: FitnessReplaceExerciseData): CancelablePromise<FitnessReplaceExerciseResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fitness/workouts/{workout_id}/exercises/{we_id}/replace',
+            path: {
+                workout_id: data.workoutId,
+                we_id: data.weId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Add Set
+     * @param data The data for the request.
+     * @param data.workoutId
+     * @param data.weId
+     * @param data.requestBody
+     * @returns SetOut Successful Response
+     * @throws ApiError
+     */
+    public static addSet(data: FitnessAddSetData): CancelablePromise<FitnessAddSetResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fitness/workouts/{workout_id}/exercises/{we_id}/sets',
+            path: {
+                workout_id: data.workoutId,
+                we_id: data.weId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Set
+     * Set edit sheet (FIT-06).
+     * @param data The data for the request.
+     * @param data.workoutId
+     * @param data.weId
+     * @param data.setId
+     * @param data.requestBody
+     * @returns SetOut Successful Response
+     * @throws ApiError
+     */
+    public static updateSet(data: FitnessUpdateSetData): CancelablePromise<FitnessUpdateSetResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/fitness/workouts/{workout_id}/exercises/{we_id}/sets/{set_id}',
+            path: {
+                workout_id: data.workoutId,
+                we_id: data.weId,
+                set_id: data.setId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Remove Set
+     * @param data The data for the request.
+     * @param data.workoutId
+     * @param data.weId
+     * @param data.setId
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static removeSet(data: FitnessRemoveSetData): CancelablePromise<FitnessRemoveSetResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/fitness/workouts/{workout_id}/exercises/{we_id}/sets/{set_id}',
+            path: {
+                workout_id: data.workoutId,
+                we_id: data.weId,
+                set_id: data.setId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Toggle Set
+     * The one-tap tick; starts the rest timer on a live workout.
+     * @param data The data for the request.
+     * @param data.workoutId
+     * @param data.weId
+     * @param data.setId
+     * @returns ToggleSetOut Successful Response
+     * @throws ApiError
+     */
+    public static toggleSet(data: FitnessToggleSetData): CancelablePromise<FitnessToggleSetResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fitness/workouts/{workout_id}/exercises/{we_id}/sets/{set_id}/toggle',
+            path: {
+                workout_id: data.workoutId,
+                we_id: data.weId,
+                set_id: data.setId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Rest
+     * @returns unknown Successful Response
+     * @throws ApiError
+     */
+    public static readRest(): CancelablePromise<FitnessReadRestResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fitness/rest',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Start Rest
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns RestTimerPublic Successful Response
+     * @throws ApiError
+     */
+    public static startRest(data: FitnessStartRestData): CancelablePromise<FitnessStartRestResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fitness/rest/start',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Adjust Rest
+     * ±15 s on the rest banner (FIT-08).
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns unknown Successful Response
+     * @throws ApiError
+     */
+    public static adjustRest(data: FitnessAdjustRestData): CancelablePromise<FitnessAdjustRestResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fitness/rest/adjust',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Skip Rest
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static skipRest(): CancelablePromise<FitnessSkipRestResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fitness/rest/skip',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * List Templates
+     * Templates list (FIT-13).
+     * @param data The data for the request.
+     * @param data.skip
+     * @param data.limit
+     * @returns TemplatesOut Successful Response
+     * @throws ApiError
+     */
+    public static listTemplates(data: FitnessListTemplatesData = {}): CancelablePromise<FitnessListTemplatesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fitness/templates',
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Create Template
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns TemplateOut Successful Response
+     * @throws ApiError
+     */
+    public static createTemplate(data: FitnessCreateTemplateData): CancelablePromise<FitnessCreateTemplateResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fitness/templates',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Template
+     * @param data The data for the request.
+     * @param data.templateId
+     * @returns TemplateOut Successful Response
+     * @throws ApiError
+     */
+    public static readTemplate(data: FitnessReadTemplateData): CancelablePromise<FitnessReadTemplateResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fitness/templates/{template_id}',
+            path: {
+                template_id: data.templateId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Put Template
+     * Template editor (FIT-14): name and the ordered exercises, whole.
+     * @param data The data for the request.
+     * @param data.templateId
+     * @param data.requestBody
+     * @returns TemplateOut Successful Response
+     * @throws ApiError
+     */
+    public static putTemplate(data: FitnessPutTemplateData): CancelablePromise<FitnessPutTemplateResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/fitness/templates/{template_id}',
+            path: {
+                template_id: data.templateId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Template
+     * @param data The data for the request.
+     * @param data.templateId
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static deleteTemplate(data: FitnessDeleteTemplateData): CancelablePromise<FitnessDeleteTemplateResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/fitness/templates/{template_id}',
+            path: {
+                template_id: data.templateId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Restore Template
+     * @param data The data for the request.
+     * @param data.templateId
+     * @returns TemplateOut Successful Response
+     * @throws ApiError
+     */
+    public static restoreTemplate(data: FitnessRestoreTemplateData): CancelablePromise<FitnessRestoreTemplateResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fitness/templates/{template_id}/restore',
+            path: {
+                template_id: data.templateId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * List Exercises
+     * Exercise library (FIT-10) and picker (FIT-07).
+     * @param data The data for the request.
+     * @param data.q
+     * @param data.muscle
+     * @param data.includeArchived
+     * @param data.skip
+     * @param data.limit
+     * @returns ExercisesOut Successful Response
+     * @throws ApiError
+     */
+    public static listExercises(data: FitnessListExercisesData = {}): CancelablePromise<FitnessListExercisesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fitness/exercises',
+            query: {
+                q: data.q,
+                muscle: data.muscle,
+                include_archived: data.includeArchived,
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Create Exercise
+     * Exercise edit sheet (FIT-12), create.
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns ExercisePublic Successful Response
+     * @throws ApiError
+     */
+    public static createExercise(data: FitnessCreateExerciseData): CancelablePromise<FitnessCreateExerciseResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fitness/exercises',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Exercise
+     * Exercise progress (FIT-11): history, PRs, suggestion, stall flag.
+     * @param data The data for the request.
+     * @param data.exerciseId
+     * @returns ExerciseDetail Successful Response
+     * @throws ApiError
+     */
+    public static readExercise(data: FitnessReadExerciseData): CancelablePromise<FitnessReadExerciseResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fitness/exercises/{exercise_id}',
+            path: {
+                exercise_id: data.exerciseId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Put Exercise
+     * @param data The data for the request.
+     * @param data.exerciseId
+     * @param data.requestBody
+     * @returns ExercisePublic Successful Response
+     * @throws ApiError
+     */
+    public static putExercise(data: FitnessPutExerciseData): CancelablePromise<FitnessPutExerciseResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/fitness/exercises/{exercise_id}',
+            path: {
+                exercise_id: data.exerciseId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Archive Exercise
+     * @param data The data for the request.
+     * @param data.exerciseId
+     * @param data.requestBody
+     * @returns ExercisePublic Successful Response
+     * @throws ApiError
+     */
+    public static archiveExercise(data: FitnessArchiveExerciseData): CancelablePromise<FitnessArchiveExerciseResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fitness/exercises/{exercise_id}/archive',
+            path: {
+                exercise_id: data.exerciseId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Body Weight
+     * Body weight (FIT-20): trend and weekly rate.
+     * @param data The data for the request.
+     * @param data.days
+     * @returns BodyOut Successful Response
+     * @throws ApiError
+     */
+    public static bodyWeight(data: FitnessBodyWeightData = {}): CancelablePromise<FitnessBodyWeightResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fitness/body',
+            query: {
+                days: data.days
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * List Weigh Ins
+     * @param data The data for the request.
+     * @param data.skip
+     * @param data.limit
+     * @returns WeighInsOut Successful Response
+     * @throws ApiError
+     */
+    public static listWeighIns(data: FitnessListWeighInsData = {}): CancelablePromise<FitnessListWeighInsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fitness/weigh-ins',
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Log Weigh In
+     * Weigh-in sheet (FIT-19).
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns WeighInPublic Successful Response
+     * @throws ApiError
+     */
+    public static logWeighIn(data: FitnessLogWeighInData): CancelablePromise<FitnessLogWeighInResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fitness/weigh-ins',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Weigh In
+     * Weigh-in edit sheet (FIT-21).
+     * @param data The data for the request.
+     * @param data.weighInId
+     * @param data.requestBody
+     * @returns WeighInPublic Successful Response
+     * @throws ApiError
+     */
+    public static updateWeighIn(data: FitnessUpdateWeighInData): CancelablePromise<FitnessUpdateWeighInResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/fitness/weigh-ins/{weigh_in_id}',
+            path: {
+                weigh_in_id: data.weighInId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Weigh In
+     * @param data The data for the request.
+     * @param data.weighInId
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static deleteWeighIn(data: FitnessDeleteWeighInData): CancelablePromise<FitnessDeleteWeighInResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/fitness/weigh-ins/{weigh_in_id}',
+            path: {
+                weigh_in_id: data.weighInId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Restore Weigh In
+     * @param data The data for the request.
+     * @param data.weighInId
+     * @returns WeighInPublic Successful Response
+     * @throws ApiError
+     */
+    public static restoreWeighIn(data: FitnessRestoreWeighInData): CancelablePromise<FitnessRestoreWeighInResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fitness/weigh-ins/{weigh_in_id}/restore',
+            path: {
+                weigh_in_id: data.weighInId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Nutrition Day
+     * Nutrition day (FIT-15): totals, macros left, meals.
+     * @param data The data for the request.
+     * @param data.day
+     * @returns NutritionDayOut Successful Response
+     * @throws ApiError
+     */
+    public static nutritionDay(data: FitnessNutritionDayData = {}): CancelablePromise<FitnessNutritionDayResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fitness/nutrition/day',
+            query: {
+                day: data.day
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Nutrition History
+     * Nutrition history (FIT-25): verdict per day and adherence.
+     * @param data The data for the request.
+     * @param data.days
+     * @param data.offset
+     * @returns NutritionHistoryOut Successful Response
+     * @throws ApiError
+     */
+    public static nutritionHistory(data: FitnessNutritionHistoryData = {}): CancelablePromise<FitnessNutritionHistoryResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fitness/nutrition/history',
+            query: {
+                days: data.days,
+                offset: data.offset
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Targets
+     * Macro targets (FIT-18): the one in force and every version.
+     * @returns TargetsOut Successful Response
+     * @throws ApiError
+     */
+    public static readTargets(): CancelablePromise<FitnessReadTargetsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fitness/targets',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Set Targets
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns MacroTargetPublic Successful Response
+     * @throws ApiError
+     */
+    public static setTargets(data: FitnessSetTargetsData): CancelablePromise<FitnessSetTargetsResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/fitness/targets',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * List Meals
+     * Meals of one day, or every meal newest first.
+     * @param data The data for the request.
+     * @param data.day
+     * @param data.skip
+     * @param data.limit
+     * @returns MealsOut Successful Response
+     * @throws ApiError
+     */
+    public static listMeals(data: FitnessListMealsData = {}): CancelablePromise<FitnessListMealsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fitness/meals',
+            query: {
+                day: data.day,
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Log Meal
+     * A meal entered by hand (manual macros).
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns MealOut Successful Response
+     * @throws ApiError
+     */
+    public static logMeal(data: FitnessLogMealData): CancelablePromise<FitnessLogMealResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fitness/meals',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Estimate Meal
+     * Describe a meal (text or voice transcript): the built-in estimator
+     * itemises it for review (FIT-16). 422 ``meal_not_recognised``.
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns MealOut Successful Response
+     * @throws ApiError
+     */
+    public static estimateMeal(data: FitnessEstimateMealData): CancelablePromise<FitnessEstimateMealResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fitness/meals/estimate',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Queue Meal Photo
+     * A meal photo waiting for its estimate (``pending_estimate``).
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns MealOut Successful Response
+     * @throws ApiError
+     */
+    public static queueMealPhoto(data: FitnessQueueMealPhotoData): CancelablePromise<FitnessQueueMealPhotoResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fitness/meals/photo',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Meal
+     * Meal detail (FIT-17) and estimate review (FIT-16).
+     * @param data The data for the request.
+     * @param data.mealId
+     * @returns MealOut Successful Response
+     * @throws ApiError
+     */
+    public static readMeal(data: FitnessReadMealData): CancelablePromise<FitnessReadMealResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fitness/meals/{meal_id}',
+            path: {
+                meal_id: data.mealId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Meal
+     * Change the time, label or description.
+     * @param data The data for the request.
+     * @param data.mealId
+     * @param data.requestBody
+     * @returns MealOut Successful Response
+     * @throws ApiError
+     */
+    public static updateMeal(data: FitnessUpdateMealData): CancelablePromise<FitnessUpdateMealResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/fitness/meals/{meal_id}',
+            path: {
+                meal_id: data.mealId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Meal
+     * @param data The data for the request.
+     * @param data.mealId
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static deleteMeal(data: FitnessDeleteMealData): CancelablePromise<FitnessDeleteMealResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/fitness/meals/{meal_id}',
+            path: {
+                meal_id: data.mealId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Reestimate Meal
+     * Re-estimate with a hint, or estimate a queued meal's description.
+     * @param data The data for the request.
+     * @param data.mealId
+     * @param data.requestBody
+     * @returns MealOut Successful Response
+     * @throws ApiError
+     */
+    public static reestimateMeal(data: FitnessReestimateMealData): CancelablePromise<FitnessReestimateMealResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fitness/meals/{meal_id}/estimate',
+            path: {
+                meal_id: data.mealId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Confirm Meal
+     * @param data The data for the request.
+     * @param data.mealId
+     * @returns MealOut Successful Response
+     * @throws ApiError
+     */
+    public static confirmMeal(data: FitnessConfirmMealData): CancelablePromise<FitnessConfirmMealResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fitness/meals/{meal_id}/confirm',
+            path: {
+                meal_id: data.mealId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Answer Follow Up
+     * @param data The data for the request.
+     * @param data.mealId
+     * @param data.requestBody
+     * @returns MealOut Successful Response
+     * @throws ApiError
+     */
+    public static answerFollowUp(data: FitnessAnswerFollowUpData): CancelablePromise<FitnessAnswerFollowUpResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fitness/meals/{meal_id}/follow-up',
+            path: {
+                meal_id: data.mealId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Add Meal Item
+     * @param data The data for the request.
+     * @param data.mealId
+     * @param data.requestBody
+     * @returns MealOut Successful Response
+     * @throws ApiError
+     */
+    public static addMealItem(data: FitnessAddMealItemData): CancelablePromise<FitnessAddMealItemResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fitness/meals/{meal_id}/items',
+            path: {
+                meal_id: data.mealId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Patch Meal Item
+     * A quantity change scales the macros; macro or name edits apply as
+     * given (both in one request: the quantity first).
+     * @param data The data for the request.
+     * @param data.mealId
+     * @param data.itemId
+     * @param data.requestBody
+     * @returns MealOut Successful Response
+     * @throws ApiError
+     */
+    public static patchMealItem(data: FitnessPatchMealItemData): CancelablePromise<FitnessPatchMealItemResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/fitness/meals/{meal_id}/items/{item_id}',
+            path: {
+                meal_id: data.mealId,
+                item_id: data.itemId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Remove Meal Item
+     * @param data The data for the request.
+     * @param data.mealId
+     * @param data.itemId
+     * @returns MealOut Successful Response
+     * @throws ApiError
+     */
+    public static removeMealItem(data: FitnessRemoveMealItemData): CancelablePromise<FitnessRemoveMealItemResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/fitness/meals/{meal_id}/items/{item_id}',
+            path: {
+                meal_id: data.mealId,
+                item_id: data.itemId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Restore Meal
+     * @param data The data for the request.
+     * @param data.mealId
+     * @returns MealOut Successful Response
+     * @throws ApiError
+     */
+    public static restoreMeal(data: FitnessRestoreMealData): CancelablePromise<FitnessRestoreMealResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fitness/meals/{meal_id}/restore',
+            path: {
+                meal_id: data.mealId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Duplicate Meal
+     * Re-log a meal (today by default).
+     * @param data The data for the request.
+     * @param data.mealId
+     * @param data.requestBody
+     * @returns MealOut Successful Response
+     * @throws ApiError
+     */
+    public static duplicateMeal(data: FitnessDuplicateMealData): CancelablePromise<FitnessDuplicateMealResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fitness/meals/{meal_id}/duplicate',
+            path: {
+                meal_id: data.mealId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Settings
+     * Fitness settings (FIT-22).
+     * @returns FitnessSettingsPublic Successful Response
+     * @throws ApiError
+     */
+    public static readSettings(): CancelablePromise<FitnessReadSettingsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/fitness/settings',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Settings
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns FitnessSettingsPublic Successful Response
+     * @throws ApiError
+     */
+    public static updateSettings(data: FitnessUpdateSettingsData): CancelablePromise<FitnessUpdateSettingsResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/fitness/settings',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Reset
+     * Reset fitness to a new user's defaults.
+     * @returns ResetOut Successful Response
+     * @throws ApiError
+     */
+    public static reset(): CancelablePromise<FitnessResetResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fitness/reset',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Start Fresh
+     * Empty the logs; keep exercises, targets and settings.
+     * @returns ResetOut Successful Response
+     * @throws ApiError
+     */
+    public static startFresh(): CancelablePromise<FitnessStartFreshResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/fitness/start-fresh',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+}
+
+export class HabitsService {
+    /**
+     * Habits Home
+     * Habits analytics (HAB-16) for a period of ``days``.
+     * @param data The data for the request.
+     * @param data.days
+     * @param data.sort
+     * @returns HabitsHome Successful Response
+     * @throws ApiError
+     */
+    public static habitsHome(data: HabitsHabitsHomeData = {}): CancelablePromise<HabitsHabitsHomeResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/habits/home',
+            query: {
+                days: data.days,
+                sort: data.sort
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Habits Today
+     * Today's habits card and routine CTAs (HAB-C1, HAB-C2).
+     * @returns app__modules__habits__schema__TodayPublic Successful Response
+     * @throws ApiError
+     */
+    public static habitsToday(): CancelablePromise<HabitsHabitsTodayResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/habits/today',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Archived Habits
+     * @param data The data for the request.
+     * @param data.skip
+     * @param data.limit
+     * @returns ArchivedPublic Successful Response
+     * @throws ApiError
+     */
+    public static archivedHabits(data: HabitsArchivedHabitsData = {}): CancelablePromise<HabitsArchivedHabitsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/habits/archived',
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Settings
+     * @returns app__modules__habits__schema__SettingsPublic Successful Response
+     * @throws ApiError
+     */
+    public static readSettings(): CancelablePromise<HabitsReadSettingsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/habits/settings',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Settings
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns app__modules__habits__schema__SettingsPublic Successful Response
+     * @throws ApiError
+     */
+    public static updateSettings(data: HabitsUpdateSettingsData): CancelablePromise<HabitsUpdateSettingsResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/habits/settings',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Timer
+     * @returns TimerState Successful Response
+     * @throws ApiError
+     */
+    public static readTimer(): CancelablePromise<HabitsReadTimerResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/habits/timer',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Pause Timer
+     * @returns TimerPublic Successful Response
+     * @throws ApiError
+     */
+    public static pauseTimer(): CancelablePromise<HabitsPauseTimerResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/habits/timer/pause',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Resume Timer
+     * @returns TimerPublic Successful Response
+     * @throws ApiError
+     */
+    public static resumeTimer(): CancelablePromise<HabitsResumeTimerResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/habits/timer/resume',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Extend Timer
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns TimerPublic Successful Response
+     * @throws ApiError
+     */
+    public static extendTimer(data: HabitsExtendTimerData): CancelablePromise<HabitsExtendTimerResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/habits/timer/extend',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Finish Timer
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns FinishOut Successful Response
+     * @throws ApiError
+     */
+    public static finishTimer(data: HabitsFinishTimerData): CancelablePromise<HabitsFinishTimerResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/habits/timer/finish',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Discard Timer
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static discardTimer(): CancelablePromise<HabitsDiscardTimerResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/habits/timer/discard',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Day
+     * @param data The data for the request.
+     * @param data.day
+     * @returns DayPublic Successful Response
+     * @throws ApiError
+     */
+    public static readDay(data: HabitsReadDayData): CancelablePromise<HabitsReadDayResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/habits/day/{day}',
+            path: {
+                day: data.day
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Save Day
+     * @param data The data for the request.
+     * @param data.day
+     * @param data.requestBody
+     * @returns DayPublic Successful Response
+     * @throws ApiError
+     */
+    public static saveDay(data: HabitsSaveDayData): CancelablePromise<HabitsSaveDayResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/habits/day/{day}',
+            path: {
+                day: data.day
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Log
+     * @param data The data for the request.
+     * @param data.logId
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static deleteLog(data: HabitsDeleteLogData): CancelablePromise<HabitsDeleteLogResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/habits/logs/{log_id}',
+            path: {
+                log_id: data.logId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Restore Log
+     * @param data The data for the request.
+     * @param data.logId
+     * @returns LogPublic Successful Response
+     * @throws ApiError
+     */
+    public static restoreLog(data: HabitsRestoreLogData): CancelablePromise<HabitsRestoreLogResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/habits/logs/{log_id}/restore',
+            path: {
+                log_id: data.logId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * List Routines
+     * @param data The data for the request.
+     * @param data.archived
+     * @param data.skip
+     * @param data.limit
+     * @returns RoutinesPublic Successful Response
+     * @throws ApiError
+     */
+    public static listRoutines(data: HabitsListRoutinesData = {}): CancelablePromise<HabitsListRoutinesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/habits/routines',
+            query: {
+                archived: data.archived,
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Create Routine
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns RoutinePublic Successful Response
+     * @throws ApiError
+     */
+    public static createRoutine(data: HabitsCreateRoutineData): CancelablePromise<HabitsCreateRoutineResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/habits/routines',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Routine
+     * @param data The data for the request.
+     * @param data.routineId
+     * @returns RoutineDetail Successful Response
+     * @throws ApiError
+     */
+    public static readRoutine(data: HabitsReadRoutineData): CancelablePromise<HabitsReadRoutineResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/habits/routines/{routine_id}',
+            path: {
+                routine_id: data.routineId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Routine
+     * @param data The data for the request.
+     * @param data.routineId
+     * @param data.requestBody
+     * @returns RoutinePublic Successful Response
+     * @throws ApiError
+     */
+    public static updateRoutine(data: HabitsUpdateRoutineData): CancelablePromise<HabitsUpdateRoutineResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/habits/routines/{routine_id}',
+            path: {
+                routine_id: data.routineId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Routine
+     * @param data The data for the request.
+     * @param data.routineId
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static deleteRoutine(data: HabitsDeleteRoutineData): CancelablePromise<HabitsDeleteRoutineResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/habits/routines/{routine_id}',
+            path: {
+                routine_id: data.routineId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Set Steps
+     * @param data The data for the request.
+     * @param data.routineId
+     * @param data.requestBody
+     * @returns RoutineStepPublic Successful Response
+     * @throws ApiError
+     */
+    public static setSteps(data: HabitsSetStepsData): CancelablePromise<HabitsSetStepsResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/habits/routines/{routine_id}/steps',
+            path: {
+                routine_id: data.routineId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Archive Routine
+     * @param data The data for the request.
+     * @param data.routineId
+     * @returns RoutinePublic Successful Response
+     * @throws ApiError
+     */
+    public static archiveRoutine(data: HabitsArchiveRoutineData): CancelablePromise<HabitsArchiveRoutineResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/habits/routines/{routine_id}/archive',
+            path: {
+                routine_id: data.routineId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Restore Routine
+     * @param data The data for the request.
+     * @param data.routineId
+     * @returns RoutinePublic Successful Response
+     * @throws ApiError
+     */
+    public static restoreRoutine(data: HabitsRestoreRoutineData): CancelablePromise<HabitsRestoreRoutineResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/habits/routines/{routine_id}/restore',
+            path: {
+                routine_id: data.routineId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Start Routine
+     * Start or resume today's run; 409 ``live_session_busy`` when something
+     * else holds the Live bar.
+     * @param data The data for the request.
+     * @param data.routineId
+     * @param data.runId
+     * @returns PlayerState Successful Response
+     * @throws ApiError
+     */
+    public static startRoutine(data: HabitsStartRoutineData): CancelablePromise<HabitsStartRoutineResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/habits/routines/{routine_id}/start',
+            path: {
+                routine_id: data.routineId
+            },
+            query: {
+                run_id: data.runId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Player
+     * The player (HAB-14): today's in-progress run, or null to offer Start.
+     * @param data The data for the request.
+     * @param data.routineId
+     * @returns unknown Successful Response
+     * @throws ApiError
+     */
+    public static readPlayer(data: HabitsReadPlayerData): CancelablePromise<HabitsReadPlayerResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/habits/routines/{routine_id}/play',
+            path: {
+                routine_id: data.routineId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Run Summary
+     * The run summary (HAB-15).
+     * @param data The data for the request.
+     * @param data.runId
+     * @returns RunSummary Successful Response
+     * @throws ApiError
+     */
+    public static runSummary(data: HabitsRunSummaryData): CancelablePromise<HabitsRunSummaryResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/habits/runs/{run_id}',
+            path: {
+                run_id: data.runId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Run Action
+     * Player controls: Done, Skip, Continue (already logged), Back, +1 min,
+     * Pause/Resume, Exit (the run stays resumable today).
+     * @param data The data for the request.
+     * @param data.runId
+     * @param data.verb
+     * @returns RunPublic Successful Response
+     * @throws ApiError
+     */
+    public static runAction(data: HabitsRunActionData): CancelablePromise<HabitsRunActionResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/habits/runs/{run_id}/{verb}',
+            path: {
+                run_id: data.runId,
+                verb: data.verb
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * List Habits
+     * The habits list (HAB-01), manual order; ``status`` is the paused chip.
+     * @param data The data for the request.
+     * @param data.status
+     * @param data.skip
+     * @param data.limit
+     * @returns HabitsPublic Successful Response
+     * @throws ApiError
+     */
+    public static listHabits(data: HabitsListHabitsData = {}): CancelablePromise<HabitsListHabitsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/habits/',
+            query: {
+                status: data.status,
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Create Habit
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns HabitPublic Successful Response
+     * @throws ApiError
+     */
+    public static createHabit(data: HabitsCreateHabitData): CancelablePromise<HabitsCreateHabitResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/habits/',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Habit
+     * Habit detail (HAB-02) with a heatmap of ``days`` cells ending today.
+     * @param data The data for the request.
+     * @param data.habitId
+     * @param data.days
+     * @returns HabitDetail Successful Response
+     * @throws ApiError
+     */
+    public static readHabit(data: HabitsReadHabitData): CancelablePromise<HabitsReadHabitResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/habits/{habit_id}',
+            path: {
+                habit_id: data.habitId
+            },
+            query: {
+                days: data.days
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Habit
+     * @param data The data for the request.
+     * @param data.habitId
+     * @param data.requestBody
+     * @returns HabitPublic Successful Response
+     * @throws ApiError
+     */
+    public static updateHabit(data: HabitsUpdateHabitData): CancelablePromise<HabitsUpdateHabitResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/habits/{habit_id}',
+            path: {
+                habit_id: data.habitId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Habit
+     * @param data The data for the request.
+     * @param data.habitId
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static deleteHabit(data: HabitsDeleteHabitData): CancelablePromise<HabitsDeleteHabitResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/habits/{habit_id}',
+            path: {
+                habit_id: data.habitId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Pause Habit
+     * @param data The data for the request.
+     * @param data.habitId
+     * @param data.requestBody
+     * @returns HabitPublic Successful Response
+     * @throws ApiError
+     */
+    public static pauseHabit(data: HabitsPauseHabitData): CancelablePromise<HabitsPauseHabitResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/habits/{habit_id}/pause',
+            path: {
+                habit_id: data.habitId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Resume Habit
+     * @param data The data for the request.
+     * @param data.habitId
+     * @returns HabitPublic Successful Response
+     * @throws ApiError
+     */
+    public static resumeHabit(data: HabitsResumeHabitData): CancelablePromise<HabitsResumeHabitResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/habits/{habit_id}/resume',
+            path: {
+                habit_id: data.habitId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Archive Habit
+     * @param data The data for the request.
+     * @param data.habitId
+     * @returns HabitPublic Successful Response
+     * @throws ApiError
+     */
+    public static archiveHabit(data: HabitsArchiveHabitData): CancelablePromise<HabitsArchiveHabitResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/habits/{habit_id}/archive',
+            path: {
+                habit_id: data.habitId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Restore Habit
+     * @param data The data for the request.
+     * @param data.habitId
+     * @returns HabitPublic Successful Response
+     * @throws ApiError
+     */
+    public static restoreHabit(data: HabitsRestoreHabitData): CancelablePromise<HabitsRestoreHabitResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/habits/{habit_id}/restore',
+            path: {
+                habit_id: data.habitId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Reorder Habit
+     * @param data The data for the request.
+     * @param data.habitId
+     * @param data.requestBody
+     * @returns HabitPublic Successful Response
+     * @throws ApiError
+     */
+    public static reorderHabit(data: HabitsReorderHabitData): CancelablePromise<HabitsReorderHabitResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/habits/{habit_id}/reorder',
+            path: {
+                habit_id: data.habitId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * List Logs
+     * @param data The data for the request.
+     * @param data.habitId
+     * @param data.skip
+     * @param data.limit
+     * @returns LogsPublic Successful Response
+     * @throws ApiError
+     */
+    public static listLogs(data: HabitsListLogsData): CancelablePromise<HabitsListLogsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/habits/{habit_id}/logs',
+            path: {
+                habit_id: data.habitId
+            },
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Log Habit
+     * The log sheet (HAB-05): status / value / note / day. Re-logging a day
+     * edits its log; ``add`` adds the value to it.
+     * @param data The data for the request.
+     * @param data.habitId
+     * @param data.requestBody
+     * @returns LogPublic Successful Response
+     * @throws ApiError
+     */
+    public static logHabit(data: HabitsLogHabitData): CancelablePromise<HabitsLogHabitResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/habits/{habit_id}/log',
+            path: {
+                habit_id: data.habitId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Clear Log
+     * Undo (F-HAB-02): removes the day's log and returns it for the toast.
+     * @param data The data for the request.
+     * @param data.habitId
+     * @param data.day
+     * @returns LogPublic Successful Response
+     * @throws ApiError
+     */
+    public static clearLog(data: HabitsClearLogData): CancelablePromise<HabitsClearLogResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/habits/{habit_id}/log',
+            path: {
+                habit_id: data.habitId
+            },
+            query: {
+                day: data.day
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Check Habit
+     * @param data The data for the request.
+     * @param data.habitId
+     * @param data.requestBody
+     * @returns LogPublic Successful Response
+     * @throws ApiError
+     */
+    public static checkHabit(data: HabitsCheckHabitData): CancelablePromise<HabitsCheckHabitResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/habits/{habit_id}/check',
+            path: {
+                habit_id: data.habitId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Increment Habit
+     * @param data The data for the request.
+     * @param data.habitId
+     * @param data.requestBody
+     * @returns LogPublic Successful Response
+     * @throws ApiError
+     */
+    public static incrementHabit(data: HabitsIncrementHabitData): CancelablePromise<HabitsIncrementHabitResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/habits/{habit_id}/increment',
+            path: {
+                habit_id: data.habitId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Skip Habit
+     * @param data The data for the request.
+     * @param data.habitId
+     * @param data.requestBody
+     * @returns LogPublic Successful Response
+     * @throws ApiError
+     */
+    public static skipHabit(data: HabitsSkipHabitData): CancelablePromise<HabitsSkipHabitResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/habits/{habit_id}/skip',
+            path: {
+                habit_id: data.habitId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Start Timer
+     * Start (or return) this habit's timer; 409 ``live_session_busy`` when
+     * another timer, routine or workout holds the Live bar.
+     * @param data The data for the request.
+     * @param data.habitId
+     * @returns TimerPublic Successful Response
+     * @throws ApiError
+     */
+    public static startTimer(data: HabitsStartTimerData): CancelablePromise<HabitsStartTimerResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/habits/{habit_id}/timer',
+            path: {
+                habit_id: data.habitId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+}
 
 export class ItemsService {
     /**
@@ -111,6 +5598,225 @@ export class ItemsService {
     }
 }
 
+export class JournalService {
+    /**
+     * List Entries
+     * CAP-15: newest first, search body and tags, filter by area/tag/mood,
+     * with the journaling streak.
+     * @param data The data for the request.
+     * @param data.q
+     * @param data.area
+     * @param data.tag
+     * @param data.mood
+     * @param data.skip
+     * @param data.limit
+     * @returns JournalsPublic Successful Response
+     * @throws ApiError
+     */
+    public static listEntries(data: JournalListEntriesData = {}): CancelablePromise<JournalListEntriesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/journal/',
+            query: {
+                q: data.q,
+                area: data.area,
+                tag: data.tag,
+                mood: data.mood,
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Create Entry
+     * CAP-16 New entry (private by default).
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns JournalPublic Successful Response
+     * @throws ApiError
+     */
+    public static createEntry(data: JournalCreateEntryData): CancelablePromise<JournalCreateEntryResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/journal/',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Get Entry
+     * @param data The data for the request.
+     * @param data.entryId
+     * @returns JournalPublic Successful Response
+     * @throws ApiError
+     */
+    public static getEntry(data: JournalGetEntryData): CancelablePromise<JournalGetEntryResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/journal/{entry_id}',
+            path: {
+                entry_id: data.entryId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Entry
+     * @param data The data for the request.
+     * @param data.entryId
+     * @param data.requestBody
+     * @returns JournalPublic Successful Response
+     * @throws ApiError
+     */
+    public static updateEntry(data: JournalUpdateEntryData): CancelablePromise<JournalUpdateEntryResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/journal/{entry_id}',
+            path: {
+                entry_id: data.entryId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Entry
+     * @param data The data for the request.
+     * @param data.entryId
+     * @returns void Successful Response
+     * @throws ApiError
+     */
+    public static deleteEntry(data: JournalDeleteEntryData): CancelablePromise<JournalDeleteEntryResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/journal/{entry_id}',
+            path: {
+                entry_id: data.entryId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Restore Entry
+     * The undo toast after a delete.
+     * @param data The data for the request.
+     * @param data.entryId
+     * @returns JournalPublic Successful Response
+     * @throws ApiError
+     */
+    public static restoreEntry(data: JournalRestoreEntryData): CancelablePromise<JournalRestoreEntryResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/journal/{entry_id}/restore',
+            path: {
+                entry_id: data.entryId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+}
+
+export class MediaService {
+    /**
+     * Request Upload
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns UploadTicket Successful Response
+     * @throws ApiError
+     */
+    public static requestUpload(data: MediaRequestUploadData): CancelablePromise<MediaRequestUploadResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/media/uploads',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Complete Upload
+     * @param data The data for the request.
+     * @param data.mediaId
+     * @returns MediaWithUrl Successful Response
+     * @throws ApiError
+     */
+    public static completeUpload(data: MediaCompleteUploadData): CancelablePromise<MediaCompleteUploadResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/media/{media_id}/complete',
+            path: {
+                media_id: data.mediaId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Media
+     * @param data The data for the request.
+     * @param data.mediaId
+     * @returns MediaWithUrl Successful Response
+     * @throws ApiError
+     */
+    public static readMedia(data: MediaReadMediaData): CancelablePromise<MediaReadMediaResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/media/{media_id}',
+            path: {
+                media_id: data.mediaId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Media
+     * @param data The data for the request.
+     * @param data.mediaId
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static deleteMedia(data: MediaDeleteMediaData): CancelablePromise<MediaDeleteMediaResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/media/{media_id}',
+            path: {
+                media_id: data.mediaId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+}
+
 export class PermissionsService {
     /**
      * Read Permissions
@@ -176,6 +5882,437 @@ export class PrivateService {
     }
 }
 
+export class ProfileService {
+    /**
+     * Read Me
+     * @returns MeBundle Successful Response
+     * @throws ApiError
+     */
+    public static readMe(): CancelablePromise<ProfileReadMeResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/profile',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Me
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns ProfilePublic Successful Response
+     * @throws ApiError
+     */
+    public static updateMe(data: ProfileUpdateMeData): CancelablePromise<ProfileUpdateMeResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/profile',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Handle Available
+     * @param data The data for the request.
+     * @param data.handle
+     * @returns HandleCheck Successful Response
+     * @throws ApiError
+     */
+    public static handleAvailable(data: ProfileHandleAvailableData): CancelablePromise<ProfileHandleAvailableResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/profile/handle-available',
+            query: {
+                handle: data.handle
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Signup Handle Available
+     * @param data The data for the request.
+     * @param data.handle
+     * @returns HandleAvailability Successful Response
+     * @throws ApiError
+     */
+    public static signupHandleAvailable(data: ProfileSignupHandleAvailableData): CancelablePromise<ProfileSignupHandleAvailableResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/profile/signup/handle-available',
+            query: {
+                handle: data.handle
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Complete Signup
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns ProfilePublic Successful Response
+     * @throws ApiError
+     */
+    public static completeSignup(data: ProfileCompleteSignupData): CancelablePromise<ProfileCompleteSignupResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/profile/complete-signup',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Modules
+     * @returns ModulePrefPublic Successful Response
+     * @throws ApiError
+     */
+    public static readModules(): CancelablePromise<ProfileReadModulesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/profile/modules',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Module
+     * @param data The data for the request.
+     * @param data.module
+     * @param data.requestBody
+     * @returns ModulePrefPublic Successful Response
+     * @throws ApiError
+     */
+    public static updateModule(data: ProfileUpdateModuleData): CancelablePromise<ProfileUpdateModuleResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/profile/modules/{module}',
+            path: {
+                module: data.module
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Reset Weights
+     * @returns ModulePrefPublic Successful Response
+     * @throws ApiError
+     */
+    public static resetWeights(): CancelablePromise<ProfileResetWeightsResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/profile/modules/reset-weights',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Identities
+     * @returns IdentityPublic Successful Response
+     * @throws ApiError
+     */
+    public static readIdentities(): CancelablePromise<ProfileReadIdentitiesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/profile/identities',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Replace Identities
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns IdentityPublic Successful Response
+     * @throws ApiError
+     */
+    public static replaceIdentities(data: ProfileReplaceIdentitiesData): CancelablePromise<ProfileReplaceIdentitiesResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/profile/identities',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Skip Setup
+     * @param data The data for the request.
+     * @param data.module
+     * @returns string Successful Response
+     * @throws ApiError
+     */
+    public static skipSetup(data: ProfileSkipSetupData): CancelablePromise<ProfileSkipSetupResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/profile/setup-skips/{module}',
+            path: {
+                module: data.module
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Live
+     * @returns LiveState Successful Response
+     * @throws ApiError
+     */
+    public static readLive(): CancelablePromise<ProfileReadLiveResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/profile/live',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Pause Live
+     * @returns LiveState Successful Response
+     * @throws ApiError
+     */
+    public static pauseLive(): CancelablePromise<ProfilePauseLiveResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/profile/live/pause',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Resume Live
+     * @returns LiveState Successful Response
+     * @throws ApiError
+     */
+    public static resumeLive(): CancelablePromise<ProfileResumeLiveResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/profile/live/resume',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Push Devices
+     * @returns PushDevicePublic Successful Response
+     * @throws ApiError
+     */
+    public static readPushDevices(): CancelablePromise<ProfileReadPushDevicesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/profile/push-devices',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Register Push Device
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns PushDevicePublic Successful Response
+     * @throws ApiError
+     */
+    public static registerPushDevice(data: ProfileRegisterPushDeviceData): CancelablePromise<ProfileRegisterPushDeviceResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/profile/push-devices',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Unregister Push Device
+     * @param data The data for the request.
+     * @param data.deviceId
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static unregisterPushDevice(data: ProfileUnregisterPushDeviceData): CancelablePromise<ProfileUnregisterPushDeviceResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/profile/push-devices/{device_id}',
+            path: {
+                device_id: data.deviceId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+}
+
+export class RbacService {
+    /**
+     * Read User Permissions
+     * @param data The data for the request.
+     * @param data.userId
+     * @returns UserPermissions Successful Response
+     * @throws ApiError
+     */
+    public static readUserPermissions(data: RbacReadUserPermissionsData): CancelablePromise<RbacReadUserPermissionsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/rbac/users/{user_id}/permissions',
+            path: {
+                user_id: data.userId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Assign Role
+     * @param data The data for the request.
+     * @param data.userId
+     * @param data.roleId
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static assignRole(data: RbacAssignRoleData): CancelablePromise<RbacAssignRoleResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/rbac/users/{user_id}/roles/{role_id}',
+            path: {
+                user_id: data.userId,
+                role_id: data.roleId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Remove Role
+     * @param data The data for the request.
+     * @param data.userId
+     * @param data.roleId
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static removeRole(data: RbacRemoveRoleData): CancelablePromise<RbacRemoveRoleResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/rbac/users/{user_id}/roles/{role_id}',
+            path: {
+                user_id: data.userId,
+                role_id: data.roleId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Role Permissions
+     * @param data The data for the request.
+     * @param data.roleId
+     * @returns RolePermissionsPublic Successful Response
+     * @throws ApiError
+     */
+    public static readRolePermissions(data: RbacReadRolePermissionsData): CancelablePromise<RbacReadRolePermissionsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/rbac/roles/{role_id}/permissions',
+            path: {
+                role_id: data.roleId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Add Permission
+     * @param data The data for the request.
+     * @param data.roleId
+     * @param data.permissionId
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static addPermission(data: RbacAddPermissionData): CancelablePromise<RbacAddPermissionResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/rbac/roles/{role_id}/permissions/{permission_id}',
+            path: {
+                role_id: data.roleId,
+                permission_id: data.permissionId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Remove Permission
+     * @param data The data for the request.
+     * @param data.roleId
+     * @param data.permissionId
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static removePermission(data: RbacRemovePermissionData): CancelablePromise<RbacRemovePermissionResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/rbac/roles/{role_id}/permissions/{permission_id}',
+            path: {
+                role_id: data.roleId,
+                permission_id: data.permissionId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+}
+
 export class RolesService {
     /**
      * Read Roles
@@ -213,6 +6350,2538 @@ export class RolesService {
             path: {
                 role_id: data.roleId
             },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+}
+
+export class SocialService {
+    /**
+     * Read Me
+     * My social profile, with my follower counts.
+     * @returns PersonPublic Successful Response
+     * @throws ApiError
+     */
+    public static readMe(): CancelablePromise<SocialReadMeResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/me',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Me
+     * Bio, accent and the "show my scores to followers" switch.
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns PersonPublic Successful Response
+     * @throws ApiError
+     */
+    public static updateMe(data: SocialUpdateMeData): CancelablePromise<SocialUpdateMeResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/social/me',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Badges
+     * Unread activity and unread (unmuted) chats: the header dots.
+     * @returns Badges Successful Response
+     * @throws ApiError
+     */
+    public static readBadges(): CancelablePromise<SocialReadBadgesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/badges',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Today
+     * The Today screen's community card.
+     * @returns app__modules__social__schema__TodayPublic Successful Response
+     * @throws ApiError
+     */
+    public static readToday(): CancelablePromise<SocialReadTodayResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/today',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Explore
+     * Suggested people and the popular mosaic.
+     * @returns ExplorePublic Successful Response
+     * @throws ApiError
+     */
+    public static readExplore(): CancelablePromise<SocialReadExploreResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/explore',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Leaderboard
+     * Me and the people I follow who share scores, by 30-day Life Score.
+     * @returns LeaderboardPublic Successful Response
+     * @throws ApiError
+     */
+    public static readLeaderboard(): CancelablePromise<SocialReadLeaderboardResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/leaderboard',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Search People
+     * Explore search by name or handle.
+     * @param data The data for the request.
+     * @param data.q
+     * @param data.skip
+     * @param data.limit
+     * @returns PeoplePublic Successful Response
+     * @throws ApiError
+     */
+    public static searchPeople(data: SocialSearchPeopleData = {}): CancelablePromise<SocialSearchPeopleResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/search/people',
+            query: {
+                q: data.q,
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Search Tags
+     * Explore ``#tag`` search over posts, newest first.
+     * @param data The data for the request.
+     * @param data.q
+     * @param data.skip
+     * @param data.limit
+     * @returns PostsPublic Successful Response
+     * @throws ApiError
+     */
+    public static searchTags(data: SocialSearchTagsData = {}): CancelablePromise<SocialSearchTagsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/search/tags',
+            query: {
+                q: data.q,
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Close Friends
+     * My close-friends list.
+     * @returns PeoplePublic Successful Response
+     * @throws ApiError
+     */
+    public static readCloseFriends(): CancelablePromise<SocialReadCloseFriendsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/close-friends',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Person
+     * A profile: name, handle, bio, counts and my state towards them.
+     * @param data The data for the request.
+     * @param data.userId
+     * @returns PersonPublic Successful Response
+     * @throws ApiError
+     */
+    public static readPerson(data: SocialReadPersonData): CancelablePromise<SocialReadPersonResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/people/{user_id}',
+            path: {
+                user_id: data.userId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Scorecard
+     * The followers-only scorecard (404 when not visible to me).
+     * @param data The data for the request.
+     * @param data.userId
+     * @returns ScorecardPublic Successful Response
+     * @throws ApiError
+     */
+    public static readScorecard(data: SocialReadScorecardData): CancelablePromise<SocialReadScorecardResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/people/{user_id}/scorecard',
+            path: {
+                user_id: data.userId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Followers
+     * @param data The data for the request.
+     * @param data.userId
+     * @param data.skip
+     * @param data.limit
+     * @returns PeoplePublic Successful Response
+     * @throws ApiError
+     */
+    public static readFollowers(data: SocialReadFollowersData): CancelablePromise<SocialReadFollowersResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/people/{user_id}/followers',
+            path: {
+                user_id: data.userId
+            },
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Following
+     * @param data The data for the request.
+     * @param data.userId
+     * @param data.skip
+     * @param data.limit
+     * @returns PeoplePublic Successful Response
+     * @throws ApiError
+     */
+    public static readFollowing(data: SocialReadFollowingData): CancelablePromise<SocialReadFollowingResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/people/{user_id}/following',
+            path: {
+                user_id: data.userId
+            },
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Person Posts
+     * A profile's post grid, newest first.
+     * @param data The data for the request.
+     * @param data.userId
+     * @param data.skip
+     * @param data.limit
+     * @returns PostsPublic Successful Response
+     * @throws ApiError
+     */
+    public static readPersonPosts(data: SocialReadPersonPostsData): CancelablePromise<SocialReadPersonPostsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/people/{user_id}/posts',
+            path: {
+                user_id: data.userId
+            },
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Follow
+     * @param data The data for the request.
+     * @param data.userId
+     * @returns PersonPublic Successful Response
+     * @throws ApiError
+     */
+    public static follow(data: SocialFollowData): CancelablePromise<SocialFollowResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/social/people/{user_id}/follow',
+            path: {
+                user_id: data.userId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Unfollow
+     * @param data The data for the request.
+     * @param data.userId
+     * @returns PersonPublic Successful Response
+     * @throws ApiError
+     */
+    public static unfollow(data: SocialUnfollowData): CancelablePromise<SocialUnfollowResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/social/people/{user_id}/follow',
+            path: {
+                user_id: data.userId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Set Close Friend
+     * @param data The data for the request.
+     * @param data.userId
+     * @param data.requestBody
+     * @returns PersonPublic Successful Response
+     * @throws ApiError
+     */
+    public static setCloseFriend(data: SocialSetCloseFriendData): CancelablePromise<SocialSetCloseFriendResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/social/people/{user_id}/close-friend',
+            path: {
+                user_id: data.userId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Feed
+     * Following (keyset: pass ``next_cursor`` back as ``cursor``) or
+     * for-you (ranked; ``skip``/``limit``).
+     * @param data The data for the request.
+     * @param data.tab
+     * @param data.cursor
+     * @param data.skip
+     * @param data.limit
+     * @returns PostsPublic Successful Response
+     * @throws ApiError
+     */
+    public static readFeed(data: SocialReadFeedData = {}): CancelablePromise<SocialReadFeedResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/feed',
+            query: {
+                tab: data.tab,
+                cursor: data.cursor,
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Saved
+     * @param data The data for the request.
+     * @param data.skip
+     * @param data.limit
+     * @returns PostsPublic Successful Response
+     * @throws ApiError
+     */
+    public static readSaved(data: SocialReadSavedData = {}): CancelablePromise<SocialReadSavedResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/saved',
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Create Post
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns PostPublic Successful Response
+     * @throws ApiError
+     */
+    public static createPost(data: SocialCreatePostData): CancelablePromise<SocialCreatePostResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/social/posts',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Post
+     * Post detail, with up to 50 ``liked_by``.
+     * @param data The data for the request.
+     * @param data.postId
+     * @returns PostPublic Successful Response
+     * @throws ApiError
+     */
+    public static readPost(data: SocialReadPostData): CancelablePromise<SocialReadPostResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/posts/{post_id}',
+            path: {
+                post_id: data.postId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Post
+     * Edit the caption (author only).
+     * @param data The data for the request.
+     * @param data.postId
+     * @param data.requestBody
+     * @returns PostPublic Successful Response
+     * @throws ApiError
+     */
+    public static updatePost(data: SocialUpdatePostData): CancelablePromise<SocialUpdatePostResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/social/posts/{post_id}',
+            path: {
+                post_id: data.postId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Post
+     * Soft delete; ``POST …/restore`` undoes it for a short window.
+     * @param data The data for the request.
+     * @param data.postId
+     * @returns void Successful Response
+     * @throws ApiError
+     */
+    public static deletePost(data: SocialDeletePostData): CancelablePromise<SocialDeletePostResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/social/posts/{post_id}',
+            path: {
+                post_id: data.postId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Restore Post
+     * @param data The data for the request.
+     * @param data.postId
+     * @returns PostPublic Successful Response
+     * @throws ApiError
+     */
+    public static restorePost(data: SocialRestorePostData): CancelablePromise<SocialRestorePostResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/social/posts/{post_id}/restore',
+            path: {
+                post_id: data.postId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Like Post
+     * Like, and the double-tap like (idempotent).
+     * @param data The data for the request.
+     * @param data.postId
+     * @returns PostPublic Successful Response
+     * @throws ApiError
+     */
+    public static likePost(data: SocialLikePostData): CancelablePromise<SocialLikePostResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/social/posts/{post_id}/like',
+            path: {
+                post_id: data.postId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Unlike Post
+     * @param data The data for the request.
+     * @param data.postId
+     * @returns PostPublic Successful Response
+     * @throws ApiError
+     */
+    public static unlikePost(data: SocialUnlikePostData): CancelablePromise<SocialUnlikePostResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/social/posts/{post_id}/like',
+            path: {
+                post_id: data.postId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Save Post
+     * @param data The data for the request.
+     * @param data.postId
+     * @returns PostPublic Successful Response
+     * @throws ApiError
+     */
+    public static savePost(data: SocialSavePostData): CancelablePromise<SocialSavePostResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/social/posts/{post_id}/save',
+            path: {
+                post_id: data.postId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Unsave Post
+     * @param data The data for the request.
+     * @param data.postId
+     * @returns PostPublic Successful Response
+     * @throws ApiError
+     */
+    public static unsavePost(data: SocialUnsavePostData): CancelablePromise<SocialUnsavePostResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/social/posts/{post_id}/save',
+            path: {
+                post_id: data.postId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Comments
+     * @param data The data for the request.
+     * @param data.postId
+     * @param data.skip
+     * @param data.limit
+     * @returns CommentsPublic Successful Response
+     * @throws ApiError
+     */
+    public static readComments(data: SocialReadCommentsData): CancelablePromise<SocialReadCommentsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/posts/{post_id}/comments',
+            path: {
+                post_id: data.postId
+            },
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Add Comment
+     * Comment or reply (``reply_to_id`` must be a comment on this post).
+     * @param data The data for the request.
+     * @param data.postId
+     * @param data.requestBody
+     * @returns CommentPublic Successful Response
+     * @throws ApiError
+     */
+    public static addComment(data: SocialAddCommentData): CancelablePromise<SocialAddCommentResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/social/posts/{post_id}/comments',
+            path: {
+                post_id: data.postId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Like Comment
+     * @param data The data for the request.
+     * @param data.postId
+     * @param data.commentId
+     * @returns CommentPublic Successful Response
+     * @throws ApiError
+     */
+    public static likeComment(data: SocialLikeCommentData): CancelablePromise<SocialLikeCommentResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/social/posts/{post_id}/comments/{comment_id}/like',
+            path: {
+                post_id: data.postId,
+                comment_id: data.commentId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Unlike Comment
+     * @param data The data for the request.
+     * @param data.postId
+     * @param data.commentId
+     * @returns CommentPublic Successful Response
+     * @throws ApiError
+     */
+    public static unlikeComment(data: SocialUnlikeCommentData): CancelablePromise<SocialUnlikeCommentResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/social/posts/{post_id}/comments/{comment_id}/like',
+            path: {
+                post_id: data.postId,
+                comment_id: data.commentId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Comment
+     * By the comment's author or the post's owner.
+     * @param data The data for the request.
+     * @param data.postId
+     * @param data.commentId
+     * @returns void Successful Response
+     * @throws ApiError
+     */
+    public static deleteComment(data: SocialDeleteCommentData): CancelablePromise<SocialDeleteCommentResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/social/posts/{post_id}/comments/{comment_id}',
+            path: {
+                post_id: data.postId,
+                comment_id: data.commentId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Tray
+     * The story tray: me first, then unseen, then most recent.
+     * @returns StoryTray Successful Response
+     * @throws ApiError
+     */
+    public static readTray(): CancelablePromise<SocialReadTrayResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/stories',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Create Story
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns StoryPublic Successful Response
+     * @throws ApiError
+     */
+    public static createStory(data: SocialCreateStoryData): CancelablePromise<SocialCreateStoryResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/social/stories',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Story
+     * @param data The data for the request.
+     * @param data.storyId
+     * @returns StoryPublic Successful Response
+     * @throws ApiError
+     */
+    public static readStory(data: SocialReadStoryData): CancelablePromise<SocialReadStoryResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/stories/{story_id}',
+            path: {
+                story_id: data.storyId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Story
+     * @param data The data for the request.
+     * @param data.storyId
+     * @returns void Successful Response
+     * @throws ApiError
+     */
+    public static deleteStory(data: SocialDeleteStoryData): CancelablePromise<SocialDeleteStoryResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/social/stories/{story_id}',
+            path: {
+                story_id: data.storyId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Mark Seen
+     * @param data The data for the request.
+     * @param data.storyId
+     * @returns StoryPublic Successful Response
+     * @throws ApiError
+     */
+    public static markSeen(data: SocialMarkSeenData): CancelablePromise<SocialMarkSeenResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/social/stories/{story_id}/seen',
+            path: {
+                story_id: data.storyId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Like Story
+     * @param data The data for the request.
+     * @param data.storyId
+     * @returns StoryPublic Successful Response
+     * @throws ApiError
+     */
+    public static likeStory(data: SocialLikeStoryData): CancelablePromise<SocialLikeStoryResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/social/stories/{story_id}/like',
+            path: {
+                story_id: data.storyId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Unlike Story
+     * @param data The data for the request.
+     * @param data.storyId
+     * @returns StoryPublic Successful Response
+     * @throws ApiError
+     */
+    public static unlikeStory(data: SocialUnlikeStoryData): CancelablePromise<SocialUnlikeStoryResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/social/stories/{story_id}/like',
+            path: {
+                story_id: data.storyId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Notes
+     * My note and the notes of people I follow.
+     * @returns NotesPublic Successful Response
+     * @throws ApiError
+     */
+    public static readNotes(): CancelablePromise<SocialReadNotesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/notes',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Set Note
+     * Set my one live note (24 hours).
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns NotePublic Successful Response
+     * @throws ApiError
+     */
+    public static setNote(data: SocialSetNoteData): CancelablePromise<SocialSetNoteResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/social/notes/me',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Clear Note
+     * @returns void Successful Response
+     * @throws ApiError
+     */
+    public static clearNote(): CancelablePromise<SocialClearNoteResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/social/notes/me',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Like Note
+     * @param data The data for the request.
+     * @param data.noteId
+     * @returns NotePublic Successful Response
+     * @throws ApiError
+     */
+    public static likeNote(data: SocialLikeNoteData): CancelablePromise<SocialLikeNoteResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/social/notes/{note_id}/like',
+            path: {
+                note_id: data.noteId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Unlike Note
+     * @param data The data for the request.
+     * @param data.noteId
+     * @returns NotePublic Successful Response
+     * @throws ApiError
+     */
+    public static unlikeNote(data: SocialUnlikeNoteData): CancelablePromise<SocialUnlikeNoteResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/social/notes/{note_id}/like',
+            path: {
+                note_id: data.noteId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Chats
+     * My inbox: pinned first, then the most recent.
+     * @param data The data for the request.
+     * @param data.skip
+     * @param data.limit
+     * @returns ChatsPublic Successful Response
+     * @throws ApiError
+     */
+    public static readChats(data: SocialReadChatsData = {}): CancelablePromise<SocialReadChatsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/chats',
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Open Direct
+     * Open (or create) the 1:1 chat with a person.
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns ChatPublic Successful Response
+     * @throws ApiError
+     */
+    public static openDirect(data: SocialOpenDirectData): CancelablePromise<SocialOpenDirectResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/social/chats/direct',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Create Group
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns ChatPublic Successful Response
+     * @throws ApiError
+     */
+    public static createGroup(data: SocialCreateGroupData): CancelablePromise<SocialCreateGroupResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/social/chats/groups',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Chat
+     * @param data The data for the request.
+     * @param data.chatId
+     * @returns ChatPublic Successful Response
+     * @throws ApiError
+     */
+    public static readChat(data: SocialReadChatData): CancelablePromise<SocialReadChatResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/chats/{chat_id}',
+            path: {
+                chat_id: data.chatId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Rename Chat
+     * Rename a group.
+     * @param data The data for the request.
+     * @param data.chatId
+     * @param data.requestBody
+     * @returns ChatPublic Successful Response
+     * @throws ApiError
+     */
+    public static renameChat(data: SocialRenameChatData): CancelablePromise<SocialRenameChatResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/social/chats/{chat_id}',
+            path: {
+                chat_id: data.chatId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Hide Chat
+     * Delete the chat from my inbox only.
+     * @param data The data for the request.
+     * @param data.chatId
+     * @returns void Successful Response
+     * @throws ApiError
+     */
+    public static hideChat(data: SocialHideChatData): CancelablePromise<SocialHideChatResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/social/chats/{chat_id}',
+            path: {
+                chat_id: data.chatId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Unhide Chat
+     * Undo a delete from my inbox.
+     * @param data The data for the request.
+     * @param data.chatId
+     * @returns ChatPublic Successful Response
+     * @throws ApiError
+     */
+    public static unhideChat(data: SocialUnhideChatData): CancelablePromise<SocialUnhideChatResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/social/chats/{chat_id}/restore',
+            path: {
+                chat_id: data.chatId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Membership
+     * Mute or pin, for me.
+     * @param data The data for the request.
+     * @param data.chatId
+     * @param data.requestBody
+     * @returns ChatPublic Successful Response
+     * @throws ApiError
+     */
+    public static updateMembership(data: SocialUpdateMembershipData): CancelablePromise<SocialUpdateMembershipResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/social/chats/{chat_id}/me',
+            path: {
+                chat_id: data.chatId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Add Members
+     * @param data The data for the request.
+     * @param data.chatId
+     * @param data.requestBody
+     * @returns ChatPublic Successful Response
+     * @throws ApiError
+     */
+    public static addMembers(data: SocialAddMembersData): CancelablePromise<SocialAddMembersResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/social/chats/{chat_id}/members',
+            path: {
+                chat_id: data.chatId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Leave Chat
+     * @param data The data for the request.
+     * @param data.chatId
+     * @returns void Successful Response
+     * @throws ApiError
+     */
+    public static leaveChat(data: SocialLeaveChatData): CancelablePromise<SocialLeaveChatResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/social/chats/{chat_id}/leave',
+            path: {
+                chat_id: data.chatId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Mark Read
+     * @param data The data for the request.
+     * @param data.chatId
+     * @returns ChatPublic Successful Response
+     * @throws ApiError
+     */
+    public static markRead(data: SocialMarkReadData): CancelablePromise<SocialMarkReadResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/social/chats/{chat_id}/read',
+            path: {
+                chat_id: data.chatId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Typing
+     * Ephemeral "is typing" nudge to the other members; nothing is stored.
+     * @param data The data for the request.
+     * @param data.chatId
+     * @returns void Successful Response
+     * @throws ApiError
+     */
+    public static typing(data: SocialTypingData): CancelablePromise<SocialTypingResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/social/chats/{chat_id}/typing',
+            path: {
+                chat_id: data.chatId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Messages
+     * Newest first; pass ``next_cursor`` back to page into the past.
+     * @param data The data for the request.
+     * @param data.chatId
+     * @param data.cursor
+     * @param data.limit
+     * @returns app__modules__social__schema__MessagesPublic Successful Response
+     * @throws ApiError
+     */
+    public static readMessages(data: SocialReadMessagesData): CancelablePromise<SocialReadMessagesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/chats/{chat_id}/messages',
+            path: {
+                chat_id: data.chatId
+            },
+            query: {
+                cursor: data.cursor,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Send Message
+     * @param data The data for the request.
+     * @param data.chatId
+     * @param data.requestBody
+     * @returns app__modules__social__schema__MessagePublic Successful Response
+     * @throws ApiError
+     */
+    public static sendMessage(data: SocialSendMessageData): CancelablePromise<SocialSendMessageResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/social/chats/{chat_id}/messages',
+            path: {
+                chat_id: data.chatId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Unsend
+     * Unsend (sender only).
+     * @param data The data for the request.
+     * @param data.chatId
+     * @param data.messageId
+     * @returns void Successful Response
+     * @throws ApiError
+     */
+    public static unsend(data: SocialUnsendData): CancelablePromise<SocialUnsendResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/social/chats/{chat_id}/messages/{message_id}',
+            path: {
+                chat_id: data.chatId,
+                message_id: data.messageId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * React
+     * @param data The data for the request.
+     * @param data.chatId
+     * @param data.messageId
+     * @param data.requestBody
+     * @returns app__modules__social__schema__MessagePublic Successful Response
+     * @throws ApiError
+     */
+    public static react(data: SocialReactData): CancelablePromise<SocialReactResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/social/chats/{chat_id}/messages/{message_id}/reaction',
+            path: {
+                chat_id: data.chatId,
+                message_id: data.messageId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Unreact
+     * @param data The data for the request.
+     * @param data.chatId
+     * @param data.messageId
+     * @returns app__modules__social__schema__MessagePublic Successful Response
+     * @throws ApiError
+     */
+    public static unreact(data: SocialUnreactData): CancelablePromise<SocialUnreactResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/social/chats/{chat_id}/messages/{message_id}/reaction',
+            path: {
+                chat_id: data.chatId,
+                message_id: data.messageId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Activity
+     * @param data The data for the request.
+     * @param data.skip
+     * @param data.limit
+     * @returns ActivitiesPublic Successful Response
+     * @throws ApiError
+     */
+    public static readActivity(data: SocialReadActivityData = {}): CancelablePromise<SocialReadActivityResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/activity',
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Mark Activity Read
+     * @returns Badges Successful Response
+     * @throws ApiError
+     */
+    public static markActivityRead(): CancelablePromise<SocialMarkActivityReadResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/social/activity/read',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Draft
+     * @param data The data for the request.
+     * @param data.kind
+     * @returns DraftPublic Successful Response
+     * @throws ApiError
+     */
+    public static readDraft(data: SocialReadDraftData): CancelablePromise<SocialReadDraftResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/social/drafts/{kind}',
+            path: {
+                kind: data.kind
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Put Draft
+     * @param data The data for the request.
+     * @param data.kind
+     * @param data.requestBody
+     * @returns DraftPublic Successful Response
+     * @throws ApiError
+     */
+    public static putDraft(data: SocialPutDraftData): CancelablePromise<SocialPutDraftResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/social/drafts/{kind}',
+            path: {
+                kind: data.kind
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Clear Draft
+     * @param data The data for the request.
+     * @param data.kind
+     * @returns void Successful Response
+     * @throws ApiError
+     */
+    public static clearDraft(data: SocialClearDraftData): CancelablePromise<SocialClearDraftResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/social/drafts/{kind}',
+            path: {
+                kind: data.kind
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+}
+
+export class StatsService {
+    /**
+     * Overview
+     * The one overall statistic: Life Score, level, delta, on-target rate and
+     * streaks, today's ring, facets and headline metrics, computed live.
+     * @param data The data for the request.
+     * @param data.range
+     * @returns app__modules__stats__schema__OverviewOut Successful Response
+     * @throws ApiError
+     */
+    public static overview(data: StatsOverviewData = {}): CancelablePromise<StatsOverviewResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/stats/overview',
+            query: {
+                range: data.range
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Series
+     * A companion/tracker chart (``useSeries``).
+     * @param data The data for the request.
+     * @param data.metric
+     * @param data.days
+     * @returns app__modules__stats__schema__SeriesOut Successful Response
+     * @throws ApiError
+     */
+    public static series(data: StatsSeriesData): CancelablePromise<StatsSeriesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/stats/series',
+            query: {
+                metric: data.metric,
+                days: data.days
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Series Metrics
+     * @returns string Successful Response
+     * @throws ApiError
+     */
+    public static seriesMetrics(): CancelablePromise<StatsSeriesMetricsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/stats/series/metrics',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Metric Detail
+     * One metric (``life``, ``onTarget`` or ``<module>:<key>``) this week and
+     * this month, with the goals set on it.
+     * @param data The data for the request.
+     * @param data.ref
+     * @returns MetricDetailOut Successful Response
+     * @throws ApiError
+     */
+    public static metricDetail(data: StatsMetricDetailData): CancelablePromise<StatsMetricDetailResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/stats/metrics/{ref}',
+            path: {
+                ref: data.ref
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Misses
+     * Every enabled module's misses in the range (default the last 7
+     * days), newest first, with the user's note on each.
+     * @param data The data for the request.
+     * @param data._from
+     * @param data.to
+     * @param data.skip
+     * @param data.limit
+     * @returns MissesOut Successful Response
+     * @throws ApiError
+     */
+    public static misses(data: StatsMissesData = {}): CancelablePromise<StatsMissesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/stats/misses',
+            query: {
+                from: data._from,
+                to: data.to,
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Calendar
+     * Every enabled module's calendar items in the range (default today),
+     * by day then time.
+     * @param data The data for the request.
+     * @param data._from
+     * @param data.to
+     * @param data.skip
+     * @param data.limit
+     * @returns CalendarOut Successful Response
+     * @throws ApiError
+     */
+    public static calendar(data: StatsCalendarData = {}): CancelablePromise<StatsCalendarResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/stats/calendar',
+            query: {
+                from: data._from,
+                to: data.to,
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Achievements
+     * Trophy case: every achievement with progress, the earned trophies
+     * newest first, and which the user has already seen.
+     * @returns AchievementsOut Successful Response
+     * @throws ApiError
+     */
+    public static achievements(): CancelablePromise<StatsAchievementsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/stats/achievements',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Today
+     * Today's ring, the 7-day Life Score and the on-target streak.
+     * @returns TodayOut Successful Response
+     * @throws ApiError
+     */
+    public static today(): CancelablePromise<StatsTodayResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/stats/today',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Facets
+     * @param data The data for the request.
+     * @param data.range
+     * @returns FacetsOut Successful Response
+     * @throws ApiError
+     */
+    public static facets(data: StatsFacetsData = {}): CancelablePromise<StatsFacetsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/stats/facets',
+            query: {
+                range: data.range
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+}
+
+export class SyncService {
+    /**
+     * Push
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns SyncPushResult Successful Response
+     * @throws ApiError
+     */
+    public static push(data: SyncPushData): CancelablePromise<SyncPushResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/sync/push',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Pull
+     * @param data The data for the request.
+     * @param data.cursor
+     * @param data.limit
+     * @returns SyncPull Successful Response
+     * @throws ApiError
+     */
+    public static pull(data: SyncPullData = {}): CancelablePromise<SyncPullResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/sync/pull',
+            query: {
+                cursor: data.cursor,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Entities
+     * @returns string Successful Response
+     * @throws ApiError
+     */
+    public static entities(): CancelablePromise<SyncEntitiesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/sync/entities',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+}
+
+export class TasksService {
+    /**
+     * Today
+     * TSK-01 smart views and the TSK-16 Today card.
+     * @returns app__modules__tasks__schema__TodayPublic Successful Response
+     * @throws ApiError
+     */
+    public static today(): CancelablePromise<TasksTodayResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/tasks/today',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * List Tasks
+     * TSK-02 list detail (``list_id`` / ``inbox``) and any filtered view.
+     * @param data The data for the request.
+     * @param data.listId
+     * @param data.inbox
+     * @param data.status
+     * @param data.starred
+     * @param data.overdue
+     * @param data.hasDate
+     * @param data.q
+     * @param data.sort
+     * @param data.skip
+     * @param data.limit
+     * @returns TasksPublic Successful Response
+     * @throws ApiError
+     */
+    public static listTasks(data: TasksListTasksData = {}): CancelablePromise<TasksListTasksResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/tasks/',
+            query: {
+                list_id: data.listId,
+                inbox: data.inbox,
+                status: data.status,
+                starred: data.starred,
+                overdue: data.overdue,
+                has_date: data.hasDate,
+                q: data.q,
+                sort: data.sort,
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Create Task
+     * TSK-04 quick-add (client id optional; a replay returns the row).
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns TaskPublic Successful Response
+     * @throws ApiError
+     */
+    public static createTask(data: TasksCreateTaskData): CancelablePromise<TasksCreateTaskResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/tasks/',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Search
+     * TSK-09 search & filter: title and notes, the same query as the lists.
+     * @param data The data for the request.
+     * @param data.listId
+     * @param data.inbox
+     * @param data.status
+     * @param data.starred
+     * @param data.overdue
+     * @param data.hasDate
+     * @param data.q
+     * @param data.sort
+     * @param data.skip
+     * @param data.limit
+     * @returns TasksPublic Successful Response
+     * @throws ApiError
+     */
+    public static search(data: TasksSearchData = {}): CancelablePromise<TasksSearchResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/tasks/search',
+            query: {
+                list_id: data.listId,
+                inbox: data.inbox,
+                status: data.status,
+                starred: data.starred,
+                overdue: data.overdue,
+                has_date: data.hasDate,
+                q: data.q,
+                sort: data.sort,
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Completed
+     * TSK-10 completed log, grouped by business day (newest first).
+     * @param data The data for the request.
+     * @param data.days
+     * @param data.skip
+     * @param data.limit
+     * @returns CompletedPublic Successful Response
+     * @throws ApiError
+     */
+    public static completed(data: TasksCompletedData = {}): CancelablePromise<TasksCompletedResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/tasks/completed',
+            query: {
+                days: data.days,
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Recently Deleted
+     * TSK-10 Recently deleted (30 days).
+     * @param data The data for the request.
+     * @param data.skip
+     * @param data.limit
+     * @returns TasksPublic Successful Response
+     * @throws ApiError
+     */
+    public static recentlyDeleted(data: TasksRecentlyDeletedData = {}): CancelablePromise<TasksRecentlyDeletedResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/tasks/deleted',
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Overdue
+     * TSK-11 overdue triage with days late.
+     * @returns OverduePublic Successful Response
+     * @throws ApiError
+     */
+    public static overdue(): CancelablePromise<TasksOverdueResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/tasks/overdue',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Stats
+     * TSK-17 task stats for a range, with the previous range for deltas.
+     * @param data The data for the request.
+     * @param data.days
+     * @returns StatsPair Successful Response
+     * @throws ApiError
+     */
+    public static stats(data: TasksStatsData = {}): CancelablePromise<TasksStatsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/tasks/stats',
+            query: {
+                days: data.days
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Share
+     * TSK-18 share-card data (ranges 7, 30, 90).
+     * @param data The data for the request.
+     * @param data.days
+     * @returns SharePublic Successful Response
+     * @throws ApiError
+     */
+    public static share(data: TasksShareData = {}): CancelablePromise<TasksShareResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/tasks/share',
+            query: {
+                days: data.days
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Parse
+     * TSK-04 inline date highlight (the device parses offline too).
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns ParsePublic Successful Response
+     * @throws ApiError
+     */
+    public static parse(data: TasksParseData): CancelablePromise<TasksParseResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/tasks/parse',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Get Settings
+     * TSK-13 task settings.
+     * @returns app__modules__tasks__schema__SettingsPublic Successful Response
+     * @throws ApiError
+     */
+    public static getSettings(): CancelablePromise<TasksGetSettingsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/tasks/settings',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Settings
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns app__modules__tasks__schema__SettingsPublic Successful Response
+     * @throws ApiError
+     */
+    public static updateSettings(data: TasksUpdateSettingsData): CancelablePromise<TasksUpdateSettingsResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/tasks/settings',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Get Notif
+     * TSK-12 reminders setup state (install guide, permission, test ping).
+     * @returns NotifPublic Successful Response
+     * @throws ApiError
+     */
+    public static getNotif(): CancelablePromise<TasksGetNotifResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/tasks/notif',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Notif
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns NotifPublic Successful Response
+     * @throws ApiError
+     */
+    public static updateNotif(data: TasksUpdateNotifData): CancelablePromise<TasksUpdateNotifResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/tasks/notif',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Lists
+     * TSK-01 lists with open counts; TSK-08 manage lists (archived too).
+     * @param data The data for the request.
+     * @param data.includeArchived
+     * @returns ListsPublic Successful Response
+     * @throws ApiError
+     */
+    public static lists(data: TasksListsData = {}): CancelablePromise<TasksListsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/tasks/lists',
+            query: {
+                include_archived: data.includeArchived
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Create List
+     * TSK-07 create a list.
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns ListPublic Successful Response
+     * @throws ApiError
+     */
+    public static createList(data: TasksCreateListData): CancelablePromise<TasksCreateListResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/tasks/lists',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Ensure Default Lists
+     * First run: seed Work, Life and Groceries (once per user).
+     * @returns ListsPublic Successful Response
+     * @throws ApiError
+     */
+    public static ensureDefaultLists(): CancelablePromise<TasksEnsureDefaultListsResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/tasks/lists/defaults',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Get List
+     * @param data The data for the request.
+     * @param data.listId
+     * @returns ListPublic Successful Response
+     * @throws ApiError
+     */
+    public static getList(data: TasksGetListData): CancelablePromise<TasksGetListResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/tasks/lists/{list_id}',
+            path: {
+                list_id: data.listId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Update List
+     * TSK-07 rename, recolour, shopping-mode toggle.
+     * @param data The data for the request.
+     * @param data.listId
+     * @param data.requestBody
+     * @returns ListPublic Successful Response
+     * @throws ApiError
+     */
+    public static updateList(data: TasksUpdateListData): CancelablePromise<TasksUpdateListResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/tasks/lists/{list_id}',
+            path: {
+                list_id: data.listId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete List
+     * TSK-07 delete: open tasks move to the Inbox, or are deleted.
+     * @param data The data for the request.
+     * @param data.listId
+     * @param data.mode
+     * @returns CountResult Successful Response
+     * @throws ApiError
+     */
+    public static deleteList(data: TasksDeleteListData): CancelablePromise<TasksDeleteListResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/tasks/lists/{list_id}',
+            path: {
+                list_id: data.listId
+            },
+            query: {
+                mode: data.mode
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Archive List
+     * TSK-07/08 archive or unarchive.
+     * @param data The data for the request.
+     * @param data.listId
+     * @param data.requestBody
+     * @returns ListPublic Successful Response
+     * @throws ApiError
+     */
+    public static archiveList(data: TasksArchiveListData): CancelablePromise<TasksArchiveListResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/tasks/lists/{list_id}/archive',
+            path: {
+                list_id: data.listId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Move List
+     * TSK-08 reorder lists.
+     * @param data The data for the request.
+     * @param data.listId
+     * @param data.requestBody
+     * @returns ListsPublic Successful Response
+     * @throws ApiError
+     */
+    public static moveList(data: TasksMoveListData): CancelablePromise<TasksMoveListResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/tasks/lists/{list_id}/move',
+            path: {
+                list_id: data.listId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Clear Checked
+     * TSK-02 shopping mode: clear checked items (undo with ``/unclear``).
+     * @param data The data for the request.
+     * @param data.listId
+     * @returns IdsResult Successful Response
+     * @throws ApiError
+     */
+    public static clearChecked(data: TasksClearCheckedData): CancelablePromise<TasksClearCheckedResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/tasks/lists/{list_id}/clear-checked',
+            path: {
+                list_id: data.listId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Create Tasks
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns TasksPublic Successful Response
+     * @throws ApiError
+     */
+    public static createTasks(data: TasksCreateTasksData): CancelablePromise<TasksCreateTasksResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/tasks/batch',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Capture
+     * TSK-14 capture: split a brain-dump into tasks and route each to a list.
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns CaptureResult Successful Response
+     * @throws ApiError
+     */
+    public static capture(data: TasksCaptureData): CancelablePromise<TasksCaptureResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/tasks/capture',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Remove Tasks
+     * TSK-14 undo capture (all or one row): the tasks never happened.
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static removeTasks(data: TasksRemoveTasksData): CancelablePromise<TasksRemoveTasksResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/tasks/remove',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Unclear
+     * Undo of clear-checked.
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns IdsResult Successful Response
+     * @throws ApiError
+     */
+    public static unclear(data: TasksUnclearData): CancelablePromise<TasksUnclearResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/tasks/unclear',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Move Overdue To Today
+     * TSK-11 move all overdue to today (one reschedule each).
+     * @returns CountResult Successful Response
+     * @throws ApiError
+     */
+    public static moveOverdueToToday(): CancelablePromise<TasksMoveOverdueToTodayResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/tasks/overdue/move-to-today',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Get Task
+     * TSK-03 task detail.
+     * @param data The data for the request.
+     * @param data.taskId
+     * @returns TaskDetail Successful Response
+     * @throws ApiError
+     */
+    public static getTask(data: TasksGetTaskData): CancelablePromise<TasksGetTaskResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/tasks/{task_id}',
+            path: {
+                task_id: data.taskId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Task
+     * TSK-03 autosave: title, notes, list, star, repeat, reminder, time.
+     * @param data The data for the request.
+     * @param data.taskId
+     * @param data.requestBody
+     * @returns TaskPublic Successful Response
+     * @throws ApiError
+     */
+    public static updateTask(data: TasksUpdateTaskData): CancelablePromise<TasksUpdateTaskResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/tasks/{task_id}',
+            path: {
+                task_id: data.taskId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Task
+     * F-TSK-18 soft delete (undo with ``/restore``).
+     * @param data The data for the request.
+     * @param data.taskId
+     * @returns TaskPublic Successful Response
+     * @throws ApiError
+     */
+    public static deleteTask(data: TasksDeleteTaskData): CancelablePromise<TasksDeleteTaskResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/tasks/{task_id}',
+            path: {
+                task_id: data.taskId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Set Due
+     * TSK-05 date/time/reminder picker. A later date is a reschedule.
+     * @param data The data for the request.
+     * @param data.taskId
+     * @param data.requestBody
+     * @returns TaskPublic Successful Response
+     * @throws ApiError
+     */
+    public static setDue(data: TasksSetDueData): CancelablePromise<TasksSetDueResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/tasks/{task_id}/due',
+            path: {
+                task_id: data.taskId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Complete
+     * F-TSK-08 tick. A recurring task returns its next occurrence.
+     * @param data The data for the request.
+     * @param data.taskId
+     * @param data.requestBody
+     * @returns CompleteResult Successful Response
+     * @throws ApiError
+     */
+    public static complete(data: TasksCompleteData): CancelablePromise<TasksCompleteResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/tasks/{task_id}/complete',
+            path: {
+                task_id: data.taskId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Uncomplete
+     * @param data The data for the request.
+     * @param data.taskId
+     * @returns TaskPublic Successful Response
+     * @throws ApiError
+     */
+    public static uncomplete(data: TasksUncompleteData): CancelablePromise<TasksUncompleteResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/tasks/{task_id}/uncomplete',
+            path: {
+                task_id: data.taskId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Toggle
+     * @param data The data for the request.
+     * @param data.taskId
+     * @returns CompleteResult Successful Response
+     * @throws ApiError
+     */
+    public static toggle(data: TasksToggleData): CancelablePromise<TasksToggleResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/tasks/{task_id}/toggle',
+            path: {
+                task_id: data.taskId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Reschedule
+     * Swipe / triage: Today (0), Tomorrow (1), +n days.
+     * @param data The data for the request.
+     * @param data.taskId
+     * @param data.requestBody
+     * @returns TaskPublic Successful Response
+     * @throws ApiError
+     */
+    public static reschedule(data: TasksRescheduleData): CancelablePromise<TasksRescheduleResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/tasks/{task_id}/reschedule',
+            path: {
+                task_id: data.taskId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Snooze
+     * F-TSK-37 snooze the reminder (not a reschedule).
+     * @param data The data for the request.
+     * @param data.taskId
+     * @param data.requestBody
+     * @returns TaskPublic Successful Response
+     * @throws ApiError
+     */
+    public static snooze(data: TasksSnoozeData): CancelablePromise<TasksSnoozeResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/tasks/{task_id}/snooze',
+            path: {
+                task_id: data.taskId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Duplicate
+     * F-TSK-17 duplicate (a past due date is dropped).
+     * @param data The data for the request.
+     * @param data.taskId
+     * @param data.newId
+     * @returns TaskPublic Successful Response
+     * @throws ApiError
+     */
+    public static duplicate(data: TasksDuplicateData): CancelablePromise<TasksDuplicateResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/tasks/{task_id}/duplicate',
+            path: {
+                task_id: data.taskId
+            },
+            query: {
+                new_id: data.newId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Restore
+     * F-TSK-19 restore from Recently deleted (or the undo toast).
+     * @param data The data for the request.
+     * @param data.taskId
+     * @returns TaskPublic Successful Response
+     * @throws ApiError
+     */
+    public static restore(data: TasksRestoreData): CancelablePromise<TasksRestoreResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/tasks/{task_id}/restore',
+            path: {
+                task_id: data.taskId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Move
+     * F-TSK-20 manual reorder within the visible order.
+     * @param data The data for the request.
+     * @param data.taskId
+     * @param data.requestBody
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static move(data: TasksMoveData): CancelablePromise<TasksMoveResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/tasks/{task_id}/move',
+            path: {
+                task_id: data.taskId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
             errors: {
                 '4XX': 'Client Error'
             }
@@ -356,6 +9025,23 @@ export class UsersService {
     }
     
     /**
+     * Export My Data
+     * Self-service data export (GDPR portability): the caller's own record and
+     * all their items. Gated by authentication only — it is your own data.
+     * @returns unknown Successful Response
+     * @throws ApiError
+     */
+    public static exportMyData(): CancelablePromise<UsersExportMyDataResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/users/me/export',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
      * Read User By Id
      * @param data The data for the request.
      * @param data.userId
@@ -417,6 +9103,51 @@ export class UsersService {
             }
         });
     }
+    
+    /**
+     * Export User Data
+     * Export a user's data (GDPR portability), for a data:export holder (e.g.
+     * the DPO). Returns the profile row and all items; carries no credentials.
+     * @param data The data for the request.
+     * @param data.userId
+     * @returns unknown Successful Response
+     * @throws ApiError
+     */
+    public static exportUserData(data: UsersExportUserDataData): CancelablePromise<UsersExportUserDataResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/users/{user_id}/export',
+            path: {
+                user_id: data.userId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Erase User Data
+     * Erase a user (GDPR right to erasure), for a data:erase holder. Runs the
+     * same irreversible hard delete as the admin path: revokes the auth identity,
+     * then cascades the local rows. Audited as ``user.delete``.
+     * @param data The data for the request.
+     * @param data.userId
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static eraseUserData(data: UsersEraseUserDataData): CancelablePromise<UsersEraseUserDataResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/users/{user_id}/erase',
+            path: {
+                user_id: data.userId
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
 }
 
 export class UtilsService {
@@ -449,6 +9180,116 @@ export class UtilsService {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v1/utils/health-check/',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+}
+
+export class WeatherService {
+    /**
+     * Read Prefs
+     * @returns WeatherPrefPublic Successful Response
+     * @throws ApiError
+     */
+    public static readPrefs(): CancelablePromise<WeatherReadPrefsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/weather/prefs',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Prefs
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns WeatherPrefPublic Successful Response
+     * @throws ApiError
+     */
+    public static updatePrefs(data: WeatherUpdatePrefsData): CancelablePromise<WeatherUpdatePrefsResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/weather/prefs',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Forecast
+     * Device location when ``lat``/``lon`` are given, else the saved city.
+     * @param data The data for the request.
+     * @param data.lat
+     * @param data.lon
+     * @param data.name
+     * @param data.force
+     * @returns WeatherView Successful Response
+     * @throws ApiError
+     */
+    public static readForecast(data: WeatherReadForecastData = {}): CancelablePromise<WeatherReadForecastResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/weather/forecast',
+            query: {
+                lat: data.lat,
+                lon: data.lon,
+                name: data.name,
+                force: data.force
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+    
+    /**
+     * Search Cities
+     * @param data The data for the request.
+     * @param data.q
+     * @returns PlacePublic Successful Response
+     * @throws ApiError
+     */
+    public static searchCities(data: WeatherSearchCitiesData): CancelablePromise<WeatherSearchCitiesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/weather/cities',
+            query: {
+                q: data.q
+            },
+            errors: {
+                '4XX': 'Client Error'
+            }
+        });
+    }
+}
+
+export class WebhooksService {
+    /**
+     * Supabase Auth Event
+     * No bearer token: the Standard Webhooks signature is the credential.
+     * @param data The data for the request.
+     * @param data.webhookId
+     * @param data.webhookTimestamp
+     * @param data.webhookSignature
+     * @returns WebhookAck Successful Response
+     * @throws ApiError
+     */
+    public static supabaseAuthEvent(data: WebhooksSupabaseAuthEventData = {}): CancelablePromise<WebhooksSupabaseAuthEventResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/webhooks/supabase-auth',
+            headers: {
+                'webhook-id': data.webhookId,
+                'webhook-timestamp': data.webhookTimestamp,
+                'webhook-signature': data.webhookSignature
+            },
             errors: {
                 '4XX': 'Client Error'
             }
