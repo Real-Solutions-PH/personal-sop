@@ -17,7 +17,7 @@ import {
   Utensils,
   X,
 } from "lucide-react-native"
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Image, ScrollView, View } from "react-native"
 import { toast } from "sonner-native"
 import { pickPhoto } from "../media"
@@ -202,78 +202,90 @@ export function CaptureFile({
   onSent?: (id: string) => void
 }) {
   const t = useTheme(),
-    accounts = finStore.use((s) => s.accounts),
-    [account, setAccount] = useState("gcash"),
+    allAccounts = finStore.use((s) => s.accounts),
+    accounts = useMemo(
+      () => allAccounts.filter((a) => !a.archived && a.type !== "investment"),
+      [allAccounts],
+    ),
+    [account, setAccount] = useState(accounts[0]?.id ?? ""),
     [file, setFile] = useState<DocumentPicker.DocumentPickerAsset>()
+  const pick = (closeIfNone: boolean) =>
+    DocumentPicker.getDocumentAsync({
+      type: ["application/pdf", "text/csv", "image/*"],
+      copyToCacheDirectory: true,
+    })
+      .then((r) => {
+        if (!r.canceled) setFile(r.assets[0])
+        else if (closeIfNone) onClose()
+      })
+      .catch(() => toast.error("Could not open the file picker"))
+  // The paperclip means "pick a file": open the device's picker at once.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: once, on open
+  useEffect(() => {
+    void pick(true)
+  }, [])
   return (
     <Sheet title="Attach a statement" open onClose={onClose}>
-      <Copy size={14} muted>
-        PDF, CSV or a screenshot. Finance's import does the matching — nothing
-        changes until you review.
-      </Copy>
-      <Tap
-        onPress={() =>
-          void DocumentPicker.getDocumentAsync({
-            type: ["application/pdf", "text/csv", "image/*"],
-            copyToCacheDirectory: true,
-          })
-            .then((r) => {
-              if (!r.canceled) setFile(r.assets[0])
+      <View style={{ gap: 14 }}>
+        <Copy size={14} muted>
+          PDF, CSV or a screenshot. Finance's import does the matching — nothing
+          changes until you review.
+        </Copy>
+        <Tap
+          onPress={() => void pick(false)}
+          style={{
+            borderRadius: 16,
+            borderWidth: 1,
+            borderStyle: "dashed",
+            borderColor: file ? t.fin : t.line,
+            padding: 16,
+            backgroundColor: t.soft,
+          }}
+        >
+          <Line>
+            {file ? (
+              <FileText size={32} color={t.fin} />
+            ) : (
+              <Upload size={32} color={t.muted} />
+            )}
+            <View style={{ flex: 1 }}>
+              <Copy weight="medium" lines={1}>
+                {file?.name ?? "Choose a file"}
+              </Copy>
+              <Copy size={12} muted>
+                {file
+                  ? `${Math.max(1, Math.round((file.size ?? 0) / 1024))} KB`
+                  : "GCash / Maya / BPI statements work best"}
+              </Copy>
+            </View>
+            <Paperclip size={16} color={t.muted} />
+          </Line>
+        </Tap>
+        <Choices
+          label="This is a statement for"
+          value={account}
+          onChange={setAccount}
+          options={accounts.map((a) => ({ value: a.id, label: a.name }))}
+        />
+        <Button
+          disabled={!file}
+          onPress={() => {
+            if (!file) return
+            const id = sendCapture({
+              source: "file",
+              fileName: file.name,
+              fileUri: file.uri,
+              fileMime: file.mimeType,
+              text: `Statement for ${accounts.find((a) => a.id === account)?.name ?? "my account"}`,
+              hint: account,
             })
-            .catch(() => toast.error("Could not open the file picker"))
-        }
-        style={{
-          borderRadius: 16,
-          borderWidth: 1,
-          borderStyle: "dashed",
-          borderColor: file ? t.fin : t.line,
-          padding: 16,
-          backgroundColor: t.soft,
-        }}
-      >
-        <Line>
-          {file ? (
-            <FileText size={32} color={t.fin} />
-          ) : (
-            <Upload size={32} color={t.muted} />
-          )}
-          <View style={{ flex: 1 }}>
-            <Copy weight="medium" lines={1}>
-              {file?.name ?? "Choose a file"}
-            </Copy>
-            <Copy size={12} muted>
-              {file
-                ? `${Math.max(1, Math.round((file.size ?? 0) / 1024))} KB`
-                : "GCash / Maya / BPI statements work best"}
-            </Copy>
-          </View>
-          <Paperclip size={16} color={t.muted} />
-        </Line>
-      </Tap>
-      <Choices
-        label="This is a statement for"
-        value={account}
-        onChange={setAccount}
-        options={accounts
-          .filter((a) => !a.archived && a.type !== "investment")
-          .map((a) => ({ value: a.id, label: a.name }))}
-      />
-      <Button
-        disabled={!file}
-        onPress={() => {
-          if (!file) return
-          const id = sendCapture({
-            source: "file",
-            fileName: file.name,
-            text: `Statement for ${account}`,
-            hint: account,
-          })
-          onClose()
-          onSent?.(id)
-        }}
-      >
-        Hand off to Finance import
-      </Button>
+            onClose()
+            onSent?.(id)
+          }}
+        >
+          Hand off to Finance import
+        </Button>
+      </View>
     </Sheet>
   )
 }
