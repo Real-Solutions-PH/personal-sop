@@ -131,6 +131,36 @@ def test_fitness_items_due_are_named_so_a_day_without_habits_is_not_empty(
     assert "only when all three are empty" in system
 
 
+def test_an_earlier_days_chat_is_not_sent_to_the_model(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Yesterday's reply states yesterday's facts; sent along, the model
+    repeated it over today's. Only the current day's messages go out."""
+    from datetime import timedelta
+
+    from app.modules.companion.models import CompanionMessage
+
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    install(monkeypatch, say("You did 1 of 2 yesterday."))
+    ask(api, "How was yesterday?")
+    with Session(db_engine) as s:
+        for m in s.exec(
+            select(CompanionMessage).where(CompanionMessage.owner_id == api.user.id)  # type: ignore[attr-defined]
+        ).all():
+            m.created_at = m.created_at - timedelta(days=2)
+            s.add(m)
+        s.commit()
+    install(monkeypatch, say("Earlier today."))
+    ask(api, "First question today")
+    model = install(monkeypatch, say("Fine."))
+    ask(api, "How am I doing today?")
+    sent = " ".join(str(m.content) for m in model.seen[0][1:])
+    assert "How was yesterday?" not in sent
+    assert "You did 1 of 2 yesterday." not in sent
+    assert "First question today" in sent and "Earlier today." in sent
+
+
 # ---------------------------------------------------------------- plain text
 
 

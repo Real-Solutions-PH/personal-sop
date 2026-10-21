@@ -41,8 +41,8 @@ from app.shared.context import Ctx
 from app.shared.ids import derived_id
 
 Emit = Callable[[str, dict[str, Any]], None]
-# What one companion answer may cost. The model sees the last HISTORY messages,
-# each cut to HISTORY_CHARS, and gets at most MAX_STEPS model calls (a tool
+# What one companion answer may cost. The model sees the last HISTORY messages
+# of the user's current day, each cut to HISTORY_CHARS, and gets at most MAX_STEPS model calls (a tool
 # round, then the answer, with one spare); tool results are cut in capture's
 # loop (``agent.MAX_TOOL_RESULT_CHARS``).
 HISTORY = 6
@@ -543,7 +543,9 @@ def _history(ctx: Ctx) -> list[BaseMessage]:
     )
     out: list[BaseMessage] = []
     for m in reversed(rows):
-        if not m.text:
+        # An earlier day's replies state that day's facts; sent along, the
+        # model repeats them over TODAY's (yesterday's "1 of 2 done", today).
+        if not m.text or ctx.clock.day_of(m.created_at) != ctx.today:
             continue
         text = m.text[:HISTORY_CHARS]
         out.append(HumanMessage(text) if m.role == "me" else AIMessage(text))
