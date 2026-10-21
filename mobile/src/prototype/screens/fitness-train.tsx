@@ -3,7 +3,6 @@ import { fitStore } from "@domain/fitness/store"
 import { dayKey, dayOffset } from "@domain/lib/day"
 import { useLocalSearchParams } from "expo-router"
 import {
-  ChartColumn,
   ChevronRight,
   Dumbbell,
   LayoutList,
@@ -31,6 +30,7 @@ import { go } from "../navigation"
 import { fonts, radius, useTheme } from "../theme"
 import { Screen } from "../ui"
 import { StartWorkoutSheet } from "./fitness-start"
+import { FitnessStats } from "./fitness-stats"
 export function FitnessTrain() {
   const t = useTheme(),
     s = fitStore.use((s) => s),
@@ -96,13 +96,6 @@ export function FitnessTrain() {
       title="Fitness"
       actions={
         <Line style={{ gap: 0 }}>
-          <IconTap
-            size={40}
-            icon={ChartColumn}
-            label="Fitness stats"
-            color={t.text}
-            onPress={() => go("/fitness/stats")}
-          />
           <IconTap
             size={40}
             icon={Settings}
@@ -280,7 +273,6 @@ export function FitnessTrain() {
               icon: LayoutList,
             },
             { label: "Exercises", href: "/fitness/exercises", icon: Dumbbell },
-            { label: "Stats", href: "/fitness/stats", icon: ChartColumn },
           ].map((a) => (
             <Tap
               key={a.href}
@@ -304,17 +296,7 @@ export function FitnessTrain() {
         </Line>
         {lifts.length > 0 && (
           <>
-            <SectionHeading
-              action={
-                <Tap onPress={() => go("/fitness/stats")}>
-                  <Copy size={12} style={{ color: t.fit }}>
-                    All stats
-                  </Copy>
-                </Tap>
-              }
-            >
-              Progress · 8 weeks
-            </SectionHeading>
+            <SectionHeading>Progress · 8 weeks</SectionHeading>
             <Line style={{ gap: 8, alignItems: "stretch" }}>
               {[
                 {
@@ -515,6 +497,7 @@ export function FitnessTrain() {
               />
             ))}
         </Frame>
+        <FitnessStats embedded />
       </View>
       {startOpen && <StartWorkoutSheet onClose={() => setStartOpen(false)} />}
     </Screen>

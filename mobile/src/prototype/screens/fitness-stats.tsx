@@ -18,8 +18,9 @@ import {
 } from "../native-kit"
 import { go } from "../navigation"
 import { useTheme } from "../theme"
-import { Empty, Screen } from "../ui"
-export function FitnessStats() {
+import { Empty } from "../ui"
+import { StatsShell } from "./stats-shell"
+export function FitnessStats({ embedded = false }: { embedded?: boolean }) {
   const s = fitStore.use((s) => s),
     t = useTheme(),
     [range, setRange] = useState("28"),
@@ -95,7 +96,8 @@ export function FitnessStats() {
     </View>
   )
   return (
-    <Screen
+    <StatsShell
+      embedded={embedded}
       title="Fitness stats"
       actions={
         latest ? (
@@ -345,6 +347,6 @@ export function FitnessStats() {
           </Tap>
         </>
       )}
-    </Screen>
+    </StatsShell>
   )
 }

@@ -49,6 +49,7 @@ import { Screen } from "../ui"
 import { Ring } from "../visual"
 import { RecordEditor, useMoney } from "./finance"
 import { FinPill } from "./finance-planned"
+import { Reports } from "./finance-reports"
 
 export const sourceLabel = (source: FinRecord["source"]) =>
   ({
@@ -891,6 +892,7 @@ export function FinanceHome() {
                   <FinanceRecord key={r.id} record={r} />
                 ))}
             </Frame>
+            <Reports embedded />
           </>
         )}
       </View>

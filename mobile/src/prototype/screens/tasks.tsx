@@ -51,6 +51,15 @@ export function TaskRow({
   const t = useTheme()
   const list = tasksStore.use((s) => s.lists.find((l) => l.id === task.listId))
   const [open, setOpen] = useState(false)
+  // An empty meta line would sit under the title and pull it above the
+  // checkbox's centre, so it only renders when it has something to say.
+  const hasMeta =
+    (showDay && !!task.dueDate) ||
+    !!task.dueTime ||
+    !!task.recurrence ||
+    (!!task.remindAt && task.status === "open") ||
+    task.rescheduleCount > 1 ||
+    (!!list && showList)
   const toggle = () => {
     const done = task.status === "done"
     if (done) A.uncompleteTask(task.id)
@@ -102,6 +111,7 @@ export function TaskRow({
                 style={{
                   fontFamily: compact ? fonts.medium : fonts.semibold,
                   fontSize: compact ? 16 : 17,
+                  lineHeight: compact ? 22 : 24,
                   color: t.text,
                   textDecorationLine:
                     task.status === "done" ? "line-through" : "none",
@@ -113,94 +123,96 @@ export function TaskRow({
                 ) : null}
               </Text>
               {compact ? (
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 6,
-                    height: 16,
-                  }}
-                >
-                  {showDay && task.dueDate && (
-                    <Text
-                      style={{
-                        fontFamily: L.isOverdue(task)
-                          ? fonts.medium
-                          : fonts.body,
-                        fontSize: 12,
-                        color: L.isOverdue(task) ? t.warn : t.muted,
-                      }}
-                    >
-                      {L.isOverdue(task)
-                        ? `${L.diffDays(task.dueDate, dayKey())}d late`
-                        : L.fmtDay(task.dueDate)}
-                    </Text>
-                  )}
-                  {task.dueTime && (
-                    <Text
-                      style={{
-                        fontFamily: L.isDueNow(task)
-                          ? fonts.medium
-                          : fonts.body,
-                        fontSize: 12,
-                        color: L.isDueNow(task) ? t.tsk : t.muted,
-                      }}
-                    >
-                      {L.fmtTime(task.dueTime)}
-                    </Text>
-                  )}
-                  {task.recurrence && <Repeat size={12} color={t.muted} />}
-                  {task.remindAt && task.status === "open" && (
-                    <AlarmClock size={12} color={t.muted} />
-                  )}
-                  {task.rescheduleCount > 1 && (
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        gap: 2,
-                        alignItems: "center",
-                      }}
-                    >
-                      <CalendarClock size={12} color={t.warn} />
+                hasMeta && (
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 6,
+                      height: 16,
+                    }}
+                  >
+                    {showDay && task.dueDate && (
                       <Text
                         style={{
-                          fontFamily: fonts.body,
+                          fontFamily: L.isOverdue(task)
+                            ? fonts.medium
+                            : fonts.body,
                           fontSize: 12,
-                          color: t.warn,
+                          color: L.isOverdue(task) ? t.warn : t.muted,
                         }}
                       >
-                        {task.rescheduleCount}×
+                        {L.isOverdue(task)
+                          ? `${L.diffDays(task.dueDate, dayKey())}d late`
+                          : L.fmtDay(task.dueDate)}
                       </Text>
-                    </View>
-                  )}
-                  {list && showList && (
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        gap: 4,
-                        alignItems: "center",
-                      }}
-                    >
+                    )}
+                    {task.dueTime && (
+                      <Text
+                        style={{
+                          fontFamily: L.isDueNow(task)
+                            ? fonts.medium
+                            : fonts.body,
+                          fontSize: 12,
+                          color: L.isDueNow(task) ? t.tsk : t.muted,
+                        }}
+                      >
+                        {L.fmtTime(task.dueTime)}
+                      </Text>
+                    )}
+                    {task.recurrence && <Repeat size={12} color={t.muted} />}
+                    {task.remindAt && task.status === "open" && (
+                      <AlarmClock size={12} color={t.muted} />
+                    )}
+                    {task.rescheduleCount > 1 && (
                       <View
                         style={{
-                          width: 6,
-                          height: 6,
-                          borderRadius: 3,
-                          backgroundColor: t[list.color],
-                        }}
-                      />
-                      <Text
-                        style={{
-                          fontFamily: fonts.body,
-                          fontSize: 12,
-                          color: t.muted,
+                          flexDirection: "row",
+                          gap: 2,
+                          alignItems: "center",
                         }}
                       >
-                        {list.name}
-                      </Text>
-                    </View>
-                  )}
-                </View>
+                        <CalendarClock size={12} color={t.warn} />
+                        <Text
+                          style={{
+                            fontFamily: fonts.body,
+                            fontSize: 12,
+                            color: t.warn,
+                          }}
+                        >
+                          {task.rescheduleCount}×
+                        </Text>
+                      </View>
+                    )}
+                    {list && showList && (
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          gap: 4,
+                          alignItems: "center",
+                        }}
+                      >
+                        <View
+                          style={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: 3,
+                            backgroundColor: t[list.color],
+                          }}
+                        />
+                        <Text
+                          style={{
+                            fontFamily: fonts.body,
+                            fontSize: 12,
+                            color: t.muted,
+                          }}
+                        >
+                          {list.name}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                )
               ) : (
                 <Text
                   style={{

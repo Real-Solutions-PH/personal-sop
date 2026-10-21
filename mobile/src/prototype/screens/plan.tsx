@@ -51,9 +51,15 @@ import { useTheme } from "../theme"
 import { Button, confirm, Screen, Sheet, undo } from "../ui"
 import { Ring } from "../visual"
 import { useMoney } from "./finance"
+import { TaskStats } from "./task-stats"
 import { TaskRow } from "./tasks"
 
-export function TaskPlanPanel() {
+export function TaskPlanPanel({
+  statsInline = false,
+}: {
+  /** The stats follow on this page, so no links to them. */
+  statsInline?: boolean
+}) {
   const t = useTheme(),
     d = useTodayData(),
     stats = useStats(7),
@@ -112,12 +118,14 @@ export function TaskPlanPanel() {
             label="Search and sort tasks"
             onPress={() => go("/tasks/search")}
           />
-          <IconTap
-            size={40}
-            icon={ChartColumn}
-            label="Task stats"
-            onPress={() => go("/tasks/stats")}
-          />
+          {!statsInline && (
+            <IconTap
+              size={40}
+              icon={ChartColumn}
+              label="Task stats"
+              onPress={() => go("/tasks/stats")}
+            />
+          )}
           <IconTap
             size={40}
             icon={Plus}
@@ -352,7 +360,15 @@ export function TaskPlanPanel() {
               icon: History,
               href: "/tasks/completed",
             },
-            { title: "Task stats", icon: ListChecks, href: "/tasks/stats" },
+            ...(statsInline
+              ? []
+              : [
+                  {
+                    title: "Task stats",
+                    icon: ListChecks,
+                    href: "/tasks/stats",
+                  },
+                ]),
             {
               title: "Tasks settings",
               icon: Settings2,
@@ -399,7 +415,8 @@ export function TaskPlanPanel() {
 export function TasksHome() {
   return (
     <Screen title="Tasks" prototypeLayout>
-      <TaskPlanPanel />
+      <TaskPlanPanel statsInline />
+      <TaskStats embedded />
     </Screen>
   )
 }

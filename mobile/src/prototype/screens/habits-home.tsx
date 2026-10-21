@@ -338,7 +338,7 @@ export function HabitsHome() {
     >
       <View style={{ paddingTop: 4 }}>
         {!hs.length ? (
-          <Frame style={{ padding: 24 }}>
+          <Frame style={{ padding: 24, gap: 8, alignItems: "flex-start" }}>
             <Copy size={24} weight="display">
               No habit data yet
             </Copy>
@@ -346,9 +346,11 @@ export function HabitsHome() {
               Check off a habit for a few days and your completion rate, streaks
               and misses show up here.
             </Copy>
-            <SmallButton accent="hab" onPress={() => go("/habits/new")}>
-              Add a habit
-            </SmallButton>
+            <View style={{ marginTop: 8 }}>
+              <SmallButton accent="hab" onPress={() => go("/habits/new")}>
+                Add a habit
+              </SmallButton>
+            </View>
           </Frame>
         ) : (
           <>

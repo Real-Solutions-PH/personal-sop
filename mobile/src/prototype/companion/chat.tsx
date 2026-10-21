@@ -269,61 +269,71 @@ function Welcome({
           ? `${left} thing${left === 1 ? "" : "s"} left today. Tell me what happened or ask me anything; I keep track of your habits, money and training.`
           : "Today's plan is done. Steady work. Want a recap, or a look at tomorrow?"}
       </Text>
-      <View
-        style={{
-          flexDirection: "row",
-          flexWrap: "wrap",
-          gap: 8,
-          alignSelf: "stretch",
-        }}
-      >
-        {CAPABILITIES.map((c, i) => (
-          <Animated.View
-            key={c.label}
-            entering={FadeInDown.delay(60 * i)}
-            style={{ width: "48.5%" }}
+      {/* Cards go in rows of two; each row stretches both cards to the
+          taller one, so a row never has a short card beside a long one. */}
+      <View style={{ gap: 8, alignSelf: "stretch" }}>
+        {pairs(CAPABILITIES).map((row, r) => (
+          <View
+            key={row[0].label}
+            style={{ flexDirection: "row", gap: 8, alignItems: "stretch" }}
           >
-            <Pressable
-              cssInterop={false}
-              accessibilityRole="button"
-              accessibilityLabel={`${c.label}. ${c.body}`}
-              onPress={() => ask(c.prompt)}
-              style={({ pressed }) => ({
-                padding: 12,
-                gap: 4,
-                borderRadius: 16,
-                borderWidth: 1,
-                borderColor: t.line,
-                backgroundColor: pressed ? t.soft : t.card,
-                minHeight: 92,
-              })}
-            >
-              <c.icon size={18} color={t.hab} />
-              <Text
-                style={{
-                  color: t.text,
-                  fontFamily: fonts.semibold,
-                  fontSize: 14,
-                }}
+            {row.map((c, j) => (
+              <Animated.View
+                key={c.label}
+                entering={FadeInDown.delay(60 * (r * 2 + j))}
+                style={{ flex: 1 }}
               >
-                {c.label}
-              </Text>
-              <Text
-                style={{
-                  color: t.muted,
-                  fontFamily: fonts.body,
-                  fontSize: 12,
-                  lineHeight: 16,
-                }}
-              >
-                {c.body}
-              </Text>
-            </Pressable>
-          </Animated.View>
+                <Pressable
+                  cssInterop={false}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${c.label}. ${c.body}`}
+                  onPress={() => ask(c.prompt)}
+                  style={({ pressed }) => ({
+                    flex: 1,
+                    padding: 12,
+                    gap: 4,
+                    borderRadius: 16,
+                    borderWidth: 1,
+                    borderColor: t.line,
+                    backgroundColor: pressed ? t.soft : t.card,
+                    minHeight: 92,
+                  })}
+                >
+                  <c.icon size={18} color={t.hab} />
+                  <Text
+                    style={{
+                      color: t.text,
+                      fontFamily: fonts.semibold,
+                      fontSize: 14,
+                    }}
+                  >
+                    {c.label}
+                  </Text>
+                  <Text
+                    style={{
+                      color: t.muted,
+                      fontFamily: fonts.body,
+                      fontSize: 12,
+                      lineHeight: 16,
+                    }}
+                  >
+                    {c.body}
+                  </Text>
+                </Pressable>
+              </Animated.View>
+            ))}
+            {row.length === 1 && <View style={{ flex: 1 }} />}
+          </View>
         ))}
       </View>
     </View>
   )
+}
+
+function pairs<T>(xs: readonly T[]): T[][] {
+  const out: T[][] = []
+  for (let i = 0; i < xs.length; i += 2) out.push(xs.slice(i, i + 2))
+  return out
 }
 
 function DaySeparator({ day }: { day: string }) {

@@ -8,7 +8,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context"
 import { CaptureFile } from "../screens/capture-photo"
 
 const mockPick = jest.fn()
-const mockSend = jest.fn(() => "cap-1")
+const mockSend = jest.fn((..._a: unknown[]) => "cap-1")
 jest.mock("expo-document-picker", () => ({
   getDocumentAsync: (...a: unknown[]) => mockPick(...a),
 }))
