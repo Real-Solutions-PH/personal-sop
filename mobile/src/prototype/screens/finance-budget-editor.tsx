@@ -2,6 +2,7 @@ import * as A from "@domain/finance/actions"
 import * as C from "@domain/finance/calc"
 import type { Budget } from "@domain/finance/data"
 import { finStore } from "@domain/finance/store"
+import { currencySymbol } from "@domain/lib/money"
 import { Check } from "lucide-react-native"
 import { useState } from "react"
 import { View } from "react-native"
@@ -119,7 +120,7 @@ export function BudgetEditor({
             </Tap>
           )}
           <Field
-            label="Monthly limit ₱"
+            label={`Monthly limit ${currencySymbol()}`}
             value={limit}
             onChangeText={(v) => setLimit(v.replace(/[^\d.]/g, ""))}
             keyboardType="decimal-pad"

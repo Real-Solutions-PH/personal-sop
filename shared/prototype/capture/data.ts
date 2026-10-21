@@ -322,7 +322,7 @@ export const RULE_LABELS: {
   { key: "workout", label: "Workouts (text)", hint: "“ran 5k in 32 min”" },
   { key: "weighIn", label: "Weigh-ins", hint: "confirm if ±3% off" },
   { key: "meal", label: "Meals (estimates)", hint: "macros are guesses" },
-  { key: "expense", label: "Expenses", hint: "under the ₱ limit" },
+  { key: "expense", label: "Expenses", hint: "under the amount limit" },
   { key: "income", label: "Income", hint: "“got paid 35k”" },
   { key: "transfer", label: "Transfers", hint: "between your accounts" },
   { key: "journal", label: "Journal entries", hint: "private by default" },

@@ -2,6 +2,7 @@ import { editCard, undoCard } from "@domain/capture/actions"
 import type { Payload, RecordCard } from "@domain/capture/data"
 import { finStore } from "@domain/finance/store"
 import { habitsStore } from "@domain/habits/store"
+import { useCurrency } from "@domain/lib/money"
 import { tasksStore } from "@domain/tasks/store"
 import { useState } from "react"
 import { TextInput, View } from "react-native"
@@ -89,7 +90,8 @@ export function PayloadForm({
   const fin = finStore.use((s) => s),
     habits = habitsStore.use((s) => s.habits),
     lists = tasksStore.use((s) => s.lists),
-    t = useTheme()
+    t = useTheme(),
+    sym = useCurrency().symbol
   const accountOptions = fin.accounts
       .filter((a) => !a.archived)
       .map((a) => ({ value: a.id, label: a.name })),
@@ -110,7 +112,7 @@ export function PayloadForm({
           }}
         >
           <Copy size={20} muted weight="semibold">
-            ₱
+            {sym}
           </Copy>
           <TextInput
             accessibilityLabel="Amount"

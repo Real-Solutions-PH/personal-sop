@@ -20,6 +20,7 @@ import {
   updateProfile,
 } from "@domain/dash/store"
 import { derivedId } from "@domain/lib/ids"
+import { currencyStore, setCurrency } from "@domain/lib/money"
 import { privacyStore, togglePrivacy } from "@domain/lib/privacy"
 import type { StorageAdapter } from "@domain/lib/store"
 import { appearanceStore } from "@/prototype/theme"
@@ -108,6 +109,7 @@ beforeEach(() => {
   dashStore.set(blank())
   appearanceStore.set({ mode: "system" })
   privacyStore.set({ hidden: false })
+  currencyStore.set({ code: "PHP" })
 })
 
 afterAll(() => {
@@ -190,14 +192,16 @@ test("identity round trip keeps order and the goal link", () => {
   expect(roundTrip(identityMapper())).toBe(2)
 })
 
-test("profile round trip covers the dash, appearance and privacy fields", () => {
+test("profile round trip covers the dash, appearance, privacy and currency fields", () => {
   appearanceStore.set({ mode: "dark" })
   privacyStore.set({ hidden: true })
+  setCurrency("USD")
   setPush({ permission: "granted", morning: "06:30", evening: "21:15" })
   const cur = {
     dash: dashStore.get(),
     appearance: appearanceStore.get(),
     privacy: privacyStore.get(),
+    currency: currencyStore.get(),
   }
   const row = { ...profileToServer(cur), since: DAY }
   expect(row).toMatchObject({
@@ -205,9 +209,24 @@ test("profile round trip covers the dash, appearance and privacy fields", () => 
     handle: "kai.sop",
     appearance: "dark",
     privacy_hidden: true,
+    currency: "USD",
     push_review: true,
   })
   expect(profileFromServer(row, cur)).toEqual(cur)
+})
+
+test("a pulled currency the device does not know keeps the device's", () => {
+  const cur = {
+    dash: dashStore.get(),
+    appearance: appearanceStore.get(),
+    privacy: privacyStore.get(),
+    currency: currencyStore.get(),
+  }
+  const row = { ...profileToServer(cur), currency: "XXX" }
+  expect(profileFromServer(row, cur).currency).toEqual({ code: "PHP" })
+  expect(profileFromServer({ ...row, currency: "JPY" }, cur).currency).toEqual({
+    code: "JPY",
+  })
 })
 
 test("profile leaves out a value the server would refuse", () => {
@@ -217,6 +236,7 @@ test("profile leaves out a value the server would refuse", () => {
     dash: dashStore.get(),
     appearance: appearanceStore.get(),
     privacy: privacyStore.get(),
+    currency: currencyStore.get(),
   })
   expect(out).not.toHaveProperty("name")
   expect(out).not.toHaveProperty("handle")
@@ -240,6 +260,10 @@ test("profile: one edit per store sends only that field", () => {
   setOnboarded(false)
   expect(upserts(record(e.capture()), "profile")[0].data).toEqual({
     onboarded: false,
+  })
+  setCurrency("EUR")
+  expect(upserts(record(e.capture()), "profile")[0].data).toEqual({
+    currency: "EUR",
   })
 })
 

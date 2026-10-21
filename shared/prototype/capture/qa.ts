@@ -23,7 +23,8 @@ import {
 import { fitStore } from "../fitness/store"
 import { isDue, lk, logIndex, overallDays, streaks } from "../habits/logic"
 import { habitsStore } from "../habits/store"
-import { dayKey, dayOffset, peso } from "../lib/day"
+import { dayKey, dayOffset } from "../lib/day"
+import { money } from "../lib/money"
 import { tasksStore } from "../tasks/store"
 import type { AnswerCard, InfoCard } from "./data"
 import { captureStore } from "./store"
@@ -155,14 +156,14 @@ function spendAnswer(q: string): Out {
   return {
     t: "answer",
     title: `Spent on ${name} · ${p.label}`,
-    value: peso(total),
+    value: money(total),
     money: total,
     sub: bv
-      ? `${Math.round(bv.pct * 100)}% of your ${peso(bv.limit)} ${budget?.name} budget · ${bv.daysLeft} days left`
+      ? `${Math.round(bv.pct * 100)}% of your ${money(bv.limit)} ${budget?.name} budget · ${bv.daysLeft} days left`
       : undefined,
     accent: "fin",
     bars: data.length > 1 ? { labels, data } : undefined,
-    list: top.map(([k, v]) => ({ label: k, value: peso(v) })),
+    list: top.map(([k, v]) => ({ label: k, value: money(v) })),
     basis: `Based on ${recs.length} transaction${recs.length === 1 ? "" : "s"} · ${p.label}`,
     links: [
       { label: "Open in Finance", href: "/finance/reports/category" },
@@ -182,7 +183,7 @@ function balanceAnswer(q: string): Out {
     return {
       t: "answer",
       title: `${acct.name} balance`,
-      value: peso(bal[acct.id] ?? 0),
+      value: money(bal[acct.id] ?? 0),
       money: bal[acct.id] ?? 0,
       accent: "fin",
       basis: "As of your last entry",
@@ -192,14 +193,14 @@ function balanceAnswer(q: string): Out {
   return {
     t: "answer",
     title: "Net worth",
-    value: peso(nw),
+    value: money(nw),
     money: nw,
     accent: "fin",
     list: s.accounts
       .filter((a) => !a.archived)
       .map((a) => ({
         label: a.name,
-        value: peso(bal[a.id] ?? 0),
+        value: money(bal[a.id] ?? 0),
         href: `/finance/accounts/${a.id}`,
       })),
     basis: `${s.accounts.filter((a) => !a.archived).length} accounts`,
@@ -487,7 +488,7 @@ function adviceAnswer(q: string): Out {
     t: "info",
     tone: "advice",
     title: `Short answer: ${inst ? "0% installment is fine if the monthly fits" : "check how many months your savings cover first"}`,
-    body: `You've kept about ${peso(monthlyFree)} a month free over the last 90 days.${amount ? ` ${peso(amount)}${inst ? ` over 12 months is ${peso(amount / 12)}/mo` : ""}.` : ""} The Finance advisor can run it against your projection.`,
+    body: `You've kept about ${money(monthlyFree)} a month free over the last 90 days.${amount ? ` ${money(amount)}${inst ? ` over 12 months is ${money(amount / 12)}/mo` : ""}.` : ""} The Finance advisor can run it against your projection.`,
     actions: [
       {
         label: "Ask Finance advisor",
@@ -558,6 +559,6 @@ export function budgetNote(categoryId?: string): string | undefined {
   const v = budgetView(s, b)
   const left = v.limit - v.spent
   return left >= 0
-    ? `${peso(left)} left in ${b.name} this month`
-    : `Over ${b.name} budget by ${peso(-left)}`
+    ? `${money(left)} left in ${b.name} this month`
+    : `Over ${b.name} budget by ${money(-left)}`
 }

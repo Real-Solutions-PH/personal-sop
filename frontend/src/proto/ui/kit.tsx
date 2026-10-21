@@ -14,7 +14,7 @@ import {
   useRef,
 } from "react"
 import { cn } from "@/lib/utils"
-import { peso } from "../lib/day"
+import { money } from "../lib/money"
 import { privacyStore } from "../lib/privacy"
 
 // Shared mobile UI kit for the prototype. Module screens compose these; module
@@ -730,7 +730,7 @@ export function Money({
       )}
     >
       {sign}
-      {peso(signed ? Math.abs(value) : value)}
+      {money(signed ? Math.abs(value) : value)}
     </span>
   )
 }

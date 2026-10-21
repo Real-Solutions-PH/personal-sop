@@ -1,4 +1,5 @@
 import { dayKey } from "../lib/day"
+import { moneyCompact } from "../lib/money"
 import {
   type Account,
   type Budget,
@@ -738,14 +739,7 @@ export function statementClosing(
   }
   return b
 }
-export const compact = (n: number) => {
-  const a = Math.abs(n)
-  const sign = n < 0 ? "−" : ""
-  if (a >= 1000000) return `${sign}₱${(a / 1000000).toFixed(1)}M`
-  if (a >= 10000) return `${sign}₱${Math.round(a / 1000)}k`
-  if (a >= 1000) return `${sign}₱${(a / 1000).toFixed(1)}k`
-  return `${sign}₱${Math.round(a)}`
-}
+export const compact = (n: number) => moneyCompact(n)
 export const pct = (v: number, digits = 0) => `${(v * 100).toFixed(digits)}%`
 export function suggestCategory(
   s: FinState,

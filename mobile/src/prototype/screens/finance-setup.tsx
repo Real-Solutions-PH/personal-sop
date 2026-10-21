@@ -1,6 +1,7 @@
 import * as A from "@domain/finance/actions"
 import type { AccountType } from "@domain/finance/data"
 import { finStore } from "@domain/finance/store"
+import { useCurrency } from "@domain/lib/money"
 import { Check, Download } from "lucide-react-native"
 import { useState } from "react"
 import { TextInput, View } from "react-native"
@@ -18,6 +19,7 @@ export function FinanceSetup({
 } = {}) {
   const s = finStore.use((s) => s),
     t = useTheme(),
+    sym = useCurrency().symbol,
     [rows, setRows] = useState(() =>
       [
         {
@@ -182,7 +184,9 @@ export function FinanceSetup({
               />
               <TextInput
                 accessibilityLabel={`${r.name} balance`}
-                placeholder={r.type === "credit" ? "owed ₱" : "balance ₱"}
+                placeholder={
+                  r.type === "credit" ? `owed ${sym}` : `balance ${sym}`
+                }
                 placeholderTextColor={t.muted}
                 value={r.balance}
                 onChangeText={(v) =>
@@ -207,7 +211,7 @@ export function FinanceSetup({
             {r.type === "credit" && r.on && (
               <Field
                 label=""
-                placeholder="Credit limit ₱"
+                placeholder={`Credit limit ${sym}`}
                 value={r.limit}
                 onChangeText={(v) =>
                   set(r.key, { limit: v.replace(/[^\d.]/g, "") })
@@ -227,14 +231,14 @@ export function FinanceSetup({
         <SectionHeading>Unlock the projection · optional</SectionHeading>
         <Frame style={{ padding: 16 }}>
           <Field
-            label="Salary per payday ₱ (15th & 30th)"
+            label={`Salary per payday ${sym} (15th & 30th)`}
             placeholder="e.g. 27500"
             value={salary}
             onChangeText={(v) => setSalary(v.replace(/[^\d]/g, ""))}
             keyboardType="decimal-pad"
           />
           <Field
-            label="Rent ₱ (5th of the month)"
+            label={`Rent ${sym} (5th of the month)`}
             placeholder="e.g. 12000"
             value={rent}
             onChangeText={(v) => setRent(v.replace(/[^\d]/g, ""))}

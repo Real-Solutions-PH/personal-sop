@@ -5,6 +5,7 @@ import { latestBodyweight } from "../fitness/calc"
 import { fitStore } from "../fitness/store"
 import { habitsStore } from "../habits/store"
 import { dayKey } from "../lib/day"
+import { currentCurrency, money } from "../lib/money"
 import { splitCapture } from "../tasks/parse"
 import { tasksStore } from "../tasks/store"
 import type {
@@ -125,11 +126,30 @@ const EXERCISES: [RegExp, string][] = [
 const pad = (n: number) => String(n).padStart(2, "0")
 export const title = (s: string) =>
   s.replace(/\b\w/g, (c) => c.toUpperCase()).trim()
+// The user's currency in the money tests below. ₱ and "php" stay understood
+// for every user (the prototype's vocabulary); the user's own symbol and code
+// are added. A dollar amount is "foreign" only for a PHP user: the ₱56/$ rate
+// is the prototype's peso ruling and nothing converts other currencies.
+const escapeRx = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+/** Regex alternation of the money marks: "₱|php" plus the user's own. */
+export function moneyMarks(): string {
+  const c = currentCurrency()
+  const marks = ["₱", "php"]
+  for (const m of [c.symbol.toLowerCase(), c.code.toLowerCase()])
+    if (!marks.includes(m)) marks.push(m)
+  return marks.map(escapeRx).join("|")
+}
+const hasSymbol = (s: string) => {
+  const sym = currentCurrency().symbol.toLowerCase()
+  return /[₱$]/.test(s) || s.includes(sym)
+}
 export function parseAmount(s: string): {
   amount: number
   usd?: boolean
 } | null {
-  const usd = /\$\s?\d|\b\d+(\.\d+)?\s?(usd|dollars?)\b/i.test(s)
+  const usd =
+    currentCurrency().code === "PHP" &&
+    /\$\s?\d|\b\d+(\.\d+)?\s?(usd|dollars?)\b/i.test(s)
   const re =
     /(?:₱|php|p|\$)?\s?(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s?(k\b)?(?!\s?(?:min|mins|minutes|km|kg|kilos?|x\b|x\d|pcs?|pages?|glasses?|cups?|reps?|sets?|am\b|pm\b|th\b|st\b|nd\b|rd\b|hours?|hrs?|steps?|servings?|%|:\d))/gi
   for (const m of s.matchAll(re)) {
@@ -504,14 +524,18 @@ export function classify(seg: string, hint?: string): Kind {
   if (
     amt &&
     (hint === "expense" ||
-      /\b(spent|spend|paid|bought|gastos|gumastos|bayad|binayad|cost|₱|php)\b/.test(
-        s,
-      ) ||
-      /[₱$]/.test(s) ||
+      new RegExp(
+        `\\b(spent|spend|paid|bought|gastos|gumastos|bayad|binayad|cost|${moneyMarks()})\\b`,
+      ).test(s) ||
+      hasSymbol(s) ||
       moneyCategory(s).cat ||
       accountIn(s))
   ) {
-    if (hint === "meal" && !/\b(spent|paid|₱|php)\b/.test(s)) return "meal"
+    if (
+      hint === "meal" &&
+      !new RegExp(`\\b(spent|paid|${moneyMarks()})\\b`).test(s)
+    )
+      return "meal"
     return "expense"
   }
   if (
@@ -630,12 +654,12 @@ function expenseDraft(seg: string, ctx: ParseCtx): RecordDraft | null {
   }
   if (a.usd) {
     d.confirm = true
-    d.warn = `Foreign currency: $${a.amount} ≈ ₱${amount.toLocaleString()} at ₱56/$ (FX rules are an open question in Finance).`
+    d.warn = `Foreign currency: $${a.amount} ≈ ${money(amount)} at ₱56/$ (FX rules are an open question in Finance).`
   }
   if (!cat) {
     const recent = recentExpenseCats()
     d.ask = {
-      question: `What was ₱${amount.toLocaleString()} for?`,
+      question: `What was ${money(amount)} for?`,
       field: "categoryId",
       free: true,
       options: recent,
@@ -837,7 +861,7 @@ function incomeDraft(seg: string): RecordDraft | null {
     ask: acct
       ? undefined
       : {
-          question: `Which account did the ₱${a.amount.toLocaleString()} land in?`,
+          question: `Which account did the ${money(a.amount)} land in?`,
           field: "accountId",
           options: accountOptions(),
         },
@@ -865,7 +889,7 @@ function transferDraft(seg: string): RecordDraft | null {
     payload: { kind: "transfer", amount: a.amount, from, to },
     ask: !from
       ? {
-          question: `Moved ₱${a.amount.toLocaleString()} from which account?`,
+          question: `Moved ${money(a.amount)} from which account?`,
           field: "from",
           options: accountOptions().filter((o) => o.value !== to),
         }
@@ -887,7 +911,7 @@ function plannedDraft(seg: string): RecordDraft | null {
     payee ??
     title(
       seg
-        .replace(/(₱|php)?\s?\d[\d,.]*k?/gi, "")
+        .replace(new RegExp(`(${moneyMarks()})?\\s?\\d[\\d,.]*k?`, "gi"), "")
         .replace(/\bevery.*$/i, "")
         .trim() || "Bill",
     )
@@ -1078,7 +1102,10 @@ function factsInJournal(text: string, ctx: ParseCtx): RecordDraft[] {
       })
   }
   const spent = text.match(
-    /\bspent\s+(?:₱|php)?\s?(\d[\d,]*k?)\s+on\s+([a-z ]{2,20})/i,
+    new RegExp(
+      `\\bspent\\s+(?:${moneyMarks()})?\\s?(\\d[\\d,]*k?)\\s+on\\s+([a-z ]{2,20})`,
+      "i",
+    ),
   )
   if (spent) {
     const d = expenseDraft(spent[0], ctx)

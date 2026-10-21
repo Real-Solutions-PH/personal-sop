@@ -6,14 +6,19 @@ import { fitStore } from "@domain/fitness/store"
 import { logIndex, overallStats, streaks } from "@domain/habits/logic"
 import { habitsStore } from "@domain/habits/store"
 import { dayKey } from "@domain/lib/day"
+import {
+  type CurrencyInfo,
+  currencyPrefix,
+  useCurrency,
+} from "@domain/lib/money"
 import { useStats } from "@domain/tasks/hooks"
 import { useMemo } from "react"
 import type { Progress, Scorecard } from "./store"
 
-const peso = (n: number) =>
+const short = (n: number, c: CurrencyInfo) =>
   Math.abs(n) >= 1000
-    ? `₱${(n / 1000).toFixed(n >= 100_000 ? 0 : 1)}k`
-    : `₱${Math.round(n)}`
+    ? `${currencyPrefix(c)}${(n / 1000).toFixed(n >= 100_000 ? 0 : 1)}k`
+    : `${currencyPrefix(c)}${Math.round(n)}`
 
 /**
  * Live progress attachments built from the user's own data, so a post or
@@ -26,6 +31,7 @@ export function useProgressSources(): Progress[] {
   const habits = habitsStore.use((s) => s)
   const fin = finStore.use((s) => s)
   const tasks = useStats(7)
+  const cur = useCurrency()
   return useMemo(() => {
     const out: Progress[] = []
     if (life.score !== null)
@@ -128,19 +134,20 @@ export function useProgressSources(): Progress[] {
       out.push({
         accent: "fin",
         kind: "Savings",
-        title: change >= 0 ? `Up ${peso(change)} in 90 days` : "Net worth",
+        title:
+          change >= 0 ? `Up ${short(change, cur)} in 90 days` : "Net worth",
         stats: [
-          { label: "Net worth", value: peso(nw) },
+          { label: "Net worth", value: short(nw, cur) },
           {
             label: "90-day change",
-            value: `${change >= 0 ? "+" : "−"}${peso(Math.abs(change))}`,
+            value: `${change >= 0 ? "+" : "−"}${short(Math.abs(change), cur)}`,
           },
         ],
         spark: series.filter((_, i) => i % 6 === 0),
       })
     }
     return out
-  }, [life, target, fit, habits, fin, tasks])
+  }, [life, target, fit, habits, fin, tasks, cur])
 }
 
 /** The signed-in user's public scorecard, built from their real data. */

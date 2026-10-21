@@ -3,6 +3,7 @@ import * as C from "@domain/finance/calc"
 import type { Account, AccountType } from "@domain/finance/data"
 import { finStore } from "@domain/finance/store"
 import { dayKey } from "@domain/lib/day"
+import { currentCurrency } from "@domain/lib/money"
 import {
   Archive,
   ArrowDown,
@@ -399,7 +400,7 @@ export function Accounts({ id }: { id?: string }) {
             onClose={() => setAdjust(false)}
           >
             <Field
-              label="Actual balance (PHP)"
+              label={`Actual balance (${currentCurrency().code})`}
               value={actual}
               onChangeText={setActual}
               keyboardType="decimal-pad"

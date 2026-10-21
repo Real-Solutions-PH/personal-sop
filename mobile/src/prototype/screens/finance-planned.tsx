@@ -3,6 +3,7 @@ import * as C from "@domain/finance/calc"
 import type { PlannedItem } from "@domain/finance/data"
 import { finStore } from "@domain/finance/store"
 import { dayKey } from "@domain/lib/day"
+import { currencySymbol } from "@domain/lib/money"
 import { useLocalSearchParams } from "expo-router"
 import { Pencil, Plus } from "lucide-react-native"
 import { useState } from "react"
@@ -124,7 +125,7 @@ export function DueSheet({
         </View>
       </Line>
       <Field
-        label="Actual amount ₱"
+        label={`Actual amount ${currencySymbol()}`}
         value={amount}
         onChangeText={setAmount}
         keyboardType="decimal-pad"

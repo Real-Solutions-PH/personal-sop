@@ -2,6 +2,7 @@ import * as A from "@domain/finance/actions"
 import * as C from "@domain/finance/calc"
 import { finStore } from "@domain/finance/store"
 import { dayKey } from "@domain/lib/day"
+import { useCurrency } from "@domain/lib/money"
 import { privacyStore, togglePrivacy } from "@domain/lib/privacy"
 import {
   Archive,
@@ -16,7 +17,9 @@ import {
 import { useState } from "react"
 import { ScrollView, View } from "react-native"
 import { toast } from "sonner-native"
+import { CurrencyRow } from "../currency-picker"
 import { exportCsv } from "../media"
+import { amountDraft, groupAmount } from "../money-input"
 import {
   Copy,
   Frame,
@@ -26,7 +29,6 @@ import {
   Tap,
 } from "../native-kit"
 import { go } from "../navigation"
-import { groupPesos, pesoDraft } from "../peso-input"
 import { Switch } from "../switch"
 import { useTheme } from "../theme"
 import { Button, confirm, Empty, Field, Screen, Sheet } from "../ui"
@@ -106,6 +108,7 @@ export function FinanceSettings() {
     st = s.settings,
     t = useTheme(),
     hidden = privacyStore.use((s) => s.hidden),
+    cur = useCurrency(),
     [floor, setFloor] = useState(String(st.safetyFloor)),
     [ack, setAck] = useState(false)
   const row = (
@@ -158,6 +161,7 @@ export function FinanceSettings() {
       <View>
         <SectionHeading>Logging</SectionHeading>
         <Frame style={{ padding: 16, gap: 8 }}>
+          <CurrencyRow />
           <Copy size={12} muted weight="medium" style={caps}>
             Default account
           </Copy>
@@ -226,7 +230,7 @@ export function FinanceSettings() {
           </Copy>
           {togg(
             "Privacy mode",
-            "Blurs every ₱ amount app-wide. Percentages stay visible.",
+            "Blurs every amount app-wide. Percentages stay visible.",
             hidden,
             togglePrivacy,
           )}
@@ -253,9 +257,9 @@ export function FinanceSettings() {
             (includeUnplanned) => A.updateSettings({ includeUnplanned }),
           )}
           <Field
-            label="Minimum balance ₱"
-            value={groupPesos(floor)}
-            onChangeText={(v) => setFloor(pesoDraft(v))}
+            label={`Minimum balance ${cur.symbol}`}
+            value={groupAmount(floor)}
+            onChangeText={(v) => setFloor(amountDraft(v, cur.digits))}
             onBlur={() => A.updateSettings({ safetyFloor: Number(floor || 0) })}
             keyboardType="decimal-pad"
           />

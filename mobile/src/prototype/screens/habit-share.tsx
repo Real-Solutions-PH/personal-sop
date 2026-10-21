@@ -421,7 +421,7 @@ export function HabitShare() {
           )}
         </Frame>
         <Copy size={11} muted style={{ textAlign: "center" }}>
-          Share cards never include ₱ amounts.
+          Share cards never include money amounts.
         </Copy>
       </ShareComposer>
     </Screen>

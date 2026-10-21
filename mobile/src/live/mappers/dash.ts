@@ -35,6 +35,7 @@ import type {
 import { dashStore } from "@domain/dash/store"
 import { dayKey } from "@domain/lib/day"
 import { derivedId, isUuid } from "@domain/lib/ids"
+import { currencyStore, isCurrency } from "@domain/lib/money"
 import { privacyStore } from "@domain/lib/privacy"
 import { createStore, type Store } from "@domain/lib/store"
 import { appearanceStore } from "@/prototype/theme"
@@ -115,11 +116,12 @@ function keyedRecord<V>(opts: {
 
 // --------------------------------------------------------------- profile
 
-/** The three stores the profile row spans, read and written as one. */
+/** The four stores the profile row spans, read and written as one. */
 interface ProfileState {
   dash: DashState
   appearance: ReturnType<typeof appearanceStore.get>
   privacy: ReturnType<typeof privacyStore.get>
+  currency: ReturnType<typeof currencyStore.get>
 }
 
 function combined(): Store<ProfileState> {
@@ -128,13 +130,15 @@ function combined(): Store<ProfileState> {
     const dash = dashStore.get()
     const appearance = appearanceStore.get()
     const privacy = privacyStore.get()
+    const currency = currencyStore.get()
     if (
       !last ||
       last.dash !== dash ||
       last.appearance !== appearance ||
-      last.privacy !== privacy
+      last.privacy !== privacy ||
+      last.currency !== currency
     )
-      last = { dash, appearance, privacy }
+      last = { dash, appearance, privacy, currency }
     return last
   }
   const set: Store<ProfileState>["set"] = (next) => {
@@ -143,6 +147,7 @@ function combined(): Store<ProfileState> {
     if (v.dash !== cur.dash) dashStore.set(v.dash)
     if (v.appearance !== cur.appearance) appearanceStore.set(v.appearance)
     if (v.privacy !== cur.privacy) privacyStore.set(v.privacy)
+    if (v.currency !== cur.currency) currencyStore.set(v.currency)
   }
   return {
     get,
@@ -155,6 +160,7 @@ function combined(): Store<ProfileState> {
         dashStore.subscribe(l),
         appearanceStore.subscribe(l),
         privacyStore.subscribe(l),
+        currencyStore.subscribe(l),
       ]
       return () => {
         for (const off of offs) off()
@@ -180,6 +186,7 @@ export function profileToServer(v: ProfileState): Payload {
     target_threshold: d.targetThreshold,
     appearance: v.appearance.mode,
     privacy_hidden: v.privacy.hidden,
+    currency: v.currency.code,
     onboarded: d.onboarded,
     setup_hidden: d.setupHidden,
     install_dismissed: d.installDismissed,
@@ -239,6 +246,8 @@ export function profileFromServer(
       mode: pick(APPEARANCES, row.appearance, cur.appearance.mode),
     },
     privacy: { ...cur.privacy, hidden: Boolean(row.privacy_hidden) },
+    // An unknown code keeps the device's (fail closed: never a blank symbol).
+    currency: isCurrency(row.currency) ? { code: row.currency } : cur.currency,
   }
 }
 

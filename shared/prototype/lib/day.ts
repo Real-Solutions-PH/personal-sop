@@ -19,8 +19,6 @@ export const weekday = (key: string) => new Date(`${key}T12:00:00`).getDay()
 export const isEvening = (d: Date = new Date(), start = "18:00") =>
   `${pad(d.getHours())}:${pad(d.getMinutes())}` >= start ||
   d.getHours() < DAY_START_HOUR
-const pesoFmt = new Intl.NumberFormat("en-PH", { maximumFractionDigits: 0 })
-export const peso = (n: number) => `₱${pesoFmt.format(n)}`
 export function fmtDuration(sec: number): string {
   const h = Math.floor(sec / 3600)
   const m = Math.floor((sec % 3600) / 60)

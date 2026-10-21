@@ -287,7 +287,7 @@ export function Me() {
           />
           <LinkRow
             title="Share a card"
-            detail="Story or post, no ₱ ever"
+            detail="Story or post, no amounts ever"
             icon={Share2}
             accent="fit"
             href="/stats/share"
@@ -339,7 +339,7 @@ export function Me() {
           <LinkRow title="AI & connector" icon={Bot} href="/capture/settings" />
           <LinkRow
             title="Privacy mode"
-            detail="Blur every ₱ amount"
+            detail="Blur every money amount"
             icon={Eye}
             onPress={togglePrivacy}
             right={

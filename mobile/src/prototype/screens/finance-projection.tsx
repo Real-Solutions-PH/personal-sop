@@ -2,6 +2,7 @@ import * as A from "@domain/finance/actions"
 import * as C from "@domain/finance/calc"
 import { finStore } from "@domain/finance/store"
 import { dayKey } from "@domain/lib/day"
+import { currencySymbol } from "@domain/lib/money"
 import { privacyStore } from "@domain/lib/privacy"
 import { useLocalSearchParams } from "expo-router"
 import { Bot, ChevronDown, Sparkles, X } from "lucide-react-native"
@@ -335,7 +336,7 @@ export function Projection() {
             </View>
             <View style={{ flex: 1 }}>
               <Field
-                label="Price ₱"
+                label={`Price ${currencySymbol()}`}
                 keyboardType="number-pad"
                 value={amount}
                 onChangeText={(v) => setAmount(v.replace(/[^\d]/g, ""))}
@@ -689,7 +690,7 @@ export function Projection() {
               </View>
             ))}
           <Field
-            label="Minimum balance ₱"
+            label={`Minimum balance ${currencySymbol()}`}
             value={String(floor)}
             onChangeText={(v) => {
               if (Number.isFinite(Number(v)) && Number(v) >= 0)
