@@ -193,7 +193,8 @@ export interface SheetProps {
 }
 
 /** Toast text that respects privacy mode. */
-export const amt = (n: number) => (privacyStore.get().hidden ? "₱•••" : money(n))
+export const amt = (n: number) =>
+  privacyStore.get().hidden ? "₱•••" : money(n)
 
 // ------------------------------------------------------------------ FIN-05
 
