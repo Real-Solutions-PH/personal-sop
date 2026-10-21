@@ -39,6 +39,8 @@ export type StepItem = {
   summary?: string
   card_id?: string
   state?: string
+  /** A call that wrote several cards (plain tasks and reminders apart). */
+  cards?: { card_id: string; state: string; label: string }[]
 }
 
 // What a running step says before its result arrives; the finished step

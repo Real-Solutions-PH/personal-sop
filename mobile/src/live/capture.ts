@@ -737,6 +737,12 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
               step.card_id = r.card_id
               step.state = String(r.state ?? "")
             }
+            if (Array.isArray(r.cards))
+              step.cards = (r.cards as Row[]).map((c) => ({
+                card_id: String(c.card_id),
+                state: String(c.state ?? ""),
+                label: String(c.label ?? ""),
+              }))
             return sol()
           }
           case "RUN_FINISHED": {

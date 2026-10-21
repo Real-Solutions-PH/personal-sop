@@ -7,9 +7,11 @@ import { fireEvent, render, screen } from "@testing-library/react-native"
 import { BlockView } from "../companion/blocks"
 
 const mockUndo = jest.fn()
+const mockConfirm = jest.fn()
 jest.mock("@domain/capture/engine", () => ({
   ...jest.requireActual("@domain/capture/engine"),
   undoCard: (...a: unknown[]) => mockUndo(...a),
+  confirmCard: (...a: unknown[]) => mockConfirm(...a),
 }))
 jest.mock("expo-router", () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn() },
@@ -43,6 +45,7 @@ beforeEach(() => {
   })
   resetAll()
   mockUndo.mockReset()
+  mockConfirm.mockReset()
 })
 
 test("running, finished and failed steps read as such; a saved write offers Undo", () => {
@@ -123,4 +126,50 @@ test("a write still waiting shows no action until its card has arrived", () => {
     />,
   )
   expect(screen.queryByRole("button", { name: "Confirm" })).toBeNull()
+})
+
+test("a step with a saved task and a waiting reminder offers Undo and Confirm apart", () => {
+  captureStore.set((s) => ({
+    ...s,
+    captures: [
+      {
+        id: "cap-2",
+        at: new Date().toISOString(),
+        source: "chat",
+        text: "buy milk, remind me to call mom",
+        status: "needs_input",
+        reply: {
+          items: [
+            { t: "record", id: "c-milk", kind: "task", state: "saved" },
+            { t: "record", id: "c-mom", kind: "task", state: "proposed" },
+          ],
+        },
+      } as never,
+    ],
+  }))
+  render(
+    <BlockView
+      block={{
+        t: "steps",
+        items: [
+          {
+            id: "s",
+            tool: "create_tasks",
+            label: "Adding to your tasks",
+            ok: true,
+            summary:
+              "Added 2 tasks: Buy milk, Call mom (1 waiting for your OK)",
+            cards: [
+              { card_id: "c-milk", state: "saved", label: "Buy milk" },
+              { card_id: "c-mom", state: "proposed", label: "Call mom" },
+            ],
+          },
+        ],
+      }}
+    />,
+  )
+  fireEvent.press(screen.getByRole("button", { name: "Undo" }))
+  expect(mockUndo).toHaveBeenCalledWith("c-milk")
+  fireEvent.press(screen.getByRole("button", { name: "Confirm" }))
+  expect(mockConfirm).toHaveBeenCalledWith("c-mom")
 })

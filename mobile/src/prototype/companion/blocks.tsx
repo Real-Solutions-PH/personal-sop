@@ -1008,41 +1008,72 @@ function StepsBlock({ items }: { items: StepItem[] }) {
       }}
     >
       {items.map((s) => (
-        <View
-          key={s.id}
-          accessibilityLabel={s.running ? `${s.label}…` : s.summary || s.label}
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 8,
-            paddingHorizontal: 12,
-            paddingVertical: 7,
-          }}
-        >
-          <View style={{ width: 16, alignItems: "center" }}>
-            {s.running ? (
-              <ActivityIndicator size="small" color={t.muted} />
-            ) : s.ok === false ? (
-              <CircleAlert size={15} color={t.bad} />
-            ) : (
-              <Check size={15} color={t.good} />
-            )}
-          </View>
-          <Text
-            numberOfLines={2}
+        <View key={s.id}>
+          <View
+            accessibilityLabel={
+              s.running ? `${s.label}…` : s.summary || s.label
+            }
             style={{
-              flex: 1,
-              color: s.running ? t.muted : t.text,
-              fontFamily: fonts.body,
-              fontSize: 13,
-              lineHeight: 18,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 8,
+              paddingHorizontal: 12,
+              paddingVertical: 7,
             }}
           >
-            {s.running ? `${s.label}…` : s.summary || s.label}
-          </Text>
-          {s.card_id && !s.running ? (
-            <StepCard id={s.card_id} state={s.state} />
-          ) : null}
+            <View style={{ width: 16, alignItems: "center" }}>
+              {s.running ? (
+                <ActivityIndicator size="small" color={t.muted} />
+              ) : s.ok === false ? (
+                <CircleAlert size={15} color={t.bad} />
+              ) : (
+                <Check size={15} color={t.good} />
+              )}
+            </View>
+            <Text
+              numberOfLines={2}
+              style={{
+                flex: 1,
+                color: s.running ? t.muted : t.text,
+                fontFamily: fonts.body,
+                fontSize: 13,
+                lineHeight: 18,
+              }}
+            >
+              {s.running ? `${s.label}…` : s.summary || s.label}
+            </Text>
+            {s.card_id && !s.running ? (
+              <StepCard id={s.card_id} state={s.state} />
+            ) : null}
+          </View>
+          {s.running
+            ? null
+            : (s.cards ?? []).map((c) => (
+                <View
+                  key={c.card_id}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 8,
+                    paddingLeft: 36,
+                    paddingRight: 12,
+                    paddingVertical: 5,
+                  }}
+                >
+                  <Text
+                    numberOfLines={1}
+                    style={{
+                      flex: 1,
+                      color: t.muted,
+                      fontFamily: fonts.body,
+                      fontSize: 12,
+                    }}
+                  >
+                    {c.label}
+                  </Text>
+                  <StepCard id={c.card_id} state={c.state} />
+                </View>
+              ))}
         </View>
       ))}
     </View>

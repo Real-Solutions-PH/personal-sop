@@ -544,13 +544,30 @@ def capture_tools(run: Run) -> list[BaseTool]:
             }
             for t in a.tasks
         ]
-        d = RecordDraft(
-            kind="task",
-            target="tasks",
-            rule="reminder" if any(t["remind"] for t in tasks) else "task",
-            payload={"kind": "task", "tasks": tasks},
-        )
-        return _card(run, d)
+        # Plain to-dos and reminders tier differently (a reminder waits for
+        # the user's OK), so they become separate cards: one reminder in the
+        # call must not hold the plain tasks back.
+        groups = [
+            ("task", [t for t in tasks if not t["remind"]]),
+            ("reminder", [t for t in tasks if t["remind"]]),
+        ]
+        made = [
+            {
+                **_card(
+                    run,
+                    RecordDraft(
+                        kind="task",
+                        target="tasks",
+                        rule=rule,
+                        payload={"kind": "task", "tasks": group},
+                    ),
+                ),
+                "titles": [t["title"] for t in group],
+            }
+            for rule, group in groups
+            if group
+        ]
+        return made[0] if len(made) == 1 else {"cards": made}
 
     def complete_task(**kw: Any) -> dict[str, Any]:
         a = QueryArgs(**kw)

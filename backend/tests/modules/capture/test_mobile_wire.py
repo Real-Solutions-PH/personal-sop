@@ -107,9 +107,7 @@ def _frames() -> list[tuple[str, str, Any]]:
     return out
 
 
-@pytest.mark.parametrize("frame", _frames(), ids=lambda f: f"{f[0]}-{f[1]}")
-def test_recorded_frame_matches_the_schema(frame: tuple[str, str, Any]) -> None:
-    _, event, data = frame
+def _check(event: str, data: Any) -> None:
     if event == "card":
         model: type[BaseModel] = (
             CardPublic if data.get("t") == "record" else ReplyPublic
@@ -123,12 +121,34 @@ def test_recorded_frame_matches_the_schema(frame: tuple[str, str, Any]) -> None:
         FRAME_MODELS[event].model_validate(data)
     elif event == "ask":
         assert set(data) == {"card_id", "ask"}
-    elif event == "text.delta":
+    elif event in ("text.delta", "capture.text"):
         assert set(data) == {"text"}
     elif event == "block":
         assert isinstance(data.get("t"), str)
     else:
         raise AssertionError(f"unknown frame {event}")
+
+
+def _check_agui(data: dict[str, Any]) -> None:
+    """A companion AG-UI event (ADR-0015): a valid AG-UI event whose
+    payloads match the server's schemas."""
+    from ag_ui.core import Event
+    from pydantic import TypeAdapter
+
+    TypeAdapter(Event).validate_python(data)
+    if data["type"] == "CUSTOM":
+        _check(data["name"], data["value"])
+    elif data["type"] == "RUN_FINISHED":
+        AskOut.model_validate(data["result"])
+
+
+@pytest.mark.parametrize("frame", _frames(), ids=lambda f: f"{f[0]}-{f[1]}")
+def test_recorded_frame_matches_the_schema(frame: tuple[str, str, Any]) -> None:
+    _, event, data = frame
+    if event == "message" and isinstance(data, dict) and "type" in data:
+        _check_agui(data)
+    else:
+        _check(event, data)
 
 
 def test_recorded_rows_match_the_sync_schemas() -> None:

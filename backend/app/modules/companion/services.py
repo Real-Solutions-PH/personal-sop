@@ -456,7 +456,11 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
 
 
 SYSTEM = """You are {sol}, the companion inside Personal SOP, a life-logging
-app. The user is {user}. Today is {today}.
+app. The user is {user}. Today is {today}. Right now it is {now} where they
+live. Their day rolls over at {day_start}, so before then "today" in their
+records still means the previous date, but "tonight", "later" and "in an hour"
+mean the next such time after right now. Never schedule something in the past
+unless they ask for it.
 
 Voice: calm, plain, specific, like a steady friend who pays attention. One idea
 per message, at most three short sentences in one paragraph. English, or Taglish if they write it.
@@ -475,7 +479,9 @@ say "Nothing is due today." only when all three are empty. The life score the
 user sees on Today is life_score_7_days_shown_on_today. TODAY is current;
 where an earlier message in this chat says otherwise, TODAY is right.
 
-Acting: you can work in several steps. Call tools, read what they return,
+Acting: act only on the user's latest message; what earlier messages asked
+for was already handled, so never record it again. You can work in several
+steps. Call tools, read what they return,
 call more if needed, then answer. When the user asks you to add, log, record,
 remind, complete or change something, do it with the matching tool yourself;
 never only say you will.
@@ -488,7 +494,9 @@ never only say you will.
   `save_journal`. Fixing the last entry: `edit_last`, `delete_last`.
 - One message can hold several things to record: make every call.
 - A write that returns state "proposed" or "needs_input" waits for the
-  user's OK in the app; say it is waiting, never that it is done.
+  user's OK: say "tap Confirm below" for it, never that it is done and
+  never to "check the app" (they are in it). Name what was saved and what
+  waits, separately.
 - A write that returns an error did not happen; say so plainly.
 Show charts, insights, coaching, plans, trackers and memories with their
 tools instead of describing them; each returns what its card shows, so speak
@@ -533,6 +541,64 @@ def _strip_marks(delta: str) -> str:
     return delta.replace("*", "").replace("`", "")
 
 
+# A write the user asked for, a reply that says it happened, and no write
+# tool that succeeded: the reply is checked against what the turn actually
+# did (the constitution's deterministic-faithfulness rule), never trusted.
+_ASKS_TO_WRITE = re.compile(
+    r"\b(add|log|record|remind|create|set|schedule|save|note|mark|complete|"
+    r"finish|spent|paid|bought|ate|ran|weighed|journal|track)\b",
+    re.I,
+)
+_CLAIMS_A_WRITE = re.compile(
+    r"\b(added|logged|saved|recorded|created|scheduled|marked|set up|"
+    r"i(?:'| ha)ve set|will remind|i'?ll remind|waiting for your (?:ok|confirmation)|"
+    r"proposed)\b",
+    re.I,
+)
+NUDGE = (
+    "You said you recorded something, but no tool ran, so nothing was saved. "
+    'Call the matching tool now for my last message only: "{text}". Earlier '
+    "requests in this chat were already handled; do not repeat them. Then "
+    "answer from the tool's result."
+)
+NOT_RECORDED = (
+    "I didn't manage to record that, so nothing was saved. Try asking again "
+    "in other words, or add it from its tab."
+)
+WRITE_TOOLS = frozenset(
+    {
+        "create_tasks",
+        "complete_task",
+        "log_expense",
+        "log_income",
+        "log_transfer",
+        "add_planned",
+        "log_habit",
+        "create_habit",
+        "start_routine",
+        "log_workout",
+        "log_weigh_in",
+        "log_meal",
+        "save_journal",
+        "edit_last",
+        "delete_last",
+        "track",
+        "remember_fact",
+    }
+)
+
+
+def unbacked_claim(asked: str, answer: str, steps: list[Any]) -> bool:
+    """The reply claims a write the user asked for, and no write tool of
+    this turn succeeded."""
+    wrote = any(s.name in WRITE_TOOLS and s.ok for s in steps)
+    return (
+        not wrote
+        and bool(_ASKS_TO_WRITE.search(asked))
+        and bool(_CLAIMS_A_WRITE.search(answer))
+    )
+
+
 def _history(ctx: Ctx) -> list[BaseMessage]:
     rows = owned_repo.list_rows(
         ctx,
@@ -566,6 +632,8 @@ def _ask_ai(
         sol=sol_name,
         user=brain.first_name(user_name),
         today=ctx.today.isoformat(),
+        now=ctx.now.astimezone(ctx.clock.zone).strftime("%A %Y-%m-%d %H:%M"),
+        day_start=f"{ctx.clock.start_hour:02d}:00",
         currency=ctx.currency.phrase,
         today_facts=json.dumps(grounding.snapshot(ctx), ensure_ascii=False),
         memories="\n".join(f"- [{m.id}] {m.text}" for m in mems) or "(nothing yet)",
@@ -591,18 +659,37 @@ def _ask_ai(
         text=text,
         emit=stream.frame,
     )
+    tools = [*sol_tools(run), *writes]
+    turn = [*history, HumanMessage(text)]
     reply = capture.run_agent(
         ctx,
         resolved,
         system=system,
-        messages=[*history, HumanMessage(text)],
-        tools=[*sol_tools(run), *writes],
+        messages=turn,
+        tools=tools,
         on_text=lambda d: stream.text(_strip_marks(d)),
         max_turns=MAX_STEPS,
         max_tool_calls=MAX_TOOL_CALLS,
         hooks=stream,
     )
     answer = plain_text(reply)
+    if unbacked_claim(text, answer, stream.steps):
+        # One corrective pass, told plainly that nothing was saved.
+        stream.end_text()
+        reply = capture.run_agent(
+            ctx,
+            resolved,
+            system=system,
+            messages=[*turn, AIMessage(reply), HumanMessage(NUDGE.format(text=text))],
+            tools=tools,
+            on_text=lambda d: stream.text(_strip_marks(d)),
+            max_turns=MAX_STEPS,
+            max_tool_calls=MAX_TOOL_CALLS,
+            hooks=stream,
+        )
+        answer = plain_text(reply)
+        if unbacked_claim(text, answer, stream.steps):
+            answer = NOT_RECORDED
     cap_id = capture.finish_chat_capture(ctx, wrun, reply=answer)
     steps = stream.steps_block()
     blocks = ([steps] if steps else []) + list(run.blocks)

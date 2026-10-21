@@ -187,3 +187,117 @@ def test_tool_calls_past_the_reply_cap_are_refused(
     items = events[-1]["result"]["messages"][1]["blocks"][0]["items"]
     assert [i["ok"] for i in items] == [True, True, False]
     assert sorted(t.title for t in tasks_of(api)) == ["One", "Two"]
+
+
+def test_a_reminder_does_not_hold_back_the_plain_tasks_beside_it(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Seen live on 2026-10-22: one call with a task and a reminder made one
+    confirm-tier card, so the plain task waited too. They are two cards now:
+    the task saves, the reminder waits."""
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    tomorrow = (date.today() + timedelta(days=1)).isoformat()
+    install(
+        monkeypatch,
+        say(
+            "",
+            call(
+                "create_tasks",
+                tasks=[
+                    {"title": "Buy milk", "due_date": tomorrow, "due_time": "17:00"},
+                    {"title": "Call mom", "due_time": "20:00", "remind": True},
+                ],
+            ),
+        ),
+        say("Buy milk is added; the call reminder waits for your OK below."),
+    )
+    events = stream(api, client, "buy milk tomorrow 5pm, remind me to call mom 8pm")
+    assert [t.title for t in tasks_of(api)] == ["Buy milk"]
+    step = events[-1]["result"]["messages"][1]["blocks"][0]["items"][0]
+    assert [(c["label"], c["state"]) for c in step["cards"]] == [
+        ("Buy milk", "saved"),
+        ("Call mom", "proposed"),
+    ]
+    assert (
+        step["summary"] == "Added 2 tasks: Buy milk, Call mom (1 waiting for your OK)"
+    )
+
+
+def test_the_model_knows_the_local_time_not_only_the_business_day(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Seen live at 02:53 on 2026-10-22 (before the 04:00 rollover): told only
+    "Today is 2026-10-21", the model filed "tonight at 9pm" on the 21st, in
+    the past. It now gets the local date and time and the next-time rule."""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    model = install(monkeypatch, say("Okay."))
+    stream(api, client, "remind me to stretch tonight at 9pm")
+    system = str(model.seen[0][0].content)
+    now = datetime.now(ZoneInfo("Asia/Manila"))
+    assert f"Right now it is {now:%A %Y-%m-%d}" in system
+    assert "Their day rolls over at 04:00" in system
+    assert "Never schedule something in the past" in system
+
+
+def test_a_claimed_write_with_no_tool_gets_one_corrective_pass(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Seen live on 2026-10-22: asked to remind, the model answered "has
+    been added as a reminder" without calling a tool. The reply is checked
+    against the turn's writes; the model is told nothing was saved, once."""
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    model = install(
+        monkeypatch,
+        say("Drink water has been added as a reminder for 9 PM."),
+        say(
+            "",
+            call(
+                "create_tasks",
+                tasks=[{"title": "Drink water", "due_time": "21:00"}],
+            ),
+        ),
+        say("Added: drink water at 9 PM."),
+    )
+    events = stream(api, client, "add a task to drink water at 9pm")
+    assert [t.title for t in tasks_of(api)] == ["Drink water"]
+    nudge = str(model.seen[1][-1].content)
+    assert "no tool ran" in nudge and '"add a task to drink water at 9pm"' in nudge
+    assert "do not repeat them" in nudge
+    sol = events[-1]["result"]["messages"][1]
+    assert sol["text"] == "Added: drink water at 9 PM."
+    assert sol["blocks"][0]["items"][0]["tool"] == "create_tasks"
+
+
+def test_a_claim_still_unbacked_after_the_retry_is_replaced_by_the_truth(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    install(
+        monkeypatch,
+        say("I've added it to your tasks."),
+        say("It's been added and saved."),
+    )
+    events = stream(api, client, "add a task to buy bread")
+    assert tasks_of(api) == []
+    assert events[-1]["result"]["messages"][1]["text"] == services.NOT_RECORDED
+
+
+def test_an_answer_that_only_mentions_logging_is_left_alone(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """No write was asked for, so "you logged" describing the past is not a
+    claim to check, and the model is called once."""
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    model = install(monkeypatch, say("You logged 3 workouts this week."))
+    events = stream(api, client, "how many workouts this week?")
+    assert len(model.seen) == 1
+    text = events[-1]["result"]["messages"][1]["text"]
+    assert text == "You logged 3 workouts this week."

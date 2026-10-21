@@ -93,6 +93,12 @@ def outcome(ctx: Ctx, name: str, args: dict[str, Any], result: Any) -> tuple[boo
             return True, f"Added task: {t.get('title', '')}{_when(t)}{wait}"
         titles = ", ".join(str(t.get("title", "")) for t in tasks[:3])
         more = f" and {len(tasks) - 3} more" if len(tasks) > 3 else ""
+        if res.get("cards"):
+            waiting_n = sum(
+                1 for c in res["cards"] if c.get("state") in ("proposed", "needs_input")
+            )
+            note = f" ({waiting_n} waiting for your OK)" if waiting_n else ""
+            return True, f"Added {len(tasks)} tasks: {titles}{more}{note}"
         return True, f"Added {len(tasks)} tasks: {titles}{more}{wait}"
     if name in ("log_expense", "log_income", "log_transfer", "add_planned"):
         amount = args.get("amount")
@@ -140,6 +146,8 @@ class Step:
     summary: str = ""
     card_id: str | None = None
     state: str | None = None
+    # A call that wrote several cards (plain tasks and reminders apart).
+    cards: list[dict[str, Any]] = field(default_factory=list)
 
     def public(self) -> dict[str, Any]:
         out: dict[str, Any] = {
@@ -152,6 +160,8 @@ class Step:
         if self.card_id:
             out["card_id"] = self.card_id
             out["state"] = self.state
+        if self.cards:
+            out["cards"] = self.cards
         return out
 
 
@@ -238,6 +248,16 @@ class TurnStream(capture.LoopHooks):
             if isinstance(result, dict) and result.get("card_id"):
                 step.card_id = str(result["card_id"])
                 step.state = str(result.get("state") or "")
+            if isinstance(result, dict) and isinstance(result.get("cards"), list):
+                step.cards = [
+                    {
+                        "card_id": str(c.get("card_id")),
+                        "state": str(c.get("state") or ""),
+                        "label": ", ".join(c.get("titles") or []),
+                    }
+                    for c in result["cards"]
+                    if isinstance(c, dict) and c.get("card_id")
+                ]
         self.sink(
             ToolCallResultEvent(
                 message_id=str(uuid.uuid4()),
