@@ -5,12 +5,12 @@ import uuid
 from collections.abc import Iterator
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, File, Form, Query, Response, UploadFile
 from fastapi.responses import StreamingResponse
 
 from app.modules.ai_providers import public as ai
 from app.modules.capture import cards as C
-from app.modules.capture import engine, journal
+from app.modules.capture import engine, journal, seams
 from app.modules.capture.models import Capture
 from app.modules.capture.schema import (
     AISettingsPublic,
@@ -21,6 +21,7 @@ from app.modules.capture.schema import (
     CapturesPublic,
     CardPublic,
     Count,
+    DictationOut,
     PayloadIn,
     QuickAddIn,
     RerunIn,
@@ -158,6 +159,20 @@ def submit_stream(ctx: CtxDep, data: CaptureIn) -> StreamingResponse:
         media_type="text/event-stream",
         headers=SSE_HEADERS,
     )
+
+
+@router.post("/dictate", response_model=DictationOut, dependencies=WRITE)
+def dictate(
+    ctx: CtxDep,
+    file: Annotated[UploadFile, File()],
+    duration_sec: Annotated[int | None, Form(ge=0, le=3600)] = None,
+) -> Any:
+    """Speech to text for the chat box: the recording's words, to review and
+    send (ADR-0015). Nothing is stored but the usage row."""
+    audio = file.file.read(seams.AUDIO_MAX_BYTES + 1)
+    text = engine.dictate(ctx, audio, duration_sec=duration_sec)
+    ctx.commit()
+    return DictationOut(text=text)
 
 
 @router.post("/quick-add", response_model=CaptureDetail, dependencies=WRITE)

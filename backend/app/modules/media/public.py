@@ -55,3 +55,12 @@ def visible_download_url(ctx: Ctx, media_id: uuid.UUID) -> str:
     if media is None:
         raise not_found("media")
     return storage.presign_get(media.storage_key)
+
+
+def sniff_audio(head: bytes) -> str | None:
+    """The audio MIME type the bytes really are (m4a, mp3, wav, webm, aac),
+    or None: the declared type of an upload is never trusted."""
+    from app.modules.media.sniff import sniff
+
+    mime = sniff(head)
+    return mime if mime and mime.startswith("audio/") else None

@@ -134,6 +134,18 @@ def _preferred_model(ctx: Ctx) -> str | None:
 def _server_default(
     purpose: Purpose, preferred: str | None = None
 ) -> ResolvedModel | None:
+    if purpose == "transcription" and settings.DEEPGRAM_API_KEY:
+        # Speech to text has its own provider (constitution §4.2).
+        return ResolvedModel(
+            purpose=purpose,
+            provider="deepgram",
+            model=settings.DEEPGRAM_MODEL,
+            base_url=settings.DEEPGRAM_BASE_URL,
+            api_key=SecretStr(settings.DEEPGRAM_API_KEY),
+            credential_id=None,
+            supports_vision=False,
+            source="server",
+        )
     provider = settings.DEFAULT_LLM_PROVIDER
     vision = False
     if provider == "openrouter" and settings.OPENROUTER_API_KEY:

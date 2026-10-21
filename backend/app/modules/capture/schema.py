@@ -447,3 +447,9 @@ class AISettingsPublic(BaseModel):
     # The meter (ai_providers.public.budget), read-only.
     spend_minor: int = 0
     calls: int = 0
+
+
+class DictationOut(BaseModel):
+    """``POST /capture/dictate``: what was said."""
+
+    text: str

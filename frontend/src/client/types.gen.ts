@@ -619,6 +619,11 @@ export type Badges = {
     chats_unread: number;
 };
 
+export type Body_capture_dictate = {
+    file: string;
+    duration_sec?: (number | null);
+};
+
 export type BodyOut = {
     latest: (WeighInPublic | null);
     trend: Array<TrendPointOut>;
@@ -1064,6 +1069,13 @@ export type DayVerdictOut = {
     protein_hit: boolean;
     over: boolean;
     verdict: string;
+};
+
+/**
+ * ``POST /capture/dictate``: what was said.
+ */
+export type DictationOut = {
+    text: string;
 };
 
 export type DirectIn = {
@@ -4401,6 +4413,12 @@ export type CaptureSubmitStreamData = {
 };
 
 export type CaptureSubmitStreamResponse = (unknown);
+
+export type CaptureDictateData = {
+    formData: Body_capture_dictate;
+};
+
+export type CaptureDictateResponse = (DictationOut);
 
 export type CaptureQuickAddData = {
     requestBody: QuickAddIn;
