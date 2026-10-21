@@ -19,7 +19,6 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from "react"
 import {
   BackHandler,
   Keyboard,
-  KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
@@ -158,6 +157,8 @@ function useTimeline(since = 0) {
           node: { kind: "msg" as const, m },
         })),
       ...captures
+        // Fern's own writes show as steps in its reply (ADR-0015).
+        .filter((c) => c.source !== "chat")
         .filter((c) => new Date(c.at).getTime() >= since)
         .map((c) => ({
           at: new Date(c.at).getTime(),
@@ -471,10 +472,26 @@ export function CompanionDrawer({ bottom }: { bottom: number }) {
   const scroller = useRef<ScrollView>(null)
   const timeline = useTimeline(since)
   const [typing, setTyping] = useState(false)
+  // The keyboard's height, tracked directly: a KeyboardAvoidingView inside
+  // this absolutely placed, transformed sheet measured itself wrong and never
+  // lifted the composer on a phone. iOS reports the keyboard as it starts to
+  // move; Android only once it has shown.
+  const [keyboard, setKeyboard] = useState(0)
   useEffect(() => {
-    const show = Keyboard.addListener("keyboardWillShow", () => setTyping(true))
-    const hide = Keyboard.addListener("keyboardWillHide", () =>
-      setTyping(false),
+    const ios = Platform.OS === "ios"
+    const show = Keyboard.addListener(
+      ios ? "keyboardWillShow" : "keyboardDidShow",
+      (e) => {
+        setTyping(true)
+        setKeyboard(e.endCoordinates.height)
+      },
+    )
+    const hide = Keyboard.addListener(
+      ios ? "keyboardWillHide" : "keyboardDidHide",
+      () => {
+        setTyping(false)
+        setKeyboard(0)
+      },
     )
     return () => {
       show.remove()
@@ -585,10 +602,14 @@ export function CompanionDrawer({ bottom }: { bottom: number }) {
           sheet,
         ]}
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={{ flex: 1 }}
-          keyboardVerticalOffset={bottom}
+        <View
+          testID="companion-drawer-body"
+          style={{
+            flex: 1,
+            // The sheet ends at the tab bar; the keyboard rises from the
+            // screen's bottom, so only the part above the bar needs room.
+            paddingBottom: Math.max(0, keyboard - bottom),
+          }}
         >
           <GestureDetector gesture={drag}>
             <View
@@ -676,7 +697,7 @@ export function CompanionDrawer({ bottom }: { bottom: number }) {
               shadow) into the sheet; keep the composer clear of it. The
               keyboard covers the bar, so the room is not needed then. */}
           {bottom > 0 && !typing && <View style={{ height: FAB_RISE }} />}
-        </KeyboardAvoidingView>
+        </View>
       </Animated.View>
     </View>
   )

@@ -1066,6 +1066,13 @@ export type DayVerdictOut = {
     verdict: string;
 };
 
+/**
+ * ``POST /capture/dictate``: what was said.
+ */
+export type DictationOut = {
+    text: string;
+};
+
 export type DirectIn = {
     user_id: string;
     id?: (string | null);
@@ -4401,6 +4408,13 @@ export type CaptureSubmitStreamData = {
 };
 
 export type CaptureSubmitStreamResponse = (unknown);
+
+export type CaptureDictateData = {
+    durationSec?: (number | null);
+    requestBody: (Blob | File);
+};
+
+export type CaptureDictateResponse = (DictationOut);
 
 export type CaptureQuickAddData = {
     requestBody: QuickAddIn;

@@ -579,6 +579,50 @@ def run(ctx: Ctx, cap: Capture, plan: Plan, emit: Emit = _noop) -> Capture:
     return cap
 
 
+DICTATION_MAX_SEC = 300  # the recorder's own limit
+
+
+def dictate(ctx: Ctx, audio: bytes, *, duration_sec: int | None) -> str:
+    """Speech to text for the chat box (ADR-0015): the words, never a
+    capture. Refuses before any provider call: no audio type the bytes
+    prove, too long, AI off or capped, or no speech-to-text set up (503
+    ``speech_unavailable``). Meters the call. Flushes only."""
+    if len(audio) > seams.AUDIO_MAX_BYTES:
+        raise domain_error(413, "audio_too_large", "That recording is too long")
+    if duration_sec is not None and duration_sec > DICTATION_MAX_SEC:
+        raise domain_error(413, "audio_too_long", "Keep it under five minutes")
+    mime = media.sniff_audio(audio[:64])
+    if mime is None:
+        raise invalid("audio_unrecognised", "That isn't a recording I can read")
+    resolved = ai.resolve_model(ctx, "transcription")
+    if resolved is None:
+        raise domain_error(503, "speech_unavailable", "Voice input isn't set up yet")
+    ai.check_budget(ctx)
+    st = settings_row(ctx)
+    try:
+        text = seams.transcribe(
+            resolved,
+            audio,
+            filename="dictation",
+            mime=mime,
+            language="tl" if st.language == "en-tl" else "en",
+        )
+    except seams.SeamError as exc:
+        ai.record_usage(ctx, resolved, input_tokens=0, output_tokens=0, ok=False)
+        raise domain_error(502, exc.code, "Couldn't transcribe that") from None
+    minutes = max(1, -(-(duration_sec or 60) // 60))
+    ai.record_usage(
+        ctx,
+        resolved,
+        input_tokens=0,
+        output_tokens=0,
+        cost_minor=minutes * seams.TRANSCRIBE_CENTAVOS_PER_MIN,
+    )
+    if not text:
+        raise invalid("transcript_empty", "I couldn't hear anything")
+    return text
+
+
 def process(ctx: Ctx, cap: Capture, emit: Emit = _noop) -> Capture:
     return run(ctx, cap, preflight(ctx, cap), emit)
 

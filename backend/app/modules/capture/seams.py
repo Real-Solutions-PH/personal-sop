@@ -87,7 +87,11 @@ def transcribe(
     mime: str,
     language: str | None,
 ) -> str:
-    """Speech to text through ``POST {base_url}/audio/transcriptions``."""
+    """Speech to text: Deepgram's ``/listen`` when the resolved provider is
+    Deepgram, otherwise ``POST {base_url}/audio/transcriptions`` (any
+    OpenAI-compatible provider)."""
+    if resolved.provider == "deepgram":
+        return _deepgram(resolved, audio, mime=mime, language=language)
     data = {"model": resolved.model, "response_format": "json"}
     if language:
         data["language"] = language
@@ -110,6 +114,43 @@ def transcribe(
     try:
         text = r.json().get("text")
     except ValueError:
+        raise SeamError("transcription_failed") from None
+    if not isinstance(text, str):
+        raise SeamError("transcription_failed")
+    return text.strip()
+
+
+def _deepgram(
+    resolved: ai.ResolvedModel, audio: bytes, *, mime: str, language: str | None
+) -> str:
+    """Deepgram's pre-recorded API. ``tl`` (Taglish) goes as ``multi``, its
+    code-switching mode; English as ``en``."""
+    params = {
+        "model": resolved.model,
+        "smart_format": "true",
+        "language": "multi" if language == "tl" else (language or "en"),
+    }
+    try:
+        with httpx.Client(
+            timeout=settings.AI_REQUEST_TIMEOUT_SECONDS, trust_env=False
+        ) as c:
+            r = c.post(
+                f"{resolved.base_url.rstrip('/')}/listen",
+                params=params,
+                headers={
+                    "Authorization": f"Token {resolved.api_key.get_secret_value()}",
+                    "Content-Type": mime,
+                },
+                content=audio,
+            )
+    except httpx.HTTPError:
+        raise SeamError("transcription_unreachable") from None
+    if r.status_code != 200:
+        raise SeamError("transcription_failed")
+    try:
+        alt = r.json()["results"]["channels"][0]["alternatives"][0]
+        text = alt["transcript"]
+    except (ValueError, KeyError, IndexError, TypeError):
         raise SeamError("transcription_failed") from None
     if not isinstance(text, str):
         raise SeamError("transcription_failed")

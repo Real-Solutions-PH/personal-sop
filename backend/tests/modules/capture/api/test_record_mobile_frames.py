@@ -20,7 +20,14 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session
 
 from app.shared.ids import derived_id
-from tests.modules.capture.api.helpers import call, install, parse_sse, say, user
+from tests.modules.capture.api.helpers import (
+    call,
+    install,
+    parse_agui,
+    parse_sse,
+    say,
+    user,
+)
 
 OUT = (
     Path(__file__).resolve().parents[5]
@@ -38,7 +45,9 @@ def _stream(api: Any, path: str, body: dict[str, Any]) -> dict[str, Any]:
     r = api.c.post(f"/api/v1{path}", headers=api.h, json=body)
     out: dict[str, Any] = {"status": r.status_code}
     if r.headers.get("content-type", "").startswith("text/event-stream"):
-        out["frames"] = [[e, d] for e, d in parse_sse(r.text)]
+        frames = [[e, d] for e, d in parse_sse(r.text)]
+        # The companion streams AG-UI events: data-only frames (ADR-0015).
+        out["frames"] = frames or [["message", d] for d in parse_agui(r.text)]
     else:
         out["body"] = r.json()
     return out
@@ -161,7 +170,7 @@ def test_record(
     req = {"text": "spent 120 on lunch", "id": str(uuid.uuid4())}
     rec["ask_capture"] = {"request": req, **_stream(api, "/companion/ask/stream", req)}
 
-    # 7. The companion, AI: streamed text, blocks and a nested capture
+    # 7. The companion, AI: steps, streamed text, blocks and a direct write
     api.assign("chat")
     install(
         monkeypatch,
@@ -169,7 +178,14 @@ def test_record(
             "",
             call("show_chart", metric="workouts", days=30),
             call("track", metric="workouts", goal=4, direction="above"),
-            call("log_to_capture", text="ran 5k 32 min"),
+            {
+                "name": "log_workout",
+                "args": {
+                    "name": "5K run",
+                    "cardio": {"activity": "Run", "km": 5, "minutes": 32},
+                },
+                "id": "call-workout",
+            },
         ),
         say("Nice run. Here's your month and I'll watch your sessions."),
     )

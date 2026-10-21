@@ -6,6 +6,7 @@ import { useLocalSearchParams } from "expo-router"
 import {
   Camera,
   FileText,
+  MessageCircle,
   Mic,
   PenLine,
   RotateCw,
@@ -39,6 +40,7 @@ const sourceLabel = {
     file: "File",
     quick_add: "Quick add",
     connector: "Claude",
+    chat: "Chat",
   },
   icons = {
     text: PenLine,
@@ -47,6 +49,7 @@ const sourceLabel = {
     file: FileText,
     quick_add: Zap,
     connector: Zap,
+    chat: MessageCircle,
   },
   targets = {
     habits: { label: "Habits", color: "hab" },

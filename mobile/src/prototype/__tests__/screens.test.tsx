@@ -8,7 +8,8 @@ import type { ReactNode } from "react"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 import { RecordEditor } from "../screens/finance"
 import { HabitForm } from "../screens/habits"
-import { TaskCapture, Tasks } from "../screens/tasks"
+import { TaskNew } from "../screens/task-new"
+import { Tasks } from "../screens/tasks"
 
 jest.mock("expo-router", () => ({
   router: {
@@ -67,16 +68,15 @@ beforeEach(() => {
   })
   resetAll()
 })
-test("quick capture creates a task that can be completed from the native list", () => {
-  const view = render(<TaskCapture />, { wrapper })
-  expect(screen.getByText("Capture → tasks")).toBeTruthy()
-  const input = screen.getByLabelText("Capture text")
-  fireEvent.changeText(input, "Native test task")
-  fireEvent.press(screen.getByRole("button", { name: "Send" }))
+test("the task form creates a task that can be completed from the native list", () => {
+  const view = render(<TaskNew />, { wrapper })
+  expect(screen.getByText("New task")).toBeTruthy()
+  fireEvent.changeText(screen.getByLabelText("Task"), "Native test task")
+  fireEvent.press(screen.getByRole("button", { name: "Add task" }))
   const task = tasksStore
     .get()
     .tasks.find((t) => t.title === "Native test task")
-  expect(task).toBeDefined()
+  expect(task).toMatchObject({ source: "manual", dueDate: null })
   view.unmount()
   const list = render(<Tasks />, { wrapper })
   fireEvent.press(screen.getByRole("button", { name: "Search and sort tasks" }))
@@ -155,13 +155,14 @@ test("Stats area selection exposes the selected area metrics", () => {
   view.unmount()
 })
 
-test("calendar capture preserves its day and smart lists filter actual task properties", () => {
-  const view = render(<TaskCapture day="2026-10-05" />, { wrapper })
-  fireEvent.changeText(
-    screen.getByLabelText("Capture text"),
-    "Calendar capture check",
-  )
-  fireEvent.press(screen.getByRole("button", { name: "Send" }))
+test("a task added from a calendar day keeps that day, and an empty name is refused", () => {
+  const view = render(<TaskNew day="2026-10-05" />, { wrapper })
+  const before = tasksStore.get().tasks.length
+  fireEvent.press(screen.getByRole("button", { name: "Add task" }))
+  expect(screen.getByText("Give the task a name")).toBeTruthy()
+  expect(tasksStore.get().tasks.length).toBe(before)
+  fireEvent.changeText(screen.getByLabelText("Task"), "Calendar capture check")
+  fireEvent.press(screen.getByRole("button", { name: "Add task" }))
   const task = tasksStore
     .get()
     .tasks.find((t) => t.title === "Calendar capture check")!

@@ -21,7 +21,15 @@ import {
   WifiOff,
 } from "lucide-react-native"
 import { useState } from "react"
-import { Image, ScrollView, TextInput, View } from "react-native"
+import {
+  ActivityIndicator,
+  Image,
+  ScrollView,
+  TextInput,
+  View,
+} from "react-native"
+import { toast } from "sonner-native"
+import { liveMode } from "@/live/config"
 import { Orb } from "../companion/orb"
 import { thinking } from "../companion/store"
 import { border, Copy, Frame, IconTap, Line, Tap } from "../native-kit"
@@ -77,7 +85,26 @@ export function ThreadComposer({
     [text, setText] = useState(initialText),
     [mode, setMode] = useState<string | undefined>(initialMode),
     [quick, setQuick] = useState(false),
+    [transcribing, setTranscribing] = useState(false),
     online = useOnline()
+  // Fern's composer dictates: what was said lands in the box to review and
+  // send (ADR-0015). The capture screen's composer keeps voice captures.
+  const dictation = Boolean(onText)
+  const insert = (said: string) =>
+    setText((cur) => (cur.trim() ? `${cur.trimEnd()} ${said}` : said))
+  function transcribe(audio: string, durationSec: number) {
+    const live = require("@/live/dictate") as typeof import("@/live/dictate")
+    setTranscribing(true)
+    live
+      .dictate(audio, durationSec)
+      .then(insert)
+      .catch((e: unknown) =>
+        toast.error(
+          live.dictationMessage(e instanceof live.DictationError ? e.code : ""),
+        ),
+      )
+      .finally(() => setTranscribing(false))
+  }
   return (
     <View
       style={{
@@ -130,13 +157,15 @@ export function ThreadComposer({
         </Copy>
       )}
       <Line style={{ gap: 6, alignItems: "flex-end" }}>
-        <IconTap
-          size={44}
-          icon={Plus}
-          label="Quick add"
-          background={t.soft}
-          onPress={() => setQuick(true)}
-        />
+        {!dictation && (
+          <IconTap
+            size={44}
+            icon={Plus}
+            label="Quick add"
+            background={t.soft}
+            onPress={() => setQuick(true)}
+          />
+        )}
         <View
           style={{
             flex: 1,
@@ -158,7 +187,11 @@ export function ThreadComposer({
             multiline
             numberOfLines={1}
             placeholder={
-              placeholders[hint ?? ""] ?? placeholder ?? "Log or ask anything…"
+              transcribing
+                ? "Transcribing…"
+                : (placeholders[hint ?? ""] ??
+                  placeholder ??
+                  "Log or ask anything…")
             }
             placeholderTextColor={border(t.muted, 0.7)}
             style={{
@@ -211,6 +244,18 @@ export function ThreadComposer({
               onSent?.(id)
             }}
           />
+        ) : transcribing ? (
+          <View
+            accessibilityLabel="Transcribing"
+            style={{
+              width: 44,
+              height: 44,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <ActivityIndicator color={t.primary} />
+          </View>
         ) : (
           <LinearGradient
             colors={[t.primary, t.hab]}
@@ -219,7 +264,7 @@ export function ThreadComposer({
             <IconTap
               size={44}
               icon={Mic}
-              label="Record voice"
+              label={dictation ? "Dictate" : "Record voice"}
               color="#fff"
               onPress={() => setMode("voice")}
             />
@@ -242,6 +287,7 @@ export function ThreadComposer({
           onClose={() => setMode(undefined)}
           onDone={(text, durationSec) => {
             setMode(undefined)
+            if (dictation) return insert(text)
             const id = A.sendCapture({
               source: "voice",
               hint,
@@ -252,6 +298,7 @@ export function ThreadComposer({
           }}
           onRecording={(audio, durationSec) => {
             setMode(undefined)
+            if (dictation && liveMode) return transcribe(audio, durationSec)
             const id = A.sendCapture({
               source: "voice",
               hint,

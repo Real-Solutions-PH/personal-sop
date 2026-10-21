@@ -6,6 +6,9 @@ export type CaptureSource =
   | "file"
   | "quick_add"
   | "connector"
+  /** Written by Fern during a chat turn; shown inside Fern's reply, not as a
+   * capture of its own (ADR-0015). */
+  | "chat"
 export type CaptureStatus =
   | "queued"
   | "processing"

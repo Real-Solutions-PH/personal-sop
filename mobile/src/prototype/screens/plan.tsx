@@ -124,7 +124,7 @@ export function TaskPlanPanel() {
             label="Add task"
             color={t.onPrimary}
             background={t.tsk}
-            onPress={() => go("/tasks/capture")}
+            onPress={() => go("/tasks/new")}
           />
         </Line>
       </Line>
@@ -160,7 +160,7 @@ export function TaskPlanPanel() {
           <Copy size={14} muted>
             One line per thought. Dates and lists get sorted for you.
           </Copy>
-          <SmallButton accent="tsk" onPress={() => go("/tasks/capture")}>
+          <SmallButton accent="tsk" onPress={() => go("/tasks/new")}>
             Add your first tasks
           </SmallButton>
         </View>
@@ -229,7 +229,7 @@ export function TaskPlanPanel() {
                     icon={Plus}
                     size={24}
                     label={`Add task on ${T.fmtDayLong(g.day)}`}
-                    onPress={() => go(`/tasks/capture?day=${g.day}`)}
+                    onPress={() => go(`/tasks/new?day=${g.day}`)}
                   />
                 }
               >

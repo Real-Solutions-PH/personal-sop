@@ -61,6 +61,25 @@ Emit = Callable[[str, dict[str, Any]], None]
 class LoopState(TypedDict):
     messages: Annotated[list[BaseMessage], add_messages]
     turns: int
+    calls: int
+
+
+class LoopHooks:
+    """What a caller hears while the loop runs, beyond the text stream (the
+    companion turns these into AG-UI step and tool events). Every hook is
+    optional; the defaults do nothing."""
+
+    def model_started(self, turn: int) -> None:
+        return None
+
+    def model_finished(self, turn: int, message: BaseMessage) -> None:
+        return None
+
+    def tool_started(self, call_id: str, name: str, args: dict[str, Any]) -> None:
+        return None
+
+    def tool_finished(self, call_id: str, name: str, result: Any) -> None:
+        return None
 
 
 def _text(msg: BaseMessage) -> str:
@@ -97,14 +116,22 @@ def run_loop(
     tools: list[BaseTool],
     on_text: Callable[[str], None],
     max_turns: int = MAX_TURNS,
+    max_tool_calls: int | None = None,
+    hooks: LoopHooks | None = None,
 ) -> str:
     """Run the model/tools graph; returns the model's final text. Every
-    model call is metered; a provider failure raises ``SeamError``."""
+    model call is metered; a provider failure raises ``SeamError``.
+
+    ``max_tool_calls`` caps the tool calls of the whole run (past it a call
+    is answered with an error instead of run); ``hooks`` hears each model
+    call and tool call as it starts and ends."""
+    h = hooks or LoopHooks()
     model = ai.build_chat_model(resolved)
     bound = model.bind_tools(tools) if tools else model
     by_name = {t.name: t for t in tools}
 
     def call_model(state: LoopState) -> dict[str, Any]:
+        h.model_started(state["turns"] + 1)
         acc: BaseMessage | None = None
         usages: list[dict[str, Any]] = []
         try:
@@ -129,15 +156,22 @@ def run_loop(
         else:
             msg = acc or AIMessage(content="")
         seams.meter(ctx, resolved, msg)
+        h.model_finished(state["turns"] + 1, msg)
         return {"messages": [msg], "turns": state["turns"] + 1}
 
     def call_tools(state: LoopState) -> dict[str, Any]:
         last = state["messages"][-1]
         out: list[BaseMessage] = []
+        calls = state.get("calls", 0)
         for n, tc in enumerate(getattr(last, "tool_calls", None) or []):
             tool = by_name.get(tc["name"])
+            call_id = tc.get("id") or str(uuid.uuid4())
+            args = tc.get("args") or {}
+            h.tool_started(call_id, tc["name"], args)
             if n >= MAX_TOOL_CALLS_PER_TURN:
                 result: Any = {"error": "too_many_calls_in_one_turn"}
+            elif max_tool_calls is not None and calls >= max_tool_calls:
+                result = {"error": "too_many_calls_in_this_reply"}
             elif tool is None:
                 result = {"error": "unknown_tool"}
             else:
@@ -147,14 +181,16 @@ def run_loop(
                     result = {"error": "invalid_arguments"}
                 except seams.SeamError as exc:
                     result = {"error": exc.code}
+                calls += 1
+            h.tool_finished(call_id, tc["name"], result)
             out.append(
                 ToolMessage(
                     content=_tool_content(result),
-                    tool_call_id=tc.get("id") or str(uuid.uuid4()),
+                    tool_call_id=call_id,
                     name=tc["name"],
                 )
             )
-        return {"messages": out}
+        return {"messages": out, "calls": calls}
 
     def route(state: LoopState) -> str:
         last = state["messages"][-1]
@@ -168,7 +204,7 @@ def run_loop(
     g.set_entry_point("model")
     g.add_conditional_edges("model", route, {"tools": "tools", END: END})
     g.add_edge("tools", "model")
-    start: LoopState = {"messages": messages, "turns": 0}
+    start: LoopState = {"messages": messages, "turns": 0, "calls": 0}
     final = g.compile().invoke(start, {"recursion_limit": max_turns * 2 + 2})  # type: ignore[call-overload]
     last = final["messages"][-1]
     return _text(last) if isinstance(last, AIMessage) else ""
@@ -317,12 +353,22 @@ class Run:
     """One capture's agent run: where cards land and how they stream."""
 
     ctx: Ctx
-    cap: Capture
+    cap: Capture | None
     world: World
     emit: Emit
     journal_in_qa: bool
     position: int = 0
     made: list[uuid.UUID] = field(default_factory=list)
+    # A chat turn opens its capture on the first write, so a reply that only
+    # answers leaves no capture behind (ADR-0015).
+    open_cap: Callable[[], Capture] | None = None
+
+    def capture(self) -> Capture:
+        if self.cap is None:
+            if self.open_cap is None:
+                raise RuntimeError("run has no capture")
+            self.cap = self.open_cap()
+        return self.cap
 
     def next_position(self) -> int:
         p = self.position
@@ -358,9 +404,10 @@ def _category_id(
 def _card(run: Run, d: RecordDraft) -> dict[str, Any]:
     from app.modules.capture import engine
 
-    card = C.new_card(run.ctx, run.cap, d, position=run.next_position())
+    cap = run.capture()
+    card = C.new_card(run.ctx, cap, d, position=run.next_position())
     if card.tier == "auto" and card.state == "proposed":
-        C.save(run.ctx, card, run.cap, actor="ai")
+        C.save(run.ctx, card, cap, actor="ai")
     run.made.append(card.id)
     engine.emit_card(run.ctx, run.emit, card)
     return {
@@ -497,13 +544,30 @@ def capture_tools(run: Run) -> list[BaseTool]:
             }
             for t in a.tasks
         ]
-        d = RecordDraft(
-            kind="task",
-            target="tasks",
-            rule="reminder" if any(t["remind"] for t in tasks) else "task",
-            payload={"kind": "task", "tasks": tasks},
-        )
-        return _card(run, d)
+        # Plain to-dos and reminders tier differently (a reminder waits for
+        # the user's OK), so they become separate cards: one reminder in the
+        # call must not hold the plain tasks back.
+        groups = [
+            ("task", [t for t in tasks if not t["remind"]]),
+            ("reminder", [t for t in tasks if t["remind"]]),
+        ]
+        made = [
+            {
+                **_card(
+                    run,
+                    RecordDraft(
+                        kind="task",
+                        target="tasks",
+                        rule=rule,
+                        payload={"kind": "task", "tasks": group},
+                    ),
+                ),
+                "titles": [t["title"] for t in group],
+            }
+            for rule, group in groups
+            if group
+        ]
+        return made[0] if len(made) == 1 else {"cards": made}
 
     def complete_task(**kw: Any) -> dict[str, Any]:
         a = QueryArgs(**kw)
@@ -681,7 +745,9 @@ def capture_tools(run: Run) -> list[BaseTool]:
             "mood": a.mood,
             "area": a.area,
             "tags": a.tags,
-            "transcript": run.cap.transcript if run.cap.source == "voice" else None,
+            "transcript": (
+                run.capture().transcript if run.capture().source == "voice" else None
+            ),
         }
         d = RecordDraft(
             kind="journal",
@@ -719,7 +785,7 @@ def capture_tools(run: Run) -> list[BaseTool]:
         a = LookupArgs(**kw)
         body = qa.answer(run.ctx, a.question, journal_in_qa=run.journal_in_qa)
         engine.emit_reply(
-            run.ctx, run.emit, run.cap, body, position=run.next_position()
+            run.ctx, run.emit, run.capture(), body, position=run.next_position()
         )
         return {
             k: body.get(k)
@@ -797,6 +863,17 @@ def capture_tools(run: Run) -> list[BaseTool]:
         )
         for fn, schema, desc in specs
     ]
+
+
+# The capture tools that answer rather than write; Fern has its own.
+READ_TOOLS = frozenset({"lookup", "stats_overview"})
+
+
+def write_tools(run: Run) -> list[BaseTool]:
+    """The capture catalogue's writing tools, for an agent that brings its
+    own read tools (Fern, ADR-0015). Every one lands as a card on
+    ``run``'s capture, tiered and undoable."""
+    return [t for t in capture_tools(run) if t.name not in READ_TOOLS]
 
 
 SYSTEM = """You are the capture assistant of Personal SOP, a life-logging app.

@@ -1,4 +1,5 @@
 "use client"
+import { DAY_START_HOUR } from "../lib/day"
 import { derivedId } from "../lib/ids"
 import { uid } from "../lib/store"
 import {
@@ -440,9 +441,15 @@ export function settleOccurrence(
   if (!p) return
   const d = input.date ?? today()
   const now = new Date()
-  const iso = new Date(
+  // The business day ``d`` at the current clock time. Before the day's
+  // rollover hour that time belongs to the calendar day after ``d`` (at
+  // 02:55 on the 22nd the business day is still the 21st), or the record
+  // would land on the day before.
+  const at = new Date(
     `${d}T${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:00`,
-  ).toISOString()
+  )
+  if (now.getHours() < DAY_START_HOUR) at.setDate(at.getDate() + 1)
+  const iso = at.toISOString()
   return addRecord({
     // One record per occurrence, the id the server derives when it settles.
     id: derivedId("planned-record", p.id, day),

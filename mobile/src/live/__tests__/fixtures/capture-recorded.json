@@ -47,7 +47,9 @@
             "category_id": "4b96b151-99ce-5eb4-a892-5109d4a91a19",
             "amount_minor": 16500
           },
-          "refs": ["00000000-0000-4000-8000-000000000005"],
+          "refs": [
+            "00000000-0000-4000-8000-000000000005"
+          ],
           "ask": null,
           "note": null,
           "warn": null,
@@ -85,7 +87,9 @@
             "kg": 72.6,
             "kind": "weighIn"
           },
-          "refs": ["00000000-0000-4000-8000-000000000009"],
+          "refs": [
+            "00000000-0000-4000-8000-000000000009"
+          ],
           "ask": null,
           "note": null,
           "warn": null,
@@ -169,7 +173,9 @@
                 "category_id": "4b96b151-99ce-5eb4-a892-5109d4a91a19",
                 "amount_minor": 16500
               },
-              "refs": ["00000000-0000-4000-8000-000000000005"],
+              "refs": [
+                "00000000-0000-4000-8000-000000000005"
+              ],
               "ask": null,
               "note": null,
               "warn": null,
@@ -204,7 +210,9 @@
                 "kg": 72.6,
                 "kind": "weighIn"
               },
-              "refs": ["00000000-0000-4000-8000-000000000009"],
+              "refs": [
+                "00000000-0000-4000-8000-000000000009"
+              ],
               "ask": null,
               "note": null,
               "warn": null,
@@ -605,7 +613,9 @@
       "category_id": "4b96b151-99ce-5eb4-a892-5109d4a91a19",
       "amount_minor": 16500
     },
-    "refs": ["00000000-0000-4000-8000-000000000005"],
+    "refs": [
+      "00000000-0000-4000-8000-000000000005"
+    ],
     "ask": null,
     "note": null,
     "warn": null,
@@ -649,7 +659,9 @@
       "category_id": "4b96b151-99ce-5eb4-a892-5109d4a91a19",
       "amount_minor": 16500
     },
-    "refs": ["00000000-0000-4000-8000-000000000014"],
+    "refs": [
+      "00000000-0000-4000-8000-000000000014"
+    ],
     "ask": null,
     "note": null,
     "warn": null,
@@ -696,7 +708,9 @@
       "kg": 72.4,
       "kind": "weighIn"
     },
-    "refs": ["00000000-0000-4000-8000-000000000016"],
+    "refs": [
+      "00000000-0000-4000-8000-000000000016"
+    ],
     "ask": null,
     "note": null,
     "warn": null,
@@ -909,7 +923,9 @@
         "category_id": "2ba08af9-18c3-5e37-91a9-09fa8fa79082",
         "amount_minor": 250000
       },
-      "refs": ["00000000-0000-4000-8000-00000000001d"],
+      "refs": [
+        "00000000-0000-4000-8000-00000000001d"
+      ],
       "ask": null,
       "note": null,
       "warn": null,
@@ -1012,6 +1028,7 @@
         "spend_cap_minor": 50000,
         "ai_enabled": true,
         "retention_days": 30,
+        "model": null,
         "version": 1,
         "spend_minor": 0,
         "calls": 0
@@ -1052,7 +1069,9 @@
           "category_id": "d734945e-f134-542f-a0b6-f3ccbb011dbc",
           "amount_minor": 25000
         },
-        "refs": ["00000000-0000-4000-8000-000000000025"],
+        "refs": [
+          "00000000-0000-4000-8000-000000000025"
+        ],
         "ask": null,
         "note": null,
         "warn": null,
@@ -1207,65 +1226,116 @@
       [
         "message",
         {
-          "id": "00000000-0000-4000-8000-00000000002b",
-          "role": "me",
-          "text": "how am I doing?",
-          "blocks": [],
-          "created_at": "2026-10-19T04:00:00.000000Z",
-          "version": 1,
-          "deleted_at": null
+          "type": "RUN_STARTED",
+          "threadId": "companion:8a1f6a52-2c36-4b8f-9d34-3b1f5f0f2a11",
+          "runId": "00000000-0000-4000-8000-00000000002b"
         }
       ],
       [
-        "block",
+        "message",
         {
-          "t": "insights"
+          "type": "CUSTOM",
+          "name": "message",
+          "value": {
+            "id": "00000000-0000-4000-8000-00000000002b",
+            "role": "me",
+            "text": "how am I doing?",
+            "blocks": [],
+            "created_at": "2026-10-19T04:00:00.000000Z",
+            "version": 1,
+            "deleted_at": null
+          }
         }
       ],
       [
-        "block",
+        "message",
         {
-          "t": "chips",
-          "prompts": ["Coach me on this", "Show my life score this month"]
+          "type": "TEXT_MESSAGE_START",
+          "messageId": "00000000-0000-4000-8000-00000000002c",
+          "role": "assistant"
         }
       ],
       [
-        "done",
+        "message",
         {
-          "kind": "reply",
-          "engine": "rules",
-          "messages": [
-            {
-              "id": "00000000-0000-4000-8000-00000000002b",
-              "role": "me",
-              "text": "how am I doing?",
-              "blocks": [],
-              "created_at": "2026-10-19T04:00:00.000000Z",
-              "version": 1,
-              "deleted_at": null
-            },
-            {
-              "id": "00000000-0000-4000-8000-00000000002c",
-              "role": "sol",
-              "text": "Here's what stands out from your records:",
-              "blocks": [
-                {
-                  "t": "insights"
-                },
-                {
-                  "t": "chips",
-                  "prompts": [
-                    "Coach me on this",
-                    "Show my life score this month"
-                  ]
-                }
-              ],
-              "created_at": "2026-10-19T04:00:00.000000Z",
-              "version": 1,
-              "deleted_at": null
-            }
-          ],
-          "capture": null
+          "type": "TEXT_MESSAGE_CONTENT",
+          "messageId": "00000000-0000-4000-8000-00000000002c",
+          "delta": "Here's what stands out from your records:"
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "CUSTOM",
+          "name": "block",
+          "value": {
+            "t": "insights"
+          }
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "CUSTOM",
+          "name": "block",
+          "value": {
+            "t": "chips",
+            "prompts": [
+              "Coach me on this",
+              "Show my life score this month"
+            ]
+          }
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "TEXT_MESSAGE_END",
+          "messageId": "00000000-0000-4000-8000-00000000002c"
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "RUN_FINISHED",
+          "threadId": "companion:8a1f6a52-2c36-4b8f-9d34-3b1f5f0f2a11",
+          "runId": "00000000-0000-4000-8000-00000000002b",
+          "result": {
+            "kind": "reply",
+            "engine": "rules",
+            "messages": [
+              {
+                "id": "00000000-0000-4000-8000-00000000002b",
+                "role": "me",
+                "text": "how am I doing?",
+                "blocks": [],
+                "created_at": "2026-10-19T04:00:00.000000Z",
+                "version": 1,
+                "deleted_at": null
+              },
+              {
+                "id": "00000000-0000-4000-8000-00000000002d",
+                "role": "sol",
+                "text": "Here's what stands out from your records:",
+                "blocks": [
+                  {
+                    "t": "insights"
+                  },
+                  {
+                    "t": "chips",
+                    "prompts": [
+                      "Coach me on this",
+                      "Show my life score this month"
+                    ]
+                  }
+                ],
+                "created_at": "2026-10-19T04:00:00.000000Z",
+                "version": 1,
+                "deleted_at": null
+              }
+            ],
+            "capture": null
+          }
         }
       ]
     ]
@@ -1273,192 +1343,127 @@
   "ask_capture": {
     "request": {
       "text": "spent 120 on lunch",
-      "id": "00000000-0000-4000-8000-00000000002d"
+      "id": "00000000-0000-4000-8000-00000000002e"
     },
     "status": 200,
     "frames": [
       [
-        "capture",
+        "message",
         {
-          "id": "00000000-0000-4000-8000-00000000002e",
-          "client_uuid": "00000000-0000-4000-8000-00000000002f",
-          "at": "2026-10-19T04:00:00.000000Z",
-          "source": "text",
-          "text": "spent 120 on lunch",
-          "transcript": null,
-          "duration_sec": null,
-          "hint": null,
-          "file_name": null,
-          "status": "processing",
-          "reply_text": null,
-          "error_code": null,
-          "started_at": "2026-10-19T04:00:00.000000Z",
-          "engine": null,
-          "created_at": "2026-10-19T04:00:00.000000Z",
-          "version": 1,
-          "deleted_at": null
+          "type": "RUN_STARTED",
+          "threadId": "companion:8a1f6a52-2c36-4b8f-9d34-3b1f5f0f2a11",
+          "runId": "00000000-0000-4000-8000-00000000002e"
         }
       ],
       [
-        "card",
+        "message",
         {
-          "t": "record",
-          "id": "00000000-0000-4000-8000-000000000030",
-          "capture_id": "00000000-0000-4000-8000-00000000002e",
-          "position": 0,
-          "kind": "expense",
-          "target": "finance",
-          "tier": "auto",
-          "state": "saved",
-          "payload": {
+          "type": "CUSTOM",
+          "name": "capture",
+          "value": {
+            "id": "00000000-0000-4000-8000-00000000002f",
+            "client_uuid": "00000000-0000-4000-8000-000000000030",
+            "at": "2026-10-19T04:00:00.000000Z",
+            "source": "text",
+            "text": "spent 120 on lunch",
+            "transcript": null,
+            "duration_sec": null,
+            "hint": null,
+            "file_name": null,
+            "status": "processing",
+            "reply_text": null,
+            "error_code": null,
+            "started_at": "2026-10-19T04:00:00.000000Z",
+            "engine": null,
+            "created_at": "2026-10-19T04:00:00.000000Z",
+            "version": 1,
+            "deleted_at": null
+          }
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "CUSTOM",
+          "name": "card",
+          "value": {
+            "t": "record",
+            "id": "00000000-0000-4000-8000-000000000031",
+            "capture_id": "00000000-0000-4000-8000-00000000002f",
+            "position": 0,
             "kind": "expense",
-            "payee": "Lunch",
-            "account_id": "00000000-0000-4000-8000-000000000004",
-            "category_id": "b435522e-86a8-52ac-a606-fad321ad3e62",
-            "amount_minor": 12000
-          },
-          "refs": ["00000000-0000-4000-8000-000000000031"],
-          "ask": null,
-          "note": null,
-          "warn": null,
-          "confidence": null,
-          "day_offset": 0,
-          "version": 1,
-          "log": [
-            {
-              "id": "00000000-0000-4000-8000-000000000032",
-              "at": "2026-10-19T04:00:00.000000Z",
-              "action": "proposed",
-              "actor": "ai"
+            "target": "finance",
+            "tier": "auto",
+            "state": "saved",
+            "payload": {
+              "kind": "expense",
+              "payee": "Lunch",
+              "account_id": "00000000-0000-4000-8000-000000000004",
+              "category_id": "b435522e-86a8-52ac-a606-fad321ad3e62",
+              "amount_minor": 12000
             },
-            {
-              "id": "00000000-0000-4000-8000-000000000033",
-              "at": "2026-10-19T04:00:00.000000Z",
-              "action": "saved",
-              "actor": "ai"
-            }
-          ]
-        }
-      ],
-      [
-        "info",
-        {
-          "id": "00000000-0000-4000-8000-000000000034",
-          "capture_id": "00000000-0000-4000-8000-00000000002e",
-          "position": 1,
-          "kind": "info",
-          "body": {
-            "t": "info",
-            "tone": "fallback",
-            "title": "Read by the built-in rules",
-            "body": "No AI model is set up for capture, so the built-in rules read this. Add a provider in AI settings for smarter reads.",
-            "actions": [
+            "refs": [
+              "00000000-0000-4000-8000-000000000032"
+            ],
+            "ask": null,
+            "note": null,
+            "warn": null,
+            "confidence": null,
+            "day_offset": 0,
+            "version": 1,
+            "log": [
               {
-                "label": "AI settings",
-                "do": "link",
-                "href": "/capture/settings"
+                "id": "00000000-0000-4000-8000-000000000033",
+                "at": "2026-10-19T04:00:00.000000Z",
+                "action": "proposed",
+                "actor": "ai"
+              },
+              {
+                "id": "00000000-0000-4000-8000-000000000034",
+                "at": "2026-10-19T04:00:00.000000Z",
+                "action": "saved",
+                "actor": "ai"
               }
             ]
-          },
-          "version": 1,
-          "deleted_at": null
+          }
         }
       ],
       [
-        "done",
+        "message",
         {
-          "id": "00000000-0000-4000-8000-00000000002e",
-          "client_uuid": "00000000-0000-4000-8000-00000000002f",
-          "at": "2026-10-19T04:00:00.000000Z",
-          "source": "text",
-          "text": "spent 120 on lunch",
-          "transcript": null,
-          "duration_sec": null,
-          "hint": null,
-          "file_name": null,
-          "status": "done",
-          "reply_text": "Logged it.",
-          "error_code": null,
-          "started_at": "2026-10-19T04:00:00.000000Z",
-          "engine": "rules",
-          "created_at": "2026-10-19T04:00:00.000000Z",
-          "version": 1,
-          "deleted_at": null,
-          "cards": [
-            {
-              "t": "record",
-              "id": "00000000-0000-4000-8000-000000000030",
-              "capture_id": "00000000-0000-4000-8000-00000000002e",
-              "position": 0,
-              "kind": "expense",
-              "target": "finance",
-              "tier": "auto",
-              "state": "saved",
-              "payload": {
-                "kind": "expense",
-                "payee": "Lunch",
-                "account_id": "00000000-0000-4000-8000-000000000004",
-                "category_id": "b435522e-86a8-52ac-a606-fad321ad3e62",
-                "amount_minor": 12000
-              },
-              "refs": ["00000000-0000-4000-8000-000000000031"],
-              "ask": null,
-              "note": null,
-              "warn": null,
-              "confidence": null,
-              "day_offset": 0,
-              "version": 1,
-              "log": [
+          "type": "CUSTOM",
+          "name": "info",
+          "value": {
+            "id": "00000000-0000-4000-8000-000000000035",
+            "capture_id": "00000000-0000-4000-8000-00000000002f",
+            "position": 1,
+            "kind": "info",
+            "body": {
+              "t": "info",
+              "tone": "fallback",
+              "title": "Read by the built-in rules",
+              "body": "No AI model is set up for capture, so the built-in rules read this. Add a provider in AI settings for smarter reads.",
+              "actions": [
                 {
-                  "id": "00000000-0000-4000-8000-000000000032",
-                  "at": "2026-10-19T04:00:00.000000Z",
-                  "action": "proposed",
-                  "actor": "ai"
-                },
-                {
-                  "id": "00000000-0000-4000-8000-000000000033",
-                  "at": "2026-10-19T04:00:00.000000Z",
-                  "action": "saved",
-                  "actor": "ai"
+                  "label": "AI settings",
+                  "do": "link",
+                  "href": "/capture/settings"
                 }
               ]
-            }
-          ],
-          "replies": [
-            {
-              "id": "00000000-0000-4000-8000-000000000034",
-              "capture_id": "00000000-0000-4000-8000-00000000002e",
-              "position": 1,
-              "kind": "info",
-              "body": {
-                "t": "info",
-                "body": "No AI model is set up for capture, so the built-in rules read this. Add a provider in AI settings for smarter reads.",
-                "tone": "fallback",
-                "title": "Read by the built-in rules",
-                "actions": [
-                  {
-                    "do": "link",
-                    "href": "/capture/settings",
-                    "label": "AI settings"
-                  }
-                ]
-              },
-              "version": 1,
-              "deleted_at": null
-            }
-          ],
-          "attachments": []
+            },
+            "version": 1,
+            "deleted_at": null
+          }
         }
       ],
       [
-        "done",
+        "message",
         {
-          "kind": "capture",
-          "engine": "rules",
-          "messages": [],
-          "capture": {
-            "id": "00000000-0000-4000-8000-00000000002e",
-            "client_uuid": "00000000-0000-4000-8000-00000000002f",
+          "type": "CUSTOM",
+          "name": "done",
+          "value": {
+            "id": "00000000-0000-4000-8000-00000000002f",
+            "client_uuid": "00000000-0000-4000-8000-000000000030",
             "at": "2026-10-19T04:00:00.000000Z",
             "source": "text",
             "text": "spent 120 on lunch",
@@ -1477,8 +1482,8 @@
             "cards": [
               {
                 "t": "record",
-                "id": "00000000-0000-4000-8000-000000000030",
-                "capture_id": "00000000-0000-4000-8000-00000000002e",
+                "id": "00000000-0000-4000-8000-000000000031",
+                "capture_id": "00000000-0000-4000-8000-00000000002f",
                 "position": 0,
                 "kind": "expense",
                 "target": "finance",
@@ -1491,7 +1496,9 @@
                   "category_id": "b435522e-86a8-52ac-a606-fad321ad3e62",
                   "amount_minor": 12000
                 },
-                "refs": ["00000000-0000-4000-8000-000000000031"],
+                "refs": [
+                  "00000000-0000-4000-8000-000000000032"
+                ],
                 "ask": null,
                 "note": null,
                 "warn": null,
@@ -1500,13 +1507,13 @@
                 "version": 1,
                 "log": [
                   {
-                    "id": "00000000-0000-4000-8000-000000000032",
+                    "id": "00000000-0000-4000-8000-000000000033",
                     "at": "2026-10-19T04:00:00.000000Z",
                     "action": "proposed",
                     "actor": "ai"
                   },
                   {
-                    "id": "00000000-0000-4000-8000-000000000033",
+                    "id": "00000000-0000-4000-8000-000000000034",
                     "at": "2026-10-19T04:00:00.000000Z",
                     "action": "saved",
                     "actor": "ai"
@@ -1516,8 +1523,8 @@
             ],
             "replies": [
               {
-                "id": "00000000-0000-4000-8000-000000000034",
-                "capture_id": "00000000-0000-4000-8000-00000000002e",
+                "id": "00000000-0000-4000-8000-000000000035",
+                "capture_id": "00000000-0000-4000-8000-00000000002f",
                 "position": 1,
                 "kind": "info",
                 "body": {
@@ -1538,6 +1545,104 @@
               }
             ],
             "attachments": []
+          }
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "RUN_FINISHED",
+          "threadId": "companion:8a1f6a52-2c36-4b8f-9d34-3b1f5f0f2a11",
+          "runId": "00000000-0000-4000-8000-00000000002e",
+          "result": {
+            "kind": "capture",
+            "engine": "rules",
+            "messages": [],
+            "capture": {
+              "id": "00000000-0000-4000-8000-00000000002f",
+              "client_uuid": "00000000-0000-4000-8000-000000000030",
+              "at": "2026-10-19T04:00:00.000000Z",
+              "source": "text",
+              "text": "spent 120 on lunch",
+              "transcript": null,
+              "duration_sec": null,
+              "hint": null,
+              "file_name": null,
+              "status": "done",
+              "reply_text": "Logged it.",
+              "error_code": null,
+              "started_at": "2026-10-19T04:00:00.000000Z",
+              "engine": "rules",
+              "created_at": "2026-10-19T04:00:00.000000Z",
+              "version": 1,
+              "deleted_at": null,
+              "cards": [
+                {
+                  "t": "record",
+                  "id": "00000000-0000-4000-8000-000000000031",
+                  "capture_id": "00000000-0000-4000-8000-00000000002f",
+                  "position": 0,
+                  "kind": "expense",
+                  "target": "finance",
+                  "tier": "auto",
+                  "state": "saved",
+                  "payload": {
+                    "kind": "expense",
+                    "payee": "Lunch",
+                    "account_id": "00000000-0000-4000-8000-000000000004",
+                    "category_id": "b435522e-86a8-52ac-a606-fad321ad3e62",
+                    "amount_minor": 12000
+                  },
+                  "refs": [
+                    "00000000-0000-4000-8000-000000000032"
+                  ],
+                  "ask": null,
+                  "note": null,
+                  "warn": null,
+                  "confidence": null,
+                  "day_offset": 0,
+                  "version": 1,
+                  "log": [
+                    {
+                      "id": "00000000-0000-4000-8000-000000000033",
+                      "at": "2026-10-19T04:00:00.000000Z",
+                      "action": "proposed",
+                      "actor": "ai"
+                    },
+                    {
+                      "id": "00000000-0000-4000-8000-000000000034",
+                      "at": "2026-10-19T04:00:00.000000Z",
+                      "action": "saved",
+                      "actor": "ai"
+                    }
+                  ]
+                }
+              ],
+              "replies": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000035",
+                  "capture_id": "00000000-0000-4000-8000-00000000002f",
+                  "position": 1,
+                  "kind": "info",
+                  "body": {
+                    "t": "info",
+                    "body": "No AI model is set up for capture, so the built-in rules read this. Add a provider in AI settings for smarter reads.",
+                    "tone": "fallback",
+                    "title": "Read by the built-in rules",
+                    "actions": [
+                      {
+                        "do": "link",
+                        "href": "/capture/settings",
+                        "label": "AI settings"
+                      }
+                    ]
+                  },
+                  "version": 1,
+                  "deleted_at": null
+                }
+              ],
+              "attachments": []
+            }
           }
         }
       ]
@@ -1546,485 +1651,504 @@
   "ask_ai": {
     "request": {
       "text": "ran 5k today, how's my training?",
-      "id": "00000000-0000-4000-8000-000000000035"
+      "id": "00000000-0000-4000-8000-000000000036"
     },
     "status": 200,
     "frames": [
       [
         "message",
         {
-          "id": "00000000-0000-4000-8000-000000000035",
-          "role": "me",
-          "text": "ran 5k today, how's my training?",
-          "blocks": [],
-          "created_at": "2026-10-19T04:00:00.000000Z",
-          "version": 1,
-          "deleted_at": null
+          "type": "RUN_STARTED",
+          "threadId": "companion:8a1f6a52-2c36-4b8f-9d34-3b1f5f0f2a11",
+          "runId": "00000000-0000-4000-8000-000000000036"
         }
       ],
       [
-        "block",
+        "message",
         {
-          "t": "chart",
-          "metric": "workouts",
-          "days": 30
-        }
-      ],
-      [
-        "block",
-        {
-          "t": "tracker",
-          "id": "00000000-0000-4000-8000-000000000036"
-        }
-      ],
-      [
-        "capture",
-        {
-          "id": "00000000-0000-4000-8000-000000000037",
-          "client_uuid": "00000000-0000-4000-8000-000000000038",
-          "at": "2026-10-19T04:00:00.000000Z",
-          "source": "text",
-          "text": "ran 5k 32 min",
-          "transcript": null,
-          "duration_sec": null,
-          "hint": null,
-          "file_name": null,
-          "status": "processing",
-          "reply_text": null,
-          "error_code": null,
-          "started_at": "2026-10-19T04:00:00.000000Z",
-          "engine": null,
-          "created_at": "2026-10-19T04:00:00.000000Z",
-          "version": 1,
-          "deleted_at": null
-        }
-      ],
-      [
-        "card",
-        {
-          "t": "record",
-          "id": "00000000-0000-4000-8000-000000000039",
-          "capture_id": "00000000-0000-4000-8000-000000000037",
-          "position": 0,
-          "kind": "workout",
-          "target": "fitness",
-          "tier": "auto",
-          "state": "saved",
-          "payload": {
-            "kind": "workout",
-            "name": "5 km run",
-            "cardio": {
-              "km": 5,
-              "min": 32,
-              "activity": "Run"
-            },
-            "exercises": []
-          },
-          "refs": ["00000000-0000-4000-8000-00000000003a"],
-          "ask": null,
-          "note": "6:24 /km · 1 sessions in 7 days",
-          "warn": null,
-          "confidence": null,
-          "day_offset": 0,
-          "version": 1,
-          "log": [
-            {
-              "id": "00000000-0000-4000-8000-00000000003b",
-              "at": "2026-10-19T04:00:00.000000Z",
-              "action": "proposed",
-              "actor": "ai"
-            },
-            {
-              "id": "00000000-0000-4000-8000-00000000003c",
-              "at": "2026-10-19T04:00:00.000000Z",
-              "action": "saved",
-              "actor": "ai"
-            }
-          ]
-        }
-      ],
-      [
-        "info",
-        {
-          "id": "00000000-0000-4000-8000-00000000003d",
-          "capture_id": "00000000-0000-4000-8000-000000000037",
-          "position": 1,
-          "kind": "info",
-          "body": {
-            "t": "info",
-            "tone": "fallback",
-            "title": "Read by the built-in rules",
-            "body": "No AI model is set up for capture, so the built-in rules read this. Add a provider in AI settings for smarter reads.",
-            "actions": [
-              {
-                "label": "AI settings",
-                "do": "link",
-                "href": "/capture/settings"
-              }
-            ]
-          },
-          "version": 1,
-          "deleted_at": null
-        }
-      ],
-      [
-        "done",
-        {
-          "id": "00000000-0000-4000-8000-000000000037",
-          "client_uuid": "00000000-0000-4000-8000-000000000038",
-          "at": "2026-10-19T04:00:00.000000Z",
-          "source": "text",
-          "text": "ran 5k 32 min",
-          "transcript": null,
-          "duration_sec": null,
-          "hint": null,
-          "file_name": null,
-          "status": "done",
-          "reply_text": "Logged it.",
-          "error_code": null,
-          "started_at": "2026-10-19T04:00:00.000000Z",
-          "engine": "rules",
-          "created_at": "2026-10-19T04:00:00.000000Z",
-          "version": 1,
-          "deleted_at": null,
-          "cards": [
-            {
-              "t": "record",
-              "id": "00000000-0000-4000-8000-000000000039",
-              "capture_id": "00000000-0000-4000-8000-000000000037",
-              "position": 0,
-              "kind": "workout",
-              "target": "fitness",
-              "tier": "auto",
-              "state": "saved",
-              "payload": {
-                "kind": "workout",
-                "name": "5 km run",
-                "cardio": {
-                  "km": 5,
-                  "min": 32,
-                  "activity": "Run"
-                },
-                "exercises": []
-              },
-              "refs": ["00000000-0000-4000-8000-00000000003a"],
-              "ask": null,
-              "note": "6:24 /km · 1 sessions in 7 days",
-              "warn": null,
-              "confidence": null,
-              "day_offset": 0,
-              "version": 1,
-              "log": [
-                {
-                  "id": "00000000-0000-4000-8000-00000000003b",
-                  "at": "2026-10-19T04:00:00.000000Z",
-                  "action": "proposed",
-                  "actor": "ai"
-                },
-                {
-                  "id": "00000000-0000-4000-8000-00000000003c",
-                  "at": "2026-10-19T04:00:00.000000Z",
-                  "action": "saved",
-                  "actor": "ai"
-                }
-              ]
-            }
-          ],
-          "replies": [
-            {
-              "id": "00000000-0000-4000-8000-00000000003d",
-              "capture_id": "00000000-0000-4000-8000-000000000037",
-              "position": 1,
-              "kind": "info",
-              "body": {
-                "t": "info",
-                "body": "No AI model is set up for capture, so the built-in rules read this. Add a provider in AI settings for smarter reads.",
-                "tone": "fallback",
-                "title": "Read by the built-in rules",
-                "actions": [
-                  {
-                    "do": "link",
-                    "href": "/capture/settings",
-                    "label": "AI settings"
-                  }
-                ]
-              },
-              "version": 1,
-              "deleted_at": null
-            }
-          ],
-          "attachments": []
-        }
-      ],
-      [
-        "capture",
-        {
-          "id": "00000000-0000-4000-8000-000000000037",
-          "client_uuid": "00000000-0000-4000-8000-000000000038",
-          "at": "2026-10-19T04:00:00.000000Z",
-          "source": "text",
-          "text": "ran 5k 32 min",
-          "transcript": null,
-          "duration_sec": null,
-          "hint": null,
-          "file_name": null,
-          "status": "done",
-          "reply_text": "Logged it.",
-          "error_code": null,
-          "started_at": "2026-10-19T04:00:00.000000Z",
-          "engine": "rules",
-          "created_at": "2026-10-19T04:00:00.000000Z",
-          "version": 1,
-          "deleted_at": null,
-          "cards": [
-            {
-              "t": "record",
-              "id": "00000000-0000-4000-8000-000000000039",
-              "capture_id": "00000000-0000-4000-8000-000000000037",
-              "position": 0,
-              "kind": "workout",
-              "target": "fitness",
-              "tier": "auto",
-              "state": "saved",
-              "payload": {
-                "kind": "workout",
-                "name": "5 km run",
-                "cardio": {
-                  "km": 5,
-                  "min": 32,
-                  "activity": "Run"
-                },
-                "exercises": []
-              },
-              "refs": ["00000000-0000-4000-8000-00000000003a"],
-              "ask": null,
-              "note": "6:24 /km · 1 sessions in 7 days",
-              "warn": null,
-              "confidence": null,
-              "day_offset": 0,
-              "version": 1,
-              "log": [
-                {
-                  "id": "00000000-0000-4000-8000-00000000003b",
-                  "at": "2026-10-19T04:00:00.000000Z",
-                  "action": "proposed",
-                  "actor": "ai"
-                },
-                {
-                  "id": "00000000-0000-4000-8000-00000000003c",
-                  "at": "2026-10-19T04:00:00.000000Z",
-                  "action": "saved",
-                  "actor": "ai"
-                }
-              ]
-            }
-          ],
-          "replies": [
-            {
-              "id": "00000000-0000-4000-8000-00000000003d",
-              "capture_id": "00000000-0000-4000-8000-000000000037",
-              "position": 1,
-              "kind": "info",
-              "body": {
-                "t": "info",
-                "body": "No AI model is set up for capture, so the built-in rules read this. Add a provider in AI settings for smarter reads.",
-                "tone": "fallback",
-                "title": "Read by the built-in rules",
-                "actions": [
-                  {
-                    "do": "link",
-                    "href": "/capture/settings",
-                    "label": "AI settings"
-                  }
-                ]
-              },
-              "version": 1,
-              "deleted_at": null
-            }
-          ],
-          "attachments": []
-        }
-      ],
-      [
-        "text.delta",
-        {
-          "text": "Nice"
-        }
-      ],
-      [
-        "text.delta",
-        {
-          "text": " run."
-        }
-      ],
-      [
-        "text.delta",
-        {
-          "text": " Here's"
-        }
-      ],
-      [
-        "text.delta",
-        {
-          "text": " your"
-        }
-      ],
-      [
-        "text.delta",
-        {
-          "text": " month"
-        }
-      ],
-      [
-        "text.delta",
-        {
-          "text": " and"
-        }
-      ],
-      [
-        "text.delta",
-        {
-          "text": " I'll"
-        }
-      ],
-      [
-        "text.delta",
-        {
-          "text": " watch"
-        }
-      ],
-      [
-        "text.delta",
-        {
-          "text": " your"
-        }
-      ],
-      [
-        "text.delta",
-        {
-          "text": " sessions."
-        }
-      ],
-      [
-        "done",
-        {
-          "kind": "reply",
-          "engine": "ai",
-          "messages": [
-            {
-              "id": "00000000-0000-4000-8000-000000000035",
-              "role": "me",
-              "text": "ran 5k today, how's my training?",
-              "blocks": [],
-              "created_at": "2026-10-19T04:00:00.000000Z",
-              "version": 1,
-              "deleted_at": null
-            },
-            {
-              "id": "00000000-0000-4000-8000-00000000003e",
-              "role": "sol",
-              "text": "Nice run. Here's your month and I'll watch your sessions.",
-              "blocks": [
-                {
-                  "t": "chart",
-                  "days": 30,
-                  "metric": "workouts"
-                },
-                {
-                  "t": "tracker",
-                  "id": "00000000-0000-4000-8000-000000000036"
-                }
-              ],
-              "created_at": "2026-10-19T04:00:00.000000Z",
-              "version": 1,
-              "deleted_at": null
-            }
-          ],
-          "capture": {
-            "id": "00000000-0000-4000-8000-000000000037",
-            "client_uuid": "00000000-0000-4000-8000-000000000038",
-            "at": "2026-10-19T04:00:00.000000Z",
-            "source": "text",
-            "text": "ran 5k 32 min",
-            "transcript": null,
-            "duration_sec": null,
-            "hint": null,
-            "file_name": null,
-            "status": "done",
-            "reply_text": "Logged it.",
-            "error_code": null,
-            "started_at": "2026-10-19T04:00:00.000000Z",
-            "engine": "rules",
+          "type": "CUSTOM",
+          "name": "message",
+          "value": {
+            "id": "00000000-0000-4000-8000-000000000036",
+            "role": "me",
+            "text": "ran 5k today, how's my training?",
+            "blocks": [],
             "created_at": "2026-10-19T04:00:00.000000Z",
             "version": 1,
-            "deleted_at": null,
-            "cards": [
-              {
-                "t": "record",
-                "id": "00000000-0000-4000-8000-000000000039",
-                "capture_id": "00000000-0000-4000-8000-000000000037",
-                "position": 0,
-                "kind": "workout",
-                "target": "fitness",
-                "tier": "auto",
-                "state": "saved",
-                "payload": {
-                  "kind": "workout",
-                  "name": "5 km run",
-                  "cardio": {
-                    "km": 5,
-                    "min": 32,
-                    "activity": "Run"
-                  },
-                  "exercises": []
-                },
-                "refs": ["00000000-0000-4000-8000-00000000003a"],
-                "ask": null,
-                "note": "6:24 /km · 1 sessions in 7 days",
-                "warn": null,
-                "confidence": null,
-                "day_offset": 0,
-                "version": 1,
-                "log": [
-                  {
-                    "id": "00000000-0000-4000-8000-00000000003b",
-                    "at": "2026-10-19T04:00:00.000000Z",
-                    "action": "proposed",
-                    "actor": "ai"
-                  },
-                  {
-                    "id": "00000000-0000-4000-8000-00000000003c",
-                    "at": "2026-10-19T04:00:00.000000Z",
-                    "action": "saved",
-                    "actor": "ai"
-                  }
-                ]
-              }
+            "deleted_at": null
+          }
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "STEP_STARTED",
+          "stepName": "think:1"
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "STEP_FINISHED",
+          "stepName": "think:1"
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "STEP_STARTED",
+          "stepName": "tool:show_chart"
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "TOOL_CALL_START",
+          "toolCallId": "call-358a9834",
+          "toolCallName": "show_chart"
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "TOOL_CALL_ARGS",
+          "toolCallId": "call-358a9834",
+          "delta": "{\"metric\": \"workouts\", \"days\": 30}"
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "TOOL_CALL_END",
+          "toolCallId": "call-358a9834"
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "CUSTOM",
+          "name": "block",
+          "value": {
+            "t": "chart",
+            "metric": "workouts",
+            "days": 30
+          }
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "TOOL_CALL_RESULT",
+          "messageId": "00000000-0000-4000-8000-000000000037",
+          "toolCallId": "call-358a9834",
+          "content": "{\"id\": \"call-358a9834\", \"tool\": \"show_chart\", \"label\": \"Drawing a chart\", \"ok\": true, \"summary\": \"Charted workouts\"}",
+          "role": "tool"
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "STEP_FINISHED",
+          "stepName": "tool:show_chart"
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "STEP_STARTED",
+          "stepName": "tool:track"
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "TOOL_CALL_START",
+          "toolCallId": "call-010df75b",
+          "toolCallName": "track"
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "TOOL_CALL_ARGS",
+          "toolCallId": "call-010df75b",
+          "delta": "{\"metric\": \"workouts\", \"goal\": 4, \"direction\": \"above\"}"
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "TOOL_CALL_END",
+          "toolCallId": "call-010df75b"
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "CUSTOM",
+          "name": "block",
+          "value": {
+            "t": "tracker",
+            "id": "00000000-0000-4000-8000-000000000038"
+          }
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "TOOL_CALL_RESULT",
+          "messageId": "00000000-0000-4000-8000-000000000039",
+          "toolCallId": "call-010df75b",
+          "content": "{\"id\": \"call-010df75b\", \"tool\": \"track\", \"label\": \"Setting up tracking\", \"ok\": true, \"summary\": \"Tracking workouts\"}",
+          "role": "tool"
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "STEP_FINISHED",
+          "stepName": "tool:track"
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "STEP_STARTED",
+          "stepName": "tool:log_workout"
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "TOOL_CALL_START",
+          "toolCallId": "call-workout",
+          "toolCallName": "log_workout"
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "TOOL_CALL_ARGS",
+          "toolCallId": "call-workout",
+          "delta": "{\"name\": \"5K run\", \"cardio\": {\"activity\": \"Run\", \"km\": 5, \"minutes\": 32}}"
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "TOOL_CALL_END",
+          "toolCallId": "call-workout"
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "CUSTOM",
+          "name": "card",
+          "value": {
+            "t": "record",
+            "id": "00000000-0000-4000-8000-00000000003a",
+            "capture_id": "00000000-0000-4000-8000-00000000003b",
+            "position": 0,
+            "kind": "workout",
+            "target": "fitness",
+            "tier": "auto",
+            "state": "saved",
+            "payload": {
+              "kind": "workout",
+              "name": "5K run",
+              "cardio": {
+                "km": 5.0,
+                "min": 32.0,
+                "activity": "Run"
+              },
+              "exercises": []
+            },
+            "refs": [
+              "00000000-0000-4000-8000-00000000003c"
             ],
-            "replies": [
+            "ask": null,
+            "note": "6:24 /km · 1 sessions in 7 days",
+            "warn": null,
+            "confidence": null,
+            "day_offset": 0,
+            "version": 1,
+            "log": [
               {
                 "id": "00000000-0000-4000-8000-00000000003d",
-                "capture_id": "00000000-0000-4000-8000-000000000037",
-                "position": 1,
-                "kind": "info",
-                "body": {
-                  "t": "info",
-                  "body": "No AI model is set up for capture, so the built-in rules read this. Add a provider in AI settings for smarter reads.",
-                  "tone": "fallback",
-                  "title": "Read by the built-in rules",
-                  "actions": [
-                    {
-                      "do": "link",
-                      "href": "/capture/settings",
-                      "label": "AI settings"
-                    }
-                  ]
-                },
+                "at": "2026-10-19T04:00:00.000000Z",
+                "action": "proposed",
+                "actor": "ai"
+              },
+              {
+                "id": "00000000-0000-4000-8000-00000000003e",
+                "at": "2026-10-19T04:00:00.000000Z",
+                "action": "saved",
+                "actor": "ai"
+              }
+            ]
+          }
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "TOOL_CALL_RESULT",
+          "messageId": "00000000-0000-4000-8000-00000000003f",
+          "toolCallId": "call-workout",
+          "content": "{\"id\": \"call-workout\", \"tool\": \"log_workout\", \"label\": \"Logging a workout\", \"ok\": true, \"summary\": \"Logged workout: 5K run\", \"card_id\": \"00000000-0000-4000-8000-00000000003a\", \"state\": \"saved\"}",
+          "role": "tool"
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "STEP_FINISHED",
+          "stepName": "tool:log_workout"
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "STEP_STARTED",
+          "stepName": "think:2"
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "TEXT_MESSAGE_START",
+          "messageId": "00000000-0000-4000-8000-000000000040",
+          "role": "assistant"
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "TEXT_MESSAGE_CONTENT",
+          "messageId": "00000000-0000-4000-8000-000000000040",
+          "delta": "Nice"
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "TEXT_MESSAGE_CONTENT",
+          "messageId": "00000000-0000-4000-8000-000000000040",
+          "delta": " run."
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "TEXT_MESSAGE_CONTENT",
+          "messageId": "00000000-0000-4000-8000-000000000040",
+          "delta": " Here's"
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "TEXT_MESSAGE_CONTENT",
+          "messageId": "00000000-0000-4000-8000-000000000040",
+          "delta": " your"
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "TEXT_MESSAGE_CONTENT",
+          "messageId": "00000000-0000-4000-8000-000000000040",
+          "delta": " month"
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "TEXT_MESSAGE_CONTENT",
+          "messageId": "00000000-0000-4000-8000-000000000040",
+          "delta": " and"
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "TEXT_MESSAGE_CONTENT",
+          "messageId": "00000000-0000-4000-8000-000000000040",
+          "delta": " I'll"
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "TEXT_MESSAGE_CONTENT",
+          "messageId": "00000000-0000-4000-8000-000000000040",
+          "delta": " watch"
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "TEXT_MESSAGE_CONTENT",
+          "messageId": "00000000-0000-4000-8000-000000000040",
+          "delta": " your"
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "TEXT_MESSAGE_CONTENT",
+          "messageId": "00000000-0000-4000-8000-000000000040",
+          "delta": " sessions."
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "TEXT_MESSAGE_END",
+          "messageId": "00000000-0000-4000-8000-000000000040"
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "STEP_FINISHED",
+          "stepName": "think:2"
+        }
+      ],
+      [
+        "message",
+        {
+          "type": "RUN_FINISHED",
+          "threadId": "companion:8a1f6a52-2c36-4b8f-9d34-3b1f5f0f2a11",
+          "runId": "00000000-0000-4000-8000-000000000036",
+          "result": {
+            "kind": "reply",
+            "engine": "ai",
+            "messages": [
+              {
+                "id": "00000000-0000-4000-8000-000000000036",
+                "role": "me",
+                "text": "ran 5k today, how's my training?",
+                "blocks": [],
+                "created_at": "2026-10-19T04:00:00.000000Z",
+                "version": 1,
+                "deleted_at": null
+              },
+              {
+                "id": "00000000-0000-4000-8000-000000000041",
+                "role": "sol",
+                "text": "Nice run. Here's your month and I'll watch your sessions.",
+                "blocks": [
+                  {
+                    "t": "steps",
+                    "items": [
+                      {
+                        "id": "call-358a9834",
+                        "ok": true,
+                        "tool": "show_chart",
+                        "label": "Drawing a chart",
+                        "summary": "Charted workouts"
+                      },
+                      {
+                        "id": "call-010df75b",
+                        "ok": true,
+                        "tool": "track",
+                        "label": "Setting up tracking",
+                        "summary": "Tracking workouts"
+                      },
+                      {
+                        "id": "call-workout",
+                        "ok": true,
+                        "tool": "log_workout",
+                        "label": "Logging a workout",
+                        "state": "saved",
+                        "card_id": "00000000-0000-4000-8000-00000000003a",
+                        "summary": "Logged workout: 5K run"
+                      }
+                    ]
+                  },
+                  {
+                    "t": "chart",
+                    "days": 30,
+                    "metric": "workouts"
+                  },
+                  {
+                    "t": "tracker",
+                    "id": "00000000-0000-4000-8000-000000000038"
+                  }
+                ],
+                "created_at": "2026-10-19T04:00:00.000000Z",
                 "version": 1,
                 "deleted_at": null
               }
             ],
-            "attachments": []
+            "capture": {
+              "id": "00000000-0000-4000-8000-00000000003b",
+              "client_uuid": "00000000-0000-4000-8000-000000000042",
+              "at": "2026-10-19T04:00:00.000000Z",
+              "source": "chat",
+              "text": "ran 5k today, how's my training?",
+              "transcript": null,
+              "duration_sec": null,
+              "hint": null,
+              "file_name": null,
+              "status": "done",
+              "reply_text": "Nice run. Here's your month and I'll watch your sessions.",
+              "error_code": null,
+              "started_at": "2026-10-19T04:00:00.000000Z",
+              "engine": "ai",
+              "created_at": "2026-10-19T04:00:00.000000Z",
+              "version": 1,
+              "deleted_at": null,
+              "cards": [
+                {
+                  "t": "record",
+                  "id": "00000000-0000-4000-8000-00000000003a",
+                  "capture_id": "00000000-0000-4000-8000-00000000003b",
+                  "position": 0,
+                  "kind": "workout",
+                  "target": "fitness",
+                  "tier": "auto",
+                  "state": "saved",
+                  "payload": {
+                    "kind": "workout",
+                    "name": "5K run",
+                    "cardio": {
+                      "km": 5.0,
+                      "min": 32.0,
+                      "activity": "Run"
+                    },
+                    "exercises": []
+                  },
+                  "refs": [
+                    "00000000-0000-4000-8000-00000000003c"
+                  ],
+                  "ask": null,
+                  "note": "6:24 /km · 1 sessions in 7 days",
+                  "warn": null,
+                  "confidence": null,
+                  "day_offset": 0,
+                  "version": 1,
+                  "log": [
+                    {
+                      "id": "00000000-0000-4000-8000-00000000003d",
+                      "at": "2026-10-19T04:00:00.000000Z",
+                      "action": "proposed",
+                      "actor": "ai"
+                    },
+                    {
+                      "id": "00000000-0000-4000-8000-00000000003e",
+                      "at": "2026-10-19T04:00:00.000000Z",
+                      "action": "saved",
+                      "actor": "ai"
+                    }
+                  ]
+                }
+              ],
+              "replies": [],
+              "attachments": []
+            }
           }
         }
       ]
@@ -2032,8 +2156,8 @@
   },
   "stream_ai": {
     "request": {
-      "id": "00000000-0000-4000-8000-00000000003f",
-      "client_uuid": "00000000-0000-4000-8000-000000000040",
+      "id": "00000000-0000-4000-8000-000000000043",
+      "client_uuid": "00000000-0000-4000-8000-000000000044",
       "text": "spent 250 on grab, remind me to pay rent on the 30th"
     },
     "status": 200,
@@ -2041,8 +2165,8 @@
       [
         "capture",
         {
-          "id": "00000000-0000-4000-8000-00000000003f",
-          "client_uuid": "00000000-0000-4000-8000-000000000040",
+          "id": "00000000-0000-4000-8000-000000000043",
+          "client_uuid": "00000000-0000-4000-8000-000000000044",
           "at": "2026-10-19T04:00:00.000000Z",
           "source": "text",
           "text": "spent 250 on grab, remind me to pay rent on the 30th",
@@ -2064,13 +2188,13 @@
         "card",
         {
           "t": "record",
-          "id": "00000000-0000-4000-8000-000000000041",
-          "capture_id": "00000000-0000-4000-8000-00000000003f",
+          "id": "00000000-0000-4000-8000-000000000045",
+          "capture_id": "00000000-0000-4000-8000-000000000043",
           "position": 0,
           "kind": "expense",
           "target": "finance",
-          "tier": "confirm",
-          "state": "proposed",
+          "tier": "auto",
+          "state": "saved",
           "payload": {
             "kind": "expense",
             "payee": "Grab",
@@ -2078,18 +2202,26 @@
             "category_id": "d734945e-f134-542f-a0b6-f3ccbb011dbc",
             "amount_minor": 25000
           },
-          "refs": [],
+          "refs": [
+            "00000000-0000-4000-8000-000000000046"
+          ],
           "ask": null,
           "note": null,
-          "warn": "Looks like the ₱250 you logged at 11:00 am (Grab). Keep both?",
+          "warn": null,
           "confidence": null,
           "day_offset": 0,
           "version": 1,
           "log": [
             {
-              "id": "00000000-0000-4000-8000-000000000042",
+              "id": "00000000-0000-4000-8000-000000000047",
               "at": "2026-10-19T04:00:00.000000Z",
               "action": "proposed",
+              "actor": "ai"
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000048",
+              "at": "2026-10-19T04:00:00.000000Z",
+              "action": "saved",
               "actor": "ai"
             }
           ]
@@ -2099,8 +2231,8 @@
         "card",
         {
           "t": "record",
-          "id": "00000000-0000-4000-8000-000000000043",
-          "capture_id": "00000000-0000-4000-8000-00000000003f",
+          "id": "00000000-0000-4000-8000-000000000049",
+          "capture_id": "00000000-0000-4000-8000-000000000043",
           "position": 1,
           "kind": "task",
           "target": "tasks",
@@ -2127,7 +2259,7 @@
           "version": 1,
           "log": [
             {
-              "id": "00000000-0000-4000-8000-000000000044",
+              "id": "00000000-0000-4000-8000-00000000004a",
               "at": "2026-10-19T04:00:00.000000Z",
               "action": "proposed",
               "actor": "ai"
@@ -2180,8 +2312,8 @@
       [
         "done",
         {
-          "id": "00000000-0000-4000-8000-00000000003f",
-          "client_uuid": "00000000-0000-4000-8000-000000000040",
+          "id": "00000000-0000-4000-8000-000000000043",
+          "client_uuid": "00000000-0000-4000-8000-000000000044",
           "at": "2026-10-19T04:00:00.000000Z",
           "source": "text",
           "text": "spent 250 on grab, remind me to pay rent on the 30th",
@@ -2200,13 +2332,13 @@
           "cards": [
             {
               "t": "record",
-              "id": "00000000-0000-4000-8000-000000000041",
-              "capture_id": "00000000-0000-4000-8000-00000000003f",
+              "id": "00000000-0000-4000-8000-000000000045",
+              "capture_id": "00000000-0000-4000-8000-000000000043",
               "position": 0,
               "kind": "expense",
               "target": "finance",
-              "tier": "confirm",
-              "state": "proposed",
+              "tier": "auto",
+              "state": "saved",
               "payload": {
                 "kind": "expense",
                 "payee": "Grab",
@@ -2214,26 +2346,34 @@
                 "category_id": "d734945e-f134-542f-a0b6-f3ccbb011dbc",
                 "amount_minor": 25000
               },
-              "refs": [],
+              "refs": [
+                "00000000-0000-4000-8000-000000000046"
+              ],
               "ask": null,
               "note": null,
-              "warn": "Looks like the ₱250 you logged at 11:00 am (Grab). Keep both?",
+              "warn": null,
               "confidence": null,
               "day_offset": 0,
               "version": 1,
               "log": [
                 {
-                  "id": "00000000-0000-4000-8000-000000000042",
+                  "id": "00000000-0000-4000-8000-000000000047",
                   "at": "2026-10-19T04:00:00.000000Z",
                   "action": "proposed",
+                  "actor": "ai"
+                },
+                {
+                  "id": "00000000-0000-4000-8000-000000000048",
+                  "at": "2026-10-19T04:00:00.000000Z",
+                  "action": "saved",
                   "actor": "ai"
                 }
               ]
             },
             {
               "t": "record",
-              "id": "00000000-0000-4000-8000-000000000043",
-              "capture_id": "00000000-0000-4000-8000-00000000003f",
+              "id": "00000000-0000-4000-8000-000000000049",
+              "capture_id": "00000000-0000-4000-8000-000000000043",
               "position": 1,
               "kind": "task",
               "target": "tasks",
@@ -2260,7 +2400,7 @@
               "version": 1,
               "log": [
                 {
-                  "id": "00000000-0000-4000-8000-000000000044",
+                  "id": "00000000-0000-4000-8000-00000000004a",
                   "at": "2026-10-19T04:00:00.000000Z",
                   "action": "proposed",
                   "actor": "ai"

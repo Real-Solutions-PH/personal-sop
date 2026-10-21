@@ -3791,6 +3791,19 @@ export const DayVerdictOutSchema = {
     title: 'DayVerdictOut'
 } as const;
 
+export const DictationOutSchema = {
+    properties: {
+        text: {
+            type: 'string',
+            title: 'Text'
+        }
+    },
+    type: 'object',
+    required: ['text'],
+    title: 'DictationOut',
+    description: `\`\`POST /capture/dictate\`\`: what was said.`
+} as const;
+
 export const DirectInSchema = {
     properties: {
         user_id: {

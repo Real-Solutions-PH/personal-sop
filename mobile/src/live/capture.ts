@@ -44,7 +44,9 @@ import {
   type Block,
   COMPANION_NAME,
   companionStore,
+  type StepItem,
   setAskBackend,
+  stepLabel,
   thinking,
 } from "@/prototype/companion/store"
 import { http, tokens } from "./auth"
@@ -641,20 +643,50 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
     let solAt = 0
     let solText = ""
     let blocks: Block[] = []
+    const steps: StepItem[] = []
     let open: string | undefined
-    const opened: string[] = []
     const sol = () => {
       thinking.setState({ on: false })
       solAt ||= Date.now()
+      const all: Block[] = steps.length
+        ? [{ t: "steps", items: steps.map((x) => ({ ...x })) }, ...blocks]
+        : blocks
       putMessages([
         {
           id: solId,
           role: "sol",
           at: solAt,
           ...(solText ? { text: solText } : {}),
-          ...(blocks.length ? { blocks } : {}),
+          ...(all.length ? { blocks: all } : {}),
         },
       ])
+    }
+    // CUSTOM events: the stored question, cards and blocks from Fern's
+    // tools, and the router's own capture when no model answers.
+    const custom = (name: string, d: Row) => {
+      switch (name) {
+        case "message":
+          return putMessages([messageFromServer(d)])
+        case "block":
+          blocks = [...blocks, d as unknown as Block]
+          return sol()
+        case "capture":
+          thinking.setState({ on: false })
+          if (!Array.isArray(d.cards)) open = String(d.id)
+          return captureFrame("capture", d, open)
+        case "capture.text":
+          return open ? captureFrame("text.delta", d, open) : undefined
+        case "done":
+          if (!open) return
+          captureFrame("done", d, open)
+          toastSaved(String(d.id))
+          open = undefined
+          return
+        default:
+          // card / ask / info: the router capture's cards stream into it;
+          // Fern's own cards arrive with the finished reply's capture.
+          return open ? captureFrame(name, d, open) : undefined
+      }
     }
     thinking.setState({ on: true })
     try {
@@ -669,40 +701,62 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
       }
       await readSse(res, (e) => {
         const d = (e.data ?? {}) as Row
-        switch (e.type) {
-          case "message":
-            putMessages([messageFromServer(d)])
+        switch (d.type) {
+          case "CUSTOM":
+            return custom(String(d.name), (d.value ?? {}) as Row)
+          case "TEXT_MESSAGE_START":
+            // Text from an earlier step stays above the next one.
+            if (solText) solText += "\n\n"
             return
-          case "text.delta":
-            if (open) return captureFrame(e.type, d, open)
-            solText += String(d.text ?? "")
+          case "TEXT_MESSAGE_CONTENT":
+            solText += String(d.delta ?? "")
             return sol()
-          case "block":
-            blocks = [...blocks, d as unknown as Block]
+          case "TOOL_CALL_START": {
+            const tool = String(d.toolCallName ?? "")
+            steps.push({
+              id: String(d.toolCallId),
+              tool,
+              label: stepLabel(tool),
+              running: true,
+            })
             return sol()
-          case "capture":
-            thinking.setState({ on: false })
-            if (!Array.isArray(d.cards)) {
-              open = String(d.id)
-              opened.push(open)
+          }
+          case "TOOL_CALL_RESULT": {
+            const step = steps.find((x) => x.id === String(d.toolCallId))
+            if (!step) return
+            let r: Row = {}
+            try {
+              r = JSON.parse(String(d.content ?? "{}")) as Row
+            } catch {
+              // a non-JSON result keeps the running label
             }
-            return captureFrame(e.type, d, open)
-          case "done":
-            if ("client_uuid" in d) {
-              captureFrame(e.type, d, open)
-              toastSaved(String(d.id))
-              open = undefined
-              return
+            step.running = false
+            step.ok = r.ok !== false
+            if (typeof r.summary === "string") step.summary = r.summary
+            if (typeof r.card_id === "string") {
+              step.card_id = r.card_id
+              step.state = String(r.state ?? "")
             }
-            putMessages(((d.messages ?? []) as Row[]).map(messageFromServer))
-            if (d.capture && typeof d.capture === "object")
-              detail(d.capture as Row)
+            if (Array.isArray(r.cards))
+              step.cards = (r.cards as Row[]).map((c) => ({
+                card_id: String(c.card_id),
+                state: String(c.state ?? ""),
+                label: String(c.label ?? ""),
+              }))
+            return sol()
+          }
+          case "RUN_FINISHED": {
+            const out = (d.result ?? {}) as Row
+            putMessages(((out.messages ?? []) as Row[]).map(messageFromServer))
+            if (out.capture && typeof out.capture === "object")
+              detail(out.capture as Row)
             return
-          case "error":
+          }
+          case "RUN_ERROR":
             toast(`${companionName()} couldn't finish that reply.`)
             return
           default:
-            return captureFrame(e.type, d, open)
+            return
         }
       })
     } catch (error) {

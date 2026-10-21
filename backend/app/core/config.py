@@ -192,6 +192,13 @@ class Settings(BaseSettings):
     # AI Module
     AI_ENABLED: bool = False
 
+    # Speech to text (constitution §4.2: Deepgram is the default STT). When
+    # set, it is the server's transcription default: dictation and voice
+    # captures of users without their own transcription credential use it.
+    DEEPGRAM_API_KEY: str | None = None
+    DEEPGRAM_MODEL: str = "nova-3"
+    DEEPGRAM_BASE_URL: str = "https://api.deepgram.com/v1"
+
     # LLM Providers
     NEBIUS_API_KEY: str | None = None
     NEBIUS_BASE_URL: str = "https://api.tokenfactory.nebius.com/v1/"
