@@ -1,5 +1,6 @@
 import { useFacets } from "@domain/dash/facets"
 import {
+  lifeScoreOf,
   useAchievements,
   useAllCalendar,
   useAllMetrics,
@@ -316,6 +317,21 @@ function connect(entries: Record<string, unknown>) {
   })
   return watched
 }
+
+test("an area with nothing to rate is left out of the Life Score, as on the server", () => {
+  // The account seen on 2026-10-21: no habits, no accounts. By hand:
+  // (3 x 0.25 + 2 x 0.5) / (3 + 2) = 0.35. Counting habits and finance as 0
+  // instead gives 1.75 / 10 = 0.175, the 18 the device showed before the
+  // server's 35 arrived.
+  const rates = { habits: 0, tasks: 0.5, fitness: 0.25, finance: 0 }
+  const weights = { habits: 3, tasks: 2, fitness: 3, finance: 2 }
+  const enabled = { habits: true, tasks: true, fitness: true, finance: true }
+  const rated = { habits: false, tasks: true, fitness: true, finance: false }
+  expect(lifeScoreOf(rates, weights, enabled, rated)).toBe(35)
+  expect(lifeScoreOf(rates, weights, enabled)).toBe(18)
+  const none = { habits: false, tasks: false, fitness: false, finance: false }
+  expect(lifeScoreOf(rates, weights, enabled, none)).toBeNull()
+})
 
 test("prototype and web: no source, the hooks compute locally", () => {
   const { result } = renderHook(() => useLifeScore(7))

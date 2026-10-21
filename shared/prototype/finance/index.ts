@@ -40,7 +40,7 @@ function budgetScore(s: FinState) {
 function useAreaRate(days: number, offset = 0) {
   const s = useFin()
   return useMemo(() => {
-    if (!s.accounts.length) return 0
+    if (!s.accounts.length) return null
     const to = addDays(today(), -offset)
     const sr = savingsRate(
       flowIn(s, addDays(to, -(Math.max(days, 30) - 1)), to),

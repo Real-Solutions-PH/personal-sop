@@ -18,7 +18,10 @@ import { habitsStore } from "./store"
 const useState = () => habitsStore.use((s) => s)
 function useAreaRate(days: number, offset = 0) {
   const s = useState()
-  return useMemo(() => overallStats(s, days, offset).rate, [s, days, offset])
+  return useMemo(() => {
+    const o = overallStats(s, days, offset)
+    return o.rated ? o.rate : null
+  }, [s, days, offset])
 }
 function useMetrics(days: number): Metric[] {
   const s = useState()

@@ -43,8 +43,9 @@ export interface ModuleContract {
    *  `evening` = the wrap-up layout (IA §6): state results against targets. */
   TodayCard: ComponentType<{ evening?: boolean }>
   /** 0..1 performance for the Life Score over `days` days ending `offset`
-   *  days before today (offset = days → the previous equal period). */
-  useAreaRate: (days: number, offset?: number) => number
+   *  days before today (offset = days → the previous equal period); null
+   *  when the area has nothing to rate, which the Life Score leaves out. */
+  useAreaRate: (days: number, offset?: number) => number | null
   /** Headline metrics for Stats (period = last `days` days vs the previous `days`). */
   useMetrics: (days: number) => Metric[]
   /** Items for the Plan calendar within [from, to] day keys. */

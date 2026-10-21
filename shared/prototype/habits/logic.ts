@@ -225,6 +225,8 @@ export function overallStats(state: HabitsState, days: number, offset = 0) {
   ).filter((d) => d.due > 0 && d.done === d.due && d.day !== today).length
   return {
     rate: denom ? done / denom : 0,
+    /** Anything was due in the window; without it there is nothing to rate. */
+    rated: denom > 0,
     skipRate: scheduled ? skipped / scheduled : 0,
     minutes,
     perfect,

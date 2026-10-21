@@ -53,14 +53,34 @@ export function useEnabledKeys(): ModuleKey[] {
   const e = useEnabled()
   return useMemo(() => MODULE_KEYS.filter((k) => e[k]), [e])
 }
-export function useAreaRates(
-  days: number,
-  offset = 0,
-): Record<ModuleKey, number> {
+/** The device's own rates; ``rated`` is false for an area with nothing to
+ * rate, which reads as 0 but is left out of the Life Score. */
+function useLocalRates(days: number, offset: number) {
   const h = HAB.useAreaRate(days, offset)
   const t = TSK.useAreaRate(days, offset)
   const f = FIT.useAreaRate(days, offset)
   const fi = FIN.useAreaRate(days, offset)
+  return useMemo(() => {
+    const raw: Record<ModuleKey, number | null> = {
+      habits: h,
+      tasks: t,
+      fitness: f,
+      finance: fi,
+    }
+    const rates = {} as Record<ModuleKey, number>
+    const rated = {} as Record<ModuleKey, boolean>
+    for (const k of MODULE_KEYS) {
+      rates[k] = raw[k] ?? 0
+      rated[k] = raw[k] !== null
+    }
+    return { rates, rated }
+  }, [h, t, f, fi])
+}
+export function useAreaRates(
+  days: number,
+  offset = 0,
+): Record<ModuleKey, number> {
+  const local = useLocalRates(days, offset).rates
   // Live mode: the server's area rates for this range (offset = the range's
   // own length is the previous period).
   const server = useServerStat<ServerOverview>(
@@ -70,19 +90,20 @@ export function useAreaRates(
     () =>
       server.data
         ? ratesFrom(server.data, offset === 0 ? "rate" : "prev")
-        : { habits: h, tasks: t, fitness: f, finance: fi },
-    [h, t, f, fi, server.data, offset],
+        : local,
+    [local, server.data, offset],
   )
 }
 export function lifeScoreOf(
   rates: Record<ModuleKey, number>,
   weights: Record<ModuleKey, number>,
   enabled: Record<ModuleKey, boolean>,
+  rated?: Record<ModuleKey, boolean>,
 ): number | null {
   let num = 0
   let den = 0
   for (const k of MODULE_KEYS) {
-    if (!enabled[k] || weights[k] <= 0) continue
+    if (!enabled[k] || weights[k] <= 0 || rated?.[k] === false) continue
     num += weights[k] * clamp01(rates[k])
     den += weights[k]
   }
@@ -101,6 +122,8 @@ export interface LifeScore {
 export function useLifeScore(days: number): LifeScore {
   const cur = useAreaRates(days)
   const prevRates = useAreaRates(days, days)
+  const rated = useLocalRates(days, 0).rated
+  const prevRated = useLocalRates(days, days).rated
   const weights = useWeights()
   const enabled = useEnabled()
   const server = useServerStat<ServerOverview>(overviewKey(days))
@@ -116,8 +139,8 @@ export function useLifeScore(days: number): LifeScore {
         source: "server" as const,
         status: server.status,
       }
-    const score = lifeScoreOf(cur, weights, enabled)
-    const prev = lifeScoreOf(prevRates, weights, enabled)
+    const score = lifeScoreOf(cur, weights, enabled, rated)
+    const prev = lifeScoreOf(prevRates, weights, enabled, prevRated)
     return {
       score,
       prev,
@@ -127,7 +150,16 @@ export function useLifeScore(days: number): LifeScore {
       source: "local" as const,
       status: server.status,
     }
-  }, [cur, prevRates, weights, enabled, server.data, server.status])
+  }, [
+    cur,
+    prevRates,
+    rated,
+    prevRated,
+    weights,
+    enabled,
+    server.data,
+    server.status,
+  ])
 }
 export function levelFor(score: number | null) {
   if (score === null) return { name: "Not scored yet", next: null, floor: 0 }

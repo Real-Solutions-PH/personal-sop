@@ -26,7 +26,10 @@ export interface Miss {
 export interface ModuleContract {
   key: ModuleKey
   label: string
-  useAreaRate: (days: number, offset?: number) => number
+  /** 0..1, or null when the area has nothing to rate in the window (no
+   * habit due, no account): the Life Score then leaves it out, as the
+   * server does. */
+  useAreaRate: (days: number, offset?: number) => number | null
   useMetrics: (days: number) => Metric[]
   useCalendar: (from: string, to: string) => CalendarItem[]
   useMisses: (from: string, to: string) => Miss[]
