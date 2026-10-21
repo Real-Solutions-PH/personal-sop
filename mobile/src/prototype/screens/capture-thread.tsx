@@ -185,7 +185,6 @@ export function ThreadComposer({
             value={text}
             onChangeText={setText}
             multiline
-            numberOfLines={1}
             placeholder={
               transcribing
                 ? "Transcribing…"

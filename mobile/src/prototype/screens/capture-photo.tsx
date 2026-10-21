@@ -53,139 +53,144 @@ export function CapturePhoto({
     [caption, setCaption] = useState("")
   return (
     <Sheet title="Snap it" open onClose={onClose}>
-      <Copy size={14} muted>
-        Meals, receipts, labels, gym boards. Tell me what it is if you know.
-      </Copy>
-      {!allowed && (
-        <Tap
-          onPress={() => {
-            onClose()
-            closeCapture()
-            go("/capture/settings")
-          }}
-        >
-          <Copy size={14} style={{ color: t.warn }}>
-            Photo sending is off in AI settings. Use text or quick add instead.
-          </Copy>
-        </Tap>
-      )}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 8 }}
-      >
-        {hints.map((h) => (
+      {/* Sheet stacks its children flush; space the sections evenly. */}
+      <View style={{ gap: 14 }}>
+        <Copy size={14} muted>
+          Meals, receipts, labels, gym boards. Tell me what it is if you know.
+        </Copy>
+        {!allowed && (
           <Tap
-            key={h.v}
-            onPress={() => setHint(h.v)}
-            style={{
-              height: 44,
-              borderRadius: 22,
-              paddingHorizontal: 12,
-              backgroundColor: hint === h.v ? t.primary : t.soft,
-              justifyContent: "center",
+            onPress={() => {
+              onClose()
+              closeCapture()
+              go("/capture/settings")
             }}
           >
-            <Line style={{ gap: 6 }}>
-              <h.I size={16} color={hint === h.v ? t.onPrimary : t.text} />
-              <Copy
-                size={14}
-                style={{ color: hint === h.v ? t.onPrimary : t.text }}
-              >
-                {h.label}
-              </Copy>
-            </Line>
+            <Copy size={14} style={{ color: t.warn }}>
+              Photo sending is off in AI settings. Use text or quick add
+              instead.
+            </Copy>
           </Tap>
-        ))}
-      </ScrollView>
-      {photo ? (
-        <View
-          style={{
-            backgroundColor: t.soft,
-            borderRadius: 16,
-            overflow: "hidden",
-          }}
+        )}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 8 }}
+          style={{ flexGrow: 0 }}
         >
-          <Image
-            source={{ uri: photo }}
-            accessibilityLabel="Preview"
-            style={{ width: "100%", height: 256 }}
-            resizeMode="contain"
-          />
-          <View style={{ position: "absolute", top: 8, right: 8 }}>
-            <IconTap
-              icon={X}
-              label="Remove photo"
-              background="#0009"
-              color="#fff"
-              onPress={() => setPhoto(null)}
-            />
-          </View>
-        </View>
-      ) : (
-        <Line style={{ gap: 8 }}>
-          {[
-            { label: "Take photo", I: Camera, camera: true },
-            { label: "Library", I: ImageIcon, camera: false },
-          ].map((x) => (
+          {hints.map((h) => (
             <Tap
-              key={x.label}
-              onPress={() =>
-                void pickPhoto(x.camera).then((v) => {
-                  if (v) setPhoto(v)
-                })
-              }
+              key={h.v}
+              onPress={() => setHint(h.v)}
               style={{
-                flex: 1,
-                height: 128,
-                borderRadius: 16,
-                borderWidth: 1,
-                borderStyle: "dashed",
-                borderColor: t.line,
-                backgroundColor: t.soft,
-                alignItems: "center",
+                height: 44,
+                borderRadius: 22,
+                paddingHorizontal: 12,
+                backgroundColor: hint === h.v ? t.primary : t.soft,
                 justifyContent: "center",
-                gap: 8,
               }}
             >
-              <x.I size={28} color={t.primary} />
-              <Copy size={14} weight="medium">
-                {x.label}
-              </Copy>
+              <Line style={{ gap: 6 }}>
+                <h.I size={16} color={hint === h.v ? t.onPrimary : t.text} />
+                <Copy
+                  size={14}
+                  style={{ color: hint === h.v ? t.onPrimary : t.text }}
+                >
+                  {h.label}
+                </Copy>
+              </Line>
             </Tap>
           ))}
-        </Line>
-      )}
-      <Field
-        label="Caption"
-        value={caption}
-        onChangeText={setCaption}
-        placeholder={
-          hint === "meal"
-            ? "Add a caption, e.g. “half rice, 2 pcs adobo”"
-            : "Add a caption (optional)"
-        }
-      />
-      <Copy size={11} muted>
-        Receipts stay attached to their expense. Photos are only sent to the AI
-        when you attach them.
-      </Copy>
-      <Button
-        disabled={!photo || !allowed}
-        onPress={() => {
-          if (!photo || !allowed) return
-          const id = sendCapture({
-            source: "photo",
-            photo,
-            hint,
-            text: caption,
-          })
-          onClose()
-          onSent?.(id)
-        }}
-      >
-        Send photo
-      </Button>
+        </ScrollView>
+        {photo ? (
+          <View
+            style={{
+              backgroundColor: t.soft,
+              borderRadius: 16,
+              overflow: "hidden",
+            }}
+          >
+            <Image
+              source={{ uri: photo }}
+              accessibilityLabel="Preview"
+              style={{ width: "100%", height: 256 }}
+              resizeMode="contain"
+            />
+            <View style={{ position: "absolute", top: 8, right: 8 }}>
+              <IconTap
+                icon={X}
+                label="Remove photo"
+                background="#0009"
+                color="#fff"
+                onPress={() => setPhoto(null)}
+              />
+            </View>
+          </View>
+        ) : (
+          <Line style={{ gap: 8 }}>
+            {[
+              { label: "Take photo", I: Camera, camera: true },
+              { label: "Library", I: ImageIcon, camera: false },
+            ].map((x) => (
+              <Tap
+                key={x.label}
+                onPress={() =>
+                  void pickPhoto(x.camera).then((v) => {
+                    if (v) setPhoto(v)
+                  })
+                }
+                style={{
+                  flex: 1,
+                  height: 128,
+                  borderRadius: 16,
+                  borderWidth: 1,
+                  borderStyle: "dashed",
+                  borderColor: t.line,
+                  backgroundColor: t.soft,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                }}
+              >
+                <x.I size={28} color={t.primary} />
+                <Copy size={14} weight="medium">
+                  {x.label}
+                </Copy>
+              </Tap>
+            ))}
+          </Line>
+        )}
+        <Field
+          label="Caption"
+          value={caption}
+          onChangeText={setCaption}
+          placeholder={
+            hint === "meal"
+              ? "Add a caption, e.g. “half rice, 2 pcs adobo”"
+              : "Add a caption (optional)"
+          }
+        />
+        <Copy size={11} muted>
+          Receipts stay attached to their expense. Photos are only sent to the
+          AI when you attach them.
+        </Copy>
+        <Button
+          disabled={!photo || !allowed}
+          onPress={() => {
+            if (!photo || !allowed) return
+            const id = sendCapture({
+              source: "photo",
+              photo,
+              hint,
+              text: caption,
+            })
+            onClose()
+            onSent?.(id)
+          }}
+        >
+          Send photo
+        </Button>
+      </View>
     </Sheet>
   )
 }
