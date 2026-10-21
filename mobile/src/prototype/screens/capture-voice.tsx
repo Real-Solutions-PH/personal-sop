@@ -89,6 +89,11 @@ export function CaptureVoice({
       onRecording(recorder.uri, Math.max(1, Math.round(seconds)))
       return
     }
+    if (liveMode) {
+      // Never stand a demo sentence in for what the person said.
+      onClose()
+      return
+    }
     setPhase("transcribing")
     timer.current = setTimeout(() => {
       if (mounted.current)

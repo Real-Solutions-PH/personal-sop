@@ -173,6 +173,28 @@ function JournalVoice({
       maxSec={600}
       onClose={onClose}
       onDone={(text) => onDone(text)}
+      // Live: what was said, transcribed on the server. Without this the
+      // recorder fell back to its demo sentence and saved that instead.
+      onRecording={(uri, seconds) => {
+        const live =
+          require("@/live/dictate") as typeof import("@/live/dictate")
+        const wait = toast.loading("Transcribing your entry…")
+        live
+          .dictate(uri, seconds)
+          .then((text) => {
+            toast.dismiss(wait)
+            onDone(text)
+          })
+          .catch((e: unknown) => {
+            toast.dismiss(wait)
+            toast.error(
+              live.dictationMessage(
+                e instanceof live.DictationError ? e.code : "",
+              ),
+            )
+            onClose()
+          })
+      }}
     />
   )
 }
