@@ -579,7 +579,7 @@ def run(ctx: Ctx, cap: Capture, plan: Plan, emit: Emit = _noop) -> Capture:
     return cap
 
 
-DICTATION_MAX_SEC = 120
+DICTATION_MAX_SEC = 300  # the recorder's own limit
 
 
 def dictate(ctx: Ctx, audio: bytes, *, duration_sec: int | None) -> str:
@@ -590,7 +590,7 @@ def dictate(ctx: Ctx, audio: bytes, *, duration_sec: int | None) -> str:
     if len(audio) > seams.AUDIO_MAX_BYTES:
         raise domain_error(413, "audio_too_large", "That recording is too long")
     if duration_sec is not None and duration_sec > DICTATION_MAX_SEC:
-        raise domain_error(413, "audio_too_long", "Keep it under two minutes")
+        raise domain_error(413, "audio_too_long", "Keep it under five minutes")
     mime = media.sniff_audio(audio[:64])
     if mime is None:
         raise invalid("audio_unrecognised", "That isn't a recording I can read")

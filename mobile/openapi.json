@@ -11462,16 +11462,23 @@
       "post": {
         "tags": ["capture"],
         "summary": "Dictate",
-        "description": "Speech to text for the chat box: the recording's words, to review and\nsend (ADR-0015). Nothing is stored but the usage row.",
+        "description": "Speech to text for the chat box: the recording's words, to review and\nsend (ADR-0015). The body is the raw recording (the device sends a\nfile's bytes as is); nothing is stored but the usage row.",
         "operationId": "capture-dictate",
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": { "$ref": "#/components/schemas/Body_capture-dictate" }
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "duration_sec",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                { "type": "integer", "maximum": 3600, "minimum": 0 },
+                { "type": "null" }
+              ],
+              "title": "Duration Sec"
             }
-          },
-          "required": true
-        },
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -11482,15 +11489,22 @@
             }
           },
           "4XX": {
-            "description": "Client Error",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/ErrorResponse" }
               }
-            }
+            },
+            "description": "Client Error"
           }
         },
-        "security": [{ "HTTPBearer": [] }]
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": { "type": "string", "format": "binary" }
+            }
+          }
+        }
       }
     },
     "/api/v1/capture/quick-add": {
@@ -18803,25 +18817,6 @@
           "goal_weight"
         ],
         "title": "BodyOut"
-      },
-      "Body_capture-dictate": {
-        "properties": {
-          "file": {
-            "type": "string",
-            "contentMediaType": "application/octet-stream",
-            "title": "File"
-          },
-          "duration_sec": {
-            "anyOf": [
-              { "type": "integer", "maximum": 3600.0, "minimum": 0.0 },
-              { "type": "null" }
-            ],
-            "title": "Duration Sec"
-          }
-        },
-        "type": "object",
-        "required": ["file"],
-        "title": "Body_capture-dictate"
       },
       "BookEntryOut": {
         "properties": {

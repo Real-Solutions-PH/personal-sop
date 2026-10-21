@@ -5,12 +5,12 @@ import uuid
 from collections.abc import Iterator
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, File, Form, Query, Response, UploadFile
+from fastapi import APIRouter, Depends, Query, Request, Response
 from fastapi.responses import StreamingResponse
 
 from app.modules.ai_providers import public as ai
 from app.modules.capture import cards as C
-from app.modules.capture import engine, journal, seams
+from app.modules.capture import engine, journal
 from app.modules.capture.models import Capture
 from app.modules.capture.schema import (
     AISettingsPublic,
@@ -161,15 +161,34 @@ def submit_stream(ctx: CtxDep, data: CaptureIn) -> StreamingResponse:
     )
 
 
-@router.post("/dictate", response_model=DictationOut, dependencies=WRITE)
+async def _raw_body(request: Request) -> bytes:
+    """The request body as sent (the middleware has already capped its size)."""
+    return await request.body()
+
+
+@router.post(
+    "/dictate",
+    response_model=DictationOut,
+    dependencies=WRITE,
+    openapi_extra={
+        "requestBody": {
+            "required": True,
+            "content": {
+                "application/octet-stream": {
+                    "schema": {"type": "string", "format": "binary"}
+                }
+            },
+        }
+    },
+)
 def dictate(
     ctx: CtxDep,
-    file: Annotated[UploadFile, File()],
-    duration_sec: Annotated[int | None, Form(ge=0, le=3600)] = None,
+    audio: Annotated[bytes, Depends(_raw_body)],
+    duration_sec: Annotated[int | None, Query(ge=0, le=3600)] = None,
 ) -> Any:
     """Speech to text for the chat box: the recording's words, to review and
-    send (ADR-0015). Nothing is stored but the usage row."""
-    audio = file.file.read(seams.AUDIO_MAX_BYTES + 1)
+    send (ADR-0015). The body is the raw recording (the device sends a
+    file's bytes as is); nothing is stored but the usage row."""
     text = engine.dictate(ctx, audio, duration_sec=duration_sec)
     ctx.commit()
     return DictationOut(text=text)

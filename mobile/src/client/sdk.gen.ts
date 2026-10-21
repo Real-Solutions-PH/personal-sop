@@ -403,9 +403,11 @@ export class CaptureService {
     /**
      * Dictate
      * Speech to text for the chat box: the recording's words, to review and
-     * send (ADR-0015). Nothing is stored but the usage row.
+     * send (ADR-0015). The body is the raw recording (the device sends a
+     * file's bytes as is); nothing is stored but the usage row.
      * @param data The data for the request.
-     * @param data.formData
+     * @param data.requestBody
+     * @param data.durationSec
      * @returns DictationOut Successful Response
      * @throws ApiError
      */
@@ -413,8 +415,11 @@ export class CaptureService {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v1/capture/dictate',
-            formData: data.formData,
-            mediaType: 'multipart/form-data',
+            query: {
+                duration_sec: data.durationSec
+            },
+            body: data.requestBody,
+            mediaType: 'application/octet-stream',
             errors: {
                 '4XX': 'Client Error'
             }

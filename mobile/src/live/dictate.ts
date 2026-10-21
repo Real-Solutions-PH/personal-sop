@@ -20,7 +20,7 @@ export function dictationMessage(code: string): string {
       return "I couldn't hear anything. Try again, a little closer."
     case "audio_too_long":
     case "audio_too_large":
-      return "That was too long. Keep it under two minutes."
+      return "That was too long. Keep it under five minutes."
     case "ai_disabled":
       return "AI is off in your settings, so voice input is too."
     case "spend_cap_reached":
@@ -32,27 +32,31 @@ export function dictationMessage(code: string): string {
   }
 }
 
-/** The recording at ``uri`` as text. Retries once after a token refresh;
- * any failure is a :class:`DictationError` carrying the server's code. */
+/** The recording at ``uri`` as text. Its bytes go up as the raw body (as
+ * media uploads do; a React Native file object in a FormData does not
+ * survive Expo's fetch). Retries once after a token refresh; any failure
+ * is a :class:`DictationError` carrying the server's code. */
 export async function dictate(
   uri: string,
   durationSec: number,
+  fetchImpl: typeof fetch = fetch,
 ): Promise<string> {
-  const send = (token: string | null) => {
-    // A fresh body per attempt: a sent FormData is not reusable.
-    const form = new FormData()
-    form.append("file", {
-      uri,
-      name: "dictation.m4a",
-      type: "audio/mp4",
-    } as unknown as Blob)
-    form.append("duration_sec", String(Math.max(0, Math.round(durationSec))))
-    return fetch(`${API_URL}${API_PREFIX}/capture/dictate`, {
-      method: "POST",
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: form,
-    })
+  let audio: ArrayBuffer
+  try {
+    audio = await (await fetchImpl(uri)).arrayBuffer()
+  } catch {
+    throw new DictationError("unreadable")
   }
+  const url = `${API_URL}${API_PREFIX}/capture/dictate?duration_sec=${Math.max(0, Math.round(durationSec))}`
+  const send = (token: string | null) =>
+    fetchImpl(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/octet-stream",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: new Uint8Array(audio) as unknown as BodyInit,
+    })
   let res: Response
   try {
     res = await send(await tokens.current())

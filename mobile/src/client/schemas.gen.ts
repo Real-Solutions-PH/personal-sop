@@ -1581,32 +1581,6 @@ export const BodyOutSchema = {
     title: 'BodyOut'
 } as const;
 
-export const Body_capture_dictateSchema = {
-    properties: {
-        file: {
-            type: 'string',
-            contentMediaType: 'application/octet-stream',
-            title: 'File'
-        },
-        duration_sec: {
-            anyOf: [
-                {
-                    type: 'integer',
-                    maximum: 3600,
-                    minimum: 0
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Duration Sec'
-        }
-    },
-    type: 'object',
-    required: ['file'],
-    title: 'Body_capture-dictate'
-} as const;
-
 export const BookEntryOutSchema = {
     properties: {
         ref: {

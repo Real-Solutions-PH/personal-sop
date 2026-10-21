@@ -21,12 +21,12 @@ M4A = b"\x00\x00\x00\x20ftypM4A \x00\x00\x00\x00M4A mp42isom" + b"\x00" * 200
 WAV = b"RIFF\x24\x08\x00\x00WAVEfmt " + b"\x00" * 200
 
 
-def dictate(api: Api, client: TestClient, audio: bytes, **form: Any) -> Any:
+def dictate(api: Api, client: TestClient, audio: bytes, **query: Any) -> Any:
     return client.post(
         "/api/v1/capture/dictate",
-        headers=api.h,
-        files={"file": ("rec.m4a", audio, "application/octet-stream")},
-        data={k: str(v) for k, v in form.items()},
+        headers={**api.h, "Content-Type": "application/octet-stream"},
+        params=query,
+        content=audio,
     )
 
 
@@ -94,7 +94,7 @@ def test_bytes_that_are_not_audio_are_refused_before_any_call(
     api = user(client, db, accounts=False)
     r = dictate(api, client, b"%PDF-1.7 not a recording" + b"\x00" * 64)
     assert r.status_code == 422 and r.json()["code"] == "audio_unrecognised"
-    r = dictate(api, client, M4A, duration_sec=600)
+    r = dictate(api, client, M4A, duration_sec=301)
     assert r.status_code == 413 and r.json()["code"] == "audio_too_long"
     assert deepgram == []
 
