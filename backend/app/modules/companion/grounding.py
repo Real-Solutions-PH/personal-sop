@@ -108,7 +108,11 @@ def plan(ctx: Ctx) -> list[dict[str, Any]]:
 
 def snapshot(ctx: Ctx) -> dict[str, Any]:
     """The facts the companion may state without calling a tool."""
-    out: dict[str, Any] = {"date": ctx.today.isoformat(), "currency": "PHP (₱)"}
+    cur = ctx.currency
+    out: dict[str, Any] = {
+        "date": ctx.today.isoformat(),
+        "currency": f"{cur.code} ({cur.symbol})",
+    }
     out.update(scores(ctx))
     hs = _habits_due(ctx)
     out["habits_due_today"] = hs

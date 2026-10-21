@@ -138,8 +138,8 @@ class AutoOut(BaseModel):
 
 
 SYSTEM = (
-    "You read photos for a personal life-logging app in the Philippines. "
-    "Amounts are Philippine pesos. Reply with one JSON object only, no prose."
+    "You read photos for a personal life-logging app. "
+    "Amounts are in {currency}. Reply with one JSON object only, no prose."
 )
 PROMPTS: dict[str, str] = {
     "auto": 'What is this photo of? {"hint": "meal|receipt|label|statement|whiteboard|other"}',
@@ -149,7 +149,7 @@ PROMPTS: dict[str, str] = {
         '"confidence": 0-1, "follow_up": {"question", "options": [..]} or null}'
     ),
     "receipt": (
-        'Read the receipt: {"merchant", "total" (pesos), "date" (YYYY-MM-DD or null), '
+        'Read the receipt: {"merchant", "total" (a number), "date" (YYYY-MM-DD or null), '
         '"category" (a spending category word), "confidence": 0-1}'
     ),
     "label": (
@@ -158,7 +158,7 @@ PROMPTS: dict[str, str] = {
     ),
     "statement": (
         'List every transaction row: {"rows": [{"date": "YYYY-MM-DD", "time": "HH:MM", '
-        '"description", "amount" (pesos, positive), "direction": "in|out", "ref"}]}'
+        '"description", "amount" (a positive number), "direction": "in|out", "ref"}]}'
     ),
     "whiteboard": (
         'Read the board. A to-do list: {"tasks": ["..."]}. A gym board: {"exercises": '
@@ -442,7 +442,12 @@ def _vision(
     assert env.vision is not None and env.image is not None
     text = PROMPTS[hint] + (f"\nThe user says: {caption}" if caption else "")
     return seams.ask_json(
-        ctx, env.vision, schema, system=SYSTEM, text=text, image=env.image
+        ctx,
+        env.vision,
+        schema,
+        system=SYSTEM.format(currency=ctx.currency.phrase),
+        text=text,
+        image=env.image,
     )
 
 

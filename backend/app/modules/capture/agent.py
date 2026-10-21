@@ -42,6 +42,7 @@ from app.modules.capture.parse import (
     meal_label,
 )
 from app.shared.context import Ctx
+from app.shared.currency import money
 from app.shared.money import MAX_MINOR
 
 MAX_TURNS = 6
@@ -175,13 +176,14 @@ def run_loop(
 
 # ---------------------------------------------------------------- tools
 
-Pesos = Annotated[float, Field(gt=0, le=MAX_MINOR / 100)]
+# An amount in the user's currency (major units); stored as hundredths.
+Amount = Annotated[float, Field(gt=0, le=MAX_MINOR / 100)]
 DaysAgo = Annotated[int, Field(ge=0, le=366)]
 Opt = Annotated[str, Field(max_length=120)] | None
 
 
 class ExpenseArgs(BaseModel):
-    amount: Pesos
+    amount: Amount
     category: Opt = None
     account: Opt = None
     payee: Opt = None
@@ -190,7 +192,7 @@ class ExpenseArgs(BaseModel):
 
 
 class IncomeArgs(BaseModel):
-    amount: Pesos
+    amount: Amount
     category: Opt = None
     account: Opt = None
     payee: Opt = None
@@ -198,14 +200,14 @@ class IncomeArgs(BaseModel):
 
 
 class TransferArgs(BaseModel):
-    amount: Pesos
+    amount: Amount
     from_account: Opt = None
     to_account: Opt = None
 
 
 class PlannedArgs(BaseModel):
     name: Annotated[str, Field(min_length=1, max_length=120)]
-    amount: Pesos
+    amount: Amount
     day_of_month: Annotated[int, Field(ge=1, le=31)]
     account: Opt = None
     category: Opt = None
@@ -295,7 +297,7 @@ class JournalArgs(BaseModel):
 
 
 class EditLastArgs(BaseModel):
-    amount: Pesos
+    amount: Amount
 
 
 class NoArgs(BaseModel):
@@ -328,8 +330,8 @@ class Run:
         return p
 
 
-def _minor(pesos: float) -> int:
-    return round(pesos * 100)
+def _minor(amount: float) -> int:
+    return round(amount * 100)
 
 
 def _offset(days_ago: int) -> int:
@@ -395,7 +397,7 @@ def capture_tools(run: Run) -> list[BaseTool]:
             ask=None
             if cat
             else {
-                "question": f"What was ₱{round(a.amount):,} for?",
+                "question": f"What was {money(_minor(a.amount), w.currency)} for?",
                 "field": "category_id",
                 "free": True,
                 "options": list(w.recent_cats),
@@ -425,7 +427,7 @@ def capture_tools(run: Run) -> list[BaseTool]:
             ask=None
             if acct
             else {
-                "question": f"Which account did the ₱{round(a.amount):,} land in?",
+                "question": f"Which account did the {money(_minor(a.amount), w.currency)} land in?",
                 "field": "account_id",
                 "options": list(w.account_options),
             },
@@ -439,7 +441,7 @@ def capture_tools(run: Run) -> list[BaseTool]:
         ask = None
         if not frm:
             ask = {
-                "question": f"Moved ₱{round(a.amount):,} from which account?",
+                "question": f"Moved {money(_minor(a.amount), w.currency)} from which account?",
                 "field": "from",
                 "options": [o for o in w.account_options if o["value"] != to],
             }
@@ -801,7 +803,7 @@ SYSTEM = """You are the capture assistant of Personal SOP, a life-logging app.
 The user writes or says loose notes in English, Filipino or Taglish. Turn each
 fact into exactly one tool call; one message can hold several facts. Questions
 about their own data go to `lookup`. Never invent amounts, dates or names the
-user did not give. Amounts are Philippine pesos. Today is {today} ({zone}).
+user did not give. Amounts are in {currency}. Today is {today} ({zone}).
 After the tools, reply with one short sentence; do not repeat the cards."""
 
 
@@ -825,7 +827,9 @@ def run_capture_agent(
         position=start,
     )
     day = ctx.clock.day_of(cap.at)
-    system = SYSTEM.format(today=day.isoformat(), zone=ctx.clock.zone)
+    system = SYSTEM.format(
+        today=day.isoformat(), zone=ctx.clock.zone, currency=ctx.currency.phrase
+    )
     if day != ctx.today:
         system += (
             f"\nThis note was written on {day.isoformat()}; 'today' means that day."

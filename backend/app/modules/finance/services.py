@@ -35,6 +35,7 @@ from app.modules.finance.models import (
 from app.modules.stats.public import mark_dirty
 from app.shared import owned_repo
 from app.shared.context import Ctx
+from app.shared.currency import strip_money_marks
 from app.shared.domain import conflict, invalid, not_found
 from app.shared.ids import derived_id
 from app.shared.money import MAX_MINOR
@@ -470,7 +471,7 @@ def _record_query_filters(ctx: Ctx, f: S.RecordFilter) -> list[Any]:
             col(FinRecord.payee).ilike(like, escape="\\"),
             col(FinRecord.note).ilike(like, escape="\\"),
         ]
-        digits = q.replace(",", "").replace("₱", "")
+        digits = strip_money_marks(q.upper()).replace(",", "").strip()
         try:
             terms.append(FinRecord.amount_minor == r2(float(digits) * 100))
         except ValueError:
@@ -1740,7 +1741,7 @@ def _csv_cell(v: str) -> str:
 
 
 def export_csv(ctx: Ctx) -> str:
-    """F-FIN-45: every record as CSV (pesos with two decimals, local time)."""
+    """F-FIN-45: every record as CSV (major units with two decimals, local time)."""
     accounts = {
         a.id: a.name for a in owned_repo.list_rows(ctx, Account, include_deleted=True)
     }

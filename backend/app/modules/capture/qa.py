@@ -12,10 +12,10 @@ from urllib.parse import quote
 
 from app.modules.capture import ports
 from app.modules.capture.models import JournalEntry
-from app.modules.capture.money import peso
 from app.modules.capture.parse import js_round, js_to_fixed
 from app.shared import owned_repo
 from app.shared.context import Ctx
+from app.shared.currency import money
 from app.shared.day import js_weekday
 
 Out = dict[str, Any]
@@ -174,10 +174,10 @@ def spend_answer(ctx: Ctx, q: str) -> Out:
     out: Out = {
         "t": "answer",
         "title": f"Spent on {name} · {label}",
-        "value": peso(total),
+        "value": money(total, ctx.currency),
         "money": total,
         "accent": "fin",
-        "list": [{"label": k, "value": peso(v)} for k, v in top],
+        "list": [{"label": k, "value": money(v, ctx.currency)} for k, v in top],
         "basis": f"Based on {n} transaction{_plural(n, '', 's')} · {label}",
         "links": [{"label": "Open in Finance", "href": "/finance/reports/category"}]
         + (
@@ -188,7 +188,7 @@ def spend_answer(ctx: Ctx, q: str) -> Out:
     }
     if bv is not None and budget is not None:
         out["sub"] = (
-            f"{js_round(bv.pct * 100)}% of your {peso(bv.limit)} {budget.name} budget · "
+            f"{js_round(bv.pct * 100)}% of your {money(bv.limit, ctx.currency)} {budget.name} budget · "
             f"{bv.days_left} days left"
         )
     if len(data) > 1:
@@ -207,7 +207,7 @@ def balance_answer(ctx: Ctx, q: str) -> Out:
         return {
             "t": "answer",
             "title": f"{acct.name} balance",
-            "value": peso(v),
+            "value": money(v, ctx.currency),
             "money": v,
             "accent": "fin",
             "basis": "As of your last entry",
@@ -219,13 +219,13 @@ def balance_answer(ctx: Ctx, q: str) -> Out:
     return {
         "t": "answer",
         "title": "Net worth",
-        "value": peso(nw),
+        "value": money(nw, ctx.currency),
         "money": nw,
         "accent": "fin",
         "list": [
             {
                 "label": a.name,
-                "value": peso(bal.get(a.id, 0)),
+                "value": money(bal.get(a.id, 0), ctx.currency),
                 "href": f"/finance/accounts/{a.id}",
             }
             for a in live
@@ -537,8 +537,12 @@ def advice_answer(ctx: Ctx, q: str) -> Out:
     free = max(0, (income - spend) / 3)
     extra = ""
     if amount:
-        per = f" over 12 months is {peso(amount * 100 / 12)}/mo" if inst else ""
-        extra = f" {peso(amount * 100)}{per}."
+        per = (
+            f" over 12 months is {money(amount * 100 / 12, ctx.currency)}/mo"
+            if inst
+            else ""
+        )
+        extra = f" {money(amount * 100, ctx.currency)}{per}."
     href = (
         f"/finance/advisor?ask=afford&name={quote(thing)}"
         f"{f'&amount={amount}' if amount else ''}&mode={'inst' if inst else 'lump'}&n=12"
@@ -552,7 +556,7 @@ def advice_answer(ctx: Ctx, q: str) -> Out:
         "t": "info",
         "tone": "advice",
         "title": f"Short answer: {short}",
-        "body": f"You've kept about {peso(free)} a month free over the last 90 days.{extra} "
+        "body": f"You've kept about {money(free, ctx.currency)} a month free over the last 90 days.{extra} "
         "The Finance advisor can run it against your projection.",
         "actions": [{"label": "Ask Finance advisor", "do": "link", "href": href}],
     }

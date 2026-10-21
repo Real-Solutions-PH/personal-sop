@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from typing import Any, Literal
 
 from app.modules.companion.defaults import COMPANION_NAME
+from app.shared.currency import PHP, Currency, money_marks
 
 A = re.ASCII
 
@@ -102,7 +103,13 @@ def js_number(s: str | None) -> float | None:
         return None
 
 
-def route(raw: str, *, user_name: str, sol_name: str = COMPANION_NAME) -> Route:
+def route(
+    raw: str,
+    *,
+    user_name: str,
+    sol_name: str = COMPANION_NAME,
+    currency: Currency = PHP,
+) -> Route:
     q = raw.lower().strip()
     name = first_name(user_name)
 
@@ -163,7 +170,8 @@ def route(raw: str, *, user_name: str, sol_name: str = COMPANION_NAME) -> Route:
     if t(r"(track|keep an eye|monitor|watch|alert me|notify me)"):
         metric: Metric = find_metric(q) or "life"
         m = re.search(
-            r"(?:under|below|less than|max|at most|over|above|at least)\s*₱?\s*([\d,.]+)",
+            r"(?:under|below|less than|max|at most|over|above|at least)\s*"
+            rf"(?:{money_marks(currency)})?\s*([\d,.]+)",
             q,
             A,
         )

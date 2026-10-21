@@ -15,15 +15,11 @@ from app.modules.stats.contract import (
 from app.shared.context import Ctx
 
 r2 = calc.js_round
-BIG_PURCHASE_MINOR = 500_000  # ₱5,000
+BIG_PURCHASE_MINOR = 500_000  # 5,000 in the user's currency
 
 
 def _state(ctx: Ctx) -> calc.State:
     return repo.load_state(ctx)
-
-
-def _peso(minor: int) -> str:
-    return f"₱{minor // 100:,}"
 
 
 class FinanceContributor:
