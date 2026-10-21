@@ -118,6 +118,7 @@ export const SOURCE_LABEL: Record<CaptureSource, string> = {
   file: "File",
   quick_add: "Quick add",
   connector: "Claude",
+  chat: "Chat",
 }
 
 /** Soft tinted backgrounds / borders per accent (static classes for Tailwind). */

@@ -5,6 +5,7 @@ import {
   Clock,
   FileText,
   Maximize2,
+  MessageCircle,
   Mic,
   PenLine,
   Zap,
@@ -78,6 +79,7 @@ const SRC_ICON = {
   file: FileText,
   quick_add: Zap,
   connector: Zap,
+  chat: MessageCircle,
 }
 
 const HINT_ALIAS: Record<string, string> = {

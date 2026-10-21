@@ -1,3 +1,5 @@
+import { confirmCard, findCard, undoCard } from "@domain/capture/engine"
+import { captureStore } from "@domain/capture/store"
 import * as D from "@domain/dash/hooks"
 import { dashStore } from "@domain/dash/store"
 import { catMap, flowIn, netWorthSeries, spendIn } from "@domain/finance/calc"
@@ -13,6 +15,8 @@ import {
   ArrowRight,
   Brain,
   CalendarClock,
+  Check,
+  CircleAlert,
   Dumbbell,
   Flame,
   type Lightbulb,
@@ -26,7 +30,7 @@ import {
   X,
 } from "lucide-react-native"
 import { useMemo } from "react"
-import { Pressable, Text, View } from "react-native"
+import { ActivityIndicator, Pressable, Text, View } from "react-native"
 import Animated, { FadeInDown } from "react-native-reanimated"
 import { Trend } from "../chart"
 import { Donut, FIN_PALETTE } from "../finance-charts"
@@ -42,6 +46,7 @@ import {
   forget,
   type Metric,
   removeTracker,
+  type StepItem,
 } from "./store"
 
 const accentOf: Record<Metric, Accent> = {
@@ -942,6 +947,108 @@ export function Chips({ prompts }: { prompts: string[] }) {
   )
 }
 
+/** The card behind a step's write, live from the capture store once the
+ * reply's capture has arrived; until then, the state the step reported. */
+function StepCard({ id, state }: { id: string; state?: string }) {
+  const t = useTheme()
+  const live = captureStore.use(() => findCard(id)?.card.state)
+  const now = live ?? state
+  const action =
+    now === "proposed"
+      ? { label: "Confirm", run: () => confirmCard(id) }
+      : now === "saved" || now === "edited"
+        ? { label: "Undo", run: () => undoCard(id) }
+        : null
+  if (!action || !live) {
+    if (now === "undone" || now === "discarded")
+      return (
+        <Text style={{ color: t.muted, fontFamily: fonts.body, fontSize: 12 }}>
+          {now === "undone" ? "Undone" : "Discarded"}
+        </Text>
+      )
+    return null
+  }
+  return (
+    <Pressable
+      cssInterop={false}
+      accessibilityRole="button"
+      accessibilityLabel={action.label}
+      onPress={action.run}
+      hitSlop={8}
+      style={({ pressed }) => ({
+        paddingHorizontal: 10,
+        minHeight: 28,
+        borderRadius: 14,
+        justifyContent: "center",
+        borderWidth: 1,
+        borderColor: `${t.primary}66`,
+        backgroundColor: pressed ? `${t.primary}26` : "transparent",
+      })}
+    >
+      <Text
+        style={{ color: t.primary, fontFamily: fonts.medium, fontSize: 12 }}
+      >
+        {action.label}
+      </Text>
+    </Pressable>
+  )
+}
+
+/** What Fern did during a reply, one row per tool call (ADR-0015). */
+function StepsBlock({ items }: { items: StepItem[] }) {
+  const t = useTheme()
+  return (
+    <View
+      style={{
+        borderWidth: 1,
+        borderColor: t.line,
+        borderRadius: 12,
+        paddingVertical: 4,
+        backgroundColor: t.card,
+      }}
+    >
+      {items.map((s) => (
+        <View
+          key={s.id}
+          accessibilityLabel={s.running ? `${s.label}…` : s.summary || s.label}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
+            paddingHorizontal: 12,
+            paddingVertical: 7,
+          }}
+        >
+          <View style={{ width: 16, alignItems: "center" }}>
+            {s.running ? (
+              <ActivityIndicator size="small" color={t.muted} />
+            ) : s.ok === false ? (
+              <CircleAlert size={15} color={t.bad} />
+            ) : (
+              <Check size={15} color={t.good} />
+            )}
+          </View>
+          <Text
+            numberOfLines={2}
+            style={{
+              flex: 1,
+              color: s.running ? t.muted : t.text,
+              fontFamily: fonts.body,
+              fontSize: 13,
+              lineHeight: 18,
+            }}
+          >
+            {s.running ? `${s.label}…` : s.summary || s.label}
+          </Text>
+          {s.card_id && !s.running ? (
+            <StepCard id={s.card_id} state={s.state} />
+          ) : null}
+        </View>
+      ))}
+    </View>
+  )
+}
+
 export function BlockView({ block }: { block: Block }) {
   const t = useTheme()
   switch (block.t) {
@@ -972,6 +1079,8 @@ export function BlockView({ block }: { block: Block }) {
       return <MemoryBlock />
     case "chips":
       return <Chips prompts={block.prompts} />
+    case "steps":
+      return <StepsBlock items={block.items} />
   }
 }
 export { addTracker }

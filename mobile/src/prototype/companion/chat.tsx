@@ -158,6 +158,8 @@ function useTimeline(since = 0) {
           node: { kind: "msg" as const, m },
         })),
       ...captures
+        // Fern's own writes show as steps in its reply (ADR-0015).
+        .filter((c) => c.source !== "chat")
         .filter((c) => new Date(c.at).getTime() >= since)
         .map((c) => ({
           at: new Date(c.at).getTime(),

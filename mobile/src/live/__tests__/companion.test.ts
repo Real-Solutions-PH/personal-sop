@@ -55,10 +55,16 @@ function swap<T>(value: T, ids: Record<string, string>): T {
   return JSON.parse(text) as T
 }
 
+/** The whole answer: the result of the closing AG-UI ``RUN_FINISHED``. */
+function finalOf(rec: Recorded): { messages: Row[]; capture?: Row } {
+  const last = rec.frames.at(-1)?.[1] as Row
+  return last.result as { messages: Row[]; capture?: Row }
+}
+
 /** Recorded companion frames re-addressed to the question the device asked: the
  * server derives the reply's id from the question's, so both move. */
 function replayAsk(rec: Recorded, body: Row): Frame[] {
-  const done = rec.frames.at(-1)?.[1] as { messages: Row[] }
+  const done = finalOf(rec)
   const sol = done.messages.find((m) => m.role === "sol")
   const meId = String(body.id)
   return swap(rec.frames, {
@@ -192,8 +198,7 @@ test("round trip: trackers, memories and messages", () => {
     }),
   ).toEqual(t)
   expect(trackerFromServer({ id: t.id, metric: "mood", label: "x" })).toBeNull()
-  const last = REC.ask_reply.frames.at(-1) as Frame
-  const sol = (last[1] as { messages: Row[] }).messages[1]
+  const sol = finalOf(REC.ask_reply).messages[1]
   expect(messageFromServer(sol)).toEqual({
     id: sol.id,
     role: "sol",
@@ -304,14 +309,18 @@ test("companion (rules): the question and the reply arrive as server messages", 
   expect(kick).toHaveBeenCalled()
 })
 
-test("companion (AI): blocks, a nested capture, then the streamed text", async () => {
+test("companion (AI): steps while it works, a direct write, then the streamed text", async () => {
   const solTexts: string[] = []
+  const running: string[] = []
   let solId = ""
   install(async (_p, body) => {
     solId = derivedId("companion-reply", String(body.id), "sol")
     return sseResponse(replayAsk(REC.ask_ai, body), () => {
       const sol = companionStore.get().messages.find((m) => m.id === solId)
       if (sol?.text) solTexts.push(sol.text)
+      const steps = sol?.blocks?.find((b) => b.t === "steps")
+      if (steps?.t === "steps")
+        for (const it of steps.items) if (it.running) running.push(it.tool)
     })
   })
   ask("ran 5k today, how's my training?")
@@ -322,17 +331,31 @@ test("companion (AI): blocks, a nested capture, then the streamed text", async (
   expect(sol.text).toBe(
     "Nice run. Here's your month and I'll watch your sessions.",
   )
-  expect(sol.blocks?.map((b) => b.t)).toEqual(["chart", "tracker"])
+  expect(sol.blocks?.map((b) => b.t)).toEqual(["steps", "chart", "tracker"])
+  const steps = sol.blocks?.[0]
+  expect(steps?.t === "steps" && steps.items.map((i) => i.tool)).toEqual([
+    "show_chart",
+    "track",
+    "log_workout",
+  ])
+  expect(steps?.t === "steps" && steps.items.every((i) => i.ok)).toBe(true)
+  // each tool showed as running before its result arrived
+  expect(running).toEqual(
+    expect.arrayContaining(["show_chart", "track", "log_workout"]),
+  )
   // the text grew delta by delta before the final message landed
   expect(solTexts.length).toBeGreaterThan(3)
   expect(solTexts[0].length).toBeLessThan(solTexts.at(-1)?.length ?? 0)
-  // the log became a capture with its own cards; the companion's text stayed out of it
+  // the workout was written by Fern's own tool, on the turn's chat capture
   const [cap] = captureStore.get().captures
-  expect(cap.text).toBe("ran 5k 32 min")
+  expect(cap.source).toBe("chat")
   expect(cap.reply?.items.filter((i) => i.t === "record")).toEqual([
     expect.objectContaining({ kind: "workout" }),
   ])
-  expect(cap.reply?.text).not.toContain("Nice run")
+  const workout = steps?.t === "steps" ? steps.items[2] : undefined
+  expect(workout?.card_id).toBe(
+    cap.reply?.items.find((i) => i.t === "record")?.id,
+  )
 })
 
 test("companion (rules) hands a log to capture: no messages, one capture", async () => {
