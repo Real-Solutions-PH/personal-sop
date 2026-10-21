@@ -10,17 +10,21 @@ from typing import Any, Literal
 
 from langchain_core.messages import BaseMessage
 from langchain_core.tools import BaseTool
+from sqlmodel import col
 
 from app.modules.ai_providers.public import ResolvedModel
-from app.modules.capture import agent, engine, journal, seams
+from app.modules.capture import agent, engine, journal, ports, rules, seams
 from app.modules.capture.models import AISettings, Capture, JournalEntry
 from app.modules.capture.schema import CaptureIn
 from app.shared import owned_repo
 from app.shared.context import Ctx
 
 SeamError = seams.SeamError
+LoopHooks = agent.LoopHooks
+ChatRun = agent.Run
 sse = engine.sse
 stream_work = engine.stream_work
+CHAT_TEXT_CHARS = 4000
 
 
 def add_journal_entry(
@@ -103,6 +107,8 @@ def run_agent(
     tools: list[BaseTool],
     on_text: Callable[[str], None],
     max_turns: int = agent.MAX_TURNS,
+    max_tool_calls: int | None = None,
+    hooks: agent.LoopHooks | None = None,
 ) -> str:
     """The metered model/tools LangGraph loop capture runs, for the other AI
     surfaces (the companion, the finance advisor). Raises :class:`SeamError` when the
@@ -115,7 +121,67 @@ def run_agent(
         tools=tools,
         on_text=on_text,
         max_turns=max_turns,
+        max_tool_calls=max_tool_calls,
+        hooks=hooks,
     )
+
+
+def chat_write_tools(
+    ctx: Ctx,
+    *,
+    client_uuid: uuid.UUID,
+    text: str,
+    emit: Callable[[str, dict[str, Any]], None],
+) -> tuple[list[BaseTool], agent.Run]:
+    """Capture's writing tools for one chat turn (ADR-0015). Each write is a
+    card on the turn's own capture (source ``chat``), tiered and undoable
+    like any capture card. The capture is made on the first write and is
+    replay-safe on ``client_uuid``; a turn that only answers makes none.
+    Flushes only."""
+
+    def open_cap() -> Capture:
+        existing = owned_repo.find_one(
+            ctx, Capture, col(Capture.client_uuid) == client_uuid, include_deleted=True
+        )
+        if existing is not None:
+            return existing
+        return owned_repo.insert(
+            ctx,
+            Capture,
+            {
+                "client_uuid": client_uuid,
+                "at": ctx.now,
+                "source": "chat",
+                "text": text.strip()[:CHAT_TEXT_CHARS],
+                "status": "processing",
+                "started_at": ctx.now,
+                "engine": "ai",
+            },
+        )
+
+    run = agent.Run(
+        ctx=ctx,
+        cap=None,
+        world=ports.build_world(ctx),
+        emit=emit,
+        journal_in_qa=journal.settings_row(ctx).journal_in_qa,
+        open_cap=open_cap,
+    )
+    return agent.write_tools(run), run
+
+
+def finish_chat_capture(ctx: Ctx, run: agent.Run, *, reply: str) -> uuid.UUID | None:
+    """Settle the turn's capture status from its cards (``done``, or
+    ``needs_input`` while a card waits for the user). Flushes; returns the
+    capture id, or None when the turn wrote nothing."""
+    cap = run.cap
+    if cap is None:
+        return None
+    cap.status = rules.status_of(engine._views(ctx, cap))
+    cap.reply_text = reply[:8000] or None
+    ctx.session.add(cap)
+    ctx.session.flush()
+    return cap.id
 
 
 def meter(

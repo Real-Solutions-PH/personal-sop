@@ -195,6 +195,16 @@ class Api:
         )
 
 
+def parse_agui(text: str) -> list[dict[str, Any]]:
+    """AG-UI events from an SSE body (``data: {...}`` frames)."""
+    out: list[dict[str, Any]] = []
+    for block in text.strip().split("\n\n"):
+        data = [ln[6:] for ln in block.splitlines() if ln.startswith("data: ")]
+        if data:
+            out.append(json.loads("\n".join(data)))
+    return out
+
+
 def parse_sse(text: str) -> list[tuple[str, Any]]:
     out: list[tuple[str, Any]] = []
     for block in text.strip().split("\n\n"):

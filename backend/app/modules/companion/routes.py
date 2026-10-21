@@ -8,8 +8,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 
-from app.modules.capture import public as capture
-from app.modules.companion import services
+from app.modules.companion import services, turn
 from app.modules.companion.schema import (
     AskIn,
     AskOut,
@@ -74,16 +73,26 @@ def ask(ctx: CtxDep, data: AskIn) -> Any:
     responses={200: {"content": {"text/event-stream": {}}}},
 )
 def ask_stream(ctx: CtxDep, data: AskIn) -> StreamingResponse:
-    """Ask the companion over SSE: ``message`` (the stored question), ``text.delta``,
-    ``block``, ``capture`` / the capture frames for a log, ``done`` (the
-    whole answer) and ``error``. Validation happens before the stream."""
+    """Ask the companion; the turn streams as AG-UI events (ADR-0015):
+    ``RUN_STARTED``, a ``STEP_STARTED``/``STEP_FINISHED`` per model call and
+    tool, ``TEXT_MESSAGE_*`` for the reply, ``TOOL_CALL_*`` per tool with a
+    one-line outcome in ``TOOL_CALL_RESULT``, ``CUSTOM`` events for the
+    stored question (``message``), cards (``card``, ``ask``, ``info``),
+    blocks (``block``) and a router capture (``capture``), then
+    ``RUN_FINISHED`` with the whole answer, or ``RUN_ERROR``. Validation
+    happens before the stream opens."""
+    run_id = str(data.id or uuid.uuid4())
 
-    def work(emit: Any) -> None:
-        out = services.ask(ctx, text=data.text, message_id=data.id, emit=emit)
-        emit("done", out.model_dump(mode="json"))
+    def work(sink: turn.Sink) -> None:
+        stream = turn.TurnStream(
+            ctx, thread_id=f"companion:{ctx.user_id}", run_id=run_id, sink=sink
+        )
+        stream.started()
+        out = services.ask(ctx, text=data.text, message_id=data.id, stream=stream)
+        stream.finished(out.model_dump(mode="json"))
 
     return StreamingResponse(
-        capture.stream_work(work, name="companion-ask"),
+        turn.stream_events(work),
         media_type="text/event-stream",
         headers=SSE_HEADERS,
     )

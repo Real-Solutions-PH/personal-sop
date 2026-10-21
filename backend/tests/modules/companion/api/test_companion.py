@@ -17,7 +17,7 @@ from tests.modules.capture.api.helpers import (
     Api,
     call,
     install,
-    parse_sse,
+    parse_agui,
     say,
     user,
 )
@@ -109,7 +109,7 @@ def test_crud_rename_clear_and_validation(client: TestClient, db: Session) -> No
     api.post("/companion/ask", {"text": ""}, status=422)
 
 
-def test_agent_blocks_and_capture_handoff_stream(
+def test_agent_blocks_and_a_write_stream_as_ag_ui(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     api = user(client, db)
@@ -121,7 +121,14 @@ def test_agent_blocks_and_capture_handoff_stream(
             "",
             call("show_chart", metric="workouts", days=30),
             call("track", metric="workouts", goal=4, direction="above"),
-            call("log_to_capture", text="ran 5k 32 min"),
+            {
+                "name": "log_workout",
+                "args": {
+                    "name": "5K run",
+                    "cardio": {"activity": "Run", "km": 5, "minutes": 32},
+                },
+                "id": "call-workout",
+            },
         ),
         say("Nice run. Here's your month and I'll watch your sessions."),
     )
@@ -133,14 +140,25 @@ def test_agent_blocks_and_capture_handoff_stream(
     assert r.status_code == 200 and r.headers["content-type"].startswith(
         "text/event-stream"
     )
-    frames = parse_sse(r.text)
-    events = [e for e, _ in frames]
-    assert events[0] == "message" and events[-1] == "done"
-    blocks = [d for e, d in frames if e == "block"]
+    events = parse_agui(r.text)
+    types = [e["type"] for e in events]
+    assert types[0] == "RUN_STARTED" and types[-1] == "RUN_FINISHED"
+    custom = [(e["name"], e["value"]) for e in events if e["type"] == "CUSTOM"]
+    assert custom[0][0] == "message"
+    blocks = [v for n, v in custom if n == "block"]
     assert [b["t"] for b in blocks] == ["chart", "tracker"]
-    assert "capture" in events and events.count("text.delta") >= 1
-    done = frames[-1][1]
-    assert done["engine"] == "ai" and done["messages"][1]["blocks"] == blocks
+    cards = [v for n, v in custom if n == "card"]
+    assert [c["kind"] for c in cards] == ["workout"]
+    assert types.count("TOOL_CALL_START") == 3 and "TEXT_MESSAGE_CONTENT" in types
+    done = events[-1]["result"]
+    stored = done["messages"][1]["blocks"]
+    assert stored[0]["t"] == "steps" and stored[1:] == blocks
+    assert [i["tool"] for i in stored[0]["items"]] == [
+        "show_chart",
+        "track",
+        "log_workout",
+    ]
+    assert done["engine"] == "ai" and done["capture"]["source"] == "chat"
     assert done["capture"]["cards"][0]["kind"] == "workout"
     # memories and trackers are in the model's context
     system = model.seen[0][0].content

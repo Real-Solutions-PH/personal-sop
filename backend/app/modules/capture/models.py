@@ -8,7 +8,7 @@ from sqlmodel import Field
 
 from app.shared.owned import JSONB, OwnedRow, enum_check, minor_check, tstz
 
-CAPTURE_SOURCES = ("text", "voice", "photo", "file", "quick_add", "connector")
+CAPTURE_SOURCES = ("text", "voice", "photo", "file", "quick_add", "connector", "chat")
 CAPTURE_STATUSES = (
     "queued",
     "processing",

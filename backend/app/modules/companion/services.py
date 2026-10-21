@@ -1,9 +1,10 @@
 """The companion (Fern by default): ask, the conversation, trackers and memories.
 
 ``ask`` answers with the user's chat model when one resolves and the AI
-switch and spend cap allow it (a LangGraph agent whose tools emit the companion's
-render blocks and hand logs to capture); otherwise with the deterministic
-router (:mod:`brain`). A message that is a log or a question about the data
+switch and spend cap allow it: one LangGraph agent that may take several
+steps, with read tools, the companion's card tools and capture's write tools
+bound directly, its progress streamed as AG-UI events (ADR-0015). Otherwise
+the deterministic router (:mod:`brain`) answers. A message that is a log or a question about the data
 becomes a capture, as in the prototype, where the chat shows captures in
 line with the companion's messages.
 """
@@ -34,6 +35,7 @@ from app.modules.companion.schema import (
     SeriesOut,
     TrackerIn,
 )
+from app.modules.companion.turn import TurnStream
 from app.modules.profile import public as profile
 from app.modules.stats import public as stats
 from app.shared import owned_repo
@@ -42,12 +44,14 @@ from app.shared.ids import derived_id
 
 Emit = Callable[[str, dict[str, Any]], None]
 # What one companion answer may cost. The model sees the last HISTORY messages
-# of the user's current day, each cut to HISTORY_CHARS, and gets at most MAX_STEPS model calls (a tool
-# round, then the answer, with one spare); tool results are cut in capture's
-# loop (``agent.MAX_TOOL_RESULT_CHARS``).
+# of the user's current day, each cut to HISTORY_CHARS, and gets at most
+# MAX_STEPS model calls and MAX_TOOL_CALLS tool calls (enough to look
+# something up, write several records and answer); tool results are cut in
+# capture's loop (``agent.MAX_TOOL_RESULT_CHARS``).
 HISTORY = 6
 HISTORY_CHARS = 600
-MAX_STEPS = 3
+MAX_STEPS = 6
+MAX_TOOL_CALLS = 20
 MAX_MEMORIES_IN_CONTEXT = 50
 
 
@@ -226,9 +230,15 @@ def _to_capture(ctx: Ctx, text: str, me_id: uuid.UUID, emit: Emit) -> dict[str, 
 
 
 def ask(
-    ctx: Ctx, *, text: str, message_id: uuid.UUID | None = None, emit: Emit = _noop
+    ctx: Ctx,
+    *,
+    text: str,
+    message_id: uuid.UUID | None = None,
+    stream: TurnStream | None = None,
 ) -> AskOut:
     me_id = message_id or uuid.uuid4()
+    if stream is None:
+        stream = TurnStream(ctx, thread_id=str(ctx.user_id), run_id=str(me_id))
     sol_id = derived_id("companion-reply", me_id, "sol")
     existing = owned_repo.get(ctx, CompanionMessage, me_id, include_deleted=True)
     if existing is not None:
@@ -241,7 +251,7 @@ def ask(
     if resolved is not None:
         try:
             return _ask_ai(
-                ctx, resolved, text, me_id, sol_id, sol.name, user_name, emit
+                ctx, resolved, text, me_id, sol_id, sol.name, user_name, stream
             )
         except capture.SeamError:
             # The provider failed (metered as a failed call): the router
@@ -255,16 +265,17 @@ def ask(
             # provider failed; the capture carries it in the thread now. A
             # tombstone, not a hard delete, so a device that got it drops it.
             owned_repo.soft_delete(ctx, stored)
-        cap = _to_capture(ctx, text, me_id, emit)
+        cap = _to_capture(ctx, text, me_id, stream.frame)
         ctx.commit()
         return AskOut(kind="capture", engine="rules", capture=cap)
     me = owned_repo.get(ctx, CompanionMessage, me_id) or _message(
         ctx, "me", text, [], me_id
     )
-    emit("message", _pub(ctx, me).model_dump(mode="json"))
+    stream.custom("message", _pub(ctx, me).model_dump(mode="json"))
     blocks = _apply(ctx, r)
+    stream.text(r.text or "")
     for b in blocks:
-        emit("block", b)
+        stream.custom("block", b)
     out = _message(ctx, "sol", r.text, blocks, sol_id)
     ctx.commit()
     return AskOut(
@@ -304,12 +315,6 @@ class ChipsArgs(BaseModel):
     )
 
 
-class LogArgs(BaseModel):
-    text: Annotated[str, Field(min_length=1, max_length=2000)] = Field(
-        description="What to log, in the user's words"
-    )
-
-
 class LookupArgs(BaseModel):
     question: Annotated[str, Field(min_length=1, max_length=300)]
 
@@ -328,7 +333,6 @@ class SolRun:
     me_id: uuid.UUID
     emit: Emit
     blocks: list[dict[str, Any]] = field(default_factory=list)
-    captures: list[dict[str, Any]] = field(default_factory=list)
 
     def block(self, b: dict[str, Any]) -> dict[str, Any]:
         self.blocks.append(b)
@@ -400,22 +404,6 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
         a = ChipsArgs(**kw)
         return run.block({"t": "chips", "prompts": a.prompts})
 
-    def log_to_capture(**kw: Any) -> dict[str, Any]:
-        a = LogArgs(**kw)
-        cap = _to_capture(
-            ctx,
-            a.text,
-            derived_id("sol-log", run.me_id, str(len(run.captures))),
-            run.emit,
-        )
-        run.captures.append(cap)
-        run.emit("capture", cap)
-        return {
-            "capture_id": cap["id"],
-            "status": cap["status"],
-            "cards": [{"kind": c["kind"], "state": c["state"]} for c in cap["cards"]],
-        }
-
     def lookup(**kw: Any) -> dict[str, Any]:
         a = LookupArgs(**kw)
         body = capture.answer_question(ctx, a.question)
@@ -456,11 +444,6 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
         (forget_fact, ForgetArgs, "Forget one remembered fact by its id."),
         (show_memories, NoArgs, "Show what you remember about the user."),
         (suggest, ChipsArgs, "Offer up to four follow-up prompts as chips."),
-        (
-            log_to_capture,
-            LogArgs,
-            "Hand a log (spent, ate, did, weighed...) to capture.",
-        ),
         (lookup, LookupArgs, "Look up a number in the user's own data."),
         (stats_overview, OverviewArgs, "The user's Life Score and area rates."),
     ]
@@ -492,11 +475,26 @@ say "Nothing is due today." only when all three are empty. The life score the
 user sees on Today is life_score_7_days_shown_on_today. TODAY is current;
 where an earlier message in this chat says otherwise, TODAY is right.
 
-Tools: show charts, insights, coaching, plans, trackers and memories with the
-tools instead of describing them; each tool returns what its card shows, so
-speak only to that and do not repeat the card. Hand anything the user did,
-spent, ate or weighed to `log_to_capture`. Use `lookup` for a number not in
-TODAY. Call each tool at most once.
+Acting: you can work in several steps. Call tools, read what they return,
+call more if needed, then answer. When the user asks you to add, log, record,
+remind, complete or change something, do it with the matching tool yourself;
+never only say you will.
+- To-dos and reminders: `create_tasks`, all of them in one call. Turn
+  relative times into due_date (YYYY-MM-DD) and due_time (HH:MM, 24h) from
+  Today; set remind only when they ask to be reminded.
+- Finishing a task: `complete_task`. Money: `log_expense`, `log_income`,
+  `log_transfer`, `add_planned`. Habits: `log_habit`, `create_habit`.
+  Training and body: `log_workout`, `log_weigh_in`, `log_meal`. Journal:
+  `save_journal`. Fixing the last entry: `edit_last`, `delete_last`.
+- One message can hold several things to record: make every call.
+- A write that returns state "proposed" or "needs_input" waits for the
+  user's OK in the app; say it is waiting, never that it is done.
+- A write that returns an error did not happen; say so plainly.
+Show charts, insights, coaching, plans, trackers and memories with their
+tools instead of describing them; each returns what its card shows, so speak
+only to that. Use `lookup` for a number not in TODAY. Never call the same tool
+twice with the same arguments. After acting, answer in one or two short
+sentences saying what you did.
 
 TODAY (JSON, from the user's records; a missing key is unknown, not zero;
 money is in {currency}):
@@ -561,7 +559,7 @@ def _ask_ai(
     sol_id: uuid.UUID,
     sol_name: str,
     user_name: str,
-    emit: Emit,
+    stream: TurnStream,
 ) -> AskOut:
     mems = memories(ctx)[-MAX_MEMORIES_IN_CONTEXT:]
     system = SYSTEM.format(
@@ -585,25 +583,36 @@ def _ask_ai(
     )
     history = _history(ctx)
     me = _message(ctx, "me", text, [], me_id)
-    emit("message", _pub(ctx, me).model_dump(mode="json"))
-    run = SolRun(ctx=ctx, me_id=me_id, emit=emit)
+    stream.custom("message", _pub(ctx, me).model_dump(mode="json"))
+    run = SolRun(ctx=ctx, me_id=me_id, emit=stream.frame)
+    writes, wrun = capture.chat_write_tools(
+        ctx,
+        client_uuid=derived_id("fern-turn", me_id, "capture"),
+        text=text,
+        emit=stream.frame,
+    )
     reply = capture.run_agent(
         ctx,
         resolved,
         system=system,
         messages=[*history, HumanMessage(text)],
-        tools=sol_tools(run),
-        on_text=lambda d: emit("text.delta", {"text": _strip_marks(d)}),
+        tools=[*sol_tools(run), *writes],
+        on_text=lambda d: stream.text(_strip_marks(d)),
         max_turns=MAX_STEPS,
+        max_tool_calls=MAX_TOOL_CALLS,
+        hooks=stream,
     )
-    blocks = list(run.blocks)
-    out = _message(ctx, "sol", plain_text(reply) or None, blocks, sol_id)
+    answer = plain_text(reply)
+    cap_id = capture.finish_chat_capture(ctx, wrun, reply=answer)
+    steps = stream.steps_block()
+    blocks = ([steps] if steps else []) + list(run.blocks)
+    out = _message(ctx, "sol", answer or None, blocks, sol_id)
     ctx.commit()
     return AskOut(
         kind="reply",
         engine="ai",
         messages=[_pub(ctx, me), _pub(ctx, out)],
-        capture=run.captures[-1] if run.captures else None,
+        capture=capture.capture_detail(ctx, cap_id) if cap_id else None,
     )
 
 
