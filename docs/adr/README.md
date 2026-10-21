@@ -10,3 +10,4 @@ Start new ADRs from [template.md](template.md).
 | [0012](0012-per-user-ai-providers.md) | Per-user AI providers and keys |
 | [0013](0013-transport-per-ux.md) | Transport per user experience |
 | [0014](0014-aggregate-statistic.md) | One aggregate statistic across modules |
+| [0015](0015-fern-chat-agent.md) | Fern: one streamed, multi-step chat agent |
