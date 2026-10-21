@@ -25,6 +25,8 @@ from datetime import date
 from math import floor
 from typing import Any, Literal
 
+from app.shared.currency import PHP, Currency, money, money_marks
+
 A = re.ASCII
 AI = re.ASCII | re.IGNORECASE
 
@@ -112,6 +114,9 @@ class World:
     # Task list key ("work", "job2", "life", "groceries") -> list id.
     list_keys: dict[str, str] = field(default_factory=dict)
     meal: MealFn = _no_meal
+    # The profile's currency: follow-up questions name it, and its symbol and
+    # code count as money words next to the prototype's ₱ and "php".
+    currency: Currency = PHP
 
 
 # ---------------------------------------------------------------- drafts
@@ -212,7 +217,7 @@ def utf16_len(s: str) -> int:
 
 
 def grouped(n: int) -> str:
-    """``n.toLocaleString()`` for whole pesos."""
+    """``n.toLocaleString()`` for a whole amount."""
     return f"{n:,}"
 
 
@@ -349,6 +354,10 @@ _AMOUNT = re.compile(
     AI,
 )
 _USD = re.compile(r"\$\s?\d|\b\d+(\.\d+)?\s?(usd|dollars?)\b", AI)
+
+
+def _has_symbol(s: str, cur: Currency) -> bool:
+    return _test(r"[₱$]", s) or cur.symbol.lower() in s
 
 
 @dataclass(frozen=True)
@@ -672,13 +681,17 @@ def classify(world: World, seg: str, hint: str | None = None) -> Kind:
     if amt and (
         hint == "expense"
         or _test(
-            r"\b(spent|spend|paid|bought|gastos|gumastos|bayad|binayad|cost|₱|php)\b", s
+            r"\b(spent|spend|paid|bought|gastos|gumastos|bayad|binayad|cost|"
+            rf"{money_marks(world.currency)})\b",
+            s,
         )
-        or _test(r"[₱$]", s)
+        or _has_symbol(s, world.currency)
         or money_category(s)[0]
         or account_key_in(s)
     ):
-        if hint == "meal" and not _test(r"\b(spent|paid|₱|php)\b", s):
+        if hint == "meal" and not _test(
+            rf"\b(spent|paid|{money_marks(world.currency)})\b", s
+        ):
             return "meal"
         return "expense"
     if _test(
@@ -774,7 +787,10 @@ def expense_draft(world: World, seg: str, ctx: ParseCtx) -> RecordDraft | None:
         return None
     cat, payee = money_category(seg)
     acct = account_key_in(seg)
-    amount = a.amount * USD_RATE if a.usd else a.amount
+    # A dollar amount is foreign only to a PHP user: the rate is the
+    # prototype's peso ruling, and nothing converts other currencies.
+    usd = a.usd and world.currency.code == "PHP"
+    amount = a.amount * USD_RATE if usd else a.amount
     note = re.search(r"\b(?:on|for|at|sa)\s+([a-z][\w' ]{1,30})\Z", seg, AI)
     d = RecordDraft(
         kind="expense",
@@ -790,20 +806,20 @@ def expense_draft(world: World, seg: str, ctx: ParseCtx) -> RecordDraft | None:
                 "payee": payee
                 if payee is not None
                 else (title(note.group(1)) if note else None),
-                "currency": "USD" if a.usd else None,
+                "currency": "USD" if usd else None,
                 "from_receipt": ctx.photo,
             }
         ),
     )
-    if a.usd:
+    if usd:
         d.confirm = True
         d.warn = (
-            f"Foreign currency: ${a.amount} ≈ ₱{grouped(amount)} at ₱{USD_RATE}/$ "
+            f"Foreign currency: ${a.amount} ≈ {money(amount * 100, world.currency)} at ₱{USD_RATE}/$ "
             "(FX rules are an open question in Finance)."
         )
     if d.payload.get("category_id") is None:
         d.ask = {
-            "question": f"What was ₱{grouped(amount)} for?",
+            "question": f"What was {money(amount * 100, world.currency)} for?",
             "field": "category_id",
             "free": True,
             "options": list(world.recent_cats),
@@ -995,7 +1011,7 @@ def income_draft(world: World, seg: str) -> RecordDraft | None:
         ask=None
         if acct
         else {
-            "question": f"Which account did the ₱{grouped(a.amount)} land in?",
+            "question": f"Which account did the {money(a.amount * 100, world.currency)} land in?",
             "field": "account_id",
             "options": list(world.account_options),
         },
@@ -1025,7 +1041,7 @@ def transfer_draft(world: World, seg: str) -> RecordDraft | None:
     ask: dict[str, Any] | None = None
     if not frm_id:
         ask = {
-            "question": f"Moved ₱{grouped(a.amount)} from which account?",
+            "question": f"Moved {money(a.amount * 100, world.currency)} from which account?",
             "field": "from",
             "options": [o for o in opts if o["value"] != to_id],
         }
@@ -1058,7 +1074,9 @@ def planned_draft(world: World, seg: str) -> RecordDraft | None:
     dm = re.search(r"every\s+(\d{1,2})(?:st|nd|rd|th)", seg, AI)
     cat, payee = money_category(seg)
     if payee is None:
-        rest = re.sub(r"(₱|php)?\s?\d[\d,.]*k?", "", seg, flags=AI)
+        rest = re.sub(
+            rf"({money_marks(world.currency)})?\s?\d[\d,.]*k?", "", seg, flags=AI
+        )
         rest = re.sub(r"\bevery.*\Z", "", rest, flags=AI).strip()
         name = title(rest or "Bill")
     else:
@@ -1272,7 +1290,9 @@ def facts_in_journal(world: World, text: str, ctx: ParseCtx) -> list[RecordDraft
                 )
             )
     spent = re.search(
-        r"\bspent\s+(?:₱|php)?\s?(\d[\d,]*k?)\s+on\s+([a-z ]{2,20})", text, AI
+        rf"\bspent\s+(?:{money_marks(world.currency)})?\s?(\d[\d,]*k?)\s+on\s+([a-z ]{{2,20}})",
+        text,
+        AI,
     )
     if spent:
         d = expense_draft(world, spent.group(0), ctx)

@@ -1,6 +1,7 @@
 import { clearThread, updateAISettings } from "@domain/capture/actions"
 import { type RecordCard, RULE_LABELS } from "@domain/capture/data"
 import { captureStore } from "@domain/capture/store"
+import { currencyInfo, moneyExact, useCurrency } from "@domain/lib/money"
 import { LinearGradient } from "expo-linear-gradient"
 import { Bot, ChevronRight, Cpu, Link2, Lock, Power } from "lucide-react-native"
 import { useState } from "react"
@@ -22,8 +23,9 @@ import { Switch } from "../switch"
 import { useTheme } from "../theme"
 import { Button, confirm, Screen } from "../ui"
 
-const peso = (n: number) =>
-  `₱${n.toLocaleString("en-PH", { maximumFractionDigits: 2 })}`
+// AI spend and its cap are the service's cost, priced in pesos for every
+// user; the confirm threshold is the user's own money.
+const aiCost = (n: number) => moneyExact(n, currencyInfo("PHP"))
 export function CaptureSettings({
   connector = false,
 }: {
@@ -33,6 +35,7 @@ export function CaptureSettings({
 }
 function Settings() {
   const t = useTheme(),
+    cur = useCurrency(),
     st = captureStore.use((s) => s.settings),
     spend = captureStore.use((s) => s.spend),
     captures = captureStore.use((s) => s.captures),
@@ -87,7 +90,7 @@ function Settings() {
         weight="medium"
         style={{ color: on ? t.onPrimary : t.text }}
       >
-        {peso(n)}
+        {fin ? moneyExact(n, cur) : aiCost(n)}
       </Copy>
     </Tap>
   )
@@ -140,14 +143,14 @@ function Settings() {
           >
             <View>
               <Copy size={28} weight="display">
-                {peso(spend.amount)}
+                {aiCost(spend.amount)}
               </Copy>
               <Copy size={12} muted>
                 AI spend this month
               </Copy>
             </View>
             <Copy size={12} muted>
-              {spend.calls} calls · cap {peso(st.spendCap)}
+              {spend.calls} calls · cap {aiCost(st.spendCap)}
             </Copy>
           </Line>
           <View style={{ marginTop: 8 }}>
@@ -212,7 +215,7 @@ function Settings() {
             "Confirm expenses above",
             "Smaller ones with a clear category auto-save",
             <Copy size={20} weight="displayMedium">
-              {peso(st.moneyThreshold)}
+              {moneyExact(st.moneyThreshold, cur)}
             </Copy>,
           )}
           <Line style={{ gap: 6 }}>

@@ -15,7 +15,7 @@ import {
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { openCapture } from "../lib/capture"
-import { peso } from "../lib/day"
+import { money } from "../lib/money"
 import { privacyStore } from "../lib/privacy"
 import { Btn, Chip, Money, NumberInput, Segmented } from "../ui/kit"
 import {
@@ -193,7 +193,8 @@ export interface SheetProps {
 }
 
 /** Toast text that respects privacy mode. */
-export const amt = (n: number) => (privacyStore.get().hidden ? "₱•••" : peso(n))
+export const amt = (n: number) =>
+  privacyStore.get().hidden ? "₱•••" : money(n)
 
 // ------------------------------------------------------------------ FIN-05
 

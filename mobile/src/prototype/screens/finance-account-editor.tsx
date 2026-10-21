@@ -2,6 +2,7 @@ import * as A from "@domain/finance/actions"
 import type { Account } from "@domain/finance/data"
 import { finStore } from "@domain/finance/store"
 import { dayKey } from "@domain/lib/day"
+import { useCurrency } from "@domain/lib/money"
 import { useState } from "react"
 import { View } from "react-native"
 import { toast } from "sonner-native"
@@ -34,6 +35,7 @@ export function AccountEditor({
 }) {
   const s = finStore.use((s) => s),
     t = useTheme(),
+    sym = useCurrency().symbol,
     [name, setName] = useState(ex?.name ?? ""),
     [type, setType] = useState<Account["type"]>(ex?.type ?? "ewallet"),
     [opening, setOpening] = useState(ex ? String(ex.opening) : ""),
@@ -85,7 +87,11 @@ export function AccountEditor({
       <Line style={{ alignItems: "flex-start" }}>
         <View style={{ flex: 1 }}>
           <Field
-            label={type === "credit" ? "Balance owed ₱" : "Opening balance ₱"}
+            label={
+              type === "credit"
+                ? `Balance owed ${sym}`
+                : `Opening balance ${sym}`
+            }
             value={opening}
             onChangeText={setOpening}
             keyboardType="decimal-pad"
@@ -97,7 +103,7 @@ export function AccountEditor({
       </Line>
       {type === "credit" && (
         <Field
-          label="Credit limit ₱"
+          label={`Credit limit ${sym}`}
           value={limit}
           onChangeText={setLimit}
           keyboardType="decimal-pad"

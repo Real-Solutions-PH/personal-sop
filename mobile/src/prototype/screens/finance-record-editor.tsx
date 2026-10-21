@@ -2,7 +2,8 @@ import * as A from "@domain/finance/actions"
 import * as C from "@domain/finance/calc"
 import type { FinRecord, RecordType } from "@domain/finance/data"
 import { finStore } from "@domain/finance/store"
-import { dayKey, peso } from "@domain/lib/day"
+import { dayKey } from "@domain/lib/day"
+import { money, useCurrency } from "@domain/lib/money"
 import { Check, Paperclip } from "lucide-react-native"
 import { useState } from "react"
 import { View } from "react-native"
@@ -26,6 +27,7 @@ export function RecordEditor(props: Props) {
 function Editor({ record, prefill, onClose }: Props) {
   const s = finStore.use((s) => s),
     t = useTheme(),
+    cur = useCurrency(),
     init = { ...record, ...prefill }
   const [type, setType] = useState<RecordType>(init.type ?? "expense"),
     [amount, setAmount] = useState(init.amount ? String(init.amount) : ""),
@@ -56,7 +58,9 @@ function Editor({ record, prefill, onClose }: Props) {
     suggestion = C.suggestCategory(s, payee),
     n = Number(amount),
     amountError =
-      n > 0 && Number.isFinite(n) ? undefined : "Enter an amount above ₱0"
+      n > 0 && Number.isFinite(n)
+        ? undefined
+        : `Enter an amount above ${money(0, cur)}`
   function save(again = false) {
     setTried(true)
     if (
@@ -99,7 +103,9 @@ function Editor({ record, prefill, onClose }: Props) {
       })
       created = [r.transfer, ...(r.fee ? [r.fee] : [])]
     } else created = [A.addRecord({ ...input, source: "manual" })]
-    undo(`Saved ${peso(n)}`, () => A.deleteRecords(created.map((r) => r.id)))
+    undo(`Saved ${money(n, cur)}`, () =>
+      A.deleteRecords(created.map((r) => r.id)),
+    )
     if (again) {
       setAmount("")
       setPayee("")
@@ -164,7 +170,7 @@ function Editor({ record, prefill, onClose }: Props) {
             ]}
           />
           <Field
-            label="Amount ₱"
+            label={`Amount ${cur.symbol}`}
             value={amount}
             onChangeText={setAmount}
             placeholder="0"
@@ -204,7 +210,7 @@ function Editor({ record, prefill, onClose }: Props) {
               {!record && (
                 <>
                   <Field
-                    label="Fee ₱ (optional)"
+                    label={`Fee ${cur.symbol} (optional)`}
                     placeholder="e.g. 15"
                     value={fee}
                     onChangeText={setFee}

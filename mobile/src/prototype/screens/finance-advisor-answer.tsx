@@ -3,7 +3,6 @@ import {
   addDays,
   addMonths,
   avgUnplanned,
-  compact,
   flowIn,
   monthLabel,
   monthOf,
@@ -16,6 +15,7 @@ import {
 import type { Budget, FinState, PlannedItem } from "@domain/finance/data"
 import { finStore } from "@domain/finance/store"
 import { dayKey as today } from "@domain/lib/day"
+import { moneyCompact, useCurrency } from "@domain/lib/money"
 import { privacyStore } from "@domain/lib/privacy"
 import { ChevronDown } from "lucide-react-native"
 import { type ReactNode, useMemo, useState } from "react"
@@ -204,7 +204,8 @@ function Answer({
   const router = { push: go }
   const ctx = useCtx(s)
   const hidden = privacyStore.use((x) => x.hidden)
-  const k = (n: number) => (hidden ? "₱•••" : compact(n))
+  const cur = useCurrency()
+  const k = (n: number) => (hidden ? `${cur.symbol}•••` : moneyCompact(n, cur))
   const floor = s.settings.safetyFloor
   const runway = ctx.avgSpend ? ctx.base.start / ctx.avgSpend : 0
 

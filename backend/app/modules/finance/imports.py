@@ -32,6 +32,7 @@ from app.modules.finance.services import _account, _check_record, _dirty, _setti
 from app.modules.stats.public import mark_dirty
 from app.shared import owned_repo
 from app.shared.context import Ctx
+from app.shared.currency import strip_money_marks
 from app.shared.domain import conflict, invalid
 from app.shared.ids import derived_id
 from app.shared.money import MAX_MINOR
@@ -129,17 +130,10 @@ def parse_time(text: str) -> str | None:
 
 
 def parse_amount(text: str) -> int | None:
-    """A money cell -> signed centavos; ``None`` when blank. Accepts ₱/PHP,
-    thousands separators, a leading minus, ``(1,234.00)`` and a trailing
-    ``CR``/``DR``."""
-    t = (
-        text.strip()
-        .upper()
-        .replace("PHP", "")
-        .replace("₱", "")
-        .replace(",", "")
-        .strip()
-    )
+    """A money cell -> signed hundredths; ``None`` when blank. Accepts any
+    supported currency symbol or code (₱/PHP, $/USD, ...), thousands
+    separators, a leading minus, ``(1,234.00)`` and a trailing ``CR``/``DR``."""
+    t = strip_money_marks(text.strip().upper()).replace(",", "").strip()
     if not t or t in ("-", "—"):
         return None
     sign = 1

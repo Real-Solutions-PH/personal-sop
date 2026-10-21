@@ -22,7 +22,8 @@ import { latestBodyweight } from "../fitness/calc"
 import { fitStore } from "../fitness/store"
 import { isDue, lk, logIndex } from "../habits/logic"
 import { habitsStore } from "../habits/store"
-import { dayKey, peso } from "../lib/day"
+import { dayKey } from "../lib/day"
+import { money } from "../lib/money"
 import { fmtDay, fmtTime } from "../tasks/logic"
 import { parseTask } from "../tasks/parse"
 import { type Accent, Btn, Chip, NumberInput } from "../ui/kit"
@@ -204,7 +205,7 @@ function ExpenseForm({ onDone }: { onDone: () => void }) {
   const [all, setAll] = useState(false)
   const submit = (another: boolean) => {
     save(
-      `Expense ${peso(amount)}`,
+      `Expense ${money(amount)}`,
       {
         kind: "expense",
         amount,
@@ -288,7 +289,7 @@ function IncomeForm({ onDone }: { onDone: () => void }) {
         disabled={!amount}
         onSave={() => {
           save(
-            `Income ${peso(amount)}`,
+            `Income ${money(amount)}`,
             { kind: "income", amount, categoryId: cat, accountId: acct },
             "finance",
           )
@@ -319,7 +320,7 @@ function TransferForm({ onDone }: { onDone: () => void }) {
         disabled={!amount || from === to}
         onSave={() => {
           save(
-            `Transfer ${peso(amount)}`,
+            `Transfer ${money(amount)}`,
             { kind: "transfer", amount, from, to },
             "finance",
           )

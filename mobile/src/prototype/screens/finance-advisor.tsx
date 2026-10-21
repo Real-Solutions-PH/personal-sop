@@ -1,6 +1,12 @@
 import * as A from "@domain/finance/actions"
 import * as C from "@domain/finance/calc"
 import { finStore } from "@domain/finance/store"
+import {
+  type CurrencyInfo,
+  money,
+  moneyCompact,
+  useCurrency,
+} from "@domain/lib/money"
 import { privacyStore } from "@domain/lib/privacy"
 import { useLocalSearchParams } from "expo-router"
 import {
@@ -23,9 +29,9 @@ import { FinPill } from "./finance-planned"
 import { FinChip } from "./finance-projection"
 import { FinanceDisclaimer } from "./finance-settings"
 
-const SUGGESTED = [
-  "Can I afford a ₱45k laptop in December?",
-  "Finance a ₱30k phone at 0% for 12 months, or pay cash?",
+const suggested = (c: CurrencyInfo) => [
+  `Can I afford a ${moneyCompact(45000, c)} laptop in December?`,
+  `Finance a ${moneyCompact(30000, c)} phone at 0% for 12 months, or pay cash?`,
   "Where am I leaking money?",
   "How big should my emergency fund be?",
   "Should I start investing — MP2 or index funds?",
@@ -35,6 +41,7 @@ export function FinanceAdvisor() {
     t = useTheme(),
     p = useLocalSearchParams<Record<string, string>>(),
     hidden = privacyStore.use((s) => s.hidden),
+    SUGGESTED = suggested(useCurrency()),
     [thread, setThread] = useState<string | null>(null),
     [text, setText] = useState(""),
     [typing, setTyping] = useState(false),
@@ -84,7 +91,7 @@ export function FinanceAdvisor() {
       const amount = Number(p.amount) || undefined
       ask(
         key === "afford"
-          ? `Can I afford ${p.name ?? "purchase"} for ₱${(amount ?? 0).toLocaleString()} in ${p.month ? C.monthLabel(p.month, true) : "a few months"}${p.mode === "inst" ? ` on ${p.n ?? 12}× 0%` : ""}?`
+          ? `Can I afford ${p.name ?? "purchase"} for ${money(amount ?? 0)} in ${p.month ? C.monthLabel(p.month, true) : "a few months"}${p.mode === "inst" ? ` on ${p.n ?? 12}× 0%` : ""}?`
           : key === "review"
             ? "How did I do last month, and what should I change?"
             : key === "emergency"

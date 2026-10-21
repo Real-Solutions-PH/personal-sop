@@ -27,7 +27,6 @@ from app.modules.capture.models import (
     RecordCard,
     ReplyItem,
 )
-from app.modules.capture.money import peso
 from app.modules.capture.parse import (
     Draft,
     InfoDraft,
@@ -38,6 +37,7 @@ from app.modules.capture.parse import (
 )
 from app.shared import owned_repo
 from app.shared.context import Ctx
+from app.shared.currency import money
 from app.shared.day import js_weekday
 from app.shared.domain import conflict, invalid
 
@@ -237,7 +237,7 @@ def new_card(
             when = at.astimezone(ctx.clock.zone)
             clock = f"{when.hour % 12 or 12}:{when.minute:02d} {'am' if when.hour < 12 else 'pm'}"
             warn = (
-                f"Looks like the {peso(int(payload['amount_minor']))} you logged at "
+                f"Looks like the {money(int(payload['amount_minor']), ctx.currency)} you logged at "
                 f"{clock}{f' ({payee})' if payee else ''}. Keep both?"
             )
             force = True

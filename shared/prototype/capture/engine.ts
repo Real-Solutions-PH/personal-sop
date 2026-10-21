@@ -32,6 +32,7 @@ import type { HabitLog } from "../habits/data"
 import { lk, logIndex, streaks } from "../habits/logic"
 import { habitsStore } from "../habits/store"
 import { dayKey } from "../lib/day"
+import { money } from "../lib/money"
 import { uid } from "../lib/store"
 import {
   completeTask,
@@ -768,7 +769,7 @@ function fromDraft(d: Draft, cap: Capture): ReplyItem {
             86400000,
       )
     if (dup) {
-      warn = `Looks like the ₱${amt.toLocaleString()} you logged at ${new Date(dup.at).toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit" })}${dup.payee ? ` (${dup.payee})` : ""}. Keep both?`
+      warn = `Looks like the ${money(amt)} you logged at ${new Date(dup.at).toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit" })}${dup.payee ? ` (${dup.payee})` : ""}. Keep both?`
       forceConfirm = true
     }
   }
@@ -1015,7 +1016,8 @@ export function processCapture(id: string) {
       status: "failed",
       error: !st.aiEnabled
         ? "AI is switched off (kill switch in AI settings)."
-        : `Monthly AI spend cap (₱${st.spendCap}) reached.`,
+        : // AI spend is the service's cost, kept in pesos for every user.
+          `Monthly AI spend cap (₱${st.spendCap}) reached.`,
       reply: {
         text: "I kept your message.",
         items: [

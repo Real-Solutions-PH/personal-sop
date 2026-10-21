@@ -12,6 +12,8 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any, Literal
 
+from app.shared.currency import contains_money
+
 MODULE_KEYS: tuple[str, ...] = ("habits", "tasks", "fitness", "finance")
 
 ShareTemplate = Literal[
@@ -170,14 +172,12 @@ def finite(x: float) -> bool:
 
 # ---------------------------------------------------------------- share cards
 
-_CURRENCY = re.compile(r"[₱$€£¥]|\bPHP\b")
-
 
 def scrub_money(value: Any) -> Any:
     """IA ruling X-5: a share card never carries a money amount. Any string
     that names a currency is dropped (None); containers are scrubbed deeply."""
     if isinstance(value, str):
-        return None if _CURRENCY.search(value) else value
+        return None if contains_money(value) else value
     if isinstance(value, dict):
         return {k: scrub_money(v) for k, v in value.items()}
     if isinstance(value, list):

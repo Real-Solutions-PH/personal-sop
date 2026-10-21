@@ -102,6 +102,7 @@ def build_world(ctx: Ctx, *, at: datetime | None = None) -> World:
     default = finance.default_account(ctx)
     return World(
         today=ctx.clock.day_of(when),
+        currency=ctx.currency,
         habits=[
             HabitRef(str(h.id), h.name, h.type, h.target, h.status) for h in habit_rows
         ],
@@ -155,19 +156,19 @@ def duplicate_expense(
 
 
 def budget_note(ctx: Ctx, category_id: str | None) -> str | None:
-    """'P400 left in Food this month' after an expense (prototype
-    ``budgetNote``)."""
+    """'₱400 left in Food this month' after an expense (prototype
+    ``budgetNote``), in the user's currency."""
     if not category_id:
         return None
-    from app.modules.capture.money import peso
+    from app.shared.currency import money
 
     hit = finance.budget_left(ctx, category_id=category_id)
     if hit is None:
         return None
     name, left = hit
     if left >= 0:
-        return f"{peso(left)} left in {name} this month"
-    return f"Over {name} budget by {peso(-left)}"
+        return f"{money(left, ctx.currency)} left in {name} this month"
+    return f"Over {name} budget by {money(-left, ctx.currency)}"
 
 
 def macros_left_today(ctx: Ctx) -> tuple[float, float, float, float] | None:

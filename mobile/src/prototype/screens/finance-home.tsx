@@ -3,6 +3,7 @@ import * as N from "@domain/finance/calc"
 import type { FinRecord } from "@domain/finance/data"
 import { finStore } from "@domain/finance/store"
 import { dayKey } from "@domain/lib/day"
+import { currencySymbol } from "@domain/lib/money"
 import { privacyStore, togglePrivacy } from "@domain/lib/privacy"
 import { useLocalSearchParams } from "expo-router"
 import {
@@ -725,7 +726,11 @@ export function FinanceHome() {
                         <Copy size={12} muted>
                           by {last ? N.monthLabel(last.key, true) : ""} ·{" "}
                           <Text style={{ color: t.good }}>
-                            +{hidden ? "₱•••" : N.compact(proj.avgSurplus)}/mo
+                            +
+                            {hidden
+                              ? `${currencySymbol()}•••`
+                              : N.compact(proj.avgSurplus)}
+                            /mo
                           </Text>
                         </Copy>
                       </View>

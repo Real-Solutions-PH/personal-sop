@@ -599,7 +599,7 @@ export function Settings() {
         <Frame style={{ paddingHorizontal: 12, paddingVertical: 4 }}>
           {row(
             "Privacy mode",
-            "Blur ₱ amounts everywhere (or long-press the Today header)",
+            "Blur money amounts everywhere (or long-press the Today header)",
             <Switch
               compact
               accent="primary"
@@ -614,8 +614,8 @@ export function Settings() {
             toast("Share defaults reset")
           })}
           <Copy size={12} muted style={{ paddingVertical: 12 }}>
-            ₱ amounts are never allowed on share cards. The privacy check before
-            sharing can't be turned off.
+            Money amounts are never allowed on share cards. The privacy check
+            before sharing can't be turned off.
           </Copy>
         </Frame>
         <SectionHeading>Data & account</SectionHeading>

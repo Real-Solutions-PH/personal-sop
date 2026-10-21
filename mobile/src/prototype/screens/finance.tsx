@@ -1,8 +1,9 @@
-import { peso } from "@domain/lib/day"
+import { money, useCurrency } from "@domain/lib/money"
 import { privacyStore } from "@domain/lib/privacy"
 export function useMoney() {
   const hidden = privacyStore.use((s) => s.hidden)
-  return (n: number) => (hidden ? "••••" : peso(n))
+  const c = useCurrency()
+  return (n: number) => (hidden ? "••••" : money(n, c))
 }
 export { AdvisorAnswer } from "./finance-advisor-answer"
 export { PlannedEditor } from "./finance-planned-editor"

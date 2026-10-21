@@ -24,7 +24,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
-import { peso } from "../../lib/day"
+import { money } from "../../lib/money"
 import {
   Bar,
   Btn,
@@ -143,9 +143,9 @@ export function AISettingsScreen() {
           />
         </div>
         <div className="mt-4 flex items-end justify-between">
-          <Stat label="AI spend this month" value={peso(spend.amount)} />
+          <Stat label="AI spend this month" value={money(spend.amount)} />
           <div className="text-right text-muted-foreground text-xs">
-            {spend.calls} calls · cap {peso(st.spendCap)}
+            {spend.calls} calls · cap {money(st.spendCap)}
           </div>
         </div>
         <Bar
@@ -168,7 +168,7 @@ export function AISettingsScreen() {
                     : "bg-muted",
                 )}
               >
-                {peso(v)}
+                {money(v)}
               </button>
             ))}
           </div>
@@ -212,7 +212,7 @@ export function AISettingsScreen() {
           sub="Smaller ones with a clear category auto-save"
         >
           <span className="num font-display font-semibold text-xl">
-            {peso(st.moneyThreshold)}
+            {money(st.moneyThreshold)}
           </span>
         </Line>
         <div className="flex gap-1.5">
@@ -226,7 +226,7 @@ export function AISettingsScreen() {
                 st.moneyThreshold === v ? "bg-fin text-background" : "bg-muted",
               )}
             >
-              {peso(v)}
+              {money(v)}
             </button>
           ))}
         </div>

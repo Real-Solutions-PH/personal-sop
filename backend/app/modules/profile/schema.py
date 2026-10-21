@@ -5,6 +5,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.shared.currency import check_currency
 from app.shared.day import check_timezone, parse_hm
 
 ModuleKey = Literal["habits", "tasks", "fitness", "finance"]
@@ -39,6 +40,7 @@ class ProfilePublic(BaseModel):
     photo_media_id: uuid.UUID | None
     since: date | None
     timezone: str
+    currency: str
     day_start_hour: int
     evening_start: str
     target_threshold: float
@@ -63,6 +65,9 @@ class ProfileUpdate(BaseModel):
     handle: str | None = None
     photo_media_id: uuid.UUID | None = None
     timezone: str | None = Field(default=None, max_length=64)
+    # ISO 4217 code from app.shared.currency.CODES; changing it relabels
+    # amounts and converts none.
+    currency: str | None = Field(default=None, min_length=3, max_length=3)
     day_start_hour: int | None = Field(default=None, ge=0, le=23)
     evening_start: str | None = None
     target_threshold: float | None = Field(default=None, gt=0, le=1)
@@ -91,6 +96,11 @@ class ProfileUpdate(BaseModel):
     @classmethod
     def _tz(cls, v: str | None) -> str | None:
         return None if v is None else check_timezone(v)
+
+    @field_validator("currency")
+    @classmethod
+    def _currency(cls, v: str | None) -> str | None:
+        return None if v is None else check_currency(v)
 
 
 class CompleteSignup(BaseModel):

@@ -7,6 +7,7 @@ from datetime import date, datetime
 from sqlalchemy import CheckConstraint, Float, Integer, String, UniqueConstraint
 from sqlmodel import Field
 
+from app.shared.currency import CODES
 from app.shared.owned import JSONB, OwnedRow, enum_check, tstz
 
 MODULE_KEYS = ("habits", "tasks", "fitness", "finance")
@@ -33,6 +34,7 @@ class UserProfile(OwnedRow, table=True):
         enum_check(
             "push_permission", PUSH_PERMISSIONS, name="ck_user_profile_push_perm"
         ),
+        enum_check("currency", CODES, name="ck_user_profile_currency"),
     )
 
     name: str = Field(default="", max_length=80)
@@ -42,6 +44,12 @@ class UserProfile(OwnedRow, table=True):
     )
     since: date | None = None
     timezone: str = Field(default="Asia/Manila", max_length=64)
+    # ISO 4217 code (app.shared.currency); amounts are hundredths of it.
+    currency: str = Field(
+        default="PHP",
+        sa_type=String(3),  # type: ignore
+        sa_column_kwargs={"server_default": "PHP"},
+    )
     day_start_hour: int = Field(default=4, sa_type=Integer)
     evening_start: str = Field(default="18:00", max_length=5)
     target_threshold: float = Field(default=0.8, sa_type=Float)

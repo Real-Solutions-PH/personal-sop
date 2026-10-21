@@ -247,7 +247,7 @@ def ask(
             # The provider failed (metered as a failed call): the router
             # answers instead, reusing the question already stored.
             pass
-    r = brain.route(text, user_name=user_name, sol_name=sol.name)
+    r = brain.route(text, user_name=user_name, sol_name=sol.name, currency=ctx.currency)
     if r.kind == "capture":
         stored = owned_repo.get(ctx, CompanionMessage, me_id)
         if stored is not None:
@@ -499,7 +499,7 @@ spent, ate or weighed to `log_to_capture`. Use `lookup` for a number not in
 TODAY. Call each tool at most once.
 
 TODAY (JSON, from the user's records; a missing key is unknown, not zero;
-money is in pesos, written ₱):
+money is in {currency}):
 {today_facts}
 
 What you remember about the user (ids for forgetting):
@@ -568,6 +568,7 @@ def _ask_ai(
         sol=sol_name,
         user=brain.first_name(user_name),
         today=ctx.today.isoformat(),
+        currency=ctx.currency.phrase,
         today_facts=json.dumps(grounding.snapshot(ctx), ensure_ascii=False),
         memories="\n".join(f"- [{m.id}] {m.text}" for m in mems) or "(nothing yet)",
         trackers=json.dumps(

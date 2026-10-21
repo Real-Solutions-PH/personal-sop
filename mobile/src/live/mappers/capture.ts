@@ -4,14 +4,14 @@
 // each capture's ``reply.items`` so the thread renders them unchanged.
 //
 // Shapes (device -> server):
-// - card payloads are camelCase pesos on the device and snake_case
-//   centavos on the server (``amount`` <-> ``amount_minor``); seeded finance
+// - card payloads are camelCase major units on the device and snake_case
+//   hundredths on the server (``amount`` <-> ``amount_minor``); seeded finance
 //   categories keep their slug ids on the device (see mappers/finance.ts);
 // - a card's follow-up names its field the server's way (``category_id``),
 //   the device's way on the phone (``categoryId``); category answers travel
 //   as server ids;
-// - answer cards carry money as centavos (``money`` and, on a money card,
-//   ``bars.data``); the device shows pesos;
+// - answer cards carry money as hundredths (``money`` and, on a money card,
+//   ``bars.data``); the device shows major units;
 // - instants are ISO strings; journal days stay ``YYYY-MM-DD``.
 //
 // A capture the live path is streaming right now, or a photo/file capture

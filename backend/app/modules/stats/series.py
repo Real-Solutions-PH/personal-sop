@@ -14,6 +14,7 @@ from typing import Literal
 
 from app.modules.stats import logic as L
 from app.shared.context import Ctx
+from app.shared.currency import Currency
 
 SeriesMetric = Literal[
     "life",
@@ -71,8 +72,9 @@ def _weekly(vals: list[float]) -> list[float]:
     return [_avg(vals[i : i + 7]) for i in range(0, len(vals), 7)]
 
 
-def _peso(minor: float) -> str:
-    return f"₱{L.js_round(minor / 100):,}"
+def _money(cur: Currency) -> Callable[[float], str]:
+    """Whole units in the user's currency, ``Math.round`` like the prototype."""
+    return lambda minor: f"{cur.prefix}{L.js_round(minor / 100):,}"
 
 
 def _bars(
@@ -138,7 +140,9 @@ def build(ctx: Ctx, metric: str, n: int) -> Series:
         fin = finance_repo.load_state(ctx)
         if metric == "spend":
             vals = [float(max(0, F.spend_in(fin, k, k, None))) for k in keys]
-            return _bars(metric, n, keys, vals, _peso, "Spending", "minor")
+            return _bars(
+                metric, n, keys, vals, _money(ctx.currency), "Spending", "minor"
+            )
         if metric == "spendCats":
             flow = F.flow_in(fin, keys[0], today)
             cats = F.cat_map(fin)
@@ -151,12 +155,12 @@ def build(ctx: Ctx, metric: str, n: int) -> Series:
                 for cid, v in top
             ]
             return Series(metric, n, "donut", [x.value for x in slices], [],
-                          _peso(flow.spend), f"Spent in the last {n} days", "minor",
+                          _money(ctx.currency)(flow.spend), f"Spent in the last {n} days", "minor",
                           [], slices)  # fmt: skip
         nw = [float(v) for v in F.net_worth_series(fin, n)]
         change = nw[-1] - nw[0] if nw else 0.0
         sign = "+" if change >= 0 else "−"
-        return Series(metric, n, "line", nw, [], f"{sign}{_peso(abs(change))}",
+        return Series(metric, n, "line", nw, [], f"{sign}{_money(ctx.currency)(abs(change))}",
                       f"Net worth change over {n} days", "minor",
                       list(zip(keys[-len(nw):], nw, strict=True)) if nw else [])  # fmt: skip
 

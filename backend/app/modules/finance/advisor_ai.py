@@ -30,6 +30,7 @@ from app.modules.finance import schema as S
 from app.modules.finance.models import AdvisorMessage, AdvisorThread
 from app.shared import owned_repo
 from app.shared.context import Ctx
+from app.shared.currency import PHP, Currency, money_round
 from app.shared.ids import derived_id
 
 Emit = Callable[[str, dict[str, Any]], None]
@@ -50,14 +51,9 @@ def _noop(event: str, data: dict[str, Any]) -> None:
     del event, data
 
 
-def peso(minor: float) -> str:
-    v = calc.js_round(minor / 100)
-    return f"₱{v:,}" if v >= 0 else f"₱-{-v:,}"
-
-
-def flatten(paragraphs: list[list[dict[str, Any]]]) -> str:
-    """The structured answer's paragraphs as plain text (``m`` exact pesos,
-    ``k`` rounded pesos)."""
+def flatten(paragraphs: list[list[dict[str, Any]]], cur: Currency = PHP) -> str:
+    """The structured answer's paragraphs as plain text in the user's
+    currency (``m`` exact amounts, ``k`` rounded ones; both whole units)."""
     out: list[str] = []
     for para in paragraphs:
         parts: list[str] = []
@@ -65,9 +61,9 @@ def flatten(paragraphs: list[list[dict[str, Any]]]) -> str:
             if "t" in seg:
                 parts.append(str(seg["t"]))
             elif "m" in seg:
-                parts.append(peso(seg["m"]))
+                parts.append(money_round(seg["m"], cur))
             elif "k" in seg:
-                parts.append(peso(seg["k"]))
+                parts.append(money_round(seg["k"], cur))
         out.append("".join(parts))
     return "\n\n".join(out)
 
@@ -88,7 +84,7 @@ class QuestionArgs(BaseModel):
 
 
 def advisor_tools(
-    s: calc.State, scope: Scope, safety_floor_minor: int
+    s: calc.State, scope: Scope, safety_floor_minor: int, cur: Currency = PHP
 ) -> list[BaseTool]:
     cats = calc.cat_map(s)
 
@@ -104,7 +100,7 @@ def advisor_tools(
             spend += fl.spend
             income += fl.income
         return {
-            "currency": "PHP (amounts in pesos)",
+            "currency": f"{cur.code} (amounts in {cur.name}, written {cur.symbol})",
             "net_worth": calc.net_worth(s, bal) / 100,
             "cash_now": base.start / 100,
             "avg_monthly_spend_3m": round(spend / 3 / 100, 2),
@@ -178,7 +174,7 @@ def advisor_tools(
             safety_floor_minor=safety_floor_minor,
         )
         return {
-            "text": flatten(out["paragraphs"]),
+            "text": flatten(out["paragraphs"], cur),
             "verdict": out.get("verdict"),
             "working": out.get("working"),
             "needs_records": out.get("needs_records"),
@@ -206,8 +202,8 @@ def advisor_tools(
     ]
 
 
-SYSTEM = """You are the finance advisor inside Personal SOP, for a user in the
-Philippines. Answer in a few short paragraphs, plainly, with peso amounts from
+SYSTEM = """You are the finance advisor inside Personal SOP. The user's money is
+in {currency}. Answer in a few short paragraphs, plainly, with amounts from
 the tools — never invent numbers. The user shares {scope}. Prefer the
 `worked_answer` tool for affordability, financing, emergency-fund, investing and
 monthly-review questions, then explain it. End with: "{disclaimer}" """
@@ -284,9 +280,10 @@ def ask(
                     if scope == "records"
                     else "totals only",
                     disclaimer=advisor.DISCLAIMER,
+                    currency=ctx.currency.phrase,
                 ),
                 messages=[*history, HumanMessage(data.text)],
-                tools=advisor_tools(s, scope, st.safety_floor_minor),
+                tools=advisor_tools(s, scope, st.safety_floor_minor, ctx.currency),
                 on_text=lambda d: emit("text.delta", {"text": d}),
             )
             text = reply.strip()
@@ -308,7 +305,7 @@ def ask(
             safety_floor_minor=st.safety_floor_minor,
         )
         answer["engine"] = "rules"
-        text = flatten(answer["paragraphs"]) or advisor.DISCLAIMER
+        text = flatten(answer["paragraphs"], ctx.currency) or advisor.DISCLAIMER
         emit("answer", answer)
     a = services._add_message(
         ctx,

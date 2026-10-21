@@ -1,4 +1,5 @@
 import * as A from "@domain/capture/actions"
+import { moneyMarks } from "@domain/capture/parse"
 import { dashStore } from "@domain/dash/store"
 import {
   addMessage,
@@ -149,7 +150,9 @@ export function route(raw: string, { record = true } = {}): Route {
     const goal = Number(
       q
         .match(
-          /(?:under|below|less than|max|at most|over|above|at least)\s*₱?\s*([\d,.]+)/,
+          new RegExp(
+            `(?:under|below|less than|max|at most|over|above|at least)\\s*(?:${moneyMarks()})?\\s*([\\d,.]+)`,
+          ),
         )?.[1]
         ?.replace(/,/g, ""),
     )

@@ -8,6 +8,7 @@ import {
   useCardData,
 } from "@domain/dash/share-data"
 import { dashStore, saveShareDefaults } from "@domain/dash/store"
+import { containsMoney } from "@domain/lib/money"
 import { LinearGradient } from "expo-linear-gradient"
 import { useLocalSearchParams } from "expo-router"
 import {
@@ -49,7 +50,7 @@ const areaColors = {
   finance: "fin",
 } as const
 const pct = (n: number | null) => (n === null ? "—" : `${Math.round(n * 100)}%`)
-const safe = (s: string) => (s.includes("₱") ? "—" : s)
+const safe = (s: string) => (containsMoney(s) ? "—" : s)
 const verdict = (n: number | null) =>
   n === null
     ? "Getting started"
@@ -919,7 +920,7 @@ export function ShareCard() {
           >
             <ShieldCheck size={14} color={t.muted} />
             <Copy size={12} muted style={{ flex: 1 }}>
-              ₱ amounts, body weight, task titles, journal text and account
+              Money amounts, body weight, task titles, journal text and account
               names can never appear on a card.
             </Copy>
           </Line>
@@ -975,7 +976,7 @@ export function ShareCard() {
             </Line>
           ))}
         <Copy size={14} muted>
-          No ₱ amounts (never allowed)
+          No money amounts (never allowed)
         </Copy>
         <Tap onPress={() => setRemember((v) => !v)}>
           <Copy size={14}>

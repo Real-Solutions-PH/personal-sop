@@ -2,8 +2,10 @@
 // entities (backend/app/modules/finance/sync.py).
 //
 // Shapes:
-// - Local amounts are pesos (float); the server holds integer centavos
-//   (``*_minor``). ``toMinor`` / ``fromMinor`` are the only conversions.
+// - Local amounts are major units of the user's currency (float); the
+//   server holds integer hundredths (``*_minor``) for every currency, also
+//   zero-decimal ones such as JPY (see shared/prototype/lib/money.ts).
+//   ``toMinor`` / ``fromMinor`` are the only conversions.
 // - The seeded categories keep their slug ids on the device ("food",
 //   "fees", "adjust"...: the prototype's actions name them). The server
 //   gives each the id ``derivedId("category", userId, slug)``; every
@@ -44,12 +46,12 @@ import { singleton } from "./helpers"
 // Conversions
 // ---------------------------------------------------------------------------
 
-/** Pesos -> centavos, half-up. ``toPrecision(12)`` drops float noise first
+/** Major units -> hundredths, half-up. ``toPrecision(12)`` drops float noise first
  * (1.005 * 100 is 100.49999999999999), so the .5 is seen as a .5. */
-export const toMinor = (pesos: number): number =>
-  Math.round(Number.parseFloat((pesos * 100).toPrecision(12)))
+export const toMinor = (major: number): number =>
+  Math.round(Number.parseFloat((major * 100).toPrecision(12)))
 
-/** Centavos -> pesos. */
+/** Hundredths -> major units. */
 export const fromMinor = (minor: unknown): number => Number(minor) / 100
 
 /** The device keeps an account colour as a theme variable

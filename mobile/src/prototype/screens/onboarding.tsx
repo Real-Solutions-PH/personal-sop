@@ -165,7 +165,7 @@ export function Onboarding() {
       welcome: {
         icon: Compass,
         title: "Your life, one dashboard",
-        body: "Habits, tasks, training and money — logged in seconds, scored honestly, shareable without leaking a peso.",
+        body: "Habits, tasks, training and money — logged in seconds, scored honestly, shareable without leaking a cent.",
       },
       identity: {
         icon: Fingerprint,

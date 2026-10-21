@@ -4,6 +4,7 @@ import type { Budget, PlannedItem } from "@domain/finance/data"
 import { lookback } from "@domain/finance/review"
 import { finStore } from "@domain/finance/store"
 import { dayKey } from "@domain/lib/day"
+import { currencySymbol } from "@domain/lib/money"
 import { privacyStore } from "@domain/lib/privacy"
 import { LinearGradient } from "expo-linear-gradient"
 import { useLocalSearchParams } from "expo-router"
@@ -467,7 +468,7 @@ export function FinanceReview() {
               <View style={{ alignItems: "flex-end" }}>
                 <Copy size={14}>{money(x.v)}</Copy>
                 <Copy size={11} muted>
-                  ≈ {hidden ? "₱•••" : C.compact(x.v * 12)}/yr
+                  ≈ {hidden ? `${currencySymbol()}•••` : C.compact(x.v * 12)}/yr
                 </Copy>
               </View>
             </Line>
@@ -592,7 +593,7 @@ export function FinanceReview() {
       </View>
       <Sheet title="Share card" open={share} onClose={() => setShare(false)}>
         <Copy size={14} muted>
-          Percentages and streaks only — never peso amounts.
+          Percentages and streaks only — never money amounts.
         </Copy>
         <LinearGradient
           colors={[t.fin, t.tsk]}
@@ -642,7 +643,7 @@ export function FinanceReview() {
         >
           Share
         </Button>
-        <FinPill>₱ never shown on cards</FinPill>
+        <FinPill>Amounts never shown on cards</FinPill>
       </Sheet>
       {budget && <BudgetEditor {...budget} onClose={() => setBudget(null)} />}
       {planned && (

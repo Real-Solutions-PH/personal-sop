@@ -7,6 +7,7 @@ import type {
 } from "@domain/finance/data"
 import { finStore } from "@domain/finance/store"
 import { dayKey } from "@domain/lib/day"
+import { useCurrency } from "@domain/lib/money"
 import { useLocalSearchParams } from "expo-router"
 import { useState } from "react"
 import { View } from "react-native"
@@ -56,6 +57,7 @@ function Editor({
   const [inst, setInst] = useState(init.isInstallment ?? false)
   const [picker, setPicker] = useState(false)
   const t = useTheme()
+  const sym = useCurrency().symbol
   const [schedule, setSchedule] = useState<Schedule["kind"]>(
     init.schedule?.kind ?? (params.date ? "once" : "monthly"),
   )
@@ -135,7 +137,7 @@ function Editor({
           />
           <Field label="Name" value={name} onChangeText={setName} />
           <Field
-            label="Amount ₱"
+            label={`Amount ${sym}`}
             value={amount}
             onChangeText={setAmount}
             keyboardType="decimal-pad"

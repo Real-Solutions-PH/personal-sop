@@ -20,6 +20,7 @@ from sqlmodel import Session, select
 
 from app.modules.iam.deps import CurrentUser, release_connection
 from app.modules.iam.users.models import User
+from app.shared.currency import PHP, Currency, currency
 from app.shared.day import DayClock
 from app.shared.owned import utcnow
 from app.shared.tenant_session import TenantScopedSessionDep
@@ -30,6 +31,8 @@ class Ctx:
     session: Session
     user: User
     clock: DayClock = field(default_factory=DayClock)
+    # The profile's currency: every money text and AI prompt names it.
+    currency: Currency = PHP
     now: datetime = field(default_factory=utcnow)
     # Set by the sync engine while it applies a pushed batch: use cases then
     # flush instead of committing, and the engine commits each op itself
@@ -60,27 +63,30 @@ class Ctx:
         return {"owner_id": self.user.id, "tenant_id": self.user.tenant_id}
 
 
-def clock_for(session: Session, user_id: uuid.UUID) -> DayClock:
+def prefs_for(session: Session, user_id: uuid.UUID) -> tuple[DayClock, Currency]:
+    """The day clock and currency from the user's profile (defaults without one)."""
     # Imported here: profile models import nothing from this module, but the
     # context is imported by every module's routes.
     from app.modules.profile.models import UserProfile
 
     row = session.exec(
-        select(UserProfile.timezone, UserProfile.day_start_hour).where(
-            UserProfile.owner_id == user_id
-        )
+        select(
+            UserProfile.timezone, UserProfile.day_start_hour, UserProfile.currency
+        ).where(UserProfile.owner_id == user_id)
     ).first()
     if row is None:
-        return DayClock()
-    return DayClock(timezone=row[0], start_hour=row[1])
+        return DayClock(), PHP
+    return DayClock(timezone=row[0], start_hour=row[1]), currency(row[2])
+
+
+def clock_for(session: Session, user_id: uuid.UUID) -> DayClock:
+    return prefs_for(session, user_id)[0]
 
 
 def make_ctx(session: Session, user: User, now: datetime | None = None) -> Ctx:
+    clock, cur = prefs_for(session, user.id)
     return Ctx(
-        session=session,
-        user=user,
-        clock=clock_for(session, user.id),
-        now=now or utcnow(),
+        session=session, user=user, clock=clock, currency=cur, now=now or utcnow()
     )
 
 
