@@ -32,6 +32,13 @@
       "expo-status-bar",
       "expo-sharing",
       [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow Personal SOP to use the microphone for dictation and voice captures.",
+          "speechRecognitionPermission": "Allow Personal SOP to turn what you say into text as you speak."
+        }
+      ],
+      [
         "expo-audio",
         {
           "microphonePermission": "Allow Personal SOP to record voice captures.",

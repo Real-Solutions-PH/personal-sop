@@ -16,6 +16,7 @@ import {
   Plus,
   Scale,
   Settings2,
+  Square,
   Utensils,
   Wallet,
   WifiOff,
@@ -32,6 +33,7 @@ import { toast } from "sonner-native"
 import { liveMode } from "@/live/config"
 import { Orb } from "../companion/orb"
 import { thinking } from "../companion/store"
+import { useLiveDictation } from "../live-dictation"
 import { border, Copy, Frame, IconTap, Line, Tap } from "../native-kit"
 import { go } from "../navigation"
 import { fonts, useTheme } from "../theme"
@@ -92,6 +94,14 @@ export function ThreadComposer({
   const dictation = Boolean(onText)
   const insert = (said: string) =>
     setText((cur) => (cur.trim() ? `${cur.trimEnd()} ${said}` : said))
+  const live = useLiveDictation(setText, () =>
+    toast.error("Dictation stopped. Try again, or type your message."),
+  )
+  async function dictate() {
+    // Live words in the box when the phone can recognise speech
+    // (ADR-0016); otherwise record and transcribe on the server.
+    if (!(await live.start(text))) setMode("voice")
+  }
   function transcribe(audio: string, durationSec: number) {
     const live = require("@/live/dictate") as typeof import("@/live/dictate")
     setTranscribing(true)
@@ -157,15 +167,13 @@ export function ThreadComposer({
         </Copy>
       )}
       <Line style={{ gap: 6, alignItems: "flex-end" }}>
-        {!dictation && (
-          <IconTap
-            size={44}
-            icon={Plus}
-            label="Quick add"
-            background={t.soft}
-            onPress={() => setQuick(true)}
-          />
-        )}
+        <IconTap
+          size={44}
+          icon={Plus}
+          label="Quick add"
+          background={t.soft}
+          onPress={() => setQuick(true)}
+        />
         <View
           style={{
             flex: 1,
@@ -186,11 +194,13 @@ export function ThreadComposer({
             onChangeText={setText}
             multiline
             placeholder={
-              transcribing
-                ? "Transcribing…"
-                : (placeholders[hint ?? ""] ??
-                  placeholder ??
-                  "Log or ask anything…")
+              live.listening
+                ? "Listening…"
+                : transcribing
+                  ? "Transcribing…"
+                  : (placeholders[hint ?? ""] ??
+                    placeholder ??
+                    "Log or ask anything…")
             }
             placeholderTextColor={border(t.muted, 0.7)}
             style={{
@@ -221,7 +231,30 @@ export function ThreadComposer({
             </>
           )}
         </View>
-        {text.trim() ? (
+        {live.listening ? (
+          <View
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: `${t.primary}${Math.round(
+                0x26 + live.level * 0x60,
+              )
+                .toString(16)
+                .padStart(2, "0")}`,
+            }}
+          >
+            <IconTap
+              size={44}
+              icon={Square}
+              label="Stop dictation"
+              color={t.primary}
+              onPress={live.stop}
+            />
+          </View>
+        ) : text.trim() ? (
           <IconTap
             size={44}
             icon={ArrowUp}
@@ -265,7 +298,7 @@ export function ThreadComposer({
               icon={Mic}
               label={dictation ? "Dictate" : "Record voice"}
               color="#fff"
-              onPress={() => setMode("voice")}
+              onPress={() => (dictation ? void dictate() : setMode("voice"))}
             />
           </LinearGradient>
         )}

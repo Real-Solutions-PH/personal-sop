@@ -79,8 +79,9 @@ Without either, it refuses with `speech_unavailable`. Usage is metered in
 
 **Manual entry is manual.** "Add task" opens a task form (title, notes, list,
 due date and time, reminder, repeat) that creates the task directly. The
-free-text task capture screen and the composer's quick-add sheet are removed:
-free text belongs to Fern.
+free-text task capture screen is removed: free text belongs to Fern. The
+composer keeps its "+" quick-add sheet, the typed forms for recording each
+kind of record (amended 2026-10-22 at the owner's request).
 
 **What this excludes:**
 - Parallel tool execution.

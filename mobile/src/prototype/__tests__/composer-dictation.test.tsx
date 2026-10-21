@@ -1,5 +1,5 @@
-// Fern's composer dictates into the box; the capture screen's composer keeps
-// its quick add and voice capture (ADR-0015).
+// Fern's composer dictates into the box and keeps the quick add button; the
+// capture screen's composer records voice captures.
 import { configureStorage, resetAll } from "@domain/lib/store"
 import { render, screen } from "@testing-library/react-native"
 import { ThreadComposer } from "../screens/capture-thread"
@@ -46,10 +46,10 @@ beforeEach(() => {
   resetAll()
 })
 
-test("Fern's composer offers dictation and no quick add", () => {
+test("Fern's composer offers dictation and the quick add button", () => {
   render(<ThreadComposer onText={jest.fn()} hints={false} />)
   expect(screen.getByRole("button", { name: "Dictate" })).toBeTruthy()
-  expect(screen.queryByRole("button", { name: "Quick add" })).toBeNull()
+  expect(screen.getByRole("button", { name: "Quick add" })).toBeTruthy()
 })
 
 test("the capture screen's composer keeps quick add and voice capture", () => {
