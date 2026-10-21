@@ -648,6 +648,36 @@ test("a dropped connection leaves the capture queued for the outbox", async () =
   ).toEqual([id])
 })
 
+test("online, an upload that can't reach storage fails with a retry, not 'when online'", async () => {
+  // Seen on a phone on 2026-10-22: upload links signed for localhost could
+  // not be reached, and the photo sat as "queued, will process when online"
+  // while the phone was online.
+  const photo = "data:image/jpeg;base64,/9j/4AAQSkZJRg=="
+  fakeDeps({
+    online: () => true,
+    routes: {
+      "POST /media/uploads": (body) => ({
+        id: (body as Row).id,
+        upload_url: "http://localhost:59000/put/1",
+        expires_in: 600,
+        headers: {},
+      }),
+    },
+    fetch: async () => {
+      throw new NetworkError("Network request failed")
+    },
+  })
+  const id = sendCapture({ source: "photo", photo, hint: "receipt", text: "" })
+  await flush()
+  expect(cap(id).status).toBe("failed")
+  expect(cap(id).reply?.items).toEqual([
+    expect.objectContaining({ title: "Couldn't upload the photo" }),
+  ])
+  expect(toasts.map((t) => t.message)).not.toContain(
+    "Connection lost — it's queued and will send when you're back",
+  )
+})
+
 // ---------------------------------------------------------------------------
 // Offline
 // ---------------------------------------------------------------------------

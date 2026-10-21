@@ -322,3 +322,60 @@ def test_the_users_own_provider_beats_the_pick(
     with ctx_for(user) as ctx:
         chat = public.resolve_model(ctx, "chat")
     assert chat is not None and chat.source == "user" and chat.model == "gpt-4o"
+
+
+def test_photos_use_a_vision_model_on_the_users_own_provider(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """With chat on their own key and no vision model set, photos stay on
+    that key: their model when it can see, else the provider's vision model
+    (Nebius: the catalogue's default). Never the server's key."""
+    monkeypatch.setattr(settings, "AI_SERVER_FALLBACK", True)
+    monkeypatch.setattr(settings, "NEBIUS_API_KEY", "server-key")
+    monkeypatch.setattr(settings, "DEFAULT_LLM_PROVIDER", "nebius")
+    user, ai = _user(client, db)
+    cred = ai.credential("nebius", key="nb-user-0000-wxyz")
+    ai.put(
+        "/assignments/chat",
+        {
+            "credential_id": cred["id"],
+            "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+            "supports_vision": False,
+        },
+    )
+    with ctx_for(user) as ctx:
+        photo = public.resolve_model(ctx, "vision")
+    assert photo is not None
+    assert (photo.source, photo.credential_id) == ("user", uuid.UUID(cred["id"]))
+    assert photo.model == settings.NEBIUS_VISION_MODEL and photo.supports_vision
+    # A chat model that can see answers photos itself.
+    ai.put(
+        "/assignments/chat",
+        {
+            "credential_id": cred["id"],
+            "model": "moonshotai/Kimi-K2.6",
+            "supports_vision": True,
+        },
+    )
+    with ctx_for(user) as ctx:
+        photo = public.resolve_model(ctx, "vision")
+    assert photo is not None and photo.model == "moonshotai/Kimi-K2.6"
+    assert photo.source == "user"
+
+
+def test_another_providers_text_model_leaves_photos_to_the_server(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "AI_SERVER_FALLBACK", True)
+    monkeypatch.setattr(settings, "NEBIUS_API_KEY", "server-key")
+    monkeypatch.setattr(settings, "DEFAULT_LLM_PROVIDER", "nebius")
+    user, ai = _user(client, db)
+    cred = ai.credential("openai")
+    ai.put(
+        "/assignments/chat",
+        {"credential_id": cred["id"], "model": "gpt-text", "supports_vision": False},
+    )
+    with ctx_for(user) as ctx:
+        photo = public.resolve_model(ctx, "vision")
+    assert photo is not None and photo.source == "server"
+    assert photo.model == settings.NEBIUS_VISION_MODEL

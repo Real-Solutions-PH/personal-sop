@@ -21,7 +21,7 @@ build_chat_model -> record_usage.
 import math
 import uuid
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime
 from typing import Literal
 
@@ -87,7 +87,7 @@ def build_chat_model(resolved: ResolvedModel) -> BaseChatModel:
     return model_factory(resolved)
 
 
-def resolve_model(ctx: Ctx, purpose: Purpose) -> ResolvedModel | None:
+def _assignment(ctx: Ctx, purpose: Purpose) -> ResolvedModel | None:
     row = ctx.session.exec(
         select(AIModelAssignment, AIProviderCredential)
         .join(
@@ -120,6 +120,38 @@ def resolve_model(ctx: Ctx, purpose: Purpose) -> ResolvedModel | None:
             supports_vision=assignment.supports_vision,
             source="user",
         )
+    return None
+
+
+def _vision_on_same_provider(ctx: Ctx) -> ResolvedModel | None:
+    """Photos for a user who set up chat or capture on their own key but no
+    vision model: their own model when it can see, else a known vision model
+    on the same provider and key (Nebius: the catalogue's vision default).
+    None when neither applies, and the server default decides."""
+    for p in ("capture", "chat"):
+        own = _assignment(ctx, p)
+        if own is None:
+            continue
+        if own.supports_vision:
+            return replace(own, purpose="vision")
+        if own.provider == "nebius":
+            return replace(
+                own,
+                purpose="vision",
+                model=settings.NEBIUS_VISION_MODEL,
+                supports_vision=True,
+            )
+    return None
+
+
+def resolve_model(ctx: Ctx, purpose: Purpose) -> ResolvedModel | None:
+    own = _assignment(ctx, purpose)
+    if own is not None:
+        return own
+    if purpose == "vision":
+        same = _vision_on_same_provider(ctx)
+        if same is not None:
+            return same
     if settings.AI_SERVER_FALLBACK:
         return _server_default(purpose, _preferred_model(ctx))
     return None

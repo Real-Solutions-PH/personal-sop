@@ -351,7 +351,19 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
       patchCapture(id, (c) => ({ ...c, mediaId: m.id }) as LiveCapture)
       return true
     } catch (error) {
-      if (error instanceof NetworkError) throw error
+      if (error instanceof NetworkError) {
+        // Offline: keep it queued. Online but the upload itself didn't go
+        // through (storage unreachable from this network): say so, rather
+        // than claim it will send "when online" while the phone is online.
+        if (!deps.online()) throw error
+        if (cap.source === "voice") return true
+        failLocal(
+          id,
+          "Couldn't upload the photo",
+          "The app is online but the upload didn't reach the server. Retry in a moment.",
+        )
+        return false
+      }
       // A recording is optional: the transcript alone can be read.
       if (cap.source === "voice") return true
       failLocal(
