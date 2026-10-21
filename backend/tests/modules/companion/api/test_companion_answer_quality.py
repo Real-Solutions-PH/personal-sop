@@ -129,6 +129,9 @@ def test_fitness_items_due_are_named_so_a_day_without_habits_is_not_empty(
     assert "life_score_7_days_shown_on_today" in facts
     system = str(model.seen[0][0].content)
     assert "only when all three are empty" in system
+    assert (
+        "where an earlier message in this chat says otherwise, TODAY is right" in system
+    )
 
 
 def test_an_earlier_days_chat_is_not_sent_to_the_model(
