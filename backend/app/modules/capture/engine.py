@@ -354,13 +354,13 @@ def _transcript(ctx: Ctx, cap: Capture, mode: str, language: str) -> None:
         ai.record_usage(ctx, resolved, input_tokens=0, output_tokens=0, ok=False)
         refuse(exc.code, "Couldn't transcribe the recording")
         return
-    minutes = max(1, -(-(cap.duration_sec or 60) // 60))
+    seconds = float(cap.duration_sec or 60)
     ai.record_usage(
         ctx,
         resolved,
         input_tokens=0,
         output_tokens=0,
-        cost_minor=minutes * seams.TRANSCRIBE_CENTAVOS_PER_MIN,
+        cost_minor=ai.transcription_minor(resolved.provider, seconds),
     )
     if not text:
         refuse("transcript_empty", "I couldn't hear anything in that recording")
@@ -610,13 +610,13 @@ def dictate(ctx: Ctx, audio: bytes, *, duration_sec: int | None) -> str:
     except seams.SeamError as exc:
         ai.record_usage(ctx, resolved, input_tokens=0, output_tokens=0, ok=False)
         raise domain_error(502, exc.code, "Couldn't transcribe that") from None
-    minutes = max(1, -(-(duration_sec or 60) // 60))
+    seconds = float(duration_sec or 60)
     ai.record_usage(
         ctx,
         resolved,
         input_tokens=0,
         output_tokens=0,
-        cost_minor=minutes * seams.TRANSCRIBE_CENTAVOS_PER_MIN,
+        cost_minor=ai.transcription_minor(resolved.provider, seconds),
     )
     if not text:
         raise invalid("transcript_empty", "I couldn't hear anything")

@@ -27,6 +27,8 @@ def no_server_ai_key(monkeypatch: pytest.MonkeyPatch) -> None:
     """The dev .env answers key-less users with the server's real Nebius key.
     Tests never spend it: a test that wants the fallback switches it on."""
     monkeypatch.setattr(settings, "AI_SERVER_FALLBACK", False)
+    # Nor the server's speech-to-text key: a test that wants it sets it.
+    monkeypatch.setattr(settings, "DEEPGRAM_API_KEY", None)
 
 
 # Saving a provider key needs the key-encryption key. CI seeds .env from

@@ -18,6 +18,7 @@ those two and route there; the order is check_budget -> resolve_model ->
 build_chat_model -> record_usage.
 """
 
+import math
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -181,6 +182,37 @@ def _server_default(
         supports_vision=vision,
         source="server",
     )
+
+
+# Speech to text, USD per audio minute (Deepgram Nova-3 batch; OpenAI-
+# compatible Whisper endpoints).
+USD_PER_MIN = {"deepgram": 0.0043}
+USD_PER_MIN_DEFAULT = 0.006
+# When a model has no catalogue price (a user's own provider), a deliberately
+# generous blended rate in USD per million tokens: the cap should bite early
+# rather than late.
+USD_PER_M_FALLBACK = (1.0, 3.0)
+
+
+def _centavos(usd: float) -> int:
+    """USD to whole centavos, rounded up: a call that cost anything shows."""
+    if usd <= 0:
+        return 0
+    return max(1, math.ceil(usd * settings.AI_USD_TO_PHP * 100))
+
+
+def price_minor(model: str, input_tokens: int, output_tokens: int) -> int:
+    """What one model call cost, in centavos, from the model's own price."""
+    m = catalog.find(model)
+    usd_in, usd_out = (m.usd_in, m.usd_out) if m else USD_PER_M_FALLBACK
+    usd = (max(0, input_tokens) * usd_in + max(0, output_tokens) * usd_out) / 1e6
+    return _centavos(usd)
+
+
+def transcription_minor(provider: str, seconds: float) -> int:
+    """What transcribing ``seconds`` of audio cost, in centavos."""
+    rate = USD_PER_MIN.get(provider, USD_PER_MIN_DEFAULT)
+    return _centavos(max(0.0, seconds) / 60 * rate)
 
 
 def server_default_summary() -> dict[str, str] | None:

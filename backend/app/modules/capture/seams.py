@@ -14,7 +14,6 @@ callers turn a failure into a stable error code.
 import asyncio
 import base64
 import json
-import math
 import re
 from typing import Any, TypeVar
 
@@ -28,13 +27,6 @@ from app.shared.context import Ctx
 
 M = TypeVar("M", bound=BaseModel)
 
-# Estimated price per 1,000 tokens in centavos: a blended rate between the
-# small and the large hosted models, so the monthly cap bites in the right
-# order of magnitude. ai_providers has no per-model price table yet.
-INPUT_CENTAVOS_PER_1K = 10
-OUTPUT_CENTAVOS_PER_1K = 50
-# A transcription minute, priced like Whisper (~$0.006 at P56/$).
-TRANSCRIBE_CENTAVOS_PER_MIN = 34
 AUDIO_MAX_BYTES = 25 * 1024 * 1024
 IMAGE_MAX_BYTES = 10 * 1024 * 1024
 
@@ -45,15 +37,6 @@ class SeamError(Exception):
     def __init__(self, code: str) -> None:
         super().__init__(code)
         self.code = code
-
-
-def estimate_cost(input_tokens: int, output_tokens: int) -> int:
-    if input_tokens <= 0 and output_tokens <= 0:
-        return 0
-    raw = (
-        input_tokens * INPUT_CENTAVOS_PER_1K + output_tokens * OUTPUT_CENTAVOS_PER_1K
-    ) / 1000
-    return max(1, math.ceil(raw))
 
 
 def usage_of(msg: BaseMessage) -> tuple[int, int]:
@@ -71,7 +54,7 @@ def meter(
         resolved,
         input_tokens=i,
         output_tokens=o,
-        cost_minor=estimate_cost(i, o),
+        cost_minor=ai.price_minor(resolved.model, i, o),
         ok=ok,
     )
 

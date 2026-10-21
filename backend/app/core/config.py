@@ -198,6 +198,9 @@ class Settings(BaseSettings):
     DEEPGRAM_API_KEY: str | None = None
     DEEPGRAM_MODEL: str = "nova-3"
     DEEPGRAM_BASE_URL: str = "https://api.deepgram.com/v1"
+    # AI spend is metered in pesos (the service's own cost, for every user):
+    # provider prices are USD, converted at this rate.
+    AI_USD_TO_PHP: float = 57.0
 
     # LLM Providers
     NEBIUS_API_KEY: str | None = None
