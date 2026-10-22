@@ -88,3 +88,63 @@ def test_macros_left_and_state(db: Session) -> None:
         assert isinstance(s, calc.FitState)
         assert len(s.meals) == 1
         assert public.calc is calc
+
+
+def test_nutrition_today_plans_the_meals_still_ahead(db: Session) -> None:
+    """After breakfast at 08:00 Manila time, lunch and dinner are ahead: the
+    rest of the day splits across them, with the room left under each
+    limit, and foods eaten lately to suggest from."""
+    from datetime import datetime, timezone
+
+    user, _ = signed_in(db)
+    # 08:00 in Asia/Manila (UTC+8), well after the 04:00 day start.
+    morning = datetime(2026, 10, 22, 0, 0, tzinfo=timezone.utc)
+    with ctx_for(user, now=morning) as ctx:
+        svc.set_macro_target(ctx=ctx, kcal=2000, protein=150, carbs=200, fat=60)
+    with ctx_for(user, now=morning) as ctx:
+        public.log_meal(
+            ctx,
+            public.MealDraft(
+                raw="Breakfast: tapsilog",
+                label="breakfast",
+                items=[
+                    public.MealItemDraft(
+                        name="Tapsilog",
+                        qty=1,
+                        unit="plate",
+                        kcal=800,
+                        protein=40,
+                        carbs=90,
+                        fat=30,
+                        sat_fat=10,
+                        sodium=1200,
+                    )
+                ],
+                confidence=1,
+                source="manual",
+                eaten_at=morning,
+            ),
+        )
+        day = public.nutrition_today(ctx)
+    assert day["meals_ahead"] == ["lunch", "dinner"]
+    # 1,200 kcal, 110 g protein, 110 g carbs and 30 g fat left, in two.
+    per = day["per_meal_ahead"]
+    assert (per["kcal"], per["protein"], per["carbs"], per["fat"]) == (600, 55, 55, 15)
+    # Default limits: 20 g saturated fat, 2,000 mg sodium.
+    assert day["limits_left"]["sat_fat_left_g"] == 10
+    assert day["limits_left"]["sodium_left_mg"] == 800
+    assert per["sat_fat_left_g"] == 5
+    assert day["recent_foods"] == ["Tapsilog"]
+
+
+def test_late_at_night_no_meal_is_ahead(db: Session) -> None:
+    from datetime import datetime, timezone
+
+    user, _ = signed_in(db)
+    late = datetime(2026, 10, 22, 15, 0, tzinfo=timezone.utc)  # 23:00 Manila
+    with ctx_for(user, now=late) as ctx:
+        svc.set_macro_target(ctx=ctx, kcal=2000, protein=150, carbs=200, fat=60)
+    with ctx_for(user, now=late) as ctx:
+        day = public.nutrition_today(ctx)
+    assert day["meals_ahead"] == []
+    assert "per_meal_ahead" not in day
