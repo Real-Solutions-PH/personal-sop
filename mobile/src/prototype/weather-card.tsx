@@ -10,25 +10,47 @@ import {
   Umbrella,
   Wind,
 } from "lucide-react-native"
+import { useEffect } from "react"
 import { ActivityIndicator, View } from "react-native"
+import { toast } from "sonner-native"
 import { Copy, Frame, IconTap, Line, Tap } from "./native-kit"
 import { go } from "./navigation"
 import { fonts, useTheme } from "./theme"
 import {
   type Advice,
   ago,
+  askLocationOnce,
   currentConditions,
   describeCode,
   fmtTemp,
+  locateAndRefresh,
   outdoorAdvice,
   rainSoon,
   refreshWeather,
+  staleLocation,
   todayOf,
   useMinuteTick,
   useWeatherRefresh,
   weatherStatus,
   weatherStore,
 } from "./weather"
+
+// Ask for the device location (the one-time ask when `once`), and say so
+// when it falls back to the saved city.
+export async function askLocation(once = false) {
+  const pending = once ? askLocationOnce() : locateAndRefresh()
+  if (!pending) return null
+  const r = await pending
+  if (!r.ok) {
+    const city = weatherStore.get().city.name
+    toast(
+      r.reason === "denied"
+        ? `Location access is off — showing ${city}. Search for your city instead.`
+        : `Couldn't get your location — showing ${city}.`,
+    )
+  }
+  return r
+}
 
 export const adviceIcon: Record<Advice["kind"], LucideIcon> = {
   storm: CloudLightning,
@@ -70,13 +92,21 @@ export function AdviceLine({ advice }: { advice: Advice }) {
 // Compact, glanceable weather for the Today screen. Tap opens /weather.
 export function WeatherCard() {
   useWeatherRefresh()
+  useEffect(() => {
+    // First launch: the one-time location ask, so Today isn't stuck on the
+    // default city until the Weather screen is opened.
+    askLocation(true)
+  }, [])
   const t = useTheme()
-  const f = weatherStore.use((s) => s.forecast),
-    unit = weatherStore.use((s) => s.unit),
-    loading = weatherStatus((s) => s.loading),
-    error = weatherStatus((s) => s.error),
+  const s = weatherStore.use((x) => x),
+    f = s.forecast,
+    unit = s.unit,
+    loading = weatherStatus((x) => x.loading),
+    error = weatherStatus((x) => x.error),
+    fixFailed = weatherStatus((x) => x.fixFailed),
     now = useMinuteTick()
-  if (!f)
+  const cur = f ? currentConditions(f, now) : null
+  if (!f || !cur)
     return (
       <Frame style={{ padding: 16 }}>
         <Line>
@@ -93,11 +123,16 @@ export function WeatherCard() {
               )}
               <View style={{ flex: 1 }}>
                 <Copy weight="semibold">
-                  {loading ? "Checking the weather…" : "Weather unavailable"}
+                  {loading
+                    ? "Checking the weather…"
+                    : f
+                      ? "Forecast out of date"
+                      : "Weather unavailable"}
                 </Copy>
-                {!loading && error && (
+                {!loading && (error || f) && (
                   <Copy size={12} muted>
-                    {error}
+                    {error ??
+                      `Last updated ${ago(f?.fetchedAt ?? now, now)} — refresh for now.`}
                   </Copy>
                 )}
               </View>
@@ -114,8 +149,9 @@ export function WeatherCard() {
         </Line>
       </Frame>
     )
-  const cur = currentConditions(f, now),
-    today = todayOf(f, now),
+  const today = todayOf(f, now),
+    rain = Math.round(rainSoon(f, now)),
+    lastKnown = staleLocation(s, fixFailed, now),
     info = describeCode(cur.code, cur.day),
     advice = outdoorAdvice(f, unit, now),
     Icon = info.icon
@@ -123,7 +159,7 @@ export function WeatherCard() {
     <Frame>
       <Tap
         onPress={() => go("/weather")}
-        label={`Weather in ${f.place.name}: ${fmtTemp(cur.temp, unit)}, ${info.label}, feels like ${fmtTemp(cur.feels, unit)}. ${advice.text}. Opens forecast.`}
+        label={`Weather in ${f.place.name}${lastKnown ? ` (${lastKnown})` : ""}: ${fmtTemp(cur.temp, unit)}, ${info.label}, feels like ${fmtTemp(cur.feels, unit)}, ${rain}% chance of rain in the next 12 hours. ${advice.text}. Opens forecast.`}
         style={{ padding: 16, gap: 12 }}
       >
         <Line style={{ gap: 8 }}>
@@ -166,7 +202,7 @@ export function WeatherCard() {
               <Line style={{ gap: 3 }}>
                 <Umbrella size={12} color={t.tsk} />
                 <Copy size={12} muted>
-                  {Math.round(rainSoon(f, now))}%
+                  {rain}% next 12h
                 </Copy>
               </Line>
             )}
@@ -174,6 +210,7 @@ export function WeatherCard() {
         </Line>
         <AdviceLine advice={advice} />
         <Copy size={12} muted>
+          {lastKnown ? `${lastKnown} · ` : ""}
           {error && !loading
             ? `Offline · showing weather from ${ago(f.fetchedAt, now)}`
             : loading

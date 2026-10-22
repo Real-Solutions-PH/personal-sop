@@ -110,20 +110,28 @@ def _num(v: object) -> float:
 
 def parse_forecast(json: dict[str, Any], place: Place, now_ms: int) -> Forecast:
     h, d, c = json["hourly"], json["daily"], json["current"]
+    times = list(h["time"])
+
+    def ahead(col: list[Any], i: int) -> float:
+        # Open-Meteo's hourly precipitation and its probability cover the hour
+        # BEFORE the timestamp; shift them so the 2 PM slot means 2-3 PM. The
+        # last slot has no following hour and keeps its own values.
+        return _num(col[i + 1 if i + 1 < len(times) else i])
+
     hourly = [
         Hour(
             time=t,
             temp=_num(h["temperature_2m"][i]),
             feels=_num(h["apparent_temperature"][i]),
             code=_num(h["weather_code"][i]),
-            pop=_num(h["precipitation_probability"][i]),
-            precip=_num(h["precipitation"][i]),
+            pop=ahead(h["precipitation_probability"], i),
+            precip=ahead(h["precipitation"], i),
             wind=_num(h["wind_speed_10m"][i]),
             uv=_num(h["uv_index"][i]),
             humidity=_num(h["relative_humidity_2m"][i]),
             day=_num(h["is_day"][i]) == 1,
         )
-        for i, t in enumerate(list(h["time"])[:72])
+        for i, t in enumerate(times[:72])
     ]
     time = str(c["time"])
     match = next((x for x in hourly if x.time[:13] == time[:13]), None)
@@ -176,6 +184,9 @@ def hour_of(time: str) -> int:
 
 
 def current_conditions(f: Forecast, now_ms: int) -> Hour:
+    # Drift from the prototype, which returns null once the hourly forecast
+    # no longer covers now: the API's `current` field is not nullable, and the
+    # server refetches long before its cached forecast runs out.
     if now_ms - f.fetchedAt < 45 * 60_000:
         return f.current
     key = local_stamp(f.offset, now_ms)[:13]
@@ -294,8 +305,72 @@ def fmt_range(start: int, end: int) -> str:
     return f"{a[0]}–{b[0]} {b[1]}" if a[1] == b[1] else f"{' '.join(a)}–{' '.join(b)}"
 
 
+def _wet_hour(h: Hour) -> bool:
+    return h.pop >= 50 or (_is_wet(h.code) and h.precip >= 0.5)
+
+
+def _storm_hour(h: Hour) -> bool:
+    return _is_storm(h.code) and h.pop >= 40
+
+
+def _rain_lead(f: Forecast, plan: Plan, now_ms: int) -> tuple[str, str] | None:
+    """Rain in the next few hours, daylight or not: (kind, text). Leads the
+    advice when it is raining now, and at night (when the plan has moved on
+    to tomorrow) when it starts within 3 hours."""
+    nxt = upcoming(f, now_ms, 7)
+    if not nxt:
+        return None
+    cur = current_conditions(f, now_ms)
+    raining = cur.precip > 0 or _wet_hour(nxt[0])
+    storm = _storm_hour(nxt[0])
+    if raining or storm:
+        end = next(
+            (
+                i
+                for i, h in enumerate(nxt)
+                if i > 0 and not _wet_hour(h) and not _storm_hour(h) and h.precip < 0.3
+            ),
+            -1,
+        )
+        kind = "storm" if storm else "rain"
+        what = "Thunderstorms now" if storm else "Raining now"
+        if end > 0:
+            return kind, f"{what} until about {fmt_hour(hour_of(nxt[end].time))}"
+        last = fmt_hour(hour_of(nxt[0].time) + len(nxt))
+        return kind, f"{what} — no break before {last}"
+    if plan.label != "Tomorrow":
+        return None
+    later = next((h for h in nxt[1:4] if _storm_hour(h) or _wet_hour(h)), None)
+    if later is None:
+        return None
+    at = fmt_hour(hour_of(later.time))
+    if _storm_hour(later):
+        return "storm", f"Thunderstorms likely after {at}"
+    return "rain", f"Rain likely after {at}"
+
+
+_TONE_RANK = {"good": 0, "warn": 1, "bad": 2}
+
+
 def outdoor_advice(f: Forecast, unit: TempUnit, now_ms: int) -> Advice:
     plan = outdoor_plan(f, now_ms)
+    lead = _rain_lead(f, plan, now_ms)
+    if lead and plan.label == "Today":
+        kind, text = lead
+        if kind == "storm":
+            return Advice("storm", "bad", f"{text} — avoid open ground")
+        return Advice("rain", "warn", f"{text} — bring a jacket")
+    rest = _plan_advice(f, plan, unit, now_ms)
+    if not lead or rest.kind == "none":
+        return rest
+    kind, text = lead
+    tone: Literal["good", "warn", "bad"] = "bad" if kind == "storm" else "warn"
+    if _TONE_RANK[rest.tone] > _TONE_RANK[tone]:
+        tone = rest.tone
+    return Advice("storm" if kind == "storm" else "rain", tone, f"{text}. {rest.text}")
+
+
+def _plan_advice(f: Forecast, plan: Plan, unit: TempUnit, now_ms: int) -> Advice:
     hours = [s.hour for s in plan.hours]
     if not hours:
         return Advice("none", "warn", "Forecast is out of date — pull to refresh")
@@ -309,16 +384,14 @@ def outdoor_advice(f: Forecast, unit: TempUnit, now_ms: int) -> Advice:
         return f"after {fmt_hour(hour_of(h.time))}"
 
     best_text = fmt_range(plan.best.start, plan.best.end) if plan.best else None
-    storm = next((h for h in hours if _is_storm(h.code) and h.pop >= 40), None)
+    storm = next((h for h in hours if _storm_hour(h)), None)
     if storm:
         return Advice(
             "storm",
             "bad",
             f"{pre}Thunderstorms likely {when(storm)} — avoid open ground",
         )
-    rain = next(
-        (h for h in hours if h.pop >= 50 or (_is_wet(h.code) and h.precip >= 0.5)), None
-    )
+    rain = next((h for h in hours if _wet_hour(h)), None)
     if rain:
         w = when(rain)
         text = (
@@ -336,7 +409,7 @@ def outdoor_advice(f: Forecast, unit: TempUnit, now_ms: int) -> Advice:
         return Advice(
             "heat",
             "bad" if hottest.feels >= 41 else "warn",
-            f"{pre}Heat index {fmt_temp(hottest.feels, unit)} — hydrate{tail}",
+            f"{pre}Feels like {fmt_temp(hottest.feels, unit)} — hydrate{tail}",
         )
     uv = [h for h in hours if h.uv >= 8]
     if uv:
