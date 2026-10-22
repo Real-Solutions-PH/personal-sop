@@ -36,7 +36,9 @@ export function WakeWordListener({ onChatPage }: { onChatPage: boolean }) {
   const busy = dictating((s) => s.on)
   // Only while audio is actually coming: a paused reply leaves the
   // microphone free for "Hey Fern".
-  const reading = speaking((s) => s.state === "playing" || s.state === "loading")
+  const reading = speaking(
+    (s) => s.state === "playing" || s.state === "loading",
+  )
   const [active, setActive] = useState(AppState.currentState === "active")
   const page = useRef(onChatPage)
   page.current = onChatPage
