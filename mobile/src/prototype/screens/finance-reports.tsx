@@ -22,6 +22,7 @@ import { go } from "../navigation"
 import { useTheme } from "../theme"
 import { Button, Empty, Screen, shareText } from "../ui"
 import { useMoney } from "./finance"
+import { MonthlyNet } from "./finance-monthly-net"
 import { FinPill } from "./finance-planned"
 import { StatsShell } from "./stats-shell"
 
@@ -194,6 +195,7 @@ export function Reports({
                 </Frame>
               </Tap>
             )}
+            <MonthlyNet s={s} />
             {card(
               "Spend by category",
               `/finance/reports/category${q}`,
