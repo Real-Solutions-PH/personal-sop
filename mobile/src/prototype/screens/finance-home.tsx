@@ -133,29 +133,48 @@ export function FinanceRecord({
               : ""}
           </Copy>
         </View>
-        <Copy
-          size={16}
-          weight="semibold"
-          style={{
-            color:
-              record.type === "income"
-                ? t.fin
-                : record.type === "transfer"
-                  ? t.muted
-                  : t.text,
-          }}
-        >
-          {record.type === "income"
-            ? "+"
-            : record.type === "expense"
-              ? "−"
-              : ""}
-          {money(record.amount)}
-        </Copy>
+        <View style={{ alignItems: "flex-end" }}>
+          <Copy
+            size={16}
+            weight="semibold"
+            style={{
+              color:
+                record.type === "income"
+                  ? t.fin
+                  : record.type === "transfer"
+                    ? t.muted
+                    : t.text,
+            }}
+          >
+            {record.type === "income"
+              ? "+"
+              : record.type === "expense"
+                ? "−"
+                : ""}
+            {money(record.amount)}
+          </Copy>
+          {record.origCurrency && record.origAmount ? (
+            <Copy size={12} muted>
+              {foreignAmount(record.origAmount, record.origCurrency)}
+            </Copy>
+          ) : null}
+        </View>
       </Line>
     </Tap>
   )
 }
+/** An amount kept in another currency, as spent: "$100.00", "€12.50". */
+export function foreignAmount(amount: number, code: string) {
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: code,
+    }).format(amount)
+  } catch {
+    return `${code} ${amount.toFixed(2)}`
+  }
+}
+
 export function FinanceHome() {
   const params = useLocalSearchParams<{ add?: string }>()
   const t = useTheme(),

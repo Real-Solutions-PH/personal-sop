@@ -261,6 +261,12 @@ export function recordMapper(cats: Cats): Mapper<FinState, FinRecord> {
         is_adjustment: Boolean(r.isAdjustment),
         fee_of: r.feeOf ?? null,
         edited_at: r.editedAt ?? null,
+        orig_currency: r.origCurrency ?? null,
+        orig_amount_minor:
+          r.origCurrency && r.origAmount ? toMinor(r.origAmount) : null,
+        // The rate the device converted at; the server keeps it, so the
+        // peso amount on both sides agrees.
+        fx_rate: r.origCurrency && r.fxRate ? String(r.fxRate) : null,
       }
       if (r.type === "transfer") {
         const fee = s.records.find((x) => x.feeOf === r.id)
@@ -295,6 +301,12 @@ export function recordMapper(cats: Cats): Mapper<FinState, FinRecord> {
       feeOf: str(row.fee_of),
       status: row.status === "pending" ? "pending" : "cleared",
       editedAt: row.edited_at ? instant(row.edited_at) : undefined,
+      origCurrency: str(row.orig_currency),
+      origAmount:
+        row.orig_amount_minor != null
+          ? fromMinor(row.orig_amount_minor)
+          : undefined,
+      fxRate: row.fx_rate != null ? Number(row.fx_rate) : undefined,
     }),
     merge: (s, ups, dels) => ({
       ...s,

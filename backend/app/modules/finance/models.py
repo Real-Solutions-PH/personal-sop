@@ -2,8 +2,16 @@
 
 import uuid
 from datetime import date, datetime
+from decimal import Decimal
 
-from sqlalchemy import BigInteger, CheckConstraint, Float, String, UniqueConstraint
+from sqlalchemy import (
+    BigInteger,
+    CheckConstraint,
+    Float,
+    Numeric,
+    String,
+    UniqueConstraint,
+)
 from sqlmodel import Field
 
 from app.shared.owned import JSONB, OwnedRow, enum_check, minor_check, tstz
@@ -98,6 +106,18 @@ class FinRecord(OwnedRow, table=True):
         CheckConstraint(
             "is_adjustment OR amount_minor > 0", name="ck_fin_record_positive"
         ),
+        # Kept in another currency: the amount as spent and the rate used,
+        # together or not at all.
+        CheckConstraint(
+            "(orig_currency IS NULL) = (orig_amount_minor IS NULL) "
+            "AND (orig_currency IS NULL) = (fx_rate IS NULL)",
+            name="ck_fin_record_fx_together",
+        ),
+        CheckConstraint(
+            "orig_amount_minor IS NULL OR orig_amount_minor > 0",
+            name="ck_fin_record_orig_positive",
+        ),
+        CheckConstraint("fx_rate IS NULL OR fx_rate > 0", name="ck_fin_record_fx_rate"),
     )
 
     type: str = Field(sa_type=String(8))  # type: ignore
@@ -122,6 +142,11 @@ class FinRecord(OwnedRow, table=True):
         default=None, foreign_key="planned_item.id", ondelete="SET NULL", index=True
     )
     planned_on: date | None = None
+    # A record kept in another currency: ``amount_minor`` is the amount in the
+    # user's currency at ``fx_rate`` (one unit of ``orig_currency``).
+    orig_currency: str | None = Field(default=None, sa_type=String(3))  # type: ignore
+    orig_amount_minor: int | None = Field(default=None, sa_type=BigInteger)
+    fx_rate: Decimal | None = Field(default=None, sa_type=Numeric(18, 8))  # type: ignore
     import_id: uuid.UUID | None = Field(
         default=None, foreign_key="statement_import.id", ondelete="SET NULL", index=True
     )

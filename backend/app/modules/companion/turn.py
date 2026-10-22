@@ -38,7 +38,7 @@ from langchain_core.messages import BaseMessage
 
 from app.modules.capture import public as capture
 from app.shared.context import Ctx
-from app.shared.currency import money
+from app.shared.currency import CODES, currency, money
 
 Sink = Callable[[BaseEvent], None]
 
@@ -131,7 +131,14 @@ def outcome(ctx: Ctx, name: str, args: dict[str, Any], result: Any) -> tuple[boo
         return not kept or bool(done), "; ".join(parts)
     if name in ("log_expense", "log_income", "log_transfer", "add_planned"):
         amount = args.get("amount")
-        amt = money(round(float(amount) * 100), ctx.currency) if amount else ""
+        cur = ctx.currency
+        code = args.get("currency")
+        if code and code != cur.code and code in CODES:
+            # Said in another currency: as said, then what it came to.
+            cur = currency(code)
+        amt = money(round(float(amount) * 100), cur) if amount else ""
+        if cur is not ctx.currency and res.get("converted"):
+            amt += f" ({res['converted']})"
         what = {
             "log_expense": "Logged expense",
             "log_income": "Logged income",

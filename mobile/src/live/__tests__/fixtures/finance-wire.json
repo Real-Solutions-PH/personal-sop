@@ -745,7 +745,10 @@
       "note": null,
       "source": "chat",
       "is_refund": false,
-      "status": "cleared"
+      "status": "cleared",
+      "orig_currency": null,
+      "orig_amount_minor": null,
+      "fx_rate": null
     }
   },
   {
@@ -813,7 +816,10 @@
       "note": null,
       "source": "planned",
       "is_refund": false,
-      "status": "cleared"
+      "status": "cleared",
+      "orig_currency": null,
+      "orig_amount_minor": null,
+      "fx_rate": null
     }
   },
   {
@@ -846,6 +852,9 @@
       "source": "manual",
       "is_refund": false,
       "status": "cleared",
+      "orig_currency": null,
+      "orig_amount_minor": null,
+      "fx_rate": null,
       "fee_minor": 1500
     }
   },
@@ -863,7 +872,10 @@
       "note": null,
       "source": "manual",
       "is_refund": false,
-      "status": "cleared"
+      "status": "cleared",
+      "orig_currency": null,
+      "orig_amount_minor": null,
+      "fx_rate": null
     }
   },
   {
@@ -894,7 +906,10 @@
       "note": null,
       "source": "chat",
       "is_refund": false,
-      "status": "cleared"
+      "status": "cleared",
+      "orig_currency": null,
+      "orig_amount_minor": null,
+      "fx_rate": null
     }
   },
   {
@@ -917,7 +932,10 @@
       "note": "counted cash",
       "source": "adjustment",
       "is_refund": false,
-      "status": "cleared"
+      "status": "cleared",
+      "orig_currency": null,
+      "orig_amount_minor": null,
+      "fx_rate": null
     }
   },
   {
@@ -948,7 +966,10 @@
       "note": null,
       "source": "chat",
       "is_refund": false,
-      "status": "pending"
+      "status": "pending",
+      "orig_currency": null,
+      "orig_amount_minor": null,
+      "fx_rate": null
     }
   },
   {
@@ -1113,7 +1134,10 @@
       "note": null,
       "source": "chat",
       "is_refund": false,
-      "status": "cleared"
+      "status": "cleared",
+      "orig_currency": null,
+      "orig_amount_minor": null,
+      "fx_rate": null
     }
   },
   {
@@ -1215,7 +1239,10 @@
       "note": null,
       "source": "chat",
       "is_refund": false,
-      "status": "cleared"
+      "status": "cleared",
+      "orig_currency": null,
+      "orig_amount_minor": null,
+      "fx_rate": null
     }
   },
   {

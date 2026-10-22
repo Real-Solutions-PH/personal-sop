@@ -5010,6 +5010,34 @@ export const FollowUpAnswerInSchema = {
     title: 'FollowUpAnswerIn'
 } as const;
 
+export const FxRatePublicSchema = {
+    properties: {
+        base: {
+            type: 'string',
+            title: 'Base'
+        },
+        quote: {
+            type: 'string',
+            title: 'Quote'
+        },
+        rate: {
+            type: 'string',
+            pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$',
+            title: 'Rate'
+        },
+        as_of: {
+            type: 'string',
+            format: 'date',
+            title: 'As Of'
+        }
+    },
+    type: 'object',
+    required: ['base', 'quote', 'rate', 'as_of'],
+    title: 'FxRatePublic',
+    description: `One unit of \`\`base\`\` in the user's currency (\`\`quote\`\`), as of the
+last published reference day.`
+} as const;
+
 export const GoalCreateSchema = {
     properties: {
         id: {
@@ -13213,6 +13241,48 @@ export const RecordCreateSchema = {
             ],
             title: 'Status'
         },
+        orig_currency: {
+            anyOf: [
+                {
+                    type: 'string',
+                    pattern: '^[A-Z]{3}$'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Orig Currency'
+        },
+        orig_amount_minor: {
+            anyOf: [
+                {
+                    type: 'integer',
+                    maximum: 100000000000000,
+                    minimum: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Orig Amount Minor'
+        },
+        fx_rate: {
+            anyOf: [
+                {
+                    type: 'number',
+                    maximum: 1000000,
+                    exclusiveMinimum: 0
+                },
+                {
+                    type: 'string',
+                    pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Fx Rate'
+        },
         id: {
             anyOf: [
                 {
@@ -13571,6 +13641,40 @@ export const RecordPublicSchema = {
         version: {
             type: 'integer',
             title: 'Version'
+        },
+        orig_currency: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Orig Currency'
+        },
+        orig_amount_minor: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Orig Amount Minor'
+        },
+        fx_rate: {
+            anyOf: [
+                {
+                    type: 'string',
+                    pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Fx Rate'
         }
     },
     type: 'object',
@@ -13723,6 +13827,48 @@ export const RecordUpdateSchema = {
                 }
             ],
             title: 'Status'
+        },
+        orig_currency: {
+            anyOf: [
+                {
+                    type: 'string',
+                    pattern: '^[A-Z]{3}$'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Orig Currency'
+        },
+        orig_amount_minor: {
+            anyOf: [
+                {
+                    type: 'integer',
+                    maximum: 100000000000000,
+                    minimum: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Orig Amount Minor'
+        },
+        fx_rate: {
+            anyOf: [
+                {
+                    type: 'number',
+                    maximum: 1000000,
+                    exclusiveMinimum: 0
+                },
+                {
+                    type: 'string',
+                    pattern: '^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Fx Rate'
         }
     },
     type: 'object',

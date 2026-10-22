@@ -3,6 +3,7 @@
 // from the session when it signs in, and again at launch when a session is
 // restored. Everything here is silent: the UI only ever reads its stores.
 
+import { setFxSource } from "@domain/finance/fx"
 import { getConnectivity } from "@domain/lib/platform"
 import type { StorageAdapter } from "@domain/lib/store"
 import { fetch as expoFetch } from "expo/fetch"
@@ -88,6 +89,14 @@ export function startLive(userId: string, storage: StorageAdapter) {
   }
   const stats = createStats({ http, online: getConnectivity })
   stats.start(userId)
+  setFxSource(async (base) => {
+    const r = await http.request<{
+      rate: string
+      as_of: string
+      quote: string
+    }>("GET", `/finance/fx?base=${encodeURIComponent(base)}`)
+    return { rate: Number(r.rate), asOf: r.as_of, quote: r.quote }
+  })
   const engine = new SyncEngine({
     http,
     storage,
@@ -160,6 +169,7 @@ export function startLive(userId: string, storage: StorageAdapter) {
 export function stopLive() {
   active?.stop()
   active = null
+  setFxSource(null)
 }
 
 /** Push now (connectivity regained). */

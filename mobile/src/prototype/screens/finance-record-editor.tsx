@@ -1,11 +1,12 @@
 import * as A from "@domain/finance/actions"
 import * as C from "@domain/finance/calc"
 import type { FinRecord, RecordType } from "@domain/finance/data"
+import { convert, fxStore, refreshRate } from "@domain/finance/fx"
 import { finStore } from "@domain/finance/store"
 import { dayKey } from "@domain/lib/day"
 import { money, useCurrency } from "@domain/lib/money"
 import { Check, Paperclip } from "lucide-react-native"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { View } from "react-native"
 import { toast } from "sonner-native"
 import { Copy, Line, Segmented, Tap } from "../native-kit"
@@ -30,7 +31,17 @@ function Editor({ record, prefill, onClose }: Props) {
     cur = useCurrency(),
     init = { ...record, ...prefill }
   const [type, setType] = useState<RecordType>(init.type ?? "expense"),
-    [amount, setAmount] = useState(init.amount ? String(init.amount) : ""),
+    // The currency the amount is typed in: the user's own, or another one
+    // (USD) converted at the latest rate.
+    [inCur, setInCur] = useState(init.origCurrency ?? cur.code),
+    [amount, setAmount] = useState(
+      init.origCurrency && init.origAmount
+        ? String(init.origAmount)
+        : init.amount
+          ? String(init.amount)
+          : "",
+    ),
+    rates = fxStore.use((s) => s.rates),
     [account, setAccount] = useState(
       init.accountId ?? s.settings.lastAccountId ?? s.settings.defaultAccountId,
     ),
@@ -56,11 +67,32 @@ function Editor({ record, prefill, onClose }: Props) {
     cats = s.categories.filter((c) => !c.archived && c.kind === catKind),
     chosen = s.categories.find((c) => c.id === category),
     suggestion = C.suggestCategory(s, payee),
-    n = Number(amount),
-    amountError =
-      n > 0 && Number.isFinite(n)
-        ? undefined
-        : `Enter an amount above ${money(0, cur)}`
+    foreign = type !== "transfer" && inCur !== cur.code,
+    other = cur.code === "USD" ? "PHP" : "USD",
+    // The latest rate, else the one this record was saved at.
+    fx = foreign
+      ? (rates[inCur] ??
+        (init.origCurrency === inCur && init.fxRate
+          ? {
+              rate: init.fxRate,
+              asOf: C.recDay(init as FinRecord),
+              quote: cur.code,
+            }
+          : undefined))
+      : undefined,
+    typed = Number(amount),
+    // What is saved and counted: the amount in the user's currency.
+    n = foreign && fx ? convert(typed, fx.rate) : typed,
+    amountError = !(typed > 0 && Number.isFinite(typed))
+      ? `Enter an amount above ${money(0, cur)}`
+      : foreign && !fx
+        ? `Couldn't get the ${inCur} rate — try again online, or enter it in ${cur.code}`
+        : undefined
+  // A record kept in another currency: fetch today's rate as it opens.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: on open only
+  useEffect(() => {
+    if (init.origCurrency) void refreshRate(init.origCurrency)
+  }, [])
   function save(again = false) {
     setTried(true)
     if (
@@ -84,6 +116,9 @@ function Editor({ record, prefill, onClose }: Props) {
         isRefund: type === "income" && refund,
         receipt,
         status: "cleared" as const,
+        origCurrency: foreign ? inCur : undefined,
+        origAmount: foreign ? typed : undefined,
+        fxRate: foreign ? fx?.rate : undefined,
       }
     if (record) {
       A.updateRecord(record.id, input)
@@ -169,8 +204,21 @@ function Editor({ record, prefill, onClose }: Props) {
               { value: "transfer", label: "Transfer" },
             ]}
           />
+          {type !== "transfer" && (
+            <Segmented
+              value={inCur}
+              onChange={(v) => {
+                setInCur(v)
+                if (v !== cur.code) void refreshRate(v)
+              }}
+              options={[
+                { value: cur.code, label: `${cur.symbol} ${cur.code}` },
+                { value: other, label: other === "USD" ? "$ USD" : other },
+              ]}
+            />
+          )}
           <Field
-            label={`Amount ${cur.symbol}`}
+            label={`Amount ${foreign ? inCur : cur.symbol}`}
             value={amount}
             onChangeText={setAmount}
             placeholder="0"
@@ -188,6 +236,13 @@ function Editor({ record, prefill, onClose }: Props) {
               backgroundColor: t.card,
             }}
           />
+          {foreign && (
+            <Copy size={12} muted style={{ marginTop: -4 }}>
+              {fx
+                ? `${typed > 0 ? `≈ ${cur.symbol}${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} · ` : ""}1 ${inCur} = ${cur.symbol}${fx.rate.toLocaleString("en-US", { maximumFractionDigits: 4 })} · reference rate of ${C.shortDate(fx.asOf)}`
+                : `Getting the ${inCur} rate…`}
+            </Copy>
+          )}
           <Choices
             label={type === "transfer" ? "From" : "Account"}
             value={account}

@@ -30,7 +30,7 @@ from langchain_core.messages import (
 from langchain_core.tools import BaseTool, StructuredTool
 from langgraph.graph import END, StateGraph
 from langgraph.graph.message import add_messages
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, BeforeValidator, Field, ValidationError
 
 from app.modules.ai_providers import public as ai
 from app.modules.capture import cards as C
@@ -219,8 +219,43 @@ DaysAgo = Annotated[int, Field(ge=0, le=366)]
 Opt = Annotated[str, Field(max_length=120)] | None
 
 
+def _currency_code(v: Any) -> str | None:
+    """A currency as a model may write it ("USD", "usd", "$", "dollars",
+    "PHP (₱)") to a code; the user's own currency is left to the tool."""
+    if v is None:
+        return None
+    text = str(v).strip()
+    if not text:
+        return None
+    head = text.split()[0].strip("()").upper()
+    if len(head) == 3 and head.isalpha():
+        return head
+    low = text.lower()
+    if "$" in low or "dollar" in low:
+        return "USD"
+    if "€" in low or "euro" in low:
+        return "EUR"
+    if "₱" in low or "peso" in low:
+        return "PHP"
+    raise ValueError("currency must be a 3-letter code such as USD")
+
+
+Currency = Annotated[
+    str | None,
+    BeforeValidator(_currency_code),
+    Field(
+        default=None,
+        description="Only when the person said the amount in another "
+        "currency: its ISO code, e.g. USD for $20 or 20 dollars. The amount "
+        "stays exactly as they said it (20, not its peso value); the app "
+        "converts it at today's rate. Omit for their own currency.",
+    ),
+]
+
+
 class ExpenseArgs(BaseModel):
     amount: Amount
+    currency: Currency = None
     category: Opt = None
     account: Opt = None
     payee: Opt = None
@@ -230,6 +265,7 @@ class ExpenseArgs(BaseModel):
 
 class IncomeArgs(BaseModel):
     amount: Amount
+    currency: Currency = None
     category: Opt = None
     account: Opt = None
     payee: Opt = None
@@ -573,6 +609,40 @@ def _offset(days_ago: int) -> int:
     return -days_ago
 
 
+def _with_converted(
+    out: dict[str, Any], fx: dict[str, Any], cur: Any
+) -> dict[str, Any]:
+    """Tell the model (and the step row) what a foreign amount came to."""
+    if fx:
+        out["converted"] = money(int(fx["amount_minor"]), cur)
+        out["rate"] = fx["fx_rate"]
+    return out
+
+
+def _foreign(run: Run, amount: float, code: str | None) -> dict[str, Any]:
+    """An amount said in another currency: the converted ``amount_minor``
+    and the fx fields the card carries; ``{}`` for the user's own currency,
+    ``{"error": ...}`` when today's rate can't be had."""
+    from fastapi import HTTPException
+
+    if code is None or code == run.ctx.currency.code:
+        return {}
+    orig = _minor(amount)
+    try:
+        rate = ports.finance.fx_rate(run.ctx, code)
+    except HTTPException:
+        return {
+            "error": "exchange_rate_unavailable",
+            "instead": "ask for the amount in their own currency",
+        }
+    return {
+        "amount_minor": ports.finance.convert(orig, rate),
+        "orig_currency": code,
+        "orig_amount_minor": orig,
+        "fx_rate": str(rate),
+    }
+
+
 def _account_id(run: Run, hint: str | None, *, default: bool) -> str | None:
     if hint:
         a = ports.finance.find_account(run.ctx, hint)
@@ -620,6 +690,9 @@ def capture_tools(run: Run) -> list[BaseTool]:
 
     def log_expense(**kw: Any) -> dict[str, Any]:
         a = ExpenseArgs(**kw)
+        fx = _foreign(run, a.amount, a.currency)
+        if "error" in fx:
+            return fx
         cat = _category_id(run, a.category, "expense")
         d = RecordDraft(
             kind="expense",
@@ -630,7 +703,8 @@ def capture_tools(run: Run) -> list[BaseTool]:
                 k: v
                 for k, v in {
                     "kind": "expense",
-                    "amount_minor": _minor(a.amount),
+                    "amount_minor": fx.get("amount_minor") or _minor(a.amount),
+                    **fx,
                     "category_id": cat,
                     "account_id": _account_id(run, a.account, default=True),
                     "payee": a.payee,
@@ -641,16 +715,20 @@ def capture_tools(run: Run) -> list[BaseTool]:
             ask=None
             if cat
             else {
-                "question": f"What was {money(_minor(a.amount), w.currency)} for?",
+                "question": "What was "
+                f"{money(fx.get('amount_minor') or _minor(a.amount), w.currency)} for?",
                 "field": "category_id",
                 "free": True,
                 "options": list(w.recent_cats),
             },
         )
-        return _card(run, d)
+        return _with_converted(_card(run, d), fx, w.currency)
 
     def log_income(**kw: Any) -> dict[str, Any]:
         a = IncomeArgs(**kw)
+        fx = _foreign(run, a.amount, a.currency)
+        if "error" in fx:
+            return fx
         acct = _account_id(run, a.account, default=False)
         d = RecordDraft(
             kind="income",
@@ -661,7 +739,8 @@ def capture_tools(run: Run) -> list[BaseTool]:
                 k: v
                 for k, v in {
                     "kind": "income",
-                    "amount_minor": _minor(a.amount),
+                    "amount_minor": fx.get("amount_minor") or _minor(a.amount),
+                    **fx,
                     "category_id": _category_id(run, a.category, "income"),
                     "account_id": acct,
                     "payee": a.payee,
@@ -671,12 +750,14 @@ def capture_tools(run: Run) -> list[BaseTool]:
             ask=None
             if acct
             else {
-                "question": f"Which account did the {money(_minor(a.amount), w.currency)} land in?",
+                "question": "Which account did the "
+                f"{money(fx.get('amount_minor') or _minor(a.amount), w.currency)} "
+                "land in?",
                 "field": "account_id",
                 "options": list(w.account_options),
             },
         )
-        return _card(run, d)
+        return _with_converted(_card(run, d), fx, w.currency)
 
     def log_transfer(**kw: Any) -> dict[str, Any]:
         a = TransferArgs(**kw)

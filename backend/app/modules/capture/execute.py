@@ -14,6 +14,7 @@ import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
+from decimal import Decimal
 from typing import Any
 
 from fastapi import HTTPException
@@ -34,6 +35,17 @@ class Result:
     refs: list[str]
     prior: dict[str, Any] | None = None
     note: str | None = None
+
+
+def _foreign(p: dict[str, Any]) -> Any:
+    """The card's amount as spent in another currency, when it has one."""
+    if not p.get("orig_currency"):
+        return None
+    return ports.finance.Foreign(
+        currency=str(p["orig_currency"]),
+        amount_minor=int(p["orig_amount_minor"]),
+        rate=Decimal(str(p["fx_rate"])),
+    )
 
 
 def _num(v: Any) -> float | None:
@@ -124,6 +136,7 @@ def execute(
             at=at,
             receipt_media_id=photo_media_id if p.get("from_receipt") else None,
             record_id=rid(0),
+            foreign=_foreign(p),
         )
         return Result([str(rec.id)], note=ports.budget_note(ctx, p.get("category_id")))
     if kind == "income":
@@ -136,6 +149,7 @@ def execute(
             source=_fin_source(cap.source),
             at=at,
             record_id=rid(0),
+            foreign=_foreign(p),
         )
         return Result([str(rec.id)])
     if kind == "transfer":

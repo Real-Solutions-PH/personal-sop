@@ -943,3 +943,38 @@ def test_create_task_list_with_items_and_undo_removes_both(
     undo(api, step)
     assert [x for x in live(rows_of(api, TaskList)) if x.name == "Party"] == []
     assert live(tasks_of(api)) == []
+
+
+def test_an_expense_said_in_dollars_is_kept_in_dollars_and_logged_in_pesos(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from decimal import Decimal
+
+    from app.modules.finance import fx
+    from app.modules.finance.models import FinRecord
+
+    monkeypatch.setattr(
+        fx,
+        "latest",
+        lambda base, quote: fx.Rate(base, quote, Decimal("57.92"), date(2026, 10, 21)),
+    )
+    api = user(client, db)
+    api.assign("chat")
+    step = setup_step(
+        api,
+        client,
+        "spent $100 on dinner",
+        monkeypatch,
+        call("log_expense", amount=100, currency="USD", category="food"),
+    )
+    assert step["ok"] and step["summary"].startswith("Logged expense: $100 (₱5,792)")
+    # Over the confirm threshold in pesos, so it waits for the person's OK.
+    if step["state"] == "proposed":
+        api.post(f"/capture/cards/{step['card_id']}/confirm")
+    [rec] = live(rows_of(api, FinRecord))
+    assert (rec.amount_minor, rec.orig_currency, rec.orig_amount_minor) == (
+        579200,
+        "USD",
+        10000,
+    )
+    assert rec.fx_rate == Decimal("57.92")

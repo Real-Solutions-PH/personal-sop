@@ -44,6 +44,12 @@ export interface FinRecord {
   feeOf?: string
   status: "cleared" | "pending"
   editedAt?: string
+  /** Kept in another currency: the amount as spent (major units of
+   * ``origCurrency``) and the rate it was converted at; ``amount`` is the
+   * user's-currency amount every total uses. */
+  origCurrency?: string
+  origAmount?: number
+  fxRate?: number
 }
 export interface Category {
   id: string
