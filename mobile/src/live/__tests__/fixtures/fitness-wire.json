@@ -1710,7 +1710,11 @@
       "kcal": 2100,
       "protein": 150,
       "carbs": 220,
-      "fat": 70
+      "fat": 70,
+      "sat_fat_max_g": null,
+      "sugar_max_g": null,
+      "sodium_max_mg": null,
+      "fiber_g": null
     }
   },
   {
@@ -1722,6 +1726,23 @@
       "units": "lb",
       "rest_sec": 90,
       "weigh_in_reminder": "07:15"
+    }
+  },
+  {
+    "entity": "macro_target",
+    "kind": "upsert",
+    "name": "macro_target",
+    "create": true,
+    "data": {
+      "effective_from": "2026-10-19",
+      "kcal": 2100,
+      "protein": 140,
+      "carbs": 200,
+      "fat": 65,
+      "sat_fat_max_g": 13,
+      "sugar_max_g": 26,
+      "sodium_max_mg": null,
+      "fiber_g": 27
     }
   }
 ]

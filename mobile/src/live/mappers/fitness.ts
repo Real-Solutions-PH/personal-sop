@@ -718,6 +718,11 @@ export function macroTargetMapper(): Mapper<S, MacroTarget> {
       protein: t.protein,
       carbs: t.carbs,
       fat: t.fat,
+      // null: the default limit.
+      sat_fat_max_g: t.satFatMax ?? null,
+      sugar_max_g: t.sugarMax ?? null,
+      sodium_max_mg: t.sodiumMax ?? null,
+      fiber_g: t.fiberGoal ?? null,
     }),
     fromServer: (row) => ({
       id: str(row.id),
@@ -726,6 +731,14 @@ export function macroTargetMapper(): Mapper<S, MacroTarget> {
       protein: Number(row.protein),
       carbs: Number(row.carbs),
       fat: Number(row.fat),
+      ...(row.sat_fat_max_g != null
+        ? { satFatMax: Number(row.sat_fat_max_g) }
+        : {}),
+      ...(row.sugar_max_g != null ? { sugarMax: Number(row.sugar_max_g) } : {}),
+      ...(row.sodium_max_mg != null
+        ? { sodiumMax: Number(row.sodium_max_mg) }
+        : {}),
+      ...(row.fiber_g != null ? { fiberGoal: Number(row.fiber_g) } : {}),
     }),
     // One target per day: a pulled row replaces a local row for the same
     // day under another id (the server's upsert reuses its row by day).

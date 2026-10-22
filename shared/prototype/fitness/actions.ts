@@ -22,6 +22,7 @@ import {
   type MealItem,
   type MealLabel,
   type MealSource,
+  type NutrientLimits,
   type WeighIn,
   type Workout,
   type WorkoutExercise,
@@ -783,12 +784,33 @@ export function duplicateMeal(id: string, day = dayKey()): Meal | undefined {
   fitStore.set((s) => ({ ...s, meals: [...s.meals, copy] }))
   return copy
 }
-export function setMacroTarget(m: Macros): MacroTarget {
+/** The object without its undefined keys (a reset limit is absent, not
+ * undefined, so stored rows compare equal after a sync round trip). */
+const stripUndefined = <T extends object>(o: T): T =>
+  Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as T
+
+export function setMacroTarget(m: Macros & NutrientLimits): MacroTarget {
   const today = dayKey()
   // One target per day: re-saving today edits today's row under its id, so
   // sync sends an edit rather than a create plus a delete of the same row.
   const same = fitStore.get().targets.find((x) => x.effectiveFrom === today)
-  const t: MacroTarget = { ...m, id: same?.id ?? uid(), effectiveFrom: today }
+  // Limits the caller leaves out carry over from the target in force, so
+  // re-saving macros never resets them; a key set to undefined resets it.
+  const prev = targetFor(fitStore.get(), today)
+  const kept: NutrientLimits = prev
+    ? {
+        satFatMax: prev.satFatMax,
+        sugarMax: prev.sugarMax,
+        sodiumMax: prev.sodiumMax,
+        fiberGoal: prev.fiberGoal,
+      }
+    : {}
+  const t: MacroTarget = stripUndefined({
+    ...kept,
+    ...m,
+    id: same?.id ?? uid(),
+    effectiveFrom: today,
+  })
   fitStore.set((s) => ({
     ...s,
     targets: [...s.targets.filter((x) => x.effectiveFrom !== today), t],

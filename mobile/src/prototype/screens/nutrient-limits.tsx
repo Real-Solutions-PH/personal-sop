@@ -1,9 +1,13 @@
+import { targetFor } from "@domain/fitness/calc"
 import {
-  DAILY_LIMITS,
   LIMIT_LABEL,
   type LimitKey,
+  type Limits,
   limitLevel,
+  limitsFor,
 } from "@domain/fitness/limits"
+import { fitStore } from "@domain/fitness/store"
+import { dayKey } from "@domain/lib/day"
 import { Gauge } from "lucide-react-native"
 import { View } from "react-native"
 import { Copy, Line } from "../native-kit"
@@ -22,6 +26,13 @@ export const LIMIT_KEYS = ["satFat", "sugar", "sodium"] as const
  * "average": a daily average over a range, with the days that went over. */
 type Scope = "day" | "meal" | "average"
 
+/** Today's limits: the user's own from the target in force, else the WHO
+ * defaults. For a surface that has no day of its own (a meal card). */
+export function useTodayLimits(): Limits {
+  const target = fitStore.use((s) => targetFor(s, dayKey()))
+  return limitsFor(target)
+}
+
 const fmt = (n: number, unit: string) =>
   unit === "mg"
     ? Math.round(n).toLocaleString("en-US")
@@ -33,17 +44,19 @@ const fmt = (n: number, unit: string) =>
 export function LimitBar({
   k,
   amount,
+  max,
   scope = "day",
   overDays,
 }: {
   k: LimitKey
   amount: number | undefined
+  /** The daily limit this amount is held against. */
+  max: number
   scope?: Scope
   /** For an average: how many of the days went over. */
   overDays?: number
 }) {
   const t = useTheme()
-  const max = DAILY_LIMITS[k]
   const { label, unit } = LIMIT_LABEL[k]
   const known = amount !== undefined
   const { share, level } = limitLevel(amount ?? 0, max)
@@ -114,20 +127,24 @@ export function LimitBar({
 }
 
 /** The "Stay under" block: saturated fat, sugar and sodium against their
- * daily max. */
+ * daily max: ``limits`` when given (the day's target), else today's. */
 export function LimitList({
   detail,
+  limits,
   scope = "day",
   only = false,
   overDays,
 }: {
   detail: Partial<Record<LimitKey, number>>
+  limits?: Limits
   scope?: Scope
   overDays?: Partial<Record<LimitKey, number>>
   /** Only the limits a value is known for (a meal card). */
   only?: boolean
 }) {
   const t = useTheme()
+  const today = useTodayLimits()
+  const max = limits ?? today
   const keys = LIMIT_KEYS.filter((k) => !only || detail[k] !== undefined)
   if (!keys.length) return null
   return (
@@ -147,6 +164,7 @@ export function LimitList({
           key={k}
           k={k}
           amount={detail[k]}
+          max={max[k]}
           scope={scope}
           overDays={overDays?.[k]}
         />

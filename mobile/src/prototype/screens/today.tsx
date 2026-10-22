@@ -10,7 +10,7 @@ import * as N from "@domain/finance/calc"
 import { finStore } from "@domain/finance/store"
 import { startWorkout } from "@domain/fitness/actions"
 import * as F from "@domain/fitness/calc"
-import { dayDetail, FIBER_GOAL } from "@domain/fitness/limits"
+import { dayDetail, fiberGoalFor, limitsFor } from "@domain/fitness/limits"
 import { fitStore } from "@domain/fitness/store"
 import * as HA from "@domain/habits/actions"
 import type { Habit } from "@domain/habits/data"
@@ -935,7 +935,7 @@ function FitnessCards() {
                   ? `${Math.round(totals.totals.kcal).toLocaleString("en-US")} / ${target.kcal.toLocaleString("en-US")} kcal · P ${Math.round(totals.totals.protein)}/${target.protein} g`
                   : "No targets yet — showing what you ate",
                 detail.fiber !== undefined &&
-                  `Fiber ${Math.round(detail.fiber)}/${FIBER_GOAL} g`,
+                  `Fiber ${Math.round(detail.fiber)}/${fiberGoalFor(target)} g`,
                 totals.pending && `+${totals.pending} pending`,
                 totals.toReview && `${totals.toReview} to review`,
               ]
@@ -943,7 +943,7 @@ function FitnessCards() {
                 .join(" · ")}
             </Copy>
           </Tap>
-          <LimitList detail={detail} />
+          <LimitList detail={detail} limits={limitsFor(target)} />
           <Line style={{ gap: 8 }}>
             <View style={{ flex: 1 }}>
               <Button

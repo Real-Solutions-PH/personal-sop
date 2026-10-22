@@ -49,6 +49,62 @@ def test_todays_intake_target_and_weight_are_in_ferns_facts(
         "sat_fat_g": 2.3,
         "sodium_mg": 497,
     }
-    assert n["target"] == {"kcal": 1950, "protein": 140, "carbs": 235, "fat": 50}
+    # No limits set: the WHO defaults stand in.
+    assert n["target"] == {
+        "kcal": 1950,
+        "protein": 140,
+        "carbs": 235,
+        "fat": 50,
+        "sat_fat_max_g": 20,
+        "sugar_max_g": 50,
+        "sodium_max_mg": 2000,
+        "fiber_g": 25,
+    }
+    assert set(n["left"]) == {"kcal", "protein", "carbs", "fat"}
     assert n["left"]["kcal"] == 1483 and n["left"]["protein"] == 95.4
     assert n["latest_weigh_in"]["kg"] == 62.4
+
+
+def test_the_users_own_limits_reach_ferns_facts_and_the_targets_api(
+    client: TestClient, db: Session
+) -> None:
+    api = user(client, db)
+    saved = api.put(
+        "/fitness/targets",
+        {
+            "kcal": 1950,
+            "protein": 140,
+            "carbs": 235,
+            "fat": 50,
+            "sat_fat_max_g": 13,
+            "sugar_max_g": 26,
+            "fiber_g": 27,
+        },
+    )
+    assert saved["sat_fat_max_g"] == 13
+    assert saved["sodium_max_mg"] is None
+    current = api.get("/fitness/targets")["current"]
+    assert (current["sugar_max_g"], current["fiber_g"]) == (26, 27)
+    with ctx_for(api.user) as ctx:  # type: ignore[attr-defined]
+        n = grounding.snapshot(ctx)["nutrition_today"]
+    # Sodium was left unset, so it reads as the default.
+    assert n["target"]["sat_fat_max_g"] == 13
+    assert n["target"]["sugar_max_g"] == 26
+    assert n["target"]["sodium_max_mg"] == 2000
+    assert n["target"]["fiber_g"] == 27
+    # Re-saving macros alone keeps the limits; an explicit null resets one.
+    again = api.put(
+        "/fitness/targets",
+        {"kcal": 2000, "protein": 140, "carbs": 235, "fat": 50, "fiber_g": None},
+    )
+    assert again["kcal"] == 2000 and again["sat_fat_max_g"] == 13
+    assert again["fiber_g"] is None
+
+
+def test_a_negative_limit_is_refused(client: TestClient, db: Session) -> None:
+    api = user(client, db)
+    api.put(
+        "/fitness/targets",
+        {"kcal": 1950, "protein": 140, "carbs": 235, "fat": 50, "sugar_max_g": -1},
+        status=422,
+    )

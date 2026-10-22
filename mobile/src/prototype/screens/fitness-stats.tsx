@@ -1,5 +1,5 @@
 import * as C from "@domain/fitness/calc"
-import { limitAverages } from "@domain/fitness/limits"
+import { limitAverages, limitsFor } from "@domain/fitness/limits"
 import { fitStore } from "@domain/fitness/store"
 import { dayKey } from "@domain/lib/day"
 import { ChevronRight, Share2, TriangleAlert } from "lucide-react-native"
@@ -43,8 +43,11 @@ export function FitnessStats({ embedded = false }: { embedded?: boolean }) {
     rate = C.weeklyRate(s),
     weight = C.weightTrend(s, days),
     adherence = C.adherence(s, Math.min(days, 14)),
+    // Averages are held against the limits in force today.
+    dayLimits = limitsFor(C.targetFor(s, dayKey())),
     limits = limitAverages(
       adherence.days.map((d) => C.mealsOn(s, d.day)).filter((m) => m.length),
+      dayLimits,
     ),
     lifts = ["bench", "squat", "row", "ohp", "rdl"]
       .map((id) => {
@@ -358,6 +361,7 @@ export function FitnessStats({ embedded = false }: { embedded?: boolean }) {
               <LimitList
                 scope="average"
                 detail={limits.avg}
+                limits={dayLimits}
                 overDays={limits.over}
               />
             </View>

@@ -1472,9 +1472,19 @@ def duplicate_meal(
 
 
 def set_macro_target(
-    *, ctx: Ctx, kcal: float, protein: float, carbs: float, fat: float
+    *,
+    ctx: Ctx,
+    kcal: float,
+    protein: float,
+    carbs: float,
+    fat: float,
+    sat_fat_max_g: float | None = None,
+    sugar_max_g: float | None = None,
+    sodium_max_mg: float | None = None,
+    fiber_g: float | None = None,
 ) -> MacroTarget:
-    """A new target version effective from today; past days keep theirs."""
+    """A new target version effective from today; past days keep theirs.
+    A limit left None reads as the WHO default."""
     today = ctx.today
     t, _ = owned_repo.upsert(
         ctx,
@@ -1486,6 +1496,10 @@ def set_macro_target(
             "protein": protein,
             "carbs": carbs,
             "fat": fat,
+            "sat_fat_max_g": sat_fat_max_g,
+            "sugar_max_g": sugar_max_g,
+            "sodium_max_mg": sodium_max_mg,
+            "fiber_g": fiber_g,
         },
         natural_key=("effective_from",),
     )

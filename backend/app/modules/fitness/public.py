@@ -230,6 +230,17 @@ def latest_weigh_in_day(ctx: Ctx) -> date | None:
     return ctx.clock.day_of(latest.measured_at) if latest else None
 
 
+# WHO guidance for a 2,000 kcal day, used where a target leaves a limit
+# unset: saturated fat and free sugars under 10% of energy, sodium under
+# 2,000 mg, and 25 g of fiber. The mobile app holds the same defaults.
+DEFAULT_LIMITS: dict[str, float] = {
+    "sat_fat_max_g": 20,
+    "sugar_max_g": 50,
+    "sodium_max_mg": 2000,
+    "fiber_g": 25,
+}
+
+
 def nutrition_today(ctx: Ctx) -> dict[str, Any]:
     """Today's intake against the target, for the companion's facts:
     eaten (macros plus fiber, saturated fat, sugar and sodium where the meals
@@ -276,8 +287,18 @@ def nutrition_today(ctx: Ctx) -> dict[str, Any]:
     }
     if t is not None:
         target = {"kcal": t.kcal, "protein": t.protein, "carbs": t.carbs, "fat": t.fat}
-        out["target"] = target
         out["left"] = {k: round(v - eaten[k], 1) for k, v in target.items()}
+        # Limits to stay under and the fiber goal: the user's own where set,
+        # else the WHO default.
+        out["target"] = target | {
+            k: v if v is not None else DEFAULT_LIMITS[k]
+            for k, v in {
+                "sat_fat_max_g": t.sat_fat_max_g,
+                "sugar_max_g": t.sugar_max_g,
+                "sodium_max_mg": t.sodium_max_mg,
+                "fiber_g": t.fiber_g,
+            }.items()
+        }
     latest = repo.latest_weigh_in(ctx)
     if latest is not None:
         out["latest_weigh_in"] = {

@@ -215,6 +215,7 @@ export type app__modules__capture__schema__CaptureIn = {
     hint?: ('auto' | 'meal' | 'receipt' | 'label' | 'statement' | 'whiteboard' | 'journal' | 'expense' | 'task' | 'weigh-in' | null);
     file_name?: (string | null);
     media_id?: (string | null);
+    extra_media_ids?: Array<(string)>;
     account_id?: (string | null);
     queue_only?: boolean;
 };
@@ -222,9 +223,10 @@ export type app__modules__capture__schema__CaptureIn = {
 export type source = 'text' | 'voice' | 'photo' | 'file' | 'quick_add' | 'connector';
 
 export type app__modules__companion__schema__AskIn = {
-    text: string;
+    text?: string;
     id?: (string | null);
     hint?: (string | null);
+    media_ids?: Array<(string)>;
 };
 
 export type app__modules__companion__schema__MessagePublic = {
@@ -1990,6 +1992,10 @@ export type MacroTargetPublic = {
     protein: number;
     carbs: number;
     fat: number;
+    sat_fat_max_g?: (number | null);
+    sugar_max_g?: (number | null);
+    sodium_max_mg?: (number | null);
+    fiber_g?: (number | null);
 };
 
 export type MealCreate = {
@@ -2022,6 +2028,10 @@ export type MealItemIn = {
     carbs: number;
     fat: number;
     assumption?: (string | null);
+    fiber?: (number | null);
+    sat_fat?: (number | null);
+    sugar?: (number | null);
+    sodium?: (number | null);
 };
 
 export type MealItemPublic = {
@@ -2038,6 +2048,10 @@ export type MealItemPublic = {
     carbs: number;
     fat: number;
     assumption: (string | null);
+    fiber?: (number | null);
+    sat_fat?: (number | null);
+    sugar?: (number | null);
+    sodium?: (number | null);
 };
 
 export type MealOut = {
@@ -3608,6 +3622,10 @@ export type TargetSet = {
     protein: number;
     carbs: number;
     fat: number;
+    sat_fat_max_g?: (number | null);
+    sugar_max_g?: (number | null);
+    sodium_max_mg?: (number | null);
+    fiber_g?: (number | null);
 };
 
 export type TargetsOut = {
@@ -4129,6 +4147,7 @@ export type WeighInCreate = {
 export type WeighInPayload = {
     kind: "weighIn";
     kg: number;
+    body_fat_pct?: (number | null);
     prev_kg?: (number | null);
 };
 
@@ -4522,6 +4541,12 @@ export type CompanionRenameData = {
 };
 
 export type CompanionRenameResponse = (CompanionState);
+
+export type CompanionSpeakData = {
+    messageId: string;
+};
+
+export type CompanionSpeakResponse = (unknown);
 
 export type CompanionAskData = {
     requestBody: app__modules__companion__schema__AskIn;

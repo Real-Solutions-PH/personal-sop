@@ -1,7 +1,7 @@
 import * as A from "@domain/fitness/actions"
 import * as C from "@domain/fitness/calc"
 import type { Macros, Meal } from "@domain/fitness/data"
-import { dayDetail, FIBER_GOAL } from "@domain/fitness/limits"
+import { dayDetail, fiberGoalFor, limitsFor } from "@domain/fitness/limits"
 import { fitStore } from "@domain/fitness/store"
 import { openCapture } from "@domain/lib/capture"
 import { dayKey } from "@domain/lib/day"
@@ -350,7 +350,7 @@ export function Nutrition({
               {target.kcal.toLocaleString("en-US")} kcal · P{" "}
               {Math.round(totals.totals.protein)}/{target.protein} g
               {detail.fiber !== undefined &&
-                ` · Fiber ${Math.round(detail.fiber)}/${FIBER_GOAL} g`}
+                ` · Fiber ${Math.round(detail.fiber)}/${fiberGoalFor(target)} g`}
             </Copy>
             {!!totals.pending && pill(`+${totals.pending} pending`, t.warn)}
             {!!totals.toReview && pill(`${totals.toReview} to review`, t.nut)}
@@ -367,7 +367,7 @@ export function Nutrition({
         )}
       </Frame>
       <Frame style={{ padding: 16 }}>
-        <LimitList detail={detail} />
+        <LimitList detail={detail} limits={limitsFor(target)} />
       </Frame>
       <Frame style={{ padding: 8 }}>
         <Line style={{ gap: 8 }}>

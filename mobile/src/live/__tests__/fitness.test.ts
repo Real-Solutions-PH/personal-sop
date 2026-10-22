@@ -764,6 +764,10 @@ describe("store edits become sync ops", () => {
       protein: 150,
       carbs: 220,
       fat: 70,
+      sat_fat_max_g: null,
+      sugar_max_g: null,
+      sodium_max_mg: null,
+      fiber_g: null,
     })
     const sid = derivedId("singleton", USER, "fitness_settings")
     expect(upsertOf(ops, sid)).toMatchObject({
@@ -853,6 +857,63 @@ describe("pulled rows", () => {
       kind: "working",
     })
     expect(e.capture()).toEqual([])
+  })
+
+  test("the user's own limits sync, and re-saving macros keeps them", () => {
+    const e = engine()
+    const seen = new Set<string>()
+    setMacroTarget({
+      kcal: 2000,
+      protein: 140,
+      carbs: 200,
+      fat: 65,
+      satFatMax: 13,
+      sugarMax: 26,
+      fiberGoal: 27,
+    })
+    const t = setMacroTarget({ kcal: 2100, protein: 140, carbs: 200, fat: 65 })
+    expect(t).toMatchObject({ satFatMax: 13, sugarMax: 26, fiberGoal: 27 })
+    expect("sodiumMax" in t).toBe(false)
+    expect(upsertOf(step(e, seen), t.id)).toMatchObject({
+      kcal: 2100,
+      sat_fat_max_g: 13,
+      sugar_max_g: 26,
+      sodium_max_mg: null,
+      fiber_g: 27,
+    })
+    // A key set to undefined goes back to the default.
+    const reset = setMacroTarget({ ...t, sugarMax: undefined })
+    expect("sugarMax" in reset).toBe(false)
+    expect(reset.satFatMax).toBe(13)
+  })
+
+  test("a pulled target carries the limits it has, and only those", () => {
+    const m = fitnessMappers(USER).find(
+      (x) => x.entity === "macro_target",
+    ) as AnyMapper
+    const row = {
+      id: "t1",
+      effective_from: "2026-10-19",
+      kcal: 2000,
+      protein: 140,
+      carbs: 200,
+      fat: 65,
+      sat_fat_max_g: 13,
+      sugar_max_g: 26,
+      sodium_max_mg: null,
+      fiber_g: 27,
+    }
+    expect(m.fromServer(row, fitStore.get())).toEqual({
+      id: "t1",
+      effectiveFrom: "2026-10-19",
+      kcal: 2000,
+      protein: 140,
+      carbs: 200,
+      fat: 65,
+      satFatMax: 13,
+      sugarMax: 26,
+      fiberGoal: 27,
+    })
   })
 
   test("a pulled target replaces the local one for the same day", () => {

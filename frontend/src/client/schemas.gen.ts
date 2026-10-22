@@ -8433,6 +8433,50 @@ export const MacroTargetPublicSchema = {
         fat: {
             type: 'number',
             title: 'Fat'
+        },
+        sat_fat_max_g: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Sat Fat Max G'
+        },
+        sugar_max_g: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Sugar Max G'
+        },
+        sodium_max_mg: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Sodium Max Mg'
+        },
+        fiber_g: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Fiber G'
         }
     },
     type: 'object',
@@ -8689,6 +8733,58 @@ export const MealItemInSchema = {
                 }
             ],
             title: 'Assumption'
+        },
+        fiber: {
+            anyOf: [
+                {
+                    type: 'number',
+                    maximum: 2000,
+                    minimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Fiber'
+        },
+        sat_fat: {
+            anyOf: [
+                {
+                    type: 'number',
+                    maximum: 2000,
+                    minimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Sat Fat'
+        },
+        sugar: {
+            anyOf: [
+                {
+                    type: 'number',
+                    maximum: 2000,
+                    minimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Sugar'
+        },
+        sodium: {
+            anyOf: [
+                {
+                    type: 'number',
+                    maximum: 100000,
+                    minimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Sodium'
         }
     },
     additionalProperties: false,
@@ -8760,6 +8856,50 @@ export const MealItemPublicSchema = {
                 }
             ],
             title: 'Assumption'
+        },
+        fiber: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Fiber'
+        },
+        sat_fat: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Sat Fat'
+        },
+        sugar: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Sugar'
+        },
+        sodium: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Sodium'
         }
     },
     type: 'object',
@@ -16788,6 +16928,58 @@ export const TargetSetSchema = {
             maximum: 100000,
             minimum: 0,
             title: 'Fat'
+        },
+        sat_fat_max_g: {
+            anyOf: [
+                {
+                    type: 'number',
+                    maximum: 100000,
+                    minimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Sat Fat Max G'
+        },
+        sugar_max_g: {
+            anyOf: [
+                {
+                    type: 'number',
+                    maximum: 100000,
+                    minimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Sugar Max G'
+        },
+        sodium_max_mg: {
+            anyOf: [
+                {
+                    type: 'number',
+                    maximum: 100000,
+                    minimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Sodium Max Mg'
+        },
+        fiber_g: {
+            anyOf: [
+                {
+                    type: 'number',
+                    maximum: 100000,
+                    minimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Fiber G'
         }
     },
     type: 'object',
@@ -20342,6 +20534,15 @@ export const app__modules__capture__schema__CaptureInSchema = {
             ],
             title: 'Media Id'
         },
+        extra_media_ids: {
+            items: {
+                type: 'string',
+                format: 'uuid'
+            },
+            type: 'array',
+            maxItems: 9,
+            title: 'Extra Media Ids'
+        },
         account_id: {
             anyOf: [
                 {
@@ -20372,8 +20573,8 @@ export const app__modules__companion__schema__AskInSchema = {
         text: {
             type: 'string',
             maxLength: 4000,
-            minLength: 1,
-            title: 'Text'
+            title: 'Text',
+            default: ''
         },
         id: {
             anyOf: [
@@ -20398,10 +20599,18 @@ export const app__modules__companion__schema__AskInSchema = {
                 }
             ],
             title: 'Hint'
+        },
+        media_ids: {
+            items: {
+                type: 'string',
+                format: 'uuid'
+            },
+            type: 'array',
+            maxItems: 10,
+            title: 'Media Ids'
         }
     },
     type: 'object',
-    required: ['text'],
     title: 'AskIn'
 } as const;
 

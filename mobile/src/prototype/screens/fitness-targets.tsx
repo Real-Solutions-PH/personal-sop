@@ -1,6 +1,7 @@
 import { setMacroTarget } from "@domain/fitness/actions"
 import { fmtDay, latestBodyweight, targetFor } from "@domain/fitness/calc"
-import type { Macros } from "@domain/fitness/data"
+import type { Macros, NutrientLimits } from "@domain/fitness/data"
+import { DAILY_LIMITS, FIBER_GOAL } from "@domain/fitness/limits"
 import { fitStore } from "@domain/fitness/store"
 import { dayKey } from "@domain/lib/day"
 import { Sparkles } from "lucide-react-native"
@@ -19,6 +20,12 @@ export function MacroTargets() {
     [t, setT] = useState<Macros>(
       current ?? { kcal: 2100, protein: 160, carbs: 210, fat: 70 },
     ),
+    [limits, setLimits] = useState({
+      satFatMax: current?.satFatMax ?? DAILY_LIMITS.satFat,
+      sugarMax: current?.sugarMax ?? DAILY_LIMITS.sugar,
+      sodiumMax: current?.sodiumMax ?? DAILY_LIMITS.sodium,
+      fiberGoal: current?.fiberGoal ?? FIBER_GOAL,
+    }),
     [suggestion, setSuggestion] = useState<Macros | null>(null),
     calc = t.protein * 4 + t.carbs * 4 + t.fat * 9,
     mismatch = Math.abs(calc - t.kcal) > t.kcal * 0.05,
@@ -136,6 +143,78 @@ export function MacroTargets() {
           )}
         </View>
       </Frame>
+      <View style={{ marginTop: -12 }}>
+        <SectionHeading
+          action={
+            <Tap
+              onPress={() =>
+                setLimits({
+                  satFatMax: DAILY_LIMITS.satFat,
+                  sugarMax: DAILY_LIMITS.sugar,
+                  sodiumMax: DAILY_LIMITS.sodium,
+                  fiberGoal: FIBER_GOAL,
+                })
+              }
+            >
+              <Copy size={12} weight="semibold" style={{ color: theme.nut }}>
+                WHO defaults
+              </Copy>
+            </Tap>
+          }
+        >
+          Stay under
+        </SectionHeading>
+        <Frame style={{ padding: 16, gap: 20 }}>
+          <Line style={{ gap: 12 }}>
+            <View style={{ flex: 1 }}>
+              <Stepper
+                compact
+                label="Sat fat"
+                value={limits.satFatMax}
+                onChange={(satFatMax) => setLimits({ ...limits, satFatMax })}
+                step={1}
+                max={200}
+                unit="g"
+                decimals={0}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Stepper
+                compact
+                label="Sugar"
+                value={limits.sugarMax}
+                onChange={(sugarMax) => setLimits({ ...limits, sugarMax })}
+                step={1}
+                max={300}
+                unit="g"
+                decimals={0}
+              />
+            </View>
+          </Line>
+          <Stepper
+            label="Sodium"
+            value={limits.sodiumMax}
+            onChange={(sodiumMax) => setLimits({ ...limits, sodiumMax })}
+            step={100}
+            max={10000}
+            unit="mg"
+            decimals={0}
+          />
+          <Stepper
+            label="Fiber goal"
+            value={limits.fiberGoal}
+            onChange={(fiberGoal) => setLimits({ ...limits, fiberGoal })}
+            step={1}
+            max={150}
+            unit="g"
+            decimals={0}
+          />
+          <Copy size={12} muted>
+            Defaults follow WHO guidance for a 2,000 kcal day. Today, Nutrition
+            and Stats hold your meals against these.
+          </Copy>
+        </Frame>
+      </View>
       <Frame style={{ padding: 16 }}>
         <Line style={{ justifyContent: "space-between" }}>
           <View style={{ flex: 1 }}>
@@ -236,7 +315,36 @@ export function MacroTargets() {
               toast.error("Enter targets within the supported range")
               return
             }
-            setMacroTarget(t)
+            if (
+              ![
+                limits.satFatMax,
+                limits.sugarMax,
+                limits.sodiumMax,
+                limits.fiberGoal,
+              ].every((n) => Number.isFinite(n) && n >= 0)
+            ) {
+              toast.error("Enter limits of zero or more")
+              return
+            }
+            // A limit left at its default is stored as unset, so it keeps
+            // following the default.
+            const own: NutrientLimits = {
+              satFatMax:
+                limits.satFatMax === DAILY_LIMITS.satFat
+                  ? undefined
+                  : limits.satFatMax,
+              sugarMax:
+                limits.sugarMax === DAILY_LIMITS.sugar
+                  ? undefined
+                  : limits.sugarMax,
+              sodiumMax:
+                limits.sodiumMax === DAILY_LIMITS.sodium
+                  ? undefined
+                  : limits.sodiumMax,
+              fiberGoal:
+                limits.fiberGoal === FIBER_GOAL ? undefined : limits.fiberGoal,
+            }
+            setMacroTarget({ ...t, ...own })
             toast.success("Targets saved — effective today")
             replace("/fitness?tab=eat")
           }}

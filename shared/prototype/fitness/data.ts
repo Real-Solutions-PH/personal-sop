@@ -81,7 +81,15 @@ export interface Macros {
   carbs: number
   fat: number
 }
-export interface MacroTarget extends Macros {
+/** The user's own daily limits and fiber goal; a key left out reads as
+ * the WHO default (see ./limits). */
+export interface NutrientLimits {
+  satFatMax?: number
+  sugarMax?: number
+  sodiumMax?: number
+  fiberGoal?: number
+}
+export interface MacroTarget extends Macros, NutrientLimits {
   id: string
   effectiveFrom: string
 }
