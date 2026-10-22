@@ -361,9 +361,8 @@ function TodayPlan() {
                   <View
                     style={{
                       width: 4,
-                      alignSelf: "stretch",
+                      height: 20,
                       borderRadius: 2,
-                      marginVertical: 8,
                       backgroundColor: accent(i.module),
                     }}
                   />
