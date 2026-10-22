@@ -55,10 +55,11 @@ import {
   SmallButton,
   Tap,
 } from "../native-kit"
-import { go, replace } from "../navigation"
+import { go } from "../navigation"
 import { ProfileAvatar } from "../profile-avatar"
 import { enableReminders } from "../reminders"
-import { sessionStore, signOut } from "../session"
+import { sessionStore } from "../session"
+import { confirmSignOut } from "../sign-out-flow"
 import { Switch } from "../switch"
 import { fonts, useTheme } from "../theme"
 import { confirm, Screen } from "../ui"
@@ -463,23 +464,11 @@ export function Me() {
             title="Sign out"
             detail={account ? `Signed in as ${account}` : undefined}
             icon={LogOut}
-            onPress={() =>
-              confirm(
-                "Sign out?",
-                liveMode
-                  ? "Anything not yet synced is sent first, then this device is cleared. Sign back in any time."
-                  : "Your data stays on this device. Sign back in any time.",
-                () => {
-                  signOut()
-                  replace("/welcome")
-                  toast.success("Signed out")
-                },
-              )
-            }
+            onPress={confirmSignOut}
           />
         </Frame>
         <Copy size={12} muted style={{ textAlign: "center", marginTop: 16 }}>
-          {liveMode ? "Personal SOP" : "Personal SOP · prototype build"}
+          {liveMode ? "Unfurl" : "Unfurl · prototype build"}
         </Copy>
       </View>
     </Screen>

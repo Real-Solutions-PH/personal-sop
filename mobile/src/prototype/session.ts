@@ -25,7 +25,12 @@ async function viaLive<T>(run: () => Promise<T>): Promise<T> {
 /** Live mode: start sync for the signed-in Supabase user. */
 export async function startLiveSession() {
   live().onSessionLost(sessionEnded)
-  const uid = await live().currentUserId()
+  // Offline launch: the account this device was already syncing, if the
+  // person never signed out. Its outbox and snapshot are kept by startLive.
+  const known = sessionStore.get().signedIn
+    ? storage().getItem("sop-live:owner")
+    : null
+  const uid = await live().currentUserId(known)
   if (uid) runtime().startLive(uid, storage())
   return uid
 }
@@ -318,24 +323,52 @@ function forgetLiveDevice() {
     "sop-live:outbox",
     "sop-live:snapshot",
     "sop-live:cursor",
+    "sop-live:previous",
     "sop-live:owner",
   ])
     storage().removeItem(key)
   ;(require("@/live/blank") as typeof import("@/live/blank")).clearToBlank()
 }
-export function signOut() {
+/** Changes made on this device that the server has not acknowledged:
+ * the engine's outbox (plus an edit still in its debounce window), or the
+ * persisted outbox when the engine never started (an offline launch). */
+export function unsyncedChanges(): number {
+  const engine = runtime().engine()
+  if (engine) return engine.settled() ? 0 : Math.max(1, engine.pending())
+  try {
+    const raw = storage().getItem("sop-live:outbox")
+    return raw ? (JSON.parse(raw) as unknown[]).length : 0
+  } catch {
+    return 0
+  }
+}
+
+/** Sign out of this device. Live mode pushes what is still queued first and
+ * only forgets the device's copy once every change reached the server;
+ * offline, or when the push fails, nothing is wiped and the result says how
+ * many changes are waiting, so the screen can ask before discarding them.
+ * ``discard`` signs out anyway and drops them. */
+export async function signOut({
+  discard = false,
+} = {}): Promise<{ ok: true } | { ok: false; unsynced: number }> {
   if (liveMode) {
-    // Push what is still queued, then forget the device's copy.
     const engine = runtime().engine()
-    void (engine ? engine.sync() : Promise.resolve()).finally(() => {
-      forgetLiveDevice()
-      void live().signOut()
-    })
+    if (engine && !discard) {
+      engine.flush()
+      await engine.sync()
+    }
+    const unsynced = unsyncedChanges()
+    if (unsynced && !discard) return { ok: false, unsynced }
+    forgetLiveDevice()
+    void live()
+      .signOut()
+      .catch(() => {})
   }
   sessionStore.set((s) => ({
     ...signedOut(),
     rememberedEmail: s.rememberedEmail,
   }))
+  return { ok: true }
 }
 
 // --- Account settings ---

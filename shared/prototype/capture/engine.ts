@@ -107,6 +107,19 @@ let backend: CaptureBackend | null = null
 export function setCaptureBackend(b: CaptureBackend | null) {
   backend = b
 }
+/** Run ``fn`` against this device's stores only, bypassing an installed
+ * backend: a live quick add made offline writes its record straight into
+ * the module store (which syncs it), and that card's later decisions stay
+ * local too. Synchronous, so nothing else runs while the backend is off. */
+export function runLocally<T>(fn: () => T): T {
+  const installed = backend
+  backend = null
+  try {
+    return fn()
+  } finally {
+    backend = installed
+  }
+}
 export function addJournalEntry(input: {
   body: string
   day?: string

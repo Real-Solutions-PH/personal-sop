@@ -30,22 +30,35 @@ import type {
   RecordCard,
 } from "@domain/capture/data"
 import {
+  answerCard,
   type CaptureBackend,
+  confirmAll as confirmAllCards,
+  confirmCard,
+  discardCard,
+  editCard,
   findCard,
+  logQuickAdd,
+  redoCard,
+  runLocally,
   type SendInput,
   setCaptureBackend,
+  skipAsk,
+  undoCard,
 } from "@domain/capture/engine"
 import { captureStore, isOnline } from "@domain/capture/store"
 import { toast } from "@domain/capture/toast"
 import { derivedId, isUuid, newId } from "@domain/lib/ids"
+import { onConnectivityChange } from "@domain/lib/platform"
 import { fetch as expoFetch } from "expo/fetch"
 import {
   type AskBackend,
   type Block,
   COMPANION_NAME,
   companionStore,
+  type Msg,
   type StepItem,
   setAskBackend,
+  setRetryAsk,
   stepLabel,
   takeVoiceTurn,
   thinking,
@@ -61,6 +74,7 @@ import {
   REQUEST_TIMEOUT_MS,
   timed,
 } from "./http"
+import { keepFile, releaseFile } from "./keep-file"
 import {
   answerToServer,
   askFromServer,
@@ -80,7 +94,7 @@ import {
 import { messageFromServer, withMessages } from "./mappers/companion"
 import { categoryIds, fromMinor } from "./mappers/finance"
 import { type UploadInput, uploadMedia } from "./media"
-import { syncNow } from "./runtime"
+import { queueAction, syncNow } from "./runtime"
 import { toggleSpeech } from "./speech"
 
 /** The companion as the user named it (toasts speak in its name). */
@@ -95,10 +109,20 @@ export interface LiveCaptureDeps {
   post(path: string, body: unknown): Promise<Response>
   /** Unauthenticated fetch: the presigned PUT and local file reads. */
   fetch: Fetch
+  /** Copy a cache file (recording, picked file) somewhere durable. */
+  keep?(uri: string): Promise<string>
+  /** Delete a copy made by ``keep`` once the server has the media. */
+  release?(uri: string): void
   online(): boolean
+  /** Queue a card decision as an outbox action op; false when no sync
+   * engine runs (the decision then calls its REST endpoint). */
+  act?(name: string, data: Row): boolean
   /** Push and pull now (the decision wrote rows in other modules). */
   kick(): void
   cats: Cats
+  /** Calls back whenever connectivity changes; returns the unsubscribe.
+   * Queued questions are sent when the device comes back online. */
+  watch?(onChange: () => void): () => void
 }
 
 const OFFLINE = "You're offline — try again when you're connected"
@@ -394,6 +418,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
       if (input) {
         const m = await uploadMedia(input, deps)
         patchCapture(id, (c) => ({ ...c, mediaId: m.id }) as LiveCapture)
+        if (input.kind !== "image" && input.uri) deps.release?.(input.uri)
       }
       return await ensureExtraPhotos(id)
     } catch (error) {
@@ -483,6 +508,20 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
     }
   }
 
+  async function keepMedia(id: string) {
+    type WithFiles = LiveCapture & { audioUri?: string; fileUri?: string }
+    const cap = find(id) as WithFiles | undefined
+    if (!cap || !deps.keep) return
+    const audioUri = cap.audioUri && (await deps.keep(cap.audioUri))
+    const fileUri = cap.fileUri && (await deps.keep(cap.fileUri))
+    patchCapture(id, (c) => {
+      const next = { ...c } as WithFiles
+      if (audioUri) next.audioUri = audioUri
+      if (fileUri) next.fileUri = fileUri
+      return next
+    })
+  }
+
   function send(input: SendInput): string {
     const id = newId()
     const online = deps.online()
@@ -515,6 +554,9 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
       streamingCaptures.add(id)
     }
     S.set((s) => ({ ...s, captures: [...s.captures, cap] }))
+    // A recording or picked file sits in the OS cache, which may be purged
+    // while the capture waits for a connection: keep a durable copy.
+    if (deps.keep && (cap.audioUri || cap.fileUri)) void keepMedia(id)
     if (online) void runSend(id)
     else toast("Queued — will process when you're back online")
     return id
@@ -549,71 +591,212 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
   const cardPath = (cardId: string, op?: string) =>
     `/capture/cards/${cardId}${op ? `/${op}` : ""}`
 
+  const SKIPPED = "Skipped — waiting in History until you answer."
+
+  /** Change one card on this device only (the pull brings the server's). */
+  function patchCardHere(cardId: string, fn: (c: RecordCard) => RecordCard) {
+    const hit = findCard(cardId)
+    if (!hit) return
+    patchCapture(hit.cap.id, (c) => ({
+      ...c,
+      reply: {
+        text: c.reply?.text ?? "",
+        items: (c.reply?.items ?? []).map((i) =>
+          i.t === "record" && i.id === cardId ? fn(i) : i,
+        ),
+      },
+    }))
+  }
+
+  /** A card written on this device only (an offline quick add): the server
+   * never saw it, so its decisions run locally too. */
+  const onlyHere = (cardId: string) => {
+    const hit = findCard(cardId)
+    return !!hit && !isUuid(hit.cap.id)
+  }
+
+  /** A card decision, local-first: the card shows its new state at once and
+   * the decision goes out through the sync outbox (in order, waiting there
+   * offline); the rows it writes elsewhere arrive with the pull after it.
+   * Without a sync engine the REST endpoint is called instead. */
+  function decide(name: string, data: Row, here: () => void, rest: () => void) {
+    if (deps.act?.(name, data)) here()
+    else rest()
+  }
+
   const backend: CaptureBackend = {
     send,
     confirm(cardId) {
+      if (onlyHere(cardId)) return runLocally(() => confirmCard(cardId))
       if (findCard(cardId)?.card.state !== "proposed") return
-      void call<Row>("POST", cardPath(cardId, "confirm"), undefined, putCard)
+      decide(
+        "capture.confirm",
+        { card_id: cardId },
+        () => patchCardHere(cardId, (c) => ({ ...c, state: "saved" })),
+        () =>
+          void call<Row>(
+            "POST",
+            cardPath(cardId, "confirm"),
+            undefined,
+            putCard,
+          ),
+      )
     },
     confirmAll(captureId) {
-      void call<Row[]>(
-        "POST",
-        `/capture/${captureId}/confirm-all`,
-        undefined,
-        (rows) => {
-          for (const r of rows) putCard(r)
-        },
+      if (!isUuid(captureId))
+        return runLocally(() => confirmAllCards(captureId))
+      decide(
+        "capture.confirm_all",
+        { capture_id: captureId },
+        () =>
+          patchCapture(captureId, (c) => ({
+            ...c,
+            reply: {
+              text: c.reply?.text ?? "",
+              items: (c.reply?.items ?? []).map((i) =>
+                i.t === "record" && i.state === "proposed"
+                  ? { ...i, state: "saved" as const }
+                  : i,
+              ),
+            },
+          })),
+        () =>
+          void call<Row[]>(
+            "POST",
+            `/capture/${captureId}/confirm-all`,
+            undefined,
+            (rows) => {
+              for (const r of rows) putCard(r)
+            },
+          ),
       )
     },
     discard(cardId) {
-      void call<Row>("POST", cardPath(cardId, "discard"), undefined, putCard)
+      if (onlyHere(cardId)) return runLocally(() => discardCard(cardId))
+      decide(
+        "capture.discard",
+        { card_id: cardId },
+        () =>
+          patchCardHere(cardId, (c) => ({
+            ...c,
+            state: "discarded",
+            ask: undefined,
+          })),
+        () =>
+          void call<Row>(
+            "POST",
+            cardPath(cardId, "discard"),
+            undefined,
+            putCard,
+          ),
+      )
     },
     undo(cardId, quiet) {
+      if (onlyHere(cardId)) return runLocally(() => undoCard(cardId, quiet))
       const state = findCard(cardId)?.card.state
       if (state !== "saved" && state !== "edited") return
-      void call<Row>("POST", cardPath(cardId, "undo"), undefined, (row) => {
-        putCard(row)
-        if (!quiet && row.state === "undone")
+      const undone = () => {
+        if (!quiet)
           toast("Undone", {
             action: { label: "Redo", onClick: () => backend.redo(cardId) },
           })
-      })
+      }
+      decide(
+        "capture.undo",
+        { card_id: cardId },
+        () => {
+          patchCardHere(cardId, (c) => ({ ...c, state: "undone" }))
+          undone()
+        },
+        () =>
+          void call<Row>("POST", cardPath(cardId, "undo"), undefined, (row) => {
+            putCard(row)
+            if (row.state === "undone") undone()
+          }),
+      )
     },
     redo(cardId) {
+      if (onlyHere(cardId)) return runLocally(() => redoCard(cardId))
       if (findCard(cardId)?.card.state !== "undone") return
-      void call<Row>("POST", cardPath(cardId, "redo"), undefined, putCard)
+      decide(
+        "capture.redo",
+        { card_id: cardId },
+        () => patchCardHere(cardId, (c) => ({ ...c, state: "saved" })),
+        () =>
+          void call<Row>("POST", cardPath(cardId, "redo"), undefined, putCard),
+      )
     },
     edit(cardId, payload: CardPayload) {
-      void call<Row>(
-        "PATCH",
-        cardPath(cardId),
-        { payload: payloadToServer(payload, cats) },
-        putCard,
+      if (onlyHere(cardId)) return runLocally(() => editCard(cardId, payload))
+      const body = { payload: payloadToServer(payload, cats) }
+      decide(
+        "capture.edit",
+        { card_id: cardId, ...body },
+        () =>
+          patchCardHere(cardId, (c) =>
+            c.state === "saved" || c.state === "edited"
+              ? { ...c, kind: payload.kind, payload, state: "edited" }
+              : { ...c, kind: payload.kind, payload, warn: undefined },
+          ),
+        () => void call<Row>("PATCH", cardPath(cardId), body, putCard),
       )
     },
     answer(cardId, value) {
+      if (onlyHere(cardId)) return runLocally(() => answerCard(cardId, value))
       const hit = findCard(cardId)
       if (!hit?.card.ask) return
-      void call<Row>(
-        "POST",
-        cardPath(cardId, "answer"),
-        { value: answerToServer(hit.card, value, cats).slice(0, 200) },
-        detail,
+      const body = {
+        value: answerToServer(hit.card, value, cats).slice(0, 200),
+      }
+      decide(
+        "capture.answer",
+        { card_id: cardId, ...body },
+        // The server fills the field and re-tiers the card; the pull shows it.
+        () =>
+          patchCardHere(cardId, (c) => ({
+            ...c,
+            state: "proposed",
+            ask: undefined,
+          })),
+        () => void call<Row>("POST", cardPath(cardId, "answer"), body, detail),
       )
     },
     skip(cardId) {
-      void call<Row>("POST", cardPath(cardId, "skip"), undefined, putCard)
+      if (onlyHere(cardId)) return runLocally(() => skipAsk(cardId))
+      decide(
+        "capture.skip",
+        { card_id: cardId },
+        () => patchCardHere(cardId, (c) => ({ ...c, warn: SKIPPED })),
+        () =>
+          void call<Row>("POST", cardPath(cardId, "skip"), undefined, putCard),
+      )
     },
     retry(id) {
-      if (!deps.online()) {
-        toast("Still offline — it stays queued")
-        return
-      }
       if (find(id)?.status === "queued") {
-        backend.processQueue()
+        if (!deps.online()) toast("Still offline — it stays queued")
+        else backend.processQueue()
         return
       }
-      void call<Row>("POST", `/capture/${id}/retry`, undefined, detail)
+      decide(
+        "capture.retry",
+        { capture_id: id },
+        () => {
+          patchCapture(id, (c) => ({
+            ...c,
+            status: "processing",
+            startedAt: nowIso(),
+          }))
+          if (!deps.online())
+            toast("Offline — it'll be read again when you're back")
+        },
+        () => {
+          if (!deps.online()) {
+            toast("Still offline — it stays queued")
+            return
+          }
+          void call<Row>("POST", `/capture/${id}/retry`, undefined, detail)
+        },
+      )
     },
     rerun(id, text) {
       if (text !== undefined) patchCapture(id, (c) => ({ ...c, text }))
@@ -648,6 +831,10 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
       if (stale && deps.online()) deps.kick()
     },
     quickAdd(text, payload, target) {
+      // Offline (or the server can't be reached): the record goes straight
+      // into its module's store, which syncs it like any hand-made entry.
+      const here = () => runLocally(() => logQuickAdd(text, payload, target))
+      if (!deps.online()) return here()
       const card: RecordCard = {
         t: "record",
         id: newId(),
@@ -659,29 +846,32 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
         refs: [],
         log: [{ at: nowIso(), action: "proposed", actor: "user" }],
       }
-      void call<Row>(
-        "POST",
-        "/capture/quick-add",
-        {
+      void deps.http
+        .request<Row>("POST", "/capture/quick-add", {
           client_uuid: newId(),
           text: text.slice(0, 280),
           payload: payloadToServer(payload, cats),
-        },
-        (d) => {
-          detail(d)
-          const saved = ((d.cards ?? []) as Row[])[0]
-          toast.success(`Saved · ${text}`, {
-            duration: 5000,
-            action: saved
-              ? {
-                  label: "Undo",
-                  onClick: () => backend.undo(String(saved.id), true),
-                }
-              : undefined,
-          })
-        },
-        "Couldn't save that. Try again.",
-      )
+        })
+        .then(
+          (d) => {
+            detail(d)
+            deps.kick()
+            const saved = ((d.cards ?? []) as Row[])[0]
+            toast.success(`Saved · ${text}`, {
+              duration: 5000,
+              action: saved
+                ? {
+                    label: "Undo",
+                    onClick: () => backend.undo(String(saved.id), true),
+                  }
+                : undefined,
+            })
+          },
+          (error: unknown) => {
+            if (error instanceof NetworkError) here()
+            else toast("Couldn't save that. Try again.")
+          },
+        )
       return card
     },
   }
@@ -696,12 +886,61 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
       messages: withMessages(s.messages, ms),
     }))
 
+  const markAsk = (id: string, status: Msg["status"]) =>
+    companionStore.set((s) => ({
+      ...s,
+      messages: s.messages.map((m) =>
+        m.id === id && m.role === "me" ? { ...m, status } : m,
+      ),
+    }))
+  const dropAsk = (id: string) =>
+    companionStore.set((s) => ({
+      ...s,
+      messages: s.messages.filter((m) => !(m.id === id && m.status)),
+    }))
+  const photosOf = (m: Msg) => {
+    const b = m.blocks?.find((x) => x.t === "photos")
+    return b?.t === "photos"
+      ? (b.urls ?? []).filter((u): u is string => !!u)
+      : []
+  }
+  /** The question shows at once, before any request: the server's stored
+   * copy (same id) replaces it when the stream echoes it. */
+  const putAsk = (
+    id: string,
+    text: string,
+    hint: string | undefined,
+    photos: string[],
+    status: Msg["status"],
+  ) =>
+    putMessages([
+      {
+        id,
+        role: "me",
+        at:
+          companionStore.get().messages.find((m) => m.id === id)?.at ??
+          Date.now(),
+        ...(text ? { text } : {}),
+        ...(photos.length ? { blocks: [{ t: "photos", urls: photos }] } : {}),
+        ...(hint ? { hint } : {}),
+        status,
+      },
+    ])
+
   async function runAsk(
     text: string,
     hint: string | undefined,
     photos: string[] = [],
+    meId = newId(),
   ) {
-    const meId = newId()
+    putAsk(meId, text, hint, photos, "sending")
+    // Set once the server has stored the question: from then on a failure
+    // must not offer a Retry (it would ask twice).
+    let echoed = false
+    const fail = () => {
+      if (echoed) return
+      markAsk(meId, deps.online() ? "failed" : "queued")
+    }
     const solId = derivedId("companion-reply", meId, "sol")
     const readAloud = takeVoiceTurn()
     let solAt = 0
@@ -730,6 +969,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
     const custom = (name: string, d: Row) => {
       switch (name) {
         case "message":
+          if (String(d.id) === meId) echoed = true
           return putMessages([messageFromServer(d)])
         case "block":
           blocks = [...blocks, d as unknown as Block]
@@ -753,18 +993,6 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
       }
     }
     thinking.setState({ on: true })
-    // The message shows with its photos at once; the server's stored copy
-    // (same id) replaces it.
-    if (photos.length)
-      putMessages([
-        {
-          id: meId,
-          role: "me",
-          at: Date.now(),
-          ...(text ? { text } : {}),
-          blocks: [{ t: "photos", urls: photos }],
-        },
-      ])
     let mediaIds: string[] = []
     try {
       mediaIds = await Promise.all(
@@ -784,7 +1012,8 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
       )
     } catch {
       thinking.setState({ on: false })
-      toast("Couldn't upload the photos. Try again.")
+      fail()
+      toast("Couldn't upload the photos. Tap Retry to send them again.")
       return
     }
     try {
@@ -795,7 +1024,10 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
         ...(mediaIds.length ? { media_ids: mediaIds } : {}),
       })
       if (!res.ok) {
-        toast(`${companionName()} couldn't answer that. Try again.`)
+        fail()
+        toast(
+          `${companionName()} couldn't answer that. Tap Retry to ask again.`,
+        )
         return
       }
       await readSse(res, (e) => {
@@ -847,7 +1079,14 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
           case "RUN_FINISHED": {
             const out = (d.result ?? {}) as Row
             const msgs = ((out.messages ?? []) as Row[]).map(messageFromServer)
+            if (msgs.some((m) => m.id === meId)) echoed = true
             putMessages(msgs)
+            // Read as a log (the router's capture): the capture shows in
+            // the thread, not the question.
+            if (!echoed) {
+              echoed = true
+              dropAsk(meId)
+            }
             if (out.capture && typeof out.capture === "object")
               detail(out.capture as Row)
             // A dictated message hears its answer, like voice chat.
@@ -857,6 +1096,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
             return
           }
           case "RUN_ERROR":
+            fail()
             toast(`${companionName()} couldn't finish that reply.`)
             return
           default:
@@ -864,12 +1104,21 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
         }
       })
     } catch (error) {
+      fail()
       toast(
         error instanceof NetworkError || error instanceof ApiError
           ? OFFLINE
           : `${companionName()} couldn't finish that reply.`,
       )
     } finally {
+      // A stream that ended without RUN_FINISHED or an error frame.
+      if (
+        !echoed &&
+        companionStore
+          .get()
+          .messages.some((m) => m.id === meId && m.status === "sending")
+      )
+        fail()
       thinking.setState({ on: false })
       deps.kick()
       void refreshSpend()
@@ -888,16 +1137,60 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
           hint,
         })
       else if (routedToCapture) send({ text, source: "text", hint })
-      else
-        toast(
-          `${companionName()} needs a connection to answer. Try again when you're online.`,
-        )
+      else {
+        putAsk(newId(), text, hint, [], "queued")
+        toast(`${companionName()} will answer when you're back online.`)
+      }
       return
     }
     void runAsk(text, hint, photos)
   }
 
-  return { backend, ask, refreshSpend }
+  /** Send every queued question, oldest first (single-flight). */
+  let flushing: Promise<void> | null = null
+  function flushAsks(): Promise<void> {
+    if (flushing) return flushing
+    flushing = (async () => {
+      for (;;) {
+        if (!deps.online()) return
+        const next = companionStore
+          .get()
+          .messages.filter((m) => m.role === "me" && m.status === "queued")
+          .sort((a, b) => a.at - b.at)[0]
+        if (!next) return
+        await runAsk(next.text ?? "", next.hint, photosOf(next), next.id)
+      }
+    })().finally(() => {
+      flushing = null
+    })
+    return flushing
+  }
+
+  const retry = (id: string) => {
+    const m = companionStore.get().messages.find((x) => x.id === id)
+    if (m?.role !== "me" || m.status !== "failed") return
+    if (!deps.online()) {
+      markAsk(id, "queued")
+      toast(`${companionName()} will answer when you're back online.`)
+      return
+    }
+    void runAsk(m.text ?? "", m.hint, photosOf(m), id)
+  }
+
+  // A question still "sending" when the app last stopped may or may not
+  // have reached the server: offer a Retry (a pull replaces it if it did).
+  companionStore.set((s) =>
+    s.messages.some((m) => m.status === "sending")
+      ? {
+          ...s,
+          messages: s.messages.map((m) =>
+            m.status === "sending" ? { ...m, status: "failed" } : m,
+          ),
+        }
+      : s,
+  )
+
+  return { backend, ask, retry, flushAsks, refreshSpend }
 }
 
 // ---------------------------------------------------------------------------
@@ -937,11 +1230,16 @@ const anyFetch: Fetch = (url, init) =>
     : fetch(url, init)
 
 /** Install the live capture path and the companion's streaming ask. */
+let unwatch: (() => void) | null = null
 export function installLiveCapture(deps: LiveCaptureDeps) {
   const live = createLiveCapture(deps)
   setCaptureBackend(live.backend)
   setAskBackend(live.ask)
+  setRetryAsk(live.retry)
+  unwatch?.()
+  unwatch = deps.watch?.(() => void live.flushAsks()) ?? null
   void live.refreshSpend()
+  void live.flushAsks()
   return live
 }
 
@@ -952,9 +1250,13 @@ export function captureMappers(userId: string) {
     http,
     post: postStream,
     fetch: anyFetch,
+    keep: keepFile,
+    release: releaseFile,
     online: isOnline,
+    act: queueAction,
     kick: syncNow,
     cats: categoryIds(userId),
+    watch: onConnectivityChange,
   })
   return captureSyncMappers(userId)
 }

@@ -46,7 +46,7 @@ export function TaskShare() {
       },
     ],
     shown = metrics.filter((m) => on[m.key]),
-    caption = `Tasks ${RANGE_LABEL[range]}: ${shown.map((m) => `${m.value} ${m.label.toLowerCase()}`).join(" · ")} · Personal SOP`
+    caption = `Tasks ${RANGE_LABEL[range]}: ${shown.map((m) => `${m.value} ${m.label.toLowerCase()}`).join(" · ")} · Unfurl`
   const render = (kind: Layout, width: number, look: CardLook) => {
     const q = width / 100,
       tall = look.format === "9:16",

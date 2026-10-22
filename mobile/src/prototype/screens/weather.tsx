@@ -31,7 +31,6 @@ import {
 } from "react-native"
 import Animated, { FadeInDown, useReducedMotion } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { toast } from "sonner-native"
 import { border, Copy, Frame, IconTap, Line, Tap } from "../native-kit"
 import { back } from "../navigation"
 import { fonts, useTheme } from "../theme"
@@ -47,9 +46,9 @@ import {
   fmtHour,
   fmtRange,
   fmtTemp,
+  type Hour,
   hourOf,
   localStamp,
-  locateAndRefresh,
   outdoorAdvice,
   outdoorPlan,
   type Place,
@@ -58,6 +57,7 @@ import {
   type Scored,
   searchCities,
   skyGradient,
+  staleLocation,
   type TempUnit,
   todayOf,
   upcoming,
@@ -67,7 +67,7 @@ import {
   weatherStatus,
   weatherStore,
 } from "../weather"
-import { AdviceLine } from "../weather-card"
+import { AdviceLine, askLocation } from "../weather-card"
 
 const white = "#ffffff",
   whiteSoft = "#ffffffd9"
@@ -109,19 +109,6 @@ function CardTitle({
     </Line>
   )
 }
-async function askLocation() {
-  const r = await locateAndRefresh()
-  if (!r.ok) {
-    const city = weatherStore.get().city.name
-    toast(
-      r.reason === "denied"
-        ? `Location access is off — showing ${city}. Search for your city instead.`
-        : `Couldn't get your location — showing ${city}.`,
-    )
-  }
-  return r
-}
-
 export function Weather() {
   const t = useTheme(),
     safe = useSafeAreaInsets()
@@ -129,15 +116,17 @@ export function Weather() {
     loading = weatherStatus((x) => x.loading),
     locating = weatherStatus((x) => x.locating),
     error = weatherStatus((x) => x.error),
+    fixFailed = weatherStatus((x) => x.fixFailed),
     now = useMinuteTick()
   const [sheet, setSheet] = useState(false),
     [pulling, setPulling] = useState(false)
   useWeatherRefresh()
   useEffect(() => {
     // First visit: ask for location once; the saved city shows meanwhile.
-    if (!weatherStore.get().asked) askLocation()
+    askLocation(true)
   }, [])
-  const f = s.forecast
+  const f = s.forecast,
+    cur = f ? currentConditions(f, now) : null
   const setUnit = (unit: TempUnit) => weatherStore.set((x) => ({ ...x, unit }))
   return (
     <View style={{ flex: 1, backgroundColor: t.bg, paddingTop: safe.top }}>
@@ -227,7 +216,7 @@ export function Weather() {
           />
         }
       >
-        {f && error && !loading && (
+        {f && cur && error && !loading && (
           <Frame
             style={{ padding: 12, backgroundColor: `${t.warn.slice(0, 7)}1a` }}
           >
@@ -246,9 +235,11 @@ export function Weather() {
             </Line>
           </Frame>
         )}
-        {f ? (
+        {f && cur ? (
           <Loaded
             f={f}
+            cur={cur}
+            lastKnown={staleLocation(s, fixFailed, now)}
             unit={s.unit}
             now={now}
             source={s.source}
@@ -276,8 +267,11 @@ export function Weather() {
               Weather unavailable
             </Copy>
             <Copy size={14} muted style={{ textAlign: "center" }}>
-              {error ?? "No forecast saved yet."} Pull down or retry once you're
-              online.
+              {error ??
+                (f
+                  ? `The saved forecast is from ${ago(f.fetchedAt, now)} and no longer covers now.`
+                  : "No forecast saved yet.")}{" "}
+              Pull down or retry once you're online.
             </Copy>
             <Line
               style={{
@@ -307,6 +301,8 @@ export function Weather() {
 
 function Loaded({
   f,
+  cur,
+  lastKnown,
   unit,
   now,
   source,
@@ -315,6 +311,8 @@ function Loaded({
   onPlace,
 }: {
   f: Forecast
+  cur: Hour
+  lastKnown: string | null
   unit: TempUnit
   now: number
   source: "device" | "city"
@@ -323,8 +321,7 @@ function Loaded({
   onPlace: () => void
 }) {
   const t = useTheme()
-  const cur = currentConditions(f, now),
-    today = todayOf(f, now),
+  const today = todayOf(f, now),
     info = describeCode(cur.code, cur.day),
     hours = upcoming(f, now, 24),
     plan = outdoorPlan(f, now),
@@ -357,14 +354,14 @@ function Loaded({
                   </Copy>
                   <ChevronDown size={16} color={white} />
                 </Line>
-                {f.place.detail ? (
+                {lastKnown || f.place.detail ? (
                   <Copy size={12} lines={1} style={{ color: whiteSoft }}>
-                    {f.place.detail}
+                    {lastKnown ?? f.place.detail}
                   </Copy>
                 ) : null}
               </Tap>
               <Tap
-                onPress={askLocation}
+                onPress={() => askLocation()}
                 label="Use current location"
                 style={{
                   width: 44,
@@ -390,7 +387,7 @@ function Loaded({
               <Line style={{ gap: 12, alignItems: "center" }}>
                 <Text
                   style={{
-                    fontFamily: fonts.display,
+                    fontFamily: fonts.mono,
                     fontSize: 88,
                     lineHeight: 92,
                     color: white,
@@ -880,7 +877,7 @@ function PlaceSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
         busy={locating}
         onPress={async () => {
           const r = await askLocation()
-          if (r.ok) onClose()
+          if (r?.ok) onClose()
         }}
       />
       <PlaceRow

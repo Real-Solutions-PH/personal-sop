@@ -74,6 +74,8 @@ export const weatherStore = createStore<{
   source: "device" | "city"
   city: Place
   device: Place | null
+  // When the device fix was taken; null before the first one. Local only.
+  deviceAt: number | null
   asked: boolean
   unit: TempUnit
   forecast: Forecast | null
@@ -81,6 +83,7 @@ export const weatherStore = createStore<{
   source: "city",
   city: MANILA,
   device: null,
+  deviceAt: null,
   asked: false,
   unit: "c",
   forecast: null,
@@ -117,9 +120,16 @@ export function describeCode(
   if (code === 3) return { label: "Overcast", icon: Cloud, sky: "cloudy" }
   if (code === 45 || code === 48)
     return { label: "Fog", icon: CloudFog, sky: "fog" }
+  // WMO 51–55 is "drizzle", but in the tropics the model emits it for light
+  // showers, so name it the way people there describe it.
   if (code >= 51 && code <= 57)
     return {
-      label: code >= 56 ? "Freezing drizzle" : "Drizzle",
+      label:
+        code >= 56
+          ? "Freezing drizzle"
+          : code === 55
+            ? "Showers"
+            : "Light rain",
       icon: CloudDrizzle,
       sky: "drizzle",
     }
@@ -241,17 +251,20 @@ export const coordLabel = (lat: number, lon: number) =>
 // ---- Location-local time -----------------------------------------------------
 export const localStamp = (offset: number, now = Date.now()) =>
   new Date(now + offset * 1000).toISOString().slice(0, 16)
-export function currentConditions(f: Forecast, now = Date.now()): Hour {
+// Null once the saved hourly forecast no longer covers this hour (a forecast
+// kept through days offline): an old reading must not pass for "now".
+export function currentConditions(f: Forecast, now = Date.now()): Hour | null {
   if (now - f.fetchedAt < 45 * 60_000) return f.current
   const key = localStamp(f.offset, now).slice(0, 13)
-  return f.hourly.find((h) => h.time.slice(0, 13) === key) ?? f.current
+  return f.hourly.find((h) => h.time.slice(0, 13) === key) ?? null
 }
 export function upcoming(f: Forecast, now = Date.now(), count = 24) {
   const key = localStamp(f.offset, now).slice(0, 13)
   const i = f.hourly.findIndex((h) => h.time.slice(0, 13) === key)
   return i < 0 ? [] : f.hourly.slice(i, i + count)
 }
-// Highest rain chance over the next 12 hours (what matters when heading out).
+// Highest rain chance over the next 12 hours (what matters when heading out),
+// so every surface labels it "next 12h", not "today".
 export function rainSoon(f: Forecast, now = Date.now()) {
   const next = upcoming(f, now, 12)
   return next.length
@@ -398,12 +411,74 @@ export interface Advice {
   tone: "good" | "warn" | "bad"
   text: string
 }
+const wetHour = (h: Hour) => h.pop >= 50 || (isWet(h.code) && h.precip >= 0.5)
+const stormHour = (h: Hour) => isStorm(h.code) && h.pop >= 40
+// Rain in the next few hours, daylight or not. Leads the advice when it is
+// raining now, and at night (when the plan has moved on to tomorrow) when it
+// starts within 3 hours. Null when the next hours are dry.
+function rainLead(
+  f: Forecast,
+  plan: Plan,
+  now: number,
+): { kind: "rain" | "storm"; text: string } | null {
+  const next = upcoming(f, now, 7)
+  if (next.length === 0) return null
+  const cur = currentConditions(f, now)
+  const raining = (cur !== null && cur.precip > 0) || wetHour(next[0])
+  const storm = stormHour(next[0])
+  if (raining || storm) {
+    const end = next.findIndex(
+      (h, i) => i > 0 && !wetHour(h) && !stormHour(h) && h.precip < 0.3,
+    )
+    const kind = storm ? "storm" : "rain"
+    const what = storm ? "Thunderstorms now" : "Raining now"
+    return {
+      kind,
+      text:
+        end > 0
+          ? `${what} until about ${fmtHour(hourOf(next[end].time))}`
+          : `${what} — no break before ${fmtHour(hourOf(next[0].time) + next.length)}`,
+    }
+  }
+  if (plan.label !== "Tomorrow") return null
+  const later = next.slice(1, 4).find((h) => stormHour(h) || wetHour(h))
+  if (!later) return null
+  return stormHour(later)
+    ? {
+        kind: "storm",
+        text: `Thunderstorms likely after ${fmtHour(hourOf(later.time))}`,
+      }
+    : { kind: "rain", text: `Rain likely after ${fmtHour(hourOf(later.time))}` }
+}
+const TONE_RANK: Record<Advice["tone"], number> = { good: 0, warn: 1, bad: 2 }
 export function outdoorAdvice(
   f: Forecast,
   unit: TempUnit,
   now = Date.now(),
 ): Advice {
   const plan = outdoorPlan(f, now)
+  const lead = rainLead(f, plan, now)
+  if (lead && plan.label === "Today")
+    return {
+      kind: lead.kind,
+      tone: lead.kind === "storm" ? "bad" : "warn",
+      text: `${lead.text} — ${lead.kind === "storm" ? "avoid open ground" : "bring a jacket"}`,
+    }
+  const rest = planAdvice(f, plan, unit, now)
+  if (!lead || rest.kind === "none") return rest
+  const tone = lead.kind === "storm" ? "bad" : "warn"
+  return {
+    kind: lead.kind,
+    tone: TONE_RANK[rest.tone] > TONE_RANK[tone] ? rest.tone : tone,
+    text: `${lead.text}. ${rest.text}`,
+  }
+}
+function planAdvice(
+  f: Forecast,
+  plan: Plan,
+  unit: TempUnit,
+  now: number,
+): Advice {
   const hours = plan.hours.map((s) => s.hour)
   if (hours.length === 0)
     return {
@@ -420,16 +495,14 @@ export function outdoorAdvice(
       ? "now"
       : `after ${fmtHour(hourOf(h.time))}`
   const bestText = plan.best ? fmtRange(plan.best.start, plan.best.end) : null
-  const storm = hours.find((h) => isStorm(h.code) && h.pop >= 40)
+  const storm = hours.find(stormHour)
   if (storm)
     return {
       kind: "storm",
       tone: "bad",
       text: `${pre}Thunderstorms likely ${when(storm)} — avoid open ground`,
     }
-  const rain = hours.find(
-    (h) => h.pop >= 50 || (isWet(h.code) && h.precip >= 0.5),
-  )
+  const rain = hours.find(wetHour)
   if (rain) {
     const w = when(rain)
     return {
@@ -446,7 +519,7 @@ export function outdoorAdvice(
     return {
       kind: "heat",
       tone: hottest.feels >= 41 ? "bad" : "warn",
-      text: `${pre}Heat index ${fmtTemp(hottest.feels, unit)} — hydrate${bestText ? `, best outside ${bestText}` : " and take shade breaks"}`,
+      text: `${pre}Feels like ${fmtTemp(hottest.feels, unit)} — hydrate${bestText ? `, best outside ${bestText}` : " and take shade breaks"}`,
     }
   const uv = hours.filter((h) => h.uv >= 8)
   if (uv.length) {
@@ -499,13 +572,19 @@ export function parseForecast(
 ): Forecast {
   const h = json.hourly,
     d = json.daily
-  const hourly: Hour[] = (h.time as string[]).slice(0, 72).map((time, i) => ({
+  // Open-Meteo's hourly precipitation and its probability cover the hour
+  // BEFORE the timestamp; shift them so the 2 PM slot means 2–3 PM. The last
+  // slot has no following hour and keeps its own values.
+  const times = h.time as string[]
+  const ahead = (col: Columns[string], i: number) =>
+    num(col[i + 1 < times.length ? i + 1 : i])
+  const hourly: Hour[] = times.slice(0, 72).map((time, i) => ({
     time,
     temp: num(h.temperature_2m[i]),
     feels: num(h.apparent_temperature[i]),
     code: num(h.weather_code[i]),
-    pop: num(h.precipitation_probability[i]),
-    precip: num(h.precipitation[i]),
+    pop: ahead(h.precipitation_probability, i),
+    precip: ahead(h.precipitation, i),
     wind: num(h.wind_speed_10m[i]),
     uv: num(h.uv_index[i]),
     humidity: num(h.relative_humidity_2m[i]),
@@ -581,25 +660,27 @@ export async function searchCities(query: string): Promise<Place[]> {
 
 // ---- Device location -------------------------------------------------------
 export type Located =
-  | { ok: true; place: Place }
+  | { ok: true; place: Place; at: number }
   | { ok: false; reason: "denied" | "unavailable" }
-function within<T>(promise: Promise<T>, ms: number) {
+export function within<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let id: ReturnType<typeof setTimeout> | undefined
   return Promise.race([
     promise,
-    new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("timeout")), ms),
-    ),
-  ])
+    new Promise<never>((_, reject) => {
+      id = setTimeout(() => reject(new Error("timeout")), ms)
+    }),
+  ]).finally(() => clearTimeout(id))
 }
 export async function locateDevice(prompt: boolean): Promise<Located> {
   try {
     const perm = prompt
       ? await within(Location.requestForegroundPermissionsAsync(), 20_000)
-      : await Location.getForegroundPermissionsAsync()
+      : await within(Location.getForegroundPermissionsAsync(), 5_000)
     if (!perm.granted) return { ok: false, reason: "denied" }
-    const last = await Location.getLastKnownPositionAsync({
-      maxAge: STALE_MS,
-    }).catch(() => null)
+    const last = await within(
+      Location.getLastKnownPositionAsync({ maxAge: STALE_MS }),
+      5_000,
+    ).catch(() => null)
     const pos =
       last ??
       (await within(
@@ -632,7 +713,7 @@ export async function locateDevice(prompt: boolean): Promise<Located> {
         // Keep the coordinates label.
       }
     }
-    return { ok: true, place }
+    return { ok: true, place, at: pos.timestamp || Date.now() }
   } catch {
     return { ok: false, reason: "unavailable" }
   }
@@ -643,7 +724,26 @@ export const weatherStatus = create<{
   loading: boolean
   locating: boolean
   error: string | null
-}>(() => ({ loading: false, locating: false, error: null }))
+  // The last device fix failed, so the forecast is for the saved location.
+  fixFailed: boolean
+}>(() => ({ loading: false, locating: false, error: null, fixFailed: false }))
+// The whole refresh (location fix + fetch) gives up after this, so
+// "Updating…" can never hang.
+export const REFRESH_CAP_MS = 35_000
+const LOCATE_CAP_MS = 20_000
+// After a failed refresh, automatic (non-forced) refreshes wait this long.
+const RETRY_MS = 5 * 60_000
+let lastFail = 0
+// "Last known location · 3h ago" when the device fix failed; null otherwise.
+export function staleLocation(
+  s: ReturnType<typeof weatherStore.get>,
+  fixFailed: boolean,
+  now = Date.now(),
+) {
+  return s.source === "device" && s.device && fixFailed
+    ? `Last known location${s.deviceAt ? ` · ${ago(s.deviceAt, now)}` : ""}`
+    : null
+}
 export const activePlace = (s: ReturnType<typeof weatherStore.get>) =>
   s.source === "device" && s.device ? s.device : s.city
 const samePlace = (a: Place, b: Place) =>
@@ -659,24 +759,36 @@ export function refreshWeather(force = false): Promise<void> {
     Date.now() - f.fetchedAt < STALE_MS
   )
     return Promise.resolve()
+  const sinceFail = Date.now() - lastFail
+  if (!force && sinceFail >= 0 && sinceFail < RETRY_MS) return Promise.resolve()
   // A forced refresh (new place, pull-to-refresh) runs after any in-flight one.
   if (inflight)
     return force ? inflight.then(() => refreshWeather(true)) : inflight
   weatherStatus.setState({ loading: true, error: null })
+  const load = async () => {
+    if (weatherStore.get().source === "device") {
+      const r = await within(locateDevice(false), LOCATE_CAP_MS).catch(
+        (): Located => ({ ok: false, reason: "unavailable" }),
+      )
+      if (r.ok)
+        weatherStore.set((x) => ({ ...x, device: r.place, deviceAt: r.at }))
+      else if (r.reason === "denied")
+        weatherStore.set((x) => ({ ...x, source: "city" }))
+      // A failed fix keeps the saved device location; say so on screen.
+      weatherStatus.setState({ fixFailed: !r.ok && r.reason !== "denied" })
+    }
+    const place = activePlace(weatherStore.get())
+    const json = await getJson<ForecastJson>(forecastUrl(place))
+    const forecast = parseForecast(json, place)
+    weatherStore.set((x) => ({ ...x, forecast }))
+  }
   inflight = (async () => {
     try {
-      if (weatherStore.get().source === "device") {
-        const r = await locateDevice(false)
-        if (r.ok) weatherStore.set((x) => ({ ...x, device: r.place }))
-        else if (r.reason === "denied")
-          weatherStore.set((x) => ({ ...x, source: "city" }))
-      }
-      const place = activePlace(weatherStore.get())
-      const json = await getJson<ForecastJson>(forecastUrl(place))
-      const forecast = parseForecast(json, place)
-      weatherStore.set((x) => ({ ...x, forecast }))
+      await within(load(), REFRESH_CAP_MS)
+      lastFail = 0
       weatherStatus.setState({ error: null })
     } catch {
+      lastFail = Date.now()
       weatherStatus.setState({
         error: "Couldn't reach the weather service. Check your connection.",
       })
@@ -692,25 +804,43 @@ export async function locateAndRefresh(): Promise<Located> {
   const r = await locateDevice(true)
   weatherStore.set((x) =>
     r.ok
-      ? { ...x, asked: true, source: "device", device: r.place }
+      ? { ...x, asked: true, source: "device", device: r.place, deviceAt: r.at }
       : { ...x, asked: true, source: "city" },
   )
-  weatherStatus.setState({ locating: false })
+  weatherStatus.setState({ locating: false, fixFailed: false })
   await refreshWeather(true)
   return r
+}
+// The one-time location ask, shared by every surface that shows weather so
+// two of them mounted together prompt once.
+let asking: Promise<Located> | null = null
+export function askLocationOnce(): Promise<Located> | null {
+  if (weatherStore.get().asked) return null
+  asking ??= locateAndRefresh().finally(() => {
+    asking = null
+  })
+  return asking
 }
 export function chooseCity(place: Place) {
   weatherStore.set((x) => ({ ...x, source: "city", city: place }))
   return refreshWeather(true)
 }
-// Refresh when stale on mount and whenever the app returns to the foreground.
+// Refresh when stale: on mount, whenever the app returns to the foreground,
+// and every minute while the screen stays open (refreshWeather is a no-op
+// until the forecast is STALE_MS old).
 export function useWeatherRefresh() {
   useEffect(() => {
     refreshWeather()
     const sub = AppState.addEventListener("change", (state) => {
       if (state === "active") refreshWeather()
     })
-    return () => sub.remove()
+    const id = setInterval(() => {
+      if (AppState.currentState !== "background") refreshWeather()
+    }, 60_000)
+    return () => {
+      sub.remove()
+      clearInterval(id)
+    }
   }, [])
 }
 export function useMinuteTick() {

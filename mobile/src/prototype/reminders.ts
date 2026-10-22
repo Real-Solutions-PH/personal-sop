@@ -34,7 +34,7 @@ export async function enableReminders(
     const status = p.status === "denied" ? "denied" : "default"
     setPush({ permission: status })
     if (!p.canAskAgain) {
-      toast("Turn on notifications for Personal SOP in Settings")
+      toast("Turn on notifications for Unfurl in Settings")
       await openSettings()
     } else toast("Reminders stay off. You can turn them on any time.")
     return status

@@ -131,9 +131,7 @@ export function Reports({
           size={40}
           color={t.text}
           onPress={() =>
-            shareText(
-              `Savings rate ${C.pct(C.savingsRate(d.flow))} · Personal SOP`,
-            )
+            shareText(`Savings rate ${C.pct(C.savingsRate(d.flow))} · Unfurl`)
           }
         />
       }

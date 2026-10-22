@@ -14,6 +14,7 @@ import { captureMappers } from "./capture"
 import { API_PREFIX, API_URL } from "./config"
 import { SyncEngine } from "./engine"
 import { runEventStream, type ServerEvent } from "./events"
+import { transcribePending } from "./journal-audio"
 import type { AnyMapper } from "./mapper"
 import { companionMappers } from "./mappers/companion"
 import { dashMappers } from "./mappers/dash"
@@ -82,6 +83,7 @@ export function startLive(userId: string, storage: StorageAdapter) {
       "sop-live:cursor",
       "sop-live:deleted",
       "sop-live:dead-letter",
+      "sop-live:previous",
     ])
       storage.removeItem(key)
     clearToBlank()
@@ -108,7 +110,11 @@ export function startLive(userId: string, storage: StorageAdapter) {
     outbox: createOutbox(storage),
     mappers: factories.flatMap((f) => f(userId)),
     online: getConnectivity,
-    onSynced: () => void stats.refreshAll(),
+    onSynced: () => {
+      void stats.refreshAll()
+      // The server is reachable: voice entries saved offline get their words.
+      void transcribePending()
+    },
   })
   syncing = engine
   engine.start((m, onChange) => {
@@ -182,6 +188,14 @@ export function stopLive() {
  * Returns how many changes were queued, or null when not signed in live. */
 export function reuploadAll(): number | null {
   return active ? active.engine.reupload() : null
+}
+
+/** Queue a domain action through the outbox. False when live sync is not
+ * running (the caller falls back to calling the API directly). */
+export function queueAction(name: string, data: Record<string, unknown>) {
+  if (!active) return false
+  active.engine.act(name, data)
+  return true
 }
 
 /** Push now (connectivity regained). */

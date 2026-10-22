@@ -117,7 +117,7 @@ function ShareSheetArt() {
 function HomeIconArt() {
   return (
     <div className="flex gap-3 rounded-xl bg-muted p-3">
-      {["", "", "SOP", ""].map((l, i) => (
+      {["", "", "Unfurl", ""].map((l, i) => (
         <div key={i} className="flex flex-col items-center gap-1">
           <div
             className={cn(
@@ -130,7 +130,7 @@ function HomeIconArt() {
             {l}
           </div>
           <div className="text-[9px] text-muted-foreground">
-            {l ? "SOP" : "App"}
+            {l ? "Unfurl" : "App"}
           </div>
         </div>
       ))}
@@ -163,7 +163,7 @@ export function RemindersScreen() {
         <div className="fixed inset-x-0 top-3 z-50 mx-auto w-[calc(100%-1.5rem)] max-w-sm animate-in slide-in-from-top rounded-2xl bg-card/95 p-3 shadow-2xl ring-1 ring-border backdrop-blur">
           <div className="flex items-center gap-2">
             <div className="grid size-8 place-items-center rounded-lg bg-gradient-to-br from-primary to-hab font-bold text-[10px] text-white">
-              SOP
+              Unfurl
             </div>
             <div className="min-w-0 flex-1">
               <div className="font-semibold text-sm">You're set ✓</div>
@@ -223,7 +223,7 @@ export function RemindersScreen() {
             />
             <Step
               n={3}
-              title="Open SOP from your Home Screen"
+              title="Open Unfurl from your Home Screen"
               body="Then come back here to switch reminders on."
               art={<HomeIconArt />}
             />
@@ -268,7 +268,7 @@ export function RemindersScreen() {
             {notif.platform === "ios" ? (
               <>
                 <li>Open the iPhone Settings app → Notifications.</li>
-                <li>Find “SOP” in the app list.</li>
+                <li>Find “Unfurl” in the app list.</li>
                 <li>Turn on Allow Notifications.</li>
               </>
             ) : (
@@ -359,7 +359,7 @@ export function RemindersScreen() {
           >
             <div className="p-4">
               <div className="font-semibold">
-                “SOP” Would Like to Send You Notifications
+                “Unfurl” Would Like to Send You Notifications
               </div>
               <div className="mt-1 text-muted-foreground text-xs">
                 Notifications may include alerts, sounds and icon badges.

@@ -283,7 +283,7 @@ export function Welcome() {
               onScroll={onScroll}
               scrollEventThrottle={16}
               onScrollBeginDrag={() => setTouched(true)}
-              accessibilityLabel="What Personal SOP does"
+              accessibilityLabel="What Unfurl does"
             >
               {SLIDES.map((s, i) => (
                 <View

@@ -604,7 +604,8 @@ export function journalMapper(): Mapper<CaptureState, JournalEntry> {
   return {
     entity: "journal_entry",
     store: captureStore,
-    list: (s) => s.journal.filter((j) => isUuid(j.id)),
+    // A voice entry still waiting for its words stays on the device.
+    list: (s) => s.journal.filter((j) => isUuid(j.id) && !j.transcription),
     id: (j) => j.id,
     toServer: journalToServer,
     fromServer: journalFromServer,

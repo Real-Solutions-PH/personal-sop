@@ -1,5 +1,4 @@
 import * as Haptics from "expo-haptics"
-import { LinearGradient } from "expo-linear-gradient"
 import {
   Check,
   ChevronLeft,
@@ -8,7 +7,6 @@ import {
   Circle as EmptyCircle,
   Eye,
   EyeOff,
-  ListChecks,
   type LucideIcon,
 } from "lucide-react-native"
 import {
@@ -46,6 +44,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import Svg, { Path } from "react-native-svg"
 import { liveMode } from "@/live/config"
+import { FernMark } from "./companion/brand"
 import { back } from "./navigation"
 import { passwordStrength } from "./session"
 import { fonts, useTheme } from "./theme"
@@ -102,37 +101,23 @@ export function Wordmark({
   color?: string
   size?: number
 }) {
-  const t = useTheme()
   return (
     <View
       accessible
       accessibilityRole="header"
-      accessibilityLabel="Personal SOP"
+      accessibilityLabel="Unfurl"
       style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
     >
-      <LinearGradient
-        colors={[t.primary, t.hab]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{
-          width: size * 2.2,
-          height: size * 2.2,
-          borderRadius: size * 0.7,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <ListChecks size={size * 1.25} color="#fff" strokeWidth={2.4} />
-      </LinearGradient>
+      <FernMark size={size * 2.2} color={color} />
       <Text
         style={{
-          fontFamily: fonts.displayHeavy,
-          fontSize: size,
-          letterSpacing: size * 0.22,
+          fontFamily: fonts.medium,
+          fontSize: size * 1.6,
+          letterSpacing: -0.03 * size * 1.6,
           color,
         }}
       >
-        PERSONAL SOP
+        unfurl
       </Text>
     </View>
   )

@@ -1,15 +1,11 @@
 import { configureNotifications, setConnectivity } from "@domain/lib/platform"
 import { configureStorage, flushStores } from "@domain/lib/store"
 import { connectWorkoutHabits } from "@domain/wiring"
-import { Barlow_400Regular } from "@expo-google-fonts/barlow/400Regular"
-import { Barlow_500Medium } from "@expo-google-fonts/barlow/500Medium"
-import { Barlow_600SemiBold } from "@expo-google-fonts/barlow/600SemiBold"
-import { Barlow_700Bold } from "@expo-google-fonts/barlow/700Bold"
-import { BarlowCondensed_500Medium } from "@expo-google-fonts/barlow-condensed/500Medium"
-import { BarlowCondensed_600SemiBold } from "@expo-google-fonts/barlow-condensed/600SemiBold"
-import { BarlowCondensed_700Bold } from "@expo-google-fonts/barlow-condensed/700Bold"
-import { BarlowCondensed_800ExtraBold } from "@expo-google-fonts/barlow-condensed/800ExtraBold"
-import { BarlowCondensed_900Black } from "@expo-google-fonts/barlow-condensed/900Black"
+import { Geist_400Regular } from "@expo-google-fonts/geist/400Regular"
+import { Geist_500Medium } from "@expo-google-fonts/geist/500Medium"
+import { Geist_600SemiBold } from "@expo-google-fonts/geist/600SemiBold"
+import { GeistMono_400Regular } from "@expo-google-fonts/geist-mono/400Regular"
+import { GeistMono_500Medium } from "@expo-google-fonts/geist-mono/500Medium"
 import NetInfo from "@react-native-community/netinfo"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { useFonts } from "expo-font"
@@ -37,15 +33,11 @@ const queryClient = new QueryClient({
 
 export function PrototypeProviders({ children }: { children: ReactNode }) {
   const [fontsLoaded, fontError] = useFonts({
-    Barlow_400Regular,
-    Barlow_500Medium,
-    Barlow_600SemiBold,
-    Barlow_700Bold,
-    BarlowCondensed_500Medium,
-    BarlowCondensed_600SemiBold,
-    BarlowCondensed_700Bold,
-    BarlowCondensed_800ExtraBold,
-    BarlowCondensed_900Black,
+    Geist_400Regular,
+    Geist_500Medium,
+    Geist_600SemiBold,
+    GeistMono_400Regular,
+    GeistMono_500Medium,
   })
   const [ready, setReady] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -134,8 +126,8 @@ export function PrototypeProviders({ children }: { children: ReactNode }) {
                 gap: 12,
               }}
             >
-              <ActivityIndicator accessibilityLabel="Opening Personal SOP" />
-              <Text>Opening Personal SOP…</Text>
+              <ActivityIndicator accessibilityLabel="Opening Unfurl" />
+              <Text>Opening Unfurl…</Text>
             </View>
           )}
           {ready && (fontsLoaded || fontError) && children}

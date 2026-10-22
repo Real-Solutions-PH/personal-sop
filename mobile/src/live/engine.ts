@@ -43,6 +43,10 @@ export interface EngineDeps {
 
 const SNAP_KEY = "sop-live:snapshot"
 const CURSOR_KEY = "sop-live:cursor"
+// The local rows as of the last capture, so a transition made while the
+// engine was not running (before sign-in finished, on an offline launch)
+// still becomes its action op when the engine starts.
+export const PREVIOUS_KEY = "sop-live:previous"
 export const DEAD_LETTER_KEY = "sop-live:dead-letter"
 const DELETED_KEY = "sop-live:deleted"
 const DELETED_LIMIT = 500
@@ -68,17 +72,20 @@ export class SyncEngine {
   readonly rejected: OpResult[] = []
 
   constructor(private deps: EngineDeps) {
+    let stored: Record<string, Record<string, unknown>> = {}
     try {
       this.snapshot = JSON.parse(deps.storage.getItem(SNAP_KEY) ?? "{}")
       this.cursor = Number(deps.storage.getItem(CURSOR_KEY) ?? 0) || 0
       this.deleted = JSON.parse(deps.storage.getItem(DELETED_KEY) ?? "{}")
+      stored = JSON.parse(deps.storage.getItem(PREVIOUS_KEY) ?? "{}")
     } catch {
       this.snapshot = {}
       this.cursor = 0
     }
     for (const m of deps.mappers) {
       this.snapshot[m.entity] ??= {}
-      this.previous[m.entity] = this.index(m, m.store.get())
+      // No stored baseline (first run): the current rows are the baseline.
+      this.previous[m.entity] = stored[m.entity] ?? this.index(m, m.store.get())
     }
   }
 
@@ -92,6 +99,7 @@ export class SyncEngine {
     this.deps.storage.setItem(SNAP_KEY, JSON.stringify(this.snapshot))
     this.deps.storage.setItem(CURSOR_KEY, String(this.cursor))
     this.deps.storage.setItem(DELETED_KEY, JSON.stringify(this.deleted))
+    this.deps.storage.setItem(PREVIOUS_KEY, JSON.stringify(this.previous))
   }
 
   /** Watch the mapped stores. Call once at app start (after sign-in). */
@@ -125,6 +133,20 @@ export class SyncEngine {
     clearTimeout(this.timer)
     this.timer = null
     this.capture()
+    void this.sync()
+  }
+
+  /** Queue a domain action no store diff stands for (a capture card
+   * decision). An edit still in the debounce window is captured first, so
+   * the outbox keeps the order things happened in; offline it waits there
+   * like every other op. */
+  act(name: string, data: Record<string, unknown>) {
+    if (this.timer) {
+      clearTimeout(this.timer)
+      this.timer = null
+      this.capture()
+    }
+    this.deps.outbox.add([{ op_id: newId(), kind: "action", name, data }])
     void this.sync()
   }
 

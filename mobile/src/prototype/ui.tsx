@@ -61,7 +61,7 @@ export function Label({
       style={{
         color: muted ? t.muted : t.text,
         fontSize: large ? 28 : 15,
-        fontFamily: large ? fonts.display : fonts.body,
+        fontFamily: large ? fonts.mono : fonts.body,
         fontVariant: ["tabular-nums"],
         lineHeight: large ? 34 : 22,
       }}
@@ -1078,14 +1078,19 @@ export function Progress({ value, label }: { value: number; label?: string }) {
     </View>
   )
 }
-export function confirm(title: string, message: string, onConfirm: () => void) {
+export function confirm(
+  title: string,
+  message: string,
+  onConfirm: () => void,
+  label = "Confirm",
+) {
   if (Platform.OS === "web") {
     if (globalThis.confirm(`${title}\n\n${message}`)) onConfirm()
     return
   }
   Alert.alert(title, message, [
     { text: "Cancel", style: "cancel" },
-    { text: "Confirm", style: "destructive", onPress: onConfirm },
+    { text: label, style: "destructive", onPress: onConfirm },
   ])
 }
 export function undo(message: string, action: () => void) {
