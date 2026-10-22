@@ -61,6 +61,8 @@ const STEP_LABELS: Record<string, string> = {
   log_workout: "Logging a workout",
   log_weigh_in: "Logging your weight",
   log_meal: "Logging a meal",
+  web_search: "Searching the web",
+  read_photos: "Looking at your photos",
   save_journal: "Saving to your journal",
   edit_last: "Changing the last entry",
   delete_last: "Removing the last entry",

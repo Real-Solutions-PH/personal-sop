@@ -24,7 +24,7 @@ from sqlmodel import col
 
 from app.modules.ai_providers import public as ai
 from app.modules.capture import public as capture
-from app.modules.companion import brain, grounding
+from app.modules.companion import brain, grounding, web
 from app.modules.companion.defaults import COMPANION_NAME
 from app.modules.companion.models import Companion, CompanionMessage, Memory, Tracker
 from app.modules.companion.schema import (
@@ -364,6 +364,10 @@ class LookupArgs(BaseModel):
     question: Annotated[str, Field(min_length=1, max_length=300)]
 
 
+class WebSearchArgs(BaseModel):
+    query: Annotated[str, Field(min_length=2, max_length=200)]
+
+
 class OverviewArgs(BaseModel):
     days: Annotated[int, Field(ge=1, le=366)] = 30
 
@@ -458,6 +462,13 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
             if body.get(k)
         }
 
+    def web_search(**kw: Any) -> dict[str, Any]:
+        a = WebSearchArgs(**kw)
+        try:
+            return {"query": a.query, "results": web.search(a.query)}
+        except web.WebSearchError as exc:
+            return {"error": exc.code}
+
     def stats_overview(**kw: Any) -> dict[str, Any]:
         a = OverviewArgs(**kw)
         try:
@@ -498,6 +509,14 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
         (show_memories, NoArgs, "Show what you remember about the user."),
         (suggest, ChipsArgs, "Offer up to four follow-up prompts as chips."),
         (lookup, LookupArgs, "Look up a number in the user's own data."),
+        (
+            web_search,
+            WebSearchArgs,
+            "Search the web for facts outside the user's records: what a dish, "
+            "food or product is and its nutrition (calories, protein, carbs, "
+            "fat, fiber, sugar, sodium), prices, places. Returns titles, links "
+            "and snippets.",
+        ),
         (stats_overview, OverviewArgs, "The user's Life Score and area rates."),
         (
             confirm_pending,
@@ -590,7 +609,13 @@ be told to register or add them; listing them back is not recording them.
 - A write that returns an error did not happen; say so plainly.
 Show charts, insights, coaching, plans, trackers and memories with their
 tools instead of describing them; each returns what its card shows, so speak
-only to that. Use `lookup` for a number not in TODAY. Never call the same tool
+only to that. Use `lookup` for a number not in TODAY. When they name a food,
+dish, drink or product you don't know well (a restaurant or branded item,
+a local dish), call `web_search` first, for example "<name> nutrition per
+serving", and build `log_meal` items from the numbers it finds, scaled to
+what they ate; mention where the numbers came from in a few words. If the
+results give no numbers, say so and estimate. Never present a web number as
+the user's own data. Never call the same tool
 twice with the same arguments. After acting, answer in one or two short
 sentences saying what you did.
 

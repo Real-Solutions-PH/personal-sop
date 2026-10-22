@@ -76,6 +76,7 @@ RUNNING: dict[str, str] = {
     "show_memories": "Gathering what I remember",
     "suggest": "Suggesting next questions",
     "read_photos": "Looking at your photos",
+    "web_search": "Searching the web",
     "confirm_pending": "Saving what was waiting",
     "discard_pending": "Dropping what was waiting",
 }
@@ -186,6 +187,7 @@ def outcome(ctx: Ctx, name: str, args: dict[str, Any], result: Any) -> tuple[boo
         "forget_fact": "Forgot that",
         "show_memories": "Showed what I remember",
         "suggest": "Suggested next questions",
+        "web_search": f"Searched the web: {args.get('query', '')}",
         "read_photos": (
             f"Read {args.get('photos', '')} photo"
             f"{'' if args.get('photos') == 1 else 's'}"
