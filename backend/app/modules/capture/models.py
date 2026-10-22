@@ -36,6 +36,7 @@ RECORD_KINDS = (
     "photo",
     "command",
     "accountCreate",
+    "accountBalance",
     "budgetCreate",
     "routineCreate",
     "templateCreate",

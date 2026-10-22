@@ -244,3 +244,61 @@ def test_a_failed_model_hands_a_log_to_capture_with_the_question_stored_once(
         c for c in pull(api).get("companion_message", []) if c["id"] == str(me_id)
     ]
     assert changes and all(c["deleted"] for c in changes)
+
+
+def test_nutrition_status_shows_the_day_as_one_card(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = user(client, db)
+    api.assign("chat")
+    install(
+        monkeypatch,
+        say("", call("nutrition_status")),
+        # Asked twice in one reply: still one card.
+        say("", call("nutrition_status")),
+        say("1,470 kcal and 90 g protein left today."),
+    )
+    r = client.post(
+        "/api/v1/companion/ask/stream",
+        headers=api.h,
+        json={"text": "how are my macros today?"},
+    )
+    events = parse_agui(r.text)
+    custom = [(e["name"], e["value"]) for e in events if e["type"] == "CUSTOM"]
+    blocks = [v for n, v in custom if n == "block"]
+    assert len(blocks) == 1 and blocks[0]["t"] == "nutrition"
+    stored = events[-1]["result"]["messages"][1]["blocks"]
+    assert stored[1:] == blocks
+    # The card names its business day, so an old reply keeps its own day.
+    assert len(blocks[0]["day"]) == 10 and blocks[0]["day"][4] == "-"
+
+
+def test_a_macros_question_answered_without_the_tool_still_shows_the_card(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = user(client, db)
+    api.assign("chat")
+    install(monkeypatch, say("You have 1,470 kcal left today."))
+    r = client.post(
+        "/api/v1/companion/ask/stream",
+        headers=api.h,
+        json={"text": "can you pull up my macros?"},
+    )
+    events = parse_agui(r.text)
+    blocks = [e["value"] for e in events if e.get("name") == "block"]
+    assert [b["t"] for b in blocks] == ["nutrition"]
+
+
+def test_a_question_about_something_else_shows_no_nutrition_card(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = user(client, db)
+    api.assign("chat")
+    install(monkeypatch, say("Three tasks are left today."))
+    r = client.post(
+        "/api/v1/companion/ask/stream",
+        headers=api.h,
+        json={"text": "what's left on my tasks today?"},
+    )
+    events = parse_agui(r.text)
+    assert not [e for e in events if e.get("name") == "block"]

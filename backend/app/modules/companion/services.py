@@ -526,6 +526,10 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
 
     def nutrition_status(**kw: Any) -> dict[str, Any]:
         NoArgs(**kw)
+        # The person sees the day as a card (rings for the goals, bars for
+        # the limits), once per reply however often the model asks.
+        if not any(b["t"] == "nutrition" for b in run.blocks):
+            run.block({"t": "nutrition", "day": ctx.today.isoformat()})
         # Fresh from the records, so a meal logged earlier in this turn
         # counts; a meal waiting for the user's OK does not, yet.
         return fitness.nutrition_today(ctx)
@@ -660,7 +664,9 @@ be told to register or add them; listing them back is not recording them.
   Training and body: `log_workout`, `log_weigh_in`, `log_meal`. Journal:
   `save_journal`. Fixing the last entry: `edit_last`, `delete_last`.
 - Setting things up is yours to do too, in this same reply: a new money
-  account (`create_account`, its balance today, 0 if not given), a monthly
+  account (`create_account`, its balance today, 0 if not given), the
+  balance of an account they already have, opening or corrected
+  (`set_account_balance`, one call per account), a monthly
   budget (`create_budget`), a habit (`create_habit` with its type, target,
   days and time when said), a routine of timed steps such as a morning
   routine (`create_routine`), a gym routine or workout plan
@@ -698,9 +704,12 @@ as their own items from standard values (1 cup cooked white rice is about
 exact item, use the closest match and say which. Mention the source in a few
 words. Never present a web number as
 the user's own data.
-For macros, calories or "what's left today", call `nutrition_status` and
-answer from it in one or two sentences: eaten against the target, then
-what is left for protein and calories first. After `log_meal`, report the day from its `day_after_this_meal`. Never add up or subtract
+For macros, calories, nutrition or "what's left today", always call
+`nutrition_status`, even though TODAY below has the numbers: the call is what
+shows the person their nutrition card, which has every number. Then answer in
+one or two sentences with what matters most (calories and protein left, and
+any limit they are near or over), however earlier replies were worded. Don't
+list every macro. After `log_meal`, report the day from its `day_after_this_meal`. Never add up or subtract
 numbers yourself; a meal still waiting for their OK is not counted yet,
 so say so if one is. Never call the same tool
 twice with the same arguments. After acting, answer in one or two short
@@ -746,6 +755,12 @@ def _strip_marks(delta: str) -> str:
 # A write the user asked for, a reply that says it happened, and no write
 # tool that succeeded: the reply is checked against what the turn actually
 # did (the constitution's deterministic-faithfulness rule), never trusted.
+# The day's food: macros, calories, nutrition, what is left to eat.
+_ABOUT_NUTRITION = re.compile(
+    r"\b(macros?|calories|kcal|protein|carbs|nutrition(al)?|"
+    r"sat(urated)? fat|sodium|fiber|left to eat)\b",
+    re.I,
+)
 _ASKS_TO_WRITE = re.compile(
     r"\b(add|log|record|remind|create|set|schedule|save|note|mark|complete|"
     r"finish|spent|paid|bought|ate|ran|weigh|weighed|journal|track|"
@@ -806,6 +821,7 @@ WRITE_TOOLS = frozenset(
         "log_habit",
         "create_habit",
         "create_account",
+        "set_account_balance",
         "create_budget",
         "create_routine",
         "create_workout_template",
@@ -964,6 +980,13 @@ def _ask_ai(
         answer = plain_text(reply)
         if unbacked_claim(text, answer, stream.steps):
             answer = NOT_RECORDED
+    if _ABOUT_NUTRITION.search(text) and not any(
+        b["t"] == "nutrition" for b in run.blocks
+    ):
+        # Asked about the day's food and answered from memory: the card
+        # still shows, since a model copying its earlier replies may skip
+        # the tool that draws it.
+        run.block({"t": "nutrition", "day": ctx.today.isoformat()})
     cap_id = capture.finish_chat_capture(ctx, wrun, reply=answer)
     steps = stream.steps_block()
     blocks = ([steps] if steps else []) + list(run.blocks)

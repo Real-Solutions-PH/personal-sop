@@ -37,6 +37,7 @@ import { Donut, FIN_PALETTE } from "../finance-charts"
 import { GrowBar } from "../motion"
 import { go } from "../navigation"
 import { useMoney } from "../screens/finance"
+import { NutritionDay } from "../screens/nutrition-day"
 import { type Accent, fonts, useTheme } from "../theme"
 import { ask, metricLabel } from "./brain"
 import {
@@ -245,6 +246,32 @@ function Panel({
     >
       {children}
     </Animated.View>
+  )
+}
+
+/** The day's food as Fern pulled it up: the same rings and limit bars as the
+ * Today card, for the day of the reply (an old reply keeps its own day). */
+function NutritionBlock({ day }: { day: string }) {
+  const t = useTheme()
+  const today = dayKey()
+  return (
+    <Panel accent={t.nut}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Open nutrition"
+        onPress={() =>
+          go(`/fitness/nutrition${day === today ? "" : `?day=${day}`}`)
+        }
+        style={{ gap: 12 }}
+      >
+        <Text
+          style={{ color: t.muted, fontFamily: fonts.medium, fontSize: 12 }}
+        >
+          NUTRITION · {day === today ? "TODAY" : C.fmtDay(day).toUpperCase()}
+        </Text>
+        <NutritionDay day={day} />
+      </Pressable>
+    </Panel>
   )
 }
 
@@ -1112,6 +1139,8 @@ export function BlockView({ block }: { block: Block }) {
       return <Chips prompts={block.prompts} />
     case "steps":
       return <StepsBlock items={block.items} />
+    case "nutrition":
+      return <NutritionBlock day={block.day} />
     case "photos":
       // Drawn with the person's own message (chat.tsx MyMessage).
       return null

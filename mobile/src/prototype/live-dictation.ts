@@ -21,6 +21,15 @@ function speech(): Module | null {
   }
 }
 
+/** Stop listening at once (the chat closed): nothing more is recognised. */
+export function stopDictation() {
+  try {
+    speech()?.abort()
+  } catch {
+    // Nothing was listening.
+  }
+}
+
 /** Whether this device can dictate live. */
 export function canDictateLive(): boolean {
   return speech() !== null
@@ -111,6 +120,15 @@ export function useLiveDictation(
       continuous: true,
       addsPunctuation: true,
       volumeChangeEventOptions: { enabled: true, intervalMillis: 120 },
+      // The recogniser's own default is the "measurement" mode, which turns
+      // the phone's output right down and stays set after dictation ends,
+      // so Fern's read-aloud reply came out barely audible. The default mode
+      // records just as well and leaves playback at full volume.
+      iosCategory: {
+        category: "playAndRecord",
+        categoryOptions: ["defaultToSpeaker", "allowBluetooth"],
+        mode: "default",
+      },
     })
     setListening(true)
     return true

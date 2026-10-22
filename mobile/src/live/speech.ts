@@ -49,8 +49,33 @@ function defaults(): Required<Omit<SpeechDeps, "http">> {
       const f = new fs.File(fs.Paths.cache, fileName(id))
       return f.exists ? f.uri : null
     },
-    // Read aloud even with the phone's silent switch on, like other apps.
-    prepare: () => audio.setAudioModeAsync({ playsInSilentMode: true }),
+    // Read aloud through the loudspeaker at full volume, even with the
+    // silent switch on. Dictation leaves the session set up for recording
+    // (quiet, earpiece-leaning), so switch it back to plain playback first.
+    prepare: async () => {
+      playbackSession()
+      await audio.setAudioModeAsync({
+        playsInSilentMode: true,
+        allowsRecording: false,
+      })
+    },
+  }
+}
+
+/** iOS: put the shared audio session back into plain playback, undoing what
+ * the live recogniser set. A no-op where that module is absent. */
+function playbackSession() {
+  try {
+    const m = (
+      require("expo-speech-recognition") as typeof import("expo-speech-recognition")
+    ).ExpoSpeechRecognitionModule
+    m?.setCategoryIOS?.({
+      category: "playback",
+      categoryOptions: [],
+      mode: "spokenAudio",
+    })
+  } catch {
+    // Not iOS, or no recogniser in this build: nothing to undo.
   }
 }
 

@@ -10,7 +10,6 @@ import * as N from "@domain/finance/calc"
 import { finStore } from "@domain/finance/store"
 import { startWorkout } from "@domain/fitness/actions"
 import * as F from "@domain/fitness/calc"
-import { dayDetail, fiberGoalFor, limitsFor } from "@domain/fitness/limits"
 import { fitStore } from "@domain/fitness/store"
 import * as HA from "@domain/habits/actions"
 import type { Habit } from "@domain/habits/data"
@@ -85,9 +84,8 @@ import { Ring } from "../visual"
 import { refreshWeather } from "../weather"
 import { WeatherCard } from "../weather-card"
 import { RecordEditor, useMoney } from "./finance"
-import { MacroRings } from "./fitness-nutrition"
 import { HabitLog } from "./habits"
-import { LimitList } from "./nutrient-limits"
+import { NutritionDay } from "./nutrition-day"
 import { TaskRow } from "./tasks"
 
 // Native counterparts of dash/today, day-hero and the module Today cards.
@@ -785,9 +783,6 @@ function FitnessCards() {
       .at(-1),
     weight = F.dailyWeights(s).get(dayKey()),
     rate = F.weeklyRate(s),
-    totals = F.dayTotals(s, dayKey()),
-    target = F.targetFor(s, dayKey()),
-    detail = dayDetail(F.mealsOn(s, dayKey())),
     latest = [...s.weighIns]
       .sort((a, b) => a.measuredAt.localeCompare(b.measuredAt))
       .at(-1),
@@ -927,23 +922,9 @@ function FitnessCards() {
         href="/fitness/nutrition"
       >
         <Part style={{ gap: 16 }}>
-          <Tap onPress={() => go("/fitness/nutrition")} style={{ gap: 12 }}>
-            <MacroRings totals={totals.totals} target={target} />
-            <Copy size={12} muted>
-              {[
-                target
-                  ? `${Math.round(totals.totals.kcal).toLocaleString("en-US")} / ${target.kcal.toLocaleString("en-US")} kcal · P ${Math.round(totals.totals.protein)}/${target.protein} g`
-                  : "No targets yet — showing what you ate",
-                detail.fiber !== undefined &&
-                  `Fiber ${Math.round(detail.fiber)}/${fiberGoalFor(target)} g`,
-                totals.pending && `+${totals.pending} pending`,
-                totals.toReview && `${totals.toReview} to review`,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
-            </Copy>
+          <Tap onPress={() => go("/fitness/nutrition")}>
+            <NutritionDay day={dayKey()} />
           </Tap>
-          <LimitList detail={detail} limits={limitsFor(target)} />
           <Line style={{ gap: 8 }}>
             <View style={{ flex: 1 }}>
               <Button
