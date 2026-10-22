@@ -3,7 +3,6 @@ import { useFacets } from "@domain/dash/facets"
 import * as D from "@domain/dash/hooks"
 import { dashStore, resetWeights, setWeight } from "@domain/dash/store"
 import { dayKey, dayOffset } from "@domain/lib/day"
-import { LinearGradient } from "expo-linear-gradient"
 import { useLocalSearchParams } from "expo-router"
 import {
   CalendarRange,
@@ -16,19 +15,9 @@ import {
   Trophy,
 } from "lucide-react-native"
 import { useState } from "react"
-import { StyleSheet, Text, View } from "react-native"
+import { Text, View } from "react-native"
 import { ScrollView as GHScrollView } from "react-native-gesture-handler"
-import Svg, {
-  Circle,
-  Defs,
-  Ellipse,
-  G,
-  Polygon,
-  RadialGradient,
-  Stop,
-  LinearGradient as SvgGradient,
-  Line as SvgLine,
-} from "react-native-svg"
+import Svg, { Circle, G, Polygon, Line as SvgLine } from "react-native-svg"
 import { ArcCircle, CountUp, GrowBar, SwipeSegments } from "../motion"
 import {
   Bar,
@@ -89,29 +78,8 @@ function LifeHero({
     stroke = 11,
     r = (size - stroke) / 2
   return (
-    <Frame style={{ borderRadius: 24, boxShadow: "0px 12px 18px #0000001a" }}>
-      <LinearGradient
-        colors={[t["hero-from"], t["hero-via"], t["hero-to"]]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{ padding: 20 }}
-      >
-        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-          <Svg width="100%" height="100%">
-            <Defs>
-              <RadialGradient id="gold">
-                <Stop offset="0" stopColor={t.life} stopOpacity={0.25} />
-                <Stop offset="1" stopColor={t.life} stopOpacity={0} />
-              </RadialGradient>
-              <RadialGradient id="purple">
-                <Stop offset="0" stopColor={t.hab} stopOpacity={0.3} />
-                <Stop offset="1" stopColor={t.hab} stopOpacity={0} />
-              </RadialGradient>
-            </Defs>
-            <Ellipse cx="90%" cy="10%" rx="65%" ry="75%" fill="url(#gold)" />
-            <Ellipse cx="15%" cy="95%" rx="60%" ry="60%" fill="url(#purple)" />
-          </Svg>
-        </View>
+    <Frame>
+      <View style={{ padding: 16 }}>
         <Line style={{ gap: 16 }}>
           <Tap
             label="How the Life Score is weighted"
@@ -124,13 +92,6 @@ function LifeHero({
             }}
           >
             <Svg width={size} height={size} style={{ position: "absolute" }}>
-              <Defs>
-                <SvgGradient id="life-score" x1="0" y1="0" x2="1" y2="1">
-                  <Stop offset="0" stopColor={t.hab} />
-                  <Stop offset="0.5" stopColor={t.life} />
-                  <Stop offset="1" stopColor={t.fit} />
-                </SvgGradient>
-              </Defs>
               <G transform={`rotate(-90 ${size / 2} ${size / 2})`}>
                 <Circle
                   cx={size / 2}
@@ -145,7 +106,7 @@ function LifeHero({
                   cy={size / 2}
                   r={r}
                   value={value}
-                  stroke="url(#life-score)"
+                  stroke={t.life}
                   strokeWidth={stroke}
                   strokeLinecap="round"
                 />
@@ -156,7 +117,7 @@ function LifeHero({
               style={{
                 fontFamily: fonts.display,
                 fontSize: 48,
-                color: "white",
+                color: t.text,
                 lineHeight: 48,
                 letterSpacing: -2.4,
                 fontVariant: ["tabular-nums"],
@@ -164,21 +125,20 @@ function LifeHero({
             />
             <Copy
               size={10}
-              style={{ color: "#ffffff99", letterSpacing: 2, marginTop: 4 }}
+              style={{ color: t.muted, letterSpacing: 2, marginTop: 4 }}
             >
               LIFE SCORE
             </Copy>
           </Tap>
           <View style={{ flex: 1 }}>
-            <Copy size={10} style={{ color: "#ffffff99", letterSpacing: 2 }}>
+            <Copy size={10} style={{ color: t.muted, letterSpacing: 2 }}>
               LEVEL
             </Copy>
             <Copy
               size={24}
               weight="display"
               style={{
-                color: t.life,
-                fontStyle: "italic",
+                color: t.text,
                 letterSpacing: -0.6,
               }}
             >
@@ -190,7 +150,7 @@ function LifeHero({
                   style={{
                     height: 6,
                     borderRadius: 3,
-                    backgroundColor: "#ffffff26",
+                    backgroundColor: t.soft,
                   }}
                 >
                   <View
@@ -202,21 +162,21 @@ function LifeHero({
                     }}
                   />
                 </View>
-                <Copy size={11} style={{ color: "#ffffff99", marginTop: 4 }}>
+                <Copy size={11} style={{ color: t.muted, marginTop: 4 }}>
                   {level.next.floor - (ls.score ?? 0)} to {level.next.name}
                 </Copy>
               </View>
             )}
             <Line style={{ gap: 6, marginTop: 8 }}>
               <Delta value={ls.delta} />
-              <Copy size={12} style={{ color: "#ffffff99" }}>
+              <Copy size={12} style={{ color: t.muted }}>
                 vs prior {days}d
               </Copy>
             </Line>
             <Tap onPress={onWeights} style={{ marginTop: 8 }}>
               <Line style={{ gap: 4 }}>
-                <Info size={12} color="#ffffffb3" />
-                <Copy size={11} style={{ color: "#ffffffb3" }}>
+                <Info size={12} color={t.muted} />
+                <Copy size={11} style={{ color: t.muted }}>
                   How it's weighted
                 </Copy>
               </Line>
@@ -230,7 +190,7 @@ function LifeHero({
                 style={{
                   height: 6,
                   borderRadius: 3,
-                  backgroundColor: "#ffffff26",
+                  backgroundColor: t.soft,
                 }}
               >
                 <View
@@ -249,17 +209,17 @@ function LifeHero({
                   justifyContent: "space-between",
                 }}
               >
-                <Copy size={10} style={{ color: "#ffffffb3" }}>
+                <Copy size={10} style={{ color: t.muted }}>
                   {AREA[k].label}
                 </Copy>
-                <Copy size={10} weight="semibold" style={{ color: "white" }}>
+                <Copy size={10} weight="semibold" style={{ color: t.text }}>
                   {enabled[k] ? Math.round(ls.rates[k] * 100) : "off"}
                 </Copy>
               </Line>
             </View>
           ))}
         </Line>
-      </LinearGradient>
+      </View>
     </Frame>
   )
 }
@@ -735,11 +695,8 @@ export function StatsHome() {
                       }
                       style={{ width: 144 }}
                     >
-                      <Frame style={{ borderColor: `${t.life}4d` }}>
-                        <LinearGradient
-                          colors={[`${t.life}26`, `${t.life}00`]}
-                          style={{ padding: 12 }}
-                        >
+                      <Frame>
+                        <View style={{ padding: 12 }}>
                           <Trophy size={16} color={t.life} />
                           <Copy
                             size={20}
@@ -760,7 +717,7 @@ export function StatsHome() {
                               },
                             )}
                           </Copy>
-                        </LinearGradient>
+                        </View>
                       </Frame>
                     </Tap>
                   ))}

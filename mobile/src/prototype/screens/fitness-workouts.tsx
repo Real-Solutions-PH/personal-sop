@@ -3,7 +3,6 @@ import * as C from "@domain/fitness/calc"
 import type { Workout } from "@domain/fitness/data"
 import { fitStore } from "@domain/fitness/store"
 import { dayKey } from "@domain/lib/day"
-import { LinearGradient } from "expo-linear-gradient"
 import {
   ChevronRight,
   Dumbbell,
@@ -383,10 +382,7 @@ export function WorkoutDetail({
       }
     >
       {summary ? (
-        <LinearGradient
-          colors={[`${t.fit}4d`, `${t.fit}1a`, "transparent"]}
-          style={{ padding: 20, borderRadius: 24 }}
-        >
+        <View style={{ padding: 20, borderRadius: 24 }}>
           <TextInput
             accessibilityLabel="Workout name"
             value={name}
@@ -401,7 +397,7 @@ export function WorkoutDetail({
             this week
           </Copy>
           <View style={{ marginTop: 16 }}>{stats}</View>
-        </LinearGradient>
+        </View>
       ) : (
         <>
           <Copy size={14} muted>

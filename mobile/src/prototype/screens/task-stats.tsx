@@ -1,7 +1,6 @@
 import { weekday } from "@domain/lib/day"
 import { useStats } from "@domain/tasks/hooks"
 import * as L from "@domain/tasks/logic"
-import { LinearGradient } from "expo-linear-gradient"
 import {
   CalendarClock,
   ChevronRight,
@@ -137,10 +136,6 @@ export function TaskStats({ embedded = false }: { embedded?: boolean }) {
         ]}
       />
       <Frame style={{ padding: 16 }}>
-        <LinearGradient
-          colors={[`${t.tsk}26`, "transparent"]}
-          style={{ position: "absolute", inset: 0 }}
-        />
         <Line style={{ gap: 16 }}>
           <View style={{ flex: 1 }}>
             <Copy size={12} muted style={{ letterSpacing: 1 }}>

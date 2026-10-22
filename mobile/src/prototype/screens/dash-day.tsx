@@ -18,7 +18,6 @@ import { checkHabit, skipHabit } from "@domain/habits/actions"
 import { openCapture } from "@domain/lib/capture"
 import { dayKey, dayOffset } from "@domain/lib/day"
 import { completeTask, rescheduleBy } from "@domain/tasks/actions"
-import { LinearGradient } from "expo-linear-gradient"
 import {
   ArrowRight,
   Bell,
@@ -247,11 +246,7 @@ export function WrapUp() {
   return (
     <Screen title="Wrap up">
       <View>
-        <LinearGradient
-          colors={[
-            border(onTarget ? t.life : t.soft, onTarget ? 0.25 : 1),
-            "transparent",
-          ]}
+        <View
           style={{
             padding: 16,
             borderWidth: 1,
@@ -291,7 +286,7 @@ export function WrapUp() {
                   : `${Math.max(0, Math.ceil(ring.due * s.targetThreshold) - ring.done)} more to hit the target`}
             </Copy>
           </View>
-        </LinearGradient>
+        </View>
         <Line style={{ marginTop: 12, gap: 8 }}>
           {(["fitness", "finance"] as const)
             .filter((k) => ring.per[k].due > 0)

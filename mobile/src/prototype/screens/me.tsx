@@ -7,7 +7,6 @@ import { DAY_START_HOUR } from "@domain/lib/day"
 import { privacyStore, togglePrivacy } from "@domain/lib/privacy"
 import { resetAll } from "@domain/lib/store"
 import { tasksStore } from "@domain/tasks/store"
-import { LinearGradient } from "expo-linear-gradient"
 import {
   Bell,
   BookOpen,
@@ -129,12 +128,7 @@ export function Me() {
     >
       <View>
         <Frame>
-          <LinearGradient
-            colors={[`${t.hab}26`, `${t.hab}00`, `${t.fit}1a`]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{ padding: 16 }}
-          >
+          <View style={{ padding: 16 }}>
             <Line style={{ gap: 16 }}>
               <ProfileAvatar size={72} />
               <View style={{ flex: 1 }}>
@@ -214,7 +208,7 @@ export function Me() {
                 })}
               </View>
             )}
-          </LinearGradient>
+          </View>
         </Frame>
         <View style={{ marginTop: 12 }}>
           <AppLauncher title="Apps" />
