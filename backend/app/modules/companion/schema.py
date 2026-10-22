@@ -6,7 +6,7 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.modules.companion.models import METRICS
+from app.modules.companion.models import MEMORY_KINDS, METRICS
 
 Metric = Literal[
     "life",
@@ -154,5 +154,29 @@ class TrackerSync(BaseModel):
     direction: Literal["below", "above"] | None = None
 
 
+MemoryKind = Literal[
+    "response_style",
+    "preference",
+    "profile",
+    "fact",
+    "goal",
+    "relationship",
+    "health",
+    "routine",
+    "event",
+]
+assert set(MEMORY_KINDS) == set(MemoryKind.__args__)  # type: ignore[attr-defined]
+
+
 class MemorySync(BaseModel):
     text: Annotated[str, Field(min_length=1, max_length=500)] | None = None
+    kind: MemoryKind | None = None
+    tags: (
+        Annotated[
+            list[Annotated[str, Field(max_length=30)]],
+            Field(max_length=8),
+        ]
+        | None
+    ) = None
+    importance: Annotated[int, Field(ge=1, le=5)] | None = None
+    always_on: bool | None = None

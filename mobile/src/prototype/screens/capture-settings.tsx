@@ -3,17 +3,28 @@ import { type RecordCard, RULE_LABELS } from "@domain/capture/data"
 import { captureStore } from "@domain/capture/store"
 import { currencyInfo, moneyExact, useCurrency } from "@domain/lib/money"
 import { LinearGradient } from "expo-linear-gradient"
-import { Bot, ChevronRight, Cpu, Link2, Lock, Power } from "lucide-react-native"
+import {
+  Bot,
+  Brain,
+  ChevronRight,
+  Cpu,
+  Link2,
+  Lock,
+  Power,
+} from "lucide-react-native"
 import { useState } from "react"
 import { View } from "react-native"
 import { toast } from "sonner-native"
 import { priceText, useServerModels } from "../../live/ai-models"
+import { memoryCount } from "../companion/memory-labels"
+import { companionStore } from "../companion/store"
 import {
   Bar,
   border,
   Copy,
   Frame,
   Line,
+  LinkRow,
   SectionHeading,
   Segmented,
   Tap,
@@ -39,6 +50,8 @@ function Settings() {
     st = captureStore.use((s) => s.settings),
     spend = captureStore.use((s) => s.spend),
     captures = captureStore.use((s) => s.captures),
+    companionName = companionStore.use((s) => s.name),
+    memories = companionStore.use((s) => s.memories),
     recs = captures.flatMap((c) =>
       (c.reply?.items ?? []).filter((i): i is RecordCard => i.t === "record"),
     ),
@@ -302,6 +315,16 @@ function Settings() {
               onChange={(transcription) => updateAISettings({ transcription })}
             />
           </View>
+        </Frame>
+        <SectionHeading>Memory</SectionHeading>
+        <Frame style={{ paddingHorizontal: 8, paddingVertical: 4 }}>
+          <LinkRow
+            title={`What ${companionName} remembers`}
+            detail={memoryCount(memories.length)}
+            icon={Brain}
+            accent="hab"
+            href="/me/memories"
+          />
         </Frame>
         <SectionHeading>Model</SectionHeading>
         <ModelPicker picked={st.model} />

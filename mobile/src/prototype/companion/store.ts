@@ -99,12 +99,32 @@ export type Tracker = {
   direction?: "below" | "above"
   createdAt: number
 }
+/** One thing the companion keeps about the person. The fields after
+ * ``at`` came with the memory layer: a memory saved before it lacks them and
+ * reads as a fact the person said (memory-labels.ts). */
+export type Memory = {
+  id: string
+  text: string
+  at: number
+  /** One of MEMORY_KINDS, or a newer kind the server knows. */
+  kind?: string
+  tags?: string[]
+  /** 1 (minor) to 5 (central). */
+  importance?: number
+  /** Always in the companion's context, not only when recalled. */
+  alwaysOn?: boolean
+  /** "said", "inferred" (the companion noticed) or "app" (typed here). */
+  source?: string
+}
+export type MemoryEdit = Partial<
+  Pick<Memory, "text" | "kind" | "tags" | "alwaysOn">
+>
 export type CompanionState = {
   name: string
   messages: Msg[]
   trackers: Tracker[]
-  /** Things the user asked the companion to remember. */
-  memories: { id: string; text: string; at: number }[]
+  /** Things the companion keeps about the user. */
+  memories: Memory[]
 }
 
 /** The companion's default name (brand: docs/brand/fern.md). A user may
@@ -129,11 +149,26 @@ const seed = (): CompanionState => ({
       id: "m1",
       text: "Training for a 10K before December",
       at: Date.now() - 9 * 86_400_000,
+      kind: "goal",
+      tags: ["running"],
+      importance: 4,
+      alwaysOn: true,
+      source: "said",
     },
     {
       id: "m2",
       text: "Paying off the BPI card in full every month",
       at: Date.now() - 20 * 86_400_000,
+      kind: "routine",
+      tags: ["money", "credit card"],
+      source: "said",
+    },
+    {
+      id: "m3",
+      text: "Likes short answers in bullet points",
+      at: Date.now() - 3 * 86_400_000,
+      kind: "response_style",
+      source: "inferred",
     },
   ],
 })
@@ -197,13 +232,31 @@ export function addTracker(t: Omit<Tracker, "id" | "createdAt">) {
 }
 export const removeTracker = (id: string) =>
   set((s) => ({ ...s, trackers: s.trackers.filter((t) => t.id !== id) }))
-export const remember = (text: string) =>
+/** Keep a memory: from the conversation by default, or typed by hand
+ * (``source: "app"``) with its kind, tags and always-on flag. */
+export function remember(
+  text: string,
+  extra: MemoryEdit & { source?: string } = {},
+): Memory {
+  const m: Memory = { id: uid(), text, at: Date.now(), ...extra }
+  set((s) => ({ ...s, memories: [...s.memories, m] }))
+  return m
+}
+export const editMemory = (id: string, patch: MemoryEdit) =>
   set((s) => ({
     ...s,
-    memories: [...s.memories, { id: uid(), text, at: Date.now() }],
+    memories: s.memories.map((m) => (m.id === id ? { ...m, ...patch } : m)),
   }))
 export const forget = (id: string) =>
   set((s) => ({ ...s, memories: s.memories.filter((m) => m.id !== id) }))
+/** Undo of a forget: the same memory back where it was. */
+export const restoreMemory = (m: Memory, index: number) =>
+  set((s) => {
+    if (s.memories.some((x) => x.id === m.id)) return s
+    const memories = [...s.memories]
+    memories.splice(Math.min(index, memories.length), 0, m)
+    return { ...s, memories }
+  })
 export const renameCompanion = (name: string) =>
   set((s) => ({ ...s, name: name.trim() || COMPANION_NAME }))
 export const clearConversation = () => set((s) => ({ ...s, messages: [] }))

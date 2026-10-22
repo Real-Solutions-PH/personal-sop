@@ -409,3 +409,74 @@ def test_an_explicit_ask_to_remember_is_saved_first(
     assert "SAVED THIS TURN" in reply_system
     # Saved as how to answer, so it is in ABOUT THEM from now on.
     assert "(response_style) Prefers answers as short bullet lists" in reply_system
+
+
+@pytest.mark.usefixtures("embeddings")
+def test_the_app_sets_kind_tags_and_always_on_and_edits_them_alone(
+    client: TestClient, db: Session
+) -> None:
+    from tests.modules.finance.api.helpers import Fin, op
+
+    _, headers = signed_in(db)
+    f = Fin(client, headers)
+    mid = uuid.uuid4()
+    [made] = f.push(
+        op(
+            "upsert",
+            "memory",
+            mid,
+            text="Walks the dog at 7am",
+            kind="routine",
+            tags=["Dog", "morning", "dog"],
+            importance=4,
+            always_on=True,
+        )
+    )
+    assert made["status"] == "applied", made
+    row = made["row"]
+    assert (row["kind"], row["tags"], row["importance"]) == (
+        "routine",
+        ["dog", "morning"],
+        4,
+    )
+    assert (row["always_on"], row["source"]) == (True, "app")
+    stored = db.get(Memory, mid)
+    assert stored is not None
+    db.refresh(stored)
+    embedded = list(stored.embedding or [])
+    assert embedded
+
+    # A toggle sends only that field: the text and its embedding stay.
+    [pin] = f.push(op("upsert", "memory", mid, always_on=False))
+    assert pin["status"] == "applied", pin
+    assert (pin["row"]["always_on"], pin["row"]["text"]) == (
+        False,
+        "Walks the dog at 7am",
+    )
+    db.refresh(stored)
+    assert list(stored.embedding or []) == embedded
+    assert stored.kind == "routine"
+
+    # New text is re-hashed and re-embedded.
+    [edit] = f.push(op("upsert", "memory", mid, text="Walks the dog at 6am"))
+    assert edit["row"]["text"] == "Walks the dog at 6am"
+    db.refresh(stored)
+    assert stored.text_hash == memory.text_hash("Walks the dog at 6am")
+    # pgvector stores float32.
+    assert list(stored.embedding or []) == pytest.approx(
+        bag("Walks the dog at 6am"), abs=1e-6
+    )
+
+
+@pytest.mark.usefixtures("embeddings")
+def test_the_app_cannot_send_an_unknown_kind_or_importance(
+    client: TestClient, db: Session
+) -> None:
+    from tests.modules.finance.api.helpers import Fin, op
+
+    _, headers = signed_in(db)
+    f = Fin(client, headers)
+    [kind] = f.push(op("upsert", "memory", uuid.uuid4(), text="x", kind="secret"))
+    assert kind["code"] == "validation_error"
+    [imp] = f.push(op("upsert", "memory", uuid.uuid4(), text="x", importance=9))
+    assert imp["code"] == "validation_error"

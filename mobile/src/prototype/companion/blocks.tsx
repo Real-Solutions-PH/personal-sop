@@ -16,6 +16,7 @@ import {
   Brain,
   CalendarClock,
   Check,
+  ChevronRight,
   CircleAlert,
   Dumbbell,
   Flame,
@@ -931,6 +932,21 @@ function MemoryBlock() {
       <Text style={{ color: t.muted, fontSize: 12, fontFamily: fonts.body }}>
         Say “remember that …” to teach me something new.
       </Text>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => go("/me/memories")}
+        style={{
+          flexDirection: "row",
+          gap: 6,
+          alignItems: "center",
+          minHeight: 44,
+        }}
+      >
+        <Text style={{ color: t.hab, fontFamily: fonts.medium, fontSize: 14 }}>
+          See and edit everything I remember
+        </Text>
+        <ChevronRight size={14} color={t.hab} />
+      </Pressable>
     </Panel>
   )
 }

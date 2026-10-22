@@ -179,7 +179,7 @@ def remember(
         {
             "text": body,
             "kind": kind,
-            "tags": _tags(tags),
+            "tags": clean_tags(tags),
             "importance": max(1, min(5, importance)),
             "always_on": always_on,
             "source": source,
@@ -197,7 +197,7 @@ def remember(
     return Saved("added", row)
 
 
-def _tags(tags: list[str] | None) -> list[str]:
+def clean_tags(tags: list[str] | None) -> list[str]:
     seen: list[str] = []
     for t in tags or []:
         k = normalise(t).casefold()[:30]
@@ -215,7 +215,7 @@ def _refresh(
 ) -> Memory:
     """A repeat confirms a memory: newer, at least as important, and with
     any new tags."""
-    m.tags = _tags([*m.tags, *(tags or [])])
+    m.tags = clean_tags([*m.tags, *(tags or [])])
     m.importance = max(m.importance, max(1, min(5, importance)))
     m.always_on = m.always_on or always_on
     m.updated_at = ctx.now
