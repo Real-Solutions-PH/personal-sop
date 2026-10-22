@@ -44,10 +44,11 @@ import {
   Tap,
 } from "../native-kit"
 import { go } from "../navigation"
-import { useTheme } from "../theme"
+import { fonts, useTheme } from "../theme"
 import { Screen } from "../ui"
 import { Ring } from "../visual"
 import { RecordEditor, useMoney } from "./finance"
+import { FinanceOutlook } from "./finance-outlook"
 import { FinPill } from "./finance-planned"
 import { Reports } from "./finance-reports"
 import { LockedPreview } from "./locked-preview"
@@ -195,11 +196,14 @@ export function FinanceHome() {
     ),
     pending = s.records.filter((r) => r.status === "pending"),
     lastMonth = N.addMonths(mk, -1),
-    upcoming = N.occurrencesIn(
+    // The rest of this month's scheduled income and bills (overdue ones
+    // too): what the month is expected to end at, not only what happened.
+    { income: schedIn, spend: schedOut } = N.scheduledFlow(
       s,
-      N.addDays(today, -14),
-      N.addDays(today, 7),
-    ).filter((o) => o.status !== "paid" && o.status !== "skipped"),
+      N.monthRange(mk, s.settings.monthStartDay)[1],
+    ),
+    expIn = flow.income + schedIn,
+    expOut = flow.spend + schedOut,
     trio = [-2, -1, 0].map((i) => ({
       key: N.addMonths(mk, i),
       flow: N.flowIn(
@@ -207,7 +211,12 @@ export function FinanceHome() {
         ...N.monthRange(N.addMonths(mk, i), s.settings.monthStartDay),
       ),
     })),
-    maxFlow = Math.max(1, ...trio.flatMap((x) => [x.flow.income, x.flow.spend]))
+    maxFlow = Math.max(
+      1,
+      expIn,
+      expOut,
+      ...trio.flatMap((x) => [x.flow.income, x.flow.spend]),
+    )
   const acctIcons = {
     cash: Banknote,
     bank: Landmark,
@@ -646,24 +655,49 @@ export function FinanceHome() {
                           gap: 3,
                         }}
                       >
-                        <GrowBar
-                          height={`${(x.flow.income / maxFlow) * 100}%`}
-                          style={{
-                            flex: 1,
-                            backgroundColor: `${t.good}cc`,
-                            borderTopLeftRadius: 4,
-                            borderTopRightRadius: 4,
-                          }}
-                        />
-                        <GrowBar
-                          height={`${(x.flow.spend / maxFlow) * 100}%`}
-                          style={{
-                            flex: 1,
-                            backgroundColor: `${t.bad}b3`,
-                            borderTopLeftRadius: 4,
-                            borderTopRightRadius: 4,
-                          }}
-                        />
+                        {(
+                          [
+                            [x.flow.income, expIn, t.good, "cc"],
+                            [x.flow.spend, expOut, t.bad, "b3"],
+                          ] as const
+                        ).map(([now, expected, color, alpha]) => (
+                          <View
+                            key={color}
+                            style={{
+                              flex: 1,
+                              height: "100%",
+                              justifyContent: "flex-end",
+                            }}
+                          >
+                            {/* This month's scheduled rest: an outlined
+                                bar to the expected total, behind what has
+                                happened so far. */}
+                            {x.key === mk && expected > now && (
+                              <View
+                                style={{
+                                  position: "absolute",
+                                  left: 0,
+                                  right: 0,
+                                  bottom: 0,
+                                  height: `${(expected / maxFlow) * 100}%`,
+                                  borderWidth: 1,
+                                  borderStyle: "dashed",
+                                  borderColor: `${color}${alpha}`,
+                                  borderTopLeftRadius: 4,
+                                  borderTopRightRadius: 4,
+                                }}
+                              />
+                            )}
+                            <GrowBar
+                              height={`${(now / maxFlow) * 100}%`}
+                              style={{
+                                backgroundColor: `${color}${alpha}`,
+                                borderTopLeftRadius: 4,
+                                borderTopRightRadius: 4,
+                              }}
+                            />
+                          </View>
+                        ))}
                       </Line>
                     ))}
                   </Line>
@@ -681,6 +715,41 @@ export function FinanceHome() {
                   </Line>
                 </View>
               </Line>
+              {(schedIn > 0 || schedOut > 0) && (
+                <Line
+                  style={{
+                    marginTop: 12,
+                    paddingTop: 12,
+                    borderTopWidth: 1,
+                    borderColor: t.line,
+                    gap: 8,
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 14,
+                      height: 10,
+                      borderWidth: 1,
+                      borderStyle: "dashed",
+                      borderColor: t.muted,
+                      borderRadius: 2,
+                    }}
+                  />
+                  <Copy size={12} muted style={{ flex: 1 }}>
+                    With what's scheduled, the month ends{" "}
+                    <Text
+                      style={{
+                        color: expIn - expOut >= 0 ? t.good : t.bad,
+                        fontFamily: fonts.medium,
+                      }}
+                    >
+                      {expIn - expOut >= 0 ? "+" : "−"}
+                      {money(Math.abs(expIn - expOut))}
+                    </Text>{" "}
+                    (in {money(expIn)} · out {money(expOut)})
+                  </Copy>
+                </Line>
+              )}
             </Tap>
           </Frame>
           <Frame
@@ -770,80 +839,7 @@ export function FinanceHome() {
               </Tap>
             ))}
           </View>
-          <SectionHeading
-            action={
-              <Tap onPress={() => go("/finance/planned")}>
-                <Copy size={12} style={{ color: t.fin }}>
-                  Scheduled
-                </Copy>
-              </Tap>
-            }
-          >
-            Next 7 days
-          </SectionHeading>
-          <Frame style={{ paddingHorizontal: 16, paddingVertical: 4 }}>
-            {upcoming.slice(0, 6).map((o) => (
-              <Tap
-                key={`${o.item.id}-${o.orig}`}
-                onPress={() => go(`/finance/planned/${o.item.id}`)}
-                style={{ minHeight: 56, justifyContent: "center" }}
-              >
-                <Line>
-                  <View
-                    style={{
-                      height: 40,
-                      width: 40,
-                      borderRadius: 20,
-                      backgroundColor: t.soft,
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Copy>
-                      {s.categories.find((c) => c.id === o.item.categoryId)
-                        ?.icon ?? "⇄"}
-                    </Copy>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Copy weight="medium" lines={1}>
-                      {o.item.name}
-                    </Copy>
-                    <Line style={{ gap: 6 }}>
-                      <Copy size={12} muted>
-                        {N.dayLabel(o.day)}
-                      </Copy>
-                      {o.status === "overdue" && (
-                        <FinPill tone="bad">overdue</FinPill>
-                      )}
-                      {o.status === "due" && <FinPill tone="warn">due</FinPill>}
-                    </Line>
-                  </View>
-                  <Copy
-                    weight="medium"
-                    style={{
-                      color: o.item.type === "income" ? t.good : t.text,
-                    }}
-                  >
-                    {o.item.type === "income"
-                      ? "+"
-                      : o.item.type === "expense"
-                        ? "−"
-                        : ""}
-                    {money(o.item.amount)}
-                  </Copy>
-                </Line>
-              </Tap>
-            ))}
-            {!upcoming.length && (
-              <Copy
-                size={14}
-                muted
-                style={{ paddingVertical: 16, textAlign: "center" }}
-              >
-                Nothing scheduled this week.
-              </Copy>
-            )}
-          </Frame>
+          <FinanceOutlook />
           <Frame style={{ marginTop: 12, padding: 8 }}>
             <LinkRow
               title={`${N.monthLabel(lastMonth, true)} review ${s.lookbacks.some((l) => l.period === lastMonth) ? "" : "ready"}`}

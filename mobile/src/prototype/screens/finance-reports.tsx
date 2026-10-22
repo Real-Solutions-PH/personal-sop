@@ -53,6 +53,9 @@ export function Reports({
     params = useLocalSearchParams<{ period?: Period }>(),
     [p, setP] = useState<Period>(params.period ?? "this"),
     d = reportData(s, p),
+    // This period's scheduled income and bills still to come (overdue
+    // too): the month as it is expected to end.
+    ahead = C.scheduledFlow(s, d.r.to),
     prevCats = d.prev.byCat,
     q = `?period=${p}`,
     recHref = (extra = "") =>
@@ -163,6 +166,34 @@ export function Reports({
                 color: t.fin,
               },
             ])}
+            {p === "this" && (ahead.income > 0 || ahead.spend > 0) && (
+              <Tap onPress={() => go("/finance/planned")}>
+                <Frame
+                  style={{
+                    padding: 12,
+                    gap: 4,
+                    borderColor: `${t.fin}4d`,
+                    backgroundColor: `${t.fin}0d`,
+                  }}
+                >
+                  <Copy size={12} style={{ color: t.fin }}>
+                    WITH WHAT'S SCHEDULED · BY{" "}
+                    {C.shortDate(d.r.to).toUpperCase()}
+                  </Copy>
+                  <Copy size={14}>
+                    Income {money(d.flow.income + ahead.income)} · Spent{" "}
+                    {money(d.flow.spend + ahead.spend)} · Savings rate{" "}
+                    {C.pct(
+                      C.savingsRate({
+                        ...d.flow,
+                        income: d.flow.income + ahead.income,
+                        spend: d.flow.spend + ahead.spend,
+                      }),
+                    )}
+                  </Copy>
+                </Frame>
+              </Tap>
+            )}
             {card(
               "Spend by category",
               `/finance/reports/category${q}`,

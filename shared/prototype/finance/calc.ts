@@ -773,3 +773,81 @@ export function recentCategories(s: FinState, n = 8): string[] {
 export function lastReconciledDays(a: Account) {
   return a.lastReconciled ? diffDays(today(), a.lastReconciled) : null
 }
+
+export interface Outlook {
+  /** Liquid balance today (accounts counted in the projection). */
+  start: number
+  /** Expected liquid balance at the end of each day, today first. */
+  days: { day: string; balance: number }[]
+  /** Scheduled items still to happen, overdue first; paid and skipped
+   * ones are left out. */
+  items: Occurrence[]
+  toPay: number
+  comingIn: number
+  end: number
+  low: { day: string; value: number }
+}
+
+/** What the scheduled payments and income do to the money on hand from
+ * today to ``to``. Overdue items still count, as due today. Only items and
+ * accounts counted in the projection move the balance line; the list holds
+ * every scheduled item. */
+export function outlook(s: FinState, to: string): Outlook {
+  const t = today()
+  const bal = balances(s)
+  const liquidIds = new Set(
+    s.accounts.filter((a) => a.inProjection && !a.archived).map((a) => a.id),
+  )
+  const start = [...liquidIds].reduce((sum, id) => sum + (bal[id] ?? 0), 0)
+  const items = occurrencesIn(s, addDays(t, -60), to).filter(
+    (o) => o.status !== "paid" && o.status !== "skipped",
+  )
+  const moves = new Map<string, number>()
+  let toPay = 0
+  let comingIn = 0
+  for (const o of items) {
+    const p = o.item
+    const day = o.day < t ? t : o.day
+    let d = 0
+    if (p.type === "income") {
+      comingIn += p.amount
+      d = liquidIds.has(p.accountId) ? p.amount : 0
+    } else if (p.type === "expense") {
+      toPay += p.amount
+      d = liquidIds.has(p.accountId) ? -p.amount : 0
+    } else {
+      const fromLiquid = liquidIds.has(p.accountId)
+      const toLiquid = !!p.toAccountId && liquidIds.has(p.toAccountId)
+      if (fromLiquid && !toLiquid) {
+        toPay += p.amount
+        d = -p.amount
+      } else if (!fromLiquid && toLiquid) {
+        comingIn += p.amount
+        d = p.amount
+      }
+    }
+    if (p.inProjection && d) moves.set(day, (moves.get(day) ?? 0) + d)
+  }
+  const days: Outlook["days"] = []
+  let run = start
+  let low = { day: t, value: start }
+  for (let k = t; k <= to; k = addDays(k, 1)) {
+    run += moves.get(k) ?? 0
+    days.push({ day: k, balance: run })
+    if (run < low.value) low = { day: k, value: run }
+  }
+  return { start, days, items, toPay, comingIn, end: run, low }
+}
+
+/** Scheduled income and bills still to come up to ``to`` (overdue ones
+ * too), as they would add to the period's flow. Transfers are left out,
+ * as flows leave them out. */
+export function scheduledFlow(s: FinState, to: string) {
+  let income = 0
+  let spend = 0
+  for (const o of outlook(s, to).items) {
+    if (o.item.type === "income") income += o.item.amount
+    else if (o.item.type === "expense") spend += o.item.amount
+  }
+  return { income, spend }
+}
