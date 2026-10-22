@@ -550,7 +550,7 @@ export function SocialFeed() {
               </Text>
             </View>
           }
-          contentContainerStyle={{ paddingBottom: safe.bottom + 24 }}
+          contentContainerStyle={{ paddingBottom: safe.bottom + 64 }}
         />
       </GestureDetector>
       <CreateSheet open={create} onClose={() => setCreate(false)} />

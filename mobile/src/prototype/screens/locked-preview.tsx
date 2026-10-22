@@ -17,6 +17,7 @@ export function LockedPreview({
   action,
   color,
   icon: Icon = Lock,
+  gap,
   children,
 }: {
   locked: boolean
@@ -27,6 +28,9 @@ export function LockedPreview({
   action: { label: string; onPress?: () => void; href?: string }
   color?: string
   icon?: LucideIcon
+  /** Space between the children: the wrapper replaces the parent that used
+   * to space them, so a section of sibling cards passes its gap here. */
+  gap?: number
   children: ReactNode
 }) {
   const t = useTheme()
@@ -85,7 +89,7 @@ export function LockedPreview({
         pointerEvents={locked ? "none" : "auto"}
         accessibilityElementsHidden={locked}
         importantForAccessibility={locked ? "no-hide-descendants" : "auto"}
-        style={{ opacity: locked ? 0.35 : 1 }}
+        style={{ opacity: locked ? 0.35 : 1, gap }}
       >
         {children}
       </View>

@@ -286,6 +286,7 @@ export function Body({
   const content = (
     <>
       <LockedPreview
+        gap={12}
         locked={!sorted.length}
         color={t.fit}
         title="No weigh-ins yet"

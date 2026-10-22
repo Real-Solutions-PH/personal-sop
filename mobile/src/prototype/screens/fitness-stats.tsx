@@ -119,6 +119,7 @@ export function FitnessStats({ embedded = false }: { embedded?: boolean }) {
         ]}
       />
       <LockedPreview
+        gap={8}
         locked={!latest}
         color={t.fit}
         title="No workouts yet"

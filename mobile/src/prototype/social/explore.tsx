@@ -367,7 +367,7 @@ export function Explore() {
         )
       ) : (
         <ScrollView
-          contentContainerStyle={{ gap: 16, paddingBottom: safe.bottom + 24 }}
+          contentContainerStyle={{ gap: 16, paddingBottom: safe.bottom + 64 }}
           keyboardShouldPersistTaps="handled"
         >
           <Leaderboard />
@@ -544,7 +544,7 @@ export function ActivityScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: t.bg, paddingTop: safe.top }}>
       <TopBar title="Activity" />
-      <ScrollView contentContainerStyle={{ paddingBottom: safe.bottom + 24 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: safe.bottom + 64 }}>
         {sections.length === 0 && (
           <Empty
             title="No activity yet"

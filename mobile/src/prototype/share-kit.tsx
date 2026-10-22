@@ -527,12 +527,8 @@ export function ShareComposer<K extends string>({
       >
         BACKGROUND
       </Copy>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 14, paddingHorizontal: 4 }}
-        style={{ flexGrow: 0 }}
-      >
+      {/* All six fit one row: no swatch hides off the edge. */}
+      <Line style={{ justifyContent: "space-between", gap: 4 }}>
         {BACKDROPS.map((b) => (
           <Tap
             key={b.key}
@@ -543,7 +539,7 @@ export function ShareComposer<K extends string>({
               if (b.key === "photo" && !photo)
                 void pickPhoto().then((v) => v && setPhoto(v))
             }}
-            style={{ alignItems: "center", gap: 6, width: 56 }}
+            style={{ alignItems: "center", gap: 6, width: 52 }}
           >
             <LinearGradient
               colors={
@@ -560,13 +556,18 @@ export function ShareComposer<K extends string>({
                           : ["#ffffff00", "#ffffff00"]
               }
               style={{
-                width: 48,
-                height: 48,
-                borderRadius: 24,
+                width: 44,
+                height: 44,
+                borderRadius: 22,
                 alignItems: "center",
                 justifyContent: "center",
+                // Night and Sticker vanish on a dark screen without an edge.
                 borderWidth:
-                  backdrop === b.key ? 2 : b.key === "sticker" ? 1 : 0,
+                  backdrop === b.key
+                    ? 2
+                    : b.key === "sticker" || b.key === "night"
+                      ? 1
+                      : 0,
                 borderStyle:
                   b.key === "sticker" && backdrop !== b.key
                     ? "dashed"
@@ -581,7 +582,7 @@ export function ShareComposer<K extends string>({
             <Copy size={12}>{b.label}</Copy>
           </Tap>
         ))}
-      </ScrollView>
+      </Line>
       {backdrop === "photo" && (
         <Tap
           label={photo ? "Change photo" : "Choose a photo"}

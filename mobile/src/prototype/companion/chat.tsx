@@ -678,11 +678,15 @@ export function CompanionDrawer({ bottom }: { bottom: number }) {
           <ScrollView
             ref={scroller}
             keyboardShouldPersistTaps="handled"
-            onContentSizeChange={() =>
-              scroller.current?.scrollToEnd({ animated: true })
-            }
+            // Follow the conversation down; a new chat's welcome stays at
+            // its top so the greeting is not scrolled out of view.
+            onContentSizeChange={() => {
+              if (timeline.length)
+                scroller.current?.scrollToEnd({ animated: true })
+            }}
             contentContainerStyle={{
               paddingHorizontal: 16,
+              paddingTop: 4,
               paddingBottom: 12,
               gap: 16,
             }}

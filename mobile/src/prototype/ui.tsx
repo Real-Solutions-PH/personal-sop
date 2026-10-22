@@ -610,7 +610,8 @@ export function Screen({
         contentContainerStyle={{
           paddingHorizontal: 16,
           paddingTop: prototypeLayout ? 0 : 8,
-          paddingBottom: safe.bottom + 28,
+          // Clears the Fern button, which rises ~36pt above the tab bar.
+          paddingBottom: safe.bottom + 64,
           gap: prototypeLayout ? 12 : 8,
         }}
       >
@@ -689,7 +690,7 @@ export function ListScreen<T>({
         ListEmptyComponent={<View>{empty ?? <Empty />}</View>}
         contentContainerStyle={{
           paddingHorizontal: 16,
-          paddingBottom: safe.bottom + 28,
+          paddingBottom: safe.bottom + 64,
         }}
         keyboardShouldPersistTaps="handled"
       />
