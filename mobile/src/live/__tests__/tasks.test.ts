@@ -143,7 +143,8 @@ describe("round trip from the prototype seed", () => {
         created_at: t.createdAt,
         deleted_at: t.deletedAt,
       }
-      expect(m.fromServer(row, seed)).toEqual(t)
+      // A task made before tags reads back with none.
+      expect(m.fromServer(row, seed)).toEqual({ ...t, tags: t.tags ?? [] })
     }
     expect(seed.tasks.some((t) => t.recurrence)).toBe(true)
     expect(seed.tasks.some((t) => t.remindAt)).toBe(true)

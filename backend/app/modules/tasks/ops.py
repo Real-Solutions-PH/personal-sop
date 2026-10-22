@@ -8,7 +8,7 @@ and every change to a business day marks the stats rollup dirty.
 
 import uuid
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from typing import Any, TypeVar
 
@@ -90,6 +90,24 @@ def _check_list(ctx: Ctx, list_id: uuid.UUID | None) -> None:
 # ---------------------------------------------------------------- create
 
 
+TAG_MAX = 8
+TAG_CHARS = 24
+
+
+def clean_tags(tags: list[str]) -> list[str]:
+    """Tags as kept: trimmed, inner spaces collapsed, a leading # dropped,
+    at most TAG_CHARS each and TAG_MAX in all, the first spelling of a tag
+    kept when it repeats in another case."""
+    out: list[str] = []
+    seen: set[str] = set()
+    for raw in tags:
+        tag = " ".join(str(raw).strip().lstrip("#").split())[:TAG_CHARS].strip()
+        if tag and tag.casefold() not in seen:
+            seen.add(tag.casefold())
+            out.append(tag)
+    return out[:TAG_MAX]
+
+
 @dataclass(frozen=True)
 class NewTask:
     title: str
@@ -104,6 +122,7 @@ class NewTask:
     source: str = "manual"
     parse_state: str = "parsed"
     task_id: uuid.UUID | None = None
+    tags: list[str] = field(default_factory=list)
 
 
 def _build(ctx: Ctx, n: NewTask, order: int, remind_time: str) -> dict[str, Any]:
@@ -119,6 +138,7 @@ def _build(ctx: Ctx, n: NewTask, order: int, remind_time: str) -> dict[str, Any]
         "recurrence": n.recurrence,
         "notes": n.notes,
         "starred": n.starred,
+        "tags": clean_tags(n.tags),
         "status": "open",
         "completed_at": None,
         "cleared_at": None,
@@ -262,6 +282,7 @@ def complete(
                 notes=t.notes,
                 starred=t.starred,
                 source=t.source,
+                tags=list(t.tags or []),
             ),
             t.sort_order,
             settings.default_remind_time,
@@ -343,6 +364,8 @@ def update(ctx: Ctx, t: Task, patch: dict[str, Any]) -> Task:
     for key in ("title", "starred"):
         if key in patch and patch[key] is None:
             raise invalid("field_required", "This field cannot be cleared")
+    if "tags" in patch:
+        patch["tags"] = clean_tags(patch["tags"] or [])
     owned_repo.apply(t, patch)
     ctx.session.add(t)
     dirty(ctx, t.due_date)
@@ -437,6 +460,7 @@ def duplicate(ctx: Ctx, t: Task, new_id: uuid.UUID | None = None) -> Task:
                 recurrence=t.recurrence,
                 notes=t.notes,
                 starred=t.starred,
+                tags=list(t.tags or []),
                 task_id=new_id,
             )
         ],

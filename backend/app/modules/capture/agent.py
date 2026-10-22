@@ -300,6 +300,11 @@ class PlannedArgs(BaseModel):
     category: Opt = None
 
 
+# A task's labels ("work", "errand"); a name, as TaskEditArgs has a field
+# called `list`.
+TagList = list[Annotated[str, Field(min_length=1, max_length=40)]]
+
+
 class TaskIn(BaseModel):
     title: Annotated[str, Field(min_length=1, max_length=280)]
     due_date: (
@@ -323,6 +328,11 @@ class TaskIn(BaseModel):
         | None
     ) = None
     remind: bool = False
+    tags: list[Annotated[str, Field(min_length=1, max_length=40)]] = Field(
+        default_factory=list,
+        max_length=8,
+        description="Labels the person gave (work, errand); otherwise omit.",
+    )
 
 
 class TasksArgs(BaseModel):
@@ -705,6 +715,11 @@ class TaskEditArgs(BaseModel):
     due_date: date | None = None
     notes: Annotated[str, Field(max_length=2000)] | None = None
     list: Opt = None
+    tags: TagList | None = Field(
+        default=None,
+        max_length=8,
+        description="The task's whole new set of tags ([] clears them).",
+    )
 
 
 RemoveWhat = Literal[
@@ -1048,6 +1063,7 @@ def capture_tools(run: Run) -> list[BaseTool]:
                 "due_date": t.due_date if day else None,
                 "due_time": t.due_time if time else None,
                 "remind": t.remind,
+                "tags": list(t.tags),
             }
             for t in a.tasks
         ]
@@ -1843,6 +1859,8 @@ def capture_tools(run: Run) -> list[BaseTool]:
             changes["title"] = a.new_title
         if a.notes is not None:
             changes["notes"] = a.notes
+        if a.tags is not None:
+            changes["tags"] = list(a.tags)
         if a.due_date:
             changes["due_date"] = a.due_date.isoformat()
         if a.list:

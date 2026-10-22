@@ -178,3 +178,31 @@ def test_an_asked_for_memory_is_not_read_again_after_the_reply(
     assert not any(
         str(sent[0].content).startswith(services.LEARN[:40]) for sent in model.seen
     )
+
+
+def test_fern_tags_a_task_and_retags_it(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from sqlmodel import select
+
+    from app.core.db import engine
+    from app.modules.tasks.models import Task
+
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    install(
+        monkeypatch,
+        say(
+            "", tool("create_tasks", tasks=[{"title": "Deploy AWS", "tags": ["work"]}])
+        ),
+        say("Added it, tagged work."),
+        say("", tool("edit_task", task="Deploy AWS", tags=["work", "coft"])),
+        say("Tagged it coft too."),
+    )
+    ask(api, client, "add a task to deploy AWS, tag it work")
+    reply = ask(api, client, "tag the deploy AWS task coft too")
+    assert reply["blocks"][0]["items"][0]["ok"]
+
+    with Session(engine) as s:
+        [t] = s.exec(select(Task).where(Task.owner_id == api.user.id)).all()  # type: ignore[attr-defined]
+        assert (t.title, t.tags) == ("Deploy AWS", ["work", "coft"])

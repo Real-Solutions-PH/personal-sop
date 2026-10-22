@@ -8,6 +8,7 @@ import {
   Check,
   Copy as CopyIcon,
   Inbox,
+  Plus,
   Repeat,
   Star,
   Trash2,
@@ -80,6 +81,85 @@ function useDraft(value: string, save: (v: string) => void) {
       flush()
     },
   }
+}
+
+/** The task's tags: each removable, and a field to add one (Return adds it;
+ * a comma or space-separated list adds several). */
+function TagEditor({
+  tags,
+  onChange,
+}: {
+  tags: string[]
+  onChange: (tags: string[]) => void
+}) {
+  const t = useTheme()
+  const [adding, setAdding] = useState(false),
+    [text, setText] = useState("")
+  const add = () => {
+    const more = text.split(",").map((x) => x.trim())
+    if (more.some(Boolean)) onChange([...tags, ...more])
+    setText("")
+  }
+  const pill = {
+    height: 32,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 4,
+    backgroundColor: t.soft,
+  }
+  return (
+    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+      {tags.map((tag) => (
+        <Tap
+          key={tag}
+          label={`Remove tag ${tag}`}
+          onPress={() => onChange(tags.filter((x) => x !== tag))}
+          style={pill}
+        >
+          <Copy size={13} weight="medium" style={{ color: t.text }}>
+            #{tag}
+          </Copy>
+          <X size={14} color={t.muted} />
+        </Tap>
+      ))}
+      {adding ? (
+        <TextInput
+          accessibilityLabel="New tag"
+          autoFocus
+          value={text}
+          onChangeText={setText}
+          onSubmitEditing={add}
+          onBlur={() => {
+            add()
+            setAdding(false)
+          }}
+          submitBehavior="submit"
+          autoCapitalize="none"
+          returnKeyType="done"
+          placeholder="Tag"
+          placeholderTextColor={t.muted}
+          style={{
+            ...pill,
+            minWidth: 96,
+            fontFamily: fonts.medium,
+            fontSize: 13,
+            color: t.text,
+          }}
+        />
+      ) : (
+        tags.length < 8 && (
+          <Tap label="Add tag" onPress={() => setAdding(true)} style={pill}>
+            <Plus size={14} color={t.muted} />
+            <Copy size={13} muted>
+              {tags.length ? "Tag" : "Add tag"}
+            </Copy>
+          </Tap>
+        )
+      )}
+    </View>
+  )
 }
 
 export function TaskDetail({ id }: { id: string }) {
@@ -195,6 +275,10 @@ export function TaskDetail({ id }: { id: string }) {
           </Tap>
         </Line>
       )}
+      <TagEditor
+        tags={task.tags ?? []}
+        onChange={(tags) => A.updateTask(id, { tags: A.cleanTags(tags) })}
+      />
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}

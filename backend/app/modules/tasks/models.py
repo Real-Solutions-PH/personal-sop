@@ -74,6 +74,12 @@ class Task(OwnedRow, table=True):
     recurrence: dict[str, object] | None = Field(default=None, sa_type=JSONB)
     notes: str | None = Field(default=None, max_length=4000)
     starred: bool = False
+    # Free labels the person adds ("work", "errand"), shown in the lists.
+    tags: list[str] = Field(
+        default_factory=list,
+        sa_type=JSONB,
+        sa_column_kwargs={"server_default": "[]"},
+    )
     status: str = Field(default="open", sa_type=String(8))  # type: ignore
     completed_at: datetime | None = Field(default=None, sa_type=tstz())  # type: ignore
     cleared_at: datetime | None = Field(default=None, sa_type=tstz())  # type: ignore

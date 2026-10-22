@@ -32,6 +32,33 @@ import {
 import { IconButton, Ring } from "../visual"
 import { ListEditor as NativeListEditor } from "./task-lists"
 
+/** A task's tags as small neutral pills, under its title in the lists. */
+export function TagChips({ tags }: { tags?: string[] }) {
+  const t = useTheme()
+  if (!tags?.length) return null
+  return (
+    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4 }}>
+      {tags.map((tag) => (
+        <View
+          key={tag}
+          style={{
+            paddingHorizontal: 8,
+            paddingVertical: 2,
+            borderRadius: 999,
+            backgroundColor: t.soft,
+          }}
+        >
+          <Text
+            style={{ fontFamily: fonts.medium, fontSize: 11, color: t.muted }}
+          >
+            #{tag}
+          </Text>
+        </View>
+      ))}
+    </View>
+  )
+}
+
 export function TaskRow({
   task,
   compact = false,
@@ -228,6 +255,7 @@ export function TaskRow({
                   {task.recurrence ? ` · ${L.fmtRepeat(task.recurrence)}` : ""}
                 </Text>
               )}
+              <TagChips tags={task.tags} />
             </Pressable>
             {compact && showActions ? (
               <Pressable

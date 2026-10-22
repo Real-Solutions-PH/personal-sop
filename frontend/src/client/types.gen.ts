@@ -2447,6 +2447,7 @@ export type OverdueTask = {
     recurrence: (Recurrence | null);
     notes: (string | null);
     starred: boolean;
+    tags?: Array<(string)>;
     status: 'open' | 'done' | 'deleted';
     completed_at: (string | null);
     cleared_at: (string | null);
@@ -3682,6 +3683,7 @@ export type TaskCreate = {
     recurrence?: (Recurrence | null);
     notes?: (string | null);
     starred?: boolean;
+    tags?: Array<(string)>;
     source?: 'manual' | 'capture-text' | 'capture-voice' | 'capture-photo';
     parse_state?: 'parsed' | 'pending';
 };
@@ -3696,6 +3698,7 @@ export type TaskDetail = {
     recurrence: (Recurrence | null);
     notes: (string | null);
     starred: boolean;
+    tags?: Array<(string)>;
     status: 'open' | 'done' | 'deleted';
     completed_at: (string | null);
     cleared_at: (string | null);
@@ -3718,6 +3721,7 @@ export type TaskDraftIn = {
     due_date?: (string | null);
     due_time?: (string | null);
     remind?: boolean;
+    tags?: Array<(string)>;
 };
 
 export type TaskPayload = {
@@ -3735,6 +3739,7 @@ export type TaskPublic = {
     recurrence: (Recurrence | null);
     notes: (string | null);
     starred: boolean;
+    tags?: Array<(string)>;
     status: 'open' | 'done' | 'deleted';
     completed_at: (string | null);
     cleared_at: (string | null);
@@ -3767,6 +3772,7 @@ export type TaskUpdate = {
     notes?: (string | null);
     list_id?: (string | null);
     starred?: (boolean | null);
+    tags?: (Array<(string)> | null);
     recurrence?: (Recurrence | null);
     remind_at?: (string | null);
     due_time?: (string | null);
