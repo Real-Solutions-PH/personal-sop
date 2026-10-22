@@ -26,6 +26,8 @@ export type Block =
   | { t: "memory" }
   | { t: "chips"; prompts: string[] }
   | { t: "steps"; items: StepItem[] }
+  /** The day's food against the target, as Fern pulled it up. */
+  | { t: "nutrition"; day: string }
   /** Photos sent with a message: media ids, and links when known (local
    * while sending, signed by the server when read). */
   | { t: "photos"; media?: string[]; urls?: (string | null)[] }
