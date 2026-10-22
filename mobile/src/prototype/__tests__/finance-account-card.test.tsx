@@ -84,3 +84,15 @@ test("an everyday account shows what is available and when it was matched", () =
     screen.getByLabelText(/GCash, E-wallet, ₱2,500\. Not matched yet/),
   ).toBeTruthy()
 })
+
+test("cash has no statement, so it is never flagged as unmatched", () => {
+  render(
+    <AccountCard
+      account={account({ name: "Wallet", type: "cash" })}
+      balance={800}
+      nudgeDays={14}
+    />,
+  )
+  expect(screen.getByText("Kept up as you log")).toBeTruthy()
+  expect(screen.queryByText("Not matched yet")).toBeNull()
+})

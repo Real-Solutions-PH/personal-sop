@@ -67,6 +67,9 @@ function footnote(
       stale: false,
     }
   if (a.manual) return { text: "Value you set", stale: false }
+  // Only banks and e-wallets have statements to match against.
+  if (a.type !== "bank" && a.type !== "ewallet")
+    return { text: "Kept up as you log", stale: false }
   const days = C.lastReconciledDays(a)
   if (days === null) return { text: "Not matched yet", stale: true }
   return {
@@ -109,10 +112,10 @@ export function AccountCard({
         style={{
           borderRadius: 18,
           padding: compact ? 12 : 16,
-          minHeight: compact ? 112 : 128,
+          minHeight: compact ? 112 : 0,
           overflow: "hidden",
           justifyContent: "space-between",
-          gap: compact ? 8 : 12,
+          gap: 8,
         }}
       >
         {/* A soft sheen in the corner, so it reads as a card, not a panel. */}
