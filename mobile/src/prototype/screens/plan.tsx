@@ -12,6 +12,7 @@ import * as T from "@domain/tasks/logic"
 import { tasksStore } from "@domain/tasks/store"
 import { useLocalSearchParams } from "expo-router"
 import {
+  ArrowLeftRight,
   ChartColumn,
   Check,
   ChevronDown,
@@ -22,6 +23,7 @@ import {
   History,
   ListChecks,
   ListTodo,
+  Minus,
   Moon,
   Plus,
   Search,
@@ -676,6 +678,20 @@ const hour = (time: string) =>
   Number(time.slice(0, 2)) < 4
     ? Number(time.slice(0, 2)) + 24
     : Number(time.slice(0, 2))
+// How scheduled money reads on the calendar: money in, money out, moved.
+const MONEY_MARK = {
+  income: { icon: Plus, tone: "good", label: "Income", sign: "+" },
+  expense: { icon: Minus, tone: "bad", label: "Bill", sign: "−" },
+  transfer: { icon: ArrowLeftRight, tone: "fin", label: "Transfer", sign: "" },
+} as const
+const OCC_LABEL = {
+  paid: "Paid",
+  overdue: "Overdue",
+  due: "Due",
+  upcoming: "Scheduled",
+  skipped: "Skipped",
+} as const
+
 function CalendarPanel() {
   const t = useTheme(),
     enabled = useEnabled(),
@@ -699,19 +715,21 @@ function CalendarPanel() {
     items = all.filter((i) => !hidden.includes(i.module)),
     selected = items.filter((i) => i.day === sel),
     currentHour = hour(new Date().toTimeString().slice(0, 5)),
-    due = N.occurrencesIn(
-      fin,
-      N.addDays(today, -7),
-      N.addDays(today, 14),
-    ).filter(
-      (o) => o.status !== "skipped" && (o.status !== "paid" || o.day >= today),
-    )
+    // Scheduled money across the visible days: marked on each cell, and the
+    // selected day's list under the calendar.
+    occ = N.occurrencesIn(fin, days[0], days.at(-1)!).filter(
+      (o) => o.status !== "skipped",
+    ),
+    showFin = enabled.finance && !hidden.includes("finance"),
+    due = occ.filter((o) => o.day === sel)
   const itemRow = (i: CalendarItem) => (
     <Tap key={i.id} onPress={() => go(i.href)} style={{ paddingVertical: 8 }}>
       <Line style={{ gap: 8 }}>
-        <Copy size={12} muted style={{ width: 42 }}>
-          {i.time ?? "—"}
-        </Copy>
+        {i.time && (
+          <Copy size={12} muted style={{ width: 42 }}>
+            {i.time}
+          </Copy>
+        )}
         <View
           style={{
             width: 6,
@@ -800,6 +818,12 @@ function CalendarPanel() {
           <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
             {days.map((d) => {
               const list = items.filter((i) => i.day === d)
+              // Scheduled income, expense and transfer that day, each marked once.
+              const flows = showFin
+                ? (["income", "expense", "transfer"] as const).filter((k) =>
+                    occ.some((o) => o.day === d && o.item.type === k),
+                  )
+                : []
               return (
                 <Tap
                   key={d}
@@ -837,9 +861,11 @@ function CalendarPanel() {
                       {Number(d.slice(8))}
                     </Copy>
                   </View>
-                  <Line style={{ gap: 2 }}>
-                    {MODULE_KEYS.filter((k) =>
-                      list.some((i) => i.module === k),
+                  <Line style={{ gap: 2, height: 10 }}>
+                    {MODULE_KEYS.filter(
+                      (k) =>
+                        list.some((i) => i.module === k) &&
+                        !(k === "finance" && flows.length),
                     ).map((k) => (
                       <View
                         key={k}
@@ -851,6 +877,17 @@ function CalendarPanel() {
                         }}
                       />
                     ))}
+                    {flows.map((kind) => {
+                      const m = MONEY_MARK[kind]
+                      return (
+                        <m.icon
+                          key={kind}
+                          size={10}
+                          strokeWidth={3}
+                          color={t[m.tone]}
+                        />
+                      )
+                    })}
                   </Line>
                   {mode === "week" && (
                     <Copy size={10} muted>
@@ -900,6 +937,21 @@ function CalendarPanel() {
           </Tap>
         ))}
       </GHScrollView>
+      {showFin && (
+        <Line style={{ gap: 16, marginTop: 12, paddingHorizontal: 4 }}>
+          {(["income", "expense", "transfer"] as const).map((k) => {
+            const m = MONEY_MARK[k]
+            return (
+              <Line key={k} style={{ gap: 4 }}>
+                <m.icon size={12} strokeWidth={3} color={t[m.tone]} />
+                <Copy size={12} muted>
+                  {m.label}
+                </Copy>
+              </Line>
+            )
+          })}
+        </Line>
+      )}
       <SectionHeading>{`${sel === today ? "Today" : dateLabel(sel)} · ${selected.length}`}</SectionHeading>
       <View style={{ gap: 12 }}>
         {selected.length ? (
@@ -986,32 +1038,59 @@ function CalendarPanel() {
               </Tap>
             }
           >
-            Bills & paydays
+            {`Bills & paydays · ${sel === today ? "Today" : dateLabel(sel)}`}
           </SectionHeading>
-          <Frame style={{ paddingHorizontal: 12, paddingVertical: 4 }}>
-            {due.map((o) => (
-              <Tap
-                key={`${o.item.id}-${o.orig}`}
-                onPress={() => go(`/finance/planned/${o.item.id}`)}
-                style={{ paddingVertical: 8 }}
-              >
-                <Line>
-                  <Copy>
-                    {fin.categories.find((c) => c.id === o.item.categoryId)
-                      ?.icon ?? "⇄"}
-                  </Copy>
-                  <View style={{ flex: 1 }}>
-                    <Copy size={14}>{o.item.name}</Copy>
-                    <Copy size={11} muted>
-                      {N.dayLabel(o.day)}
+          <Frame style={{ paddingHorizontal: 16, paddingVertical: 4 }}>
+            {due.map((o) => {
+              const m = MONEY_MARK[o.item.type]
+              const icon = fin.categories.find(
+                (c) => c.id === o.item.categoryId,
+              )?.icon
+              return (
+                <Tap
+                  key={`${o.item.id}-${o.orig}`}
+                  onPress={() => go(`/finance/planned/${o.item.id}`)}
+                  style={{ paddingVertical: 12 }}
+                >
+                  <Line style={{ gap: 12 }}>
+                    <View style={{ width: 28, alignItems: "center" }}>
+                      {icon ? (
+                        <Copy>{icon}</Copy>
+                      ) : (
+                        <m.icon size={18} color={t.muted} />
+                      )}
+                    </View>
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Copy size={14} lines={2}>
+                        {o.item.name}
+                      </Copy>
+                      <Copy
+                        size={12}
+                        muted={o.status !== "overdue"}
+                        style={
+                          o.status === "overdue" ? { color: t.bad } : undefined
+                        }
+                      >
+                        {OCC_LABEL[o.status]}
+                      </Copy>
+                    </View>
+                    <Copy
+                      size={14}
+                      weight="medium"
+                      style={{
+                        color: o.item.type === "income" ? t.good : t.text,
+                      }}
+                    >
+                      {`${m.sign}${money(o.item.amount)}`}
                     </Copy>
-                  </View>
-                  <Copy size={14}>{money(o.item.amount)}</Copy>
-                </Line>
-              </Tap>
-            ))}
+                  </Line>
+                </Tap>
+              )
+            })}
             {!due.length && (
-              <Copy muted>No bills or paydays in the next 2 weeks.</Copy>
+              <Copy size={14} muted style={{ paddingVertical: 12 }}>
+                {`Nothing to pay or receive ${sel === today ? "today" : `on ${dateLabel(sel)}`}.`}
+              </Copy>
             )}
           </Frame>
         </>
