@@ -27,9 +27,9 @@ import {
   exportData,
   newPasswordErrors,
   sessionStore,
-  signOut,
   signOutEverywhere,
 } from "../session"
+import { confirmSignOut } from "../sign-out-flow"
 import { useTheme } from "../theme"
 import { Button, confirm, Field, Screen, Sheet } from "../ui"
 
@@ -79,19 +79,7 @@ export function Account() {
           title="Sign out"
           detail="This device only"
           icon={LogOut}
-          onPress={() =>
-            confirm(
-              "Sign out?",
-              liveMode
-                ? "Anything not yet synced is sent first, then this device is cleared. Sign back in any time."
-                : "Your data stays on this device. Sign back in any time.",
-              () => {
-                signOut()
-                replace("/welcome")
-                toast.success("Signed out")
-              },
-            )
-          }
+          onPress={confirmSignOut}
         />
         <LinkRow
           title="Sign out everywhere"
