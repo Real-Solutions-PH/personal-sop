@@ -198,6 +198,8 @@ class Settings(BaseSettings):
     DEEPGRAM_API_KEY: str | None = None
     DEEPGRAM_MODEL: str = "nova-3"
     DEEPGRAM_BASE_URL: str = "https://api.deepgram.com/v1"
+    # Text to speech for Fern's replies (Aura-2).
+    DEEPGRAM_TTS_MODEL: str = "aura-2-thalia-en"
     # AI spend is metered in pesos (the service's own cost, for every user):
     # provider prices are USD, converted at this rate.
     AI_USD_TO_PHP: float = 57.0

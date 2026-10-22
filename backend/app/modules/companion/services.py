@@ -182,6 +182,20 @@ def _message(
     )
 
 
+def speak_message(ctx: Ctx, message_id: uuid.UUID) -> bytes:
+    """One of Fern's replies read aloud (MP3). Only a stored reply of the
+    caller's can be spoken, never arbitrary text."""
+    m = owned_repo.get(ctx, CompanionMessage, message_id)
+    if m is None or m.role != "sol":
+        raise HTTPException(status_code=404, detail="Message not found")
+    text = (m.text or "").strip()
+    if not text:
+        raise HTTPException(status_code=422, detail="That reply has no text")
+    audio = capture.speak_text(ctx, text)
+    ctx.commit()
+    return audio
+
+
 def _pub(ctx: Ctx, m: CompanionMessage) -> MessagePublic:
     ctx.session.flush()
     ctx.session.refresh(m)

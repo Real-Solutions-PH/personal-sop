@@ -122,6 +122,32 @@ def describe_photos(
     return (f"[{label} attached. What they show:\n{seen}]", read)
 
 
+def speak_text(ctx: Ctx, text: str) -> bytes:
+    """``text`` read aloud as MP3 by the server's voice; checks the spend
+    cap first and meters the call. 503 ``speech_unavailable`` without a
+    voice set up, 502 when the voice provider fails."""
+    from app.modules.ai_providers import public as ai
+    from app.shared.domain import domain_error
+
+    voice = ai.speech_model()
+    if voice is None:
+        raise domain_error(503, "speech_unavailable", "Read aloud isn't set up yet")
+    ai.check_budget(ctx)
+    try:
+        audio = seams.speak(voice, text)
+    except seams.SeamError as exc:
+        ai.record_usage(ctx, voice, input_tokens=0, output_tokens=0, ok=False)
+        raise domain_error(502, exc.code, "Couldn't read that aloud") from None
+    ai.record_usage(
+        ctx,
+        voice,
+        input_tokens=len(text),
+        output_tokens=0,
+        cost_minor=ai.speech_minor(len(text)),
+    )
+    return audio
+
+
 def capture_detail(ctx: Ctx, capture_id: uuid.UUID) -> dict[str, Any]:
     from app.modules.capture.cards import require_capture
 

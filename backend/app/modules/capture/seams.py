@@ -86,6 +86,49 @@ def ask_text(
 
 # ---------------------------------------------------------------- voice
 
+# Deepgram's speak endpoint takes up to 2,000 characters per request.
+SPEAK_CHUNK = 1800
+
+
+def _chunks(text: str, size: int = SPEAK_CHUNK) -> list[str]:
+    """``text`` in pieces under ``size``, split after sentences when it can."""
+    out: list[str] = []
+    rest = text.strip()
+    while len(rest) > size:
+        cut = max(rest.rfind(p, 0, size) for p in (". ", "! ", "? ", "\n"))
+        cut = cut + 1 if cut > size // 2 else size
+        out.append(rest[:cut].strip())
+        rest = rest[cut:].strip()
+    if rest:
+        out.append(rest)
+    return out
+
+
+def speak(resolved: ai.ResolvedModel, text: str) -> bytes:
+    """Text to speech (Deepgram Aura), as MP3. Long text is spoken in
+    pieces whose MP3 frames play back to back."""
+    audio = b""
+    try:
+        with httpx.Client(
+            timeout=settings.AI_REQUEST_TIMEOUT_SECONDS, trust_env=False
+        ) as c:
+            for piece in _chunks(text):
+                r = c.post(
+                    f"{resolved.base_url.rstrip('/')}/speak",
+                    params={"model": resolved.model, "encoding": "mp3"},
+                    headers={
+                        "Authorization": f"Token {resolved.api_key.get_secret_value()}",
+                        "Content-Type": "application/json",
+                    },
+                    json={"text": piece},
+                )
+                if r.status_code != 200:
+                    raise SeamError("speech_failed")
+                audio += r.content
+    except httpx.HTTPError:
+        raise SeamError("speech_unreachable") from None
+    return audio
+
 
 def transcribe(
     resolved: ai.ResolvedModel,

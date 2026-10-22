@@ -6,7 +6,7 @@ import uuid
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Query
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 
 from app.modules.companion import services, turn
 from app.modules.companion.schema import (
@@ -58,6 +58,19 @@ def rename(ctx: CtxDep, data: RenameIn) -> Any:
     """Rename the companion (blank resets to the default, Fern)."""
     services.rename(ctx, name=data.name)
     return _state(ctx)
+
+
+@router.post(
+    "/messages/{message_id}/speech",
+    dependencies=WRITE,
+    response_class=Response,
+    responses={200: {"content": {"audio/mpeg": {}}}},
+)
+def speak(ctx: CtxDep, message_id: uuid.UUID) -> Response:
+    """One of Fern's replies read aloud, as MP3 (Deepgram's voice)."""
+    return Response(
+        content=services.speak_message(ctx, message_id), media_type="audio/mpeg"
+    )
 
 
 @router.post("/ask", response_model=AskOut, dependencies=WRITE)

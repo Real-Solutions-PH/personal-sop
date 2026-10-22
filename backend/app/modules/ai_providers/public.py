@@ -241,6 +241,33 @@ def price_minor(model: str, input_tokens: int, output_tokens: int) -> int:
     return _centavos(usd)
 
 
+# Deepgram Aura-2 text to speech, USD per 1,000 characters (2026-10-22).
+TTS_USD_PER_1K_CHARS = 0.030
+
+
+def speech_minor(chars: int) -> int:
+    """What speaking ``chars`` characters aloud cost, in centavos."""
+    return _centavos(max(0, chars) / 1000 * TTS_USD_PER_1K_CHARS)
+
+
+def speech_model() -> ResolvedModel | None:
+    """The server's text-to-speech voice (Deepgram), or None without a key.
+    Metered under ``transcription``, the speech purpose, with its own
+    model name."""
+    if not settings.DEEPGRAM_API_KEY:
+        return None
+    return ResolvedModel(
+        purpose="transcription",
+        provider="deepgram",
+        model=settings.DEEPGRAM_TTS_MODEL,
+        base_url=settings.DEEPGRAM_BASE_URL,
+        api_key=SecretStr(settings.DEEPGRAM_API_KEY),
+        credential_id=None,
+        supports_vision=False,
+        source="server",
+    )
+
+
 def transcription_minor(provider: str, seconds: float) -> int:
     """What transcribing ``seconds`` of audio cost, in centavos."""
     rate = USD_PER_MIN.get(provider, USD_PER_MIN_DEFAULT)
