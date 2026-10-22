@@ -20,13 +20,20 @@ from fastapi import HTTPException
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langchain_core.tools import BaseTool, StructuredTool
 from pydantic import BaseModel, Field
+from sqlalchemy import ColumnElement
 from sqlmodel import col
 
 from app.modules.ai_providers import public as ai
 from app.modules.capture import public as capture
-from app.modules.companion import brain, grounding, web
+from app.modules.companion import brain, grounding, memory, routing, web
 from app.modules.companion.defaults import COMPANION_NAME
-from app.modules.companion.models import Companion, CompanionMessage, Memory, Tracker
+from app.modules.companion.models import (
+    MEMORY_KINDS,
+    Companion,
+    CompanionMessage,
+    Memory,
+    Tracker,
+)
 from app.modules.companion.schema import (
     AskOut,
     Insight,
@@ -53,7 +60,6 @@ HISTORY = 6
 HISTORY_CHARS = 600
 MAX_STEPS = 6
 MAX_TOOL_CALLS = 20
-MAX_MEMORIES_IN_CONTEXT = 50
 
 
 def _noop(event: str, data: dict[str, Any]) -> None:
@@ -90,7 +96,8 @@ def trackers(ctx: Ctx) -> list[Tracker]:
 
 
 def memories(ctx: Ctx) -> list[Memory]:
-    return owned_repo.list_rows(ctx, Memory, order_by=[col(Memory.created_at)])
+    """The memories in force (replaced ones are history), oldest first."""
+    return memory.live(ctx)
 
 
 def upsert_tracker_row(ctx: Ctx, metric: str, data: dict[str, Any]) -> Tracker:
@@ -126,12 +133,42 @@ def remove_tracker(ctx: Ctx, *, tracker_id: uuid.UUID) -> None:
 
 
 def remember_row(ctx: Ctx, text: str, memory_id: uuid.UUID | None = None) -> Memory:
+    """A memory from the app or the rules engine (no judge): kept unless the
+    same text, or one close enough in meaning, is already known."""
     rid = memory_id or uuid.uuid4()
     existing = owned_repo.get(ctx, Memory, rid, include_deleted=True)
     if existing is not None and existing.deleted_at is None:
         return existing
-    row, _ = owned_repo.upsert(ctx, Memory, rid, {"text": text.strip()[:500]})
-    return row
+    return memory.remember(ctx, text=text, memory_id=rid, source="app").memory
+
+
+JUDGE = """You compare two statements a personal assistant keeps about
+one person. OLD is already kept; NEW was just said. Answer JSON only:
+{"verdict": "same" | "update" | "contradicts" | "different"}
+- same: NEW says nothing OLD does not.
+- update: NEW is a newer or fuller version of the same fact.
+- contradicts: NEW says the opposite of OLD; NEW is now true.
+- different: they are about different things."""
+
+
+class _Verdict(BaseModel):
+    verdict: Literal["same", "update", "contradicts", "different"]
+
+
+def memory_judge(ctx: Ctx, resolved: ai.ResolvedModel) -> memory.Judge:
+    """The chat model as the judge for a memory close to an old one; a
+    failed call answers "different" (keep both rather than lose one)."""
+
+    def judge(old: str, new: str) -> memory.Verdict:
+        try:
+            out = capture.ask_json(
+                ctx, resolved, _Verdict, system=JUDGE, text=f"OLD: {old}\nNEW: {new}"
+            )
+        except capture.SeamError:
+            return "different"
+        return out.verdict  # type: ignore[no-any-return]
+
+    return judge
 
 
 def remember(ctx: Ctx, *, text: str, memory_id: uuid.UUID | None = None) -> Memory:
@@ -348,7 +385,50 @@ class TrackArgs(BaseModel):
 
 
 class RememberArgs(BaseModel):
-    fact: Annotated[str, Field(min_length=1, max_length=500)]
+    fact: Annotated[str, Field(min_length=1, max_length=500)] = Field(
+        description="One durable thing about the person, as a short third-"
+        "person statement ('Prefers answers as short bullet lists', 'Sister "
+        "Ana lives in Cebu'). One fact per call."
+    )
+    kind: Literal[
+        "response_style",
+        "preference",
+        "profile",
+        "fact",
+        "goal",
+        "relationship",
+        "health",
+        "routine",
+        "event",
+    ] = Field(
+        default="fact",
+        description="response_style: how they want answers (length, format, "
+        "language, tone). profile: who they are (name, pronouns, job, city, "
+        "units). preference: likes and dislikes. relationship: people in "
+        "their life. health, goal, routine, event: as named. fact: anything "
+        "else.",
+    )
+    tags: list[Annotated[str, Field(max_length=30)]] = Field(
+        default_factory=list, max_length=6, description="Short topic words."
+    )
+    importance: Annotated[int, Field(ge=1, le=5)] = Field(
+        default=3, description="5: must never be forgotten; 1: trivia."
+    )
+    always_on: bool = Field(
+        default=False,
+        description="True for something every answer must respect (a hard "
+        "constraint such as an allergy or 'never suggest alcohol'). "
+        "response_style and profile are always on already.",
+    )
+
+
+class RecallArgs(BaseModel):
+    query: Annotated[str, Field(min_length=1, max_length=300)] = Field(
+        description="What you need to know about the person, in plain words."
+    )
+    kinds: list[str] = Field(
+        default_factory=list, description="Only these kinds; empty for all."
+    )
 
 
 class ForgetArgs(BaseModel):
@@ -385,6 +465,9 @@ class SolRun:
     blocks: list[dict[str, Any]] = field(default_factory=list)
     # What the person said this turn (with any photo reading).
     said: str = ""
+    # Decides whether a new memory close to an old one is the same, an
+    # update, a contradiction or different (the chat model; None: no judge).
+    judge: memory.Judge | None = None
 
     def block(self, b: dict[str, Any]) -> dict[str, Any]:
         self.blocks.append(b)
@@ -496,8 +579,44 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
 
     def remember_fact(**kw: Any) -> dict[str, Any]:
         a = RememberArgs(**kw)
-        remember_row(ctx, a.fact)
-        return run.block({"t": "memory"})
+        saved = memory.remember(
+            ctx,
+            text=a.fact,
+            kind=a.kind,
+            tags=a.tags,
+            importance=a.importance,
+            always_on=a.always_on,
+            source="said",
+            judge=run.judge,
+        )
+        out: dict[str, Any] = {
+            "status": saved.status,
+            "memory_id": str(saved.memory.id),
+        }
+        if saved.status == "duplicate":
+            out["already_known"] = saved.memory.text
+        if saved.replaced is not None:
+            out["replaced"] = saved.replaced.text
+        if saved.status != "duplicate":
+            out |= run.block({"t": "memory"})
+        return out
+
+    def recall_memories(**kw: Any) -> dict[str, Any]:
+        a = RecallArgs(**kw)
+        kinds = [k for k in a.kinds if k in MEMORY_KINDS] or None
+        found = memory.recall(ctx, a.query, kinds=kinds)
+        return {
+            "memories": [
+                {
+                    "id": str(m.id),
+                    "text": m.text,
+                    "kind": m.kind,
+                    "tags": m.tags,
+                    "since": ctx.clock.day_of(m.created_at).isoformat(),
+                }
+                for m in found
+            ]
+        }
 
     def forget_fact(**kw: Any) -> dict[str, Any]:
         a = ForgetArgs(**kw)
@@ -509,7 +628,7 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
 
     def show_memories(**kw: Any) -> dict[str, Any]:
         NoArgs(**kw)
-        return {**run.block({"t": "memory"}), "count": len(memories(ctx))}
+        return {**run.block({"t": "memory"}), "count": len(memory.live(ctx))}
 
     def suggest(**kw: Any) -> dict[str, Any]:
         a = ChipsArgs(**kw)
@@ -576,7 +695,17 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
         (
             remember_fact,
             RememberArgs,
-            "Remember a fact the user told you about themselves.",
+            "Keep something durable about the person for later: a preference, "
+            "how they like answers, who they are, people in their life, "
+            "health, goals, routines. Repeats are recognised and not stored "
+            "twice; a changed fact replaces the old one.",
+        ),
+        (
+            recall_memories,
+            RecallArgs,
+            "Look up what you know about the person beyond ABOUT THEM: their "
+            "likes, people, health, plans, past events. Call it before "
+            "answering anything personal you are unsure of.",
         ),
         (forget_fact, ForgetArgs, "Forget one remembered fact by its id."),
         (show_memories, NoArgs, "Show what you remember about the user."),
@@ -622,11 +751,11 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
 
 
 SYSTEM = """You are {sol}, the companion inside Personal SOP, a life-logging
-app. The user is {user}. Today is {today}. Right now it is {now} where they
-live. Their day rolls over at {day_start}, so before then "today" in their
-records still means the previous date, but "tonight", "later" and "in an hour"
-mean the next such time after right now. Never schedule something in the past
-unless they ask for it.
+app. The user is {user}. NOW at the end gives today's date, the time where
+they live and when their day rolls over: before the rollover "today" in their
+records still means the previous date, but "tonight", "later" and "in an
+hour" mean the next such time after right now.
+Never schedule something in the past unless they ask for it.
 
 Voice: calm, plain, specific, like a steady friend who pays attention. One idea
 per message, at most three short sentences in one paragraph. English, or Taglish if they write it.
@@ -636,7 +765,7 @@ numbered lists, no tables. The cards you show carry any list.
 
 Facts: every fact you state about the user (habits, tasks, streaks, scores,
 money, training, food, plans, projects, people) must come from TODAY below, from
-what you remember, or from a tool result in this conversation. Never invent
+ABOUT THEM, from `recall_memories`, or from a tool result in this conversation. Never invent
 one, never guess a number, never assume a habit, project or goal. If something
 is missing, say plainly that you don't have it yet and suggest logging it. Zero
 or empty means none, so say so, never praise consistency you cannot see. Today's
@@ -660,7 +789,13 @@ be told to register or add them; listing them back is not recording them.
   otherwise leave both out (never default to today or 23:59). Set remind
   only when they ask to be reminded.
 - Finishing a task: `complete_task`. Money: `log_expense`, `log_income`,
-  `log_transfer`, `add_planned`. Money said in another currency ($20, 20
+  `log_transfer`, `add_planned`. Bills and pay-later plans (often in photos):
+  each bill with a due date is its own one-time `add_planned` with that
+  `due_date` (exact year from the photo); `day_of_month` only for something
+  that repeats monthly. A credit card screen: the card balance or
+  outstanding amount is what is owed (`set_account_balance` with it as a
+  negative number); the payment due is a one-time `add_planned` on its due
+  date, never the balance. Money said in another currency ($20, 20
   dollars, 15 USD): pass the number they said (20) with `currency` "USD".
   The app converts it at today's exchange rate; never convert it yourself
   and never guess a rate. Habits: `log_habit`, `create_habit`.
@@ -718,15 +853,32 @@ so say so if one is. Never call the same tool
 twice with the same arguments. After acting, answer in one or two short
 sentences saying what you did.
 
+Memory: ABOUT THEM below is always true for {user}: follow its answer style
+and constraints in every reply. Anything else you know about them (likes,
+people, health, plans, past events) is found with `recall_memories`; call it
+before answering a personal question you are unsure of, not for every turn.
+When they say "remember", "from now on" or "keep in mind", or tell you
+something lasting about themselves or how they want answers, call
+`remember_fact` in this same reply (one short statement per call, with its
+kind); a repeat is recognised, so don't check first. Never say you'll
+remember something without calling it. Use `forget_fact` with an id when they ask.
+"""
+
+# What changes every turn goes after the rules, so the rules and the tools
+# stay one prefix a provider can cache across turns and days.
+CONTEXT = """
+NOW: today is {today}; it is {now} where they live; their day rolls over at {day_start}.
+
 TODAY (JSON, from the user's records; a missing key is unknown, not zero;
 money is in {currency}):
 {today_facts}
 
-What you remember about the user (ids for forgetting):
+ABOUT THEM (always respect; ids for forgetting):
 {memories}
 
 What you are tracking for them:
-{trackers}"""
+{trackers}
+{summary}"""
 
 _MD = [
     (re.compile(r"\*\*(.+?)\*\*", re.S), r"\1"),
@@ -758,6 +910,49 @@ def _strip_marks(delta: str) -> str:
 # A write the user asked for, a reply that says it happened, and no write
 # tool that succeeded: the reply is checked against what the turn actually
 # did (the constitution's deterministic-faithfulness rule), never trusted.
+# An explicit ask to keep something ("remember", "from now on", Tagalog
+# "tandaan"): the full rules make some models answer "Remembered: ..."
+# without calling the tool, so a focused pass saves it first.
+_ASKS_TO_REMEMBER = re.compile(
+    r"\b(remember|don'?t forget|keep in mind|from now on|tandaan|"
+    r"lagi mong)\b",
+    re.I,
+)
+EXTRACT = """Save what the person asks you to remember about themselves, or
+about how they want you to answer, with remember_fact: one call per separate
+thing, as a short third-person statement with its kind (response_style for
+how to answer). Set always_on for a hard constraint every answer must
+respect: an allergy, a medical rule, something never to suggest. Call
+nothing if there is nothing lasting to keep."""
+
+
+def _remember_first(
+    ctx: Ctx, resolved: ai.ResolvedModel, text: str, run: SolRun, stream: TurnStream
+) -> list[str]:
+    """Save what the message asks to keep; returns the step summaries."""
+    tool = next(t for t in sol_tools(run) if t.name == "remember_fact")
+    before = len(stream.steps)
+    try:
+        capture.run_agent(
+            ctx,
+            resolved,
+            system=EXTRACT,
+            messages=[HumanMessage(text)],
+            tools=[tool],
+            on_text=lambda d: None,
+            max_turns=2,
+            max_tool_calls=6,
+            hooks=stream,
+        )
+    except capture.SeamError:
+        return []
+    return [
+        s.summary
+        for s in stream.steps[before:]
+        if s.name == "remember_fact" and s.ok and s.summary
+    ]
+
+
 # The day's food: macros, calories, nutrition, what is left to eat.
 _ABOUT_NUTRITION = re.compile(
     r"\b(macros?|calories|kcal|protein|carbs|nutrition(al)?|"
@@ -767,7 +962,8 @@ _ABOUT_NUTRITION = re.compile(
 _ASKS_TO_WRITE = re.compile(
     r"\b(add|log|record|remind|create|set|schedule|save|note|mark|complete|"
     r"finish|spent|paid|bought|ate|ran|weigh|weighed|journal|track|"
-    r"confirm|approve|had|eaten|drank|breakfast|lunch|dinner|snack)\b",
+    r"confirm|approve|had|eaten|drank|breakfast|lunch|dinner|snack|"
+    r"remember|don'?t forget|keep in mind|from now on)\b",
     re.I,
 )
 # Things to keep, named in a statement ("these are my tasks: …"), are a
@@ -787,10 +983,11 @@ _GIVES_DATA = re.compile(
 )
 _CLAIMS_A_WRITE = re.compile(
     r"\b(added|logged|saved|recorded|created|scheduled|marked|set up|"
+    r"updated|changed|rearranged|reordered|renamed|edited|moved|"
     r"i(?:'| ha)ve set|will remind|i'?ll remind|waiting for your (?:ok|confirmation)|"
     # A promise to write ("I'll log it for you now") with no write behind it.
     r"i'?ll (?:log|add|save|record)|i will (?:log|add|save|record)|let me (?:log|add|save)|"
-    r"proposed)\b",
+    r"proposed|remembered|noted|i'?ll remember|got it, i'?ll keep)\b",
     re.I,
 )
 # Pointing at a Confirm button: true only when this reply left a write
@@ -827,6 +1024,8 @@ WRITE_TOOLS = frozenset(
         "set_account_balance",
         "create_budget",
         "create_routine",
+        "update_routine",
+        "update_habit",
         "create_workout_template",
         "create_task_list",
         "start_routine",
@@ -870,13 +1069,91 @@ def unbacked_claim(asked: str, answer: str, steps: list[Any]) -> bool:
     return not wrote and asks and bool(_CLAIMS_A_WRITE.search(answer))
 
 
-def _history(ctx: Ctx) -> list[BaseMessage]:
-    rows = owned_repo.list_rows(
+# Fold older messages into the summary once a day's conversation is behind
+# (SUMMARY_AFTER of them from earlier days), or within a long day once
+# SUMMARY_AFTER_TODAY have fallen out of the window: one short call then,
+# instead of resending or losing them.
+SUMMARY_AFTER = 4
+SUMMARY_AFTER_TODAY = 20
+SUMMARY_MSG_CHARS = 400
+SUMMARY_MAX_MSGS = 40
+SUMMARISE = """You keep a running summary of a person's conversation with
+their life assistant. Merge the OLD SUMMARY with the NEW MESSAGES into one
+summary of at most 150 words: ongoing threads, decisions, promises,
+questions still open, how the conversation has gone. Leave out numbers that
+change daily (totals, balances, macros) and anything the assistant only
+looked up. Plain text, no lists."""
+
+
+def _summary_block(ctx: Ctx) -> str:
+    row = companion_row(ctx)
+    if not row.summary:
+        return ""
+    return (
+        "\nEARLIER CONVERSATION (summary; TODAY and ABOUT THEM win where "
+        f"they differ):\n{row.summary}\n"
+    )
+
+
+def refresh_summary(ctx: Ctx, resolved: ai.ResolvedModel) -> None:
+    """Fold the messages older than the turn window into the summary once
+    SUMMARY_AFTER of them have built up. One short model call; a failure
+    leaves the summary as it was (the next turn tries again)."""
+    row = companion_row(ctx)
+    # Only what _history actually sends is excluded: an earlier day's
+    # message in the last HISTORY is not sent, so it is summarised.
+    window = {
+        m.id for m in _window_rows(ctx) if ctx.clock.day_of(m.created_at) == ctx.today
+    }
+    where: list[ColumnElement[bool]] = [col(CompanionMessage.text).is_not(None)]
+    if row.summary_through is not None:
+        where.append(col(CompanionMessage.created_at) > row.summary_through)
+    older = [
+        m
+        for m in owned_repo.list_rows(
+            ctx,
+            CompanionMessage,
+            *where,
+            order_by=[col(CompanionMessage.created_at)],
+            limit=SUMMARY_MAX_MSGS + HISTORY,
+        )
+        if m.id not in window
+    ][:SUMMARY_MAX_MSGS]
+    earlier_days = [m for m in older if ctx.clock.day_of(m.created_at) < ctx.today]
+    if len(earlier_days) < SUMMARY_AFTER and len(older) < SUMMARY_AFTER_TODAY:
+        return
+    lines = "\n".join(
+        f"{'Person' if m.role == 'me' else 'Assistant'} "
+        f"({ctx.clock.day_of(m.created_at).isoformat()}): "
+        f"{(m.text or '')[:SUMMARY_MSG_CHARS]}"
+        for m in older
+    )
+    try:
+        text = capture.ask_text(
+            ctx,
+            resolved,
+            system=SUMMARISE,
+            text=f"OLD SUMMARY:\n{row.summary or '(none)'}\n\nNEW MESSAGES:\n{lines}",
+        )
+    except capture.SeamError:
+        return
+    row.summary = _strip_marks(text)[:2000] or row.summary
+    row.summary_through = older[-1].created_at
+    ctx.session.add(row)
+    ctx.session.flush()
+
+
+def _window_rows(ctx: Ctx) -> list[CompanionMessage]:
+    return owned_repo.list_rows(
         ctx,
         CompanionMessage,
         order_by=[col(CompanionMessage.created_at).desc()],
         limit=HISTORY,
     )
+
+
+def _history(ctx: Ctx) -> list[BaseMessage]:
+    rows = _window_rows(ctx)
     out: list[BaseMessage] = []
     for m in reversed(rows):
         # An earlier day's replies state that day's facts; sent along, the
@@ -900,28 +1177,38 @@ def _ask_ai(
     *,
     photos: list[uuid.UUID] | None = None,
 ) -> AskOut:
-    mems = memories(ctx)[-MAX_MEMORIES_IN_CONTEXT:]
-    system = SYSTEM.format(
-        sol=sol_name,
-        user=brain.first_name(user_name),
-        today=ctx.today.isoformat(),
-        now=ctx.now.astimezone(ctx.clock.zone).strftime("%A %Y-%m-%d %H:%M"),
-        day_start=f"{ctx.clock.start_hour:02d}:00",
-        currency=ctx.currency.phrase,
-        today_facts=json.dumps(grounding.snapshot(ctx), ensure_ascii=False),
-        memories="\n".join(f"- [{m.id}] {m.text}" for m in mems) or "(nothing yet)",
-        trackers=json.dumps(
-            [
-                {
-                    "metric": t.metric,
-                    "label": t.label,
-                    "goal": t.goal,
-                    "direction": t.direction,
-                }
-                for t in trackers(ctx)
-            ]
-        ),
-    )
+    refresh_summary(ctx, resolved)
+    # Memories kept while no embedding model answered, or from before the
+    # memory layer, are embedded as they are next needed.
+    memory.backfill(ctx, limit=20)
+    first = brain.first_name(user_name)
+
+    def make_system() -> str:
+        # Built after any memory this message asked for is saved, so the
+        # reply already follows it.
+        mems = memory.always_on(ctx)
+        return SYSTEM.format(sol=sol_name, user=first) + CONTEXT.format(
+            today=ctx.today.isoformat(),
+            now=ctx.now.astimezone(ctx.clock.zone).strftime("%A %Y-%m-%d %H:%M"),
+            day_start=f"{ctx.clock.start_hour:02d}:00",
+            currency=ctx.currency.phrase,
+            today_facts=json.dumps(grounding.snapshot(ctx), ensure_ascii=False),
+            memories="\n".join(f"- [{m.id}] ({m.kind}) {m.text}" for m in mems)
+            or "(nothing yet)",
+            summary=_summary_block(ctx),
+            trackers=json.dumps(
+                [
+                    {
+                        "metric": t.metric,
+                        "label": t.label,
+                        "goal": t.goal,
+                        "direction": t.direction,
+                    }
+                    for t in trackers(ctx)
+                ]
+            ),
+        )
+
     history = _history(ctx)
     me = _message(
         ctx,
@@ -952,7 +1239,21 @@ def _ask_ai(
     )
     run.said = text
     writes = [with_day_after(ctx, t) if t.name == "log_meal" else t for t in writes]
-    tools = [*sol_tools(run), *writes]
+    run.judge = memory_judge(ctx, resolved)
+    every = [*sol_tools(run), *writes]
+    offered = routing.pick(text, earlier, photos=bool(photos))
+    tools = every if offered is None else [t for t in every if t.name in offered]
+    saved_now = (
+        _remember_first(ctx, resolved, text, run, stream)
+        if _ASKS_TO_REMEMBER.search(text)
+        else []
+    )
+    system = make_system()
+    if saved_now:
+        system += (
+            "\nSAVED THIS TURN (already done; confirm it in a few words and "
+            "follow it from now on):\n" + "\n".join(f"- {s}" for s in saved_now)
+        )
     turn = [*history, HumanMessage(text)]
     reply = capture.run_agent(
         ctx,
@@ -974,7 +1275,8 @@ def _ask_ai(
             resolved,
             system=system,
             messages=[*turn, AIMessage(reply), HumanMessage(NUDGE.format(text=text))],
-            tools=tools,
+            # The corrective pass may need a tool this turn's words missed.
+            tools=every,
             on_text=lambda d: stream.text(_strip_marks(d)),
             max_turns=MAX_STEPS,
             max_tool_calls=MAX_TOOL_CALLS,

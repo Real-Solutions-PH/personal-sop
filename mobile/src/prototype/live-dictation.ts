@@ -3,6 +3,11 @@
 // progress is shown as it is recognised and replaced as recognition refines
 // it. Nothing is sent: the person reviews the text and taps send.
 import { useEffect, useRef, useState } from "react"
+import { create } from "zustand"
+
+/** Whether any composer is dictating right now. The phone has one
+ * recogniser, so the "Hey Fern" listener stands down while this is on. */
+export const dictating = create<{ on: boolean }>(() => ({ on: false }))
 
 type Module =
   typeof import("expo-speech-recognition").ExpoSpeechRecognitionModule
@@ -77,6 +82,8 @@ export function useLiveDictation(
   // biome-ignore lint/correctness/useExhaustiveDependencies: cleanup on unmount
   useEffect(
     () => () => {
+      // Only a composer that was dictating hands the recogniser back.
+      if (subs.current.length) dictating.setState({ on: false })
       detach()
       speech()?.abort()
     },
@@ -112,8 +119,10 @@ export function useLiveDictation(
         setListening(false)
         setLevel(0)
         detach()
+        dictating.setState({ on: false })
       }),
     ]
+    dictating.setState({ on: true })
     m.start({
       lang,
       interimResults: true,

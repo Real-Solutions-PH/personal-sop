@@ -43,7 +43,11 @@
       "name": "memory",
       "id": "00000000-0000-4000-8000-000000000004",
       "data": {
-        "text": "Training for a 10K"
+        "text": "Training for a 10K",
+        "kind": "fact",
+        "tags": [],
+        "importance": 3,
+        "always_on": false
       }
     }
   ],

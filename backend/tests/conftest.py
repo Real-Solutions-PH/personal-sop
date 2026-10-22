@@ -15,6 +15,41 @@ from app.main import app
 from tests.utils.user import authentication_token_from_email
 from tests.utils.utils import get_superuser_token_headers
 
+# The suite deletes every User row when it ends, and everything a user owns
+# goes with them. Pointed at a database someone uses, it empties it (it did
+# once: a single unit-test file run against the dev database). So it refuses
+# to start when the database already holds what a person keeps; a crashed
+# earlier run can leave rows in a throwaway database, and
+# TESTS_MAY_WIPE_DB=1 says that one is fine to empty.
+_KEPT_TABLES = ("companion_message", "fin_record", "habit", "task", "meal")
+
+
+def pytest_sessionstart(session: pytest.Session) -> None:
+    import os
+
+    del session
+    if os.environ.get("TESTS_MAY_WIPE_DB") == "1":
+        return
+    with Session(engine) as s:
+        found = {}
+        for table in _KEPT_TABLES:
+            try:
+                n = s.exec(text(f"SELECT count(*) FROM {table}")).one()[0]  # type: ignore[call-overload]
+            except Exception:  # noqa: BLE001 - a table not yet migrated holds nothing
+                s.rollback()
+                continue
+            if n:
+                found[table] = n
+    if found:
+        where = f"{settings.POSTGRES_SERVER}:{settings.POSTGRES_PORT}/{settings.POSTGRES_DB}"
+        pytest.exit(
+            f"Refusing to run: {where} holds data ({found}). The suite empties "
+            "the database it runs against. Point it at a throwaway database, "
+            "or set TESTS_MAY_WIPE_DB=1 if this one may be emptied.",
+            returncode=4,
+        )
+
+
 # One credential for the whole session: the app engine (when POSTGRES_APP_USER
 # is set) and the direct-SQL RLS tests all dial app_user with this password. Use
 # the configured one so the app engine — built from settings at import — can

@@ -160,9 +160,11 @@ def test_agent_blocks_and_a_write_stream_as_ag_ui(
     ]
     assert done["engine"] == "ai" and done["capture"]["source"] == "chat"
     assert done["capture"]["cards"][0]["kind"] == "workout"
-    # memories and trackers are in the model's context
+    # Trackers are in the model's context; a plain fact is not (it is found
+    # with recall_memories), only how to answer and who they are.
     system = model.seen[0][0].content
-    assert "Training for a 10K" in system
+    assert "ABOUT THEM" in system and "workouts" in system
+    assert "Training for a 10K" not in system
     with Session(db_engine) as s:
         purposes = [
             u.purpose

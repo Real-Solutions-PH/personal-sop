@@ -13,14 +13,13 @@ import {
   COMPANION_NAME,
   type CompanionState,
   companionStore,
+  type Memory,
   type Metric,
   type Msg,
   type Tracker,
 } from "@/prototype/companion/store"
 import type { Mapper, Payload } from "../mapper"
 import { singleton } from "./helpers"
-
-type Memory = CompanionState["memories"][number]
 
 const ms = (v: unknown): number => {
   const t = Date.parse(String(v))
@@ -116,18 +115,40 @@ export function trackerMapper(): Mapper<CompanionState, Tracker> {
   }
 }
 
+/** ``MemorySync``: a memory saved before the memory layer reads as a fact. */
+export function memoryToServer(m: Memory): Payload {
+  return {
+    text: m.text,
+    kind: m.kind ?? "fact",
+    tags: m.tags ?? [],
+    importance: m.importance ?? 3,
+    always_on: m.alwaysOn ?? false,
+  }
+}
+
+/** ``MemoryPublic`` -> a memory. An unknown kind or source is kept as sent
+ * (memory-labels.ts shows it as itself). */
+export function memoryFromServer(row: Payload): Memory {
+  return {
+    id: String(row.id),
+    text: String(row.text),
+    at: ms(row.created_at),
+    kind: typeof row.kind === "string" ? row.kind : "fact",
+    tags: Array.isArray(row.tags) ? row.tags.map(String) : [],
+    importance: typeof row.importance === "number" ? row.importance : 3,
+    alwaysOn: row.always_on === true,
+    source: typeof row.source === "string" ? row.source : "said",
+  }
+}
+
 export function memoryMapper(): Mapper<CompanionState, Memory> {
   return {
     entity: "memory",
     store: companionStore,
     list: (s) => s.memories.filter((m) => isUuid(m.id)),
     id: (m) => m.id,
-    toServer: (m) => ({ text: m.text }),
-    fromServer: (row) => ({
-      id: String(row.id),
-      text: String(row.text),
-      at: ms(row.created_at),
-    }),
+    toServer: memoryToServer,
+    fromServer: memoryFromServer,
     merge: (s, ups, dels) =>
       ups.length || dels.length
         ? { ...s, memories: upsertList(s.memories, ups, dels, (m) => m.id) }

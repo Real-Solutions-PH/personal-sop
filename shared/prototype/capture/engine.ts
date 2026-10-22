@@ -278,12 +278,14 @@ function execute(
     case "planned": {
       const pl = addPlanned({
         name: p.name,
-        type: "expense",
+        type: p.type ?? "expense",
         amount: p.amount,
         estimated: false,
         accountId: p.accountId,
         categoryId: p.categoryId,
-        schedule: { kind: "monthly", day: p.day },
+        schedule: p.date
+          ? { kind: "once", date: p.date }
+          : { kind: "monthly", day: p.day ?? 1 },
         end: { kind: "never" },
         autoLog: false,
         isWhatIf: false,

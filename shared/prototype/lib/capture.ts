@@ -8,7 +8,11 @@ export interface CaptureContext {
 export const captureUi = createStore<{
   open: boolean
   ctx: CaptureContext
-}>("capture-ui", () => ({ open: false, ctx: {} }))
+}>("capture-ui", () => ({ open: false, ctx: {} }), {
+  // Whether Fern's drawer or a capture sheet is open is this launch's
+  // state: saved, it reopened the drawer (and Snap it) on the next start.
+  persist: false,
+})
 export const openCapture = (ctx: CaptureContext = {}) =>
   captureUi.set({ open: true, ctx })
 export const closeCapture = () => captureUi.set({ open: false, ctx: {} })

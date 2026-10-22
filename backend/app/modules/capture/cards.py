@@ -59,6 +59,8 @@ TARGET_OF = {
     "journal": "journal",
     "accountCreate": "finance",
     "accountBalance": "finance",
+    "routineUpdate": "habits",
+    "habitUpdate": "habits",
     "budgetCreate": "finance",
     "routineCreate": "habits",
     "templateCreate": "fitness",

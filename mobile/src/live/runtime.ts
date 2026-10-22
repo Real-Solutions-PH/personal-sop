@@ -87,7 +87,12 @@ export function startLive(userId: string, storage: StorageAdapter) {
     clearToBlank()
     storage.setItem(OWNER_KEY, userId)
   }
-  const stats = createStats({ http, online: getConnectivity })
+  let syncing: SyncEngine | null = null
+  const stats = createStats({
+    http,
+    online: getConnectivity,
+    settled: () => syncing?.settled() ?? true,
+  })
   stats.start(userId)
   setFxSource(async (base) => {
     const r = await http.request<{
@@ -105,6 +110,7 @@ export function startLive(userId: string, storage: StorageAdapter) {
     online: getConnectivity,
     onSynced: () => void stats.refreshAll(),
   })
+  syncing = engine
   engine.start((m, onChange) => {
     let last = m.store.get()
     return m.store.subscribe(() => {
@@ -170,6 +176,12 @@ export function stopLive() {
   active?.stop()
   active = null
   setFxSource(null)
+}
+
+/** Re-send everything this device holds to the server (it lost its copy).
+ * Returns how many changes were queued, or null when not signed in live. */
+export function reuploadAll(): number | null {
+  return active ? active.engine.reupload() : null
 }
 
 /** Push now (connectivity regained). */

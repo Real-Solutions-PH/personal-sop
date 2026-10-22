@@ -160,9 +160,17 @@ export function RoutineDetail({ id }: { id: string }) {
         <Line style={{ gap: 16 }}>
           <HabitIcon icon={r.icon} />
           <View style={{ flex: 1 }}>
-            <Copy size={14} muted>
-              {L.scheduleLabel(r.schedule)}
-            </Copy>
+            <Tap
+              label={`Schedule: ${L.scheduleLabel(r.schedule)}. Change`}
+              onPress={() => go(`/habits/routines/${id}/edit`)}
+            >
+              <Copy size={14} muted>
+                {L.scheduleLabel(r.schedule) || "Set days and a time"} ·{" "}
+                <Copy size={14} weight="medium" style={{ color: t.hab }}>
+                  Change
+                </Copy>
+              </Copy>
+            </Tap>
             <Copy size={14} muted>
               {r.steps.length} steps · {L.plannedMin(r)} min planned
             </Copy>

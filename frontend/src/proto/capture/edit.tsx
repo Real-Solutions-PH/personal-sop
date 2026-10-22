@@ -281,15 +281,17 @@ function Form({ p, set }: { p: Payload; set: (p: Payload) => void }) {
               onChange={(amount) => set({ ...p, amount })}
             />
           </Field>
-          <Field label="Day of month">
-            <NumInput
-              label="day"
-              value={p.day}
-              onChange={(day) =>
-                set({ ...p, day: Math.min(31, Math.max(1, day)) })
-              }
-            />
-          </Field>
+          {p.date ? null : (
+            <Field label="Day of month">
+              <NumInput
+                label="day"
+                value={p.day ?? 1}
+                onChange={(day) =>
+                  set({ ...p, day: Math.min(31, Math.max(1, day)) })
+                }
+              />
+            </Field>
+          )}
         </>
       )
     case "task":

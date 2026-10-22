@@ -14,7 +14,7 @@ import { useState } from "react"
 import { Pressable, Text, View } from "react-native"
 import Animated from "react-native-reanimated"
 import { toast } from "sonner-native"
-import { AnimatedCheck, feel, rowEnter, rowExit, rowLayout } from "../motion"
+import { AnimatedCheck, feel, rowEnter, rowExit } from "../motion"
 import { back, go } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import {
@@ -70,7 +70,9 @@ export function TaskRow({
   }
   return (
     <>
-      <Animated.View layout={rowLayout} entering={rowEnter} exiting={rowExit}>
+      {/* No layout transition: rows move between sections whose
+          containers do not animate, which left gaps on iOS. */}
+      <Animated.View entering={rowEnter} exiting={rowExit}>
         <SwipeRow
           onComplete={toggle}
           onMore={() => setOpen(true)}

@@ -216,13 +216,15 @@ export function PayloadForm({
             onChangeText={(name) => set({ ...p, name })}
           />
           {money(p.amount, (amount) => set({ ...p, amount }))}
-          <NumberControl
-            label="Day of month"
-            value={p.day}
-            onChange={(day) =>
-              set({ ...p, day: Math.max(1, Math.min(31, day)) })
-            }
-          />
+          {p.date ? null : (
+            <NumberControl
+              label="Day of month"
+              value={p.day ?? 1}
+              onChange={(day) =>
+                set({ ...p, day: Math.max(1, Math.min(31, day)) })
+              }
+            />
+          )}
         </>
       )
     case "task":

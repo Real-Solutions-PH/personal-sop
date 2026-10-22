@@ -40,7 +40,7 @@ from app.shared import crypto
 from app.shared.context import Ctx
 from app.shared.domain import domain_error
 
-Purpose = Literal["chat", "capture", "vision", "transcription", "advisor"]
+Purpose = Literal["chat", "capture", "vision", "transcription", "advisor", "embedding"]
 
 # Base URLs of the OpenAI-compatible endpoints each preset speaks to.
 PRESET_BASE_URLS: dict[str, str] = {
@@ -248,6 +248,98 @@ TTS_USD_PER_1K_CHARS = 0.030
 def speech_minor(chars: int) -> int:
     """What speaking ``chars`` characters aloud cost, in centavos."""
     return _centavos(max(0, chars) / 1000 * TTS_USD_PER_1K_CHARS)
+
+
+# The width of every stored embedding: one model's vectors per column, so
+# a changed model is re-embedded rather than mixed (``embed_model`` says
+# which made a row).
+EMBEDDING_DIMENSIONS = 1024
+
+
+class EmbedError(Exception):
+    def __init__(self, code: str) -> None:
+        super().__init__(code)
+        self.code = code
+
+
+def embedding_model(ctx: Ctx) -> ResolvedModel | None:
+    """The model that embeds this user's memories: their own "embedding"
+    assignment, else the server's (Nebius), else None (memories are kept
+    unembedded and filled in later)."""
+    own = _assignment(ctx, "embedding")
+    if own is not None:
+        return own
+    if not (settings.AI_SERVER_FALLBACK and settings.NEBIUS_API_KEY):
+        return None
+    return ResolvedModel(
+        purpose="embedding",
+        provider="nebius",
+        model=settings.NEBIUS_EMBEDDING_MODEL,
+        base_url=settings.NEBIUS_BASE_URL,
+        api_key=SecretStr(settings.NEBIUS_API_KEY),
+        credential_id=None,
+        supports_vision=False,
+        source="server",
+    )
+
+
+def embed(ctx: Ctx, texts: list[str]) -> tuple[list[list[float]], str]:
+    """``texts`` as vectors of EMBEDDING_DIMENSIONS, and the model that made
+    them; one metered call. :class:`EmbedError` when no model resolves or
+    the provider fails (no provider text in it)."""
+    resolved = embedding_model(ctx)
+    if resolved is None:
+        raise EmbedError("no_embedding_model")
+    vectors, tokens = embed_call(resolved, texts)
+    record_usage(
+        ctx,
+        resolved,
+        input_tokens=tokens,
+        output_tokens=0,
+        cost_minor=price_minor(resolved.model, tokens, 0),
+    )
+    return vectors, resolved.model
+
+
+def embed_call(
+    resolved: ResolvedModel, texts: list[str]
+) -> tuple[list[list[float]], int]:
+    """POST ``{base_url}/embeddings`` (OpenAI-compatible): the one seam a
+    test substitutes. Returns the vectors in input order and the tokens
+    billed."""
+    import httpx
+
+    try:
+        with httpx.Client(
+            timeout=settings.AI_REQUEST_TIMEOUT_SECONDS, trust_env=False
+        ) as c:
+            r = c.post(
+                f"{resolved.base_url.rstrip('/')}/embeddings",
+                headers={
+                    "Authorization": f"Bearer {resolved.api_key.get_secret_value()}"
+                },
+                json={
+                    "model": resolved.model,
+                    "input": texts,
+                    "dimensions": EMBEDDING_DIMENSIONS,
+                },
+            )
+    except httpx.HTTPError:
+        raise EmbedError("embedding_unreachable") from None
+    if r.status_code != 200:
+        raise EmbedError("embedding_failed")
+    try:
+        body = r.json()
+        rows = sorted(body["data"], key=lambda d: d["index"])
+        vectors = [[float(x) for x in d["embedding"]] for d in rows]
+        tokens = int((body.get("usage") or {}).get("prompt_tokens") or 0)
+    except (ValueError, KeyError, TypeError):
+        raise EmbedError("embedding_failed") from None
+    if len(vectors) != len(texts) or any(
+        len(v) != EMBEDDING_DIMENSIONS for v in vectors
+    ):
+        raise EmbedError("embedding_wrong_shape")
+    return vectors, tokens
 
 
 def speech_model() -> ResolvedModel | None:
