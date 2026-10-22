@@ -256,6 +256,36 @@ test("the outbox and cursor survive a restart", async () => {
   expect(server.rows.get("a")).toMatchObject({ title: "Keep me" })
 })
 
+test("a transition made before the engine starts still sends its action", async () => {
+  const server = new FakeServer()
+  const storage = memoryStorage()
+  const first = engine(server, storage)
+  todoStore.set({ todos: [{ id: "a", title: "Run", done: false }] })
+  first.capture()
+  await first.sync()
+  first.stop()
+  // App relaunched offline: the task is completed before sign-in finishes,
+  // so no engine is watching the store yet.
+  todoStore.set({ todos: [{ id: "a", title: "Run", done: true }] })
+  const second = engine(server, storage)
+  const ops = second.capture()
+  expect(ops).toEqual([
+    expect.objectContaining({
+      kind: "action",
+      name: "todo.complete",
+      data: { id: "a" },
+    }),
+  ])
+  await second.sync()
+  expect(server.rows.get("a")).toMatchObject({ status: "done" })
+})
+
+test("without a stored baseline the current rows are the baseline", () => {
+  todoStore.set({ todos: [{ id: "a", title: "Run", done: true }] })
+  const e = engine(new FakeServer())
+  expect(e.capture().filter((o) => o.kind === "action")).toEqual([])
+})
+
 test("derived ids match the backend's uuid5", () => {
   // Value computed by backend app.shared.ids.derived_id (same inputs).
   expect(
