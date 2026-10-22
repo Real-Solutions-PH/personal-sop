@@ -3,7 +3,7 @@ import * as D from "@domain/dash/hooks"
 import { dashStore } from "@domain/dash/store"
 import { captureUi, closeCapture } from "@domain/lib/capture"
 import { dayKey, dayOffset } from "@domain/lib/day"
-import { useLocalSearchParams } from "expo-router"
+import { useLocalSearchParams, usePathname } from "expo-router"
 import {
   BarChart3,
   Brain,
@@ -57,6 +57,7 @@ import { go } from "../navigation"
 import { Exchange, ThreadComposer } from "../screens/capture-thread"
 import { fonts, useTheme } from "../theme"
 import { Screen } from "../ui"
+import { wake } from "../wake-word"
 import { BlockView, Chips, TrackerCard } from "./blocks"
 import { ask } from "./brain"
 import { Orb } from "./orb"
@@ -496,6 +497,9 @@ export function CompanionChat() {
   const timeline = useTimeline()
   const params = useLocalSearchParams<{ q?: string; hint?: string }>()
   const on = thinking((s) => s.on)
+  const onPage = usePathname() === "/capture"
+  const drawerOpen = captureUi.use((s) => s.open)
+  const armed = wake((s) => s.armed)
   let lastDay = ""
   return (
     <Screen
@@ -518,7 +522,11 @@ export function CompanionChat() {
             <Text
               style={{ color: t.muted, fontFamily: fonts.body, fontSize: 12 }}
             >
-              {on ? "thinking…" : "Your life companion"}
+              {on
+                ? "thinking…"
+                : armed
+                  ? `Say “Hey ${name}” to talk`
+                  : "Your life companion"}
             </Text>
           </View>
         </View>
@@ -547,6 +555,7 @@ export function CompanionChat() {
           initialText={params.q ?? ""}
           initialHint={params.hint}
           placeholder={`Message ${name}…`}
+          wakeTarget={onPage && !drawerOpen}
         />
       }
     >
@@ -605,6 +614,7 @@ export function CompanionDrawer({ bottom }: { bottom: number }) {
   const ctx = captureUi.use((s) => s.ctx)
   const name = companionStore.use((s) => s.name)
   const on = thinking((s) => s.on)
+  const armed = wake((s) => s.armed)
   const [mounted, setMounted] = useState(open)
   const [since, setSince] = useState(Date.now())
   const area = screen - bottom
@@ -807,7 +817,11 @@ export function CompanionDrawer({ bottom }: { bottom: number }) {
                       fontSize: 12,
                     }}
                   >
-                    {on ? "thinking…" : "Drag up for the full chat"}
+                    {on
+                      ? "thinking…"
+                      : armed
+                        ? `Say “Hey ${name}” to talk`
+                        : "Drag up for the full chat"}
                   </Text>
                 </View>
                 <IconTap
@@ -851,6 +865,7 @@ export function CompanionDrawer({ bottom }: { bottom: number }) {
             initialHint={ctx.hint}
             initialMode={ctx.mode}
             placeholder={`Message ${name}…`}
+            wakeTarget={open}
           />
           {/* The tab bar's + button rises 23 pt above the bar (plus its
               shadow) into the sheet; keep the composer clear of it. The

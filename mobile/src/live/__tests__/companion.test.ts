@@ -11,6 +11,7 @@ import {
   COMPANION_NAME,
   type CompanionState,
   companionStore,
+  editMemory,
   forget,
   remember,
   removeTracker,
@@ -22,6 +23,8 @@ import { SyncEngine } from "../engine"
 import type { Http } from "../http"
 import {
   companionMappers,
+  memoryFromServer,
+  memoryToServer,
   messageFromServer,
   trackerFromServer,
   trackerToServer,
@@ -214,6 +217,49 @@ test("round trip: trackers, memories and messages", () => {
   })
 })
 
+test("memories carry kind, tags, importance, always-on and source", () => {
+  const row = {
+    id: "4d5e6f7a-8b9c-4d0e-9f1a-2b3c4d5e6f7a",
+    text: "Prefers short answers",
+    kind: "response_style",
+    tags: ["answers"],
+    importance: 4,
+    always_on: true,
+    source: "inferred",
+    created_at: "2026-10-14T04:00:00.000Z",
+    version: 1,
+  }
+  const m = memoryFromServer(row)
+  expect(m).toEqual({
+    id: row.id,
+    text: "Prefers short answers",
+    at: Date.parse(row.created_at),
+    kind: "response_style",
+    tags: ["answers"],
+    importance: 4,
+    alwaysOn: true,
+    source: "inferred",
+  })
+  expect(memoryToServer(m)).toEqual({
+    text: "Prefers short answers",
+    kind: "response_style",
+    tags: ["answers"],
+    importance: 4,
+    always_on: true,
+  })
+  // A row from before the memory layer reads as a fact the person said.
+  expect(memoryFromServer({ id: row.id, text: "x", created_at: 0 })).toEqual(
+    expect.objectContaining({
+      kind: "fact",
+      tags: [],
+      alwaysOn: false,
+      source: "said",
+    }),
+  )
+  // A kind this app does not know is kept, not folded into "fact".
+  expect(memoryFromServer({ ...row, kind: "dream" }).kind).toBe("dream")
+})
+
 test("diff: rename, tracker create/edit/delete and memory create/delete", () => {
   const e = engine()
   e.capture() // the companion singleton's first write
@@ -235,13 +281,28 @@ test("diff: rename, tracker create/edit/delete and memory create/delete", () => 
       "tracker",
       { metric: "workouts", label: "Workouts", goal: 4, direction: "above" },
     ],
-    ["upsert", "memory", { text: "Training for a 10K" }],
+    [
+      "upsert",
+      "memory",
+      {
+        text: "Training for a 10K",
+        kind: "fact",
+        tags: [],
+        importance: 3,
+        always_on: false,
+      },
+    ],
   ])
   addTracker({ metric: "workouts", label: "Workouts", goal: 5 })
   expect(e.capture().map((o) => [o.name, o.data])).toEqual([
     ["tracker", { goal: 5 }],
   ])
   const mid = companionStore.get().memories[0].id
+  // A toggle or a retag sends only what changed.
+  editMemory(mid, { alwaysOn: true, tags: ["running"] })
+  expect(e.capture().map((o) => [o.name, o.id, o.data])).toEqual([
+    ["memory", mid, { tags: ["running"], always_on: true }],
+  ])
   removeTracker(tid)
   forget(mid)
   expect(e.capture().map((o) => [o.kind, o.name, o.id])).toEqual([

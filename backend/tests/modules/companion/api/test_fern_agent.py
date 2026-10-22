@@ -239,8 +239,8 @@ def test_the_model_knows_the_local_time_not_only_the_business_day(
     stream(api, client, "remind me to stretch tonight at 9pm")
     system = str(model.seen[0][0].content)
     now = datetime.now(ZoneInfo("Asia/Manila"))
-    assert f"Right now it is {now:%A %Y-%m-%d}" in system
-    assert "Their day rolls over at 04:00" in system
+    assert f"it is {now:%A %Y-%m-%d}" in system
+    assert "their day rolls over at 04:00" in system
     assert "Never schedule something in the past" in system
 
 
@@ -978,3 +978,167 @@ def test_an_expense_said_in_dollars_is_kept_in_dollars_and_logged_in_pesos(
         10000,
     )
     assert rec.fx_rate == Decimal("57.92")
+
+
+def test_update_routine_reorders_adds_a_step_and_undo_puts_it_back(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.modules.habits.models import Habit, Routine, RoutineStep
+
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    setup_step(
+        api,
+        client,
+        "make a morning routine: fix bed 5, journal 15, oats 10 at 6am",
+        monkeypatch,
+        act(
+            "create_routine",
+            name="Morning",
+            steps=[
+                {"name": "Fix bed", "minutes": 5},
+                {"name": "Journal", "minutes": 15},
+                {"name": "Oats", "minutes": 10},
+            ],
+            time="06:00",
+        ),
+    )
+
+    def order() -> list[tuple[str, int]]:
+        habits = {h.id: h.name for h in live(rows_of(api, Habit))}
+        steps = sorted(live(rows_of(api, RoutineStep)), key=lambda s: s.position)
+        return [(habits[s.habit_id], s.minutes) for s in steps]
+
+    step = setup_step(
+        api,
+        client,
+        "after journaling I eat oats, then 30 min deep work; start at 5:30",
+        monkeypatch,
+        act(
+            "update_routine",
+            routine="morning",
+            steps=[
+                {"name": "Fix bed", "minutes": 5},
+                {"name": "Journal", "minutes": 15},
+                {"name": "Oats", "minutes": 10},
+                {"name": "Deep work", "minutes": 30},
+            ],
+            time="05:30",
+        ),
+    )
+    assert step["ok"] and step["state"] == "saved", step
+    assert step["summary"] == "Updated routine: morning · 4 steps"
+    assert order() == [
+        ("Fix bed", 5),
+        ("Journal", 15),
+        ("Oats", 10),
+        ("Deep work", 30),
+    ]
+    [routine] = live(rows_of(api, Routine))
+    assert routine.schedule[0]["time"] == "05:30"
+
+    undo(api, step)
+    assert order() == [("Fix bed", 5), ("Journal", 15), ("Oats", 10)]
+    [routine] = live(rows_of(api, Routine))
+    assert routine.schedule[0]["time"] == "06:00"
+    # The habit the edit made for its new step goes with it.
+    assert "Deep work" not in [h.name for h in live(rows_of(api, Habit))]
+
+
+def test_update_habit_changes_target_and_time_and_undo_restores(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.modules.habits.models import Habit
+
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    api.post(
+        "/habits/",
+        {"name": "Read", "type": "duration", "target": 20},
+    )
+    step = setup_step(
+        api,
+        client,
+        "make my reading 30 minutes at 9pm",
+        monkeypatch,
+        act("update_habit", habit="read", target=30, time="21:00"),
+    )
+    assert step["ok"] and step["summary"] == "Updated habit: read"
+    [h] = live(rows_of(api, Habit))
+    assert (h.target, h.schedule[0].get("time")) == (30, "21:00")
+    undo(api, step)
+    [h] = live(rows_of(api, Habit))
+    assert (h.target, h.schedule[0].get("time")) == (20, None)
+
+
+def test_editing_a_routine_that_does_not_exist_names_the_ones_that_do(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    step = setup_step(
+        api,
+        client,
+        "move my night routine to 10pm",
+        monkeypatch,
+        act("update_routine", routine="night", time="22:00"),
+    )
+    assert not step["ok"]
+    assert step["summary"] == "Couldn't finish: no routine with that name"
+
+
+def test_a_bill_with_a_due_date_is_planned_once_on_that_date(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.modules.finance.models import PlannedItem
+
+    api = user(client, db)
+    api.assign("chat")
+    install(
+        monkeypatch,
+        say(
+            "",
+            act(
+                "add_planned",
+                name="Shopee Pay Later - Nov",
+                amount=3544.18,
+                due_date="2026-12-05",
+            ),
+            act("add_planned", name="Netflix", amount=549, day_of_month=5),
+            act(
+                "add_planned",
+                name="Salary",
+                amount=40000,
+                day_of_month=15,
+                type="income",
+            ),
+        ),
+        say("Planned."),
+    )
+    events = stream(api, client, "plan my Shopee bill due Dec 5, netflix and salary")
+    steps = events[-1]["result"]["messages"][1]["blocks"][0]["items"]
+    for s in steps:
+        if s.get("state") == "proposed":
+            api.post(f"/capture/cards/{s['card_id']}/confirm")
+    rows = {p.name: p for p in live(rows_of(api, PlannedItem))}
+    bill = rows["Shopee Pay Later - Nov"]
+    assert bill.schedule == {"kind": "once", "date": "2026-12-05"}
+    assert (bill.amount_minor, bill.type) == (354418, "expense")
+    assert rows["Netflix"].schedule["kind"] == "monthly"
+    assert rows["Salary"].type == "income"
+
+
+def test_a_planned_payment_needs_a_date_or_a_day(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = user(client, db)
+    api.assign("chat")
+    step = setup_step(
+        api,
+        client,
+        "plan my rent",
+        monkeypatch,
+        act("add_planned", name="Rent", amount=15000),
+    )
+    assert not step["ok"]
+    assert step["summary"] == "Couldn't finish: give due date or day of month"

@@ -94,3 +94,23 @@ it("retries the latest unsaved edit after storage recovers", () => {
   expect(store.flush()).toBe(true)
   expect(JSON.parse(writes.get("sop-proto:retry")!)).toEqual({ count: 7 })
 })
+
+test("a memory-only store never writes to storage and starts fresh", () => {
+  const { configureStorage, createStore } =
+    require("@domain/lib/store") as typeof import("@domain/lib/store")
+  const saved = new Map<string, string>()
+  configureStorage({
+    getItem: (k) => saved.get(k) ?? null,
+    setItem: (k, v) => void saved.set(k, v),
+    removeItem: (k) => void saved.delete(k),
+  })
+  saved.set("sop-proto:ui-test", JSON.stringify({ open: true }))
+  const ui = createStore("ui-test", () => ({ open: false }), { persist: false })
+  // A saved "open" from an earlier launch is ignored...
+  expect(ui.get().open).toBe(false)
+  ui.set({ open: true })
+  // ...and this launch's is never saved.
+  expect(saved.get("sop-proto:ui-test")).toBe(JSON.stringify({ open: true }))
+  ui.set({ open: false })
+  expect(saved.get("sop-proto:ui-test")).toBe(JSON.stringify({ open: true }))
+})

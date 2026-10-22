@@ -3,17 +3,29 @@ import { type RecordCard, RULE_LABELS } from "@domain/capture/data"
 import { captureStore } from "@domain/capture/store"
 import { currencyInfo, moneyExact, useCurrency } from "@domain/lib/money"
 import { LinearGradient } from "expo-linear-gradient"
-import { Bot, ChevronRight, Cpu, Link2, Lock, Power } from "lucide-react-native"
+import {
+  Bot,
+  Brain,
+  ChevronRight,
+  Cpu,
+  Ear,
+  Link2,
+  Lock,
+  Power,
+} from "lucide-react-native"
 import { useState } from "react"
 import { View } from "react-native"
 import { toast } from "sonner-native"
 import { priceText, useServerModels } from "../../live/ai-models"
+import { memoryCount } from "../companion/memory-labels"
+import { companionStore } from "../companion/store"
 import {
   Bar,
   border,
   Copy,
   Frame,
   Line,
+  LinkRow,
   SectionHeading,
   Segmented,
   Tap,
@@ -22,6 +34,7 @@ import { go } from "../navigation"
 import { Switch } from "../switch"
 import { useTheme } from "../theme"
 import { Button, confirm, Screen } from "../ui"
+import { allowWakeListening, canListenForWake, wakePrefs } from "../wake-word"
 
 // AI spend and its cap are the service's cost, priced in pesos for every
 // user; the confirm threshold is the user's own money.
@@ -39,6 +52,8 @@ function Settings() {
     st = captureStore.use((s) => s.settings),
     spend = captureStore.use((s) => s.spend),
     captures = captureStore.use((s) => s.captures),
+    companionName = companionStore.use((s) => s.name),
+    memories = companionStore.use((s) => s.memories),
     recs = captures.flatMap((c) =>
       (c.reply?.items ?? []).filter((i): i is RecordCard => i.t === "record"),
     ),
@@ -274,6 +289,7 @@ function Settings() {
             </Copy>,
           )}
         </Frame>
+        <WakeWordSetting />
         <SectionHeading>Language & voice</SectionHeading>
         <Frame style={{ padding: 16, gap: 12 }}>
           <View style={{ gap: 8 }}>
@@ -302,6 +318,16 @@ function Settings() {
               onChange={(transcription) => updateAISettings({ transcription })}
             />
           </View>
+        </Frame>
+        <SectionHeading>Memory</SectionHeading>
+        <Frame style={{ paddingHorizontal: 8, paddingVertical: 4 }}>
+          <LinkRow
+            title={`What ${companionName} remembers`}
+            detail={memoryCount(memories.length)}
+            icon={Brain}
+            accent="hab"
+            href="/me/memories"
+          />
         </Frame>
         <SectionHeading>Model</SectionHeading>
         <ModelPicker picked={st.model} />
@@ -579,6 +605,79 @@ function Connector() {
         )}
       </View>
     </Screen>
+  )
+}
+
+/** "Hey Fern": off until the person turns it on, with what it does to the
+ * microphone said before they do. */
+function WakeWordSetting() {
+  const t = useTheme()
+  const name = companionStore.use((s) => s.name)
+  const on = wakePrefs.use((s) => s.enabled)
+  const available = canListenForWake()
+  const toggle = async (next: boolean) => {
+    if (!next) return wakePrefs.set({ enabled: false })
+    if (!available) return toast("This build can't listen for a wake phrase.")
+    if (!(await allowWakeListening()))
+      return toast.error(
+        "Allow the microphone and speech recognition in Settings to use this.",
+      )
+    wakePrefs.set({ enabled: true })
+    toast(`Listening for “Hey ${name}” while the app is open`)
+  }
+  return (
+    <>
+      <SectionHeading>Hands-free</SectionHeading>
+      <Frame style={{ padding: 16, gap: 12, opacity: available ? 1 : 0.6 }}>
+        <Line style={{ gap: 12, alignItems: "flex-start" }}>
+          <View
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 12,
+              backgroundColor: border(t.primary, 0.15),
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Ear size={20} color={t.primary} />
+          </View>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Copy weight="semibold">Hey {name}</Copy>
+            <Copy size={12} muted>
+              Say “Hey {name}” and the chat opens, already listening for what
+              you want.
+            </Copy>
+          </View>
+          <Switch
+            compact
+            accent="primary"
+            label={`Hey ${name}`}
+            value={on}
+            onChange={(v) => void toggle(v)}
+          />
+        </Line>
+        <View
+          style={{
+            gap: 6,
+            padding: 12,
+            borderRadius: 12,
+            backgroundColor: border(t.soft, 0.6),
+          }}
+        >
+          <Copy size={12} muted>
+            Only while the app is open on screen. iPhone doesn't let apps listen
+            in the background or when the phone is locked.
+          </Copy>
+          <Copy size={12} muted>
+            While it's on, the microphone stays open and your phone's own speech
+            recogniser listens for the phrase. Nothing is saved or sent until
+            you send a message. It pauses while you dictate and while {name}{" "}
+            reads aloud, and uses more battery.
+          </Copy>
+        </View>
+      </Frame>
+    </>
   )
 }
 

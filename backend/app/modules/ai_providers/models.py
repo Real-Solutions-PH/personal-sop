@@ -18,7 +18,7 @@ PROVIDER_PRESETS = (
     "together",
     "custom",
 )
-PURPOSES = ("chat", "capture", "vision", "transcription", "advisor")
+PURPOSES = ("chat", "capture", "vision", "transcription", "advisor", "embedding")
 
 
 class AIProviderCredential(OwnedRow, table=True):

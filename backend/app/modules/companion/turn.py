@@ -53,6 +53,8 @@ RUNNING: dict[str, str] = {
     "log_habit": "Checking off a habit",
     "create_habit": "Creating a habit",
     "create_account": "Adding an account",
+    "update_routine": "Changing a routine",
+    "update_habit": "Changing a habit",
     "set_account_balance": "Setting a balance",
     "create_budget": "Setting a budget",
     "create_routine": "Creating a routine",
@@ -75,6 +77,7 @@ RUNNING: dict[str, str] = {
     "remember_fact": "Remembering that",
     "forget_fact": "Forgetting that",
     "show_memories": "Gathering what I remember",
+    "recall_memories": "Recalling what I know",
     "suggest": "Suggesting next questions",
     "read_photos": "Looking at your photos",
     "web_search": "Searching the web",
@@ -177,6 +180,22 @@ def outcome(ctx: Ctx, name: str, args: dict[str, Any], result: Any) -> tuple[boo
             f"Created workout template: {args.get('name', '')} · "
             f"{n} exercise{'s' if n != 1 else ''}{wait}",
         )
+    if name == "remember_fact":
+        status = res.get("status")
+        if status == "duplicate":
+            return True, f"Already knew: {res.get('already_known', '')}"
+        if status == "updated":
+            return True, f"Updated memory: {args.get('fact', '')}"
+        return True, f"Remembered: {args.get('fact', '')}"
+    if name == "recall_memories":
+        n = len(res.get("memories") or [])
+        return True, f"Recalled {n} thing{'s' if n != 1 else ''} about you"
+    if name == "update_routine":
+        n = len(args.get("steps") or [])
+        what = f" · {n} steps" if n else ""
+        return True, f"Updated routine: {args.get('routine', '')}{what}{wait}"
+    if name == "update_habit":
+        return True, f"Updated habit: {args.get('habit', '')}{wait}"
     if name == "create_task_list":
         n = len(args.get("items") or [])
         items = f" · {n} item{'s' if n != 1 else ''}" if n else ""

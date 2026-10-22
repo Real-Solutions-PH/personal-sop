@@ -12,10 +12,12 @@ import {
   Bell,
   BookOpen,
   Bot,
+  Brain,
   CalendarRange,
   ChartColumn,
   CheckSquare,
   Clock,
+  CloudUpload,
   Dumbbell,
   Eye,
   Flame,
@@ -40,6 +42,8 @@ import { Platform, View } from "react-native"
 import { toast } from "sonner-native"
 import { liveMode } from "@/live/config"
 import { AppLauncher } from "../app-launcher"
+import { memoryCount } from "../companion/memory-labels"
+import { companionStore } from "../companion/store"
 import {
   Bar,
   Copy,
@@ -66,7 +70,9 @@ export function Me() {
     score = D.useLifeScore(30),
     target = D.useOnTarget(30),
     hidden = privacyStore.use((s) => s.hidden),
-    account = sessionStore.use((s) => s.user?.email)
+    account = sessionStore.use((s) => s.user?.email),
+    companionName = companionStore.use((s) => s.name),
+    memories = companionStore.use((s) => s.memories)
   const fresh = () =>
     confirm(
       "Start as a new user?",
@@ -337,6 +343,33 @@ export function Me() {
             href="/me/settings"
           />
           <LinkRow title="AI & connector" icon={Bot} href="/capture/settings" />
+          {liveMode && (
+            <LinkRow
+              title="Re-upload this phone's data"
+              detail="Sends everything on this phone to the server again"
+              icon={CloudUpload}
+              onPress={() =>
+                confirm(
+                  "Re-upload this phone's data?",
+                  "Use this if the server lost your data. Everything saved on this phone is sent to the server again; nothing on the phone changes.",
+                  () => {
+                    const live =
+                      require("@/live/runtime") as typeof import("@/live/runtime")
+                    const n = live.reuploadAll()
+                    if (n === null) toast.error("Not signed in to the server")
+                    else toast.success(`Sending ${n} items to the server…`)
+                  },
+                )
+              }
+            />
+          )}
+          <LinkRow
+            title={`What ${companionName} remembers`}
+            detail={memoryCount(memories.length)}
+            icon={Brain}
+            accent="hab"
+            href="/me/memories"
+          />
           <LinkRow
             title="Privacy mode"
             detail="Blur every money amount"

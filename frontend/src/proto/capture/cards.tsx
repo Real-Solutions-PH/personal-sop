@@ -240,7 +240,11 @@ function Summary({ c, onAccount }: { c: RecordCard; onAccount?: () => void }) {
             <Money value={p.amount} className="text-muted-foreground" />
           </div>
           <div className="mt-1 text-muted-foreground text-xs">
-            Monthly on the {ord(p.day)} · {n.acct(p.accountId)}
+            {p.date
+              ? `Once, due ${p.date}`
+              : `Monthly on the ${ord(p.day ?? 1)}`}
+            {" · "}
+            {n.acct(p.accountId)}
           </div>
         </div>
       )

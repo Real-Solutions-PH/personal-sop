@@ -68,6 +68,11 @@ export interface StatsDeps {
   http: Http
   online: () => boolean
   now?: () => number
+  /** Every local edit has reached the server (the sync engine's view). A
+   * fetch started before that may return figures the edit has not changed
+   * yet, so it is kept as stale and the local numbers stay on screen until
+   * the refetch after the push. */
+  settled?: () => boolean
 }
 
 export function createStats(deps: StatsDeps) {
@@ -105,7 +110,9 @@ export function createStats(deps: StatsDeps) {
       patch(key, { pending: false, error: "offline" })
       return Promise.resolve()
     }
-    const startedAt = now()
+    // Stamped 0 (stale) when an edit was still on its way to the server:
+    // its answer may predate that edit.
+    const startedAt = deps.settled && !deps.settled() ? 0 : now()
     patch(key, { pending: true })
     const p = (async () => {
       try {

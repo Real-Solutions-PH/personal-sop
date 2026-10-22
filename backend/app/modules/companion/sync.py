@@ -9,7 +9,7 @@ import uuid
 
 from pydantic import BaseModel
 
-from app.modules.companion import services
+from app.modules.companion import memory, services
 from app.modules.companion.defaults import COMPANION_NAME
 from app.modules.companion.models import Companion, CompanionMessage, Memory, Tracker
 from app.modules.companion.schema import (
@@ -52,8 +52,55 @@ def delete_tracker(ctx: Ctx, row_id: uuid.UUID) -> None:
 
 
 def upsert_memory(ctx: Ctx, row_id: uuid.UUID, payload: BaseModel) -> OwnedRow:
+    """A memory typed or edited in the app. A new one goes through the memory
+    layer (an exact or near repeat is not added twice). An edit keeps its id
+    and changes only the fields sent; new text refreshes its hash and redoes
+    its embedding."""
     data = payload.model_dump(exclude_unset=True)
-    row, _ = owned_repo.upsert(ctx, Memory, row_id, {"text": str(data["text"]).strip()})
+    body = memory.normalise(str(data["text"]))[:500] if "text" in data else None
+    tags = memory.clean_tags(data["tags"]) if "tags" in data else None
+    existing = owned_repo.get(ctx, Memory, row_id, include_deleted=True)
+    if existing is None:
+        if body is None:  # create_required guards this; a defensive stop
+            raise ValueError("a new memory needs text")
+        saved = memory.remember(
+            ctx,
+            text=body,
+            kind=data.get("kind") or "fact",
+            tags=tags,
+            importance=data.get("importance") or 3,
+            always_on=bool(data.get("always_on")),
+            memory_id=row_id,
+            source="app",
+        )
+        row = saved.memory
+        if row.id != row_id:
+            # Already known: the device's copy becomes a tombstone pointing
+            # at the memory that stays, so the next pull drops it there.
+            row, _ = owned_repo.upsert(
+                ctx,
+                Memory,
+                row_id,
+                {"text": body, "source": "app", "superseded_by": saved.memory.id},
+            )
+            owned_repo.soft_delete(ctx, row)
+    else:
+        fields: dict[str, object] = {
+            k: data[k] for k in ("kind", "importance", "always_on") if k in data
+        }
+        if tags is not None:
+            fields["tags"] = tags
+        reembed = body is not None and body != existing.text
+        if reembed:
+            fields |= {
+                "text": body,
+                "text_hash": memory.text_hash(str(body)),
+                "embedding": None,
+                "embed_model": None,
+            }
+        row, _ = owned_repo.upsert(ctx, Memory, row_id, fields)
+        if reembed:
+            memory.backfill(ctx, limit=1)
     ctx.commit()
     return row
 

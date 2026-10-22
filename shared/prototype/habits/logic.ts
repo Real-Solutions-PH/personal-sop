@@ -1,4 +1,4 @@
-import { dayKey, dayOffset, weekday } from "../lib/day"
+import { DAY_START_HOUR, dayKey, dayOffset, weekday } from "../lib/day"
 import {
   type Habit,
   type HabitLog,
@@ -354,4 +354,47 @@ export function mostMissedWeekday(
 }
 export function sortedHabits(habits: Habit[]) {
   return [...habits].sort((a, b) => a.sortOrder - b.sortOrder)
+}
+
+// When in the day a routine belongs on Today. A timed routine shows from
+// LEAD minutes before its time until TAIL minutes after it should be done;
+// an untimed one takes its part of the day from its name ("morning",
+// "evening"...), else it shows all day. Minutes run from local midnight,
+// and the hours after midnight before the day rolls over count past 24:00,
+// so a late-evening window does not wrap.
+const LEAD = 90
+const TAIL = 120
+const PARTS: [RegExp, number, number][] = [
+  [/\b(morning|umaga|wake)\b/i, 4 * 60, 12 * 60],
+  [/\b(afternoon|hapon|midday|lunch)\b/i, 12 * 60, 17 * 60],
+  [/\b(evening|night|gabi|bedtime|wind[- ]?down)\b/i, 17 * 60, 28 * 60],
+]
+
+/** The minute of the business day: past midnight before the rollover
+ * counts on from 24:00. */
+export function businessMinute(d: Date, startHour = DAY_START_HOUR) {
+  const m = d.getHours() * 60 + d.getMinutes()
+  return d.getHours() < startHour ? m + 24 * 60 : m
+}
+
+/** [from, to] minutes of the business day the routine shows, or null for
+ * all day. */
+export function routineWindow(
+  r: Routine,
+  day: string,
+): [number, number] | null {
+  const time = slotFor(r.schedule, day)?.time
+  if (time) {
+    const [h, m] = time.split(":").map(Number)
+    let at = h * 60 + m
+    if (h < DAY_START_HOUR) at += 24 * 60
+    return [at - LEAD, at + plannedMin(r) + TAIL]
+  }
+  const part = PARTS.find(([re]) => re.test(r.name))
+  return part ? [part[1], part[2]] : null
+}
+
+export function routineShowsAt(r: Routine, day: string, minute: number) {
+  const w = routineWindow(r, day)
+  return !w || (minute >= w[0] && minute <= w[1])
 }

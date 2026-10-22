@@ -12,3 +12,5 @@ Start new ADRs from [template.md](template.md).
 | [0014](0014-aggregate-statistic.md) | One aggregate statistic across modules |
 | [0015](0015-fern-chat-agent.md) | Fern: one streamed, multi-step chat agent |
 | [0016](0016-live-dictation-on-device.md) | Live dictation: on-device recognition, Deepgram as fallback |
+| [0017](0017-fern-memory-and-context.md) | Fern's memory layer and per-turn context |
+| [0018](0018-hey-fern-wake-word.md) | "Hey Fern": a foreground wake phrase on the phone's recogniser |
