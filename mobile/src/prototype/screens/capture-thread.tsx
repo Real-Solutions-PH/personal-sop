@@ -22,7 +22,7 @@ import {
   WifiOff,
   X,
 } from "lucide-react-native"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   ActivityIndicator,
   Alert,
@@ -35,12 +35,13 @@ import { toast } from "sonner-native"
 import { liveMode } from "@/live/config"
 import { Orb } from "../companion/orb"
 import { markVoiceTurn, thinking } from "../companion/store"
-import { useLiveDictation } from "../live-dictation"
+import { composeDictation, useLiveDictation } from "../live-dictation"
 import { pickPhoto, pickPhotos } from "../media"
 import { border, Copy, Frame, IconTap, Line, Tap } from "../native-kit"
 import { go } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import { Button, Screen } from "../ui"
+import { wake } from "../wake-word"
 import { Reply } from "./capture"
 import { attachFiles, CapturePhoto } from "./capture-photo"
 import { QuickAdd } from "./capture-quick"
@@ -74,12 +75,15 @@ export function ThreadComposer({
   onText,
   hints: showHints = true,
   placeholder,
+  wakeTarget = false,
 }: {
   /** Route typed messages here (the companion) instead of capture, with
    * any photos attached in the composer. */
   onText?: (text: string, hint?: string, photos?: string[]) => void
   hints?: boolean
   placeholder?: string
+  /** "Hey Fern" starts dictating in this composer (the one on screen). */
+  wakeTarget?: boolean
   onSent?: (id: string) => void
   initialHint?: string
   initialText?: string
@@ -123,12 +127,24 @@ export function ThreadComposer({
   const live = useLiveDictation(setText, () =>
     toast.error("Dictation stopped. Try again, or type your message."),
   )
-  async function dictate() {
+  async function dictate(said = "") {
     // Live words in the box when the phone can recognise speech
     // (ADR-0016); otherwise record and transcribe on the server.
     setSpoken(true)
-    if (!(await live.start(text))) setMode("voice")
+    const before = composeDictation(text, said, "")
+    if (said) setText(before)
+    if (!(await live.start(before))) setMode("voice")
   }
+  // "Hey Fern" heard: start dictating here, with anything said after the
+  // name already in the box. A wake older than a few seconds is stale.
+  const woke = wake((s) => s.pending)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: on a new wake only
+  useEffect(() => {
+    if (!woke || !wakeTarget || !dictation) return
+    wake.setState({ pending: null })
+    if (Date.now() - woke.at > 5_000 || live.listening) return
+    void dictate(woke.rest)
+  }, [woke, wakeTarget])
   function transcribe(audio: string, durationSec: number) {
     const live = require("@/live/dictate") as typeof import("@/live/dictate")
     setSpoken(true)
