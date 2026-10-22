@@ -5,7 +5,6 @@ import { fitStore } from "@domain/fitness/store"
 import { dayKey } from "@domain/lib/day"
 import { useLocalSearchParams } from "expo-router"
 import {
-  ChartColumn,
   Minus,
   Percent,
   Plus,
@@ -32,6 +31,7 @@ import { go } from "../navigation"
 import { useTheme } from "../theme"
 import { Button, DateField, Empty, Field, Screen, Sheet, undo } from "../ui"
 import { isDay } from "../validation"
+import { StatsShell } from "./stats-shell"
 export function GoalSheet({
   open,
   onClose,
@@ -196,7 +196,14 @@ export function WeighInEditor({
     </Sheet>
   )
 }
-export function Body({ hub = false }: { hub?: boolean }) {
+export function Body({
+  hub = false,
+  embedded = false,
+}: {
+  hub?: boolean
+  /** A section of the Fitness page instead of its own screen. */
+  embedded?: boolean
+}) {
   const s = fitStore.use((s) => s),
     t = useTheme(),
     p = useLocalSearchParams<{ log?: string; weigh?: string }>(),
@@ -233,46 +240,8 @@ export function Body({ hub = false }: { hub?: boolean }) {
     setEntry(undefined)
     setAdd(true)
   }
-  return (
-    <Screen
-      title={hub ? "Fitness" : "Body weight"}
-      actions={
-        hub ? (
-          <Line style={{ gap: 0 }}>
-            <IconTap
-              size={40}
-              icon={ChartColumn}
-              label="Fitness stats"
-              onPress={() => go("/fitness/stats")}
-            />
-            <IconTap
-              size={40}
-              icon={Settings}
-              label="Fitness settings"
-              onPress={() => go("/fitness/settings")}
-            />
-          </Line>
-        ) : (
-          <IconTap
-            size={40}
-            icon={Plus}
-            label="Add weigh-in"
-            onPress={addWeigh}
-          />
-        )
-      }
-    >
-      {hub && (
-        <Segmented
-          value="body"
-          onChange={(v) => go(`/fitness?tab=${v}`)}
-          options={[
-            { value: "train", label: "Train" },
-            { value: "eat", label: "Eat" },
-            { value: "body", label: "Body" },
-          ]}
-        />
-      )}
+  const content = (
+    <>
       {!sorted.length ? (
         <Empty
           title="First weigh-in sets your starting point"
@@ -595,6 +564,36 @@ export function Body({ hub = false }: { hub?: boolean }) {
         />
       )}
       {goal && <GoalSheet open={goal} onClose={() => setGoal(false)} />}
+    </>
+  )
+  if (embedded)
+    return (
+      <StatsShell embedded title="Body" heading="Body">
+        {content}
+      </StatsShell>
+    )
+  return (
+    <Screen
+      title={hub ? "Fitness" : "Body weight"}
+      actions={
+        hub ? (
+          <IconTap
+            size={40}
+            icon={Settings}
+            label="Fitness settings"
+            onPress={() => go("/fitness/settings")}
+          />
+        ) : (
+          <IconTap
+            size={40}
+            icon={Plus}
+            label="Add weigh-in"
+            onPress={addWeigh}
+          />
+        )
+      }
+    >
+      {content}
     </Screen>
   )
 }

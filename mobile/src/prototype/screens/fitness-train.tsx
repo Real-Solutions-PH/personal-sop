@@ -22,16 +22,19 @@ import {
   Line,
   LinkRow,
   SectionHeading,
-  Segmented,
   SmallButton,
   Tap,
 } from "../native-kit"
 import { go } from "../navigation"
 import { fonts, radius, useTheme } from "../theme"
 import { Screen } from "../ui"
+import { Body } from "./fitness-body"
+import { Nutrition } from "./fitness-nutrition"
 import { StartWorkoutSheet } from "./fitness-start"
 import { FitnessStats } from "./fitness-stats"
-export function FitnessTrain() {
+/** The Fitness page: training, then nutrition, body and stats as sections
+ * of one scroll, so nothing hides behind a tab. */
+export function FitnessTrain({ day }: { day?: string } = {}) {
   const t = useTheme(),
     s = fitStore.use((s) => s),
     next = F.nextTemplate(s),
@@ -107,15 +110,6 @@ export function FitnessTrain() {
       }
     >
       <View>
-        <Segmented
-          value="train"
-          onChange={(v) => go(`/fitness?tab=${v}`)}
-          options={[
-            { value: "train", label: "Train" },
-            { value: "eat", label: "Eat" },
-            { value: "body", label: "Body" },
-          ]}
-        />
         <Frame
           style={{
             padding: 16,
@@ -453,50 +447,60 @@ export function FitnessTrain() {
             </Frame>
           </>
         )}
-        <SectionHeading
-          action={
-            <Tap onPress={() => go("/fitness/workouts")}>
-              <Copy size={12} style={{ color: t.fit }}>
-                All
-              </Copy>
-            </Tap>
-          }
-        >
-          Recent
-        </SectionHeading>
-        <Frame style={{ padding: 4 }}>
-          {F.finished(s)
-            .slice(-3)
-            .reverse()
-            .map((w) => (
-              <LinkRow
-                key={w.id}
-                title={w.name}
-                detail={`${F.relDay(w.startedAt)} · ${F.fmtMin(F.workoutTotals(s, w).durationSec)} · ${F.fmtVolume(F.workoutTotals(s, w).volume)}`}
-                icon={Dumbbell}
-                accent="fit"
-                href={`/fitness/workouts/${w.id}`}
-                right={
-                  prMap.get(w.id)?.length ? (
-                    <Line
-                      style={{
-                        gap: 4,
-                        backgroundColor: `${t.warn}26`,
-                        borderRadius: radius.pill,
-                        paddingHorizontal: 8,
-                        paddingVertical: 2,
-                      }}
-                    >
-                      <Trophy size={12} color={t.warn} />
-                      <Copy size={11} weight="medium" style={{ color: t.warn }}>
-                        {prMap.get(w.id)?.length}
-                      </Copy>
-                    </Line>
-                  ) : undefined
-                }
-              />
-            ))}
-        </Frame>
+        {F.finished(s).length > 0 && (
+          <>
+            <SectionHeading
+              action={
+                <Tap onPress={() => go("/fitness/workouts")}>
+                  <Copy size={12} style={{ color: t.fit }}>
+                    All
+                  </Copy>
+                </Tap>
+              }
+            >
+              Recent
+            </SectionHeading>
+            <Frame style={{ padding: 4 }}>
+              {F.finished(s)
+                .slice(-3)
+                .reverse()
+                .map((w) => (
+                  <LinkRow
+                    key={w.id}
+                    title={w.name}
+                    detail={`${F.relDay(w.startedAt)} · ${F.fmtMin(F.workoutTotals(s, w).durationSec)} · ${F.fmtVolume(F.workoutTotals(s, w).volume)}`}
+                    icon={Dumbbell}
+                    accent="fit"
+                    href={`/fitness/workouts/${w.id}`}
+                    right={
+                      prMap.get(w.id)?.length ? (
+                        <Line
+                          style={{
+                            gap: 4,
+                            backgroundColor: `${t.warn}26`,
+                            borderRadius: radius.pill,
+                            paddingHorizontal: 8,
+                            paddingVertical: 2,
+                          }}
+                        >
+                          <Trophy size={12} color={t.warn} />
+                          <Copy
+                            size={11}
+                            weight="medium"
+                            style={{ color: t.warn }}
+                          >
+                            {prMap.get(w.id)?.length}
+                          </Copy>
+                        </Line>
+                      ) : undefined
+                    }
+                  />
+                ))}
+            </Frame>
+          </>
+        )}
+        <Nutrition embedded day={day} />
+        <Body hub embedded />
         <FitnessStats embedded />
       </View>
       {startOpen && <StartWorkoutSheet onClose={() => setStartOpen(false)} />}

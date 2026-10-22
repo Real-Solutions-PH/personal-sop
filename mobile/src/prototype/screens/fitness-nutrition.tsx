@@ -6,7 +6,6 @@ import { openCapture } from "@domain/lib/capture"
 import { dayKey } from "@domain/lib/day"
 import {
   Camera,
-  ChartColumn,
   ChevronLeft,
   ChevronRight,
   History,
@@ -14,7 +13,6 @@ import {
   Mic,
   Pencil,
   Plus,
-  Settings,
   Sparkles,
   Target,
   UtensilsCrossed,
@@ -36,6 +34,7 @@ import { go } from "../navigation"
 import { useTheme } from "../theme"
 import { Button, Empty, Screen, undo } from "../ui"
 import { Ring } from "../visual"
+import { StatsShell } from "./stats-shell"
 export function MacroRings({
   totals,
   target,
@@ -145,9 +144,12 @@ export function MealThumb({ meal, size = 44 }: { meal: Meal; size?: number }) {
 export function Nutrition({
   day: initial = dayKey(),
   history = false,
+  embedded = false,
 }: {
   day?: string
   history?: boolean
+  /** A section of the Fitness page instead of its own screen. */
+  embedded?: boolean
 }) {
   const s = fitStore.use((s) => s),
     t = useTheme(),
@@ -310,34 +312,7 @@ export function Nutrition({
       </Screen>
     )
   return (
-    <Screen
-      title="Fitness"
-      actions={
-        <Line style={{ gap: 0 }}>
-          <IconTap
-            size={40}
-            icon={ChartColumn}
-            label="Fitness stats"
-            onPress={() => go("/fitness/stats")}
-          />
-          <IconTap
-            size={40}
-            icon={Settings}
-            label="Fitness settings"
-            onPress={() => go("/fitness/settings")}
-          />
-        </Line>
-      }
-    >
-      <Segmented
-        value="eat"
-        onChange={(v) => go(`/fitness?tab=${v}`)}
-        options={[
-          { value: "train", label: "Train" },
-          { value: "eat", label: "Eat" },
-          { value: "body", label: "Body" },
-        ]}
-      />
+    <StatsShell embedded={embedded} title="Nutrition" heading="Nutrition">
       <Line style={{ justifyContent: "space-between" }}>
         <IconTap
           size={40}
@@ -577,6 +552,6 @@ export function Nutrition({
           </ScrollView>
         </View>
       )}
-    </Screen>
+    </StatsShell>
   )
 }

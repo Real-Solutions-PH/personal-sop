@@ -10,11 +10,14 @@ import { Screen } from "../ui"
 export function StatsShell({
   embedded = false,
   title,
+  heading = "Stats",
   actions,
   children,
 }: {
   embedded?: boolean
   title: string
+  /** The section's heading when embedded. */
+  heading?: string
   actions?: ReactNode
   children: ReactNode
 }) {
@@ -37,7 +40,7 @@ export function StatsShell({
             color: t.text,
           }}
         >
-          Stats
+          {heading}
         </Text>
         {actions}
       </Line>
