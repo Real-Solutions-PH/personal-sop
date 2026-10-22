@@ -53,7 +53,14 @@ import {
 import { http, tokens } from "./auth"
 import { API_PREFIX, API_URL } from "./config"
 import { createSseParser, type ServerEvent } from "./events"
-import { ApiError, type Fetch, type Http, NetworkError } from "./http"
+import {
+  ApiError,
+  type Fetch,
+  type Http,
+  NetworkError,
+  REQUEST_TIMEOUT_MS,
+  timed,
+} from "./http"
 import {
   answerToServer,
   askFromServer,
@@ -127,20 +134,35 @@ function putCapture(next: Capture) {
 // SSE
 // ---------------------------------------------------------------------------
 
-async function readSse(res: Response, onEvent: (e: ServerEvent) => void) {
+/** A reply stream that sends nothing for this long has stalled (the
+ * capture and ask streams carry no heartbeat; a model step that takes this
+ * long is not expected). */
+export const STREAM_GAP_MS = 60_000
+
+async function readSse(
+  res: Response,
+  onEvent: (e: ServerEvent) => void,
+  gapMs = STREAM_GAP_MS,
+) {
   const feed = createSseParser(onEvent)
   const body = res.body as ReadableStream<Uint8Array> | null
   if (!body?.getReader) {
-    feed(await res.text())
+    feed(await timed(gapMs, () => res.text()))
     feed("\n\n")
     return
   }
   const reader = body.getReader()
   const decoder = new TextDecoder()
   for (;;) {
-    const { value, done } = await reader.read()
-    if (done) break
-    feed(decoder.decode(value, { stream: true }))
+    let chunk: ReadableStreamReadResult<Uint8Array>
+    try {
+      chunk = await timed(gapMs, () => reader.read())
+    } catch (error) {
+      void reader.cancel?.().catch(() => {})
+      throw error
+    }
+    if (chunk.done) break
+    feed(decoder.decode(chunk.value, { stream: true }))
   }
   feed(`${decoder.decode()}\n\n`)
 }
@@ -883,21 +905,24 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
 // ---------------------------------------------------------------------------
 
 async function postStream(path: string, body: unknown): Promise<Response> {
-  const send = async (token: string | null) => {
-    try {
-      return (await expoFetch(`${API_URL}${API_PREFIX}${path}`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token ?? ""}`,
-          Accept: "text/event-stream",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      })) as unknown as Response
-    } catch (error) {
-      throw new NetworkError(String(error))
-    }
-  }
+  // Times out waiting for the stream to open; readSse watches the gaps.
+  const send = (token: string | null) =>
+    timed(REQUEST_TIMEOUT_MS, async (signal) => {
+      try {
+        return (await expoFetch(`${API_URL}${API_PREFIX}${path}`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token ?? ""}`,
+            Accept: "text/event-stream",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+          signal,
+        })) as unknown as Response
+      } catch (error) {
+        throw new NetworkError(String(error))
+      }
+    })
   let res = await send(await tokens.current())
   if (res.status === 401) {
     const fresh = await tokens.refresh()

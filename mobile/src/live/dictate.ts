@@ -4,6 +4,10 @@
 
 import { tokens } from "./auth"
 import { API_PREFIX, API_URL } from "./config"
+import { timed } from "./http"
+
+/** Up to ten minutes of audio is uploaded and transcribed in one request. */
+export const DICTATE_TIMEOUT_MS = 120_000
 
 export class DictationError extends Error {
   constructor(readonly code: string) {
@@ -49,14 +53,17 @@ export async function dictate(
   }
   const url = `${API_URL}${API_PREFIX}/capture/dictate?duration_sec=${Math.max(0, Math.round(durationSec))}`
   const send = (token: string | null) =>
-    fetchImpl(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/octet-stream",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: new Uint8Array(audio) as unknown as BodyInit,
-    })
+    timed(DICTATE_TIMEOUT_MS, (signal) =>
+      fetchImpl(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/octet-stream",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: new Uint8Array(audio) as unknown as BodyInit,
+        signal,
+      }),
+    )
   let res: Response
   try {
     res = await send(await tokens.current())
@@ -67,7 +74,9 @@ export async function dictate(
   } catch {
     throw new DictationError("network")
   }
-  const body = (await res.json().catch(() => ({}))) as {
+  const body = (await timed(DICTATE_TIMEOUT_MS, () => res.json()).catch(
+    () => ({}),
+  )) as {
     text?: unknown
     code?: unknown
   }

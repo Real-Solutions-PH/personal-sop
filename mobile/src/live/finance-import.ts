@@ -114,6 +114,10 @@ export interface WRowPatch {
 
 // ---------------------------------------------------------------- REST client
 
+// Parsing a statement and committing hundreds of rows can outlast the
+// default request timeout.
+const SLOW = { timeoutMs: 60_000 }
+
 export function createImportClient(http: Http) {
   const base = "/finance/imports"
   const one = (id: string) => `${base}/${encodeURIComponent(id)}`
@@ -137,18 +141,21 @@ export function createImportClient(http: Http) {
         mapping?: CsvMapping
         force_account?: boolean
       },
-    ) => http.request<WImport>("POST", `${one(id)}/csv`, body),
+    ) => http.request<WImport>("POST", `${one(id)}/csv`, body, SLOW),
     rows: (id: string, rows: WExtractedRow[]) =>
-      http.request<WImport>("POST", `${one(id)}/rows`, { rows }),
+      http.request<WImport>("POST", `${one(id)}/rows`, { rows }, SLOW),
     fail: (id: string, error_code: FailCode) =>
       http.request<WImport>("POST", `${one(id)}/fail`, { error_code }),
     detail: (id: string) => http.request<WDetail>("GET", one(id)),
     patchRows: (id: string, body: WRowPatch) =>
       http.request<WRow[]>("PATCH", `${one(id)}/rows`, body),
     commit: (id: string, transferAccountId?: string) =>
-      http.request<WCommit>("POST", `${one(id)}/commit`, {
-        transfer_account_id: transferAccountId ?? null,
-      }),
+      http.request<WCommit>(
+        "POST",
+        `${one(id)}/commit`,
+        { transfer_account_id: transferAccountId ?? null },
+        SLOW,
+      ),
     undo: (id: string) => http.request<WImport>("POST", `${one(id)}/undo`),
     remove: (id: string) => http.request<unknown>("DELETE", one(id)),
     restore: (id: string) =>
