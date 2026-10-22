@@ -5,7 +5,7 @@ None of these commit unless the docstring says so: the calling use case does.
 
 import uuid
 from collections.abc import Callable
-from datetime import date
+from datetime import date, timedelta
 from typing import Any, Literal
 
 from langchain_core.messages import BaseMessage
@@ -14,10 +14,12 @@ from sqlmodel import col
 
 from app.modules.ai_providers.public import ResolvedModel
 from app.modules.capture import agent, engine, journal, ports, rules, seams
-from app.modules.capture.models import AISettings, Capture, JournalEntry
+from app.modules.capture import cards as C
+from app.modules.capture.models import AISettings, Capture, JournalEntry, RecordCard
 from app.modules.capture.schema import CaptureIn
 from app.shared import owned_repo
 from app.shared.context import Ctx
+from app.shared.currency import money
 
 SeamError = seams.SeamError
 LoopHooks = agent.LoopHooks
@@ -197,3 +199,81 @@ def answer_question(ctx: Ctx, question: str) -> dict[str, Any]:
     return qa.answer(
         ctx, question, journal_in_qa=journal.settings_row(ctx).journal_in_qa
     )
+
+
+# How far back "confirm it" in chat reaches: the cards a recent chat turn
+# left waiting, never a week-old proposal the person has forgotten.
+WAITING_HOURS = 36
+
+
+def card_label(ctx: Ctx, card: RecordCard) -> str:
+    """A few words naming what a card would record ("expense ₱62.40 · Lunch")."""
+    p: dict[str, Any] = dict(card.payload or {})
+    kind = str(p.get("kind") or card.kind)
+    if kind in ("expense", "income", "transfer"):
+        amt = money(int(p.get("amount_minor") or 0), ctx.currency)
+        what = p.get("payee") or p.get("note")
+        return f"{kind} {amt}{f' · {what}' if what else ''}"
+    if kind == "task":
+        titles = [str(t.get("title", "")) for t in p.get("tasks") or []]
+        return "task: " + ", ".join(t for t in titles if t)
+    if kind == "weighIn":
+        return f"weigh-in {p.get('kg', '')} kg"
+    if kind == "meal":
+        names = [str(i.get("name", "")) for i in (p.get("items") or [])[:2]]
+        return "meal: " + ", ".join(n for n in names if n)
+    return kind.replace("_", " ")
+
+
+def waiting_chat_cards(ctx: Ctx) -> list[RecordCard]:
+    """Cards that recent chat turns left waiting for the person (proposed,
+    or needing an answer), oldest first."""
+    caps = owned_repo.list_rows(
+        ctx,
+        Capture,
+        col(Capture.source) == "chat",
+        col(Capture.at) >= ctx.now - timedelta(hours=WAITING_HOURS),
+    )
+    if not caps:
+        return []
+    return owned_repo.list_rows(
+        ctx,
+        RecordCard,
+        col(RecordCard.capture_id).in_([c.id for c in caps]),
+        col(RecordCard.state).in_(["proposed", "needs_input"]),
+        order_by=[col(RecordCard.created_at), col(RecordCard.position)],
+    )
+
+
+def settle_waiting(
+    ctx: Ctx, *, action: Literal["confirm", "discard"]
+) -> dict[str, Any]:
+    """Confirm or discard what recent chat turns left waiting (Fern's
+    ``confirm_pending`` / ``discard_pending``). A card the module refuses
+    stays waiting and is reported with the reason (an expense with no
+    account says so). Flushes only."""
+    done: list[str] = []
+    refused: list[dict[str, str]] = []
+    for card in waiting_chat_cards(ctx):
+        label = card_label(ctx, card)
+        if action == "discard":
+            C.discard_row(ctx, card)
+            done.append(label)
+            continue
+        if card.state == "needs_input":
+            q = (card.ask or {}).get("question")
+            refused.append({"what": label, "why": str(q or "needs a detail first")})
+            continue
+        cap = C.require_capture(ctx, card.capture_id)
+        why = C.try_save(ctx, card, cap, actor="user")
+        C.refresh_status(ctx, cap)
+        if why is None:
+            done.append(label)
+        else:
+            refused.append({"what": label, "why": why.message})
+    key = "confirmed" if action == "confirm" else "discarded"
+    return {
+        key: done,
+        "not_saved": refused,
+        "nothing_waiting": not done and not refused,
+    }

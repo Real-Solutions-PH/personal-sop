@@ -35,7 +35,7 @@ from app.modules.companion.schema import (
     SeriesOut,
     TrackerIn,
 )
-from app.modules.companion.turn import TurnStream
+from app.modules.companion.turn import NOTHING_WAITING, TurnStream
 from app.modules.profile import public as profile
 from app.modules.stats import public as stats
 from app.shared import owned_repo
@@ -430,6 +430,14 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
             ],
         }
 
+    def confirm_pending(**kw: Any) -> dict[str, Any]:
+        NoArgs(**kw)
+        return capture.settle_waiting(ctx, action="confirm")
+
+    def discard_pending(**kw: Any) -> dict[str, Any]:
+        NoArgs(**kw)
+        return capture.settle_waiting(ctx, action="discard")
+
     specs: list[tuple[Callable[..., Any], type[BaseModel], str]] = [
         (show_chart, ChartArgs, "Show a chart of one metric over a number of days."),
         (show_insights, NoArgs, "Show the patterns card from the user's records."),
@@ -446,6 +454,19 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
         (suggest, ChipsArgs, "Offer up to four follow-up prompts as chips."),
         (lookup, LookupArgs, "Look up a number in the user's own data."),
         (stats_overview, OverviewArgs, "The user's Life Score and area rates."),
+        (
+            confirm_pending,
+            NoArgs,
+            "Save every entry from recent chat turns that is waiting for the "
+            "user's OK, when they say confirm, yes, save it, go ahead. Returns "
+            "what was saved and what could not be (with why).",
+        ),
+        (
+            discard_pending,
+            NoArgs,
+            "Drop every entry from recent chat turns that is waiting for the "
+            "user's OK, when they say cancel, no, don't save it.",
+        ),
     ]
     return [
         StructuredTool.from_function(
@@ -493,10 +514,20 @@ never only say you will.
   Training and body: `log_workout`, `log_weigh_in`, `log_meal`. Journal:
   `save_journal`. Fixing the last entry: `edit_last`, `delete_last`.
 - One message can hold several things to record: make every call.
+- Only a tool result saves anything. Never say something was logged,
+  saved, added or is waiting unless a tool in this reply returned it; if no
+  tool ran, nothing was saved.
 - A write that returns state "proposed" or "needs_input" waits for the
-  user's OK: say "tap Confirm below" for it, never that it is done and
-  never to "check the app" (they are in it). Name what was saved and what
-  waits, separately.
+  user's OK: say it is waiting and that they can tap Confirm on it or just
+  say "confirm". Mention Confirm only for a write from this reply, never for
+  one from an earlier message. Never say it is done, and never tell them to
+  "check the app" (they are in it). Name what was saved and what waits,
+  separately.
+- When they say confirm, yes, save it or go ahead about entries waiting
+  from earlier, call `confirm_pending`; when they say cancel or don't save
+  it, call `discard_pending`. Never record those entries again. Report
+  what `confirm_pending` could not save and why (an expense needs an
+  account first).
 - A write that returns an error did not happen; say so plainly.
 Show charts, insights, coaching, plans, trackers and memories with their
 tools instead of describing them; each returns what its card shows, so speak
@@ -546,7 +577,16 @@ def _strip_marks(delta: str) -> str:
 # did (the constitution's deterministic-faithfulness rule), never trusted.
 _ASKS_TO_WRITE = re.compile(
     r"\b(add|log|record|remind|create|set|schedule|save|note|mark|complete|"
-    r"finish|spent|paid|bought|ate|ran|weighed|journal|track)\b",
+    r"finish|spent|paid|bought|ate|ran|weigh|weighed|journal|track|"
+    r"confirm|approve)\b",
+    re.I,
+)
+# Numbers with a unit or a currency, said as a statement ("62.4 kg and 20%
+# body fat for today"), are a record even with no verb. In a question they
+# are not ("did I hit 60 kg?").
+_GIVES_DATA = re.compile(
+    r"\d(?:[.,]\d+)?\s*(?:kg|kgs|lb|lbs|%|km|mi|mins?|hrs?|hours?|reps?|"
+    r"sets?|kcal|cal|pesos?|php)(?!\w)|[₱$]\s*\d",
     re.I,
 )
 _CLAIMS_A_WRITE = re.compile(
@@ -555,11 +595,21 @@ _CLAIMS_A_WRITE = re.compile(
     r"proposed)\b",
     re.I,
 )
+# Pointing at a Confirm button: true only when this reply left a write
+# waiting, because Confirm buttons belong to this reply's own steps.
+_POINTS_AT_CONFIRM = re.compile(
+    r"tap confirm|confirm (?:it |them )?below|waiting for your (?:ok|confirmation)|"
+    r"needs? (?:your )?confirm|\bproposed\b",
+    re.I,
+)
 NUDGE = (
-    "You said you recorded something, but no tool ran, so nothing was saved. "
-    'Call the matching tool now for my last message only: "{text}". Earlier '
-    "requests in this chat were already handled; do not repeat them. Then "
-    "answer from the tool's result."
+    "Your reply says something was recorded or is waiting for confirmation, "
+    "but no tool in this reply did that, so nothing was saved and there is "
+    "no Confirm button. If my last message asks to record something, call the "
+    'matching tool now for my last message only: "{text}". If I am confirming '
+    "entries that wait from earlier, call confirm_pending. Otherwise answer "
+    "without saying anything was saved or is waiting. Earlier requests in "
+    "this chat were already handled; do not repeat them."
 )
 NOT_RECORDED = (
     "I didn't manage to record that, so nothing was saved. Try asking again "
@@ -584,19 +634,34 @@ WRITE_TOOLS = frozenset(
         "delete_last",
         "track",
         "remember_fact",
+        "confirm_pending",
+        "discard_pending",
     }
 )
 
 
 def unbacked_claim(asked: str, answer: str, steps: list[Any]) -> bool:
-    """The reply claims a write the user asked for, and no write tool of
-    this turn succeeded."""
-    wrote = any(s.name in WRITE_TOOLS and s.ok for s in steps)
-    return (
-        not wrote
-        and bool(_ASKS_TO_WRITE.search(asked))
-        and bool(_CLAIMS_A_WRITE.search(answer))
+    """The reply claims something the turn's tools did not do, while no
+    write tool of this turn succeeded: it points at a Confirm button with
+    nothing of this turn waiting, or it claims a write the user asked for.
+    The user's wording only gates the second case."""
+    waiting = any(
+        getattr(s, "state", None) in ("proposed", "needs_input")
+        or any(
+            c.get("state") in ("proposed", "needs_input")
+            for c in getattr(s, "cards", None) or []
+        )
+        for s in steps
     )
+    wrote = any(
+        s.name in WRITE_TOOLS and s.ok and s.summary != NOTHING_WAITING for s in steps
+    )
+    if _POINTS_AT_CONFIRM.search(answer) and not waiting and not wrote:
+        return True
+    asks = bool(_ASKS_TO_WRITE.search(asked)) or (
+        "?" not in asked and bool(_GIVES_DATA.search(asked))
+    )
+    return not wrote and asks and bool(_CLAIMS_A_WRITE.search(answer))
 
 
 def _history(ctx: Ctx) -> list[BaseMessage]:

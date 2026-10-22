@@ -70,7 +70,12 @@ RUNNING: dict[str, str] = {
     "forget_fact": "Forgetting that",
     "show_memories": "Gathering what I remember",
     "suggest": "Suggesting next questions",
+    "confirm_pending": "Saving what was waiting",
+    "discard_pending": "Dropping what was waiting",
 }
+
+
+NOTHING_WAITING = "Nothing was waiting"
 
 
 def _when(t: dict[str, Any]) -> str:
@@ -100,6 +105,15 @@ def outcome(ctx: Ctx, name: str, args: dict[str, Any], result: Any) -> tuple[boo
             note = f" ({waiting_n} waiting for your OK)" if waiting_n else ""
             return True, f"Added {len(tasks)} tasks: {titles}{more}{note}"
         return True, f"Added {len(tasks)} tasks: {titles}{more}{wait}"
+    if name in ("confirm_pending", "discard_pending"):
+        done = res.get("confirmed") or res.get("discarded") or []
+        kept = res.get("not_saved") or []
+        if not done and not kept:
+            return True, NOTHING_WAITING
+        verb = "Saved" if name == "confirm_pending" else "Dropped"
+        parts = [f"{verb}: {', '.join(done)}"] if done else []
+        parts += [f"Not saved: {k['what']} ({k['why']})" for k in kept]
+        return not kept or bool(done), "; ".join(parts)
     if name in ("log_expense", "log_income", "log_transfer", "add_planned"):
         amount = args.get("amount")
         amt = money(round(float(amount) * 100), ctx.currency) if amount else ""

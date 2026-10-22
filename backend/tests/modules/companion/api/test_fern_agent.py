@@ -267,7 +267,10 @@ def test_a_claimed_write_with_no_tool_gets_one_corrective_pass(
     events = stream(api, client, "add a task to drink water at 9pm")
     assert [t.title for t in tasks_of(api)] == ["Drink water"]
     nudge = str(model.seen[1][-1].content)
-    assert "no tool ran" in nudge and '"add a task to drink water at 9pm"' in nudge
+    assert (
+        "no tool in this reply" in nudge
+        and '"add a task to drink water at 9pm"' in nudge
+    )
     assert "do not repeat them" in nudge
     sol = events[-1]["result"]["messages"][1]
     assert sol["text"] == "Added: drink water at 9 PM."
@@ -301,3 +304,116 @@ def test_an_answer_that_only_mentions_logging_is_left_alone(
     assert len(model.seen) == 1
     text = events[-1]["result"]["messages"][1]["text"]
     assert text == "You logged 3 workouts this week."
+
+
+def weigh_ins_of(api: Api) -> list[Any]:
+    from app.modules.fitness.models import WeighIn
+
+    with Session(db_engine) as s:
+        return list(
+            s.exec(select(WeighIn).where(WeighIn.owner_id == api.user.id)).all()  # type: ignore[attr-defined]
+        )
+
+
+def test_data_with_no_verb_and_a_phantom_confirm_gets_the_corrective_pass(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Seen live on 2026-10-22: "62.4 kg and 20.0% body fat for today's
+    weigh" got "I've logged your weigh-in… Tap Confirm below" with no tool
+    run. Numbers with units are a record to make, and a reply pointing at a
+    Confirm button nothing in the turn left waiting is checked."""
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    model = install(
+        monkeypatch,
+        say(
+            "I've logged your weigh-in: 62.4 kg. The entry is proposed and "
+            "needs confirmation. Tap Confirm below to finalize it."
+        ),
+        say("", call("log_weigh_in", kg=62.4)),
+        say("Logged 62.4 kg for today."),
+    )
+    events = stream(api, client, "62.4 kg and 20.0% body fat for today's weigh")
+    assert len(model.seen) == 3
+    nudge = str(model.seen[1][-1].content)
+    assert "no Confirm button" in nudge and "confirm_pending" in nudge
+    assert [float(w.weight_kg) for w in weigh_ins_of(api)] == [62.4]
+    sol = events[-1]["result"]["messages"][1]
+    assert sol["text"] == "Logged 62.4 kg for today."
+
+
+def test_pointing_at_a_confirm_button_that_does_not_exist_is_corrected(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Also live: "I am not seeing anything to confirm" (no write verb)
+    got "saved but not yet confirmed. Tap Confirm below" with no tool. When
+    the retry still claims it, the reply becomes the truth."""
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    install(
+        monkeypatch,
+        say("The weigh-in is saved but not yet confirmed. Tap Confirm below."),
+        say("It is waiting for your confirmation below."),
+    )
+    events = stream(api, client, "I am not seeing anything to confirm")
+    assert events[-1]["result"]["messages"][1]["text"] == services.NOT_RECORDED
+    assert weigh_ins_of(api) == []
+
+
+def test_saying_confirm_saves_what_an_earlier_turn_left_waiting(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    install(
+        monkeypatch,
+        say(
+            "",
+            call(
+                "create_tasks",
+                tasks=[{"title": "Call mom", "due_time": "19:00", "remind": True}],
+            ),
+        ),
+        say("Call mom at 7 PM is waiting; tap Confirm on it or say confirm."),
+        say("", call("confirm_pending")),
+        say("Saved: call mom at 7 PM."),
+    )
+    stream(api, client, "remind me to call mom at 7pm")
+    assert tasks_of(api) == []
+    events = stream(api, client, "Confirm")
+    assert [t.title for t in tasks_of(api)] == ["Call mom"]
+    step = events[-1]["result"]["messages"][1]["blocks"][0]["items"][0]
+    assert step["tool"] == "confirm_pending" and step["ok"]
+    assert step["summary"] == "Saved: task: Call mom"
+
+
+def test_confirm_reports_what_still_cannot_be_saved_and_why(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An expense with no account stays waiting; confirming says why
+    instead of claiming it saved."""
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    install(
+        monkeypatch,
+        say("", call("log_expense", amount=250, category="Food", note="Lunch")),
+        say("Lunch ₱250 is waiting for an account."),
+        say("", call("confirm_pending")),
+        say("Lunch can't be saved until you add an account."),
+    )
+    stream(api, client, "spent 250 on lunch")
+    events = stream(api, client, "confirm it")
+    step = events[-1]["result"]["messages"][1]["blocks"][0]["items"][0]
+    assert step["tool"] == "confirm_pending" and not step["ok"]
+    assert step["summary"].startswith(
+        "Not saved: expense ₱250 · Lunch (Add an account first)"
+    )
+
+
+def test_a_question_with_numbers_is_not_a_request_to_record() -> None:
+    assert not services.unbacked_claim(
+        "did I hit 60 kg this week?", "You logged 62 kg on Monday.", []
+    )
+    assert services.unbacked_claim(
+        "62.4 kg and 20% body fat today", "Logged your weigh-in.", []
+    )
