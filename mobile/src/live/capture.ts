@@ -89,14 +89,14 @@ export interface LiveCaptureDeps {
   post(path: string, body: unknown): Promise<Response>
   /** Unauthenticated fetch: the presigned PUT and local file reads. */
   fetch: Fetch
-  online(): boolean
-  /** Push and pull now (the decision wrote rows in other modules). */
-  kick(): void
-  cats: Cats
   /** Copy a cache file (recording, picked file) somewhere durable. */
   keep?(uri: string): Promise<string>
   /** Delete a copy made by ``keep`` once the server has the media. */
   release?(uri: string): void
+  online(): boolean
+  /** Push and pull now (the decision wrote rows in other modules). */
+  kick(): void
+  cats: Cats
 }
 
 const OFFLINE = "You're offline — try again when you're connected"
@@ -950,11 +950,11 @@ export function captureMappers(userId: string) {
     http,
     post: postStream,
     fetch: anyFetch,
+    keep: keepFile,
+    release: releaseFile,
     online: isOnline,
     kick: syncNow,
     cats: categoryIds(userId),
-    keep: keepFile,
-    release: releaseFile,
   })
   return captureSyncMappers(userId)
 }
