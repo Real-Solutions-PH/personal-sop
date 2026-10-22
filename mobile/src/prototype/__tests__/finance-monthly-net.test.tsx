@@ -1,6 +1,6 @@
 // Estimated monthly net: recurring income minus recurring bills, each turned
 // into a monthly amount; one-offs, what-ifs, archived and ended items are
-// left out, and an empty schedule shows a dimmed sample with a way to start.
+// left out, and the cash flow line is hidden while nothing repeats.
 import { addDays, recurringMonth } from "@domain/finance/calc"
 import type { FinState, PlannedItem } from "@domain/finance/data"
 import { finStore } from "@domain/finance/store"
@@ -36,7 +36,7 @@ jest.mock("sonner-native", () => ({
 jest.mock("expo-audio", () => ({}))
 jest.mock("../media", () => ({ exportCsv: jest.fn(), pickPhoto: jest.fn() }))
 
-const { MonthlyNet } =
+const { RecurringNet } =
   require("../screens/finance-monthly-net") as typeof import("../screens/finance-monthly-net")
 
 beforeEach(() => {
@@ -128,9 +128,9 @@ test("one-offs, what-ifs, archived and ended items are left out", () => {
   expect([m.income, m.out, m.net]).toEqual([0, 549, -549])
 })
 
-test("the card shows the net, and a dimmed sample when nothing repeats", () => {
+test("the cash flow line shows the net, and nothing when nothing repeats", () => {
   const { unmount } = render(
-    <MonthlyNet
+    <RecurringNet
       s={state([
         item("salary", "income", 40000, { kind: "monthly", day: 15 }),
         item("rent", "expense", 15000, { kind: "monthly", day: 5 }),
@@ -138,8 +138,10 @@ test("the card shows the net, and a dimmed sample when nothing repeats", () => {
     />,
   )
   expect(screen.getByText("+₱25,000")).toBeTruthy()
-  expect(screen.getByText("Recurring income · 1 item")).toBeTruthy()
+  expect(
+    screen.getByText(/Monthly net from what repeats.*in ₱40,000 · out ₱15,000/),
+  ).toBeTruthy()
   unmount()
-  render(<MonthlyNet s={state([])} />)
-  expect(screen.getByText("See your monthly net")).toBeTruthy()
+  render(<RecurringNet s={state([])} />)
+  expect(screen.queryByText(/Monthly net/)).toBeNull()
 })

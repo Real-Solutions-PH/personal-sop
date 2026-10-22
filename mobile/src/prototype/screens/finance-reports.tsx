@@ -22,7 +22,7 @@ import { go } from "../navigation"
 import { useTheme } from "../theme"
 import { Button, Empty, Screen, shareText } from "../ui"
 import { useMoney } from "./finance"
-import { MonthlyNet } from "./finance-monthly-net"
+import { RecurringNet } from "./finance-monthly-net"
 import { FinPill } from "./finance-planned"
 import { StatsShell } from "./stats-shell"
 
@@ -195,7 +195,6 @@ export function Reports({
                 </Frame>
               </Tap>
             )}
-            <MonthlyNet s={s} />
             {card(
               "Spend by category",
               `/finance/reports/category${q}`,
@@ -230,10 +229,13 @@ export function Reports({
             {card(
               "Income vs expense",
               `/finance/reports/cashflow${q}`,
-              <PairBars
-                pairs={d.months.map((m) => [m.income, m.spend])}
-                labels={d.months.map((m) => C.monthLabel(m.key))}
-              />,
+              <>
+                <PairBars
+                  pairs={d.months.map((m) => [m.income, m.spend])}
+                  labels={d.months.map((m) => C.monthLabel(m.key))}
+                />
+                <RecurringNet s={s} />
+              </>,
             )}
             {card(
               "Cash flow trend",
