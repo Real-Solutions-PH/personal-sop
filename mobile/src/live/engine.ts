@@ -386,4 +386,11 @@ export class SyncEngine {
   pending() {
     return this.deps.outbox.size()
   }
+
+  /** Every edit made on this device has reached the server: none is
+   * waiting out the debounce, and the outbox is empty. A statistic fetched
+   * before this holds can predate the edit it is shown after. */
+  settled() {
+    return !this.timer && this.deps.outbox.size() === 0
+  }
 }

@@ -63,7 +63,7 @@ import Animated from "react-native-reanimated"
 import { toast } from "sonner-native"
 import { AppLauncher } from "../app-launcher"
 import { Sparkline } from "../chart"
-import { AnimatedCheck, CountUp, rowLayout } from "../motion"
+import { AnimatedCheck, CountUp, rowEnter, rowExit } from "../motion"
 import {
   Bar,
   border,
@@ -341,7 +341,10 @@ function TodayHabit({ habit }: { habit: Habit }) {
   }
   return (
     <>
-      <Animated.View layout={rowLayout}>
+      {/* Fades in and out only: a layout transition here, with the group
+          around it not animating, left the checked row's space empty on
+          iOS while (or after) it moved to Done. */}
+      <Animated.View entering={rowEnter} exiting={rowExit}>
         <SwipeRow
           onComplete={toggle}
           onMore={() => setSheet(true)}

@@ -40,8 +40,17 @@ const registry: Array<{
 }> = []
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value)
-export function createStore<T>(key: string, seed: () => T): Store<T> {
+export function createStore<T>(
+  key: string,
+  seed: () => T,
+  opts: {
+    /** false: kept in memory only. For screen state (a sheet or drawer
+     * being open) that must not come back on the next launch. */
+    persist?: boolean
+  } = {},
+): Store<T> {
   const storageKey = `sop-proto:${key}`
+  const persist = opts.persist !== false
   let state: T | undefined
   let pending: "set" | "remove" | null = null
   const server = seed()
@@ -50,7 +59,7 @@ export function createStore<T>(key: string, seed: () => T): Store<T> {
     if (state !== undefined) return state
     const defaults = seed()
     try {
-      const raw = storage.getItem(storageKey)
+      const raw = persist ? storage.getItem(storageKey) : null
       if (raw !== null) {
         const saved: unknown = JSON.parse(raw)
         if (!isObject(saved) || !isObject(defaults))
@@ -100,6 +109,10 @@ export function createStore<T>(key: string, seed: () => T): Store<T> {
     )
   const flush = () => {
     if (!pending) return true
+    if (!persist) {
+      pending = null
+      return true
+    }
     try {
       if (pending === "remove") storage.removeItem(storageKey)
       else storage.setItem(storageKey, JSON.stringify(state))

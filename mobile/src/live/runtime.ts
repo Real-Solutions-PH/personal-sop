@@ -87,7 +87,12 @@ export function startLive(userId: string, storage: StorageAdapter) {
     clearToBlank()
     storage.setItem(OWNER_KEY, userId)
   }
-  const stats = createStats({ http, online: getConnectivity })
+  let syncing: SyncEngine | null = null
+  const stats = createStats({
+    http,
+    online: getConnectivity,
+    settled: () => syncing?.settled() ?? true,
+  })
   stats.start(userId)
   setFxSource(async (base) => {
     const r = await http.request<{
@@ -105,6 +110,7 @@ export function startLive(userId: string, storage: StorageAdapter) {
     online: getConnectivity,
     onSynced: () => void stats.refreshAll(),
   })
+  syncing = engine
   engine.start((m, onChange) => {
     let last = m.store.get()
     return m.store.subscribe(() => {

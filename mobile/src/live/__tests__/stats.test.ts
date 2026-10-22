@@ -535,3 +535,31 @@ test("live: calendar, misses, ring, achievements, trophies, metric detail", () =
   })
   expect(d.month).toBeUndefined()
 })
+
+test("a stat fetched while an edit is still on its way stays stale until the refetch", async () => {
+  const t = 1_000
+  let settled = false
+  const { http } = fakeHttp(() => OVERVIEW_7D)
+  const s = createStats({
+    http,
+    online: () => true,
+    now: () => t,
+    settled: () => settled,
+  })
+  const k = statKey.overview("7d")
+  s.markEdited() // a habit checked off at t
+  s.source.watch(k) // a sync already in flight refetches before the push
+  await settle()
+  const before = statsCache.get()
+  expect(before.entries[k]?.at).toBe(0)
+  // Not fresh: the screen keeps the local numbers.
+  expect(
+    resolveStat(true, before.entries[k], before.editedAt, true).source,
+  ).toBe("local")
+  settled = true // the push landed; the sync's refresh runs
+  await s.refreshAll()
+  const after = statsCache.get()
+  expect(resolveStat(true, after.entries[k], after.editedAt, true).source).toBe(
+    "server",
+  )
+})
