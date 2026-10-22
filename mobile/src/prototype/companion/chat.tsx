@@ -48,7 +48,8 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
 import { liveMode } from "@/live/config"
-import { speaking as useSpeaking } from "@/live/speech"
+import { stopSpeech, speaking as useSpeaking } from "@/live/speech"
+import { stopDictation } from "../live-dictation"
 import { copyText } from "../media"
 import { feel } from "../motion"
 import { IconTap, Line } from "../native-kit"
@@ -480,8 +481,16 @@ function DaySeparator({ day }: { day: string }) {
 }
 
 /** The full companion chat page. */
+/** Stop Fern's voice and the live mic (the chat is closing). */
+function silenceChat() {
+  stopSpeech()
+  stopDictation()
+}
+
 export function CompanionChat() {
   const t = useTheme()
+  // Leaving the full chat page silences it, like closing the drawer.
+  useEffect(() => () => silenceChat(), [])
   const name = companionStore.use((s) => s.name)
   const trackers = companionStore.use((s) => s.trackers)
   const timeline = useTimeline()
@@ -653,6 +662,16 @@ export function CompanionDrawer({ bottom }: { bottom: number }) {
         )
     }
   }, [open])
+  // Closing the chat silences it: Fern stops reading aloud and the mic
+  // stops listening, so nothing keeps talking or recording on another page.
+  // Expanding to the full chat also closes the drawer; that one keeps going.
+  const expanding = useRef(false)
+  useEffect(() => {
+    if (open) return
+    if (expanding.current) expanding.current = false
+    else silenceChat()
+  }, [open])
+  useEffect(() => () => silenceChat(), [])
   useEffect(() => {
     if (!open) return
     const sub = BackHandler.addEventListener("hardwareBackPress", () => {
@@ -665,7 +684,10 @@ export function CompanionDrawer({ bottom }: { bottom: number }) {
     feel.success()
     go("/capture")
     // Let the chat page mount underneath, then drop the drawer.
-    setTimeout(() => closeCapture(), 260)
+    setTimeout(() => {
+      expanding.current = true
+      closeCapture()
+    }, 260)
   }
   const drag = Gesture.Pan()
     .onUpdate((e) => {
