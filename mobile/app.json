@@ -6,13 +6,20 @@
     "orientation": "portrait",
     "scheme": "personalsop",
     "userInterfaceStyle": "automatic",
+    "icon": "./assets/images/icon.png",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.schadenkai.personal-sop"
+      "bundleIdentifier": "com.schadenkai.personal-sop",
+      "icon": {
+        "light": "./assets/images/icon.png",
+        "dark": "./assets/images/icon-dark.png"
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "monochromeImage": "./assets/images/adaptive-icon-monochrome.png",
+        "backgroundColor": "#1f5a43"
       },
       "permissions": [
         "android.permission.MODIFY_AUDIO_SETTINGS",
@@ -66,7 +73,20 @@
       "@react-native-community/datetimepicker",
       "expo-asset",
       "expo-font",
-      "expo-video"
+      "expo-video",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 120,
+          "resizeMode": "contain",
+          "backgroundColor": "#1f5a43",
+          "dark": {
+            "image": "./assets/images/splash-icon-dark.png",
+            "backgroundColor": "#121513"
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

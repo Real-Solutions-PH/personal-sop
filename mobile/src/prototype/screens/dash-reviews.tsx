@@ -18,7 +18,6 @@ import {
 } from "@domain/dash/hooks"
 import { dashStore, saveReview } from "@domain/dash/store"
 import { dayKey } from "@domain/lib/day"
-import { LinearGradient } from "expo-linear-gradient"
 import {
   Check,
   ChevronRight,
@@ -400,8 +399,7 @@ function Review({ id }: { id: string }) {
           AI summary
         </SectionHeading>
         {aiOn && (
-          <LinearGradient
-            colors={[border(t.primary, 0.1), "transparent"]}
+          <View
             style={{
               padding: 16,
               borderRadius: 16,
@@ -442,7 +440,7 @@ function Review({ id }: { id: string }) {
                     ? "set a no-spend day midweek to cool the leak."
                     : "stack your weakest habit onto the morning routine."}
             </Copy>
-          </LinearGradient>
+          </View>
         )}
         <SectionHeading>Reflection</SectionHeading>
         <TextInput
