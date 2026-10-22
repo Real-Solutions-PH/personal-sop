@@ -1,4 +1,5 @@
 import * as C from "@domain/fitness/calc"
+import { limitAverages } from "@domain/fitness/limits"
 import { fitStore } from "@domain/fitness/store"
 import { dayKey } from "@domain/lib/day"
 import { ChevronRight, Share2, TriangleAlert } from "lucide-react-native"
@@ -19,6 +20,7 @@ import {
 import { go } from "../navigation"
 import { useTheme } from "../theme"
 import { LockedPreview } from "./locked-preview"
+import { LimitList } from "./nutrient-limits"
 import { StatsShell } from "./stats-shell"
 export function FitnessStats({ embedded = false }: { embedded?: boolean }) {
   const s = fitStore.use((s) => s),
@@ -41,6 +43,9 @@ export function FitnessStats({ embedded = false }: { embedded?: boolean }) {
     rate = C.weeklyRate(s),
     weight = C.weightTrend(s, days),
     adherence = C.adherence(s, Math.min(days, 14)),
+    limits = limitAverages(
+      adherence.days.map((d) => C.mealsOn(s, d.day)).filter((m) => m.length),
+    ),
     lifts = ["bench", "squat", "row", "ohp", "rdl"]
       .map((id) => {
         const h = C.exerciseHistory(s, id),
@@ -342,6 +347,20 @@ export function FitnessStats({ embedded = false }: { embedded?: boolean }) {
                 value: `${Math.round(adherence.coverage * 100)}%`,
               },
             ])}
+            <View
+              style={{
+                marginTop: 16,
+                paddingTop: 16,
+                borderTopWidth: 1,
+                borderColor: t.line,
+              }}
+            >
+              <LimitList
+                scope="average"
+                detail={limits.avg}
+                overDays={limits.over}
+              />
+            </View>
           </Frame>
         </Tap>
       </LockedPreview>

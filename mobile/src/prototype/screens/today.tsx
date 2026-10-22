@@ -10,6 +10,7 @@ import * as N from "@domain/finance/calc"
 import { finStore } from "@domain/finance/store"
 import { startWorkout } from "@domain/fitness/actions"
 import * as F from "@domain/fitness/calc"
+import { dayDetail, FIBER_GOAL } from "@domain/fitness/limits"
 import { fitStore } from "@domain/fitness/store"
 import * as HA from "@domain/habits/actions"
 import type { Habit } from "@domain/habits/data"
@@ -62,6 +63,7 @@ import { Platform, Text, View } from "react-native"
 import Animated from "react-native-reanimated"
 import { toast } from "sonner-native"
 import { AppLauncher } from "../app-launcher"
+import { Sparkline } from "../chart"
 import { AnimatedCheck, CountUp, rowLayout } from "../motion"
 import {
   Bar,
@@ -78,12 +80,14 @@ import {
 import { go } from "../navigation"
 import { CommunityButton, CommunityCard } from "../social/today-card"
 import { fonts, radius, useTheme } from "../theme"
-import { Screen, SwipeRow, undo, useNow } from "../ui"
+import { Button, Screen, SwipeRow, undo, useNow } from "../ui"
 import { Ring } from "../visual"
 import { refreshWeather } from "../weather"
 import { WeatherCard } from "../weather-card"
 import { RecordEditor, useMoney } from "./finance"
+import { MacroRings } from "./fitness-nutrition"
 import { HabitLog } from "./habits"
+import { LimitList } from "./nutrient-limits"
 import { TaskRow } from "./tasks"
 
 // Native counterparts of dash/today, day-hero and the module Today cards.
@@ -762,7 +766,10 @@ function TasksCard() {
     </Group>
   )
 }
-function FitnessCards({ evening }: { evening: boolean }) {
+// A gentle downward line drawn dimmed until there are two weigh-ins, so the
+// card shows the chart it will hold instead of an empty gap.
+const SAMPLE_TREND = [70, 69.8, 69.9, 69.6, 69.5, 69.6, 69.3, 69.2]
+function FitnessCards() {
   const t = useTheme(),
     s = fitStore.use((s) => s),
     next = F.nextTemplate(s),
@@ -780,8 +787,14 @@ function FitnessCards({ evening }: { evening: boolean }) {
     rate = F.weeklyRate(s),
     totals = F.dayTotals(s, dayKey()),
     target = F.targetFor(s, dayKey()),
-    kLeft = target ? target.kcal - totals.totals.kcal : undefined,
-    pLeft = target ? target.protein - totals.totals.protein : undefined
+    detail = dayDetail(F.mealsOn(s, dayKey())),
+    latest = [...s.weighIns]
+      .sort((a, b) => a.measuredAt.localeCompare(b.measuredAt))
+      .at(-1),
+    avg7 = F.avgOver(s, -6, 0),
+    trend = F.weightTrend(s, 30)
+      .map((p) => p.avg)
+      .filter((v): v is number => v !== undefined)
   const badge = (Icon: LucideIcon) => (
     <View
       style={{
@@ -851,17 +864,34 @@ function FitnessCards({ evening }: { evening: boolean }) {
             </Line>
           </Part>
         ) : null}
-        <Part>
+        <Part style={{ gap: 10 }}>
           <Line>
             {badge(Scale)}
             <Tap onPress={() => go("/fitness/body")} style={{ flex: 1 }}>
               <Copy weight="semibold">
-                {weight === undefined ? "Weigh in" : `${weight.toFixed(1)} kg`}
+                {latest === undefined
+                  ? "Weigh in"
+                  : `${latest.weightKg.toFixed(1)} kg`}
+                {latest && (
+                  <Text style={{ fontFamily: fonts.body, color: t.muted }}>
+                    {weight === undefined
+                      ? ` · ${F.relDay(latest.measuredAt).toLowerCase()}`
+                      : " · today"}
+                  </Text>
+                )}
               </Copy>
               <Copy size={14} muted>
-                {weight === undefined
+                {latest === undefined
                   ? "Morning weight keeps the trend honest"
-                  : `7-day avg ${rate?.avg.toFixed(1) ?? "—"} ${rate ? `${rate.kg <= 0 ? "↓" : "↑"}${Math.abs(rate.kg).toFixed(1)}` : ""}`}
+                  : [
+                      avg7 !== undefined && `7-day avg ${avg7.toFixed(1)} kg`,
+                      rate &&
+                        `${rate.kg <= 0 ? "↓" : "↑"} ${Math.abs(rate.kg).toFixed(1)} kg/wk`,
+                      latest.bodyFatPct != null &&
+                        `${latest.bodyFatPct.toFixed(1)}% body fat`,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
               </Copy>
             </Tap>
             {weight === undefined && (
@@ -873,6 +903,21 @@ function FitnessCards({ evening }: { evening: boolean }) {
               </SmallButton>
             )}
           </Line>
+          <Tap
+            onPress={() => go("/fitness/body")}
+            style={{ opacity: trend.length >= 2 ? 1 : 0.35 }}
+          >
+            <Sparkline
+              label={
+                trend.length >= 2
+                  ? `Weight, 7-day average over the last 30 days, ${trend[0]?.toFixed(1)} to ${trend.at(-1)?.toFixed(1)} kg`
+                  : "Weight trend appears after two weigh-ins"
+              }
+              values={trend.length >= 2 ? trend : SAMPLE_TREND}
+              color={t.fit}
+              height={40}
+            />
+          </Tap>
         </Part>
       </Group>
       <Group
@@ -881,64 +926,45 @@ function FitnessCards({ evening }: { evening: boolean }) {
         accent="nut"
         href="/fitness/nutrition"
       >
-        <Part>
-          <Line>
-            <Tap onPress={() => go("/fitness/nutrition")} style={{ flex: 1 }}>
-              <Line>
-                <Ring
-                  size={48}
-                  strokeWidth={5}
-                  value={target ? totals.totals.kcal / target.kcal : 0}
-                  color={t.nut}
-                >
-                  <Copy size={11} weight="semibold">
-                    {Math.round(
-                      target ? (totals.totals.kcal / target.kcal) * 100 : 0,
-                    )}
-                    %
-                  </Copy>
-                </Ring>
-                <Ring
-                  size={48}
-                  strokeWidth={5}
-                  value={target ? totals.totals.protein / target.protein : 0}
-                  color={t.tsk}
-                >
-                  <Copy size={11} weight="semibold">
-                    P
-                  </Copy>
-                </Ring>
-                <View style={{ flex: 1 }}>
-                  <Copy weight="semibold">
-                    {kLeft === undefined
-                      ? `${Math.round(totals.totals.kcal)} kcal eaten`
-                      : `${Math.round(Math.abs(kLeft))} kcal ${kLeft < 0 ? "over" : evening ? "under" : "left"}`}
-                  </Copy>
-                  <Copy size={14} muted lines={evening ? undefined : 1}>
-                    {pLeft === undefined
-                      ? "Set targets"
-                      : `${Math.max(0, Math.round(pLeft))} g protein ${evening ? "short" : "left"}`}
-                    {totals.pending ? ` · +${totals.pending} pending` : ""}
-                    {totals.toReview ? ` · ${totals.toReview} to review` : ""}
-                  </Copy>
-                </View>
-              </Line>
-            </Tap>
-            <IconTap
-              icon={Camera}
-              label="Log meal by photo"
-              color={t.nut}
-              background={`${t.nut}26`}
-              size={40}
-              onPress={() => openCapture({ mode: "photo", hint: "meal" })}
-            />
-            <IconTap
-              icon={Pencil}
-              label="Log meal manually"
-              size={40}
-              background={t.soft}
-              onPress={() => go("/fitness/nutrition/new")}
-            />
+        <Part style={{ gap: 16 }}>
+          <Tap onPress={() => go("/fitness/nutrition")} style={{ gap: 12 }}>
+            <MacroRings totals={totals.totals} target={target} />
+            <Copy size={12} muted>
+              {[
+                target
+                  ? `${Math.round(totals.totals.kcal).toLocaleString("en-US")} / ${target.kcal.toLocaleString("en-US")} kcal · P ${Math.round(totals.totals.protein)}/${target.protein} g`
+                  : "No targets yet — showing what you ate",
+                detail.fiber !== undefined &&
+                  `Fiber ${Math.round(detail.fiber)}/${FIBER_GOAL} g`,
+                totals.pending && `+${totals.pending} pending`,
+                totals.toReview && `${totals.toReview} to review`,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </Copy>
+          </Tap>
+          <LimitList detail={detail} />
+          <Line style={{ gap: 8 }}>
+            <View style={{ flex: 1 }}>
+              <Button
+                small
+                icon={Camera}
+                tone="quiet"
+                onPress={() => openCapture({ mode: "photo", hint: "meal" })}
+              >
+                Snap a meal
+              </Button>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Button
+                small
+                icon={Pencil}
+                tone="quiet"
+                onPress={() => go("/fitness/nutrition/new")}
+              >
+                Add by hand
+              </Button>
+            </View>
           </Line>
         </Part>
       </Group>
@@ -1504,7 +1530,7 @@ export function Today() {
       )}
       {s.enabled.habits && <HabitsCard />}
       {s.enabled.tasks && <TasksCard />}
-      {s.enabled.fitness && <FitnessCards evening={evening} />}
+      {s.enabled.fitness && <FitnessCards />}
       {s.enabled.finance && <FinanceCard />}
       <CommunityCard />
       <GoalsAndContext evening={evening} />

@@ -1,19 +1,13 @@
 import type { RecordCard } from "@domain/capture/data"
 import { finStore } from "@domain/finance/store"
-import {
-  DAILY_LIMITS,
-  detailTotals,
-  LIMIT_LABEL,
-  type LimitKey,
-  limitLevel,
-} from "@domain/fitness/limits"
+import { detailTotals } from "@domain/fitness/limits"
 import { habitsStore } from "@domain/habits/store"
 import { tasksStore } from "@domain/tasks/store"
-import { Gauge } from "lucide-react-native"
 import { View } from "react-native"
 import { border, Copy, Line, Tap } from "../native-kit"
 import { useTheme } from "../theme"
 import { useMoney } from "./finance"
+import { LimitList } from "./nutrient-limits"
 export function CaptureSummary({
   card,
   onAccount,
@@ -283,9 +277,6 @@ export function CaptureSummary({
         { kcal: 0, p: 0, c: 0, f: 0 },
       )
       const extra = detailTotals(p.items)
-      const limits = (["satFat", "sugar", "sodium"] as const).filter(
-        (k) => extra[k] !== undefined,
-      )
       return (
         <View style={{ gap: 10 }}>
           <Line style={{ gap: 8, alignItems: "baseline" }}>
@@ -318,19 +309,7 @@ export function CaptureSummary({
             )}
           </Line>
           {/* Amounts to stay under: a share of the day's limit */}
-          {limits.length > 0 && (
-            <View style={{ gap: 6 }}>
-              <Line style={{ gap: 6 }}>
-                <Gauge size={12} color={t.muted} />
-                <Copy size={11} muted style={{ letterSpacing: 0.4 }}>
-                  LIMITS · SHARE OF YOUR DAILY MAX
-                </Copy>
-              </Line>
-              {limits.map((k) => (
-                <LimitBar key={k} k={k} amount={extra[k] ?? 0} />
-              ))}
-            </View>
-          )}
+          <LimitList detail={extra} scope="meal" only />
           <View
             style={{
               paddingTop: 8,
@@ -438,52 +417,6 @@ function Nutrient({
         </Copy>{" "}
         {fmtG(value)}
       </Copy>
-    </View>
-  )
-}
-
-/** An amount to stay under: how much of the day's limit this meal uses.
- * The bar fills toward the limit; near it turns amber, past it red and
- * says "over", so colour is never the only signal. */
-function LimitBar({ k, amount }: { k: LimitKey; amount: number }) {
-  const t = useTheme()
-  const max = DAILY_LIMITS[k]
-  const { label, unit } = LIMIT_LABEL[k]
-  const { share, level } = limitLevel(amount, max)
-  const color = level === "over" ? t.bad : level === "near" ? t.warn : t.muted
-  const fmt = (n: number) =>
-    unit === "mg"
-      ? Math.round(n).toLocaleString("en-US")
-      : String(Math.round(n * 10) / 10)
-  return (
-    <View
-      accessible
-      accessibilityLabel={`${label} ${fmt(amount)} ${unit} of a ${fmt(max)} ${unit} daily limit${level === "over" ? ", over the limit" : ""}`}
-      style={{ gap: 3 }}
-    >
-      <Line style={{ justifyContent: "space-between" }}>
-        <Copy size={12}>{label}</Copy>
-        <Copy size={12} style={{ color: level === "under" ? t.muted : color }}>
-          {fmt(amount)} / {fmt(max)} {unit}
-          {level === "over" ? " · over" : ` · ${Math.round(share * 100)}%`}
-        </Copy>
-      </Line>
-      <View
-        style={{
-          height: 4,
-          borderRadius: 2,
-          backgroundColor: t.soft,
-          overflow: "hidden",
-        }}
-      >
-        <View
-          style={{
-            width: `${Math.min(1, share) * 100}%`,
-            height: 4,
-            backgroundColor: color,
-          }}
-        />
-      </View>
     </View>
   )
 }

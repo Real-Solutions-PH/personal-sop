@@ -1,6 +1,7 @@
 import * as A from "@domain/fitness/actions"
 import * as C from "@domain/fitness/calc"
 import type { Macros, Meal } from "@domain/fitness/data"
+import { dayDetail, FIBER_GOAL } from "@domain/fitness/limits"
 import { fitStore } from "@domain/fitness/store"
 import { openCapture } from "@domain/lib/capture"
 import { dayKey } from "@domain/lib/day"
@@ -34,6 +35,7 @@ import { go } from "../navigation"
 import { useTheme } from "../theme"
 import { Button, Empty, Screen, undo } from "../ui"
 import { Ring } from "../visual"
+import { LimitList } from "./nutrient-limits"
 import { StatsShell } from "./stats-shell"
 export function MacroRings({
   totals,
@@ -159,6 +161,7 @@ export function Nutrition({
     totals = C.dayTotals(s, day),
     target = C.targetFor(s, day),
     meals = C.mealsOn(s, day),
+    detail = dayDetail(meals),
     seen = new Set<string>(),
     recent = [...s.meals]
       .filter(
@@ -343,8 +346,11 @@ export function Nutrition({
         {target ? (
           <Line style={{ marginTop: 12, gap: 8, flexWrap: "wrap" }}>
             <Copy size={12} muted>
-              {Math.round(totals.totals.kcal)} / {target.kcal} kcal · P{" "}
+              {Math.round(totals.totals.kcal).toLocaleString("en-US")} /{" "}
+              {target.kcal.toLocaleString("en-US")} kcal · P{" "}
               {Math.round(totals.totals.protein)}/{target.protein} g
+              {detail.fiber !== undefined &&
+                ` · Fiber ${Math.round(detail.fiber)}/${FIBER_GOAL} g`}
             </Copy>
             {!!totals.pending && pill(`+${totals.pending} pending`, t.warn)}
             {!!totals.toReview && pill(`${totals.toReview} to review`, t.nut)}
@@ -359,6 +365,9 @@ export function Nutrition({
             </Button>
           </View>
         )}
+      </Frame>
+      <Frame style={{ padding: 16 }}>
+        <LimitList detail={detail} />
       </Frame>
       <Frame style={{ padding: 8 }}>
         <Line style={{ gap: 8 }}>
