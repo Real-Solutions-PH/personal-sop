@@ -94,9 +94,12 @@ def log_weigh_in(
     *,
     kg: float,
     at: datetime | None = None,
+    body_fat_pct: float | None = None,
     weigh_in_id: uuid.UUID | None = None,
 ) -> WeighIn:
-    return services._weigh_in(ctx, kg=kg, at=at, weigh_in_id=weigh_in_id)
+    return services._weigh_in(
+        ctx, kg=kg, at=at, body_fat_pct=body_fat_pct, weigh_in_id=weigh_in_id
+    )
 
 
 def _item(d: MealItemDraft) -> F.ItemDraft:
@@ -198,6 +201,12 @@ def latest_weight_kg(ctx: Ctx) -> float | None:
     """The most recent weigh-in, in kilograms."""
     latest = repo.latest_weigh_in(ctx)
     return latest.weight_kg if latest else None
+
+
+def latest_weigh_in_day(ctx: Ctx) -> date | None:
+    """The business day of the most recent weigh-in."""
+    latest = repo.latest_weigh_in(ctx)
+    return ctx.clock.day_of(latest.measured_at) if latest else None
 
 
 def macros_left(ctx: Ctx, *, day: date) -> C.Macros | None:

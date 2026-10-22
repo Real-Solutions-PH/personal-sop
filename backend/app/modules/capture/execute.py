@@ -266,7 +266,14 @@ def execute(
         return Result([str(wid)], note=note)
     if kind == "weighIn":
         kg = float(p["kg"])
-        w = ports.fitness.log_weigh_in(ctx, kg=kg, at=at, weigh_in_id=rid(0))
+        fat = p.get("body_fat_pct")
+        w = ports.fitness.log_weigh_in(
+            ctx,
+            kg=kg,
+            at=at,
+            body_fat_pct=float(fat) if fat is not None else None,
+            weigh_in_id=rid(0),
+        )
         prev = p.get("prev_kg")
         delta_note: str | None = None
         if prev:

@@ -78,6 +78,12 @@ RUNNING: dict[str, str] = {
 NOTHING_WAITING = "Nothing was waiting"
 
 
+def _weigh(args: dict[str, Any]) -> str:
+    kg, fat = args.get("kg"), args.get("body_fat_pct")
+    parts = [f"{kg} kg" if kg else "", f"{fat}% body fat" if fat else ""]
+    return "Logged " + ", ".join(p for p in parts if p)
+
+
 def _when(t: dict[str, Any]) -> str:
     parts = [p for p in (t.get("due_date"), t.get("due_time")) if p]
     return f" · {' '.join(parts)}" if parts else ""
@@ -131,7 +137,7 @@ def outcome(ctx: Ctx, name: str, args: dict[str, Any], result: Any) -> tuple[boo
         "create_habit": f"Created habit: {args.get('spec', '')}",
         "start_routine": f"Started routine: {args.get('query', '')}",
         "log_workout": f"Logged workout: {args.get('name', '')}",
-        "log_weigh_in": f"Logged weight: {args.get('kg', '')} kg",
+        "log_weigh_in": _weigh(args),
         "log_meal": f"Logged meal: {args.get('description', '')}",
         "save_journal": "Saved a journal entry",
         "edit_last": "Changed the last entry",

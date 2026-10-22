@@ -533,3 +533,57 @@ def test_register_those_keeps_the_day_named_just_before(
     assert [(t.title, str(t.due_date), t.due_time) for t in tasks_of(api)] == [
         ("Pay rent", tomorrow, None)
     ]
+
+
+def test_weight_and_body_fat_are_saved_together(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Seen live on 2026-10-22: "62.4 kg and 20.0% body fat" kept the
+    weight and silently dropped the body fat: the tool took kilograms only."""
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    install(
+        monkeypatch,
+        say("", call("log_weigh_in", kg=62.4, body_fat_pct=20.0)),
+        say("Logged 62.4 kg and 20% body fat."),
+    )
+    stream(api, client, "62.4 kg and 20% body fat today")
+    [w] = weigh_ins_of(api)
+    assert (w.weight_kg, w.body_fat_pct) == (62.4, 20.0)
+
+
+def test_body_fat_alone_rides_on_todays_weight(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Seen live on 2026-10-22: "Record my body fat, which is 20% for today"
+    ended in "I didn't manage to record that": there was no way to log it."""
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    install(
+        monkeypatch,
+        say("", call("log_weigh_in", kg=62.4)),
+        say("Logged 62.4 kg."),
+        say("", call("log_weigh_in", body_fat_pct=20.0)),
+        say("Added 20% body fat to today's weigh-in."),
+    )
+    stream(api, client, "62.4 kg this morning")
+    stream(api, client, "Record my body fat, which is 20% for today")
+    rows = {(w.weight_kg, w.body_fat_pct) for w in weigh_ins_of(api)}
+    assert rows == {(62.4, None), (62.4, 20.0)}
+
+
+def test_body_fat_with_no_weight_today_asks_for_the_weight(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An older weight is never stamped onto today."""
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    install(
+        monkeypatch,
+        say("", call("log_weigh_in", body_fat_pct=20.0)),
+        say("What's your weight today? I'll add the 20% body fat to it."),
+    )
+    events = stream(api, client, "body fat 20% today")
+    assert weigh_ins_of(api) == []
+    results = [e for e in events if e.get("type") == "TOOL_CALL_RESULT"]
+    assert results and '"ok": false' in results[0]["content"]

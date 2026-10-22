@@ -319,7 +319,10 @@ class WorkoutArgs(BaseModel):
 
 
 class WeighArgs(BaseModel):
-    kg: Annotated[float, Field(gt=20, le=500)]
+    """Weight, body fat, or both. Body fat alone reuses today's weight."""
+
+    kg: Annotated[float | None, Field(gt=20, le=500)] = None
+    body_fat_pct: Annotated[float | None, Field(gt=0, lt=100)] = None
 
 
 class MealItemArgs(BaseModel):
@@ -747,7 +750,16 @@ def capture_tools(run: Run) -> list[BaseTool]:
     def log_weigh_in(**kw: Any) -> dict[str, Any]:
         a = WeighArgs(**kw)
         prev = w.latest_kg
-        off = abs(a.kg - prev) / prev if prev else 0
+        kg = a.kg
+        if kg is None:
+            if a.body_fat_pct is None:
+                return {"error": "give_weight_or_body_fat"}
+            # Body fat alone rides on today's weigh-in; an older weight is
+            # never stamped onto today.
+            if prev is None or w.latest_kg_day != w.today:
+                return {"error": "ask_for_todays_weight_with_body_fat"}
+            kg = prev
+        off = abs(kg - prev) / prev if prev else 0
         d = RecordDraft(
             kind="weighIn",
             target="fitness",
@@ -758,7 +770,12 @@ def capture_tools(run: Run) -> list[BaseTool]:
             else None,
             payload={
                 k: v
-                for k, v in {"kind": "weighIn", "kg": a.kg, "prev_kg": prev}.items()
+                for k, v in {
+                    "kind": "weighIn",
+                    "kg": kg,
+                    "body_fat_pct": a.body_fat_pct,
+                    "prev_kg": prev,
+                }.items()
                 if v is not None
             },
         )
@@ -899,7 +916,12 @@ def capture_tools(run: Run) -> list[BaseTool]:
         (create_habit, HabitCreateArgs, "Create a new habit the user asked for."),
         (start_routine, QueryArgs, "Start one of the user's routines."),
         (log_workout, WorkoutArgs, "Log a finished workout: strength sets or cardio."),
-        (log_weigh_in, WeighArgs, "Log a body-weight reading in kilograms."),
+        (
+            log_weigh_in,
+            WeighArgs,
+            "Log a weigh-in: body weight in kilograms, body fat percent, or "
+            "both in one call. Body fat alone is added to today's weight.",
+        ),
         (
             log_meal,
             MealArgs,
