@@ -738,6 +738,49 @@ class FindLogsArgs(BaseModel):
     days: Annotated[int, Field(ge=1, le=90)] = 7
 
 
+class FoodArgs(BaseModel):
+    name: Annotated[str, Field(min_length=1, max_length=160)] = Field(
+        description="The food as it should be found again (brand and product "
+        "for packaged food, e.g. 'Lucky Me Pancit Canton Original')."
+    )
+    basis: Literal["100g", "piece", "serving"] = Field(
+        description="What the numbers are for: per 100 g, per piece, or per "
+        "serving as the label states."
+    )
+    unit_grams: Annotated[float, Field(gt=0, le=5000)] | None = Field(
+        default=None, description="Grams in one piece or serving, when known."
+    )
+    kcal: Annotated[float, Field(ge=0, le=20000)]
+    protein: Annotated[float, Field(ge=0, le=2000)] = 0
+    carbs: Annotated[float, Field(ge=0, le=2000)] = 0
+    fat: Annotated[float, Field(ge=0, le=2000)] = 0
+    fiber: Annotated[float, Field(ge=0, le=2000)] | None = None
+    sat_fat: Annotated[float, Field(ge=0, le=2000)] | None = None
+    sugar: Annotated[float, Field(ge=0, le=2000)] | None = Field(
+        default=None, description="Added sugar in grams (total if not split)."
+    )
+    sodium: Annotated[float, Field(ge=0, le=100000)] | None = Field(
+        default=None, description="milligrams"
+    )
+    state: Literal["raw", "cooked", "as_sold"] | None = None
+    aliases: list[Annotated[str, Field(max_length=80)]] = Field(
+        default_factory=list,
+        max_length=10,
+        description="Other names they call it ('pancit canton', 'lucky me').",
+    )
+    source: Literal["label", "said"] = Field(
+        default="said",
+        description="label when read from a nutrition label (photo or typed "
+        "from one); said when they gave the numbers otherwise.",
+    )
+
+
+class FindFoodArgs(BaseModel):
+    query: Opt = Field(
+        default=None, description="Words of the food's name; omit to list."
+    )
+
+
 def names_day(text: str) -> bool:
     """Whether the person's words give a day (a due date)."""
     return bool(_NAMES_DAY.search(_PAST.sub(" ", text)))
@@ -1455,6 +1498,11 @@ def capture_tools(run: Run) -> list[BaseTool]:
             if est is None:
                 return {"error": "meal_not_recognised_send_items"}
             items, confidence = est.items, est.confidence
+        # The person's own food library wins over any estimate; a meal made
+        # only of library foods is known, not guessed.
+        items, from_library = ports.library_items(run.ctx, items)
+        if from_library and len(from_library) == len(items):
+            confidence = max(confidence, 0.95)
         d = RecordDraft(
             kind="meal",
             target="fitness",
@@ -1474,7 +1522,51 @@ def capture_tools(run: Run) -> list[BaseTool]:
                 if v is not None
             },
         )
-        return _card(run, d)
+        out = _card(run, d)
+        return out | ({"from_library": from_library} if from_library else {})
+
+    def save_food(**kw: Any) -> dict[str, Any]:
+        a = FoodArgs(**kw)
+        if a.basis == "100g" and a.kcal > 900:
+            return {"error": "more_than_900_kcal_per_100g_check_the_basis"}
+        food, new = ports.fitness.food_library.save_food(
+            run.ctx,
+            ports.fitness.FoodDraft(
+                name=a.name,
+                kcal=a.kcal,
+                protein=a.protein,
+                carbs=a.carbs,
+                fat=a.fat,
+                fiber=a.fiber,
+                sat_fat=a.sat_fat,
+                sugar=a.sugar,
+                sodium=a.sodium,
+                basis=a.basis,
+                unit_grams=a.unit_grams,
+                state=a.state,
+                aliases=list(a.aliases),
+                source=a.source,
+                verified=a.source == "label",
+            ),
+        )
+        basis = {"100g": "per 100 g", "piece": "per piece", "serving": "per serving"}[
+            a.basis
+        ]
+        return {
+            "saved": food.name,
+            "new": new,
+            "summary": f"{'Saved' if new else 'Updated'} in your food library: "
+            f"{food.name} · {round(a.kcal)} kcal {basis}",
+        }
+
+    def find_foods(**kw: Any) -> dict[str, Any]:
+        a = FindFoodArgs(**kw)
+        lib = ports.fitness.food_library
+        return {
+            "foods": [
+                lib.food_public(f) for f in lib.search_foods(run.ctx, a.query or "")
+            ]
+        }
 
     def save_journal(**kw: Any) -> dict[str, Any]:
         a = JournalArgs(**kw)
@@ -1983,6 +2075,20 @@ def capture_tools(run: Run) -> list[BaseTool]:
         ),
         (save_journal, JournalArgs, "Save a reflective journal entry (private)."),
         (
+            save_food,
+            FoodArgs,
+            "Save a food's nutrition facts to the user's food library (from a "
+            "label they photographed or typed, or numbers they gave), so every "
+            "later meal with it uses these exact values. Updates the food if "
+            "it is already there.",
+        ),
+        (
+            find_foods,
+            FindFoodArgs,
+            "Look up foods in the user's own food library (their saved "
+            "nutrition facts).",
+        ),
+        (
             find_transactions,
             FindTxArgs,
             "Find the user's past transactions (ids, day, amount, payee, "
@@ -2051,7 +2157,9 @@ def capture_tools(run: Run) -> list[BaseTool]:
 # The capture tools that answer rather than write; Fern has its own.
 READ_TOOLS = frozenset({"lookup", "stats_overview"})
 # Finders that only read, offered alongside the edits that need their ids.
-FINDERS = frozenset({"find_transactions", "list_scheduled", "find_fitness_logs"})
+FINDERS = frozenset(
+    {"find_transactions", "list_scheduled", "find_fitness_logs", "find_foods"}
+)
 
 
 def write_tools(run: Run) -> list[BaseTool]:

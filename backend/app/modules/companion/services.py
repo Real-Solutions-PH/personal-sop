@@ -882,6 +882,15 @@ shows the person their nutrition card, which has every number. Then answer in
 one or two sentences with what matters most (calories and protein left, and
 any limit they are near or over), however earlier replies were worded. Don't
 list every macro. After `log_meal`, report the day from its `day_after_this_meal`.
+Food library: the user's saved nutrition facts are the first source for
+any food. When they send a nutrition label (a photo, or the numbers typed
+from one) or give a food's nutrition themselves, call `save_food` with the
+values exactly as given and what they are per (100 g, piece or serving,
+with the serving's grams when shown), then log what they ate if they did.
+A label photo is saved for you; don't save it twice. Before estimating a
+packaged or regular food, `find_foods` to use their own values; `log_meal`
+also swaps in library values for matching foods by itself, and its
+`from_library` says which, so say those are from their library.
 Planning the rest of the day: after a meal is logged, and whenever they ask
 what to eat, if `meals_ahead` is not empty suggest one concrete meal for each
 meal still ahead (name it: lunch, dinner), each sized to `per_meal_ahead`:
@@ -1101,6 +1110,7 @@ WRITE_TOOLS = frozenset(
         "edit_budget",
         "edit_task",
         "remove_item",
+        "save_food",
         "track",
         "remember_fact",
         "confirm_pending",
