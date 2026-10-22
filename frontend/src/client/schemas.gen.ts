@@ -1327,7 +1327,7 @@ export const AssignmentPublicSchema = {
         },
         purpose: {
             type: 'string',
-            enum: ['chat', 'capture', 'vision', 'transcription', 'advisor'],
+            enum: ['chat', 'capture', 'vision', 'transcription', 'advisor', 'embedding'],
             title: 'Purpose'
         },
         credential_id: {
@@ -9439,6 +9439,34 @@ export const MemoryPublicSchema = {
         text: {
             type: 'string',
             title: 'Text'
+        },
+        kind: {
+            type: 'string',
+            title: 'Kind',
+            default: 'fact'
+        },
+        tags: {
+            items: {
+                type: 'string'
+            },
+            type: 'array',
+            title: 'Tags',
+            default: []
+        },
+        importance: {
+            type: 'integer',
+            title: 'Importance',
+            default: 3
+        },
+        always_on: {
+            type: 'boolean',
+            title: 'Always On',
+            default: false
+        },
+        source: {
+            type: 'string',
+            title: 'Source',
+            default: 'said'
         },
         created_at: {
             type: 'string',
@@ -19055,7 +19083,7 @@ export const UsageRowSchema = {
     properties: {
         purpose: {
             type: 'string',
-            enum: ['chat', 'capture', 'vision', 'transcription', 'advisor'],
+            enum: ['chat', 'capture', 'vision', 'transcription', 'advisor', 'embedding'],
             title: 'Purpose'
         },
         model: {

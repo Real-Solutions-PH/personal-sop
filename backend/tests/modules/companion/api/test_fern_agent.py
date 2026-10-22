@@ -239,8 +239,8 @@ def test_the_model_knows_the_local_time_not_only_the_business_day(
     stream(api, client, "remind me to stretch tonight at 9pm")
     system = str(model.seen[0][0].content)
     now = datetime.now(ZoneInfo("Asia/Manila"))
-    assert f"Right now it is {now:%A %Y-%m-%d}" in system
-    assert "Their day rolls over at 04:00" in system
+    assert f"it is {now:%A %Y-%m-%d}" in system
+    assert "their day rolls over at 04:00" in system
     assert "Never schedule something in the past" in system
 
 

@@ -565,14 +565,14 @@ export type AssignmentIn = {
 
 export type AssignmentPublic = {
     id: string;
-    purpose: 'chat' | 'capture' | 'vision' | 'transcription' | 'advisor';
+    purpose: 'chat' | 'capture' | 'vision' | 'transcription' | 'advisor' | 'embedding';
     credential_id: string;
     model: string;
     supports_vision: boolean;
     updated_at: string;
 };
 
-export type purpose = 'chat' | 'capture' | 'vision' | 'transcription' | 'advisor';
+export type purpose = 'chat' | 'capture' | 'vision' | 'transcription' | 'advisor' | 'embedding';
 
 export type AssignmentsOut = {
     data: Array<AssignmentPublic>;
@@ -2171,6 +2171,11 @@ export type MemoryIn = {
 export type MemoryPublic = {
     id: string;
     text: string;
+    kind?: string;
+    tags?: Array<(string)>;
+    importance?: number;
+    always_on?: boolean;
+    source?: string;
     created_at: string;
     version: number;
     deleted_at?: (string | null);
@@ -4017,7 +4022,7 @@ export type UsageOut = {
 };
 
 export type UsageRow = {
-    purpose: 'chat' | 'capture' | 'vision' | 'transcription' | 'advisor';
+    purpose: 'chat' | 'capture' | 'vision' | 'transcription' | 'advisor' | 'embedding';
     model: string;
     calls: number;
     failed_calls: number;
@@ -4386,14 +4391,14 @@ export type AiProvidersListModelsResponse = (ModelsOut);
 export type AiProvidersListAssignmentsResponse = (AssignmentsOut);
 
 export type AiProvidersPutAssignmentData = {
-    purpose: 'chat' | 'capture' | 'vision' | 'transcription' | 'advisor';
+    purpose: 'chat' | 'capture' | 'vision' | 'transcription' | 'advisor' | 'embedding';
     requestBody: AssignmentIn;
 };
 
 export type AiProvidersPutAssignmentResponse = (AssignmentPublic);
 
 export type AiProvidersDeleteAssignmentData = {
-    purpose: 'chat' | 'capture' | 'vision' | 'transcription' | 'advisor';
+    purpose: 'chat' | 'capture' | 'vision' | 'transcription' | 'advisor' | 'embedding';
 };
 
 export type AiProvidersDeleteAssignmentResponse = (void);

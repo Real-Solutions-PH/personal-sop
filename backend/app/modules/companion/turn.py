@@ -75,6 +75,7 @@ RUNNING: dict[str, str] = {
     "remember_fact": "Remembering that",
     "forget_fact": "Forgetting that",
     "show_memories": "Gathering what I remember",
+    "recall_memories": "Recalling what I know",
     "suggest": "Suggesting next questions",
     "read_photos": "Looking at your photos",
     "web_search": "Searching the web",
@@ -177,6 +178,16 @@ def outcome(ctx: Ctx, name: str, args: dict[str, Any], result: Any) -> tuple[boo
             f"Created workout template: {args.get('name', '')} · "
             f"{n} exercise{'s' if n != 1 else ''}{wait}",
         )
+    if name == "remember_fact":
+        status = res.get("status")
+        if status == "duplicate":
+            return True, f"Already knew: {res.get('already_known', '')}"
+        if status == "updated":
+            return True, f"Updated memory: {args.get('fact', '')}"
+        return True, f"Remembered: {args.get('fact', '')}"
+    if name == "recall_memories":
+        n = len(res.get("memories") or [])
+        return True, f"Recalled {n} thing{'s' if n != 1 else ''} about you"
     if name == "create_task_list":
         n = len(args.get("items") or [])
         items = f" · {n} item{'s' if n != 1 else ''}" if n else ""

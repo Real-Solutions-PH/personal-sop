@@ -9,7 +9,7 @@ import uuid
 
 from pydantic import BaseModel
 
-from app.modules.companion import services
+from app.modules.companion import memory, services
 from app.modules.companion.defaults import COMPANION_NAME
 from app.modules.companion.models import Companion, CompanionMessage, Memory, Tracker
 from app.modules.companion.schema import (
@@ -52,8 +52,38 @@ def delete_tracker(ctx: Ctx, row_id: uuid.UUID) -> None:
 
 
 def upsert_memory(ctx: Ctx, row_id: uuid.UUID, payload: BaseModel) -> OwnedRow:
+    """A memory typed in the app: a new one goes through the memory layer
+    (an exact or near repeat is not added twice); an edited one keeps its id
+    with its hash refreshed and its embedding redone."""
     data = payload.model_dump(exclude_unset=True)
-    row, _ = owned_repo.upsert(ctx, Memory, row_id, {"text": str(data["text"]).strip()})
+    body = memory.normalise(str(data["text"]))[:500]
+    existing = owned_repo.get(ctx, Memory, row_id, include_deleted=True)
+    if existing is None:
+        saved = memory.remember(ctx, text=body, memory_id=row_id, source="app")
+        row = saved.memory
+        if row.id != row_id:
+            # Already known: the device's copy becomes a tombstone pointing
+            # at the memory that stays, so the next pull drops it there.
+            row, _ = owned_repo.upsert(
+                ctx,
+                Memory,
+                row_id,
+                {"text": body, "source": "app", "superseded_by": saved.memory.id},
+            )
+            owned_repo.soft_delete(ctx, row)
+    else:
+        row, _ = owned_repo.upsert(
+            ctx,
+            Memory,
+            row_id,
+            {
+                "text": body,
+                "text_hash": memory.text_hash(body),
+                "embedding": None,
+                "embed_model": None,
+            },
+        )
+        memory.backfill(ctx, limit=1)
     ctx.commit()
     return row
 

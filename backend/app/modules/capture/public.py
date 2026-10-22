@@ -87,6 +87,20 @@ PHOTO_READER = (
 )
 
 
+def ask_json(
+    ctx: Ctx, resolved: ResolvedModel, schema: Any, *, system: str, text: str
+) -> Any:
+    """One metered model call that must answer JSON matching ``schema``
+    (a pydantic model). ``SeamError`` on a provider failure or bad output."""
+    return seams.ask_json(ctx, resolved, schema, system=system, text=text)
+
+
+def ask_text(ctx: Ctx, resolved: ResolvedModel, *, system: str, text: str) -> str:
+    """One metered model call answering plain text. ``SeamError`` on a
+    provider failure."""
+    return seams.ask_text(ctx, resolved, system=system, text=text, images=[])
+
+
 def describe_photos(
     ctx: Ctx, media_ids: list[uuid.UUID], said: str
 ) -> tuple[str, list[uuid.UUID]]:

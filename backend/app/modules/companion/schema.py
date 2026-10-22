@@ -90,6 +90,11 @@ class MemoryPublic(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID
     text: str
+    kind: str = "fact"
+    tags: list[str] = []
+    importance: int = 3
+    always_on: bool = False
+    source: str = "said"
     created_at: datetime
     version: int
     deleted_at: datetime | None = None

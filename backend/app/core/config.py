@@ -211,6 +211,9 @@ class Settings(BaseSettings):
     # what a user may pick instead): text for chat/capture, vision for photos.
     NEBIUS_MODEL: str = "deepseek-ai/DeepSeek-V4-Flash-0731"
     NEBIUS_VISION_MODEL: str = "zai-org/GLM-5.3-Flash"
+    # Fern's memory embeddings (multilingual, so Taglish matches English);
+    # asked for at EMBEDDING_DIMENSIONS, the width the memory column holds.
+    NEBIUS_EMBEDDING_MODEL: str = "Qwen/Qwen3-Embedding-8B"
 
     OPENROUTER_API_KEY: str | None = None
     OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
