@@ -1,18 +1,16 @@
 import type { Metadata, Viewport } from "next"
-import { Barlow, Barlow_Condensed } from "next/font/google"
+import { Geist, Geist_Mono } from "next/font/google"
 import type { ReactNode } from "react"
 import { Providers } from "@/components/providers"
 import "./globals.css"
 
-const barlow = Barlow({
+const geist = Geist({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-barlow",
+  variable: "--font-geist",
 })
-const barlowCondensed = Barlow_Condensed({
+const geistMono = Geist_Mono({
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
-  variable: "--font-barlow-condensed",
+  variable: "--font-geist-mono",
 })
 
 export const metadata: Metadata = {
@@ -41,7 +39,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${barlow.variable} ${barlowCondensed.variable}`}
+      className={`${geist.variable} ${geistMono.variable}`}
     >
       <body>
         <Providers>{children}</Providers>

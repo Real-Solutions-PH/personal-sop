@@ -160,19 +160,19 @@ export function ShareFrame({
 
 // ---------------------------------------------------------------- sizing
 
-/** Approximate advance widths (em) of Barlow Condensed ExtraBold. */
+/** Approximate advance widths (em) of Geist SemiBold, the display face. */
 function emWidth(s: string) {
   let w = 0
   for (const ch of s) {
-    if (/[0-9]/.test(ch)) w += 0.52
-    else if (/[.,:'’]/.test(ch)) w += 0.22
-    else if (ch === " ") w += 0.2
-    else if (ch === "%") w += 0.78
-    else if (/[/\-–+×]/.test(ch)) w += 0.42
-    else if (/[mwMW—]/.test(ch)) w += 0.78
-    else if (/[il1|!]/.test(ch)) w += 0.26
-    else if (/[A-Z]/.test(ch)) w += 0.55
-    else w += 0.48
+    if (/[0-9]/.test(ch)) w += 0.67
+    else if (/[.,:'’]/.test(ch)) w += 0.27
+    else if (ch === " ") w += 0.24
+    else if (ch === "%") w += 0.82
+    else if (/[/\-–+×]/.test(ch)) w += 0.52
+    else if (/[mwMW—]/.test(ch)) w += 0.92
+    else if (/[il1|!]/.test(ch)) w += 0.3
+    else if (/[A-Z]/.test(ch)) w += 0.7
+    else w += 0.6
   }
   return Math.max(w, 0.5)
 }

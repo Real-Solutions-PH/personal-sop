@@ -387,7 +387,7 @@ function Loaded({
               <Line style={{ gap: 12, alignItems: "center" }}>
                 <Text
                   style={{
-                    fontFamily: fonts.display,
+                    fontFamily: fonts.mono,
                     fontSize: 88,
                     lineHeight: 92,
                     color: white,

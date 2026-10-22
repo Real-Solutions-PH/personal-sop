@@ -4,9 +4,10 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
-  --font-display:
-    var(--font-barlow-condensed), var(--font-barlow), ui-sans-serif, sans-serif;
+  /* Unfurl type (ADR-0019): Geist for words, Geist Mono for numbers. */
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-geist), ui-sans-serif, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
