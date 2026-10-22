@@ -1078,14 +1078,19 @@ export function Progress({ value, label }: { value: number; label?: string }) {
     </View>
   )
 }
-export function confirm(title: string, message: string, onConfirm: () => void) {
+export function confirm(
+  title: string,
+  message: string,
+  onConfirm: () => void,
+  label = "Confirm",
+) {
   if (Platform.OS === "web") {
     if (globalThis.confirm(`${title}\n\n${message}`)) onConfirm()
     return
   }
   Alert.alert(title, message, [
     { text: "Cancel", style: "cancel" },
-    { text: "Confirm", style: "destructive", onPress: onConfirm },
+    { text: label, style: "destructive", onPress: onConfirm },
   ])
 }
 export function undo(message: string, action: () => void) {
