@@ -82,3 +82,37 @@ def test_without_a_search_key_the_tool_says_so(
     )
     ask(client, api, "how many calories in sinigang?")
     assert "web_search_unavailable" in str(model.seen[1])
+
+
+def test_a_promise_to_log_after_searching_gets_the_corrective_pass(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Seen live on 2026-10-22: Fern searched, then said "I'll log it for
+    you now" and stopped; nothing was saved."""
+    api = user(client, db)
+    api.assign("chat")
+    monkeypatch.setattr(settings, "BRAVE_API_KEY", "brave-test")
+    monkeypatch.setattr(
+        web,
+        "search",
+        lambda q, **_: [{"title": "t", "url": "u", "snippet": "420 kcal"}],
+    )
+    model = install(
+        monkeypatch,
+        say("", call("web_search", query="Classic Savory chicken nutrition")),
+        say("I found it. I'll log it for you now."),
+        say(
+            "",
+            call(
+                "log_meal",
+                description="Classic Savory chicken",
+                items=[{"name": "Classic Savory chicken", "kcal": 420, "protein": 34}],
+                confidence=0.8,
+            ),
+        ),
+        say("Logged 420 kcal."),
+    )
+    events = ask(client, api, "had classic savory chicken for lunch")
+    assert len(model.seen) == 4
+    starts = [e["toolCallName"] for e in events if e.get("type") == "TOOL_CALL_START"]
+    assert starts == ["web_search", "log_meal"]

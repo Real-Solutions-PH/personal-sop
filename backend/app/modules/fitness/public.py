@@ -6,7 +6,7 @@ None of these commit: the calling use case does (see ``app.shared.context``).
 import uuid
 from dataclasses import dataclass, field
 from datetime import date, datetime
-from typing import Literal
+from typing import Any, Literal
 
 from sqlmodel import col
 
@@ -228,6 +228,68 @@ def latest_weigh_in_day(ctx: Ctx) -> date | None:
     """The business day of the most recent weigh-in."""
     latest = repo.latest_weigh_in(ctx)
     return ctx.clock.day_of(latest.measured_at) if latest else None
+
+
+def nutrition_today(ctx: Ctx) -> dict[str, Any]:
+    """Today's intake against the target, for the companion's facts:
+    eaten (macros plus fiber, saturated fat, sugar and sodium where the meals
+    carry them), the target in force, what is left, meals logged, and the
+    latest weigh-in. Meals still waiting for an estimate add nothing."""
+    from sqlmodel import col
+
+    day = ctx.today
+    start, end = ctx.clock.window(day, day)
+    meals = owned_repo.list_rows(
+        ctx,
+        Meal,
+        col(Meal.eaten_at) >= start,
+        col(Meal.eaten_at) < end,
+    )
+    counted = [m for m in meals if m.status != "pending_estimate"]
+    items = [it for m in counted for it in repo.meal_items(ctx, m.id)]
+
+    def total(key: str) -> float:
+        return round(sum(float(getattr(i, key) or 0) for i in items), 1)
+
+    def known(key: str) -> float | None:
+        vals = [getattr(i, key) for i in items if getattr(i, key) is not None]
+        return round(sum(vals), 1) if vals else None
+
+    eaten: dict[str, Any] = {
+        k: total(k) for k in ("kcal", "protein", "carbs", "fat")
+    } | {
+        k: v
+        for k, v in {
+            "fiber_g": known("fiber"),
+            "sat_fat_g": known("sat_fat"),
+            "sugar_g": known("sugar"),
+            "sodium_mg": known("sodium"),
+        }.items()
+        if v is not None
+    }
+    state = repo.load_state(ctx, meals=False)
+    t = C.target_for(state, day)
+    out: dict[str, Any] = {
+        "meals_logged": len(counted),
+        "meals_waiting_for_estimate": len(meals) - len(counted),
+        "eaten": eaten,
+    }
+    if t is not None:
+        target = {"kcal": t.kcal, "protein": t.protein, "carbs": t.carbs, "fat": t.fat}
+        out["target"] = target
+        out["left"] = {k: round(v - eaten[k], 1) for k, v in target.items()}
+    latest = repo.latest_weigh_in(ctx)
+    if latest is not None:
+        out["latest_weigh_in"] = {
+            "day": ctx.clock.day_of(latest.measured_at).isoformat(),
+            "kg": latest.weight_kg,
+            **(
+                {"body_fat_pct": latest.body_fat_pct}
+                if latest.body_fat_pct is not None
+                else {}
+            ),
+        }
+    return out
 
 
 def macros_left(ctx: Ctx, *, day: date) -> C.Macros | None:

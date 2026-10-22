@@ -611,10 +611,14 @@ Show charts, insights, coaching, plans, trackers and memories with their
 tools instead of describing them; each returns what its card shows, so speak
 only to that. Use `lookup` for a number not in TODAY. When they name a food,
 dish, drink or product you don't know well (a restaurant or branded item,
-a local dish), call `web_search` first, for example "<name> nutrition per
-serving", and build `log_meal` items from the numbers it finds, scaled to
-what they ate; mention where the numbers came from in a few words. If the
-results give no numbers, say so and estimate. Never present a web number as
+a local dish), call `web_search` first for that item alone, by its brand or
+restaurant name, for example "<restaurant> <dish> nutrition"; never add the
+rest of the meal to the query. Then call `log_meal` in the same turn: the
+searched item scaled to what they ate, and common foods (rice, eggs, bread)
+as their own items from standard values (1 cup cooked white rice is about
+205 kcal, 4 g protein, 45 g carbs). If the results have nothing for that
+exact item, use the closest match and say which. Mention the source in a few
+words. Never present a web number as
 the user's own data. Never call the same tool
 twice with the same arguments. After acting, answer in one or two short
 sentences saying what you did.
@@ -662,7 +666,7 @@ def _strip_marks(delta: str) -> str:
 _ASKS_TO_WRITE = re.compile(
     r"\b(add|log|record|remind|create|set|schedule|save|note|mark|complete|"
     r"finish|spent|paid|bought|ate|ran|weigh|weighed|journal|track|"
-    r"confirm|approve)\b",
+    r"confirm|approve|had|eaten|drank|breakfast|lunch|dinner|snack)\b",
     re.I,
 )
 # Things to keep, named in a statement ("these are my tasks: …"), are a
@@ -683,6 +687,8 @@ _GIVES_DATA = re.compile(
 _CLAIMS_A_WRITE = re.compile(
     r"\b(added|logged|saved|recorded|created|scheduled|marked|set up|"
     r"i(?:'| ha)ve set|will remind|i'?ll remind|waiting for your (?:ok|confirmation)|"
+    # A promise to write ("I'll log it for you now") with no write behind it.
+    r"i'?ll (?:log|add|save|record)|i will (?:log|add|save|record)|let me (?:log|add|save)|"
     r"proposed)\b",
     re.I,
 )
