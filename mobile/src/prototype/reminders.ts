@@ -26,6 +26,9 @@ export async function enableReminders(
     if (p.status === "granted") {
       setPush({ permission: "granted" })
       toast.success("Reminders are on")
+      const local =
+        require("./local-reminders") as typeof import("./local-reminders")
+      void local.syncReminders(N).catch(() => {})
       return "granted"
     }
     const status = p.status === "denied" ? "denied" : "default"

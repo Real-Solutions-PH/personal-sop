@@ -27,6 +27,7 @@ import Animated, {
 } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { FernMark, fernPalette } from "@/prototype/companion/brand"
+import { startReminders } from "@/prototype/local-reminders"
 import { prototypeMode } from "@/prototype/mode"
 import { go, replace } from "@/prototype/navigation"
 import { CaptureOverlay } from "@/prototype/screens/capture"
@@ -158,6 +159,8 @@ export default function PrototypeLayout() {
   const dir = tabDirection((s) => s.dir)
   const drawer = captureUi.use((s) => s.open)
   const [bar, setBar] = useState(0)
+  // Task and habit reminders as notifications scheduled on this phone.
+  useEffect(() => startReminders(), [])
   const fern = fernPalette(t.dark)
   // Swiping slides tabs in from the side you swiped toward; tapping fades.
   const tabAnimation = {
