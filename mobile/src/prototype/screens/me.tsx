@@ -16,6 +16,7 @@ import {
   ChartColumn,
   CheckSquare,
   Clock,
+  CloudUpload,
   Dumbbell,
   Eye,
   Flame,
@@ -337,6 +338,26 @@ export function Me() {
             href="/me/settings"
           />
           <LinkRow title="AI & connector" icon={Bot} href="/capture/settings" />
+          {liveMode && (
+            <LinkRow
+              title="Re-upload this phone's data"
+              detail="Sends everything on this phone to the server again"
+              icon={CloudUpload}
+              onPress={() =>
+                confirm(
+                  "Re-upload this phone's data?",
+                  "Use this if the server lost your data. Everything saved on this phone is sent to the server again; nothing on the phone changes.",
+                  () => {
+                    const live =
+                      require("@/live/runtime") as typeof import("@/live/runtime")
+                    const n = live.reuploadAll()
+                    if (n === null) toast.error("Not signed in to the server")
+                    else toast.success(`Sending ${n} items to the server…`)
+                  },
+                )
+              }
+            />
+          )}
           <LinkRow
             title="Privacy mode"
             detail="Blur every money amount"

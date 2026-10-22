@@ -172,6 +172,12 @@ export function stopLive() {
   setFxSource(null)
 }
 
+/** Re-send everything this device holds to the server (it lost its copy).
+ * Returns how many changes were queued, or null when not signed in live. */
+export function reuploadAll(): number | null {
+  return active ? active.engine.reupload() : null
+}
+
 /** Push now (connectivity regained). */
 export function syncNow() {
   void active?.engine.sync()

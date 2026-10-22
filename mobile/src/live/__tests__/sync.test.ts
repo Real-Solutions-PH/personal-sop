@@ -467,3 +467,29 @@ test("a brand-new row is never sent a restore", () => {
   todoStore.set({ todos: [{ id: "n", title: "New", done: false }] })
   expect(e.capture().map((o) => o.data)).toEqual([{ title: "New" }])
 })
+
+test("re-upload sends every row again to a server that lost them, and no actions", async () => {
+  const server = new FakeServer()
+  const e = engine(server, memoryStorage(), () => true)
+  todoStore.set({
+    todos: [
+      { id: "a", title: "Pay rent", done: true },
+      { id: "b", title: "Buy milk", done: false },
+    ],
+  })
+  e.capture()
+  await e.sync()
+  // The server is wiped (rows gone, no tombstones): the device still has
+  // both and nothing it pulls removes them.
+  server.rows.clear()
+  server.pushes = []
+  expect(e.reupload()).toBe(2)
+  await e.sync()
+  const sent = server.pushes.flat()
+  expect(sent.map((op) => [op.kind, op.id])).toEqual([
+    ["upsert", "a"],
+    ["upsert", "b"],
+  ])
+  expect([...server.rows.keys()].sort()).toEqual(["a", "b"])
+  expect(todoStore.get().todos).toHaveLength(2)
+})

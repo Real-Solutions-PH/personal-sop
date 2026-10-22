@@ -128,6 +128,18 @@ export class SyncEngine {
     void this.sync()
   }
 
+  /** Send every row this device holds to the server as new: for a server
+   * that lost them (a wiped database). Forgets what it believed the server
+   * had, so the next diff upserts every local row; ``previous`` is kept, so
+   * no state-change actions are replayed. Returns the ops queued. */
+  reupload(): number {
+    for (const m of this.deps.mappers) this.snapshot[m.entity] = {}
+    this.deleted = {}
+    const ops = this.capture()
+    void this.sync()
+    return ops.length
+  }
+
   /** Diff every mapper into the outbox (synchronous; testable). */
   capture() {
     const ops: SyncOp[] = []
