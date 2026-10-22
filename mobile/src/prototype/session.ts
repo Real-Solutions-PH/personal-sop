@@ -318,6 +318,7 @@ function forgetLiveDevice() {
     "sop-live:outbox",
     "sop-live:snapshot",
     "sop-live:cursor",
+    "sop-live:previous",
     "sop-live:owner",
   ])
     storage().removeItem(key)

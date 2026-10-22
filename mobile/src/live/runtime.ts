@@ -82,6 +82,7 @@ export function startLive(userId: string, storage: StorageAdapter) {
       "sop-live:cursor",
       "sop-live:deleted",
       "sop-live:dead-letter",
+      "sop-live:previous",
     ])
       storage.removeItem(key)
     clearToBlank()
