@@ -76,19 +76,28 @@ test("a capture of two photos shows both in its bubble", () => {
   expect(screen.getByLabelText("2 photos")).toBeTruthy()
 })
 
-test("the box grows with its text and is one line again once cleared", () => {
+test("a box that grew is rebuilt at one line once it is cleared", () => {
   render(<ThreadComposer onText={jest.fn()} hints={false} />)
-  const box = screen.getByLabelText("Capture message")
-  const height = () => {
-    const style = [box.props.style].flat(Number.POSITIVE_INFINITY)
-    return Object.assign({}, ...style).height
-  }
-  fireEvent.changeText(box, "a long message\nover\nseveral\nlines")
-  fireEvent(box, "contentSizeChange", {
-    nativeEvent: { contentSize: { width: 200, height: 80 } },
+  const first = screen.getByLabelText("Capture message")
+  fireEvent.changeText(first, "a long message\nover\nseveral\nlines")
+  fireEvent(first, "contentSizeChange", {
+    nativeEvent: { contentSize: { width: 200, height: 104 } },
   })
-  expect(height()).toBeGreaterThan(44)
   // Sent: the text is cleared while Fern answers.
-  fireEvent.changeText(box, "")
-  expect(height()).toBe(44)
+  fireEvent.changeText(first, "")
+  const after = screen.getByLabelText("Capture message")
+  // A fresh input, so iOS lays it out at one line again.
+  expect(after).not.toBe(first)
+  expect(after.props.value).toBe("")
+})
+
+test("a one-line box is not rebuilt when cleared", () => {
+  render(<ThreadComposer onText={jest.fn()} hints={false} />)
+  const first = screen.getByLabelText("Capture message")
+  fireEvent.changeText(first, "hi")
+  fireEvent(first, "contentSizeChange", {
+    nativeEvent: { contentSize: { width: 200, height: 44 } },
+  })
+  fireEvent.changeText(first, "")
+  expect(screen.getByLabelText("Capture message")).toBe(first)
 })
