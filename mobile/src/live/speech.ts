@@ -108,9 +108,12 @@ export async function toggleSpeech(id: string, deps: SpeechDeps) {
     // "loading" keeps the microphone off for "Hey Fern" until a restart.
     let res: Response
     try {
-      res = await d.http.raw(`/companion/messages/${id}/speech`, {
-        method: "POST",
-      })
+      // Synthesis takes a few seconds for a long reply.
+      res = await d.http.raw(
+        `/companion/messages/${id}/speech`,
+        { method: "POST" },
+        { timeoutMs: 30_000 },
+      )
     } catch {
       if (speaking.getState().id === id) stopSpeech()
       throw new SpeechError("failed")

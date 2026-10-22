@@ -5,6 +5,7 @@ import {
 } from "@supabase/supabase-js"
 import { AppState, Platform } from "react-native"
 import { getEncryptedSessionStore } from "@/lib/storage"
+import { fetchWithTimeout } from "@/live/http"
 
 // GoTrue session storage. On native the tokens are held in an AES-256
 // encrypted MMKV (key in the OS keystore); on web it stays on
@@ -37,6 +38,10 @@ function createSupabaseClient(): SupabaseClient {
   }
 
   const instance = createClient(url, anonKey, {
+    // Without a timeout a token refresh on a network that never answers
+    // (captive portal, dead route) holds sign-in and every request behind
+    // it; a timeout reads as a network failure (AuthRetryableFetchError).
+    global: { fetch: fetchWithTimeout(fetch) },
     auth: {
       storage: sessionStorage,
       autoRefreshToken: true,

@@ -15,6 +15,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 import { Toaster, toast } from "sonner-native"
 import { liveMode } from "@/live/config"
+import { reachable } from "./connectivity"
 import { sessionStore, startLiveSession } from "./session"
 import { prototypeStorage } from "./storage"
 
@@ -76,7 +77,7 @@ export function PrototypeProviders({ children }: { children: ReactNode }) {
   useEffect(
     () =>
       NetInfo.addEventListener((state) => {
-        const online = state.isConnected !== false
+        const online = reachable(state)
         setConnectivity(online)
         if (online && liveMode)
           (
