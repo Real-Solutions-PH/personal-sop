@@ -30,7 +30,6 @@ import Animated, {
   FadeIn,
   FadeInUp,
   interpolate,
-  LinearTransition,
   runOnJS,
   useAnimatedStyle,
   useReducedMotion,
@@ -1085,10 +1084,7 @@ export function ChatScreen({ id }: { id: string }) {
           </View>
         }
         renderItem={({ item, index }) => (
-          <Animated.View
-            layout={LinearTransition}
-            entering={FadeInUp.duration(200)}
-          >
+          <Animated.View entering={FadeInUp.duration(200)}>
             <Row
               m={item}
               prev={data[index + 1]}

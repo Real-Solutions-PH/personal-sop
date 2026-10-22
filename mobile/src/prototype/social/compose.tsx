@@ -12,12 +12,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native"
-import Animated, {
-  FadeIn,
-  FadeOut,
-  LinearTransition,
-  ZoomIn,
-} from "react-native-reanimated"
+import Animated, { FadeIn, FadeOut, ZoomIn } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
 import { back, replace } from "../navigation"
@@ -250,7 +245,6 @@ export function Compose() {
                   key={m.uri + i}
                   entering={ZoomIn.springify()}
                   exiting={FadeOut}
-                  layout={LinearTransition}
                   style={{
                     width: previewW,
                     height: previewW * 1.25,

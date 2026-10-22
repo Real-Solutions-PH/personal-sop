@@ -26,7 +26,6 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler"
 import Animated, {
   FadeInDown,
   FadeOut,
-  LinearTransition,
   runOnJS,
   useAnimatedStyle,
   useReducedMotion,
@@ -685,7 +684,6 @@ export function SocialFeed() {
                   ? undefined
                   : FadeInDown.delay(index * 60).springify()
               }
-              layout={reduced ? undefined : LinearTransition}
             >
               {(index === 0 || !sameDay(data[index - 1].at, item.at)) && (
                 <DayDivider
