@@ -417,3 +417,119 @@ def test_a_question_with_numbers_is_not_a_request_to_record() -> None:
     assert services.unbacked_claim(
         "62.4 kg and 20% body fat today", "Logged your weigh-in.", []
     )
+
+
+TASK_LIST = (
+    "So these are my tasks, list them out: refinement on the inventory "
+    "management system for Jack, deploying the staging environment in AWS via "
+    "terraform, upgrade the pH workflow based on feedback from last Saturday"
+)
+
+
+def test_described_tasks_claimed_but_not_created_get_the_corrective_pass(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Seen live on 2026-10-22: a list of tasks with no "add" got "I've
+    created your tasks" and a bullet list, with no tool. Described things to
+    keep are a record to make, so the claim is checked and corrected."""
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    model = install(
+        monkeypatch,
+        say("I've created your tasks:\n- Inventory refinement\n- Staging deploy"),
+        say(
+            "",
+            call(
+                "create_tasks",
+                tasks=[
+                    {"title": "Refine inventory system for Jack"},
+                    {"title": "Deploy staging in AWS via Terraform"},
+                    {"title": "Upgrade the pH workflow"},
+                ],
+            ),
+        ),
+        say("Added 3 tasks."),
+    )
+    events = stream(api, client, TASK_LIST)
+    assert len(model.seen) == 3
+    assert sorted(t.title for t in tasks_of(api)) == [
+        "Deploy staging in AWS via Terraform",
+        "Refine inventory system for Jack",
+        "Upgrade the pH workflow",
+    ]
+    assert events[-1]["result"]["messages"][1]["text"] == "Added 3 tasks."
+
+
+def test_a_task_list_still_unrecorded_after_the_retry_says_so(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    install(
+        monkeypatch,
+        say("I've created your tasks."),
+        say("Your tasks are created."),
+    )
+    events = stream(api, client, TASK_LIST)
+    assert tasks_of(api) == []
+    assert events[-1]["result"]["messages"][1]["text"] == services.NOT_RECORDED
+
+
+def test_tasks_with_no_day_named_get_no_invented_due_date(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Also live: the model gave every task today at 23:59 though no date
+    was said ("last Saturday" is the past). The date and time are dropped."""
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    today = date.today().isoformat()
+    install(
+        monkeypatch,
+        say(
+            "",
+            call(
+                "create_tasks",
+                tasks=[
+                    {
+                        "title": "Upgrade the pH workflow",
+                        "due_date": today,
+                        "due_time": "23:59",
+                    }
+                ],
+            ),
+        ),
+        say("Added it."),
+    )
+    stream(api, client, TASK_LIST)
+    assert [(t.title, t.due_date, t.due_time) for t in tasks_of(api)] == [
+        ("Upgrade the pH workflow", None, None)
+    ]
+
+
+def test_register_those_keeps_the_day_named_just_before(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """ "Register those" leans on the message before it: a day named there
+    still counts, and no time is invented."""
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    tomorrow = (date.today() + timedelta(days=1)).isoformat()
+    install(
+        monkeypatch,
+        say("Pay rent and call the landlord tomorrow, got it."),
+        say(
+            "",
+            call(
+                "create_tasks",
+                tasks=[
+                    {"title": "Pay rent", "due_date": tomorrow, "due_time": "23:59"}
+                ],
+            ),
+        ),
+        say("Added: pay rent tomorrow."),
+    )
+    stream(api, client, "I need to pay rent tomorrow")
+    stream(api, client, "Register those as a task")
+    assert [(t.title, str(t.due_date), t.due_time) for t in tasks_of(api)] == [
+        ("Pay rent", tomorrow, None)
+    ]

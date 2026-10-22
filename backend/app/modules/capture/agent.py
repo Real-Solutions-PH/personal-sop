@@ -13,6 +13,7 @@ logs every write, so an AI write is undoable the same way as a rules write.
 """
 
 import json
+import re
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -251,8 +252,26 @@ class PlannedArgs(BaseModel):
 
 class TaskIn(BaseModel):
     title: Annotated[str, Field(min_length=1, max_length=280)]
-    due_date: Annotated[str, Field(pattern=r"^\d{4}-\d{2}-\d{2}$")] | None = None
-    due_time: Annotated[str, Field(pattern=r"^([01]\d|2[0-3]):[0-5]\d$")] | None = None
+    due_date: (
+        Annotated[
+            str,
+            Field(
+                pattern=r"^\d{4}-\d{2}-\d{2}$",
+                description="Only when the user named a day; otherwise omit.",
+            ),
+        ]
+        | None
+    ) = None
+    due_time: (
+        Annotated[
+            str,
+            Field(
+                pattern=r"^([01]\d|2[0-3]):[0-5]\d$",
+                description="Only when the user named a time; otherwise omit.",
+            ),
+        ]
+        | None
+    ) = None
     remind: bool = False
 
 
@@ -362,6 +381,9 @@ class Run:
     # A chat turn opens its capture on the first write, so a reply that only
     # answers leaves no capture behind (ADR-0015).
     open_cap: Callable[[], Capture] | None = None
+    # The person's own words this run answers. A task keeps a date or time
+    # only when these name one; empty means no check.
+    said: str = ""
 
     def capture(self) -> Capture:
         if self.cap is None:
@@ -374,6 +396,39 @@ class Run:
         p = self.position
         self.position += 1
         return p
+
+
+# Days and times in the person's words (English or Filipino). A task keeps
+# the date or time the model gives only when these name one: without them the
+# model invents "today 23:59". "last Saturday" is the past, not a due date.
+_PAST = re.compile(r"\b(last|past|previous|nakaraang)\s+\w+|\b\w+\s+ago\b", re.I)
+_NAMES_DAY = re.compile(
+    r"\b(today|tonight|tomorrow|tmrw|yesterday|weekend|week|month|next|"
+    r"later|asap|eod|deadline|due|before|until|"
+    r"mon(day)?|tue(s|sday)?|wed(nesday)?|thu(rs|rsday)?|fri(day)?|"
+    r"sat(urday)?|sun(day)?|jan(uary)?|feb(ruary)?|march|apr(il)?|june?|"
+    r"july?|aug(ust)?|sept?(ember)?|oct(ober)?|nov(ember)?|dec(ember)?|"
+    r"bukas|mamaya|ngayon|lunes|martes|miyerkules|huwebes|biyernes|sabado|"
+    r"linggo)\b|\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}/\d{1,2}\b"
+    r"|\bin \d+\s*(days?|weeks?)\b",
+    re.I,
+)
+_NAMES_TIME = re.compile(
+    r"\b(tonight|morning|afternoon|evening|noon|midnight|eod|umaga|tanghali|"
+    r"hapon|gabi|mamaya)\b|\b\d{1,2}(:\d{2})?\s*(am|pm|a\.m\.|p\.m\.)"
+    r"|\b\d{1,2}:\d{2}\b|\bin \d+\s*(min|mins|minutes|hr|hrs|hours?)\b",
+    re.I,
+)
+
+
+def names_day(text: str) -> bool:
+    """Whether the person's words give a day (a due date)."""
+    return bool(_NAMES_DAY.search(_PAST.sub(" ", text)))
+
+
+def names_time(text: str) -> bool:
+    """Whether the person's words give a time of day."""
+    return bool(_NAMES_TIME.search(_PAST.sub(" ", text)))
 
 
 def _minor(amount: float) -> int:
@@ -534,12 +589,15 @@ def capture_tools(run: Run) -> list[BaseTool]:
 
     def create_tasks(**kw: Any) -> dict[str, Any]:
         a = TasksArgs(**kw)
+        # A date or time the person never gave is the model's invention.
+        day = not run.said or names_day(run.said) or names_time(run.said)
+        time = not run.said or names_time(run.said)
         tasks = [
             {
                 "title": t.title,
                 "list_id": None,
-                "due_date": t.due_date,
-                "due_time": t.due_time,
+                "due_date": t.due_date if day else None,
+                "due_time": t.due_time if time else None,
                 "remind": t.remind,
             }
             for t in a.tasks
@@ -902,6 +960,7 @@ def run_capture_agent(
         emit=emit,
         journal_in_qa=journal_in_qa,
         position=start,
+        said=text,
     )
     day = ctx.clock.day_of(cap.at)
     system = SYSTEM.format(

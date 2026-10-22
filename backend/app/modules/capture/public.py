@@ -134,11 +134,14 @@ def chat_write_tools(
     client_uuid: uuid.UUID,
     text: str,
     emit: Callable[[str, dict[str, Any]], None],
+    said: str | None = None,
 ) -> tuple[list[BaseTool], agent.Run]:
     """Capture's writing tools for one chat turn (ADR-0015). Each write is a
     card on the turn's own capture (source ``chat``), tiered and undoable
     like any capture card. The capture is made on the first write and is
     replay-safe on ``client_uuid``; a turn that only answers makes none.
+    ``said`` is the person's words the turn answers (``text`` and what they
+    said just before); a task keeps a date only when they name one.
     Flushes only."""
 
     def open_cap() -> Capture:
@@ -168,6 +171,7 @@ def chat_write_tools(
         emit=emit,
         journal_in_qa=journal.settings_row(ctx).journal_in_qa,
         open_cap=open_cap,
+        said=text if said is None else said,
     )
     return agent.write_tools(run), run
 
