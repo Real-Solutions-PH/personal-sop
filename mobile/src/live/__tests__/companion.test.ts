@@ -11,6 +11,7 @@ import {
   COMPANION_NAME,
   type CompanionState,
   companionStore,
+  currentThread,
   editMemory,
   forget,
   remember,
@@ -363,7 +364,12 @@ test("companion (rules): the question and the reply arrive as server messages", 
   await flush()
   const [path, body] = post.mock.calls[0]
   expect(path).toBe("/companion/ask/stream")
-  expect(body).toEqual({ text: "how am I doing?", id: expect.any(String) })
+  // Asked in the chat on screen (one was made for the first question).
+  expect(body).toEqual({
+    text: "how am I doing?",
+    id: expect.any(String),
+    thread_id: currentThread(companionStore.get()),
+  })
   const msgs = companionStore.get().messages
   expect(msgs.map((m) => [m.role, m.text])).toEqual([
     ["me", "how am I doing?"],

@@ -62,6 +62,8 @@ import {
   stepLabel,
   takeVoiceTurn,
   thinking,
+  threadForSend,
+  touchThread,
 } from "@/prototype/companion/store"
 import { http, tokens } from "./auth"
 import { API_PREFIX, API_URL } from "./config"
@@ -912,7 +914,8 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
     hint: string | undefined,
     photos: string[],
     status: Msg["status"],
-  ) =>
+    threadId: string,
+  ) => {
     putMessages([
       {
         id,
@@ -924,8 +927,11 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
         ...(photos.length ? { blocks: [{ t: "photos", urls: photos }] } : {}),
         ...(hint ? { hint } : {}),
         status,
+        threadId,
       },
     ])
+    touchThread(threadId, { role: "me", text })
+  }
 
   async function runAsk(
     text: string,
@@ -933,7 +939,11 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
     photos: string[] = [],
     meId = newId(),
   ) {
-    putAsk(meId, text, hint, photos, "sending")
+    // A queued or retried question keeps the chat it was asked in.
+    const threadId =
+      companionStore.get().messages.find((m) => m.id === meId)?.threadId ??
+      threadForSend()
+    putAsk(meId, text, hint, photos, "sending", threadId)
     // Set once the server has stored the question: from then on a failure
     // must not offer a Retry (it would ask twice).
     let echoed = false
@@ -961,6 +971,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
           at: solAt,
           ...(solText ? { text: solText } : {}),
           ...(all.length ? { blocks: all } : {}),
+          threadId,
         },
       ])
     }
@@ -1022,6 +1033,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
         id: meId,
         ...(hint ? { hint: hint.slice(0, 20) } : {}),
         ...(mediaIds.length ? { media_ids: mediaIds } : {}),
+        thread_id: threadId,
       })
       if (!res.ok) {
         fail()
@@ -1138,7 +1150,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
         })
       else if (routedToCapture) send({ text, source: "text", hint })
       else {
-        putAsk(newId(), text, hint, [], "queued")
+        putAsk(newId(), text, hint, [], "queued", threadForSend())
         toast(`${companionName()} will answer when you're back online.`)
       }
       return

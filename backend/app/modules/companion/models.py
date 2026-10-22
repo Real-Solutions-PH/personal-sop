@@ -44,12 +44,31 @@ class Companion(OwnedRow, table=True):
     summary_through: datetime | None = Field(default=None, sa_type=tstz())  # type: ignore
 
 
+class CompanionThread(OwnedRow, table=True):
+    """One chat with Fern. A new chat starts with a clean context: the model
+    sees this thread's messages and its own running summary, nothing from
+    the others (memories and today's facts still apply everywhere). The id
+    comes from the phone, so a chat can begin offline."""
+
+    __tablename__ = "companion_thread"
+
+    # From the first message unless the person renames it.
+    title: str | None = Field(default=None, max_length=80)
+    last_at: datetime | None = Field(default=None, sa_type=tstz(), index=True)  # type: ignore
+    summary: str | None = Field(default=None, max_length=2000)
+    summary_through: datetime | None = Field(default=None, sa_type=tstz())  # type: ignore
+
+
 class CompanionMessage(OwnedRow, table=True):
     """``blocks`` are the typed render blocks (text, chart, insights, coach,
     plan, tracker, memory, chips)."""
 
     __tablename__ = "companion_message"
     __table_args__ = (enum_check("role", ("me", "sol"), name="ck_companion_msg_role"),)
+
+    thread_id: uuid.UUID | None = Field(
+        default=None, foreign_key="companion_thread.id", ondelete="CASCADE", index=True
+    )
 
     role: str = Field(sa_type=String(3))  # type: ignore
     text: str | None = Field(default=None, max_length=8000)

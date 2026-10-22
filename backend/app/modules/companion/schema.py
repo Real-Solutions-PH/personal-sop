@@ -29,6 +29,9 @@ class AskIn(BaseModel):
     hint: Annotated[str, Field(max_length=20)] | None = None
     # Photos sent with the message (uploaded to media first).
     media_ids: list[uuid.UUID] = Field(default_factory=list, max_length=10)
+    # The chat it belongs to; the device mints a new chat's id. Omitted: the
+    # most recent chat (an app from before chats).
+    thread_id: uuid.UUID | None = None
 
     @model_validator(mode="after")
     def _something(self) -> "AskIn":
@@ -43,6 +46,23 @@ class MessagePublic(BaseModel):
     role: str
     text: str | None
     blocks: list[dict[str, Any]]
+    created_at: datetime
+    version: int
+    deleted_at: datetime | None = None
+    thread_id: uuid.UUID | None = None
+
+
+class ThreadSync(BaseModel):
+    """A chat as the app writes it: its title (renaming); a new id makes it."""
+
+    title: Annotated[str, Field(max_length=80)] | None = None
+
+
+class ThreadPublic(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    title: str | None
+    last_at: datetime | None
     created_at: datetime
     version: int
     deleted_at: datetime | None = None

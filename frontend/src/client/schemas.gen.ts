@@ -20893,6 +20893,18 @@ export const app__modules__companion__schema__AskInSchema = {
             type: 'array',
             maxItems: 10,
             title: 'Media Ids'
+        },
+        thread_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Thread Id'
         }
     },
     type: 'object',
@@ -20949,6 +20961,18 @@ export const app__modules__companion__schema__MessagePublicSchema = {
                 }
             ],
             title: 'Deleted At'
+        },
+        thread_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Thread Id'
         }
     },
     type: 'object',

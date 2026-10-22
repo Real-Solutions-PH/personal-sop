@@ -10,6 +10,8 @@ import {
   type Metric,
   remember,
   thinking,
+  threadForSend,
+  touchThread,
 } from "./store"
 
 const METRICS: { metric: Metric; label: string; words: RegExp }[] = [
@@ -257,6 +259,9 @@ export function route(raw: string, { record = true } = {}): Route {
 export function ask(text: string, hint?: string, photos?: string[]) {
   const v = text.trim()
   if (!v && !photos?.length) return
+  // Whichever path answers (a reply or a capture), the question belongs to
+  // the chat on screen: it names a new chat and marks its last activity.
+  touchThread(threadForSend(), { role: "me", text: v || "Photo" })
   const live = liveAsk()
   if (live)
     return live(

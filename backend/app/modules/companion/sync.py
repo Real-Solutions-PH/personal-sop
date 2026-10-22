@@ -11,13 +11,21 @@ from pydantic import BaseModel
 
 from app.modules.companion import memory, services
 from app.modules.companion.defaults import COMPANION_NAME
-from app.modules.companion.models import Companion, CompanionMessage, Memory, Tracker
+from app.modules.companion.models import (
+    Companion,
+    CompanionMessage,
+    CompanionThread,
+    Memory,
+    Tracker,
+)
 from app.modules.companion.schema import (
     CompanionPublic,
     CompanionSync,
     MemoryPublic,
     MemorySync,
     MessagePublic,
+    ThreadPublic,
+    ThreadSync,
     TrackerPublic,
     TrackerSync,
 )
@@ -105,7 +113,33 @@ def upsert_memory(ctx: Ctx, row_id: uuid.UUID, payload: BaseModel) -> OwnedRow:
     return row
 
 
+def upsert_thread(ctx: Ctx, row_id: uuid.UUID, payload: BaseModel) -> OwnedRow:
+    """A chat made or renamed in the app (a blank title goes back to the
+    one taken from its first message)."""
+    data = payload.model_dump(exclude_unset=True)
+    row = services.thread_for(ctx, row_id)
+    if "title" in data:
+        row.title = (data["title"] or "").strip()[:80] or None
+        ctx.session.add(row)
+    ctx.commit()
+    return row
+
+
+def delete_thread(ctx: Ctx, row_id: uuid.UUID) -> None:
+    services.delete_thread(ctx, row_id)
+
+
 def register(r: Registry) -> None:
+    r.entity(
+        Entity(
+            name="companion_thread",
+            model=CompanionThread,
+            payload=ThreadSync,
+            public=ThreadPublic,
+            upsert=upsert_thread,
+            delete=delete_thread,
+        )
+    )
     r.entity(
         Entity(
             name="companion",

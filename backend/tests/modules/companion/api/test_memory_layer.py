@@ -352,7 +352,7 @@ def test_older_conversation_is_folded_into_a_summary(
 ) -> None:
     from datetime import timedelta
 
-    from app.modules.companion.models import CompanionMessage
+    from app.modules.companion.models import CompanionMessage, CompanionThread
 
     api: Api = user(client, db)
     api.assign("chat")
@@ -383,7 +383,9 @@ def test_older_conversation_is_folded_into_a_summary(
     assert "EARLIER CONVERSATION" in answer_system
     assert "planning a trip to Cebu" in answer_system
     with ctx_for(api.user) as ctx:  # type: ignore[attr-defined]
-        assert services.companion_row(ctx).summary_through is not None
+        # Each chat keeps its own summary; these turns all went to one.
+        [thread] = owned_repo.list_rows(ctx, CompanionThread)
+        assert thread.summary_through is not None
     # Nothing new to fold: the next turn makes no summary call.
     model = install(monkeypatch, say("Again."))
     client.post("/api/v1/companion/ask/stream", headers=api.h, json={"text": "hi"})

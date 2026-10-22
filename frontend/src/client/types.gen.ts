@@ -227,6 +227,7 @@ export type app__modules__companion__schema__AskIn = {
     id?: (string | null);
     hint?: (string | null);
     media_ids?: Array<(string)>;
+    thread_id?: (string | null);
 };
 
 export type app__modules__companion__schema__MessagePublic = {
@@ -239,6 +240,7 @@ export type app__modules__companion__schema__MessagePublic = {
     created_at: string;
     version: number;
     deleted_at?: (string | null);
+    thread_id?: (string | null);
 };
 
 export type app__modules__companion__schema__MessagesPublic = {

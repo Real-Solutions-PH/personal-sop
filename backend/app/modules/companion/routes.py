@@ -79,7 +79,11 @@ def speak(ctx: CtxDep, message_id: uuid.UUID) -> Response:
 def ask(ctx: CtxDep, data: AskIn) -> Any:
     """Ask the companion. A replayed message id returns the reply it already got."""
     return services.ask(
-        ctx, text=data.text, message_id=data.id, media_ids=data.media_ids
+        ctx,
+        text=data.text,
+        message_id=data.id,
+        media_ids=data.media_ids,
+        thread_id=data.thread_id,
     )
 
 
@@ -111,6 +115,7 @@ def ask_stream(ctx: CtxDep, data: AskIn) -> StreamingResponse:
             message_id=data.id,
             stream=stream,
             media_ids=data.media_ids,
+            thread_id=data.thread_id,
         )
         stream.finished(out.model_dump(mode="json"))
         # The reply is out; what the message says about them that will last

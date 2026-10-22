@@ -13,6 +13,7 @@ import json
 import re
 import uuid
 from collections.abc import Callable
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from typing import Annotated, Any, Literal
 
@@ -31,6 +32,7 @@ from app.modules.companion.models import (
     MEMORY_KINDS,
     Companion,
     CompanionMessage,
+    CompanionThread,
     Memory,
     Tracker,
 )
@@ -205,6 +207,55 @@ def clear_conversation(ctx: Ctx) -> int:
     return len(rows)
 
 
+# The chat a turn belongs to, set by `ask` for the whole turn: its messages
+# are stored in it, and the history and summary the model sees are its own.
+_THREAD: ContextVar[CompanionThread | None] = ContextVar(
+    "companion_thread", default=None
+)
+THREAD_TITLE = 48
+
+
+def thread_for(ctx: Ctx, thread_id: uuid.UUID | None) -> CompanionThread:
+    """The chat a message goes to: the one named (made with that id when the
+    phone started it offline, brought back if it was deleted), else the most
+    recent, else a new one."""
+    if thread_id is not None:
+        row = owned_repo.get(ctx, CompanionThread, thread_id, include_deleted=True)
+        if row is None:
+            return owned_repo.insert(ctx, CompanionThread, {}, row_id=thread_id)
+        if row.deleted_at is not None:
+            owned_repo.restore(ctx, row)
+        return row
+    latest = owned_repo.list_rows(
+        ctx,
+        CompanionThread,
+        order_by=[col(CompanionThread.last_at).desc().nulls_last()],
+        limit=1,
+    )
+    if latest:
+        return latest[0]
+    return owned_repo.insert(ctx, CompanionThread, {}, row_id=uuid.uuid4())
+
+
+def delete_thread(ctx: Ctx, thread_id: uuid.UUID) -> None:
+    """A deleted chat takes its messages with it (tombstones, so every device
+    drops them)."""
+    row = owned_repo.get(ctx, CompanionThread, thread_id)
+    if row is None:
+        return
+    for m in owned_repo.list_rows(
+        ctx, CompanionMessage, col(CompanionMessage.thread_id) == thread_id
+    ):
+        owned_repo.soft_delete(ctx, m)
+    owned_repo.soft_delete(ctx, row)
+    ctx.commit()
+
+
+def _thread_where() -> list[ColumnElement[bool]]:
+    t = _THREAD.get()
+    return [col(CompanionMessage.thread_id) == t.id] if t is not None else []
+
+
 def _message(
     ctx: Ctx,
     role: str,
@@ -212,10 +263,26 @@ def _message(
     blocks: list[dict[str, Any]],
     row_id: uuid.UUID,
 ) -> CompanionMessage:
+    t = _THREAD.get()
+    if t is not None:
+        if t.title is None and role == "me" and text and text.strip():
+            words = " ".join(text.split())
+            t.title = (
+                words
+                if len(words) <= THREAD_TITLE
+                else words[: THREAD_TITLE - 1].rsplit(" ", 1)[0] + "…"
+            )
+        t.last_at = ctx.now
+        ctx.session.add(t)
     return owned_repo.insert(
         ctx,
         CompanionMessage,
-        {"role": role, "text": text, "blocks": blocks},
+        {
+            "role": role,
+            "text": text,
+            "blocks": blocks,
+            "thread_id": t.id if t is not None else None,
+        },
         row_id=row_id,
     )
 
@@ -309,6 +376,28 @@ def ask(
     message_id: uuid.UUID | None = None,
     stream: TurnStream | None = None,
     media_ids: list[uuid.UUID] | None = None,
+    thread_id: uuid.UUID | None = None,
+) -> AskOut:
+    token = _THREAD.set(thread_for(ctx, thread_id))
+    try:
+        return _ask(
+            ctx,
+            text=text,
+            message_id=message_id,
+            stream=stream,
+            media_ids=media_ids,
+        )
+    finally:
+        _THREAD.reset(token)
+
+
+def _ask(
+    ctx: Ctx,
+    *,
+    text: str,
+    message_id: uuid.UUID | None,
+    stream: TurnStream | None,
+    media_ids: list[uuid.UUID] | None,
 ) -> AskOut:
     me_id = message_id or uuid.uuid4()
     photos = list(dict.fromkeys(media_ids or []))
@@ -1266,8 +1355,14 @@ change daily (totals, balances, macros) and anything the assistant only
 looked up. Plain text, no lists."""
 
 
+def _summary_row(ctx: Ctx) -> Companion | CompanionThread:
+    """Where the running summary lives: the turn's chat (each chat has its
+    own), or the companion row outside one."""
+    return _THREAD.get() or companion_row(ctx)
+
+
 def _summary_block(ctx: Ctx) -> str:
-    row = companion_row(ctx)
+    row = _summary_row(ctx)
     if not row.summary:
         return ""
     return (
@@ -1280,13 +1375,16 @@ def refresh_summary(ctx: Ctx, resolved: ai.ResolvedModel) -> None:
     """Fold the messages older than the turn window into the summary once
     SUMMARY_AFTER of them have built up. One short model call; a failure
     leaves the summary as it was (the next turn tries again)."""
-    row = companion_row(ctx)
+    row = _summary_row(ctx)
     # Only what _history actually sends is excluded: an earlier day's
     # message in the last HISTORY is not sent, so it is summarised.
     window = {
         m.id for m in _window_rows(ctx) if ctx.clock.day_of(m.created_at) == ctx.today
     }
-    where: list[ColumnElement[bool]] = [col(CompanionMessage.text).is_not(None)]
+    where: list[ColumnElement[bool]] = [
+        col(CompanionMessage.text).is_not(None),
+        *_thread_where(),
+    ]
     if row.summary_through is not None:
         where.append(col(CompanionMessage.created_at) > row.summary_through)
     older = [
@@ -1328,6 +1426,7 @@ def _window_rows(ctx: Ctx) -> list[CompanionMessage]:
     return owned_repo.list_rows(
         ctx,
         CompanionMessage,
+        *_thread_where(),
         order_by=[col(CompanionMessage.created_at).desc()],
         limit=HISTORY,
     )
