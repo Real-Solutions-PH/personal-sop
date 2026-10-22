@@ -11,7 +11,6 @@ import {
   Flame,
   Info,
   ListFilter,
-  Lock,
   Share2,
   Target,
   Trophy,
@@ -47,6 +46,7 @@ import { go } from "../navigation"
 import { ProfileAvatar } from "../profile-avatar"
 import { fonts, useTheme } from "../theme"
 import { Button, Field, Screen, Sheet } from "../ui"
+import { LockedPreview } from "./locked-preview"
 
 function Delta({
   value,
@@ -644,53 +644,12 @@ export function StatsHome() {
             </Line>
           </View>
         </Line>
-        {/* Too little data: the real layout shows dimmed and inert, so the
-            person sees what fills in as they log, with one way forward. */}
-        {locked && (
-          <Frame
-            style={{
-              padding: 16,
-              marginTop: 16,
-              gap: 10,
-              borderColor: `${t.primary}55`,
-            }}
-          >
-            <Line style={{ gap: 10 }}>
-              <Lock size={18} color={t.primary} />
-              <Copy size={16} weight="semibold" style={{ flex: 1 }}>
-                {target.logged}/3 logged days
-              </Copy>
-            </Line>
-            <View
-              accessibilityRole="progressbar"
-              accessibilityValue={{ min: 0, max: 3, now: target.logged }}
-              style={{
-                height: 6,
-                borderRadius: 3,
-                backgroundColor: t.soft,
-                overflow: "hidden",
-              }}
-            >
-              <View
-                style={{
-                  width: `${(Math.min(3, target.logged) / 3) * 100}%`,
-                  height: 6,
-                  backgroundColor: t.primary,
-                }}
-              />
-            </View>
-            <Copy size={14} muted>
-              Your score, streaks and trends below unlock after 3 days of
-              logging.
-            </Copy>
-            <Button href="/today">Log today</Button>
-          </Frame>
-        )}
-        <View
-          pointerEvents={locked ? "none" : "auto"}
-          accessibilityElementsHidden={locked}
-          importantForAccessibility={locked ? "no-hide-descendants" : "auto"}
-          style={{ opacity: locked ? 0.35 : 1 }}
+        <LockedPreview
+          locked={locked}
+          title={`${target.logged}/3 logged days`}
+          progress={{ now: target.logged, max: 3 }}
+          detail="Your score, streaks and trends below unlock after 3 days of logging."
+          action={{ label: "Log today", href: "/today" }}
         >
           <View style={{ marginTop: 16 }}>
             <Segmented
@@ -934,7 +893,7 @@ export function StatsHome() {
               ))}
             </Line>
           </SwipeSegments>
-        </View>
+        </LockedPreview>
       </View>
       <Sheet
         title="Life Score weights"

@@ -50,6 +50,7 @@ import { Ring } from "../visual"
 import { RecordEditor, useMoney } from "./finance"
 import { FinPill } from "./finance-planned"
 import { Reports } from "./finance-reports"
+import { LockedPreview } from "./locked-preview"
 
 export const sourceLabel = (source: FinRecord["source"]) =>
   ({
@@ -248,20 +249,16 @@ export function FinanceHome() {
       }
     >
       <View>
-        {!accounts.length ? (
-          <Frame style={{ padding: 24 }}>
-            <Copy size={24} weight="display">
-              Add your accounts
-            </Copy>
-            <Copy size={14} muted>
-              Cash, GCash, Maya, your bank and credit card — with today's
-              balances.
-            </Copy>
-            <SmallButton accent="fin" onPress={() => go("/finance/setup")}>
-              Set up Finance
-            </SmallButton>
-          </Frame>
-        ) : (
+        <LockedPreview
+          locked={!accounts.length}
+          color={t.fin}
+          title="Add your accounts"
+          detail="Cash, GCash, Maya, your bank and credit card, with today's balances. Your net worth, budgets and reports fill in below."
+          action={{
+            label: "Set up Finance",
+            onPress: () => go("/finance/setup"),
+          }}
+        >
           <>
             <Frame>
               <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
@@ -894,7 +891,7 @@ export function FinanceHome() {
             </Frame>
             <Reports embedded />
           </>
-        )}
+        </LockedPreview>
       </View>
       <RecordEditor
         prefill={{ type: params.add === "income" ? "income" : "expense" }}

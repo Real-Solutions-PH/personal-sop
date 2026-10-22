@@ -69,7 +69,7 @@ export function FitnessStats({ embedded = false }: { embedded?: boolean }) {
   ) => (
     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 16 }}>
       {items.map((x) => (
-        <View key={x.label} style={{ width: "47.5%" }}>
+        <View key={x.label} style={{ flexGrow: 1, flexBasis: "40%" }}>
           <Copy
             size={30}
             weight="displayMedium"

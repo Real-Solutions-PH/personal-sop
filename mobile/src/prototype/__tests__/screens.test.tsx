@@ -1,3 +1,4 @@
+import { startFresh } from "@domain/finance/actions"
 import { finStore } from "@domain/finance/store"
 import { habitsStore } from "@domain/habits/store"
 import { dayKey } from "@domain/lib/day"
@@ -7,7 +8,9 @@ import { fireEvent, render, screen } from "@testing-library/react-native"
 import type { ReactNode } from "react"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 import { RecordEditor } from "../screens/finance"
+import { FinanceHome } from "../screens/finance-home"
 import { HabitForm } from "../screens/habits"
+import { HabitsHome } from "../screens/habits-home"
 import { TaskNew } from "../screens/task-new"
 import { Tasks } from "../screens/tasks"
 
@@ -245,4 +248,27 @@ test("new transactions require a category and reopening clears the draft", () =>
   view.rerender(<RecordEditor open={false} onClose={() => {}} />)
   view.rerender(<RecordEditor open onClose={() => {}} />)
   expect(screen.getByLabelText("Amount ₱").props.value).toBe("")
+})
+
+test("finance with no accounts shows its real layout dimmed under one setup card", () => {
+  startFresh()
+  render(<FinanceHome />, { wrapper })
+  expect(screen.getByText("Add your accounts")).toBeTruthy()
+  expect(screen.getByRole("button", { name: "Set up Finance" })).toBeTruthy()
+  // The page's own sections still render behind the card, hidden from
+  // screen readers until there is data.
+  expect(
+    screen.getByText("Net worth", { includeHiddenElements: true }),
+  ).toBeTruthy()
+})
+test("finance with accounts has no setup card", () => {
+  render(<FinanceHome />, { wrapper })
+  expect(screen.queryByText("Add your accounts")).toBeNull()
+})
+test("habits with none yet show the stats layout dimmed under one add card", () => {
+  habitsStore.set((s) => ({ ...s, habits: [], logs: [] }))
+  render(<HabitsHome />, { wrapper })
+  expect(screen.getByText("No habits yet")).toBeTruthy()
+  expect(screen.getByRole("button", { name: "Add a habit" })).toBeTruthy()
+  expect(screen.getByText("Year", { includeHiddenElements: true })).toBeTruthy()
 })

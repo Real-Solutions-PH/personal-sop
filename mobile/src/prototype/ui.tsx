@@ -611,7 +611,7 @@ export function Screen({
           paddingHorizontal: 16,
           paddingTop: prototypeLayout ? 0 : 8,
           paddingBottom: safe.bottom + 28,
-          gap: prototypeLayout ? 12 : 4,
+          gap: prototypeLayout ? 12 : 8,
         }}
       >
         {children}
@@ -869,7 +869,11 @@ export function Sheet({
               </View>
             </View>
           </GestureDetector>
-          <ScrollView keyboardShouldPersistTaps="handled" bounces={false}>
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            bounces={false}
+            contentContainerStyle={{ gap: 12, paddingBottom: 4 }}
+          >
             {children}
           </ScrollView>
         </Animated.View>

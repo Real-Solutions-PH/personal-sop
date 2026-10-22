@@ -27,13 +27,13 @@ import {
   Line,
   SectionHeading,
   Segmented,
-  SmallButton,
   Tap,
 } from "../native-kit"
 import { go } from "../navigation"
 import { fonts, radius, useTheme } from "../theme"
 import { Screen } from "../ui"
 import { Ring } from "../visual"
+import { LockedPreview } from "./locked-preview"
 
 const fmtDay = (day: string) =>
   new Date(`${day}T12:00:00`).toLocaleDateString("en-PH", {
@@ -337,22 +337,13 @@ export function HabitsHome() {
       }
     >
       <View style={{ paddingTop: 4 }}>
-        {!hs.length ? (
-          <Frame style={{ padding: 24, gap: 8, alignItems: "flex-start" }}>
-            <Copy size={24} weight="display">
-              No habit data yet
-            </Copy>
-            <Copy size={14} muted>
-              Check off a habit for a few days and your completion rate, streaks
-              and misses show up here.
-            </Copy>
-            <View style={{ marginTop: 8 }}>
-              <SmallButton accent="hab" onPress={() => go("/habits/new")}>
-                Add a habit
-              </SmallButton>
-            </View>
-          </Frame>
-        ) : (
+        <LockedPreview
+          locked={!hs.length}
+          color={t.hab}
+          title="No habits yet"
+          detail="Add a habit and check it off for a few days. Your completion rate, streaks and misses fill in below."
+          action={{ label: "Add a habit", onPress: () => go("/habits/new") }}
+        >
           <>
             <Segmented
               value={period}
@@ -751,7 +742,7 @@ export function HabitsHome() {
               </Tap>
             </SwipeSegments>
           </>
-        )}
+        </LockedPreview>
       </View>
     </Screen>
   )

@@ -281,7 +281,7 @@ export function WeightsEditor() {
       0,
     )
   return (
-    <View>
+    <View style={{ gap: 8 }}>
       <View
         style={{
           padding: 12,
@@ -370,7 +370,7 @@ export function WeightsEditor() {
           )
         })}
       </View>
-      <Copy size={12} muted style={{ marginTop: 8 }}>
+      <Copy size={12} muted style={{ marginTop: 4 }}>
         Area rates come from each section: habits = completion, tasks = on-time
         rate, fitness = sessions + calories on target, finance = savings rate +
         budgets on pace.

@@ -142,13 +142,13 @@ export function AdvisorAnswer({
   const [editor, setEditor] = useState<Editor>()
   if (question.key === "leaks" && scope === "aggregates")
     return (
-      <>
+      <View style={{ gap: 10 }}>
         <Copy size={14}>
           To find repeat spending I need individual transactions. Your current
           setting shares totals only.
         </Copy>
         <Button onPress={onAllow}>Allow records for this answer</Button>
-      </>
+      </View>
     )
   return (
     <View style={{ gap: 8 }}>
