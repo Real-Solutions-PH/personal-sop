@@ -25,7 +25,12 @@ async function viaLive<T>(run: () => Promise<T>): Promise<T> {
 /** Live mode: start sync for the signed-in Supabase user. */
 export async function startLiveSession() {
   live().onSessionLost(sessionEnded)
-  const uid = await live().currentUserId()
+  // Offline launch: the account this device was already syncing, if the
+  // person never signed out. Its outbox and snapshot are kept by startLive.
+  const known = sessionStore.get().signedIn
+    ? storage().getItem("sop-live:owner")
+    : null
+  const uid = await live().currentUserId(known)
   if (uid) runtime().startLive(uid, storage())
   return uid
 }
