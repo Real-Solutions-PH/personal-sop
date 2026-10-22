@@ -20,12 +20,7 @@ import {
   View,
 } from "react-native"
 import Swipeable from "react-native-gesture-handler/ReanimatedSwipeable"
-import Animated, {
-  FadeIn,
-  FadeInDown,
-  LinearTransition,
-  ZoomIn,
-} from "react-native-reanimated"
+import Animated, { FadeIn, FadeInDown, ZoomIn } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
 import { go, replace } from "../navigation"
@@ -640,7 +635,7 @@ export function Inbox() {
           </View>
         }
         renderItem={({ item }) => (
-          <Animated.View layout={LinearTransition} entering={FadeIn}>
+          <Animated.View entering={FadeIn}>
             <ChatRow chat={item} />
           </Animated.View>
         )}

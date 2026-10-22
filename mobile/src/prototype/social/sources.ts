@@ -13,7 +13,8 @@ import {
 } from "@domain/lib/money"
 import { useStats } from "@domain/tasks/hooks"
 import { useMemo } from "react"
-import type { Progress, Scorecard } from "./store"
+import type { Accent } from "../theme"
+import { checkIn, type Progress, type Scorecard } from "./store"
 
 const short = (n: number, c: CurrencyInfo) =>
   Math.abs(n) >= 1000
@@ -87,6 +88,7 @@ export function useProgressSources(): Progress[] {
         kind: "Habit streak",
         title: best.h.name,
         subtitle: `${best.s.current}-day streak`,
+        day: best.s.current,
         stats: [
           { label: "Streak", value: String(best.s.current), unit: "days" },
           { label: "Best", value: String(best.s.best), unit: "days" },
@@ -177,4 +179,86 @@ export function useMyScorecard(): Scorecard {
     }),
     [life, target, trophies, fit, tasks],
   )
+}
+
+const MODULE_ACCENT: Record<string, Accent> = {
+  habits: "hab",
+  tasks: "tsk",
+  fitness: "fit",
+  nutrition: "nut",
+  finance: "fin",
+}
+export type Streak = { id: string; title: string; day: number; best: number }
+export type GoalLine = {
+  id: string
+  title: string
+  detail: string
+  pct: number
+  hit: boolean
+  accent: Accent
+}
+
+/** My active habit streaks, longest first: what I'm "working on". */
+export function useMyStreaks(): Streak[] {
+  const habits = habitsStore.use((s) => s)
+  return useMemo(() => {
+    const idx = logIndex(habits.logs)
+    return habits.habits
+      .filter((h) => h.status !== "archived")
+      .map((h) => ({ h, s: streaks(h, idx) }))
+      .filter((x) => x.s.current > 0)
+      .sort((a, b) => b.s.current - a.s.current)
+      .map((x) => ({
+        id: x.h.id,
+        title: x.h.name,
+        day: x.s.current,
+        best: x.s.best,
+      }))
+  }, [habits])
+}
+
+/** My active goals with how far along each is. */
+export function useMyGoals(): GoalLine[] {
+  const goals = D.useGoals()
+  return useMemo(
+    () =>
+      goals
+        .filter((g) => g.goal.status === "active")
+        .map((g) => ({
+          id: g.goal.id,
+          title: g.goal.label,
+          detail: D.fmtGoal(g.goal),
+          pct: Math.max(0, Math.min(1, g.pct)),
+          hit: g.hit,
+          accent: MODULE_ACCENT[g.goal.metric.split(":")[0]] ?? "primary",
+        })),
+    [goals],
+  )
+}
+
+/** Things to check in on today, from my own data: each habit streak (the
+ * day it would reach), each active goal and today's workout. */
+export function useCheckInSources(): Progress[] {
+  const streakList = useMyStreaks()
+  const goals = useMyGoals()
+  const fit = fitStore.use((s) => s)
+  return useMemo(() => {
+    const out: Progress[] = streakList.map((x) =>
+      checkIn("hab", x.title, x.day),
+    )
+    const w = C.finished(fit)[0]
+    if (w && dayKey(new Date(w.startedAt)) === dayKey())
+      out.push({
+        ...checkIn("fit", `${w.name || "Workout"} done`),
+        subtitle: "Today's workout",
+      })
+    for (const g of goals)
+      out.push({
+        ...checkIn(g.accent, g.title),
+        subtitle: g.hit
+          ? "Goal reached"
+          : `${Math.round(g.pct * 100)}% of the way`,
+      })
+    return out
+  }, [streakList, goals, fit])
 }

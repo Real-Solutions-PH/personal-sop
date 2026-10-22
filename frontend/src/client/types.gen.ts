@@ -2699,6 +2699,10 @@ export type PostPublic = {
     tags: Array<(string)>;
     likes: number;
     liked: boolean;
+    cheers: {
+        [key: string]: (number);
+    };
+    my_cheer: ('keep_going' | 'proud' | 'inspired' | null);
     saved: boolean;
     comments: number;
     liked_by: Array<PersonBrief>;
@@ -2801,6 +2805,9 @@ export type ProgressIn = {
     subtitle?: (string | null);
     stats?: Array<ProgressStat>;
     spark?: (Array<(number)> | null);
+    day?: (number | null);
+    of?: (number | null);
+    before_after?: boolean;
 };
 
 export type ProgressOut = {
@@ -6306,6 +6313,7 @@ export type SocialRestorePostData = {
 export type SocialRestorePostResponse = (PostPublic);
 
 export type SocialLikePostData = {
+    kind?: ('keep_going' | 'proud' | 'inspired' | null);
     postId: string;
 };
 

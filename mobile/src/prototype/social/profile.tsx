@@ -4,13 +4,14 @@ import {
   Bookmark,
   ChevronDown,
   Copy,
+  Flame,
   Grid3x3,
   Layers,
   Lock,
   PlusSquare,
   Settings,
-  Sparkles,
   Star,
+  Target,
   UserCheck,
   UserPlus,
   Video,
@@ -26,11 +27,9 @@ import {
   useWindowDimensions,
   View,
 } from "react-native"
-import { Gesture, GestureDetector } from "react-native-gesture-handler"
 import Animated, {
   FadeIn,
   FadeInDown,
-  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -40,6 +39,7 @@ import { toast } from "sonner-native"
 import { liveMode } from "@/live/config"
 import { copyText } from "../media"
 import { go } from "../navigation"
+import { LockedPreview } from "../screens/locked-preview"
 import { Switch } from "../switch"
 import { fonts, useTheme } from "../theme"
 import { Empty } from "../ui"
@@ -54,7 +54,12 @@ import {
   useRing,
 } from "./kit"
 import { TopBar } from "./post"
-import { useMyScorecard } from "./sources"
+import {
+  type GoalLine,
+  useMyGoals,
+  useMyScorecard,
+  useMyStreaks,
+} from "./sources"
 import {
   type Area,
   compact,
@@ -130,6 +135,20 @@ function AreaBar({
       </View>
     </View>
   )
+}
+
+const EMPTY_CARD: Scorecard = {
+  life: 0,
+  delta: 0,
+  streak: 0,
+  best: 0,
+  rates: { habits: 0, tasks: 0, fitness: 0, finance: 0 },
+  stats: [
+    { label: "Workouts", value: "0" },
+    { label: "PRs", value: "0" },
+    { label: "Tasks (30d)", value: "0" },
+  ],
+  trophies: [],
 }
 
 /** Scores, stats and achievements — what followers see on a profile. */
@@ -405,41 +424,307 @@ function Tile({ post, size }: { post: Post; size: number }) {
       <View style={{ position: "absolute", top: 6, right: 6 }}>
         {first?.kind === "video" ? (
           <Video size={16} color="#fff" fill="#fff" />
-        ) : post.media.length + (post.progress ? 1 : 0) > 1 ? (
+        ) : post.media.length > 1 ? (
           <Layers size={16} color="#fff" />
         ) : null}
       </View>
+      {first && post.progress?.day ? (
+        <View
+          style={{
+            position: "absolute",
+            left: 6,
+            bottom: 6,
+            paddingHorizontal: 6,
+            paddingVertical: 2,
+            borderRadius: 999,
+            backgroundColor: "#000000a6",
+          }}
+        >
+          <Text style={{ color: "#fff", fontFamily: fonts.bold, fontSize: 10 }}>
+            DAY {post.progress.day}
+          </Text>
+        </View>
+      ) : null}
     </Pressable>
   )
 }
 
-function Stat({
-  value,
-  label,
-  onPress,
-}: {
-  value: number
-  label: string
-  onPress?: () => void
-}) {
+function SectionTitle({ children }: { children: string }) {
   const t = useTheme()
   return (
-    <Pressable
-      accessibilityRole={onPress ? "button" : undefined}
-      onPress={onPress}
-      style={{ alignItems: "center", flex: 1 }}
+    <Text
+      accessibilityRole="header"
+      style={{
+        color: t.text,
+        fontFamily: fonts.semibold,
+        fontSize: 15,
+        paddingHorizontal: 16,
+      }}
     >
-      <Text style={{ color: t.text, fontFamily: fonts.bold, fontSize: 17 }}>
-        {compact(value)}
-      </Text>
-      <Text style={{ color: t.text, fontFamily: fonts.body, fontSize: 13 }}>
-        {label}
-      </Text>
-    </Pressable>
+      {children}
+    </Text>
   )
 }
 
-type Tab = "posts" | "progress" | "scores" | "saved"
+type StreakLine = { key: string; title: string; day: number; best?: number }
+
+function StreakChip({ s, accent }: { s: StreakLine; accent: string }) {
+  const t = useTheme()
+  return (
+    <View
+      style={{
+        width: 136,
+        padding: 12,
+        gap: 4,
+        borderRadius: 16,
+        backgroundColor: t.card,
+        borderWidth: 1,
+        borderColor: t.line,
+      }}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+        <Flame size={16} color={accent} fill={accent} />
+        <Text
+          style={{ color: t.text, fontFamily: fonts.display, fontSize: 22 }}
+        >
+          {s.day}
+          <Text
+            style={{ fontSize: 12, fontFamily: fonts.medium, color: t.muted }}
+          >
+            {" "}
+            {s.day === 1 ? "day" : "days"}
+          </Text>
+        </Text>
+      </View>
+      <Text
+        numberOfLines={2}
+        style={{
+          color: t.text,
+          fontFamily: fonts.medium,
+          fontSize: 13,
+          lineHeight: 18,
+          minHeight: 36,
+        }}
+      >
+        {s.title}
+      </Text>
+      {s.best !== undefined && (
+        <Text style={{ color: t.muted, fontFamily: fonts.body, fontSize: 11 }}>
+          Best {s.best} days
+        </Text>
+      )}
+    </View>
+  )
+}
+
+function GoalRow({ g }: { g: GoalLine }) {
+  const t = useTheme()
+  const c = t[g.accent]
+  return (
+    <View style={{ gap: 6 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <Target size={16} color={c} />
+        <Text
+          numberOfLines={1}
+          style={{
+            flex: 1,
+            color: t.text,
+            fontFamily: fonts.semibold,
+            fontSize: 14,
+          }}
+        >
+          {g.title}
+        </Text>
+        <Text
+          style={{ color: t.muted, fontFamily: fonts.medium, fontSize: 12 }}
+        >
+          {g.hit ? "Reached" : `${Math.round(g.pct * 100)}%`}
+        </Text>
+      </View>
+      <View
+        accessibilityRole="progressbar"
+        accessibilityValue={{ min: 0, max: 100, now: Math.round(g.pct * 100) }}
+        style={{
+          height: 6,
+          borderRadius: 3,
+          backgroundColor: t.soft,
+          overflow: "hidden",
+        }}
+      >
+        <View
+          style={{
+            width: `${g.pct * 100}%`,
+            height: 6,
+            borderRadius: 3,
+            backgroundColor: c,
+          }}
+        />
+      </View>
+      <Text style={{ color: t.muted, fontFamily: fonts.body, fontSize: 12 }}>
+        {g.detail}
+      </Text>
+    </View>
+  )
+}
+
+const SAMPLE_STREAKS: StreakLine[] = [
+  { key: "a", title: "Morning run", day: 0, best: 0 },
+  { key: "b", title: "Read 20 pages", day: 0, best: 0 },
+]
+const SAMPLE_GOALS: GoalLine[] = [
+  {
+    id: "a",
+    title: "Workouts a week",
+    detail: "≥ 3 / week",
+    pct: 0,
+    hit: false,
+    accent: "fit",
+  },
+]
+
+/** What a person is working on: current streaks, goals (yours) and the
+ * progress they shared lately. Shown before posts and follower counts. */
+function WorkingOn({
+  id,
+  mine,
+  posts,
+  width,
+  card,
+}: {
+  id: string
+  mine: boolean
+  posts: Post[]
+  width: number
+  /** Their scorecard, when the viewer may see it. */
+  card?: Scorecard
+}) {
+  const t = useTheme()
+  const myStreaks = useMyStreaks()
+  const myGoals = useMyGoals()
+  // Someone else's streaks: their on-target run (when their scores are
+  // visible), then the latest day of each habit streak or check-in their
+  // posts and check-ins show. Goals and workouts are not streaks.
+  const stories = socialStore.use((s) => s.stories)
+  const theirStreaks = useMemo(() => {
+    const seen = new Map<string, StreakLine>()
+    if (card?.streak)
+      seen.set("on-target", {
+        key: "on-target",
+        title: "On-target days",
+        day: card.streak,
+        best: card.best,
+      })
+    const dated = [
+      ...posts.map((p) => ({ at: p.at, progress: p.progress })),
+      ...stories.filter((x) => x.by === id),
+    ].sort((a, b) => b.at - a.at)
+    for (const x of dated) {
+      const pr = x.progress
+      if (!pr?.day || !/streak|check-in/i.test(pr.kind)) continue
+      const title = pr.title.replace(/ done$/i, "")
+      if (!seen.has(title)) seen.set(title, { key: title, title, day: pr.day })
+    }
+    return [...seen.values()]
+  }, [posts, stories, id, card])
+  const streakList: StreakLine[] = mine
+    ? myStreaks.map((x) => ({ key: x.id, ...x }))
+    : theirStreaks
+  const goals = mine ? myGoals : []
+  const recent = posts.filter((p) => p.progress).slice(0, 8)
+  const empty = !streakList.length && !goals.length
+  if (empty && !mine && !recent.length) return null
+  const tile = Math.min(132, (width - 48) / 2.6)
+  const body = (
+    <View style={{ gap: 12 }}>
+      <SectionTitle>Streaks</SectionTitle>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}
+      >
+        {(empty ? SAMPLE_STREAKS : streakList).map((x) => (
+          <StreakChip key={x.key} s={x} accent={t.life} />
+        ))}
+      </ScrollView>
+      {(mine || goals.length > 0) && (
+        <>
+          <SectionTitle>Goals</SectionTitle>
+          <View
+            style={{
+              marginHorizontal: 16,
+              padding: 14,
+              gap: 14,
+              borderRadius: 16,
+              backgroundColor: t.card,
+              borderWidth: 1,
+              borderColor: t.line,
+            }}
+          >
+            {(goals.length ? goals : SAMPLE_GOALS).map((g) => (
+              <GoalRow key={g.id} g={g} />
+            ))}
+          </View>
+        </>
+      )}
+    </View>
+  )
+  return (
+    <View style={{ gap: 12, paddingBottom: 16 }}>
+      {mine && empty ? (
+        <View style={{ paddingHorizontal: 16 }}>
+          <LockedPreview
+            locked
+            title="Nothing you're working on yet"
+            detail="Start a habit or set a goal. Your streaks and goals show here for friends."
+            action={{ label: "Start a habit", href: "/habits" }}
+            icon={Flame}
+          >
+            <View style={{ marginHorizontal: -16 }}>{body}</View>
+          </LockedPreview>
+        </View>
+      ) : streakList.length > 0 || goals.length > 0 ? (
+        body
+      ) : null}
+      {recent.length > 0 && (
+        <>
+          <SectionTitle>Recent progress</SectionTitle>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}
+          >
+            {recent.map((p) => (
+              <Pressable
+                cssInterop={false}
+                key={p.id}
+                accessibilityRole="button"
+                accessibilityLabel={`${p.progress?.kind}: ${p.progress?.title}`}
+                onPress={() => go(`/social/post/${p.id}`)}
+                style={({ pressed }) => ({
+                  width: tile,
+                  borderRadius: 14,
+                  overflow: "hidden",
+                  opacity: pressed ? 0.8 : 1,
+                })}
+              >
+                {p.progress && (
+                  <ProgressCard
+                    progress={p.progress}
+                    width={tile}
+                    height={tile * 1.2}
+                    compact
+                  />
+                )}
+              </Pressable>
+            ))}
+          </ScrollView>
+        </>
+      )}
+    </View>
+  )
+}
+
+type Tab = "posts" | "scores" | "saved"
 
 export function Profile({ id }: { id: string }) {
   const t = useTheme()
@@ -456,15 +741,14 @@ export function Profile({ id }: { id: string }) {
   const showScores = socialStore.use((s) => s.showScores)
   const myCard = useMyScorecard()
   const mine = id === ME
-  const [tab, setTab] = useState<Tab>(mine ? "posts" : "scores")
+  const [tab, setTab] = useState<Tab>("posts")
   const [create, setCreate] = useState(false)
   const theirs = useMemo(
     () => posts.filter((p) => p.by === id).sort((a, b) => b.at - a.at),
     [posts, id],
   )
   const tabs: { key: Tab; Icon: typeof Grid3x3; label: string }[] = [
-    { key: "posts", Icon: Grid3x3, label: "Posts" },
-    { key: "progress", Icon: Sparkles, label: "Progress" },
+    { key: "posts", Icon: Grid3x3, label: "Progress posts" },
     { key: "scores", Icon: Star, label: "Scores" },
     ...(mine ? [{ key: "saved" as Tab, Icon: Bookmark, label: "Saved" }] : []),
   ]
@@ -476,23 +760,8 @@ export function Profile({ id }: { id: string }) {
   const lineStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: underline.value * (width / tabs.length) }],
   }))
-  // Swipe sideways on the content to change tabs.
-  const step = (dir: number) => {
-    const next = tabs[index + dir]
-    if (next) {
-      haptic.tap()
-      setTab(next.key)
-    }
-  }
-  const swipe = Gesture.Pan()
-    // The scores tab has a horizontal trophy row; let it scroll freely.
-    .enabled(tab !== "scores")
-    .activeOffsetX([-30, 30])
-    .failOffsetY([-12, 12])
-    .onEnd((e) => {
-      if (e.translationX < -60) runOnJS(step)(1)
-      else if (e.translationX > 60) runOnJS(step)(-1)
-    })
+  // No sideways swipe between tabs: the streak and recent-progress rows
+  // above them scroll sideways, and a swipe there changed the tab instead.
   if (!person)
     return (
       <View style={{ flex: 1, backgroundColor: t.bg, paddingTop: safe.top }}>
@@ -513,11 +782,9 @@ export function Profile({ id }: { id: string }) {
   const shown =
     tab === "posts"
       ? theirs
-      : tab === "progress"
-        ? theirs.filter((p) => p.progress)
-        : tab === "saved"
-          ? posts.filter((p) => p.saved)
-          : []
+      : tab === "saved"
+        ? posts.filter((p) => p.saved)
+        : []
   const size = width / 3 - 1
   return (
     <View style={{ flex: 1, backgroundColor: t.bg, paddingTop: safe.top }}>
@@ -536,56 +803,55 @@ export function Profile({ id }: { id: string }) {
           ) : undefined
         }
       />
-      <GestureDetector gesture={swipe}>
-        <FlatList
-          key={tab === "scores" ? "scores" : "grid"}
-          data={shown}
-          numColumns={3}
-          keyExtractor={(p) => p.id}
-          columnWrapperStyle={{ gap: 1.5 }}
-          contentContainerStyle={{ gap: 1.5, paddingBottom: safe.bottom + 64 }}
-          ListHeaderComponent={
-            <View>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: 16,
-                }}
-              >
-                <Avatar
-                  id={id}
-                  size={84}
-                  onPress={ring ? () => go(`/social/stories/${id}`) : undefined}
-                />
-                <Stat value={theirs.length} label="posts" />
-                <Stat
-                  value={person.followers}
-                  label="followers"
-                  onPress={() => go(`/social/follows/${id}?tab=followers`)}
-                />
-                <Stat
-                  value={person.following}
-                  label="following"
-                  onPress={() => go(`/social/follows/${id}?tab=following`)}
-                />
-              </View>
-              <View style={{ paddingHorizontal: 16, gap: 2 }}>
+      <FlatList
+        key={tab === "scores" ? "scores" : "grid"}
+        data={shown}
+        numColumns={3}
+        keyExtractor={(p) => p.id}
+        columnWrapperStyle={{ gap: 1.5 }}
+        contentContainerStyle={{ gap: 1.5, paddingBottom: safe.bottom + 64 }}
+        ListHeaderComponent={
+          <View>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 16,
+                paddingHorizontal: 16,
+                paddingTop: 16,
+              }}
+            >
+              <Avatar
+                id={id}
+                size={80}
+                onPress={ring ? () => go(`/social/stories/${id}`) : undefined}
+              />
+              <View style={{ flex: 1, gap: 2 }}>
                 <Text
+                  numberOfLines={1}
                   style={{
                     color: t.text,
-                    fontFamily: fonts.semibold,
-                    fontSize: 15,
+                    fontFamily: fonts.display,
+                    fontSize: 22,
                   }}
                 >
                   {person.name}
                   {person.verified && <Text style={{ color: t.tsk }}> ✓</Text>}
                 </Text>
+                <Text
+                  numberOfLines={1}
+                  style={{
+                    color: t.muted,
+                    fontFamily: fonts.body,
+                    fontSize: 13,
+                  }}
+                >
+                  @{person.username}
+                </Text>
                 {card && canSeeScores && (!mine || showScores) && (
                   <Text
                     style={{
-                      color: t.muted,
+                      color: t.text,
                       fontFamily: fonts.medium,
                       fontSize: 13,
                     }}
@@ -593,6 +859,10 @@ export function Profile({ id }: { id: string }) {
                     Life score {card.life} · {levelFor(card.life).name}
                   </Text>
                 )}
+              </View>
+            </View>
+            <View style={{ paddingHorizontal: 16, paddingTop: 12, gap: 6 }}>
+              {!!person.bio && (
                 <Text
                   style={{
                     color: t.text,
@@ -603,218 +873,297 @@ export function Profile({ id }: { id: string }) {
                 >
                   {person.bio}
                 </Text>
-              </View>
-              <View style={{ flexDirection: "row", gap: 6, padding: 16 }}>
-                {mine ? (
-                  <>
-                    <ProfileButton
-                      label="Edit profile"
-                      onPress={() => go("/me/profile")}
-                    />
-                    <ProfileButton
-                      label="Share profile"
-                      onPress={() =>
-                        copyText(`https://personal-sop.app/@${person.username}`)
-                      }
-                    />
-                  </>
-                ) : (
-                  <>
-                    <FollowButton person={person} />
-                    <ProfileButton
-                      label="Message"
-                      onPress={() => go(`/social/chat/${directChat(id)}`)}
-                    />
-                    <Bounce
-                      label={
+              )}
+              <Text
+                style={{
+                  color: t.muted,
+                  fontFamily: fonts.body,
+                  fontSize: 12,
+                }}
+              >
+                {theirs.length} {theirs.length === 1 ? "post" : "posts"} ·{" "}
+                <Text
+                  accessibilityRole="link"
+                  onPress={() => go(`/social/follows/${id}?tab=following`)}
+                >
+                  following {compact(person.following)}
+                </Text>{" "}
+                ·{" "}
+                <Text
+                  accessibilityRole="link"
+                  onPress={() => go(`/social/follows/${id}?tab=followers`)}
+                >
+                  {compact(person.followers)} followers
+                </Text>
+              </Text>
+            </View>
+            <View style={{ flexDirection: "row", gap: 6, padding: 16 }}>
+              {mine ? (
+                <>
+                  <ProfileButton
+                    label="Edit profile"
+                    onPress={() => go("/me/profile")}
+                  />
+                  <ProfileButton
+                    label="Share profile"
+                    onPress={() =>
+                      copyText(`https://personal-sop.app/@${person.username}`)
+                    }
+                  />
+                </>
+              ) : (
+                <>
+                  <FollowButton person={person} />
+                  <ProfileButton
+                    label="Message"
+                    onPress={() => go(`/social/chat/${directChat(id)}`)}
+                  />
+                  <Bounce
+                    label={
+                      person.closeFriend
+                        ? "Remove from close friends"
+                        : "Add to close friends"
+                    }
+                    onPress={() => {
+                      haptic.tap()
+                      toggleCloseFriend(id)
+                      toast.success(
                         person.closeFriend
-                          ? "Remove from close friends"
-                          : "Add to close friends"
-                      }
-                      onPress={() => {
-                        haptic.tap()
-                        toggleCloseFriend(id)
-                        toast.success(
-                          person.closeFriend
-                            ? "Removed from close friends"
-                            : "Added to close friends",
-                        )
-                      }}
+                          ? "Removed from close friends"
+                          : "Added to close friends",
+                      )
+                    }}
+                    style={{
+                      width: 40,
+                      height: 34,
+                      borderRadius: 10,
+                      backgroundColor: t.soft,
+                    }}
+                  >
+                    <Star
+                      size={16}
+                      color={person.closeFriend ? "#1aa34a" : t.text}
+                      fill={person.closeFriend ? "#1aa34a" : "none"}
+                    />
+                  </Bounce>
+                </>
+              )}
+            </View>
+            <WorkingOn
+              id={id}
+              mine={mine}
+              posts={theirs}
+              width={width}
+              card={canSeeScores ? card : undefined}
+            />
+            <View
+              style={{
+                flexDirection: "row",
+                borderTopWidth: 1,
+                borderColor: t.line,
+              }}
+            >
+              {tabs.map(({ key, Icon, label }) => (
+                <Pressable
+                  key={key}
+                  accessibilityRole="tab"
+                  accessibilityLabel={label}
+                  accessibilityState={{ selected: tab === key }}
+                  onPress={() => {
+                    haptic.tap()
+                    setTab(key)
+                  }}
+                  style={{
+                    flex: 1,
+                    minHeight: 46,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Icon size={22} color={tab === key ? t.text : t.muted} />
+                </Pressable>
+              ))}
+              <Animated.View
+                style={[
+                  {
+                    position: "absolute",
+                    bottom: 0,
+                    left: 0,
+                    width: width / tabs.length,
+                    height: 1.5,
+                    backgroundColor: t.text,
+                  },
+                  lineStyle,
+                ]}
+              />
+            </View>
+            {tab === "scores" && (
+              <View style={{ paddingTop: 16, gap: 12 }}>
+                {!canSeeScores ? (
+                  <View style={{ alignItems: "center", gap: 10, padding: 32 }}>
+                    <View
                       style={{
-                        width: 40,
-                        height: 34,
-                        borderRadius: 10,
-                        backgroundColor: t.soft,
+                        width: 64,
+                        height: 64,
+                        borderRadius: 32,
+                        borderWidth: 2,
+                        borderColor: t.text,
+                        alignItems: "center",
+                        justifyContent: "center",
                       }}
                     >
-                      <Star
-                        size={16}
-                        color={person.closeFriend ? "#1aa34a" : t.text}
-                        fill={person.closeFriend ? "#1aa34a" : "none"}
-                      />
-                    </Bounce>
+                      <Lock size={28} color={t.text} />
+                    </View>
+                    <Text
+                      style={{
+                        color: t.text,
+                        fontFamily: fonts.semibold,
+                        fontSize: 16,
+                      }}
+                    >
+                      Scores are for followers
+                    </Text>
+                    <Text
+                      style={{
+                        color: t.muted,
+                        fontFamily: fonts.body,
+                        textAlign: "center",
+                      }}
+                    >
+                      Follow {person.name.split(" ")[0]} to see their life
+                      score, stats and achievements.
+                    </Text>
+                    <FollowButton person={person} />
+                  </View>
+                ) : !card ? (
+                  <View style={{ paddingHorizontal: 12 }}>
+                    <LockedPreview
+                      locked
+                      title={`${person.name.split(" ")[0]} hasn't shared scores`}
+                      detail="Their life score, streaks and achievements show here once they share them."
+                      action={{
+                        label: "Send encouragement",
+                        onPress: () => go(`/social/chat/${directChat(id)}`),
+                      }}
+                    >
+                      <View style={{ marginHorizontal: -12 }}>
+                        <ScoreCard
+                          card={EMPTY_CARD}
+                          name={person.name}
+                          mine={false}
+                        />
+                      </View>
+                    </LockedPreview>
+                  </View>
+                ) : (
+                  <>
+                    {mine && (
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 10,
+                          marginHorizontal: 12,
+                          padding: 12,
+                          borderRadius: 14,
+                          backgroundColor: t.soft,
+                        }}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Text
+                            style={{
+                              color: t.text,
+                              fontFamily: fonts.semibold,
+                            }}
+                          >
+                            Show on my profile
+                          </Text>
+                          <Text
+                            style={{
+                              color: t.muted,
+                              fontFamily: fonts.body,
+                              fontSize: 12,
+                            }}
+                          >
+                            Followers see your scores and achievements
+                          </Text>
+                        </View>
+                        <Switch
+                          label="Show scores to followers"
+                          value={showScores}
+                          onChange={() => toggleShowScores()}
+                        />
+                      </View>
+                    )}
+                    <ScoreCard
+                      card={card}
+                      name={person.name}
+                      mine={mine}
+                      compareWith={mine ? undefined : myCard}
+                    />
                   </>
                 )}
               </View>
-              <View
-                style={{
-                  flexDirection: "row",
-                  borderTopWidth: 1,
-                  borderColor: t.line,
-                }}
-              >
-                {tabs.map(({ key, Icon, label }) => (
-                  <Pressable
-                    key={key}
-                    accessibilityRole="tab"
-                    accessibilityLabel={label}
-                    accessibilityState={{ selected: tab === key }}
-                    onPress={() => {
-                      haptic.tap()
-                      setTab(key)
-                    }}
-                    style={{
-                      flex: 1,
-                      minHeight: 46,
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Icon size={22} color={tab === key ? t.text : t.muted} />
-                  </Pressable>
-                ))}
-                <Animated.View
-                  style={[
-                    {
-                      position: "absolute",
-                      bottom: 0,
-                      left: 0,
-                      width: width / tabs.length,
-                      height: 1.5,
-                      backgroundColor: t.text,
-                    },
-                    lineStyle,
-                  ]}
-                />
-              </View>
-              {tab === "scores" && (
-                <View style={{ paddingTop: 16, gap: 12 }}>
-                  {!canSeeScores ? (
-                    <View
-                      style={{ alignItems: "center", gap: 10, padding: 32 }}
-                    >
-                      <View
-                        style={{
-                          width: 64,
-                          height: 64,
-                          borderRadius: 32,
-                          borderWidth: 2,
-                          borderColor: t.text,
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <Lock size={28} color={t.text} />
-                      </View>
-                      <Text
-                        style={{
-                          color: t.text,
-                          fontFamily: fonts.semibold,
-                          fontSize: 16,
-                        }}
-                      >
-                        Scores are for followers
-                      </Text>
-                      <Text
-                        style={{
-                          color: t.muted,
-                          fontFamily: fonts.body,
-                          textAlign: "center",
-                        }}
-                      >
-                        Follow {person.name.split(" ")[0]} to see their life
-                        score, stats and achievements.
-                      </Text>
-                      <FollowButton person={person} />
-                    </View>
-                  ) : !card ? (
-                    <Empty
-                      title="No scores yet"
-                      detail={`${person.name.split(" ")[0]} hasn't shared scores.`}
-                    />
-                  ) : (
-                    <>
-                      {mine && (
-                        <View
-                          style={{
-                            flexDirection: "row",
-                            alignItems: "center",
-                            gap: 10,
-                            marginHorizontal: 12,
-                            padding: 12,
-                            borderRadius: 14,
-                            backgroundColor: t.soft,
-                          }}
-                        >
-                          <View style={{ flex: 1 }}>
-                            <Text
-                              style={{
-                                color: t.text,
-                                fontFamily: fonts.semibold,
-                              }}
-                            >
-                              Show on my profile
-                            </Text>
-                            <Text
-                              style={{
-                                color: t.muted,
-                                fontFamily: fonts.body,
-                                fontSize: 12,
-                              }}
-                            >
-                              Followers see your scores and achievements
-                            </Text>
-                          </View>
-                          <Switch
-                            label="Show scores to followers"
-                            value={showScores}
-                            onChange={() => toggleShowScores()}
-                          />
-                        </View>
-                      )}
-                      <ScoreCard
-                        card={card}
-                        name={person.name}
-                        mine={mine}
-                        compareWith={mine ? undefined : myCard}
-                      />
-                    </>
-                  )}
-                </View>
-              )}
-            </View>
-          }
-          renderItem={({ item }) => <Tile post={item} size={size} />}
-          ListEmptyComponent={
-            tab === "scores" ? null : (
-              <Empty
+            )}
+          </View>
+        }
+        renderItem={({ item }) => <Tile post={item} size={size} />}
+        ListEmptyComponent={
+          tab === "scores" ? null : (
+            <View style={{ paddingHorizontal: 12 }}>
+              <LockedPreview
+                locked
                 title={
                   tab === "saved"
                     ? "Nothing saved yet"
-                    : tab === "progress"
-                      ? "No progress posts yet"
-                      : "No posts yet"
+                    : mine
+                      ? "Your progress posts land here"
+                      : "No progress posts yet"
                 }
                 detail={
-                  mine
-                    ? "Share a workout, streak or photo to get started."
-                    : "When they share, it'll show up here."
+                  tab === "saved"
+                    ? "Save a post from its ⋯ menu to keep it here."
+                    : mine
+                      ? "Share a photo with the streak, workout or goal it shows."
+                      : "When they share progress, it shows up here."
                 }
-              />
-            )
-          }
-        />
-      </GestureDetector>
+                action={
+                  tab === "saved"
+                    ? { label: "Open the feed", href: "/social" }
+                    : mine
+                      ? {
+                          label: "Share progress",
+                          href: "/social/compose?progress=1",
+                        }
+                      : {
+                          label: "Send encouragement",
+                          onPress: () => go(`/social/chat/${directChat(id)}`),
+                        }
+                }
+              >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    gap: 1.5,
+                    marginHorizontal: -12,
+                  }}
+                >
+                  {[0, 1, 2].map((i) => (
+                    <View
+                      key={i}
+                      style={{
+                        width: size,
+                        height: size * 1.25,
+                        backgroundColor: t.soft,
+                      }}
+                    />
+                  ))}
+                </View>
+              </LockedPreview>
+            </View>
+          )
+        }
+      />
       <CreateSheet open={create} onClose={() => setCreate(false)} />
     </View>
   )

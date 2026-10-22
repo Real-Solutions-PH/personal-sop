@@ -114,28 +114,31 @@ def test_direct_key_refuses_self() -> None:
 # ---------------------------------------------------------------- ranking
 
 
-def _post(n: int, *, minutes_ago: int, likes: int) -> logic.Rankable:
+def _post(n: int, *, minutes_ago: int) -> logic.Rankable:
     return logic.Rankable(
-        id=uuid.UUID(int=n), created_at=T0 - timedelta(minutes=minutes_ago), likes=likes
+        id=uuid.UUID(int=n), created_at=T0 - timedelta(minutes=minutes_ago)
     )
 
 
-def test_for_you_ranks_the_seed_by_likes() -> None:
-    # Seed feed: p1 (42 min, 128 likes), p2 (3 h, 64), p3 (6 h, …): the
-    # prototype's for-you is the newest-first list stably sorted by likes.
-    p1 = _post(1, minutes_ago=42, likes=128)
-    p2 = _post(2, minutes_ago=180, likes=64)
-    p3 = _post(3, minutes_ago=360, likes=311)
-    assert [p.id for p in logic.rank_for_you([p1, p2, p3])] == [p3.id, p1.id, p2.id]
+def test_everyone_tab_is_newest_first() -> None:
+    # Hand-read: 10 min, 42 min, 3 h, 6 h ago. Cheers never reorder it.
+    p1 = _post(1, minutes_ago=42)
+    p2 = _post(2, minutes_ago=180)
+    p3 = _post(3, minutes_ago=360)
+    p4 = _post(4, minutes_ago=10)
+    assert [p.id for p in logic.rank_for_you([p1, p2, p3, p4])] == [
+        p4.id,
+        p1.id,
+        p2.id,
+        p3.id,
+    ]
 
 
-def test_for_you_breaks_like_ties_by_recency_then_id() -> None:
-    older = _post(1, minutes_ago=90, likes=5)
-    newer = _post(2, minutes_ago=10, likes=5)
-    twin_a = _post(3, minutes_ago=30, likes=5)
-    twin_b = _post(4, minutes_ago=30, likes=5)
-    ranked = logic.rank_for_you([older, twin_b, newer, twin_a])
-    assert [p.id for p in ranked] == [newer.id, twin_a.id, twin_b.id, older.id]
+def test_everyone_tab_breaks_time_ties_by_id() -> None:
+    twin_b = _post(4, minutes_ago=30)
+    twin_a = _post(3, minutes_ago=30)
+    ranked = logic.rank_for_you([twin_b, twin_a])
+    assert [p.id for p in ranked] == [twin_a.id, twin_b.id]
 
 
 def test_for_you_of_nothing() -> None:

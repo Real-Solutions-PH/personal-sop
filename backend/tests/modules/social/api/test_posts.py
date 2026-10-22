@@ -44,11 +44,28 @@ def test_create_post_parses_tags_and_keeps_progress(
     assert p["id"] == pid and p["tags"] == ["legday", "progress"]
     assert p["progress"]["title"] == "Lower A" and p["location"] == "BGC"
     assert (p["likes"], p["liked"], p["saved"], p["comments"]) == (0, False, False, 0)
+    assert (p["cheers"], p["my_cheer"]) == (
+        {"keep_going": 0, "proud": 0, "inspired": 0},
+        None,
+    )
     assert p["author"]["id"] == str(trio.ana.id)
     # Replaying the create returns the same post.
     assert _post(client, trio.ana.headers, "other", id=pid)["caption"].startswith(
         "New squat"
     )
+
+
+def test_progress_keeps_its_check_in_day(client: TestClient, trio: Trio) -> None:
+    check_in = {**PROGRESS, "kind": "Habit streak", "day": 12, "of": 30}
+    p = _post(client, trio.ana.headers, "Morning run", progress=check_in)
+    assert (p["progress"]["day"], p["progress"]["of"]) == (12, 30)
+    assert p["progress"]["before_after"] is False
+    r = client.post(
+        f"{API}/posts",
+        headers=trio.ana.headers,
+        json={"caption": "x", "progress": {**PROGRESS, "day": 0}},
+    )
+    assert r.status_code == 422
 
 
 def test_post_needs_content(client: TestClient, trio: Trio) -> None:
@@ -132,18 +149,44 @@ def test_following_feed_keyset_pagination(client: TestClient, trio: Trio) -> Non
     assert r.status_code == 422 and code(r) == "invalid_cursor"
 
 
-def test_for_you_ranks_by_likes_then_recency(client: TestClient, trio: Trio) -> None:
+def test_everyone_tab_is_newest_first_whatever_the_cheers(
+    client: TestClient, trio: Trio
+) -> None:
     old = _post(client, trio.cy.headers, "old")["id"]
-    popular = _post(client, trio.cy.headers, "popular")["id"]
+    cheered = _post(client, trio.cy.headers, "cheered")["id"]
     new = _post(client, trio.cy.headers, "new")["id"]
     for person in (trio.ana, trio.ben):
-        ok(client.put(f"{API}/posts/{popular}/like", headers=person.headers))
+        ok(client.put(f"{API}/posts/{cheered}/like", headers=person.headers))
     ok(client.put(f"{API}/posts/{old}/like", headers=trio.ana.headers))
     data = ok(client.get(f"{API}/feed?tab=foryou&limit=100", headers=trio.ben.headers))[
         "data"
     ]
-    order = [x["id"] for x in data if x["id"] in (old, popular, new)]
-    assert order == [popular, old, new]
+    order = [x["id"] for x in data if x["id"] in (old, cheered, new)]
+    assert order == [new, cheered, old]
+
+
+def test_cheer_kinds_count_switch_and_withdraw(client: TestClient, trio: Trio) -> None:
+    p = _post(client, trio.ana.headers)["id"]
+    url = f"{API}/posts/{p}/like"
+    ben = ok(client.put(f"{url}?kind=proud", headers=trio.ben.headers))
+    assert (ben["my_cheer"], ben["cheers"]["proud"], ben["likes"]) == ("proud", 1, 1)
+    cy = ok(client.put(url, headers=trio.cy.headers))  # a bare double-tap
+    assert cy["my_cheer"] == "keep_going"
+    assert cy["cheers"] == {"keep_going": 1, "proud": 1, "inspired": 0}
+    # Switching kind moves the cheer and records no second activity.
+    switched = ok(client.put(f"{url}?kind=inspired", headers=trio.ben.headers))
+    assert switched["cheers"] == {"keep_going": 1, "proud": 0, "inspired": 1}
+    assert (switched["likes"], switched["my_cheer"]) == (2, "inspired")
+    act = ok(client.get(f"{API}/activity", headers=trio.ana.headers))["data"]
+    cheers = [a for a in act if a["kind"] == "like"]
+    assert sorted(a["text"] for a in cheers) == ["keep_going", "proud"]
+    # A double-tap on a cheered post keeps its kind.
+    again = ok(client.put(url, headers=trio.ben.headers))
+    assert again["my_cheer"] == "inspired"
+    gone = ok(client.delete(url, headers=trio.ben.headers))
+    assert (gone["my_cheer"], gone["liked"], gone["likes"]) == (None, False, 1)
+    bad = client.put(f"{url}?kind=wow", headers=trio.ben.headers)
+    assert bad.status_code == 422
 
 
 def test_for_you_window_excludes_old_posts(

@@ -7,7 +7,7 @@ import { fonts, useTheme } from "../theme"
 import { Avatar } from "./kit"
 import { agoText, ME, socialStore, storyGroups, unread } from "./store"
 
-/** Today's glance at friends: new stories, the latest highlight, unread DMs.
+/** Today's glance at friends: new check-ins, the latest progress, unread DMs.
  * Built on the same Group/Part frame as the module cards around it. */
 export function CommunityCard() {
   const t = useTheme()
@@ -57,7 +57,8 @@ export function CommunityCard() {
               ))}
             </View>
             <Copy size={14} muted style={{ flex: 1 }}>
-              {groups.length} new {groups.length === 1 ? "story" : "stories"}
+              {groups.length} new{" "}
+              {groups.length === 1 ? "check-in" : "check-ins"}
             </Copy>
           </Line>
         </Part>

@@ -10,11 +10,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native"
-import Animated, {
-  FadeIn,
-  FadeInDown,
-  LinearTransition,
-} from "react-native-reanimated"
+import Animated, { FadeIn, FadeInDown } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { back } from "../navigation"
 import { fonts, useTheme } from "../theme"
@@ -215,10 +211,7 @@ export function PostDetail({ id }: { id: string }) {
           </View>
         }
         renderItem={({ item }) => (
-          <Animated.View
-            entering={FadeInDown.duration(220)}
-            layout={LinearTransition}
-          >
+          <Animated.View entering={FadeInDown.duration(220)}>
             <CommentRow
               postId={post.id}
               c={item}

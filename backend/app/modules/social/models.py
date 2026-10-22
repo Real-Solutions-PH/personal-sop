@@ -14,6 +14,8 @@ from app.shared.owned import JSONB, OwnedRow, enum_check, tstz
 ACCENTS = ("hab", "tsk", "fit", "fin", "life", "primary")
 STORY_KINDS = ("image", "video", "text", "progress")
 ACTIVITY_KINDS = ("like", "comment", "follow", "mention", "story")
+# Encouragement a post can get in place of a plain like.
+CHEER_KINDS = ("keep_going", "proud", "inspired")
 
 
 class SocialProfile(OwnedRow, table=True):
@@ -87,10 +89,20 @@ class PostMedia(OwnedRow, table=True):
 
 
 class PostLike(OwnedRow, table=True):
+    """A cheer on a post: one per person, of one ``CHEER_KINDS`` kind."""
+
     __tablename__ = "post_like"
-    __table_args__ = (UniqueConstraint("owner_id", "post_id", name="uq_post_like"),)
+    __table_args__ = (
+        UniqueConstraint("owner_id", "post_id", name="uq_post_like"),
+        enum_check("kind", CHEER_KINDS, name="ck_post_like_kind"),
+    )
 
     post_id: uuid.UUID = Field(foreign_key="post.id", ondelete="CASCADE", index=True)
+    kind: str = Field(
+        default="keep_going",
+        sa_type=String(10),  # type: ignore
+        sa_column_kwargs={"server_default": "keep_going"},
+    )
 
 
 class PostSave(OwnedRow, table=True):

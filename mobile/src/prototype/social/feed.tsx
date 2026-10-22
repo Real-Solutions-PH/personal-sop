@@ -1,15 +1,14 @@
 import { useFocusEffect } from "expo-router"
 import {
-  Camera,
+  Bell,
   ChevronLeft,
   CircleCheck,
-  Heart,
   Image as ImageIcon,
   MessageSquareQuote,
+  Plus,
   PlusSquare,
   Search,
   Send,
-  Sparkles,
 } from "lucide-react-native"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
@@ -27,7 +26,6 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler"
 import Animated, {
   FadeInDown,
   FadeOut,
-  LinearTransition,
   runOnJS,
   useAnimatedStyle,
   useReducedMotion,
@@ -37,10 +35,18 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { liveMode } from "@/live/config"
 import { back, go } from "../navigation"
+import { LockedPreview } from "../screens/locked-preview"
 import { fonts, useTheme } from "../theme"
 import { Sheet } from "../ui"
-import { type FrozenRank, forYouOrder } from "./feed-order"
-import { Avatar, Bounce, haptic, ProgressCard } from "./kit"
+import {
+  Avatar,
+  areaOf,
+  Bounce,
+  FEED_AREAS,
+  type FeedArea,
+  haptic,
+  ProgressCard,
+} from "./kit"
 import { PostCard } from "./post-card"
 import {
   loadMoreFeed,
@@ -51,7 +57,6 @@ import {
   socialStore,
   storyGroups,
   unread,
-  useMe,
 } from "./store"
 
 export function Badge({ count }: { count: number }) {
@@ -151,25 +156,52 @@ function PostingBanner() {
   )
 }
 
-function StoryTray() {
+/** The latest check-in day a person has up: "Day 41", or null. */
+const latestDay = (items: { progress?: { day?: number } }[]) =>
+  [...items].reverse().find((i) => i.progress?.day)?.progress?.day ?? null
+
+/** Today's check-ins: you first (tap to play yours, + to add one), then
+ * friends with something new, each labelled with the day they're on. */
+function CheckInTray() {
   const t = useTheme()
   const s = socialStore.use((s) => s)
-  const me = useMe()
   const groups = useMemo(() => storyGroups(s), [s])
   const mine = groups.find((g) => g.id === ME)
   const others = groups.filter((g) => g.id !== ME)
-  const label = (id: string) =>
-    id === ME
-      ? "Your story"
-      : (s.people.find((p) => p.id === id)?.username ?? "")
+  const myDay = mine ? latestDay(mine.items) : null
+  const caption = (top: string, day: number | null, strong: boolean) => (
+    <View style={{ alignItems: "center", width: 76 }}>
+      <Text
+        numberOfLines={1}
+        style={{
+          fontSize: 12,
+          color: strong ? t.text : t.muted,
+          fontFamily: fonts.body,
+        }}
+      >
+        {top}
+      </Text>
+      <Text
+        numberOfLines={1}
+        style={{
+          fontSize: 11,
+          lineHeight: 14,
+          color: day ? t.life : "transparent",
+          fontFamily: fonts.semibold,
+        }}
+      >
+        {day ? `Day ${day}` : " "}
+      </Text>
+    </View>
+  )
   return (
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={{
-        paddingHorizontal: 10,
+        paddingHorizontal: 12,
         gap: 12,
-        paddingVertical: 8,
+        paddingVertical: 10,
       }}
       style={{ borderBottomWidth: 1, borderColor: t.line }}
     >
@@ -179,47 +211,34 @@ function StoryTray() {
             id={ME}
             size={64}
             ring={!!mine}
+            label={mine ? "Play your check-ins" : "Check in"}
             onPress={() =>
               go(mine ? `/social/stories/${ME}` : "/social/story-new")
             }
           />
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Add to your story"
+            accessibilityLabel="Add a check-in"
             onPress={() => go("/social/story-new")}
-            hitSlop={8}
+            hitSlop={4}
             style={{
               position: "absolute",
-              right: 0,
-              bottom: 0,
+              right: -2,
+              bottom: -2,
               width: 24,
               height: 24,
               borderRadius: 12,
-              backgroundColor: t.tsk,
+              backgroundColor: t.primary,
               borderWidth: 2,
               borderColor: t.bg,
               alignItems: "center",
               justifyContent: "center",
             }}
           >
-            <Text
-              style={{
-                color: "#fff",
-                fontSize: 16,
-                lineHeight: 18,
-                fontFamily: fonts.bold,
-              }}
-            >
-              +
-            </Text>
+            <Plus size={14} color="#fff" strokeWidth={3} />
           </Pressable>
         </View>
-        <Text
-          numberOfLines={1}
-          style={{ fontSize: 12, color: t.muted, fontFamily: fonts.body }}
-        >
-          {mine ? me.username : "Your story"}
-        </Text>
+        {caption(mine ? "You" : "Check in", myDay, true)}
       </View>
       {others.map((g) => (
         <View key={g.id} style={{ alignItems: "center", width: 76, gap: 4 }}>
@@ -228,19 +247,108 @@ function StoryTray() {
             size={64}
             onPress={() => go(`/social/stories/${g.id}`)}
           />
-          <Text
-            numberOfLines={1}
-            style={{
-              fontSize: 12,
-              color: g.unseen ? t.text : t.muted,
-              fontFamily: fonts.body,
-            }}
-          >
-            {label(g.id)}
-          </Text>
+          {caption(
+            s.people.find((p) => p.id === g.id)?.username ?? "",
+            latestDay(g.items),
+            g.unseen,
+          )}
         </View>
       ))}
     </ScrollView>
+  )
+}
+
+/** "Today", "Yesterday", or the weekday and date. */
+function dayHeading(at: number, now = Date.now()) {
+  const start = (x: number) => new Date(x).setHours(0, 0, 0, 0)
+  const days = Math.round((start(now) - start(at)) / 86_400_000)
+  if (days <= 0) return "Today"
+  if (days === 1) return "Yesterday"
+  return new Date(at).toLocaleDateString(undefined, {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+  })
+}
+const sameDay = (a: number, b: number) =>
+  new Date(a).toDateString() === new Date(b).toDateString()
+
+function DayDivider({ at, count }: { at: number; count: number }) {
+  const t = useTheme()
+  return (
+    <View
+      accessibilityRole="header"
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        paddingHorizontal: 14,
+        paddingTop: 8,
+        paddingBottom: 4,
+      }}
+    >
+      <Text style={{ color: t.text, fontFamily: fonts.semibold, fontSize: 14 }}>
+        {dayHeading(at)}
+      </Text>
+      <View style={{ flex: 1, height: 1, backgroundColor: t.line }} />
+      <Text style={{ color: t.muted, fontFamily: fonts.medium, fontSize: 12 }}>
+        {count} {count === 1 ? "update" : "updates"}
+      </Text>
+    </View>
+  )
+}
+
+/** A post card's frame, for the dimmed preview of an empty filter. */
+function PostSkeleton({ width }: { width: number }) {
+  const t = useTheme()
+  const bar = (w: number | `${number}%`, h = 10) => (
+    <View
+      style={{
+        width: w,
+        height: h,
+        borderRadius: h / 2,
+        backgroundColor: t.soft,
+      }}
+    />
+  )
+  return (
+    <View style={{ gap: 12, paddingBottom: 20 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 10,
+          paddingHorizontal: 12,
+        }}
+      >
+        <View
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 18,
+            backgroundColor: t.soft,
+          }}
+        />
+        <View style={{ gap: 6, flex: 1 }}>
+          {bar("40%")}
+          {bar("65%", 8)}
+        </View>
+      </View>
+      <View style={{ width, height: width * 0.8, backgroundColor: t.soft }} />
+      <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 12 }}>
+        {[0, 1, 2].map((i) => (
+          <View
+            key={i}
+            style={{
+              flex: 1,
+              height: 48,
+              borderRadius: 14,
+              backgroundColor: t.soft,
+            }}
+          />
+        ))}
+      </View>
+    </View>
   )
 }
 
@@ -254,21 +362,15 @@ export function CreateSheet({
   const t = useTheme()
   const rows = [
     {
-      label: "Post",
-      detail: "Photos, videos and progress",
-      Icon: ImageIcon,
-      href: "/social/compose",
-    },
-    {
-      label: "Story",
-      detail: "Disappears after 24 hours",
-      Icon: Camera,
+      label: "Check in",
+      detail: "Day 12 of 30, done today. Gone in 24 hours",
+      Icon: CircleCheck,
       href: "/social/story-new",
     },
     {
-      label: "Share progress",
-      detail: "Workout, streaks, scores, savings",
-      Icon: Sparkles,
+      label: "Progress post",
+      detail: "A photo and the streak, workout or goal it shows",
+      Icon: ImageIcon,
       href: "/social/compose?progress=1",
     },
     {
@@ -332,6 +434,8 @@ export function CreateSheet({
   )
 }
 
+type Tab = "following" | "foryou"
+
 export function SocialFeed() {
   const t = useTheme()
   const safe = useSafeAreaInsets()
@@ -341,7 +445,8 @@ export function SocialFeed() {
   const chats = socialStore.use((s) => s.chats)
   const activity = socialStore.use((s) => s.activity)
   const readAt = socialStore.use((s) => s.activityReadAt)
-  const [tab, setTab] = useState<"following" | "foryou">("following")
+  const [tab, setTab] = useState<Tab>("following")
+  const [area, setArea] = useState<FeedArea | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [create, setCreate] = useState(false)
   const [visible, setVisible] = useState<string | null>(null)
@@ -354,21 +459,25 @@ export function SocialFeed() {
     }, []),
   )
   const people = socialStore.use((s) => s.people)
-  // Frozen per visit and per refresh, so a like never moves a post.
-  const rank = useRef<{ tab: string; map: FrozenRank }>({
-    tab,
-    map: new Map(),
-  })
+  // Newest first on both tabs: cheers never lift a post above newer
+  // progress, so nothing is ranked for reach.
   const data = useMemo(() => {
-    if (rank.current.tab !== tab) rank.current = { tab, map: new Map() }
     const following = new Set(
       people.filter((p) => p.isFollowing).map((p) => p.id),
     )
-    const sorted = [...posts].sort((a, b) => b.at - a.at)
-    return tab === "following"
-      ? sorted.filter((p) => p.by === ME || following.has(p.by))
-      : forYouOrder(posts, rank.current.map)
-  }, [posts, people, tab])
+    return [...posts]
+      .sort((a, b) => b.at - a.at)
+      .filter((p) => tab === "foryou" || p.by === ME || following.has(p.by))
+      .filter((p) => !area || areaOf(p.progress) === area)
+  }, [posts, people, tab, area])
+  const perDay = useMemo(() => {
+    const n = new Map<string, number>()
+    for (const p of data) {
+      const k = new Date(p.at).toDateString()
+      n.set(k, (n.get(k) ?? 0) + 1)
+    }
+    return n
+  }, [data])
   const dmCount = chats.filter((c) => !c.muted && unread(c) > 0).length
   const newActivity = activity.filter((a) => a.at > readAt).length
   const onViewable = useRef(
@@ -377,7 +486,6 @@ export function SocialFeed() {
     },
   ).current
   const refresh = () => {
-    rank.current = { tab, map: new Map() }
     setRefreshing(true)
     haptic.tap()
     if (liveMode) void refreshSocial().finally(() => setRefreshing(false))
@@ -393,19 +501,62 @@ export function SocialFeed() {
       if (e.translationX < -90 || e.velocityX < -700)
         runOnJS(go)("/social/inbox")
     })
+  const chip = (
+    key: string,
+    label: string,
+    on: boolean,
+    onPress: () => void,
+    role: "tab" | "button" = "button",
+    tint?: string,
+  ) => (
+    <Pressable
+      key={key}
+      accessibilityRole={role}
+      accessibilityState={{ selected: on }}
+      onPress={() => {
+        haptic.tap()
+        onPress()
+      }}
+      style={{
+        paddingHorizontal: 14,
+        minHeight: 34,
+        justifyContent: "center",
+        borderRadius: 17,
+        backgroundColor: on ? (tint ?? t.text) : t.soft,
+      }}
+    >
+      <Text
+        style={{
+          color: on ? (tint ? "#fff" : t.bg) : t.text,
+          fontFamily: fonts.semibold,
+          fontSize: 13,
+        }}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  )
   return (
     <View style={{ flex: 1, backgroundColor: t.bg, paddingTop: safe.top }}>
       <View
         style={{
-          height: 52,
+          height: 56,
           flexDirection: "row",
           alignItems: "center",
-          paddingLeft: 4,
+          gap: 2,
+          paddingLeft: 2,
           paddingRight: 6,
         }}
       >
-        <Bounce label="Back" onPress={() => back("/today")}>
+        <Bounce
+          label="Back"
+          onPress={() => back("/today")}
+          style={{ minWidth: 32 }}
+        >
           <ChevronLeft size={26} color={t.text} />
+        </Bounce>
+        <Bounce label="Your profile" onPress={() => go(`/social/u/${ME}`)}>
+          <Avatar id={ME} size={32} ring={false} />
         </Bounce>
         <Pressable
           accessibilityRole="button"
@@ -413,13 +564,14 @@ export function SocialFeed() {
           onPress={() =>
             list.current?.scrollToOffset({ offset: 0, animated: true })
           }
-          style={{ flex: 1 }}
+          style={{ flex: 1, paddingLeft: 6 }}
         >
           <Text
             accessibilityRole="header"
+            numberOfLines={1}
             style={{
               fontFamily: fonts.display,
-              fontSize: 28,
+              fontSize: 24,
               color: t.text,
               fontStyle: "italic",
               letterSpacing: -0.5,
@@ -429,16 +581,16 @@ export function SocialFeed() {
           </Text>
         </Pressable>
         <Bounce label="Create" onPress={() => setCreate(true)}>
-          <PlusSquare size={24} color={t.text} />
+          <PlusSquare size={23} color={t.text} />
         </Bounce>
-        <Bounce label="Search" onPress={() => go("/social/explore")}>
-          <Search size={23} color={t.text} />
+        <Bounce label="Find people" onPress={() => go("/social/explore")}>
+          <Search size={22} color={t.text} />
         </Bounce>
         <Bounce
           label={`Activity${newActivity ? `, ${newActivity} new` : ""}`}
           onPress={() => go("/social/activity")}
         >
-          <Heart size={24} color={t.text} />
+          <Bell size={22} color={t.text} />
           {newActivity > 0 && (
             <View
               style={{
@@ -457,7 +609,7 @@ export function SocialFeed() {
           label={`Messages${dmCount ? `, ${dmCount} unread` : ""}`}
           onPress={() => go("/social/inbox")}
         >
-          <Send size={23} color={t.text} />
+          <Send size={22} color={t.text} />
           <Badge count={dmCount} />
         </Bounce>
       </View>
@@ -479,42 +631,50 @@ export function SocialFeed() {
           ListHeaderComponent={
             <View>
               <PostingBanner />
-              <StoryTray />
-              <View style={{ flexDirection: "row", gap: 8, padding: 12 }}>
-                {(
-                  [
-                    ["following", "Following"],
-                    ["foryou", "For you"],
-                  ] as const
-                ).map(([k, label]) => (
-                  <Pressable
-                    key={k}
-                    accessibilityRole="tab"
-                    accessibilityState={{ selected: tab === k }}
-                    onPress={() => {
-                      haptic.tap()
-                      setTab(k)
-                    }}
-                    style={{
-                      paddingHorizontal: 14,
-                      minHeight: 34,
-                      justifyContent: "center",
-                      borderRadius: 17,
-                      backgroundColor: tab === k ? t.text : t.soft,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        color: tab === k ? t.bg : t.text,
-                        fontFamily: fonts.semibold,
-                        fontSize: 13,
-                      }}
-                    >
-                      {label}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
+              <CheckInTray />
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{
+                  gap: 8,
+                  paddingHorizontal: 12,
+                  paddingVertical: 12,
+                  alignItems: "center",
+                }}
+              >
+                {chip(
+                  "following",
+                  "Friends",
+                  tab === "following",
+                  () => setTab("following"),
+                  "tab",
+                )}
+                {chip(
+                  "foryou",
+                  "Everyone",
+                  tab === "foryou",
+                  () => setTab("foryou"),
+                  "tab",
+                )}
+                <View
+                  style={{
+                    width: 1,
+                    height: 20,
+                    marginHorizontal: 4,
+                    backgroundColor: t.line,
+                  }}
+                />
+                {FEED_AREAS.map((a) =>
+                  chip(
+                    a.key,
+                    a.label,
+                    area === a.key,
+                    () => setArea(area === a.key ? null : a.key),
+                    "button",
+                    t[a.accent],
+                  ),
+                )}
+              </ScrollView>
             </View>
           }
           renderItem={({ item, index }) => (
@@ -524,8 +684,13 @@ export function SocialFeed() {
                   ? undefined
                   : FadeInDown.delay(index * 60).springify()
               }
-              layout={reduced ? undefined : LinearTransition}
             >
+              {(index === 0 || !sameDay(data[index - 1].at, item.at)) && (
+                <DayDivider
+                  at={item.at}
+                  count={perDay.get(new Date(item.at).toDateString()) ?? 0}
+                />
+              )}
               <PostCard
                 post={item}
                 width={width}
@@ -533,22 +698,78 @@ export function SocialFeed() {
               />
             </Animated.View>
           )}
-          ListFooterComponent={
-            <View style={{ alignItems: "center", gap: 6, paddingVertical: 32 }}>
-              <CircleCheck size={40} color={t.good} />
-              <Text
-                style={{
-                  color: t.text,
-                  fontFamily: fonts.semibold,
-                  fontSize: 16,
+          ListEmptyComponent={
+            <View style={{ paddingHorizontal: 12 }}>
+              <LockedPreview
+                locked
+                title={
+                  area
+                    ? `No ${FEED_AREAS.find((a) => a.key === area)?.label.toLowerCase()} progress here yet`
+                    : "No progress from friends yet"
+                }
+                detail={
+                  tab === "following"
+                    ? "Share yours, or look at what everyone is working on."
+                    : "Share yours and it shows up here first."
+                }
+                action={{
+                  label: "Share progress",
+                  href: "/social/compose?progress=1",
                 }}
               >
-                You're all caught up
-              </Text>
-              <Text style={{ color: t.muted, fontFamily: fonts.body }}>
-                You've seen all new posts from the past 3 days.
-              </Text>
+                <View style={{ marginHorizontal: -12 }}>
+                  <PostSkeleton width={width} />
+                </View>
+              </LockedPreview>
             </View>
+          }
+          ListFooterComponent={
+            data.length ? (
+              <View
+                style={{
+                  alignItems: "center",
+                  gap: 8,
+                  paddingVertical: 32,
+                  paddingHorizontal: 24,
+                }}
+              >
+                <CircleCheck size={40} color={t.good} />
+                <Text
+                  style={{
+                    color: t.text,
+                    fontFamily: fonts.semibold,
+                    fontSize: 16,
+                  }}
+                >
+                  You're caught up
+                </Text>
+                <Text
+                  style={{
+                    color: t.muted,
+                    fontFamily: fonts.body,
+                    textAlign: "center",
+                  }}
+                >
+                  That's everyone's progress for now. Your turn.
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => go("/social/story-new")}
+                  style={{
+                    marginTop: 8,
+                    minHeight: 40,
+                    paddingHorizontal: 18,
+                    borderRadius: 20,
+                    justifyContent: "center",
+                    backgroundColor: t.primary,
+                  }}
+                >
+                  <Text style={{ color: "#fff", fontFamily: fonts.semibold }}>
+                    Check in for today
+                  </Text>
+                </Pressable>
+              </View>
+            ) : null
           }
           contentContainerStyle={{ paddingBottom: safe.bottom + 64 }}
         />

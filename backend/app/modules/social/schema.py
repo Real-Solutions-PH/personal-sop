@@ -12,6 +12,7 @@ Audience = Literal["everyone", "close"]
 ActivityKind = Literal["like", "comment", "follow", "mention", "story"]
 DraftKind = Literal["post", "story"]
 FeedTab = Literal["following", "foryou"]
+CheerKind = Literal["keep_going", "proud", "inspired"]
 
 
 # ---------------------------------------------------------------- people
@@ -119,6 +120,11 @@ class ProgressIn(BaseModel):
     subtitle: str | None = Field(default=None, max_length=120)
     stats: list[ProgressStat] = Field(default_factory=list, max_length=6)
     spark: list[float] | None = Field(default=None, max_length=120)
+    # A check-in on something ongoing: "day 12 of 30". ``of`` is the target.
+    day: int | None = Field(default=None, ge=1, le=100_000)
+    of: int | None = Field(default=None, ge=1, le=100_000)
+    # The post's first two photos are a before and an after.
+    before_after: bool = False
 
 
 class PostCreate(BaseModel):
@@ -148,8 +154,11 @@ class PostPublic(BaseModel):
     progress: dict[str, object] | None
     location: str | None
     tags: list[str]
+    # ``likes`` counts every cheer; ``cheers`` splits it by kind.
     likes: int
     liked: bool
+    cheers: dict[CheerKind, int]
+    my_cheer: CheerKind | None
     saved: bool
     comments: int
     liked_by: list[PersonBrief]

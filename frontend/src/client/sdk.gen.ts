@@ -6940,9 +6940,11 @@ export class SocialService {
     
     /**
      * Like Post
-     * Like, and the double-tap like (idempotent).
+     * Cheer, and the double-tap cheer (idempotent). ``kind`` picks or
+     * switches the cheer; without it a new cheer is ``keep_going``.
      * @param data The data for the request.
      * @param data.postId
+     * @param data.kind
      * @returns PostPublic Successful Response
      * @throws ApiError
      */
@@ -6952,6 +6954,9 @@ export class SocialService {
             url: '/api/v1/social/posts/{post_id}/like',
             path: {
                 post_id: data.postId
+            },
+            query: {
+                kind: data.kind
             },
             errors: {
                 '4XX': 'Client Error'

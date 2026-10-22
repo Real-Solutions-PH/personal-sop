@@ -4,6 +4,7 @@ import { useVideoPlayer, VideoView } from "expo-video"
 import {
   Award,
   CheckSquare,
+  CircleCheck,
   Dumbbell,
   Flame,
   Heart,
@@ -38,8 +39,15 @@ import { Sparkline } from "../chart"
 import { go } from "../navigation"
 import { type Accent, fonts, useTheme } from "../theme"
 import {
+  CHEERS,
+  type Cheer,
+  cheer,
+  cheerCounts,
+  compact,
+  ME,
   type Media,
   type Person,
+  type Post,
   type Progress,
   socialStore,
   type Trophy,
@@ -64,11 +72,14 @@ export const haptic = {
     ).catch(() => {}),
 }
 
-/** Story ring state for a person: unseen / close friends / seen / none. */
+/** Check-in ring state for a person: unseen / close friends / seen / none.
+ * Your own ring stays lit while you have check-ins up: posting one marks it
+ * seen, and a grey ring read as "nothing to open". */
 export function useRing(id: string) {
   return socialStore.use((s) => {
     const items = s.stories.filter((x) => x.by === id)
     if (!items.length) return null
+    if (id === ME) return "unseen" as const
     if (!items.some((x) => !s.seen.includes(x.id))) return "seen" as const
     return items.some((x) => x.audience === "close")
       ? ("close" as const)
@@ -129,11 +140,14 @@ export function Avatar({
   size = 36,
   ring = true,
   onPress,
+  label,
 }: {
   id: string
   size?: number
   ring?: boolean
   onPress?: () => void
+  /** What a tap does, when it is not "open this person". */
+  label?: string
 }) {
   const t = useTheme()
   const person = usePerson(id)
@@ -172,7 +186,14 @@ export function Avatar({
     <Pressable
       cssInterop={false}
       accessibilityRole="button"
-      accessibilityLabel={`${person.name}${state && state !== "seen" ? ", new story" : ""}`}
+      accessibilityLabel={
+        label ??
+        (id === ME
+          ? state
+            ? "Play your check-ins"
+            : "Your profile"
+          : `${person.name}${state && state !== "seen" ? ", new check-in" : ""}`)
+      }
       onPress={onPress}
       style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.94 : 1 }] })}
     >
@@ -408,8 +429,8 @@ export function VideoMedia({
   )
 }
 
-const kindIcon = (kind: string) =>
-  /workout|lift|pr|run/i.test(kind)
+export const kindIcon = (kind: string) =>
+  /workout|lift|pr|run|training/i.test(kind)
     ? Dumbbell
     : /habit|streak|routine/i.test(kind)
       ? Target
@@ -417,11 +438,15 @@ const kindIcon = (kind: string) =>
         ? Wallet
         : /task/i.test(kind)
           ? CheckSquare
-          : /meal|nutrition|protein/i.test(kind)
+          : /meal|nutrition|protein|weigh/i.test(kind)
             ? Flame
             : /trophy|achievement/i.test(kind)
               ? TrophyIcon
-              : Sparkles
+              : /goal/i.test(kind)
+                ? Target
+                : /check-in/i.test(kind)
+                  ? CircleCheck
+                  : Sparkles
 
 /** Rendered progress attachment — the in-app form of a share card. */
 export function ProgressCard({
@@ -611,9 +636,19 @@ export function MediaCarousel({
   const t = useTheme()
   const [page, setPage] = useState(0)
   const burst = useHeartBurst()
-  const pages = media.length + (progress ? 1 : 0)
-  const ratio = media[0]?.ratio
-  const height = Math.round(width * (ratio && ratio < 0.8 ? 1.25 : 1.25))
+  // Photos lead; the stat strip under them carries the numbers, so the
+  // rendered card is a page only when there is no photo to show.
+  const pair =
+    progress?.beforeAfter &&
+    media.length >= 2 &&
+    media[0].kind === "image" &&
+    media[1].kind === "image"
+  const shown = pair ? media.slice(2) : media
+  const card = progress && !media.length
+  const pages = (pair ? 1 : 0) + shown.length + (card ? 1 : 0)
+  // Square when a stat strip follows, so the numbers stay near the photo;
+  // 4:5 for a plain photo post and for a card-only post.
+  const height = Math.round(width * (progress && !card ? 1 : 1.25))
   const doubleTap = Gesture.Tap()
     .numberOfTaps(2)
     .maxDelay(260)
@@ -635,7 +670,15 @@ export function MediaCarousel({
           }
           style={{ width, height }}
         >
-          {media.map((m, i) =>
+          {pair && (
+            <BeforeAfter
+              before={media[0].uri}
+              after={media[1].uri}
+              width={width}
+              height={height}
+            />
+          )}
+          {shown.map((m, i) =>
             m.kind === "video" ? (
               <VideoMedia
                 key={m.uri + i}
@@ -647,7 +690,7 @@ export function MediaCarousel({
               <Image
                 key={m.uri + i}
                 source={{ uri: m.uri }}
-                accessibilityLabel={`Photo ${i + 1} of ${pages}`}
+                accessibilityLabel={`Photo ${i + 1 + (pair ? 1 : 0)} of ${pages}`}
                 // Tall share cards (9:16) letterbox instead of cropping.
                 resizeMode={m.ratio && m.ratio < 0.75 ? "contain" : "cover"}
                 style={{
@@ -658,11 +701,14 @@ export function MediaCarousel({
               />
             ),
           )}
-          {progress && (
+          {card && (
             <ProgressCard progress={progress} width={width} height={height} />
           )}
         </ScrollView>
         {burst.node}
+        {progress && !card && (
+          <DayBadge progress={progress} style={{ top: 12, left: 12 }} />
+        )}
         {pages > 1 && (
           <View
             style={{
@@ -774,3 +820,424 @@ export function TrophyChip({ trophy }: { trophy: Trophy }) {
     </View>
   )
 }
+
+/** Before and after, side by side, labelled. */
+function BeforeAfter({
+  before,
+  after,
+  width,
+  height,
+}: {
+  before: string
+  after: string
+  width: number
+  height: number
+}) {
+  const t = useTheme()
+  const half = (width - 2) / 2
+  const label = (text: string) => (
+    <View
+      style={{
+        position: "absolute",
+        bottom: 12,
+        left: 12,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 999,
+        backgroundColor: "#000000a6",
+      }}
+    >
+      <Text
+        style={{
+          color: "#fff",
+          fontFamily: fonts.bold,
+          fontSize: 11,
+          letterSpacing: 1,
+        }}
+      >
+        {text}
+      </Text>
+    </View>
+  )
+  return (
+    <View
+      accessibilityLabel="Before and after photos"
+      style={{ width, height, flexDirection: "row", gap: 2 }}
+    >
+      {[
+        { uri: before, text: "BEFORE" },
+        { uri: after, text: "NOW" },
+      ].map((x) => (
+        <View key={x.text} style={{ width: half, height }}>
+          <Image
+            source={{ uri: x.uri }}
+            resizeMode="cover"
+            style={{ width: half, height, backgroundColor: t.soft }}
+          />
+          {label(x.text)}
+        </View>
+      ))}
+    </View>
+  )
+}
+
+/** "Day 12 of 30", "Day 214", or null when the card is not a check-in. */
+export function dayLabel(p?: Progress) {
+  if (!p?.day) return null
+  return p.of ? `Day ${p.day} of ${p.of}` : `Day ${p.day}`
+}
+
+/** Where a progress card sits in the feed's area filter. */
+export type FeedArea = "habits" | "fitness" | "tasks" | "finance"
+export const FEED_AREAS: { key: FeedArea; label: string; accent: Accent }[] = [
+  { key: "habits", label: "Habits", accent: "hab" },
+  { key: "fitness", label: "Fitness", accent: "fit" },
+  { key: "tasks", label: "Tasks", accent: "tsk" },
+  { key: "finance", label: "Finance", accent: "fin" },
+]
+const AREA_OF: Record<Accent, FeedArea | null> = {
+  hab: "habits",
+  life: "habits",
+  fit: "fitness",
+  nut: "fitness",
+  tsk: "tasks",
+  fin: "finance",
+  primary: null,
+}
+export const areaOf = (p?: Progress) => (p ? AREA_OF[p.accent] : null)
+
+/** Translucent "🔥 DAY 41 OF 84" pill over a photo. */
+export function DayBadge({
+  progress,
+  style,
+}: {
+  progress: Progress
+  style?: ViewStyle
+}) {
+  const label = dayLabel(progress)
+  if (!label) return null
+  return (
+    <View
+      pointerEvents="none"
+      style={{
+        position: "absolute",
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 999,
+        backgroundColor: "#000000a6",
+        ...style,
+      }}
+    >
+      <Flame size={13} color="#ffb547" fill="#ffb547" />
+      <Text
+        style={{
+          color: "#fff",
+          fontFamily: fonts.bold,
+          fontSize: 12,
+          letterSpacing: 0.6,
+        }}
+      >
+        {label.toUpperCase()}
+      </Text>
+    </View>
+  )
+}
+
+/** What a post is progress on: icon, title and kind, in the area colour. */
+export function ProgressContext({ progress }: { progress: Progress }) {
+  const t = useTheme()
+  const c = t[progress.accent]
+  const Icon = kindIcon(progress.kind)
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+      <Icon size={13} color={c} />
+      <Text
+        numberOfLines={1}
+        style={{ flex: 1, fontFamily: fonts.medium, fontSize: 12, color: c }}
+      >
+        {progress.title}
+        <Text style={{ color: t.muted }}> · {progress.kind}</Text>
+      </Text>
+    </View>
+  )
+}
+
+/** The post's own numbers under its photo, with a day-of-target bar. */
+export function StatStrip({ progress }: { progress: Progress }) {
+  const t = useTheme()
+  const c = t[progress.accent]
+  const stats = progress.stats.slice(0, 3)
+  const pct =
+    progress.day && progress.of ? Math.min(1, progress.day / progress.of) : null
+  if (!stats.length && pct === null) return null
+  return (
+    <View
+      style={{
+        marginHorizontal: 12,
+        padding: 12,
+        gap: 10,
+        borderRadius: 14,
+        backgroundColor: t.card,
+        borderWidth: 1,
+        borderColor: t.line,
+      }}
+    >
+      {pct !== null && (
+        <View style={{ gap: 6 }}>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <Text
+              style={{
+                flex: 1,
+                color: t.text,
+                fontFamily: fonts.semibold,
+                fontSize: 13,
+              }}
+            >
+              {dayLabel(progress)}
+            </Text>
+            <Text
+              style={{ color: t.muted, fontFamily: fonts.medium, fontSize: 12 }}
+            >
+              {pct >= 1 ? "Done" : `${Math.round(pct * 100)}%`}
+            </Text>
+          </View>
+          <View
+            accessibilityRole="progressbar"
+            accessibilityValue={{
+              min: 0,
+              max: progress.of,
+              now: Math.min(progress.day ?? 0, progress.of ?? 0),
+            }}
+            style={{
+              height: 6,
+              borderRadius: 3,
+              backgroundColor: t.soft,
+              overflow: "hidden",
+            }}
+          >
+            <View
+              style={{
+                width: `${pct * 100}%`,
+                height: 6,
+                borderRadius: 3,
+                backgroundColor: c,
+              }}
+            />
+          </View>
+        </View>
+      )}
+      {stats.length > 0 && (
+        <View style={{ flexDirection: "row", gap: 12 }}>
+          {stats.map((x) => (
+            <View key={x.label} style={{ flex: 1, gap: 2 }}>
+              <Text
+                numberOfLines={1}
+                style={{
+                  color: t.text,
+                  fontFamily: fonts.display,
+                  fontSize: 20,
+                }}
+              >
+                {x.value}
+                {x.unit ? (
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      fontFamily: fonts.medium,
+                      color: t.muted,
+                    }}
+                  >
+                    {" "}
+                    {x.unit}
+                  </Text>
+                ) : null}
+              </Text>
+              <Text
+                numberOfLines={1}
+                style={{
+                  color: t.muted,
+                  fontFamily: fonts.medium,
+                  fontSize: 11,
+                }}
+              >
+                {x.label}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
+    </View>
+  )
+}
+
+/** Encouragement in place of a like: three kinds, one per person. */
+export function CheerBar({ post }: { post: Post }) {
+  const t = useTheme()
+  const counts = cheerCounts(post)
+  const mine: Cheer | undefined =
+    post.myCheer ?? (post.liked ? "keep_going" : undefined)
+  return (
+    <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 12 }}>
+      {CHEERS.map((c) => {
+        const on = mine === c.kind
+        return (
+          <Pressable
+            cssInterop={false}
+            key={c.kind}
+            accessibilityRole="button"
+            accessibilityState={{ selected: on }}
+            accessibilityLabel={`${c.label}, ${counts[c.kind]}${on ? ". Tap to take back" : ""}`}
+            onPress={() => {
+              haptic.tap()
+              cheer(post.id, c.kind)
+            }}
+            style={({ pressed }) => ({
+              flex: 1,
+              minHeight: 48,
+              paddingVertical: 6,
+              borderRadius: 14,
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 2,
+              borderWidth: 1,
+              borderColor: on ? t.primary : t.line,
+              backgroundColor: on ? `${t.primary}22` : t.card,
+              transform: [{ scale: pressed ? 0.96 : 1 }],
+            })}
+          >
+            <Text
+              style={{
+                color: t.text,
+                fontFamily: fonts.semibold,
+                fontSize: 14,
+              }}
+            >
+              {c.emoji} {compact(counts[c.kind])}
+            </Text>
+            <Text
+              numberOfLines={1}
+              style={{
+                color: on ? t.text : t.muted,
+                fontFamily: fonts.medium,
+                fontSize: 11,
+              }}
+            >
+              {c.label}
+            </Text>
+          </Pressable>
+        )
+      })}
+    </View>
+  )
+}
+
+/** A check-in over a story or its composer: "Day 12 of 30", what was done,
+ * and how far along the target it is. */
+export function CheckInOverlay({ progress }: { progress: Progress }) {
+  const t = useTheme()
+  const c = t[progress.accent]
+  const pct =
+    progress.day && progress.of ? Math.min(1, progress.day / progress.of) : null
+  return (
+    <View
+      style={{
+        gap: 8,
+        padding: 16,
+        borderRadius: 20,
+        backgroundColor: "#000000a6",
+      }}
+    >
+      {progress.day ? (
+        <Text
+          style={{
+            color: "#fff",
+            fontFamily: fonts.display,
+            fontSize: 40,
+            lineHeight: 46,
+          }}
+        >
+          Day {progress.day}
+          {progress.of ? (
+            <Text style={{ fontSize: 20, color: "#ffffffb3" }}>
+              {" "}
+              of {progress.of}
+            </Text>
+          ) : null}
+        </Text>
+      ) : progress.subtitle ? (
+        <Text
+          style={{
+            color: "#ffffffb3",
+            fontFamily: fonts.semibold,
+            fontSize: 12,
+            letterSpacing: 1,
+          }}
+        >
+          {progress.subtitle.toUpperCase()}
+        </Text>
+      ) : null}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <CircleCheck size={20} color={c} />
+        <Text
+          style={{
+            flex: 1,
+            color: "#fff",
+            fontFamily: fonts.semibold,
+            fontSize: 18,
+          }}
+        >
+          {progress.title}
+        </Text>
+      </View>
+      {pct !== null && (
+        <View
+          style={{
+            height: 6,
+            borderRadius: 3,
+            backgroundColor: "#ffffff33",
+            overflow: "hidden",
+          }}
+        >
+          <View
+            style={{
+              width: `${pct * 100}%`,
+              height: 6,
+              borderRadius: 3,
+              backgroundColor: c,
+            }}
+          />
+        </View>
+      )}
+    </View>
+  )
+}
+
+/** A check-in with no photo: its card on the area's colour. */
+export function CheckInSlide({
+  progress,
+  width,
+  height,
+}: {
+  progress: Progress
+  width: number
+  height: number
+}) {
+  const t = useTheme()
+  return (
+    <LinearGradient
+      colors={[t[progress.accent], "#06070a"]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 0.6, y: 1 }}
+      style={{ width, height, justifyContent: "center", padding: 24 }}
+    >
+      <CheckInOverlay progress={progress} />
+    </LinearGradient>
+  )
+}
+
+/** A check-in card: a story kind "progress" that only says what was done. */
+export const isCheckIn = (p?: Progress) =>
+  !!p && (p.kind === "Check-in" || !p.stats.length)
