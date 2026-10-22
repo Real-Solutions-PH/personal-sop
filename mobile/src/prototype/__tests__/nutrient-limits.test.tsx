@@ -54,7 +54,7 @@ test("today: room left, over, and not tracked", () => {
   expect(screen.getByText("STAY UNDER · TODAY")).toBeTruthy()
   expect(screen.getByText("8 / 20 g · 12 g room")).toBeTruthy()
   expect(screen.getByText("2,300 / 2,000 mg · 300 mg over")).toBeTruthy()
-  expect(screen.getByText("not tracked yet")).toBeTruthy()
+  expect(screen.getByText("not tracked yet · under 50 g")).toBeTruthy()
   expect(
     screen.getByLabelText(
       "Sat fat: 8 g of a 20 g daily limit, 12 g of room left",

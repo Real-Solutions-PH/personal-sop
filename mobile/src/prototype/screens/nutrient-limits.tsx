@@ -62,7 +62,7 @@ export function LimitBar({
   const { share, level } = limitLevel(amount ?? 0, max)
   const color = level === "over" ? t.bad : level === "near" ? t.warn : t.muted
   const right = !known
-    ? "not tracked yet"
+    ? `not tracked yet · under ${fmt(max, unit)} ${unit}`
     : scope === "average"
       ? `avg ${fmt(amount, unit)} / ${fmt(max, unit)} ${unit}${overDays ? ` · over on ${overDays} day${overDays === 1 ? "" : "s"}` : " · never over"}`
       : level === "over"
@@ -76,7 +76,7 @@ export function LimitBar({
       accessibilityLabel={
         known
           ? `${label}: ${fmt(amount, unit)} ${unit} of a ${fmt(max, unit)} ${unit} daily limit, ${level === "over" ? "over the limit" : `${fmt(max - amount, unit)} ${unit} of room left`}`
-          : `${label}: not tracked yet`
+          : `${label}: not tracked yet, daily limit ${fmt(max, unit)} ${unit}`
       }
       style={{ gap: 4 }}
     >
