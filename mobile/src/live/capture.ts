@@ -30,10 +30,20 @@ import type {
   RecordCard,
 } from "@domain/capture/data"
 import {
+  answerCard,
   type CaptureBackend,
+  confirmAll as confirmAllCards,
+  confirmCard,
+  discardCard,
+  editCard,
   findCard,
+  logQuickAdd,
+  redoCard,
+  runLocally,
   type SendInput,
   setCaptureBackend,
+  skipAsk,
+  undoCard,
 } from "@domain/capture/engine"
 import { captureStore, isOnline } from "@domain/capture/store"
 import { toast } from "@domain/capture/toast"
@@ -77,7 +87,7 @@ import {
 import { messageFromServer, withMessages } from "./mappers/companion"
 import { categoryIds, fromMinor } from "./mappers/finance"
 import { type UploadInput, uploadMedia } from "./media"
-import { syncNow } from "./runtime"
+import { queueAction, syncNow } from "./runtime"
 import { toggleSpeech } from "./speech"
 
 /** The companion as the user named it (toasts speak in its name). */
@@ -97,6 +107,9 @@ export interface LiveCaptureDeps {
   /** Delete a copy made by ``keep`` once the server has the media. */
   release?(uri: string): void
   online(): boolean
+  /** Queue a card decision as an outbox action op; false when no sync
+   * engine runs (the decision then calls its REST endpoint). */
+  act?(name: string, data: Row): boolean
   /** Push and pull now (the decision wrote rows in other modules). */
   kick(): void
   cats: Cats
@@ -556,71 +569,212 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
   const cardPath = (cardId: string, op?: string) =>
     `/capture/cards/${cardId}${op ? `/${op}` : ""}`
 
+  const SKIPPED = "Skipped — waiting in History until you answer."
+
+  /** Change one card on this device only (the pull brings the server's). */
+  function patchCardHere(cardId: string, fn: (c: RecordCard) => RecordCard) {
+    const hit = findCard(cardId)
+    if (!hit) return
+    patchCapture(hit.cap.id, (c) => ({
+      ...c,
+      reply: {
+        text: c.reply?.text ?? "",
+        items: (c.reply?.items ?? []).map((i) =>
+          i.t === "record" && i.id === cardId ? fn(i) : i,
+        ),
+      },
+    }))
+  }
+
+  /** A card written on this device only (an offline quick add): the server
+   * never saw it, so its decisions run locally too. */
+  const onlyHere = (cardId: string) => {
+    const hit = findCard(cardId)
+    return !!hit && !isUuid(hit.cap.id)
+  }
+
+  /** A card decision, local-first: the card shows its new state at once and
+   * the decision goes out through the sync outbox (in order, waiting there
+   * offline); the rows it writes elsewhere arrive with the pull after it.
+   * Without a sync engine the REST endpoint is called instead. */
+  function decide(name: string, data: Row, here: () => void, rest: () => void) {
+    if (deps.act?.(name, data)) here()
+    else rest()
+  }
+
   const backend: CaptureBackend = {
     send,
     confirm(cardId) {
+      if (onlyHere(cardId)) return runLocally(() => confirmCard(cardId))
       if (findCard(cardId)?.card.state !== "proposed") return
-      void call<Row>("POST", cardPath(cardId, "confirm"), undefined, putCard)
+      decide(
+        "capture.confirm",
+        { card_id: cardId },
+        () => patchCardHere(cardId, (c) => ({ ...c, state: "saved" })),
+        () =>
+          void call<Row>(
+            "POST",
+            cardPath(cardId, "confirm"),
+            undefined,
+            putCard,
+          ),
+      )
     },
     confirmAll(captureId) {
-      void call<Row[]>(
-        "POST",
-        `/capture/${captureId}/confirm-all`,
-        undefined,
-        (rows) => {
-          for (const r of rows) putCard(r)
-        },
+      if (!isUuid(captureId))
+        return runLocally(() => confirmAllCards(captureId))
+      decide(
+        "capture.confirm_all",
+        { capture_id: captureId },
+        () =>
+          patchCapture(captureId, (c) => ({
+            ...c,
+            reply: {
+              text: c.reply?.text ?? "",
+              items: (c.reply?.items ?? []).map((i) =>
+                i.t === "record" && i.state === "proposed"
+                  ? { ...i, state: "saved" as const }
+                  : i,
+              ),
+            },
+          })),
+        () =>
+          void call<Row[]>(
+            "POST",
+            `/capture/${captureId}/confirm-all`,
+            undefined,
+            (rows) => {
+              for (const r of rows) putCard(r)
+            },
+          ),
       )
     },
     discard(cardId) {
-      void call<Row>("POST", cardPath(cardId, "discard"), undefined, putCard)
+      if (onlyHere(cardId)) return runLocally(() => discardCard(cardId))
+      decide(
+        "capture.discard",
+        { card_id: cardId },
+        () =>
+          patchCardHere(cardId, (c) => ({
+            ...c,
+            state: "discarded",
+            ask: undefined,
+          })),
+        () =>
+          void call<Row>(
+            "POST",
+            cardPath(cardId, "discard"),
+            undefined,
+            putCard,
+          ),
+      )
     },
     undo(cardId, quiet) {
+      if (onlyHere(cardId)) return runLocally(() => undoCard(cardId, quiet))
       const state = findCard(cardId)?.card.state
       if (state !== "saved" && state !== "edited") return
-      void call<Row>("POST", cardPath(cardId, "undo"), undefined, (row) => {
-        putCard(row)
-        if (!quiet && row.state === "undone")
+      const undone = () => {
+        if (!quiet)
           toast("Undone", {
             action: { label: "Redo", onClick: () => backend.redo(cardId) },
           })
-      })
+      }
+      decide(
+        "capture.undo",
+        { card_id: cardId },
+        () => {
+          patchCardHere(cardId, (c) => ({ ...c, state: "undone" }))
+          undone()
+        },
+        () =>
+          void call<Row>("POST", cardPath(cardId, "undo"), undefined, (row) => {
+            putCard(row)
+            if (row.state === "undone") undone()
+          }),
+      )
     },
     redo(cardId) {
+      if (onlyHere(cardId)) return runLocally(() => redoCard(cardId))
       if (findCard(cardId)?.card.state !== "undone") return
-      void call<Row>("POST", cardPath(cardId, "redo"), undefined, putCard)
+      decide(
+        "capture.redo",
+        { card_id: cardId },
+        () => patchCardHere(cardId, (c) => ({ ...c, state: "saved" })),
+        () =>
+          void call<Row>("POST", cardPath(cardId, "redo"), undefined, putCard),
+      )
     },
     edit(cardId, payload: CardPayload) {
-      void call<Row>(
-        "PATCH",
-        cardPath(cardId),
-        { payload: payloadToServer(payload, cats) },
-        putCard,
+      if (onlyHere(cardId)) return runLocally(() => editCard(cardId, payload))
+      const body = { payload: payloadToServer(payload, cats) }
+      decide(
+        "capture.edit",
+        { card_id: cardId, ...body },
+        () =>
+          patchCardHere(cardId, (c) =>
+            c.state === "saved" || c.state === "edited"
+              ? { ...c, kind: payload.kind, payload, state: "edited" }
+              : { ...c, kind: payload.kind, payload, warn: undefined },
+          ),
+        () => void call<Row>("PATCH", cardPath(cardId), body, putCard),
       )
     },
     answer(cardId, value) {
+      if (onlyHere(cardId)) return runLocally(() => answerCard(cardId, value))
       const hit = findCard(cardId)
       if (!hit?.card.ask) return
-      void call<Row>(
-        "POST",
-        cardPath(cardId, "answer"),
-        { value: answerToServer(hit.card, value, cats).slice(0, 200) },
-        detail,
+      const body = {
+        value: answerToServer(hit.card, value, cats).slice(0, 200),
+      }
+      decide(
+        "capture.answer",
+        { card_id: cardId, ...body },
+        // The server fills the field and re-tiers the card; the pull shows it.
+        () =>
+          patchCardHere(cardId, (c) => ({
+            ...c,
+            state: "proposed",
+            ask: undefined,
+          })),
+        () => void call<Row>("POST", cardPath(cardId, "answer"), body, detail),
       )
     },
     skip(cardId) {
-      void call<Row>("POST", cardPath(cardId, "skip"), undefined, putCard)
+      if (onlyHere(cardId)) return runLocally(() => skipAsk(cardId))
+      decide(
+        "capture.skip",
+        { card_id: cardId },
+        () => patchCardHere(cardId, (c) => ({ ...c, warn: SKIPPED })),
+        () =>
+          void call<Row>("POST", cardPath(cardId, "skip"), undefined, putCard),
+      )
     },
     retry(id) {
-      if (!deps.online()) {
-        toast("Still offline — it stays queued")
-        return
-      }
       if (find(id)?.status === "queued") {
-        backend.processQueue()
+        if (!deps.online()) toast("Still offline — it stays queued")
+        else backend.processQueue()
         return
       }
-      void call<Row>("POST", `/capture/${id}/retry`, undefined, detail)
+      decide(
+        "capture.retry",
+        { capture_id: id },
+        () => {
+          patchCapture(id, (c) => ({
+            ...c,
+            status: "processing",
+            startedAt: nowIso(),
+          }))
+          if (!deps.online())
+            toast("Offline — it'll be read again when you're back")
+        },
+        () => {
+          if (!deps.online()) {
+            toast("Still offline — it stays queued")
+            return
+          }
+          void call<Row>("POST", `/capture/${id}/retry`, undefined, detail)
+        },
+      )
     },
     rerun(id, text) {
       if (text !== undefined) patchCapture(id, (c) => ({ ...c, text }))
@@ -655,6 +809,10 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
       if (stale && deps.online()) deps.kick()
     },
     quickAdd(text, payload, target) {
+      // Offline (or the server can't be reached): the record goes straight
+      // into its module's store, which syncs it like any hand-made entry.
+      const here = () => runLocally(() => logQuickAdd(text, payload, target))
+      if (!deps.online()) return here()
       const card: RecordCard = {
         t: "record",
         id: newId(),
@@ -666,29 +824,32 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
         refs: [],
         log: [{ at: nowIso(), action: "proposed", actor: "user" }],
       }
-      void call<Row>(
-        "POST",
-        "/capture/quick-add",
-        {
+      void deps.http
+        .request<Row>("POST", "/capture/quick-add", {
           client_uuid: newId(),
           text: text.slice(0, 280),
           payload: payloadToServer(payload, cats),
-        },
-        (d) => {
-          detail(d)
-          const saved = ((d.cards ?? []) as Row[])[0]
-          toast.success(`Saved · ${text}`, {
-            duration: 5000,
-            action: saved
-              ? {
-                  label: "Undo",
-                  onClick: () => backend.undo(String(saved.id), true),
-                }
-              : undefined,
-          })
-        },
-        "Couldn't save that. Try again.",
-      )
+        })
+        .then(
+          (d) => {
+            detail(d)
+            deps.kick()
+            const saved = ((d.cards ?? []) as Row[])[0]
+            toast.success(`Saved · ${text}`, {
+              duration: 5000,
+              action: saved
+                ? {
+                    label: "Undo",
+                    onClick: () => backend.undo(String(saved.id), true),
+                  }
+                : undefined,
+            })
+          },
+          (error: unknown) => {
+            if (error instanceof NetworkError) here()
+            else toast("Couldn't save that. Try again.")
+          },
+        )
       return card
     },
   }
@@ -1067,6 +1228,7 @@ export function captureMappers(userId: string) {
     keep: keepFile,
     release: releaseFile,
     online: isOnline,
+    act: queueAction,
     kick: syncNow,
     cats: categoryIds(userId),
     watch: onConnectivityChange,

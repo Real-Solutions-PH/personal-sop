@@ -136,6 +136,20 @@ export class SyncEngine {
     void this.sync()
   }
 
+  /** Queue a domain action no store diff stands for (a capture card
+   * decision). An edit still in the debounce window is captured first, so
+   * the outbox keeps the order things happened in; offline it waits there
+   * like every other op. */
+  act(name: string, data: Record<string, unknown>) {
+    if (this.timer) {
+      clearTimeout(this.timer)
+      this.timer = null
+      this.capture()
+    }
+    this.deps.outbox.add([{ op_id: newId(), kind: "action", name, data }])
+    void this.sync()
+  }
+
   /** Send every row this device holds to the server as new: for a server
    * that lost them (a wiped database). Forgets what it believed the server
    * had, so the next diff upserts every local row; ``previous`` is kept, so
