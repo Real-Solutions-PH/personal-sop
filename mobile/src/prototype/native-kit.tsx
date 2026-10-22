@@ -58,8 +58,10 @@ export function Copy({
               48: 48,
             } as Record<number, number>
           )[size] ?? size * 1.5,
-        color: muted ? t.muted : t.text,
         ...style,
+        // A caller passing `color: undefined` keeps the theme colour rather
+        // than falling back to the platform's black.
+        color: style?.color ?? (muted ? t.muted : t.text),
       }}
     >
       {children}

@@ -462,7 +462,7 @@ export function outdoorAdvice(
     return {
       kind: lead.kind,
       tone: lead.kind === "storm" ? "bad" : "warn",
-      text: `${lead.text} — ${lead.kind === "storm" ? "avoid open ground" : "bring a jacket"}`,
+      text: `${lead.text} — ${lead.kind === "storm" ? "avoid open ground" : "bring an umbrella"}`,
     }
   const rest = planAdvice(f, plan, unit, now)
   if (!lead || rest.kind === "none") return rest
@@ -510,8 +510,8 @@ function planAdvice(
       tone: "warn",
       text:
         w === "now"
-          ? `${pre}Raining now — bring a jacket`
-          : `${pre}Rain likely ${w} — bring a jacket`,
+          ? `${pre}Raining now — bring an umbrella`
+          : `${pre}Rain likely ${w} — bring an umbrella`,
     }
   }
   const hottest = hours.reduce((a, b) => (b.feels > a.feels ? b : a))
