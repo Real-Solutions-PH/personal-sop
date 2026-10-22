@@ -78,7 +78,13 @@ beforeEach(() => {
     removeItem: () => {},
   })
   resetAll()
-  wake.setState({ armed: false, listening: false, pending: null })
+  wake.setState({
+    armed: false,
+    listening: false,
+    pending: null,
+    heard: "",
+    trouble: null,
+  })
   dictating.setState({ on: false })
 })
 afterEach(() => jest.useRealTimers())
@@ -91,11 +97,17 @@ describe("wakeCommand", () => {
     ["okay fern", ""],
     ["so um hey Fern log lunch 200", "log lunch 200"],
     ["Hey Fern, Spent 250 on Lunch", "Spent 250 on Lunch"],
+    ["Hey Pern", ""],
+    ["hey burn add milk", "add milk"],
+    ["A Fern", ""],
+    ["a fern what's left today", "what's left today"],
   ])("hears %j", (text, rest) => {
     expect(wakeCommand(text)).toBe(rest)
   })
   test.each([
     "I bought a fern today",
+    "water a fern",
+    "hey burned",
     "they fern",
     "hey ferny",
     "hey there",
@@ -130,6 +142,20 @@ describe("the listener", () => {
       }),
     )
     expect(wake.getState()).toMatchObject({ armed: true, listening: true })
+    l.dispose()
+  })
+
+  test("shows the last words heard and real trouble, not silence", () => {
+    const { l } = make()
+    l.setWanted(true)
+    said("so I was saying that hey pearl add milk")
+    expect(wake.getState().heard).toBe("saying that hey pearl add milk")
+    fire("error", { error: "no-speech" })
+    expect(wake.getState().trouble).toBeNull()
+    fire("error", { error: "audio-capture" })
+    expect(wake.getState().trouble).toBe("audio-capture")
+    said("hello")
+    expect(wake.getState().trouble).toBeNull()
     l.dispose()
   })
 

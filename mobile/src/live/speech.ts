@@ -104,14 +104,27 @@ export async function toggleSpeech(id: string, deps: SpeechDeps) {
   speaking.setState({ id, state: "loading" })
   let uri = d.cached(id)
   if (!uri) {
-    const res = await d.http.raw(`/companion/messages/${id}/speech`, {
-      method: "POST",
-    })
+    // Any failure here puts the state back to idle: a state left at
+    // "loading" keeps the microphone off for "Hey Fern" until a restart.
+    let res: Response
+    try {
+      res = await d.http.raw(`/companion/messages/${id}/speech`, {
+        method: "POST",
+      })
+    } catch {
+      if (speaking.getState().id === id) stopSpeech()
+      throw new SpeechError("failed")
+    }
     if (!res.ok) {
       speaking.setState({ id: null, state: "idle" })
       throw new SpeechError(res.status === 503 ? "unavailable" : "failed")
     }
-    uri = await d.save(id, new Uint8Array(await res.arrayBuffer()))
+    try {
+      uri = await d.save(id, new Uint8Array(await res.arrayBuffer()))
+    } catch {
+      if (speaking.getState().id === id) stopSpeech()
+      throw new SpeechError("failed")
+    }
   }
   // Another reply was tapped while this one loaded: it wins.
   if (speaking.getState().id !== id) return

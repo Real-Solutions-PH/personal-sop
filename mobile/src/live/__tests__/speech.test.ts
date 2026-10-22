@@ -89,3 +89,12 @@ test("no voice on the server is a clear error, and nothing stays loading", async
   )
   expect(speaking.getState()).toEqual({ id: null, state: "idle" })
 })
+
+test("a reply that cannot be fetched leaves nothing playing", async () => {
+  const { deps } = harness()
+  deps.http.raw = async () => {
+    throw new TypeError("Network request failed")
+  }
+  await expect(toggleSpeech("m1", deps)).rejects.toBeInstanceOf(SpeechError)
+  expect(speaking.getState()).toEqual({ id: null, state: "idle" })
+})

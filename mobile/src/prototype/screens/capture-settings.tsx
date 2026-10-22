@@ -34,7 +34,12 @@ import { go } from "../navigation"
 import { Switch } from "../switch"
 import { useTheme } from "../theme"
 import { Button, confirm, Screen } from "../ui"
-import { allowWakeListening, canListenForWake, wakePrefs } from "../wake-word"
+import {
+  allowWakeListening,
+  canListenForWake,
+  wake,
+  wakePrefs,
+} from "../wake-word"
 
 // AI spend and its cap are the service's cost, priced in pesos for every
 // user; the confirm threshold is the user's own money.
@@ -608,6 +613,42 @@ function Connector() {
   )
 }
 
+/** What the listener is doing right now and the last words it heard, so a
+ * "Hey Fern" that never wakes shows what it came out as. */
+function WakeStatus({ name }: { name: string }) {
+  const t = useTheme()
+  const armed = wake((s) => s.armed)
+  const heard = wake((s) => s.heard)
+  const trouble = wake((s) => s.trouble)
+  const state = !armed
+    ? "Paused while dictating or reading aloud"
+    : trouble
+      ? `Can't listen right now (${trouble})`
+      : "Listening"
+  return (
+    <View accessibilityLiveRegion="polite" style={{ gap: 4 }}>
+      <Line style={{ gap: 8, alignItems: "center" }}>
+        <View
+          style={{
+            width: 8,
+            height: 8,
+            borderRadius: 4,
+            backgroundColor: armed && !trouble ? t.primary : t.muted,
+          }}
+        />
+        <Copy size={12} weight="semibold">
+          {state}
+        </Copy>
+      </Line>
+      <Copy size={12} muted>
+        {heard
+          ? `Last heard: “${heard}”`
+          : `Say “Hey ${name}” and what it hears shows here.`}
+      </Copy>
+    </View>
+  )
+}
+
 /** "Hey Fern": off until the person turns it on, with what it does to the
  * microphone said before they do. */
 function WakeWordSetting() {
@@ -657,6 +698,7 @@ function WakeWordSetting() {
             onChange={(v) => void toggle(v)}
           />
         </Line>
+        {on && <WakeStatus name={name} />}
         <View
           style={{
             gap: 6,
