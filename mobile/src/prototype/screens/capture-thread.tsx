@@ -67,6 +67,9 @@ export function AiAvatar({ size = 24 }: { size?: number }) {
   const on = thinking((s) => s.on)
   return <Orb size={size} active={on} />
 }
+/** The composer box: one line, up to about six. */
+const INPUT_MIN = 44
+const INPUT_MAX = 140
 export function ThreadComposer({
   onSent,
   initialHint,
@@ -99,6 +102,10 @@ export function ThreadComposer({
     [photos, setPhotos] = useState<string[]>([]),
     // This message was dictated: Fern's reply to it is read aloud.
     [spoken, setSpoken] = useState(false),
+    // The box's height from its own content. iOS keeps a multiline input
+    // at its grown height after the text is cleared on send, so it sat tall
+    // and empty while Fern answered; an empty box is always one line.
+    [inputHeight, setInputHeight] = useState(INPUT_MIN),
     online = useOnline()
   const MAX_PHOTOS = 10
   const addPhotos = (more: string[]) =>
@@ -286,9 +293,17 @@ export function ThreadComposer({
                     "Log or ask anything…")
             }
             placeholderTextColor={border(t.muted, 0.7)}
+            onContentSizeChange={(e) =>
+              setInputHeight(
+                Math.min(
+                  INPUT_MAX,
+                  Math.max(INPUT_MIN, e.nativeEvent.contentSize.height + 24),
+                ),
+              )
+            }
+            scrollEnabled={inputHeight >= INPUT_MAX}
             style={{
-              minHeight: 44,
-              maxHeight: 140,
+              height: text ? inputHeight : INPUT_MIN,
               flex: 1,
               paddingVertical: 12,
               fontFamily: fonts.body,

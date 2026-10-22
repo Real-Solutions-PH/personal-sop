@@ -3,7 +3,7 @@
 
 import type { Capture } from "@domain/capture/data"
 import { configureStorage, resetAll } from "@domain/lib/store"
-import { render, screen } from "@testing-library/react-native"
+import { fireEvent, render, screen } from "@testing-library/react-native"
 import { Exchange, ThreadComposer } from "../screens/capture-thread"
 
 jest.mock("expo-router", () => ({
@@ -74,4 +74,21 @@ test("a capture of two photos shows both in its bubble", () => {
   } as unknown as Capture
   render(<Exchange cap={cap} />)
   expect(screen.getByLabelText("2 photos")).toBeTruthy()
+})
+
+test("the box grows with its text and is one line again once cleared", () => {
+  render(<ThreadComposer onText={jest.fn()} hints={false} />)
+  const box = screen.getByLabelText("Capture message")
+  const height = () => {
+    const style = [box.props.style].flat(Number.POSITIVE_INFINITY)
+    return Object.assign({}, ...style).height
+  }
+  fireEvent.changeText(box, "a long message\nover\nseveral\nlines")
+  fireEvent(box, "contentSizeChange", {
+    nativeEvent: { contentSize: { width: 200, height: 80 } },
+  })
+  expect(height()).toBeGreaterThan(44)
+  // Sent: the text is cleared while Fern answers.
+  fireEvent.changeText(box, "")
+  expect(height()).toBe(44)
 })
