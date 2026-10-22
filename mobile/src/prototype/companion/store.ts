@@ -89,6 +89,12 @@ export type Msg = {
   at: number
   text?: string
   blocks?: Block[]
+  /** Device-only, on a question the server has not stored yet: being sent,
+   * waiting for a connection (sent on reconnect), or failed (Retry). The
+   * server's copy (same id) replaces it and clears this. */
+  status?: "sending" | "queued" | "failed"
+  /** The question's capture hint, kept so a queued or retried ask sends it. */
+  hint?: string
 }
 export type Tracker = {
   id: string
@@ -191,6 +197,12 @@ export const setAskBackend = (b: AskBackend | null) => {
   askBackend = b
 }
 export const liveAsk = () => askBackend
+let retryBackend: ((id: string) => void) | null = null
+export const setRetryAsk = (b: ((id: string) => void) | null) => {
+  retryBackend = b
+}
+/** Send a failed question again (live mode). */
+export const retryAsk = (id: string) => retryBackend?.(id)
 
 /** The next message was spoken (dictated): its reply is read aloud as soon
  * as it arrives, the way voice chat works in other assistants. */

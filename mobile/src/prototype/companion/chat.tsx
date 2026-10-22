@@ -58,6 +58,7 @@ import { Exchange, ThreadComposer } from "../screens/capture-thread"
 import { fonts, useTheme } from "../theme"
 import { Screen } from "../ui"
 import { wake } from "../wake-word"
+import { AskStatus } from "./ask-status"
 import { BlockView, Chips, TrackerCard } from "./blocks"
 import { ask } from "./brain"
 import { Orb } from "./orb"
@@ -207,6 +208,7 @@ function MyMessage({ m }: { m: Msg }) {
           </Text>
         </View>
       )}
+      <AskStatus m={m} />
     </Animated.View>
   )
 }
