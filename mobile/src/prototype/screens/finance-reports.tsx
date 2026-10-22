@@ -139,6 +139,7 @@ export function Reports({
         value={p}
         options={PERIODS.map((o) => o.value)}
         onChange={setP}
+        gap={12}
       >
         {kind && (
           <Copy size={12} muted style={{ paddingHorizontal: 4 }}>
