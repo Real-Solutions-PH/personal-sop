@@ -2,8 +2,11 @@ import {
   addComment,
   addStory,
   agoText,
+  cheer,
+  cheerCounts,
   createGroup,
   directChat,
+  like,
   ME,
   markChatRead,
   markSeen,
@@ -86,4 +89,29 @@ test("unread counts only others' messages after the read mark; reactions toggle"
 test("relative time labels", () => {
   expect(agoText(Date.now())).toBe("Just now")
   expect(agoText(Date.now() - 3 * 3_600_000)).toBe("3h ago")
+})
+
+test("a cheer switches kind, comes back off, and a double-tap keeps it", () => {
+  const id = socialStore.get().posts.find((p) => p.id === "p4")!.id
+  const at = () => socialStore.get().posts.find((p) => p.id === id)!
+  // Seed p4: 33 keep going, 12 proud, 6 inspired = 51.
+  expect(cheerCounts(at())).toEqual({ keep_going: 33, proud: 12, inspired: 6 })
+  cheer(id, "proud")
+  expect(at()).toMatchObject({ myCheer: "proud", liked: true, likes: 52 })
+  expect(cheerCounts(at()).proud).toBe(13)
+  cheer(id, "inspired")
+  expect(cheerCounts(at())).toEqual({ keep_going: 33, proud: 12, inspired: 7 })
+  expect(at().likes).toBe(52)
+  like(id)
+  expect(at().myCheer).toBe("inspired")
+  cheer(id, "inspired")
+  expect(at()).toMatchObject({ myCheer: undefined, liked: false, likes: 51 })
+  like(id)
+  expect(at()).toMatchObject({ myCheer: "keep_going", likes: 52 })
+})
+
+test("a post saved before cheer kinds counts its likes as keep going", () => {
+  const p = socialStore.get().posts[0]
+  const legacy = { ...p, likes: 5, liked: true, cheers: undefined }
+  expect(cheerCounts(legacy)).toEqual({ keep_going: 5, proud: 0, inspired: 0 })
 })

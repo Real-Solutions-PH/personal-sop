@@ -3,6 +3,7 @@
 // src/prototype/__tests__/social.test.ts, which runs without these mocks.
 
 import {
+  cheer,
   connectSocial,
   createPost,
   deletePost,
@@ -206,13 +207,75 @@ test("a like is applied at once and rolled back with a toast when the server fai
   // Optimistic: liked before the server answers.
   expect(post()).toMatchObject({ liked: true, likes: 4 })
   expect(calls).toEqual([
-    { method: "PUT", path: `/social/posts/${POST}/like`, body: undefined },
+    {
+      method: "PUT",
+      path: `/social/posts/${POST}/like?kind=keep_going`,
+      body: undefined,
+    },
   ])
 
   fail(new ApiError(500, "boom", "boom"))
   await settle()
   expect(post()).toMatchObject({ liked: false, likes: 3 })
-  expect(mockToasts).toEqual(["Couldn't like the post. Please try again."])
+  expect(mockToasts).toEqual(["Couldn't cheer the post. Please try again."])
+})
+
+test("a cheer sends its kind and keeps the server's counts and progress day", async () => {
+  socialStore.set((s) => ({
+    ...s,
+    posts: [
+      {
+        id: POST,
+        by: ANA,
+        at: 0,
+        caption: "",
+        media: [],
+        likes: 3,
+        liked: false,
+        saved: false,
+        likedBy: [],
+        comments: [],
+      },
+    ],
+  }))
+  // Hand-written server answer: 3 earlier cheers plus mine, and the post's
+  // check-in card as the API stores it (snake_case flag).
+  const answer = wirePost({
+    likes: 4,
+    liked: true,
+    cheers: { keep_going: 2, proud: 2, inspired: 0 },
+    my_cheer: "proud",
+    progress: {
+      accent: "fit",
+      kind: "Habit streak",
+      title: "Morning run",
+      stats: [],
+      day: 12,
+      of: 30,
+      before_after: false,
+    },
+  })
+  const { http, calls } = fakeHttp({
+    [`PUT /social/posts/${POST}/like`]: () => answer,
+  })
+  connectSocial(createSocialLive({ http, userId: MEID }))
+
+  cheer(POST, "proud")
+  // Optimistic: an older post counts its likes as "keep going".
+  expect(socialStore.get().posts[0]).toMatchObject({
+    likes: 4,
+    myCheer: "proud",
+    cheers: { keep_going: 3, proud: 1, inspired: 0 },
+  })
+  expect(calls[0].path).toBe(`/social/posts/${POST}/like?kind=proud`)
+  await settle()
+  expect(socialStore.get().posts[0]).toMatchObject({
+    likes: 4,
+    liked: true,
+    myCheer: "proud",
+    cheers: { keep_going: 2, proud: 2, inspired: 0 },
+    progress: { day: 12, of: 30, beforeAfter: false },
+  })
 })
 
 test("a write made offline fails at once with a toast and changes nothing", () => {
@@ -239,7 +302,7 @@ test("a write made offline fails at once with a toast and changes nothing", () =
   toggleLike(POST)
   expect(socialStore.get().posts[0]).toMatchObject({ liked: false, likes: 3 })
   expect(calls).toEqual([])
-  expect(mockToasts).toEqual(["You're offline. Couldn't like the post."])
+  expect(mockToasts).toEqual(["You're offline. Couldn't cheer the post."])
 })
 
 test("a chat message arriving by event is fetched and merged; typing clears", async () => {

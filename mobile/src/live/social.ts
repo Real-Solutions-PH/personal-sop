@@ -12,6 +12,7 @@
 import {
   type Activity,
   type Chat,
+  type Cheer,
   type Comment,
   connectSocial,
   ME,
@@ -70,6 +71,9 @@ interface WPost {
   tags: string[]
   likes: number
   liked: boolean
+  /** Absent from a server older than cheer kinds. */
+  cheers?: Partial<Record<Cheer, number>>
+  my_cheer?: Cheer | null
   saved: boolean
   comments: number
   liked_by: WBrief[]
@@ -340,6 +344,14 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
   }
 
   // ------------------------------------------------------------ mappers
+  /** The stored card as the screens read it (``before_after`` on the wire). */
+  const progressOut = (
+    w: Record<string, unknown> | null,
+  ): Progress | undefined => {
+    if (!w) return undefined
+    const { before_after, ...rest } = w
+    return { ...(rest as Progress), beforeAfter: before_after === true }
+  }
   const mapMedia = (m: WMedia, prev?: Media): Media => ({
     kind: m.kind,
     uri: m.url ?? prev?.uri ?? "",
@@ -352,10 +364,12 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
       at: ms(w.created_at),
       caption: w.caption,
       media: w.media.map((m, i) => mapMedia(m, prev?.media[i])),
-      progress: (w.progress as Progress | null) ?? undefined,
+      progress: progressOut(w.progress),
       location: w.location ?? undefined,
       likes: w.likes,
       liked: w.liked,
+      cheers: w.cheers,
+      myCheer: w.my_cheer ?? undefined,
       saved: w.saved,
       likedBy: w.liked_by.map((b) => pid(b.id)),
       comments: prev?.comments ?? [],
@@ -379,7 +393,7 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
     uri: w.media?.url ?? prev?.uri,
     text: w.text ?? undefined,
     bg: w.bg ? [w.bg[0], w.bg[1]] : undefined,
-    progress: (w.progress as Progress | null) ?? undefined,
+    progress: progressOut(w.progress),
     audience: w.audience,
     likes: w.likes ?? undefined,
     liked: w.liked,
@@ -851,6 +865,9 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
           subtitle: p.subtitle,
           stats: p.stats,
           spark: p.spark,
+          day: p.day,
+          of: p.of,
+          before_after: p.beforeAfter ?? false,
         }
       : null
   const onOff = (on: boolean) => (on ? "PUT" : "DELETE")
@@ -894,7 +911,11 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
     search,
     loadExplore,
 
-    likePost: (id, on) => postWrite(onOff(on), `/social/posts/${id}/like`),
+    likePost: (id, on, kind) =>
+      postWrite(
+        onOff(on),
+        `/social/posts/${id}/like${on && kind ? `?kind=${kind}` : ""}`,
+      ),
     savePost: (id, on) => postWrite(onOff(on), `/social/posts/${id}/save`),
     async createPost(post) {
       pending.add(post.id)

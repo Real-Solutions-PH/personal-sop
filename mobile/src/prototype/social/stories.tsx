@@ -1,5 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient"
-import { Eye, Send, Trash2, X } from "lucide-react-native"
+import { Eye, Plus, Send, Trash2, X } from "lucide-react-native"
 import { useEffect, useMemo, useRef, useState } from "react"
 import {
   Image,
@@ -25,10 +25,19 @@ import Animated, {
 } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
-import { back, go } from "../navigation"
+import { back, go, replace } from "../navigation"
 import { fonts } from "../theme"
 import { confirm } from "../ui"
-import { Avatar, haptic, LikeHeart, ProgressCard, VideoMedia } from "./kit"
+import {
+  Avatar,
+  CheckInOverlay,
+  CheckInSlide,
+  haptic,
+  isCheckIn,
+  LikeHeart,
+  ProgressCard,
+  VideoMedia,
+} from "./kit"
 import {
   deleteStory,
   directChat,
@@ -73,7 +82,28 @@ function Bar({
   )
 }
 
-function Slide({
+/** A story slide, with its check-in (day N, what was done) laid over it. */
+function Slide(props: {
+  item: StoryItem
+  width: number
+  height: number
+  playing: boolean
+}) {
+  const { item } = props
+  const over = item.progress && item.kind !== "progress"
+  return (
+    <View>
+      <SlideBody {...props} />
+      {over && item.progress && (
+        <View style={{ position: "absolute", left: 16, right: 16, bottom: 24 }}>
+          <CheckInOverlay progress={item.progress} />
+        </View>
+      )}
+    </View>
+  )
+}
+
+function SlideBody({
   item,
   width,
   height,
@@ -84,6 +114,10 @@ function Slide({
   height: number
   playing: boolean
 }) {
+  if (item.kind === "progress" && isCheckIn(item.progress) && item.progress)
+    return (
+      <CheckInSlide progress={item.progress} width={width} height={height} />
+    )
   if (item.kind === "image" && item.uri)
     return (
       <Image
@@ -384,7 +418,7 @@ export function StoryViewer({ id }: { id: string }) {
                   fontSize: 14,
                 }}
               >
-                {mine ? "Your story" : person?.username}
+                {mine ? "Your check-ins" : person?.username}
               </Text>
               <Text
                 style={{
@@ -453,12 +487,31 @@ export function StoryViewer({ id }: { id: string }) {
               </Text>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Delete story"
+                accessibilityLabel="Add a check-in"
+                onPress={() => replace("/social/story-new")}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 6,
+                  minHeight: 40,
+                  paddingHorizontal: 14,
+                  borderRadius: 20,
+                  backgroundColor: "#ffffff26",
+                }}
+              >
+                <Plus size={18} color="#fff" />
+                <Text style={{ color: "#fff", fontFamily: fonts.semibold }}>
+                  Add check-in
+                </Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Delete check-in"
                 onPress={() => {
                   setPaused(true)
                   confirm(
-                    "Delete story?",
-                    "It will be removed from your story.",
+                    "Delete check-in?",
+                    "It will be removed from your check-ins.",
                     () => {
                       deleteStory(item.id)
                       if (items.length <= 1) close()

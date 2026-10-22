@@ -7,11 +7,9 @@ import {
   Copy,
   Image as ImageIcon,
   Info,
-  Phone,
   Reply,
   Trash2,
   UserPlus,
-  Video,
   X,
 } from "lucide-react-native"
 import { useEffect, useMemo, useRef, useState } from "react"
@@ -1008,18 +1006,6 @@ export function ChatScreen({ id }: { id: string }) {
           </View>
           {chat.muted && <BellOff size={14} color={t.muted} />}
         </Pressable>
-        <Bounce
-          label="Voice call"
-          onPress={() => toast("Calls aren't part of the prototype yet")}
-        >
-          <Phone size={22} color={t.text} />
-        </Bounce>
-        <Bounce
-          label="Video call"
-          onPress={() => toast("Calls aren't part of the prototype yet")}
-        >
-          <Video size={24} color={t.text} />
-        </Bounce>
         <Bounce label="Details" onPress={() => setInfo(true)}>
           <Info size={22} color={t.text} />
         </Bounce>

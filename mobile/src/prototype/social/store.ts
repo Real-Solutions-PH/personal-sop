@@ -19,9 +19,21 @@ export type Progress = {
   subtitle?: string
   stats: ProgressStat[]
   spark?: number[]
+  /** A check-in on something ongoing: day 12 (of a 30-day target). */
+  day?: number
+  of?: number
+  /** The post's first two photos are a before and an after. */
+  beforeAfter?: boolean
   /** PNG of an exported share card, when the device could capture one. */
   image?: string
 }
+/** Encouragement in place of a like: one per person per post. */
+export type Cheer = "keep_going" | "proud" | "inspired"
+export const CHEERS: { kind: Cheer; emoji: string; label: string }[] = [
+  { kind: "keep_going", emoji: "🔥", label: "Keep going" },
+  { kind: "proud", emoji: "👏", label: "Proud of you" },
+  { kind: "inspired", emoji: "💡", label: "Inspired" },
+]
 export type Area = "habits" | "tasks" | "fitness" | "finance"
 export type Trophy = {
   type: "pr" | "streak" | "best" | "goal" | "first"
@@ -69,8 +81,11 @@ export type Post = {
   media: Media[]
   progress?: Progress
   location?: string
+  /** Every cheer, whatever its kind; ``cheers`` splits it by kind. */
   likes: number
   liked: boolean
+  cheers?: Partial<Record<Cheer, number>>
+  myCheer?: Cheer
   saved: boolean
   likedBy: string[]
   comments: Comment[]
@@ -329,6 +344,16 @@ const people: Person[] = [
   },
 ]
 
+/** A daily check-in card: "Day 12 of 30 · Morning run done". */
+export function checkIn(
+  accent: Accent,
+  title: string,
+  day?: number,
+  of?: number,
+): Progress {
+  return { accent, kind: "Check-in", title, day, of, stats: [] }
+}
+
 export function seed(): SocialState {
   const now = Date.now()
   const ago = (ms: number) => now - ms
@@ -340,26 +365,29 @@ export function seed(): SocialState {
         by: "ana",
         at: ago(42 * MIN),
         caption:
-          "New squat PR 🎉 140kg finally moved. Twelve weeks of boring 5x5 paid off. #legday #progress",
+          "Squat goal reached 🎉 140 kg finally moved. Twelve weeks of boring 5x5 paid off. #legday #progress",
         media: [
           { kind: "image", uri: photo("photo-1534438327276-14e5300c3a48") },
           { kind: "image", uri: photo("photo-1517836357463-d25dfeac3438") },
         ],
         progress: {
           accent: "fit",
-          kind: "Workout",
-          title: "Lower A",
-          subtitle: "Personal record",
+          kind: "Goal",
+          title: "Squat 140 kg",
+          subtitle: "Goal reached in 12 weeks",
+          day: 84,
+          of: 84,
           stats: [
             { label: "Top set", value: "140", unit: "kg" },
-            { label: "Volume", value: "8.4", unit: "t" },
-            { label: "Time", value: "72", unit: "min" },
+            { label: "Started at", value: "118", unit: "kg" },
+            { label: "Sessions", value: "36" },
           ],
           spark: [118, 120, 124, 125, 128, 131, 133, 136, 140],
         },
         location: "Anytime Fitness BGC",
         likes: 128,
         liked: false,
+        cheers: { keep_going: 31, proud: 82, inspired: 15 },
         saved: false,
         likedBy: ["marco", "bea"],
         comments: [
@@ -394,9 +422,25 @@ export function seed(): SocialState {
             ratio: 9 / 16,
           },
         ],
+        progress: {
+          accent: "fit",
+          kind: "Training plan",
+          title: "Sub-20 5K plan",
+          subtitle: "Interval day",
+          day: 23,
+          of: 56,
+          stats: [
+            { label: "Reps", value: "6 × 800", unit: "m" },
+            { label: "Avg pace", value: "3:52", unit: "/km" },
+            { label: "Week", value: "4", unit: "of 8" },
+          ],
+          spark: [4.3, 4.25, 4.2, 4.1, 4.05, 3.98, 3.92],
+        },
         location: "UP Diliman Oval",
         likes: 64,
         liked: true,
+        cheers: { keep_going: 50, proud: 9, inspired: 5 },
+        myCheer: "keep_going",
         saved: false,
         likedBy: ["ana", "josh"],
         comments: [
@@ -415,14 +459,28 @@ export function seed(): SocialState {
         by: "bea",
         at: ago(6 * HOUR),
         caption:
-          "Sunday prep done ✅ 5 lunches, 2,100 kcal, 160g protein a day. Recipe in comments.",
+          "Sunday prep done ✅ 5 lunches, 2,100 kcal, 160 g protein a day. Recipe in comments.",
         media: [
           { kind: "image", uri: photo("photo-1512621776951-a57141f2eefd") },
           { kind: "image", uri: photo("photo-1546483875-ad9014c88eba") },
           { kind: "image", uri: photo("photo-1504674900247-0877df9cc836") },
         ],
+        progress: {
+          accent: "nut",
+          kind: "Habit streak",
+          title: "160 g protein a day",
+          subtitle: "27-day streak",
+          day: 27,
+          of: 30,
+          stats: [
+            { label: "Streak", value: "27", unit: "days" },
+            { label: "Avg protein", value: "158", unit: "g" },
+            { label: "Hit rate", value: "91", unit: "%" },
+          ],
+        },
         likes: 342,
         liked: false,
+        cheers: { keep_going: 140, proud: 52, inspired: 150 },
         saved: true,
         likedBy: ["ana", "lia"],
         comments: [
@@ -448,6 +506,7 @@ export function seed(): SocialState {
           kind: "Habit streak",
           title: "Morning routine",
           subtitle: "214-day streak",
+          day: 214,
           stats: [
             { label: "Streak", value: "214", unit: "days" },
             { label: "30-day rate", value: "97", unit: "%" },
@@ -457,8 +516,43 @@ export function seed(): SocialState {
         },
         likes: 51,
         liked: false,
+        cheers: { keep_going: 33, proud: 12, inspired: 6 },
         saved: false,
         likedBy: ["marco"],
+        comments: [],
+      },
+      {
+        id: "p9",
+        by: "marco",
+        at: ago(22 * HOUR),
+        caption:
+          "12 weeks of running before work. Same shirt, different guy. Still going.",
+        media: [
+          { kind: "image", uri: photo("photo-1552674605-db6ffd4facb5") },
+          { kind: "image", uri: photo("photo-1476480862126-209bfaa8edc8") },
+        ],
+        progress: {
+          accent: "fit",
+          kind: "Weigh-in",
+          title: "−6.4 kg in 12 weeks",
+          subtitle: "Weekly average",
+          beforeAfter: true,
+          day: 84,
+          stats: [
+            { label: "Start", value: "82.1", unit: "kg" },
+            { label: "Now", value: "75.7", unit: "kg" },
+            { label: "Per week", value: "−0.5", unit: "kg" },
+          ],
+          spark: [
+            82.1, 81.4, 80.9, 80.2, 79.6, 79.1, 78.4, 77.9, 77.2, 76.6, 76.1,
+            75.7,
+          ],
+        },
+        likes: 96,
+        liked: false,
+        cheers: { keep_going: 40, proud: 38, inspired: 18 },
+        saved: false,
+        likedBy: ["ana", "josh"],
         comments: [],
       },
       {
@@ -470,7 +564,7 @@ export function seed(): SocialState {
         media: [],
         progress: {
           accent: "fin",
-          kind: "Savings goal",
+          kind: "Goal",
           title: "Emergency fund",
           subtitle: "Goal reached",
           stats: [
@@ -482,6 +576,7 @@ export function seed(): SocialState {
         },
         likes: 902,
         liked: false,
+        cheers: { keep_going: 120, proud: 610, inspired: 172 },
         saved: false,
         likedBy: ["bea", "lia"],
         comments: [],
@@ -495,8 +590,21 @@ export function seed(): SocialState {
         media: [
           { kind: "image", uri: photo("photo-1506126613408-eca07ce68773") },
         ],
+        progress: {
+          accent: "life",
+          kind: "Habit streak",
+          title: "Morning mobility",
+          subtitle: "96-day streak",
+          day: 96,
+          of: 100,
+          stats: [
+            { label: "Streak", value: "96", unit: "days" },
+            { label: "Minutes", value: "10", unit: "a day" },
+          ],
+        },
         likes: 1204,
         liked: false,
+        cheers: { keep_going: 700, proud: 204, inspired: 300 },
         saved: false,
         likedBy: ["ana"],
         comments: [],
@@ -509,8 +617,20 @@ export function seed(): SocialState {
         media: [
           { kind: "image", uri: photo("photo-1476480862126-209bfaa8edc8") },
         ],
+        progress: {
+          accent: "fit",
+          kind: "Workout",
+          title: "10K run",
+          subtitle: "Longest run this year",
+          stats: [
+            { label: "Distance", value: "10", unit: "km" },
+            { label: "Time", value: "58:12" },
+            { label: "Pace", value: "5:49", unit: "/km" },
+          ],
+        },
         likes: 37,
         liked: false,
+        cheers: { keep_going: 20, proud: 15, inspired: 2 },
         saved: false,
         likedBy: ["ana", "marco"],
         comments: [
@@ -532,8 +652,20 @@ export function seed(): SocialState {
         media: [
           { kind: "image", uri: photo("photo-1490645935967-10de6ba17061") },
         ],
+        progress: {
+          accent: "nut",
+          kind: "Habit streak",
+          title: "Sunday meal prep",
+          day: 21,
+          of: 30,
+          stats: [
+            { label: "Streak", value: "21", unit: "days" },
+            { label: "Lunches", value: "15" },
+          ],
+        },
         likes: 22,
         liked: false,
+        cheers: { keep_going: 14, proud: 6, inspired: 2 },
         saved: false,
         likedBy: ["bea"],
         comments: [],
@@ -546,6 +678,7 @@ export function seed(): SocialState {
         at: ago(HOUR),
         kind: "image",
         uri: photo("photo-1583454110551-21f2fa2afe61", 720),
+        progress: checkIn("fit", "Leg day done", 41),
       },
       {
         id: "s2",
@@ -556,6 +689,7 @@ export function seed(): SocialState {
           accent: "fit",
           kind: "Workout",
           title: "Squat PR",
+          day: 41,
           stats: [
             { label: "Top set", value: "140", unit: "kg" },
             { label: "Reps", value: "1" },
@@ -569,6 +703,7 @@ export function seed(): SocialState {
         kind: "image",
         uri: photo("photo-1546483875-ad9014c88eba", 720),
         audience: "close",
+        progress: checkIn("nut", "Meal prep done", 27, 30),
       },
       {
         id: "s4",
@@ -576,14 +711,16 @@ export function seed(): SocialState {
         at: ago(4 * HOUR),
         kind: "video",
         uri: "https://assets.mixkit.co/videos/32807/32807-360.mp4",
+        progress: checkIn("fit", "Track session done", 23, 56),
       },
       {
         id: "s5",
         by: "josh",
         at: ago(7 * HOUR),
         kind: "text",
-        text: "Discipline is choosing between what you want now and what you want most.",
+        text: "Morning routine done. Discipline is choosing what you want most.",
         bg: ["#7246cf", "#06070a"],
+        progress: checkIn("hab", "Morning routine", 215),
       },
       {
         id: "s6",
@@ -591,6 +728,7 @@ export function seed(): SocialState {
         at: ago(9 * HOUR),
         kind: "image",
         uri: photo("photo-1502904550040-7534597429ae", 720),
+        progress: checkIn("life", "Mobility done", 97, 100),
       },
     ],
     seen: ["s6"],
@@ -692,7 +830,14 @@ export function seed(): SocialState {
       },
     ],
     activity: [
-      { id: "a1", kind: "like", by: "ana", at: ago(15 * MIN), postId: "p7" },
+      {
+        id: "a1",
+        kind: "like",
+        by: "ana",
+        at: ago(15 * MIN),
+        postId: "p7",
+        text: "proud",
+      },
       {
         id: "a2",
         kind: "comment",
@@ -711,7 +856,14 @@ export function seed(): SocialState {
         postId: "p4",
         text: "@you keeping me honest every morning",
       },
-      { id: "a6", kind: "like", by: "bea", at: ago(9 * DAY), postId: "p8" },
+      {
+        id: "a6",
+        kind: "like",
+        by: "bea",
+        at: ago(9 * DAY),
+        postId: "p8",
+        text: "keep_going",
+      },
     ],
     activityReadAt: ago(DAY),
     drafts: {},
@@ -745,7 +897,7 @@ export interface SocialRemote {
   /** Explore search: people, or posts by tag when it starts with #. */
   search(q: string): Promise<void>
   loadExplore(): Promise<void>
-  likePost(id: string, on: boolean): Promise<unknown>
+  likePost(id: string, on: boolean, kind?: Cheer): Promise<unknown>
   savePost(id: string, on: boolean): Promise<unknown>
   createPost(post: Post): Promise<unknown>
   updateCaption(id: string, caption: string): Promise<unknown>
@@ -924,29 +1076,55 @@ export function usePerson(id: string): Person | undefined {
   return id === ME ? me : other
 }
 
+/** Cheers on a post by kind. Posts saved before cheers had kinds count
+ * every like as "keep going". */
+export function cheerCounts(p: Post): Record<Cheer, number> {
+  const c = p.cheers
+  if (!c) return { keep_going: p.likes, proud: 0, inspired: 0 }
+  return {
+    keep_going: c.keep_going ?? 0,
+    proud: c.proud ?? 0,
+    inspired: c.inspired ?? 0,
+  }
+}
+const myCheerOf = (p: Post): Cheer | undefined =>
+  p.myCheer ?? (p.liked ? "keep_going" : undefined)
+function withCheer(p: Post, next: Cheer | undefined): Post {
+  const counts = cheerCounts(p)
+  const was = myCheerOf(p)
+  if (was) counts[was] = Math.max(0, counts[was] - 1)
+  if (next) counts[next] += 1
+  return {
+    ...p,
+    cheers: counts,
+    myCheer: next,
+    liked: !!next,
+    likes: counts.keep_going + counts.proud + counts.inspired,
+  }
+}
+/** Cheer a post with ``kind``; the same kind again takes the cheer back,
+ * another kind switches it. */
+export function cheer(id: string, kind: Cheer) {
+  const prev = postOf(id)
+  if (!prev) return
+  const on = myCheerOf(prev) !== kind
+  mapPost(id, (p) => withCheer(p, on ? kind : undefined))
+  send(
+    (r) => r.likePost(id, on, on ? kind : undefined),
+    () => putPost(prev),
+    on ? "cheer the post" : "take back your cheer",
+  )
+}
+/** The heart-free toggle: cheer "keep going", or take any cheer back. */
 export function toggleLike(id: string) {
   const prev = postOf(id)
-  mapPost(id, (p) => ({
-    ...p,
-    liked: !p.liked,
-    likes: p.likes + (p.liked ? -1 : 1),
-  }))
-  if (prev)
-    send(
-      (r) => r.likePost(id, !prev.liked),
-      () => putPost(prev),
-      prev.liked ? "unlike the post" : "like the post",
-    )
+  if (!prev) return
+  cheer(id, myCheerOf(prev) ?? "keep_going")
 }
+/** Double-tap: cheer "keep going" unless already cheered. */
 export function like(id: string) {
   const prev = postOf(id)
-  mapPost(id, (p) => (p.liked ? p : { ...p, liked: true, likes: p.likes + 1 }))
-  if (prev && !prev.liked)
-    send(
-      (r) => r.likePost(id, true),
-      () => putPost(prev),
-      "like the post",
-    )
+  if (prev && !myCheerOf(prev)) cheer(id, "keep_going")
 }
 export function toggleSave(id: string) {
   const prev = postOf(id)
@@ -1042,11 +1220,19 @@ export function createPost(
   }
   // Friends react a moment later so the post feels alive.
   setTimeout(() => {
-    mapPost(post.id, (x) => ({
-      ...x,
-      likes: x.likes + 3,
-      likedBy: ["ana", "marco", "bea"],
-    }))
+    mapPost(post.id, (x) => {
+      const c = cheerCounts(x)
+      return {
+        ...x,
+        likes: x.likes + 3,
+        cheers: {
+          keep_going: c.keep_going + 2,
+          proud: c.proud + 1,
+          inspired: c.inspired,
+        },
+        likedBy: ["ana", "marco", "bea"],
+      }
+    })
     set((s) => ({
       ...s,
       activity: [

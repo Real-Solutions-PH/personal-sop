@@ -260,7 +260,7 @@ export function Me() {
           />
           <LinkRow
             title="Social profile"
-            detail="Posts, followers and your public scorecard"
+            detail="Your streaks, goals and progress posts"
             icon={Users}
             accent="primary"
             href="/social/u/me"

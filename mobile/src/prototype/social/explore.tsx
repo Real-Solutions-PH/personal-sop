@@ -14,6 +14,7 @@ import {
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { back, go } from "../navigation"
+import { LockedPreview } from "../screens/locked-preview"
 import { fonts, useTheme } from "../theme"
 import { Empty } from "../ui"
 import { Avatar, Bounce, ProgressCard } from "./kit"
@@ -23,6 +24,7 @@ import { useMyScorecard } from "./sources"
 import {
   type Activity,
   agoText,
+  CHEERS,
   loadExploreLive,
   ME,
   markActivityRead,
@@ -223,10 +225,6 @@ export function Explore() {
     ? posts.filter((p) => p.caption.toLowerCase().includes(tag))
     : []
   const suggested = people.filter((p) => !p.isFollowing)
-  const mosaic = useMemo(
-    () => [...posts].sort((a, b) => b.likes - a.likes),
-    [posts],
-  )
   return (
     <View style={{ flex: 1, backgroundColor: t.bg, paddingTop: safe.top }}>
       <View
@@ -435,7 +433,6 @@ export function Explore() {
               </ScrollView>
             </View>
           )}
-          <Mosaic posts={mosaic} width={width} />
         </ScrollView>
       )}
     </View>
@@ -447,8 +444,11 @@ function ActivityRow({ a, isNew }: { a: Activity; isNew: boolean }) {
   const person = usePerson(a.by)
   const post = socialStore.use((s) => s.posts.find((p) => p.id === a.postId))
   const thumb = post?.media.find((m) => m.kind === "image")
+  const cheer = CHEERS.find((c) => c.kind === a.text)
   const verb = {
-    like: "liked your post.",
+    like: cheer
+      ? `cheered your progress: ${cheer.emoji} ${cheer.label}.`
+      : "cheered your progress.",
     comment: `commented: ${a.text ?? ""}`,
     follow: "started following you.",
     mention: `mentioned you: ${a.text ?? ""}`,
@@ -546,10 +546,56 @@ export function ActivityScreen() {
       <TopBar title="Activity" />
       <ScrollView contentContainerStyle={{ paddingBottom: safe.bottom + 64 }}>
         {sections.length === 0 && (
-          <Empty
-            title="No activity yet"
-            detail="Likes, comments and follows show up here."
-          />
+          <View style={{ paddingHorizontal: 16 }}>
+            <LockedPreview
+              locked
+              title="No cheers yet"
+              detail="Cheers, comments and follows on your progress show up here."
+              action={{
+                label: "Share progress",
+                href: "/social/compose?progress=1",
+              }}
+            >
+              {[0, 1, 2].map((i) => (
+                <View
+                  key={i}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 12,
+                    paddingVertical: 10,
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 22,
+                      backgroundColor: t.soft,
+                    }}
+                  />
+                  <View style={{ flex: 1, gap: 6 }}>
+                    <View
+                      style={{
+                        width: "70%",
+                        height: 10,
+                        borderRadius: 5,
+                        backgroundColor: t.soft,
+                      }}
+                    />
+                    <View
+                      style={{
+                        width: "40%",
+                        height: 8,
+                        borderRadius: 4,
+                        backgroundColor: t.soft,
+                      }}
+                    />
+                  </View>
+                </View>
+              ))}
+            </LockedPreview>
+          </View>
         )}
         {sections.map((s) => (
           <View key={s.title}>

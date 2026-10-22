@@ -2,6 +2,7 @@ import { LinearGradient } from "expo-linear-gradient"
 import {
   Camera,
   ChevronRight,
+  CircleCheck,
   Images,
   Palette,
   Sparkles,
@@ -16,6 +17,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
   Text,
   TextInput,
   useWindowDimensions,
@@ -25,18 +27,96 @@ import Animated, { FadeIn, FadeInDown } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
 import { back, replace } from "../navigation"
-import { fonts } from "../theme"
+import { fonts, useTheme } from "../theme"
 import { ProgressPicker } from "./compose"
-import { Avatar, CLOSE, haptic, ProgressCard, VideoMedia } from "./kit"
+import {
+  Avatar,
+  CheckInOverlay,
+  CheckInSlide,
+  CLOSE,
+  dayLabel,
+  haptic,
+  ProgressCard,
+  VideoMedia,
+} from "./kit"
 import { pickMedia } from "./media"
+import { useCheckInSources } from "./sources"
 import {
   addStory,
+  checkIn,
   clearDrafts,
   ME,
   type Media,
   type Progress,
   socialStore,
 } from "./store"
+
+type Mode = "checkin" | "text" | "media" | "progress"
+
+/** Check-in choices from my own streaks, goals and workout, plus one I
+ * write myself. */
+function CheckInPicker({
+  value,
+  onChange,
+}: {
+  value?: Progress
+  onChange: (p: Progress) => void
+}) {
+  const t = useTheme()
+  const sources = useCheckInSources()
+  const own = checkIn("primary", "Showed up today")
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={{ flexGrow: 0, flexShrink: 0 }}
+      contentContainerStyle={{ gap: 8, paddingHorizontal: 12 }}
+    >
+      {[...sources, own].map((p) => {
+        const on = value?.title === p.title
+        return (
+          <Pressable
+            cssInterop={false}
+            key={p.title}
+            accessibilityRole="button"
+            accessibilityState={{ selected: on }}
+            accessibilityLabel={`Check in: ${p.title}${p.day ? `, day ${p.day}` : ""}`}
+            onPress={() => {
+              haptic.tap()
+              onChange(p)
+            }}
+            style={({ pressed }) => ({
+              width: 148,
+              padding: 12,
+              gap: 4,
+              borderRadius: 16,
+              borderWidth: 2,
+              borderColor: on ? "#fff" : "transparent",
+              backgroundColor: "#ffffff1f",
+              transform: [{ scale: pressed ? 0.96 : 1 }],
+            })}
+          >
+            <Text
+              style={{
+                color: t[p.accent],
+                fontFamily: fonts.semibold,
+                fontSize: 12,
+              }}
+            >
+              {dayLabel(p) ?? p.subtitle ?? "Today"}
+            </Text>
+            <Text
+              numberOfLines={2}
+              style={{ color: "#fff", fontFamily: fonts.medium, fontSize: 14 }}
+            >
+              {p.title}
+            </Text>
+          </Pressable>
+        )
+      })}
+    </ScrollView>
+  )
+}
 
 const BACKGROUNDS: [string, string][] = [
   ["#d62976", "#4f5bd5"],
@@ -51,26 +131,33 @@ export function StoryNew() {
   const safe = useSafeAreaInsets()
   const { width: w, height: h } = useWindowDimensions()
   const width = Math.min(w, 520)
-  const height = Math.min(h - safe.top - safe.bottom - 150, width * (16 / 9))
   const draft = socialStore.use((s) => s.drafts.story)
-  const [mode, setMode] = useState<"text" | "media" | "progress">(
-    draft?.progress ? "progress" : "text",
+  const sources = useCheckInSources()
+  const [mode, setMode] = useState<Mode>(
+    draft?.progress ? "progress" : "checkin",
   )
+  // Room under the preview for the picker row, the mode chips and Share.
+  const chrome = mode === "checkin" ? 270 : mode === "progress" ? 330 : 150
+  const height = Math.min(h - safe.top - safe.bottom - chrome, width * (16 / 9))
   const [media, setMedia] = useState<Media | null>(null)
   const [progress, setProgress] = useState<Progress | undefined>(
     draft?.progress,
   )
+  const [picked, setPicked] = useState<Progress | undefined>()
+  const check = picked ?? sources[0] ?? checkIn("primary", "Showed up today")
   const [text, setText] = useState("")
   const [bg, setBg] = useState(0)
   const ready =
+    mode === "checkin" ||
     (mode === "text" && text.trim()) ||
     (mode === "media" && media) ||
     (mode === "progress" && progress)
+  // A photo taken in check-in mode becomes the check-in's background.
   const pick = async (camera: boolean) => {
     const [m] = await pickMedia({ camera, multiple: false })
     if (m) {
       setMedia(m)
-      setMode("media")
+      if (mode !== "checkin") setMode("media")
     }
   }
   const close = () => {
@@ -79,7 +166,13 @@ export function StoryNew() {
   }
   const share = (audience: "everyone" | "close") => {
     if (!ready) return
-    if (mode === "text")
+    if (mode === "checkin")
+      addStory(
+        media
+          ? { kind: media.kind, uri: media.uri, progress: check, audience }
+          : { kind: "progress", progress: check, audience },
+      )
+    else if (mode === "text")
       addStory({
         kind: "text",
         text: text.trim(),
@@ -91,9 +184,13 @@ export function StoryNew() {
     else if (progress) addStory({ kind: "progress", progress, audience })
     haptic.done()
     toast.success(
-      audience === "close"
-        ? "Shared with close friends"
-        : "Added to your story",
+      mode === "checkin"
+        ? audience === "close"
+          ? "Checked in with close friends"
+          : "Checked in"
+        : audience === "close"
+          ? "Shared with close friends"
+          : "Added to your check-ins",
     )
     replace("/social")
   }
@@ -119,7 +216,38 @@ export function StoryNew() {
             backgroundColor: "#111",
           }}
         >
-          {mode === "media" && media ? (
+          {mode === "checkin" ? (
+            media ? (
+              <View style={{ width, height }}>
+                {media.kind === "video" ? (
+                  <VideoMedia
+                    uri={media.uri}
+                    active
+                    style={{ width, height }}
+                  />
+                ) : (
+                  <Image
+                    source={{ uri: media.uri }}
+                    resizeMode="cover"
+                    style={{ width, height }}
+                    accessibilityLabel="Check-in photo"
+                  />
+                )}
+                <View
+                  style={{
+                    position: "absolute",
+                    left: 16,
+                    right: 16,
+                    bottom: 20,
+                  }}
+                >
+                  <CheckInOverlay progress={check} />
+                </View>
+              </View>
+            ) : (
+              <CheckInSlide progress={check} width={width} height={height} />
+            )
+          ) : mode === "media" && media ? (
             media.kind === "video" ? (
               <VideoMedia uri={media.uri} active style={{ width, height }} />
             ) : (
@@ -236,15 +364,28 @@ export function StoryNew() {
             <ProgressPicker value={progress} onChange={setProgress} />
           </Animated.View>
         )}
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "center",
+        {mode === "checkin" && (
+          <Animated.View entering={FadeInDown} style={{ paddingTop: 10 }}>
+            <CheckInPicker value={check} onChange={setPicked} />
+          </Animated.View>
+        )}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ flexGrow: 0, flexShrink: 0 }}
+          contentContainerStyle={{
             gap: 6,
             paddingVertical: 10,
+            paddingHorizontal: 12,
           }}
         >
           {[
+            {
+              key: "checkin",
+              label: "Check-in",
+              Icon: CircleCheck,
+              run: () => setMode("checkin"),
+            },
             {
               key: "text",
               label: "Text",
@@ -265,12 +406,15 @@ export function StoryNew() {
             },
             {
               key: "progress",
-              label: "Progress",
+              label: "Stat card",
               Icon: Sparkles,
               run: () => setMode("progress"),
             },
           ].map(({ key, label, Icon, run }) => {
-            const on = key === mode || (key === "library" && mode === "media")
+            const on =
+              key === mode ||
+              (key === "library" && mode === "media") ||
+              (key === "library" && mode === "checkin" && !!media)
             return (
               <Pressable
                 key={key}
@@ -300,7 +444,7 @@ export function StoryNew() {
               </Pressable>
             )
           })}
-        </View>
+        </ScrollView>
         <View
           style={{
             flexDirection: "row",
@@ -312,7 +456,9 @@ export function StoryNew() {
         >
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Share to your story"
+            accessibilityLabel={
+              mode === "checkin" ? "Check in" : "Share to your check-ins"
+            }
             disabled={!ready}
             onPress={() => share("everyone")}
             style={{
@@ -328,7 +474,7 @@ export function StoryNew() {
           >
             <Avatar id={ME} size={28} ring={false} />
             <Text style={{ color: "#fff", fontFamily: fonts.semibold }}>
-              Your story
+              {mode === "checkin" ? "Check in" : "Your check-ins"}
             </Text>
           </Pressable>
           <Pressable

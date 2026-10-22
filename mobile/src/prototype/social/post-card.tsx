@@ -21,11 +21,13 @@ import { confirm, Sheet, undo } from "../ui"
 import {
   Avatar,
   Bounce,
+  CheerBar,
   haptic,
-  LikeHeart,
   MediaCarousel,
   Name,
   PersonAvatar,
+  ProgressContext,
+  StatStrip,
 } from "./kit"
 import {
   addStory,
@@ -40,7 +42,6 @@ import {
   simulateReply,
   socialStore,
   toggleFollow,
-  toggleLike,
   toggleSave,
   usePerson,
 } from "./store"
@@ -402,8 +403,9 @@ export const PostCard = memo(function PostCard({
   const likedBy = post.likedBy[0]
   const liker = usePerson(likedBy ?? "")
   const commentCount = Math.max(post.commentCount ?? 0, post.comments.length)
+  const photoFirst = post.media.length > 0
   return (
-    <View style={{ paddingBottom: 16 }}>
+    <View style={{ paddingBottom: 20 }}>
       <View
         style={{
           flexDirection: "row",
@@ -413,17 +415,27 @@ export const PostCard = memo(function PostCard({
           paddingVertical: 10,
         }}
       >
-        <PersonAvatar id={post.by} size={32} />
-        <View style={{ flex: 1 }}>
-          <Name id={post.by} />
-          {post.location && (
+        <PersonAvatar id={post.by} size={36} />
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text numberOfLines={1}>
+            <Name id={post.by} />
+            <Text
+              style={{ color: t.muted, fontFamily: fonts.body, fontSize: 12 }}
+            >
+              {"  "}
+              {agoText(post.at)}
+            </Text>
+          </Text>
+          {post.progress ? (
+            <ProgressContext progress={post.progress} />
+          ) : post.location ? (
             <Text
               numberOfLines={1}
               style={{ color: t.muted, fontSize: 12, fontFamily: fonts.body }}
             >
               {post.location}
             </Text>
-          )}
+          ) : null}
         </View>
         <Bounce label="Post options" onPress={() => setMenu(true)}>
           <Ellipsis size={20} color={t.text} />
@@ -441,58 +453,52 @@ export const PostCard = memo(function PostCard({
           }}
         />
       ) : null}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          paddingHorizontal: 4,
-          marginTop: hasMedia ? 6 : 0,
-        }}
-      >
-        <Bounce
-          label={post.liked ? "Unlike" : "Like"}
-          onPress={() => {
-            haptic.tap()
-            toggleLike(post.id)
+      <View style={{ gap: 12, marginTop: hasMedia ? 12 : 0 }}>
+        {post.progress && photoFirst && <StatStrip progress={post.progress} />}
+        <CheerBar post={post} />
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            paddingLeft: 14,
+            paddingRight: 4,
+            minHeight: 40,
           }}
         >
-          <LikeHeart liked={post.liked} />
-        </Bounce>
-        <Bounce label="Comment" onPress={() => go(`/social/post/${post.id}`)}>
-          <MessageCircle size={24} color={t.text} />
-        </Bounce>
-        <Bounce label="Send" onPress={() => setSend(true)}>
-          <Send size={22} color={t.text} />
-        </Bounce>
-        <View style={{ flex: 1 }} />
-        <Bounce
-          label={post.saved ? "Unsave" : "Save"}
-          onPress={() => {
-            haptic.tap()
-            toggleSave(post.id)
-            if (!post.saved) toast.success("Saved to your collection")
-          }}
-        >
-          <Bookmark
-            size={23}
-            color={t.text}
-            fill={post.saved ? t.text : "none"}
-          />
-        </Bounce>
+          <Text
+            numberOfLines={1}
+            style={{
+              flex: 1,
+              color: post.likes ? t.text : t.muted,
+              fontFamily: fonts.medium,
+              fontSize: 13,
+            }}
+          >
+            {liker && post.likes > 1 ? (
+              <>
+                <Name id={likedBy} size={13} /> and {compact(post.likes - 1)}{" "}
+                {post.likes - 1 === 1 ? "other" : "others"} cheered
+              </>
+            ) : post.likes === 1 ? (
+              "1 cheer"
+            ) : post.likes > 1 ? (
+              `${compact(post.likes)} cheers`
+            ) : (
+              "Be the first to cheer this on"
+            )}
+          </Text>
+          <Bounce
+            label={`Comment${commentCount ? `, ${commentCount} comments` : ""}`}
+            onPress={() => go(`/social/post/${post.id}`)}
+          >
+            <MessageCircle size={22} color={t.text} />
+          </Bounce>
+          <Bounce label="Send" onPress={() => setSend(true)}>
+            <Send size={21} color={t.text} />
+          </Bounce>
+        </View>
       </View>
       <View style={{ paddingHorizontal: 14, gap: 4 }}>
-        <Text
-          style={{ color: t.text, fontFamily: fonts.semibold, fontSize: 14 }}
-        >
-          {liker && post.likes > 1 ? (
-            <>
-              Liked by <Name id={likedBy} /> and {compact(post.likes - 1)}{" "}
-              others
-            </>
-          ) : (
-            `${compact(post.likes)} like${post.likes === 1 ? "" : "s"}`
-          )}
-        </Text>
         {!!post.caption && (
           <Caption by={post.by} text={post.caption} full={detail} />
         )}
@@ -505,16 +511,6 @@ export const PostCard = memo(function PostCard({
             comment{commentCount > 1 ? "s" : ""}
           </Text>
         )}
-        <Text
-          style={{
-            color: t.muted,
-            fontSize: 11,
-            fontFamily: fonts.body,
-            letterSpacing: 0.3,
-          }}
-        >
-          {agoText(post.at)}
-        </Text>
       </View>
       <PostMenu post={post} open={menu} onClose={() => setMenu(false)} />
       <SendSheet postId={post.id} open={send} onClose={() => setSend(false)} />
