@@ -6,13 +6,15 @@ case (the capture or companion module) commits.
 
 import re
 import uuid
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta
+from decimal import Decimal
 from typing import Any, Literal
 
 from sqlalchemy import and_, case, func, or_
 from sqlmodel import col, select
 
-from app.modules.finance import advisor, imports, repo, services
+from app.modules.finance import advisor, fx, imports, repo, services
 from app.modules.finance import calc as calc
 from app.modules.finance import schema as S
 from app.modules.finance.models import (
@@ -132,6 +134,36 @@ def _account_or_default(
     return account_id or services.default_account_id(ctx, for_income=for_income)
 
 
+@dataclass(frozen=True)
+class Foreign:
+    """An amount spent in another currency, and the rate it was converted
+    at into the user's currency."""
+
+    currency: str
+    amount_minor: int
+    rate: Decimal
+
+
+def fx_rate(ctx: Ctx, base: str) -> Decimal:
+    """The latest rate from ``base`` to the user's currency (422
+    ``fx_unavailable`` when it can't be had)."""
+    return services.fx_rate_for(ctx, base).rate
+
+
+def convert(amount_minor: int, rate: Decimal) -> int:
+    return fx.convert_minor(amount_minor, rate)
+
+
+def _keep_foreign(ctx: Ctx, foreign: Foreign | None, rec: FinRecord) -> FinRecord:
+    if foreign is not None:
+        rec.orig_currency = foreign.currency
+        rec.orig_amount_minor = foreign.amount_minor
+        rec.fx_rate = foreign.rate
+        ctx.session.add(rec)
+        ctx.session.flush()
+    return rec
+
+
 def log_expense(
     ctx: Ctx,
     *,
@@ -145,21 +177,26 @@ def log_expense(
     receipt_media_id: uuid.UUID | None = None,
     record_id: uuid.UUID | None = None,
     pending: bool = False,
+    foreign: "Foreign | None" = None,
 ) -> FinRecord:
-    return services._add_record(
+    return _keep_foreign(
         ctx,
-        record_id=record_id,
-        type="expense",
-        amount_minor=amount_minor,
-        account_id=_account_or_default(ctx, account_id, for_income=False),
-        category_id=category_id,
-        at=at,
-        payee=payee,
-        note=note,
-        source=source,
-        status="pending" if pending else "cleared",
-        receipt_media_id=receipt_media_id,
-    )[0]
+        foreign,
+        services._add_record(
+            ctx,
+            record_id=record_id,
+            type="expense",
+            amount_minor=amount_minor,
+            account_id=_account_or_default(ctx, account_id, for_income=False),
+            category_id=category_id,
+            at=at,
+            payee=payee,
+            note=note,
+            source=source,
+            status="pending" if pending else "cleared",
+            receipt_media_id=receipt_media_id,
+        )[0],
+    )
 
 
 def log_income(
@@ -174,23 +211,28 @@ def log_income(
     record_id: uuid.UUID | None = None,
     is_refund: bool = False,
     note: str | None = None,
+    foreign: "Foreign | None" = None,
 ) -> FinRecord:
     if category_id is None and not is_refund:
         other = repo.category_by_slug(ctx, "other-in")
         category_id = other.id if other else None
-    return services._add_record(
+    return _keep_foreign(
         ctx,
-        record_id=record_id,
-        type="income",
-        amount_minor=amount_minor,
-        account_id=_account_or_default(ctx, account_id, for_income=True),
-        category_id=category_id,
-        at=at,
-        payee=payee,
-        note=note,
-        source=source,
-        is_refund=is_refund,
-    )[0]
+        foreign,
+        services._add_record(
+            ctx,
+            record_id=record_id,
+            type="income",
+            amount_minor=amount_minor,
+            account_id=_account_or_default(ctx, account_id, for_income=True),
+            category_id=category_id,
+            at=at,
+            payee=payee,
+            note=note,
+            source=source,
+            is_refund=is_refund,
+        )[0],
+    )
 
 
 def log_transfer(

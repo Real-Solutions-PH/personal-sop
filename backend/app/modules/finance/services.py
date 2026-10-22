@@ -9,12 +9,13 @@ import csv
 import io
 import uuid
 from datetime import date, datetime, timedelta
+from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import or_, update
 from sqlmodel import col
 
-from app.modules.finance import calc, repo
+from app.modules.finance import calc, fx, repo
 from app.modules.finance import schema as S
 from app.modules.finance.models import (
     Account,
@@ -219,13 +220,61 @@ def _add_record(
     return out
 
 
+FX_FIELDS = ("orig_currency", "orig_amount_minor", "fx_rate")
+FX_FIELDS_SET = frozenset(FX_FIELDS)
+
+
+def fx_values(
+    ctx: Ctx,
+    orig_currency: str | None,
+    orig_amount_minor: int | None,
+    fx_rate: Decimal | None,
+) -> tuple[dict[str, Any], int | None]:
+    """A record kept in another currency: its three fx fields and its amount
+    in the user's currency (``None`` when it is in the user's currency, and
+    the fields are cleared). The rate is the device's when it sent one (it
+    came from :func:`fx_rate_for`), else the latest."""
+    cleared: dict[str, Any] = dict.fromkeys(FX_FIELDS)
+    if orig_currency is None or orig_currency == ctx.currency.code:
+        return cleared, None
+    if orig_amount_minor is None:
+        raise invalid("orig_amount_required", "Enter the amount as spent")
+    rate = fx_rate
+    if rate is None:
+        rate = fx_rate_for(ctx, orig_currency).rate
+    amount = fx.convert_minor(orig_amount_minor, rate)
+    if not 1 <= amount <= MAX_MINOR:
+        raise invalid("amount_out_of_range", "That amount is out of range")
+    return {
+        "orig_currency": orig_currency,
+        "orig_amount_minor": orig_amount_minor,
+        "fx_rate": rate,
+    }, amount
+
+
+def fx_rate_for(ctx: Ctx, base: str) -> fx.Rate:
+    """The latest rate from ``base`` to the user's currency (422
+    ``fx_unavailable`` when it can't be had: the person can still enter the
+    amount in their own currency)."""
+    try:
+        return fx.latest(base, ctx.currency.code)
+    except fx.FxError as exc:
+        raise invalid(
+            "fx_unavailable" if exc.code != "fx_unknown_currency" else exc.code,
+            "Couldn't get the exchange rate — enter the amount in your currency",
+        ) from None
+
+
 def add_record(ctx: Ctx, *, data: S.RecordCreate) -> list[FinRecord]:
     """FIN-04 save: an expense, income or transfer (plus its fee)."""
+    fx_fields, converted = fx_values(
+        ctx, data.orig_currency, data.orig_amount_minor, data.fx_rate
+    )
     out = _add_record(
         ctx,
         record_id=data.id,
         type=data.type,
-        amount_minor=data.amount_minor,
+        amount_minor=converted or data.amount_minor,
         account_id=data.account_id,
         to_account_id=data.to_account_id,
         category_id=data.category_id,
@@ -238,6 +287,10 @@ def add_record(ctx: Ctx, *, data: S.RecordCreate) -> list[FinRecord]:
         receipt_media_id=data.receipt_media_id,
         fee_minor=data.fee_minor,
     )
+    if converted is not None:
+        owned_repo.apply(out[0], fx_fields)
+        ctx.session.add(out[0])
+        ctx.session.flush()
     ctx.commit()
     return out
 
@@ -291,6 +344,16 @@ def update_record(ctx: Ctx, *, record_id: uuid.UUID, data: S.RecordUpdate) -> Fi
         is_refund=bool(merged["is_refund"]),
         is_adjustment=rec.is_adjustment,
     )
+    if FX_FIELDS_SET & patch.keys():
+        fx_fields, converted = fx_values(
+            ctx,
+            patch.get("orig_currency", rec.orig_currency),
+            patch.get("orig_amount_minor", rec.orig_amount_minor),
+            patch.get("fx_rate", rec.fx_rate),
+        )
+        patch |= fx_fields
+        if converted is not None:
+            patch["amount_minor"] = converted
     old_day = _day(ctx, rec.at)
     owned_repo.apply(rec, patch)
     rec.edited_at = ctx.now

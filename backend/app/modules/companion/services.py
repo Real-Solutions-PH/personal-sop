@@ -660,7 +660,10 @@ be told to register or add them; listing them back is not recording them.
   otherwise leave both out (never default to today or 23:59). Set remind
   only when they ask to be reminded.
 - Finishing a task: `complete_task`. Money: `log_expense`, `log_income`,
-  `log_transfer`, `add_planned`. Habits: `log_habit`, `create_habit`.
+  `log_transfer`, `add_planned`. Money said in another currency ($20, 20
+  dollars, 15 USD): pass the number they said (20) with `currency` "USD".
+  The app converts it at today's exchange rate; never convert it yourself
+  and never guess a rate. Habits: `log_habit`, `create_habit`.
   Training and body: `log_workout`, `log_weigh_in`, `log_meal`. Journal:
   `save_journal`. Fixing the last entry: `edit_last`, `delete_last`.
 - Setting things up is yours to do too, in this same reply: a new money

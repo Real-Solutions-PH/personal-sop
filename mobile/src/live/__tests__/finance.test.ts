@@ -220,6 +220,41 @@ test("round trip: records, with the fields the server locks on an adjustment", (
   expect(s.records.some((r) => r.isAdjustment)).toBe(true)
 })
 
+test("a record kept in dollars carries its dollars and rate both ways", () => {
+  const s = buildSeed().state
+  const base = s.records.find((r) => r.type === "expense" && !r.isAdjustment)
+  if (!base) throw new Error("seed has an expense")
+  const usd = {
+    ...base,
+    receipt: undefined,
+    amount: 5792,
+    origCurrency: "USD",
+    origAmount: 100,
+    fxRate: 57.92,
+  }
+  const m = recordMapper(cats)
+  const wire = m.toServer(usd, s)
+  expect(wire).toMatchObject({
+    amount_minor: 579200,
+    orig_currency: "USD",
+    orig_amount_minor: 10000,
+    fx_rate: "57.92",
+  })
+  // The server sends the rate back as a decimal string.
+  const back = m.fromServer({ ...wire, id: usd.id, fx_rate: "57.92000000" }, s)
+  expect([back?.origCurrency, back?.origAmount, back?.fxRate]).toEqual([
+    "USD",
+    100,
+    57.92,
+  ])
+  // A peso record sends the three as null, which clears them on the server.
+  expect(m.toServer({ ...base, receipt: undefined }, s)).toMatchObject({
+    orig_currency: null,
+    orig_amount_minor: null,
+    fx_rate: null,
+  })
+})
+
 test("round trip: children fold back into their parents", () => {
   const s = buildSeed().state
   s.planned[0].skipped = [s.planned[0].start]

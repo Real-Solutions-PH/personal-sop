@@ -6,6 +6,7 @@ schedule and an end rule are validated value objects (written whole).
 
 import uuid
 from datetime import date, datetime
+from decimal import Decimal
 from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -229,6 +230,14 @@ class RecordFields(BaseModel):
     receipt_media_id: uuid.UUID | None = None
     is_refund: bool | None = None
     status: Literal["cleared", "pending"] | None = None
+    # Kept in another currency (a USD purchase): the amount as spent, in
+    # hundredths of ``orig_currency``. ``amount_minor`` is then worked out
+    # from the rate; ``fx_rate`` is the one the device used, kept when it
+    # matches the amounts, else the server fetches the latest. Null
+    # ``orig_currency`` clears all three.
+    orig_currency: str | None = Field(default=None, pattern=r"^[A-Z]{3}$")
+    orig_amount_minor: Minor | None = None
+    fx_rate: Decimal | None = Field(default=None, gt=0, le=1_000_000)
 
     @field_validator("at")
     @classmethod
@@ -273,6 +282,19 @@ class RecordPublic(BaseModel):
     status: str
     edited_at: datetime | None
     version: int
+    orig_currency: str | None = None
+    orig_amount_minor: int | None = None
+    fx_rate: Decimal | None = None
+
+
+class FxRatePublic(BaseModel):
+    """One unit of ``base`` in the user's currency (``quote``), as of the
+    last published reference day."""
+
+    base: str
+    quote: str
+    rate: Decimal
+    as_of: date
 
 
 class RecordsPublic(BaseModel):

@@ -48,6 +48,18 @@ def get_settings(ctx: CtxDep) -> Any:
     return services.get_settings(ctx)
 
 
+@router.get("/fx", response_model=S.FxRatePublic, dependencies=READ)
+def get_fx_rate(
+    ctx: CtxDep,
+    base: Annotated[str, Query(pattern=r"^[A-Z]{3}$")],
+) -> Any:
+    """The latest exchange rate from ``base`` to the user's currency, for a
+    record kept in another currency (422 ``fx_unavailable`` when the rate
+    source can't be reached)."""
+    r = services.fx_rate_for(ctx, base)
+    return S.FxRatePublic(base=r.base, quote=r.quote, rate=r.rate, as_of=r.as_of)
+
+
 @router.patch("/settings", response_model=S.SettingsPublic, dependencies=WRITE)
 def update_settings(ctx: CtxDep, data: S.SettingsFields) -> Any:
     """FIN-35 / FIN-34 (disclaimer, data scope)."""

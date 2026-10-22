@@ -41,7 +41,7 @@ import {
   undo,
 } from "../ui"
 import { RecordEditor, useMoney } from "./finance"
-import { FinanceRecord, sourceLabel } from "./finance-home"
+import { FinanceRecord, foreignAmount, sourceLabel } from "./finance-home"
 
 type Filter = {
   type: string
@@ -661,6 +661,13 @@ export function RecordDetail({ id }: { id: string }) {
           {r.type === "expense" ? "−" : r.type === "income" ? "+" : ""}
           {money(r.amount)}
         </Copy>
+        {r.origCurrency && r.origAmount ? (
+          <Copy size={14} muted>
+            {foreignAmount(r.origAmount, r.origCurrency)} at{" "}
+            {r.fxRate?.toLocaleString("en-US", { maximumFractionDigits: 4 })}{" "}
+            per {r.origCurrency}
+          </Copy>
+        ) : null}
         <Line style={{ gap: 6, marginTop: 8 }}>
           {[
             {
