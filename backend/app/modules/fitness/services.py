@@ -1057,6 +1057,10 @@ def _item_data(d: F.ItemDraft) -> dict[str, Any]:
         "carbs": d.carbs,
         "fat": d.fat,
         "assumption": d.assumption,
+        "fiber": d.fiber,
+        "sat_fat": d.sat_fat,
+        "sugar": d.sugar,
+        "sodium": d.sodium,
     }
 
 
@@ -1314,7 +1318,18 @@ def confirm_meal(*, ctx: Ctx, meal_id: uuid.UUID) -> Meal:
 
 def _draft(it: MealItem) -> F.ItemDraft:
     return F.ItemDraft(
-        it.name, it.qty, it.unit, it.kcal, it.protein, it.carbs, it.fat, it.assumption
+        it.name,
+        it.qty,
+        it.unit,
+        it.kcal,
+        it.protein,
+        it.carbs,
+        it.fat,
+        it.assumption,
+        fiber=it.fiber,
+        sat_fat=it.sat_fat,
+        sugar=it.sugar,
+        sodium=it.sodium,
     )
 
 

@@ -1,7 +1,15 @@
 import type { RecordCard } from "@domain/capture/data"
 import { finStore } from "@domain/finance/store"
+import {
+  DAILY_LIMITS,
+  detailTotals,
+  LIMIT_LABEL,
+  type LimitKey,
+  limitLevel,
+} from "@domain/fitness/limits"
 import { habitsStore } from "@domain/habits/store"
 import { tasksStore } from "@domain/tasks/store"
+import { Gauge } from "lucide-react-native"
 import { View } from "react-native"
 import { border, Copy, Line, Tap } from "../native-kit"
 import { useTheme } from "../theme"
@@ -274,8 +282,12 @@ export function CaptureSummary({
         }),
         { kcal: 0, p: 0, c: 0, f: 0 },
       )
+      const extra = detailTotals(p.items)
+      const limits = (["satFat", "sugar", "sodium"] as const).filter(
+        (k) => extra[k] !== undefined,
+      )
       return (
-        <View>
+        <View style={{ gap: 10 }}>
           <Line style={{ gap: 8, alignItems: "baseline" }}>
             <Copy size={30} weight="displayMedium">
               {Math.round(tot.kcal)}
@@ -291,49 +303,72 @@ export function CaptureSummary({
               {p.label}
             </Copy>
           </Line>
-          <Line style={{ gap: 12 }}>
-            <Copy size={12}>
-              <Copy size={12} weight="semibold" style={{ color: t.fit }}>
-                P
-              </Copy>{" "}
-              {Math.round(tot.p)}g
-            </Copy>
-            <Copy size={12} muted>
-              C {Math.round(tot.c)}g
-            </Copy>
-            <Copy size={12} muted>
-              F {Math.round(tot.f)}g
-            </Copy>
+          {/* Amounts to reach */}
+          <Line style={{ gap: 6, flexWrap: "wrap" }}>
+            <Nutrient label="Protein" value={tot.p} color={t.fit} />
+            <Nutrient label="Carbs" value={tot.c} />
+            <Nutrient label="Fat" value={tot.f} />
+            {extra.fiber !== undefined && (
+              <Nutrient label="Fiber" value={extra.fiber} />
+            )}
             {card.confidence !== undefined && (
               <Copy size={12} muted style={{ marginLeft: "auto" }}>
                 ~{Math.round(card.confidence * 100)}% sure
               </Copy>
             )}
           </Line>
+          {/* Amounts to stay under: a share of the day's limit */}
+          {limits.length > 0 && (
+            <View style={{ gap: 6 }}>
+              <Line style={{ gap: 6 }}>
+                <Gauge size={12} color={t.muted} />
+                <Copy size={11} muted style={{ letterSpacing: 0.4 }}>
+                  LIMITS · SHARE OF YOUR DAILY MAX
+                </Copy>
+              </Line>
+              {limits.map((k) => (
+                <LimitBar key={k} k={k} amount={extra[k] ?? 0} />
+              ))}
+            </View>
+          )}
           <View
             style={{
-              marginTop: 8,
               paddingTop: 8,
               borderTopWidth: 1,
               borderColor: t.line,
-              gap: 2,
+              gap: 8,
             }}
           >
             {p.items.map((it, i) => (
-              <Line key={i} style={{ gap: 8, justifyContent: "space-between" }}>
-                <Copy size={14} lines={1} style={{ flex: 1 }}>
-                  {it.name}
-                  {it.assumption && (
-                    <Copy size={12} muted>
-                      {" "}
-                      · {it.assumption}
-                    </Copy>
-                  )}
+              <View key={i} style={{ gap: 2 }}>
+                <Line style={{ gap: 8, justifyContent: "space-between" }}>
+                  <Copy size={14} weight="medium" lines={1} style={{ flex: 1 }}>
+                    {it.name}
+                  </Copy>
+                  <Copy size={14} muted>
+                    {Math.round(it.kcal)} kcal
+                  </Copy>
+                </Line>
+                <Copy size={12} muted>
+                  {[
+                    `P ${fmtG(it.protein)}`,
+                    `C ${fmtG(it.carbs)}`,
+                    `F ${fmtG(it.fat)}`,
+                    it.fiber !== undefined && `Fiber ${fmtG(it.fiber)}`,
+                    it.satFat !== undefined && `Sat fat ${fmtG(it.satFat)}`,
+                    it.sugar !== undefined && `Sugar ${fmtG(it.sugar)}`,
+                    it.sodium !== undefined &&
+                      `Sodium ${Math.round(it.sodium).toLocaleString("en-US")} mg`,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </Copy>
-                <Copy size={14} muted>
-                  {it.kcal}
-                </Copy>
-              </Line>
+                {it.assumption && (
+                  <Copy size={12} muted style={{ fontStyle: "italic" }}>
+                    {it.assumption}
+                  </Copy>
+                )}
+              </View>
             ))}
           </View>
         </View>
@@ -373,4 +408,82 @@ export function CaptureSummary({
     case "command":
       return <Copy size={15}>{p.op}</Copy>
   }
+}
+
+const fmtG = (n: number) => `${Math.round(n * 10) / 10}g`
+
+/** An amount to reach: a plain pill. */
+function Nutrient({
+  label,
+  value,
+  color,
+}: {
+  label: string
+  value: number
+  color?: string
+}) {
+  const t = useTheme()
+  return (
+    <View
+      style={{
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 99,
+        backgroundColor: t.soft,
+      }}
+    >
+      <Copy size={12}>
+        <Copy size={12} weight="semibold" style={{ color: color ?? t.text }}>
+          {label}
+        </Copy>{" "}
+        {fmtG(value)}
+      </Copy>
+    </View>
+  )
+}
+
+/** An amount to stay under: how much of the day's limit this meal uses.
+ * The bar fills toward the limit; near it turns amber, past it red and
+ * says "over", so colour is never the only signal. */
+function LimitBar({ k, amount }: { k: LimitKey; amount: number }) {
+  const t = useTheme()
+  const max = DAILY_LIMITS[k]
+  const { label, unit } = LIMIT_LABEL[k]
+  const { share, level } = limitLevel(amount, max)
+  const color = level === "over" ? t.bad : level === "near" ? t.warn : t.muted
+  const fmt = (n: number) =>
+    unit === "mg"
+      ? Math.round(n).toLocaleString("en-US")
+      : String(Math.round(n * 10) / 10)
+  return (
+    <View
+      accessible
+      accessibilityLabel={`${label} ${fmt(amount)} ${unit} of a ${fmt(max)} ${unit} daily limit${level === "over" ? ", over the limit" : ""}`}
+      style={{ gap: 3 }}
+    >
+      <Line style={{ justifyContent: "space-between" }}>
+        <Copy size={12}>{label}</Copy>
+        <Copy size={12} style={{ color: level === "under" ? t.muted : color }}>
+          {fmt(amount)} / {fmt(max)} {unit}
+          {level === "over" ? " · over" : ` · ${Math.round(share * 100)}%`}
+        </Copy>
+      </Line>
+      <View
+        style={{
+          height: 4,
+          borderRadius: 2,
+          backgroundColor: t.soft,
+          overflow: "hidden",
+        }}
+      >
+        <View
+          style={{
+            width: `${Math.min(1, share) * 100}%`,
+            height: 4,
+            backgroundColor: color,
+          }}
+        />
+      </View>
+    </View>
+  )
 }

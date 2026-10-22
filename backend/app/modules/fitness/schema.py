@@ -138,6 +138,10 @@ class MealItemPublic(_Row):
     carbs: float
     fat: float
     assumption: str | None
+    fiber: float | None = None
+    sat_fat: float | None = None
+    sugar: float | None = None
+    sodium: float | None = None
 
 
 class FitnessSettingsPublic(_Row):
@@ -242,6 +246,10 @@ class MealItemIn(BaseModel):
     carbs: float | None = OptMacro
     fat: float | None = OptMacro
     assumption: str | None = Field(default=None, max_length=280)
+    fiber: float | None = OptMacro
+    sat_fat: float | None = OptMacro
+    sugar: float | None = OptMacro
+    sodium: float | None = Field(default=None, ge=0, le=100000)
 
 
 class FitnessSettingsIn(BaseModel):

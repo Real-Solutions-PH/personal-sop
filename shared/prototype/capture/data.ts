@@ -80,6 +80,11 @@ export interface MealItemDraft {
   carbs: number
   fat: number
   assumption?: string
+  /** Optional detail: grams (sodium in milligrams); absent = unknown. */
+  fiber?: number
+  satFat?: number
+  sugar?: number
+  sodium?: number
 }
 export type Payload =
   | {

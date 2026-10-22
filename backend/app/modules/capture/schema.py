@@ -151,6 +151,11 @@ class MealItemIn(_P):
     carbs: Annotated[float, Field(ge=0, le=2000)]
     fat: Annotated[float, Field(ge=0, le=2000)]
     assumption: Annotated[str, Field(max_length=200)] | None = None
+    # Optional detail: grams; sodium in milligrams.
+    fiber: Annotated[float, Field(ge=0, le=2000)] | None = None
+    sat_fat: Annotated[float, Field(ge=0, le=2000)] | None = None
+    sugar: Annotated[float, Field(ge=0, le=2000)] | None = None
+    sodium: Annotated[float, Field(ge=0, le=100000)] | None = None
 
 
 class MealPayload(_P):

@@ -11,8 +11,11 @@ FX = load("fitness-meal-estimator")["data"]
 
 def _item(it: F.ItemDraft) -> dict[str, Any]:
     out = asdict(it)
-    if out["assumption"] is None:
-        del out["assumption"]
+    # Optional fields the prototype's items never carry (an unset
+    # assumption, and nutrient detail the food table does not have).
+    for key in ("assumption", "fiber", "sat_fat", "sugar", "sodium"):
+        if out[key] is None:
+            del out[key]
     return out
 
 

@@ -208,6 +208,11 @@ class MealItem(OwnedRow, table=True):
             "kcal >= 0 AND protein >= 0 AND carbs >= 0 AND fat >= 0",
             name="ck_meal_item_nonneg",
         ),
+        CheckConstraint(
+            "(fiber IS NULL OR fiber >= 0) AND (sat_fat IS NULL OR sat_fat >= 0)"
+            " AND (sugar IS NULL OR sugar >= 0) AND (sodium IS NULL OR sodium >= 0)",
+            name="ck_meal_item_detail_nonneg",
+        ),
     )
 
     meal_id: uuid.UUID = Field(foreign_key="meal.id", ondelete="CASCADE", index=True)
@@ -220,6 +225,11 @@ class MealItem(OwnedRow, table=True):
     carbs: float = Field(sa_type=Float)
     fat: float = Field(sa_type=Float)
     assumption: str | None = Field(default=None, max_length=280)
+    # Optional detail: fiber, saturated fat and sugar in grams; sodium in mg.
+    fiber: float | None = Field(default=None, sa_type=Float)
+    sat_fat: float | None = Field(default=None, sa_type=Float)
+    sugar: float | None = Field(default=None, sa_type=Float)
+    sodium: float | None = Field(default=None, sa_type=Float)
 
 
 class FitnessSettings(OwnedRow, table=True):

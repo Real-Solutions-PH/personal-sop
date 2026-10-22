@@ -52,6 +52,10 @@ class MealItemDraft:
     carbs: float
     fat: float
     assumption: str | None = None
+    fiber: float | None = None
+    sat_fat: float | None = None
+    sugar: float | None = None
+    sodium: float | None = None
 
 
 @dataclass(frozen=True)
@@ -110,7 +114,18 @@ def log_weigh_in(
 
 def _item(d: MealItemDraft) -> F.ItemDraft:
     return F.ItemDraft(
-        d.name, d.qty, d.unit, d.kcal, d.protein, d.carbs, d.fat, d.assumption
+        d.name,
+        d.qty,
+        d.unit,
+        d.kcal,
+        d.protein,
+        d.carbs,
+        d.fat,
+        d.assumption,
+        fiber=d.fiber,
+        sat_fat=d.sat_fat,
+        sugar=d.sugar,
+        sodium=d.sodium,
     )
 
 

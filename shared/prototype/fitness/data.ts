@@ -94,6 +94,11 @@ export interface MealItem extends Macros {
   qty: number
   unit: string
   assumption?: string
+  /** Optional detail: grams (sodium in milligrams); absent = unknown. */
+  fiber?: number
+  satFat?: number
+  sugar?: number
+  sodium?: number
 }
 export interface Meal {
   id: string

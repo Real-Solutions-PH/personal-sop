@@ -1536,7 +1536,11 @@
       "protein": 4,
       "carbs": 45,
       "fat": 0,
-      "assumption": null
+      "assumption": null,
+      "fiber": null,
+      "sat_fat": null,
+      "sugar": null,
+      "sodium": null
     }
   },
   {
@@ -1554,7 +1558,11 @@
       "protein": 28,
       "carbs": 4,
       "fat": 24,
-      "assumption": null
+      "assumption": null,
+      "fiber": null,
+      "sat_fat": null,
+      "sugar": null,
+      "sodium": null
     }
   },
   {
@@ -1590,7 +1598,11 @@
       "protein": 4,
       "carbs": 45,
       "fat": 0,
-      "assumption": null
+      "assumption": null,
+      "fiber": null,
+      "sat_fat": null,
+      "sugar": null,
+      "sodium": null
     }
   },
   {
@@ -1608,7 +1620,11 @@
       "protein": 28,
       "carbs": 4,
       "fat": 24,
-      "assumption": null
+      "assumption": null,
+      "fiber": null,
+      "sat_fat": null,
+      "sugar": null,
+      "sodium": null
     }
   },
   {
@@ -1677,7 +1693,11 @@
       "protein": 6,
       "carbs": 0,
       "fat": 5,
-      "assumption": null
+      "assumption": null,
+      "fiber": null,
+      "sat_fat": null,
+      "sugar": null,
+      "sodium": null
     }
   },
   {

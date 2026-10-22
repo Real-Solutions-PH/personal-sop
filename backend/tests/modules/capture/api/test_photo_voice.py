@@ -416,3 +416,43 @@ def test_a_meal_answer_with_no_model_is_noted_not_refused(
     after = card_of(out, "meal")
     assert after["state"] == "proposed"
     assert after["payload"]["items"][0]["assumption"].endswith("Grilled")
+
+
+def test_photo_meal_keeps_fiber_sat_fat_sugar_and_sodium(
+    client: TestClient,
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    storage: FakeStorage,
+) -> None:
+    api = user(client, db)
+    api.assign("vision", vision=True)
+    est = {
+        "items": [
+            {
+                "name": "Longganisa",
+                "qty": 2,
+                "unit": "pc",
+                "kcal": 320,
+                "protein": 14,
+                "carbs": 10,
+                "fat": 25,
+                "fiber": 0.5,
+                "sat_fat": 9,
+                "sugar": 7,
+                "sodium": 780,
+            }
+        ],
+        "confidence": 0.8,
+        "follow_up": None,
+    }
+    install(monkeypatch, say(json.dumps(est)))
+    cap = _photo(api, storage, hint="meal")
+    card = card_of(cap, "meal")
+    item = card["payload"]["items"][0]
+    assert (item["sat_fat"], item["sugar"], item["sodium"]) == (9, 7, 780)
+    saved = api.post(f"/capture/cards/{card['id']}/confirm")
+    with Session(db_engine) as s:
+        meal = s.get(Meal, uuid.UUID(saved["refs"][0]))
+        assert meal is not None
+        [row] = s.exec(select(MealItem).where(MealItem.meal_id == meal.id)).all()
+    assert (row.fiber, row.sat_fat, row.sugar, row.sodium) == (0.5, 9, 7, 780)

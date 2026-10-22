@@ -72,6 +72,10 @@ class ItemOut(BaseModel):
     carbs: float = Field(default=0, ge=0, le=2000)
     fat: float = Field(default=0, ge=0, le=2000)
     assumption: str | None = Field(default=None, max_length=200)
+    fiber: float | None = Field(default=None, ge=0, le=2000)
+    sat_fat: float | None = Field(default=None, ge=0, le=2000)
+    sugar: float | None = Field(default=None, ge=0, le=2000)
+    sodium: float | None = Field(default=None, ge=0, le=100000)
 
 
 class FollowOut(BaseModel):
@@ -144,8 +148,10 @@ SYSTEM = (
 PROMPTS: dict[str, str] = {
     "auto": 'What is this photo of? {"hint": "meal|receipt|label|statement|whiteboard|other"}',
     "meal": (
-        "Itemise the meal with estimated macros per item: "
-        '{"items": [{"name", "qty", "unit", "kcal", "protein", "carbs", "fat", "assumption"}], '
+        "Itemise the meal with estimated nutrition per item (grams; sodium in "
+        "milligrams): "
+        '{"items": [{"name", "qty", "unit", "kcal", "protein", "carbs", "fat", '
+        '"fiber", "sat_fat", "sugar", "sodium", "assumption"}], '
         '"confidence": 0-1, "follow_up": {"question", "options": [..]} or null}'
     ),
     "receipt": (
@@ -571,7 +577,7 @@ def _by_vision(
         return [
             _meal_draft(
                 caption,
-                [i.model_dump() for i in m.items],
+                [i.model_dump(exclude_none=True) for i in m.items],
                 m.confidence,
                 m.follow_up.model_dump() if m.follow_up else None,
                 field="portion",

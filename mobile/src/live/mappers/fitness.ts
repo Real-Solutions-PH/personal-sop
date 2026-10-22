@@ -864,6 +864,10 @@ export function mealItemMapper(held: Held<ItemRowM>): Mapper<S, ItemRowM> {
       carbs: r.carbs,
       fat: r.fat,
       assumption: r.assumption ?? null,
+      fiber: r.fiber ?? null,
+      sat_fat: r.satFat ?? null,
+      sugar: r.sugar ?? null,
+      sodium: r.sodium ?? null,
     }),
     fromServer: (row, s) => {
       const r: ItemRowM = {
@@ -878,6 +882,10 @@ export function mealItemMapper(held: Held<ItemRowM>): Mapper<S, ItemRowM> {
         carbs: Number(row.carbs),
         fat: Number(row.fat),
         ...(row.assumption != null ? { assumption: str(row.assumption) } : {}),
+        ...(row.fiber != null ? { fiber: Number(row.fiber) } : {}),
+        ...(row.sat_fat != null ? { satFat: Number(row.sat_fat) } : {}),
+        ...(row.sugar != null ? { sugar: Number(row.sugar) } : {}),
+        ...(row.sodium != null ? { sodium: Number(row.sodium) } : {}),
       }
       if (s.meals.some((m) => m.id === r.mealId)) return r
       held.hold(r.mealId, r)

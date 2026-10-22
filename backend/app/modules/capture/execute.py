@@ -36,6 +36,11 @@ class Result:
     note: str | None = None
 
 
+def _num(v: Any) -> float | None:
+    """An optional nutrient: a number, or None when the estimate had none."""
+    return None if v is None else float(v)
+
+
 def row_id(card_id: uuid.UUID, i: int, gen: int) -> uuid.UUID:
     return derived_id("capture-card", card_id, str(i) if gen == 0 else f"{i}:g{gen}")
 
@@ -293,6 +298,10 @@ def execute(
                 carbs=float(i["carbs"]),
                 fat=float(i["fat"]),
                 assumption=i.get("assumption"),
+                fiber=_num(i.get("fiber")),
+                sat_fat=_num(i.get("sat_fat")),
+                sugar=_num(i.get("sugar")),
+                sodium=_num(i.get("sodium")),
             )
             for i in p.get("items") or []
         ]

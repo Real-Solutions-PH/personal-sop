@@ -431,6 +431,12 @@ class MealItemArgs(BaseModel):
     protein: Annotated[float, Field(ge=0, le=2000)] = 0
     carbs: Annotated[float, Field(ge=0, le=2000)] = 0
     fat: Annotated[float, Field(ge=0, le=2000)] = 0
+    fiber: Annotated[float, Field(ge=0, le=2000)] | None = None
+    sat_fat: Annotated[float, Field(ge=0, le=2000)] | None = None
+    sugar: Annotated[float, Field(ge=0, le=2000)] | None = None
+    sodium: Annotated[float, Field(ge=0, le=100000)] | None = Field(
+        default=None, description="milligrams"
+    )
 
 
 class MealArgs(BaseModel):
@@ -1056,7 +1062,7 @@ def capture_tools(run: Run) -> list[BaseTool]:
     def log_meal(**kw: Any) -> dict[str, Any]:
         a = MealArgs(**kw)
         if a.items:
-            items = [i.model_dump() for i in a.items]
+            items = [i.model_dump(exclude_none=True) for i in a.items]
             confidence = a.confidence
         else:
             est = ports.meal_estimate(run.ctx, a.description)
