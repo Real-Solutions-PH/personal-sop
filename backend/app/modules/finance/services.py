@@ -314,6 +314,13 @@ def default_account_id(ctx: Ctx, *, for_income: bool = False) -> uuid.UUID:
 
 
 def update_record(ctx: Ctx, *, record_id: uuid.UUID, data: S.RecordUpdate) -> FinRecord:
+    rec = _update_record(ctx, record_id, data)
+    ctx.commit()
+    return rec
+
+
+def _update_record(ctx: Ctx, record_id: uuid.UUID, data: S.RecordUpdate) -> FinRecord:
+    """Edit one record (flush only; the caller commits)."""
     rec = _record(ctx, record_id)
     patch = data.model_dump(exclude_unset=True)
     if rec.is_adjustment and {"type", "account_id", "to_account_id"} & patch.keys():
@@ -360,7 +367,6 @@ def update_record(ctx: Ctx, *, record_id: uuid.UUID, data: S.RecordUpdate) -> Fi
     ctx.session.add(rec)
     ctx.session.flush()
     _dirty(ctx, old_day, _day(ctx, rec.at))
-    ctx.commit()
     return rec
 
 
@@ -595,6 +601,13 @@ def add_account(ctx: Ctx, *, data: S.AccountCreate) -> Account:
 def update_account(
     ctx: Ctx, *, account_id: uuid.UUID, data: S.AccountFields
 ) -> Account:
+    acc = _update_account(ctx, account_id, data)
+    ctx.commit()
+    return acc
+
+
+def _update_account(ctx: Ctx, account_id: uuid.UUID, data: S.AccountFields) -> Account:
+    """Edit one account (flush only; the caller commits)."""
     acc = _account(ctx, account_id)
     patch = data.model_dump(exclude_unset=True)
     for key in ("name", "type", "opening_minor", "opening_date"):
@@ -606,7 +619,6 @@ def update_account(
     ctx.session.add(acc)
     ctx.session.flush()
     _dirty(ctx, ctx.today)
-    ctx.commit()
     return acc
 
 
@@ -959,6 +971,13 @@ def add_budget(ctx: Ctx, *, data: S.BudgetCreate) -> Budget:
 
 
 def update_budget(ctx: Ctx, *, budget_id: uuid.UUID, data: S.BudgetFields) -> Budget:
+    b = _update_budget(ctx, budget_id, data)
+    ctx.commit()
+    return b
+
+
+def _update_budget(ctx: Ctx, budget_id: uuid.UUID, data: S.BudgetFields) -> Budget:
+    """Edit one budget (flush only; the caller commits)."""
     b = owned_repo.require(ctx, Budget, budget_id, what="budget")
     patch = data.model_dump(exclude_unset=True, exclude={"category_ids"})
     for key in ("name", "limit_minor", "start_date"):
@@ -970,7 +989,6 @@ def update_budget(ctx: Ctx, *, budget_id: uuid.UUID, data: S.BudgetFields) -> Bu
         _set_budget_categories(ctx, b, data.category_ids)
     ctx.session.flush()
     _dirty(ctx, ctx.today)
-    ctx.commit()
     return b
 
 
@@ -1125,6 +1143,15 @@ def add_planned(ctx: Ctx, *, data: S.PlannedCreate) -> PlannedItem:
 def update_planned(
     ctx: Ctx, *, planned_id: uuid.UUID, data: S.PlannedFields
 ) -> PlannedItem:
+    p = _update_planned(ctx, planned_id, data)
+    ctx.commit()
+    return p
+
+
+def _update_planned(
+    ctx: Ctx, planned_id: uuid.UUID, data: S.PlannedFields
+) -> PlannedItem:
+    """Edit one planned item (flush only; the caller commits)."""
     p = _planned(ctx, planned_id)
     patch = _planned_values(data)
     for key in ("name", "type", "amount_minor", "account_id", "start"):
@@ -1137,7 +1164,6 @@ def update_planned(
     ctx.session.add(p)
     ctx.session.flush()
     _dirty(ctx, ctx.today)
-    ctx.commit()
     return p
 
 

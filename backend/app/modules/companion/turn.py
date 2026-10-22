@@ -82,6 +82,15 @@ RUNNING: dict[str, str] = {
     "read_photos": "Looking at your photos",
     "web_search": "Searching the web",
     "nutrition_status": "Checking today's macros",
+    "find_transactions": "Finding transactions",
+    "edit_transaction": "Changing transactions",
+    "list_scheduled": "Checking scheduled payments",
+    "edit_scheduled": "Changing scheduled payments",
+    "edit_account": "Changing an account",
+    "edit_budget": "Changing a budget",
+    "edit_task": "Changing a task",
+    "find_fitness_logs": "Finding your logs",
+    "remove_item": "Removing it",
     "confirm_pending": "Saving what was waiting",
     "discard_pending": "Dropping what was waiting",
 }
@@ -123,6 +132,18 @@ def outcome(ctx: Ctx, name: str, args: dict[str, Any], result: Any) -> tuple[boo
             note = f" ({waiting_n} waiting for your OK)" if waiting_n else ""
             return True, f"Added {len(tasks)} tasks: {titles}{more}{note}"
         return True, f"Added {len(tasks)} tasks: {titles}{more}{wait}"
+    if res.get("summary"):
+        # Changing what exists: the tool says what it did.
+        return True, f"{res['summary']}{wait}"
+    if name == "find_transactions":
+        n = len(res.get("transactions") or [])
+        return True, f"Found {n} transaction{'s' if n != 1 else ''}"
+    if name == "list_scheduled":
+        n = len(res.get("scheduled") or [])
+        return True, f"Found {n} scheduled item{'s' if n != 1 else ''}"
+    if name == "find_fitness_logs":
+        n = len(res.get("meals") or res.get("weigh_ins") or [])
+        return True, f"Found {n} log{'s' if n != 1 else ''}"
     if name in ("confirm_pending", "discard_pending"):
         done = res.get("confirmed") or res.get("discarded") or []
         kept = res.get("not_saved") or []
