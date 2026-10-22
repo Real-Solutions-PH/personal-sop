@@ -978,3 +978,110 @@ def test_an_expense_said_in_dollars_is_kept_in_dollars_and_logged_in_pesos(
         10000,
     )
     assert rec.fx_rate == Decimal("57.92")
+
+
+def test_update_routine_reorders_adds_a_step_and_undo_puts_it_back(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.modules.habits.models import Habit, Routine, RoutineStep
+
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    setup_step(
+        api,
+        client,
+        "make a morning routine: fix bed 5, journal 15, oats 10 at 6am",
+        monkeypatch,
+        act(
+            "create_routine",
+            name="Morning",
+            steps=[
+                {"name": "Fix bed", "minutes": 5},
+                {"name": "Journal", "minutes": 15},
+                {"name": "Oats", "minutes": 10},
+            ],
+            time="06:00",
+        ),
+    )
+
+    def order() -> list[tuple[str, int]]:
+        habits = {h.id: h.name for h in live(rows_of(api, Habit))}
+        steps = sorted(live(rows_of(api, RoutineStep)), key=lambda s: s.position)
+        return [(habits[s.habit_id], s.minutes) for s in steps]
+
+    step = setup_step(
+        api,
+        client,
+        "after journaling I eat oats, then 30 min deep work; start at 5:30",
+        monkeypatch,
+        act(
+            "update_routine",
+            routine="morning",
+            steps=[
+                {"name": "Fix bed", "minutes": 5},
+                {"name": "Journal", "minutes": 15},
+                {"name": "Oats", "minutes": 10},
+                {"name": "Deep work", "minutes": 30},
+            ],
+            time="05:30",
+        ),
+    )
+    assert step["ok"] and step["state"] == "saved", step
+    assert step["summary"] == "Updated routine: morning · 4 steps"
+    assert order() == [
+        ("Fix bed", 5),
+        ("Journal", 15),
+        ("Oats", 10),
+        ("Deep work", 30),
+    ]
+    [routine] = live(rows_of(api, Routine))
+    assert routine.schedule[0]["time"] == "05:30"
+
+    undo(api, step)
+    assert order() == [("Fix bed", 5), ("Journal", 15), ("Oats", 10)]
+    [routine] = live(rows_of(api, Routine))
+    assert routine.schedule[0]["time"] == "06:00"
+    # The habit the edit made for its new step goes with it.
+    assert "Deep work" not in [h.name for h in live(rows_of(api, Habit))]
+
+
+def test_update_habit_changes_target_and_time_and_undo_restores(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.modules.habits.models import Habit
+
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    api.post(
+        "/habits/",
+        {"name": "Read", "type": "duration", "target": 20},
+    )
+    step = setup_step(
+        api,
+        client,
+        "make my reading 30 minutes at 9pm",
+        monkeypatch,
+        act("update_habit", habit="read", target=30, time="21:00"),
+    )
+    assert step["ok"] and step["summary"] == "Updated habit: read"
+    [h] = live(rows_of(api, Habit))
+    assert (h.target, h.schedule[0].get("time")) == (30, "21:00")
+    undo(api, step)
+    [h] = live(rows_of(api, Habit))
+    assert (h.target, h.schedule[0].get("time")) == (20, None)
+
+
+def test_editing_a_routine_that_does_not_exist_names_the_ones_that_do(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    step = setup_step(
+        api,
+        client,
+        "move my night routine to 10pm",
+        monkeypatch,
+        act("update_routine", routine="night", time="22:00"),
+    )
+    assert not step["ok"]
+    assert step["summary"] == "Couldn't finish: no routine with that name"

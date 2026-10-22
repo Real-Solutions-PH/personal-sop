@@ -325,6 +325,10 @@ def card_label(ctx: Ctx, card: RecordCard) -> str:
         return f"{setup[kind]}: {p.get('name', '')}"
     if kind == "accountBalance":
         return f"balance: {p.get('name', '')}"
+    if kind == "routineUpdate":
+        return f"routine changed: {p.get('name', '')}"
+    if kind == "habitUpdate":
+        return f"habit changed: {p.get('name', '')}"
     return kind.replace("_", " ")
 
 

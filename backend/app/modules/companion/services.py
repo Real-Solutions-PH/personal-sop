@@ -977,6 +977,7 @@ _GIVES_DATA = re.compile(
 )
 _CLAIMS_A_WRITE = re.compile(
     r"\b(added|logged|saved|recorded|created|scheduled|marked|set up|"
+    r"updated|changed|rearranged|reordered|renamed|edited|moved|"
     r"i(?:'| ha)ve set|will remind|i'?ll remind|waiting for your (?:ok|confirmation)|"
     # A promise to write ("I'll log it for you now") with no write behind it.
     r"i'?ll (?:log|add|save|record)|i will (?:log|add|save|record)|let me (?:log|add|save)|"
@@ -1017,6 +1018,8 @@ WRITE_TOOLS = frozenset(
         "set_account_balance",
         "create_budget",
         "create_routine",
+        "update_routine",
+        "update_habit",
         "create_workout_template",
         "create_task_list",
         "start_routine",

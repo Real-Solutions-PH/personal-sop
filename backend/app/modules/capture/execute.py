@@ -457,6 +457,60 @@ def _execute_setup(
         )
         total = sum(m for _, m in steps)
         return Result([str(r.id), *made], note=f"{len(steps)} steps · {total} min")
+    if kind == "routineUpdate":
+        routine_id = _uuid(p["routine_id"], "routine")
+        before = ports.habits.routine_state(ctx, routine_id)
+        new_days = p.get("days")
+        new_steps: list[tuple[uuid.UUID, int]] | None = None
+        made_now: list[str] = []
+        if p.get("steps") is not None:
+            new_steps = []
+            for i, st in enumerate(p["steps"]):
+                minutes = int(st["minutes"])
+                hid = _opt_uuid(st.get("habit_id"), "habit")
+                if hid is None:
+                    # A step the person has no habit for yet, made the way
+                    # creating a routine makes one.
+                    h = ports.habits.create_habit(
+                        ctx,
+                        name=str(st["name"]),
+                        icon=str(st.get("icon") or "✅"),
+                        type="duration",
+                        target=minutes,
+                        days=new_days or [0, 1, 2, 3, 4, 5, 6],
+                        time=p.get("time"),
+                        habit_id=rid(i + 1),
+                    )
+                    hid = h.id
+                    made_now.append(str(h.id))
+                new_steps.append((hid, minutes))
+        ports.habits.edit_routine(
+            ctx,
+            routine_id=routine_id,
+            name=p.get("new_name"),
+            icon=p.get("icon"),
+            days=new_days,
+            time=p.get("time"),
+            steps=new_steps,
+        )
+        note = None
+        if new_steps is not None:
+            note = f"{len(new_steps)} steps · {sum(m for _, m in new_steps)} min"
+        return Result([str(routine_id), *made_now], prior={"state": before}, note=note)
+    if kind == "habitUpdate":
+        habit_id = _uuid(p["habit_id"], "habit")
+        before = ports.habits.habit_state(ctx, habit_id)
+        ports.habits.edit_habit(
+            ctx,
+            habit_id=habit_id,
+            name=p.get("new_name"),
+            icon=p.get("icon"),
+            target=p.get("target"),
+            unit=p.get("unit"),
+            days=p.get("days"),
+            time=p.get("time"),
+        )
+        return Result([str(habit_id)], prior={"state": before})
     if kind == "templateCreate":
         t, new = ports.fitness.create_template(
             ctx,
@@ -563,6 +617,18 @@ def revert(ctx: Ctx, card: RecordCard) -> None:
             ports.habits.delete_routine(ctx, routine_id=refs[0])
         for r in refs[1:]:
             ports.delete_habit(ctx, r)
+    elif kind == "routineUpdate":
+        # The routine's name, schedule and steps as they were, then the
+        # habits this card made for new steps.
+        state = dict(card.prior or {}).get("state")
+        if refs and isinstance(state, dict):
+            ports.habits.restore_routine(ctx, routine_id=refs[0], state=state)
+        for r in refs[1:]:
+            ports.delete_habit(ctx, r)
+    elif kind == "habitUpdate":
+        state = dict(card.prior or {}).get("state")
+        if refs and isinstance(state, dict):
+            ports.habits.restore_habit(ctx, habit_id=refs[0], state=state)
     elif kind == "templateCreate":
         # Exercises it added stay in the library, as a logged workout's do.
         for r in refs:

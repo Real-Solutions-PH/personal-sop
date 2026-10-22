@@ -418,6 +418,45 @@ class RoutineArgs(BaseModel):
     time: Clock | None = None
 
 
+class RoutineUpdateArgs(BaseModel):
+    routine: Annotated[str, Field(min_length=1, max_length=80)] = Field(
+        description="The routine to change, by its current name."
+    )
+    new_name: Annotated[str, Field(min_length=1, max_length=80)] | None = None
+    icon: Annotated[str, Field(min_length=1, max_length=8)] | None = Field(
+        default=None, description="One emoji."
+    )
+    steps: list[StepArgs] | None = Field(
+        default=None,
+        max_length=30,
+        description="Only when the steps change: the WHOLE new list in order, "
+        "including the steps that stay. A step reuses the user's habit of that "
+        "name, or a new habit is made for it.",
+    )
+    days: Days = Field(default=None, description="Only when the days change.")
+    time: Clock | None = Field(
+        default=None, description="HH:MM, 24h. Only when the time changes."
+    )
+
+
+class HabitUpdateArgs(BaseModel):
+    habit: Annotated[str, Field(min_length=1, max_length=80)] = Field(
+        description="The habit to change, by its current name."
+    )
+    new_name: Annotated[str, Field(min_length=1, max_length=80)] | None = None
+    icon: Annotated[str, Field(min_length=1, max_length=8)] | None = Field(
+        default=None, description="One emoji."
+    )
+    target: Annotated[float, Field(gt=0, le=100000)] | None = Field(
+        default=None, description="New minutes for duration, number for count."
+    )
+    unit: Annotated[str, Field(min_length=1, max_length=16)] | None = None
+    days: Days = Field(default=None, description="Only when the days change.")
+    time: Clock | None = Field(
+        default=None, description="HH:MM, 24h. Only when the time changes."
+    )
+
+
 class TemplateExArgs(BaseModel):
     exercise: Annotated[str, Field(min_length=1, max_length=80)]
     sets: Annotated[int, Field(ge=1, le=20)] = 3
@@ -586,6 +625,18 @@ def names_time(text: str) -> bool:
 
 def _minor(amount: float) -> int:
     return round(amount * 100)
+
+
+def _routine_named(run: Run, name: str) -> Any:
+    """The user's active routine with this name (any case), else the best
+    match the routine search gives."""
+    hits = [
+        r
+        for r in ports.habits.find_routines(run.ctx, name, limit=5)
+        if r.status == "active"
+    ]
+    exact = next((r for r in hits if r.name.lower() == name.lower()), None)
+    return exact or (hits[0] if hits else None)
 
 
 def _habit_named(run: Run, name: str) -> Any:
@@ -926,7 +977,10 @@ def capture_tools(run: Run) -> list[BaseTool]:
         elif not d.payload.get("target"):
             return {"error": "duration_or_count_needs_a_target"}
         if _habit_named(run, str(d.payload["name"])) is not None:
-            return {"error": "a_habit_with_that_name_exists"}
+            return {
+                "error": "a_habit_with_that_name_exists",
+                "instead": "update_habit, to change it",
+            }
         return _card(run, d, setup=True)
 
     def create_account(**kw: Any) -> dict[str, Any]:
@@ -1019,7 +1073,10 @@ def capture_tools(run: Run) -> list[BaseTool]:
             r.name.lower() == a.name.lower() and r.status == "active"
             for r in w.routines
         ):
-            return {"error": "a_routine_with_that_name_exists"}
+            return {
+                "error": "a_routine_with_that_name_exists",
+                "instead": "update_routine, to change it",
+            }
         steps: list[dict[str, Any]] = []
         for st in a.steps:
             hit = _habit_named(run, st.name)
@@ -1046,6 +1103,88 @@ def capture_tools(run: Run) -> list[BaseTool]:
             **out,
             "new_habits": [s["name"] for s in steps if "habit_id" not in s],
         }
+
+    def update_routine(**kw: Any) -> dict[str, Any]:
+        a = RoutineUpdateArgs(**kw)
+        target = _routine_named(run, a.routine)
+        if target is None:
+            return {
+                "error": "no_routine_with_that_name",
+                "routines": [r.name for r in w.routines if r.status == "active"],
+            }
+        if (
+            a.new_name
+            and a.new_name.lower() != target.name.lower()
+            and any(
+                r.name.lower() == a.new_name.lower() and r.status == "active"
+                for r in w.routines
+            )
+        ):
+            return {"error": "a_routine_with_that_name_exists"}
+        steps: list[dict[str, Any]] | None = None
+        if a.steps is not None:
+            steps = []
+            for st in a.steps:
+                hit = _habit_named(run, st.name)
+                steps.append(
+                    {"name": st.name, "minutes": st.minutes}
+                    | ({"habit_id": str(hit.id)} if hit else {})
+                )
+        payload = {
+            "kind": "routineUpdate",
+            "routine_id": str(target.id),
+            "name": a.new_name or target.name,
+            "new_name": a.new_name,
+            "icon": a.icon,
+            "steps": steps,
+            "days": _days(a.days),
+            "time": a.time,
+        }
+        if all(
+            payload[k] is None for k in ("new_name", "icon", "steps", "days", "time")
+        ):
+            return {"error": "nothing_to_change"}
+        d = RecordDraft(
+            kind="routineUpdate",
+            target="habits",
+            rule="structure",
+            payload={k: v for k, v in payload.items() if v is not None},
+        )
+        out = _card(run, d, setup=True)
+        if steps is not None:
+            out["new_habits"] = [s["name"] for s in steps if "habit_id" not in s]
+        return out
+
+    def update_habit(**kw: Any) -> dict[str, Any]:
+        a = HabitUpdateArgs(**kw)
+        target = _habit_named(run, a.habit) or next(
+            iter(ports.habits.find_habits(run.ctx, a.habit, limit=1)), None
+        )
+        if target is None:
+            return {"error": "no_habit_with_that_name"}
+        payload = {
+            "kind": "habitUpdate",
+            "habit_id": str(target.id),
+            "name": a.new_name or target.name,
+            "new_name": a.new_name,
+            "icon": a.icon,
+            "target": a.target,
+            "unit": a.unit,
+            "days": _days(a.days),
+            "time": a.time,
+        }
+        if all(
+            payload[k] is None
+            for k in ("new_name", "icon", "target", "unit", "days", "time")
+        ):
+            return {"error": "nothing_to_change"}
+        d = RecordDraft(
+            kind="habitUpdate",
+            target="habits",
+            rule="structure",
+            payload={k: v for k, v in payload.items() if v is not None},
+        )
+        return _card(run, d, setup=True)
 
     def create_workout_template(**kw: Any) -> dict[str, Any]:
         a = TemplateArgs(**kw)
@@ -1330,6 +1469,19 @@ def capture_tools(run: Run) -> list[BaseTool]:
             create_budget,
             BudgetArgs,
             "Set a monthly spending budget, for some expense categories or all.",
+        ),
+        (
+            update_routine,
+            RoutineUpdateArgs,
+            "Change a routine the user already has: rename it, change its "
+            "days or time, or reorder, add or remove steps (send the whole new "
+            "step list). Never create_routine again for an existing one.",
+        ),
+        (
+            update_habit,
+            HabitUpdateArgs,
+            "Change a habit the user already has: rename it, change its target "
+            "or unit, or its days or time.",
         ),
         (
             create_routine,

@@ -187,3 +187,137 @@ def create_routine(
 def delete_routine(ctx: Ctx, *, routine_id: uuid.UUID) -> None:
     """Delete a routine, its steps and runs (its habits stay)."""
     svc._delete_routine(ctx, routine_id)
+
+
+# ---------------------------------------------------------------- edits
+# Changing a habit or routine from chat: the change, the state before it
+# (for Undo), and putting that state back. Flush only, like the rest.
+
+
+def _slot(schedule: list[dict[str, object]]) -> dict[str, object]:
+    return dict(schedule[0]) if schedule else {"days": list(EVERY_DAY)}
+
+
+def _reschedule(
+    schedule: list[dict[str, object]], days: list[int] | None, time: str | None
+) -> list[dict[str, object]]:
+    """The schedule with its first slot's days and/or time changed (a
+    single-slot schedule is what chat makes and edits)."""
+    slot = _slot(schedule)
+    if days is not None:
+        slot["days"] = days
+    if time is not None:
+        slot["time"] = time
+    return [slot, *schedule[1:]]
+
+
+def routine_state(ctx: Ctx, routine_id: uuid.UUID) -> dict[str, object]:
+    """What :func:`restore_routine` needs to put a routine back."""
+    r = svc.require_routine(ctx, routine_id)
+    return {
+        "name": r.name,
+        "icon": r.icon,
+        "schedule": r.schedule,
+        "steps": [
+            {"habit_id": str(s.habit_id), "minutes": s.minutes}
+            for s in svc._steps(ctx, routine_id)
+        ],
+    }
+
+
+def edit_routine(
+    ctx: Ctx,
+    *,
+    routine_id: uuid.UUID,
+    name: str | None = None,
+    icon: str | None = None,
+    days: list[int] | None = None,
+    time: str | None = None,
+    steps: list[tuple[uuid.UUID, int]] | None = None,
+) -> Routine:
+    """Rename, re-icon, reschedule and/or replace the steps of a routine
+    (``steps`` is the whole new list, in order)."""
+    r = svc.require_routine(ctx, routine_id)
+    if name is not None:
+        r.name = name
+    if icon is not None:
+        r.icon = icon
+    if days is not None or time is not None:
+        r.schedule = _reschedule(r.schedule, days, time)
+    ctx.session.add(r)
+    if steps is not None:
+        svc._write_steps(
+            ctx, routine_id, [StepIn(habit_id=h, minutes=m) for h, m in steps]
+        )
+    ctx.session.flush()
+    svc.mark_today(ctx)
+    return r
+
+
+def restore_routine(
+    ctx: Ctx, *, routine_id: uuid.UUID, state: dict[str, object]
+) -> None:
+    r = svc.require_routine(ctx, routine_id)
+    r.name = str(state["name"])
+    r.icon = str(state["icon"])
+    r.schedule = list(state["schedule"])  # type: ignore[call-overload]
+    ctx.session.add(r)
+    svc._write_steps(
+        ctx,
+        routine_id,
+        [
+            StepIn(habit_id=uuid.UUID(str(s["habit_id"])), minutes=int(s["minutes"]))
+            for s in state["steps"]  # type: ignore[attr-defined]
+        ],
+    )
+    ctx.session.flush()
+    svc.mark_today(ctx)
+
+
+HABIT_FIELDS = ("name", "icon", "type", "target", "unit", "schedule")
+
+
+def habit_state(ctx: Ctx, habit_id: uuid.UUID) -> dict[str, object]:
+    """What :func:`restore_habit` needs to put a habit back."""
+    h = svc.require_habit(ctx, habit_id)
+    return {k: getattr(h, k) for k in HABIT_FIELDS}
+
+
+def edit_habit(
+    ctx: Ctx,
+    *,
+    habit_id: uuid.UUID,
+    name: str | None = None,
+    icon: str | None = None,
+    target: float | None = None,
+    unit: str | None = None,
+    days: list[int] | None = None,
+    time: str | None = None,
+) -> Habit:
+    """Rename, re-icon, change the target or unit, or reschedule a habit.
+    A target on a check habit makes it a count."""
+    h = svc.require_habit(ctx, habit_id)
+    if name is not None:
+        h.name = name
+    if icon is not None:
+        h.icon = icon
+    if target is not None:
+        h.target = target
+        if h.type == "check":
+            h.type = "count"
+    if unit is not None:
+        h.unit = unit
+    if days is not None or time is not None:
+        h.schedule = _reschedule(h.schedule, days, time)
+    ctx.session.add(h)
+    ctx.session.flush()
+    svc.mark_today(ctx)
+    return h
+
+
+def restore_habit(ctx: Ctx, *, habit_id: uuid.UUID, state: dict[str, object]) -> None:
+    h = svc.require_habit(ctx, habit_id)
+    owned_repo.apply(h, {k: state[k] for k in HABIT_FIELDS if k in state})
+    ctx.session.add(h)
+    ctx.session.flush()
+    svc.mark_today(ctx)

@@ -53,6 +53,8 @@ RUNNING: dict[str, str] = {
     "log_habit": "Checking off a habit",
     "create_habit": "Creating a habit",
     "create_account": "Adding an account",
+    "update_routine": "Changing a routine",
+    "update_habit": "Changing a habit",
     "set_account_balance": "Setting a balance",
     "create_budget": "Setting a budget",
     "create_routine": "Creating a routine",
@@ -188,6 +190,12 @@ def outcome(ctx: Ctx, name: str, args: dict[str, Any], result: Any) -> tuple[boo
     if name == "recall_memories":
         n = len(res.get("memories") or [])
         return True, f"Recalled {n} thing{'s' if n != 1 else ''} about you"
+    if name == "update_routine":
+        n = len(args.get("steps") or [])
+        what = f" · {n} steps" if n else ""
+        return True, f"Updated routine: {args.get('routine', '')}{what}{wait}"
+    if name == "update_habit":
+        return True, f"Updated habit: {args.get('habit', '')}{wait}"
     if name == "create_task_list":
         n = len(args.get("items") or [])
         items = f" · {n} item{'s' if n != 1 else ''}" if n else ""

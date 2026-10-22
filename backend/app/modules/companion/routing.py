@@ -63,7 +63,16 @@ GROUPS: dict[str, tuple[frozenset[str], re.Pattern[str]]] = {
         ),
     ),
     "habits": (
-        frozenset({"log_habit", "create_habit", "create_routine", "start_routine"}),
+        frozenset(
+            {
+                "log_habit",
+                "create_habit",
+                "update_habit",
+                "create_routine",
+                "update_routine",
+                "start_routine",
+            }
+        ),
         re.compile(
             r"\b(habits?|routines?|meditat\w*|stretch\w*|streak|water|sleep|"
             r"woke|wake|morning|evening|daily|every day|check(ed)? off|did my)\b",

@@ -37,6 +37,8 @@ RECORD_KINDS = (
     "command",
     "accountCreate",
     "accountBalance",
+    "routineUpdate",
+    "habitUpdate",
     "budgetCreate",
     "routineCreate",
     "templateCreate",

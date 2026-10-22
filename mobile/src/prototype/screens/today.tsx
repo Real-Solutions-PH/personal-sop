@@ -57,7 +57,7 @@ import {
   Wallet,
   X,
 } from "lucide-react-native"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Platform, Text, View } from "react-native"
 import Animated from "react-native-reanimated"
 import { toast } from "sonner-native"
@@ -447,7 +447,18 @@ function TodayHabit({ habit }: { habit: Habit }) {
     </>
   )
 }
+/** The time, refreshed each minute (enough for routine windows). */
+function useMinuteNow() {
+  const [now, setNow] = useState(Date.now())
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 60_000)
+    return () => clearInterval(id)
+  }, [])
+  return now
+}
+
 export function HabitsCard() {
+  const now = useMinuteNow()
   const t = useTheme(),
     s = habitsStore.use((s) => s),
     [showDone, setShowDone] = useState(false),
@@ -463,13 +474,28 @@ export function HabitsCard() {
       (h) => idx.get(H.lk(h.id, today))?.status === "skipped",
     ).length,
     count = due.length - skipped
-  const routines = s.routines.filter(
+  const minute = H.businessMinute(new Date(now))
+  const dueToday = s.routines.filter(
     (r) =>
       r.status === "active" &&
       r.steps.length &&
       H.slotFor(r.schedule, today) &&
       r.createdAt <= today,
   )
+  const running = (id: string) =>
+    s.runs.some(
+      (x) => x.routineId === id && x.day === today && x.state === "in_progress",
+    )
+  // Only the routines whose part of the day it is (or one already started):
+  // a morning and an evening routine no longer show side by side.
+  const routines = dueToday.filter(
+    (r) => running(r.id) || H.routineShowsAt(r, today, minute),
+  )
+  const next = dueToday
+    .filter((r) => !routines.includes(r))
+    .map((r) => ({ r, w: H.routineWindow(r, today) }))
+    .filter((x) => x.w && x.w[0] > minute)
+    .sort((a, b) => (a.w?.[0] ?? 0) - (b.w?.[0] ?? 0))[0]?.r
   return (
     <Group title="Habits" icon={Target} accent="hab" href="/habits">
       {routines.map((r) => {
@@ -544,6 +570,25 @@ export function HabitsCard() {
           </LinearGradient>
         )
       })}
+      {next && (
+        <Part>
+          <Tap onPress={() => go(`/habits/routines/${next.id}`)}>
+            <Line style={{ gap: 10 }}>
+              <Copy size={20}>{next.icon}</Copy>
+              <Copy size={14} muted style={{ flex: 1 }} lines={1}>
+                Next:{" "}
+                <Copy size={14} weight="medium">
+                  {next.name}
+                </Copy>
+                {H.slotFor(next.schedule, today)?.time
+                  ? ` · ${H.slotFor(next.schedule, today)?.time}`
+                  : ""}
+              </Copy>
+              <ChevronRight size={16} color={t.muted} />
+            </Line>
+          </Tap>
+        </Part>
+      )}
       <Part style={{ paddingBottom: 8 }}>
         <Line style={{ marginBottom: 4 }}>
           <Ring
