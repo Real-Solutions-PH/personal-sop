@@ -52,6 +52,7 @@ from app.modules.social.schema import (
     Badges,
     ChatPublic,
     ChatsPublic,
+    CheerKind,
     CommentCreate,
     CommentPublic,
     CommentsPublic,
@@ -122,10 +123,18 @@ def _replay(ctx: Ctx, model: type[R], row_id: uuid.UUID | None) -> R | None:
 
 
 def _set_edge(
-    ctx: Ctx, model: type[R], field: str, target: uuid.UUID, kind: str, *, on: bool
+    ctx: Ctx,
+    model: type[R],
+    field: str,
+    target: uuid.UUID,
+    kind: str,
+    *,
+    on: bool,
+    extra: dict[str, object] | None = None,
 ) -> bool:
     """Idempotently turn one of the caller's edges (a like, a save, a seen
-    mark, a follow) on or off. Returns True when the state changed."""
+    mark, a follow) on or off, writing ``extra`` columns when it turns on.
+    Returns True when the state changed."""
     current = owned_repo.find_one(
         ctx, model, getattr(model, field) == target, include_deleted=True
     )
@@ -137,7 +146,7 @@ def _set_edge(
             ctx,
             model,
             current.id if current else derived_id(kind, target, str(ctx.user_id)),
-            {field: target},
+            {field: target, **(extra or {})},
             natural_key=(field,),
         )
     elif current is not None:
@@ -462,11 +471,23 @@ def restore_post(ctx: Ctx, *, post_id: uuid.UUID) -> PostPublic:
     return get_post(ctx, post_id=post_id)
 
 
-def like_post(ctx: Ctx, *, post_id: uuid.UUID, on: bool) -> PostPublic:
-    """Like (idempotent: a double-tap on a liked post changes nothing) or
-    unlike. Liking your own post records no activity."""
+def like_post(
+    ctx: Ctx, *, post_id: uuid.UUID, on: bool, kind: CheerKind | None = None
+) -> PostPublic:
+    """Cheer (idempotent: a double-tap on a cheered post changes nothing) or
+    take the cheer back. ``kind`` switches an existing cheer to another kind
+    without a second activity. Cheering your own post records no activity."""
     post = repo.visible_post(ctx, post_id)
-    if _set_edge(ctx, PostLike, "post_id", post.id, "post-like", on=on):
+    if on and kind is not None:
+        current = owned_repo.find_one(ctx, PostLike, col(PostLike.post_id) == post.id)
+        if current is not None and current.kind != kind:
+            current.kind = kind
+            ctx.session.add(current)
+            ctx.session.flush()
+    cheer = kind or "keep_going"
+    if _set_edge(
+        ctx, PostLike, "post_id", post.id, "post-like", on=on, extra={"kind": cheer}
+    ):
         if on:
             notify.record(
                 ctx,
@@ -474,6 +495,7 @@ def like_post(ctx: Ctx, *, post_id: uuid.UUID, on: bool) -> PostPublic:
                 kind="like",
                 key=str(post.id),
                 post_id=post.id,
+                text=cheer,
             )
         else:
             notify.retract(ctx, recipient=post.owner_id, kind="like", key=str(post.id))
@@ -543,10 +565,8 @@ def _for_you_ranked(ctx: Ctx) -> list[uuid.UUID]:
             .limit(logic.FOR_YOU_CANDIDATES)
         ).all()
     )
-    likes = views.like_counts(ctx, [pid for pid, _ in candidates])
     ranked = logic.rank_for_you(
-        logic.Rankable(id=pid, created_at=at, likes=likes.get(pid, 0))
-        for pid, at in candidates
+        logic.Rankable(id=pid, created_at=at) for pid, at in candidates
     )
     return [r.id for r in ranked]
 
@@ -625,7 +645,7 @@ def tag_posts(ctx: Ctx, *, q: str, skip: int, limit: int) -> PostsPublic:
 
 def explore(ctx: Ctx) -> ExplorePublic:
     """Suggested people (in the tenant, not yet followed, most followed
-    first) and the popular mosaic (the top of for-you)."""
+    first) and the latest posts (the top of the everyone tab)."""
     mine = repo.following_ids(ctx, ctx.user_id) | {ctx.user_id}
     followers = (
         select(Follow.followee_id, func.count().label("n"))

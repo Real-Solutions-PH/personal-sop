@@ -12093,6 +12093,28 @@ export const PostPublicSchema = {
             type: 'boolean',
             title: 'Liked'
         },
+        cheers: {
+            additionalProperties: {
+                type: 'integer'
+            },
+            propertyNames: {
+                enum: ['keep_going', 'proud', 'inspired']
+            },
+            type: 'object',
+            title: 'Cheers'
+        },
+        my_cheer: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['keep_going', 'proud', 'inspired']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'My Cheer'
+        },
         saved: {
             type: 'boolean',
             title: 'Saved'
@@ -12110,7 +12132,7 @@ export const PostPublicSchema = {
         }
     },
     type: 'object',
-    required: ['id', 'author', 'created_at', 'caption', 'media', 'progress', 'location', 'tags', 'likes', 'liked', 'saved', 'comments', 'liked_by'],
+    required: ['id', 'author', 'created_at', 'caption', 'media', 'progress', 'location', 'tags', 'likes', 'liked', 'cheers', 'my_cheer', 'saved', 'comments', 'liked_by'],
     title: 'PostPublic'
 } as const;
 
@@ -12710,6 +12732,37 @@ export const ProgressInSchema = {
                 }
             ],
             title: 'Spark'
+        },
+        day: {
+            anyOf: [
+                {
+                    type: 'integer',
+                    maximum: 100000,
+                    minimum: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Day'
+        },
+        of: {
+            anyOf: [
+                {
+                    type: 'integer',
+                    maximum: 100000,
+                    minimum: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Of'
+        },
+        before_after: {
+            type: 'boolean',
+            title: 'Before After',
+            default: false
         }
     },
     type: 'object',

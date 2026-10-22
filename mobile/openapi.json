@@ -8139,6 +8139,45 @@
         "security": [{ "HTTPBearer": [] }]
       }
     },
+    "/api/v1/finance/fx": {
+      "get": {
+        "tags": ["finance"],
+        "summary": "Get Fx Rate",
+        "description": "The latest exchange rate from ``base`` to the user's currency, for a\nrecord kept in another currency (422 ``fx_unavailable`` when the rate\nsource can't be reached).",
+        "operationId": "finance-get_fx_rate",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "base",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Z]{3}$",
+              "title": "Base"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/FxRatePublic" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
     "/api/v1/finance/start-fresh": {
       "post": {
         "tags": ["finance"],
@@ -15727,7 +15766,7 @@
       "put": {
         "tags": ["social"],
         "summary": "Like Post",
-        "description": "Like, and the double-tap like (idempotent).",
+        "description": "Cheer, and the double-tap cheer (idempotent). ``kind`` picks or\nswitches the cheer; without it a new cheer is ``keep_going``.",
         "operationId": "social-like_post",
         "security": [{ "HTTPBearer": [] }],
         "parameters": [
@@ -15736,6 +15775,21 @@
             "in": "path",
             "required": true,
             "schema": { "type": "string", "format": "uuid", "title": "Post Id" }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": ["keep_going", "proud", "inspired"],
+                  "type": "string"
+                },
+                { "type": "null" }
+              ],
+              "title": "Kind"
+            }
           }
         ],
         "responses": {
@@ -21081,6 +21135,22 @@
         "required": ["option"],
         "title": "FollowUpAnswerIn"
       },
+      "FxRatePublic": {
+        "properties": {
+          "base": { "type": "string", "title": "Base" },
+          "quote": { "type": "string", "title": "Quote" },
+          "rate": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Rate"
+          },
+          "as_of": { "type": "string", "format": "date", "title": "As Of" }
+        },
+        "type": "object",
+        "required": ["base", "quote", "rate", "as_of"],
+        "title": "FxRatePublic",
+        "description": "One unit of ``base`` in the user's currency (``quote``), as of the\nlast published reference day."
+      },
       "GoalCreate": {
         "properties": {
           "id": {
@@ -25793,6 +25863,19 @@
           },
           "likes": { "type": "integer", "title": "Likes" },
           "liked": { "type": "boolean", "title": "Liked" },
+          "cheers": {
+            "additionalProperties": { "type": "integer" },
+            "propertyNames": { "enum": ["keep_going", "proud", "inspired"] },
+            "type": "object",
+            "title": "Cheers"
+          },
+          "my_cheer": {
+            "anyOf": [
+              { "type": "string", "enum": ["keep_going", "proud", "inspired"] },
+              { "type": "null" }
+            ],
+            "title": "My Cheer"
+          },
           "saved": { "type": "boolean", "title": "Saved" },
           "comments": { "type": "integer", "title": "Comments" },
           "liked_by": {
@@ -25813,6 +25896,8 @@
           "tags",
           "likes",
           "liked",
+          "cheers",
+          "my_cheer",
           "saved",
           "comments",
           "liked_by"
@@ -26182,6 +26267,25 @@
               { "type": "null" }
             ],
             "title": "Spark"
+          },
+          "day": {
+            "anyOf": [
+              { "type": "integer", "maximum": 100000.0, "minimum": 1.0 },
+              { "type": "null" }
+            ],
+            "title": "Day"
+          },
+          "of": {
+            "anyOf": [
+              { "type": "integer", "maximum": 100000.0, "minimum": 1.0 },
+              { "type": "null" }
+            ],
+            "title": "Of"
+          },
+          "before_after": {
+            "type": "boolean",
+            "title": "Before After",
+            "default": false
           }
         },
         "type": "object",
@@ -26547,6 +26651,39 @@
             ],
             "title": "Status"
           },
+          "orig_currency": {
+            "anyOf": [
+              { "type": "string", "pattern": "^[A-Z]{3}$" },
+              { "type": "null" }
+            ],
+            "title": "Orig Currency"
+          },
+          "orig_amount_minor": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 100000000000000.0,
+                "minimum": 1.0
+              },
+              { "type": "null" }
+            ],
+            "title": "Orig Amount Minor"
+          },
+          "fx_rate": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1000000.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              { "type": "null" }
+            ],
+            "title": "Fx Rate"
+          },
           "id": {
             "anyOf": [
               { "type": "string", "format": "uuid" },
@@ -26774,7 +26911,25 @@
             ],
             "title": "Edited At"
           },
-          "version": { "type": "integer", "title": "Version" }
+          "version": { "type": "integer", "title": "Version" },
+          "orig_currency": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Orig Currency"
+          },
+          "orig_amount_minor": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Orig Amount Minor"
+          },
+          "fx_rate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              { "type": "null" }
+            ],
+            "title": "Fx Rate"
+          }
         },
         "type": "object",
         "required": [
@@ -26898,6 +27053,39 @@
               { "type": "null" }
             ],
             "title": "Status"
+          },
+          "orig_currency": {
+            "anyOf": [
+              { "type": "string", "pattern": "^[A-Z]{3}$" },
+              { "type": "null" }
+            ],
+            "title": "Orig Currency"
+          },
+          "orig_amount_minor": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 100000000000000.0,
+                "minimum": 1.0
+              },
+              { "type": "null" }
+            ],
+            "title": "Orig Amount Minor"
+          },
+          "fx_rate": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1000000.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              { "type": "null" }
+            ],
+            "title": "Fx Rate"
           }
         },
         "type": "object",

@@ -12,6 +12,7 @@ from sqlmodel import col, func, select
 from app.modules.media import public as media
 from app.modules.social import repo
 from app.modules.social.models import (
+    CHEER_KINDS,
     ChatMessage,
     Comment,
     CommentLike,
@@ -83,8 +84,26 @@ def _mine(
     return set(rows)
 
 
-def like_counts(ctx: Ctx, ids: list[uuid.UUID]) -> dict[uuid.UUID, int]:
-    return _counts(ctx, PostLike, ids) if ids else {}
+def _cheers(
+    ctx: Ctx, ids: list[uuid.UUID]
+) -> tuple[dict[uuid.UUID, dict[str, int]], dict[uuid.UUID, str]]:
+    """Live cheers per post split by kind, and the caller's own kind."""
+    rows = ctx.session.exec(
+        select(PostLike.post_id, PostLike.kind, func.count())
+        .where(col(PostLike.post_id).in_(ids), col(PostLike.deleted_at).is_(None))
+        .group_by(col(PostLike.post_id), col(PostLike.kind))
+    ).all()
+    counts: dict[uuid.UUID, dict[str, int]] = defaultdict(dict)
+    for pid, kind, n in rows:
+        counts[pid][kind] = int(n)
+    mine = ctx.session.exec(
+        select(PostLike.post_id, PostLike.kind).where(
+            col(PostLike.post_id).in_(ids),
+            PostLike.owner_id == ctx.user_id,
+            col(PostLike.deleted_at).is_(None),
+        )
+    ).all()
+    return counts, dict(mine)
 
 
 def posts(
@@ -93,8 +112,7 @@ def posts(
     if not rows:
         return []
     ids = [p.id for p in rows]
-    likes = _counts(ctx, PostLike, ids)
-    liked = _mine(ctx, PostLike, ids)
+    cheers, my_cheer = _cheers(ctx, ids)
     saved = _mine(ctx, PostSave, ids)
     comments = dict(
         ctx.session.exec(
@@ -149,8 +167,10 @@ def posts(
                 progress=p.progress,
                 location=p.location,
                 tags=list(p.tags or []),
-                likes=likes.get(p.id, 0),
-                liked=p.id in liked,
+                likes=sum(cheers.get(p.id, {}).values()),
+                liked=p.id in my_cheer,
+                cheers={k: cheers.get(p.id, {}).get(k, 0) for k in CHEER_KINDS},  # type: ignore[misc]
+                my_cheer=my_cheer.get(p.id),  # type: ignore[arg-type]
                 saved=p.id in saved,
                 comments=int(comments.get(p.id, 0)),
                 liked_by=[people[u] for u in likers.get(p.id, []) if u in people],

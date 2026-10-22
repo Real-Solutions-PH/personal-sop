@@ -19,6 +19,7 @@ from app.modules.social.schema import (
     ChatPublic,
     ChatRename,
     ChatsPublic,
+    CheerKind,
     CloseFriendIn,
     CommentCreate,
     CommentPublic,
@@ -231,9 +232,10 @@ def restore_post(ctx: CtxDep, post_id: uuid.UUID) -> Any:
 
 
 @router.put("/posts/{post_id}/like", response_model=PostPublic, dependencies=WRITE)
-def like_post(ctx: CtxDep, post_id: uuid.UUID) -> Any:
-    """Like, and the double-tap like (idempotent)."""
-    return services.like_post(ctx, post_id=post_id, on=True)
+def like_post(ctx: CtxDep, post_id: uuid.UUID, kind: CheerKind | None = None) -> Any:
+    """Cheer, and the double-tap cheer (idempotent). ``kind`` picks or
+    switches the cheer; without it a new cheer is ``keep_going``."""
+    return services.like_post(ctx, post_id=post_id, on=True, kind=kind)
 
 
 @router.delete("/posts/{post_id}/like", response_model=PostPublic, dependencies=WRITE)

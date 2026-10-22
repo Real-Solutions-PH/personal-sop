@@ -1344,6 +1344,17 @@ export type FollowUpAnswerIn = {
     option: string;
 };
 
+/**
+ * One unit of ``base`` in the user's currency (``quote``), as of the
+ * last published reference day.
+ */
+export type FxRatePublic = {
+    base: string;
+    quote: string;
+    rate: string;
+    as_of: string;
+};
+
 export type GoalCreate = {
     id?: (string | null);
     metric: string;
@@ -2683,6 +2694,10 @@ export type PostPublic = {
     tags: Array<(string)>;
     likes: number;
     liked: boolean;
+    cheers: {
+        [key: string]: (number);
+    };
+    my_cheer: ('keep_going' | 'proud' | 'inspired' | null);
     saved: boolean;
     comments: number;
     liked_by: Array<PersonBrief>;
@@ -2785,6 +2800,9 @@ export type ProgressIn = {
     subtitle?: (string | null);
     stats?: Array<ProgressStat>;
     spark?: (Array<(number)> | null);
+    day?: (number | null);
+    of?: (number | null);
+    before_after?: boolean;
 };
 
 export type ProgressOut = {
@@ -2888,6 +2906,9 @@ export type RecordCreate = {
     receipt_media_id?: (string | null);
     is_refund?: (boolean | null);
     status?: ('cleared' | 'pending' | null);
+    orig_currency?: (string | null);
+    orig_amount_minor?: (number | null);
+    fx_rate?: (number | string | null);
     id?: (string | null);
     fee_minor?: number;
 };
@@ -2939,6 +2960,9 @@ export type RecordPublic = {
     status: string;
     edited_at: (string | null);
     version: number;
+    orig_currency?: (string | null);
+    orig_amount_minor?: (number | null);
+    fx_rate?: (string | null);
 };
 
 export type RecordsPublic = {
@@ -2959,6 +2983,9 @@ export type RecordUpdate = {
     receipt_media_id?: (string | null);
     is_refund?: (boolean | null);
     status?: ('cleared' | 'pending' | null);
+    orig_currency?: (string | null);
+    orig_amount_minor?: (number | null);
+    fx_rate?: (number | string | null);
 };
 
 export type Recurrence = {
@@ -4765,6 +4792,12 @@ export type FinanceUpdateSettingsData = {
 
 export type FinanceUpdateSettingsResponse = (app__modules__finance__schema__SettingsPublic);
 
+export type FinanceGetFxRateData = {
+    base: string;
+};
+
+export type FinanceGetFxRateResponse = (FxRatePublic);
+
 export type FinanceStartFreshResponse = (app__modules__finance__schema__SettingsPublic);
 
 export type FinanceResetResponse = (app__modules__finance__schema__SettingsPublic);
@@ -6275,6 +6308,7 @@ export type SocialRestorePostData = {
 export type SocialRestorePostResponse = (PostPublic);
 
 export type SocialLikePostData = {
+    kind?: ('keep_going' | 'proud' | 'inspired' | null);
     postId: string;
 };
 

@@ -78,16 +78,15 @@ def direct_key(a: uuid.UUID, b: uuid.UUID) -> str:
 class Rankable:
     id: uuid.UUID
     created_at: datetime
-    likes: int
 
 
 def rank_for_you(posts: Iterable[Rankable]) -> list[Rankable]:
-    """The for-you order: most liked first, newer first among equals.
+    """The "everyone" tab (``foryou`` on the wire): newest first.
 
-    The prototype sorts the newest-first list by likes with a stable sort, so
-    recency breaks every like tie; the id is the last, deterministic tiebreak.
+    Community is about progress, not reach, so cheers never lift a post above
+    newer ones; the id is the deterministic tiebreak.
     """
-    return sorted(posts, key=lambda p: (-p.likes, -p.created_at.timestamp(), str(p.id)))
+    return sorted(posts, key=lambda p: (-p.created_at.timestamp(), str(p.id)))
 
 
 @dataclass(frozen=True)
