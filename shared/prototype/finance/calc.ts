@@ -419,6 +419,40 @@ export function monthlyEq(p: PlannedItem) {
       return (p.amount * 52) / 12 / p.schedule.every
   }
 }
+/** Whether a planned item counts as money out each month: bills and
+ * instalment payments, not plain transfers between your own accounts. */
+export function isRecurringOut(p: PlannedItem) {
+  return p.type === "expense" || !!p.isInstallment || p.toAccountId === "col"
+}
+export interface RecurringMonth {
+  income: number
+  out: number
+  net: number
+  incomeItems: PlannedItem[]
+  outItems: PlannedItem[]
+}
+/**
+ * Estimated income, spending and net for a typical month from what repeats:
+ * every live, non-what-if, recurring item converted to a monthly amount.
+ * One-off items are left out, and so is anything that has ended (no
+ * occurrence in the next two months, which also covers a finished count).
+ */
+export function recurringMonth(s: FinState, on = today()): RecurringMonth {
+  const ahead = addDays(on, 62)
+  const live = s.planned.filter(
+    (p) =>
+      !p.archived &&
+      !p.isWhatIf &&
+      p.schedule.kind !== "once" &&
+      occurrences(p, on, ahead).length > 0,
+  )
+  const incomeItems = live.filter((p) => p.type === "income")
+  const outItems = live.filter((p) => p.type !== "income" && isRecurringOut(p))
+  const sum = (ps: PlannedItem[]) => ps.reduce((a, p) => a + monthlyEq(p), 0)
+  const income = sum(incomeItems)
+  const out = sum(outItems)
+  return { income, out, net: income - out, incomeItems, outItems }
+}
 export function scheduleLabel(p: PlannedItem) {
   const sc = p.schedule
   const ord = (n: number) =>

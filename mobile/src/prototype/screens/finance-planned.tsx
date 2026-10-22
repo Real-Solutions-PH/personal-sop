@@ -215,16 +215,7 @@ export function Planned({ id }: { id?: string }) {
           ? !p.isWhatIf && p.schedule.kind === "once"
           : !p.isWhatIf && p.schedule.kind !== "once",
     ),
-    income = live
-      .filter((p) => !p.isWhatIf && p.type === "income")
-      .reduce((a, p) => a + C.monthlyEq(p), 0),
-    out = live
-      .filter(
-        (p) =>
-          !p.isWhatIf &&
-          (p.type === "expense" || p.isInstallment || p.toAccountId === "col"),
-      )
-      .reduce((a, p) => a + C.monthlyEq(p), 0),
+    { income, out } = C.recurringMonth(s, today),
     signed = (p: PlannedItem) =>
       `${p.type === "income" ? "+" : p.type === "expense" ? "−" : ""}${money(p.amount)}`
   const history = p
