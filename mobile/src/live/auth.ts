@@ -188,9 +188,20 @@ export async function deleteAccount(password: string) {
     .catch(() => {})
 }
 
-export async function currentUserId(): Promise<string | null> {
-  const { data } = await getSupabase().auth.getSession()
-  return data.session?.user.id ?? null
+/** The signed-in user. An expired access token is refreshed first; when
+ * that refresh fails only because the network did (offline launch), GoTrue
+ * keeps the stored session but reports none, so ``offlineUserId`` (the
+ * account this device last synced) is returned instead: the person stays
+ * signed in, works locally, and a later refusal from the auth server
+ * (onSessionLost) decides whether the session really ended. */
+export async function currentUserId(
+  offlineUserId?: string | null,
+): Promise<string | null> {
+  const { data, error } = await getSupabase().auth.getSession()
+  if (data.session) return data.session.user.id
+  return error?.name === "AuthRetryableFetchError"
+    ? (offlineUserId ?? null)
+    : null
 }
 
 /** Sign-up's "is this handle free?" check, asked before the account exists
