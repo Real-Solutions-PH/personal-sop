@@ -241,6 +241,62 @@ DEFAULT_LIMITS: dict[str, float] = {
 }
 
 
+# The last local hour each main meal is still "ahead" (a 21:00 dinner
+# is still to come at 20:30; lunch at 15:30 has passed).
+MEAL_UNTIL = {"breakfast": 11, "lunch": 15, "dinner": 22}
+_LIMIT_EATEN = {
+    "sat_fat_max_g": "sat_fat_g",
+    "sugar_max_g": "sugar_g",
+    "sodium_max_mg": "sodium_mg",
+}
+
+
+def _plan_ahead(
+    ctx: Ctx,
+    counted: list[Meal],
+    eaten: dict[str, Any],
+    left: dict[str, float],
+    target: dict[str, Any],
+) -> dict[str, Any]:
+    """What Fern plans the rest of the day with: the room left under each
+    limit, the main meals still ahead (not logged, and not yet past their
+    hour), the remainder split evenly across them, and foods the person has
+    eaten lately, so suggestions fit both their numbers and their habits."""
+    hour = ctx.now.astimezone(ctx.clock.zone).hour
+    logged = {m.label for m in counted}
+    ahead = [
+        label
+        for label, until in MEAL_UNTIL.items()
+        if label not in logged and hour < until
+    ]
+    room = {
+        k.replace("_max", "_left"): round(
+            float(v) - float(eaten.get(_LIMIT_EATEN[k]) or 0), 1
+        )
+        for k, v in target.items()
+        if k in _LIMIT_EATEN
+    }
+    out: dict[str, Any] = {"limits_left": room, "meals_ahead": ahead}
+    if ahead:
+        n = len(ahead)
+        out["per_meal_ahead"] = {
+            k: round(max(v, 0) / n, 1) for k, v in left.items()
+        } | {k: round(max(v, 0) / n, 1) for k, v in room.items()}
+    since = ctx.now - timedelta(days=14)
+    recent = owned_repo.list_rows(
+        ctx, Meal, col(Meal.eaten_at) >= since, order_by=[col(Meal.eaten_at).desc()]
+    )
+    names: list[str] = []
+    for m in recent:
+        for it in repo.meal_items(ctx, m.id):
+            if it.name not in names:
+                names.append(it.name)
+        if len(names) >= 12:
+            break
+    out["recent_foods"] = names[:12]
+    return out
+
+
 def nutrition_today(ctx: Ctx) -> dict[str, Any]:
     """Today's intake against the target, for the companion's facts:
     eaten (macros plus fiber, saturated fat, sugar and sodium where the meals
@@ -299,6 +355,8 @@ def nutrition_today(ctx: Ctx) -> dict[str, Any]:
                 "fiber_g": t.fiber_g,
             }.items()
         }
+    if t is not None:
+        out |= _plan_ahead(ctx, counted, eaten, out["left"], out["target"])
     latest = repo.latest_weigh_in(ctx)
     if latest is not None:
         out["latest_weigh_in"] = {

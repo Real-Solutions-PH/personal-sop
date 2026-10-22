@@ -449,10 +449,7 @@ export function Exchange({ cap }: { cap: Capture }) {
           }}
         >
           {cap.photo && (
-            <Image
-              source={{ uri: cap.photo }}
-              style={{ width: 220, height: 192 }}
-            />
+            <BubblePhotos uris={[cap.photo, ...(cap.photos ?? [])]} />
           )}
           <View style={{ paddingHorizontal: 14, paddingVertical: 8 }}>
             {cap.source === "voice" && (
@@ -709,5 +706,33 @@ export function CaptureChat() {
         )}
       </View>
     </Screen>
+  )
+}
+
+/** Every photo of a capture in its bubble: one fills it, two sit side by
+ * side, more wrap in a grid (a capture holds a few at most). */
+function BubblePhotos({ uris }: { uris: string[] }) {
+  if (uris.length === 1)
+    return (
+      <Image
+        accessibilityLabel="Photo"
+        source={{ uri: uris[0] }}
+        style={{ width: 220, height: 192 }}
+      />
+    )
+  const size = uris.length === 2 ? 109 : 72
+  return (
+    <View
+      accessibilityLabel={`${uris.length} photos`}
+      style={{ width: 220, flexDirection: "row", flexWrap: "wrap", gap: 2 }}
+    >
+      {uris.map((uri, i) => (
+        <Image
+          key={`${uri}-${i}`}
+          source={{ uri }}
+          style={{ width: size, height: uris.length === 2 ? 160 : size }}
+        />
+      ))}
+    </View>
   )
 }

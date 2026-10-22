@@ -149,7 +149,10 @@ PROMPTS: dict[str, str] = {
     "auto": 'What is this photo of? {"hint": "meal|receipt|label|statement|whiteboard|other"}',
     "meal": (
         "Itemise the meal with estimated nutrition per item (grams; sodium in "
-        "milligrams): "
+        "milligrams). Weights the user states are exact: use them as the "
+        "item's qty and scale its nutrition to them. When they correct "
+        'themselves ("I mean ...") or say the same food twice, it is one '
+        "item, as last said: "
         '{"items": [{"name", "qty", "unit", "kcal", "protein", "carbs", "fat", '
         '"fiber", "sat_fat", "sugar", "sodium", "assumption"}], '
         '"confidence": 0-1, "follow_up": {"question", "options": [..]} or null}'
@@ -229,6 +232,62 @@ def meal_label_of(text: str) -> str | None:
         return None
     word = m.group(1).lower()
     return _LABELS.get(word, "snack" if "snack" in word else word)
+
+
+_GRAMS = re.compile(
+    r"(\d+(?:\.\d+)?)\s*(?:g|grams?|gms?)\b\s*(?:of\s+)?([^,.;]+?)"
+    r"(?=\s*(?:,|\.|;|\bthen\b|\band\b|\bi mean\b|\bplus\b|\d|$))",
+    re.I,
+)
+_NUTRIENTS = ("kcal", "protein", "carbs", "fat", "fiber", "sat_fat", "sugar", "sodium")
+_FILLER = {"of", "the", "and", "with", "some", "plus"}
+
+
+def said_grams(caption: str) -> list[tuple[float, set[str]]]:
+    """Every "<n> g of <food>" in the caption, in order, as (grams, the
+    food's words). Said twice ("95 g of roasted chicken, I mean ... 95 g of
+    classic savory chicken"), both are kept; the later one wins below."""
+    out: list[tuple[float, set[str]]] = []
+    for m in _GRAMS.finditer(caption):
+        words = {
+            w for w in re.findall(r"[a-z]+", m.group(2).lower()) if len(w) >= 4
+        } - _FILLER
+        if words:
+            out.append((float(m.group(1)), words))
+    return out
+
+
+def honour_grams(items: list[dict[str, Any]], caption: str) -> list[dict[str, Any]]:
+    """The grams the person said are exact: an item in grams whose name
+    shares a word with a food they weighed is scaled to that weight (the
+    last one said, so a correction wins). Photos and labels only guess."""
+    said = said_grams(caption)
+    if not said:
+        return items
+    out = []
+    for it in items:
+        name = set(re.findall(r"[a-z]+", str(it.get("name", "")).lower()))
+        grams = next((g for g, words in reversed(said) if words & name), None)
+        qty = float(it.get("qty") or 0)
+        if (
+            grams is None
+            or str(it.get("unit", "")).lower() not in ("g", "gram", "grams")
+            or qty <= 0
+            or abs(grams - qty) < 0.5
+        ):
+            out.append(it)
+            continue
+        k = grams / qty
+        out.append(
+            it
+            | {"qty": grams}
+            | {
+                n: round(float(it[n]) * k, 1)
+                for n in _NUTRIENTS
+                if it.get(n) is not None
+            }
+        )
+    return out
 
 
 def _meal_draft(
@@ -601,7 +660,9 @@ def _by_vision(
         return [
             _meal_draft(
                 caption,
-                [i.model_dump(exclude_none=True) for i in m.items],
+                honour_grams(
+                    [i.model_dump(exclude_none=True) for i in m.items], caption
+                ),
                 m.confidence,
                 m.follow_up.model_dump() if m.follow_up else None,
                 field="portion",

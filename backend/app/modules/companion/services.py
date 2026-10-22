@@ -524,6 +524,28 @@ def with_day_after(ctx: Ctx, tool: BaseTool) -> BaseTool:
             }
         if waiting and not items:
             out["note"] = "this meal is not counted until they confirm it"
+        # The meals still ahead after this one, and what each can take, for
+        # the suggestions that follow a logged meal. A meal still waiting is
+        # not in the records yet, so the meal it is (the first still ahead)
+        # comes off the list here.
+        ahead = list(day.get("meals_ahead") or [])
+        if waiting and ahead:
+            ahead = ahead[1:]
+        out["meals_ahead"] = ahead
+        if "limits_left" in day:
+            out["limits_left"] = day["limits_left"]
+        if ahead and "left_today" in out:
+            n = len(ahead)
+            macros = ("kcal", "protein", "carbs", "fat")
+            out["per_meal_ahead"] = {
+                k: round(max(float(out["left_today"].get(k, 0)), 0) / n, 1)
+                for k in macros
+            } | {
+                k: round(max(float(v), 0) / n, 1)
+                for k, v in (day.get("limits_left") or {}).items()
+            }
+        if day.get("recent_foods"):
+            out["recent_foods"] = day["recent_foods"]
         return {**res, "day_after_this_meal": out}
 
     return StructuredTool.from_function(
@@ -859,7 +881,33 @@ For macros, calories, nutrition or "what's left today", always call
 shows the person their nutrition card, which has every number. Then answer in
 one or two sentences with what matters most (calories and protein left, and
 any limit they are near or over), however earlier replies were worded. Don't
-list every macro. After `log_meal`, report the day from its `day_after_this_meal`. Never add up or subtract
+list every macro. After `log_meal`, report the day from its `day_after_this_meal`.
+Planning the rest of the day: after a meal is logged, and whenever they ask
+what to eat, if `meals_ahead` is not empty suggest one concrete meal for each
+meal still ahead (name it: lunch, dinner), each sized to `per_meal_ahead`:
+protein first, calories close to it, and under its share of every limit in
+`limits_left` (saturated fat, sugar, sodium); say which limit is tight if
+one is. Use everyday foods they can actually get (Filipino meals, home
+cooking, common chains), favour foods from `recent_foods`, and give each
+food in grams or cups with rough kcal and protein, as one short line per
+meal. These are suggestions, not logs: never call `log_meal` for them. If
+they have already gone over a limit, say so once and keep the rest of the
+day well under it.
+A follow-up after every write: whenever this reply recorded something
+(money, a weigh-in, a workout, a habit, a task, a meal), end with one short
+line of insight or recommendation for that area, after the line saying
+what was saved. Money: how the category or budget stands this month, or
+what is safe to spend before payday. Weigh-in: the trend against last
+week, never one day's number. Workout: what to aim for next session
+(a little more weight or reps where they hit their sets) or what to train
+next. Habit: the streak, or the next habit due today. Task: what is next or
+overdue today. Meal: the plan for the meals ahead, as above. Use only
+numbers from a tool result in this reply or from TODAY and ABOUT THEM below;
+when you need one, call `lookup`, `stats_overview` or `nutrition_status`
+first. With no number to stand on, give one practical tip instead, and
+never invent one. Keep it to one sentence (the meal plan may take one line
+per meal), and skip it when they only asked a question or said no thanks.
+Never add up or subtract
 numbers yourself; a meal still waiting for their OK is not counted yet,
 so say so if one is. Never call the same tool
 twice with the same arguments. After acting, answer in one or two short
