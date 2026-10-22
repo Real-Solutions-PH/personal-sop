@@ -43,6 +43,10 @@ from app.shared.currency import CODES, currency, money
 Sink = Callable[[BaseEvent], None]
 
 # What a running step says, per tool ("Adding a task…").
+# Tools a turn calls once; a repeat returns the first answer (the tool
+# enforces it) and draws no second step line.
+ONCE_A_TURN = frozenset({"recall_memories"})
+
 RUNNING: dict[str, str] = {
     "create_tasks": "Adding to your tasks",
     "complete_task": "Marking a task done",
@@ -299,6 +303,8 @@ class TurnStream(capture.LoopHooks):
     _text_id: str | None = None
     _turn: int = 0
     _args: dict[str, dict[str, Any]] = field(default_factory=dict)
+    # Repeat calls of a once-a-turn tool: run, but shown nowhere.
+    _quiet: set[str] = field(default_factory=set)
 
     # ---------------------------------------------------------- run
 
@@ -348,6 +354,11 @@ class TurnStream(capture.LoopHooks):
 
     def tool_started(self, call_id: str, name: str, args: dict[str, Any]) -> None:
         self._args[call_id] = args
+        # Tools that run once a turn: a repeat call answers from the first
+        # (see `recall_memories`) and shows no second step line.
+        if name in ONCE_A_TURN and any(s.name == name for s in self.steps):
+            self._quiet.add(call_id)
+            return
         self.steps.append(
             Step(call_id=call_id, name=name, label=RUNNING.get(name, name))
         )
@@ -362,6 +373,10 @@ class TurnStream(capture.LoopHooks):
         self.sink(ToolCallEndEvent(tool_call_id=call_id))
 
     def tool_finished(self, call_id: str, name: str, result: Any) -> None:
+        if call_id in self._quiet:
+            self._quiet.discard(call_id)
+            self._args.pop(call_id, None)
+            return
         ok, summary = outcome(self.ctx, name, self._args.pop(call_id, {}), result)
         step = next((s for s in self.steps if s.call_id == call_id), None)
         if step is not None:

@@ -69,8 +69,11 @@ const greeting = () => {
   return h < 12 ? "Morning" : h < 18 ? "Afternoon" : "Evening"
 }
 
-function SolMessage({ m, name }: { m: Msg; name: string }) {
+export function SolMessage({ m, name }: { m: Msg; name: string }) {
   const t = useTheme()
+  // While a reply streams, the model's line breaks between tool calls arrive
+  // before any words; blank lines must not open a gap above the steps.
+  const text = m.text?.trim() ?? ""
   return (
     <Animated.View
       entering={FadeInDown.springify().damping(18)}
@@ -85,7 +88,7 @@ function SolMessage({ m, name }: { m: Msg; name: string }) {
         >
           {name}
         </Text>
-        {!!m.text && (
+        {!!text && (
           <Text
             style={{
               color: t.text,
@@ -94,13 +97,13 @@ function SolMessage({ m, name }: { m: Msg; name: string }) {
               lineHeight: 21,
             }}
           >
-            {m.text}
+            {text}
           </Text>
         )}
         {m.blocks?.map((b, i) => (
           <BlockView key={i} block={b} />
         ))}
-        {!!m.text && <ReplyActions id={m.id} text={m.text} />}
+        {!!text && <ReplyActions id={m.id} text={text} />}
       </View>
     </Animated.View>
   )

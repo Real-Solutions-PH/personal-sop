@@ -309,6 +309,42 @@ def test_remember_and_recall_as_tools(
     assert step["summary"] == "Recalled 1 thing about you"
 
 
+def test_recall_runs_once_a_turn(
+    client: TestClient,
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A model that keeps searching an empty memory (it did, until the turn
+    ran out of steps) gets the first answer back, one step line, a reply."""
+    api: Api = user(client, db)
+    api.assign("chat")
+    searches: list[str] = []
+    real = memory.recall
+
+    def counted(ctx: Any, query: str, **kw: Any) -> list[Memory]:
+        searches.append(query)
+        return real(ctx, query, **kw)
+
+    monkeypatch.setattr(memory, "recall", counted)
+    install(
+        monkeypatch,
+        say("", call("recall_memories", query="morning routine")),
+        say("", call("recall_memories", query="routine habits")),
+        say("", call("recall_memories", query="bed")),
+        say("Added it first in your morning routine."),
+    )
+    r = client.post(
+        "/api/v1/companion/ask/stream",
+        headers=api.h,
+        json={"text": "what's in my morning routine?"},
+    )
+    reply = parse_agui(r.text)[-1]["result"]["messages"][1]
+    steps = reply["blocks"][0]["items"]
+    assert searches == ["morning routine"]
+    assert [s["summary"] for s in steps] == ["Recalled 0 things about you"]
+    assert "morning routine" in reply["text"]
+
+
 def test_older_conversation_is_folded_into_a_summary(
     client: TestClient,
     db: Session,

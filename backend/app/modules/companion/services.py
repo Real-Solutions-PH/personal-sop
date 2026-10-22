@@ -468,6 +468,10 @@ class SolRun:
     # Decides whether a new memory close to an old one is the same, an
     # update, a contradiction or different (the chat model; None: no judge).
     judge: memory.Judge | None = None
+    # What `recall_memories` found this turn: it runs once a turn, so a model
+    # that keeps searching (an empty result invites another try) gets the
+    # same answer back and is told to reply instead of looping to the step cap.
+    recalled: list[dict[str, Any]] | None = None
 
     def block(self, b: dict[str, Any]) -> dict[str, Any]:
         self.blocks.append(b)
@@ -625,20 +629,26 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
 
     def recall_memories(**kw: Any) -> dict[str, Any]:
         a = RecallArgs(**kw)
+        if run.recalled is not None:
+            return {
+                "memories": run.recalled,
+                "repeat": True,
+                "note": "Memories were already recalled this turn; this is "
+                "everything known. Answer now with what you have.",
+            }
         kinds = [k for k in a.kinds if k in MEMORY_KINDS] or None
         found = memory.recall(ctx, a.query, kinds=kinds)
-        return {
-            "memories": [
-                {
-                    "id": str(m.id),
-                    "text": m.text,
-                    "kind": m.kind,
-                    "tags": m.tags,
-                    "since": ctx.clock.day_of(m.created_at).isoformat(),
-                }
-                for m in found
-            ]
-        }
+        run.recalled = [
+            {
+                "id": str(m.id),
+                "text": m.text,
+                "kind": m.kind,
+                "tags": m.tags,
+                "since": ctx.clock.day_of(m.created_at).isoformat(),
+            }
+            for m in found
+        ]
+        return {"memories": run.recalled}
 
     def forget_fact(**kw: Any) -> dict[str, Any]:
         a = ForgetArgs(**kw)
