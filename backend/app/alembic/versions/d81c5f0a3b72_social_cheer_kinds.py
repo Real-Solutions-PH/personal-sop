@@ -1,7 +1,7 @@
 """social cheer kinds
 
 Revision ID: d81c5f0a3b72
-Revises: a65a6331fd8c
+Revises: d7a2c94e1b38
 Create Date: 2026-10-22 18:00:00.000000
 
 """
@@ -11,7 +11,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "d81c5f0a3b72"
-down_revision = "a65a6331fd8c"
+down_revision = "d7a2c94e1b38"
 branch_labels = None
 depends_on = None
 
