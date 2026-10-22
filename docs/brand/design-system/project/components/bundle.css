@@ -1,0 +1,493 @@
+/* Unfurl components: calm, plain, specific, and Fern first.
+   Calm: one brand colour per screen, low-chroma accents on small marks only, no gradients, slow quiet motion.
+   Plain: flat surfaces, hairlines instead of shadows, sentence case, one primary action.
+   Fern first: Fern is the only element with a gradient, a glow and idle motion, and it is never more than one tap away.
+   Specific: numbers in Geist Mono with their units, exact times, the words that created a record.
+   Colours, spacing, radii and shadows come from tokens.css; this file only composes them. */
+@import url("https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap");
+
+/* ---------- base ---------- */
+html, body { background: var(--background); color: var(--foreground); }
+body { margin: 0; font-family: var(--font-sans); font-size: 16px; line-height: 24px; -webkit-font-smoothing: antialiased; }
+.uf, .uf * { box-sizing: border-box; }
+.uf { font-family: var(--font-sans); color: var(--foreground); --a: var(--primary); }
+.uf-stage { padding: 20px 16px; display: flex; flex-direction: column; gap: 16px; }
+.uf-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.uf-col { display: flex; flex-direction: column; gap: 8px; }
+.uf-spread { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.uf-muted { color: var(--muted-foreground); }
+.uf-cap { font: 500 13px/18px var(--font-sans); color: var(--muted-foreground); }
+.uf-num { font-family: var(--font-mono); font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: -0.2px; }
+.uf-unit { font-family: var(--font-mono); font-weight: 400; color: var(--muted-foreground); }
+.uf svg.lucide { width: 18px; height: 18px; flex: none; stroke-width: 1.75; }
+.uf :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.uf button { cursor: pointer; font: inherit; }
+
+/* module accent: one class on an ancestor; accents only colour small marks */
+.acc-hab { --a: var(--hab); } .acc-tsk { --a: var(--tsk); } .acc-fit { --a: var(--fit); }
+.acc-nut { --a: var(--nut); } .acc-fin { --a: var(--fin); } .acc-life { --a: var(--life); }
+.uf-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--a); flex: none; display: inline-block; }
+
+/* ---------- Logo ---------- */
+.uf-logo { display: inline-flex; align-items: center; gap: .16em; color: var(--foreground); }
+.uf-logo .word { font: 500 1em/1 var(--font-sans); letter-spacing: -0.03em; }
+
+/* ---------- Button ---------- */
+.uf-btn { appearance: none; border: 0; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 48px; padding: 12px 20px; border-radius: var(--radius-control); font: 500 15px/20px var(--font-sans);
+  background: var(--primary); color: var(--primary-foreground); transition: opacity .16s ease-out; }
+.uf-btn:active { opacity: .72; }
+.uf-btn.outline { background: transparent; color: var(--foreground); box-shadow: inset 0 0 0 1px var(--input); }
+.uf-btn.text { background: transparent; color: var(--primary); padding-inline: 8px; }
+.uf-btn.danger { background: transparent; color: var(--destructive); padding-inline: 8px; }
+.uf-btn.small { min-height: 36px; padding: 8px 14px; font-size: 14px; }
+.uf-btn:disabled { opacity: .4; cursor: default; }
+.uf-btn.block { width: 100%; }
+
+/* ---------- IconButton ---------- */
+.uf-ib { appearance: none; border: 0; display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: 50%;
+  background: transparent; color: var(--foreground); position: relative; transition: background .16s; }
+.uf-ib:active { background: var(--accent); }
+.uf-ib.quiet { color: var(--muted-foreground); }
+.uf-ib.soft { background: var(--muted); }
+.uf-ib.solid { background: var(--primary); color: var(--primary-foreground); }
+.uf-ib.sm { width: 36px; height: 36px; } .uf-ib.sm svg.lucide { width: 16px; height: 16px; }
+.uf-ib .count { position: absolute; top: 4px; right: 2px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+  background: var(--foreground); color: var(--background); font: 500 11px/18px var(--font-mono); text-align: center; }
+
+/* ---------- Card ---------- */
+.uf-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.uf-card.flush { padding: 0; gap: 0; overflow: hidden; }
+.uf-card-head { display: flex; align-items: center; gap: 10px; padding: 14px 16px; }
+.uf-card-head .t { flex: 1; font: 600 17px/24px var(--font-sans); }
+.uf-line { border-top: 1px solid var(--border); padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
+.uf-line .grow { flex: 1; min-width: 0; }
+.uf-line .t { font: 400 16px/24px var(--font-sans); }
+.uf-line .d { font: 400 14px/20px var(--font-sans); color: var(--muted-foreground); }
+
+/* ---------- Field ---------- */
+.uf-field { display: flex; flex-direction: column; gap: 6px; }
+.uf-field label { font: 500 13px/18px var(--font-sans); color: var(--muted-foreground); }
+.uf-input { min-height: 48px; border: 1px solid var(--input); border-radius: var(--radius-control); padding: 12px 14px; background: var(--card);
+  color: var(--foreground); font: 400 16px/22px var(--font-sans); display: flex; align-items: center; gap: 8px; width: 100%; }
+.uf-input.num { font-family: var(--font-mono); }
+.uf-input::placeholder, .uf-input .ph { color: var(--muted-foreground); }
+.uf-input .suffix { margin-left: auto; color: var(--muted-foreground); font-family: var(--font-mono); font-size: 14px; }
+.uf-field .help { font: 400 13px/18px var(--font-sans); color: var(--muted-foreground); }
+.uf-field.error .uf-input { border-color: var(--bad); box-shadow: inset 0 0 0 1px var(--bad); }
+.uf-field .err { font: 400 13px/18px var(--font-sans); color: var(--bad); display: flex; gap: 6px; align-items: center; }
+.uf-field .err svg.lucide { width: 14px; height: 14px; }
+
+/* ---------- Switch ---------- */
+.uf-toggle { display: flex; align-items: center; gap: 12px; min-height: 56px; }
+.uf-toggle .grow { flex: 1; } .uf-toggle .t { font: 400 16px/24px var(--font-sans); } .uf-toggle .d { font: 400 13px/18px var(--font-sans); color: var(--muted-foreground); }
+.uf-switch { appearance: none; border: 0; position: relative; width: 46px; height: 28px; border-radius: 14px; background: var(--muted);
+  box-shadow: inset 0 0 0 1px var(--input); flex: none; padding: 0; transition: background .24s ease-out; }
+.uf-switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 11px; background: #ffffff;
+  box-shadow: var(--shadow-knob); transition: transform .24s ease-out; }
+.uf-switch[aria-checked="true"] { background: var(--primary); box-shadow: none; }
+.uf-switch[aria-checked="true"]::after { transform: translateX(18px); }
+
+/* ---------- Choices ---------- */
+.uf-choices { display: flex; gap: 8px; flex-wrap: wrap; }
+.uf-pill { appearance: none; min-height: 40px; padding: 8px 14px; border-radius: var(--radius-pill); border: 0; box-shadow: inset 0 0 0 1px var(--input);
+  background: var(--card); color: var(--foreground); font: 500 14px/20px var(--font-sans); display: inline-flex; align-items: center; gap: 6px; }
+.uf-pill svg.lucide { width: 15px; height: 15px; stroke-width: 2.25; }
+.uf-pill[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--foreground); }
+
+/* ---------- Segmented ---------- */
+.uf-seg { display: flex; background: var(--muted); padding: 3px; border-radius: var(--radius-control); }
+.uf-seg button { appearance: none; border: 0; flex: 1; min-height: 38px; padding: 8px; border-radius: 9px; background: transparent;
+  color: var(--muted-foreground); font: 500 14px/20px var(--font-sans); }
+.uf-seg button[aria-selected="true"] { background: var(--card); color: var(--foreground); box-shadow: var(--shadow-segment); }
+
+/* ---------- Rows ---------- */
+.uf-list { display: flex; flex-direction: column; }
+.uf-item { min-height: 64px; display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.uf-item:last-child { border-bottom: 0; }
+.uf-item .grow { flex: 1; min-width: 0; }
+.uf-item .t { font: 400 16px/24px var(--font-sans); }
+.uf-item .d { font: 400 14px/20px var(--font-sans); color: var(--muted-foreground); display: flex; align-items: center; gap: 6px; }
+.uf-item .v { font: 500 15px/20px var(--font-mono); text-align: right; }
+.uf-check { width: 24px; height: 24px; border-radius: 7px; box-shadow: inset 0 0 0 1.5px var(--input); display: grid; place-items: center; flex: none; color: var(--primary-foreground); }
+.uf-check.on { background: var(--primary); box-shadow: none; }
+.uf-check svg.lucide { width: 15px; height: 15px; stroke-width: 2.25; }
+.uf-chev { color: var(--muted-foreground); display: grid; }
+.uf-swipe { display: flex; overflow: hidden; border-radius: var(--radius-control); border: 1px solid var(--border); }
+.uf-swipe .face { flex: 1; min-width: 0; background: var(--card); padding: 12px 16px; display: flex; align-items: center; gap: 12px; }
+.uf-swipe .act { width: 84px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font: 500 13px/16px var(--font-sans); flex: none; }
+.uf-swipe .act.more { background: var(--muted); color: var(--foreground); }
+.uf-swipe .act.del { background: var(--destructive); color: var(--on-accent); }
+
+/* ---------- Section heading ---------- */
+.uf-sh { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.uf-sh h3 { margin: 0; font: 600 15px/20px var(--font-sans); color: var(--foreground); }
+.uf-sh .meta { font: 400 13px/18px var(--font-mono); color: var(--muted-foreground); }
+.uf-sh a { font: 500 14px/20px var(--font-sans); color: var(--primary); text-decoration: none; }
+
+/* ---------- Progress ---------- */
+.uf-meter { display: flex; flex-direction: column; gap: 8px; }
+.uf-meter .top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font: 400 15px/20px var(--font-sans); }
+.uf-meter .top .uf-num { font-size: 15px; }
+.uf-track { position: relative; height: 6px; border-radius: 3px; background: var(--muted); }
+.uf-track > i { position: absolute; inset: 0 auto 0 0; border-radius: 3px; background: var(--a); }
+.uf-track > em { position: absolute; top: -4px; width: 2px; height: 14px; border-radius: 1px; background: var(--foreground); }
+.uf-ring { position: relative; display: inline-grid; place-items: center; flex: none; }
+.uf-ring > svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+.uf-ring .track { stroke: var(--muted); fill: none; }
+.uf-ring .arc { stroke: var(--a); fill: none; stroke-linecap: round; }
+.uf-ring .inner { text-align: center; position: relative; }
+
+/* ---------- Metric ---------- */
+.uf-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 16px; }
+.uf-metric { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.uf-metric .k { font: 500 13px/18px var(--font-sans); color: var(--muted-foreground); display: flex; align-items: center; gap: 6px; }
+.uf-metric .v { font: 500 26px/32px var(--font-mono); letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
+.uf-metric .v small { font: 400 14px/20px var(--font-mono); color: var(--muted-foreground); letter-spacing: 0; }
+.uf-metric .delta { font: 400 13px/18px var(--font-mono); color: var(--muted-foreground); }
+
+/* ---------- Day summary and Life Score ---------- */
+.uf-summary { display: flex; gap: 20px; align-items: center; }
+.uf-summary .big { font: 500 40px/44px var(--font-mono); letter-spacing: -1px; }
+.uf-summary .big small { font-size: 18px; color: var(--muted-foreground); letter-spacing: 0; }
+.uf-summary .line { font: 400 16px/24px var(--font-sans); }
+.uf-score-rows { display: flex; flex-direction: column; gap: 12px; }
+.uf-score-row { display: grid; grid-template-columns: 76px 1fr 56px; align-items: center; gap: 12px; font: 400 14px/20px var(--font-sans); }
+.uf-score-row .uf-num { text-align: right; font-size: 14px; }
+
+/* ---------- Charts ---------- */
+.uf-bars { display: flex; align-items: flex-end; gap: 6px; height: 132px; }
+.uf-bars > div { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
+.uf-bars i { width: 100%; border-radius: 4px 4px 0 0; background: color-mix(in srgb, var(--a) 30%, var(--muted)); }
+.uf-bars > div.today i { background: var(--a); }
+.uf-bars b { font: 400 11px/14px var(--font-mono); color: var(--muted-foreground); }
+.uf-bars > div.today b { color: var(--foreground); font-weight: 500; }
+.uf-bars span { font: 400 12px/16px var(--font-sans); color: var(--muted-foreground); }
+
+/* ---------- Sheet ---------- */
+.uf-sheetwrap { position: relative; background: #0000008c; border-radius: var(--radius-hero); overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; }
+.uf-sheet { background: var(--background); border-radius: var(--radius-hero) var(--radius-hero) 0 0; padding: 0 16px 20px; box-shadow: var(--shadow-drawer); }
+.uf-grab { width: 36px; height: 5px; border-radius: 3px; background: var(--input); margin: 8px auto 0; }
+.uf-sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 0 12px; }
+.uf-sheet-head h4 { margin: 0; font: 600 17px/24px var(--font-sans); }
+.uf-sheet-body { display: flex; flex-direction: column; gap: 16px; }
+
+/* ---------- Toast ---------- */
+.uf-toast { display: flex; align-items: center; gap: 10px; padding: 10px 6px 10px 14px; border-radius: var(--radius-control); background: var(--foreground);
+  color: var(--background); font: 400 14px/20px var(--font-sans); max-width: 360px; }
+.uf-toast .msg { flex: 1; } .uf-toast .uf-num { font-size: 14px; }
+.uf-toast button { appearance: none; border: 0; border-radius: 8px; min-height: 36px; padding: 0 10px; font: 500 14px/20px var(--font-sans); background: transparent; color: var(--background);
+  text-decoration: underline; text-underline-offset: 3px; }
+.uf-toast.error { background: var(--card); color: var(--foreground); box-shadow: inset 0 0 0 1px var(--bad); }
+.uf-toast.error svg.lucide { color: var(--bad); }
+
+/* ---------- Locked preview ---------- */
+.uf-locked { position: relative; }
+.uf-locked .under { opacity: .32; pointer-events: none; display: flex; flex-direction: column; gap: 16px; }
+.uf-locked .over { position: absolute; left: 12px; right: 12px; top: 50%; transform: translateY(-50%); background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius-card); padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.uf-locked .over .t { font: 600 17px/24px var(--font-sans); }
+.uf-locked .over .d { font: 400 15px/22px var(--font-sans); color: var(--muted-foreground); }
+.uf-locked .over q { font-family: var(--font-mono); font-size: 14px; color: var(--foreground); }
+
+/* ---------- Header ---------- */
+.uf-header { display: flex; align-items: center; gap: 4px; padding: 8px 8px 8px 16px; }
+.uf-header .grow { flex: 1; min-width: 0; }
+.uf-header .date { font: 400 13px/18px var(--font-mono); color: var(--muted-foreground); }
+.uf-header h1 { margin: 0; font: 600 28px/34px var(--font-sans); letter-spacing: -0.5px; }
+.uf-header h1.push { font-size: 20px; line-height: 28px; letter-spacing: -0.2px; }
+
+/* ---------- Tab bar ---------- */
+.uf-tabbar { display: flex; align-items: center; padding: 6px 0 10px; border-top: 1px solid var(--border); background: var(--background); }
+.uf-tab { flex: 1; min-height: 48px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  font: 500 12px/16px var(--font-sans); color: var(--muted-foreground); }
+.uf-tab svg.lucide { width: 22px; height: 22px; stroke-width: 1.6; }
+.uf-tab.on { color: var(--foreground); } .uf-tab.on svg.lucide { stroke-width: 2; }
+
+/* ---------- Fern ---------- */
+.uf-msg-fern { display: flex; gap: 10px; align-items: flex-start; }
+.uf-msg-fern > .grow { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.uf-msg-fern .txt { font: 400 16px/24px var(--font-sans); }
+.uf-msg-me { align-self: flex-end; max-width: 85%; background: var(--muted); color: var(--foreground); border-radius: 18px 18px 4px 18px; padding: 10px 14px; font: 400 16px/22px var(--font-sans); }
+.uf-msg-me .meta { display: block; margin-top: 2px; font: 400 12px/16px var(--font-mono); color: var(--muted-foreground); text-align: right; }
+.uf-thinking { display: flex; gap: 10px; align-items: center; font: 400 15px/20px var(--font-sans); color: var(--muted-foreground); }
+.uf-daysep { text-align: center; font: 400 12px/16px var(--font-mono); color: var(--muted-foreground); }
+.uf-suggest { display: flex; flex-wrap: wrap; gap: 8px; }
+.uf-suggest button { appearance: none; border: 0; min-height: 36px; border-radius: var(--radius-pill); padding: 0 14px; box-shadow: inset 0 0 0 1px var(--input);
+  background: transparent; color: var(--foreground); font: 400 14px/20px var(--font-sans); }
+.uf-composer { border-top: 1px solid var(--border); background: var(--background); padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 10px; }
+.uf-hints { display: flex; gap: 8px; overflow-x: auto; }
+.uf-hints span { min-height: 36px; border-radius: var(--radius-pill); padding: 0 12px; display: inline-flex; align-items: center; gap: 6px; font: 500 14px/20px var(--font-sans);
+  box-shadow: inset 0 0 0 1px var(--input); color: var(--muted-foreground); white-space: nowrap; }
+.uf-hints span svg.lucide { width: 15px; height: 15px; }
+.uf-hints span.on { box-shadow: inset 0 0 0 2px var(--foreground); color: var(--foreground); }
+.uf-inputrow { display: flex; align-items: flex-end; gap: 8px; }
+.uf-pillinput { flex: 1; min-width: 0; min-height: 48px; border-radius: 24px; box-shadow: inset 0 0 0 1px var(--input); background: var(--card); padding: 0 4px 0 16px;
+  display: flex; align-items: center; font: 400 16px/22px var(--font-sans); color: var(--muted-foreground); }
+.uf-pillinput .v { flex: 1; padding: 13px 0; }
+
+/* ---------- Record card ---------- */
+.uf-record { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-card); overflow: hidden; }
+.uf-record .head { display: flex; align-items: center; gap: 8px; padding: 12px 16px 0; font: 500 13px/18px var(--font-sans); color: var(--muted-foreground); }
+.uf-record .head .state { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; }
+.uf-record .head .state svg.lucide { width: 14px; height: 14px; stroke-width: 2.25; }
+.uf-record .head .state.good { color: var(--good); } .uf-record .head .state.warn { color: var(--warn); }
+.uf-record .title { padding: 6px 16px 0; font: 600 17px/24px var(--font-sans); }
+.uf-record dl { margin: 10px 16px 0; display: grid; grid-template-columns: auto 1fr; column-gap: 16px; row-gap: 4px; font: 400 14px/20px var(--font-sans); }
+.uf-record dt { color: var(--muted-foreground); } .uf-record dd { margin: 0; font-family: var(--font-mono); text-align: right; }
+.uf-record .from { margin: 12px 16px 0; padding-top: 10px; border-top: 1px solid var(--border); font: 400 13px/18px var(--font-sans); color: var(--muted-foreground); }
+.uf-record .from q { font-family: var(--font-mono); color: var(--foreground); }
+.uf-record .acts { display: flex; gap: 4px; padding: 6px 8px 8px; }
+.uf-record .acts .uf-btn { min-height: 40px; }
+.uf-record .ask { margin: 10px 16px 0; font: 400 14px/20px var(--font-sans); }
+.uf-record.undone { opacity: .55; }
+.uf-record.undone .title { text-decoration: line-through; text-decoration-color: var(--muted-foreground); }
+
+/* ---------- Steps ---------- */
+.uf-steps { display: flex; flex-direction: column; border-left: 1.5px solid var(--border); padding-left: 12px; gap: 2px; }
+.uf-steps .s { display: flex; align-items: center; gap: 8px; min-height: 36px; font: 400 15px/20px var(--font-sans); }
+.uf-steps .s svg.lucide { width: 16px; height: 16px; stroke-width: 2.25; }
+.uf-steps .s .ok { color: var(--good); display: grid; } .uf-steps .s .no { color: var(--bad); display: grid; }
+.uf-steps .s .grow { flex: 1; min-width: 0; }
+.uf-steps .s .uf-num { font-size: 14px; }
+.uf-steps .s.run { color: var(--muted-foreground); }
+.uf-steps .undo { appearance: none; border: 0; background: transparent; color: var(--primary); font: 500 14px/20px var(--font-sans); min-height: 36px; padding: 0 6px; }
+.uf-spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--muted); border-top-color: var(--muted-foreground); animation: uf-spin .9s linear infinite; flex: none; }
+@keyframes uf-spin { to { transform: rotate(360deg); } }
+
+/* ---------- Principles card ---------- */
+.uf-principle { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.uf-principle .side { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.uf-principle .tag { font: 500 12px/16px var(--font-sans); display: inline-flex; align-items: center; gap: 4px; }
+.uf-principle .tag.yes { color: var(--good); } .uf-principle .tag.no { color: var(--bad); }
+.uf-principle .tag svg.lucide { width: 14px; height: 14px; stroke-width: 2.25; }
+
+/* ---------- Phone frame ---------- */
+.uf-phone { width: 375px; max-width: 100%; margin: 0 auto; border-radius: 40px; box-shadow: 0 0 0 1px var(--border); background: var(--background); overflow: hidden;
+  display: flex; flex-direction: column; }
+.uf-status-bar { height: 44px; padding: 0 28px; display: flex; align-items: center; justify-content: space-between; font: 500 15px/20px var(--font-sans); }
+.uf-screen { flex: 1; padding: 4px 16px 20px; display: flex; flex-direction: column; gap: 16px; }
+
+
+/* ================= Fern first ================= */
+/* The orb: Fern's face and the app icon. The only gradient and glow in the system. */
+.uf-orb { position: relative; width: var(--s); height: var(--s); flex: none; display: inline-grid; place-items: center; }
+.uf-orb .glow { position: absolute; inset: 0; border-radius: 50%; background: var(--sprout); opacity: .3; filter: blur(calc(var(--s) * .14));
+  transform: scale(1.18); animation: uf-breathe 1.8s ease-in-out infinite alternate; }
+.uf-orb .ball { position: relative; width: 100%; height: 100%; border-radius: 50%; display: grid; place-items: center;
+  background: linear-gradient(45deg, var(--moss), var(--frond) 55%, var(--sprout)); animation: uf-swell 1.8s ease-in-out infinite alternate; }
+.uf-orb.thinking .glow { opacity: .55; animation-duration: .5s; }
+.uf-orb.thinking .ball { animation-duration: .5s; }
+.uf-orb.thinking .ball svg { animation: uf-sway .7s ease-in-out infinite alternate; }
+@keyframes uf-breathe { from { transform: scale(1.12); opacity: .22; } to { transform: scale(1.32); opacity: .42; } }
+@keyframes uf-swell { from { transform: scale(1); } to { transform: scale(1.04); } }
+@keyframes uf-sway { from { transform: rotate(-9deg); } to { transform: rotate(9deg); } }
+
+/* App icon tiles */
+.uf-icon { width: 128px; height: 128px; border-radius: 29px; display: grid; place-items: center; flex: none; }
+.uf-icon.light { background: var(--moss); }
+.uf-icon.dark { background: #121513; }
+.uf-icon.tint { background: var(--muted); color: var(--foreground); }
+
+/* The raised Fern button in the tab bar */
+.uf-tabbar { align-items: flex-end; }
+.uf-fernbtn { flex: 1; position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; margin-top: -30px; }
+.uf-fernbtn .halo { position: absolute; top: -6px; width: 72px; height: 72px; border-radius: 50%; background: var(--sprout); opacity: .3;
+  animation: uf-halo 2.2s ease-in-out infinite alternate; }
+.uf-fernbtn .disc { position: relative; width: 60px; height: 60px; border-radius: 30px; display: grid; place-items: center;
+  background: linear-gradient(135deg, var(--frond), var(--moss)); box-shadow: 0 0 0 3px var(--background), var(--shadow-fern); }
+.uf-fernbtn .lbl { position: relative; font: 600 12px/16px var(--font-sans); color: var(--primary); }
+@keyframes uf-halo { from { opacity: .22; transform: scale(1); } to { opacity: .4; transform: scale(1.08); } }
+
+/* Fern's voice in the thread */
+.uf-msg-fern .who { font: 600 12px/16px var(--font-sans); color: var(--primary); }
+.uf-fernbubble { background: var(--mist); border: 1px solid color-mix(in srgb, var(--frond) 35%, transparent); border-radius: 4px 18px 18px 18px;
+  padding: 10px 14px; font: 400 16px/24px var(--font-sans); color: var(--foreground); }
+.uf-thinkline { font: 400 15px/20px var(--font-sans); color: var(--muted-foreground); display: flex; align-items: center; gap: 6px; }
+.uf-thinkline .dots { display: inline-flex; gap: 3px; }
+.uf-thinkline .dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--frond); animation: uf-dot 1s ease-in-out infinite; }
+.uf-thinkline .dots i:nth-child(2) { animation-delay: .15s; } .uf-thinkline .dots i:nth-child(3) { animation-delay: .3s; }
+@keyframes uf-dot { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
+.uf-fernhead { display: flex; align-items: center; gap: 12px; padding: 8px 8px 12px 16px; border-bottom: 1px solid var(--border); }
+.uf-fernhead .grow { flex: 1; min-width: 0; }
+.uf-fernhead .t { font: 600 20px/26px var(--font-sans); letter-spacing: -0.2px; }
+.uf-fernhead .d { font: 400 13px/18px var(--font-sans); color: var(--muted-foreground); display: flex; align-items: center; gap: 6px; }
+.uf-fernhead .live { width: 7px; height: 7px; border-radius: 50%; background: var(--good); }
+
+/* Welcome */
+.uf-fernhome { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; padding: 12px 4px 20px; }
+.uf-fernhome .hello { font: 600 28px/34px var(--font-sans); letter-spacing: -0.5px; margin-top: 6px; }
+.uf-fernhome .sub { font: 400 15px/22px var(--font-sans); color: var(--muted-foreground); max-width: 320px; }
+.uf-tries { display: flex; flex-direction: column; gap: 8px; width: 100%; margin-top: 4px; }
+.uf-tries button { appearance: none; border: 0; text-align: left; min-height: 48px; padding: 0 14px; border-radius: var(--radius-control);
+  background: var(--card); box-shadow: inset 0 0 0 1px var(--border); color: var(--foreground); font: 400 15px/20px var(--font-mono);
+  display: flex; align-items: center; gap: 10px; }
+
+/* The floating composer and the talk button */
+.uf-composer.big { border-top: 0; background: var(--card); border-radius: var(--radius-hero) var(--radius-hero) 0 0; box-shadow: var(--shadow-composer); padding: 12px 12px 14px; }
+.uf-composer.big .uf-pillinput { min-height: 52px; border-radius: 26px; background: var(--background); }
+.uf-composer.big .uf-inputrow { align-items: center; }
+.uf-mic { appearance: none; border: 0; width: 56px; height: 56px; border-radius: 28px; flex: none; display: grid; place-items: center; color: #ffffff;
+  background: linear-gradient(45deg, var(--moss), var(--frond) 60%, var(--sprout)); box-shadow: 0 0 0 4px color-mix(in srgb, var(--sprout) 30%, transparent); }
+.uf-mic svg.lucide { width: 24px; height: 24px; stroke-width: 2; }
+
+/* A one-line Fern input (used in the Principles card) */
+.uf-askcard { background: var(--mist); border: 1px solid color-mix(in srgb, var(--frond) 30%, transparent); border-radius: var(--radius-card); padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.uf-askcard .top { display: flex; align-items: center; gap: 12px; }
+.uf-askcard .t { font: 600 17px/22px var(--font-sans); }
+.uf-askcard .d { font: 400 13px/18px var(--font-sans); color: var(--muted-foreground); }
+.uf-askbar { min-height: 48px; border-radius: 24px; background: var(--card); box-shadow: inset 0 0 0 1px var(--input); padding: 4px 4px 4px 16px;
+  display: flex; align-items: center; gap: 4px; font: 400 15px/20px var(--font-mono); color: var(--muted-foreground); }
+.uf-askbar .v { flex: 1; min-width: 0; }
+.uf-askbar .cam { width: 40px; height: 40px; display: grid; place-items: center; color: var(--muted-foreground); }
+.uf-askbar .mic { width: 40px; height: 40px; border-radius: 20px; display: grid; place-items: center; color: #ffffff;
+  background: linear-gradient(45deg, var(--moss), var(--frond) 60%, var(--sprout)); }
+
+/* Fern's drawer over any screen */
+.uf-drawerwrap { background: #0000008c; border-radius: var(--radius-hero); overflow: hidden; height: 560px; display: flex; flex-direction: column; justify-content: flex-end; }
+.uf-drawer { background: var(--background); border-radius: 28px 28px 0 0; box-shadow: var(--shadow-drawer); display: flex; flex-direction: column; gap: 12px; }
+.uf-drawer .head { display: flex; align-items: center; gap: 12px; padding: 4px 8px 0 16px; }
+.uf-drawer .head .t { font: 600 20px/24px var(--font-sans); } .uf-drawer .head .d { font: 400 13px/18px var(--font-sans); color: var(--muted-foreground); }
+
+@media (prefers-reduced-motion: reduce) {
+  .uf *, .uf *::before, .uf *::after { animation: none !important; transition: none !important; }
+}
+
+/* Charts inside Fern's bubble sit on mist, so past bars take a frond tint instead of muted */
+.uf-fernbubble .uf-bars i { background: color-mix(in srgb, var(--frond) 22%, transparent); }
+.uf-fernbubble .uf-bars > div.today i { background: var(--a); }
+.uf-pillinput .v, .uf-askbar .v { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ================= Insight at a glance: analytics ================= */
+/* Colour lives in the data. Chrome stays calm; marks carry the module colours. Text stays in ink. */
+.uf-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.uf-stat { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 12px 12px 10px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.uf-stat .k { font: 500 13px/18px var(--font-sans); color: var(--muted-foreground); display: flex; align-items: center; gap: 6px; }
+.uf-stat .v { font: 500 24px/30px var(--font-mono); letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
+.uf-stat .v small { font: 400 13px/18px var(--font-mono); color: var(--muted-foreground); letter-spacing: 0; }
+.uf-stat .spark { height: 30px; margin: 4px 0 2px; }
+.uf-delta { display: inline-flex; align-items: center; gap: 3px; font: 500 12px/16px var(--font-mono); color: var(--muted-foreground); }
+.uf-delta svg.lucide { width: 13px; height: 13px; stroke-width: 2.25; }
+.uf-delta.up-good, .uf-delta.down-good { color: var(--good); }
+.uf-delta.up-bad, .uf-delta.down-bad { color: var(--bad); }
+[data-spark] svg, [data-line] svg { display: block; width: 100%; overflow: visible; }
+.uf-spark-line { fill: none; stroke: var(--a); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.uf-spark-area { fill: var(--a); opacity: .12; }
+.uf-spark-end { fill: var(--a); stroke: var(--card); stroke-width: 2; }
+
+/* Fern insight: a derived finding, written plainly, with the chart that proves it */
+.uf-insight { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.uf-insight .head { display: flex; align-items: center; gap: 8px; font: 600 12px/16px var(--font-sans); color: var(--primary); }
+.uf-insight .say { font: 400 16px/24px var(--font-sans); }
+.uf-insight .say b { font-family: var(--font-mono); font-weight: 500; }
+.uf-pairbars { display: flex; flex-direction: column; gap: 6px; }
+.uf-pairbars .r { display: grid; grid-template-columns: 72px 1fr 64px; gap: 10px; align-items: center; font: 400 13px/18px var(--font-sans); }
+.uf-pairbars .r .uf-num { text-align: right; font-size: 13px; }
+.uf-pairbars .bar { height: 10px; border-radius: 0 4px 4px 0; background: var(--a); }
+.uf-pairbars .bar.base { background: color-mix(in srgb, var(--a) 35%, transparent); }
+
+/* Habit consistency heatmap (sequential: one hue, light to dark) */
+.uf-heat { display: grid; grid-template-columns: 28px repeat(7, 1fr); gap: 3px; align-items: center; }
+.uf-heat .dl { font: 400 11px/14px var(--font-sans); color: var(--muted-foreground); text-align: center; }
+.uf-heat .wl { font: 400 11px/14px var(--font-mono); color: var(--muted-foreground); }
+.uf-heat .c { height: 24px; border-radius: 5px; background: var(--muted); }
+.uf-heat .c[data-l="1"] { background: color-mix(in srgb, var(--a) 28%, var(--muted)); }
+.uf-heat .c[data-l="2"] { background: color-mix(in srgb, var(--a) 55%, var(--muted)); }
+.uf-heat .c[data-l="3"] { background: color-mix(in srgb, var(--a) 80%, var(--muted)); }
+.uf-heat .c[data-l="4"] { background: var(--a); }
+.uf-heat .c.today { box-shadow: 0 0 0 2px var(--card), 0 0 0 3.5px var(--foreground); }
+.uf-legend { display: flex; align-items: center; gap: 4px; font: 400 11px/14px var(--font-sans); color: var(--muted-foreground); }
+.uf-legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+
+/* Trend line chart with a crosshair readout */
+.uf-linechart { position: relative; }
+.uf-linechart .grid { stroke: var(--border); stroke-width: 1; }
+.uf-linechart .goal { stroke: var(--good); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.uf-linechart .raw { fill: var(--a); opacity: .35; }
+.uf-linechart .avg { fill: none; stroke: var(--a); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.uf-linechart .ax { font: 400 11px var(--font-mono); fill: var(--muted-foreground); }
+.uf-linechart .lab { font: 500 12px var(--font-mono); fill: var(--foreground); }
+.uf-linechart .xh { stroke: var(--muted-foreground); stroke-width: 1; }
+.uf-tip { position: absolute; pointer-events: none; background: var(--foreground); color: var(--background); border-radius: 8px; padding: 6px 8px; font: 400 12px/16px var(--font-mono); white-space: nowrap; transform: translate(-50%, -110%); }
+.uf-chartcard { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.uf-chartcard .h { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.uf-chartcard .h .t { font: 600 15px/20px var(--font-sans); }
+.uf-chartcard .h .m { font: 400 12px/16px var(--font-mono); color: var(--muted-foreground); }
+.uf-chartcard .foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; font: 400 13px/18px var(--font-sans); color: var(--muted-foreground); }
+.uf-ask { appearance: none; border: 0; background: transparent; color: var(--primary); font: 500 13px/18px var(--font-sans); display: inline-flex; align-items: center; gap: 4px; min-height: 32px; padding: 0; }
+.uf-ask svg.lucide { width: 14px; height: 14px; }
+
+/* Day rings: today's overall ring with one bar per area */
+.uf-dayrings { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.uf-dayrings .top { display: flex; align-items: center; gap: 16px; }
+.uf-dayrings .areas { display: flex; flex-direction: column; gap: 8px; }
+.uf-dayrings .ar { display: grid; grid-template-columns: 64px 1fr 40px; gap: 10px; align-items: center; font: 400 13px/18px var(--font-sans); }
+.uf-dayrings .ar .uf-num { text-align: right; font-size: 13px; }
+.uf-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.uf-chip { min-height: 30px; border-radius: 15px; padding: 0 10px; display: inline-flex; align-items: center; gap: 5px; background: var(--muted); font: 400 13px/18px var(--font-sans); }
+.uf-chip b { font: 500 13px/18px var(--font-mono); }
+.uf-chip svg.lucide { width: 14px; height: 14px; }
+
+/* ================= Home (Today) pieces, as the app has them ================= */
+.uf-group-head { display: flex; align-items: center; gap: 10px; padding: 12px 16px 10px; }
+.uf-group-head .ic { width: 28px; height: 28px; border-radius: var(--radius-sm); display: grid; place-items: center; background: color-mix(in srgb, var(--a) 12%, transparent); color: var(--a); flex: none; }
+.uf-group-head .ic svg.lucide { width: 16px; height: 16px; }
+.uf-group-head .t { flex: 1; font: 600 16px/24px var(--font-sans); }
+.uf-part { border-top: 1px solid var(--border); padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
+/* Stat strip: three numbers and seven days of bars */
+.uf-strip .nums { display: flex; gap: 8px; align-items: flex-start; }
+.uf-strip .nums > div { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.uf-strip .nums b { font: 500 18px/24px var(--font-mono); letter-spacing: -0.3px; }
+.uf-strip .nums b.good { color: var(--good); } .uf-strip .nums b.warn { color: var(--warn); } .uf-strip .nums b.bad { color: var(--bad); }
+.uf-strip .nums span { font: 400 11px/14px var(--font-sans); color: var(--muted-foreground); }
+.uf-strip .bars7 { display: flex; gap: 6px; height: 40px; align-items: flex-end; }
+.uf-strip .bars7 i { flex: 1; border-radius: 3px; background: color-mix(in srgb, var(--a) 45%, var(--muted)); }
+.uf-strip .bars7 i.z { background: var(--muted); height: 2px !important; }
+.uf-strip .bars7 i:last-child { background: var(--a); }
+.uf-strip .days { display: flex; gap: 6px; } .uf-strip .days span { flex: 1; text-align: center; font: 400 10px/12px var(--font-sans); color: var(--muted-foreground); }
+.uf-strip .days span:last-child { color: var(--foreground); font-weight: 600; }
+/* Day hero */
+.uf-dayhero2 { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-hero); padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.uf-dayhero2 .top { display: flex; gap: 16px; align-items: center; }
+.uf-dayhero2 .h { font: 600 22px/28px var(--font-sans); letter-spacing: -0.3px; }
+.uf-dayhero2 .ar { display: grid; grid-template-columns: 70px 1fr 36px; gap: 10px; align-items: center; font: 400 13px/18px var(--font-sans); }
+.uf-dayhero2 .ar .uf-num { text-align: right; font-size: 13px; }
+/* Weather */
+.uf-weather { display: flex; align-items: center; gap: 14px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 12px 16px; }
+.uf-weather .temp { font: 500 30px/34px var(--font-mono); letter-spacing: -1px; }
+.uf-weather .ic { color: var(--life); } .uf-weather .ic svg.lucide { width: 30px; height: 30px; stroke-width: 1.5; }
+.uf-weather .t { font: 500 15px/20px var(--font-sans); } .uf-weather .d { font: 400 13px/18px var(--font-sans); color: var(--muted-foreground); }
+/* App launcher */
+.uf-launcher { display: flex; flex-direction: column; gap: 10px; }
+.uf-launcher .row { display: flex; justify-content: space-between; }
+.uf-launcher .app { display: flex; flex-direction: column; align-items: center; gap: 6px; font: 500 12px/16px var(--font-sans); width: 64px; }
+.uf-launcher .app .box { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; background: var(--card); border: 1px solid var(--border); color: var(--a); }
+.uf-launcher .app .box svg.lucide { width: 22px; height: 22px; }
+/* Next up */
+.uf-nextup { display: flex; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 12px 12px 12px 16px; }
+.uf-nextup .time { font: 500 15px/20px var(--font-mono); }
+.uf-nextup .grow { flex: 1; min-width: 0; } .uf-nextup .t { font: 400 16px/22px var(--font-sans); } .uf-nextup .d { font: 400 13px/18px var(--font-sans); color: var(--muted-foreground); }
+/* Habit and task rows inside module cards */
+.uf-hrow { display: flex; align-items: center; gap: 12px; min-height: 48px; }
+.uf-hrow .grow { flex: 1; min-width: 0; } .uf-hrow .t { font: 400 15px/20px var(--font-sans); } .uf-hrow .d { font: 400 12px/16px var(--font-sans); color: var(--muted-foreground); }
+.uf-hrow .streak { font: 500 12px/16px var(--font-mono); color: var(--muted-foreground); display: inline-flex; align-items: center; gap: 3px; }
+.uf-hrow .streak svg.lucide { width: 13px; height: 13px; color: var(--life); }
+.uf-glabel { font: 500 12px/16px var(--font-sans); color: var(--muted-foreground); }
+.uf-pill-due { min-height: 24px; border-radius: 12px; padding: 0 8px; display: inline-flex; align-items: center; font: 500 12px/16px var(--font-sans); background: color-mix(in srgb, var(--warn) 14%, transparent); color: var(--warn); }
+/* Macro rings */
+.uf-macros { display: flex; justify-content: space-between; gap: 8px; }
+.uf-macros .m { display: flex; flex-direction: column; align-items: center; gap: 4px; font: 400 11px/14px var(--font-sans); color: var(--muted-foreground); }
+.uf-macros .m .uf-num { font-size: 13px; color: var(--foreground); }
+/* Bills and alerts */
+.uf-bill { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.uf-bill .grow { flex: 1; } .uf-bill .t { font: 400 15px/20px var(--font-sans); } .uf-bill .d { font: 400 12px/16px var(--font-sans); color: var(--muted-foreground); }
+.uf-alert { display: flex; gap: 8px; align-items: center; padding: 8px 10px; border-radius: var(--radius-sm); background: color-mix(in srgb, var(--warn) 12%, transparent); font: 400 13px/18px var(--font-sans); }
+.uf-alert svg.lucide { width: 15px; height: 15px; color: var(--warn); }
+/* Community */
+.uf-avatars { display: flex; } .uf-avatars span { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--card); margin-left: -8px; display: grid; place-items: center; font: 600 11px/1 var(--font-sans); color: #ffffff; }
+.uf-avatars span:first-child { margin-left: 0; }
+/* Fern welcome capability cards */
+.uf-caps { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
+.uf-caps .c { min-height: 92px; padding: 12px; border-radius: var(--radius-card); background: var(--card); border: 1px solid var(--border); display: flex; flex-direction: column; gap: 4px; }
+.uf-caps .c svg.lucide { width: 18px; height: 18px; color: var(--primary); }
+.uf-caps .c .t { font: 600 14px/20px var(--font-sans); } .uf-caps .c .d { font: 400 12px/16px var(--font-sans); color: var(--muted-foreground); }

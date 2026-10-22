@@ -1,0 +1,26 @@
+<!-- @dsCard height=288 -->
+<div class="cv">
+  <svg class="art" width="960" height="288" viewBox="0 0 960 288" aria-hidden="true">
+    <!-- blocks: primary (moss) 224x288 slab bleeding top and bottom, mist 200x152, muted 200x120, one 16 pt life dot; corners radius-card (16), the slab square to the edges
+         arrangement: one tall moss slab with two quiet satellites to its right, all right of x=480; plenty of paper ground left bare (calm)
+         pattern: literal motif -> the fiddlehead mark itself, one oversized stroke in primary-foreground across the slab, nothing else (plain)
+         steps: gaps of space-lg (16); stroke 2 units of the 24 grid scaled x9 -->
+    <rect class="moss" x="512" y="-16" width="224" height="320"/>
+    <rect class="mist r16" x="752" y="16" width="208" height="152"/>
+    <rect class="muted r16" x="752" y="184" width="208" height="120"/>
+    <g transform="translate(516 36) scale(9)"><path class="mk" d="M7.5 21.5 C7.5 16.5 8.6 12.6 11.6 10.1 C14.2 7.9 18.7 8.4 18.9 12.1 C19.1 15 16 16.4 14 14.9 C12.5 13.8 12.9 11.4 14.8 11.2 C16.1 11.1 16.9 12.3 16.2 13.2"/><path class="mk" d="M8 18 C6.3 17 4.6 17.2 3.6 18.5"/><path class="mk" d="M8.9 14.4 C7.5 13.2 5.8 13 4.7 13.9"/></g>
+    <circle class="life" cx="784" cy="216" r="8"/>
+  </svg>
+  <div class="cv-txt"><div class="cv-name">Unfurl</div><div class="cv-tag">Calm, plain, specific, and Fern first. The design system for the life tracker you talk to.</div></div>
+</div>
+<style>
+.cv{position:relative;width:960px;height:288px;background:var(--background);overflow:hidden;font-family:var(--font-sans)}
+.art{position:absolute;inset:0}
+.moss{fill:var(--primary)}.mist{fill:var(--mist)}.muted{fill:var(--muted)}.life{fill:var(--life)}
+.r16{rx:var(--radius-card)}
+.mk{fill:none;stroke:var(--primary-foreground);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.cv-txt{position:absolute;left:40px;bottom:36px;max-width:420px}
+.cv-name{font-family:var(--font-sans);font-weight:500;font-size:112px;line-height:.92;letter-spacing:-4px;color:var(--foreground)}
+.cv-tag{margin-top:16px;font-size:14px;line-height:20px;color:var(--muted-foreground)}
+</style>
+<script>void 0</script>

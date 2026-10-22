@@ -27,6 +27,8 @@ Context pack for human + AI programmers building this SaaS. Fill each template; 
 | [22-data-protection.md](22-data-protection.md) | Deletion, retention, GDPR export/erase, audit trail | Backend |
 | [mobile.md](mobile.md) | Native Expo prototype, shared domain, running and verification | Eng |
 | [brand/fern.md](brand/fern.md) | Fern, the AI companion: mark, orb, colour, voice (2026-10-20) | Design |
+| [brand/positioning-and-name.md](brand/positioning-and-name.md) | Positioning, product name (Unfurl), brand, launch pricing and channels (2026-10-22) | Founder/Marketing |
+| [brand/design-system/](brand/design-system/project/README.md) | Unfurl design system: logo, tokens, brand book, component previews in HTML (2026-10-22) | Design |
 | [constitution.md](constitution.md) | Engineering Constitution — stack defaults and conventions | All |
 | [ia/](ia/README.md) | Information architecture — screens, flows, open questions per module | Design |
 | [adr/](adr/) | Architecture Decision Records — one file per decision | Tech lead |
