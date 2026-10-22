@@ -8,6 +8,7 @@ import type { LucideIcon } from "lucide-react-native"
 import {
   CalendarCheck2,
   ChartColumn,
+  Ear,
   House,
   User,
   X,
@@ -33,6 +34,8 @@ import { go, replace } from "@/prototype/navigation"
 import { CaptureOverlay } from "@/prototype/screens/capture"
 import { stepTab, TAB_ROUTES, tabDirection } from "@/prototype/tab-swipe"
 import { AccentContext, fonts, useTheme } from "@/prototype/theme"
+import { wake } from "@/prototype/wake-word"
+import { WakeWordListener } from "@/prototype/wake-word-listener"
 
 const tabs = [
   { label: "Today", href: "/today", icon: House },
@@ -110,6 +113,32 @@ function FernHalo({ color, still }: { color: string; still: boolean }) {
     />
   )
 }
+// While "Hey Fern" is on, a small ear sits on Fern's button: the
+// microphone is open and listening for the phrase.
+function ListeningBadge() {
+  const t = useTheme()
+  const fern = fernPalette(t.dark)
+  return (
+    <View
+      pointerEvents="none"
+      style={{
+        position: "absolute",
+        top: 4,
+        right: 4,
+        width: 22,
+        height: 22,
+        borderRadius: 11,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: t.bg,
+        borderWidth: 1.5,
+        borderColor: fern.sprout,
+      }}
+    >
+      <Ear size={12} strokeWidth={2.4} color={fern.moss} />
+    </View>
+  )
+}
 // The icon pops when its tab becomes active.
 function TabIcon({
   icon: Icon,
@@ -158,6 +187,7 @@ export default function PrototypeLayout() {
   const live = liveStore.use((s) => s.live)
   const dir = tabDirection((s) => s.dir)
   const drawer = captureUi.use((s) => s.open)
+  const hearing = wake((s) => s.armed)
   const [bar, setBar] = useState(0)
   // Task and habit reminders as notifications scheduled on this phone.
   useEffect(() => startReminders(), [])
@@ -269,6 +299,7 @@ export default function PrototypeLayout() {
         {/* Before the bar: the + button rises above the bar into the room the
             drawer leaves for it, so it must draw over the drawer. */}
         <CaptureOverlay bottom={focus ? 0 : bar} />
+        <WakeWordListener onChatPage={path === "/capture"} />
         {!focus && (
           <View
             onLayout={(e) => setBar(e.nativeEvent.layout.height)}
@@ -295,7 +326,9 @@ export default function PrototypeLayout() {
                     tab.label === "Fern"
                       ? drawer
                         ? "Close Fern"
-                        : "Ask Fern"
+                        : hearing
+                          ? "Ask Fern. Listening for Hey Fern"
+                          : "Ask Fern"
                       : tab.label
                   }
                   accessibilityHint={
@@ -352,6 +385,7 @@ export default function PrototypeLayout() {
                       >
                         <FabIcon open={drawer} />
                       </LinearGradient>
+                      {hearing && <ListeningBadge />}
                     </View>
                   ) : (
                     <View>
