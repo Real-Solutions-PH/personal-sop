@@ -36,6 +36,7 @@ import { useTheme } from "../theme"
 import { Button, Empty, Screen, undo } from "../ui"
 import { Ring } from "../visual"
 import { LimitList } from "./nutrient-limits"
+import { NutritionTrend } from "./nutrition-trend"
 import { StatsShell } from "./stats-shell"
 /** Ring sizes for the width the rings get: the full size on a wide card,
  * smaller on a narrow one (Fern's card sits inside a message), and the three
@@ -414,6 +415,7 @@ export function Nutrition({
       <Frame style={{ padding: 16 }}>
         <LimitList detail={detail} limits={limitsFor(target)} />
       </Frame>
+      <NutritionTrend onPickDay={setDay} />
       <Frame style={{ padding: 8 }}>
         <Line style={{ gap: 8 }}>
           {(

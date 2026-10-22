@@ -10,7 +10,6 @@ import { LinearGradient } from "expo-linear-gradient"
 import { useLocalSearchParams } from "expo-router"
 import {
   Award,
-  Bot,
   Droplets,
   type LucideIcon,
   Share2,
@@ -578,15 +577,6 @@ export function FinanceReview() {
               }}
             >
               {saved ? "Update review" : "Save review"}
-            </Button>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Button
-              tone="quiet"
-              icon={Bot}
-              href={`/finance/advisor?ask=review&period=${period}`}
-            >
-              Ask advisor
             </Button>
           </View>
         </Line>
