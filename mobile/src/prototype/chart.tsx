@@ -393,11 +393,24 @@ export function FitnessTrend({
       ...(goal !== undefined ? [goal] : []),
     ].filter((v): v is number => v !== undefined)
   if (all.length < 2)
+    // Too few points for a trend: a faint example curve keeps the chart's
+    // shape on screen, so an empty card still shows what will be there.
     return (
-      <View style={{ height, alignItems: "center", justifyContent: "center" }}>
-        <Text style={{ fontFamily: fonts.body, fontSize: 14, color: t.muted }}>
-          Not enough data yet
-        </Text>
+      <View
+        style={{ height }}
+        accessible
+        accessibilityLabel="Trend appears after two entries"
+      >
+        <Svg viewBox={`0 0 300 ${height}`} width="100%" height={height}>
+          <Path
+            d={`M4,${height * 0.45} C70,${height * 0.3} 110,${height * 0.7} 170,${height * 0.55} S250,${height * 0.35} 296,${height * 0.5}`}
+            stroke={t.muted}
+            strokeOpacity={0.35}
+            strokeWidth={3}
+            strokeDasharray="6 6"
+            fill="none"
+          />
+        </Svg>
       </View>
     )
   const lo = Math.min(...all),
