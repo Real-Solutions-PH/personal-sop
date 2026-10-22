@@ -21,15 +21,41 @@ export async function pickPhoto(camera = false): Promise<string | null> {
           quality: 0.8,
         })
     if (result.canceled) return null
-    const resized = await ImageManipulator.manipulateAsync(
-      result.assets[0].uri,
-      [{ resize: { width: 512 } }],
-      { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG, base64: true },
-    )
-    return resized.base64 ? `data:image/jpeg;base64,${resized.base64}` : null
+    return await shrink(result.assets[0].uri)
   } catch {
     toast.error("Could not open this image. Try another photo.")
     return null
+  }
+}
+/** Shrinks a picked image to what the AI needs and returns it as data. */
+async function shrink(uri: string): Promise<string | null> {
+  const resized = await ImageManipulator.manipulateAsync(
+    uri,
+    [{ resize: { width: 512 } }],
+    { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG, base64: true },
+  )
+  return resized.base64 ? `data:image/jpeg;base64,${resized.base64}` : null
+}
+/** Several photos from the library at once (up to ``limit``). */
+export async function pickPhotos(limit = 10): Promise<string[]> {
+  try {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 0.8,
+      allowsMultipleSelection: true,
+      selectionLimit: limit,
+      orderedSelection: true,
+    })
+    if (result.canceled) return []
+    const out: string[] = []
+    for (const a of result.assets.slice(0, limit)) {
+      const data = await shrink(a.uri)
+      if (data) out.push(data)
+    }
+    return out
+  } catch {
+    toast.error("Could not open these images. Try other photos.")
+    return []
   }
 }
 export async function copyText(text: string) {

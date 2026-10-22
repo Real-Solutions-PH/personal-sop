@@ -1,11 +1,9 @@
-// The paperclip opens the device's file picker at once, and the chosen file
-// itself (not only its name) goes out with the capture.
+// The paperclip opens the device's file picker at once (no sheet), several
+// files can be picked, and each file itself goes out as its own capture.
 import { finStore } from "@domain/finance/store"
 import { configureStorage, resetAll } from "@domain/lib/store"
-import { act, fireEvent, render, screen } from "@testing-library/react-native"
 import type { ReactNode } from "react"
-import { SafeAreaProvider } from "react-native-safe-area-context"
-import { CaptureFile } from "../screens/capture-photo"
+import { attachFiles } from "../screens/capture-photo"
 
 const mockPick = jest.fn()
 const mockSend = jest.fn((..._a: unknown[]) => "cap-1")
@@ -62,13 +60,6 @@ jest.mock("react-native-gesture-handler/ReanimatedSwipeable", () => {
   const { View } = require("react-native")
   return ({ children }: { children: ReactNode }) => <View>{children}</View>
 })
-const metrics = {
-  frame: { x: 0, y: 0, width: 390, height: 844 },
-  insets: { top: 44, left: 0, right: 0, bottom: 34 },
-}
-const wrapper = ({ children }: { children: ReactNode }) => (
-  <SafeAreaProvider initialMetrics={metrics}>{children}</SafeAreaProvider>
-)
 
 beforeEach(() => {
   configureStorage({
@@ -81,7 +72,7 @@ beforeEach(() => {
   mockSend.mockClear()
 })
 
-test("opens the picker right away and sends the picked file", async () => {
+test("sends every picked file as its own capture, in one go", async () => {
   mockPick.mockResolvedValue({
     canceled: false,
     assets: [
@@ -91,17 +82,23 @@ test("opens the picker right away and sends the picked file", async () => {
         mimeType: "application/pdf",
         size: 2048,
       },
+      {
+        name: "bpi-oct.csv",
+        uri: "file:///cache/bpi-oct.csv",
+        mimeType: "text/csv",
+        size: 512,
+      },
     ],
   })
-  render(<CaptureFile onClose={jest.fn()} />, { wrapper })
-  await act(async () => {})
-  expect(mockPick).toHaveBeenCalledTimes(1)
-  expect(screen.getByText("gcash-oct.pdf")).toBeTruthy()
-  fireEvent.press(
-    screen.getByRole("button", { name: "Hand off to Finance import" }),
+  const onSent = jest.fn()
+  await attachFiles(onSent)
+  expect(mockPick).toHaveBeenCalledWith(
+    expect.objectContaining({ multiple: true }),
   )
   const account = finStore.get().accounts.find((a) => !a.archived)?.id
-  expect(mockSend).toHaveBeenCalledWith(
+  expect(mockSend).toHaveBeenCalledTimes(2)
+  expect(mockSend).toHaveBeenNthCalledWith(
+    1,
     expect.objectContaining({
       source: "file",
       fileUri: "file:///cache/gcash-oct.pdf",
@@ -109,12 +106,17 @@ test("opens the picker right away and sends the picked file", async () => {
       hint: account,
     }),
   )
+  expect(mockSend).toHaveBeenNthCalledWith(
+    2,
+    expect.objectContaining({ fileUri: "file:///cache/bpi-oct.csv" }),
+  )
+  expect(onSent).toHaveBeenCalledWith("cap-1")
 })
 
-test("cancelling the picker closes the sheet", async () => {
+test("cancelling the picker sends nothing", async () => {
   mockPick.mockResolvedValue({ canceled: true, assets: null })
-  const onClose = jest.fn()
-  render(<CaptureFile onClose={onClose} />, { wrapper })
-  await act(async () => {})
-  expect(onClose).toHaveBeenCalled()
+  const onSent = jest.fn()
+  await attachFiles(onSent)
+  expect(mockSend).not.toHaveBeenCalled()
+  expect(onSent).not.toHaveBeenCalled()
 })

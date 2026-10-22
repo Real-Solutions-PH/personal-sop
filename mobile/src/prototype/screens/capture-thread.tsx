@@ -39,7 +39,7 @@ import { go } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import { Button, Screen } from "../ui"
 import { Reply } from "./capture"
-import { CaptureFile, CapturePhoto } from "./capture-photo"
+import { attachFiles, CapturePhoto } from "./capture-photo"
 import { QuickAdd } from "./capture-quick"
 import { CaptureVoice } from "./capture-voice"
 
@@ -220,7 +220,7 @@ export function ThreadComposer({
                 size={44}
                 icon={Paperclip}
                 label="Attach statement file"
-                onPress={() => setMode("file")}
+                onPress={() => void attachFiles(onSent)}
               />
               <IconTap
                 size={44}
@@ -309,9 +309,6 @@ export function ThreadComposer({
           onClose={() => setMode(undefined)}
           onSent={onSent}
         />
-      )}
-      {mode === "file" && (
-        <CaptureFile onClose={() => setMode(undefined)} onSent={onSent} />
       )}
       {mode === "voice" && (
         <CaptureVoice

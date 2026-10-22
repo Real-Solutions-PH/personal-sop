@@ -259,109 +259,114 @@ export function FinanceLineChart({
     ],
     every = Math.ceil(labels.length / 6)
   return (
-    <Reveal>
-      <Svg
-        viewBox={`0 0 340 ${height}`}
-        width="100%"
-        height={height}
-        accessibilityRole="image"
-        accessibilityLabel="chart"
-      >
-        {ticks.map((v) => (
-          <G key={v}>
-            <Line
-              x1={40}
-              x2={332}
-              y1={y(v)}
-              y2={y(v)}
-              stroke={t.line}
-              strokeDasharray="2 4"
-            />
-            <SvgText
-              x={34}
-              y={y(v) + 3}
-              textAnchor="end"
-              fill={t.muted}
-              fontSize={9}
-              fontFamily={fonts.body}
-            >
-              {hidden ? "••••" : compact(v)}
-            </SvgText>
-          </G>
-        ))}
-        {floor !== undefined && (
-          <G>
-            <Line
-              x1={40}
-              x2={332}
-              y1={y(floor)}
-              y2={y(floor)}
-              stroke={t.warn}
-              strokeDasharray="4 3"
-            />
-            <SvgText
-              x={332}
-              y={y(floor) - 3}
-              textAnchor="end"
-              fill={t.warn}
-              fontSize={8}
-            >
-              minimum
-            </SvgText>
-          </G>
-        )}
-        {series.map((s, i) => {
-          if (s.values.length < 2) return null
-          const d = s.values
-            .map(
-              (v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`,
-            )
-            .join(" ")
-          return (
-            <G key={i}>
-              {s.area && (
-                <Path
-                  d={`${d} L${x(s.values.length - 1)},${height - 20} L${x(0)},${height - 20} Z`}
-                  fill={s.color}
-                  opacity={0.1}
-                />
-              )}
-              <Path
-                d={d}
-                fill="none"
-                stroke={s.color}
-                strokeWidth={2}
-                strokeLinejoin="round"
-                strokeDasharray={s.dashed ? "5 4" : undefined}
+    // A fixed box: Reveal fills its parent's height, and a parent sized by
+    // its content made the chart grow without end on iOS.
+    <View style={{ height }}>
+      <Reveal>
+        <Svg
+          viewBox={`0 0 340 ${height}`}
+          width="100%"
+          height={height}
+          accessibilityRole="image"
+          accessibilityLabel="chart"
+        >
+          {ticks.map((v) => (
+            <G key={v}>
+              <Line
+                x1={40}
+                x2={332}
+                y1={y(v)}
+                y2={y(v)}
+                stroke={t.line}
+                strokeDasharray="2 4"
               />
-              {!s.dashed && (
-                <Circle
-                  cx={x(s.values.length - 1)}
-                  cy={y(s.values.at(-1)!)}
-                  r={3}
-                  fill={s.color}
-                />
-              )}
+              <SvgText
+                x={34}
+                y={y(v) + 3}
+                textAnchor="end"
+                fill={t.muted}
+                fontSize={9}
+                fontFamily={fonts.body}
+              >
+                {hidden ? "••••" : compact(v)}
+              </SvgText>
             </G>
-          )
-        })}
-        {labels.map((l, i) =>
-          i % every === 0 || i === labels.length - 1 ? (
-            <SvgText
-              key={i}
-              x={x(i)}
-              y={height - 5}
-              textAnchor="middle"
-              fill={t.muted}
-              fontSize={9}
-              fontFamily={fonts.body}
-            >
-              {l}
-            </SvgText>
-          ) : null,
-        )}
-      </Svg>
-    </Reveal>
+          ))}
+          {floor !== undefined && (
+            <G>
+              <Line
+                x1={40}
+                x2={332}
+                y1={y(floor)}
+                y2={y(floor)}
+                stroke={t.warn}
+                strokeDasharray="4 3"
+              />
+              <SvgText
+                x={332}
+                y={y(floor) - 3}
+                textAnchor="end"
+                fill={t.warn}
+                fontSize={8}
+              >
+                minimum
+              </SvgText>
+            </G>
+          )}
+          {series.map((s, i) => {
+            if (s.values.length < 2) return null
+            const d = s.values
+              .map(
+                (v, i) =>
+                  `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`,
+              )
+              .join(" ")
+            return (
+              <G key={i}>
+                {s.area && (
+                  <Path
+                    d={`${d} L${x(s.values.length - 1)},${height - 20} L${x(0)},${height - 20} Z`}
+                    fill={s.color}
+                    opacity={0.1}
+                  />
+                )}
+                <Path
+                  d={d}
+                  fill="none"
+                  stroke={s.color}
+                  strokeWidth={2}
+                  strokeLinejoin="round"
+                  strokeDasharray={s.dashed ? "5 4" : undefined}
+                />
+                {!s.dashed && (
+                  <Circle
+                    cx={x(s.values.length - 1)}
+                    cy={y(s.values.at(-1)!)}
+                    r={3}
+                    fill={s.color}
+                  />
+                )}
+              </G>
+            )
+          })}
+          {labels.map((l, i) =>
+            i % every === 0 || i === labels.length - 1 ? (
+              <SvgText
+                key={i}
+                x={x(i)}
+                y={height - 5}
+                textAnchor="middle"
+                fill={t.muted}
+                fontSize={9}
+                fontFamily={fonts.body}
+              >
+                {l}
+              </SvgText>
+            ) : null,
+          )}
+        </Svg>
+      </Reveal>
+    </View>
   )
 }
 
@@ -419,81 +424,84 @@ export function FitnessTrend({
     .at(-1)
   return (
     <View>
-      <Reveal>
-        <Svg
-          viewBox={`0 0 300 ${height}`}
-          width="100%"
-          height={height}
-          accessibilityLabel="Trend chart"
-        >
-          {ticks.map((v) => (
-            <G key={v}>
-              <Line
-                x1={4}
-                x2={264}
-                y1={y(v)}
-                y2={y(v)}
-                stroke={t.line}
-                strokeDasharray="2 4"
-              />
-              <SvgText
-                x={268}
-                y={y(v) + 3}
-                fontSize={9}
-                fill={t.muted}
-                fontFamily={fonts.body}
-              >
-                {fmt(v)}
-              </SvgText>
-            </G>
-          ))}
-          {goal !== undefined && (
-            <G>
-              <Line
-                x1={4}
-                x2={264}
-                y1={y(goal)}
-                y2={y(goal)}
-                stroke={t.good}
-                strokeDasharray="5 4"
-                strokeWidth={1.2}
-              />
-              <SvgText x={6} y={y(goal) - 4} fill={t.good} fontSize={9}>
-                goal {fmt(goal)}
-              </SvgText>
-            </G>
-          )}
-          {dots?.map((v, i) =>
-            v === undefined ? null : (
-              <Circle
-                key={`${i}-${v}`}
-                cx={x(i)}
-                cy={y(v)}
-                r={2}
-                fill={`${t.muted}80`}
-              />
-            ),
-          )}
-          <Path
-            d={d}
-            fill="none"
-            stroke={t.fit}
-            strokeWidth={2.2}
-            strokeLinejoin="round"
-            strokeLinecap="round"
-          />
-          {last !== undefined && (
-            <Circle
-              cx={x(last)}
-              cy={y(line[last]!)}
-              r={4}
-              fill={t.fit}
-              stroke={t.bg}
-              strokeWidth={2}
+      {/* A fixed box for Reveal: see the chart above. */}
+      <View style={{ height }}>
+        <Reveal>
+          <Svg
+            viewBox={`0 0 300 ${height}`}
+            width="100%"
+            height={height}
+            accessibilityLabel="Trend chart"
+          >
+            {ticks.map((v) => (
+              <G key={v}>
+                <Line
+                  x1={4}
+                  x2={264}
+                  y1={y(v)}
+                  y2={y(v)}
+                  stroke={t.line}
+                  strokeDasharray="2 4"
+                />
+                <SvgText
+                  x={268}
+                  y={y(v) + 3}
+                  fontSize={9}
+                  fill={t.muted}
+                  fontFamily={fonts.body}
+                >
+                  {fmt(v)}
+                </SvgText>
+              </G>
+            ))}
+            {goal !== undefined && (
+              <G>
+                <Line
+                  x1={4}
+                  x2={264}
+                  y1={y(goal)}
+                  y2={y(goal)}
+                  stroke={t.good}
+                  strokeDasharray="5 4"
+                  strokeWidth={1.2}
+                />
+                <SvgText x={6} y={y(goal) - 4} fill={t.good} fontSize={9}>
+                  goal {fmt(goal)}
+                </SvgText>
+              </G>
+            )}
+            {dots?.map((v, i) =>
+              v === undefined ? null : (
+                <Circle
+                  key={`${i}-${v}`}
+                  cx={x(i)}
+                  cy={y(v)}
+                  r={2}
+                  fill={`${t.muted}80`}
+                />
+              ),
+            )}
+            <Path
+              d={d}
+              fill="none"
+              stroke={t.fit}
+              strokeWidth={2.2}
+              strokeLinejoin="round"
+              strokeLinecap="round"
             />
-          )}
-        </Svg>
-      </Reveal>
+            {last !== undefined && (
+              <Circle
+                cx={x(last)}
+                cy={y(line[last]!)}
+                r={4}
+                fill={t.fit}
+                stroke={t.bg}
+                strokeWidth={2}
+              />
+            )}
+          </Svg>
+        </Reveal>
+      </View>
       {labels && (
         <View
           style={{

@@ -9,23 +9,22 @@ import {
   Dumbbell,
   FileText,
   Image as ImageIcon,
-  Paperclip,
   Receipt,
   Sparkles,
   Tag,
-  Upload,
   Utensils,
   X,
 } from "lucide-react-native"
-import { useEffect, useMemo, useState } from "react"
+import { useState } from "react"
 import { Image, ScrollView, View } from "react-native"
 import { toast } from "sonner-native"
-import { pickPhoto } from "../media"
+import { pickPhoto, pickPhotos } from "../media"
 import { Copy, IconTap, Line, Tap } from "../native-kit"
 import { go } from "../navigation"
 import { useTheme } from "../theme"
-import { Button, Choices, Field, Sheet } from "../ui"
+import { Button, Field, Sheet } from "../ui"
 
+const MAX_PHOTOS = 10
 const hints = [
   { v: "auto", label: "Auto", I: Sparkles },
   { v: "meal", label: "Meal", I: Utensils },
@@ -49,8 +48,10 @@ export function CapturePhoto({
       hints.find((h) => h.v === initialHint)?.v ??
         (initialHint === "expense" ? "receipt" : "auto"),
     ),
-    [photo, setPhoto] = useState<string | null>(null),
+    [photos, setPhotos] = useState<string[]>([]),
     [caption, setCaption] = useState("")
+  const add = (more: string[]) =>
+    setPhotos((cur) => [...cur, ...more].slice(0, MAX_PHOTOS))
   return (
     <Sheet title="Snap it" open onClose={onClose}>
       {/* Sheet stacks its children flush; space the sections evenly. */}
@@ -102,46 +103,66 @@ export function CapturePhoto({
             </Tap>
           ))}
         </ScrollView>
-        {photo ? (
-          <View
-            style={{
-              backgroundColor: t.soft,
-              borderRadius: 16,
-              overflow: "hidden",
-            }}
+        {photos.length > 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 8 }}
+            style={{ flexGrow: 0 }}
           >
-            <Image
-              source={{ uri: photo }}
-              accessibilityLabel="Preview"
-              style={{ width: "100%", height: 256 }}
-              resizeMode="contain"
-            />
-            <View style={{ position: "absolute", top: 8, right: 8 }}>
-              <IconTap
-                icon={X}
-                label="Remove photo"
-                background="#0009"
-                color="#fff"
-                onPress={() => setPhoto(null)}
-              />
-            </View>
-          </View>
-        ) : (
+            {photos.map((uri, i) => (
+              <View
+                key={`${i}-${uri.length}`}
+                style={{
+                  width: 112,
+                  height: 140,
+                  borderRadius: 14,
+                  overflow: "hidden",
+                  backgroundColor: t.soft,
+                }}
+              >
+                <Image
+                  source={{ uri }}
+                  accessibilityLabel={`Photo ${i + 1}`}
+                  style={{ width: "100%", height: "100%" }}
+                  resizeMode="cover"
+                />
+                <View style={{ position: "absolute", top: 4, right: 4 }}>
+                  <IconTap
+                    icon={X}
+                    size={32}
+                    label={`Remove photo ${i + 1}`}
+                    background="#0009"
+                    color="#fff"
+                    onPress={() =>
+                      setPhotos((cur) => cur.filter((_, j) => j !== i))
+                    }
+                  />
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+        )}
+        {photos.length < MAX_PHOTOS && (
           <Line style={{ gap: 8 }}>
             {[
               { label: "Take photo", I: Camera, camera: true },
-              { label: "Library", I: ImageIcon, camera: false },
+              {
+                label: photos.length ? "Add from library" : "Library",
+                I: ImageIcon,
+                camera: false,
+              },
             ].map((x) => (
               <Tap
                 key={x.label}
                 onPress={() =>
-                  void pickPhoto(x.camera).then((v) => {
-                    if (v) setPhoto(v)
-                  })
+                  x.camera
+                    ? void pickPhoto(true).then((v) => v && add([v]))
+                    : void pickPhotos(MAX_PHOTOS - photos.length).then(add)
                 }
                 style={{
                   flex: 1,
-                  height: 128,
+                  height: photos.length ? 64 : 128,
                   borderRadius: 16,
                   borderWidth: 1,
                   borderStyle: "dashed",
@@ -152,7 +173,7 @@ export function CapturePhoto({
                   gap: 8,
                 }}
               >
-                <x.I size={28} color={t.primary} />
+                <x.I size={photos.length ? 20 : 28} color={t.primary} />
                 <Copy size={14} weight="medium">
                   {x.label}
                 </Copy>
@@ -175,117 +196,57 @@ export function CapturePhoto({
           AI when you attach them.
         </Copy>
         <Button
-          disabled={!photo || !allowed}
+          disabled={!photos.length || !allowed}
           onPress={() => {
-            if (!photo || !allowed) return
-            const id = sendCapture({
-              source: "photo",
-              photo,
-              hint,
-              text: caption,
-            })
+            if (!photos.length || !allowed) return
+            // One capture per photo, all sent in one go.
+            const ids = photos.map((photo) =>
+              sendCapture({ source: "photo", photo, hint, text: caption }),
+            )
             onClose()
-            onSent?.(id)
+            if (ids.length > 1) toast.success(`Sent ${ids.length} photos`)
+            onSent?.(ids[ids.length - 1])
           }}
         >
-          Send photo
+          {photos.length > 1 ? `Send ${photos.length} photos` : "Send photo"}
         </Button>
       </View>
     </Sheet>
   )
 }
-export function CaptureFile({
-  onClose,
-  onSent,
-}: {
-  onClose: () => void
-  onSent?: (id: string) => void
-}) {
-  const t = useTheme(),
-    allAccounts = finStore.use((s) => s.accounts),
-    accounts = useMemo(
-      () => allAccounts.filter((a) => !a.archived && a.type !== "investment"),
-      [allAccounts],
-    ),
-    [account, setAccount] = useState(accounts[0]?.id ?? ""),
-    [file, setFile] = useState<DocumentPicker.DocumentPickerAsset>()
-  const pick = (closeIfNone: boolean) =>
-    DocumentPicker.getDocumentAsync({
+/** The paperclip: the device's file picker straight away, several files
+ * at once, each sent as its own capture. No sheet in between: iOS cannot
+ * present the picker over a sheet that is still opening. */
+export async function attachFiles(onSent?: (id: string) => void) {
+  let picked: DocumentPicker.DocumentPickerResult
+  try {
+    picked = await DocumentPicker.getDocumentAsync({
       type: ["application/pdf", "text/csv", "image/*"],
       copyToCacheDirectory: true,
+      multiple: true,
     })
-      .then((r) => {
-        if (!r.canceled) setFile(r.assets[0])
-        else if (closeIfNone) onClose()
-      })
-      .catch(() => toast.error("Could not open the file picker"))
-  // The paperclip means "pick a file": open the device's picker at once.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: once, on open
-  useEffect(() => {
-    void pick(true)
-  }, [])
-  return (
-    <Sheet title="Attach a statement" open onClose={onClose}>
-      <View style={{ gap: 14 }}>
-        <Copy size={14} muted>
-          PDF, CSV or a screenshot. Finance's import does the matching — nothing
-          changes until you review.
-        </Copy>
-        <Tap
-          onPress={() => void pick(false)}
-          style={{
-            borderRadius: 16,
-            borderWidth: 1,
-            borderStyle: "dashed",
-            borderColor: file ? t.fin : t.line,
-            padding: 16,
-            backgroundColor: t.soft,
-          }}
-        >
-          <Line>
-            {file ? (
-              <FileText size={32} color={t.fin} />
-            ) : (
-              <Upload size={32} color={t.muted} />
-            )}
-            <View style={{ flex: 1 }}>
-              <Copy weight="medium" lines={1}>
-                {file?.name ?? "Choose a file"}
-              </Copy>
-              <Copy size={12} muted>
-                {file
-                  ? `${Math.max(1, Math.round((file.size ?? 0) / 1024))} KB`
-                  : "GCash / Maya / BPI statements work best"}
-              </Copy>
-            </View>
-            <Paperclip size={16} color={t.muted} />
-          </Line>
-        </Tap>
-        <Choices
-          label="This is a statement for"
-          value={account}
-          onChange={setAccount}
-          options={accounts.map((a) => ({ value: a.id, label: a.name }))}
-        />
-        <Button
-          disabled={!file}
-          onPress={() => {
-            if (!file) return
-            const id = sendCapture({
-              source: "file",
-              fileName: file.name,
-              fileUri: file.uri,
-              fileMime: file.mimeType,
-              text: `Statement for ${accounts.find((a) => a.id === account)?.name ?? "my account"}`,
-              hint: account,
-            })
-            onClose()
-            onSent?.(id)
-          }}
-        >
-          Hand off to Finance import
-        </Button>
-      </View>
-    </Sheet>
+  } catch {
+    toast.error("Couldn't open your files. Try again.")
+    return
+  }
+  if (picked.canceled || !picked.assets.length) return
+  const account = finStore
+    .get()
+    .accounts.find((a) => !a.archived && a.type !== "investment")
+  const ids = picked.assets.map((file) =>
+    sendCapture({
+      source: "file",
+      fileName: file.name,
+      fileUri: file.uri,
+      fileMime: file.mimeType,
+      text: `Attached ${file.name}`,
+      hint: account?.id,
+    }),
   )
+  toast.success(
+    ids.length > 1
+      ? `Sent ${ids.length} files`
+      : `Sent ${picked.assets[0].name}`,
+  )
+  onSent?.(ids[ids.length - 1])
 }
