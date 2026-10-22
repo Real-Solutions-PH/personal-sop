@@ -12,6 +12,7 @@ import {
   Bell,
   BookOpen,
   Bot,
+  Brain,
   CalendarRange,
   ChartColumn,
   CheckSquare,
@@ -40,6 +41,8 @@ import { Platform, View } from "react-native"
 import { toast } from "sonner-native"
 import { liveMode } from "@/live/config"
 import { AppLauncher } from "../app-launcher"
+import { memoryCount } from "../companion/memory-labels"
+import { companionStore } from "../companion/store"
 import {
   Bar,
   Copy,
@@ -66,7 +69,9 @@ export function Me() {
     score = D.useLifeScore(30),
     target = D.useOnTarget(30),
     hidden = privacyStore.use((s) => s.hidden),
-    account = sessionStore.use((s) => s.user?.email)
+    account = sessionStore.use((s) => s.user?.email),
+    companionName = companionStore.use((s) => s.name),
+    memories = companionStore.use((s) => s.memories)
   const fresh = () =>
     confirm(
       "Start as a new user?",
@@ -337,6 +342,13 @@ export function Me() {
             href="/me/settings"
           />
           <LinkRow title="AI & connector" icon={Bot} href="/capture/settings" />
+          <LinkRow
+            title={`What ${companionName} remembers`}
+            detail={memoryCount(memories.length)}
+            icon={Brain}
+            accent="hab"
+            href="/me/memories"
+          />
           <LinkRow
             title="Privacy mode"
             detail="Blur every money amount"

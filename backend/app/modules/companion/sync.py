@@ -52,14 +52,27 @@ def delete_tracker(ctx: Ctx, row_id: uuid.UUID) -> None:
 
 
 def upsert_memory(ctx: Ctx, row_id: uuid.UUID, payload: BaseModel) -> OwnedRow:
-    """A memory typed in the app: a new one goes through the memory layer
-    (an exact or near repeat is not added twice); an edited one keeps its id
-    with its hash refreshed and its embedding redone."""
+    """A memory typed or edited in the app. A new one goes through the memory
+    layer (an exact or near repeat is not added twice). An edit keeps its id
+    and changes only the fields sent; new text refreshes its hash and redoes
+    its embedding."""
     data = payload.model_dump(exclude_unset=True)
-    body = memory.normalise(str(data["text"]))[:500]
+    body = memory.normalise(str(data["text"]))[:500] if "text" in data else None
+    tags = memory.clean_tags(data["tags"]) if "tags" in data else None
     existing = owned_repo.get(ctx, Memory, row_id, include_deleted=True)
     if existing is None:
-        saved = memory.remember(ctx, text=body, memory_id=row_id, source="app")
+        if body is None:  # create_required guards this; a defensive stop
+            raise ValueError("a new memory needs text")
+        saved = memory.remember(
+            ctx,
+            text=body,
+            kind=data.get("kind") or "fact",
+            tags=tags,
+            importance=data.get("importance") or 3,
+            always_on=bool(data.get("always_on")),
+            memory_id=row_id,
+            source="app",
+        )
         row = saved.memory
         if row.id != row_id:
             # Already known: the device's copy becomes a tombstone pointing
@@ -72,18 +85,22 @@ def upsert_memory(ctx: Ctx, row_id: uuid.UUID, payload: BaseModel) -> OwnedRow:
             )
             owned_repo.soft_delete(ctx, row)
     else:
-        row, _ = owned_repo.upsert(
-            ctx,
-            Memory,
-            row_id,
-            {
+        fields: dict[str, object] = {
+            k: data[k] for k in ("kind", "importance", "always_on") if k in data
+        }
+        if tags is not None:
+            fields["tags"] = tags
+        reembed = body is not None and body != existing.text
+        if reembed:
+            fields |= {
                 "text": body,
-                "text_hash": memory.text_hash(body),
+                "text_hash": memory.text_hash(str(body)),
                 "embedding": None,
                 "embed_model": None,
-            },
-        )
-        memory.backfill(ctx, limit=1)
+            }
+        row, _ = owned_repo.upsert(ctx, Memory, row_id, fields)
+        if reembed:
+            memory.backfill(ctx, limit=1)
     ctx.commit()
     return row
 
