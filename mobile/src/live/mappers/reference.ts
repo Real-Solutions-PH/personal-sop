@@ -1,5 +1,7 @@
 // Reference mappers: the per-user weather preferences and the Life Score
 // module switches/weights. Module sessions follow this shape for theirs.
+// Weather: the city and unit follow the user; `source` and `asked` are per
+// device (location permission is), so a pull never overwrites them.
 
 import type { DashState } from "@domain/dash/data"
 import { dashStore } from "@domain/dash/store"
@@ -31,7 +33,6 @@ export function weatherPrefMapper(userId: string) {
     }),
     fromServer: (row, cur) => ({
       ...cur,
-      source: row.source === "device" ? "device" : "city",
       city: {
         name: String(row.city_name),
         detail: (row.city_detail as string | null) ?? undefined,
@@ -39,7 +40,6 @@ export function weatherPrefMapper(userId: string) {
         lon: Number(row.city_lon),
       },
       unit: row.unit === "f" ? "f" : "c",
-      asked: Boolean(row.asked),
     }),
   })
 }
