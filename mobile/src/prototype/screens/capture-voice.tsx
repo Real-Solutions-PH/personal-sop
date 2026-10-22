@@ -11,6 +11,7 @@ import { Mic, MicOff, Pause, Play, Send, Trash2 } from "lucide-react-native"
 import { useEffect, useRef, useState } from "react"
 import { AppState, View } from "react-native"
 import { liveMode } from "@/live/config"
+import { stopSpeech } from "@/live/speech"
 import { Copy, IconTap, Line } from "../native-kit"
 import { useTheme } from "../theme"
 import { Button, Sheet } from "../ui"
@@ -54,6 +55,8 @@ export function CaptureVoice({
   const seconds = Math.min(maxSec, status.durationMillis / 1000)
   const serverTranscribes = liveMode && onRecording !== undefined
   async function start() {
+    // The person is about to talk: Fern stops reading aloud.
+    stopSpeech()
     setPhase("requesting")
     try {
       const permission = await AudioModule.requestRecordingPermissionsAsync()
