@@ -99,12 +99,12 @@ export interface LiveCaptureDeps {
   /** Unauthenticated fetch: the presigned PUT and local file reads. */
   fetch: Fetch
   online(): boolean
-  /** Push and pull now (the decision wrote rows in other modules). */
-  kick(): void
-  cats: Cats
   /** Queue a card decision as an outbox action op; false when no sync
    * engine runs (the decision then calls its REST endpoint). */
   act?(name: string, data: Row): boolean
+  /** Push and pull now (the decision wrote rows in other modules). */
+  kick(): void
+  cats: Cats
 }
 
 const OFFLINE = "You're offline — try again when you're connected"
@@ -1089,9 +1089,9 @@ export function captureMappers(userId: string) {
     post: postStream,
     fetch: anyFetch,
     online: isOnline,
+    act: queueAction,
     kick: syncNow,
     cats: categoryIds(userId),
-    act: queueAction,
   })
   return captureSyncMappers(userId)
 }
