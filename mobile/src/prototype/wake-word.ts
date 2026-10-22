@@ -32,10 +32,37 @@ export const wake = create<{
   armed: boolean
   listening: boolean
   pending: { at: number; rest: string } | null
-}>(() => ({ armed: false, listening: false, pending: null }))
+  /** The last few words the recogniser heard, shown in settings so a
+   * person can see what their "Hey Fern" comes out as. Never stored. */
+  heard: string
+  /** Why the last recognition task failed (the recogniser's error code),
+   * cleared once a task runs. */
+  trouble: string | null
+}>(() => ({
+  armed: false,
+  listening: false,
+  pending: null,
+  heard: "",
+  trouble: null,
+}))
 
-/** Names the recogniser commonly hears for "Fern". */
-const FERN_SOUNDALIKES = ["fern", "ferne", "ferns", "firn", "fearn", "vern"]
+/** Names the recogniser commonly hears for "Fern", including the P and B
+ * forms an F often comes out as in Filipino English ("Hey Pern"). */
+const FERN_SOUNDALIKES = [
+  "fern",
+  "ferne",
+  "ferns",
+  "firn",
+  "fearn",
+  "vern",
+  "verne",
+  "fren",
+  "firm",
+  "pern",
+  "perm",
+  "bern",
+  "burn",
+]
 const GREETINGS = "hey|hay|hei|hi|ok|okay"
 
 const plain = (s: string) =>
@@ -52,15 +79,22 @@ export function wakeCommand(said: string, name = "Fern"): string | null {
   const own = plain(name).split(" ")[0] || "fern"
   const names = new Set([own, ...(own === "fern" ? FERN_SOUNDALIKES : [])])
   const text = plain(said)
+  // "A Fern" is how a quick "Hey Fern" often comes out, but "a" is too
+  // common a word to count anywhere but the start of what was heard.
   const m = new RegExp(
-    `(?:^| )(?:${GREETINGS}) (?:${[...names].join("|")})(?= |$)(.*)$`,
+    `(?:(?:^| )(?:${GREETINGS})|^a) (?:${[...names].join("|")})(?= |$)(.*)$`,
   ).exec(text)
   if (!m) return null
   // Keep the words as said, not lower-cased: find where the tail starts.
   const tail = m[1].trim()
   if (!tail) return ""
-  const words = tail.split(" ").length
-  return said.trim().split(/\s+/).slice(-words).join(" ")
+  // Match on the plain form, since "what's" is two plain words.
+  const words = said.trim().split(/\s+/)
+  for (let i = words.length - 1; i >= 0; i--) {
+    const end = words.slice(i).join(" ")
+    if (plain(end) === tail) return end
+  }
+  return tail
 }
 
 function recogniser(): Module | null {
@@ -147,14 +181,22 @@ export function createWakeListener(opts: {
     subs = [
       m.addListener("result", (e) => {
         if (heard !== null) return
-        const rest = wakeCommand(e.results[0]?.transcript ?? "", name)
+        const said = e.results[0]?.transcript ?? ""
+        wake.setState({
+          heard: said.trim().split(/\s+/).slice(-6).join(" "),
+          trouble: null,
+        })
+        const rest = wakeCommand(said, name)
         if (rest === null) return
         heard = rest
         m.abort()
       }),
-      m.addListener("error", () => {
+      m.addListener("error", (e) => {
         // Silence, our own abort, a busy recogniser: the "end" that follows
-        // decides what happens next.
+        // decides what happens next. Only real trouble is shown.
+        const code = (e as { error?: string }).error ?? ""
+        if (code && code !== "aborted" && code !== "no-speech")
+          wake.setState({ trouble: code })
       }),
       m.addListener("end", () => {
         detach()
