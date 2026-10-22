@@ -15,6 +15,7 @@ import {
 import { useState } from "react"
 import { View } from "react-native"
 import { toast } from "sonner-native"
+import { sendTestReminder } from "../local-reminders"
 import {
   border,
   Copy,
@@ -25,6 +26,7 @@ import {
   Tap,
 } from "../native-kit"
 import { go } from "../navigation"
+import { enableReminders } from "../reminders"
 import { Switch } from "../switch"
 import { useTheme } from "../theme"
 import { TimeInput } from "../time-input"
@@ -191,11 +193,17 @@ export function TaskReminders() {
     [prompt, setPrompt] = useState(false),
     [controls, setControls] = useState(false),
     install = n.platform === "ios" && !n.installed
-  const test = () => {
+  const test = async () => {
     A.updateNotif({ testSentAt: new Date().toISOString() })
-    toast.success("You're set ✓", {
-      description: "Test reminder preview (simulated)",
-    })
+    const sent = await sendTestReminder().catch(() => false)
+    if (sent)
+      toast.success("Test reminder on its way", {
+        description: "It arrives in a few seconds.",
+      })
+    else {
+      toast("Notifications are off for Unfurl")
+      void enableReminders()
+    }
   }
   const step = (
     i: number,

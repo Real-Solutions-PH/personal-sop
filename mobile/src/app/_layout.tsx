@@ -7,6 +7,7 @@ import { scrubSentryEvent } from "@/lib/sentry-scrub"
 import { prototypeMode } from "@/prototype/mode"
 import { PrototypeProviders } from "@/prototype/providers"
 import { sessionStore } from "@/prototype/session"
+import { useTheme } from "@/prototype/theme"
 
 // Error monitoring (GlitchTip, Sentry-SDK compatible).
 // No-ops entirely when EXPO_PUBLIC_SENTRY_DSN is not set at build time.
@@ -53,13 +54,20 @@ function RootStack() {
   )
 }
 
+// The status bar follows the app's own light/dark choice, not the phone's,
+// so its clock stays readable when the two differ.
+function ThemedStatusBar() {
+  const { dark } = useTheme()
+  return <StatusBar style={dark ? "light" : "dark"} />
+}
+
 function RootLayout() {
   const Providers = prototypeMode
     ? PrototypeProviders
     : require("@/components/providers").Providers
   return (
     <Providers>
-      <StatusBar style="auto" />
+      <ThemedStatusBar />
       <RootStack />
     </Providers>
   )

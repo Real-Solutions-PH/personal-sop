@@ -20,6 +20,7 @@ import {
   Segmented,
   Tap,
 } from "../native-kit"
+import { enableReminders } from "../reminders"
 import { Switch } from "../switch"
 import { fonts, useTheme } from "../theme"
 import { Button, Empty, Screen, Sheet, undo } from "../ui"
@@ -175,9 +176,16 @@ export function HabitSettings() {
           of truth either way.
         </Copy>
         <Copy size={14}>
-          Reminder preferences are saved. Delivery is simulated in this
-          prototype.
+          They arrive as notifications on this phone, even offline.
         </Copy>
+        <Button
+          onPress={() => {
+            setNotify(false)
+            void enableReminders()
+          }}
+        >
+          Turn on
+        </Button>
         <Button tone="quiet" onPress={() => setNotify(false)}>
           Not now
         </Button>

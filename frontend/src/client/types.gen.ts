@@ -227,6 +227,7 @@ export type app__modules__companion__schema__AskIn = {
     id?: (string | null);
     hint?: (string | null);
     media_ids?: Array<(string)>;
+    thread_id?: (string | null);
 };
 
 export type app__modules__companion__schema__MessagePublic = {
@@ -239,6 +240,7 @@ export type app__modules__companion__schema__MessagePublic = {
     created_at: string;
     version: number;
     deleted_at?: (string | null);
+    thread_id?: (string | null);
 };
 
 export type app__modules__companion__schema__MessagesPublic = {
@@ -2447,6 +2449,7 @@ export type OverdueTask = {
     recurrence: (Recurrence | null);
     notes: (string | null);
     starred: boolean;
+    tags?: Array<(string)>;
     status: 'open' | 'done' | 'deleted';
     completed_at: (string | null);
     cleared_at: (string | null);
@@ -3682,6 +3685,7 @@ export type TaskCreate = {
     recurrence?: (Recurrence | null);
     notes?: (string | null);
     starred?: boolean;
+    tags?: Array<(string)>;
     source?: 'manual' | 'capture-text' | 'capture-voice' | 'capture-photo';
     parse_state?: 'parsed' | 'pending';
 };
@@ -3696,6 +3700,7 @@ export type TaskDetail = {
     recurrence: (Recurrence | null);
     notes: (string | null);
     starred: boolean;
+    tags?: Array<(string)>;
     status: 'open' | 'done' | 'deleted';
     completed_at: (string | null);
     cleared_at: (string | null);
@@ -3718,6 +3723,7 @@ export type TaskDraftIn = {
     due_date?: (string | null);
     due_time?: (string | null);
     remind?: boolean;
+    tags?: Array<(string)>;
 };
 
 export type TaskPayload = {
@@ -3735,6 +3741,7 @@ export type TaskPublic = {
     recurrence: (Recurrence | null);
     notes: (string | null);
     starred: boolean;
+    tags?: Array<(string)>;
     status: 'open' | 'done' | 'deleted';
     completed_at: (string | null);
     cleared_at: (string | null);
@@ -3767,6 +3774,7 @@ export type TaskUpdate = {
     notes?: (string | null);
     list_id?: (string | null);
     starred?: (boolean | null);
+    tags?: (Array<(string)> | null);
     recurrence?: (Recurrence | null);
     remind_at?: (string | null);
     due_time?: (string | null);

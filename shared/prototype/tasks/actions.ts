@@ -54,6 +54,28 @@ export interface NewTask {
   notes?: string | null
   starred?: boolean
   source?: TaskSource
+  tags?: string[]
+}
+/** Tags as kept (the server applies the same rule): trimmed, inner spaces
+ * collapsed, a leading # dropped, at most 24 characters each and 8 in all,
+ * the first spelling kept when one repeats in another case. */
+export function cleanTags(tags: readonly string[]): string[] {
+  const out: string[] = []
+  const seen = new Set<string>()
+  for (const raw of tags) {
+    const tag = raw
+      .trim()
+      .replace(/^#+/, "")
+      .split(/\s+/)
+      .join(" ")
+      .slice(0, 24)
+      .trim()
+    if (tag && !seen.has(tag.toLowerCase())) {
+      seen.add(tag.toLowerCase())
+      out.push(tag)
+    }
+  }
+  return out.slice(0, 8)
 }
 function build(input: NewTask, order: number): Task {
   const s = tasksStore.get()
@@ -74,6 +96,7 @@ function build(input: NewTask, order: number): Task {
     recurrence: input.recurrence ?? null,
     notes: input.notes ?? null,
     starred: !!input.starred,
+    tags: cleanTags(input.tags ?? []),
     status: "open",
     completedAt: null,
     deletedAt: null,
@@ -163,6 +186,7 @@ export function completeTask(id: string): Task | null {
           recurrence: t.recurrence,
           notes: t.notes,
           starred: t.starred,
+          tags: t.tags,
           source: t.source,
         },
         t.order,
@@ -224,6 +248,7 @@ export function updateTask(
       | "recurrence"
       | "remindAt"
       | "dueTime"
+      | "tags"
     >
   >,
 ): void {
@@ -317,6 +342,7 @@ export function duplicateTask(id: string): Task | null {
     recurrence: t.recurrence,
     notes: t.notes,
     starred: t.starred,
+    tags: t.tags,
   })
 }
 export function moveTask(id: string, dir: -1 | 1, ids: string[]): void {

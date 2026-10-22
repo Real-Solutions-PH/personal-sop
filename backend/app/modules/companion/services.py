@@ -13,6 +13,7 @@ import json
 import re
 import uuid
 from collections.abc import Callable
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from typing import Annotated, Any, Literal
 
@@ -31,6 +32,7 @@ from app.modules.companion.models import (
     MEMORY_KINDS,
     Companion,
     CompanionMessage,
+    CompanionThread,
     Memory,
     Tracker,
 )
@@ -205,6 +207,55 @@ def clear_conversation(ctx: Ctx) -> int:
     return len(rows)
 
 
+# The chat a turn belongs to, set by `ask` for the whole turn: its messages
+# are stored in it, and the history and summary the model sees are its own.
+_THREAD: ContextVar[CompanionThread | None] = ContextVar(
+    "companion_thread", default=None
+)
+THREAD_TITLE = 48
+
+
+def thread_for(ctx: Ctx, thread_id: uuid.UUID | None) -> CompanionThread:
+    """The chat a message goes to: the one named (made with that id when the
+    phone started it offline, brought back if it was deleted), else the most
+    recent, else a new one."""
+    if thread_id is not None:
+        row = owned_repo.get(ctx, CompanionThread, thread_id, include_deleted=True)
+        if row is None:
+            return owned_repo.insert(ctx, CompanionThread, {}, row_id=thread_id)
+        if row.deleted_at is not None:
+            owned_repo.restore(ctx, row)
+        return row
+    latest = owned_repo.list_rows(
+        ctx,
+        CompanionThread,
+        order_by=[col(CompanionThread.last_at).desc().nulls_last()],
+        limit=1,
+    )
+    if latest:
+        return latest[0]
+    return owned_repo.insert(ctx, CompanionThread, {}, row_id=uuid.uuid4())
+
+
+def delete_thread(ctx: Ctx, thread_id: uuid.UUID) -> None:
+    """A deleted chat takes its messages with it (tombstones, so every device
+    drops them)."""
+    row = owned_repo.get(ctx, CompanionThread, thread_id)
+    if row is None:
+        return
+    for m in owned_repo.list_rows(
+        ctx, CompanionMessage, col(CompanionMessage.thread_id) == thread_id
+    ):
+        owned_repo.soft_delete(ctx, m)
+    owned_repo.soft_delete(ctx, row)
+    ctx.commit()
+
+
+def _thread_where() -> list[ColumnElement[bool]]:
+    t = _THREAD.get()
+    return [col(CompanionMessage.thread_id) == t.id] if t is not None else []
+
+
 def _message(
     ctx: Ctx,
     role: str,
@@ -212,10 +263,26 @@ def _message(
     blocks: list[dict[str, Any]],
     row_id: uuid.UUID,
 ) -> CompanionMessage:
+    t = _THREAD.get()
+    if t is not None:
+        if t.title is None and role == "me" and text and text.strip():
+            words = " ".join(text.split())
+            t.title = (
+                words
+                if len(words) <= THREAD_TITLE
+                else words[: THREAD_TITLE - 1].rsplit(" ", 1)[0] + "…"
+            )
+        t.last_at = ctx.now
+        ctx.session.add(t)
     return owned_repo.insert(
         ctx,
         CompanionMessage,
-        {"role": role, "text": text, "blocks": blocks},
+        {
+            "role": role,
+            "text": text,
+            "blocks": blocks,
+            "thread_id": t.id if t is not None else None,
+        },
         row_id=row_id,
     )
 
@@ -309,6 +376,28 @@ def ask(
     message_id: uuid.UUID | None = None,
     stream: TurnStream | None = None,
     media_ids: list[uuid.UUID] | None = None,
+    thread_id: uuid.UUID | None = None,
+) -> AskOut:
+    token = _THREAD.set(thread_for(ctx, thread_id))
+    try:
+        return _ask(
+            ctx,
+            text=text,
+            message_id=message_id,
+            stream=stream,
+            media_ids=media_ids,
+        )
+    finally:
+        _THREAD.reset(token)
+
+
+def _ask(
+    ctx: Ctx,
+    *,
+    text: str,
+    message_id: uuid.UUID | None,
+    stream: TurnStream | None,
+    media_ids: list[uuid.UUID] | None,
 ) -> AskOut:
     me_id = message_id or uuid.uuid4()
     photos = list(dict.fromkeys(media_ids or []))
@@ -468,6 +557,10 @@ class SolRun:
     # Decides whether a new memory close to an old one is the same, an
     # update, a contradiction or different (the chat model; None: no judge).
     judge: memory.Judge | None = None
+    # What `recall_memories` found this turn: it runs once a turn, so a model
+    # that keeps searching (an empty result invites another try) gets the
+    # same answer back and is told to reply instead of looping to the step cap.
+    recalled: list[dict[str, Any]] | None = None
 
     def block(self, b: dict[str, Any]) -> dict[str, Any]:
         self.blocks.append(b)
@@ -625,20 +718,26 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
 
     def recall_memories(**kw: Any) -> dict[str, Any]:
         a = RecallArgs(**kw)
+        if run.recalled is not None:
+            return {
+                "memories": run.recalled,
+                "repeat": True,
+                "note": "Memories were already recalled this turn; this is "
+                "everything known. Answer now with what you have.",
+            }
         kinds = [k for k in a.kinds if k in MEMORY_KINDS] or None
         found = memory.recall(ctx, a.query, kinds=kinds)
-        return {
-            "memories": [
-                {
-                    "id": str(m.id),
-                    "text": m.text,
-                    "kind": m.kind,
-                    "tags": m.tags,
-                    "since": ctx.clock.day_of(m.created_at).isoformat(),
-                }
-                for m in found
-            ]
-        }
+        run.recalled = [
+            {
+                "id": str(m.id),
+                "text": m.text,
+                "kind": m.kind,
+                "tags": m.tags,
+                "since": ctx.clock.day_of(m.created_at).isoformat(),
+            }
+            for m in found
+        ]
+        return {"memories": run.recalled}
 
     def forget_fact(**kw: Any) -> dict[str, Any]:
         a = ForgetArgs(**kw)
@@ -920,7 +1019,9 @@ Never add up or subtract
 numbers yourself; a meal still waiting for their OK is not counted yet,
 so say so if one is. Never call the same tool
 twice with the same arguments. After acting, answer in one or two short
-sentences saying what you did.
+sentences saying what you did. Do every part of a
+many-part ask with its own tool call before replying; never end on "let
+me…" for an undone part. Answer the latest message, not earlier ones.
 
 Memory: ABOUT THEM below is always true for {user}: follow its answer style
 and constraints in every reply. Anything else you know about them (likes,
@@ -1022,6 +1123,72 @@ def _remember_first(
     ]
 
 
+# Learning without being asked: after a reply, the person's message is read
+# once more for lasting facts about them. Only a message that speaks about
+# them is read, so most turns cost nothing extra.
+_ABOUT_ME = re.compile(
+    r"\b(i|i'?m|im|i'?ve|i'?d|my|me|mine|myself|we|our|ako|ko|akin|aking|"
+    r"namin|kami)\b",
+    re.I,
+)
+LEARN = """Read the person's message and keep what will still be true and
+useful weeks from now, with remember_fact: who they are (job, studies,
+where they live), the people in their life (names, relation), health,
+allergies, diet and training rules, goals and what they're working towards,
+lasting likes and dislikes, routines, and how they want answers. One call
+per separate fact, as a short third-person statement with its kind; set
+always_on only for a hard constraint (an allergy, a medical rule).
+
+Do NOT keep: what they did or ate today, a purchase or a log entry, a
+question, a request or command, a feeling of the moment, or anything about
+the assistant. Most messages hold nothing lasting: then call nothing."""
+
+
+def learn(ctx: Ctx, text: str, *, already: bool) -> list[str]:
+    """Save lasting facts the message holds that nobody asked to keep; runs
+    after the reply has streamed. ``already``: this turn saved a memory
+    (asked for, or by the reply itself), so the message isn't read again."""
+    if (
+        already
+        or len(text) < 12
+        or text.rstrip().endswith("?")
+        or not _ABOUT_ME.search(text)
+    ):
+        return []
+    resolved = _resolve(ctx)
+    if resolved is None:
+        return []
+    run = SolRun(ctx=ctx, me_id=uuid.uuid4(), emit=lambda event, data: None)
+    run.judge = memory_judge(ctx, resolved)
+    tool = next(t for t in sol_tools(run) if t.name == "remember_fact")
+    saved: list[str] = []
+
+    class Heard(capture.LoopHooks):
+        def tool_finished(self, call_id: str, name: str, result: Any) -> None:
+            if isinstance(result, dict) and result.get("status") not in (
+                None,
+                "duplicate",
+            ):
+                saved.append(name)
+
+    try:
+        capture.run_agent(
+            ctx,
+            resolved,
+            system=LEARN,
+            messages=[HumanMessage(text)],
+            tools=[tool],
+            on_text=lambda d: None,
+            max_turns=2,
+            max_tool_calls=4,
+            hooks=Heard(),
+        )
+    except capture.SeamError:
+        return []
+    ctx.commit()
+    return saved
+
+
 # The day's food: macros, calories, nutrition, what is left to eat.
 _ABOUT_NUTRITION = re.compile(
     r"\b(macros?|calories|kcal|protein|carbs|nutrition(al)?|"
@@ -1074,6 +1241,33 @@ NUDGE = (
     "entries that wait from earlier, call confirm_pending. Otherwise answer "
     "without saying anything was saved or is waiting. Earlier requests in "
     "this chat were already handled; do not repeat them."
+)
+# A reply that ends promising a change still to come ("let me add it to the
+# routine") after doing only part of what was asked: a reply ends the turn,
+# so the promise would never be kept.
+_PROMISES = re.compile(
+    r"\b(?:let me|i'?ll|i will|i'?m going to|next,? i'?ll)\s+(?:now\s+)?"
+    r"(?:add|set|put|move|create|update|log|change|make|schedule|rename|"
+    r"reorder|record|save|remove|delete)\b",
+    re.I,
+)
+
+
+def promised(answer: str) -> bool:
+    """A sentence that says a change is still to come; an offer asked as a
+    question ("shall I set it for tomorrow?") is not one."""
+    return any(
+        _PROMISES.search(sentence) and not sentence.rstrip().endswith("?")
+        for sentence in re.split(r"(?<=[.!?])\s+", answer)
+    )
+
+
+FINISH_NUDGE = (
+    "Your reply says you will still do something, but a reply ends the turn, "
+    'so it would never happen. Do the rest of my last message now: "{text}". '
+    "Call the tool for each part that is not done yet (a routine step is "
+    "added with update_routine), then say in one or two sentences what you "
+    "did. Do not redo what is already done this turn."
 )
 NOT_RECORDED = (
     "I didn't manage to record that, so nothing was saved. Try asking again "
@@ -1161,8 +1355,14 @@ change daily (totals, balances, macros) and anything the assistant only
 looked up. Plain text, no lists."""
 
 
+def _summary_row(ctx: Ctx) -> Companion | CompanionThread:
+    """Where the running summary lives: the turn's chat (each chat has its
+    own), or the companion row outside one."""
+    return _THREAD.get() or companion_row(ctx)
+
+
 def _summary_block(ctx: Ctx) -> str:
-    row = companion_row(ctx)
+    row = _summary_row(ctx)
     if not row.summary:
         return ""
     return (
@@ -1175,13 +1375,16 @@ def refresh_summary(ctx: Ctx, resolved: ai.ResolvedModel) -> None:
     """Fold the messages older than the turn window into the summary once
     SUMMARY_AFTER of them have built up. One short model call; a failure
     leaves the summary as it was (the next turn tries again)."""
-    row = companion_row(ctx)
+    row = _summary_row(ctx)
     # Only what _history actually sends is excluded: an earlier day's
     # message in the last HISTORY is not sent, so it is summarised.
     window = {
         m.id for m in _window_rows(ctx) if ctx.clock.day_of(m.created_at) == ctx.today
     }
-    where: list[ColumnElement[bool]] = [col(CompanionMessage.text).is_not(None)]
+    where: list[ColumnElement[bool]] = [
+        col(CompanionMessage.text).is_not(None),
+        *_thread_where(),
+    ]
     if row.summary_through is not None:
         where.append(col(CompanionMessage.created_at) > row.summary_through)
     older = [
@@ -1223,9 +1426,36 @@ def _window_rows(ctx: Ctx) -> list[CompanionMessage]:
     return owned_repo.list_rows(
         ctx,
         CompanionMessage,
+        *_thread_where(),
         order_by=[col(CompanionMessage.created_at).desc()],
         limit=HISTORY,
     )
+
+
+# Said in place of a reply that ended with no words and nothing done, so a
+# following "try again" points at the message before it.
+FAILED_REPLY = "(That reply failed before finishing; nothing from it was done.)"
+
+
+def _did(m: CompanionMessage) -> list[str]:
+    """What a reply did, from its steps block: the finished steps' sentences."""
+    for b in m.blocks or []:
+        if b.get("t") == "steps":
+            items = b.get("items")
+            if isinstance(items, list):
+                return [
+                    str(i["summary"])
+                    for i in items
+                    if isinstance(i, dict) and i.get("summary")
+                ]
+    return []
+
+
+def _with_done(text: str, steps: list[Any]) -> str:
+    """A reply with what this turn's tools already did, for the corrective
+    pass (it sees the reply's words, not its tool calls)."""
+    did = [s.summary for s in steps if getattr(s, "ok", False) and s.summary]
+    return f"{text}\n[Done this turn: {'; '.join(did)}]".strip() if did else text
 
 
 def _history(ctx: Ctx) -> list[BaseMessage]:
@@ -1234,10 +1464,20 @@ def _history(ctx: Ctx) -> list[BaseMessage]:
     for m in reversed(rows):
         # An earlier day's replies state that day's facts; sent along, the
         # model repeats them over TODAY's (yesterday's "1 of 2 done", today).
-        if not m.text or ctx.clock.day_of(m.created_at) != ctx.today:
+        if ctx.clock.day_of(m.created_at) != ctx.today:
             continue
-        text = m.text[:HISTORY_CHARS]
-        out.append(HumanMessage(text) if m.role == "me" else AIMessage(text))
+        if m.role == "me":
+            if m.text:
+                out.append(HumanMessage(m.text[:HISTORY_CHARS]))
+            continue
+        # A reply carries what it did as well as what it said: without its
+        # steps the model can't see a habit it already created, and re-asks
+        # or redoes the turn before (a meal confirmed twice).
+        did = _did(m)
+        text = (m.text or "")[:HISTORY_CHARS]
+        if did:
+            text = f"{text}\n[Done this turn: {'; '.join(did)}]".strip()
+        out.append(AIMessage(text or FAILED_REPLY))
     return out
 
 
@@ -1343,14 +1583,21 @@ def _ask_ai(
         hooks=stream,
     )
     answer = plain_text(reply)
-    if unbacked_claim(text, answer, stream.steps):
-        # One corrective pass, told plainly that nothing was saved.
+    unbacked = unbacked_claim(text, answer, stream.steps)
+    if unbacked or promised(answer):
+        # One corrective pass: told plainly that nothing was saved, or that
+        # part of the ask was only promised.
+        nudge = (NUDGE if unbacked else FINISH_NUDGE).format(text=text)
         stream.end_text()
         reply = capture.run_agent(
             ctx,
             resolved,
             system=system,
-            messages=[*turn, AIMessage(reply), HumanMessage(NUDGE.format(text=text))],
+            messages=[
+                *turn,
+                AIMessage(_with_done(reply, stream.steps)),
+                HumanMessage(nudge),
+            ],
             # The corrective pass may need a tool this turn's words missed.
             tools=every,
             on_text=lambda d: stream.text(_strip_marks(d)),

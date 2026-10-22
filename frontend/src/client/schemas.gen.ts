@@ -10643,6 +10643,14 @@ export const OverdueTaskSchema = {
             type: 'boolean',
             title: 'Starred'
         },
+        tags: {
+            items: {
+                type: 'string'
+            },
+            type: 'array',
+            title: 'Tags',
+            default: []
+        },
         status: {
             type: 'string',
             enum: ['open', 'done', 'deleted'],
@@ -17371,6 +17379,15 @@ export const TaskCreateSchema = {
             title: 'Starred',
             default: false
         },
+        tags: {
+            items: {
+                type: 'string',
+                maxLength: 40
+            },
+            type: 'array',
+            maxItems: 20,
+            title: 'Tags'
+        },
         source: {
             type: 'string',
             enum: ['manual', 'capture-text', 'capture-voice', 'capture-photo'],
@@ -17471,6 +17488,14 @@ export const TaskDetailSchema = {
         starred: {
             type: 'boolean',
             title: 'Starred'
+        },
+        tags: {
+            items: {
+                type: 'string'
+            },
+            type: 'array',
+            title: 'Tags',
+            default: []
         },
         status: {
             type: 'string',
@@ -17635,6 +17660,15 @@ export const TaskDraftInSchema = {
             type: 'boolean',
             title: 'Remind',
             default: false
+        },
+        tags: {
+            items: {
+                type: 'string',
+                maxLength: 40
+            },
+            type: 'array',
+            maxItems: 8,
+            title: 'Tags'
         }
     },
     additionalProperties: false,
@@ -17748,6 +17782,14 @@ export const TaskPublicSchema = {
         starred: {
             type: 'boolean',
             title: 'Starred'
+        },
+        tags: {
+            items: {
+                type: 'string'
+            },
+            type: 'array',
+            title: 'Tags',
+            default: []
         },
         status: {
             type: 'string',
@@ -17895,6 +17937,22 @@ export const TaskUpdateSchema = {
                 }
             ],
             title: 'Starred'
+        },
+        tags: {
+            anyOf: [
+                {
+                    items: {
+                        type: 'string',
+                        maxLength: 40
+                    },
+                    type: 'array',
+                    maxItems: 20
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Tags'
         },
         recurrence: {
             anyOf: [
@@ -20835,6 +20893,18 @@ export const app__modules__companion__schema__AskInSchema = {
             type: 'array',
             maxItems: 10,
             title: 'Media Ids'
+        },
+        thread_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Thread Id'
         }
     },
     type: 'object',
@@ -20891,6 +20961,18 @@ export const app__modules__companion__schema__MessagePublicSchema = {
                 }
             ],
             title: 'Deleted At'
+        },
+        thread_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Thread Id'
         }
     },
     type: 'object',

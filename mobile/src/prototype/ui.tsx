@@ -9,7 +9,13 @@ import {
   Trash2,
   X,
 } from "lucide-react-native"
-import { type ReactNode, useEffect, useRef, useState } from "react"
+import {
+  createContext,
+  type ReactNode,
+  useEffect,
+  useRef,
+  useState,
+} from "react"
 import {
   Alert,
   AppState,
@@ -466,6 +472,9 @@ export function Empty({
     </View>
   )
 }
+/** Pauses the page's scrolling while a drag inside it runs. */
+export const ScrollLock = createContext<(locked: boolean) => void>(() => {})
+
 export function Screen({
   title,
   onTitlePress,
@@ -495,6 +504,8 @@ export function Screen({
   const t = useTheme()
   const safe = useSafeAreaInsets()
   const scroller = useRef<ScrollView>(null)
+  // A drag inside the page (reordering a list) pauses its scrolling.
+  const [locked, setLocked] = useState(false)
   // A hairline appears under the header once content scrolls beneath it.
   const [scrolled, setScrolled] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
@@ -588,6 +599,7 @@ export function Screen({
       </View>
       <ScrollView
         ref={scroller}
+        scrollEnabled={!locked}
         scrollEventThrottle={64}
         onScroll={(e) => {
           const next = e.nativeEvent.contentOffset.y > 4
@@ -615,7 +627,7 @@ export function Screen({
           gap: prototypeLayout ? 12 : 8,
         }}
       >
-        {children}
+        <ScrollLock.Provider value={setLocked}>{children}</ScrollLock.Provider>
       </ScrollView>
       {footer}
     </KeyboardAvoidingView>

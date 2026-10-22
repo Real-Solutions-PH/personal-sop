@@ -16,6 +16,7 @@ import {
   type Memory,
   type Metric,
   type Msg,
+  type Thread,
   type Tracker,
 } from "@/prototype/companion/store"
 import type { Mapper, Payload } from "../mapper"
@@ -166,7 +167,58 @@ export function messageFromServer(row: Payload): Msg {
   if (row.text) m.text = String(row.text)
   const blocks = Array.isArray(row.blocks) ? (row.blocks as Block[]) : []
   if (blocks.length) m.blocks = blocks
+  if (row.thread_id) m.threadId = String(row.thread_id)
   return m
+}
+
+/** ``ThreadPublic`` -> a chat; a chat is made and renamed on the phone. */
+export function threadFromServer(row: Payload): Thread {
+  return {
+    id: String(row.id),
+    title: row.title ? String(row.title) : null,
+    lastAt: row.last_at ? ms(row.last_at) : null,
+    createdAt: ms(row.created_at),
+  }
+}
+
+export function threadMapper(): Mapper<CompanionState, Thread> {
+  return {
+    entity: "companion_thread",
+    store: companionStore,
+    list: (s) => (s.threads ?? []).filter((t) => isUuid(t.id)),
+    id: (t) => t.id,
+    // Only the title is the phone's to write; a new chat's first message
+    // also makes it on the server.
+    toServer: (t) => ({ title: t.title }),
+    fromServer: threadFromServer,
+    merge: (s, ups, dels) => {
+      if (!ups.length && !dels.length) return s
+      const local = new Map((s.threads ?? []).map((t) => [t.id, t]))
+      // The phone's title wins over a pulled null (named before the server
+      // stored the first message); its last activity keeps the later time.
+      const merged = ups.map((u) => {
+        const mine = local.get(u.id)
+        return mine
+          ? {
+              ...u,
+              title: u.title ?? mine.title,
+              lastAt: Math.max(u.lastAt ?? 0, mine.lastAt ?? 0) || null,
+            }
+          : u
+      })
+      return {
+        ...s,
+        threads: upsertList(s.threads ?? [], merged, dels, (t) => t.id),
+        messages: dels.length
+          ? s.messages.filter((m) => !m.threadId || !dels.includes(m.threadId))
+          : s.messages,
+        activeThread:
+          s.activeThread && dels.includes(s.activeThread)
+            ? null
+            : s.activeThread,
+      }
+    },
+  }
 }
 
 /** Fold messages into the conversation, in time order. */
@@ -199,6 +251,7 @@ export function companionMappers(userId: string) {
     companionMapper(userId),
     trackerMapper(),
     memoryMapper(),
+    threadMapper(),
     messageMapper(),
   ]
 }

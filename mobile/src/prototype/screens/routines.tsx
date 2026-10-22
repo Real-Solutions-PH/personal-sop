@@ -2,6 +2,7 @@ import * as A from "@domain/habits/actions"
 import * as L from "@domain/habits/logic"
 import { habitsStore } from "@domain/habits/store"
 import { dayKey, dayOffset, fmtDuration } from "@domain/lib/day"
+import * as Haptics from "expo-haptics"
 import { useLocalSearchParams } from "expo-router"
 import {
   Archive,
@@ -13,12 +14,14 @@ import {
   Pencil,
   Play,
   Plus,
+  RotateCcw,
   Share2,
   Trash2,
   X,
 } from "lucide-react-native"
-import { useRef, useState } from "react"
+import { useContext, useRef, useState } from "react"
 import { PanResponder, Pressable, View } from "react-native"
+import { toast } from "sonner-native"
 import {
   border,
   Copy,
@@ -30,7 +33,16 @@ import {
 } from "../native-kit"
 import { go } from "../navigation"
 import { useTheme } from "../theme"
-import { Button, confirm, Empty, Field, Screen, Sheet, undo } from "../ui"
+import {
+  Button,
+  confirm,
+  Empty,
+  Field,
+  Screen,
+  ScrollLock,
+  Sheet,
+  undo,
+} from "../ui"
 
 function HabitIcon({ icon }: { icon: string }) {
   const t = useTheme()
@@ -52,18 +64,42 @@ function HabitIcon({ icon }: { icon: string }) {
 function DragHandle({
   name,
   onMove,
+  onDrag,
+  onDrop,
 }: {
   name: string
+  /** Screen readers: one place up or down. */
   onMove: (delta: number) => void
+  /** The finger's distance from where the drag began; null when it ends. */
+  onDrag: (dy: number | null) => void
+  onDrop: (dy: number) => void
 }) {
   const t = useTheme()
-  const move = useRef(onMove)
-  move.current = onMove
+  const lock = useContext(ScrollLock)
+  const cb = useRef({ onMove, onDrag, onDrop, lock })
+  cb.current = { onMove, onDrag, onDrop, lock }
   const responder = useRef(
     PanResponder.create({
+      // Claimed on touch and never handed back, and the page stops
+      // scrolling while it runs: otherwise the scroll view takes the drag.
       onStartShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponderCapture: () => true,
       onMoveShouldSetPanResponder: () => true,
-      onPanResponderRelease: (_, g) => move.current(Math.round(g.dy / 56)),
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderGrant: () => {
+        cb.current.lock(true)
+        cb.current.onDrag(0)
+        void Haptics.selectionAsync().catch(() => {})
+      },
+      onPanResponderMove: (_, g) => cb.current.onDrag(g.dy),
+      onPanResponderRelease: (_, g) => {
+        cb.current.lock(false)
+        cb.current.onDrop(g.dy)
+      },
+      onPanResponderTerminate: () => {
+        cb.current.lock(false)
+        cb.current.onDrag(null)
+      },
     }),
   ).current
   return (
@@ -78,7 +114,7 @@ function DragHandle({
         { name: "decrement", label: "Move up" },
       ]}
       onAccessibilityAction={(e) =>
-        move.current(e.nativeEvent.actionName === "increment" ? 1 : -1)
+        cb.current.onMove(e.nativeEvent.actionName === "increment" ? 1 : -1)
       }
       style={{
         width: 40,
@@ -91,6 +127,10 @@ function DragHandle({
     </View>
   )
 }
+/** Where a row dragged by dy from index `from` lands, with rows rowH tall. */
+export function dropIndex(from: number, dy: number, rowH: number, n: number) {
+  return Math.max(0, Math.min(n - 1, from + Math.round(dy / rowH)))
+}
 export function RoutineDetail({ id }: { id: string }) {
   const t = useTheme(),
     s = habitsStore.use((s) => s),
@@ -99,7 +139,10 @@ export function RoutineDetail({ id }: { id: string }) {
   const [picker, setPicker] = useState(p.add === "1"),
     [more, setMore] = useState(false),
     [query, setQuery] = useState(""),
-    [selected, setSelected] = useState<string[]>([])
+    [selected, setSelected] = useState<string[]>([]),
+    // The step being dragged and how far; rows measure their own height.
+    [drag, setDrag] = useState<{ i: number; dy: number } | null>(null),
+    rowH = useRef(60)
   if (!r)
     return (
       <Screen prototypeLayout title="Routine">
@@ -119,6 +162,14 @@ export function RoutineDetail({ id }: { id: string }) {
       id,
       r.steps.map((x, j) => (j === i ? { ...x, minutes: Math.max(1, n) } : x)),
     )
+  const shiftOf = (j: number) => {
+    if (!drag) return 0
+    if (j === drag.i) return drag.dy
+    const to = dropIndex(drag.i, drag.dy, rowH.current, r.steps.length)
+    if (drag.i < j && j <= to) return -rowH.current
+    if (to <= j && j < drag.i) return rowH.current
+    return 0
+  }
   const move = (i: number, delta: number) => {
     const next = [...r.steps],
       to = Math.max(0, Math.min(next.length - 1, i + delta))
@@ -205,6 +256,35 @@ export function RoutineDetail({ id }: { id: string }) {
             </Line>
           </Pressable>
         )}
+        {run?.state === "in_progress" && (
+          <Tap
+            label="Start over"
+            onPress={() =>
+              confirm(
+                "Start over?",
+                `Today's run ends at step ${run.current + 1} of ${run.steps.length}, and the next start begins at step 1. Steps you've done stay logged.`,
+                () => {
+                  A.resetRoutine(id)
+                  toast("Routine reset")
+                },
+                "Start over",
+              )
+            }
+            style={{
+              alignSelf: "center",
+              minHeight: 44,
+              paddingHorizontal: 16,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <RotateCcw size={16} color={t.muted} />
+            <Copy size={14} weight="medium" muted>
+              Start over
+            </Copy>
+          </Tap>
+        )}
         <Frame style={{ padding: 16 }}>
           <Line>
             {[
@@ -262,16 +342,43 @@ export function RoutineDetail({ id }: { id: string }) {
               const h = s.habits.find((h) => h.id === step.habitId)
               if (!h) return null
               return (
-                <Line
+                <View
                   key={`${step.habitId}-${i}`}
+                  onLayout={(e) => {
+                    rowH.current = e.nativeEvent.layout.height || rowH.current
+                  }}
                   style={{
+                    flexDirection: "row",
+                    alignItems: "center",
                     gap: 4,
                     paddingVertical: 6,
                     paddingRight: 4,
+                    borderRadius: 14,
                     opacity: h.status === "archived" ? 0.4 : 1,
+                    ...(drag && {
+                      // The dragged row follows the finger, lifted; the rows
+                      // it passes slide the other way to make room.
+                      zIndex: drag.i === i ? 2 : 0,
+                      backgroundColor: drag.i === i ? t.soft : "transparent",
+                      transform: [{ translateY: shiftOf(i) }],
+                    }),
                   }}
                 >
-                  <DragHandle name={h.name} onMove={(d) => move(i, d)} />
+                  <DragHandle
+                    name={h.name}
+                    onMove={(d) => move(i, d)}
+                    onDrag={(dy) => setDrag(dy === null ? null : { i, dy })}
+                    onDrop={(dy) => {
+                      setDrag(null)
+                      const to = dropIndex(i, dy, rowH.current, r.steps.length)
+                      if (to !== i) {
+                        move(i, to - i)
+                        void Haptics.impactAsync(
+                          Haptics.ImpactFeedbackStyle.Light,
+                        ).catch(() => {})
+                      }
+                    }}
+                  />
                   <Copy size={18}>{h.icon}</Copy>
                   <View style={{ flex: 1, marginLeft: 4 }}>
                     <Copy size={14} weight="medium" lines={1}>
@@ -317,7 +424,7 @@ export function RoutineDetail({ id }: { id: string }) {
                       undo("Step removed", () => A.setRoutineSteps(id, prev))
                     }}
                   />
-                </Line>
+                </View>
               )
             })
           )}

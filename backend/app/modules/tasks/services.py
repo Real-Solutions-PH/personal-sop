@@ -58,6 +58,7 @@ def _new(inp: TaskCreate) -> ops.NewTask:
         recurrence=inp.recurrence.model_dump() if inp.recurrence else None,
         notes=inp.notes,
         starred=inp.starred,
+        tags=list(inp.tags),
         source=inp.source,
         parse_state=inp.parse_state,
         task_id=inp.id,

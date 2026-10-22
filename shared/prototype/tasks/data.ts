@@ -60,6 +60,8 @@ export interface Task {
   recurrence: Recurrence | null
   notes: string | null
   starred: boolean
+  /** Free labels ("work", "errand"); absent on tasks made before tags. */
+  tags?: string[]
   status: TaskStatus
   completedAt: string | null
   deletedAt: string | null

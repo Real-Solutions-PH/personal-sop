@@ -13,6 +13,7 @@ import {
   Image as ImageIcon,
   Lightbulb,
   Maximize2,
+  MessagesSquare,
   Pause,
   PenLine,
   Settings2,
@@ -61,16 +62,27 @@ import { wake } from "../wake-word"
 import { AskStatus } from "./ask-status"
 import { BlockView, Chips, TrackerCard } from "./blocks"
 import { ask } from "./brain"
+import { ChatsSheet } from "./chats"
 import { Orb } from "./orb"
-import { companionStore, type Msg, thinking } from "./store"
+import {
+  chatList,
+  chatMessages,
+  companionStore,
+  currentThread,
+  type Msg,
+  thinking,
+} from "./store"
 
 const greeting = () => {
   const h = new Date().getHours()
   return h < 12 ? "Morning" : h < 18 ? "Afternoon" : "Evening"
 }
 
-function SolMessage({ m, name }: { m: Msg; name: string }) {
+export function SolMessage({ m, name }: { m: Msg; name: string }) {
   const t = useTheme()
+  // While a reply streams, the model's line breaks between tool calls arrive
+  // before any words; blank lines must not open a gap above the steps.
+  const text = m.text?.trim() ?? ""
   return (
     <Animated.View
       entering={FadeInDown.springify().damping(18)}
@@ -85,7 +97,7 @@ function SolMessage({ m, name }: { m: Msg; name: string }) {
         >
           {name}
         </Text>
-        {!!m.text && (
+        {!!text && (
           <Text
             style={{
               color: t.text,
@@ -94,13 +106,13 @@ function SolMessage({ m, name }: { m: Msg; name: string }) {
               lineHeight: 21,
             }}
           >
-            {m.text}
+            {text}
           </Text>
         )}
         {m.blocks?.map((b, i) => (
           <BlockView key={i} block={b} />
         ))}
-        {!!m.text && <ReplyActions id={m.id} text={m.text} />}
+        {!!text && <ReplyActions id={m.id} text={text} />}
       </View>
     </Animated.View>
   )
@@ -266,10 +278,29 @@ function Thinking({ name }: { name: string }) {
   )
 }
 
+const NO_CAPTURES: ReturnType<typeof captureStore.get>["captures"] = []
+
 /** Companion messages and captures interleaved by time. */
 function useTimeline(since = 0) {
-  const messages = companionStore.use((s) => s.messages)
-  const captures = captureStore.use((s) => s.captures)
+  // The chat on screen; entries logged outside chat show in the most
+  // recent chat only, not in every one.
+  const store = companionStore.use((s) => s)
+  const messages = useMemo(() => chatMessages(store), [store])
+  // Entries logged outside chat show in the most recent chat, from when
+  // it began: a new chat starts clean.
+  const capturesFrom = useMemo(() => {
+    const first = chatList(store)[0]
+    if (!first) return 0
+    return currentThread(store) === first.id ? first.createdAt : null
+  }, [store])
+  const allCaptures = captureStore.use((s) => s.captures)
+  const captures = useMemo(
+    () =>
+      capturesFrom === null
+        ? NO_CAPTURES
+        : allCaptures.filter((c) => new Date(c.at).getTime() >= capturesFrom),
+    [allCaptures, capturesFrom],
+  )
   return useMemo(() => {
     const items: {
       at: number
@@ -504,6 +535,7 @@ export function CompanionChat() {
   const armed = wake((s) => s.armed)
   const inset = useSafeAreaInsets()
   const keyboardUp = useKeyboardUp()
+  const [chats, setChats] = useState(false)
   let lastDay = ""
   return (
     <Screen
@@ -537,6 +569,13 @@ export function CompanionChat() {
       }
       actions={
         <View style={{ flexDirection: "row" }}>
+          <IconTap
+            size={44}
+            icon={MessagesSquare}
+            label="Chats"
+            color={t.text}
+            onPress={() => setChats(true)}
+          />
           <IconTap
             size={44}
             icon={Clock}
@@ -607,6 +646,7 @@ export function CompanionChat() {
           <Chips prompts={["How am I doing?", "Coach me", "Plan my day"]} />
         )}
       </View>
+      <ChatsSheet open={chats} onClose={() => setChats(false)} />
     </Screen>
   )
 }

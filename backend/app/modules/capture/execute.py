@@ -196,6 +196,7 @@ def execute(
                 else None,
                 due_time=t.get("due_time"),
                 remind=bool(t.get("remind")),
+                tags=[str(x) for x in t.get("tags") or []],
                 task_id=rid(i),
             )
             for i, t in enumerate(p.get("tasks") or [])

@@ -7,6 +7,21 @@ import { toast } from "sonner-native"
 
 type Notifications = typeof import("expo-notifications")
 
+/** Turning a reminder on: quiet when notifications are already allowed,
+ * otherwise the same ask as "Reminders are off → Fix". */
+export async function askForReminders(
+  load: () => Notifications = () =>
+    require("expo-notifications") as Notifications,
+): Promise<void> {
+  try {
+    const p = await load().getPermissionsAsync()
+    if (p.status === "granted") return
+  } catch {
+    return
+  }
+  await enableReminders(load)
+}
+
 export async function enableReminders(
   load: () => Notifications = () =>
     require("expo-notifications") as Notifications,

@@ -95,6 +95,17 @@ export type Msg = {
   status?: "sending" | "queued" | "failed"
   /** The question's capture hint, kept so a queued or retried ask sends it. */
   hint?: string
+  /** The chat it belongs to; absent on messages from before chats. */
+  threadId?: string
+}
+/** One chat with the companion. Its id is minted here, so a chat started
+ * offline exists before the server hears of it. */
+export type Thread = {
+  id: string
+  /** From the first message unless renamed; null until then. */
+  title: string | null
+  lastAt: number | null
+  createdAt: number
 }
 export type Tracker = {
   id: string
@@ -131,6 +142,10 @@ export type CompanionState = {
   trackers: Tracker[]
   /** Things the companion keeps about the user. */
   memories: Memory[]
+  /** Absent in what an app from before chats saved. */
+  threads?: Thread[]
+  /** The chat on screen; null or absent: the most recent one. */
+  activeThread?: string | null
 }
 
 /** The companion's default name (brand: docs/brand/fern.md). A user may
@@ -140,6 +155,8 @@ export const COMPANION_NAME = "Fern"
 const seed = (): CompanionState => ({
   name: COMPANION_NAME,
   messages: [],
+  threads: [],
+  activeThread: null,
   trackers: [
     {
       id: "t-spend",
@@ -220,9 +237,96 @@ export const takeVoiceTurn = () => {
 export const thinking = create<{ on: boolean }>(() => ({ on: false }))
 
 const set = companionStore.set
+
+const threadsOf = (s: CompanionState) => s.threads ?? []
+/** The chat on screen: the one opened, else the most recent (by its last
+ * message, else when it was made), else the chat of the newest message. */
+export function currentThread(s: CompanionState): string | null {
+  const threads = threadsOf(s)
+  if (s.activeThread && threads.some((t) => t.id === s.activeThread))
+    return s.activeThread
+  const latest = [...threads].sort(
+    (a, b) => (b.lastAt ?? b.createdAt) - (a.lastAt ?? a.createdAt),
+  )[0]
+  return latest?.id ?? s.messages.at(-1)?.threadId ?? null
+}
+/** The messages of the chat on screen. */
+export function chatMessages(s: CompanionState): Msg[] {
+  const id = currentThread(s)
+  return s.messages.filter((m) => (m.threadId ?? null) === id)
+}
+/** Chats, most recent first. */
+export function chatList(s: CompanionState): Thread[] {
+  return [...threadsOf(s)].sort(
+    (a, b) => (b.lastAt ?? b.createdAt) - (a.lastAt ?? a.createdAt),
+  )
+}
+/** Start a new chat and open it. An open chat with nothing in it yet is
+ * reused rather than piling up empty ones. */
+export function newChat(): string {
+  const s = companionStore.get()
+  const cur = currentThread(s)
+  if (cur && !s.messages.some((m) => m.threadId === cur)) {
+    set((x) => ({ ...x, activeThread: cur }))
+    return cur
+  }
+  const t: Thread = {
+    id: uid(),
+    title: null,
+    lastAt: null,
+    createdAt: Date.now(),
+  }
+  set((x) => ({ ...x, threads: [...threadsOf(x), t], activeThread: t.id }))
+  return t.id
+}
+/** The chat a new message goes to (making one when there is none). */
+export function threadForSend(): string {
+  return currentThread(companionStore.get()) ?? newChat()
+}
+export const openChat = (id: string) => set((s) => ({ ...s, activeThread: id }))
+export const renameChat = (id: string, title: string) =>
+  set((s) => ({
+    ...s,
+    threads: threadsOf(s).map((t) =>
+      t.id === id ? { ...t, title: title.trim().slice(0, 80) || null } : t,
+    ),
+  }))
+/** A deleted chat takes its messages with it. */
+export const deleteChat = (id: string) =>
+  set((s) => ({
+    ...s,
+    threads: threadsOf(s).filter((t) => t.id !== id),
+    messages: s.messages.filter((m) => m.threadId !== id),
+    activeThread: s.activeThread === id ? null : s.activeThread,
+  }))
+/** The chat's title from its first message, as the server words it. */
+export function titleFrom(text: string): string {
+  const words = text.split(/\s+/).filter(Boolean).join(" ")
+  if (words.length <= 48) return words
+  return `${words.slice(0, 47).replace(/\s+\S*$/, "")}…`
+}
+/** A message lands in its chat: it stamps the chat's last activity and, on
+ * the first question, its title. */
+export function touchThread(id: string, m: Pick<Msg, "role" | "text">) {
+  set((s) => ({
+    ...s,
+    threads: threadsOf(s).map((t) =>
+      t.id === id
+        ? {
+            ...t,
+            lastAt: Date.now(),
+            title:
+              t.title ?? (m.role === "me" && m.text ? titleFrom(m.text) : null),
+          }
+        : t,
+    ),
+  }))
+}
 export function addMessage(m: Omit<Msg, "id" | "at">) {
-  const msg: Msg = { id: uid(), at: Date.now(), ...m }
+  const threadId = m.threadId ?? threadForSend()
+  const msg: Msg = { id: uid(), at: Date.now(), ...m, threadId }
   set((s) => ({ ...s, messages: [...s.messages, msg] }))
+  touchThread(threadId, msg)
   return msg
 }
 export function addTracker(t: Omit<Tracker, "id" | "createdAt">) {

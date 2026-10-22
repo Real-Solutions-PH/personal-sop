@@ -309,6 +309,42 @@ def test_remember_and_recall_as_tools(
     assert step["summary"] == "Recalled 1 thing about you"
 
 
+def test_recall_runs_once_a_turn(
+    client: TestClient,
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A model that keeps searching an empty memory (it did, until the turn
+    ran out of steps) gets the first answer back, one step line, a reply."""
+    api: Api = user(client, db)
+    api.assign("chat")
+    searches: list[str] = []
+    real = memory.recall
+
+    def counted(ctx: Any, query: str, **kw: Any) -> list[Memory]:
+        searches.append(query)
+        return real(ctx, query, **kw)
+
+    monkeypatch.setattr(memory, "recall", counted)
+    install(
+        monkeypatch,
+        say("", call("recall_memories", query="morning routine")),
+        say("", call("recall_memories", query="routine habits")),
+        say("", call("recall_memories", query="bed")),
+        say("Added it first in your morning routine."),
+    )
+    r = client.post(
+        "/api/v1/companion/ask/stream",
+        headers=api.h,
+        json={"text": "what's in my morning routine?"},
+    )
+    reply = parse_agui(r.text)[-1]["result"]["messages"][1]
+    steps = reply["blocks"][0]["items"]
+    assert searches == ["morning routine"]
+    assert [s["summary"] for s in steps] == ["Recalled 0 things about you"]
+    assert "morning routine" in reply["text"]
+
+
 def test_older_conversation_is_folded_into_a_summary(
     client: TestClient,
     db: Session,
@@ -316,7 +352,7 @@ def test_older_conversation_is_folded_into_a_summary(
 ) -> None:
     from datetime import timedelta
 
-    from app.modules.companion.models import CompanionMessage
+    from app.modules.companion.models import CompanionMessage, CompanionThread
 
     api: Api = user(client, db)
     api.assign("chat")
@@ -347,7 +383,9 @@ def test_older_conversation_is_folded_into_a_summary(
     assert "EARLIER CONVERSATION" in answer_system
     assert "planning a trip to Cebu" in answer_system
     with ctx_for(api.user) as ctx:  # type: ignore[attr-defined]
-        assert services.companion_row(ctx).summary_through is not None
+        # Each chat keeps its own summary; these turns all went to one.
+        [thread] = owned_repo.list_rows(ctx, CompanionThread)
+        assert thread.summary_through is not None
     # Nothing new to fold: the next turn makes no summary call.
     model = install(monkeypatch, say("Again."))
     client.post("/api/v1/companion/ask/stream", headers=api.h, json={"text": "hi"})

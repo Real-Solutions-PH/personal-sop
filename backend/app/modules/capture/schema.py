@@ -71,6 +71,9 @@ class TaskDraftIn(_P):
     due_date: date | None = None
     due_time: Annotated[str, Field(pattern=r"^([01]\d|2[0-3]):[0-5]\d$")] | None = None
     remind: bool = False
+    tags: list[Annotated[str, Field(max_length=40)]] = Field(
+        default_factory=list, max_length=8
+    )
 
 
 class TaskPayload(_P):

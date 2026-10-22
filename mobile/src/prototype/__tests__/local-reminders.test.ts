@@ -1,7 +1,9 @@
 // Reminders scheduled on the phone: future task reminders and habit
 // reminder slots, soonest first, capped for iOS, and a re-sync replaces
 // only this app's own notifications.
-import type { Habit } from "@domain/habits/data"
+
+import { fitStore } from "@domain/fitness/store"
+import type { Habit, Routine } from "@domain/habits/data"
 import { habitsStore } from "@domain/habits/store"
 import { configureStorage, resetAll } from "@domain/lib/store"
 import type { Task } from "@domain/tasks/data"
@@ -93,7 +95,11 @@ test("a sync replaces only this app's reminders, and needs permission", async ()
     ...s,
     tasks: [task("a", "2026-10-22T09:00:00+08:00")],
   }))
-  habitsStore.set((s) => ({ ...s, habits: [] }))
+  habitsStore.set((s) => ({ ...s, habits: [], routines: [] }))
+  fitStore.set((s) => ({
+    ...s,
+    settings: { ...s.settings, weighInReminder: "" },
+  }))
   const scheduled: string[] = []
   const cancelled: string[] = []
   let status = "denied"
@@ -118,4 +124,44 @@ test("a sync replaces only this app's reminders, and needs permission", async ()
   expect(await syncReminders(N, NOW)).toBe(1)
   expect(cancelled).toEqual(["task-old"])
   expect(scheduled).toEqual(["task-a"])
+})
+
+describe("routines and the weigh-in", () => {
+  const routine = (extra: Partial<Routine> = {}) =>
+    ({
+      id: "r1",
+      name: "Morning routine",
+      icon: "🌅",
+      reminder: true,
+      status: "active",
+      steps: [{ habitId: "h1", minutes: 5 }],
+      schedule: [{ days: [0, 6], time: "09:00" }],
+      ...extra,
+    }) as Routine
+
+  it("a routine with reminders on is reminded on its days", () => {
+    const plan = planReminders([], [], NOW, { routines: [routine()] })
+    expect(plan.map((p) => [p.id, "weekly" in p ? p.weekly : null])).toEqual([
+      ["routine-r1-0-09:00", { weekday: 1, hour: 9, minute: 0 }],
+      ["routine-r1-6-09:00", { weekday: 7, hour: 9, minute: 0 }],
+    ])
+    expect(plan[0].href).toBe("/habits/routines/r1")
+  })
+
+  it("leaves out routines with reminders off, archived or empty", () => {
+    const plan = planReminders([], [], NOW, {
+      routines: [
+        routine({ id: "off", reminder: false }),
+        routine({ id: "old", status: "archived" }),
+        routine({ id: "empty", steps: [] }),
+      ],
+    })
+    expect(plan).toEqual([])
+  })
+
+  it("the weigh-in time is a daily reminder; empty is off", () => {
+    const [p] = planReminders([], [], NOW, { weighIn: "06:30" })
+    expect(p).toMatchObject({ id: "weigh-in", daily: { hour: 6, minute: 30 } })
+    expect(planReminders([], [], NOW, { weighIn: "" })).toEqual([])
+  })
 })

@@ -8,7 +8,7 @@ import uuid
 from datetime import date, datetime
 from typing import Annotated, Literal
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StringConstraints
 
 from app.modules.tasks.models import LIST_COLORS, LIST_ICONS
 
@@ -134,6 +134,12 @@ class MoveListIn(BaseModel):
 # ---------------------------------------------------------------- tasks
 
 
+# Up to 8 labels of up to 24 characters (ops.clean_tags trims and dedupes).
+Tags = Annotated[
+    list[Annotated[str, StringConstraints(max_length=40)]], Field(max_length=20)
+]
+
+
 class TaskCreate(BaseModel):
     id: uuid.UUID | None = None
     title: str = Field(max_length=280)
@@ -145,6 +151,7 @@ class TaskCreate(BaseModel):
     recurrence: Recurrence | None = None
     notes: str | None = Field(default=None, max_length=4000)
     starred: bool = False
+    tags: Tags = Field(default_factory=list)
     source: TaskSource = "manual"
     parse_state: ParseState = "parsed"
 
@@ -161,6 +168,7 @@ class TaskUpdate(BaseModel):
     notes: str | None = Field(default=None, max_length=4000)
     list_id: uuid.UUID | None = None
     starred: bool | None = None
+    tags: Tags | None = None
     recurrence: Recurrence | None = None
     remind_at: Instant | None = None
     due_time: HM | None = None
@@ -179,6 +187,7 @@ class TaskSync(BaseModel):
     recurrence: Recurrence | None = None
     notes: str | None = Field(default=None, max_length=4000)
     starred: bool | None = None
+    tags: Tags | None = None
     cleared_at: Instant | None = None
     source: TaskSource | None = None
     parse_state: ParseState | None = None
@@ -236,6 +245,7 @@ class TaskPublic(BaseModel):
     recurrence: Recurrence | None
     notes: str | None
     starred: bool
+    tags: list[str] = []
     status: TaskStatus
     completed_at: datetime | None
     cleared_at: datetime | None

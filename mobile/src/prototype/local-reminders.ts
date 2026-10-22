@@ -4,7 +4,8 @@
 // Apple account, and fire offline. The plan is rebuilt whenever tasks or
 // habits change; iOS keeps at most 64 pending, so the soonest win.
 
-import type { Habit } from "@domain/habits/data"
+import { fitStore } from "@domain/fitness/store"
+import type { Habit, Routine } from "@domain/habits/data"
 import { habitsStore } from "@domain/habits/store"
 import type { Task } from "@domain/tasks/data"
 import { tasksStore } from "@domain/tasks/store"
@@ -29,10 +30,24 @@ export type Planned =
       /** iOS/Expo weekday: 1 = Sunday … 7 = Saturday. */
       weekly: { weekday: number; hour: number; minute: number }
     }
+  | {
+      id: string
+      title: string
+      body: string
+      href: string
+      daily: { hour: number; minute: number }
+    }
+
+/** Reminders beyond tasks and habits: routines with reminders on, and the
+ * daily weigh-in time from Fitness settings (empty = off). */
+export interface MoreReminders {
+  routines?: readonly Routine[]
+  weighIn?: string | null
+}
 
 /** iOS allows 64 pending notifications; leave room for the system's own. */
 export const MAX_PENDING = 60
-const OURS = /^(task|habit)-/
+const OURS = /^(task|habit|routine|weigh-in)/
 const HORIZON_DAYS = 30
 
 const hm = (t: string) => {
@@ -47,8 +62,33 @@ export function planReminders(
   tasks: readonly Task[],
   habits: readonly Habit[],
   now: Date,
+  more: MoreReminders = {},
 ): Planned[] {
   const habitPlans: Planned[] = []
+  const weighIn = more.weighIn ? hm(more.weighIn) : null
+  if (weighIn)
+    habitPlans.push({
+      id: "weigh-in",
+      title: "⚖️ Weigh-in",
+      body: "Before water or training. Tap to log it.",
+      href: "/fitness/body",
+      daily: weighIn,
+    })
+  for (const r of more.routines ?? []) {
+    if (!r.reminder || r.status !== "active" || !r.steps.length) continue
+    for (const slot of r.schedule) {
+      const time = slot.time ? hm(slot.time) : null
+      if (!time) continue
+      for (const day of slot.days)
+        habitPlans.push({
+          id: `routine-${r.id}-${day}-${slot.time}`,
+          title: `${r.icon} ${r.name}`,
+          body: `${r.steps.length} steps. Tap to start.`,
+          href: `/habits/routines/${r.id}`,
+          weekly: { weekday: day + 1, ...time },
+        })
+    }
+  }
   for (const h of habits) {
     if (!h.reminder || h.status !== "active") continue
     for (const slot of h.schedule) {
@@ -104,6 +144,10 @@ export async function syncReminders(
     tasksStore.get().tasks,
     habitsStore.get().habits,
     now,
+    {
+      routines: habitsStore.get().routines,
+      weighIn: fitStore.get().settings.weighInReminder,
+    },
   )
   for (const p of plan)
     await N.scheduleNotificationAsync({
@@ -112,12 +156,31 @@ export async function syncReminders(
       trigger:
         "at" in p
           ? { type: N.SchedulableTriggerInputTypes.DATE, date: p.at }
-          : {
-              type: N.SchedulableTriggerInputTypes.WEEKLY,
-              ...p.weekly,
-            },
+          : "daily" in p
+            ? { type: N.SchedulableTriggerInputTypes.DAILY, ...p.daily }
+            : {
+                type: N.SchedulableTriggerInputTypes.WEEKLY,
+                ...p.weekly,
+              },
     })
   return plan.length
+}
+
+/** A real notification a few seconds from now, to see reminders work. */
+export async function sendTestReminder(N: Notifications = load()) {
+  if (Platform.OS === "web") return false
+  const perm = await N.getPermissionsAsync()
+  if (perm.status !== "granted") return false
+  await N.scheduleNotificationAsync({
+    identifier: "test-reminder",
+    content: {
+      title: "Reminders work",
+      body: "This is what a reminder looks like.",
+      data: { href: "/tasks" },
+    },
+    trigger: { type: N.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 3 },
+  })
+  return true
 }
 
 let started = false
@@ -152,5 +215,6 @@ export function startReminders() {
   }
   tasksStore.subscribe(soon)
   habitsStore.subscribe(soon)
+  fitStore.subscribe(soon)
   soon()
 }

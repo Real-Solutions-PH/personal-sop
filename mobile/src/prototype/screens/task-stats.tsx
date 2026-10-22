@@ -96,11 +96,13 @@ export function TaskStats({ embedded = false }: { embedded?: boolean }) {
     color: string = t.text,
     delta?: number,
   ) => (
-    <View>
-      <Copy size={30} weight="displayMedium" style={{ color }}>
-        {label.startsWith("Done streak") && <Flame size={20} color={t.warn} />}{" "}
-        {value}
-      </Copy>
+    <View style={{ gap: 2 }}>
+      <Line style={{ gap: 6 }}>
+        {label.startsWith("Done streak") && <Flame size={20} color={t.warn} />}
+        <Copy size={30} weight="displayMedium" style={{ color }}>
+          {value}
+        </Copy>
+      </Line>
       <Copy size={12} muted>
         {label}
         {delta !== undefined && delta !== 0 && (
@@ -137,14 +139,14 @@ export function TaskStats({ embedded = false }: { embedded?: boolean }) {
       />
       <Frame style={{ padding: 16 }}>
         <Line style={{ gap: 16 }}>
-          <View style={{ flex: 1 }}>
+          <View style={{ flex: 1, gap: 8 }}>
             <Copy size={12} muted style={{ letterSpacing: 1 }}>
               FOLLOW-THROUGH RATIO
             </Copy>
             <Copy size={48} weight="display" style={{ color: t.tsk }}>
               {s.followThrough.toFixed(1)}
             </Copy>
-            <Copy size={12} muted style={{ marginTop: 4 }}>
+            <Copy size={12} muted>
               Tasks finished per task that slipped (late counts half)
             </Copy>
             <Copy size={11} muted style={{ marginTop: 2 }}>

@@ -83,7 +83,7 @@ test("outdoor advice picks the most important warning, else the best window", ()
     h >= 14 ? { pop: 70, code: 61, precip: 1 } : {},
   )
   expect(outdoorAdvice(rain, "c", morning).text).toBe(
-    "Rain likely after 2 PM — bring a jacket",
+    "Rain likely after 2 PM — bring an umbrella",
   )
   const hot = forecast((h) => (h >= 11 && h <= 15 ? { feels: 39, uv: 4 } : {}))
   expect(outdoorAdvice(hot, "c", morning).text).toBe(
@@ -111,7 +111,7 @@ test("after dark the planner looks at tomorrow's daylight", () => {
   expect(plan.label).toBe("Tomorrow")
   expect(plan.hours[0].hour.time).toBe("2026-10-05T06:00")
   expect(outdoorAdvice(f, "c", night).text).toBe(
-    "Tomorrow: Rain likely after 6 AM — bring a jacket",
+    "Tomorrow: Rain likely after 6 AM — bring an umbrella",
   )
 })
 

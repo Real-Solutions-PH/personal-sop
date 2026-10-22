@@ -211,6 +211,7 @@ RUN_STEPS: dict[str, Callable[..., RoutineRun]] = {
     "add_minute": svc.step_add_minute,
     "toggle_pause": svc.toggle_run_pause,
     "exit": svc.exit_routine,
+    "abandon": svc.abandon_run,
 }
 
 

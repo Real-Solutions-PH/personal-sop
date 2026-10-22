@@ -8,12 +8,13 @@ import {
   Check,
   Copy as CopyIcon,
   Inbox,
+  Plus,
   Repeat,
   Star,
   Trash2,
   X,
 } from "lucide-react-native"
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { ScrollView, TextInput, View } from "react-native"
 import { toast } from "sonner-native"
 import { border, Copy, Frame, IconTap, Line, Tap } from "../native-kit"
@@ -38,13 +39,143 @@ const SOURCE: Record<Task["source"], string> = {
   "capture-photo": "Captured from a photo",
   "capture-voice": "Captured by voice",
 }
+/** A text field edited as a local draft: typing never waits on the store,
+ * so a save echoing back through sync can't put deleted text back. The
+ * draft saves after a pause, on leaving the field and on leaving the page;
+ * a change from elsewhere shows only while the field isn't being edited. */
+function useDraft(value: string, save: (v: string) => void) {
+  const [draft, setDraft] = useState(value),
+    editing = useRef(false),
+    latest = useRef({ draft: value, save, dirty: false }),
+    timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  latest.current.save = save
+  const flush = () => {
+    if (timer.current) clearTimeout(timer.current)
+    timer.current = null
+    if (latest.current.dirty) {
+      latest.current.dirty = false
+      latest.current.save(latest.current.draft)
+    }
+  }
+  useEffect(() => {
+    if (!editing.current && !latest.current.dirty) {
+      setDraft(value)
+      latest.current.draft = value
+    }
+  }, [value])
+  // biome-ignore lint/correctness/useExhaustiveDependencies: flush on unmount only
+  useEffect(() => flush, [])
+  return {
+    value: draft,
+    onChangeText: (v: string) => {
+      setDraft(v)
+      latest.current = { ...latest.current, draft: v, dirty: true }
+      if (timer.current) clearTimeout(timer.current)
+      timer.current = setTimeout(flush, 600)
+    },
+    onFocus: () => {
+      editing.current = true
+    },
+    onBlur: () => {
+      editing.current = false
+      flush()
+    },
+  }
+}
+
+/** The task's tags: each removable, and a field to add one (Return adds it;
+ * a comma or space-separated list adds several). */
+function TagEditor({
+  tags,
+  onChange,
+}: {
+  tags: string[]
+  onChange: (tags: string[]) => void
+}) {
+  const t = useTheme()
+  const [adding, setAdding] = useState(false),
+    [text, setText] = useState("")
+  const add = () => {
+    const more = text.split(",").map((x) => x.trim())
+    if (more.some(Boolean)) onChange([...tags, ...more])
+    setText("")
+  }
+  const pill = {
+    height: 32,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 4,
+    backgroundColor: t.soft,
+  }
+  return (
+    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+      {tags.map((tag) => (
+        <Tap
+          key={tag}
+          label={`Remove tag ${tag}`}
+          onPress={() => onChange(tags.filter((x) => x !== tag))}
+          style={pill}
+        >
+          <Copy size={13} weight="medium" style={{ color: t.text }}>
+            #{tag}
+          </Copy>
+          <X size={14} color={t.muted} />
+        </Tap>
+      ))}
+      {adding ? (
+        <TextInput
+          accessibilityLabel="New tag"
+          autoFocus
+          value={text}
+          onChangeText={setText}
+          onSubmitEditing={add}
+          onBlur={() => {
+            add()
+            setAdding(false)
+          }}
+          submitBehavior="submit"
+          autoCapitalize="none"
+          returnKeyType="done"
+          placeholder="Tag"
+          placeholderTextColor={t.muted}
+          style={{
+            ...pill,
+            minWidth: 96,
+            fontFamily: fonts.medium,
+            fontSize: 13,
+            color: t.text,
+          }}
+        />
+      ) : (
+        tags.length < 8 && (
+          <Tap label="Add tag" onPress={() => setAdding(true)} style={pill}>
+            <Plus size={14} color={t.muted} />
+            <Copy size={13} muted>
+              {tags.length ? "Tag" : "Add tag"}
+            </Copy>
+          </Tap>
+        )
+      )}
+    </View>
+  )
+}
+
 export function TaskDetail({ id }: { id: string }) {
   const s = tasksStore.use((s) => s),
     t = useTheme(),
     task = s.tasks.find((x) => x.id === id),
     [when, setWhen] = useState(false),
     [repeat, setRepeat] = useState(false),
-    [confirmDel, setConfirmDel] = useState(false)
+    [confirmDel, setConfirmDel] = useState(false),
+    title = useDraft(task?.title ?? "", (v) => {
+      const next = v.replace(/\n/g, " ").trim()
+      if (next) A.updateTask(id, { title: next })
+    }),
+    notes = useDraft(task?.notes ?? "", (v) =>
+      A.updateTask(id, { notes: v || null }),
+    )
   if (!task)
     return (
       <Screen title="Task">
@@ -91,12 +222,10 @@ export function TaskDetail({ id }: { id: string }) {
         </Tap>
         <TextInput
           accessibilityLabel="Title"
-          value={task.title}
-          onChangeText={(title) =>
-            A.updateTask(id, { title: title.replace(/\n/g, " ") })
-          }
+          {...title}
+          // Grows with the title instead of scrolling inside one line.
           multiline
-          numberOfLines={1}
+          scrollEnabled={false}
           style={{
             flex: 1,
             minWidth: 0,
@@ -146,6 +275,10 @@ export function TaskDetail({ id }: { id: string }) {
           </Tap>
         </Line>
       )}
+      <TagEditor
+        tags={task.tags ?? []}
+        onChange={(tags) => A.updateTask(id, { tags: A.cleanTags(tags) })}
+      />
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -277,8 +410,7 @@ export function TaskDetail({ id }: { id: string }) {
       )}
       <TextInput
         accessibilityLabel="Notes"
-        value={task.notes ?? ""}
-        onChangeText={(notes) => A.updateTask(id, { notes: notes || null })}
+        {...notes}
         placeholder="Notes"
         placeholderTextColor={t.muted}
         multiline
