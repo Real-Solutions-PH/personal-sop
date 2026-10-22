@@ -47,6 +47,7 @@ import { ProfileAvatar } from "../profile-avatar"
 import { fonts, useTheme } from "../theme"
 import { Button, Field, Screen, Sheet } from "../ui"
 import { LockedPreview } from "./locked-preview"
+import { DayHero } from "./today"
 
 function Delta({
   value,
@@ -644,6 +645,11 @@ export function StatsHome() {
             </Line>
           </View>
         </Line>
+        {/* Today's progress across every area, moved here from Today, whose
+            top now shows the day's plan. */}
+        <View style={{ marginTop: 16 }}>
+          <DayHero />
+        </View>
         <LockedPreview
           locked={locked}
           title={`${target.logged}/3 logged days`}
