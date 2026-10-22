@@ -930,7 +930,9 @@ Never add up or subtract
 numbers yourself; a meal still waiting for their OK is not counted yet,
 so say so if one is. Never call the same tool
 twice with the same arguments. After acting, answer in one or two short
-sentences saying what you did.
+sentences saying what you did. Do every part of a
+many-part ask with its own tool call before replying; never end on "let
+me…" for an undone part. Answer the latest message, not earlier ones.
 
 Memory: ABOUT THEM below is always true for {user}: follow its answer style
 and constraints in every reply. Anything else you know about them (likes,
@@ -1085,6 +1087,33 @@ NUDGE = (
     "without saying anything was saved or is waiting. Earlier requests in "
     "this chat were already handled; do not repeat them."
 )
+# A reply that ends promising a change still to come ("let me add it to the
+# routine") after doing only part of what was asked: a reply ends the turn,
+# so the promise would never be kept.
+_PROMISES = re.compile(
+    r"\b(?:let me|i'?ll|i will|i'?m going to|next,? i'?ll)\s+(?:now\s+)?"
+    r"(?:add|set|put|move|create|update|log|change|make|schedule|rename|"
+    r"reorder|record|save|remove|delete)\b",
+    re.I,
+)
+
+
+def promised(answer: str) -> bool:
+    """A sentence that says a change is still to come; an offer asked as a
+    question ("shall I set it for tomorrow?") is not one."""
+    return any(
+        _PROMISES.search(sentence) and not sentence.rstrip().endswith("?")
+        for sentence in re.split(r"(?<=[.!?])\s+", answer)
+    )
+
+
+FINISH_NUDGE = (
+    "Your reply says you will still do something, but a reply ends the turn, "
+    'so it would never happen. Do the rest of my last message now: "{text}". '
+    "Call the tool for each part that is not done yet (a routine step is "
+    "added with update_routine), then say in one or two sentences what you "
+    "did. Do not redo what is already done this turn."
+)
 NOT_RECORDED = (
     "I didn't manage to record that, so nothing was saved. Try asking again "
     "in other words, or add it from its tab."
@@ -1238,16 +1267,52 @@ def _window_rows(ctx: Ctx) -> list[CompanionMessage]:
     )
 
 
+# Said in place of a reply that ended with no words and nothing done, so a
+# following "try again" points at the message before it.
+FAILED_REPLY = "(That reply failed before finishing; nothing from it was done.)"
+
+
+def _did(m: CompanionMessage) -> list[str]:
+    """What a reply did, from its steps block: the finished steps' sentences."""
+    for b in m.blocks or []:
+        if b.get("t") == "steps":
+            items = b.get("items")
+            if isinstance(items, list):
+                return [
+                    str(i["summary"])
+                    for i in items
+                    if isinstance(i, dict) and i.get("summary")
+                ]
+    return []
+
+
+def _with_done(text: str, steps: list[Any]) -> str:
+    """A reply with what this turn's tools already did, for the corrective
+    pass (it sees the reply's words, not its tool calls)."""
+    did = [s.summary for s in steps if getattr(s, "ok", False) and s.summary]
+    return f"{text}\n[Done this turn: {'; '.join(did)}]".strip() if did else text
+
+
 def _history(ctx: Ctx) -> list[BaseMessage]:
     rows = _window_rows(ctx)
     out: list[BaseMessage] = []
     for m in reversed(rows):
         # An earlier day's replies state that day's facts; sent along, the
         # model repeats them over TODAY's (yesterday's "1 of 2 done", today).
-        if not m.text or ctx.clock.day_of(m.created_at) != ctx.today:
+        if ctx.clock.day_of(m.created_at) != ctx.today:
             continue
-        text = m.text[:HISTORY_CHARS]
-        out.append(HumanMessage(text) if m.role == "me" else AIMessage(text))
+        if m.role == "me":
+            if m.text:
+                out.append(HumanMessage(m.text[:HISTORY_CHARS]))
+            continue
+        # A reply carries what it did as well as what it said: without its
+        # steps the model can't see a habit it already created, and re-asks
+        # or redoes the turn before (a meal confirmed twice).
+        did = _did(m)
+        text = (m.text or "")[:HISTORY_CHARS]
+        if did:
+            text = f"{text}\n[Done this turn: {'; '.join(did)}]".strip()
+        out.append(AIMessage(text or FAILED_REPLY))
     return out
 
 
@@ -1353,14 +1418,21 @@ def _ask_ai(
         hooks=stream,
     )
     answer = plain_text(reply)
-    if unbacked_claim(text, answer, stream.steps):
-        # One corrective pass, told plainly that nothing was saved.
+    unbacked = unbacked_claim(text, answer, stream.steps)
+    if unbacked or promised(answer):
+        # One corrective pass: told plainly that nothing was saved, or that
+        # part of the ask was only promised.
+        nudge = (NUDGE if unbacked else FINISH_NUDGE).format(text=text)
         stream.end_text()
         reply = capture.run_agent(
             ctx,
             resolved,
             system=system,
-            messages=[*turn, AIMessage(reply), HumanMessage(NUDGE.format(text=text))],
+            messages=[
+                *turn,
+                AIMessage(_with_done(reply, stream.steps)),
+                HumanMessage(nudge),
+            ],
             # The corrective pass may need a tool this turn's words missed.
             tools=every,
             on_text=lambda d: stream.text(_strip_marks(d)),
