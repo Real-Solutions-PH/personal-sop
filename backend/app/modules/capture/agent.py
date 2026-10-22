@@ -342,6 +342,16 @@ class AccountArgs(BaseModel):
     )
 
 
+class BalanceArgs(BaseModel):
+    account: Annotated[str, Field(min_length=1, max_length=60)] = Field(
+        description="The existing account, by its name as the user has it."
+    )
+    balance: Annotated[float, Field(ge=-MAX_MINOR / 100, le=MAX_MINOR / 100)] = Field(
+        description="What is in it now, in the user's currency. For a "
+        "credit card, what is owed, as a negative number."
+    )
+
+
 class BudgetArgs(BaseModel):
     name: Annotated[str, Field(min_length=1, max_length=60)]
     monthly_limit: Amount
@@ -844,7 +854,10 @@ def capture_tools(run: Run) -> list[BaseTool]:
             x.name.lower() == a.name.lower()
             for x in ports.finance.list_accounts(run.ctx)
         ):
-            return {"error": "an_account_with_that_name_exists"}
+            return {
+                "error": "an_account_with_that_name_exists",
+                "instead": "set_account_balance, to set its balance",
+            }
         if a.credit_limit is not None and a.type != "credit":
             return {"error": "only_a_credit_card_has_a_limit"}
         payload = {
@@ -859,6 +872,27 @@ def capture_tools(run: Run) -> list[BaseTool]:
             target="finance",
             rule="structure",
             payload={k: v for k, v in payload.items() if v is not None},
+        )
+        return _card(run, d, setup=True)
+
+    def set_account_balance(**kw: Any) -> dict[str, Any]:
+        a = BalanceArgs(**kw)
+        acc = ports.finance.find_account(run.ctx, a.account)
+        if acc is None:
+            return {
+                "error": "no_account_with_that_name",
+                "accounts": [x.name for x in ports.finance.list_accounts(run.ctx)],
+            }
+        d = RecordDraft(
+            kind="accountBalance",
+            target="finance",
+            rule="structure",
+            payload={
+                "kind": "accountBalance",
+                "account_id": str(acc.id),
+                "name": acc.name,
+                "balance_minor": _minor(a.balance),
+            },
         )
         return _card(run, d, setup=True)
 
@@ -1202,6 +1236,14 @@ def capture_tools(run: Run) -> list[BaseTool]:
             AccountArgs,
             "Add a money account (cash, bank, e-wallet, credit card, "
             "investment) with its balance today.",
+        ),
+        (
+            set_account_balance,
+            BalanceArgs,
+            "Set what an account the user already has holds now: its "
+            "starting or opening balance, or a corrected balance (e.g. 'Maya "
+            "has 5,000', 'set the initial balance of BPI'). For an account "
+            "that already exists; never create_account again for it.",
         ),
         (
             create_budget,

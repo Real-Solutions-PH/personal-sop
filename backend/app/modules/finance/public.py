@@ -505,6 +505,55 @@ def delete_account(ctx: Ctx, *, account_id: uuid.UUID) -> None:
         ctx.session.add(st)
 
 
+def account_has_records(ctx: Ctx, *, account_id: uuid.UUID) -> bool:
+    return bool(
+        owned_repo.count_rows(
+            ctx,
+            FinRecord,
+            or_(
+                col(FinRecord.account_id) == account_id,
+                col(FinRecord.to_account_id) == account_id,
+            ),
+        )
+    )
+
+
+def set_balance(
+    ctx: Ctx,
+    *,
+    account_id: uuid.UUID,
+    balance_minor: int,
+    record_id: uuid.UUID | None = None,
+) -> tuple[Literal["opening", "adjusted", "unchanged"], uuid.UUID | None]:
+    """Make an existing account show ``balance_minor`` today, from chat.
+
+    An account with no records yet gets it as its opening balance (what the
+    person means by "the initial balance"); one with records gets an
+    adjustment record for the difference, as the Accounts screen's
+    "Update balance" does, so its history stays true. Returns which, and the
+    adjustment's id. Flushes only."""
+    acc = services._account(ctx, account_id)
+    if not account_has_records(ctx, account_id=acc.id):
+        if acc.opening_minor == balance_minor:
+            return "unchanged", None
+        acc.opening_minor = balance_minor
+        ctx.session.add(acc)
+        ctx.session.flush()
+        services._dirty(ctx, ctx.today)
+        return "opening", None
+    rec = services._adjust(ctx, acc.id, balance_minor, None, record_id)
+    return ("adjusted", rec.id) if rec is not None else ("unchanged", None)
+
+
+def restore_opening(ctx: Ctx, *, account_id: uuid.UUID, opening_minor: int) -> None:
+    """Undo of ``set_balance``'s opening case: the earlier opening balance."""
+    acc = services._account(ctx, account_id)
+    acc.opening_minor = opening_minor
+    ctx.session.add(acc)
+    ctx.session.flush()
+    services._dirty(ctx, ctx.today)
+
+
 def create_budget(
     ctx: Ctx,
     *,

@@ -374,6 +374,32 @@ def _execute_setup(
             [str(acc.id)],
             note=f"Opening balance {money(opening, ctx.currency)}" if opening else None,
         )
+    if kind == "accountBalance":
+        acc_id = _uuid(p["account_id"], "account")
+        was = next(
+            (
+                a.opening_minor
+                for a in ports.finance.list_accounts(ctx)
+                if a.id == acc_id
+            ),
+            0,
+        )
+        balance = int(p["balance_minor"])
+        how, rec = ports.finance.set_balance(
+            ctx, account_id=acc_id, balance_minor=balance, record_id=rid(0)
+        )
+        shown = money(balance, ctx.currency)
+        if how == "adjusted":
+            return Result(
+                [str(rec)],
+                prior={"how": how},
+                note=f"Balance now {shown} (logged as an adjustment)",
+            )
+        return Result(
+            [str(acc_id)],
+            prior={"how": how, "was_opening_minor": was},
+            note=f"Opening balance {shown}" if how == "opening" else f"Already {shown}",
+        )
     if kind == "budgetCreate":
         b = ports.finance.create_budget(
             ctx,
@@ -503,6 +529,16 @@ def revert(ctx: Ctx, card: RecordCard) -> None:
     elif kind == "accountCreate":
         for r in refs:
             ports.finance.delete_account(ctx, account_id=r)
+    elif kind == "accountBalance":
+        how: dict[str, Any] = dict(card.prior or {})
+        if how.get("how") == "adjusted":
+            ports.finance.delete_records(ctx, record_ids=refs)
+        elif how.get("how") == "opening" and refs:
+            ports.finance.restore_opening(
+                ctx,
+                account_id=refs[0],
+                opening_minor=int(how.get("was_opening_minor") or 0),
+            )
     elif kind == "budgetCreate":
         for r in refs:
             ports.finance.delete_budget(ctx, budget_id=r)

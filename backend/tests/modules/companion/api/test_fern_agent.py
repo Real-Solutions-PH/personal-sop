@@ -671,6 +671,76 @@ def test_an_account_name_already_taken_is_refused(
     assert len(live(rows_of(api, Account))) == 3
 
 
+def balances(api: Api) -> dict[str, int]:
+    return {a["name"]: a["balance_minor"] for a in api.get("/finance/accounts")["data"]}
+
+
+def test_set_balance_on_a_fresh_account_sets_its_opening_and_undo_restores_it(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = user(client, db)  # GCash, BPI Savings, Cash: no records yet
+    api.assign("chat")
+    step = setup_step(
+        api,
+        client,
+        "add the initial balance of my gcash, 2500",
+        monkeypatch,
+        call("set_account_balance", account="gcash", balance=2500),
+    )
+    assert step["tool"] == "set_account_balance" and step["ok"]
+    assert step["state"] == "saved"
+    assert step["summary"] == "Balance: gcash · ₱2,500"
+    assert balances(api)["GCash"] == 250000
+    # The opening balance itself, not an adjustment: nothing in the history.
+    assert api.get("/finance/records")["count"] == 0
+
+    undo(api, step)
+    assert balances(api)["GCash"] == 0
+
+
+def test_set_balance_on_an_account_with_records_logs_an_adjustment(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = user(client, db)
+    api.assign("chat")
+    api.post(
+        "/finance/records",
+        {"type": "expense", "amount_minor": 30000, "account_id": api.bpi},  # type: ignore[attr-defined]
+    )
+    assert balances(api)["BPI Savings"] == -30000
+    step = setup_step(
+        api,
+        client,
+        "my bpi savings has 10,000 now",
+        monkeypatch,
+        call("set_account_balance", account="bpi savings", balance=10000),
+    )
+    assert step["ok"] and step["state"] == "saved"
+    assert balances(api)["BPI Savings"] == 1000000
+    # The past expense stays; the difference is one adjustment record.
+    assert api.get("/finance/records")["count"] == 2
+
+    undo(api, step)
+    assert balances(api)["BPI Savings"] == -30000
+    assert api.get("/finance/records")["count"] == 1
+
+
+def test_set_balance_names_the_accounts_when_none_matches(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = user(client, db)
+    api.assign("chat")
+    step = setup_step(
+        api,
+        client,
+        "set my maya balance to 800",
+        monkeypatch,
+        call("set_account_balance", account="maya", balance=800),
+    )
+    assert not step["ok"]
+    assert balances(api) == {"GCash": 0, "BPI Savings": 0, "Cash": 0}
+
+
 def test_create_routine_reuses_habits_makes_the_rest_and_undo_takes_back_its_own(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:

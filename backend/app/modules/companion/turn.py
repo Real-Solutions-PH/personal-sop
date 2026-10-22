@@ -53,6 +53,7 @@ RUNNING: dict[str, str] = {
     "log_habit": "Checking off a habit",
     "create_habit": "Creating a habit",
     "create_account": "Adding an account",
+    "set_account_balance": "Setting a balance",
     "create_budget": "Setting a budget",
     "create_routine": "Creating a routine",
     "create_workout_template": "Creating a workout template",
@@ -143,6 +144,13 @@ def outcome(ctx: Ctx, name: str, args: dict[str, Any], result: Any) -> tuple[boo
         bal = float(args.get("opening_balance") or 0)
         amt = f" · {money(round(bal * 100), ctx.currency)}" if bal else ""
         return True, f"Added account: {args.get('name', '')}{amt}{wait}"
+    if name == "set_account_balance":
+        bal = float(args.get("balance") or 0)
+        return (
+            True,
+            f"Balance: {args.get('account', '')} · "
+            f"{money(round(bal * 100), ctx.currency)}{wait}",
+        )
     if name == "create_budget":
         amount = args.get("monthly_limit")
         amt = money(round(float(amount) * 100), ctx.currency) if amount else ""
