@@ -4,35 +4,35 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 5.9% 10%;
+    --background: 48 21.7% 95.5%;
+    --foreground: 135 6.9% 11.4%;
+    --primary: 156.6 48.8% 23.7%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 51.4 17.1% 92%;
+    --secondary-foreground: 135 6.9% 11.4%;
+    --muted: 51.4 17.1% 92%;
+    --muted-foreground: 130 3.2% 37.3%;
+    --destructive: 5.5 58.6% 43.5%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 46.7 13.8% 87.3%;
+    --input: 85.7 3.1% 55.5%;
+    --ring: 156.6 48.8% 23.7%;
   }
 
   .dark:root {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
+    --background: 140 7.7% 7.6%;
+    --foreground: 50 13.6% 91.4%;
+    --primary: 143.4 35.8% 67.6%;
+    --primary-foreground: 140 7.7% 7.6%;
+    --secondary: 132 6.7% 14.7%;
+    --secondary-foreground: 50 13.6% 91.4%;
+    --muted: 132 6.7% 14.7%;
+    --muted-foreground: 110 3.3% 64.7%;
+    --destructive: 9.1 76.8% 72.9%;
+    --destructive-foreground: 140 7.7% 7.6%;
+    --border: 132 5.6% 17.5%;
+    --input: 130 2.8% 42.7%;
+    --ring: 143.4 35.8% 67.6%;
   }
 }
 
