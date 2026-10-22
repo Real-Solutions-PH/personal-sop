@@ -166,15 +166,19 @@ def execute(
         )
         return Result([str(r.id) for r in recs])
     if kind == "planned":
+        once = p.get("date")
         pl = ports.finance.add_planned(
             ctx,
             name=str(p["name"]),
             amount_minor=int(p["amount_minor"]),
-            day=ports.next_day_of_month(day, int(p.get("day") or day.day)),
+            day=date.fromisoformat(str(once))
+            if once
+            else ports.next_day_of_month(day, int(p.get("day") or day.day)),
             account_id=_opt_uuid(p.get("account_id"), "account"),
             category_id=_opt_uuid(p.get("category_id"), "category"),
+            type="income" if p.get("type") == "income" else "expense",
             planned_id=rid(0),
-            repeat="monthly",
+            repeat="once" if once else "monthly",
         )
         return Result(
             [str(pl.id)], note="Shows on your Plan calendar and in the projection."

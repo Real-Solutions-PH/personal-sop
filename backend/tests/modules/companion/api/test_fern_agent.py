@@ -1085,3 +1085,60 @@ def test_editing_a_routine_that_does_not_exist_names_the_ones_that_do(
     )
     assert not step["ok"]
     assert step["summary"] == "Couldn't finish: no routine with that name"
+
+
+def test_a_bill_with_a_due_date_is_planned_once_on_that_date(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.modules.finance.models import PlannedItem
+
+    api = user(client, db)
+    api.assign("chat")
+    install(
+        monkeypatch,
+        say(
+            "",
+            act(
+                "add_planned",
+                name="Shopee Pay Later - Nov",
+                amount=3544.18,
+                due_date="2026-12-05",
+            ),
+            act("add_planned", name="Netflix", amount=549, day_of_month=5),
+            act(
+                "add_planned",
+                name="Salary",
+                amount=40000,
+                day_of_month=15,
+                type="income",
+            ),
+        ),
+        say("Planned."),
+    )
+    events = stream(api, client, "plan my Shopee bill due Dec 5, netflix and salary")
+    steps = events[-1]["result"]["messages"][1]["blocks"][0]["items"]
+    for s in steps:
+        if s.get("state") == "proposed":
+            api.post(f"/capture/cards/{s['card_id']}/confirm")
+    rows = {p.name: p for p in live(rows_of(api, PlannedItem))}
+    bill = rows["Shopee Pay Later - Nov"]
+    assert bill.schedule == {"kind": "once", "date": "2026-12-05"}
+    assert (bill.amount_minor, bill.type) == (354418, "expense")
+    assert rows["Netflix"].schedule["kind"] == "monthly"
+    assert rows["Salary"].type == "income"
+
+
+def test_a_planned_payment_needs_a_date_or_a_day(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = user(client, db)
+    api.assign("chat")
+    step = setup_step(
+        api,
+        client,
+        "plan my rent",
+        monkeypatch,
+        act("add_planned", name="Rent", amount=15000),
+    )
+    assert not step["ok"]
+    assert step["summary"] == "Couldn't finish: give due date or day of month"

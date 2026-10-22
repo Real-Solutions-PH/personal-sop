@@ -114,7 +114,11 @@ export type Payload =
       kind: "planned"
       name: string
       amount: number
-      day: number
+      /** Monthly on this day of the month… */
+      day?: number
+      /** …or once, due on this date (YYYY-MM-DD). */
+      date?: string
+      type?: "expense" | "income"
       accountId: string
       categoryId?: string
     }

@@ -17,6 +17,7 @@ import re
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from datetime import date, timedelta
 from typing import Annotated, Any, Literal, TypedDict
 
 from langchain_core.messages import (
@@ -281,7 +282,20 @@ class TransferArgs(BaseModel):
 class PlannedArgs(BaseModel):
     name: Annotated[str, Field(min_length=1, max_length=120)]
     amount: Amount
-    day_of_month: Annotated[int, Field(ge=1, le=31)]
+    due_date: date | None = Field(
+        default=None,
+        description="YYYY-MM-DD for a ONE-TIME payment due on that date (a "
+        "bill, an instalment, a statement). Each instalment of a pay-later "
+        "plan is its own call with its own due date.",
+    )
+    day_of_month: Annotated[int, Field(ge=1, le=31)] | None = Field(
+        default=None,
+        description="Only for something that REPEATS every month on this day "
+        "(rent, a subscription). Never together with due_date.",
+    )
+    type: Literal["expense", "income"] = Field(
+        default="expense", description="income for expected money in (salary)."
+    )
     account: Opt = None
     category: Opt = None
 
@@ -844,11 +858,18 @@ def capture_tools(run: Run) -> list[BaseTool]:
 
     def add_planned(**kw: Any) -> dict[str, Any]:
         a = PlannedArgs(**kw)
+        if a.due_date is None and a.day_of_month is None:
+            return {"error": "give_due_date_or_day_of_month"}
+        if a.due_date is not None and a.due_date < run.ctx.today - timedelta(days=60):
+            return {"error": "due_date_is_long_past", "today": str(run.ctx.today)}
         payload = {
             "kind": "planned",
             "name": a.name,
             "amount_minor": _minor(a.amount),
-            "day": a.day_of_month,
+            "type": a.type if a.type != "expense" else None,
+            # One-time on its date, else monthly on its day.
+            "date": a.due_date.isoformat() if a.due_date else None,
+            "day": None if a.due_date else a.day_of_month,
             "account_id": _account_id(run, a.account, default=True),
             "category_id": _category_id(run, a.category, "expense"),
         }
@@ -1429,7 +1450,12 @@ def capture_tools(run: Run) -> list[BaseTool]:
             TransferArgs,
             "Log money moved between two of the user's accounts.",
         ),
-        (add_planned, PlannedArgs, "Add a monthly bill or planned payment."),
+        (
+            add_planned,
+            PlannedArgs,
+            "Add a planned payment or expected income: one-time on a due date "
+            "(a bill, an instalment) or monthly on a day (rent, a subscription).",
+        ),
         (
             create_tasks,
             TasksArgs,

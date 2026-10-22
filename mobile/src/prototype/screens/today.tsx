@@ -87,6 +87,12 @@ import { RecordEditor, useMoney } from "./finance"
 import { HabitLog } from "./habits"
 import { NutritionDay } from "./nutrition-day"
 import { TaskRow } from "./tasks"
+import {
+  FinanceStats,
+  FitnessStats,
+  HabitsStats,
+  TasksStats,
+} from "./today-stats"
 
 // Native counterparts of dash/today, day-hero and the module Today cards.
 // Keep composition and dimensions aligned with the deployed prototype.
@@ -498,6 +504,7 @@ export function HabitsCard() {
     .sort((a, b) => (a.w?.[0] ?? 0) - (b.w?.[0] ?? 0))[0]?.r
   return (
     <Group title="Habits" icon={Target} accent="hab" href="/habits">
+      <HabitsStats />
       {routines.map((r) => {
         const run = [...s.runs]
             .reverse()
@@ -678,6 +685,7 @@ function TasksCard() {
     dueNow = d.due.filter((task) => isDueNow(task)).length
   return (
     <Group title="Tasks" icon={CheckSquare} accent="tsk" href="/tasks">
+      <TasksStats />
       <Part style={{ paddingHorizontal: 12, paddingBottom: 8 }}>
         <Line style={{ gap: 8, paddingHorizontal: 4 }}>
           <Copy size={14} weight="medium">
@@ -852,6 +860,7 @@ function FitnessCards() {
   return (
     <>
       <Group title="Fitness" icon={Dumbbell} accent="fit" href="/fitness">
+        <FitnessStats />
         {active ? (
           <Part>
             <Tap onPress={() => go("/fitness/workout")}>
@@ -1050,6 +1059,7 @@ function FinanceCard() {
   return (
     <>
       <Group title="Finance" icon={Wallet} accent="fin" href="/finance">
+        <FinanceStats />
         <Part style={{ gap: 12 }}>
           <Line>
             <Tap

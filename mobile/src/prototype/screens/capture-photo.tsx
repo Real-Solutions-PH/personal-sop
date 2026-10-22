@@ -33,6 +33,25 @@ const hints = [
   { v: "statement", label: "Statement", I: FileText },
   { v: "whiteboard", label: "Gym board", I: Dumbbell },
 ] as const
+// Which meal a meal photo is, one tap instead of typing it. It travels as
+// the start of the caption ("Lunch: …"), which the server reads as the
+// meal's label; a midnight snack is logged as a snack.
+const MEALS = [
+  "Breakfast",
+  "Lunch",
+  "Dinner",
+  "Snack",
+  "Midnight snack",
+] as const
+type MealType = (typeof MEALS)[number]
+function mealForNow(d = new Date()): MealType {
+  const h = d.getHours()
+  if (h < 4 || h >= 22) return "Midnight snack"
+  if (h < 11) return "Breakfast"
+  if (h < 15) return "Lunch"
+  if (h < 18) return "Snack"
+  return "Dinner"
+}
 export function CapturePhoto({
   initialHint,
   onClose,
@@ -49,6 +68,7 @@ export function CapturePhoto({
         (initialHint === "expense" ? "receipt" : "auto"),
     ),
     [photos, setPhotos] = useState<string[]>([]),
+    [meal, setMeal] = useState<MealType>(mealForNow()),
     [caption, setCaption] = useState("")
   const add = (more: string[]) =>
     setPhotos((cur) => [...cur, ...more].slice(0, MAX_PHOTOS))
@@ -103,6 +123,44 @@ export function CapturePhoto({
             </Tap>
           ))}
         </ScrollView>
+        {hint === "meal" && (
+          <View style={{ gap: 6 }}>
+            <Copy size={12} muted>
+              Which meal?
+            </Copy>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 8 }}
+              style={{ flexGrow: 0 }}
+            >
+              {MEALS.map((m) => (
+                <Tap
+                  key={m}
+                  label={`${m}${meal === m ? ", selected" : ""}`}
+                  onPress={() => setMeal(m)}
+                  style={{
+                    height: 40,
+                    borderRadius: 20,
+                    paddingHorizontal: 14,
+                    borderWidth: 1,
+                    borderColor: meal === m ? t.nut : t.line,
+                    backgroundColor: meal === m ? `${t.nut}26` : "transparent",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Copy
+                    size={14}
+                    weight={meal === m ? "medium" : undefined}
+                    style={{ color: meal === m ? t.nut : t.text }}
+                  >
+                    {m}
+                  </Copy>
+                </Tap>
+              ))}
+            </ScrollView>
+          </View>
+        )}
         {photos.length > 0 && (
           <ScrollView
             horizontal
@@ -205,7 +263,10 @@ export function CapturePhoto({
               photo: photos[0],
               photos: photos.slice(1),
               hint,
-              text: caption,
+              text:
+                hint === "meal"
+                  ? `${meal}: ${caption}`.replace(/:\s*$/, "")
+                  : caption,
             })
             onClose()
             if (photos.length > 1) toast.success(`Sent ${photos.length} photos`)

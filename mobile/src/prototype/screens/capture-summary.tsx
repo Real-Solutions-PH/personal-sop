@@ -102,7 +102,10 @@ export function CaptureSummary({
             <Copy muted>{money(p.amount)}</Copy>
           </Line>
           <Copy size={12} muted>
-            Monthly on day {p.day} · {acct(p.accountId)}
+            {p.date
+              ? `Once, due ${new Date(`${p.date}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
+              : `Monthly on day ${p.day}`}
+            {p.type === "income" ? " · income" : ""} · {acct(p.accountId)}
           </Copy>
         </View>
       )

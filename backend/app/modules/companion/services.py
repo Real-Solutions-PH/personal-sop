@@ -789,7 +789,13 @@ be told to register or add them; listing them back is not recording them.
   otherwise leave both out (never default to today or 23:59). Set remind
   only when they ask to be reminded.
 - Finishing a task: `complete_task`. Money: `log_expense`, `log_income`,
-  `log_transfer`, `add_planned`. Money said in another currency ($20, 20
+  `log_transfer`, `add_planned`. Bills and pay-later plans (often in photos):
+  each bill with a due date is its own one-time `add_planned` with that
+  `due_date` (exact year from the photo); `day_of_month` only for something
+  that repeats monthly. A credit card screen: the card balance or
+  outstanding amount is what is owed (`set_account_balance` with it as a
+  negative number); the payment due is a one-time `add_planned` on its due
+  date, never the balance. Money said in another currency ($20, 20
   dollars, 15 USD): pass the number they said (20) with `currency` "USD".
   The app converts it at today's exchange rate; never convert it yourself
   and never guess a rate. Habits: `log_habit`, `create_habit`.

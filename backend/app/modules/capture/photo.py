@@ -208,6 +208,29 @@ def refine_meal(
 # ---------------------------------------------------------------- drafts
 
 
+_MEAL_LABEL = re.compile(
+    r"^\s*(breakfast|lunch|dinner|(?:midnight\s+)?snack|merienda|almusal|"
+    r"tanghalian|hapunan)\b",
+    re.I,
+)
+_LABELS = {
+    "almusal": "breakfast",
+    "tanghalian": "lunch",
+    "hapunan": "dinner",
+    "merienda": "snack",
+}
+
+
+def meal_label_of(text: str) -> str | None:
+    """The meal type the caption starts with ("Lunch: 2 pcs adobo", the
+    Snap it chip), as a meal label; a midnight snack is a snack."""
+    m = _MEAL_LABEL.match(text or "")
+    if m is None:
+        return None
+    word = m.group(1).lower()
+    return _LABELS.get(word, "snack" if "snack" in word else word)
+
+
 def _meal_draft(
     raw: str,
     items: list[dict[str, Any]],
@@ -241,6 +264,7 @@ def _meal_draft(
             "items": [{k: v for k, v in i.items() if v is not None} for i in items],
             "confidence": confidence,
             "from_photo": True,
+            **({"label": label} if (label := meal_label_of(raw)) else {}),
         },
     )
 
