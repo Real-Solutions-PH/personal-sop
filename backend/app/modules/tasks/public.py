@@ -12,7 +12,7 @@ from typing import Any, Literal
 from sqlmodel import col
 
 from app.modules.tasks import ops, repo
-from app.modules.tasks.models import Task
+from app.modules.tasks.models import Task, TaskList
 from app.shared import owned_repo
 from app.shared.context import Ctx
 
@@ -115,3 +115,25 @@ def list_keys(ctx: Ctx) -> dict[str, uuid.UUID]:
     """The capture router's list keys (``work``, ``job2``, ``life``,
     ``groceries``) mapped onto this user's non-archived lists."""
     return ops._list_keys(ctx)
+
+
+def create_list(
+    ctx: Ctx,
+    *,
+    name: str,
+    kind: Literal["standard", "shopping"] = "standard",
+    list_id: uuid.UUID | None = None,
+) -> TaskList:
+    """A new task list after the existing ones."""
+    return ops.create_list(ctx, {"name": name, "kind": kind}, list_id)
+
+
+def delete_list(ctx: Ctx, *, list_id: uuid.UUID) -> None:
+    """Delete a list; any tasks still in it move to the Inbox."""
+    ops.delete_list(ctx, repo.live_list(ctx, list_id), "inbox")
+
+
+def find_list(ctx: Ctx, name: str) -> TaskList | None:
+    """A live list with this name (case-insensitive)."""
+    n = name.strip().lower()
+    return next((x for x in repo.lists(ctx) if x.name.lower() == n), None)

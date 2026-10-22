@@ -227,6 +227,16 @@ def card_label(ctx: Ctx, card: RecordCard) -> str:
     if kind == "meal":
         names = [str(i.get("name", "")) for i in (p.get("items") or [])[:2]]
         return "meal: " + ", ".join(n for n in names if n)
+    setup = {
+        "habitCreate": "habit",
+        "accountCreate": "account",
+        "budgetCreate": "budget",
+        "routineCreate": "routine",
+        "templateCreate": "workout template",
+        "listCreate": "list",
+    }
+    if kind in setup:
+        return f"{setup[kind]}: {p.get('name', '')}"
     return kind.replace("_", " ")
 
 

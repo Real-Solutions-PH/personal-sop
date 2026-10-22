@@ -14,7 +14,13 @@ from app.modules.fitness import calc as C
 from app.modules.fitness import calc as calc
 from app.modules.fitness import foods as F
 from app.modules.fitness import repo, services
-from app.modules.fitness.models import Exercise, Meal, WeighIn, Workout
+from app.modules.fitness.models import (
+    Exercise,
+    Meal,
+    WeighIn,
+    Workout,
+    WorkoutTemplate,
+)
 from app.modules.media import public as media_public
 from app.modules.profile import public as profile_public
 from app.shared import owned_repo
@@ -236,3 +242,59 @@ def items_due_today(ctx: Ctx) -> list[tuple[str, bool]]:
     from app.modules.fitness.stats import items_due
 
     return items_due(repo.load_state(ctx), ctx.today)
+
+
+@dataclass(frozen=True)
+class TemplateItemDraft:
+    """One exercise of a template: its name, how many sets, and the reps a
+    new exercise is given as its rep range (an existing one keeps its own)."""
+
+    exercise: str
+    sets: int = 3
+    reps: int | None = None
+
+
+def exercise_named(ctx: Ctx, name: str) -> Exercise | None:
+    """A live exercise with this name (case-insensitive)."""
+    n = name.strip().lower()
+    return next(
+        (e for e in owned_repo.list_rows(ctx, Exercise) if e.name.lower() == n), None
+    )
+
+
+def create_template(
+    ctx: Ctx,
+    *,
+    name: str,
+    items: list[TemplateItemDraft],
+    template_id: uuid.UUID | None = None,
+) -> tuple[WorkoutTemplate, list[str]]:
+    """A workout template, creating any exercise it names that does not
+    exist yet. Returns the template and the names of the exercises made."""
+    made: list[str] = []
+    slots: list[tuple[uuid.UUID, int]] = []
+    for it in items:
+        ex = exercise_named(ctx, it.exercise)
+        if ex is None:
+            ex = services.find_or_create_exercise(ctx, it.exercise)
+            if it.reps:
+                ex.rep_min = ex.rep_max = it.reps
+                ctx.session.add(ex)
+            made.append(ex.name)
+        slots.append((ex.id, it.sets))
+    t = services._put_template(ctx, template_id or uuid.uuid4(), name, slots)
+    ctx.session.flush()
+    return t, made
+
+
+def delete_template(ctx: Ctx, *, template_id: uuid.UUID) -> None:
+    """Delete a template and its items (exercises stay in the library)."""
+    services._delete_template(ctx, template_id)
+
+
+def find_template(ctx: Ctx, name: str) -> WorkoutTemplate | None:
+    n = name.strip().lower()
+    return next(
+        (t for t in owned_repo.list_rows(ctx, WorkoutTemplate) if t.name.lower() == n),
+        None,
+    )

@@ -881,11 +881,15 @@ def save_as_template(
     return t
 
 
-def delete_template(*, ctx: Ctx, template_id: uuid.UUID) -> None:
+def _delete_template(ctx: Ctx, template_id: uuid.UUID) -> None:
     t = owned_repo.require(ctx, WorkoutTemplate, template_id, what="template")
     for it in repo.template_items(ctx, t.id):
         owned_repo.soft_delete(ctx, it)
     owned_repo.soft_delete(ctx, t)
+
+
+def delete_template(*, ctx: Ctx, template_id: uuid.UUID) -> None:
+    _delete_template(ctx, template_id)
     ctx.commit()
 
 

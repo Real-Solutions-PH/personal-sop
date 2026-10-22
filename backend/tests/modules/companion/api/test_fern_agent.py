@@ -587,3 +587,289 @@ def test_body_fat_with_no_weight_today_asks_for_the_weight(
     assert weigh_ins_of(api) == []
     results = [e for e in events if e.get("type") == "TOOL_CALL_RESULT"]
     assert results and '"ok": false' in results[0]["content"]
+
+
+# ---------------------------------------------------------------- setting up
+
+
+def rows_of(api: Api, model: Any) -> list[Any]:
+    """Every row of ``model`` the user owns, tombstones included."""
+    with Session(db_engine) as s:
+        return list(s.exec(select(model).where(model.owner_id == api.user.id)).all())  # type: ignore[attr-defined]
+
+
+def act(tool: str, /, **args: Any) -> dict[str, Any]:
+    """``call`` for a tool that itself takes a ``name`` argument."""
+    return {**call(tool), "args": args}
+
+
+def live(rows: list[Any]) -> list[Any]:
+    return [r for r in rows if r.deleted_at is None]
+
+
+def setup_step(
+    api: Api,
+    client: TestClient,
+    text: str,
+    monkeypatch: pytest.MonkeyPatch,
+    *calls: Any,
+) -> dict[str, Any]:
+    """One turn whose single tool call sets something up; returns its step."""
+    install(monkeypatch, say("", *calls), say("Done."))
+    events = stream(api, client, text)
+    return events[-1]["result"]["messages"][1]["blocks"][0]["items"][0]
+
+
+def undo(api: Api, step: dict[str, Any]) -> None:
+    out = api.post(f"/capture/cards/{step['card_id']}/undo")
+    assert out["state"] == "undone"
+
+
+def test_create_account_adds_the_account_and_undo_removes_it(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.modules.finance.models import Account
+
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    step = setup_step(
+        api,
+        client,
+        "add my BPI savings account, it has 5000 in it",
+        monkeypatch,
+        act("create_account", name="BPI Savings", type="bank", opening_balance=5000),
+    )
+    assert step["tool"] == "create_account" and step["ok"]
+    assert step["state"] == "saved"
+    assert step["summary"] == "Added account: BPI Savings · ₱5,000"
+    [acc] = live(rows_of(api, Account))
+    assert (acc.name, acc.type, acc.opening_minor) == ("BPI Savings", "bank", 500000)
+    # The first account becomes the default, as it does from the app.
+    assert api.get("/finance/settings")["default_account_id"] == str(acc.id)
+
+    undo(api, step)
+    assert live(rows_of(api, Account)) == []
+    assert api.get("/finance/settings")["default_account_id"] is None
+
+
+def test_an_account_name_already_taken_is_refused(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.modules.finance.models import Account
+
+    api = user(client, db)  # GCash, BPI Savings, Cash
+    api.assign("chat")
+    step = setup_step(
+        api,
+        client,
+        "add a gcash account",
+        monkeypatch,
+        act("create_account", name="gcash", type="ewallet"),
+    )
+    assert not step["ok"]
+    assert step["summary"] == "Couldn't finish: an account with that name exists"
+    assert len(live(rows_of(api, Account))) == 3
+
+
+def test_create_routine_reuses_habits_makes_the_rest_and_undo_takes_back_its_own(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.modules.habits.models import Habit, Routine, RoutineStep
+
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    meditate = api.post("/habits/", {"name": "Meditate"})
+    step = setup_step(
+        api,
+        client,
+        "make me a morning routine: stretch 5 min then meditate 10 min at 6am",
+        monkeypatch,
+        act(
+            "create_routine",
+            name="Morning",
+            icon="🌅",
+            steps=[
+                {"name": "Stretch", "minutes": 5},
+                {"name": "meditate", "minutes": 10},
+            ],
+            time="06:00",
+        ),
+    )
+    assert step["ok"] and step["state"] == "saved"
+    assert step["summary"] == "Created routine: Morning · 2 steps, 15 min"
+    [routine] = live(rows_of(api, Routine))
+    assert routine.name == "Morning" and routine.schedule[0]["time"] == "06:00"
+    steps = sorted(live(rows_of(api, RoutineStep)), key=lambda s: s.position)
+    habits = {h.id: h for h in live(rows_of(api, Habit))}
+    assert [(habits[s.habit_id].name, s.minutes) for s in steps] == [
+        ("Stretch", 5),
+        ("Meditate", 10),
+    ]
+    stretch = habits[steps[0].habit_id]
+    assert (stretch.type, stretch.target) == ("duration", 5)
+    assert str(steps[1].habit_id) == meditate["id"]
+
+    undo(api, step)
+    assert live(rows_of(api, Routine)) == []
+    assert live(rows_of(api, RoutineStep)) == []
+    # The habit it made goes; the one it reused stays.
+    assert [h.name for h in live(rows_of(api, Habit))] == ["Meditate"]
+
+
+def test_create_habit_takes_type_target_unit_and_days(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.modules.habits.models import Habit
+
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    step = setup_step(
+        api,
+        client,
+        "new habit: drink 8 glasses of water on weekdays",
+        monkeypatch,
+        act(
+            "create_habit",
+            name="Drink water",
+            icon="💧",
+            type="count",
+            target=8,
+            unit="glasses",
+            days=["mon", "tue", "wed", "thu", "fri"],
+        ),
+    )
+    # Created at once, not left waiting for a Confirm.
+    assert step["ok"] and step["state"] == "saved"
+    assert step["summary"] == "Created habit: Drink water"
+    [h] = live(rows_of(api, Habit))
+    assert (h.name, h.icon, h.type, h.target, h.unit) == (
+        "Drink water",
+        "💧",
+        "count",
+        8,
+        "glasses",
+    )
+    assert h.schedule[0]["days"] == [1, 2, 3, 4, 5]
+
+    undo(api, step)
+    assert live(rows_of(api, Habit)) == []
+
+
+def test_create_workout_template_makes_missing_exercises_and_undo_removes_it(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.modules.fitness.models import Exercise, TemplateItem, WorkoutTemplate
+
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    step = setup_step(
+        api,
+        client,
+        "set up a push day: bench press 4 sets of 6, cable fly 3 sets",
+        monkeypatch,
+        act(
+            "create_workout_template",
+            name="Push day",
+            exercises=[
+                {"exercise": "Bench Press", "sets": 4, "reps": 6},
+                {"exercise": "Cable Fly", "sets": 3},
+            ],
+        ),
+    )
+    assert step["ok"] and step["state"] == "saved"
+    assert step["summary"] == "Created workout template: Push day · 2 exercises"
+    # Fitness seeds starter templates; this one is added beside them.
+    [t] = [x for x in live(rows_of(api, WorkoutTemplate)) if x.name == "Push day"]
+    exercises = {e.id: e for e in live(rows_of(api, Exercise))}
+    items = sorted(
+        (i for i in live(rows_of(api, TemplateItem)) if i.template_id == t.id),
+        key=lambda i: i.position,
+    )
+    assert [(exercises[i.exercise_id].name, i.sets) for i in items] == [
+        ("Bench Press", 4),
+        ("Cable Fly", 3),
+    ]
+    bench = exercises[items[0].exercise_id]
+    assert (bench.rep_min, bench.rep_max) == (6, 6)
+
+    undo(api, step)
+    assert [x for x in live(rows_of(api, WorkoutTemplate)) if x.id == t.id] == []
+    assert [i for i in live(rows_of(api, TemplateItem)) if i.template_id == t.id] == []
+    # Exercises it added stay in the library.
+    assert "Bench Press" in {e.name for e in live(rows_of(api, Exercise))}
+
+
+def test_create_budget_covers_the_named_categories_and_undo_removes_it(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.modules.finance.models import Budget, BudgetCategory, Category
+
+    api = user(client, db)
+    api.assign("chat")
+    step = setup_step(
+        api,
+        client,
+        "budget 8000 a month for eating out",
+        monkeypatch,
+        act(
+            "create_budget", name="Eating out", monthly_limit=8000, categories=["food"]
+        ),
+    )
+    assert step["ok"] and step["state"] == "saved"
+    assert step["summary"] == "Budget: Eating out · ₱8,000 a month"
+    [b] = live(rows_of(api, Budget))
+    assert (b.name, b.limit_minor) == ("Eating out", 800000)
+    cats = {c.id: c for c in rows_of(api, Category)}
+    assert [cats[x.category_id].slug for x in live(rows_of(api, BudgetCategory))] == [
+        "food"
+    ]
+
+    undo(api, step)
+    assert live(rows_of(api, Budget)) == []
+    assert live(rows_of(api, BudgetCategory)) == []
+
+
+def test_a_budget_naming_an_unknown_category_creates_nothing(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.modules.finance.models import Budget
+
+    api = user(client, db)
+    api.assign("chat")
+    step = setup_step(
+        api,
+        client,
+        "budget 500 for zorblax",
+        monkeypatch,
+        act("create_budget", name="Zorb", monthly_limit=500, categories=["zorblax"]),
+    )
+    assert not step["ok"]
+    assert live(rows_of(api, Budget)) == []
+
+
+def test_create_task_list_with_items_and_undo_removes_both(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.modules.tasks.models import TaskList
+
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    step = setup_step(
+        api,
+        client,
+        "make a party shopping list: chips, soda",
+        monkeypatch,
+        act("create_task_list", name="Party", shopping=True, items=["Chips", "Soda"]),
+    )
+    assert step["ok"] and step["state"] == "saved"
+    assert step["summary"] == "Created list: Party · 2 items"
+    [lst] = [x for x in live(rows_of(api, TaskList)) if x.name == "Party"]
+    assert lst.kind == "shopping"
+    assert sorted((t.title, t.list_id) for t in live(tasks_of(api))) == [
+        ("Chips", lst.id),
+        ("Soda", lst.id),
+    ]
+
+    undo(api, step)
+    assert [x for x in live(rows_of(api, TaskList)) if x.name == "Party"] == []
+    assert live(tasks_of(api)) == []

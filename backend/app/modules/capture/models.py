@@ -35,6 +35,11 @@ RECORD_KINDS = (
     "journal",
     "photo",
     "command",
+    "accountCreate",
+    "budgetCreate",
+    "routineCreate",
+    "templateCreate",
+    "listCreate",
 )
 RULE_KEYS = (
     "habit",
