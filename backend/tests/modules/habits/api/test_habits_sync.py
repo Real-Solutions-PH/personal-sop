@@ -279,3 +279,60 @@ def test_habit_delete_via_sync_drops_logs(client: TestClient, db: Session) -> No
     assert tomb[log_id] is True
     _, other = signed_in(db)
     assert not [c for c in _pull(client, other) if c["entity"].startswith("habit")]
+
+
+def test_a_run_can_be_reset_and_started_over(client: TestClient, db: Session) -> None:
+    """Start over: today's run ends unfinished, the next start is a new run at
+    step one, and a habit its first step logged stays logged."""
+    _, h = signed_in(db)
+    bed, journal, rid = uuid.uuid4(), uuid.uuid4(), uuid.uuid4()
+    _push(
+        client,
+        h,
+        _op("upsert", "habit", bed, name="Fix the bed", type="check"),
+        _op("upsert", "habit", journal, name="Journal", type="check"),
+        _op("upsert", "routine", rid, name="Morning"),
+        *[
+            _op(
+                "upsert",
+                "routine_step",
+                uuid.uuid4(),
+                routine_id=str(rid),
+                habit_id=str(hid),
+                position=i,
+                minutes=5,
+            )
+            for i, hid in enumerate([bed, journal])
+        ],
+    )
+    first = uuid.uuid4()
+    _push(
+        client,
+        h,
+        _op("action", "habits.run.start", routine_id=str(rid), run_id=str(first)),
+        _op("action", "habits.run.done", run_id=str(first)),
+    )
+    reset = _push(client, h, _op("action", "habits.run.abandon", run_id=str(first)))
+    assert reset[0]["status"] == "applied", reset
+    assert reset[0]["result"]["run"]["state"] == "abandoned"
+    # Ended: a second reset, or a step on it, is refused.
+    again = _push(client, h, _op("action", "habits.run.abandon", run_id=str(first)))
+    assert again[0]["code"] == "run_not_in_progress"
+
+    second = uuid.uuid4()
+    start = _push(
+        client,
+        h,
+        _op("action", "habits.run.start", routine_id=str(rid), run_id=str(second)),
+    )[0]
+    assert start["status"] == "applied", start
+    assert (start["result"]["run"]["id"], start["result"]["run"]["current"]) == (
+        str(second),
+        0,
+    )
+    logs = [
+        c["row"]
+        for c in _pull(client, h)
+        if c["entity"] == "habit_log" and c["row"]["habit_id"] == str(bed)
+    ]
+    assert [x["status"] for x in logs] == ["done"]

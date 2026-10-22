@@ -14,12 +14,14 @@ import {
   Pencil,
   Play,
   Plus,
+  RotateCcw,
   Share2,
   Trash2,
   X,
 } from "lucide-react-native"
 import { useContext, useRef, useState } from "react"
 import { PanResponder, Pressable, View } from "react-native"
+import { toast } from "sonner-native"
 import {
   border,
   Copy,
@@ -253,6 +255,35 @@ export function RoutineDetail({ id }: { id: string }) {
               </Copy>
             </Line>
           </Pressable>
+        )}
+        {run?.state === "in_progress" && (
+          <Tap
+            label="Start over"
+            onPress={() =>
+              confirm(
+                "Start over?",
+                `Today's run ends at step ${run.current + 1} of ${run.steps.length}, and the next start begins at step 1. Steps you've done stay logged.`,
+                () => {
+                  A.resetRoutine(id)
+                  toast("Routine reset")
+                },
+                "Start over",
+              )
+            }
+            style={{
+              alignSelf: "center",
+              minHeight: 44,
+              paddingHorizontal: 16,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <RotateCcw size={16} color={t.muted} />
+            <Copy size={14} weight="medium" muted>
+              Start over
+            </Copy>
+          </Tap>
         )}
         <Frame style={{ padding: 16 }}>
           <Line>

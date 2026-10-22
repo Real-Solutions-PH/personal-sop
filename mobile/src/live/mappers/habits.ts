@@ -453,6 +453,9 @@ export function runActions(
   next: RunRow | undefined,
 ): ActionOp[] {
   if (!next) return [] // a removed run goes with its routine's delete
+  // Started over: the open run ends unfinished on the server too.
+  if (prev?.state === "in_progress" && next.state === "abandoned")
+    return [{ name: "habits.run.abandon", data: { run_id: next.id } }]
   const out = stepActions(prev, next)
   // Left the player mid-run: the server releases its Live bar. Back in the
   // player: a start of the open run takes it again.

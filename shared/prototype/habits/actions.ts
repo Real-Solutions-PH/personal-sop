@@ -507,6 +507,20 @@ export function toggleRunPause(run: RoutineRun) {
     pauseLive()
   }
 }
+/** Start over: today's run ends unfinished so the next start is at step
+ * one. Habits its steps already logged stay logged. There is no undo (the
+ * server can't reopen an ended run), so the screen asks first. */
+export function resetRoutine(routineId: string): RoutineRun | null {
+  const run = activeRun(routineId)
+  if (!run) return null
+  patchRun(run.id, {
+    state: "abandoned",
+    endedAt: nowIso(),
+    pausedAt: undefined,
+  })
+  if (liveStore.get().live?.kind === "routine") stopLive()
+  return run
+}
 export function exitRoutine() {
   if (liveStore.get().live?.kind === "routine") stopLive()
 }

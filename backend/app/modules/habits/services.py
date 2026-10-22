@@ -1154,6 +1154,16 @@ def toggle_run_pause(ctx: Ctx, *, run_id: uuid.UUID) -> RoutineRun:
     return run
 
 
+def abandon_run(ctx: Ctx, *, run_id: uuid.UUID) -> RoutineRun:
+    """Start over: today's run ends unfinished, so the next start begins at
+    step one. Habits its steps already logged stay logged (they were done)."""
+    run = _require_running(ctx, run_id)
+    _abandon(ctx, run)
+    profile.end_live(ctx, kind="routine", ref_id=run.routine_id)
+    ctx.commit()
+    return run
+
+
 def exit_routine(ctx: Ctx, *, run_id: uuid.UUID) -> RoutineRun:
     run = owned_repo.require(ctx, RoutineRun, run_id, what="routine_run")
     profile.end_live(ctx, kind="routine", ref_id=run.routine_id)
