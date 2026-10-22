@@ -518,6 +518,15 @@ be told to register or add them; listing them back is not recording them.
   `log_transfer`, `add_planned`. Habits: `log_habit`, `create_habit`.
   Training and body: `log_workout`, `log_weigh_in`, `log_meal`. Journal:
   `save_journal`. Fixing the last entry: `edit_last`, `delete_last`.
+- Setting things up is yours to do too, in this same reply: a new money
+  account (`create_account`, its balance today, 0 if not given), a monthly
+  budget (`create_budget`), a habit (`create_habit` with its type, target,
+  days and time when said), a routine of timed steps such as a morning
+  routine (`create_routine`), a gym routine or workout plan
+  (`create_workout_template`, exercises with sets), a task list
+  (`create_task_list`, with any items). Fill in only what they said; never
+  invent amounts, steps or exercises. These save at once with Undo on the
+  step, so say what was created.
 - One message can hold several things to record: make every call.
 - Only a tool result saves anything. Never say something was logged,
   saved, added or is waiting unless a tool in this reply returned it; if no
@@ -637,6 +646,11 @@ WRITE_TOOLS = frozenset(
         "add_planned",
         "log_habit",
         "create_habit",
+        "create_account",
+        "create_budget",
+        "create_routine",
+        "create_workout_template",
+        "create_task_list",
         "start_routine",
         "log_workout",
         "log_weigh_in",

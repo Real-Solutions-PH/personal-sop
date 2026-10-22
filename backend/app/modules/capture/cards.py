@@ -57,6 +57,11 @@ TARGET_OF = {
     "meal": "fitness",
     "photo": "fitness",
     "journal": "journal",
+    "accountCreate": "finance",
+    "budgetCreate": "finance",
+    "routineCreate": "habits",
+    "templateCreate": "fitness",
+    "listCreate": "tasks",
 }
 SAVE_FAILED = "Couldn't save — try again or edit."
 # Refusals a person can act on: the owning module's code and its message,

@@ -52,6 +52,11 @@ RUNNING: dict[str, str] = {
     "add_planned": "Adding a planned payment",
     "log_habit": "Checking off a habit",
     "create_habit": "Creating a habit",
+    "create_account": "Adding an account",
+    "create_budget": "Setting a budget",
+    "create_routine": "Creating a routine",
+    "create_workout_template": "Creating a workout template",
+    "create_task_list": "Creating a list",
     "start_routine": "Starting a routine",
     "log_workout": "Logging a workout",
     "log_weigh_in": "Logging your weight",
@@ -131,10 +136,37 @@ def outcome(ctx: Ctx, name: str, args: dict[str, Any], result: Any) -> tuple[boo
         }[name]
         label = args.get("category") or args.get("name") or args.get("payee") or ""
         return True, f"{what}: {amt}{f' · {label}' if label else ''}{wait}"
+    if name == "create_account":
+        bal = float(args.get("opening_balance") or 0)
+        amt = f" · {money(round(bal * 100), ctx.currency)}" if bal else ""
+        return True, f"Added account: {args.get('name', '')}{amt}{wait}"
+    if name == "create_budget":
+        amount = args.get("monthly_limit")
+        amt = money(round(float(amount) * 100), ctx.currency) if amount else ""
+        return True, f"Budget: {args.get('name', '')} · {amt} a month{wait}"
+    if name == "create_routine":
+        steps = args.get("steps") or []
+        mins = sum(int(s.get("minutes") or 0) for s in steps)
+        return (
+            True,
+            f"Created routine: {args.get('name', '')} · {len(steps)} steps, "
+            f"{mins} min{wait}",
+        )
+    if name == "create_workout_template":
+        n = len(args.get("exercises") or [])
+        return (
+            True,
+            f"Created workout template: {args.get('name', '')} · "
+            f"{n} exercise{'s' if n != 1 else ''}{wait}",
+        )
+    if name == "create_task_list":
+        n = len(args.get("items") or [])
+        items = f" · {n} item{'s' if n != 1 else ''}" if n else ""
+        return True, f"Created list: {args.get('name', '')}{items}{wait}"
     simple = {
         "complete_task": f"Marked done: {args.get('query', '')}",
         "log_habit": f"Checked off: {args.get('habit', '')}",
-        "create_habit": f"Created habit: {args.get('spec', '')}",
+        "create_habit": f"Created habit: {args.get('name') or args.get('spec', '')}",
         "start_routine": f"Started routine: {args.get('query', '')}",
         "log_workout": f"Logged workout: {args.get('name', '')}",
         "log_weigh_in": _weigh(args),

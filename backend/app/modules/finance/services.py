@@ -507,7 +507,7 @@ def record_public(ctx: Ctx, rec: FinRecord) -> S.RecordPublic:
 # ---------------------------------------------------------------------------
 
 
-def add_account(ctx: Ctx, *, data: S.AccountCreate) -> Account:
+def _add_account(ctx: Ctx, *, data: S.AccountCreate) -> Account:
     _settings(ctx)
     values = data.model_dump(exclude_unset=True, exclude={"id"})
     values.setdefault("opening_date", ctx.today)
@@ -520,6 +520,11 @@ def add_account(ctx: Ctx, *, data: S.AccountCreate) -> Account:
         st.default_account_id = acc.id
         ctx.session.add(st)
     _dirty(ctx, ctx.today)
+    return acc
+
+
+def add_account(ctx: Ctx, *, data: S.AccountCreate) -> Account:
+    acc = _add_account(ctx, data=data)
     ctx.commit()
     return acc
 
@@ -542,7 +547,7 @@ def update_account(
     return acc
 
 
-def delete_account(ctx: Ctx, *, account_id: uuid.UUID) -> None:
+def _delete_account(ctx: Ctx, account_id: uuid.UUID) -> None:
     """Only an account with no records can be deleted; archive the rest."""
     acc = _account(ctx, account_id)
     used = owned_repo.count_rows(
@@ -557,6 +562,10 @@ def delete_account(ctx: Ctx, *, account_id: uuid.UUID) -> None:
             "account_has_records", "This account has records — archive it instead"
         )
     owned_repo.soft_delete(ctx, acc)
+
+
+def delete_account(ctx: Ctx, *, account_id: uuid.UUID) -> None:
+    _delete_account(ctx, account_id)
     ctx.commit()
 
 
@@ -870,13 +879,18 @@ def _set_budget_categories(ctx: Ctx, budget: Budget, ids: list[uuid.UUID]) -> No
         )
 
 
-def add_budget(ctx: Ctx, *, data: S.BudgetCreate) -> Budget:
+def _add_budget(ctx: Ctx, *, data: S.BudgetCreate) -> Budget:
     repo.settings_row(ctx)
     values = data.model_dump(exclude_unset=True, exclude={"id", "category_ids"})
     values.setdefault("start_date", ctx.today)
     b, _ = owned_repo.upsert(ctx, Budget, data.id or uuid.uuid4(), values)
     _set_budget_categories(ctx, b, data.category_ids or [])
     _dirty(ctx, ctx.today)
+    return b
+
+
+def add_budget(ctx: Ctx, *, data: S.BudgetCreate) -> Budget:
+    b = _add_budget(ctx, data=data)
     ctx.commit()
     return b
 
@@ -897,7 +911,7 @@ def update_budget(ctx: Ctx, *, budget_id: uuid.UUID, data: S.BudgetFields) -> Bu
     return b
 
 
-def delete_budget(ctx: Ctx, *, budget_id: uuid.UUID) -> None:
+def _delete_budget(ctx: Ctx, budget_id: uuid.UUID) -> None:
     b = owned_repo.require(ctx, Budget, budget_id, what="budget")
     for link in owned_repo.list_rows(
         ctx, BudgetCategory, col(BudgetCategory.budget_id) == b.id
@@ -905,6 +919,10 @@ def delete_budget(ctx: Ctx, *, budget_id: uuid.UUID) -> None:
         owned_repo.soft_delete(ctx, link)
     owned_repo.soft_delete(ctx, b)
     _dirty(ctx, ctx.today)
+
+
+def delete_budget(ctx: Ctx, *, budget_id: uuid.UUID) -> None:
+    _delete_budget(ctx, budget_id)
     ctx.commit()
 
 

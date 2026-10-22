@@ -289,9 +289,107 @@ class HabitLogArgs(BaseModel):
     days_ago: DaysAgo = 0
 
 
+Weekday = Literal["sun", "mon", "tue", "wed", "thu", "fri", "sat"]
+WEEKDAYS: tuple[str, ...] = ("sun", "mon", "tue", "wed", "thu", "fri", "sat")
+Clock = Annotated[
+    str,
+    Field(
+        pattern=r"^([01]\d|2[0-3]):[0-5]\d$",
+        description="HH:MM, 24h. Only when the user named a time.",
+    ),
+]
+Days = list[Weekday] | None
+DAYS_DOC = "Days it is due; omit for every day."
+
+
 class HabitCreateArgs(BaseModel):
-    spec: Annotated[str, Field(min_length=1, max_length=200)] = Field(
-        description="The habit as the user said it, e.g. 'read 20 min every weekday 9pm'"
+    spec: Annotated[str, Field(min_length=1, max_length=200)] | None = Field(
+        default=None,
+        description="The habit as the user said it, e.g. 'read 20 min every weekday 9pm'",
+    )
+    name: Annotated[str, Field(min_length=1, max_length=80)] | None = None
+    icon: Annotated[str, Field(min_length=1, max_length=8)] | None = Field(
+        default=None, description="One emoji."
+    )
+    type: Literal["check", "duration", "count"] | None = Field(
+        default=None,
+        description="check (done or not), duration (minutes) or count (a number).",
+    )
+    target: Annotated[float, Field(gt=0, le=100000)] | None = Field(
+        default=None, description="Minutes for duration, the number for count."
+    )
+    unit: Annotated[str, Field(min_length=1, max_length=16)] | None = Field(
+        default=None, description="What a count counts: glasses, pages, reps."
+    )
+    days: Days = Field(default=None, description=DAYS_DOC)
+    time: Clock | None = None
+
+
+class AccountArgs(BaseModel):
+    name: Annotated[str, Field(min_length=1, max_length=60)]
+    type: Literal["cash", "bank", "ewallet", "credit", "investment"] = Field(
+        description="ewallet for GCash, Maya and the like; credit for a credit card."
+    )
+    opening_balance: Annotated[
+        float, Field(ge=-MAX_MINOR / 100, le=MAX_MINOR / 100)
+    ] = Field(
+        default=0,
+        description="What is in it today, in the user's currency. For a "
+        "credit card, what is owed, as a negative number. 0 when not given.",
+    )
+    credit_limit: Amount | None = Field(
+        default=None, description="Credit cards only, when the user gave it."
+    )
+
+
+class BudgetArgs(BaseModel):
+    name: Annotated[str, Field(min_length=1, max_length=60)]
+    monthly_limit: Amount
+    categories: list[Annotated[str, Field(min_length=1, max_length=60)]] = Field(
+        default_factory=list,
+        max_length=30,
+        description="Expense categories it covers, by name; empty covers all spending.",
+    )
+
+
+class StepArgs(BaseModel):
+    name: Annotated[str, Field(min_length=1, max_length=80)]
+    minutes: Annotated[int, Field(ge=1, le=600)]
+
+
+class RoutineArgs(BaseModel):
+    name: Annotated[str, Field(min_length=1, max_length=80)]
+    icon: Annotated[str, Field(min_length=1, max_length=8)] | None = Field(
+        default=None, description="One emoji."
+    )
+    steps: list[StepArgs] = Field(
+        min_length=1,
+        max_length=30,
+        description="In order. A step reuses the user's habit of that name, "
+        "or a new habit is made for it.",
+    )
+    days: Days = Field(default=None, description=DAYS_DOC)
+    time: Clock | None = None
+
+
+class TemplateExArgs(BaseModel):
+    exercise: Annotated[str, Field(min_length=1, max_length=80)]
+    sets: Annotated[int, Field(ge=1, le=20)] = 3
+    reps: Annotated[int, Field(ge=1, le=100)] | None = None
+
+
+class TemplateArgs(BaseModel):
+    name: Annotated[str, Field(min_length=1, max_length=80)]
+    exercises: list[TemplateExArgs] = Field(min_length=1, max_length=40)
+
+
+class ListArgs(BaseModel):
+    name: Annotated[str, Field(min_length=1, max_length=60)]
+    shopping: bool = Field(
+        default=False, description="True for a shopping or grocery list."
+    )
+    items: list[Annotated[str, Field(min_length=1, max_length=280)]] = Field(
+        default_factory=list, max_length=50, description="Items to put in it now."
     )
 
 
@@ -438,6 +536,23 @@ def _minor(amount: float) -> int:
     return round(amount * 100)
 
 
+def _habit_named(run: Run, name: str) -> Any:
+    """The user's active habit with exactly this name (any case)."""
+    return next(
+        (
+            h
+            for h in ports.habits.find_habits(run.ctx, name, limit=5)
+            if h.name.lower() == name.lower()
+        ),
+        None,
+    )
+
+
+def _days(days: Days) -> list[int] | None:
+    """Weekday names to the habits module's numbers (0 = Sunday)."""
+    return sorted({WEEKDAYS.index(d) for d in days}) if days else None
+
+
 def _offset(days_ago: int) -> int:
     return -days_ago
 
@@ -459,11 +574,19 @@ def _category_id(
     return str(c.id) if c else None
 
 
-def _card(run: Run, d: RecordDraft) -> dict[str, Any]:
+def _card(run: Run, d: RecordDraft, *, setup: bool = False) -> dict[str, Any]:
+    """Make the draft's card and save it when its tier allows.
+
+    ``setup`` is a request to set something up by name (a habit, an account,
+    a routine, a template, a budget, a list): the person asked for exactly
+    this, and its card has Undo, so it is saved now instead of waiting on the
+    "structure" rule's Confirm."""
     from app.modules.capture import engine
 
     cap = run.capture()
     card = C.new_card(run.ctx, cap, d, position=run.next_position())
+    if setup and card.tier == "confirm" and card.state == "proposed":
+        card.tier = "auto"
     if card.tier == "auto" and card.state == "proposed":
         C.save(run.ctx, card, cap, actor="ai")
     run.made.append(card.id)
@@ -685,7 +808,156 @@ def capture_tools(run: Run) -> list[BaseTool]:
         return _card(run, d)
 
     def create_habit(**kw: Any) -> dict[str, Any]:
-        return _card(run, habit_create_draft(HabitCreateArgs(**kw).spec))
+        a = HabitCreateArgs(**kw)
+        said = a.spec or a.name
+        if not said:
+            return {"error": "give_the_habit_a_name"}
+        d = habit_create_draft(said)
+        given = {
+            "name": a.name,
+            "icon": a.icon,
+            "type": a.type,
+            "target": a.target,
+            "unit": a.unit,
+            "days": _days(a.days),
+            "time": a.time,
+        }
+        d.payload.update({k: v for k, v in given.items() if v is not None})
+        if d.payload.get("type") == "check":
+            d.payload.pop("target", None)
+            d.payload.pop("unit", None)
+        elif not d.payload.get("target"):
+            return {"error": "duration_or_count_needs_a_target"}
+        if _habit_named(run, str(d.payload["name"])) is not None:
+            return {"error": "a_habit_with_that_name_exists"}
+        return _card(run, d, setup=True)
+
+    def create_account(**kw: Any) -> dict[str, Any]:
+        a = AccountArgs(**kw)
+        if any(
+            x.name.lower() == a.name.lower()
+            for x in ports.finance.list_accounts(run.ctx)
+        ):
+            return {"error": "an_account_with_that_name_exists"}
+        if a.credit_limit is not None and a.type != "credit":
+            return {"error": "only_a_credit_card_has_a_limit"}
+        payload = {
+            "kind": "accountCreate",
+            "name": a.name,
+            "type": a.type,
+            "opening_minor": _minor(a.opening_balance),
+            "limit_minor": _minor(a.credit_limit) if a.credit_limit else None,
+        }
+        d = RecordDraft(
+            kind="accountCreate",
+            target="finance",
+            rule="structure",
+            payload={k: v for k, v in payload.items() if v is not None},
+        )
+        return _card(run, d, setup=True)
+
+    def create_budget(**kw: Any) -> dict[str, Any]:
+        a = BudgetArgs(**kw)
+        if ports.finance.find_budget(run.ctx, a.name) is not None:
+            return {"error": "a_budget_with_that_name_exists"}
+        ids: list[str] = []
+        unknown: list[str] = []
+        for name in a.categories:
+            c = ports.finance.resolve_category(run.ctx, name, kind="expense")
+            if c is None:
+                unknown.append(name)
+            elif str(c.id) not in ids:
+                ids.append(str(c.id))
+        if unknown:
+            return {
+                "error": "unknown_category",
+                "unknown": unknown,
+                "categories": [
+                    c.name
+                    for c in ports.finance.list_categories(run.ctx)
+                    if c.kind == "expense" and not c.archived
+                ],
+            }
+        d = RecordDraft(
+            kind="budgetCreate",
+            target="finance",
+            rule="structure",
+            payload={
+                "kind": "budgetCreate",
+                "name": a.name,
+                "limit_minor": _minor(a.monthly_limit),
+                "category_ids": ids,
+                "categories": a.categories,
+            },
+        )
+        return _card(run, d, setup=True)
+
+    def create_routine(**kw: Any) -> dict[str, Any]:
+        a = RoutineArgs(**kw)
+        if any(
+            r.name.lower() == a.name.lower() and r.status == "active"
+            for r in w.routines
+        ):
+            return {"error": "a_routine_with_that_name_exists"}
+        steps: list[dict[str, Any]] = []
+        for st in a.steps:
+            hit = _habit_named(run, st.name)
+            steps.append(
+                {"name": st.name, "minutes": st.minutes}
+                | ({"habit_id": str(hit.id)} if hit else {})
+            )
+        payload = {
+            "kind": "routineCreate",
+            "name": a.name,
+            "icon": a.icon,
+            "steps": steps,
+            "days": _days(a.days),
+            "time": a.time,
+        }
+        d = RecordDraft(
+            kind="routineCreate",
+            target="habits",
+            rule="structure",
+            payload={k: v for k, v in payload.items() if v is not None},
+        )
+        out = _card(run, d, setup=True)
+        return {
+            **out,
+            "new_habits": [s["name"] for s in steps if "habit_id" not in s],
+        }
+
+    def create_workout_template(**kw: Any) -> dict[str, Any]:
+        a = TemplateArgs(**kw)
+        if ports.fitness.find_template(run.ctx, a.name) is not None:
+            return {"error": "a_template_with_that_name_exists"}
+        d = RecordDraft(
+            kind="templateCreate",
+            target="fitness",
+            rule="structure",
+            payload={
+                "kind": "templateCreate",
+                "name": a.name,
+                "exercises": [e.model_dump(exclude_none=True) for e in a.exercises],
+            },
+        )
+        return _card(run, d, setup=True)
+
+    def create_task_list(**kw: Any) -> dict[str, Any]:
+        a = ListArgs(**kw)
+        if ports.tasks.find_list(run.ctx, a.name) is not None:
+            return {"error": "a_list_with_that_name_exists"}
+        d = RecordDraft(
+            kind="listCreate",
+            target="tasks",
+            rule="structure",
+            payload={
+                "kind": "listCreate",
+                "name": a.name,
+                "list_kind": "shopping" if a.shopping else "standard",
+                "items": a.items,
+            },
+        )
+        return _card(run, d, setup=True)
 
     def start_routine(**kw: Any) -> dict[str, Any]:
         a = QueryArgs(**kw)
@@ -913,7 +1185,41 @@ def capture_tools(run: Run) -> list[BaseTool]:
             HabitLogArgs,
             "Check off a habit for a day (e.g. meditated 10 min).",
         ),
-        (create_habit, HabitCreateArgs, "Create a new habit the user asked for."),
+        (
+            create_habit,
+            HabitCreateArgs,
+            "Create a new habit the user asked for. Give name, type, target, "
+            "unit, days and time when they said them; spec alone also works.",
+        ),
+        (
+            create_account,
+            AccountArgs,
+            "Add a money account (cash, bank, e-wallet, credit card, "
+            "investment) with its balance today.",
+        ),
+        (
+            create_budget,
+            BudgetArgs,
+            "Set a monthly spending budget, for some expense categories or all.",
+        ),
+        (
+            create_routine,
+            RoutineArgs,
+            "Create a routine: an ordered set of timed steps, e.g. a morning "
+            "routine. Not for gym workouts.",
+        ),
+        (
+            create_workout_template,
+            TemplateArgs,
+            "Create a workout template (a gym routine or plan) of exercises "
+            "with sets; reps set a new exercise's rep range. Weights are not "
+            "kept on a template.",
+        ),
+        (
+            create_task_list,
+            ListArgs,
+            "Create a task list (e.g. Groceries), optionally with items in it.",
+        ),
         (start_routine, QueryArgs, "Start one of the user's routines."),
         (log_workout, WorkoutArgs, "Log a finished workout: strength sets or cardio."),
         (

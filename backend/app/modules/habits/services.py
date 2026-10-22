@@ -711,7 +711,7 @@ def restore_routine(ctx: Ctx, *, routine_id: uuid.UUID) -> Routine:
     return row
 
 
-def delete_routine(ctx: Ctx, *, routine_id: uuid.UUID) -> None:
+def _delete_routine(ctx: Ctx, routine_id: uuid.UUID) -> None:
     """Delete a routine, its steps and its runs. Its habits and their logs
     stay (F-HAB-23)."""
     row = require_routine(ctx, routine_id)
@@ -727,6 +727,10 @@ def delete_routine(ctx: Ctx, *, routine_id: uuid.UUID) -> None:
     profile.end_live(ctx, kind="routine", ref_id=routine_id)
     owned_repo.soft_delete(ctx, row)
     _dirty(ctx, ctx.today)
+
+
+def delete_routine(ctx: Ctx, *, routine_id: uuid.UUID) -> None:
+    _delete_routine(ctx, routine_id)
     ctx.commit()
 
 
