@@ -490,3 +490,9 @@ def recent_weigh_ins(ctx: Ctx, *, days: int = 30) -> list[WeighIn]:
         col(WeighIn.measured_at) >= ctx.now - timedelta(days=days),
         order_by=[col(WeighIn.measured_at).desc()],
     )
+
+
+# ------------------------------------------------- food library
+
+from app.modules.fitness import food_library as food_library  # noqa: E402
+from app.modules.fitness.food_library import FoodDraft as FoodDraft  # noqa: E402

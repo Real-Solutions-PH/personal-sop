@@ -269,3 +269,68 @@ class FitnessSettings(OwnedRow, table=True):
     goal_direction: str = Field(default="maintain", sa_type=String(8))  # type: ignore
     goal_weight: float | None = Field(default=None, sa_type=Float)
     setup_done: bool = False
+
+
+FOOD_BASES = ("100g", "piece", "serving")
+FOOD_STATES = ("raw", "cooked", "as_sold")
+FOOD_SOURCES = ("label", "brand", "philfct", "usda", "recipe", "said", "import")
+
+
+class FoodItem(OwnedRow, table=True):
+    """The person's own food library: one food's nutrition, as read from a
+    label, said by them, or imported. Meal logging scales these values to the
+    amount eaten before it falls back to an estimate, so the same food gives
+    the same numbers every time.
+
+    Values are per ``basis``: per 100 g, per piece or per serving
+    (``unit_grams`` is the piece or serving weight, when known). Sugar is
+    added sugar; sodium is in milligrams; every other amount is in grams."""
+
+    __tablename__ = "food_item"
+    __table_args__ = (
+        UniqueConstraint("owner_id", "key", name="uq_food_item_owner_key"),
+        enum_check("basis", FOOD_BASES, name="ck_food_item_basis"),
+        enum_check("source", FOOD_SOURCES, name="ck_food_item_source"),
+        CheckConstraint(
+            "state IS NULL OR state IN ('raw', 'cooked', 'as_sold')",
+            name="ck_food_item_state",
+        ),
+        CheckConstraint(
+            "kcal >= 0 AND protein >= 0 AND carbs >= 0 AND fat >= 0",
+            name="ck_food_item_nonneg",
+        ),
+        CheckConstraint(
+            "(fiber IS NULL OR fiber >= 0) AND (sat_fat IS NULL OR sat_fat >= 0)"
+            " AND (sugar IS NULL OR sugar >= 0) AND (sodium IS NULL OR sodium >= 0)",
+            name="ck_food_item_detail_nonneg",
+        ),
+        CheckConstraint(
+            "unit_grams IS NULL OR unit_grams > 0", name="ck_food_item_unit_grams"
+        ),
+    )
+
+    name: str = Field(max_length=160)
+    # The name folded for matching (lower case, plain words); one per owner.
+    key: str = Field(max_length=160)
+    # Other names it is called by ("sinangag", "garlic rice"), folded too.
+    aliases: list[str] = Field(default_factory=list, sa_type=JSONB)
+    basis: str = Field(default="100g", sa_type=String(8))  # type: ignore
+    unit_grams: float | None = Field(default=None, sa_type=Float)
+    state: str | None = Field(default=None, sa_type=String(8))  # type: ignore
+    kcal: float = Field(sa_type=Float)
+    protein: float = Field(default=0, sa_type=Float)
+    carbs: float = Field(default=0, sa_type=Float)
+    fat: float = Field(default=0, sa_type=Float)
+    fiber: float | None = Field(default=None, sa_type=Float)
+    sat_fat: float | None = Field(default=None, sa_type=Float)
+    sugar: float | None = Field(default=None, sa_type=Float)
+    sodium: float | None = Field(default=None, sa_type=Float)
+    source: str = Field(default="said", sa_type=String(8))  # type: ignore
+    source_url: str | None = Field(default=None, max_length=500)
+    # Where an imported row came from (a Notion page URL), so a re-import
+    # updates it instead of adding a second copy.
+    external_ref: str | None = Field(default=None, max_length=200)
+    notes: str | None = Field(default=None, max_length=500)
+    verified: bool = False
+    use_count: int = 0
+    last_used_at: datetime | None = Field(default=None, sa_type=tstz())  # type: ignore

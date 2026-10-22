@@ -302,3 +302,11 @@ def open_task_rows(ctx: Ctx) -> list[Any]:
 def calc_modules() -> tuple[Any, Any, Any]:
     """(finance calc, fitness calc, habits logic)."""
     return finance.calc, fitness.calc, habits.logic
+
+
+def library_items(
+    ctx: Ctx, items: list[dict[str, Any]]
+) -> tuple[list[dict[str, Any]], list[str]]:
+    """Meal items with nutrition from the person's food library where a
+    food matches (the library comes before any estimate)."""
+    return fitness.food_library.apply_library(ctx, items)

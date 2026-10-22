@@ -91,6 +91,8 @@ RUNNING: dict[str, str] = {
     "edit_task": "Changing a task",
     "find_fitness_logs": "Finding your logs",
     "remove_item": "Removing it",
+    "save_food": "Saving to your food library",
+    "find_foods": "Checking your food library",
     "confirm_pending": "Saving what was waiting",
     "discard_pending": "Dropping what was waiting",
 }
@@ -141,6 +143,9 @@ def outcome(ctx: Ctx, name: str, args: dict[str, Any], result: Any) -> tuple[boo
     if name == "list_scheduled":
         n = len(res.get("scheduled") or [])
         return True, f"Found {n} scheduled item{'s' if n != 1 else ''}"
+    if name == "find_foods":
+        n = len(res.get("foods") or [])
+        return True, f"Found {n} food{'s' if n != 1 else ''} in your library"
     if name == "find_fitness_logs":
         n = len(res.get("meals") or res.get("weigh_ins") or [])
         return True, f"Found {n} log{'s' if n != 1 else ''}"

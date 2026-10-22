@@ -100,10 +100,15 @@ class ReceiptOut(BaseModel):
 class LabelOut(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     serving: str = Field(default="1 serving", max_length=60)
+    serving_grams: float | None = Field(default=None, gt=0, le=5000)
     kcal: float = Field(ge=0, le=20000)
     protein: float = Field(default=0, ge=0, le=2000)
     carbs: float = Field(default=0, ge=0, le=2000)
     fat: float = Field(default=0, ge=0, le=2000)
+    fiber: float | None = Field(default=None, ge=0, le=2000)
+    sat_fat: float | None = Field(default=None, ge=0, le=2000)
+    sugar: float | None = Field(default=None, ge=0, le=2000)
+    sodium: float | None = Field(default=None, ge=0, le=100000)
     servings: float | None = Field(default=None, gt=0, le=100)
 
 
@@ -162,8 +167,12 @@ PROMPTS: dict[str, str] = {
         '"category" (a spending category word), "confidence": 0-1}'
     ),
     "label": (
-        'Read the nutrition label per serving: {"name", "serving", "kcal", "protein", '
-        '"carbs", "fat", "servings" (eaten, or null when not stated)}'
+        'Read the nutrition label per serving: {"name" (brand and product), '
+        '"serving" (as printed), "serving_grams" (the serving weight in grams, '
+        'or null), "kcal", "protein", "carbs", "fat", "fiber", "sat_fat", '
+        '"sugar" (added sugar when listed, else total), "sodium" (milligrams), '
+        '"servings" (eaten, or null when not stated)}. Copy the printed '
+        "numbers exactly; null for any the label does not show."
     ),
     "statement": (
         'List every transaction row: {"rows": [{"date": "YYYY-MM-DD", "time": "HH:MM", '
@@ -362,6 +371,31 @@ def _receipt_draft(ctx: Ctx, cap: Capture, world: World, r: ReceiptOut) -> Recor
     )
 
 
+def save_label_food(ctx: Ctx, lb: LabelOut) -> None:
+    """A label read from a photo goes into the person's food library, so the
+    next time they eat it the numbers are the label's, not a guess."""
+    ports.fitness.food_library.save_food(
+        ctx,
+        ports.fitness.FoodDraft(
+            name=lb.name,
+            kcal=lb.kcal,
+            protein=lb.protein,
+            carbs=lb.carbs,
+            fat=lb.fat,
+            fiber=lb.fiber,
+            sat_fat=lb.sat_fat,
+            sugar=lb.sugar,
+            sodium=lb.sodium,
+            basis="serving",
+            unit_grams=lb.serving_grams,
+            state="as_sold",
+            notes=f"Serving: {lb.serving}",
+            source="label",
+            verified=True,
+        ),
+    )
+
+
 def _label_draft(lb: LabelOut) -> RecordDraft:
     n = lb.servings or 1
     item = {
@@ -372,6 +406,17 @@ def _label_draft(lb: LabelOut) -> RecordDraft:
         "protein": lb.protein * n,
         "carbs": lb.carbs * n,
         "fat": lb.fat * n,
+        **{
+            k: v * n
+            for k, v in {
+                "fiber": lb.fiber,
+                "sat_fat": lb.sat_fat,
+                "sugar": lb.sugar,
+                "sodium": lb.sodium,
+            }.items()
+            if v is not None
+        },
+        "assumption": "From the label",
     }
     follow = (
         None
@@ -657,16 +702,22 @@ def _by_vision(
         m = _vision(ctx, env, "meal", caption, MealOut)
         if not m.items:
             return [unreadable(caption)]
+        items, used = ports.library_items(
+            ctx,
+            honour_grams([i.model_dump(exclude_none=True) for i in m.items], caption),
+        )
         return [
             _meal_draft(
                 caption,
-                honour_grams(
-                    [i.model_dump(exclude_none=True) for i in m.items], caption
-                ),
-                m.confidence,
+                items,
+                max(m.confidence, 0.9)
+                if used and len(used) == len(items)
+                else m.confidence,
                 m.follow_up.model_dump() if m.follow_up else None,
                 field="portion",
-                warn="Estimated from the photo — portions are a guess.",
+                warn=None
+                if used and len(used) == len(items)
+                else "Estimated from the photo — portions are a guess.",
             )
         ]
     if hint == "receipt":
@@ -676,7 +727,9 @@ def _by_vision(
             )
         ]
     if hint == "label":
-        return [_label_draft(_vision(ctx, env, "label", caption, LabelOut))]
+        lb = _vision(ctx, env, "label", caption, LabelOut)
+        save_label_food(ctx, lb)
+        return [_label_draft(lb)]
     if hint == "statement":
         st = _vision(ctx, env, "statement", caption, StatementOut)
         return [statement_handoff(ctx, cap, rows=st.rows, account_id=account_id)]
