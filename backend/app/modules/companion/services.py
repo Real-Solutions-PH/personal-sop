@@ -36,6 +36,7 @@ from app.modules.companion.schema import (
     TrackerIn,
 )
 from app.modules.companion.turn import NOTHING_WAITING, TurnStream
+from app.modules.fitness import public as fitness
 from app.modules.profile import public as profile
 from app.modules.stats import public as stats
 from app.shared import owned_repo
@@ -382,11 +383,72 @@ class SolRun:
     me_id: uuid.UUID
     emit: Emit
     blocks: list[dict[str, Any]] = field(default_factory=list)
+    # What the person said this turn (with any photo reading).
+    said: str = ""
 
     def block(self, b: dict[str, Any]) -> dict[str, Any]:
         self.blocks.append(b)
         self.emit("block", b)
         return {"shown": b["t"]}
+
+
+# Words a search may add to what the person said.
+SEARCH_WORDS = frozenset(
+    "nutrition nutritional calories calorie kcal macros macro protein carbs "
+    "fat fiber sugar sodium facts per serving piece cup grams g price".split()
+)
+
+
+def own_words(query: str, said: str) -> str:
+    """The search query kept to the person's own words plus a few search
+    words: seen live, "Classic Savory chicken" was searched as a "chicken
+    sandwich" the person never said. Falls back to the model's query when
+    the person's words share nothing with it."""
+    theirs = {w.lower() for w in re.findall(r"[\w'-]+", said)}
+    kept = [
+        w
+        for w in query.split()
+        if not re.fullmatch(r"[A-Za-z][\w'-]*", w)
+        or w.lower() in theirs
+        or w.lower() in SEARCH_WORDS
+    ]
+    return " ".join(kept) if len(kept) >= 2 else query
+
+
+def with_day_after(ctx: Ctx, tool: BaseTool) -> BaseTool:
+    """``log_meal`` that also returns the day's totals once this meal is in,
+    computed here, so the reply never adds numbers up itself. A meal waiting
+    for the user's OK is not in the records yet, so its items are added."""
+    inner = tool.func  # type: ignore[attr-defined]
+
+    def log_meal(**kw: Any) -> Any:
+        res = inner(**kw)
+        if not isinstance(res, dict) or res.get("error"):
+            return res
+        day = fitness.nutrition_today(ctx)
+        eaten = dict(day.get("eaten") or {})
+        waiting = res.get("state") in ("proposed", "needs_input")
+        items = kw.get("items") or []
+        if waiting and items:
+            for it in items:
+                for k in ("kcal", "protein", "carbs", "fat"):
+                    v = it.get(k) if isinstance(it, dict) else getattr(it, k, 0)
+                    eaten[k] = round(eaten.get(k, 0) + float(v or 0), 1)
+        out: dict[str, Any] = {"eaten_today_with_this_meal": eaten}
+        if "target" in day:
+            out["left_today"] = {
+                k: round(v - eaten.get(k, 0), 1) for k, v in day["target"].items()
+            }
+        if waiting and not items:
+            out["note"] = "this meal is not counted until they confirm it"
+        return {**res, "day_after_this_meal": out}
+
+    return StructuredTool.from_function(
+        func=log_meal,
+        name=tool.name,
+        description=tool.description,
+        args_schema=tool.args_schema,
+    )
 
 
 def sol_tools(run: SolRun) -> list[BaseTool]:
@@ -462,10 +524,17 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
             if body.get(k)
         }
 
+    def nutrition_status(**kw: Any) -> dict[str, Any]:
+        NoArgs(**kw)
+        # Fresh from the records, so a meal logged earlier in this turn
+        # counts; a meal waiting for the user's OK does not, yet.
+        return fitness.nutrition_today(ctx)
+
     def web_search(**kw: Any) -> dict[str, Any]:
         a = WebSearchArgs(**kw)
+        query = own_words(a.query, run.said)
         try:
-            return {"query": a.query, "results": web.search(a.query)}
+            return {"query": query, "results": web.search(query)}
         except web.WebSearchError as exc:
             return {"error": exc.code}
 
@@ -509,6 +578,14 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
         (show_memories, NoArgs, "Show what you remember about the user."),
         (suggest, ChipsArgs, "Offer up to four follow-up prompts as chips."),
         (lookup, LookupArgs, "Look up a number in the user's own data."),
+        (
+            nutrition_status,
+            NoArgs,
+            "Today's food against the macro target: eaten (calories, protein, "
+            "carbs, fat, fiber, saturated fat, sugar, sodium), target, what is "
+            "left, meals logged, latest weigh-in. Call it for any question "
+            "about macros, calories or what is left, and after logging a meal.",
+        ),
         (
             web_search,
             WebSearchArgs,
@@ -611,15 +688,21 @@ Show charts, insights, coaching, plans, trackers and memories with their
 tools instead of describing them; each returns what its card shows, so speak
 only to that. Use `lookup` for a number not in TODAY. When they name a food,
 dish, drink or product you don't know well (a restaurant or branded item,
-a local dish), call `web_search` first for that item alone, by its brand or
-restaurant name, for example "<restaurant> <dish> nutrition"; never add the
-rest of the meal to the query. Then call `log_meal` in the same turn: the
+a local dish), call `web_search` first for that item alone, in the user's
+own words plus "nutrition", for example "<restaurant> <dish> nutrition";
+never add words they didn't say (no "sandwich" for "chicken") and never add
+the rest of the meal to the query. Name `log_meal` items in their words too. Then call `log_meal` in the same turn: the
 searched item scaled to what they ate, and common foods (rice, eggs, bread)
 as their own items from standard values (1 cup cooked white rice is about
 205 kcal, 4 g protein, 45 g carbs). If the results have nothing for that
 exact item, use the closest match and say which. Mention the source in a few
 words. Never present a web number as
-the user's own data. Never call the same tool
+the user's own data.
+For macros, calories or "what's left today", call `nutrition_status` and
+answer from it in one or two sentences: eaten against the target, then
+what is left for protein and calories first. After `log_meal`, report the day from its `day_after_this_meal`. Never add up or subtract
+numbers yourself; a meal still waiting for their OK is not counted yet,
+so say so if one is. Never call the same tool
 twice with the same arguments. After acting, answer in one or two short
 sentences saying what you did.
 
@@ -848,6 +931,8 @@ def _ask_ai(
         emit=stream.frame,
         said="\n".join([*earlier[-3:], text]),
     )
+    run.said = text
+    writes = [with_day_after(ctx, t) if t.name == "log_meal" else t for t in writes]
     tools = [*sol_tools(run), *writes]
     turn = [*history, HumanMessage(text)]
     reply = capture.run_agent(

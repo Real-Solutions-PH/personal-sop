@@ -116,3 +116,66 @@ def test_a_promise_to_log_after_searching_gets_the_corrective_pass(
     assert len(model.seen) == 4
     starts = [e["toolCallName"] for e in events if e.get("type") == "TOOL_CALL_START"]
     assert starts == ["web_search", "log_meal"]
+
+
+def test_a_search_keeps_to_the_words_the_person_said() -> None:
+    from app.modules.companion.services import own_words
+
+    said = "had 1 piece Classic Savory chicken with 1 cup rice for lunch"
+    assert (
+        own_words("Classic Savory chicken sandwich nutrition", said)
+        == "Classic Savory chicken nutrition"
+    )
+    # Nothing in common: the model's query stands.
+    assert own_words("sinigang calories", "what's in that?") == "sinigang calories"
+
+
+def test_logging_a_meal_hands_back_the_day_with_it_counted(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Seen live: after logging, Fern added the day up itself and left out
+    the meal already eaten that morning."""
+    from app.modules.fitness import foods as F
+    from app.modules.fitness import services as S
+    from tests.utils.mobile import ctx_for
+
+    api = user(client, db)
+    api.assign("chat")
+    with ctx_for(api.user) as ctx:  # type: ignore[attr-defined]
+        S.set_macro_target(ctx=ctx, kcal=1950, protein=140, carbs=235, fat=50)
+        S.log_meal(
+            ctx=ctx, items=[F.ItemDraft("Breakfast", 1, "plate", 480, 42.6, 45, 14)]
+        )
+        ctx.commit()
+    model = install(
+        monkeypatch,
+        say(
+            "",
+            call(
+                "log_meal",
+                description="chicken and rice",
+                items=[
+                    {
+                        "name": "Chicken",
+                        "kcal": 350,
+                        "protein": 25,
+                        "carbs": 30,
+                        "fat": 15,
+                    },
+                    {
+                        "name": "Rice",
+                        "kcal": 205,
+                        "protein": 4,
+                        "carbs": 45,
+                        "fat": 0.5,
+                    },
+                ],
+                confidence=0.5,
+            ),
+        ),
+        say("Logged."),
+    )
+    ask(client, api, "had chicken and rice for lunch")
+    seen = str(model.seen[1])
+    # 480 already eaten + 555 for this (still waiting) meal = 1,035; 915 left.
+    assert '"kcal": 1035.0' in seen and '"kcal": 915.0' in seen
