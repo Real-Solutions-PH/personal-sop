@@ -256,6 +256,28 @@ test("the outbox and cursor survive a restart", async () => {
   expect(server.rows.get("a")).toMatchObject({ title: "Keep me" })
 })
 
+test("derived ids match the backend's uuid5", () => {
+  // Value computed by backend app.shared.ids.derived_id (same inputs).
+  expect(
+    derivedId(
+      "task-next",
+      "00000000-0000-4000-8000-000000000001",
+      "2026-10-19",
+    ),
+  ).toBe("39497adb-3065-5ba1-a834-a2e93ac30d5e")
+})
+
+test("sse parser handles split chunks, comments and multi-line data", () => {
+  const got: unknown[] = []
+  const feed = createSseParser((e) => got.push(e))
+  feed("retry: 3000\n\n: ping\n\nid: 1-0\nevent: chat.mes")
+  feed('sage\ndata: {"a":\ndata: 1}\n\nid: 2-0\ndata: plain\n\n')
+  expect(got).toEqual([
+    { id: "1-0", type: "chat.message", data: { a: 1 } },
+    { id: "2-0", type: "message", data: "plain" },
+  ])
+})
+
 test("act queues an action after the edit still in the debounce window", async () => {
   jest.useFakeTimers()
   try {
@@ -278,28 +300,6 @@ test("act queues an action after the edit still in the debounce window", async (
   } finally {
     jest.useRealTimers()
   }
-})
-
-test("derived ids match the backend's uuid5", () => {
-  // Value computed by backend app.shared.ids.derived_id (same inputs).
-  expect(
-    derivedId(
-      "task-next",
-      "00000000-0000-4000-8000-000000000001",
-      "2026-10-19",
-    ),
-  ).toBe("39497adb-3065-5ba1-a834-a2e93ac30d5e")
-})
-
-test("sse parser handles split chunks, comments and multi-line data", () => {
-  const got: unknown[] = []
-  const feed = createSseParser((e) => got.push(e))
-  feed("retry: 3000\n\n: ping\n\nid: 1-0\nevent: chat.mes")
-  feed('sage\ndata: {"a":\ndata: 1}\n\nid: 2-0\ndata: plain\n\n')
-  expect(got).toEqual([
-    { id: "1-0", type: "chat.message", data: { a: 1 } },
-    { id: "2-0", type: "message", data: "plain" },
-  ])
 })
 
 test("an edit captured while a sync is in flight is pushed right after it", async () => {
