@@ -268,11 +268,14 @@ export function SwipeSegments<T extends string>({
   value,
   options,
   onChange,
+  gap,
   children,
 }: {
   value: T
   options: readonly T[]
   onChange: (value: T) => void
+  /** Space between the page's children (they are stacked flush otherwise). */
+  gap?: number
   children: ReactNode
 }) {
   const reduced = useReducedMotion()
@@ -310,7 +313,7 @@ export function SwipeSegments<T extends string>({
   return (
     <GestureDetector gesture={pan}>
       <View collapsable={false}>
-        <Animated.View key={value} entering={entering}>
+        <Animated.View key={value} entering={entering} style={{ gap }}>
           {children}
         </Animated.View>
       </View>

@@ -80,6 +80,11 @@ export interface MealItemDraft {
   carbs: number
   fat: number
   assumption?: string
+  /** Optional detail: grams (sodium in milligrams); absent = unknown. */
+  fiber?: number
+  satFat?: number
+  sugar?: number
+  sodium?: number
 }
 export type Payload =
   | {
@@ -265,6 +270,8 @@ export interface Capture {
   text: string
   durationSec?: number
   photo?: string
+  /** More photos sent with ``photo`` as one capture. */
+  photos?: string[]
   hint?: string
   fileName?: string
   status: CaptureStatus

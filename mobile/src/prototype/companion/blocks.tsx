@@ -1112,6 +1112,9 @@ export function BlockView({ block }: { block: Block }) {
       return <Chips prompts={block.prompts} />
     case "steps":
       return <StepsBlock items={block.items} />
+    case "photos":
+      // Drawn with the person's own message (chat.tsx MyMessage).
+      return null
   }
 }
 export { addTracker }

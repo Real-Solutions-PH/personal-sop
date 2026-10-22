@@ -14,7 +14,6 @@ callers turn a failure into a stable error code.
 import asyncio
 import base64
 import json
-import math
 import re
 from typing import Any, TypeVar
 
@@ -28,13 +27,6 @@ from app.shared.context import Ctx
 
 M = TypeVar("M", bound=BaseModel)
 
-# Estimated price per 1,000 tokens in centavos: a blended rate between the
-# small and the large hosted models, so the monthly cap bites in the right
-# order of magnitude. ai_providers has no per-model price table yet.
-INPUT_CENTAVOS_PER_1K = 10
-OUTPUT_CENTAVOS_PER_1K = 50
-# A transcription minute, priced like Whisper (~$0.006 at P56/$).
-TRANSCRIBE_CENTAVOS_PER_MIN = 34
 AUDIO_MAX_BYTES = 25 * 1024 * 1024
 IMAGE_MAX_BYTES = 10 * 1024 * 1024
 
@@ -45,15 +37,6 @@ class SeamError(Exception):
     def __init__(self, code: str) -> None:
         super().__init__(code)
         self.code = code
-
-
-def estimate_cost(input_tokens: int, output_tokens: int) -> int:
-    if input_tokens <= 0 and output_tokens <= 0:
-        return 0
-    raw = (
-        input_tokens * INPUT_CENTAVOS_PER_1K + output_tokens * OUTPUT_CENTAVOS_PER_1K
-    ) / 1000
-    return max(1, math.ceil(raw))
 
 
 def usage_of(msg: BaseMessage) -> tuple[int, int]:
@@ -71,12 +54,80 @@ def meter(
         resolved,
         input_tokens=i,
         output_tokens=o,
-        cost_minor=estimate_cost(i, o),
+        cost_minor=ai.price_minor(resolved.model, i, o),
         ok=ok,
     )
 
 
+def ask_text(
+    ctx: Ctx,
+    resolved: ai.ResolvedModel,
+    *,
+    system: str,
+    text: str,
+    images: list[tuple[bytes, str]],
+) -> str:
+    """One metered call that answers in plain text, with ``images`` in the
+    same message."""
+    model = ai.build_chat_model(resolved)
+    content: list[str | dict[Any, Any]] = [{"type": "text", "text": text}]
+    for data, mime in images:
+        url = f"data:{mime};base64,{base64.b64encode(data).decode()}"
+        content.append({"type": "image_url", "image_url": {"url": url}})
+    msgs: list[BaseMessage] = [SystemMessage(system), HumanMessage(content=content)]
+    try:
+        out = model.invoke(msgs)
+    except Exception:  # noqa: BLE001 - provider failures become a stable code
+        meter(ctx, resolved, None, ok=False)
+        raise SeamError("model_unavailable") from None
+    meter(ctx, resolved, out if isinstance(out, AIMessage) else None)
+    return text_of(out).strip()
+
+
 # ---------------------------------------------------------------- voice
+
+# Deepgram's speak endpoint takes up to 2,000 characters per request.
+SPEAK_CHUNK = 1800
+
+
+def _chunks(text: str, size: int = SPEAK_CHUNK) -> list[str]:
+    """``text`` in pieces under ``size``, split after sentences when it can."""
+    out: list[str] = []
+    rest = text.strip()
+    while len(rest) > size:
+        cut = max(rest.rfind(p, 0, size) for p in (". ", "! ", "? ", "\n"))
+        cut = cut + 1 if cut > size // 2 else size
+        out.append(rest[:cut].strip())
+        rest = rest[cut:].strip()
+    if rest:
+        out.append(rest)
+    return out
+
+
+def speak(resolved: ai.ResolvedModel, text: str) -> bytes:
+    """Text to speech (Deepgram Aura), as MP3. Long text is spoken in
+    pieces whose MP3 frames play back to back."""
+    audio = b""
+    try:
+        with httpx.Client(
+            timeout=settings.AI_REQUEST_TIMEOUT_SECONDS, trust_env=False
+        ) as c:
+            for piece in _chunks(text):
+                r = c.post(
+                    f"{resolved.base_url.rstrip('/')}/speak",
+                    params={"model": resolved.model, "encoding": "mp3"},
+                    headers={
+                        "Authorization": f"Token {resolved.api_key.get_secret_value()}",
+                        "Content-Type": "application/json",
+                    },
+                    json={"text": piece},
+                )
+                if r.status_code != 200:
+                    raise SeamError("speech_failed")
+                audio += r.content
+    except httpx.HTTPError:
+        raise SeamError("speech_unreachable") from None
+    return audio
 
 
 def transcribe(
@@ -206,18 +257,22 @@ def ask_json(
     system: str,
     text: str,
     image: tuple[bytes, str] | None = None,
+    images: list[tuple[bytes, str]] | None = None,
 ) -> M:
-    """One metered call that must answer JSON matching ``schema``."""
+    """One metered call that must answer JSON matching ``schema``. The
+    images (``image`` or several in ``images``) go in the same message."""
     model = ai.build_chat_model(resolved)
     content: Any = text
-    if image is not None:
-        b64 = base64.b64encode(image[0]).decode()
-        content = [
-            {"type": "text", "text": text},
+    pics = images if images is not None else ([image] if image is not None else [])
+    if pics:
+        content = [{"type": "text", "text": text}] + [
             {
                 "type": "image_url",
-                "image_url": {"url": f"data:{image[1]};base64,{b64}"},
-            },
+                "image_url": {
+                    "url": f"data:{mime};base64,{base64.b64encode(data).decode()}"
+                },
+            }
+            for data, mime in pics
         ]
     msgs: list[BaseMessage] = [SystemMessage(system), HumanMessage(content=content)]
     try:

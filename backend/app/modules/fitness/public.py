@@ -6,7 +6,7 @@ None of these commit: the calling use case does (see ``app.shared.context``).
 import uuid
 from dataclasses import dataclass, field
 from datetime import date, datetime
-from typing import Literal
+from typing import Any, Literal
 
 from sqlmodel import col
 
@@ -14,7 +14,13 @@ from app.modules.fitness import calc as C
 from app.modules.fitness import calc as calc
 from app.modules.fitness import foods as F
 from app.modules.fitness import repo, services
-from app.modules.fitness.models import Exercise, Meal, WeighIn, Workout
+from app.modules.fitness.models import (
+    Exercise,
+    Meal,
+    WeighIn,
+    Workout,
+    WorkoutTemplate,
+)
 from app.modules.media import public as media_public
 from app.modules.profile import public as profile_public
 from app.shared import owned_repo
@@ -46,6 +52,10 @@ class MealItemDraft:
     carbs: float
     fat: float
     assumption: str | None = None
+    fiber: float | None = None
+    sat_fat: float | None = None
+    sugar: float | None = None
+    sodium: float | None = None
 
 
 @dataclass(frozen=True)
@@ -94,14 +104,28 @@ def log_weigh_in(
     *,
     kg: float,
     at: datetime | None = None,
+    body_fat_pct: float | None = None,
     weigh_in_id: uuid.UUID | None = None,
 ) -> WeighIn:
-    return services._weigh_in(ctx, kg=kg, at=at, weigh_in_id=weigh_in_id)
+    return services._weigh_in(
+        ctx, kg=kg, at=at, body_fat_pct=body_fat_pct, weigh_in_id=weigh_in_id
+    )
 
 
 def _item(d: MealItemDraft) -> F.ItemDraft:
     return F.ItemDraft(
-        d.name, d.qty, d.unit, d.kcal, d.protein, d.carbs, d.fat, d.assumption
+        d.name,
+        d.qty,
+        d.unit,
+        d.kcal,
+        d.protein,
+        d.carbs,
+        d.fat,
+        d.assumption,
+        fiber=d.fiber,
+        sat_fat=d.sat_fat,
+        sugar=d.sugar,
+        sodium=d.sodium,
     )
 
 
@@ -200,6 +224,95 @@ def latest_weight_kg(ctx: Ctx) -> float | None:
     return latest.weight_kg if latest else None
 
 
+def latest_weigh_in_day(ctx: Ctx) -> date | None:
+    """The business day of the most recent weigh-in."""
+    latest = repo.latest_weigh_in(ctx)
+    return ctx.clock.day_of(latest.measured_at) if latest else None
+
+
+# WHO guidance for a 2,000 kcal day, used where a target leaves a limit
+# unset: saturated fat and free sugars under 10% of energy, sodium under
+# 2,000 mg, and 25 g of fiber. The mobile app holds the same defaults.
+DEFAULT_LIMITS: dict[str, float] = {
+    "sat_fat_max_g": 20,
+    "sugar_max_g": 50,
+    "sodium_max_mg": 2000,
+    "fiber_g": 25,
+}
+
+
+def nutrition_today(ctx: Ctx) -> dict[str, Any]:
+    """Today's intake against the target, for the companion's facts:
+    eaten (macros plus fiber, saturated fat, sugar and sodium where the meals
+    carry them), the target in force, what is left, meals logged, and the
+    latest weigh-in. Meals still waiting for an estimate add nothing."""
+    from sqlmodel import col
+
+    day = ctx.today
+    start, end = ctx.clock.window(day, day)
+    meals = owned_repo.list_rows(
+        ctx,
+        Meal,
+        col(Meal.eaten_at) >= start,
+        col(Meal.eaten_at) < end,
+    )
+    counted = [m for m in meals if m.status != "pending_estimate"]
+    items = [it for m in counted for it in repo.meal_items(ctx, m.id)]
+
+    def total(key: str) -> float:
+        return round(sum(float(getattr(i, key) or 0) for i in items), 1)
+
+    def known(key: str) -> float | None:
+        vals = [getattr(i, key) for i in items if getattr(i, key) is not None]
+        return round(sum(vals), 1) if vals else None
+
+    eaten: dict[str, Any] = {
+        k: total(k) for k in ("kcal", "protein", "carbs", "fat")
+    } | {
+        k: v
+        for k, v in {
+            "fiber_g": known("fiber"),
+            "sat_fat_g": known("sat_fat"),
+            "sugar_g": known("sugar"),
+            "sodium_mg": known("sodium"),
+        }.items()
+        if v is not None
+    }
+    state = repo.load_state(ctx, meals=False)
+    t = C.target_for(state, day)
+    out: dict[str, Any] = {
+        "meals_logged": len(counted),
+        "meals_waiting_for_estimate": len(meals) - len(counted),
+        "eaten": eaten,
+    }
+    if t is not None:
+        target = {"kcal": t.kcal, "protein": t.protein, "carbs": t.carbs, "fat": t.fat}
+        out["left"] = {k: round(v - eaten[k], 1) for k, v in target.items()}
+        # Limits to stay under and the fiber goal: the user's own where set,
+        # else the WHO default.
+        out["target"] = target | {
+            k: v if v is not None else DEFAULT_LIMITS[k]
+            for k, v in {
+                "sat_fat_max_g": t.sat_fat_max_g,
+                "sugar_max_g": t.sugar_max_g,
+                "sodium_max_mg": t.sodium_max_mg,
+                "fiber_g": t.fiber_g,
+            }.items()
+        }
+    latest = repo.latest_weigh_in(ctx)
+    if latest is not None:
+        out["latest_weigh_in"] = {
+            "day": ctx.clock.day_of(latest.measured_at).isoformat(),
+            "kg": latest.weight_kg,
+            **(
+                {"body_fat_pct": latest.body_fat_pct}
+                if latest.body_fat_pct is not None
+                else {}
+            ),
+        }
+    return out
+
+
 def macros_left(ctx: Ctx, *, day: date) -> C.Macros | None:
     """The day's target minus what was eaten (pending estimates excluded);
     None when no target is set."""
@@ -227,3 +340,59 @@ def items_due_today(ctx: Ctx) -> list[tuple[str, bool]]:
     from app.modules.fitness.stats import items_due
 
     return items_due(repo.load_state(ctx), ctx.today)
+
+
+@dataclass(frozen=True)
+class TemplateItemDraft:
+    """One exercise of a template: its name, how many sets, and the reps a
+    new exercise is given as its rep range (an existing one keeps its own)."""
+
+    exercise: str
+    sets: int = 3
+    reps: int | None = None
+
+
+def exercise_named(ctx: Ctx, name: str) -> Exercise | None:
+    """A live exercise with this name (case-insensitive)."""
+    n = name.strip().lower()
+    return next(
+        (e for e in owned_repo.list_rows(ctx, Exercise) if e.name.lower() == n), None
+    )
+
+
+def create_template(
+    ctx: Ctx,
+    *,
+    name: str,
+    items: list[TemplateItemDraft],
+    template_id: uuid.UUID | None = None,
+) -> tuple[WorkoutTemplate, list[str]]:
+    """A workout template, creating any exercise it names that does not
+    exist yet. Returns the template and the names of the exercises made."""
+    made: list[str] = []
+    slots: list[tuple[uuid.UUID, int]] = []
+    for it in items:
+        ex = exercise_named(ctx, it.exercise)
+        if ex is None:
+            ex = services.find_or_create_exercise(ctx, it.exercise)
+            if it.reps:
+                ex.rep_min = ex.rep_max = it.reps
+                ctx.session.add(ex)
+            made.append(ex.name)
+        slots.append((ex.id, it.sets))
+    t = services._put_template(ctx, template_id or uuid.uuid4(), name, slots)
+    ctx.session.flush()
+    return t, made
+
+
+def delete_template(ctx: Ctx, *, template_id: uuid.UUID) -> None:
+    """Delete a template and its items (exercises stay in the library)."""
+    services._delete_template(ctx, template_id)
+
+
+def find_template(ctx: Ctx, name: str) -> WorkoutTemplate | None:
+    n = name.strip().lower()
+    return next(
+        (t for t in owned_repo.list_rows(ctx, WorkoutTemplate) if t.name.lower() == n),
+        None,
+    )

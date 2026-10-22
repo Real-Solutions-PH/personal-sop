@@ -138,6 +138,7 @@ class WorkoutPayload(_P):
 class WeighInPayload(_P):
     kind: Literal["weighIn"]
     kg: Annotated[float, Field(gt=0, le=500)]
+    body_fat_pct: Annotated[float | None, Field(gt=0, lt=100)] = None
     prev_kg: float | None = None
 
 
@@ -150,6 +151,11 @@ class MealItemIn(_P):
     carbs: Annotated[float, Field(ge=0, le=2000)]
     fat: Annotated[float, Field(ge=0, le=2000)]
     assumption: Annotated[str, Field(max_length=200)] | None = None
+    # Optional detail: grams; sodium in milligrams.
+    fiber: Annotated[float, Field(ge=0, le=2000)] | None = None
+    sat_fat: Annotated[float, Field(ge=0, le=2000)] | None = None
+    sugar: Annotated[float, Field(ge=0, le=2000)] | None = None
+    sodium: Annotated[float, Field(ge=0, le=100000)] | None = None
 
 
 class MealPayload(_P):
@@ -229,6 +235,8 @@ class CaptureIn(BaseModel):
     hint: Hint | Literal["journal", "expense", "task", "weigh-in"] | None = None
     file_name: Annotated[str, Field(max_length=255)] | None = None
     media_id: uuid.UUID | None = None
+    # More photos read together with ``media_id`` (one capture, one answer).
+    extra_media_ids: list[uuid.UUID] = Field(default_factory=list, max_length=9)
     # A statement file needs the account it belongs to (CAP-04).
     account_id: uuid.UUID | None = None
     # Store only; the device asks the server to process it later (CAP-14).

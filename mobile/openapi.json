@@ -14329,6 +14329,41 @@
         "security": [{ "HTTPBearer": [] }]
       }
     },
+    "/api/v1/companion/messages/{message_id}/speech": {
+      "post": {
+        "tags": ["companion"],
+        "summary": "Speak",
+        "description": "One of Fern's replies read aloud, as MP3 (Deepgram's voice).",
+        "operationId": "companion-speak",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "message_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Message Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "audio/mpeg": {} }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
     "/api/v1/companion/ask": {
       "post": {
         "tags": ["companion"],
@@ -23406,7 +23441,23 @@
           "kcal": { "type": "number", "title": "Kcal" },
           "protein": { "type": "number", "title": "Protein" },
           "carbs": { "type": "number", "title": "Carbs" },
-          "fat": { "type": "number", "title": "Fat" }
+          "fat": { "type": "number", "title": "Fat" },
+          "sat_fat_max_g": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Sat Fat Max G"
+          },
+          "sugar_max_g": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Sugar Max G"
+          },
+          "sodium_max_mg": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Sodium Max Mg"
+          },
+          "fiber_g": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Fiber G"
+          }
         },
         "type": "object",
         "required": [
@@ -23610,6 +23661,34 @@
               { "type": "null" }
             ],
             "title": "Assumption"
+          },
+          "fiber": {
+            "anyOf": [
+              { "type": "number", "maximum": 2000.0, "minimum": 0.0 },
+              { "type": "null" }
+            ],
+            "title": "Fiber"
+          },
+          "sat_fat": {
+            "anyOf": [
+              { "type": "number", "maximum": 2000.0, "minimum": 0.0 },
+              { "type": "null" }
+            ],
+            "title": "Sat Fat"
+          },
+          "sugar": {
+            "anyOf": [
+              { "type": "number", "maximum": 2000.0, "minimum": 0.0 },
+              { "type": "null" }
+            ],
+            "title": "Sugar"
+          },
+          "sodium": {
+            "anyOf": [
+              { "type": "number", "maximum": 100000.0, "minimum": 0.0 },
+              { "type": "null" }
+            ],
+            "title": "Sodium"
           }
         },
         "additionalProperties": false,
@@ -23638,6 +23717,22 @@
           "assumption": {
             "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Assumption"
+          },
+          "fiber": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Fiber"
+          },
+          "sat_fat": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Sat Fat"
+          },
+          "sugar": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Sugar"
+          },
+          "sodium": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Sodium"
           }
         },
         "type": "object",
@@ -28940,6 +29035,34 @@
             "maximum": 100000.0,
             "minimum": 0.0,
             "title": "Fat"
+          },
+          "sat_fat_max_g": {
+            "anyOf": [
+              { "type": "number", "maximum": 100000.0, "minimum": 0.0 },
+              { "type": "null" }
+            ],
+            "title": "Sat Fat Max G"
+          },
+          "sugar_max_g": {
+            "anyOf": [
+              { "type": "number", "maximum": 100000.0, "minimum": 0.0 },
+              { "type": "null" }
+            ],
+            "title": "Sugar Max G"
+          },
+          "sodium_max_mg": {
+            "anyOf": [
+              { "type": "number", "maximum": 100000.0, "minimum": 0.0 },
+              { "type": "null" }
+            ],
+            "title": "Sodium Max Mg"
+          },
+          "fiber_g": {
+            "anyOf": [
+              { "type": "number", "maximum": 100000.0, "minimum": 0.0 },
+              { "type": "null" }
+            ],
+            "title": "Fiber G"
           }
         },
         "type": "object",
@@ -30667,6 +30790,17 @@
             "exclusiveMinimum": 0.0,
             "title": "Kg"
           },
+          "body_fat_pct": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMaximum": 100.0,
+                "exclusiveMinimum": 0.0
+              },
+              { "type": "null" }
+            ],
+            "title": "Body Fat Pct"
+          },
           "prev_kg": {
             "anyOf": [{ "type": "number" }, { "type": "null" }],
             "title": "Prev Kg"
@@ -31344,6 +31478,12 @@
             ],
             "title": "Media Id"
           },
+          "extra_media_ids": {
+            "items": { "type": "string", "format": "uuid" },
+            "type": "array",
+            "maxItems": 9,
+            "title": "Extra Media Ids"
+          },
           "account_id": {
             "anyOf": [
               { "type": "string", "format": "uuid" },
@@ -31367,8 +31507,8 @@
           "text": {
             "type": "string",
             "maxLength": 4000,
-            "minLength": 1,
-            "title": "Text"
+            "title": "Text",
+            "default": ""
           },
           "id": {
             "anyOf": [
@@ -31383,10 +31523,15 @@
               { "type": "null" }
             ],
             "title": "Hint"
+          },
+          "media_ids": {
+            "items": { "type": "string", "format": "uuid" },
+            "type": "array",
+            "maxItems": 10,
+            "title": "Media Ids"
           }
         },
         "type": "object",
-        "required": ["text"],
         "title": "AskIn"
       },
       "app__modules__companion__schema__MessagePublic": {

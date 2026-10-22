@@ -18,9 +18,10 @@ those two and route there; the order is check_budget -> resolve_model ->
 build_chat_model -> record_usage.
 """
 
+import math
 import uuid
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime
 from typing import Literal
 
@@ -86,7 +87,7 @@ def build_chat_model(resolved: ResolvedModel) -> BaseChatModel:
     return model_factory(resolved)
 
 
-def resolve_model(ctx: Ctx, purpose: Purpose) -> ResolvedModel | None:
+def _assignment(ctx: Ctx, purpose: Purpose) -> ResolvedModel | None:
     row = ctx.session.exec(
         select(AIModelAssignment, AIProviderCredential)
         .join(
@@ -119,6 +120,38 @@ def resolve_model(ctx: Ctx, purpose: Purpose) -> ResolvedModel | None:
             supports_vision=assignment.supports_vision,
             source="user",
         )
+    return None
+
+
+def _vision_on_same_provider(ctx: Ctx) -> ResolvedModel | None:
+    """Photos for a user who set up chat or capture on their own key but no
+    vision model: their own model when it can see, else a known vision model
+    on the same provider and key (Nebius: the catalogue's vision default).
+    None when neither applies, and the server default decides."""
+    for p in ("capture", "chat"):
+        own = _assignment(ctx, p)
+        if own is None:
+            continue
+        if own.supports_vision:
+            return replace(own, purpose="vision")
+        if own.provider == "nebius":
+            return replace(
+                own,
+                purpose="vision",
+                model=settings.NEBIUS_VISION_MODEL,
+                supports_vision=True,
+            )
+    return None
+
+
+def resolve_model(ctx: Ctx, purpose: Purpose) -> ResolvedModel | None:
+    own = _assignment(ctx, purpose)
+    if own is not None:
+        return own
+    if purpose == "vision":
+        same = _vision_on_same_provider(ctx)
+        if same is not None:
+            return same
     if settings.AI_SERVER_FALLBACK:
         return _server_default(purpose, _preferred_model(ctx))
     return None
@@ -181,6 +214,64 @@ def _server_default(
         supports_vision=vision,
         source="server",
     )
+
+
+# Speech to text, USD per audio minute (Deepgram Nova-3 batch; OpenAI-
+# compatible Whisper endpoints).
+USD_PER_MIN = {"deepgram": 0.0043}
+USD_PER_MIN_DEFAULT = 0.006
+# When a model has no catalogue price (a user's own provider), a deliberately
+# generous blended rate in USD per million tokens: the cap should bite early
+# rather than late.
+USD_PER_M_FALLBACK = (1.0, 3.0)
+
+
+def _centavos(usd: float) -> int:
+    """USD to whole centavos, rounded up: a call that cost anything shows."""
+    if usd <= 0:
+        return 0
+    return max(1, math.ceil(usd * settings.AI_USD_TO_PHP * 100))
+
+
+def price_minor(model: str, input_tokens: int, output_tokens: int) -> int:
+    """What one model call cost, in centavos, from the model's own price."""
+    m = catalog.find(model)
+    usd_in, usd_out = (m.usd_in, m.usd_out) if m else USD_PER_M_FALLBACK
+    usd = (max(0, input_tokens) * usd_in + max(0, output_tokens) * usd_out) / 1e6
+    return _centavos(usd)
+
+
+# Deepgram Aura-2 text to speech, USD per 1,000 characters (2026-10-22).
+TTS_USD_PER_1K_CHARS = 0.030
+
+
+def speech_minor(chars: int) -> int:
+    """What speaking ``chars`` characters aloud cost, in centavos."""
+    return _centavos(max(0, chars) / 1000 * TTS_USD_PER_1K_CHARS)
+
+
+def speech_model() -> ResolvedModel | None:
+    """The server's text-to-speech voice (Deepgram), or None without a key.
+    Metered under ``transcription``, the speech purpose, with its own
+    model name."""
+    if not settings.DEEPGRAM_API_KEY:
+        return None
+    return ResolvedModel(
+        purpose="transcription",
+        provider="deepgram",
+        model=settings.DEEPGRAM_TTS_MODEL,
+        base_url=settings.DEEPGRAM_BASE_URL,
+        api_key=SecretStr(settings.DEEPGRAM_API_KEY),
+        credential_id=None,
+        supports_vision=False,
+        source="server",
+    )
+
+
+def transcription_minor(provider: str, seconds: float) -> int:
+    """What transcribing ``seconds`` of audio cost, in centavos."""
+    rate = USD_PER_MIN.get(provider, USD_PER_MIN_DEFAULT)
+    return _centavos(max(0.0, seconds) / 60 * rate)
 
 
 def server_default_summary() -> dict[str, str] | None:

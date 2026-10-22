@@ -310,22 +310,26 @@ export async function resetPassword(password: string) {
     rememberedEmail: s.resetEmail || s.rememberedEmail,
   }))
 }
+/** Forget this account's synced data on the device so the next account
+ * starts clean. */
+function forgetLiveDevice() {
+  runtime().stopLive()
+  for (const key of [
+    "sop-live:outbox",
+    "sop-live:snapshot",
+    "sop-live:cursor",
+    "sop-live:owner",
+  ])
+    storage().removeItem(key)
+  ;(require("@/live/blank") as typeof import("@/live/blank")).clearToBlank()
+}
 export function signOut() {
   if (liveMode) {
-    // Push what is still queued, then forget this account's data on the
-    // device so the next account starts clean.
+    // Push what is still queued, then forget the device's copy.
     const engine = runtime().engine()
     void (engine ? engine.sync() : Promise.resolve()).finally(() => {
-      runtime().stopLive()
+      forgetLiveDevice()
       void live().signOut()
-      for (const key of [
-        "sop-live:outbox",
-        "sop-live:snapshot",
-        "sop-live:cursor",
-        "sop-live:owner",
-      ])
-        storage().removeItem(key)
-      ;(require("@/live/blank") as typeof import("@/live/blank")).clearToBlank()
     })
   }
   sessionStore.set((s) => ({
@@ -333,6 +337,89 @@ export function signOut() {
     rememberedEmail: s.rememberedEmail,
   }))
 }
+
+// --- Account settings ---
+/** Errors for the change-password form, by field; empty when it can save. */
+export function newPasswordErrors(
+  current: string,
+  next: string,
+  confirm: string,
+): { current?: string; next?: string; confirm?: string } {
+  const out: { current?: string; next?: string; confirm?: string } = {}
+  if (!current) out.current = "Enter your current password"
+  if (!passwordStrength(next).acceptable)
+    out.next = "Use 8+ characters with letters, a number or a symbol"
+  else if (next === current)
+    out.next = "Choose a password different from your current one"
+  if (confirm !== next) out.confirm = "Passwords don't match"
+  return out
+}
+export async function changePassword(current: string, next: string) {
+  if (liveMode) await viaLive(() => live().changePassword(current, next))
+  else await wait()
+}
+/** Live: the new address must be confirmed from its inbox before it
+ * applies, so the session keeps the old one until then. */
+export async function changeEmail(email: string) {
+  const address = email.trim().toLowerCase()
+  const invalid = emailError(address)
+  if (invalid) throw new AuthError(invalid, "email")
+  if (address === sessionStore.get().user?.email)
+    throw new AuthError("That's already your email", "email")
+  if (liveMode) await viaLive(() => live().changeEmail(address))
+  else {
+    await wait()
+    sessionStore.set((s) => ({
+      ...s,
+      user: s.user ? { ...s.user, email: address } : s.user,
+    }))
+  }
+}
+export async function signOutEverywhere() {
+  if (liveMode) {
+    await viaLive(() => live().signOutEverywhere())
+    // Queued edits can no longer be sent once every session is revoked.
+    forgetLiveDevice()
+  } else await wait()
+  sessionStore.set((s) => ({
+    ...signedOut(),
+    rememberedEmail: s.rememberedEmail,
+  }))
+}
+/** The word typed to arm the delete button. */
+export const DELETE_WORD = "DELETE"
+export async function deleteAccount(password: string) {
+  if (liveMode) {
+    await viaLive(() => live().deleteAccount(password))
+    // The account and its data are gone on the server: nothing to push.
+    forgetLiveDevice()
+  } else {
+    await wait()
+    ;(
+      require("@domain/lib/store") as typeof import("@domain/lib/store")
+    ).resetAll()
+  }
+  sessionStore.set(signedOut())
+}
+/** Everything this device holds for the account, as one JSON document.
+ * Sign-in state and caches (weather, sync bookkeeping) are left out. */
+export function exportData(now = new Date()) {
+  const { snapshotStores } =
+    require("@domain/lib/store") as typeof import("@domain/lib/store")
+  const user = sessionStore.get().user
+  return {
+    exportedAt: now.toISOString(),
+    account: user ? { name: user.name, email: user.email } : null,
+    data: snapshotStores(EXPORT_EXCLUDE),
+  }
+}
+export const EXPORT_EXCLUDE = [
+  "auth-session",
+  "weather",
+  "server-stats",
+  "capture-ui",
+  "finance-records-view",
+] as const
 
 // Carries an email between auth screens without putting it in the URL.
 let handoff = ""

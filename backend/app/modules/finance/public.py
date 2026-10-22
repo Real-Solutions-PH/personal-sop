@@ -17,6 +17,7 @@ from app.modules.finance import calc as calc
 from app.modules.finance import schema as S
 from app.modules.finance.models import (
     Account,
+    Budget,
     Category,
     FinRecord,
     PlannedItem,
@@ -466,3 +467,69 @@ def start_statement_import(
         return imp.id
     finally:
         ctx.in_batch = was
+
+
+def create_account(
+    ctx: Ctx,
+    *,
+    name: str,
+    type: S.AccountType,
+    opening_minor: int = 0,
+    limit_minor: int | None = None,
+    account_id: uuid.UUID | None = None,
+) -> Account:
+    """A new account opening today (the first one becomes the default), as
+    the Accounts screen's add does."""
+    return services._add_account(
+        ctx,
+        data=S.AccountCreate(
+            id=account_id,
+            name=name,
+            type=type,
+            opening_minor=opening_minor,
+            limit_minor=limit_minor,
+        ),
+    )
+
+
+def delete_account(ctx: Ctx, *, account_id: uuid.UUID) -> None:
+    """Undo of ``create_account`` from chat: refused (409) once the account
+    has records. Settings stop pointing at it."""
+    services._delete_account(ctx, account_id)
+    st = repo.settings_row(ctx)
+    if account_id in (st.default_account_id, st.last_account_id):
+        if st.default_account_id == account_id:
+            st.default_account_id = None
+        if st.last_account_id == account_id:
+            st.last_account_id = None
+        ctx.session.add(st)
+
+
+def create_budget(
+    ctx: Ctx,
+    *,
+    name: str,
+    limit_minor: int,
+    category_ids: list[uuid.UUID],
+    budget_id: uuid.UUID | None = None,
+) -> Budget:
+    """A monthly budget from this month on, over ``category_ids`` (empty:
+    every expense category)."""
+    return services._add_budget(
+        ctx,
+        data=S.BudgetCreate(
+            id=budget_id, name=name, limit_minor=limit_minor, category_ids=category_ids
+        ),
+    )
+
+
+def delete_budget(ctx: Ctx, *, budget_id: uuid.UUID) -> None:
+    services._delete_budget(ctx, budget_id)
+
+
+def find_budget(ctx: Ctx, name: str) -> Budget | None:
+    """A live budget with this name (case-insensitive), if any."""
+    n = name.strip().lower()
+    return next(
+        (b for b in owned_repo.list_rows(ctx, Budget) if b.name.lower() == n), None
+    )

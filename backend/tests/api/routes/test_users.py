@@ -1,4 +1,5 @@
 import uuid
+from datetime import UTC, date, datetime
 
 import httpx
 import pytest
@@ -315,6 +316,42 @@ def test_delete_user_me(client: TestClient, db: Session) -> None:
     assert deleted_user["message"] == "User deleted successfully"
     result = db.exec(select(User).where(User.id == user_id)).first()
     assert result is None
+
+
+def test_delete_user_me_erases_the_users_app_data(
+    client: TestClient, db: Session
+) -> None:
+    """Deleting your own account removes what you logged in the app, not
+    just the user row: every owned table cascades from ``user.id``."""
+    from app.modules.habits.models import Habit, HabitLog
+
+    user, password = create_auth_user(db)
+    habit = Habit(name="Read", owner_id=user.id, tenant_id=user.tenant_id)
+    db.add(habit)
+    db.commit()
+    log = HabitLog(
+        habit_id=habit.id,
+        day=date(2026, 10, 22),
+        status="done",
+        logged_at=datetime(2026, 10, 22, 8, tzinfo=UTC),
+        owner_id=user.id,
+        tenant_id=user.tenant_id,
+    )
+    db.add(log)
+    db.commit()
+    habit_id, log_id = habit.id, log.id
+    assert db.get(Habit, habit_id) is not None
+    assert db.get(HabitLog, log_id) is not None
+
+    r = client.delete(
+        f"{settings.API_V1_STR}/users/me",
+        headers=auth_headers(user.email, password),
+    )
+    assert r.status_code == 200
+
+    db.expire_all()
+    assert db.exec(select(Habit).where(Habit.id == habit_id)).first() is None
+    assert db.exec(select(HabitLog).where(HabitLog.id == log_id)).first() is None
 
 
 def test_delete_user_me_gotrue_failure_is_noop(

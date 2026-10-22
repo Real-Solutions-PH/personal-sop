@@ -33,6 +33,8 @@ export function configureStorage(
   report = onError
 }
 const registry: Array<{
+  key: string
+  get(): unknown
   reset(): void
   flush(): boolean
 }> = []
@@ -115,7 +117,7 @@ export function createStore<T>(key: string, seed: () => T): Store<T> {
     emit()
   }
   const store = { get, set, use, reset, flush, subscribe }
-  registry.push(store)
+  registry.push({ key, get, reset, flush })
   return store
 }
 export function flushStores() {
@@ -123,6 +125,15 @@ export function flushStores() {
 }
 export function resetAll() {
   for (const store of registry) store.reset()
+}
+/** Every store's current state by key, for "Export my data". */
+export function snapshotStores(
+  exclude: readonly string[] = [],
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
+  for (const store of registry)
+    if (!exclude.includes(store.key)) out[store.key] = store.get()
+  return out
 }
 // UUID v4: the backend accepts device-minted ids (ADR-0011), so every row
 // created on the device keeps its id through sync.

@@ -881,11 +881,15 @@ def save_as_template(
     return t
 
 
-def delete_template(*, ctx: Ctx, template_id: uuid.UUID) -> None:
+def _delete_template(ctx: Ctx, template_id: uuid.UUID) -> None:
     t = owned_repo.require(ctx, WorkoutTemplate, template_id, what="template")
     for it in repo.template_items(ctx, t.id):
         owned_repo.soft_delete(ctx, it)
     owned_repo.soft_delete(ctx, t)
+
+
+def delete_template(*, ctx: Ctx, template_id: uuid.UUID) -> None:
+    _delete_template(ctx, template_id)
     ctx.commit()
 
 
@@ -1053,6 +1057,10 @@ def _item_data(d: F.ItemDraft) -> dict[str, Any]:
         "carbs": d.carbs,
         "fat": d.fat,
         "assumption": d.assumption,
+        "fiber": d.fiber,
+        "sat_fat": d.sat_fat,
+        "sugar": d.sugar,
+        "sodium": d.sodium,
     }
 
 
@@ -1310,7 +1318,18 @@ def confirm_meal(*, ctx: Ctx, meal_id: uuid.UUID) -> Meal:
 
 def _draft(it: MealItem) -> F.ItemDraft:
     return F.ItemDraft(
-        it.name, it.qty, it.unit, it.kcal, it.protein, it.carbs, it.fat, it.assumption
+        it.name,
+        it.qty,
+        it.unit,
+        it.kcal,
+        it.protein,
+        it.carbs,
+        it.fat,
+        it.assumption,
+        fiber=it.fiber,
+        sat_fat=it.sat_fat,
+        sugar=it.sugar,
+        sodium=it.sodium,
     )
 
 
@@ -1453,9 +1472,19 @@ def duplicate_meal(
 
 
 def set_macro_target(
-    *, ctx: Ctx, kcal: float, protein: float, carbs: float, fat: float
+    *,
+    ctx: Ctx,
+    kcal: float,
+    protein: float,
+    carbs: float,
+    fat: float,
+    sat_fat_max_g: float | None = None,
+    sugar_max_g: float | None = None,
+    sodium_max_mg: float | None = None,
+    fiber_g: float | None = None,
 ) -> MacroTarget:
-    """A new target version effective from today; past days keep theirs."""
+    """A new target version effective from today; past days keep theirs.
+    A limit left None reads as the WHO default."""
     today = ctx.today
     t, _ = owned_repo.upsert(
         ctx,
@@ -1467,6 +1496,10 @@ def set_macro_target(
             "protein": protein,
             "carbs": carbs,
             "fat": fat,
+            "sat_fat_max_g": sat_fat_max_g,
+            "sugar_max_g": sugar_max_g,
+            "sodium_max_mg": sodium_max_mg,
+            "fiber_g": fiber_g,
         },
         natural_key=("effective_from",),
     )

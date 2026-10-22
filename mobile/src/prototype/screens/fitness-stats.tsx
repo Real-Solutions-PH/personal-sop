@@ -1,4 +1,5 @@
 import * as C from "@domain/fitness/calc"
+import { limitAverages, limitsFor } from "@domain/fitness/limits"
 import { fitStore } from "@domain/fitness/store"
 import { dayKey } from "@domain/lib/day"
 import { ChevronRight, Share2, TriangleAlert } from "lucide-react-native"
@@ -18,8 +19,10 @@ import {
 } from "../native-kit"
 import { go } from "../navigation"
 import { useTheme } from "../theme"
-import { Empty, Screen } from "../ui"
-export function FitnessStats() {
+import { LockedPreview } from "./locked-preview"
+import { LimitList } from "./nutrient-limits"
+import { StatsShell } from "./stats-shell"
+export function FitnessStats({ embedded = false }: { embedded?: boolean }) {
   const s = fitStore.use((s) => s),
     t = useTheme(),
     [range, setRange] = useState("28"),
@@ -40,6 +43,12 @@ export function FitnessStats() {
     rate = C.weeklyRate(s),
     weight = C.weightTrend(s, days),
     adherence = C.adherence(s, Math.min(days, 14)),
+    // Averages are held against the limits in force today.
+    dayLimits = limitsFor(C.targetFor(s, dayKey())),
+    limits = limitAverages(
+      adherence.days.map((d) => C.mealsOn(s, d.day)).filter((m) => m.length),
+      dayLimits,
+    ),
     lifts = ["bench", "squat", "row", "ohp", "rdl"]
       .map((id) => {
         const h = C.exerciseHistory(s, id),
@@ -68,7 +77,7 @@ export function FitnessStats() {
   ) => (
     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 16 }}>
       {items.map((x) => (
-        <View key={x.label} style={{ width: "47.5%" }}>
+        <View key={x.label} style={{ flexGrow: 1, flexBasis: "40%" }}>
           <Copy
             size={30}
             weight="displayMedium"
@@ -95,7 +104,8 @@ export function FitnessStats() {
     </View>
   )
   return (
-    <Screen
+    <StatsShell
+      embedded={embedded}
       title="Fitness stats"
       actions={
         latest ? (
@@ -116,235 +126,248 @@ export function FitnessStats() {
           { value: "84", label: "12 weeks" },
         ]}
       />
-      {!latest ? (
-        <Empty
-          title="No training data yet"
-          detail="Finish a workout and your sessions, PRs and lifts show up here."
-        />
-      ) : (
-        <>
-          <Frame style={{ padding: 16 }}>
-            {grid([
-              {
-                label: `Sessions (target ${Math.round(cur.target)})`,
-                value: cur.sessions,
-                delta: cur.sessions - prev.sessions,
-                color: t.fit,
-              },
-              { label: "PRs", value: cur.prs, delta: cur.prs - prev.prs },
-              {
-                label: "Progress rate (4 wks)",
-                value: `${Math.round(C.overloadRate(s, 28) * 100)}%`,
-              },
-              { label: "Weekly streak", value: `${C.consistencyStreak(s)} wk` },
-            ])}
-          </Frame>
-          {heading("Sessions per week")}
-          <Frame style={{ padding: 16 }}>
-            <Line style={{ height: 90, alignItems: "flex-end", gap: 4 }}>
-              {weeks.map((w) => (
-                <View
-                  key={w.start}
+      <LockedPreview
+        gap={8}
+        locked={!latest}
+        color={t.fit}
+        title="No workouts yet"
+        detail="Finish your first workout. Sessions, PRs, volume and your lifts fill in below."
+        action={{ label: "Start a workout", href: "/fitness?start=1" }}
+      >
+        <Frame style={{ padding: 16 }}>
+          {grid([
+            {
+              label: `Sessions (target ${Math.round(cur.target)})`,
+              value: cur.sessions,
+              delta: cur.sessions - prev.sessions,
+              color: t.fit,
+            },
+            { label: "PRs", value: cur.prs, delta: cur.prs - prev.prs },
+            {
+              label: "Progress rate (4 wks)",
+              value: `${Math.round(C.overloadRate(s, 28) * 100)}%`,
+            },
+            { label: "Weekly streak", value: `${C.consistencyStreak(s)} wk` },
+          ])}
+        </Frame>
+        {heading("Sessions per week")}
+        <Frame style={{ padding: 16 }}>
+          <Line style={{ height: 90, alignItems: "flex-end", gap: 4 }}>
+            {weeks.map((w) => (
+              <View
+                key={w.start}
+                style={{
+                  flex: 1,
+                  height: "100%",
+                  justifyContent: "flex-end",
+                }}
+              >
+                <GrowBar
+                  height={Math.max(
+                    2,
+                    (w.count / Math.max(1, ...weeks.map((x) => x.count))) * 90,
+                  )}
                   style={{
-                    flex: 1,
-                    height: "100%",
-                    justifyContent: "flex-end",
+                    backgroundColor:
+                      w.start === weeks.at(-1)?.start
+                        ? t.fit
+                        : border(t.fit, 0.45),
+                    borderTopLeftRadius: 8,
+                    borderTopRightRadius: 8,
                   }}
-                >
-                  <GrowBar
-                    height={Math.max(
-                      2,
-                      (w.count / Math.max(1, ...weeks.map((x) => x.count))) *
-                        90,
+                />
+              </View>
+            ))}
+          </Line>
+          <Line style={{ gap: 8, marginTop: 4 }}>
+            {weeks.map((w) => (
+              <Copy
+                key={w.start}
+                size={10}
+                muted
+                style={{ flex: 1, textAlign: "center" }}
+              >
+                {weeks.length > 6
+                  ? ""
+                  : new Date(`${w.start}T12:00:00`).toLocaleDateString(
+                      "en-PH",
+                      { month: "short", day: "numeric" },
                     )}
-                    style={{
-                      backgroundColor:
-                        w.start === weeks.at(-1)?.start
-                          ? t.fit
-                          : border(t.fit, 0.45),
-                      borderTopLeftRadius: 8,
-                      borderTopRightRadius: 8,
-                    }}
+              </Copy>
+            ))}
+          </Line>
+          <Line style={{ justifyContent: "space-between", marginTop: 8 }}>
+            <Copy size={12} muted>
+              Target {s.settings.weeklyTarget}/week
+            </Copy>
+            <Copy size={12} style={{ color: cur.missed ? t.bad : t.good }}>
+              {cur.missed ? `${cur.missed} missed` : "No misses"}
+            </Copy>
+          </Line>
+        </Frame>
+        {heading("Weekly volume")}
+        <Frame style={{ padding: 16 }}>
+          <Copy size={20} weight="semibold">
+            {C.fmtVolume(cur.volume)}
+          </Copy>
+          <Copy size={12} muted>
+            in range · prev {C.fmtVolume(prev.volume)}
+          </Copy>
+          <View style={{ marginTop: 8 }}>
+            <Sparkline
+              values={volume}
+              color={t.fit}
+              height={56}
+              label="Weekly volume"
+            />
+          </View>
+        </Frame>
+        {heading("Top lifts · e1RM")}
+        <Frame>
+          {lifts.map((l, i) => (
+            <Tap
+              key={l.id}
+              onPress={() => go(`/fitness/exercises/${l.id}`)}
+              style={{
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                borderTopWidth: i ? 1 : 0,
+                borderColor: border(t.line, 0.6),
+              }}
+            >
+              <Line>
+                <View style={{ flex: 1 }}>
+                  <Line style={{ gap: 6 }}>
+                    <Copy
+                      size={14}
+                      weight="medium"
+                      lines={1}
+                      style={{ flexShrink: 1 }}
+                    >
+                      {l.name}
+                    </Copy>
+                    {l.stalled && <TriangleAlert size={14} color={t.warn} />}
+                  </Line>
+                  <Copy
+                    size={12}
+                    style={{ color: l.delta > 0 ? t.good : t.muted }}
+                  >
+                    {l.delta > 0 ? "▲" : l.delta < 0 ? "▼" : "•"}{" "}
+                    {C.kgShort(Math.round(Math.abs(l.delta) * 10) / 10)} kg
+                  </Copy>
+                </View>
+                <View style={{ width: 80 }}>
+                  <Sparkline
+                    values={l.series}
+                    color={t.fit}
+                    height={28}
+                    area={false}
+                    label={`${l.name} strength`}
                   />
                 </View>
-              ))}
-            </Line>
-            <Line style={{ gap: 8, marginTop: 4 }}>
-              {weeks.map((w) => (
                 <Copy
-                  key={w.start}
-                  size={10}
-                  muted
-                  style={{ flex: 1, textAlign: "center" }}
+                  weight="semibold"
+                  style={{ width: 56, textAlign: "right" }}
                 >
-                  {weeks.length > 6
-                    ? ""
-                    : new Date(`${w.start}T12:00:00`).toLocaleDateString(
-                        "en-PH",
-                        { month: "short", day: "numeric" },
-                      )}
+                  {C.kgShort(Math.round(l.last))}
                 </Copy>
+                <ChevronRight size={16} color={t.muted} />
+              </Line>
+            </Tap>
+          ))}
+        </Frame>
+        {!!stalls.length && (
+          <>
+            {heading("Stalled lifts")}
+            <Frame style={{ padding: 16, gap: 4 }}>
+              {stalls.map((e) => (
+                <Tap
+                  key={e.id}
+                  onPress={() => go(`/fitness/exercises/${e.id}`)}
+                >
+                  <Line style={{ justifyContent: "space-between" }}>
+                    <Copy size={14}>{e.name}</Copy>
+                    <Copy size={12} muted>
+                      no strength gain · 3 wks
+                    </Copy>
+                  </Line>
+                </Tap>
               ))}
-            </Line>
-            <Line style={{ justifyContent: "space-between", marginTop: 8 }}>
-              <Copy size={12} muted>
-                Target {s.settings.weeklyTarget}/week
-              </Copy>
-              <Copy size={12} style={{ color: cur.missed ? t.bad : t.good }}>
-                {cur.missed ? `${cur.missed} missed` : "No misses"}
-              </Copy>
-            </Line>
-          </Frame>
-          {heading("Weekly volume")}
+            </Frame>
+          </>
+        )}
+        {heading("Body weight")}
+        <Tap onPress={() => go("/fitness/body")}>
           <Frame style={{ padding: 16 }}>
-            <Copy size={20} weight="semibold">
-              {C.fmtVolume(cur.volume)}
-            </Copy>
-            <Copy size={12} muted>
-              in range · prev {C.fmtVolume(prev.volume)}
-            </Copy>
+            <Line style={{ justifyContent: "space-between" }}>
+              <Copy size={20} weight="semibold">
+                {rate?.avg.toFixed(1) ?? "—"} kg
+              </Copy>
+              {rate && (
+                <Copy
+                  size={14}
+                  style={{
+                    color: (
+                      s.settings.goalDirection === "cut"
+                        ? rate.kg <= 0
+                        : rate.kg >= 0
+                    )
+                      ? t.good
+                      : t.bad,
+                  }}
+                >
+                  {rate.kg > 0 ? "▲" : "▼"} {Math.abs(rate.kg).toFixed(2)} kg/wk
+                </Copy>
+              )}
+            </Line>
             <View style={{ marginTop: 8 }}>
               <Sparkline
-                values={volume}
+                values={weight
+                  .map((p) => p.avg)
+                  .filter((v): v is number => v !== undefined)}
                 color={t.fit}
-                height={56}
-                label="Weekly volume"
+                height={48}
+                label="Body weight"
               />
             </View>
           </Frame>
-          {heading("Top lifts · e1RM")}
-          <Frame>
-            {lifts.map((l, i) => (
-              <Tap
-                key={l.id}
-                onPress={() => go(`/fitness/exercises/${l.id}`)}
-                style={{
-                  paddingHorizontal: 16,
-                  paddingVertical: 12,
-                  borderTopWidth: i ? 1 : 0,
-                  borderColor: border(t.line, 0.6),
-                }}
-              >
-                <Line>
-                  <View style={{ flex: 1 }}>
-                    <Line style={{ gap: 6 }}>
-                      <Copy
-                        size={14}
-                        weight="medium"
-                        lines={1}
-                        style={{ flexShrink: 1 }}
-                      >
-                        {l.name}
-                      </Copy>
-                      {l.stalled && <TriangleAlert size={14} color={t.warn} />}
-                    </Line>
-                    <Copy
-                      size={12}
-                      style={{ color: l.delta > 0 ? t.good : t.muted }}
-                    >
-                      {l.delta > 0 ? "▲" : l.delta < 0 ? "▼" : "•"}{" "}
-                      {C.kgShort(Math.round(Math.abs(l.delta) * 10) / 10)} kg
-                    </Copy>
-                  </View>
-                  <View style={{ width: 80 }}>
-                    <Sparkline
-                      values={l.series}
-                      color={t.fit}
-                      height={28}
-                      area={false}
-                      label={`${l.name} strength`}
-                    />
-                  </View>
-                  <Copy
-                    weight="semibold"
-                    style={{ width: 56, textAlign: "right" }}
-                  >
-                    {C.kgShort(Math.round(l.last))}
-                  </Copy>
-                  <ChevronRight size={16} color={t.muted} />
-                </Line>
-              </Tap>
-            ))}
+        </Tap>
+        {heading("Nutrition · last 14 days")}
+        <Tap onPress={() => go("/fitness/nutrition/history")}>
+          <Frame style={{ padding: 16 }}>
+            {grid([
+              {
+                label: "Calories on target",
+                value: `${Math.round(adherence.calorie * 100)}%`,
+              },
+              {
+                label: "Protein hit rate",
+                value: `${Math.round(adherence.protein * 100)}%`,
+              },
+              { label: "Over-target days", value: adherence.overDays },
+              {
+                label: "Logging coverage",
+                value: `${Math.round(adherence.coverage * 100)}%`,
+              },
+            ])}
+            <View
+              style={{
+                marginTop: 16,
+                paddingTop: 16,
+                borderTopWidth: 1,
+                borderColor: t.line,
+              }}
+            >
+              <LimitList
+                scope="average"
+                detail={limits.avg}
+                limits={dayLimits}
+                overDays={limits.over}
+              />
+            </View>
           </Frame>
-          {!!stalls.length && (
-            <>
-              {heading("Stalled lifts")}
-              <Frame style={{ padding: 16, gap: 4 }}>
-                {stalls.map((e) => (
-                  <Tap
-                    key={e.id}
-                    onPress={() => go(`/fitness/exercises/${e.id}`)}
-                  >
-                    <Line style={{ justifyContent: "space-between" }}>
-                      <Copy size={14}>{e.name}</Copy>
-                      <Copy size={12} muted>
-                        no strength gain · 3 wks
-                      </Copy>
-                    </Line>
-                  </Tap>
-                ))}
-              </Frame>
-            </>
-          )}
-          {heading("Body weight")}
-          <Tap onPress={() => go("/fitness/body")}>
-            <Frame style={{ padding: 16 }}>
-              <Line style={{ justifyContent: "space-between" }}>
-                <Copy size={20} weight="semibold">
-                  {rate?.avg.toFixed(1) ?? "—"} kg
-                </Copy>
-                {rate && (
-                  <Copy
-                    size={14}
-                    style={{
-                      color: (
-                        s.settings.goalDirection === "cut"
-                          ? rate.kg <= 0
-                          : rate.kg >= 0
-                      )
-                        ? t.good
-                        : t.bad,
-                    }}
-                  >
-                    {rate.kg > 0 ? "▲" : "▼"} {Math.abs(rate.kg).toFixed(2)}{" "}
-                    kg/wk
-                  </Copy>
-                )}
-              </Line>
-              <View style={{ marginTop: 8 }}>
-                <Sparkline
-                  values={weight
-                    .map((p) => p.avg)
-                    .filter((v): v is number => v !== undefined)}
-                  color={t.fit}
-                  height={48}
-                  label="Body weight"
-                />
-              </View>
-            </Frame>
-          </Tap>
-          {heading("Nutrition · last 14 days")}
-          <Tap onPress={() => go("/fitness/nutrition/history")}>
-            <Frame style={{ padding: 16 }}>
-              {grid([
-                {
-                  label: "Calories on target",
-                  value: `${Math.round(adherence.calorie * 100)}%`,
-                },
-                {
-                  label: "Protein hit rate",
-                  value: `${Math.round(adherence.protein * 100)}%`,
-                },
-                { label: "Over-target days", value: adherence.overDays },
-                {
-                  label: "Logging coverage",
-                  value: `${Math.round(adherence.coverage * 100)}%`,
-                },
-              ])}
-            </Frame>
-          </Tap>
-        </>
-      )}
-    </Screen>
+        </Tap>
+      </LockedPreview>
+    </StatsShell>
   )
 }

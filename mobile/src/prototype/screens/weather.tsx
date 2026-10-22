@@ -213,7 +213,7 @@ export function Weather() {
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: 16,
-          paddingBottom: safe.bottom + 28,
+          paddingBottom: safe.bottom + 64,
           gap: 12,
         }}
         refreshControl={

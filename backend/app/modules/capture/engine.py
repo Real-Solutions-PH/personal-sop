@@ -206,6 +206,12 @@ def submit(ctx: Ctx, data: CaptureIn) -> Submitted:
         if kind is None:
             raise invalid("media_unexpected", "This kind of capture has no attachment")
         _attach(ctx, cap, data.media_id, kind)
+    if data.extra_media_ids:
+        if data.source != "photo" or data.media_id is None:
+            raise invalid("media_unexpected", "Only photo captures take more photos")
+        for extra in dict.fromkeys(data.extra_media_ids):
+            if extra != data.media_id:
+                _attach(ctx, cap, extra, "image")
     return Submitted(cap, True)
 
 
@@ -354,13 +360,13 @@ def _transcript(ctx: Ctx, cap: Capture, mode: str, language: str) -> None:
         ai.record_usage(ctx, resolved, input_tokens=0, output_tokens=0, ok=False)
         refuse(exc.code, "Couldn't transcribe the recording")
         return
-    minutes = max(1, -(-(cap.duration_sec or 60) // 60))
+    seconds = float(cap.duration_sec or 60)
     ai.record_usage(
         ctx,
         resolved,
         input_tokens=0,
         output_tokens=0,
-        cost_minor=minutes * seams.TRANSCRIBE_CENTAVOS_PER_MIN,
+        cost_minor=ai.transcription_minor(resolved.provider, seconds),
     )
     if not text:
         refuse("transcript_empty", "I couldn't hear anything in that recording")
@@ -393,7 +399,8 @@ def photo_env(
 ) -> Ph.PhotoEnv:
     world = ports.build_world(ctx, at=cap.at)
     st = settings_row(ctx)
-    img = Ph.image_of(ctx, cap)
+    imgs = Ph.images_of(ctx, cap)
+    img = imgs[0] if imgs else None
     vision = ai.resolve_model(ctx, "vision") if st.send_photos else None
     if vision is not None and not vision.supports_vision:
         vision = None
@@ -430,6 +437,7 @@ def photo_env(
         image=(img[1], img[2]) if img else None,
         vision=vision,
         text_path=text_path,
+        extra=[(b, mime) for _, b, mime in imgs[1:]],
     )
     env.made = made  # type: ignore[attr-defined]
     return env
@@ -610,13 +618,13 @@ def dictate(ctx: Ctx, audio: bytes, *, duration_sec: int | None) -> str:
     except seams.SeamError as exc:
         ai.record_usage(ctx, resolved, input_tokens=0, output_tokens=0, ok=False)
         raise domain_error(502, exc.code, "Couldn't transcribe that") from None
-    minutes = max(1, -(-(duration_sec or 60) // 60))
+    seconds = float(duration_sec or 60)
     ai.record_usage(
         ctx,
         resolved,
         input_tokens=0,
         output_tokens=0,
-        cost_minor=minutes * seams.TRANSCRIBE_CENTAVOS_PER_MIN,
+        cost_minor=ai.transcription_minor(resolved.provider, seconds),
     )
     if not text:
         raise invalid("transcript_empty", "I couldn't hear anything")

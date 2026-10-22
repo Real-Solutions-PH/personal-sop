@@ -318,6 +318,11 @@ class ItemDraft:
     carbs: float
     fat: float
     assumption: str | None = None
+    # Optional detail (unknown stays None): grams, sodium in milligrams.
+    fiber: float | None = None
+    sat_fat: float | None = None
+    sugar: float | None = None
+    sodium: float | None = None
 
 
 @dataclass(frozen=True)
@@ -359,6 +364,10 @@ def scale_item(it: ItemDraft, qty: float) -> ItemDraft:
         protein=js_round(it.protein * f),
         carbs=js_round(it.carbs * f),
         fat=js_round(it.fat * f),
+        fiber=None if it.fiber is None else js_round(it.fiber * f),
+        sat_fat=None if it.sat_fat is None else js_round(it.sat_fat * f),
+        sugar=None if it.sugar is None else js_round(it.sugar * f),
+        sodium=None if it.sodium is None else js_round(it.sodium * f),
     )
 
 

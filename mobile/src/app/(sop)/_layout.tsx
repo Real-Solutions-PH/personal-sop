@@ -9,8 +9,8 @@ import {
   CalendarCheck2,
   ChartColumn,
   House,
-  Plus,
   User,
+  X,
 } from "lucide-react-native"
 import { useEffect, useState } from "react"
 import { Pressable, Text, View } from "react-native"
@@ -20,10 +20,14 @@ import Animated, {
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
+  withRepeat,
   withSequence,
   withSpring,
+  withTiming,
 } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { FernMark, fernPalette } from "@/prototype/companion/brand"
+import { startReminders } from "@/prototype/local-reminders"
 import { prototypeMode } from "@/prototype/mode"
 import { go, replace } from "@/prototype/navigation"
 import { CaptureOverlay } from "@/prototype/screens/capture"
@@ -33,11 +37,13 @@ import { AccentContext, fonts, useTheme } from "@/prototype/theme"
 const tabs = [
   { label: "Today", href: "/today", icon: House },
   { label: "Plan", href: "/plan", icon: CalendarCheck2 },
-  { label: "Capture", href: "/capture", icon: Plus },
+  { label: "Fern", href: "/capture", icon: X },
   { label: "Stats", href: "/stats", icon: ChartColumn },
   { label: "Me", href: "/me", icon: User },
 ]
-// The + turns into × while the companion drawer is open.
+// The centre of the bar is Fern, the app's main way in: say or snap what
+// happened, ask what you need. The fiddlehead turns into × while her drawer
+// is open.
 function FabIcon({ open }: { open: boolean }) {
   const reduced = useReducedMotion()
   const turn = useSharedValue(open ? 1 : 0)
@@ -48,16 +54,60 @@ function FabIcon({ open }: { open: boolean }) {
         : 0
       : withSpring(open ? 1 : 0, { damping: 14, stiffness: 220 })
   }, [open, reduced, turn])
-  const style = useAnimatedStyle(() => ({
+  const mark = useAnimatedStyle(() => ({
+    opacity: 1 - turn.value,
     transform: [
-      { rotate: `${turn.value * 135}deg` },
-      { scale: 1 - Math.sin(turn.value * Math.PI) * 0.15 },
+      { rotate: `${turn.value * 90}deg` },
+      { scale: 1 - turn.value * 0.4 },
+    ],
+  }))
+  const close = useAnimatedStyle(() => ({
+    opacity: turn.value,
+    transform: [
+      { rotate: `${(1 - turn.value) * -90}deg` },
+      { scale: 0.6 + turn.value * 0.4 },
     ],
   }))
   return (
-    <Animated.View style={style}>
-      <Plus size={28} strokeWidth={2.5} color="white" />
-    </Animated.View>
+    <View style={{ width: 30, height: 30 }}>
+      <Animated.View style={[{ position: "absolute" }, mark]}>
+        <FernMark size={30} color="white" weight={2.2} />
+      </Animated.View>
+      <Animated.View style={[{ position: "absolute", left: 2, top: 2 }, close]}>
+        <X size={26} strokeWidth={2.5} color="white" />
+      </Animated.View>
+    </View>
+  )
+}
+// A slow breathing halo marks Fern as the place to start. Still when the
+// person prefers reduced motion, and while the drawer is open.
+function FernHalo({ color, still }: { color: string; still: boolean }) {
+  const reduced = useReducedMotion()
+  const pulse = useSharedValue(0)
+  useEffect(() => {
+    pulse.value =
+      reduced || still
+        ? withSpring(0)
+        : withRepeat(withTiming(1, { duration: 2200 }), -1, true)
+  }, [reduced, still, pulse])
+  const style = useAnimatedStyle(() => ({
+    opacity: 0.22 + pulse.value * 0.18,
+    transform: [{ scale: 1 + pulse.value * 0.08 }],
+  }))
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        {
+          position: "absolute",
+          width: 72,
+          height: 72,
+          borderRadius: 36,
+          backgroundColor: color,
+        },
+        style,
+      ]}
+    />
   )
 }
 // The icon pops when its tab becomes active.
@@ -109,6 +159,9 @@ export default function PrototypeLayout() {
   const dir = tabDirection((s) => s.dir)
   const drawer = captureUi.use((s) => s.open)
   const [bar, setBar] = useState(0)
+  // Task and habit reminders as notifications scheduled on this phone.
+  useEffect(() => startReminders(), [])
+  const fern = fernPalette(t.dark)
   // Swiping slides tabs in from the side you swiped toward; tapping fades.
   const tabAnimation = {
     animation: reduced
@@ -239,16 +292,23 @@ export default function PrototypeLayout() {
                   key={tab.href}
                   accessibilityRole="tab"
                   accessibilityLabel={
-                    tab.label === "Capture"
+                    tab.label === "Fern"
                       ? drawer
-                        ? "Close companion"
-                        : "Open companion"
+                        ? "Close Fern"
+                        : "Ask Fern"
                       : tab.label
                   }
-                  accessibilityState={{ selected: active }}
+                  accessibilityHint={
+                    tab.label === "Fern"
+                      ? "Log anything or ask about your day, by typing, voice or photo"
+                      : undefined
+                  }
+                  accessibilityState={{
+                    selected: tab.label === "Fern" ? drawer : active,
+                  }}
                   onPress={() => {
                     void Haptics.selectionAsync().catch(() => {})
-                    if (tab.label === "Capture")
+                    if (tab.label === "Fern")
                       drawer ? closeCapture() : openCapture()
                     else if (path !== tab.href) {
                       if (drawer) closeCapture()
@@ -264,35 +324,52 @@ export default function PrototypeLayout() {
                     gap: 2,
                   }}
                 >
-                  {tab.label === "Capture" ? (
-                    <LinearGradient
-                      colors={[t.primary, t.hab]}
+                  {tab.label === "Fern" ? (
+                    <View
                       style={{
-                        width: 56,
-                        height: 56,
-                        borderRadius: 28,
+                        marginTop: -30,
+                        width: 72,
+                        height: 72,
                         alignItems: "center",
                         justifyContent: "center",
-                        marginTop: -23,
-                        boxShadow: "0px 4px 10px #007c7040",
                       }}
                     >
-                      <FabIcon open={drawer} />
-                    </LinearGradient>
+                      <FernHalo color={fern.sprout} still={drawer} />
+                      <LinearGradient
+                        colors={[fern.frond, fern.moss]}
+                        start={{ x: 0.2, y: 0 }}
+                        end={{ x: 0.8, y: 1 }}
+                        style={{
+                          width: 60,
+                          height: 60,
+                          borderRadius: 30,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          borderWidth: 3,
+                          borderColor: t.bg,
+                          boxShadow: `0px 6px 14px ${fern.moss}59`,
+                        }}
+                      >
+                        <FabIcon open={drawer} />
+                      </LinearGradient>
+                    </View>
                   ) : (
                     <View>
                       <TabIcon icon={Icon} active={active} />
                     </View>
                   )}
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      fontFamily: fonts.medium,
-                      color: active ? t.text : t.muted,
-                    }}
-                  >
-                    {tab.label === "Capture" ? "" : tab.label}
-                  </Text>
+                  {/* The orb speaks for itself; its name is for screen readers. */}
+                  {tab.label !== "Fern" && (
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        fontFamily: fonts.medium,
+                        color: active ? t.text : t.muted,
+                      }}
+                    >
+                      {tab.label}
+                    </Text>
+                  )}
                 </Pressable>
               )
             })}

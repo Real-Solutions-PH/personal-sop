@@ -5,7 +5,7 @@
 
 import type { AuthError as GoTrueError } from "@supabase/supabase-js"
 import { getSupabase } from "@/lib/supabase"
-import { createHttp, type TokenSource } from "./http"
+import { ApiError, createHttp, NetworkError, type TokenSource } from "./http"
 
 let sessionLost: (() => void) | null = null
 
@@ -56,6 +56,13 @@ function mapError(error: GoTrueError | null): void {
     throw new LiveAuthError("That code is incorrect or has expired", "code")
   if (code === "weak_password")
     throw new LiveAuthError("Choose a stronger password", "password")
+  if (code === "same_password")
+    throw new LiveAuthError(
+      "Choose a password different from your current one",
+      "password",
+    )
+  if (code === "email_address_invalid" || code === "validation_failed")
+    throw new LiveAuthError("Enter a valid email address", "email")
   if (
     code === "over_email_send_rate_limit" ||
     code === "over_request_rate_limit"
@@ -114,6 +121,71 @@ export async function updatePassword(password: string) {
 
 export async function signOut() {
   await getSupabase().auth.signOut()
+}
+
+// --- Account settings ---
+
+async function sessionEmail(): Promise<string> {
+  const { data } = await getSupabase().auth.getSession()
+  const email = data.session?.user.email
+  if (!email) throw new LiveAuthError("Your session ended. Sign in again.")
+  return email
+}
+
+/** Confirm it is really the account holder before a sensitive change: the
+ * current password must sign in again. A wrong password is reported on the
+ * password field, never as a generic failure. */
+async function reauthenticate(password: string) {
+  const { error } = await getSupabase().auth.signInWithPassword({
+    email: await sessionEmail(),
+    password,
+  })
+  if ((error as { code?: string } | null)?.code === "invalid_credentials")
+    throw new LiveAuthError("That password is incorrect", "password")
+  mapError(error)
+}
+
+export async function changePassword(current: string, next: string) {
+  await reauthenticate(current)
+  await updatePassword(next)
+}
+
+/** GoTrue mails a confirmation link to the new address; the change takes
+ * effect once it is opened, and the auth webhook copies it to our user. */
+export async function changeEmail(email: string) {
+  const { error } = await getSupabase().auth.updateUser({ email })
+  mapError(error)
+}
+
+/** Ends every session of this account, on every device. */
+export async function signOutEverywhere() {
+  const { error } = await getSupabase().auth.signOut({ scope: "global" })
+  mapError(error)
+}
+
+/** Deletes the account on the server: its sign-in and every record it owns
+ * (DELETE /users/me revokes the auth user, then cascades the data). */
+export async function deleteAccount(password: string) {
+  await reauthenticate(password)
+  try {
+    await http.request("DELETE", "/users/me")
+  } catch (error) {
+    if (error instanceof NetworkError)
+      throw new LiveAuthError(
+        "You're offline. Connect to the internet to delete your account.",
+      )
+    if (error instanceof ApiError && error.status === 403)
+      throw new LiveAuthError(
+        "This is an admin account, so it can't be deleted from the app.",
+      )
+    throw new LiveAuthError(
+      "Couldn't delete your account. Nothing was removed; try again.",
+    )
+  }
+  // The server already removed the sign-in; clear the local session too.
+  await getSupabase()
+    .auth.signOut({ scope: "local" })
+    .catch(() => {})
 }
 
 export async function currentUserId(): Promise<string | null> {

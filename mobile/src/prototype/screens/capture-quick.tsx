@@ -43,62 +43,79 @@ export function QuickAdd({ onClose }: { onClose: () => void }) {
     [type, setType] = useState<string>(),
     cur = types.find((x) => x.v === type)
   return (
-    <Sheet title={cur?.label ?? "Quick add"} open onClose={onClose}>
-      {cur && (
-        <Tap onPress={() => setType(undefined)}>
-          <Copy size={14} muted>
-            ‹ Back to types
-          </Copy>
-        </Tap>
-      )}
-      <Copy size={12} muted>
-        {cur
-          ? "Saved straight away — undo from the toast."
-          : "Manual entry. Works offline and when AI is off."}
-      </Copy>
-      {!cur ? (
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-          {types.map((x) => (
-            <Tap
-              key={x.v}
-              onPress={() => setType(x.v)}
-              style={{
-                width: "31.7%",
-                aspectRatio: 4 / 3,
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 6,
-                borderRadius: 16,
-                borderWidth: 1,
-                borderColor: t.line,
-                backgroundColor: t.card,
-              }}
-            >
-              <View
-                style={{
-                  width: 36,
-                  height: 36,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: 12,
-                  backgroundColor: `${t[x.accent]}26`,
-                }}
-              >
-                <x.I size={20} color={t[x.accent]} />
+    <Sheet
+      title={cur?.label ?? "Quick add"}
+      open
+      onClose={onClose}
+      onBack={cur ? () => setType(undefined) : undefined}
+      backLabel="Back to all types"
+    >
+      <View style={{ gap: 14, paddingTop: 4, paddingBottom: 8 }}>
+        <Copy size={13} muted>
+          {cur
+            ? "Saved straight away. Undo from the toast."
+            : "Pick what to log. Works offline and when AI is off."}
+        </Copy>
+        {!cur ? (
+          <View style={{ gap: 10 }}>
+            {rowsOf(types, 3).map((row) => (
+              <View key={row[0].v} style={{ flexDirection: "row", gap: 10 }}>
+                {row.map((x) => (
+                  <Tap
+                    key={x.v}
+                    label={`Add ${x.label.toLowerCase()}`}
+                    onPress={() => setType(x.v)}
+                    style={{
+                      flex: 1,
+                      minHeight: 88,
+                      paddingVertical: 14,
+                      paddingHorizontal: 8,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 8,
+                      borderRadius: 16,
+                      borderWidth: 1,
+                      borderColor: t.line,
+                      backgroundColor: t.card,
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 40,
+                        height: 40,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderRadius: 12,
+                        backgroundColor: `${t[x.accent]}26`,
+                      }}
+                    >
+                      <x.I size={20} color={t[x.accent]} />
+                    </View>
+                    <Copy
+                      size={13}
+                      weight="medium"
+                      style={{ textAlign: "center" }}
+                    >
+                      {x.label}
+                    </Copy>
+                  </Tap>
+                ))}
               </View>
-              <Copy size={14} weight="medium">
-                {x.label}
-              </Copy>
-            </Tap>
-          ))}
-        </View>
-      ) : (
-        <AccentContext.Provider value={cur.accent}>
-          <QuickForm key={cur.v} type={cur.v} onDone={onClose} />
-        </AccentContext.Provider>
-      )}
+            ))}
+          </View>
+        ) : (
+          <AccentContext.Provider value={cur.accent}>
+            <QuickForm key={cur.v} type={cur.v} onDone={onClose} />
+          </AccentContext.Provider>
+        )}
+      </View>
     </Sheet>
   )
+}
+function rowsOf<T>(xs: readonly T[], n: number): T[][] {
+  const out: T[][] = []
+  for (let i = 0; i < xs.length; i += n) out.push(xs.slice(i, i + n))
+  return out
 }
 function QuickForm({ type, onDone }: { type: string; onDone: () => void }) {
   const fin = finStore.use((s) => s),
@@ -213,7 +230,7 @@ function QuickForm({ type, onDone }: { type: string; onDone: () => void }) {
         (h) => h.status === "active" && isDue(h, dayKey()),
       )
     return (
-      <>
+      <View style={{ gap: 8 }}>
         {rows.map((h) => {
           const done = index.get(lk(h.id, dayKey()))?.status === "done"
           return (
@@ -232,7 +249,9 @@ function QuickForm({ type, onDone }: { type: string; onDone: () => void }) {
                   )
               }}
               style={{
-                paddingHorizontal: 12,
+                minHeight: 56,
+                justifyContent: "center",
+                paddingHorizontal: 14,
                 paddingVertical: 10,
                 borderWidth: 1,
                 borderColor: t.line,
@@ -264,11 +283,11 @@ function QuickForm({ type, onDone }: { type: string; onDone: () => void }) {
           )
         })}
         {!rows.length && <Copy muted>Nothing due today.</Copy>}
-      </>
+      </View>
     )
   }
   return (
-    <>
+    <View style={{ gap: 14 }}>
       {type === "task" ? (
         <>
           <Field
@@ -378,6 +397,6 @@ function QuickForm({ type, onDone }: { type: string; onDone: () => void }) {
           </Button>
         </View>
       </Line>
-    </>
+    </View>
   )
 }

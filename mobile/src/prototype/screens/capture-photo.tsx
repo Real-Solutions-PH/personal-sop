@@ -9,23 +9,22 @@ import {
   Dumbbell,
   FileText,
   Image as ImageIcon,
-  Paperclip,
   Receipt,
   Sparkles,
   Tag,
-  Upload,
   Utensils,
   X,
 } from "lucide-react-native"
 import { useState } from "react"
 import { Image, ScrollView, View } from "react-native"
 import { toast } from "sonner-native"
-import { pickPhoto } from "../media"
+import { pickPhoto, pickPhotos } from "../media"
 import { Copy, IconTap, Line, Tap } from "../native-kit"
 import { go } from "../navigation"
 import { useTheme } from "../theme"
-import { Button, Choices, Field, Sheet } from "../ui"
+import { Button, Field, Sheet } from "../ui"
 
+const MAX_PHOTOS = 10
 const hints = [
   { v: "auto", label: "Auto", I: Sparkles },
   { v: "meal", label: "Meal", I: Utensils },
@@ -49,226 +48,209 @@ export function CapturePhoto({
       hints.find((h) => h.v === initialHint)?.v ??
         (initialHint === "expense" ? "receipt" : "auto"),
     ),
-    [photo, setPhoto] = useState<string | null>(null),
+    [photos, setPhotos] = useState<string[]>([]),
     [caption, setCaption] = useState("")
+  const add = (more: string[]) =>
+    setPhotos((cur) => [...cur, ...more].slice(0, MAX_PHOTOS))
   return (
     <Sheet title="Snap it" open onClose={onClose}>
-      <Copy size={14} muted>
-        Meals, receipts, labels, gym boards. Tell me what it is if you know.
-      </Copy>
-      {!allowed && (
-        <Tap
-          onPress={() => {
-            onClose()
-            closeCapture()
-            go("/capture/settings")
-          }}
-        >
-          <Copy size={14} style={{ color: t.warn }}>
-            Photo sending is off in AI settings. Use text or quick add instead.
-          </Copy>
-        </Tap>
-      )}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 8 }}
-      >
-        {hints.map((h) => (
+      {/* Sheet stacks its children flush; space the sections evenly. */}
+      <View style={{ gap: 14 }}>
+        <Copy size={14} muted>
+          Meals, receipts, labels, gym boards. Tell me what it is if you know.
+        </Copy>
+        {!allowed && (
           <Tap
-            key={h.v}
-            onPress={() => setHint(h.v)}
-            style={{
-              height: 44,
-              borderRadius: 22,
-              paddingHorizontal: 12,
-              backgroundColor: hint === h.v ? t.primary : t.soft,
-              justifyContent: "center",
+            onPress={() => {
+              onClose()
+              closeCapture()
+              go("/capture/settings")
             }}
           >
-            <Line style={{ gap: 6 }}>
-              <h.I size={16} color={hint === h.v ? t.onPrimary : t.text} />
-              <Copy
-                size={14}
-                style={{ color: hint === h.v ? t.onPrimary : t.text }}
-              >
-                {h.label}
-              </Copy>
-            </Line>
+            <Copy size={14} style={{ color: t.warn }}>
+              Photo sending is off in AI settings. Use text or quick add
+              instead.
+            </Copy>
           </Tap>
-        ))}
-      </ScrollView>
-      {photo ? (
-        <View
-          style={{
-            backgroundColor: t.soft,
-            borderRadius: 16,
-            overflow: "hidden",
-          }}
+        )}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 8 }}
+          style={{ flexGrow: 0 }}
         >
-          <Image
-            source={{ uri: photo }}
-            accessibilityLabel="Preview"
-            style={{ width: "100%", height: 256 }}
-            resizeMode="contain"
-          />
-          <View style={{ position: "absolute", top: 8, right: 8 }}>
-            <IconTap
-              icon={X}
-              label="Remove photo"
-              background="#0009"
-              color="#fff"
-              onPress={() => setPhoto(null)}
-            />
-          </View>
-        </View>
-      ) : (
-        <Line style={{ gap: 8 }}>
-          {[
-            { label: "Take photo", I: Camera, camera: true },
-            { label: "Library", I: ImageIcon, camera: false },
-          ].map((x) => (
+          {hints.map((h) => (
             <Tap
-              key={x.label}
-              onPress={() =>
-                void pickPhoto(x.camera).then((v) => {
-                  if (v) setPhoto(v)
-                })
-              }
+              key={h.v}
+              onPress={() => setHint(h.v)}
               style={{
-                flex: 1,
-                height: 128,
-                borderRadius: 16,
-                borderWidth: 1,
-                borderStyle: "dashed",
-                borderColor: t.line,
-                backgroundColor: t.soft,
-                alignItems: "center",
+                height: 44,
+                borderRadius: 22,
+                paddingHorizontal: 12,
+                backgroundColor: hint === h.v ? t.primary : t.soft,
                 justifyContent: "center",
-                gap: 8,
               }}
             >
-              <x.I size={28} color={t.primary} />
-              <Copy size={14} weight="medium">
-                {x.label}
-              </Copy>
+              <Line style={{ gap: 6 }}>
+                <h.I size={16} color={hint === h.v ? t.onPrimary : t.text} />
+                <Copy
+                  size={14}
+                  style={{ color: hint === h.v ? t.onPrimary : t.text }}
+                >
+                  {h.label}
+                </Copy>
+              </Line>
             </Tap>
           ))}
-        </Line>
-      )}
-      <Field
-        label="Caption"
-        value={caption}
-        onChangeText={setCaption}
-        placeholder={
-          hint === "meal"
-            ? "Add a caption, e.g. “half rice, 2 pcs adobo”"
-            : "Add a caption (optional)"
-        }
-      />
-      <Copy size={11} muted>
-        Receipts stay attached to their expense. Photos are only sent to the AI
-        when you attach them.
-      </Copy>
-      <Button
-        disabled={!photo || !allowed}
-        onPress={() => {
-          if (!photo || !allowed) return
-          const id = sendCapture({
-            source: "photo",
-            photo,
-            hint,
-            text: caption,
-          })
-          onClose()
-          onSent?.(id)
-        }}
-      >
-        Send photo
-      </Button>
+        </ScrollView>
+        {photos.length > 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 8 }}
+            style={{ flexGrow: 0 }}
+          >
+            {photos.map((uri, i) => (
+              <View
+                key={`${i}-${uri.length}`}
+                style={{
+                  width: 112,
+                  height: 140,
+                  borderRadius: 14,
+                  overflow: "hidden",
+                  backgroundColor: t.soft,
+                }}
+              >
+                <Image
+                  source={{ uri }}
+                  accessibilityLabel={`Photo ${i + 1}`}
+                  style={{ width: "100%", height: "100%" }}
+                  resizeMode="cover"
+                />
+                <View style={{ position: "absolute", top: 4, right: 4 }}>
+                  <IconTap
+                    icon={X}
+                    size={32}
+                    label={`Remove photo ${i + 1}`}
+                    background="#0009"
+                    color="#fff"
+                    onPress={() =>
+                      setPhotos((cur) => cur.filter((_, j) => j !== i))
+                    }
+                  />
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+        )}
+        {photos.length < MAX_PHOTOS && (
+          <Line style={{ gap: 8 }}>
+            {[
+              { label: "Take photo", I: Camera, camera: true },
+              {
+                label: photos.length ? "Add from library" : "Library",
+                I: ImageIcon,
+                camera: false,
+              },
+            ].map((x) => (
+              <Tap
+                key={x.label}
+                onPress={() =>
+                  x.camera
+                    ? void pickPhoto(true).then((v) => v && add([v]))
+                    : void pickPhotos(MAX_PHOTOS - photos.length).then(add)
+                }
+                style={{
+                  flex: 1,
+                  height: photos.length ? 64 : 128,
+                  borderRadius: 16,
+                  borderWidth: 1,
+                  borderStyle: "dashed",
+                  borderColor: t.line,
+                  backgroundColor: t.soft,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                }}
+              >
+                <x.I size={photos.length ? 20 : 28} color={t.primary} />
+                <Copy size={14} weight="medium">
+                  {x.label}
+                </Copy>
+              </Tap>
+            ))}
+          </Line>
+        )}
+        <Field
+          label="Caption"
+          value={caption}
+          onChangeText={setCaption}
+          placeholder={
+            hint === "meal"
+              ? "Add a caption, e.g. “half rice, 2 pcs adobo”"
+              : "Add a caption (optional)"
+          }
+        />
+        <Copy size={11} muted>
+          Receipts stay attached to their expense. Photos are only sent to the
+          AI when you attach them.
+        </Copy>
+        <Button
+          disabled={!photos.length || !allowed}
+          onPress={() => {
+            if (!photos.length || !allowed) return
+            // One capture for all the photos: they are read together.
+            const id = sendCapture({
+              source: "photo",
+              photo: photos[0],
+              photos: photos.slice(1),
+              hint,
+              text: caption,
+            })
+            onClose()
+            if (photos.length > 1) toast.success(`Sent ${photos.length} photos`)
+            onSent?.(id)
+          }}
+        >
+          {photos.length > 1 ? `Send ${photos.length} photos` : "Send photo"}
+        </Button>
+      </View>
     </Sheet>
   )
 }
-export function CaptureFile({
-  onClose,
-  onSent,
-}: {
-  onClose: () => void
-  onSent?: (id: string) => void
-}) {
-  const t = useTheme(),
-    accounts = finStore.use((s) => s.accounts),
-    [account, setAccount] = useState("gcash"),
-    [file, setFile] = useState<DocumentPicker.DocumentPickerAsset>()
-  return (
-    <Sheet title="Attach a statement" open onClose={onClose}>
-      <Copy size={14} muted>
-        PDF, CSV or a screenshot. Finance's import does the matching — nothing
-        changes until you review.
-      </Copy>
-      <Tap
-        onPress={() =>
-          void DocumentPicker.getDocumentAsync({
-            type: ["application/pdf", "text/csv", "image/*"],
-            copyToCacheDirectory: true,
-          })
-            .then((r) => {
-              if (!r.canceled) setFile(r.assets[0])
-            })
-            .catch(() => toast.error("Could not open the file picker"))
-        }
-        style={{
-          borderRadius: 16,
-          borderWidth: 1,
-          borderStyle: "dashed",
-          borderColor: file ? t.fin : t.line,
-          padding: 16,
-          backgroundColor: t.soft,
-        }}
-      >
-        <Line>
-          {file ? (
-            <FileText size={32} color={t.fin} />
-          ) : (
-            <Upload size={32} color={t.muted} />
-          )}
-          <View style={{ flex: 1 }}>
-            <Copy weight="medium" lines={1}>
-              {file?.name ?? "Choose a file"}
-            </Copy>
-            <Copy size={12} muted>
-              {file
-                ? `${Math.max(1, Math.round((file.size ?? 0) / 1024))} KB`
-                : "GCash / Maya / BPI statements work best"}
-            </Copy>
-          </View>
-          <Paperclip size={16} color={t.muted} />
-        </Line>
-      </Tap>
-      <Choices
-        label="This is a statement for"
-        value={account}
-        onChange={setAccount}
-        options={accounts
-          .filter((a) => !a.archived && a.type !== "investment")
-          .map((a) => ({ value: a.id, label: a.name }))}
-      />
-      <Button
-        disabled={!file}
-        onPress={() => {
-          if (!file) return
-          const id = sendCapture({
-            source: "file",
-            fileName: file.name,
-            text: `Statement for ${account}`,
-            hint: account,
-          })
-          onClose()
-          onSent?.(id)
-        }}
-      >
-        Hand off to Finance import
-      </Button>
-    </Sheet>
+/** The paperclip: the device's file picker straight away, several files
+ * at once, each sent as its own capture. No sheet in between: iOS cannot
+ * present the picker over a sheet that is still opening. */
+export async function attachFiles(onSent?: (id: string) => void) {
+  let picked: DocumentPicker.DocumentPickerResult
+  try {
+    picked = await DocumentPicker.getDocumentAsync({
+      type: ["application/pdf", "text/csv", "image/*"],
+      copyToCacheDirectory: true,
+      multiple: true,
+    })
+  } catch {
+    toast.error("Couldn't open your files. Try again.")
+    return
+  }
+  if (picked.canceled || !picked.assets.length) return
+  const account = finStore
+    .get()
+    .accounts.find((a) => !a.archived && a.type !== "investment")
+  const ids = picked.assets.map((file) =>
+    sendCapture({
+      source: "file",
+      fileName: file.name,
+      fileUri: file.uri,
+      fileMime: file.mimeType,
+      text: `Attached ${file.name}`,
+      hint: account?.id,
+    }),
   )
+  toast.success(
+    ids.length > 1
+      ? `Sent ${ids.length} files`
+      : `Sent ${picked.assets[0].name}`,
+  )
+  onSent?.(ids[ids.length - 1])
 }

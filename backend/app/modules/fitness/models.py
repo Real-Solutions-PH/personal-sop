@@ -166,6 +166,13 @@ class MacroTarget(OwnedRow, table=True):
             "kcal >= 0 AND protein >= 0 AND carbs >= 0 AND fat >= 0",
             name="ck_macro_target_nonneg",
         ),
+        CheckConstraint(
+            "(sat_fat_max_g IS NULL OR sat_fat_max_g >= 0)"
+            " AND (sugar_max_g IS NULL OR sugar_max_g >= 0)"
+            " AND (sodium_max_mg IS NULL OR sodium_max_mg >= 0)"
+            " AND (fiber_g IS NULL OR fiber_g >= 0)",
+            name="ck_macro_target_limits_nonneg",
+        ),
     )
 
     effective_from: date
@@ -173,6 +180,12 @@ class MacroTarget(OwnedRow, table=True):
     protein: float = Field(sa_type=Float)
     carbs: float = Field(sa_type=Float)
     fat: float = Field(sa_type=Float)
+    # Daily limits to stay under (saturated fat and sugar in grams, sodium in
+    # mg) and the fiber goal in grams. NULL means the WHO default.
+    sat_fat_max_g: float | None = Field(default=None, sa_type=Float)
+    sugar_max_g: float | None = Field(default=None, sa_type=Float)
+    sodium_max_mg: float | None = Field(default=None, sa_type=Float)
+    fiber_g: float | None = Field(default=None, sa_type=Float)
 
 
 class Meal(OwnedRow, table=True):
@@ -208,6 +221,11 @@ class MealItem(OwnedRow, table=True):
             "kcal >= 0 AND protein >= 0 AND carbs >= 0 AND fat >= 0",
             name="ck_meal_item_nonneg",
         ),
+        CheckConstraint(
+            "(fiber IS NULL OR fiber >= 0) AND (sat_fat IS NULL OR sat_fat >= 0)"
+            " AND (sugar IS NULL OR sugar >= 0) AND (sodium IS NULL OR sodium >= 0)",
+            name="ck_meal_item_detail_nonneg",
+        ),
     )
 
     meal_id: uuid.UUID = Field(foreign_key="meal.id", ondelete="CASCADE", index=True)
@@ -220,6 +238,11 @@ class MealItem(OwnedRow, table=True):
     carbs: float = Field(sa_type=Float)
     fat: float = Field(sa_type=Float)
     assumption: str | None = Field(default=None, max_length=280)
+    # Optional detail: fiber, saturated fat and sugar in grams; sodium in mg.
+    fiber: float | None = Field(default=None, sa_type=Float)
+    sat_fat: float | None = Field(default=None, sa_type=Float)
+    sugar: float | None = Field(default=None, sa_type=Float)
+    sodium: float | None = Field(default=None, sa_type=Float)
 
 
 class FitnessSettings(OwnedRow, table=True):

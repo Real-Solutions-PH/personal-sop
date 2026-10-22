@@ -114,6 +114,11 @@ class MacroTargetPublic(_Row):
     protein: float
     carbs: float
     fat: float
+    # Limits and the fiber goal; None means the WHO default.
+    sat_fat_max_g: float | None = None
+    sugar_max_g: float | None = None
+    sodium_max_mg: float | None = None
+    fiber_g: float | None = None
 
 
 class MealPublic(_Row):
@@ -138,6 +143,10 @@ class MealItemPublic(_Row):
     carbs: float
     fat: float
     assumption: str | None
+    fiber: float | None = None
+    sat_fat: float | None = None
+    sugar: float | None = None
+    sodium: float | None = None
 
 
 class FitnessSettingsPublic(_Row):
@@ -219,6 +228,10 @@ class MacroTargetIn(BaseModel):
     protein: float | None = OptMacro
     carbs: float | None = OptMacro
     fat: float | None = OptMacro
+    sat_fat_max_g: float | None = OptMacro
+    sugar_max_g: float | None = OptMacro
+    sodium_max_mg: float | None = OptMacro
+    fiber_g: float | None = OptMacro
 
 
 class MealIn(BaseModel):
@@ -242,6 +255,10 @@ class MealItemIn(BaseModel):
     carbs: float | None = OptMacro
     fat: float | None = OptMacro
     assumption: str | None = Field(default=None, max_length=280)
+    fiber: float | None = OptMacro
+    sat_fat: float | None = OptMacro
+    sugar: float | None = OptMacro
+    sodium: float | None = Field(default=None, ge=0, le=100000)
 
 
 class FitnessSettingsIn(BaseModel):
@@ -433,11 +450,19 @@ class DuplicateMeal(BaseModel):
     id: uuid.UUID | None = None
 
 
+LIMIT_FIELDS = ("sat_fat_max_g", "sugar_max_g", "sodium_max_mg", "fiber_g")
+
+
 class TargetSet(BaseModel):
     kcal: float = Macro
     protein: float = Macro
     carbs: float = Macro
     fat: float = Macro
+    # Omitted or null: the WHO default.
+    sat_fat_max_g: float | None = OptMacro
+    sugar_max_g: float | None = OptMacro
+    sodium_max_mg: float | None = OptMacro
+    fiber_g: float | None = OptMacro
 
 
 # --------------------------------------------------------------------------

@@ -25,8 +25,9 @@ import {
 } from "../native-kit"
 import { go } from "../navigation"
 import { useTheme } from "../theme"
-import { Button, Screen } from "../ui"
+import { Button } from "../ui"
 import { Ring } from "../visual"
+import { StatsShell } from "./stats-shell"
 export const RANGE_LABEL: Record<string, string> = {
   "7": "this week",
   "30": "this month",
@@ -70,7 +71,7 @@ export function TaskBars({
     </Line>
   )
 }
-export function TaskStats() {
+export function TaskStats({ embedded = false }: { embedded?: boolean }) {
   const t = useTheme(),
     [range, setRange] = useState("7"),
     s = useStats(Number(range)),
@@ -113,7 +114,8 @@ export function TaskStats() {
     </View>
   )
   return (
-    <Screen
+    <StatsShell
+      embedded={embedded}
       title="Task stats"
       actions={
         <IconTap
@@ -371,6 +373,6 @@ export function TaskStats() {
       <Button icon={Share2} href={`/tasks/share?range=${range}`}>
         {`Share ${RANGE_LABEL[range]}`}
       </Button>
-    </Screen>
+    </StatsShell>
   )
 }

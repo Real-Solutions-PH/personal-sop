@@ -9,18 +9,11 @@ import { Stepper } from "../fitness-controls"
 import { Copy, Line, Tap } from "../native-kit"
 import { useTheme } from "../theme"
 import { Button, Field, Sheet } from "../ui"
-import { Body } from "./fitness-body"
-import { Nutrition } from "./fitness-nutrition"
 import { FitnessTrain } from "./fitness-train"
 export function FitnessHome() {
-  const p = useLocalSearchParams<{ tab?: string; day?: string }>()
-  return p.tab === "eat" ? (
-    <Nutrition day={p.day} />
-  ) : p.tab === "body" ? (
-    <Body hub />
-  ) : (
-    <FitnessTrain />
-  )
+  // Old links still carry ?tab=eat|body; the page now holds every section.
+  const p = useLocalSearchParams<{ day?: string }>()
+  return <FitnessTrain day={p.day} />
 }
 export function ExerciseEditor({
   exercise,

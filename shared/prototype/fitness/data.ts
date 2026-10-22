@@ -81,7 +81,15 @@ export interface Macros {
   carbs: number
   fat: number
 }
-export interface MacroTarget extends Macros {
+/** The user's own daily limits and fiber goal; a key left out reads as
+ * the WHO default (see ./limits). */
+export interface NutrientLimits {
+  satFatMax?: number
+  sugarMax?: number
+  sodiumMax?: number
+  fiberGoal?: number
+}
+export interface MacroTarget extends Macros, NutrientLimits {
   id: string
   effectiveFrom: string
 }
@@ -94,6 +102,11 @@ export interface MealItem extends Macros {
   qty: number
   unit: string
   assumption?: string
+  /** Optional detail: grams (sodium in milligrams); absent = unknown. */
+  fiber?: number
+  satFat?: number
+  sugar?: number
+  sodium?: number
 }
 export interface Meal {
   id: string

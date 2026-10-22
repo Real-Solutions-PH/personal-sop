@@ -131,4 +131,7 @@ def snapshot(ctx: Ctx) -> dict[str, Any]:
         "open_tasks_total" if open_total < OPEN_TASKS_SCANNED else "open_tasks_at_least"
     )
     out[key] = open_total
+    # Today's food against the macro target, and the latest weigh-in, so
+    # "what's my macro status?" is answered from the user's own data.
+    out["nutrition_today"] = fitness.nutrition_today(ctx)
     return out

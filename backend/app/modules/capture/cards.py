@@ -57,6 +57,11 @@ TARGET_OF = {
     "meal": "fitness",
     "photo": "fitness",
     "journal": "journal",
+    "accountCreate": "finance",
+    "budgetCreate": "finance",
+    "routineCreate": "habits",
+    "templateCreate": "fitness",
+    "listCreate": "tasks",
 }
 SAVE_FAILED = "Couldn't save — try again or edit."
 # Refusals a person can act on: the owning module's code and its message,
@@ -694,6 +699,22 @@ def answer_row(ctx: Ctx, card: RecordCard, value: str) -> Answered:
         p["confidence"] = min(0.95, float(p.get("confidence") or 0.5) + 0.1)
     elif kind == "habitLog" and field == "habit_id":
         p["habit_id"] = value
+    elif kind == "meal":
+        # A photo meal's own follow-up ("does the 160 g include bones?"):
+        # the estimate is redone with the answer, never refused.
+        from app.modules.capture import photo
+
+        question = str(card.ask.get("question") or "")
+        got = photo.refine_meal(ctx, list(p.get("items") or []), question, value)
+        if got is not None:
+            p["items"], conf = got
+            p["confidence"] = min(0.95, max(conf, float(p.get("confidence") or 0)))
+        else:
+            items = list(p.get("items") or [])
+            if items:
+                note = f"{question} {value}".strip()[:200]
+                items[0] = {**items[0], "assumption": note}
+            p["items"] = items
     else:
         raise invalid("answer_not_understood", "That answer doesn't fit this question")
     meta = _meta(ctx, card)

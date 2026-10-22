@@ -4,7 +4,7 @@ import uuid
 from datetime import date, datetime
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.modules.companion.models import METRICS
 
@@ -23,10 +23,18 @@ assert set(METRICS) == set(Metric.__args__)  # type: ignore[attr-defined]
 
 
 class AskIn(BaseModel):
-    text: Annotated[str, Field(min_length=1, max_length=4000)]
+    text: Annotated[str, Field(max_length=4000)] = ""
     # The device mints the user message's id: a replayed ask answers once.
     id: uuid.UUID | None = None
     hint: Annotated[str, Field(max_length=20)] | None = None
+    # Photos sent with the message (uploaded to media first).
+    media_ids: list[uuid.UUID] = Field(default_factory=list, max_length=10)
+
+    @model_validator(mode="after")
+    def _something(self) -> "AskIn":
+        if not self.text.strip() and not self.media_ids:
+            raise ValueError("Type a message or attach a photo")
+        return self
 
 
 class MessagePublic(BaseModel):

@@ -57,6 +57,7 @@ class CaptureSync(BaseModel):
     hint: Annotated[str, Field(max_length=10)] | None = None
     file_name: Annotated[str, Field(max_length=255)] | None = None
     media_id: uuid.UUID | None = None
+    extra_media_ids: list[uuid.UUID] | None = Field(default=None, max_length=9)
     account_id: uuid.UUID | None = None
 
 

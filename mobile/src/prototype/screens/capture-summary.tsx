@@ -1,11 +1,13 @@
 import type { RecordCard } from "@domain/capture/data"
 import { finStore } from "@domain/finance/store"
+import { detailTotals } from "@domain/fitness/limits"
 import { habitsStore } from "@domain/habits/store"
 import { tasksStore } from "@domain/tasks/store"
 import { View } from "react-native"
 import { border, Copy, Line, Tap } from "../native-kit"
 import { useTheme } from "../theme"
 import { useMoney } from "./finance"
+import { LimitList } from "./nutrient-limits"
 export function CaptureSummary({
   card,
   onAccount,
@@ -274,8 +276,9 @@ export function CaptureSummary({
         }),
         { kcal: 0, p: 0, c: 0, f: 0 },
       )
+      const extra = detailTotals(p.items)
       return (
-        <View>
+        <View style={{ gap: 10 }}>
           <Line style={{ gap: 8, alignItems: "baseline" }}>
             <Copy size={30} weight="displayMedium">
               {Math.round(tot.kcal)}
@@ -291,49 +294,60 @@ export function CaptureSummary({
               {p.label}
             </Copy>
           </Line>
-          <Line style={{ gap: 12 }}>
-            <Copy size={12}>
-              <Copy size={12} weight="semibold" style={{ color: t.fit }}>
-                P
-              </Copy>{" "}
-              {Math.round(tot.p)}g
-            </Copy>
-            <Copy size={12} muted>
-              C {Math.round(tot.c)}g
-            </Copy>
-            <Copy size={12} muted>
-              F {Math.round(tot.f)}g
-            </Copy>
+          {/* Amounts to reach */}
+          <Line style={{ gap: 6, flexWrap: "wrap" }}>
+            <Nutrient label="Protein" value={tot.p} color={t.fit} />
+            <Nutrient label="Carbs" value={tot.c} />
+            <Nutrient label="Fat" value={tot.f} />
+            {extra.fiber !== undefined && (
+              <Nutrient label="Fiber" value={extra.fiber} />
+            )}
             {card.confidence !== undefined && (
               <Copy size={12} muted style={{ marginLeft: "auto" }}>
                 ~{Math.round(card.confidence * 100)}% sure
               </Copy>
             )}
           </Line>
+          {/* Amounts to stay under: a share of the day's limit */}
+          <LimitList detail={extra} scope="meal" only />
           <View
             style={{
-              marginTop: 8,
               paddingTop: 8,
               borderTopWidth: 1,
               borderColor: t.line,
-              gap: 2,
+              gap: 8,
             }}
           >
             {p.items.map((it, i) => (
-              <Line key={i} style={{ gap: 8, justifyContent: "space-between" }}>
-                <Copy size={14} lines={1} style={{ flex: 1 }}>
-                  {it.name}
-                  {it.assumption && (
-                    <Copy size={12} muted>
-                      {" "}
-                      · {it.assumption}
-                    </Copy>
-                  )}
+              <View key={i} style={{ gap: 2 }}>
+                <Line style={{ gap: 8, justifyContent: "space-between" }}>
+                  <Copy size={14} weight="medium" lines={1} style={{ flex: 1 }}>
+                    {it.name}
+                  </Copy>
+                  <Copy size={14} muted>
+                    {Math.round(it.kcal)} kcal
+                  </Copy>
+                </Line>
+                <Copy size={12} muted>
+                  {[
+                    `P ${fmtG(it.protein)}`,
+                    `C ${fmtG(it.carbs)}`,
+                    `F ${fmtG(it.fat)}`,
+                    it.fiber !== undefined && `Fiber ${fmtG(it.fiber)}`,
+                    it.satFat !== undefined && `Sat fat ${fmtG(it.satFat)}`,
+                    it.sugar !== undefined && `Sugar ${fmtG(it.sugar)}`,
+                    it.sodium !== undefined &&
+                      `Sodium ${Math.round(it.sodium).toLocaleString("en-US")} mg`,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </Copy>
-                <Copy size={14} muted>
-                  {it.kcal}
-                </Copy>
-              </Line>
+                {it.assumption && (
+                  <Copy size={12} muted style={{ fontStyle: "italic" }}>
+                    {it.assumption}
+                  </Copy>
+                )}
+              </View>
             ))}
           </View>
         </View>
@@ -373,4 +387,36 @@ export function CaptureSummary({
     case "command":
       return <Copy size={15}>{p.op}</Copy>
   }
+}
+
+const fmtG = (n: number) => `${Math.round(n * 10) / 10}g`
+
+/** An amount to reach: a plain pill. */
+function Nutrient({
+  label,
+  value,
+  color,
+}: {
+  label: string
+  value: number
+  color?: string
+}) {
+  const t = useTheme()
+  return (
+    <View
+      style={{
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 99,
+        backgroundColor: t.soft,
+      }}
+    >
+      <Copy size={12}>
+        <Copy size={12} weight="semibold" style={{ color: color ?? t.text }}>
+          {label}
+        </Copy>{" "}
+        {fmtG(value)}
+      </Copy>
+    </View>
+  )
 }

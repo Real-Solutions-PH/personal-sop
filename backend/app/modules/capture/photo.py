@@ -18,7 +18,7 @@ three receipts); the server never invents what a photo shows.
 import re
 import uuid
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date as Date
 from typing import Any, Literal
 
@@ -72,6 +72,10 @@ class ItemOut(BaseModel):
     carbs: float = Field(default=0, ge=0, le=2000)
     fat: float = Field(default=0, ge=0, le=2000)
     assumption: str | None = Field(default=None, max_length=200)
+    fiber: float | None = Field(default=None, ge=0, le=2000)
+    sat_fat: float | None = Field(default=None, ge=0, le=2000)
+    sugar: float | None = Field(default=None, ge=0, le=2000)
+    sodium: float | None = Field(default=None, ge=0, le=100000)
 
 
 class FollowOut(BaseModel):
@@ -144,8 +148,10 @@ SYSTEM = (
 PROMPTS: dict[str, str] = {
     "auto": 'What is this photo of? {"hint": "meal|receipt|label|statement|whiteboard|other"}',
     "meal": (
-        "Itemise the meal with estimated macros per item: "
-        '{"items": [{"name", "qty", "unit", "kcal", "protein", "carbs", "fat", "assumption"}], '
+        "Itemise the meal with estimated nutrition per item (grams; sodium in "
+        "milligrams): "
+        '{"items": [{"name", "qty", "unit", "kcal", "protein", "carbs", "fat", '
+        '"fiber", "sat_fat", "sugar", "sodium", "assumption"}], '
         '"confidence": 0-1, "follow_up": {"question", "options": [..]} or null}'
     ),
     "receipt": (
@@ -165,6 +171,38 @@ PROMPTS: dict[str, str] = {
         '[{"name", "sets": [{"reps", "weight"}]}]}'
     ),
 }
+
+
+def refine_meal(
+    ctx: Ctx, items: list[dict[str, Any]], question: str, answer: str
+) -> tuple[list[dict[str, Any]], float] | None:
+    """The meal estimate revised with the person's answer to its follow-up
+    question, by the capture model (or the vision model). None when no
+    model is set up or it fails; the caller keeps the estimate then."""
+    import json
+
+    resolved = ai.resolve_model(ctx, "capture") or ai.resolve_model(ctx, "vision")
+    if resolved is None:
+        return None
+    text = (
+        "Revise this meal estimate with the person's answer. Same JSON shape; "
+        "follow_up must be null.\n"
+        f"Current items: {json.dumps(items, ensure_ascii=False)}\n"
+        f"Question asked: {question}\nTheir answer: {answer}\n" + PROMPTS["meal"]
+    )
+    try:
+        out = seams.ask_json(
+            ctx,
+            resolved,
+            MealOut,
+            system=SYSTEM.format(currency=ctx.currency.phrase),
+            text=text,
+        )
+    except seams.SeamError:
+        return None
+    if not out.items:
+        return None
+    return [i.model_dump(exclude_none=True) for i in out.items], out.confidence
 
 
 # ---------------------------------------------------------------- drafts
@@ -362,6 +400,26 @@ class PhotoEnv:
     image: tuple[bytes, str] | None
     vision: ai.ResolvedModel | None
     text_path: Callable[[str, str], list[Draft]]
+    # The capture's other photos, read together with ``image``.
+    extra: list[tuple[bytes, str]] = field(default_factory=list)
+
+
+def images_of(ctx: Ctx, cap: Capture) -> list[tuple[uuid.UUID, bytes, str]]:
+    """Every photo of the capture, in the order they were attached."""
+    atts = owned_repo.list_rows(
+        ctx,
+        CaptureAttachment,
+        col(CaptureAttachment.capture_id) == cap.id,
+        col(CaptureAttachment.kind) == "image",
+        order_by=[col(CaptureAttachment.created_at)],
+    )
+    out = []
+    for att in atts:
+        m = media.require_ready(ctx, att.media_id, kinds=("image",))
+        out.append(
+            (att.media_id, media.read_bytes(m, max_bytes=seams.IMAGE_MAX_BYTES), m.mime)
+        )
+    return out
 
 
 def image_of(ctx: Ctx, cap: Capture) -> tuple[uuid.UUID, bytes, str] | None:
@@ -440,14 +498,22 @@ def _vision(
     ctx: Ctx, env: PhotoEnv, hint: str, caption: str, schema: type[seams.M]
 ) -> seams.M:
     assert env.vision is not None and env.image is not None
-    text = PROMPTS[hint] + (f"\nThe user says: {caption}" if caption else "")
+    images = [env.image, *env.extra]
+    many = (
+        f"\nThere are {len(images)} photos: read them together as one capture "
+        "(the same meal, receipt or board from several shots, or several of "
+        "them to log)."
+        if len(images) > 1
+        else ""
+    )
+    text = PROMPTS[hint] + many + (f"\nThe user says: {caption}" if caption else "")
     return seams.ask_json(
         ctx,
         env.vision,
         schema,
         system=SYSTEM.format(currency=ctx.currency.phrase),
         text=text,
-        image=env.image,
+        images=images,
     )
 
 
@@ -511,7 +577,7 @@ def _by_vision(
         return [
             _meal_draft(
                 caption,
-                [i.model_dump() for i in m.items],
+                [i.model_dump(exclude_none=True) for i in m.items],
                 m.confidence,
                 m.follow_up.model_dump() if m.follow_up else None,
                 field="portion",

@@ -254,11 +254,28 @@ export function route(raw: string, { record = true } = {}): Route {
 }
 
 /** Send a message to the companion; replies arrive after a short beat. */
-export function ask(text: string, hint?: string) {
+export function ask(text: string, hint?: string, photos?: string[]) {
   const v = text.trim()
-  if (!v) return
+  if (!v && !photos?.length) return
   const live = liveAsk()
-  if (live) return live(v, hint, route(v, { record: false }).kind === "capture")
+  if (live)
+    return live(
+      v,
+      hint,
+      !photos?.length && route(v, { record: false }).kind === "capture",
+      photos,
+    )
+  // On the device, photos go through the photo capture (it reads them).
+  if (photos?.length) {
+    A.sendCapture({
+      text: v,
+      source: "photo",
+      photo: photos[0],
+      photos: photos.slice(1),
+      hint,
+    })
+    return
+  }
   const r = route(v)
   if (r.kind === "capture") {
     A.sendCapture({ text: v, source: "text", hint })

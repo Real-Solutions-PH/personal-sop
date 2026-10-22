@@ -12,10 +12,13 @@ from app.modules.habits.schema import RoutineCreate, StepIn
 from tests.utils.mobile import ctx_for, signed_in
 
 # Noon in Manila today, so every offset below stays clear of the 04:00 rollover.
-_now = datetime.now(timezone.utc)
-NOON = _now.replace(hour=4, minute=0, second=0, microsecond=0)
-if NOON > _now:
-    NOON -= timedelta(days=1)
+# Taken from Manila's calendar date, not UTC's: between 00:00 and 04:00 UTC
+# the UTC date's noon is yesterday in Manila, before the habits created below
+# (stamped with the real clock) exist.
+_manila_today = (datetime.now(timezone.utc) + timedelta(hours=8)).date()
+NOON = datetime(
+    _manila_today.year, _manila_today.month, _manila_today.day, 4, tzinfo=timezone.utc
+)
 
 
 def test_lists_logs_streak_and_world(db: Session) -> None:

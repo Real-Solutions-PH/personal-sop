@@ -23,6 +23,7 @@ import { useTheme } from "../theme"
 import { Button, Empty, Screen, shareText } from "../ui"
 import { useMoney } from "./finance"
 import { FinPill } from "./finance-planned"
+import { StatsShell } from "./stats-shell"
 
 const WD = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
   TITLES: Record<string, string> = {
@@ -38,7 +39,13 @@ const WD = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
     { value: "3m" as const, label: "3 months" },
   ],
   delta = (a: number, b: number) => (b ? Math.round(((a - b) / b) * 100) : 0)
-export function Reports({ kind }: { kind?: string }) {
+export function Reports({
+  kind,
+  embedded = false,
+}: {
+  kind?: string
+  embedded?: boolean
+}) {
   const s = finStore.use((s) => s),
     t = useTheme(),
     money = useMoney(),
@@ -110,7 +117,8 @@ export function Reports({ kind }: { kind?: string }) {
       </Screen>
     )
   return (
-    <Screen
+    <StatsShell
+      embedded={embedded}
       title={kind ? TITLES[kind] : "Reports"}
       actions={
         <IconTap
@@ -131,6 +139,7 @@ export function Reports({ kind }: { kind?: string }) {
         value={p}
         options={PERIODS.map((o) => o.value)}
         onChange={setP}
+        gap={12}
       >
         {kind && (
           <Copy size={12} muted style={{ paddingHorizontal: 4 }}>
@@ -502,6 +511,6 @@ export function Reports({ kind }: { kind?: string }) {
           </Tap>
         )}
       </SwipeSegments>
-    </Screen>
+    </StatsShell>
   )
 }

@@ -21,15 +21,41 @@ export async function pickPhoto(camera = false): Promise<string | null> {
           quality: 0.8,
         })
     if (result.canceled) return null
-    const resized = await ImageManipulator.manipulateAsync(
-      result.assets[0].uri,
-      [{ resize: { width: 512 } }],
-      { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG, base64: true },
-    )
-    return resized.base64 ? `data:image/jpeg;base64,${resized.base64}` : null
+    return await shrink(result.assets[0].uri)
   } catch {
     toast.error("Could not open this image. Try another photo.")
     return null
+  }
+}
+/** Shrinks a picked image to what the AI needs and returns it as data. */
+async function shrink(uri: string): Promise<string | null> {
+  const resized = await ImageManipulator.manipulateAsync(
+    uri,
+    [{ resize: { width: 512 } }],
+    { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG, base64: true },
+  )
+  return resized.base64 ? `data:image/jpeg;base64,${resized.base64}` : null
+}
+/** Several photos from the library at once (up to ``limit``). */
+export async function pickPhotos(limit = 10): Promise<string[]> {
+  try {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 0.8,
+      allowsMultipleSelection: true,
+      selectionLimit: limit,
+      orderedSelection: true,
+    })
+    if (result.canceled) return []
+    const out: string[] = []
+    for (const a of result.assets.slice(0, limit)) {
+      const data = await shrink(a.uri)
+      if (data) out.push(data)
+    }
+    return out
+  } catch {
+    toast.error("Could not open these images. Try other photos.")
+    return []
   }
 }
 export async function copyText(text: string) {
@@ -70,5 +96,29 @@ export async function exportCsv(name: string, rows: string[][]) {
     else await Share.share({ message: content })
   } catch {
     toast.error("Export failed. Please try again.")
+  }
+}
+/** Hands a JSON document to the share sheet as a file (web: as text).
+ * Resolves false when it could not be shared. */
+export async function exportJson(name: string, value: unknown) {
+  try {
+    const content = JSON.stringify(value, null, 2)
+    if (Platform.OS === "web") {
+      await Share.share({ message: content })
+      return true
+    }
+    const { File, Paths } = await import("expo-file-system")
+    const file = new File(Paths.cache, name)
+    if (file.exists) file.delete()
+    file.write(content)
+    if (await Sharing.isAvailableAsync())
+      await Sharing.shareAsync(file.uri, {
+        mimeType: "application/json",
+        dialogTitle: "Export my data",
+      })
+    else await Share.share({ message: content })
+    return true
+  } catch {
+    return false
   }
 }

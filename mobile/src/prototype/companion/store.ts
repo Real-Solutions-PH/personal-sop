@@ -26,6 +26,9 @@ export type Block =
   | { t: "memory" }
   | { t: "chips"; prompts: string[] }
   | { t: "steps"; items: StepItem[] }
+  /** Photos sent with a message: media ids, and links when known (local
+   * while sending, signed by the server when read). */
+  | { t: "photos"; media?: string[]; urls?: (string | null)[] }
 
 /** One thing Fern did during a reply: a tool call, running or finished
  * (ADR-0015). A write carries its card, so the row can offer Undo or
@@ -58,6 +61,8 @@ const STEP_LABELS: Record<string, string> = {
   log_workout: "Logging a workout",
   log_weigh_in: "Logging your weight",
   log_meal: "Logging a meal",
+  web_search: "Searching the web",
+  read_photos: "Looking at your photos",
   save_journal: "Saving to your journal",
   edit_last: "Changing the last entry",
   delete_last: "Removing the last entry",
@@ -142,12 +147,25 @@ export type AskBackend = (
   text: string,
   hint: string | undefined,
   routedToCapture: boolean,
+  photos?: string[],
 ) => void
 let askBackend: AskBackend | null = null
 export const setAskBackend = (b: AskBackend | null) => {
   askBackend = b
 }
 export const liveAsk = () => askBackend
+
+/** The next message was spoken (dictated): its reply is read aloud as soon
+ * as it arrives, the way voice chat works in other assistants. */
+let voiceTurn = false
+export const markVoiceTurn = () => {
+  voiceTurn = true
+}
+export const takeVoiceTurn = () => {
+  const v = voiceTurn
+  voiceTurn = false
+  return v
+}
 
 /** Transient "Fern is thinking" indicator; not persisted. */
 export const thinking = create<{ on: boolean }>(() => ({ on: false }))

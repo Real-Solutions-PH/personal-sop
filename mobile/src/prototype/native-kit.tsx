@@ -175,7 +175,7 @@ export function SmallButton({
         justifyContent: "center",
       }}
     >
-      <Line style={{ gap: 6 }}>
+      <Line style={{ gap: 6, justifyContent: "center" }}>
         {Icon && <Icon size={16} color={quiet ? t.text : t.onPrimary} />}
         <Copy
           size={small ? 12 : 14}
@@ -196,6 +196,10 @@ export function Frame({
   style?: ViewStyle
 }) {
   const t = useTheme()
+  // A padded card holds content (text, then a button), so its children get
+  // room between them. Unpadded or lightly padded cards hold divided rows,
+  // which space themselves. An explicit `gap` in `style` wins.
+  const pad = typeof style?.padding === "number" ? style.padding : 0
   return (
     <View
       style={{
@@ -204,6 +208,7 @@ export function Frame({
         borderColor: border(t.line, 0.6),
         backgroundColor: t.card,
         overflow: "hidden",
+        gap: pad >= 16 ? 10 : pad >= 12 ? 6 : undefined,
         ...style,
       }}
     >

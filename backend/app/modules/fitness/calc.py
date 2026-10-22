@@ -111,6 +111,10 @@ class Macros:
 class TargetS(Macros):
     id: str = ""
     effective_from: date = date.min
+    sat_fat_max_g: float | None = None
+    sugar_max_g: float | None = None
+    sodium_max_mg: float | None = None
+    fiber_g: float | None = None
 
 
 @dataclass

@@ -543,7 +543,7 @@ export function Profile({ id }: { id: string }) {
           numColumns={3}
           keyExtractor={(p) => p.id}
           columnWrapperStyle={{ gap: 1.5 }}
-          contentContainerStyle={{ gap: 1.5, paddingBottom: safe.bottom + 24 }}
+          contentContainerStyle={{ gap: 1.5, paddingBottom: safe.bottom + 64 }}
           ListHeaderComponent={
             <View>
               <View
@@ -976,7 +976,7 @@ export function Follows({
       <FlatList
         data={list}
         keyExtractor={(p) => p.id}
-        contentContainerStyle={{ paddingBottom: safe.bottom + 24 }}
+        contentContainerStyle={{ paddingBottom: safe.bottom + 64 }}
         renderItem={({ item, index }) => (
           <Animated.View entering={FadeInDown.delay(index * 40)}>
             <View

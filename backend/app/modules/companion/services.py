@@ -24,7 +24,7 @@ from sqlmodel import col
 
 from app.modules.ai_providers import public as ai
 from app.modules.capture import public as capture
-from app.modules.companion import brain, grounding
+from app.modules.companion import brain, grounding, web
 from app.modules.companion.defaults import COMPANION_NAME
 from app.modules.companion.models import Companion, CompanionMessage, Memory, Tracker
 from app.modules.companion.schema import (
@@ -35,7 +35,8 @@ from app.modules.companion.schema import (
     SeriesOut,
     TrackerIn,
 )
-from app.modules.companion.turn import TurnStream
+from app.modules.companion.turn import NOTHING_WAITING, TurnStream
+from app.modules.fitness import public as fitness
 from app.modules.profile import public as profile
 from app.modules.stats import public as stats
 from app.shared import owned_repo
@@ -182,10 +183,45 @@ def _message(
     )
 
 
+def speak_message(ctx: Ctx, message_id: uuid.UUID) -> bytes:
+    """One of Fern's replies read aloud (MP3). Only a stored reply of the
+    caller's can be spoken, never arbitrary text."""
+    m = owned_repo.get(ctx, CompanionMessage, message_id)
+    if m is None or m.role != "sol":
+        raise HTTPException(status_code=404, detail="Message not found")
+    text = (m.text or "").strip()
+    if not text:
+        raise HTTPException(status_code=422, detail="That reply has no text")
+    audio = capture.speak_text(ctx, text)
+    ctx.commit()
+    return audio
+
+
 def _pub(ctx: Ctx, m: CompanionMessage) -> MessagePublic:
     ctx.session.flush()
     ctx.session.refresh(m)
-    return MessagePublic.model_validate(m)
+    out = MessagePublic.model_validate(m)
+    if any(b.get("t") == "photos" for b in out.blocks):
+        out.blocks = [_with_urls(ctx, b) for b in out.blocks]
+    return out
+
+
+def _with_urls(ctx: Ctx, block: dict[str, Any]) -> dict[str, Any]:
+    """A photos block with a fresh presigned link per photo (links expire,
+    so they are signed when the message is read, never stored)."""
+    if block.get("t") != "photos":
+        return block
+    from app.modules.media import public as media
+
+    urls: list[str | None] = []
+    for mid in block.get("media") or []:
+        try:
+            urls.append(
+                media.download_url(media.require_ready(ctx, uuid.UUID(str(mid))))
+            )
+        except Exception:  # noqa: BLE001 - a deleted photo shows as missing
+            urls.append(None)
+    return {**block, "urls": urls}
 
 
 # ---------------------------------------------------------------- ask
@@ -235,8 +271,10 @@ def ask(
     text: str,
     message_id: uuid.UUID | None = None,
     stream: TurnStream | None = None,
+    media_ids: list[uuid.UUID] | None = None,
 ) -> AskOut:
     me_id = message_id or uuid.uuid4()
+    photos = list(dict.fromkeys(media_ids or []))
     if stream is None:
         stream = TurnStream(ctx, thread_id=str(ctx.user_id), run_id=str(me_id))
     sol_id = derived_id("companion-reply", me_id, "sol")
@@ -251,7 +289,15 @@ def ask(
     if resolved is not None:
         try:
             return _ask_ai(
-                ctx, resolved, text, me_id, sol_id, sol.name, user_name, stream
+                ctx,
+                resolved,
+                text,
+                me_id,
+                sol_id,
+                sol.name,
+                user_name,
+                stream,
+                photos=photos,
             )
         except capture.SeamError:
             # The provider failed (metered as a failed call): the router
@@ -319,6 +365,10 @@ class LookupArgs(BaseModel):
     question: Annotated[str, Field(min_length=1, max_length=300)]
 
 
+class WebSearchArgs(BaseModel):
+    query: Annotated[str, Field(min_length=2, max_length=200)]
+
+
 class OverviewArgs(BaseModel):
     days: Annotated[int, Field(ge=1, le=366)] = 30
 
@@ -333,11 +383,72 @@ class SolRun:
     me_id: uuid.UUID
     emit: Emit
     blocks: list[dict[str, Any]] = field(default_factory=list)
+    # What the person said this turn (with any photo reading).
+    said: str = ""
 
     def block(self, b: dict[str, Any]) -> dict[str, Any]:
         self.blocks.append(b)
         self.emit("block", b)
         return {"shown": b["t"]}
+
+
+# Words a search may add to what the person said.
+SEARCH_WORDS = frozenset(
+    "nutrition nutritional calories calorie kcal macros macro protein carbs "
+    "fat fiber sugar sodium facts per serving piece cup grams g price".split()
+)
+
+
+def own_words(query: str, said: str) -> str:
+    """The search query kept to the person's own words plus a few search
+    words: seen live, "Classic Savory chicken" was searched as a "chicken
+    sandwich" the person never said. Falls back to the model's query when
+    the person's words share nothing with it."""
+    theirs = {w.lower() for w in re.findall(r"[\w'-]+", said)}
+    kept = [
+        w
+        for w in query.split()
+        if not re.fullmatch(r"[A-Za-z][\w'-]*", w)
+        or w.lower() in theirs
+        or w.lower() in SEARCH_WORDS
+    ]
+    return " ".join(kept) if len(kept) >= 2 else query
+
+
+def with_day_after(ctx: Ctx, tool: BaseTool) -> BaseTool:
+    """``log_meal`` that also returns the day's totals once this meal is in,
+    computed here, so the reply never adds numbers up itself. A meal waiting
+    for the user's OK is not in the records yet, so its items are added."""
+    inner = tool.func  # type: ignore[attr-defined]
+
+    def log_meal(**kw: Any) -> Any:
+        res = inner(**kw)
+        if not isinstance(res, dict) or res.get("error"):
+            return res
+        day = fitness.nutrition_today(ctx)
+        eaten = dict(day.get("eaten") or {})
+        waiting = res.get("state") in ("proposed", "needs_input")
+        items = kw.get("items") or []
+        if waiting and items:
+            for it in items:
+                for k in ("kcal", "protein", "carbs", "fat"):
+                    v = it.get(k) if isinstance(it, dict) else getattr(it, k, 0)
+                    eaten[k] = round(eaten.get(k, 0) + float(v or 0), 1)
+        out: dict[str, Any] = {"eaten_today_with_this_meal": eaten}
+        if "target" in day:
+            out["left_today"] = {
+                k: round(v - eaten.get(k, 0), 1) for k, v in day["target"].items()
+            }
+        if waiting and not items:
+            out["note"] = "this meal is not counted until they confirm it"
+        return {**res, "day_after_this_meal": out}
+
+    return StructuredTool.from_function(
+        func=log_meal,
+        name=tool.name,
+        description=tool.description,
+        args_schema=tool.args_schema,
+    )
 
 
 def sol_tools(run: SolRun) -> list[BaseTool]:
@@ -413,6 +524,20 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
             if body.get(k)
         }
 
+    def nutrition_status(**kw: Any) -> dict[str, Any]:
+        NoArgs(**kw)
+        # Fresh from the records, so a meal logged earlier in this turn
+        # counts; a meal waiting for the user's OK does not, yet.
+        return fitness.nutrition_today(ctx)
+
+    def web_search(**kw: Any) -> dict[str, Any]:
+        a = WebSearchArgs(**kw)
+        query = own_words(a.query, run.said)
+        try:
+            return {"query": query, "results": web.search(query)}
+        except web.WebSearchError as exc:
+            return {"error": exc.code}
+
     def stats_overview(**kw: Any) -> dict[str, Any]:
         a = OverviewArgs(**kw)
         try:
@@ -430,6 +555,14 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
             ],
         }
 
+    def confirm_pending(**kw: Any) -> dict[str, Any]:
+        NoArgs(**kw)
+        return capture.settle_waiting(ctx, action="confirm")
+
+    def discard_pending(**kw: Any) -> dict[str, Any]:
+        NoArgs(**kw)
+        return capture.settle_waiting(ctx, action="discard")
+
     specs: list[tuple[Callable[..., Any], type[BaseModel], str]] = [
         (show_chart, ChartArgs, "Show a chart of one metric over a number of days."),
         (show_insights, NoArgs, "Show the patterns card from the user's records."),
@@ -445,7 +578,36 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
         (show_memories, NoArgs, "Show what you remember about the user."),
         (suggest, ChipsArgs, "Offer up to four follow-up prompts as chips."),
         (lookup, LookupArgs, "Look up a number in the user's own data."),
+        (
+            nutrition_status,
+            NoArgs,
+            "Today's food against the macro target: eaten (calories, protein, "
+            "carbs, fat, fiber, saturated fat, sugar, sodium), target, what is "
+            "left, meals logged, latest weigh-in. Call it for any question "
+            "about macros, calories or what is left, and after logging a meal.",
+        ),
+        (
+            web_search,
+            WebSearchArgs,
+            "Search the web for facts outside the user's records: what a dish, "
+            "food or product is and its nutrition (calories, protein, carbs, "
+            "fat, fiber, sugar, sodium), prices, places. Returns titles, links "
+            "and snippets.",
+        ),
         (stats_overview, OverviewArgs, "The user's Life Score and area rates."),
+        (
+            confirm_pending,
+            NoArgs,
+            "Save every entry from recent chat turns that is waiting for the "
+            "user's OK, when they say confirm, yes, save it, go ahead. Returns "
+            "what was saved and what could not be (with why).",
+        ),
+        (
+            discard_pending,
+            NoArgs,
+            "Drop every entry from recent chat turns that is waiting for the "
+            "user's OK, when they say cancel, no, don't save it.",
+        ),
     ]
     return [
         StructuredTool.from_function(
@@ -484,23 +646,63 @@ for was already handled, so never record it again. You can work in several
 steps. Call tools, read what they return,
 call more if needed, then answer. When the user asks you to add, log, record,
 remind, complete or change something, do it with the matching tool yourself;
-never only say you will.
+never only say you will. The same goes when they simply describe things to
+keep: tasks, to-dos or a list of what they need to work on, money spent,
+workouts, weight, meals. Record them in this same reply without waiting to
+be told to register or add them; listing them back is not recording them.
 - To-dos and reminders: `create_tasks`, all of them in one call. Turn
   relative times into due_date (YYYY-MM-DD) and due_time (HH:MM, 24h) from
-  Today; set remind only when they ask to be reminded.
+  Today. Give a due_date or due_time only when they name a day or a time;
+  otherwise leave both out (never default to today or 23:59). Set remind
+  only when they ask to be reminded.
 - Finishing a task: `complete_task`. Money: `log_expense`, `log_income`,
   `log_transfer`, `add_planned`. Habits: `log_habit`, `create_habit`.
   Training and body: `log_workout`, `log_weigh_in`, `log_meal`. Journal:
   `save_journal`. Fixing the last entry: `edit_last`, `delete_last`.
+- Setting things up is yours to do too, in this same reply: a new money
+  account (`create_account`, its balance today, 0 if not given), a monthly
+  budget (`create_budget`), a habit (`create_habit` with its type, target,
+  days and time when said), a routine of timed steps such as a morning
+  routine (`create_routine`), a gym routine or workout plan
+  (`create_workout_template`, exercises with sets), a task list
+  (`create_task_list`, with any items). Fill in only what they said; never
+  invent amounts, steps or exercises. These save at once with Undo on the
+  step, so say what was created.
 - One message can hold several things to record: make every call.
+- Only a tool result saves anything. Never say something was logged,
+  saved, added or is waiting unless a tool in this reply returned it; if no
+  tool ran, nothing was saved.
 - A write that returns state "proposed" or "needs_input" waits for the
-  user's OK: say "tap Confirm below" for it, never that it is done and
-  never to "check the app" (they are in it). Name what was saved and what
-  waits, separately.
+  user's OK: say it is waiting and that they can tap Confirm on it or just
+  say "confirm". Mention Confirm only for a write from this reply, never for
+  one from an earlier message. Never say it is done, and never tell them to
+  "check the app" (they are in it). Name what was saved and what waits,
+  separately.
+- When they say confirm, yes, save it or go ahead about entries waiting
+  from earlier, call `confirm_pending`; when they say cancel or don't save
+  it, call `discard_pending`. Never record those entries again. Report
+  what `confirm_pending` could not save and why (an expense needs an
+  account first).
 - A write that returns an error did not happen; say so plainly.
 Show charts, insights, coaching, plans, trackers and memories with their
 tools instead of describing them; each returns what its card shows, so speak
-only to that. Use `lookup` for a number not in TODAY. Never call the same tool
+only to that. Use `lookup` for a number not in TODAY. When they name a food,
+dish, drink or product you don't know well (a restaurant or branded item,
+a local dish), call `web_search` first for that item alone, in the user's
+own words plus "nutrition", for example "<restaurant> <dish> nutrition";
+never add words they didn't say (no "sandwich" for "chicken") and never add
+the rest of the meal to the query. Name `log_meal` items in their words too. Then call `log_meal` in the same turn: the
+searched item scaled to what they ate, and common foods (rice, eggs, bread)
+as their own items from standard values (1 cup cooked white rice is about
+205 kcal, 4 g protein, 45 g carbs). If the results have nothing for that
+exact item, use the closest match and say which. Mention the source in a few
+words. Never present a web number as
+the user's own data.
+For macros, calories or "what's left today", call `nutrition_status` and
+answer from it in one or two sentences: eaten against the target, then
+what is left for protein and calories first. After `log_meal`, report the day from its `day_after_this_meal`. Never add up or subtract
+numbers yourself; a meal still waiting for their OK is not counted yet,
+so say so if one is. Never call the same tool
 twice with the same arguments. After acting, answer in one or two short
 sentences saying what you did.
 
@@ -546,20 +748,48 @@ def _strip_marks(delta: str) -> str:
 # did (the constitution's deterministic-faithfulness rule), never trusted.
 _ASKS_TO_WRITE = re.compile(
     r"\b(add|log|record|remind|create|set|schedule|save|note|mark|complete|"
-    r"finish|spent|paid|bought|ate|ran|weighed|journal|track)\b",
+    r"finish|spent|paid|bought|ate|ran|weigh|weighed|journal|track|"
+    r"confirm|approve|had|eaten|drank|breakfast|lunch|dinner|snack)\b",
+    re.I,
+)
+# Things to keep, named in a statement ("these are my tasks: …"), are a
+# record to make; in a question ("how many tasks are left?") they are not.
+_NAMES_RECORDS = re.compile(
+    r"\b(tasks?|to-?dos?|list|reminders?|register|expenses?|workouts?|"
+    r"meals?|habits?)\b",
+    re.I,
+)
+# Numbers with a unit or a currency, said as a statement ("62.4 kg and 20%
+# body fat for today"), are a record even with no verb. In a question they
+# are not ("did I hit 60 kg?").
+_GIVES_DATA = re.compile(
+    r"\d(?:[.,]\d+)?\s*(?:kg|kgs|lb|lbs|%|km|mi|mins?|hrs?|hours?|reps?|"
+    r"sets?|kcal|cal|pesos?|php)(?!\w)|[₱$]\s*\d",
     re.I,
 )
 _CLAIMS_A_WRITE = re.compile(
     r"\b(added|logged|saved|recorded|created|scheduled|marked|set up|"
     r"i(?:'| ha)ve set|will remind|i'?ll remind|waiting for your (?:ok|confirmation)|"
+    # A promise to write ("I'll log it for you now") with no write behind it.
+    r"i'?ll (?:log|add|save|record)|i will (?:log|add|save|record)|let me (?:log|add|save)|"
     r"proposed)\b",
     re.I,
 )
+# Pointing at a Confirm button: true only when this reply left a write
+# waiting, because Confirm buttons belong to this reply's own steps.
+_POINTS_AT_CONFIRM = re.compile(
+    r"tap confirm|confirm (?:it |them )?below|waiting for your (?:ok|confirmation)|"
+    r"needs? (?:your )?confirm|\bproposed\b",
+    re.I,
+)
 NUDGE = (
-    "You said you recorded something, but no tool ran, so nothing was saved. "
-    'Call the matching tool now for my last message only: "{text}". Earlier '
-    "requests in this chat were already handled; do not repeat them. Then "
-    "answer from the tool's result."
+    "Your reply says something was recorded or is waiting for confirmation, "
+    "but no tool in this reply did that, so nothing was saved and there is "
+    "no Confirm button. If my last message asks to record something, call the "
+    'matching tool now for my last message only: "{text}". If I am confirming '
+    "entries that wait from earlier, call confirm_pending. Otherwise answer "
+    "without saying anything was saved or is waiting. Earlier requests in "
+    "this chat were already handled; do not repeat them."
 )
 NOT_RECORDED = (
     "I didn't manage to record that, so nothing was saved. Try asking again "
@@ -575,6 +805,11 @@ WRITE_TOOLS = frozenset(
         "add_planned",
         "log_habit",
         "create_habit",
+        "create_account",
+        "create_budget",
+        "create_routine",
+        "create_workout_template",
+        "create_task_list",
         "start_routine",
         "log_workout",
         "log_weigh_in",
@@ -584,19 +819,36 @@ WRITE_TOOLS = frozenset(
         "delete_last",
         "track",
         "remember_fact",
+        "confirm_pending",
+        "discard_pending",
     }
 )
 
 
 def unbacked_claim(asked: str, answer: str, steps: list[Any]) -> bool:
-    """The reply claims a write the user asked for, and no write tool of
-    this turn succeeded."""
-    wrote = any(s.name in WRITE_TOOLS and s.ok for s in steps)
-    return (
-        not wrote
-        and bool(_ASKS_TO_WRITE.search(asked))
-        and bool(_CLAIMS_A_WRITE.search(answer))
+    """The reply claims something the turn's tools did not do, while no
+    write tool of this turn succeeded: it points at a Confirm button with
+    nothing of this turn waiting, or it claims a write the user asked for.
+    The user's wording only gates the second case."""
+    waiting = any(
+        getattr(s, "state", None) in ("proposed", "needs_input")
+        or any(
+            c.get("state") in ("proposed", "needs_input")
+            for c in getattr(s, "cards", None) or []
+        )
+        for s in steps
     )
+    wrote = any(
+        s.name in WRITE_TOOLS and s.ok and s.summary != NOTHING_WAITING for s in steps
+    )
+    if _POINTS_AT_CONFIRM.search(answer) and not waiting and not wrote:
+        return True
+    statement = "?" not in asked
+    asks = bool(_ASKS_TO_WRITE.search(asked)) or (
+        statement
+        and (bool(_GIVES_DATA.search(asked)) or bool(_NAMES_RECORDS.search(asked)))
+    )
+    return not wrote and asks and bool(_CLAIMS_A_WRITE.search(answer))
 
 
 def _history(ctx: Ctx) -> list[BaseMessage]:
@@ -626,6 +878,8 @@ def _ask_ai(
     sol_name: str,
     user_name: str,
     stream: TurnStream,
+    *,
+    photos: list[uuid.UUID] | None = None,
 ) -> AskOut:
     mems = memories(ctx)[-MAX_MEMORIES_IN_CONTEXT:]
     system = SYSTEM.format(
@@ -650,15 +904,35 @@ def _ask_ai(
         ),
     )
     history = _history(ctx)
-    me = _message(ctx, "me", text, [], me_id)
+    me = _message(
+        ctx,
+        "me",
+        text,
+        [{"t": "photos", "media": [str(p) for p in photos]}] if photos else [],
+        me_id,
+    )
     stream.custom("message", _pub(ctx, me).model_dump(mode="json"))
+    if photos:
+        # The photos are read into text first, so Fern acts on them with
+        # its usual tools whatever chat model the person picked.
+        call = str(derived_id("fern-photos", me_id, "read"))
+        stream.tool_started(call, "read_photos", {"photos": len(photos)})
+        seen, read = capture.describe_photos(ctx, photos, text)
+        stream.tool_finished(call, "read_photos", {"read": len(read)})
+        text = f"{text}\n\n{seen}".strip()
     run = SolRun(ctx=ctx, me_id=me_id, emit=stream.frame)
+    # What the person said today, newest last: "register those" leans on the
+    # message before it, so a day named there still counts for a due date.
+    earlier = [str(m.content) for m in history if isinstance(m, HumanMessage)]
     writes, wrun = capture.chat_write_tools(
         ctx,
         client_uuid=derived_id("fern-turn", me_id, "capture"),
         text=text,
         emit=stream.frame,
+        said="\n".join([*earlier[-3:], text]),
     )
+    run.said = text
+    writes = [with_day_after(ctx, t) if t.name == "log_meal" else t for t in writes]
     tools = [*sol_tools(run), *writes]
     turn = [*history, HumanMessage(text)]
     reply = capture.run_agent(

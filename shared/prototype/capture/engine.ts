@@ -67,6 +67,8 @@ export interface SendInput {
   source?: CaptureSource
   hint?: string
   photo?: string
+  /** More photos read together with ``photo`` (one capture). */
+  photos?: string[]
   durationSec?: number
   fileName?: string
   fileUri?: string
@@ -1128,6 +1130,7 @@ export function sendCapture(input: SendInput): string {
     text: input.text.trim(),
     hint: input.hint,
     photo: input.photo,
+    ...(input.photos?.length ? { photos: input.photos } : {}),
     durationSec: input.durationSec,
     fileName: input.fileName,
     status: isOnline() ? "processing" : "queued",

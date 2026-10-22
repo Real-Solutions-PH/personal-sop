@@ -4,8 +4,11 @@ import {
   Copy as CopyIcon,
   Download,
   Ellipsis,
+  Image as ImageIcon,
   ImagePlus,
+  Palette,
   PlusCircle,
+  Sticker,
 } from "lucide-react-native"
 import { type ReactNode, useEffect, useId, useRef, useState } from "react"
 import {
@@ -20,6 +23,7 @@ import {
 import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg"
 import { captureRef } from "react-native-view-shot"
 import { toast } from "sonner-native"
+import { ColorPicker, luminance, shade } from "./color-picker"
 import { copyText, pickPhoto } from "./media"
 import { Copy, Line, Segmented, Tap } from "./native-kit"
 import { go } from "./navigation"
@@ -28,11 +32,27 @@ import { addStory, setPostDraft } from "./social/store"
 import { type Accent, fonts, useTheme } from "./theme"
 
 export type CardFormat = "9:16" | "4:5" | "1:1"
-export type CardBackdrop = "vivid" | "night" | "paper" | "photo" | "sticker"
+const BACKDROPS = [
+  { key: "vivid", label: "Vivid" },
+  { key: "night", label: "Night" },
+  { key: "paper", label: "Paper" },
+  { key: "custom", label: "Custom" },
+  { key: "photo", label: "Photo" },
+  { key: "sticker", label: "Sticker" },
+] as const
+export type CardBackdrop =
+  | "vivid"
+  | "night"
+  | "paper"
+  | "photo"
+  | "custom"
+  | "sticker"
 export type CardLook = {
   format: CardFormat
   backdrop: CardBackdrop
   photo: string | null
+  /** The Custom background's colour (``#rrggbb``). */
+  color?: string
 }
 export function CardFrame({
   width,
@@ -56,7 +76,8 @@ export function CardFrame({
   const gradientId = useId().replaceAll(":", ""),
     t = useTheme(),
     q = width / 100,
-    paper = look.backdrop === "paper",
+    custom = look.backdrop === "custom" ? (look.color ?? "#3E63DD") : null,
+    paper = look.backdrop === "paper" || (!!custom && luminance(custom) > 0.55),
     partner: Accent = {
       primary: "hab",
       hab: "tsk",
@@ -66,13 +87,17 @@ export function CardFrame({
       fin: "tsk",
       life: "hab",
     }[accent] as Accent
-  const colors: readonly [string, string, string] = paper
-    ? [t["share-paper"], t["share-paper"], t["share-paper"]]
-    : look.backdrop === "night"
-      ? [t["share-night"], t["share-night"], t["share-night"]]
-      : look.backdrop === "sticker"
-        ? ["#414148", "#38383f", "#414148"]
-        : [t["share-vivid-from"], t["share-vivid-to"], t["share-vivid-to"]]
+  const colors: readonly [string, string, string] = custom
+    ? [custom, shade(custom, 0.18), shade(custom, 0.38)]
+    : paper
+      ? [t["share-paper"], t["share-paper"], t["share-paper"]]
+      : look.backdrop === "night"
+        ? [t["share-night"], t["share-night"], t["share-night"]]
+        : look.backdrop === "sticker"
+          ? // A see-through panel: the saved PNG keeps the transparency, so
+            // the card sits on top of whatever photo it is pasted onto.
+            ["#0b0b10b8", "#0b0b10a6", "#0b0b10b8"]
+          : [t["share-vivid-from"], t["share-vivid-to"], t["share-vivid-to"]]
   const ink = paper ? t["share-paper-ink"] : "#fff"
   return (
     <LinearGradient
@@ -88,48 +113,50 @@ export function CardFrame({
         overflow: "hidden",
       }}
     >
-      {look.backdrop !== "photo" && look.backdrop !== "sticker" && (
-        <Svg
-          width="100%"
-          height="100%"
-          style={{ position: "absolute", inset: 0 }}
-        >
-          <Defs>
-            <RadialGradient
-              id={`${gradientId}top`}
-              cx={look.backdrop === "night" ? "50%" : "100%"}
-              cy="0%"
-              rx="120%"
-              ry="70%"
-            >
-              <Stop
-                offset="0"
-                stopColor={t[accent]}
-                stopOpacity={paper || look.backdrop === "night" ? 0.22 : 0.75}
+      {look.backdrop !== "photo" &&
+        look.backdrop !== "sticker" &&
+        look.backdrop !== "custom" && (
+          <Svg
+            width="100%"
+            height="100%"
+            style={{ position: "absolute", inset: 0 }}
+          >
+            <Defs>
+              <RadialGradient
+                id={`${gradientId}top`}
+                cx={look.backdrop === "night" ? "50%" : "100%"}
+                cy="0%"
+                rx="120%"
+                ry="70%"
+              >
+                <Stop
+                  offset="0"
+                  stopColor={t[accent]}
+                  stopOpacity={paper || look.backdrop === "night" ? 0.22 : 0.75}
+                />
+                <Stop offset=".6" stopColor={t[accent]} stopOpacity={0} />
+              </RadialGradient>
+              <RadialGradient
+                id={`${gradientId}bottom`}
+                cx="0%"
+                cy="100%"
+                rx="90%"
+                ry="60%"
+              >
+                <Stop offset="0" stopColor={t[partner]} stopOpacity={0.55} />
+                <Stop offset=".65" stopColor={t[partner]} stopOpacity={0} />
+              </RadialGradient>
+            </Defs>
+            <Rect width="100%" height="100%" fill={`url(#${gradientId}top)`} />
+            {look.backdrop === "vivid" && (
+              <Rect
+                width="100%"
+                height="100%"
+                fill={`url(#${gradientId}bottom)`}
               />
-              <Stop offset=".6" stopColor={t[accent]} stopOpacity={0} />
-            </RadialGradient>
-            <RadialGradient
-              id={`${gradientId}bottom`}
-              cx="0%"
-              cy="100%"
-              rx="90%"
-              ry="60%"
-            >
-              <Stop offset="0" stopColor={t[partner]} stopOpacity={0.55} />
-              <Stop offset=".65" stopColor={t[partner]} stopOpacity={0} />
-            </RadialGradient>
-          </Defs>
-          <Rect width="100%" height="100%" fill={`url(#${gradientId}top)`} />
-          {look.backdrop === "vivid" && (
-            <Rect
-              width="100%"
-              height="100%"
-              fill={`url(#${gradientId}bottom)`}
-            />
-          )}
-        </Svg>
-      )}
+            )}
+          </Svg>
+        )}
       {look.backdrop === "photo" && look.photo && (
         <Image
           source={{ uri: look.photo }}
@@ -251,7 +278,8 @@ export function ShareComposer<K extends string>({
 }) {
   const [format, setFormat] = useState<CardFormat>("9:16"),
     [backdrop, setBackdrop] = useState<CardBackdrop>("vivid"),
-    [photo, setPhoto] = useState<string | null>(null)
+    [photo, setPhoto] = useState<string | null>(null),
+    [color, setColor] = useState("#3E63DD")
   const t = useTheme(),
     windowWidth = Math.min(useWindowDimensions().width, 480),
     padding = (windowWidth - 32) * 0.18,
@@ -260,7 +288,7 @@ export function ShareComposer<K extends string>({
         (format === "9:16" ? 0.64 : format === "4:5" ? 0.76 : 0.8),
       format === "9:16" ? 300 : format === "4:5" ? 340 : 360,
     )
-  const look = { format, backdrop, photo },
+  const look = { format, backdrop, photo, color },
     refs = useRef<Record<string, View | null>>({}),
     scroll = useRef<ScrollView>(null)
   useEffect(() => {
@@ -341,8 +369,8 @@ export function ShareComposer<K extends string>({
   }
   if (shareRef) shareRef.current = doShare
   useEffect(() => {
-    onLookChange?.({ format, backdrop, photo })
-  }, [format, backdrop, photo, onLookChange])
+    onLookChange?.({ format, backdrop, photo, color })
+  }, [format, backdrop, photo, color, onLookChange])
   const share = () => (beforeShare ? beforeShare(doShare) : doShare())
   return (
     <View style={{ gap: 12, paddingTop: 4 }}>
@@ -499,42 +527,136 @@ export function ShareComposer<K extends string>({
       >
         BACKGROUND
       </Copy>
-      <Line style={{ justifyContent: "space-around", gap: 8 }}>
-        {(["vivid", "night", "paper", "photo", "sticker"] as const).map((b) => (
+      {/* All six fit one row: no swatch hides off the edge. */}
+      <Line style={{ justifyContent: "space-between", gap: 4 }}>
+        {BACKDROPS.map((b) => (
           <Tap
-            key={b}
-            label={b}
-            onPress={() => setBackdrop(b)}
-            style={{ alignItems: "center", gap: 6 }}
+            key={b.key}
+            label={`${b.label} background`}
+            onPress={() => {
+              setBackdrop(b.key)
+              // Picking Photo with none chosen yet opens the library.
+              if (b.key === "photo" && !photo)
+                void pickPhoto().then((v) => v && setPhoto(v))
+            }}
+            style={{ alignItems: "center", gap: 6, width: 52 }}
           >
             <LinearGradient
               colors={
-                b === "vivid"
+                b.key === "vivid"
                   ? [t[accent], t["share-vivid-to"]]
-                  : b === "paper"
+                  : b.key === "paper"
                     ? ["#eee8df", "#eee8df"]
-                    : b === "night"
+                    : b.key === "night"
                       ? ["#08090d", "#08090d"]
-                      : b === "photo"
-                        ? ["#8a817c", "#474341"]
-                        : ["#555", "#888"]
+                      : b.key === "custom"
+                        ? [color, shade(color, 0.38)]
+                        : b.key === "photo"
+                          ? ["#8a817c", "#474341"]
+                          : ["#ffffff00", "#ffffff00"]
               }
               style={{
-                width: 48,
-                height: 48,
-                borderRadius: 24,
-                borderWidth: backdrop === b ? 2 : 0,
-                borderColor: t[accent],
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                alignItems: "center",
+                justifyContent: "center",
+                // Night and Sticker vanish on a dark screen without an edge.
+                borderWidth:
+                  backdrop === b.key
+                    ? 2
+                    : b.key === "sticker" || b.key === "night"
+                      ? 1
+                      : 0,
+                borderStyle:
+                  b.key === "sticker" && backdrop !== b.key
+                    ? "dashed"
+                    : "solid",
+                borderColor: backdrop === b.key ? t[accent] : t.muted,
               }}
-            />
-            <Copy size={12}>{b[0].toUpperCase() + b.slice(1)}</Copy>
+            >
+              {b.key === "photo" && <ImageIcon size={20} color="#fff" />}
+              {b.key === "custom" && <Palette size={20} color="#fff" />}
+              {b.key === "sticker" && <Sticker size={20} color={t.text} />}
+            </LinearGradient>
+            <Copy size={12}>{b.label}</Copy>
           </Tap>
         ))}
       </Line>
       {backdrop === "photo" && (
-        <Tap onPress={() => void pickPhoto().then(setPhoto)}>
-          <Copy size={14}>Choose a photo</Copy>
+        <Tap
+          label={photo ? "Change photo" : "Choose a photo"}
+          onPress={() => void pickPhoto().then((v) => v && setPhoto(v))}
+          style={{
+            minHeight: 64,
+            borderRadius: 16,
+            borderWidth: 1,
+            borderStyle: photo ? "solid" : "dashed",
+            borderColor: photo ? t.line : t[accent],
+            backgroundColor: t.soft,
+            padding: 10,
+          }}
+        >
+          <Line style={{ gap: 12 }}>
+            {photo ? (
+              <Image
+                source={{ uri: photo }}
+                style={{ width: 44, height: 44, borderRadius: 10 }}
+              />
+            ) : (
+              <View
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  backgroundColor: `${t[accent]}26`,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <ImagePlus size={22} color={t[accent]} />
+              </View>
+            )}
+            <View style={{ flex: 1 }}>
+              <Copy size={14} weight="semibold">
+                {photo ? "Change photo" : "Choose a photo"}
+              </Copy>
+              <Copy size={12} muted>
+                {photo
+                  ? "Your photo sits behind the card, dimmed so text stays readable."
+                  : "From your library. It sits behind the card, dimmed."}
+              </Copy>
+            </View>
+            {photo && (
+              <Tap label="Remove photo" onPress={() => setPhoto(null)}>
+                <Copy size={13} style={{ color: t.bad }}>
+                  Remove
+                </Copy>
+              </Tap>
+            )}
+          </Line>
         </Tap>
+      )}
+      {backdrop === "custom" && (
+        <ColorPicker value={color} onChange={setColor} />
+      )}
+      {backdrop === "sticker" && (
+        <Line
+          style={{
+            gap: 10,
+            alignItems: "flex-start",
+            padding: 12,
+            borderRadius: 14,
+            backgroundColor: t.soft,
+          }}
+        >
+          <Sticker size={18} color={t[accent]} />
+          <Copy size={13} muted style={{ flex: 1 }}>
+            A see-through card to paste on top of your own photo or story. Save
+            it, then add it as a sticker in Instagram (or any app that takes
+            images).
+          </Copy>
+        </Line>
       )}
       {children}
     </View>

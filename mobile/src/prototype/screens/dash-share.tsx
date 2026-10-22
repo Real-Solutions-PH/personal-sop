@@ -14,7 +14,10 @@ import { useLocalSearchParams } from "expo-router"
 import {
   Check,
   Crown,
+  Dumbbell,
   Flame,
+  ListChecks,
+  Repeat,
   ShieldCheck,
   Target,
   TrendingUp,
@@ -28,7 +31,15 @@ import Svg, {
   Text as SvgText,
   TSpan,
 } from "react-native-svg"
-import { border, Copy, Frame, Line, SectionHeading, Tap } from "../native-kit"
+import {
+  border,
+  Copy,
+  Frame,
+  Line,
+  LinkRow,
+  SectionHeading,
+  Tap,
+} from "../native-kit"
 import { CardFrame, type CardLook, ShareComposer } from "../share-kit"
 import { fonts, useTheme } from "../theme"
 import { Button, Screen, Sheet, shareText } from "../ui"
@@ -928,16 +939,25 @@ export function ShareCard() {
             <Button onPress={() => setCheck(true)}>Share</Button>
           </View>
           <SectionHeading>More cards</SectionHeading>
-          <Frame style={{ paddingHorizontal: 12, paddingVertical: 4 }}>
-            {[
-              ["Habit streaks & routines", "/habits/share"],
-              ["Workout & PRs", "/fitness"],
-              ["Task follow-through", "/tasks/share"],
-            ].map(([label, href]) => (
-              <Button key={href} tone="quiet" href={href}>
-                {label}
-              </Button>
-            ))}
+          <Frame style={{ paddingHorizontal: 8, paddingVertical: 4 }}>
+            <LinkRow
+              title="Habit streaks & routines"
+              icon={Repeat}
+              accent="hab"
+              href="/habits/share"
+            />
+            <LinkRow
+              title="Workout & PRs"
+              icon={Dumbbell}
+              accent="fit"
+              href="/fitness"
+            />
+            <LinkRow
+              title="Task follow-through"
+              icon={ListChecks}
+              accent="tsk"
+              href="/tasks/share"
+            />
           </Frame>
         </View>
       </ShareComposer>

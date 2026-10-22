@@ -114,6 +114,7 @@ def build_world(ctx: Ctx, *, at: datetime | None = None) -> World:
         category_slugs=slugs,
         default_account=_s(default.id) if default else None,
         latest_kg=fitness.latest_weight_kg(ctx),
+        latest_kg_day=fitness.latest_weigh_in_day(ctx),
         recent_cats=recent,
         account_options=[
             {"label": a.name, "value": str(a.id)}

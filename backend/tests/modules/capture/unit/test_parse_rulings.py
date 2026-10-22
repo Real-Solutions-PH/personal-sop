@@ -2,7 +2,6 @@
 and the small pure helpers."""
 
 from app.modules.capture import parse as P
-from app.modules.capture import seams
 from app.modules.capture.cards import js_parse_float
 from app.modules.capture.photo import receipt_text
 from app.shared.currency import money
@@ -46,9 +45,6 @@ def test_money_and_cost() -> None:
     assert money(124_050) == "₱1,241"
     assert money(124_049) == "₱1,240"
     assert money(-500) == "₱-5"
-    assert seams.estimate_cost(0, 0) == 0
-    assert seams.estimate_cost(1, 1) == 1  # never free once tokens moved
-    assert seams.estimate_cost(10_000, 2_000) == 200
 
 
 def test_js_parse_float() -> None:

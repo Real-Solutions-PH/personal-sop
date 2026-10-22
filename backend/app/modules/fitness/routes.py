@@ -539,9 +539,16 @@ def read_targets(ctx: CtxDep) -> Any:
 
 @router.put("/targets", response_model=S.MacroTargetPublic, dependencies=WRITE)
 def set_targets(ctx: CtxDep, body: S.TargetSet) -> Any:
-    return services.set_macro_target(
-        ctx=ctx, kcal=body.kcal, protein=body.protein, carbs=body.carbs, fat=body.fat
-    )
+    # A limit the body leaves out carries over from the target in force, so
+    # re-saving macros never resets the user's own limits; an explicit null
+    # sets it back to the default.
+    current = views.targets(ctx).current
+    kept = {
+        k: getattr(current, k)
+        for k in S.LIMIT_FIELDS
+        if current is not None and k not in body.model_fields_set
+    }
+    return services.set_macro_target(ctx=ctx, **(body.model_dump() | kept))
 
 
 # --------------------------------------------------------------------------

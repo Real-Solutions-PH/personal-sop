@@ -52,6 +52,11 @@ RUNNING: dict[str, str] = {
     "add_planned": "Adding a planned payment",
     "log_habit": "Checking off a habit",
     "create_habit": "Creating a habit",
+    "create_account": "Adding an account",
+    "create_budget": "Setting a budget",
+    "create_routine": "Creating a routine",
+    "create_workout_template": "Creating a workout template",
+    "create_task_list": "Creating a list",
     "start_routine": "Starting a routine",
     "log_workout": "Logging a workout",
     "log_weigh_in": "Logging your weight",
@@ -70,7 +75,21 @@ RUNNING: dict[str, str] = {
     "forget_fact": "Forgetting that",
     "show_memories": "Gathering what I remember",
     "suggest": "Suggesting next questions",
+    "read_photos": "Looking at your photos",
+    "web_search": "Searching the web",
+    "nutrition_status": "Checking today's macros",
+    "confirm_pending": "Saving what was waiting",
+    "discard_pending": "Dropping what was waiting",
 }
+
+
+NOTHING_WAITING = "Nothing was waiting"
+
+
+def _weigh(args: dict[str, Any]) -> str:
+    kg, fat = args.get("kg"), args.get("body_fat_pct")
+    parts = [f"{kg} kg" if kg else "", f"{fat}% body fat" if fat else ""]
+    return "Logged " + ", ".join(p for p in parts if p)
 
 
 def _when(t: dict[str, Any]) -> str:
@@ -100,6 +119,15 @@ def outcome(ctx: Ctx, name: str, args: dict[str, Any], result: Any) -> tuple[boo
             note = f" ({waiting_n} waiting for your OK)" if waiting_n else ""
             return True, f"Added {len(tasks)} tasks: {titles}{more}{note}"
         return True, f"Added {len(tasks)} tasks: {titles}{more}{wait}"
+    if name in ("confirm_pending", "discard_pending"):
+        done = res.get("confirmed") or res.get("discarded") or []
+        kept = res.get("not_saved") or []
+        if not done and not kept:
+            return True, NOTHING_WAITING
+        verb = "Saved" if name == "confirm_pending" else "Dropped"
+        parts = [f"{verb}: {', '.join(done)}"] if done else []
+        parts += [f"Not saved: {k['what']} ({k['why']})" for k in kept]
+        return not kept or bool(done), "; ".join(parts)
     if name in ("log_expense", "log_income", "log_transfer", "add_planned"):
         amount = args.get("amount")
         amt = money(round(float(amount) * 100), ctx.currency) if amount else ""
@@ -111,13 +139,40 @@ def outcome(ctx: Ctx, name: str, args: dict[str, Any], result: Any) -> tuple[boo
         }[name]
         label = args.get("category") or args.get("name") or args.get("payee") or ""
         return True, f"{what}: {amt}{f' · {label}' if label else ''}{wait}"
+    if name == "create_account":
+        bal = float(args.get("opening_balance") or 0)
+        amt = f" · {money(round(bal * 100), ctx.currency)}" if bal else ""
+        return True, f"Added account: {args.get('name', '')}{amt}{wait}"
+    if name == "create_budget":
+        amount = args.get("monthly_limit")
+        amt = money(round(float(amount) * 100), ctx.currency) if amount else ""
+        return True, f"Budget: {args.get('name', '')} · {amt} a month{wait}"
+    if name == "create_routine":
+        steps = args.get("steps") or []
+        mins = sum(int(s.get("minutes") or 0) for s in steps)
+        return (
+            True,
+            f"Created routine: {args.get('name', '')} · {len(steps)} steps, "
+            f"{mins} min{wait}",
+        )
+    if name == "create_workout_template":
+        n = len(args.get("exercises") or [])
+        return (
+            True,
+            f"Created workout template: {args.get('name', '')} · "
+            f"{n} exercise{'s' if n != 1 else ''}{wait}",
+        )
+    if name == "create_task_list":
+        n = len(args.get("items") or [])
+        items = f" · {n} item{'s' if n != 1 else ''}" if n else ""
+        return True, f"Created list: {args.get('name', '')}{items}{wait}"
     simple = {
         "complete_task": f"Marked done: {args.get('query', '')}",
         "log_habit": f"Checked off: {args.get('habit', '')}",
-        "create_habit": f"Created habit: {args.get('spec', '')}",
+        "create_habit": f"Created habit: {args.get('name') or args.get('spec', '')}",
         "start_routine": f"Started routine: {args.get('query', '')}",
         "log_workout": f"Logged workout: {args.get('name', '')}",
-        "log_weigh_in": f"Logged weight: {args.get('kg', '')} kg",
+        "log_weigh_in": _weigh(args),
         "log_meal": f"Logged meal: {args.get('description', '')}",
         "save_journal": "Saved a journal entry",
         "edit_last": "Changed the last entry",
@@ -133,6 +188,12 @@ def outcome(ctx: Ctx, name: str, args: dict[str, Any], result: Any) -> tuple[boo
         "forget_fact": "Forgot that",
         "show_memories": "Showed what I remember",
         "suggest": "Suggested next questions",
+        "web_search": f"Searched the web: {args.get('query', '')}",
+        "nutrition_status": "Checked today's macros",
+        "read_photos": (
+            f"Read {args.get('photos', '')} photo"
+            f"{'' if args.get('photos') == 1 else 's'}"
+        ),
     }
     return True, f"{simple.get(name, name.replace('_', ' '))}{wait}"
 

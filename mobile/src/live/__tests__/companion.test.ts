@@ -462,3 +462,45 @@ test("wire: the companion ops and the ask body", () => {
   ])
   writeWireFixture(join(__dirname, "fixtures", "companion-wire.json"), wire)
 })
+
+test("photos sent with a message upload first, show at once, and go as media_ids", async () => {
+  const photo = "data:image/jpeg;base64,/9j/4AAQSkZJRg=="
+  const uploads: string[] = []
+  const post = jest.fn(async () => ({ ok: false }) as unknown as Response)
+  installLiveCapture({
+    http: {
+      request: async <T>(method: string, path: string, body?: unknown) => {
+        if (method === "POST" && path === "/media/uploads") {
+          uploads.push(String((body as Row).id))
+          return {
+            id: (body as Row).id,
+            upload_url: "https://store.example/put",
+            expires_in: 600,
+            headers: {},
+          } as T
+        }
+        const done = /^\/media\/(.+)\/complete$/.exec(path)
+        if (method === "POST" && done)
+          return { id: done[1], kind: "image", state: "ready", url: null } as T
+        throw new Error(`unexpected ${method} ${path}`)
+      },
+      raw: async () => {
+        throw new Error("unused")
+      },
+    },
+    post: post as LiveCaptureDeps["post"],
+    fetch: async () => new Response("{}", { status: 200 }),
+    online: () => true,
+    kick: jest.fn(),
+    cats: categoryIds(USER),
+  })
+  ask("log this receipt", undefined, [photo, photo])
+  const shown = companionStore.get().messages.at(-1)
+  expect(shown?.role).toBe("me")
+  expect(shown?.blocks).toEqual([{ t: "photos", urls: [photo, photo] }])
+  await flush()
+  expect(uploads).toHaveLength(2)
+  const [path, body] = post.mock.calls[0] as unknown as [string, Row]
+  expect(path).toBe("/companion/ask/stream")
+  expect(body).toMatchObject({ text: "log this receipt", media_ids: uploads })
+})

@@ -610,8 +610,9 @@ export function Screen({
         contentContainerStyle={{
           paddingHorizontal: 16,
           paddingTop: prototypeLayout ? 0 : 8,
-          paddingBottom: safe.bottom + 28,
-          gap: prototypeLayout ? 12 : 4,
+          // Clears the Fern button, which rises ~36pt above the tab bar.
+          paddingBottom: safe.bottom + 64,
+          gap: prototypeLayout ? 12 : 8,
         }}
       >
         {children}
@@ -689,7 +690,7 @@ export function ListScreen<T>({
         ListEmptyComponent={<View>{empty ?? <Empty />}</View>}
         contentContainerStyle={{
           paddingHorizontal: 16,
-          paddingBottom: safe.bottom + 28,
+          paddingBottom: safe.bottom + 64,
         }}
         keyboardShouldPersistTaps="handled"
       />
@@ -701,11 +702,16 @@ export function Sheet({
   title,
   open,
   onClose,
+  onBack,
+  backLabel = "Back",
   children,
 }: {
   title: string
   open: boolean
   onClose: () => void
+  /** A step inside the sheet: shows a back chevron before the title. */
+  onBack?: () => void
+  backLabel?: string
   children: ReactNode
 }) {
   const t = useTheme()
@@ -812,8 +818,27 @@ export function Sheet({
                   flexDirection: "row",
                   alignItems: "center",
                   justifyContent: "space-between",
+                  gap: 10,
                 }}
               >
+                {onBack && (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={backLabel}
+                    onPress={onBack}
+                    hitSlop={10}
+                    style={({ pressed }) => ({
+                      width: 36,
+                      height: 36,
+                      borderRadius: 18,
+                      backgroundColor: pressed ? t.line : t.soft,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    })}
+                  >
+                    <ChevronLeft size={20} color={t.text} />
+                  </Pressable>
+                )}
                 <Text
                   accessibilityRole="header"
                   style={{
@@ -845,7 +870,11 @@ export function Sheet({
               </View>
             </View>
           </GestureDetector>
-          <ScrollView keyboardShouldPersistTaps="handled" bounces={false}>
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            bounces={false}
+            contentContainerStyle={{ gap: 12, paddingBottom: 4 }}
+          >
             {children}
           </ScrollView>
         </Animated.View>

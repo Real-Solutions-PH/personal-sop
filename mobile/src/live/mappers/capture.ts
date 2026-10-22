@@ -58,6 +58,8 @@ export type LiveItem = LiveCard | LiveReply
 export type LiveLog = WriteLogEntry & { id?: string }
 export type LiveCapture = Capture & {
   mediaId?: string
+  /** Uploaded ids of ``photos`` (the extra photos), in order. */
+  extraMediaIds?: string[]
   transcript?: string
   /** Statement captures: the finance account the file belongs to. */
   accountId?: string
@@ -328,6 +330,7 @@ export function captureToServer(c: Capture): Payload {
   if (hint) out.hint = hint
   if (c.fileName) out.file_name = c.fileName.slice(0, 255)
   if (cap.mediaId) out.media_id = cap.mediaId
+  if (cap.extraMediaIds?.length) out.extra_media_ids = cap.extraMediaIds
   if (cap.accountId) out.account_id = cap.accountId
   return out
 }
@@ -345,7 +348,9 @@ export const streamingCaptures = {
 }
 
 const needsMedia = (c: Capture) =>
-  (c.source === "photo" || c.source === "file") && !(c as LiveCapture).mediaId
+  ((c.source === "photo" || c.source === "file") &&
+    !(c as LiveCapture).mediaId) ||
+  (!!c.photos?.length && !(c as LiveCapture).extraMediaIds)
 
 /** Rows the diff may see: server-safe ids, not mid-stream, media ready. */
 const pushable = (c: Capture) =>

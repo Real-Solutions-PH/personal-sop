@@ -9,15 +9,21 @@ import {
   Brain,
   CalendarCheck2,
   Clock,
+  Copy,
+  Image as ImageIcon,
   Lightbulb,
   Maximize2,
+  Pause,
   PenLine,
   Settings2,
   Target,
+  Volume2,
 } from "lucide-react-native"
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react"
 import {
+  ActivityIndicator,
   BackHandler,
+  Image,
   Keyboard,
   Platform,
   Pressable,
@@ -40,8 +46,12 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { toast } from "sonner-native"
+import { liveMode } from "@/live/config"
+import { speaking as useSpeaking } from "@/live/speech"
+import { copyText } from "../media"
 import { feel } from "../motion"
-import { IconTap } from "../native-kit"
+import { IconTap, Line } from "../native-kit"
 import { go } from "../navigation"
 import { Exchange, ThreadComposer } from "../screens/capture-thread"
 import { fonts, useTheme } from "../theme"
@@ -87,39 +97,152 @@ function SolMessage({ m, name }: { m: Msg; name: string }) {
         {m.blocks?.map((b, i) => (
           <BlockView key={i} block={b} />
         ))}
+        {!!m.text && <ReplyActions id={m.id} text={m.text} />}
       </View>
     </Animated.View>
   )
 }
+/** Under a reply: read it aloud (play / pause) and copy it. */
+function ReplyActions({ id, text }: { id: string; text: string }) {
+  const t = useTheme()
+  const now = useSpeaking((s) => (s.id === id ? s.state : "idle"))
+  const toggle = () => {
+    const sp = require("@/live/speech") as typeof import("@/live/speech")
+    const { http } = require("@/live/auth") as typeof import("@/live/auth")
+    sp.toggleSpeech(id, { http }).catch((e: unknown) =>
+      toast(
+        e instanceof sp.SpeechError && e.code === "unavailable"
+          ? "Read aloud isn't set up on the server yet."
+          : "Couldn't read that aloud. Try again.",
+      ),
+    )
+  }
+  return (
+    <Line style={{ gap: 4, marginLeft: -8 }}>
+      {liveMode &&
+        (now === "loading" ? (
+          <View
+            accessibilityLabel="Preparing audio"
+            style={{
+              width: 36,
+              height: 36,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <ActivityIndicator size="small" color={t.muted} />
+          </View>
+        ) : (
+          <IconTap
+            size={36}
+            icon={now === "playing" ? Pause : Volume2}
+            label={now === "playing" ? "Pause reading" : "Read aloud"}
+            color={now === "idle" ? t.muted : t.primary}
+            onPress={toggle}
+          />
+        ))}
+      <IconTap
+        size={36}
+        icon={Copy}
+        label="Copy reply"
+        color={t.muted}
+        onPress={() => void copyText(text)}
+      />
+    </Line>
+  )
+}
 function MyMessage({ m }: { m: Msg }) {
   const t = useTheme()
+  const photos = m.blocks?.find((b) => b.t === "photos")
+  const shots =
+    photos && photos.t === "photos"
+      ? (photos.urls ?? photos.media ?? []).map((u, i) => ({
+          url: photos.urls?.[i] ?? null,
+          media: photos.media?.[i],
+          key: `${i}-${u ?? ""}`,
+        }))
+      : []
   return (
     <Animated.View
       entering={FadeInDown.duration(220)}
-      style={{ alignItems: "flex-end" }}
+      style={{ alignItems: "flex-end", gap: 6 }}
     >
-      <View
-        style={{
-          maxWidth: "85%",
-          backgroundColor: t.primary,
-          borderRadius: 18,
-          borderBottomRightRadius: 6,
-          paddingHorizontal: 14,
-          paddingVertical: 9,
-        }}
-      >
-        <Text
+      {shots.length > 0 && (
+        <View
           style={{
-            color: t.onPrimary,
-            fontFamily: fonts.body,
-            fontSize: 15,
-            lineHeight: 20,
+            flexDirection: "row",
+            flexWrap: "wrap",
+            justifyContent: "flex-end",
+            gap: 6,
+            maxWidth: "85%",
           }}
         >
-          {m.text}
-        </Text>
-      </View>
+          {shots.map((p) => (
+            <SentPhoto key={p.key} url={p.url} media={p.media} />
+          ))}
+        </View>
+      )}
+      {!!m.text && (
+        <View
+          style={{
+            maxWidth: "85%",
+            backgroundColor: t.primary,
+            borderRadius: 18,
+            borderBottomRightRadius: 6,
+            paddingHorizontal: 14,
+            paddingVertical: 9,
+          }}
+        >
+          <Text
+            style={{
+              color: t.onPrimary,
+              fontFamily: fonts.body,
+              fontSize: 15,
+              lineHeight: 20,
+            }}
+          >
+            {m.text}
+          </Text>
+        </View>
+      )}
     </Animated.View>
+  )
+}
+/** A photo sent with a message. Messages read back through sync carry
+ * only the photo's id, so its link is fetched when it is shown. */
+function SentPhoto({ url, media }: { url: string | null; media?: string }) {
+  const t = useTheme()
+  const [src, setSrc] = useState(url)
+  useEffect(() => {
+    if (src || !media || !liveMode) return
+    const { http } = require("@/live/auth") as typeof import("@/live/auth")
+    http
+      .request<{ url?: string | null }>("GET", `/media/${media}`)
+      .then((r) => r.url && setSrc(r.url))
+      .catch(() => {})
+  }, [src, media])
+  return (
+    <View
+      style={{
+        width: 96,
+        height: 96,
+        borderRadius: 14,
+        overflow: "hidden",
+        backgroundColor: t.soft,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      {src ? (
+        <Image
+          source={{ uri: src }}
+          accessibilityLabel="Sent photo"
+          style={{ width: "100%", height: "100%" }}
+        />
+      ) : (
+        <ImageIcon size={22} color={t.muted} />
+      )}
+    </View>
   )
 }
 function Thinking({ name }: { name: string }) {
@@ -269,61 +392,71 @@ function Welcome({
           ? `${left} thing${left === 1 ? "" : "s"} left today. Tell me what happened or ask me anything; I keep track of your habits, money and training.`
           : "Today's plan is done. Steady work. Want a recap, or a look at tomorrow?"}
       </Text>
-      <View
-        style={{
-          flexDirection: "row",
-          flexWrap: "wrap",
-          gap: 8,
-          alignSelf: "stretch",
-        }}
-      >
-        {CAPABILITIES.map((c, i) => (
-          <Animated.View
-            key={c.label}
-            entering={FadeInDown.delay(60 * i)}
-            style={{ width: "48.5%" }}
+      {/* Cards go in rows of two; each row stretches both cards to the
+          taller one, so a row never has a short card beside a long one. */}
+      <View style={{ gap: 8, alignSelf: "stretch" }}>
+        {pairs(CAPABILITIES).map((row, r) => (
+          <View
+            key={row[0].label}
+            style={{ flexDirection: "row", gap: 8, alignItems: "stretch" }}
           >
-            <Pressable
-              cssInterop={false}
-              accessibilityRole="button"
-              accessibilityLabel={`${c.label}. ${c.body}`}
-              onPress={() => ask(c.prompt)}
-              style={({ pressed }) => ({
-                padding: 12,
-                gap: 4,
-                borderRadius: 16,
-                borderWidth: 1,
-                borderColor: t.line,
-                backgroundColor: pressed ? t.soft : t.card,
-                minHeight: 92,
-              })}
-            >
-              <c.icon size={18} color={t.hab} />
-              <Text
-                style={{
-                  color: t.text,
-                  fontFamily: fonts.semibold,
-                  fontSize: 14,
-                }}
+            {row.map((c, j) => (
+              <Animated.View
+                key={c.label}
+                entering={FadeInDown.delay(60 * (r * 2 + j))}
+                style={{ flex: 1 }}
               >
-                {c.label}
-              </Text>
-              <Text
-                style={{
-                  color: t.muted,
-                  fontFamily: fonts.body,
-                  fontSize: 12,
-                  lineHeight: 16,
-                }}
-              >
-                {c.body}
-              </Text>
-            </Pressable>
-          </Animated.View>
+                <Pressable
+                  cssInterop={false}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${c.label}. ${c.body}`}
+                  onPress={() => ask(c.prompt)}
+                  style={({ pressed }) => ({
+                    flex: 1,
+                    padding: 12,
+                    gap: 4,
+                    borderRadius: 16,
+                    borderWidth: 1,
+                    borderColor: t.line,
+                    backgroundColor: pressed ? t.soft : t.card,
+                    minHeight: 92,
+                  })}
+                >
+                  <c.icon size={18} color={t.hab} />
+                  <Text
+                    style={{
+                      color: t.text,
+                      fontFamily: fonts.semibold,
+                      fontSize: 14,
+                    }}
+                  >
+                    {c.label}
+                  </Text>
+                  <Text
+                    style={{
+                      color: t.muted,
+                      fontFamily: fonts.body,
+                      fontSize: 12,
+                      lineHeight: 16,
+                    }}
+                  >
+                    {c.body}
+                  </Text>
+                </Pressable>
+              </Animated.View>
+            ))}
+            {row.length === 1 && <View style={{ flex: 1 }} />}
+          </View>
         ))}
       </View>
     </View>
   )
+}
+
+function pairs<T>(xs: readonly T[]): T[][] {
+  const out: T[][] = []
+  for (let i = 0; i < xs.length; i += 2) out.push(xs.slice(i, i + 2))
+  return out
 }
 
 function DaySeparator({ day }: { day: string }) {
@@ -401,7 +534,7 @@ export function CompanionChat() {
       }
       footer={
         <ThreadComposer
-          onText={(v, hint) => ask(v, hint)}
+          onText={(v, hint, photos) => ask(v, hint, photos)}
           initialText={params.q ?? ""}
           initialHint={params.hint}
           placeholder={`Message ${name}…`}
@@ -668,11 +801,15 @@ export function CompanionDrawer({ bottom }: { bottom: number }) {
           <ScrollView
             ref={scroller}
             keyboardShouldPersistTaps="handled"
-            onContentSizeChange={() =>
-              scroller.current?.scrollToEnd({ animated: true })
-            }
+            // Follow the conversation down; a new chat's welcome stays at
+            // its top so the greeting is not scrolled out of view.
+            onContentSizeChange={() => {
+              if (timeline.length)
+                scroller.current?.scrollToEnd({ animated: true })
+            }}
             contentContainerStyle={{
               paddingHorizontal: 16,
+              paddingTop: 4,
               paddingBottom: 12,
               gap: 16,
             }}
@@ -687,7 +824,7 @@ export function CompanionDrawer({ bottom }: { bottom: number }) {
             <Thinking name={name} />
           </ScrollView>
           <ThreadComposer
-            onText={(v, hint) => ask(v, hint)}
+            onText={(v, hint, photos) => ask(v, hint, photos)}
             hints={false}
             initialHint={ctx.hint}
             initialMode={ctx.mode}

@@ -11,6 +11,7 @@ undo removes only those, through the owning module's ``public.py``.
 """
 
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from typing import Any
@@ -20,9 +21,10 @@ from fastapi import HTTPException
 from app.modules.capture import journal, ports
 from app.modules.capture.models import Capture, RecordCard
 from app.modules.capture.parse import js_to_fixed
-from app.modules.fitness.public import MealDraft, MealItemDraft
+from app.modules.fitness.public import MealDraft, MealItemDraft, TemplateItemDraft
 from app.modules.tasks.public import TaskDraft
 from app.shared.context import Ctx
+from app.shared.currency import money
 from app.shared.domain import invalid
 from app.shared.ids import derived_id
 
@@ -32,6 +34,11 @@ class Result:
     refs: list[str]
     prior: dict[str, Any] | None = None
     note: str | None = None
+
+
+def _num(v: Any) -> float | None:
+    """An optional nutrient: a number, or None when the estimate had none."""
+    return None if v is None else float(v)
 
 
 def row_id(card_id: uuid.UUID, i: int, gen: int) -> uuid.UUID:
@@ -266,7 +273,14 @@ def execute(
         return Result([str(wid)], note=note)
     if kind == "weighIn":
         kg = float(p["kg"])
-        w = ports.fitness.log_weigh_in(ctx, kg=kg, at=at, weigh_in_id=rid(0))
+        fat = p.get("body_fat_pct")
+        w = ports.fitness.log_weigh_in(
+            ctx,
+            kg=kg,
+            at=at,
+            body_fat_pct=float(fat) if fat is not None else None,
+            weigh_in_id=rid(0),
+        )
         prev = p.get("prev_kg")
         delta_note: str | None = None
         if prev:
@@ -284,6 +298,10 @@ def execute(
                 carbs=float(i["carbs"]),
                 fat=float(i["fat"]),
                 assumption=i.get("assumption"),
+                fiber=_num(i.get("fiber")),
+                sat_fat=_num(i.get("sat_fat")),
+                sugar=_num(i.get("sugar")),
+                sodium=_num(i.get("sodium")),
             )
             for i in p.get("items") or []
         ]
@@ -331,7 +349,113 @@ def execute(
         return Result([str(e.id)], note="Private · only you can see it")
     if kind == "photo":
         return Result([])
+    setup = _execute_setup(ctx, kind, p, rid)
+    if setup is not None:
+        return setup
     raise invalid("card_kind_unknown", "This card can't be saved")
+
+
+def _execute_setup(
+    ctx: Ctx, kind: str, p: dict[str, Any], rid: Callable[[int], uuid.UUID]
+) -> Result | None:
+    """Cards that set something up (an account, a budget, a routine, a
+    workout template, a task list) rather than log an entry."""
+    if kind == "accountCreate":
+        opening = int(p.get("opening_minor") or 0)
+        acc = ports.finance.create_account(
+            ctx,
+            name=str(p["name"]),
+            type=p["type"],
+            opening_minor=opening,
+            limit_minor=p.get("limit_minor"),
+            account_id=rid(0),
+        )
+        return Result(
+            [str(acc.id)],
+            note=f"Opening balance {money(opening, ctx.currency)}" if opening else None,
+        )
+    if kind == "budgetCreate":
+        b = ports.finance.create_budget(
+            ctx,
+            name=str(p["name"]),
+            limit_minor=int(p["limit_minor"]),
+            category_ids=[_uuid(c, "category") for c in p.get("category_ids") or []],
+            budget_id=rid(0),
+        )
+        return Result([str(b.id)], note="Shows on your Budgets from this month.")
+    if kind == "routineCreate":
+        days = list(p.get("days") or [0, 1, 2, 3, 4, 5, 6])
+        steps: list[tuple[uuid.UUID, int]] = []
+        made: list[str] = []
+        for i, st in enumerate(p.get("steps") or []):
+            minutes = int(st["minutes"])
+            hid = _opt_uuid(st.get("habit_id"), "habit")
+            if hid is None:
+                # A step names a habit the person does not have yet: it is
+                # made the way the routine screen's "add step" makes one.
+                h = ports.habits.create_habit(
+                    ctx,
+                    name=str(st["name"]),
+                    icon=str(st.get("icon") or "✅"),
+                    type="duration",
+                    target=minutes,
+                    days=days,
+                    time=p.get("time"),
+                    habit_id=rid(i + 1),
+                )
+                hid = h.id
+                made.append(str(h.id))
+            steps.append((hid, minutes))
+        r = ports.habits.create_routine(
+            ctx,
+            name=str(p["name"]),
+            icon=str(p.get("icon") or "🌅"),
+            steps=steps,
+            days=days,
+            time=p.get("time"),
+            routine_id=rid(0),
+        )
+        total = sum(m for _, m in steps)
+        return Result([str(r.id), *made], note=f"{len(steps)} steps · {total} min")
+    if kind == "templateCreate":
+        t, new = ports.fitness.create_template(
+            ctx,
+            name=str(p["name"]),
+            items=[
+                TemplateItemDraft(
+                    exercise=str(e["exercise"]),
+                    sets=int(e.get("sets") or 3),
+                    reps=e.get("reps"),
+                )
+                for e in p.get("exercises") or []
+            ],
+            template_id=rid(0),
+        )
+        return Result(
+            [str(t.id)],
+            note=f"New exercises: {', '.join(new)}" if new else None,
+        )
+    if kind == "listCreate":
+        lst = ports.tasks.create_list(
+            ctx,
+            name=str(p["name"]),
+            kind="shopping" if p.get("list_kind") == "shopping" else "standard",
+            list_id=rid(0),
+        )
+        items = [str(t) for t in p.get("items") or []]
+        tasks = ports.tasks.create_tasks(
+            ctx,
+            [
+                TaskDraft(title=t, list_id=lst.id, task_id=rid(i + 1))
+                for i, t in enumerate(items)
+            ],
+            source="capture-text",
+        )
+        return Result(
+            [str(lst.id), *(str(t.id) for t in tasks)],
+            note=f"{len(tasks)} items" if tasks else None,
+        )
+    return None
 
 
 def revert(ctx: Ctx, card: RecordCard) -> None:
@@ -376,5 +500,27 @@ def revert(ctx: Ctx, card: RecordCard) -> None:
     elif kind == "journal":
         for r in refs:
             journal.delete_entry_row(ctx, r)
+    elif kind == "accountCreate":
+        for r in refs:
+            ports.finance.delete_account(ctx, account_id=r)
+    elif kind == "budgetCreate":
+        for r in refs:
+            ports.finance.delete_budget(ctx, budget_id=r)
+    elif kind == "routineCreate":
+        # The routine first, then the habits this card made for its steps
+        # (habits it reused stay).
+        if refs:
+            ports.habits.delete_routine(ctx, routine_id=refs[0])
+        for r in refs[1:]:
+            ports.delete_habit(ctx, r)
+    elif kind == "templateCreate":
+        # Exercises it added stay in the library, as a logged workout's do.
+        for r in refs:
+            ports.fitness.delete_template(ctx, template_id=r)
+    elif kind == "listCreate":
+        if refs[1:]:
+            ports.tasks.remove_tasks(ctx, task_ids=refs[1:])
+        if refs:
+            ports.tasks.delete_list(ctx, list_id=refs[0])
     # routineStart, photo and command write nothing undoable of their own:
     # a running routine is ended from its player (the prototype did the same).

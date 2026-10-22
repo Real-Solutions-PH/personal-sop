@@ -109,6 +109,8 @@ class World:
     category_slugs: dict[str, str] = field(default_factory=dict)
     default_account: str | None = None
     latest_kg: float | None = None
+    # The day of that weigh-in: body fat alone reuses today's weight only.
+    latest_kg_day: date | None = None
     recent_cats: list[dict[str, str]] = field(default_factory=list)
     account_options: list[dict[str, str]] = field(default_factory=list)
     # Task list key ("work", "job2", "life", "groceries") -> list id.

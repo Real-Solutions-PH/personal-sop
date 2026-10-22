@@ -13,7 +13,13 @@ from app.modules.habits import logic as logic
 from app.modules.habits import services as svc
 from app.modules.habits import views
 from app.modules.habits.models import Habit, HabitLog, Routine, RoutineRun
-from app.modules.habits.schema import EVERY_DAY, HabitCreate, ScheduleSlot
+from app.modules.habits.schema import (
+    EVERY_DAY,
+    HabitCreate,
+    RoutineCreate,
+    ScheduleSlot,
+    StepIn,
+)
 from app.shared import owned_repo
 from app.shared.context import Ctx
 
@@ -152,3 +158,32 @@ def load_world(ctx: Ctx, *, since: date) -> views.World:
     """Habits, logs from ``since``, routines and runs: the input to every
     ``logic`` calculation."""
     return views.load_world(ctx, since=since)
+
+
+def create_routine(
+    ctx: Ctx,
+    *,
+    name: str,
+    icon: str = "🌅",
+    steps: list[tuple[uuid.UUID, int]],
+    days: list[int] | None = None,
+    time: str | None = None,
+    routine_id: uuid.UUID | None = None,
+) -> Routine:
+    """A routine of existing habits, ``(habit_id, minutes)`` in order, on
+    ``days`` (0 = Sunday; every day by default) at ``time``."""
+    return svc._create_routine(
+        ctx,
+        data=RoutineCreate(
+            id=routine_id,
+            name=name,
+            icon=icon,
+            schedule=[ScheduleSlot(days=days or EVERY_DAY, time=time)],
+            steps=[StepIn(habit_id=h, minutes=m) for h, m in steps],
+        ),
+    )
+
+
+def delete_routine(ctx: Ctx, *, routine_id: uuid.UUID) -> None:
+    """Delete a routine, its steps and runs (its habits stay)."""
+    svc._delete_routine(ctx, routine_id)

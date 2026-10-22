@@ -292,3 +292,167 @@ def test_browser_transcription_needs_the_transcript(
     mid2 = media(api, storage, kind="audio", mime="audio/mpeg", data=AUDIO)
     cap = api.capture(source="voice", media_id=mid2, transcript="meditated 10 min")
     assert cap["transcript"] == "meditated 10 min" and cap["status"] == "done"
+
+
+def test_several_photos_are_one_capture_read_together(
+    client: TestClient,
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    storage: FakeStorage,
+) -> None:
+    """Snap it with three photos sends one capture, and the vision model
+    sees every photo in one request, not one capture per photo."""
+    api = user(client, db)
+    api.assign("vision", vision=True)
+    est = {
+        "items": [
+            {
+                "name": "Tapsilog",
+                "qty": 1,
+                "unit": "plate",
+                "kcal": 650,
+                "protein": 35,
+                "carbs": 70,
+                "fat": 24,
+            }
+        ],
+        "confidence": 0.6,
+        "follow_up": None,
+    }
+    model = install(monkeypatch, say(json.dumps(est)))
+    ids = [
+        media(api, storage, kind="image", mime="image/jpeg", data=JPEG)  # type: ignore[arg-type]
+        for _ in range(3)
+    ]
+    cap = api.capture(
+        source="photo", media_id=ids[0], extra_media_ids=ids[1:], hint="meal"
+    )
+    card_of(cap, "meal")
+    assert len(model.seen) == 1
+    sent = model.seen[0][-1].content
+    assert "There are 3 photos" in sent[0]["text"]
+    assert [p["type"] for p in sent[1:]] == ["image_url"] * 3
+    assert len(cap["attachments"]) == 3
+
+
+def test_more_photos_only_ride_on_a_photo_capture(
+    client: TestClient, db: Session, storage: FakeStorage
+) -> None:
+    api = user(client, db)
+    mid = media(api, storage, kind="image", mime="image/jpeg", data=JPEG)  # type: ignore[arg-type]
+    api.post(
+        "/capture",
+        {
+            "client_uuid": str(uuid.uuid4()),
+            "source": "text",
+            "text": "lunch",
+            "extra_media_ids": [mid],
+        },
+        status=422,
+    )
+
+
+def _meal(kcal: float, follow: dict | None = None) -> str:
+    return json.dumps(
+        {
+            "items": [
+                {
+                    "name": "Chicken",
+                    "qty": 160,
+                    "unit": "g",
+                    "kcal": kcal,
+                    "protein": 40,
+                    "carbs": 2,
+                    "fat": 18,
+                }
+            ],
+            "confidence": 0.5,
+            "follow_up": follow,
+        }
+    )
+
+
+def test_answering_a_photo_meals_question_redoes_the_estimate(
+    client: TestClient,
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    storage: FakeStorage,
+) -> None:
+    """Seen live on 2026-10-22: the vision model asked "Does the 160g
+    include bones?" (field "portion") and every answer got 422
+    answer_not_understood, because only rice and servings were handled."""
+    api = user(client, db)
+    api.assign("vision", vision=True)
+    ask = {
+        "question": "Does the 160g include bones?",
+        "options": ["Bones in", "Boneless"],
+    }
+    model = install(monkeypatch, say(_meal(360, ask)), say(_meal(290)))
+    cap = _photo(api, storage, hint="meal", text="160g chicken")
+    card = card_of(cap, "meal")
+    assert card["state"] == "needs_input" and card["ask"]["field"] == "portion"
+    out = api.post(f"/capture/cards/{card['id']}/answer", {"value": "Bones in"})
+    after = card_of(out, "meal")
+    assert after["state"] == "proposed" and after["ask"] is None
+    assert after["payload"]["items"][0]["kcal"] == 290
+    revise = str(model.seen[1][-1].content)
+    assert "Does the 160g include bones?" in revise and "Bones in" in revise
+
+
+def test_a_meal_answer_with_no_model_is_noted_not_refused(
+    client: TestClient,
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    storage: FakeStorage,
+) -> None:
+    api = user(client, db)
+    api.assign("vision", vision=True)
+    ask = {"question": "Breaded or grilled?", "options": ["Breaded", "Grilled"]}
+    install(monkeypatch, say(_meal(360, ask)))
+    cap = _photo(api, storage, hint="meal")
+    card = card_of(cap, "meal")
+    monkeypatch.setattr("app.modules.capture.photo.refine_meal", lambda *a, **k: None)
+    out = api.post(f"/capture/cards/{card['id']}/answer", {"value": "Grilled"})
+    after = card_of(out, "meal")
+    assert after["state"] == "proposed"
+    assert after["payload"]["items"][0]["assumption"].endswith("Grilled")
+
+
+def test_photo_meal_keeps_fiber_sat_fat_sugar_and_sodium(
+    client: TestClient,
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    storage: FakeStorage,
+) -> None:
+    api = user(client, db)
+    api.assign("vision", vision=True)
+    est = {
+        "items": [
+            {
+                "name": "Longganisa",
+                "qty": 2,
+                "unit": "pc",
+                "kcal": 320,
+                "protein": 14,
+                "carbs": 10,
+                "fat": 25,
+                "fiber": 0.5,
+                "sat_fat": 9,
+                "sugar": 7,
+                "sodium": 780,
+            }
+        ],
+        "confidence": 0.8,
+        "follow_up": None,
+    }
+    install(monkeypatch, say(json.dumps(est)))
+    cap = _photo(api, storage, hint="meal")
+    card = card_of(cap, "meal")
+    item = card["payload"]["items"][0]
+    assert (item["sat_fat"], item["sugar"], item["sodium"]) == (9, 7, 780)
+    saved = api.post(f"/capture/cards/{card['id']}/confirm")
+    with Session(db_engine) as s:
+        meal = s.get(Meal, uuid.UUID(saved["refs"][0]))
+        assert meal is not None
+        [row] = s.exec(select(MealItem).where(MealItem.meal_id == meal.id)).all()
+    assert (row.fiber, row.sat_fat, row.sugar, row.sodium) == (0.5, 9, 7, 780)
