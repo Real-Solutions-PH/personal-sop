@@ -22,6 +22,7 @@ import { completeTask } from "@domain/tasks/actions"
 import { useStats, useTodayData } from "@domain/tasks/hooks"
 import { fmtInstant, isDueNow } from "@domain/tasks/logic"
 import { tasksStore } from "@domain/tasks/store"
+import { LinearGradient } from "expo-linear-gradient"
 import { useLocalSearchParams } from "expo-router"
 import {
   AlarmClock,
@@ -117,8 +118,14 @@ function DayHero() {
     finance: "fin",
   } as const
   return (
-    <Frame>
-      <View style={{ padding: 16 }}>
+    <Frame style={{ borderRadius: 24 }}>
+      <LinearGradient
+        colors={[`${t.primary}26`, `${t.primary}00`, `${t.hab}1a`]}
+        locations={[0, 0.5, 1]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ padding: 16 }}
+      >
         <Line style={{ gap: 16 }}>
           <Ring
             size={112}
@@ -211,7 +218,7 @@ function DayHero() {
             </Line>
           </View>
         </Line>
-      </View>
+      </LinearGradient>
       {MODULE_KEYS.filter((k) => s.enabled[k] && ring.per[k].due > 0).map(
         (k) => (
           <Tap
@@ -508,7 +515,12 @@ export function HabitsCard() {
           completed = run?.state === "completed",
           active = run?.state === "in_progress"
         return (
-          <View key={r.id}>
+          <LinearGradient
+            key={r.id}
+            colors={[`${t.hab}26`, `${t.hab}00`]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
             <Part>
               <Line>
                 <View
@@ -565,7 +577,7 @@ export function HabitsCard() {
                 )}
               </Line>
             </Part>
-          </View>
+          </LinearGradient>
         )
       })}
       {next && (
@@ -1502,7 +1514,7 @@ export function Today() {
       )}
       <AppLauncher />
       {evening ? (
-        <Frame style={{ padding: 16 }}>
+        <Frame style={{ padding: 16, backgroundColor: `${t.hab}1a` }}>
           <Tap onPress={() => go("/today/wrap-up")}>
             <Line>
               <Moon color={t.hab} size={20} />
@@ -1526,7 +1538,13 @@ export function Today() {
         ring.done < ring.due && <NextUp />
       )}
       {Platform.OS === "web" && !s.installDismissed && (
-        <Frame style={{ padding: 16 }}>
+        <Frame
+          style={{
+            padding: 16,
+            backgroundColor: `${t.primary}0d`,
+            borderColor: `${t.primary}4d`,
+          }}
+        >
           <Line>
             <Smartphone size={20} color={t.primary} />
             <Tap
