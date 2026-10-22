@@ -39,6 +39,7 @@ import { liveMode } from "@/live/config"
 import { back, go } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import { Sheet } from "../ui"
+import { type FrozenRank, forYouOrder } from "./feed-order"
 import { Avatar, Bounce, haptic, ProgressCard } from "./kit"
 import { PostCard } from "./post-card"
 import {
@@ -353,14 +354,20 @@ export function SocialFeed() {
     }, []),
   )
   const people = socialStore.use((s) => s.people)
+  // Frozen per visit and per refresh, so a like never moves a post.
+  const rank = useRef<{ tab: string; map: FrozenRank }>({
+    tab,
+    map: new Map(),
+  })
   const data = useMemo(() => {
+    if (rank.current.tab !== tab) rank.current = { tab, map: new Map() }
     const following = new Set(
       people.filter((p) => p.isFollowing).map((p) => p.id),
     )
     const sorted = [...posts].sort((a, b) => b.at - a.at)
     return tab === "following"
       ? sorted.filter((p) => p.by === ME || following.has(p.by))
-      : [...sorted].sort((a, b) => b.likes - a.likes)
+      : forYouOrder(posts, rank.current.map)
   }, [posts, people, tab])
   const dmCount = chats.filter((c) => !c.muted && unread(c) > 0).length
   const newActivity = activity.filter((a) => a.at > readAt).length
@@ -370,6 +377,7 @@ export function SocialFeed() {
     },
   ).current
   const refresh = () => {
+    rank.current = { tab, map: new Map() }
     setRefreshing(true)
     haptic.tap()
     if (liveMode) void refreshSocial().finally(() => setRefreshing(false))
