@@ -167,6 +167,38 @@ PROMPTS: dict[str, str] = {
 }
 
 
+def refine_meal(
+    ctx: Ctx, items: list[dict[str, Any]], question: str, answer: str
+) -> tuple[list[dict[str, Any]], float] | None:
+    """The meal estimate revised with the person's answer to its follow-up
+    question, by the capture model (or the vision model). None when no
+    model is set up or it fails; the caller keeps the estimate then."""
+    import json
+
+    resolved = ai.resolve_model(ctx, "capture") or ai.resolve_model(ctx, "vision")
+    if resolved is None:
+        return None
+    text = (
+        "Revise this meal estimate with the person's answer. Same JSON shape; "
+        "follow_up must be null.\n"
+        f"Current items: {json.dumps(items, ensure_ascii=False)}\n"
+        f"Question asked: {question}\nTheir answer: {answer}\n" + PROMPTS["meal"]
+    )
+    try:
+        out = seams.ask_json(
+            ctx,
+            resolved,
+            MealOut,
+            system=SYSTEM.format(currency=ctx.currency.phrase),
+            text=text,
+        )
+    except seams.SeamError:
+        return None
+    if not out.items:
+        return None
+    return [i.model_dump(exclude_none=True) for i in out.items], out.confidence
+
+
 # ---------------------------------------------------------------- drafts
 
 

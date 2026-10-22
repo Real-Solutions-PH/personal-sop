@@ -350,3 +350,69 @@ def test_more_photos_only_ride_on_a_photo_capture(
         },
         status=422,
     )
+
+
+def _meal(kcal: float, follow: dict | None = None) -> str:
+    return json.dumps(
+        {
+            "items": [
+                {
+                    "name": "Chicken",
+                    "qty": 160,
+                    "unit": "g",
+                    "kcal": kcal,
+                    "protein": 40,
+                    "carbs": 2,
+                    "fat": 18,
+                }
+            ],
+            "confidence": 0.5,
+            "follow_up": follow,
+        }
+    )
+
+
+def test_answering_a_photo_meals_question_redoes_the_estimate(
+    client: TestClient,
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    storage: FakeStorage,
+) -> None:
+    """Seen live on 2026-10-22: the vision model asked "Does the 160g
+    include bones?" (field "portion") and every answer got 422
+    answer_not_understood, because only rice and servings were handled."""
+    api = user(client, db)
+    api.assign("vision", vision=True)
+    ask = {
+        "question": "Does the 160g include bones?",
+        "options": ["Bones in", "Boneless"],
+    }
+    model = install(monkeypatch, say(_meal(360, ask)), say(_meal(290)))
+    cap = _photo(api, storage, hint="meal", text="160g chicken")
+    card = card_of(cap, "meal")
+    assert card["state"] == "needs_input" and card["ask"]["field"] == "portion"
+    out = api.post(f"/capture/cards/{card['id']}/answer", {"value": "Bones in"})
+    after = card_of(out, "meal")
+    assert after["state"] == "proposed" and after["ask"] is None
+    assert after["payload"]["items"][0]["kcal"] == 290
+    revise = str(model.seen[1][-1].content)
+    assert "Does the 160g include bones?" in revise and "Bones in" in revise
+
+
+def test_a_meal_answer_with_no_model_is_noted_not_refused(
+    client: TestClient,
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    storage: FakeStorage,
+) -> None:
+    api = user(client, db)
+    api.assign("vision", vision=True)
+    ask = {"question": "Breaded or grilled?", "options": ["Breaded", "Grilled"]}
+    install(monkeypatch, say(_meal(360, ask)))
+    cap = _photo(api, storage, hint="meal")
+    card = card_of(cap, "meal")
+    monkeypatch.setattr("app.modules.capture.photo.refine_meal", lambda *a, **k: None)
+    out = api.post(f"/capture/cards/{card['id']}/answer", {"value": "Grilled"})
+    after = card_of(out, "meal")
+    assert after["state"] == "proposed"
+    assert after["payload"]["items"][0]["assumption"].endswith("Grilled")
