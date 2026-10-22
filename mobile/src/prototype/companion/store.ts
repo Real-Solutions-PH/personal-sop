@@ -153,6 +153,18 @@ export const setAskBackend = (b: AskBackend | null) => {
 }
 export const liveAsk = () => askBackend
 
+/** The next message was spoken (dictated): its reply is read aloud as soon
+ * as it arrives, the way voice chat works in other assistants. */
+let voiceTurn = false
+export const markVoiceTurn = () => {
+  voiceTurn = true
+}
+export const takeVoiceTurn = () => {
+  const v = voiceTurn
+  voiceTurn = false
+  return v
+}
+
 /** Transient "Fern is thinking" indicator; not persisted. */
 export const thinking = create<{ on: boolean }>(() => ({ on: false }))
 

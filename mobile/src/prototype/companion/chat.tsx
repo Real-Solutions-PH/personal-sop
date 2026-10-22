@@ -9,15 +9,19 @@ import {
   Brain,
   CalendarCheck2,
   Clock,
+  Copy,
   Image as ImageIcon,
   Lightbulb,
   Maximize2,
+  Pause,
   PenLine,
   Settings2,
   Target,
+  Volume2,
 } from "lucide-react-native"
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react"
 import {
+  ActivityIndicator,
   BackHandler,
   Image,
   Keyboard,
@@ -42,9 +46,12 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { toast } from "sonner-native"
 import { liveMode } from "@/live/config"
+import { speaking as useSpeaking } from "@/live/speech"
+import { copyText } from "../media"
 import { feel } from "../motion"
-import { IconTap } from "../native-kit"
+import { IconTap, Line } from "../native-kit"
 import { go } from "../navigation"
 import { Exchange, ThreadComposer } from "../screens/capture-thread"
 import { fonts, useTheme } from "../theme"
@@ -90,8 +97,58 @@ function SolMessage({ m, name }: { m: Msg; name: string }) {
         {m.blocks?.map((b, i) => (
           <BlockView key={i} block={b} />
         ))}
+        {!!m.text && <ReplyActions id={m.id} text={m.text} />}
       </View>
     </Animated.View>
+  )
+}
+/** Under a reply: read it aloud (play / pause) and copy it. */
+function ReplyActions({ id, text }: { id: string; text: string }) {
+  const t = useTheme()
+  const now = useSpeaking((s) => (s.id === id ? s.state : "idle"))
+  const toggle = () => {
+    const sp = require("@/live/speech") as typeof import("@/live/speech")
+    const { http } = require("@/live/auth") as typeof import("@/live/auth")
+    sp.toggleSpeech(id, { http }).catch((e: unknown) =>
+      toast(
+        e instanceof sp.SpeechError && e.code === "unavailable"
+          ? "Read aloud isn't set up on the server yet."
+          : "Couldn't read that aloud. Try again.",
+      ),
+    )
+  }
+  return (
+    <Line style={{ gap: 4, marginLeft: -8 }}>
+      {liveMode &&
+        (now === "loading" ? (
+          <View
+            accessibilityLabel="Preparing audio"
+            style={{
+              width: 36,
+              height: 36,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <ActivityIndicator size="small" color={t.muted} />
+          </View>
+        ) : (
+          <IconTap
+            size={36}
+            icon={now === "playing" ? Pause : Volume2}
+            label={now === "playing" ? "Pause reading" : "Read aloud"}
+            color={now === "idle" ? t.muted : t.primary}
+            onPress={toggle}
+          />
+        ))}
+      <IconTap
+        size={36}
+        icon={Copy}
+        label="Copy reply"
+        color={t.muted}
+        onPress={() => void copyText(text)}
+      />
+    </Line>
   )
 }
 function MyMessage({ m }: { m: Msg }) {

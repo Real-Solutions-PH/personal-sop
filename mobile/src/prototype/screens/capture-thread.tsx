@@ -34,7 +34,7 @@ import {
 import { toast } from "sonner-native"
 import { liveMode } from "@/live/config"
 import { Orb } from "../companion/orb"
-import { thinking } from "../companion/store"
+import { markVoiceTurn, thinking } from "../companion/store"
 import { useLiveDictation } from "../live-dictation"
 import { pickPhoto, pickPhotos } from "../media"
 import { border, Copy, Frame, IconTap, Line, Tap } from "../native-kit"
@@ -93,6 +93,8 @@ export function ThreadComposer({
     [quick, setQuick] = useState(false),
     [transcribing, setTranscribing] = useState(false),
     [photos, setPhotos] = useState<string[]>([]),
+    // This message was dictated: Fern's reply to it is read aloud.
+    [spoken, setSpoken] = useState(false),
     online = useOnline()
   const MAX_PHOTOS = 10
   const addPhotos = (more: string[]) =>
@@ -124,10 +126,12 @@ export function ThreadComposer({
   async function dictate() {
     // Live words in the box when the phone can recognise speech
     // (ADR-0016); otherwise record and transcribe on the server.
+    setSpoken(true)
     if (!(await live.start(text))) setMode("voice")
   }
   function transcribe(audio: string, durationSec: number) {
     const live = require("@/live/dictate") as typeof import("@/live/dictate")
+    setSpoken(true)
     setTranscribing(true)
     live
       .dictate(audio, durationSec)
@@ -326,9 +330,11 @@ export function ThreadComposer({
             background={t.primary}
             onPress={() => {
               if (onText) {
+                if (spoken) markVoiceTurn()
                 onText(text.trim(), hint, photos.length ? photos : undefined)
                 setText("")
                 setPhotos([])
+                setSpoken(false)
                 return
               }
               const id = A.sendCapture({

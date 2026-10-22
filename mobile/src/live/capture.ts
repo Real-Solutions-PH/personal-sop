@@ -47,6 +47,7 @@ import {
   type StepItem,
   setAskBackend,
   stepLabel,
+  takeVoiceTurn,
   thinking,
 } from "@/prototype/companion/store"
 import { http, tokens } from "./auth"
@@ -73,6 +74,7 @@ import { messageFromServer, withMessages } from "./mappers/companion"
 import { categoryIds, fromMinor } from "./mappers/finance"
 import { type UploadInput, uploadMedia } from "./media"
 import { syncNow } from "./runtime"
+import { toggleSpeech } from "./speech"
 
 /** The companion as the user named it (toasts speak in its name). */
 const companionName = () => companionStore.get().name || COMPANION_NAME
@@ -679,6 +681,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
   ) {
     const meId = newId()
     const solId = derivedId("companion-reply", meId, "sol")
+    const readAloud = takeVoiceTurn()
     let solAt = 0
     let solText = ""
     let blocks: Block[] = []
@@ -821,9 +824,14 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
           }
           case "RUN_FINISHED": {
             const out = (d.result ?? {}) as Row
-            putMessages(((out.messages ?? []) as Row[]).map(messageFromServer))
+            const msgs = ((out.messages ?? []) as Row[]).map(messageFromServer)
+            putMessages(msgs)
             if (out.capture && typeof out.capture === "object")
               detail(out.capture as Row)
+            // A dictated message hears its answer, like voice chat.
+            const reply = msgs.find((m) => m.role === "sol" && m.text)
+            if (readAloud && reply)
+              void toggleSpeech(reply.id, { http: deps.http }).catch(() => {})
             return
           }
           case "RUN_ERROR":
