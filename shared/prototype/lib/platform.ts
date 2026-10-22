@@ -34,6 +34,8 @@ function subscribe(listener: () => void) {
     }
   }
 }
+/** Calls back on every connectivity change; returns the unsubscribe. */
+export const onConnectivityChange = subscribe
 export const useConnectivity = () =>
   useSyncExternalStore(subscribe, getConnectivity, () => true)
 export interface ToastOptions {

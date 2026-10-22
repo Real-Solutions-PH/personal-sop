@@ -38,14 +38,17 @@ import {
 import { captureStore, isOnline } from "@domain/capture/store"
 import { toast } from "@domain/capture/toast"
 import { derivedId, isUuid, newId } from "@domain/lib/ids"
+import { onConnectivityChange } from "@domain/lib/platform"
 import { fetch as expoFetch } from "expo/fetch"
 import {
   type AskBackend,
   type Block,
   COMPANION_NAME,
   companionStore,
+  type Msg,
   type StepItem,
   setAskBackend,
+  setRetryAsk,
   stepLabel,
   takeVoiceTurn,
   thinking,
@@ -92,6 +95,9 @@ export interface LiveCaptureDeps {
   /** Push and pull now (the decision wrote rows in other modules). */
   kick(): void
   cats: Cats
+  /** Calls back whenever connectivity changes; returns the unsubscribe.
+   * Queued questions are sent when the device comes back online. */
+  watch?(onChange: () => void): () => void
 }
 
 const OFFLINE = "You're offline — try again when you're connected"
@@ -674,12 +680,61 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
       messages: withMessages(s.messages, ms),
     }))
 
+  const markAsk = (id: string, status: Msg["status"]) =>
+    companionStore.set((s) => ({
+      ...s,
+      messages: s.messages.map((m) =>
+        m.id === id && m.role === "me" ? { ...m, status } : m,
+      ),
+    }))
+  const dropAsk = (id: string) =>
+    companionStore.set((s) => ({
+      ...s,
+      messages: s.messages.filter((m) => !(m.id === id && m.status)),
+    }))
+  const photosOf = (m: Msg) => {
+    const b = m.blocks?.find((x) => x.t === "photos")
+    return b?.t === "photos"
+      ? (b.urls ?? []).filter((u): u is string => !!u)
+      : []
+  }
+  /** The question shows at once, before any request: the server's stored
+   * copy (same id) replaces it when the stream echoes it. */
+  const putAsk = (
+    id: string,
+    text: string,
+    hint: string | undefined,
+    photos: string[],
+    status: Msg["status"],
+  ) =>
+    putMessages([
+      {
+        id,
+        role: "me",
+        at:
+          companionStore.get().messages.find((m) => m.id === id)?.at ??
+          Date.now(),
+        ...(text ? { text } : {}),
+        ...(photos.length ? { blocks: [{ t: "photos", urls: photos }] } : {}),
+        ...(hint ? { hint } : {}),
+        status,
+      },
+    ])
+
   async function runAsk(
     text: string,
     hint: string | undefined,
     photos: string[] = [],
+    meId = newId(),
   ) {
-    const meId = newId()
+    putAsk(meId, text, hint, photos, "sending")
+    // Set once the server has stored the question: from then on a failure
+    // must not offer a Retry (it would ask twice).
+    let echoed = false
+    const fail = () => {
+      if (echoed) return
+      markAsk(meId, deps.online() ? "failed" : "queued")
+    }
     const solId = derivedId("companion-reply", meId, "sol")
     const readAloud = takeVoiceTurn()
     let solAt = 0
@@ -708,6 +763,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
     const custom = (name: string, d: Row) => {
       switch (name) {
         case "message":
+          if (String(d.id) === meId) echoed = true
           return putMessages([messageFromServer(d)])
         case "block":
           blocks = [...blocks, d as unknown as Block]
@@ -731,18 +787,6 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
       }
     }
     thinking.setState({ on: true })
-    // The message shows with its photos at once; the server's stored copy
-    // (same id) replaces it.
-    if (photos.length)
-      putMessages([
-        {
-          id: meId,
-          role: "me",
-          at: Date.now(),
-          ...(text ? { text } : {}),
-          blocks: [{ t: "photos", urls: photos }],
-        },
-      ])
     let mediaIds: string[] = []
     try {
       mediaIds = await Promise.all(
@@ -762,7 +806,8 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
       )
     } catch {
       thinking.setState({ on: false })
-      toast("Couldn't upload the photos. Try again.")
+      fail()
+      toast("Couldn't upload the photos. Tap Retry to send them again.")
       return
     }
     try {
@@ -773,7 +818,10 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
         ...(mediaIds.length ? { media_ids: mediaIds } : {}),
       })
       if (!res.ok) {
-        toast(`${companionName()} couldn't answer that. Try again.`)
+        fail()
+        toast(
+          `${companionName()} couldn't answer that. Tap Retry to ask again.`,
+        )
         return
       }
       await readSse(res, (e) => {
@@ -825,7 +873,14 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
           case "RUN_FINISHED": {
             const out = (d.result ?? {}) as Row
             const msgs = ((out.messages ?? []) as Row[]).map(messageFromServer)
+            if (msgs.some((m) => m.id === meId)) echoed = true
             putMessages(msgs)
+            // Read as a log (the router's capture): the capture shows in
+            // the thread, not the question.
+            if (!echoed) {
+              echoed = true
+              dropAsk(meId)
+            }
             if (out.capture && typeof out.capture === "object")
               detail(out.capture as Row)
             // A dictated message hears its answer, like voice chat.
@@ -835,6 +890,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
             return
           }
           case "RUN_ERROR":
+            fail()
             toast(`${companionName()} couldn't finish that reply.`)
             return
           default:
@@ -842,12 +898,21 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
         }
       })
     } catch (error) {
+      fail()
       toast(
         error instanceof NetworkError || error instanceof ApiError
           ? OFFLINE
           : `${companionName()} couldn't finish that reply.`,
       )
     } finally {
+      // A stream that ended without RUN_FINISHED or an error frame.
+      if (
+        !echoed &&
+        companionStore
+          .get()
+          .messages.some((m) => m.id === meId && m.status === "sending")
+      )
+        fail()
       thinking.setState({ on: false })
       deps.kick()
       void refreshSpend()
@@ -866,16 +931,60 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
           hint,
         })
       else if (routedToCapture) send({ text, source: "text", hint })
-      else
-        toast(
-          `${companionName()} needs a connection to answer. Try again when you're online.`,
-        )
+      else {
+        putAsk(newId(), text, hint, [], "queued")
+        toast(`${companionName()} will answer when you're back online.`)
+      }
       return
     }
     void runAsk(text, hint, photos)
   }
 
-  return { backend, ask, refreshSpend }
+  /** Send every queued question, oldest first (single-flight). */
+  let flushing: Promise<void> | null = null
+  function flushAsks(): Promise<void> {
+    if (flushing) return flushing
+    flushing = (async () => {
+      for (;;) {
+        if (!deps.online()) return
+        const next = companionStore
+          .get()
+          .messages.filter((m) => m.role === "me" && m.status === "queued")
+          .sort((a, b) => a.at - b.at)[0]
+        if (!next) return
+        await runAsk(next.text ?? "", next.hint, photosOf(next), next.id)
+      }
+    })().finally(() => {
+      flushing = null
+    })
+    return flushing
+  }
+
+  const retry = (id: string) => {
+    const m = companionStore.get().messages.find((x) => x.id === id)
+    if (m?.role !== "me" || m.status !== "failed") return
+    if (!deps.online()) {
+      markAsk(id, "queued")
+      toast(`${companionName()} will answer when you're back online.`)
+      return
+    }
+    void runAsk(m.text ?? "", m.hint, photosOf(m), id)
+  }
+
+  // A question still "sending" when the app last stopped may or may not
+  // have reached the server: offer a Retry (a pull replaces it if it did).
+  companionStore.set((s) =>
+    s.messages.some((m) => m.status === "sending")
+      ? {
+          ...s,
+          messages: s.messages.map((m) =>
+            m.status === "sending" ? { ...m, status: "failed" } : m,
+          ),
+        }
+      : s,
+  )
+
+  return { backend, ask, retry, flushAsks, refreshSpend }
 }
 
 // ---------------------------------------------------------------------------
@@ -912,11 +1021,16 @@ const anyFetch: Fetch = (url, init) =>
     : fetch(url, init)
 
 /** Install the live capture path and the companion's streaming ask. */
+let unwatch: (() => void) | null = null
 export function installLiveCapture(deps: LiveCaptureDeps) {
   const live = createLiveCapture(deps)
   setCaptureBackend(live.backend)
   setAskBackend(live.ask)
+  setRetryAsk(live.retry)
+  unwatch?.()
+  unwatch = deps.watch?.(() => void live.flushAsks()) ?? null
   void live.refreshSpend()
+  void live.flushAsks()
   return live
 }
 
@@ -930,6 +1044,7 @@ export function captureMappers(userId: string) {
     online: isOnline,
     kick: syncNow,
     cats: categoryIds(userId),
+    watch: onConnectivityChange,
   })
   return captureSyncMappers(userId)
 }

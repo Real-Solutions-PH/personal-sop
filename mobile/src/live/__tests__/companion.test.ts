@@ -16,11 +16,12 @@ import {
   remember,
   removeTracker,
   renameCompanion,
+  retryAsk,
   thinking,
 } from "@/prototype/companion/store"
 import { installLiveCapture, type LiveCaptureDeps } from "../capture"
 import { SyncEngine } from "../engine"
-import type { Http } from "../http"
+import { type Http, NetworkError } from "../http"
 import {
   companionMappers,
   memoryFromServer,
@@ -101,6 +102,7 @@ function sseResponse(frames: Frame[], onRead?: () => void): Response {
   } as unknown as Response
 }
 
+let reconnect: () => void = () => {}
 function install(
   post: (path: string, body: Row) => Promise<Response>,
   online = () => true,
@@ -123,6 +125,10 @@ function install(
     online,
     kick,
     cats: categoryIds(USER),
+    watch: (onChange) => {
+      reconnect = onChange
+      return () => {}
+    },
   }
   installLiveCapture(deps)
   return { post: spy, kick }
@@ -432,7 +438,7 @@ test("companion (rules) hands a log to capture: no messages, one capture", async
   })
 })
 
-test("companion offline: a log is queued as a capture, a question says it needs a connection", async () => {
+test("companion offline: a log is queued as a capture, a question waits in the thread", async () => {
   const { post } = install(
     async () => {
       throw new Error("no stream offline")
@@ -447,9 +453,90 @@ test("companion offline: a log is queued as a capture, a question says it needs 
     ["spent 200 on lunch", "queued"],
   ])
   expect(toasts).toContain(
-    `${COMPANION_NAME} needs a connection to answer. Try again when you're online.`,
+    `${COMPANION_NAME} will answer when you're back online.`,
   )
-  expect(companionStore.get().messages).toEqual([])
+  expect(
+    companionStore.get().messages.map((m) => [m.role, m.text, m.status]),
+  ).toEqual([["me", "how am I doing?", "queued"]])
+})
+
+test("a queued question is sent on reconnect, with its id, and answered", async () => {
+  let online = false
+  const { post } = install(
+    async (_p, body) => sseResponse(replayAsk(REC.ask_reply, body)),
+    () => online,
+  )
+  ask("how am I doing?")
+  await flush()
+  const queued = companionStore.get().messages[0]
+  expect(queued.status).toBe("queued")
+  online = true
+  reconnect()
+  await flush()
+  expect(post).toHaveBeenCalledTimes(1)
+  expect(post.mock.calls[0][1]).toMatchObject({
+    text: "how am I doing?",
+    id: queued.id,
+  })
+  const msgs = companionStore.get().messages
+  expect(msgs.map((m) => [m.role, m.status])).toEqual([
+    ["me", undefined],
+    ["sol", undefined],
+  ])
+  // a second reconnect has nothing left to send
+  reconnect()
+  await flush()
+  expect(post).toHaveBeenCalledTimes(1)
+})
+
+test("an online question shows before the server answers", async () => {
+  let answer: (r: Response) => void = () => {}
+  install(
+    () =>
+      new Promise<Response>((done) => {
+        answer = done
+      }),
+  )
+  ask("how am I doing?")
+  await flush()
+  expect(
+    companionStore.get().messages.map((m) => [m.role, m.text, m.status]),
+  ).toEqual([["me", "how am I doing?", "sending"]])
+  answer(sseResponse([]))
+  await flush()
+})
+
+test("a refused ask is kept as failed and Retry sends it again", async () => {
+  let refuse = true
+  const { post } = install(async (_p, body) =>
+    refuse
+      ? ({ ok: false, status: 503 } as Response)
+      : sseResponse(replayAsk(REC.ask_reply, body)),
+  )
+  ask("how am I doing?")
+  await flush()
+  const [failed] = companionStore.get().messages
+  expect(failed).toMatchObject({ text: "how am I doing?", status: "failed" })
+  refuse = false
+  retryAsk(failed.id)
+  await flush()
+  expect(post).toHaveBeenCalledTimes(2)
+  expect(post.mock.calls[1][1]).toMatchObject({ id: failed.id })
+  expect(companionStore.get().messages.map((m) => m.status)).toEqual([
+    undefined,
+    undefined,
+  ])
+})
+
+test("a network failure mid-ask keeps the question to retry", async () => {
+  install(async () => {
+    throw new NetworkError("Network request failed")
+  })
+  ask("how am I doing?")
+  await flush()
+  expect(companionStore.get().messages).toEqual([
+    expect.objectContaining({ text: "how am I doing?", status: "failed" }),
+  ])
 })
 
 test("a renamed companion speaks in its own name", async () => {
@@ -462,9 +549,7 @@ test("a renamed companion speaks in its own name", async () => {
   )
   ask("how am I doing?")
   await flush()
-  expect(toasts).toContain(
-    "Juniper needs a connection to answer. Try again when you're online.",
-  )
+  expect(toasts).toContain("Juniper will answer when you're back online.")
 })
 
 // ---------------------------------------------------------------------------
