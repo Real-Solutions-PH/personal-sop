@@ -35,6 +35,7 @@ import { go } from "../navigation"
 import { useTheme } from "../theme"
 import { Button, confirm, Empty, Field, Screen, Sheet, undo } from "../ui"
 import { RecordEditor, useMoney } from "./finance"
+import { AccountCard } from "./finance-account-card"
 import { AccountEditor } from "./finance-account-editor"
 import { FinanceRecord } from "./finance-home"
 import { FinPill } from "./finance-planned"
@@ -173,28 +174,12 @@ export function Accounts({ id }: { id?: string }) {
         <Empty title="Account not found" />
       ) : a ? (
         <>
-          <Line style={{ paddingVertical: 8 }}>
-            <AccountIcon account={a} />
-            <View>
-              <Copy
-                size={30}
-                weight="semibold"
-                style={{
-                  color: bal[a.id] < 0 ? t.bad : t.text,
-                  letterSpacing: -0.75,
-                }}
-              >
-                {money(bal[a.id])}
-              </Copy>
-              <Copy size={12} muted>
-                {a.type === "credit"
-                  ? "Balance owed"
-                  : a.manual
-                    ? "Current value (manual)"
-                    : "Balance"}
-              </Copy>
-            </View>
-          </Line>
+          <AccountCard
+            account={a}
+            balance={bal[a.id]}
+            nudgeDays={s.settings.nudgeDays}
+            onPress={() => setEdit(true)}
+          />
           <Frame
             style={{ paddingHorizontal: 8, paddingTop: 16, paddingBottom: 4 }}
           >
@@ -478,66 +463,16 @@ export function Accounts({ id }: { id?: string }) {
                   >
                     {groups[type]}
                   </SectionHeading>
-                  <Frame style={{ paddingHorizontal: 12, paddingVertical: 4 }}>
-                    {group.map((a) => {
-                      const days = C.lastReconciledDays(a)
-                      return (
-                        <Tap
-                          key={a.id}
-                          onPress={() => go(`/finance/accounts/${a.id}`)}
-                          style={{ paddingVertical: 8, paddingHorizontal: 4 }}
-                        >
-                          <Line>
-                            <AccountIcon account={a} />
-                            <View style={{ flex: 1 }}>
-                              <Copy weight="medium" lines={1}>
-                                {a.name}
-                              </Copy>
-                              {a.type === "credit" && a.limit ? (
-                                <Line style={{ gap: 8 }}>
-                                  <View style={{ width: 64 }}>
-                                    <Bar
-                                      value={Math.abs(bal[a.id]) / a.limit}
-                                      color={t.fin}
-                                    />
-                                  </View>
-                                  <Copy size={14} muted>
-                                    {Math.round(
-                                      (Math.abs(bal[a.id]) / a.limit) * 100,
-                                    )}
-                                    % of limit
-                                  </Copy>
-                                </Line>
-                              ) : (
-                                <Copy
-                                  size={14}
-                                  style={{
-                                    color:
-                                      days !== null &&
-                                      days > s.settings.nudgeDays
-                                        ? t.warn
-                                        : t.muted,
-                                  }}
-                                >
-                                  {a.manual
-                                    ? "Manual value"
-                                    : days === null
-                                      ? "Never matched"
-                                      : `Matched ${days === 0 ? "today" : `${days}d ago`}`}
-                                </Copy>
-                              )}
-                            </View>
-                            <Copy
-                              weight="semibold"
-                              style={{ color: bal[a.id] < 0 ? t.bad : t.text }}
-                            >
-                              {money(bal[a.id])}
-                            </Copy>
-                          </Line>
-                        </Tap>
-                      )
-                    })}
-                  </Frame>
+                  <View style={{ gap: 10 }}>
+                    {group.map((a) => (
+                      <AccountCard
+                        key={a.id}
+                        account={a}
+                        balance={bal[a.id]}
+                        nudgeDays={s.settings.nudgeDays}
+                      />
+                    ))}
+                  </View>
                 </View>
               )
             })

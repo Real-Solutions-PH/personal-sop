@@ -7,25 +7,20 @@ import { currencySymbol } from "@domain/lib/money"
 import { privacyStore, togglePrivacy } from "@domain/lib/privacy"
 import { useLocalSearchParams } from "expo-router"
 import {
-  Banknote,
   Bot,
   CalendarClock,
   ChartLine,
-  CreditCard,
   Eye,
   EyeOff,
   FileUp,
   FolderTree,
   History,
-  Landmark,
   ListOrdered,
   PiggyBank,
   Plus,
   Settings,
-  Smartphone,
   Sparkles,
   Target,
-  TrendingUp,
   Wallet,
 } from "lucide-react-native"
 import { useState } from "react"
@@ -48,6 +43,8 @@ import { fonts, useTheme } from "../theme"
 import { Screen } from "../ui"
 import { Ring } from "../visual"
 import { RecordEditor, useMoney } from "./finance"
+import { AccountCard } from "./finance-account-card"
+import { RecurringNet } from "./finance-monthly-net"
 import { FinanceOutlook } from "./finance-outlook"
 import { FinPill } from "./finance-planned"
 import { Reports } from "./finance-reports"
@@ -236,13 +233,6 @@ export function FinanceHome() {
       expOut,
       ...trio.flatMap((x) => [x.flow.income, x.flow.spend]),
     )
-  const acctIcons = {
-    cash: Banknote,
-    bank: Landmark,
-    ewallet: Smartphone,
-    credit: CreditCard,
-    investment: TrendingUp,
-  }
   const shortcuts = [
     { label: "Transactions", href: "/finance/records", icon: ListOrdered },
     { label: "Accounts", href: "/finance/accounts", icon: Wallet },
@@ -408,67 +398,15 @@ export function FinanceHome() {
               paddingBottom: 4,
             }}
           >
-            {accounts.map((a) => {
-              const Icon = acctIcons[a.type],
-                color = a.color?.startsWith("var(")
-                  ? String(
-                      t[a.color.slice(6, -1) as keyof typeof t] ??
-                        t["acct-slate"],
-                    )
-                  : a.color
-              return (
-                <Tap
-                  key={a.id}
-                  onPress={() => go(`/finance/accounts/${a.id}`)}
-                  style={{ width: 144 }}
-                >
-                  <Frame style={{ padding: 12 }}>
-                    <Line style={{ gap: 8 }}>
-                      <View
-                        style={{
-                          width: 24,
-                          height: 24,
-                          borderRadius: 12,
-                          backgroundColor: color ?? t["acct-slate"],
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <Icon size={14} color="white" />
-                      </View>
-                      <Copy size={12} muted lines={1}>
-                        {a.name}
-                      </Copy>
-                    </Line>
-                    <Copy
-                      weight="semibold"
-                      style={{
-                        marginTop: 8,
-                        color: bal[a.id] < 0 ? t.bad : t.text,
-                      }}
-                    >
-                      {money(bal[a.id])}
-                    </Copy>
-                    {a.type === "credit" && a.limit ? (
-                      <View style={{ marginTop: 8 }}>
-                        <Bar
-                          value={Math.abs(bal[a.id]) / a.limit}
-                          color={t.fin}
-                        />
-                      </View>
-                    ) : (
-                      <Copy size={10} muted style={{ marginTop: 8 }}>
-                        {a.manual
-                          ? "manual value"
-                          : a.lastReconciled
-                            ? `matched ${N.lastReconciledDays(a)}d ago`
-                            : "never matched"}
-                      </Copy>
-                    )}
-                  </Frame>
-                </Tap>
-              )
-            })}
+            {accounts.map((a) => (
+              <AccountCard
+                key={a.id}
+                compact
+                account={a}
+                balance={bal[a.id]}
+                nudgeDays={s.settings.nudgeDays}
+              />
+            ))}
           </ScrollView>
           {(stale.length > 0 || pending.length > 0) && (
             <View style={{ marginTop: 12, gap: 8 }}>
@@ -769,6 +707,7 @@ export function FinanceHome() {
                   </Copy>
                 </Line>
               )}
+              <RecurringNet s={s} />
             </Tap>
           </Frame>
           <Frame
