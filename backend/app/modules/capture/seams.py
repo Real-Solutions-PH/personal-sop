@@ -59,6 +59,31 @@ def meter(
     )
 
 
+def ask_text(
+    ctx: Ctx,
+    resolved: ai.ResolvedModel,
+    *,
+    system: str,
+    text: str,
+    images: list[tuple[bytes, str]],
+) -> str:
+    """One metered call that answers in plain text, with ``images`` in the
+    same message."""
+    model = ai.build_chat_model(resolved)
+    content: list[str | dict[Any, Any]] = [{"type": "text", "text": text}]
+    for data, mime in images:
+        url = f"data:{mime};base64,{base64.b64encode(data).decode()}"
+        content.append({"type": "image_url", "image_url": {"url": url}})
+    msgs: list[BaseMessage] = [SystemMessage(system), HumanMessage(content=content)]
+    try:
+        out = model.invoke(msgs)
+    except Exception:  # noqa: BLE001 - provider failures become a stable code
+        meter(ctx, resolved, None, ok=False)
+        raise SeamError("model_unavailable") from None
+    meter(ctx, resolved, out if isinstance(out, AIMessage) else None)
+    return text_of(out).strip()
+
+
 # ---------------------------------------------------------------- voice
 
 
@@ -189,18 +214,22 @@ def ask_json(
     system: str,
     text: str,
     image: tuple[bytes, str] | None = None,
+    images: list[tuple[bytes, str]] | None = None,
 ) -> M:
-    """One metered call that must answer JSON matching ``schema``."""
+    """One metered call that must answer JSON matching ``schema``. The
+    images (``image`` or several in ``images``) go in the same message."""
     model = ai.build_chat_model(resolved)
     content: Any = text
-    if image is not None:
-        b64 = base64.b64encode(image[0]).decode()
-        content = [
-            {"type": "text", "text": text},
+    pics = images if images is not None else ([image] if image is not None else [])
+    if pics:
+        content = [{"type": "text", "text": text}] + [
             {
                 "type": "image_url",
-                "image_url": {"url": f"data:{image[1]};base64,{b64}"},
-            },
+                "image_url": {
+                    "url": f"data:{mime};base64,{base64.b64encode(data).decode()}"
+                },
+            }
+            for data, mime in pics
         ]
     msgs: list[BaseMessage] = [SystemMessage(system), HumanMessage(content=content)]
     try:

@@ -63,7 +63,9 @@ def rename(ctx: CtxDep, data: RenameIn) -> Any:
 @router.post("/ask", response_model=AskOut, dependencies=WRITE)
 def ask(ctx: CtxDep, data: AskIn) -> Any:
     """Ask the companion. A replayed message id returns the reply it already got."""
-    return services.ask(ctx, text=data.text, message_id=data.id)
+    return services.ask(
+        ctx, text=data.text, message_id=data.id, media_ids=data.media_ids
+    )
 
 
 @router.post(
@@ -88,7 +90,13 @@ def ask_stream(ctx: CtxDep, data: AskIn) -> StreamingResponse:
             ctx, thread_id=f"companion:{ctx.user_id}", run_id=run_id, sink=sink
         )
         stream.started()
-        out = services.ask(ctx, text=data.text, message_id=data.id, stream=stream)
+        out = services.ask(
+            ctx,
+            text=data.text,
+            message_id=data.id,
+            stream=stream,
+            media_ids=data.media_ids,
+        )
         stream.finished(out.model_dump(mode="json"))
 
     return StreamingResponse(

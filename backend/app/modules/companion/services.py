@@ -185,7 +185,28 @@ def _message(
 def _pub(ctx: Ctx, m: CompanionMessage) -> MessagePublic:
     ctx.session.flush()
     ctx.session.refresh(m)
-    return MessagePublic.model_validate(m)
+    out = MessagePublic.model_validate(m)
+    if any(b.get("t") == "photos" for b in out.blocks):
+        out.blocks = [_with_urls(ctx, b) for b in out.blocks]
+    return out
+
+
+def _with_urls(ctx: Ctx, block: dict[str, Any]) -> dict[str, Any]:
+    """A photos block with a fresh presigned link per photo (links expire,
+    so they are signed when the message is read, never stored)."""
+    if block.get("t") != "photos":
+        return block
+    from app.modules.media import public as media
+
+    urls: list[str | None] = []
+    for mid in block.get("media") or []:
+        try:
+            urls.append(
+                media.download_url(media.require_ready(ctx, uuid.UUID(str(mid))))
+            )
+        except Exception:  # noqa: BLE001 - a deleted photo shows as missing
+            urls.append(None)
+    return {**block, "urls": urls}
 
 
 # ---------------------------------------------------------------- ask
@@ -235,8 +256,10 @@ def ask(
     text: str,
     message_id: uuid.UUID | None = None,
     stream: TurnStream | None = None,
+    media_ids: list[uuid.UUID] | None = None,
 ) -> AskOut:
     me_id = message_id or uuid.uuid4()
+    photos = list(dict.fromkeys(media_ids or []))
     if stream is None:
         stream = TurnStream(ctx, thread_id=str(ctx.user_id), run_id=str(me_id))
     sol_id = derived_id("companion-reply", me_id, "sol")
@@ -251,7 +274,15 @@ def ask(
     if resolved is not None:
         try:
             return _ask_ai(
-                ctx, resolved, text, me_id, sol_id, sol.name, user_name, stream
+                ctx,
+                resolved,
+                text,
+                me_id,
+                sol_id,
+                sol.name,
+                user_name,
+                stream,
+                photos=photos,
             )
         except capture.SeamError:
             # The provider failed (metered as a failed call): the router
@@ -719,6 +750,8 @@ def _ask_ai(
     sol_name: str,
     user_name: str,
     stream: TurnStream,
+    *,
+    photos: list[uuid.UUID] | None = None,
 ) -> AskOut:
     mems = memories(ctx)[-MAX_MEMORIES_IN_CONTEXT:]
     system = SYSTEM.format(
@@ -743,8 +776,22 @@ def _ask_ai(
         ),
     )
     history = _history(ctx)
-    me = _message(ctx, "me", text, [], me_id)
+    me = _message(
+        ctx,
+        "me",
+        text,
+        [{"t": "photos", "media": [str(p) for p in photos]}] if photos else [],
+        me_id,
+    )
     stream.custom("message", _pub(ctx, me).model_dump(mode="json"))
+    if photos:
+        # The photos are read into text first, so Fern acts on them with
+        # its usual tools whatever chat model the person picked.
+        call = str(derived_id("fern-photos", me_id, "read"))
+        stream.tool_started(call, "read_photos", {"photos": len(photos)})
+        seen, read = capture.describe_photos(ctx, photos, text)
+        stream.tool_finished(call, "read_photos", {"read": len(read)})
+        text = f"{text}\n\n{seen}".strip()
     run = SolRun(ctx=ctx, me_id=me_id, emit=stream.frame)
     # What the person said today, newest last: "register those" leans on the
     # message before it, so a day named there still counts for a due date.

@@ -292,3 +292,61 @@ def test_browser_transcription_needs_the_transcript(
     mid2 = media(api, storage, kind="audio", mime="audio/mpeg", data=AUDIO)
     cap = api.capture(source="voice", media_id=mid2, transcript="meditated 10 min")
     assert cap["transcript"] == "meditated 10 min" and cap["status"] == "done"
+
+
+def test_several_photos_are_one_capture_read_together(
+    client: TestClient,
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    storage: FakeStorage,
+) -> None:
+    """Snap it with three photos sends one capture, and the vision model
+    sees every photo in one request, not one capture per photo."""
+    api = user(client, db)
+    api.assign("vision", vision=True)
+    est = {
+        "items": [
+            {
+                "name": "Tapsilog",
+                "qty": 1,
+                "unit": "plate",
+                "kcal": 650,
+                "protein": 35,
+                "carbs": 70,
+                "fat": 24,
+            }
+        ],
+        "confidence": 0.6,
+        "follow_up": None,
+    }
+    model = install(monkeypatch, say(json.dumps(est)))
+    ids = [
+        media(api, storage, kind="image", mime="image/jpeg", data=JPEG)  # type: ignore[arg-type]
+        for _ in range(3)
+    ]
+    cap = api.capture(
+        source="photo", media_id=ids[0], extra_media_ids=ids[1:], hint="meal"
+    )
+    card_of(cap, "meal")
+    assert len(model.seen) == 1
+    sent = model.seen[0][-1].content
+    assert "There are 3 photos" in sent[0]["text"]
+    assert [p["type"] for p in sent[1:]] == ["image_url"] * 3
+    assert len(cap["attachments"]) == 3
+
+
+def test_more_photos_only_ride_on_a_photo_capture(
+    client: TestClient, db: Session, storage: FakeStorage
+) -> None:
+    api = user(client, db)
+    mid = media(api, storage, kind="image", mime="image/jpeg", data=JPEG)  # type: ignore[arg-type]
+    api.post(
+        "/capture",
+        {
+            "client_uuid": str(uuid.uuid4()),
+            "source": "text",
+            "text": "lunch",
+            "extra_media_ids": [mid],
+        },
+        status=422,
+    )

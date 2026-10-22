@@ -206,6 +206,12 @@ def submit(ctx: Ctx, data: CaptureIn) -> Submitted:
         if kind is None:
             raise invalid("media_unexpected", "This kind of capture has no attachment")
         _attach(ctx, cap, data.media_id, kind)
+    if data.extra_media_ids:
+        if data.source != "photo" or data.media_id is None:
+            raise invalid("media_unexpected", "Only photo captures take more photos")
+        for extra in dict.fromkeys(data.extra_media_ids):
+            if extra != data.media_id:
+                _attach(ctx, cap, extra, "image")
     return Submitted(cap, True)
 
 
@@ -393,7 +399,8 @@ def photo_env(
 ) -> Ph.PhotoEnv:
     world = ports.build_world(ctx, at=cap.at)
     st = settings_row(ctx)
-    img = Ph.image_of(ctx, cap)
+    imgs = Ph.images_of(ctx, cap)
+    img = imgs[0] if imgs else None
     vision = ai.resolve_model(ctx, "vision") if st.send_photos else None
     if vision is not None and not vision.supports_vision:
         vision = None
@@ -430,6 +437,7 @@ def photo_env(
         image=(img[1], img[2]) if img else None,
         vision=vision,
         text_path=text_path,
+        extra=[(b, mime) for _, b, mime in imgs[1:]],
     )
     env.made = made  # type: ignore[attr-defined]
     return env

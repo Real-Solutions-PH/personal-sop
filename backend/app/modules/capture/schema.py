@@ -230,6 +230,8 @@ class CaptureIn(BaseModel):
     hint: Hint | Literal["journal", "expense", "task", "weigh-in"] | None = None
     file_name: Annotated[str, Field(max_length=255)] | None = None
     media_id: uuid.UUID | None = None
+    # More photos read together with ``media_id`` (one capture, one answer).
+    extra_media_ids: list[uuid.UUID] = Field(default_factory=list, max_length=9)
     # A statement file needs the account it belongs to (CAP-04).
     account_id: uuid.UUID | None = None
     # Store only; the device asks the server to process it later (CAP-14).

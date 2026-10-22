@@ -76,6 +76,52 @@ def submit_capture(
     return engine.process(ctx, out.capture, emit or engine._noop)
 
 
+PHOTO_READER = (
+    "You read photos someone attached to a message in a personal tracking "
+    "app (tasks, money, meals, training, body, habits). Write what matters "
+    "for recording it, precisely and briefly: items and amounts with "
+    "currency, payee and date on receipts, foods and portions on plates, "
+    "exercises, sets, reps and weights on boards or screens, any written "
+    "text. Number the photos when there are several. No guesses beyond "
+    "what is visible."
+)
+
+
+def describe_photos(
+    ctx: Ctx, media_ids: list[uuid.UUID], said: str
+) -> tuple[str, list[uuid.UUID]]:
+    """What the attached photos show, as text for the chat agent, and the
+    ids of the photos that were read. Never raises for a model failure: the
+    text says the photos could not be read."""
+    from app.modules.ai_providers import public as ai
+    from app.modules.media import public as media
+
+    n = len(media_ids)
+    label = f"{n} photo{'' if n == 1 else 's'}"
+    if not journal.settings_row(ctx).send_photos:
+        return (f"[{label} attached; photo reading is off in AI settings]", [])
+    vision = ai.resolve_model(ctx, "vision")
+    if vision is None or not vision.supports_vision:
+        return (f"[{label} attached; no model that can read photos is set up]", [])
+    images: list[tuple[bytes, str]] = []
+    read: list[uuid.UUID] = []
+    for mid in media_ids:
+        m = media.require_ready(ctx, mid, kinds=("image",))
+        images.append((media.read_bytes(m, max_bytes=seams.IMAGE_MAX_BYTES), m.mime))
+        read.append(mid)
+    try:
+        seen = seams.ask_text(
+            ctx,
+            vision,
+            system=PHOTO_READER,
+            text=f"The message with them says: {said or '(no text)'}",
+            images=images,
+        )
+    except seams.SeamError:
+        return (f"[{label} attached; they could not be read just now]", read)
+    return (f"[{label} attached. What they show:\n{seen}]", read)
+
+
 def capture_detail(ctx: Ctx, capture_id: uuid.UUID) -> dict[str, Any]:
     from app.modules.capture.cards import require_capture
 

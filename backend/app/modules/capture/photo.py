@@ -18,7 +18,7 @@ three receipts); the server never invents what a photo shows.
 import re
 import uuid
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date as Date
 from typing import Any, Literal
 
@@ -362,6 +362,26 @@ class PhotoEnv:
     image: tuple[bytes, str] | None
     vision: ai.ResolvedModel | None
     text_path: Callable[[str, str], list[Draft]]
+    # The capture's other photos, read together with ``image``.
+    extra: list[tuple[bytes, str]] = field(default_factory=list)
+
+
+def images_of(ctx: Ctx, cap: Capture) -> list[tuple[uuid.UUID, bytes, str]]:
+    """Every photo of the capture, in the order they were attached."""
+    atts = owned_repo.list_rows(
+        ctx,
+        CaptureAttachment,
+        col(CaptureAttachment.capture_id) == cap.id,
+        col(CaptureAttachment.kind) == "image",
+        order_by=[col(CaptureAttachment.created_at)],
+    )
+    out = []
+    for att in atts:
+        m = media.require_ready(ctx, att.media_id, kinds=("image",))
+        out.append(
+            (att.media_id, media.read_bytes(m, max_bytes=seams.IMAGE_MAX_BYTES), m.mime)
+        )
+    return out
 
 
 def image_of(ctx: Ctx, cap: Capture) -> tuple[uuid.UUID, bytes, str] | None:
@@ -440,14 +460,22 @@ def _vision(
     ctx: Ctx, env: PhotoEnv, hint: str, caption: str, schema: type[seams.M]
 ) -> seams.M:
     assert env.vision is not None and env.image is not None
-    text = PROMPTS[hint] + (f"\nThe user says: {caption}" if caption else "")
+    images = [env.image, *env.extra]
+    many = (
+        f"\nThere are {len(images)} photos: read them together as one capture "
+        "(the same meal, receipt or board from several shots, or several of "
+        "them to log)."
+        if len(images) > 1
+        else ""
+    )
+    text = PROMPTS[hint] + many + (f"\nThe user says: {caption}" if caption else "")
     return seams.ask_json(
         ctx,
         env.vision,
         schema,
         system=SYSTEM.format(currency=ctx.currency.phrase),
         text=text,
-        image=env.image,
+        images=images,
     )
 
 
