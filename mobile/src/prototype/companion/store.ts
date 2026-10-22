@@ -26,6 +26,9 @@ export type Block =
   | { t: "memory" }
   | { t: "chips"; prompts: string[] }
   | { t: "steps"; items: StepItem[] }
+  /** Photos sent with a message: media ids, and links when known (local
+   * while sending, signed by the server when read). */
+  | { t: "photos"; media?: string[]; urls?: (string | null)[] }
 
 /** One thing Fern did during a reply: a tool call, running or finished
  * (ADR-0015). A write carries its card, so the row can offer Undo or
@@ -142,6 +145,7 @@ export type AskBackend = (
   text: string,
   hint: string | undefined,
   routedToCapture: boolean,
+  photos?: string[],
 ) => void
 let askBackend: AskBackend | null = null
 export const setAskBackend = (b: AskBackend | null) => {

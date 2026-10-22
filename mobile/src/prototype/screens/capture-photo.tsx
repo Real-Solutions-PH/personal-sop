@@ -199,13 +199,17 @@ export function CapturePhoto({
           disabled={!photos.length || !allowed}
           onPress={() => {
             if (!photos.length || !allowed) return
-            // One capture per photo, all sent in one go.
-            const ids = photos.map((photo) =>
-              sendCapture({ source: "photo", photo, hint, text: caption }),
-            )
+            // One capture for all the photos: they are read together.
+            const id = sendCapture({
+              source: "photo",
+              photo: photos[0],
+              photos: photos.slice(1),
+              hint,
+              text: caption,
+            })
             onClose()
-            if (ids.length > 1) toast.success(`Sent ${ids.length} photos`)
-            onSent?.(ids[ids.length - 1])
+            if (photos.length > 1) toast.success(`Sent ${photos.length} photos`)
+            onSent?.(id)
           }}
         >
           {photos.length > 1 ? `Send ${photos.length} photos` : "Send photo"}

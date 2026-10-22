@@ -9,6 +9,7 @@ import {
   Brain,
   CalendarCheck2,
   Clock,
+  Image as ImageIcon,
   Lightbulb,
   Maximize2,
   PenLine,
@@ -18,6 +19,7 @@ import {
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react"
 import {
   BackHandler,
+  Image,
   Keyboard,
   Platform,
   Pressable,
@@ -40,6 +42,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { liveMode } from "@/live/config"
 import { feel } from "../motion"
 import { IconTap } from "../native-kit"
 import { go } from "../navigation"
@@ -93,33 +96,96 @@ function SolMessage({ m, name }: { m: Msg; name: string }) {
 }
 function MyMessage({ m }: { m: Msg }) {
   const t = useTheme()
+  const photos = m.blocks?.find((b) => b.t === "photos")
+  const shots =
+    photos && photos.t === "photos"
+      ? (photos.urls ?? photos.media ?? []).map((u, i) => ({
+          url: photos.urls?.[i] ?? null,
+          media: photos.media?.[i],
+          key: `${i}-${u ?? ""}`,
+        }))
+      : []
   return (
     <Animated.View
       entering={FadeInDown.duration(220)}
-      style={{ alignItems: "flex-end" }}
+      style={{ alignItems: "flex-end", gap: 6 }}
     >
-      <View
-        style={{
-          maxWidth: "85%",
-          backgroundColor: t.primary,
-          borderRadius: 18,
-          borderBottomRightRadius: 6,
-          paddingHorizontal: 14,
-          paddingVertical: 9,
-        }}
-      >
-        <Text
+      {shots.length > 0 && (
+        <View
           style={{
-            color: t.onPrimary,
-            fontFamily: fonts.body,
-            fontSize: 15,
-            lineHeight: 20,
+            flexDirection: "row",
+            flexWrap: "wrap",
+            justifyContent: "flex-end",
+            gap: 6,
+            maxWidth: "85%",
           }}
         >
-          {m.text}
-        </Text>
-      </View>
+          {shots.map((p) => (
+            <SentPhoto key={p.key} url={p.url} media={p.media} />
+          ))}
+        </View>
+      )}
+      {!!m.text && (
+        <View
+          style={{
+            maxWidth: "85%",
+            backgroundColor: t.primary,
+            borderRadius: 18,
+            borderBottomRightRadius: 6,
+            paddingHorizontal: 14,
+            paddingVertical: 9,
+          }}
+        >
+          <Text
+            style={{
+              color: t.onPrimary,
+              fontFamily: fonts.body,
+              fontSize: 15,
+              lineHeight: 20,
+            }}
+          >
+            {m.text}
+          </Text>
+        </View>
+      )}
     </Animated.View>
+  )
+}
+/** A photo sent with a message. Messages read back through sync carry
+ * only the photo's id, so its link is fetched when it is shown. */
+function SentPhoto({ url, media }: { url: string | null; media?: string }) {
+  const t = useTheme()
+  const [src, setSrc] = useState(url)
+  useEffect(() => {
+    if (src || !media || !liveMode) return
+    const { http } = require("@/live/auth") as typeof import("@/live/auth")
+    http
+      .request<{ url?: string | null }>("GET", `/media/${media}`)
+      .then((r) => r.url && setSrc(r.url))
+      .catch(() => {})
+  }, [src, media])
+  return (
+    <View
+      style={{
+        width: 96,
+        height: 96,
+        borderRadius: 14,
+        overflow: "hidden",
+        backgroundColor: t.soft,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      {src ? (
+        <Image
+          source={{ uri: src }}
+          accessibilityLabel="Sent photo"
+          style={{ width: "100%", height: "100%" }}
+        />
+      ) : (
+        <ImageIcon size={22} color={t.muted} />
+      )}
+    </View>
   )
 }
 function Thinking({ name }: { name: string }) {
@@ -411,7 +477,7 @@ export function CompanionChat() {
       }
       footer={
         <ThreadComposer
-          onText={(v, hint) => ask(v, hint)}
+          onText={(v, hint, photos) => ask(v, hint, photos)}
           initialText={params.q ?? ""}
           initialHint={params.hint}
           placeholder={`Message ${name}…`}
@@ -701,7 +767,7 @@ export function CompanionDrawer({ bottom }: { bottom: number }) {
             <Thinking name={name} />
           </ScrollView>
           <ThreadComposer
-            onText={(v, hint) => ask(v, hint)}
+            onText={(v, hint, photos) => ask(v, hint, photos)}
             hints={false}
             initialHint={ctx.hint}
             initialMode={ctx.mode}

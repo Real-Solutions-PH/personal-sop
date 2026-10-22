@@ -329,13 +329,33 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
       },
     }))
 
+  /** Upload a multi-photo capture's other photos once (ids derive from the
+   * capture, so a retry re-uses them). True when they are all up. */
+  async function ensureExtraPhotos(id: string): Promise<boolean> {
+    const cap = find(id) as LiveCapture | undefined
+    if (!cap?.photos?.length || cap.extraMediaIds) return true
+    const ids: string[] = []
+    for (const [i, uri] of cap.photos.entries()) {
+      const m = await uploadMedia(
+        {
+          kind: "image",
+          uri,
+          id: derivedId("capture-media", cap.id, String(i + 1)),
+        },
+        deps,
+      )
+      ids.push(m.id)
+    }
+    patchCapture(id, (c) => ({ ...c, extraMediaIds: ids }) as LiveCapture)
+    return true
+  }
+
   /** Upload the capture's media once; true when it can be sent. */
   async function ensureMedia(id: string): Promise<boolean> {
     const cap = find(id) as LiveCapture | undefined
     if (!cap) return false
-    if (cap.mediaId) return true
-    const input = mediaInput(cap)
-    if (!input) {
+    const input = cap.mediaId ? null : mediaInput(cap)
+    if (!cap.mediaId && !input) {
       if (cap.source === "photo" || cap.source === "file") {
         failLocal(
           id,
@@ -347,9 +367,11 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
       return true
     }
     try {
-      const m = await uploadMedia(input, deps)
-      patchCapture(id, (c) => ({ ...c, mediaId: m.id }) as LiveCapture)
-      return true
+      if (input) {
+        const m = await uploadMedia(input, deps)
+        patchCapture(id, (c) => ({ ...c, mediaId: m.id }) as LiveCapture)
+      }
+      return await ensureExtraPhotos(id)
     } catch (error) {
       if (error instanceof NetworkError) {
         // Offline: keep it queued. Online but the upload itself didn't go
@@ -455,6 +477,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
     }
     if (input.hint) cap.hint = input.hint
     if (input.photo) cap.photo = input.photo
+    if (input.photos?.length) cap.photos = input.photos
     if (input.durationSec !== undefined) cap.durationSec = input.durationSec
     if (input.fileName) cap.fileName = input.fileName
     if (input.fileUri) cap.fileUri = input.fileUri
@@ -649,7 +672,11 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
       messages: withMessages(s.messages, ms),
     }))
 
-  async function runAsk(text: string, hint: string | undefined) {
+  async function runAsk(
+    text: string,
+    hint: string | undefined,
+    photos: string[] = [],
+  ) {
     const meId = newId()
     const solId = derivedId("companion-reply", meId, "sol")
     let solAt = 0
@@ -701,11 +728,46 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
       }
     }
     thinking.setState({ on: true })
+    // The message shows with its photos at once; the server's stored copy
+    // (same id) replaces it.
+    if (photos.length)
+      putMessages([
+        {
+          id: meId,
+          role: "me",
+          at: Date.now(),
+          ...(text ? { text } : {}),
+          blocks: [{ t: "photos", urls: photos }],
+        },
+      ])
+    let mediaIds: string[] = []
+    try {
+      mediaIds = await Promise.all(
+        photos.map(
+          async (uri, i) =>
+            (
+              await uploadMedia(
+                {
+                  kind: "image",
+                  uri,
+                  id: derivedId("ask-media", meId, String(i)),
+                },
+                deps,
+              )
+            ).id,
+        ),
+      )
+    } catch {
+      thinking.setState({ on: false })
+      toast("Couldn't upload the photos. Try again.")
+      return
+    }
     try {
       const res = await deps.post("/companion/ask/stream", {
         text: text.slice(0, 4000),
         id: meId,
         ...(hint ? { hint: hint.slice(0, 20) } : {}),
+        ...(mediaIds.length ? { media_ids: mediaIds } : {}),
       })
       if (!res.ok) {
         toast(`${companionName()} couldn't answer that. Try again.`)
@@ -784,16 +846,25 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
     }
   }
 
-  const ask: AskBackend = (text, hint, routedToCapture) => {
+  const ask: AskBackend = (text, hint, routedToCapture, photos) => {
     if (!deps.online()) {
-      if (routedToCapture) send({ text, source: "text", hint })
+      // Offline photos wait as a photo capture, read when back online.
+      if (photos?.length)
+        send({
+          text,
+          source: "photo",
+          photo: photos[0],
+          photos: photos.slice(1),
+          hint,
+        })
+      else if (routedToCapture) send({ text, source: "text", hint })
       else
         toast(
           `${companionName()} needs a connection to answer. Try again when you're online.`,
         )
       return
     }
-    void runAsk(text, hint)
+    void runAsk(text, hint, photos)
   }
 
   return { backend, ask, refreshSpend }

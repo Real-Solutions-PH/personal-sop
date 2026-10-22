@@ -1330,3 +1330,56 @@ test("the AI spend meter comes from the server, at start and after a capture", a
   expect(post).toHaveBeenCalled()
   expect(captureStore.get().spend).toMatchObject({ amount: 13.5, calls: 2 })
 })
+
+test("several photos go up first, then one capture carries them all", async () => {
+  const photo = "data:image/jpeg;base64,/9j/4AAQSkZJRg=="
+  const routes: Record<string, Route> = {
+    "POST /media/uploads": (body) => ({
+      id: (body as Row).id,
+      upload_url: "https://store.example/put/1",
+      expires_in: 600,
+      headers: { "Content-Type": "image/jpeg" },
+    }),
+  }
+  const { calls, post } = fakeDeps({
+    online: () => true,
+    routes,
+    fetch: async () => jsonResponse(200, {}),
+    post: async () => {
+      throw new NetworkError("stop after the request is made")
+    },
+  })
+  // Route every derived media id's completion before sending.
+  const done = (body: unknown) => ({
+    id: (body as Row | undefined)?.id,
+    kind: "image",
+    mime: "image/jpeg",
+    state: "ready",
+    url: null,
+  })
+  const id = sendCapture({
+    source: "photo",
+    photo,
+    photos: [photo, photo],
+    hint: "meal",
+    text: "lunch",
+  })
+  for (const n of ["0", "1", "2"]) {
+    const m = derivedId("capture-media", id, n)
+    routes[`POST /media/${m}/complete`] = () => done({ id: m })
+  }
+  await flush()
+  await flush()
+  const uploads = calls.filter((c) => c.path === "/media/uploads")
+  expect(uploads).toHaveLength(3)
+  const [path, body] = post.mock.calls[0]
+  expect(path).toBe("/capture/stream")
+  expect(body).toMatchObject({
+    source: "photo",
+    media_id: derivedId("capture-media", id, "0"),
+    extra_media_ids: [
+      derivedId("capture-media", id, "1"),
+      derivedId("capture-media", id, "2"),
+    ],
+  })
+})

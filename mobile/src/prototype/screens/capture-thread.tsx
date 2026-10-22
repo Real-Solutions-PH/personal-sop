@@ -20,10 +20,12 @@ import {
   Utensils,
   Wallet,
   WifiOff,
+  X,
 } from "lucide-react-native"
 import { useState } from "react"
 import {
   ActivityIndicator,
+  Alert,
   Image,
   ScrollView,
   TextInput,
@@ -34,6 +36,7 @@ import { liveMode } from "@/live/config"
 import { Orb } from "../companion/orb"
 import { thinking } from "../companion/store"
 import { useLiveDictation } from "../live-dictation"
+import { pickPhoto, pickPhotos } from "../media"
 import { border, Copy, Frame, IconTap, Line, Tap } from "../native-kit"
 import { go } from "../navigation"
 import { fonts, useTheme } from "../theme"
@@ -72,8 +75,9 @@ export function ThreadComposer({
   hints: showHints = true,
   placeholder,
 }: {
-  /** Route typed messages here (the companion) instead of capture. */
-  onText?: (text: string, hint?: string) => void
+  /** Route typed messages here (the companion) instead of capture, with
+   * any photos attached in the composer. */
+  onText?: (text: string, hint?: string, photos?: string[]) => void
   hints?: boolean
   placeholder?: string
   onSent?: (id: string) => void
@@ -88,7 +92,27 @@ export function ThreadComposer({
     [mode, setMode] = useState<string | undefined>(initialMode),
     [quick, setQuick] = useState(false),
     [transcribing, setTranscribing] = useState(false),
+    [photos, setPhotos] = useState<string[]>([]),
     online = useOnline()
+  const MAX_PHOTOS = 10
+  const addPhotos = (more: string[]) =>
+    setPhotos((cur) => [...cur, ...more].slice(0, MAX_PHOTOS))
+  // Fern's camera attaches photos to the message being written, so a photo
+  // and what to do with it go out together as one message.
+  const attachPhotos = () =>
+    Alert.alert("Add photos", undefined, [
+      {
+        text: "Take photo",
+        onPress: () => void pickPhoto(true).then((v) => v && addPhotos([v])),
+      },
+      {
+        text: "Choose photos",
+        onPress: () =>
+          void pickPhotos(MAX_PHOTOS - photos.length).then(addPhotos),
+      },
+      { text: "Cancel", style: "cancel" },
+    ])
+  const canSend = Boolean(text.trim()) || (Boolean(onText) && photos.length > 0)
   // Fern's composer dictates: what was said lands in the box to review and
   // send (ADR-0015). The capture screen's composer keeps voice captures.
   const dictation = Boolean(onText)
@@ -161,6 +185,45 @@ export function ThreadComposer({
           ))}
         </ScrollView>
       )}
+      {photos.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 8, paddingBottom: 8 }}
+          style={{ flexGrow: 0 }}
+        >
+          {photos.map((uri, i) => (
+            <View
+              key={`${i}-${uri.length}`}
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 12,
+                overflow: "hidden",
+                backgroundColor: t.soft,
+              }}
+            >
+              <Image
+                source={{ uri }}
+                accessibilityLabel={`Attached photo ${i + 1}`}
+                style={{ width: "100%", height: "100%" }}
+              />
+              <View style={{ position: "absolute", top: 2, right: 2 }}>
+                <IconTap
+                  size={28}
+                  icon={X}
+                  label={`Remove photo ${i + 1}`}
+                  background="#0009"
+                  color="#fff"
+                  onPress={() =>
+                    setPhotos((cur) => cur.filter((_, j) => j !== i))
+                  }
+                />
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+      )}
       {!online && (
         <Copy size={12} style={{ color: t.warn, marginBottom: 8 }}>
           Offline — I'll queue it and process when you're back.
@@ -215,20 +278,20 @@ export function ThreadComposer({
             }}
           />
           {!text && (
-            <>
-              <IconTap
-                size={44}
-                icon={Paperclip}
-                label="Attach statement file"
-                onPress={() => void attachFiles(onSent)}
-              />
-              <IconTap
-                size={44}
-                icon={Camera}
-                label="Photo"
-                onPress={() => setMode("photo")}
-              />
-            </>
+            <IconTap
+              size={44}
+              icon={Paperclip}
+              label="Attach statement file"
+              onPress={() => void attachFiles(onSent)}
+            />
+          )}
+          {(!text || onText) && (
+            <IconTap
+              size={44}
+              icon={Camera}
+              label={onText ? "Add photos" : "Photo"}
+              onPress={() => (onText ? attachPhotos() : setMode("photo"))}
+            />
           )}
         </View>
         {live.listening ? (
@@ -254,7 +317,7 @@ export function ThreadComposer({
               onPress={live.stop}
             />
           </View>
-        ) : text.trim() ? (
+        ) : canSend ? (
           <IconTap
             size={44}
             icon={ArrowUp}
@@ -263,8 +326,9 @@ export function ThreadComposer({
             background={t.primary}
             onPress={() => {
               if (onText) {
-                onText(text.trim(), hint)
+                onText(text.trim(), hint, photos.length ? photos : undefined)
                 setText("")
+                setPhotos([])
                 return
               }
               const id = A.sendCapture({

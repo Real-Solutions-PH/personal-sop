@@ -265,6 +265,8 @@ export interface Capture {
   text: string
   durationSec?: number
   photo?: string
+  /** More photos sent with ``photo`` as one capture. */
+  photos?: string[]
   hint?: string
   fileName?: string
   status: CaptureStatus
