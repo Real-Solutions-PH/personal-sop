@@ -1,8 +1,10 @@
 // Fern's composer dictates into the box and keeps the quick add button; the
 // capture screen's composer records voice captures.
+
+import type { Capture } from "@domain/capture/data"
 import { configureStorage, resetAll } from "@domain/lib/store"
 import { render, screen } from "@testing-library/react-native"
-import { ThreadComposer } from "../screens/capture-thread"
+import { Exchange, ThreadComposer } from "../screens/capture-thread"
 
 jest.mock("expo-router", () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn() },
@@ -56,4 +58,20 @@ test("the capture screen's composer keeps quick add and voice capture", () => {
   render(<ThreadComposer hints={false} />)
   expect(screen.getByRole("button", { name: "Record voice" })).toBeTruthy()
   expect(screen.getByRole("button", { name: "Quick add" })).toBeTruthy()
+})
+
+test("a capture of two photos shows both in its bubble", () => {
+  const cap = {
+    id: "c1",
+    at: new Date().toISOString(),
+    source: "photo",
+    status: "done",
+    text: "Dinner: pancit canton and chicken",
+    hint: "meal",
+    photo: "file:///a.jpg",
+    photos: ["file:///b.jpg"],
+    items: [],
+  } as unknown as Capture
+  render(<Exchange cap={cap} />)
+  expect(screen.getByLabelText("2 photos")).toBeTruthy()
 })

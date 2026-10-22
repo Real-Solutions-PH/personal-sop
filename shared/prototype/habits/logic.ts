@@ -272,6 +272,15 @@ export function valueLabel(h: Habit, v?: number) {
     return `${v}${h.target ? `/${h.target}` : ""} ${h.unit ?? ""}`.trim()
   return ""
 }
+/** How far today's log is toward the habit's target, 0–1: counts and
+ * minutes against their target; a plain check is all or nothing. */
+export function progressOf(h: Habit, log?: HabitLog): number {
+  if (!log) return 0
+  if (log.status === "done") return 1
+  if (h.type === "check" || log.value === undefined) return 0
+  const target = h.target ?? (h.type === "count" ? 1 : 0)
+  return target > 0 ? Math.max(0, Math.min(1, log.value / target)) : 0
+}
 export const fmtMinutes = (m: number) =>
   m >= 60 ? `${Math.floor(m / 60)}h${m % 60 ? ` ${m % 60}m` : ""}` : `${m}m`
 export const pct = (v: number) => `${Math.round(v * 100)}%`

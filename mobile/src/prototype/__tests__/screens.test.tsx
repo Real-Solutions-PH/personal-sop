@@ -113,7 +113,7 @@ test("record editor does not save an invalid amount", () => {
   expect(finStore.get().records).toHaveLength(count)
 })
 
-test("Today uses the scheduled next item and hides completed setup", () => {
+test("Today's plan ticks an item done in one tap and hides completed setup", () => {
   jest.useFakeTimers({ now: new Date(`${dayKey()}T09:30:00`) })
   // Routines are weekday-specific; drop them so "next up" is a habit or
   // task on every day of the week.
@@ -122,7 +122,8 @@ test("Today uses the scheduled next item and hides completed setup", () => {
   const view = render(<Today />, { wrapper })
   expect(screen.queryByText("Finish setting up")).toBeNull()
   expect(screen.queryByText("Make this yours")).toBeNull()
-  const next = screen.getByRole("button", { name: /^Mark .* done$/ })
+  // Each habit and task on today's plan has its own done button.
+  const [next] = screen.getAllByRole("button", { name: /^Mark .* done$/ })
   {
     const before =
       habitsStore.get().logs.filter((l) => l.status === "done").length +

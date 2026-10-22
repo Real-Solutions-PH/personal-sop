@@ -27,7 +27,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated"
-import { Circle } from "react-native-svg"
+import Svg, { Circle } from "react-native-svg"
 import { stepTab } from "./tab-swipe"
 
 /**
@@ -44,6 +44,8 @@ export const MOTION = {
   reveal: 900,
   /** How long a check stays visible in place before the row moves. */
   commit: 360,
+  /** A habit's progress ring stepping to its next value (1 of 2 → 2 of 2). */
+  progress: 420,
   spring: { damping: 18, stiffness: 240, mass: 0.9 },
 }
 
@@ -118,6 +120,7 @@ export function ArcCircle({
   r,
   cx,
   cy,
+  duration,
   ...rest
 }: {
   value: number
@@ -128,15 +131,19 @@ export function ArcCircle({
   strokeWidth: number
   strokeLinecap?: "round" | "butt"
   transform?: string
+  /** Sweep time; the score rings' slow reveal unless a control wants a
+   * quicker answer. */
+  duration?: number
 }) {
   const reduced = useReducedMotion()
   const c = 2 * Math.PI * r
   const p = useSharedValue(reduced ? value : 0)
+  const ms = duration ?? MOTION.reveal
   useEffect(() => {
     p.value = reduced
       ? value
-      : withTiming(value, { duration: MOTION.reveal, easing: easeOut })
-  }, [value, reduced, p])
+      : withTiming(value, { duration: ms, easing: easeOut })
+  }, [value, reduced, p, ms])
   const props = useAnimatedProps(() => ({
     strokeDasharray: [c * p.value, c],
   }))
@@ -167,6 +174,7 @@ export function AnimatedCheck({
   ring = 2,
   idle,
   checkColor = "#fff",
+  progress = 0,
 }: {
   checked: boolean
   onToggle: () => void
@@ -177,6 +185,9 @@ export function AnimatedCheck({
   ring?: number
   idle: string
   checkColor?: string
+  /** Partial progress (0–1) while not checked, e.g. 1 of 2 glasses: drawn
+   * as an arc inside the circle that sweeps to each new value. */
+  progress?: number
 }) {
   const reduced = useReducedMotion()
   const [shown, setShown] = useState(checked)
@@ -248,6 +259,26 @@ export function AnimatedCheck({
           box,
         ]}
       >
+        {!square && !shown && progress > 0 && (
+          <Svg
+            width={size}
+            height={size}
+            style={{ position: "absolute", top: -ring, left: -ring }}
+            pointerEvents="none"
+          >
+            <ArcCircle
+              cx={size / 2}
+              cy={size / 2}
+              r={(size - ring) / 2}
+              value={Math.min(1, progress)}
+              stroke={color}
+              strokeWidth={ring}
+              strokeLinecap="round"
+              transform={`rotate(-90 ${size / 2} ${size / 2})`}
+              duration={MOTION.progress}
+            />
+          </Svg>
+        )}
         <Animated.View style={mark}>
           <Check
             size={Math.round(size * 0.55)}

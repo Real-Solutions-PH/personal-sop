@@ -341,6 +341,27 @@ export function useAllCalendar(from: string, to: string): CalendarItem[] {
     [a, b, c, d, enabled, server.data],
   )
 }
+/** Today's (or any range's) items from this phone's own stores only, so
+ * what was just checked off shows at once (``useAllCalendar`` prefers the
+ * server's copy once it has one). */
+export function useLocalCalendar(from: string, to: string): CalendarItem[] {
+  const a = HAB.useCalendar(from, to)
+  const b = TSK.useCalendar(from, to)
+  const c = FIT.useCalendar(from, to)
+  const d = FIN.useCalendar(from, to)
+  const enabled = useEnabled()
+  return useMemo(
+    () =>
+      [...a, ...b, ...c, ...d]
+        .filter((i) => enabled[i.module])
+        .sort(
+          (x, y) =>
+            x.day.localeCompare(y.day) ||
+            (x.time ?? "99:99").localeCompare(y.time ?? "99:99"),
+        ),
+    [a, b, c, d, enabled],
+  )
+}
 export function useAllMisses(from: string, to: string): Miss[] {
   const a = HAB.useMisses(from, to)
   const b = TSK.useMisses(from, to)
