@@ -394,7 +394,7 @@ export function ShareScreen() {
   const line = shown
     .map((m) => `${m.value} ${m.label.toLowerCase()}`)
     .join(" · ")
-  const caption = `Tasks ${RANGE_LABEL[range]}: ${line} · Personal SOP`
+  const caption = `Tasks ${RANGE_LABEL[range]}: ${line} · Unfurl`
 
   const share = async () => {
     try {

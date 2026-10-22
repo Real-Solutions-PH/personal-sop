@@ -602,14 +602,13 @@ export function ProgressCard({
       {!compact && (
         <Text
           style={{
-            fontFamily: fonts.display,
+            fontFamily: fonts.medium,
             fontSize: 10,
             color: "#ffffff99",
-            fontStyle: "italic",
-            letterSpacing: 1,
+            letterSpacing: -0.3,
           }}
         >
-          PERSONAL<Text style={{ color: "#fff" }}> SOP</Text>
+          unfurl
         </Text>
       )}
     </LinearGradient>

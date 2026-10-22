@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next"
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Personal SOP",
-    short_name: "SOP",
+    name: "Unfurl",
+    short_name: "Unfurl",
     description: "Your life dashboard — habits, tasks, fitness and money.",
     start_url: "/today",
     display: "standalone",

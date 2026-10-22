@@ -74,7 +74,7 @@ export function SignIn() {
       subtitle="Sign in to pick up where today left off."
       footer={
         <SwitchPrompt
-          question="New to Personal SOP?"
+          question="New to Unfurl?"
           action="Create account"
           onPress={() => replace("/signup")}
         />

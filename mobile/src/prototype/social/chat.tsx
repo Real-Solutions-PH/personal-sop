@@ -1061,7 +1061,7 @@ export function ChatScreen({ id }: { id: string }) {
             {!group && first && (
               <>
                 <Text style={{ color: t.muted, fontFamily: fonts.body }}>
-                  {first.username} · Personal SOP
+                  {first.username} · Unfurl
                 </Text>
                 <Pressable
                   accessibilityRole="button"

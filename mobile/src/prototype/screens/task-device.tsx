@@ -332,7 +332,7 @@ export function TaskReminders() {
             )}
             {step(
               3,
-              "Open SOP from your Home Screen",
+              "Open Unfurl from your Home Screen",
               "Then come back here to switch reminders on.",
               <Line
                 style={{
@@ -341,7 +341,7 @@ export function TaskReminders() {
                   borderRadius: 12,
                 }}
               >
-                {["App", "App", "SOP", "App"].map((name, i) => (
+                {["App", "App", "Unfurl", "App"].map((name, i) => (
                   <View
                     key={`${name}-${i}`}
                     style={{ alignItems: "center", gap: 4 }}
@@ -351,12 +351,12 @@ export function TaskReminders() {
                         width: 44,
                         height: 44,
                         borderRadius: 12,
-                        backgroundColor: name === "SOP" ? t.tsk : t.bg,
+                        backgroundColor: name === "Unfurl" ? t.tsk : t.bg,
                         alignItems: "center",
                         justifyContent: "center",
                       }}
                     >
-                      <Copy size={12}>{name === "SOP" ? "SOP" : ""}</Copy>
+                      <Copy size={12}>{name === "Unfurl" ? "Unfurl" : ""}</Copy>
                     </View>
                     <Copy size={10} muted>
                       {name}
@@ -435,7 +435,7 @@ export function TaskReminders() {
           <SectionHeading>How to unblock</SectionHeading>
           <Copy size={14}>
             {n.platform === "ios"
-              ? "1. Open the iPhone Settings app → Notifications.\n2. Find “SOP” in the app list.\n3. Turn on Allow Notifications."
+              ? "1. Open the iPhone Settings app → Notifications.\n2. Find “Unfurl” in the app list.\n3. Turn on Allow Notifications."
               : "1. Tap the lock icon next to the address bar.\n2. Open Site settings → Notifications.\n3. Choose Allow, then reload."}
           </Copy>
           <Button
@@ -518,7 +518,7 @@ export function TaskReminders() {
         onClose={() => setPrompt(false)}
       >
         <Copy weight="semibold">
-          “SOP” Would Like to Send You Notifications
+          “Unfurl” Would Like to Send You Notifications
         </Copy>
         <Copy size={12} muted>
           Prototype permission preview. Notifications may include alerts, sounds
@@ -579,7 +579,7 @@ export function TaskNotifications() {
             }}
           >
             <Copy size={10} weight="semibold" style={{ color: "#fff" }}>
-              SOP
+              Unfurl
             </Copy>
           </LinearGradient>
           <View style={{ flex: 1 }}>

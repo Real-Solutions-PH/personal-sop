@@ -637,7 +637,7 @@ export function FinanceReview() {
         <Button
           onPress={() =>
             shareText(
-              `${title} · Savings rate ${C.pct(d.rate)} · ${d.ns.count} no-spend days · Personal SOP`,
+              `${title} · Savings rate ${C.pct(d.rate)} · ${d.ns.count} no-spend days · Unfurl`,
             )
           }
         >

@@ -342,7 +342,7 @@ export function HabitShare() {
         value={layout}
         onChange={setLayout}
         accent="hab"
-        caption={`${caption} · Personal SOP`}
+        caption={`${caption} · Unfurl`}
         items={(
           [
             { key: "streak", label: "Streak" },

@@ -324,11 +324,11 @@ function Body() {
       <CardFoot />
     </ShareFrame>
   )
-  const caption = `${cardFor(t).caption} · Personal SOP`
+  const caption = `${cardFor(t).caption} · Unfurl`
   const share = async () => {
     try {
       if (navigator.share)
-        await navigator.share({ title: "Personal SOP", text: caption })
+        await navigator.share({ title: "Unfurl", text: caption })
       else {
         await navigator.clipboard.writeText(caption)
         toast("Caption copied — native share isn't available here")

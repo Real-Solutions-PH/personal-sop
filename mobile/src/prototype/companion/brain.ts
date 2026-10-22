@@ -235,7 +235,7 @@ export function route(raw: string, { record = true } = {}): Route {
   if (/(who are you|what can you do|help$|^help)/.test(q))
     return {
       kind: "reply",
-      text: `I'm ${companionStore.get().name}, your companion inside Personal SOP. I know your habits, tasks, training, food, money and journal — and I remember what you tell me. I can log things for you, spot patterns, chart anything, coach you, and keep an eye on what matters.`,
+      text: `I'm ${companionStore.get().name}, your companion inside Unfurl. I know your habits, tasks, training, food, money and journal — and I remember what you tell me. I can log things for you, spot patterns, chart anything, coach you, and keep an eye on what matters.`,
       blocks: [
         {
           t: "chips",

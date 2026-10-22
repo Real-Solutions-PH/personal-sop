@@ -133,8 +133,8 @@ export function PrototypeProviders({ children }: { children: ReactNode }) {
                 gap: 12,
               }}
             >
-              <ActivityIndicator accessibilityLabel="Opening Personal SOP" />
-              <Text>Opening Personal SOP…</Text>
+              <ActivityIndicator accessibilityLabel="Opening Unfurl" />
+              <Text>Opening Unfurl…</Text>
             </View>
           )}
           {ready && (fontsLoaded || fontError) && children}

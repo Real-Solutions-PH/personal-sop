@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Personal SOP",
+    "name": "Unfurl",
     "slug": "personal-sop",
     "version": "0.0.0",
     "orientation": "portrait",
@@ -34,14 +34,14 @@
       [
         "expo-speech-recognition",
         {
-          "microphonePermission": "Allow Personal SOP to use the microphone for dictation and voice captures.",
-          "speechRecognitionPermission": "Allow Personal SOP to turn what you say into text as you speak."
+          "microphonePermission": "Allow Unfurl to use the microphone for dictation and voice captures.",
+          "speechRecognitionPermission": "Allow Unfurl to turn what you say into text as you speak."
         }
       ],
       [
         "expo-audio",
         {
-          "microphonePermission": "Allow Personal SOP to record voice captures.",
+          "microphonePermission": "Allow Unfurl to record voice captures.",
           "enableBackgroundPlayback": false,
           "enableBackgroundRecording": false
         }
@@ -57,7 +57,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Allow Personal SOP to use your location to show local weather and the forecast for planning outdoor work.",
+          "locationWhenInUsePermission": "Allow Unfurl to use your location to show local weather and the forecast for planning outdoor work.",
           "locationAlwaysAndWhenInUsePermission": false,
           "locationAlwaysPermission": false,
           "motionUsagePermission": false

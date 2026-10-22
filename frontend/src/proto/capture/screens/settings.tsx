@@ -453,7 +453,7 @@ export function ConnectorScreen() {
           </span>
           <div className="flex-1">
             <div className="font-display font-semibold text-xl">
-              Use Claude with your SOP
+              Use Claude with Unfurl
             </div>
             <div className="text-muted-foreground text-sm">
               Log and ask from the Claude app you already use.
@@ -475,7 +475,7 @@ export function ConnectorScreen() {
           {[
             [
               "Connect",
-              "Add the SOP server in Claude › Settings › Connectors and approve access here.",
+              "Add the Unfurl server in Claude › Settings › Connectors and approve access here.",
             ],
             [
               "Talk to Claude",

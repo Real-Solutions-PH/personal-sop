@@ -627,7 +627,7 @@ export function ShareComposerScreen() {
 
   const visible = fields.filter((f) => on[f.key])
   const sensitiveOn = visible.filter((f) => f.sensitive)
-  const caption = `${d.name.split(" ")[0]}'s ${tpl.label.toLowerCase()} — Life Score ${d.life.score ?? "—"} (${d.level}), on-target streak ${d.w7.current} days · Personal SOP`
+  const caption = `${d.name.split(" ")[0]}'s ${tpl.label.toLowerCase()} — Life Score ${d.life.score ?? "—"} (${d.level}), on-target streak ${d.w7.current} days · Unfurl`
 
   const doShare = async () => {
     setCheck(false)

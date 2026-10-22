@@ -479,7 +479,7 @@ export function Me() {
           />
         </Frame>
         <Copy size={12} muted style={{ textAlign: "center", marginTop: 16 }}>
-          {liveMode ? "Personal SOP" : "Personal SOP · prototype build"}
+          {liveMode ? "Unfurl" : "Unfurl · prototype build"}
         </Copy>
       </View>
     </Screen>

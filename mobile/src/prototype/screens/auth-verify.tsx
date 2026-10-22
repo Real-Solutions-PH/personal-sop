@@ -89,7 +89,7 @@ export function VerifyEmail() {
         showBack={false}
         badge={<Badge icon={BadgeCheck} tone="good" />}
         title="You're verified"
-        subtitle="Setting up your Personal SOP…"
+        subtitle="Setting up Unfurl…"
       >
         {finishError ? (
           <>

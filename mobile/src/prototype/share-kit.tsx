@@ -238,11 +238,10 @@ export function CardFrame({
               fontFamily: fonts.display,
               fontSize: 4 * q,
               color: ink,
-              fontStyle: "italic",
-              letterSpacing: 0.2 * q,
+              letterSpacing: -0.03 * 4 * q,
             }}
           >
-            PERSONAL<Text style={{ color: t[accent] }}> SOP</Text>
+            unfurl
           </Text>
         )}
       </View>
