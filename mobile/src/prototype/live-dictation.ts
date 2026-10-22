@@ -64,6 +64,8 @@ export function useLiveDictation(
     for (const s of subs.current) s.remove()
     subs.current = []
   }
+  // Unmount only: detach reads refs, so it never goes stale.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: cleanup on unmount
   useEffect(
     () => () => {
       detach()

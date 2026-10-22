@@ -4129,6 +4129,7 @@ export type WeighInCreate = {
 export type WeighInPayload = {
     kind: "weighIn";
     kg: number;
+    body_fat_pct?: (number | null);
     prev_kg?: (number | null);
 };
 

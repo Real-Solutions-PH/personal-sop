@@ -19361,6 +19361,19 @@ export const WeighInPayloadSchema = {
             exclusiveMinimum: 0,
             title: 'Kg'
         },
+        body_fat_pct: {
+            anyOf: [
+                {
+                    type: 'number',
+                    exclusiveMaximum: 100,
+                    exclusiveMinimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Body Fat Pct'
+        },
         prev_kg: {
             anyOf: [
                 {
