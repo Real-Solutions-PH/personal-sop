@@ -14,6 +14,7 @@ import { captureMappers } from "./capture"
 import { API_PREFIX, API_URL } from "./config"
 import { SyncEngine } from "./engine"
 import { runEventStream, type ServerEvent } from "./events"
+import { transcribePending } from "./journal-audio"
 import type { AnyMapper } from "./mapper"
 import { companionMappers } from "./mappers/companion"
 import { dashMappers } from "./mappers/dash"
@@ -108,7 +109,11 @@ export function startLive(userId: string, storage: StorageAdapter) {
     outbox: createOutbox(storage),
     mappers: factories.flatMap((f) => f(userId)),
     online: getConnectivity,
-    onSynced: () => void stats.refreshAll(),
+    onSynced: () => {
+      void stats.refreshAll()
+      // The server is reachable: voice entries saved offline get their words.
+      void transcribePending()
+    },
   })
   syncing = engine
   engine.start((m, onChange) => {

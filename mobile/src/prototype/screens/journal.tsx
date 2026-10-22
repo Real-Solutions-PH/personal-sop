@@ -6,7 +6,7 @@ import {
   type Mood,
 } from "@domain/capture/data"
 import { journalDraft } from "@domain/capture/parse"
-import { captureStore } from "@domain/capture/store"
+import { captureStore, isOnline } from "@domain/capture/store"
 import { dayKey, dayOffset, weekday } from "@domain/lib/day"
 import {
   Annoyed,
@@ -28,7 +28,7 @@ import {
   Users,
   Wallet,
 } from "lucide-react-native"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { ScrollView, TextInput, View } from "react-native"
 import Svg, {
   Circle,
@@ -160,12 +160,29 @@ export function AreaPicker({
     </View>
   )
 }
+const journalAudio = () =>
+  require("@/live/journal-audio") as typeof import("@/live/journal-audio")
+
+/** Live: keep the recording as an entry now, its words come later. */
+async function saveRecording(uri: string, seconds: number, online: boolean) {
+  await journalAudio().saveVoiceEntry(uri, seconds)
+  toast.success(
+    online
+      ? "Journal entry saved. Transcribing…"
+      : "Journal entry saved. It'll be transcribed when you're back online.",
+  )
+  void journalAudio().transcribePending()
+}
+
 function JournalVoice({
   onClose,
   onDone,
+  onRecording,
 }: {
   onClose: () => void
   onDone: (text: string) => void
+  /** Live: what to do with the recording (default: transcribe it now). */
+  onRecording?: (uri: string, seconds: number) => void
 }) {
   return (
     <CaptureVoice
@@ -175,27 +192,62 @@ function JournalVoice({
       onDone={(text) => onDone(text)}
       // Live: what was said, transcribed on the server. Without this the
       // recorder fell back to its demo sentence and saved that instead.
-      onRecording={(uri, seconds) => {
-        const live =
-          require("@/live/dictate") as typeof import("@/live/dictate")
-        const wait = toast.loading("Transcribing your entry…")
-        live
-          .dictate(uri, seconds)
-          .then((text) => {
-            toast.dismiss(wait)
-            onDone(text)
-          })
-          .catch((e: unknown) => {
-            toast.dismiss(wait)
-            toast.error(
-              live.dictationMessage(
-                e instanceof live.DictationError ? e.code : "",
-              ),
-            )
+      onRecording={
+        onRecording ??
+        ((uri, seconds) => {
+          const live =
+            require("@/live/dictate") as typeof import("@/live/dictate")
+          if (!isOnline()) {
             onClose()
-          })
-      }}
+            void saveRecording(uri, seconds, false)
+            return
+          }
+          const wait = toast.loading("Transcribing your entry…")
+          live
+            .dictate(uri, seconds)
+            .then((text) => {
+              toast.dismiss(wait)
+              onDone(text)
+            })
+            .catch((e: unknown) => {
+              toast.dismiss(wait)
+              onClose()
+              const code = e instanceof live.DictationError ? e.code : ""
+              // The recording is never thrown away for want of a network:
+              // it becomes its own entry, transcribed later.
+              if (code === "network") void saveRecording(uri, seconds, false)
+              else toast.error(live.dictationMessage(code))
+            })
+        })
+      }
     />
+  )
+}
+
+/** Under a voice entry still waiting for its words. */
+function TranscriptionNote({ e }: { e: JournalEntry }) {
+  const t = useTheme()
+  if (e.transcription === "pending")
+    return (
+      <Copy size={14} muted>
+        Voice entry · transcription pending
+      </Copy>
+    )
+  if (e.transcription !== "failed") return null
+  const { dictationMessage } =
+    require("@/live/dictate") as typeof import("@/live/dictate")
+  return (
+    <Tap
+      label="Transcribe again"
+      onPress={() => void journalAudio().retryTranscription(e.id)}
+    >
+      <Copy size={14} muted>
+        {dictationMessage(e.transcriptionError ?? "")}{" "}
+        <Copy size={14} style={{ color: t.life }}>
+          Transcribe again
+        </Copy>
+      </Copy>
+    </Tap>
   )
 }
 
@@ -565,6 +617,7 @@ function JournalList() {
                         >
                           {e.body}
                         </Copy>
+                        <TranscriptionNote e={e} />
                         {!!e.tags.length && (
                           <Copy size={12} muted style={{ marginTop: 6 }}>
                             {e.tags.map((tag) => `#${tag}`).join("  ")}
@@ -593,6 +646,10 @@ function JournalList() {
       {talk && (
         <JournalVoice
           onClose={() => setTalk(false)}
+          onRecording={(uri, seconds) => {
+            setTalk(false)
+            void saveRecording(uri, seconds, isOnline())
+          }}
           onDone={(text) => {
             const d = journalDraft(text, "voice")
             if (d.payload.kind !== "journal") return
@@ -630,6 +687,12 @@ function JournalEditor({ id }: { id?: string }) {
     [transcript, setTranscript] = useState(existing?.transcript),
     [dictate, setDictate] = useState(false),
     [showTranscript, setShowTranscript] = useState(false)
+  // A voice entry's words arrive while it is open: show them unless the
+  // person has started writing.
+  const words = existing?.transcription ? undefined : existing?.body
+  useEffect(() => {
+    if (words) setBody((old) => old || words)
+  }, [words])
   if (id && !existing)
     return (
       <Screen title="Entry">
@@ -735,6 +798,7 @@ function JournalEditor({ id }: { id?: string }) {
             </Copy>
           </Tap>
         </Line>
+        {existing && <TranscriptionNote e={existing} />}
         <TextInput
           accessibilityLabel="Entry"
           value={body}

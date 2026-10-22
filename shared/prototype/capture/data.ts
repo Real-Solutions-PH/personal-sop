@@ -300,6 +300,14 @@ export interface JournalEntry {
   area?: string
   private: boolean
   transcript?: string
+  /** Device-only: a voice entry saved before its words came back. The
+   * recording waits in app storage until it is transcribed; until then the
+   * entry is not synced. */
+  audioUri?: string
+  durationSec?: number
+  transcription?: "pending" | "failed"
+  /** Why the last transcription failed (a dictation error code). */
+  transcriptionError?: string
 }
 export interface AISettings {
   rules: Record<RuleKey, Tier>

@@ -54,6 +54,7 @@ import { http, tokens } from "./auth"
 import { API_PREFIX, API_URL } from "./config"
 import { createSseParser, type ServerEvent } from "./events"
 import { ApiError, type Fetch, type Http, NetworkError } from "./http"
+import { keepFile, releaseFile } from "./keep-file"
 import {
   answerToServer,
   askFromServer,
@@ -92,6 +93,10 @@ export interface LiveCaptureDeps {
   /** Push and pull now (the decision wrote rows in other modules). */
   kick(): void
   cats: Cats
+  /** Copy a cache file (recording, picked file) somewhere durable. */
+  keep?(uri: string): Promise<string>
+  /** Delete a copy made by ``keep`` once the server has the media. */
+  release?(uri: string): void
 }
 
 const OFFLINE = "You're offline — try again when you're connected"
@@ -372,6 +377,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
       if (input) {
         const m = await uploadMedia(input, deps)
         patchCapture(id, (c) => ({ ...c, mediaId: m.id }) as LiveCapture)
+        if (input.kind !== "image" && input.uri) deps.release?.(input.uri)
       }
       return await ensureExtraPhotos(id)
     } catch (error) {
@@ -461,6 +467,20 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
     }
   }
 
+  async function keepMedia(id: string) {
+    type WithFiles = LiveCapture & { audioUri?: string; fileUri?: string }
+    const cap = find(id) as WithFiles | undefined
+    if (!cap || !deps.keep) return
+    const audioUri = cap.audioUri && (await deps.keep(cap.audioUri))
+    const fileUri = cap.fileUri && (await deps.keep(cap.fileUri))
+    patchCapture(id, (c) => {
+      const next = { ...c } as WithFiles
+      if (audioUri) next.audioUri = audioUri
+      if (fileUri) next.fileUri = fileUri
+      return next
+    })
+  }
+
   function send(input: SendInput): string {
     const id = newId()
     const online = deps.online()
@@ -493,6 +513,9 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
       streamingCaptures.add(id)
     }
     S.set((s) => ({ ...s, captures: [...s.captures, cap] }))
+    // A recording or picked file sits in the OS cache, which may be purged
+    // while the capture waits for a connection: keep a durable copy.
+    if (deps.keep && (cap.audioUri || cap.fileUri)) void keepMedia(id)
     if (online) void runSend(id)
     else toast("Queued — will process when you're back online")
     return id
@@ -930,6 +953,8 @@ export function captureMappers(userId: string) {
     online: isOnline,
     kick: syncNow,
     cats: categoryIds(userId),
+    keep: keepFile,
+    release: releaseFile,
   })
   return captureSyncMappers(userId)
 }
