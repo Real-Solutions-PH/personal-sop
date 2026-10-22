@@ -179,7 +179,7 @@ export function FitnessSettings() {
             <View style={{ flex: 1 }}>
               <Copy size={14}>Weigh-in reminder</Copy>
               <Copy size={12} muted>
-                Notification delivery is simulated in this prototype
+                A notification on this phone every morning at this time
               </Copy>
             </View>
             <View style={{ width: 112 }}>

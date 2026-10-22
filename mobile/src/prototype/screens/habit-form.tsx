@@ -14,6 +14,7 @@ import { ScrollView, TextInput, View } from "react-native"
 import { toast } from "sonner-native"
 import { Copy, Frame, Line, Segmented, Tap } from "../native-kit"
 import { back, go } from "../navigation"
+import { askForReminders } from "../reminders"
 import { Switch } from "../switch"
 import { fonts, useTheme } from "../theme"
 import { Button, confirm, Empty, Screen, Sheet } from "../ui"
@@ -301,11 +302,15 @@ export function HabitForm({
               ? "Opens the player ready to start"
               : "Push at the scheduled time",
             reminder,
-            setReminder,
+            (on: boolean) => {
+              setReminder(on)
+              if (on) void askForReminders()
+            },
           )}
           {reminder && (
             <Copy size={12} muted>
-              Reminder delivery is simulated in this prototype.
+              Arrives as a notification on this phone at the scheduled time,
+              even offline.
             </Copy>
           )}
           {!routine &&
