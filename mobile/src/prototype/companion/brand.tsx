@@ -1,22 +1,21 @@
 // Fern, the companion's brand: the palette and the fiddlehead mark.
 // docs/brand/fern.md is the guide; keep the two in step.
 
+import { palette } from "@domain/design/tokens"
 import Svg, { Path } from "react-native-svg"
 
 export { COMPANION_NAME } from "./store"
 
-const LIGHT = {
-  moss: "#1F5A43",
-  frond: "#3B8A5A",
-  sprout: "#A6D277",
-  mist: "#EAF3EC",
-}
-const DARK = {
-  moss: "#2C7A5A",
-  frond: "#6BBF8A",
-  sprout: "#B7E08A",
-  mist: "#16261D",
-}
+// Fern's colours come from the design tokens (ADR-0019): moss, frond, sprout
+// and mist belong to Fern alone.
+const fernKeys = (p: (typeof palette)["light" | "dark"]) => ({
+  moss: p.moss as string,
+  frond: p.frond as string,
+  sprout: p.sprout as string,
+  mist: p.mist as string,
+})
+const LIGHT = fernKeys(palette.light)
+const DARK = fernKeys(palette.dark)
 
 export type FernPalette = typeof LIGHT
 
