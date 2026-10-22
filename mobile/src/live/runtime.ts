@@ -184,6 +184,14 @@ export function reuploadAll(): number | null {
   return active ? active.engine.reupload() : null
 }
 
+/** Queue a domain action through the outbox. False when live sync is not
+ * running (the caller falls back to calling the API directly). */
+export function queueAction(name: string, data: Record<string, unknown>) {
+  if (!active) return false
+  active.engine.act(name, data)
+  return true
+}
+
 /** Push now (connectivity regained). */
 export function syncNow() {
   void active?.engine.sync()

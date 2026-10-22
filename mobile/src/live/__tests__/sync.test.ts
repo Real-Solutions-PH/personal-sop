@@ -256,6 +256,30 @@ test("the outbox and cursor survive a restart", async () => {
   expect(server.rows.get("a")).toMatchObject({ title: "Keep me" })
 })
 
+test("act queues an action after the edit still in the debounce window", async () => {
+  jest.useFakeTimers()
+  try {
+    const server = new FakeServer()
+    let online = false
+    const e = engine(server, memoryStorage(), () => online)
+    todoStore.set({
+      todos: [{ id: "a", title: "Typed just now", done: false }],
+    })
+    e.schedule()
+    e.act("capture.confirm", { card_id: "c1" })
+    expect(e.pending()).toBe(2)
+    online = true
+    await e.sync()
+    expect(server.pushes.flat().map((o) => [o.kind, o.name])).toEqual([
+      ["upsert", "todo"],
+      ["action", "capture.confirm"],
+    ])
+    expect(e.pending()).toBe(0)
+  } finally {
+    jest.useRealTimers()
+  }
+})
+
 test("derived ids match the backend's uuid5", () => {
   // Value computed by backend app.shared.ids.derived_id (same inputs).
   expect(

@@ -24,6 +24,7 @@ import {
   seed,
 } from "@domain/capture/data"
 import { captureStore } from "@domain/capture/store"
+import { finStore } from "@domain/finance/store"
 import { derivedId } from "@domain/lib/ids"
 import { configureNotifications, type ToastOptions } from "@domain/lib/platform"
 import type { StorageAdapter } from "@domain/lib/store"
@@ -158,6 +159,7 @@ function fakeDeps(opts: {
   routes?: Record<string, Route>
   post?: (path: string, body: Row) => Promise<Response>
   fetch?: LiveCaptureDeps["fetch"]
+  act?: LiveCaptureDeps["act"]
 }) {
   const calls: { method: string; path: string; body: unknown }[] = []
   const kick = jest.fn()
@@ -197,6 +199,7 @@ function fakeDeps(opts: {
     online: opts.online ?? (() => true),
     kick,
     cats,
+    ...(opts.act ? { act: opts.act } : {}),
   }
   installLiveCapture(deps)
   return { calls, kick, post, deps }
@@ -986,6 +989,120 @@ test("retry, re-run and quick add use their endpoints", async () => {
   })
   expect(cap(quick.id)).toBeDefined()
   expect(toasts.map((t) => t.message)).toContain("Saved · Coffee 165")
+})
+
+test("offline, every decision shows at once and queues as an outbox action", () => {
+  const { id, exp, weigh } = seedRulesCapture()
+  const confirmDone = (REC.stream_confirm.frames as Frame[]).at(-1)?.[1] as Row
+  const proposed = String((confirmDone.cards as Row[])[0].id)
+  captureStore.set((s) => ({
+    ...s,
+    captures: [...s.captures, captureFromDetail(confirmDone, cats)],
+  }))
+  const capId = String(confirmDone.id)
+  const act = jest.fn((_name: string, _data: Row) => true)
+  const { calls } = fakeDeps({ online: () => false, act })
+  // No flush: nothing waits on a response.
+  confirmCard(proposed)
+  expect(cards(capId)[0].state).toBe("saved")
+  undoCard(String(exp.id))
+  expect(cards(id)[0].state).toBe("undone")
+  expect(toasts.at(-1)?.message).toBe("Undone")
+  redoCard(String(exp.id))
+  expect(cards(id)[0].state).toBe("saved")
+  const edited = { ...cards(id)[1].payload } as CardPayload
+  editCard(String(weigh.id), edited)
+  expect(cards(id)[1].state).toBe("edited")
+  discardCard(proposed)
+  expect(cards(capId)[0].state).toBe("discarded")
+  skipAsk(proposed)
+  expect(cards(capId)[0].warn).toMatch(/Skipped/)
+  confirmAll(capId)
+  expect(act.mock.calls.map(([name, data]) => [name, data])).toEqual([
+    ["capture.confirm", { card_id: proposed }],
+    ["capture.undo", { card_id: String(exp.id) }],
+    ["capture.redo", { card_id: String(exp.id) }],
+    [
+      "capture.edit",
+      { card_id: String(weigh.id), payload: expect.any(Object) },
+    ],
+    ["capture.discard", { card_id: proposed }],
+    ["capture.skip", { card_id: proposed }],
+    ["capture.confirm_all", { capture_id: capId }],
+  ])
+  expect(calls).toEqual([])
+  expect(toasts.map((t) => t.message)).not.toContain(
+    "You're offline — try again when you're connected",
+  )
+})
+
+test("without a running sync engine a decision calls its endpoint", async () => {
+  const confirmDone = (REC.stream_confirm.frames as Frame[]).at(-1)?.[1] as Row
+  const card = (confirmDone.cards as Row[])[0]
+  captureStore.set((s) => ({
+    ...s,
+    captures: [captureFromDetail(confirmDone, cats)],
+  }))
+  const { calls } = fakeDeps({
+    act: () => false,
+    routes: {
+      [`POST /capture/cards/${card.id}/confirm`]: { ...card, state: "saved" },
+    },
+  })
+  confirmCard(String(card.id))
+  await flush()
+  expect(calls.map((c) => c.path)).toEqual([
+    `/capture/cards/${card.id}/confirm`,
+  ])
+})
+
+test("offline quick add writes straight to the module store, and undoes there", () => {
+  const act = jest.fn(() => true)
+  const { calls } = fakeDeps({ online: () => false, act })
+  const before = finStore.get().records.length
+  const saved = logQuickAdd(
+    "Coffee 165",
+    {
+      kind: "expense",
+      amount: 165,
+      categoryId: "coffee",
+      accountId: finStore.get().accounts[0].id,
+    },
+    "finance",
+  )
+  expect(saved.state).toBe("saved")
+  const [ref] = saved.refs
+  expect(finStore.get().records.map((r) => r.id)).toContain(ref)
+  expect(finStore.get().records).toHaveLength(before + 1)
+  expect(toasts.map((t) => t.message)).toContain("Saved · Coffee 165")
+  undoCard(saved.id, true)
+  expect(finStore.get().records.map((r) => r.id)).not.toContain(ref)
+  expect(calls).toEqual([])
+  expect(act).not.toHaveBeenCalled()
+})
+
+test("an online quick add that can't reach the server is saved here instead", async () => {
+  const { calls } = fakeDeps({
+    routes: {
+      "POST /capture/quick-add": () => {
+        throw new NetworkError("Network request failed")
+      },
+    },
+  })
+  const before = finStore.get().records.length
+  logQuickAdd(
+    "Lunch 250",
+    {
+      kind: "expense",
+      amount: 250,
+      categoryId: "food",
+      accountId: finStore.get().accounts[0].id,
+    },
+    "finance",
+  )
+  await flush()
+  expect(calls.map((c) => c.path)).toEqual(["/capture/quick-add"])
+  expect(finStore.get().records).toHaveLength(before + 1)
 })
 
 // ---------------------------------------------------------------------------
