@@ -5,7 +5,7 @@ None of these commit: the calling use case does (see ``app.shared.context``).
 
 import uuid
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any, Literal
 
 from sqlmodel import col
@@ -395,4 +395,40 @@ def find_template(ctx: Ctx, name: str) -> WorkoutTemplate | None:
     return next(
         (t for t in owned_repo.list_rows(ctx, WorkoutTemplate) if t.name.lower() == n),
         None,
+    )
+
+
+# ------------------------------------------------- edits from chat (Fern)
+
+
+def restore_meal(ctx: Ctx, *, meal_id: uuid.UUID) -> None:
+    m = owned_repo.require(ctx, Meal, meal_id, what="meal", include_deleted=True)
+    owned_repo.restore(ctx, m)
+    services._dirty_at(ctx, m.eaten_at)
+
+
+def restore_weigh_in(ctx: Ctx, *, weigh_in_id: uuid.UUID) -> None:
+    w = owned_repo.require(
+        ctx, WeighIn, weigh_in_id, what="weigh_in", include_deleted=True
+    )
+    owned_repo.restore(ctx, w)
+    services._dirty_at(ctx, w.measured_at)
+
+
+def recent_meals(ctx: Ctx, *, days: int = 7) -> list[Meal]:
+    """Meals eaten in the last ``days`` days, newest first."""
+    return owned_repo.list_rows(
+        ctx,
+        Meal,
+        col(Meal.eaten_at) >= ctx.now - timedelta(days=days),
+        order_by=[col(Meal.eaten_at).desc()],
+    )
+
+
+def recent_weigh_ins(ctx: Ctx, *, days: int = 30) -> list[WeighIn]:
+    return owned_repo.list_rows(
+        ctx,
+        WeighIn,
+        col(WeighIn.measured_at) >= ctx.now - timedelta(days=days),
+        order_by=[col(WeighIn.measured_at).desc()],
     )

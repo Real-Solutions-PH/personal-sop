@@ -43,6 +43,13 @@ GROUPS: dict[str, tuple[frozenset[str], re.Pattern[str]]] = {
                 "create_account",
                 "set_account_balance",
                 "create_budget",
+                "find_transactions",
+                "edit_transaction",
+                "list_scheduled",
+                "edit_scheduled",
+                "edit_account",
+                "edit_budget",
+                "remove_item",
             }
         ),
         re.compile(
@@ -54,7 +61,15 @@ GROUPS: dict[str, tuple[frozenset[str], re.Pattern[str]]] = {
         ),
     ),
     "tasks": (
-        frozenset({"create_tasks", "complete_task", "create_task_list"}),
+        frozenset(
+            {
+                "create_tasks",
+                "complete_task",
+                "create_task_list",
+                "edit_task",
+                "remove_item",
+            }
+        ),
         re.compile(
             r"\b(tasks?|to-?dos?|remind(er)?s?|list|deadline|due|meeting|"
             r"appointment|call|email|errands?|groceries|shopping|projects?|"
@@ -71,6 +86,7 @@ GROUPS: dict[str, tuple[frozenset[str], re.Pattern[str]]] = {
                 "create_routine",
                 "update_routine",
                 "start_routine",
+                "remove_item",
             }
         ),
         re.compile(
@@ -87,6 +103,8 @@ GROUPS: dict[str, tuple[frozenset[str], re.Pattern[str]]] = {
                 "log_meal",
                 "create_workout_template",
                 "nutrition_status",
+                "find_fitness_logs",
+                "remove_item",
             }
         ),
         re.compile(
@@ -96,6 +114,33 @@ GROUPS: dict[str, tuple[frozenset[str], re.Pattern[str]]] = {
             r"lift(ed)?|bench|squat|deadlift|press|sets?|reps?|kg|lbs?|weigh\w*|"
             r"weight|body ?fat|train(ing)?|exercise|cardio|steps|drank|drink|"
             r"coffee|rice)\b",
+            re.I,
+        ),
+    ),
+    # Changing or removing something that exists, whatever its module:
+    # the finders and every edit, so "fix that" or "delete the last one"
+    # reaches them even when no module word is said.
+    "manage": (
+        frozenset(
+            {
+                "find_transactions",
+                "edit_transaction",
+                "list_scheduled",
+                "edit_scheduled",
+                "edit_account",
+                "edit_budget",
+                "edit_task",
+                "update_habit",
+                "update_routine",
+                "find_fitness_logs",
+                "remove_item",
+            }
+        ),
+        re.compile(
+            r"\b(edit|change|changed|update|move|moved|rename|fix|correct|wrong|"
+            r"mistake|delete|remove|archive|cancel|undo|replace|switch|reassign|"
+            r"palitan|burahin|ilipat|instead|actually|should (?:be|have been)|"
+            r"not \d[\d,.]*)\b",
             re.I,
         ),
     ),

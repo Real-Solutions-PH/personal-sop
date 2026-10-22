@@ -321,3 +321,22 @@ def restore_habit(ctx: Ctx, *, habit_id: uuid.UUID, state: dict[str, object]) ->
     ctx.session.add(h)
     ctx.session.flush()
     svc.mark_today(ctx)
+
+
+def set_habit_archived(ctx: Ctx, *, habit_id: uuid.UUID, archived: bool) -> None:
+    """Archive a habit from chat (its history stays), or bring it back."""
+    row = svc.require_habit(ctx, habit_id)
+    row.status = "archived" if archived else "active"
+    row.archived_at = ctx.now if archived else None
+    ctx.session.add(row)
+    ctx.session.flush()
+    svc._dirty(ctx, ctx.today)
+
+
+def set_routine_archived(ctx: Ctx, *, routine_id: uuid.UUID, archived: bool) -> None:
+    """Archive a routine from chat, or bring it back."""
+    row = svc.require_routine(ctx, routine_id)
+    row.status = "archived" if archived else "active"
+    ctx.session.add(row)
+    ctx.session.flush()
+    svc._dirty(ctx, ctx.today)

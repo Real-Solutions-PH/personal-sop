@@ -329,6 +329,9 @@ def card_label(ctx: Ctx, card: RecordCard) -> str:
         return f"routine changed: {p.get('name', '')}"
     if kind == "habitUpdate":
         return f"habit changed: {p.get('name', '')}"
+    if kind in ("edit", "remove"):
+        verb = "changed" if kind == "edit" else "removed"
+        return f"{p.get('entity', '')} {verb}: {p.get('name', '')}"
     return kind.replace("_", " ")
 
 

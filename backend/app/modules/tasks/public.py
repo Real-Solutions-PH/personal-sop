@@ -137,3 +137,45 @@ def find_list(ctx: Ctx, name: str) -> TaskList | None:
     """A live list with this name (case-insensitive)."""
     n = name.strip().lower()
     return next((x for x in repo.lists(ctx) if x.name.lower() == n), None)
+
+
+# ------------------------------------------------- edits from chat (Fern)
+
+
+def task_state(ctx: Ctx, *, task_id: uuid.UUID) -> dict[str, Any]:
+    """What ``edit_task`` can change, as it is now (to put it back)."""
+    t = repo.live_task(ctx, task_id)
+    return {
+        "title": t.title,
+        "notes": t.notes,
+        "list_id": str(t.list_id) if t.list_id else None,
+        "due_date": t.due_date.isoformat() if t.due_date else None,
+        "due_time": t.due_time,
+    }
+
+
+def edit_task(ctx: Ctx, *, task_id: uuid.UUID, changes: dict[str, Any]) -> None:
+    """Title, notes or list through the task screen's rules; a due date
+    through ``set_due``, so moving it later counts as a reschedule."""
+    t = repo.live_task(ctx, task_id)
+    patch = {k: v for k, v in changes.items() if k in ("title", "notes", "list_id")}
+    if "list_id" in patch and patch["list_id"] is not None:
+        patch["list_id"] = uuid.UUID(str(patch["list_id"]))
+    if patch:
+        ops.update(ctx, t, patch)
+    if "due_date" in changes:
+        due = changes["due_date"]
+        ops.set_due(
+            ctx,
+            t,
+            date.fromisoformat(str(due)) if due else None,
+            changes.get("due_time", ops.UNSET),
+        )
+
+
+def delete_task(ctx: Ctx, *, task_id: uuid.UUID) -> None:
+    ops.soft_delete(ctx, repo.live_task(ctx, task_id))
+
+
+def restore_task(ctx: Ctx, *, task_id: uuid.UUID) -> None:
+    ops.restore(ctx, repo.soft_deleted_task(ctx, task_id))

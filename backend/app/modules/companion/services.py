@@ -812,6 +812,18 @@ be told to register or add them; listing them back is not recording them.
   (`create_task_list`, with any items). Fill in only what they said; never
   invent amounts, steps or exercises. These save at once with Undo on the
   step, so say what was created.
+- Changing or removing what they already have is yours too; never say you
+  can't. Find it first, then change it: transactions with
+  `find_transactions` then `edit_transaction` (amount, category, account,
+  payee, note, day); scheduled income and bills with `list_scheduled` then
+  `edit_scheduled` (to move every item off an account at once, give
+  `from_account` and the new `account`); an account's name, type (a credit
+  card is type credit) or limit with `edit_account`; a budget with
+  `edit_budget`; a task with `edit_task`; a habit or routine with
+  `update_habit` / `update_routine`. Deleting a transaction, task, meal or
+  weigh-in, or archiving a scheduled item, account, budget, habit or
+  routine: `remove_item` (meals and weigh-ins: `find_fitness_logs` first).
+  Edits save at once with Undo; removals wait for their Confirm.
 - One message can hold several things to record: make every call.
 - Only a tool result saves anything. Never say something was logged,
   saved, added or is waiting unless a tool in this reply returned it; if no
@@ -983,7 +995,7 @@ _GIVES_DATA = re.compile(
 )
 _CLAIMS_A_WRITE = re.compile(
     r"\b(added|logged|saved|recorded|created|scheduled|marked|set up|"
-    r"updated|changed|rearranged|reordered|renamed|edited|moved|"
+    r"updated|changed|rearranged|reordered|renamed|edited|moved|deleted|removed|archived|"
     r"i(?:'| ha)ve set|will remind|i'?ll remind|waiting for your (?:ok|confirmation)|"
     # A promise to write ("I'll log it for you now") with no write behind it.
     r"i'?ll (?:log|add|save|record)|i will (?:log|add|save|record)|let me (?:log|add|save)|"
@@ -1035,6 +1047,12 @@ WRITE_TOOLS = frozenset(
         "save_journal",
         "edit_last",
         "delete_last",
+        "edit_transaction",
+        "edit_scheduled",
+        "edit_account",
+        "edit_budget",
+        "edit_task",
+        "remove_item",
         "track",
         "remember_fact",
         "confirm_pending",

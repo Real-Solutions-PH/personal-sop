@@ -624,3 +624,87 @@ def find_budget(ctx: Ctx, name: str) -> Budget | None:
     return next(
         (b for b in owned_repo.list_rows(ctx, Budget) if b.name.lower() == n), None
     )
+
+
+# ------------------------------------------------- edits from chat (Fern)
+
+FinEntity = Literal["record", "planned", "account", "budget"]
+_EDIT: dict[str, tuple[type[Any], type[Any], Any]] = {
+    "record": (FinRecord, S.RecordUpdate, services._update_record),
+    "planned": (PlannedItem, S.PlannedFields, services._update_planned),
+    "account": (Account, S.AccountFields, services._update_account),
+    "budget": (Budget, S.BudgetFields, services._update_budget),
+}
+
+
+def _plain(v: Any) -> Any:
+    """A column value as JSON keeps it (ids and dates as text)."""
+    if isinstance(v, uuid.UUID):
+        return str(v)
+    if isinstance(v, (date, datetime)):
+        return v.isoformat()
+    if isinstance(v, Decimal):
+        return str(v)
+    return v
+
+
+def edit_row(
+    ctx: Ctx, *, entity: FinEntity, row_id: uuid.UUID, changes: dict[str, Any]
+) -> dict[str, Any]:
+    """Apply ``changes`` to one record, planned item, account or budget through
+    the same rules as its screen, and return the changed fields' earlier
+    values (what ``edit_row`` needs to put it back). Flushes only."""
+    model, fields, update = _EDIT[entity]
+    row = owned_repo.require(ctx, model, row_id, what=entity)
+    before = {k: _plain(getattr(row, k)) for k in changes if hasattr(row, k)}
+    update(ctx, row_id, fields.model_validate(changes))
+    return before
+
+
+def describe_row(ctx: Ctx, *, entity: FinEntity, row_id: uuid.UUID) -> str:
+    """A few words naming one row for a card ("Shopee · ₱1,088")."""
+    model = _EDIT[entity][0]
+    row = owned_repo.require(ctx, model, row_id, what=entity)
+    return str(getattr(row, "name", None) or getattr(row, "payee", None) or entity)
+
+
+def find_records(
+    ctx: Ctx, *, query: str | None, days: int, limit: int = 15
+) -> list[FinRecord]:
+    """Recent records, newest first, whose payee, note or category name holds
+    every word of ``query`` (all of them when it is empty)."""
+    since = ctx.now - timedelta(days=days)
+    rows = owned_repo.list_rows(
+        ctx,
+        FinRecord,
+        col(FinRecord.at) >= since,
+        order_by=[col(FinRecord.at).desc()],
+    )
+    if not query:
+        return rows[:limit]
+    cats = {c.id: c.name.lower() for c in list_categories(ctx)}
+    words = query.lower().split()
+
+    def text(r: FinRecord) -> str:
+        return " ".join(
+            filter(
+                None,
+                [
+                    (r.payee or "").lower(),
+                    (r.note or "").lower(),
+                    cats.get(r.category_id, "") if r.category_id else "",
+                    str(r.amount_minor // 100),
+                ],
+            )
+        )
+
+    return [r for r in rows if all(w in text(r) for w in words)][:limit]
+
+
+def list_planned_items(ctx: Ctx) -> list[PlannedItem]:
+    """Every live, unarchived planned item."""
+    return owned_repo.list_rows(ctx, PlannedItem, col(PlannedItem.archived).is_(False))
+
+
+def list_budgets(ctx: Ctx) -> list[Budget]:
+    return owned_repo.list_rows(ctx, Budget, col(Budget.archived).is_(False))

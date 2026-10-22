@@ -19,7 +19,7 @@ from typing import Any
 
 from fastapi import HTTPException
 
-from app.modules.capture import journal, ports
+from app.modules.capture import journal, manage, ports
 from app.modules.capture.models import Capture, RecordCard
 from app.modules.capture.parse import js_to_fixed
 from app.modules.fitness.public import MealDraft, MealItemDraft, TemplateItemDraft
@@ -123,6 +123,9 @@ def execute(
     def rid(i: int) -> uuid.UUID:
         return row_id(card.id, i, gen)
 
+    if kind in ("edit", "remove"):
+        touched, undo_with = manage.apply(ctx, p)
+        return Result(touched, prior=undo_with)
     if kind == "expense":
         rec = ports.finance.log_expense(
             ctx,
@@ -562,6 +565,9 @@ def revert(ctx: Ctx, card: RecordCard) -> None:
     p: dict[str, Any] = dict(card.payload)
     kind = str(p.get("kind"))
     refs = [uuid.UUID(r) for r in card.refs]
+    if kind in ("edit", "remove"):
+        manage.undo(ctx, p, list(card.refs), dict(card.prior or {}))
+        return
     if kind in ("expense", "income", "transfer"):
         if refs:
             ports.finance.delete_records(ctx, record_ids=refs)

@@ -627,6 +627,117 @@ _NAMES_TIME = re.compile(
 )
 
 
+# ------------------------------------------------- changing what exists
+
+Ids = Annotated[
+    list[Annotated[str, Field(max_length=40)]], Field(min_length=1, max_length=60)
+]
+
+
+class FindTxArgs(BaseModel):
+    query: Opt = Field(
+        default=None,
+        description="Words in the payee, note or category, or an amount. Omit "
+        "to list the latest ones.",
+    )
+    days: Annotated[int, Field(ge=1, le=400)] = 30
+
+
+class TxEditArgs(BaseModel):
+    ids: Ids = Field(description="Transaction ids from find_transactions.")
+    amount: Amount | None = None
+    category: Opt = None
+    account: Opt = Field(default=None, description="Move it to this account.")
+    payee: Opt = None
+    note: Opt = None
+    day: date | None = Field(default=None, description="The day it happened.")
+    type: Literal["expense", "income"] | None = None
+
+
+class ListScheduledArgs(BaseModel):
+    account: Opt = Field(
+        default=None, description="Only the ones paid from or into this account."
+    )
+
+
+class ScheduledEditArgs(BaseModel):
+    ids: Ids | None = Field(
+        default=None, description="Scheduled item ids from list_scheduled."
+    )
+    from_account: Opt = Field(
+        default=None,
+        description="Instead of ids: every scheduled item on this account "
+        '("move all from Maya Black to Maya Savings").',
+    )
+    name: Opt = None
+    amount: Amount | None = None
+    account: Opt = Field(default=None, description="The account it moves to.")
+    day_of_month: Annotated[int, Field(ge=1, le=31)] | None = Field(
+        default=None, description="Make it repeat monthly on this day."
+    )
+    due_date: date | None = Field(
+        default=None, description="Make it a one-time payment due that day."
+    )
+    type: Literal["expense", "income"] | None = None
+    category: Opt = None
+
+
+class AccountEditArgs(BaseModel):
+    account: Annotated[str, Field(min_length=1, max_length=120)]
+    new_name: Opt = None
+    type: Literal["cash", "bank", "ewallet", "credit", "investment"] | None = Field(
+        default=None, description="credit for a credit card; investment for savings."
+    )
+    credit_limit: Amount | None = None
+
+
+class BudgetEditArgs(BaseModel):
+    budget: Annotated[str, Field(min_length=1, max_length=120)]
+    monthly_limit: Amount | None = None
+    new_name: Opt = None
+
+
+class TaskEditArgs(BaseModel):
+    task: Annotated[str, Field(min_length=1, max_length=280)] = Field(
+        description="Words from the task's title."
+    )
+    new_title: Opt = None
+    due_date: date | None = None
+    notes: Annotated[str, Field(max_length=2000)] | None = None
+    list: Opt = None
+
+
+RemoveWhat = Literal[
+    "transaction",
+    "scheduled",
+    "account",
+    "budget",
+    "task",
+    "habit",
+    "routine",
+    "meal",
+    "weigh_in",
+]
+
+
+class RemoveArgs(BaseModel):
+    what: RemoveWhat
+    ids: Ids | None = Field(
+        default=None,
+        description="Ids from find_transactions, list_scheduled or find_fitness_logs.",
+    )
+    name: Opt = Field(
+        default=None,
+        description="Instead of ids: the account, budget, task, habit or "
+        "routine's name.",
+    )
+
+
+class FindLogsArgs(BaseModel):
+    what: Literal["meals", "weigh_ins"]
+    days: Annotated[int, Field(ge=1, le=90)] = 7
+
+
 def names_day(text: str) -> bool:
     """Whether the person's words give a day (a due date)."""
     return bool(_NAMES_DAY.search(_PAST.sub(" ", text)))
@@ -1407,6 +1518,336 @@ def capture_tools(run: Run) -> list[BaseTool]:
         )
         return _card(run, d)
 
+    # ------------------------------------------- changing what exists
+
+    def _manage(
+        kind: Literal["edit", "remove"],
+        entity: str,
+        ids: list[str],
+        name: str,
+        changes: dict[str, Any] | None,
+        target: str,
+        summary: str,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "kind": kind,
+            "entity": entity,
+            "ids": ids,
+            "name": name,
+        }
+        if changes is not None:
+            payload["changes"] = changes
+        d = RecordDraft(kind=kind, target=target, rule="structure", payload=payload)
+        # An edit the person asked for saves now (it has Undo); a removal
+        # waits for their Confirm.
+        out = _card(run, d, setup=kind == "edit")
+        return out | {"summary": summary}
+
+    def _money(amount: float) -> str:
+        return money(_minor(amount), w.currency)
+
+    def find_transactions(**kw: Any) -> dict[str, Any]:
+        a = FindTxArgs(**kw)
+        accts = {x.id: x.name for x in ports.finance.list_accounts(run.ctx)}
+        cats = {c.id: c.name for c in ports.finance.list_categories(run.ctx)}
+        rows = ports.finance.find_records(run.ctx, query=a.query, days=a.days)
+        return {
+            "transactions": [
+                {
+                    "id": str(r.id),
+                    "day": run.ctx.clock.day_of(r.at).isoformat(),
+                    "type": r.type,
+                    "amount": money(r.amount_minor, w.currency),
+                    "payee": r.payee,
+                    "note": r.note,
+                    "category": cats.get(r.category_id) if r.category_id else None,
+                    "account": accts.get(r.account_id),
+                    "to_account": accts.get(r.to_account_id)
+                    if r.to_account_id
+                    else None,
+                }
+                for r in rows
+            ]
+        }
+
+    def edit_transaction(**kw: Any) -> dict[str, Any]:
+        a = TxEditArgs(**kw)
+        changes: dict[str, Any] = {}
+        if a.type:
+            changes["type"] = a.type
+        if a.amount is not None:
+            changes["amount_minor"] = _minor(a.amount)
+        if a.category:
+            cat = _category_id(run, a.category, a.type or "expense")
+            if cat is None:
+                return {"error": "no_category_with_that_name"}
+            changes["category_id"] = cat
+        if a.account:
+            acct = _account_id(run, a.account, default=False)
+            if acct is None:
+                return {"error": "no_account_with_that_name"}
+            changes["account_id"] = acct
+        if a.payee is not None:
+            changes["payee"] = a.payee
+        if a.note is not None:
+            changes["note"] = a.note
+        if a.day is not None:
+            changes["at"] = run.ctx.clock.local_time(a.day, "12:00").isoformat()
+        if not changes:
+            return {"error": "nothing_to_change"}
+        n = len(a.ids)
+        return _manage(
+            "edit",
+            "record",
+            list(a.ids),
+            f"{n} transaction{'s' if n != 1 else ''}",
+            changes,
+            "finance",
+            f"Changed {n} transaction{'s' if n != 1 else ''}",
+        )
+
+    def list_scheduled(**kw: Any) -> dict[str, Any]:
+        a = ListScheduledArgs(**kw)
+        accts = {x.id: x.name for x in ports.finance.list_accounts(run.ctx)}
+        only = _account_id(run, a.account, default=False) if a.account else None
+        if a.account and only is None:
+            return {"error": "no_account_with_that_name"}
+        items = [
+            p
+            for p in ports.finance.list_planned_items(run.ctx)
+            if only is None or str(p.account_id) == only or str(p.to_account_id) == only
+        ]
+        return {
+            "scheduled": [
+                {
+                    "id": str(p.id),
+                    "name": p.name,
+                    "type": p.type,
+                    "amount": money(p.amount_minor, w.currency),
+                    "account": accts.get(p.account_id),
+                    "schedule": p.schedule,
+                    "what_if": p.is_what_if,
+                }
+                for p in items
+            ]
+        }
+
+    def edit_scheduled(**kw: Any) -> dict[str, Any]:
+        a = ScheduledEditArgs(**kw)
+        if a.ids:
+            ids = list(a.ids)
+        elif a.from_account:
+            src = _account_id(run, a.from_account, default=False)
+            if src is None:
+                return {"error": "no_account_with_that_name"}
+            ids = [
+                str(p.id)
+                for p in ports.finance.list_planned_items(run.ctx)
+                if str(p.account_id) == src
+            ]
+            if not ids:
+                return {"error": "nothing_scheduled_on_that_account"}
+        else:
+            return {"error": "say_which_items", "instead": "call list_scheduled"}
+        if a.day_of_month and a.due_date:
+            return {"error": "day_of_month_or_due_date_not_both"}
+        changes: dict[str, Any] = {}
+        if a.name:
+            changes["name"] = a.name
+        if a.amount is not None:
+            changes["amount_minor"] = _minor(a.amount)
+        if a.type:
+            changes["type"] = a.type
+        if a.account:
+            dest = _account_id(run, a.account, default=False)
+            if dest is None:
+                return {"error": "no_account_with_that_name"}
+            changes["account_id"] = dest
+        if a.category:
+            cat = _category_id(run, a.category, a.type or "expense")
+            if cat is None:
+                return {"error": "no_category_with_that_name"}
+            changes["category_id"] = cat
+        if a.day_of_month:
+            changes["schedule"] = {"kind": "monthly", "day": a.day_of_month}
+        if a.due_date:
+            changes["schedule"] = {"kind": "once", "date": a.due_date.isoformat()}
+            changes["start"] = a.due_date.isoformat()
+        if not changes:
+            return {"error": "nothing_to_change"}
+        n = len(ids)
+        what = f"{n} scheduled item{'s' if n != 1 else ''}"
+        where = f" to {a.account}" if a.account else ""
+        return _manage(
+            "edit",
+            "planned",
+            ids,
+            what,
+            changes,
+            "finance",
+            f"{'Moved' if a.account else 'Changed'} {what}{where}",
+        )
+
+    def edit_account(**kw: Any) -> dict[str, Any]:
+        a = AccountEditArgs(**kw)
+        acc = ports.finance.find_account(run.ctx, a.account)
+        if acc is None:
+            return {"error": "no_account_with_that_name"}
+        changes: dict[str, Any] = {}
+        if a.new_name:
+            changes["name"] = a.new_name
+        if a.type:
+            changes["type"] = a.type
+        if a.credit_limit is not None:
+            changes["limit_minor"] = _minor(a.credit_limit)
+        if a.type and a.type != "credit" and acc.limit_minor is not None:
+            changes["limit_minor"] = None
+        if not changes:
+            return {"error": "nothing_to_change"}
+        return _manage(
+            "edit",
+            "account",
+            [str(acc.id)],
+            acc.name,
+            changes,
+            "finance",
+            f"Changed account: {acc.name}",
+        )
+
+    def edit_budget(**kw: Any) -> dict[str, Any]:
+        a = BudgetEditArgs(**kw)
+        b = ports.finance.find_budget(run.ctx, a.budget)
+        if b is None:
+            return {
+                "error": "no_budget_with_that_name",
+                "budgets": [x.name for x in ports.finance.list_budgets(run.ctx)],
+            }
+        changes: dict[str, Any] = {}
+        if a.monthly_limit is not None:
+            changes["limit_minor"] = _minor(a.monthly_limit)
+        if a.new_name:
+            changes["name"] = a.new_name
+        if not changes:
+            return {"error": "nothing_to_change"}
+        extra = f" · {_money(a.monthly_limit)} a month" if a.monthly_limit else ""
+        return _manage(
+            "edit",
+            "budget",
+            [str(b.id)],
+            b.name,
+            changes,
+            "finance",
+            f"Changed budget: {b.name}{extra}",
+        )
+
+    def edit_task(**kw: Any) -> dict[str, Any]:
+        a = TaskEditArgs(**kw)
+        hits = ports.tasks.find_open_tasks(run.ctx, a.task, limit=2)
+        if not hits:
+            return {"error": "no_open_task_like_that"}
+        t = hits[0]
+        changes: dict[str, Any] = {}
+        if a.new_title:
+            changes["title"] = a.new_title
+        if a.notes is not None:
+            changes["notes"] = a.notes
+        if a.due_date:
+            changes["due_date"] = a.due_date.isoformat()
+        if a.list:
+            lst = ports.tasks.find_list(run.ctx, a.list)
+            if lst is None:
+                return {"error": "no_list_with_that_name"}
+            changes["list_id"] = str(lst.id)
+        if not changes:
+            return {"error": "nothing_to_change"}
+        return _manage(
+            "edit",
+            "task",
+            [str(t.id)],
+            t.title,
+            changes,
+            "tasks",
+            f"Changed task: {t.title}",
+        )
+
+    def find_fitness_logs(**kw: Any) -> dict[str, Any]:
+        a = FindLogsArgs(**kw)
+        day = run.ctx.clock.day_of
+        if a.what == "meals":
+            return {
+                "meals": [
+                    {
+                        "id": str(m.id),
+                        "day": day(m.eaten_at).isoformat(),
+                        "label": m.label,
+                        "said": m.raw_input[:80],
+                    }
+                    for m in ports.fitness.recent_meals(run.ctx, days=a.days)
+                ]
+            }
+        return {
+            "weigh_ins": [
+                {
+                    "id": str(x.id),
+                    "day": day(x.measured_at).isoformat(),
+                    "kg": x.weight_kg,
+                }
+                for x in ports.fitness.recent_weigh_ins(run.ctx, days=a.days)
+            ]
+        }
+
+    def remove_item(**kw: Any) -> dict[str, Any]:
+        a = RemoveArgs(**kw)
+        entity, target = {
+            "transaction": ("record", "finance"),
+            "scheduled": ("planned", "finance"),
+            "account": ("account", "finance"),
+            "budget": ("budget", "finance"),
+            "task": ("task", "tasks"),
+            "habit": ("habit", "habits"),
+            "routine": ("routine", "habits"),
+            "meal": ("meal", "fitness"),
+            "weigh_in": ("weighIn", "fitness"),
+        }[a.what]
+        ids = list(a.ids or [])
+        label = a.name or ""
+        if not ids and a.name:
+            hit: Any = None
+            if a.what == "account":
+                hit = ports.finance.find_account(run.ctx, a.name)
+            elif a.what == "budget":
+                hit = ports.finance.find_budget(run.ctx, a.name)
+            elif a.what == "task":
+                hit = next(
+                    iter(ports.tasks.find_open_tasks(run.ctx, a.name, limit=1)), None
+                )
+            elif a.what == "habit":
+                hit = _habit_named(run, a.name)
+            elif a.what == "routine":
+                hit = _routine_named(run, a.name)
+            if hit is not None:
+                ids = [str(hit.id)]
+                label = str(getattr(hit, "name", None) or getattr(hit, "title", ""))
+        if not ids:
+            return {"error": f"no_{a.what}_found", "instead": "look it up first"}
+        n = len(ids)
+        what = a.what.replace("_", "-")
+        label = label or f"{n} {what}{'s' if n != 1 else ''}"
+        verb = (
+            "Archive"
+            if entity in ("planned", "account", "budget", "habit", "routine")
+            else "Delete"
+        )
+        return _manage(
+            "remove",
+            entity,
+            ids,
+            label,
+            None,
+            target,
+            f"{verb}: {label}",
+        )
+
     def lookup(**kw: Any) -> dict[str, Any]:
         from app.modules.capture import engine
 
@@ -1541,6 +1982,55 @@ def capture_tools(run: Run) -> list[BaseTool]:
             "Log a meal; give items with macros when you can estimate them.",
         ),
         (save_journal, JournalArgs, "Save a reflective journal entry (private)."),
+        (
+            find_transactions,
+            FindTxArgs,
+            "Find the user's past transactions (ids, day, amount, payee, "
+            "category, account) to change or delete one.",
+        ),
+        (
+            edit_transaction,
+            TxEditArgs,
+            "Change saved transactions: amount, category, account, payee, "
+            "note, day or type. Get ids from find_transactions first.",
+        ),
+        (
+            list_scheduled,
+            ListScheduledArgs,
+            "List scheduled (planned) income and bills with their account and "
+            "schedule.",
+        ),
+        (
+            edit_scheduled,
+            ScheduledEditArgs,
+            "Change scheduled income or bills: amount, name, account, monthly "
+            "day or one-time due date. from_account changes every item on an "
+            "account at once.",
+        ),
+        (
+            edit_account,
+            AccountEditArgs,
+            "Rename an account, change its type (e.g. to credit card) or its "
+            "credit limit.",
+        ),
+        (edit_budget, BudgetEditArgs, "Change a budget's monthly limit or name."),
+        (
+            edit_task,
+            TaskEditArgs,
+            "Change an open task: title, due date, notes or list.",
+        ),
+        (
+            find_fitness_logs,
+            FindLogsArgs,
+            "List recent meals or weigh-ins with ids, to delete one.",
+        ),
+        (
+            remove_item,
+            RemoveArgs,
+            "Delete a transaction, task, meal or weigh-in, or archive a "
+            "scheduled item, account, budget, habit or routine. Waits for the "
+            "user's Confirm; Undo brings it back.",
+        ),
         (edit_last, EditLastArgs, "Change the amount of the most recent entry."),
         (delete_last, NoArgs, "Delete (undo) the most recent entry."),
         (
@@ -1560,6 +2050,8 @@ def capture_tools(run: Run) -> list[BaseTool]:
 
 # The capture tools that answer rather than write; Fern has its own.
 READ_TOOLS = frozenset({"lookup", "stats_overview"})
+# Finders that only read, offered alongside the edits that need their ids.
+FINDERS = frozenset({"find_transactions", "list_scheduled", "find_fitness_logs"})
 
 
 def write_tools(run: Run) -> list[BaseTool]:
