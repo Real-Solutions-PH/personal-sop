@@ -138,7 +138,7 @@ function DayHero() {
               value={Math.round(pct * 100)}
               suffix={<Text style={{ fontSize: 20, color: t.muted }}>%</Text>}
               style={{
-                fontFamily: fonts.mono,
+                fontFamily: fonts.display,
                 fontSize: 36,
                 fontVariant: ["tabular-nums"],
                 lineHeight: 36,
