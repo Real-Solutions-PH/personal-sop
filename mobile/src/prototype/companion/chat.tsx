@@ -502,6 +502,8 @@ export function CompanionChat() {
   const onPage = usePathname() === "/capture"
   const drawerOpen = captureUi.use((s) => s.open)
   const armed = wake((s) => s.armed)
+  const inset = useSafeAreaInsets()
+  const keyboardUp = useKeyboardUp()
   let lastDay = ""
   return (
     <Screen
@@ -552,13 +554,22 @@ export function CompanionChat() {
         </View>
       }
       footer={
-        <ThreadComposer
-          onText={(v, hint, photos) => ask(v, hint, photos)}
-          initialText={params.q ?? ""}
-          initialHint={params.hint}
-          placeholder={`Message ${name}…`}
-          wakeTarget={onPage && !drawerOpen}
-        />
+        // The page hides the tab bar, so the composer clears the home
+        // indicator itself; over the keyboard it needs no extra room.
+        <View
+          style={{
+            backgroundColor: t.bg,
+            paddingBottom: keyboardUp ? 0 : Math.max(0, inset.bottom - 12),
+          }}
+        >
+          <ThreadComposer
+            onText={(v, hint, photos) => ask(v, hint, photos)}
+            initialText={params.q ?? ""}
+            initialHint={params.hint}
+            placeholder={`Message ${name}…`}
+            wakeTarget={onPage && !drawerOpen}
+          />
+        </View>
       }
     >
       {trackers.length > 0 && (
@@ -600,8 +611,33 @@ export function CompanionChat() {
   )
 }
 
-/** How far the tab bar's + button rises above the bar, with its shadow. */
-const FAB_RISE = 30
+/** Whether the on-screen keyboard is up (iOS says so as it starts moving,
+ * Android once it has shown). */
+function useKeyboardUp() {
+  const [up, setUp] = useState(false)
+  useEffect(() => {
+    const ios = Platform.OS === "ios"
+    const show = Keyboard.addListener(
+      ios ? "keyboardWillShow" : "keyboardDidShow",
+      () => setUp(true),
+    )
+    const hide = Keyboard.addListener(
+      ios ? "keyboardWillHide" : "keyboardDidHide",
+      () => setUp(false),
+    )
+    return () => {
+      show.remove()
+      hide.remove()
+    }
+  }, [])
+  return up
+}
+
+/** Room under the composer for the tab bar's Fern button, which rises about
+ * 20 pt above the bar with its ring. The composer already ends in 12 pt of
+ * padding, so 12 more keeps the text box about 7 pt clear of the button.
+ * (It was 30, which left an empty band under the composer.) */
+const FAB_RISE = 12
 
 /**
  * Drawer that rises from the + button. Drag it down to close, or drag it up

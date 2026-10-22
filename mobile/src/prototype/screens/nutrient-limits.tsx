@@ -80,13 +80,25 @@ export function LimitBar({
       }
       style={{ gap: 4 }}
     >
-      <Line style={{ justifyContent: "space-between", gap: 8 }}>
+      {/* On a narrow card the figures wrap under their own width rather
+          than run into the label. */}
+      <Line
+        style={{
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: 8,
+        }}
+      >
         <Copy size={12} weight="medium">
           {label}
         </Copy>
         <Copy
           size={12}
-          style={{ color: level === "under" || !known ? t.muted : color }}
+          style={{
+            flexShrink: 1,
+            textAlign: "right",
+            color: level === "under" || !known ? t.muted : color,
+          }}
         >
           {right}
         </Copy>

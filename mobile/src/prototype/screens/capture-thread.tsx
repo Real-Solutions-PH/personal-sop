@@ -22,7 +22,7 @@ import {
   WifiOff,
   X,
 } from "lucide-react-native"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
   ActivityIndicator,
   Alert,
@@ -67,6 +67,9 @@ export function AiAvatar({ size = 24 }: { size?: number }) {
   const on = thinking((s) => s.on)
   return <Orb size={size} active={on} />
 }
+/** The composer box: one line, up to about six. */
+const INPUT_MIN = 44
+const INPUT_MAX = 140
 export function ThreadComposer({
   onSent,
   initialHint,
@@ -99,7 +102,27 @@ export function ThreadComposer({
     [photos, setPhotos] = useState<string[]>([]),
     // This message was dictated: Fern's reply to it is read aloud.
     [spoken, setSpoken] = useState(false),
+    // iOS keeps a multiline input at its grown height after its text is
+    // cleared on send, so it sat tall and empty while Fern answered. A box
+    // that grew is rebuilt at one line once it is empty (setting its height
+    // from onContentSizeChange instead fed back into itself and grew to the
+    // cap). It keeps the keyboard if it had it.
+    [inputKey, setInputKey] = useState(0),
+    grown = useRef(false),
+    focused = useRef(false),
+    refocus = useRef(false),
+    input = useRef<TextInput>(null),
     online = useOnline()
+  useEffect(() => {
+    if (text || !grown.current) return
+    grown.current = false
+    // Read before the old box goes, since unmounting it reports a blur.
+    refocus.current = focused.current
+    setInputKey((k) => k + 1)
+  }, [text])
+  useEffect(() => {
+    if (inputKey && refocus.current) input.current?.focus()
+  }, [inputKey])
   const MAX_PHOTOS = 10
   const addPhotos = (more: string[]) =>
     setPhotos((cur) => [...cur, ...more].slice(0, MAX_PHOTOS))
@@ -272,6 +295,14 @@ export function ThreadComposer({
           }}
         >
           <TextInput
+            key={inputKey}
+            ref={input}
+            onFocus={() => {
+              focused.current = true
+            }}
+            onBlur={() => {
+              focused.current = false
+            }}
             accessibilityLabel="Capture message"
             value={text}
             onChangeText={setText}
@@ -286,9 +317,13 @@ export function ThreadComposer({
                     "Log or ask anything…")
             }
             placeholderTextColor={border(t.muted, 0.7)}
+            onContentSizeChange={(e) => {
+              if (e.nativeEvent.contentSize.height > INPUT_MIN + 4)
+                grown.current = true
+            }}
             style={{
-              minHeight: 44,
-              maxHeight: 140,
+              minHeight: INPUT_MIN,
+              maxHeight: INPUT_MAX,
               flex: 1,
               paddingVertical: 12,
               fontFamily: fonts.body,

@@ -37,6 +37,22 @@ import { Button, Empty, Screen, undo } from "../ui"
 import { Ring } from "../visual"
 import { LimitList } from "./nutrient-limits"
 import { StatsShell } from "./stats-shell"
+/** Ring sizes for the width the rings get: the full size on a wide card,
+ * smaller on a narrow one (Fern's card sits inside a message), and the three
+ * macro rings on a row of their own when even the small sizes don't fit. */
+export function ringLayout(width: number) {
+  const GAP = 16,
+    SMALL_GAP = 8
+  if (!width) return { stacked: false, big: 112, small: 60 }
+  const big = Math.max(80, Math.min(112, Math.round(width * 0.34)))
+  const small = Math.floor((width - big - GAP - 2 * SMALL_GAP) / 3)
+  if (small >= 44) return { stacked: false, big, small: Math.min(60, small) }
+  return {
+    stacked: true,
+    big: 112,
+    small: Math.max(44, Math.min(60, Math.floor((width - 2 * SMALL_GAP) / 3))),
+  }
+}
 export function MacroRings({
   totals,
   target,
@@ -45,76 +61,105 @@ export function MacroRings({
   target?: Macros
 }) {
   const t = useTheme(),
+    [width, setWidth] = useState(0),
+    { stacked, big, small } = ringLayout(width),
     left = target ? target.kcal - totals.kcal : undefined
-  return (
-    <Line style={{ gap: 16 }}>
-      <Ring
-        size={112}
-        value={target ? totals.kcal / target.kcal : 0}
-        strokeWidth={10}
-        color={t.nut}
+  const kcal = (
+    <Ring
+      size={big}
+      value={target ? totals.kcal / target.kcal : 0}
+      strokeWidth={big >= 100 ? 10 : 8}
+      color={t.nut}
+    >
+      <Copy
+        size={big >= 100 ? 24 : 20}
+        weight="semibold"
+        style={{
+          lineHeight: big >= 100 ? 24 : 20,
+          color: left !== undefined && left < 0 ? t.bad : t.text,
+        }}
       >
-        <Copy
-          size={24}
-          weight="semibold"
-          style={{
-            lineHeight: 24,
-            color: left !== undefined && left < 0 ? t.bad : t.text,
-          }}
+        {left === undefined
+          ? Math.round(totals.kcal)
+          : Math.abs(Math.round(left))}
+      </Copy>
+      <Copy size={10} muted style={{ marginTop: 2 }}>
+        {left === undefined
+          ? "kcal eaten"
+          : left < 0
+            ? "kcal over"
+            : "kcal left"}
+      </Copy>
+    </Ring>
+  )
+  const macros = (
+    <Line
+      style={{
+        flex: stacked ? undefined : 1,
+        alignSelf: stacked ? "stretch" : undefined,
+        gap: 8,
+        justifyContent: "space-between",
+      }}
+    >
+      {(
+        [
+          { key: "protein", label: "Protein", accent: "fit" },
+          { key: "carbs", label: "Carbs", accent: "tsk" },
+          { key: "fat", label: "Fat", accent: "life" },
+        ] as const
+      ).map((m) => (
+        <View
+          key={m.key}
+          style={{ flex: 1, minWidth: 0, alignItems: "center", gap: 4 }}
         >
-          {left === undefined
-            ? Math.round(totals.kcal)
-            : Math.abs(Math.round(left))}
-        </Copy>
-        <Copy size={10} muted style={{ marginTop: 2 }}>
-          {left === undefined
-            ? "kcal eaten"
-            : left < 0
-              ? "kcal over"
-              : "kcal left"}
-        </Copy>
-      </Ring>
-      <Line style={{ flex: 1, gap: 8, justifyContent: "space-between" }}>
-        {(
-          [
-            { key: "protein", label: "Protein", accent: "fit" },
-            { key: "carbs", label: "Carbs", accent: "tsk" },
-            { key: "fat", label: "Fat", accent: "life" },
-          ] as const
-        ).map((m) => (
-          <View key={m.key} style={{ flex: 1, alignItems: "center", gap: 4 }}>
-            <Ring
-              size={60}
-              strokeWidth={5}
-              color={t[m.accent]}
-              value={target ? totals[m.key] / target[m.key] : 0}
+          <Ring
+            size={small}
+            strokeWidth={small >= 56 ? 5 : 4}
+            color={t[m.accent]}
+            value={target ? totals[m.key] / target[m.key] : 0}
+          >
+            <Copy size={small >= 52 ? 12 : 11} weight="semibold">
+              {Math.round(totals[m.key])}
+            </Copy>
+          </Ring>
+          <View>
+            <Copy
+              size={10}
+              muted
+              lines={1}
+              style={{ textAlign: "center", lineHeight: 12.5 }}
             >
-              <Copy size={12} weight="semibold">
-                {Math.round(totals[m.key])}
-              </Copy>
-            </Ring>
-            <View>
+              {m.label}
+            </Copy>
+            {target && (
               <Copy
                 size={10}
                 muted
+                lines={1}
                 style={{ textAlign: "center", lineHeight: 12.5 }}
               >
-                {m.label}
+                {Math.max(0, Math.round(target[m.key] - totals[m.key]))}g left
               </Copy>
-              {target && (
-                <Copy
-                  size={10}
-                  muted
-                  style={{ textAlign: "center", lineHeight: 12.5 }}
-                >
-                  {Math.max(0, Math.round(target[m.key] - totals[m.key]))}g left
-                </Copy>
-              )}
-            </View>
+            )}
           </View>
-        ))}
-      </Line>
+        </View>
+      ))}
     </Line>
+  )
+  return (
+    <View onLayout={(e) => setWidth(Math.round(e.nativeEvent.layout.width))}>
+      {stacked ? (
+        <View style={{ alignItems: "center", gap: 12 }}>
+          {kcal}
+          {macros}
+        </View>
+      ) : (
+        <Line style={{ gap: 16 }}>
+          {kcal}
+          {macros}
+        </Line>
+      )}
+    </View>
   )
 }
 export function MealThumb({ meal, size = 44 }: { meal: Meal; size?: number }) {
