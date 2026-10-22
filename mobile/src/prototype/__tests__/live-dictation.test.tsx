@@ -19,8 +19,14 @@ jest.mock("expo-speech-recognition", () => ({
   ExpoSpeechRecognitionModule: mockModule,
 }))
 
+jest.mock("expo-audio", () => ({}))
+jest.mock("expo-file-system", () => ({}))
+
 const { composeDictation, useLiveDictation } =
   require("../live-dictation") as typeof import("../live-dictation")
+const { speaking } = require("@/live/speech") as typeof import("@/live/speech")
+const { createWakeListener, wake } =
+  require("../wake-word") as typeof import("../wake-word")
 
 const fire = (name: string, e: unknown) =>
   act(() => mockListeners[name](e as never))
@@ -92,4 +98,33 @@ test("a real failure is reported; stopping or silence is not", async () => {
 test("spacing is joined once", () => {
   expect(composeDictation("hi  ", " there ", "")).toBe("hi there")
   expect(composeDictation("", "", "")).toBe("")
+})
+
+test("one tap: Fern stops talking and Hey Fern lets go before dictation starts", async () => {
+  speaking.setState({ id: "reply", state: "playing" })
+  const wakeListener = createWakeListener({
+    onWake: jest.fn(),
+    getName: () => "Fern",
+  })
+  wakeListener.setWanted(true)
+  expect(mockModule.start).toHaveBeenCalledTimes(1) // Hey Fern listening
+  const { result } = renderHook(() => useLiveDictation(jest.fn(), jest.fn()))
+  let started: Promise<boolean> = Promise.resolve(false)
+  await act(async () => {
+    started = result.current.start("")
+    await Promise.resolve()
+    await Promise.resolve()
+  })
+  expect(speaking.getState().state).toBe("idle")
+  expect(mockModule.abort).toHaveBeenCalledTimes(1)
+  // Dictation waits for Hey Fern's task to end before taking the recogniser.
+  expect(mockModule.start).toHaveBeenCalledTimes(1)
+  await act(async () => {
+    mockListeners.end(null as never)
+    expect(await started).toBe(true)
+  })
+  expect(mockModule.start).toHaveBeenCalledTimes(2)
+  expect(result.current.listening).toBe(true)
+  expect(wake.getState().armed).toBe(false)
+  wakeListener.dispose()
 })

@@ -4,6 +4,8 @@
 // it. Nothing is sent: the person reviews the text and taps send.
 import { useEffect, useRef, useState } from "react"
 import { create } from "zustand"
+import { stopSpeech } from "@/live/speech"
+import { releaseWake } from "./wake-word"
 
 /** Whether any composer is dictating right now. The phone has one
  * recogniser, so the "Hey Fern" listener stands down while this is on. */
@@ -95,6 +97,10 @@ export function useLiveDictation(
     if (!m) return false
     const perm = await m.requestPermissionsAsync().catch(() => null)
     if (!perm?.granted) return false
+    // The person is about to talk: Fern stops reading aloud, and "Hey Fern"
+    // lets go of the recogniser before dictation takes it (one tap, not two).
+    stopSpeech()
+    await releaseWake()
     detach()
     state.current = { before, kept: "" }
     subs.current = [

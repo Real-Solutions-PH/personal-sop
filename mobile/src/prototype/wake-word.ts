@@ -127,8 +127,26 @@ const HANDOFF_MS = 4_000
 
 export interface WakeListener {
   setWanted(on: boolean): void
+  /** Stand down now and resolve once the recogniser has let go, so another
+   * caller can start it. Listening resumes on the next ``setWanted(true)``. */
+  release(): Promise<void>
   dispose(): void
 }
+
+/** The listener running in the app, if any (the latest one created). */
+let current: WakeListener | null = null
+
+/**
+ * Before dictation starts: stop "Hey Fern" and wait for the recogniser to
+ * be free. Starting dictation while the listener still held it made the
+ * listener's ending stop the new dictation too, so the mic took two taps.
+ */
+export function releaseWake(): Promise<void> {
+  return current ? current.release() : Promise.resolve()
+}
+
+/** Longest wait for the recogniser to let go before going ahead anyway. */
+const RELEASE_MS = 800
 
 /**
  * The listening loop. ``onWake`` runs once the recogniser has fully let go,
@@ -150,6 +168,7 @@ export function createWakeListener(opts: {
   let restart: ReturnType<typeof setTimeout> | null = null
   let recycle: ReturnType<typeof setTimeout> | null = null
   let handoffUntil = 0
+  let released: (() => void) | null = null
 
   const clearTimers = () => {
     if (restart) clearTimeout(restart)
@@ -203,6 +222,13 @@ export function createWakeListener(opts: {
         clearTimers()
         running = false
         wake.setState({ listening: false })
+        if (released) {
+          const done = released
+          released = null
+          heard = null
+          done()
+          return
+        }
         if (heard !== null) {
           const rest = heard
           heard = null
@@ -267,7 +293,29 @@ export function createWakeListener(opts: {
     }
   }
 
-  return {
+  const self: WakeListener = {
+    release() {
+      wanted = false
+      wake.setState({ armed: false })
+      clearTimers()
+      if (!running) return Promise.resolve()
+      return new Promise<void>((resolve) => {
+        const timer = setTimeout(() => {
+          released = null
+          resolve()
+        }, RELEASE_MS)
+        released = () => {
+          clearTimeout(timer)
+          resolve()
+        }
+        heard = null
+        try {
+          mod()?.abort()
+        } catch {
+          // Already stopped: the timer lets the caller go ahead.
+        }
+      })
+    },
     setWanted(on) {
       if (on === wanted) return
       wanted = on
@@ -284,7 +332,12 @@ export function createWakeListener(opts: {
       stopNow()
       detach()
       running = false
+      released?.()
+      released = null
+      if (current === self) current = null
       wake.setState({ armed: false, listening: false })
     },
   }
+  current = self
+  return self
 }
