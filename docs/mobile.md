@@ -65,13 +65,13 @@ What happens offline and in each failure case:
 
 ## Visual system
 
-The native prototype uses the web prototype's semantic palette, including separate light/dark module accents. Their sRGB equivalents, spacing, radii and font names live in `shared/prototype/design/tokens.ts`. Barlow supplies body text and Barlow Condensed supplies display headings and statistics; font assets are bundled with the application.
+The native prototype uses the web prototype's semantic palette, including separate light/dark module accents. Their sRGB equivalents, spacing, radii and font names live in `shared/prototype/design/tokens.ts`. Geist supplies words and Geist Mono supplies hero numbers (ADR-0019); font assets are bundled with the application from `@expo-google-fonts/geist` and `@expo-google-fonts/geist-mono`, under the SIL Open Font License 1.1 (see `mobile/THIRD_PARTY_NOTICES.md`).
 
 Prototype press controls with callback-based styles opt out of NativeWind class-name conversion using `cssInterop={false}`. This preserves native dimensions, padding, colors and pressed feedback; the native styling tests exercise the actual adapter because browser rendering does not reproduce this failure. Decorative percentage-sized SVG layers sit in an absolute-fill wrapper so card padding does not shrink their drawing bounds.
 
 `visual.tsx` contains native progress rings, score heroes, metric tiles and module shortcuts. Charts use native SVG. Screen compositions retain the prototype's dashboard hierarchy, compact management rows and fixed capture composer; camera, date pickers, sheets and gestures remain native adaptations. Share artwork supports story, portrait and square layouts, themed backgrounds and native PNG export.
 
-The deployed prototype at https://personal-sop-seven.vercel.app/today is the visual reference. All 95 route patterns have source-based native compositions, including secondary editors, detail views, onboarding and share pages. Shared statistics include the six dashboard facets; screens reuse domain calculations rather than deriving competing scores. Nine Barlow/Barlow Condensed font weights are bundled.
+The deployed prototype at https://personal-sop-seven.vercel.app/today is the visual reference. All 95 route patterns have source-based native compositions, including secondary editors, detail views, onboarding and share pages. Shared statistics include the six dashboard facets; screens reuse domain calculations rather than deriving competing scores. Five Geist/Geist Mono font weights are bundled.
 
 The October 2 comparison pass captured all 95 routes on both clients at 414px in dark mode, with identical local time and fresh data. Contact sheets were visually reviewed. An additional 190 browser checks covered every route at 320px dark and 414px light, with no runtime errors or document-level horizontal overflow. Targeted follow-ups covered capture, dialogs, sharing, advisor and nutrition controls. This is composition and interaction evidence, not pixel-perfect acceptance of every state or native-device verification. See [the evidence record](evidence/mobile-parity/README.md).
 

@@ -61,7 +61,7 @@ export function Label({
       style={{
         color: muted ? t.muted : t.text,
         fontSize: large ? 28 : 15,
-        fontFamily: large ? fonts.display : fonts.body,
+        fontFamily: large ? fonts.mono : fonts.body,
         fontVariant: ["tabular-nums"],
         lineHeight: large ? 34 : 22,
       }}

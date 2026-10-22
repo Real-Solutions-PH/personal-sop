@@ -159,14 +159,18 @@ export const radius = {
   hero: 24,
   pill: 999,
 } as const
+// Unfurl type (ADR-0019): Geist for words, Geist Mono for numbers. Weights
+// stop at 600, so the heavier legacy names map to SemiBold.
 export const fonts = {
-  body: "Barlow_400Regular",
-  medium: "Barlow_500Medium",
-  semibold: "Barlow_600SemiBold",
-  bold: "Barlow_700Bold",
-  display: "BarlowCondensed_700Bold",
-  displayHeavy: "BarlowCondensed_800ExtraBold",
-  displayBlack: "BarlowCondensed_900Black",
-  displayMedium: "BarlowCondensed_600SemiBold",
-  displayRegular: "BarlowCondensed_500Medium",
+  body: "Geist_400Regular",
+  medium: "Geist_500Medium",
+  semibold: "Geist_600SemiBold",
+  bold: "Geist_600SemiBold",
+  display: "Geist_600SemiBold",
+  displayHeavy: "Geist_600SemiBold",
+  displayBlack: "Geist_600SemiBold",
+  displayMedium: "Geist_500Medium",
+  displayRegular: "Geist_500Medium",
+  mono: "GeistMono_500Medium",
+  monoRegular: "GeistMono_400Regular",
 } as const

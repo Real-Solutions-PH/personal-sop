@@ -231,7 +231,7 @@ export function Metric({
     <View style={{ flex: 1, minWidth: 72, gap: 4 }}>
       <Text
         style={{
-          fontFamily: fonts.display,
+          fontFamily: fonts.mono,
           fontSize: 28,
           color: color ?? t.text,
           fontVariant: ["tabular-nums"],

@@ -154,7 +154,7 @@ function LifeHero({
             <CountUp
               value={ls.score}
               style={{
-                fontFamily: fonts.display,
+                fontFamily: fonts.mono,
                 fontSize: 48,
                 color: "white",
                 lineHeight: 48,

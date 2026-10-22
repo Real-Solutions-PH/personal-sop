@@ -141,7 +141,7 @@ export function WeatherCard() {
           </View>
           <Copy
             style={{
-              fontFamily: fonts.display,
+              fontFamily: fonts.mono,
               fontSize: 36,
               lineHeight: 40,
             }}
