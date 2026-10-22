@@ -3,6 +3,11 @@
 2026-10-20. Fern is the in-app AI companion (formerly "Sol"). Users can rename
 it; Fern is the default and the brand.
 
+Since 2026-10-22 the product is named **Unfurl** and the fiddlehead below is
+also the Unfurl logo. The full brand and design system is in
+[positioning-and-name.md](positioning-and-name.md) and
+[design-system/](design-system/project/README.md) (ADR-0019).
+
 ## Idea
 
 **Fern grows with you.** A fern frond opens from a tight spiral, the
@@ -46,8 +51,11 @@ gradient (bottom-left to top-right) with the white fiddlehead.
 | Sprout | `#A6D277` | `#B7E08A` | Highlight end of the orb; the glow |
 | Mist | `#EAF3EC` | `#16261D` | Soft backgrounds behind Fern content |
 
-The greens sit beside the app's primary teal (`#007567`); Fern never replaces
-the app's own colours outside the companion. In code: `fernPalette(dark)`.
+Fern's greens are used for Fern alone (the orb, its glow and halo, the Fern
+button, Fern's reply bubbles). Since 2026-10-22 the app's interface colour is
+moss (`#1F5A43`, `#8FCAA6` in dark) instead of teal; see
+[design-system](design-system/project/README.md) and ADR-0019. In code:
+`fernPalette(dark)`.
 
 ## Voice
 
