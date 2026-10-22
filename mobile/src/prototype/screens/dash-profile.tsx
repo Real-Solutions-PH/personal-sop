@@ -21,6 +21,7 @@ import {
   Minus,
   Plus,
   Repeat2,
+  ShieldCheck,
   Sparkles,
   Trash2,
   Wallet,
@@ -35,6 +36,7 @@ import {
   Frame,
   IconTap,
   Line,
+  LinkRow,
   SectionHeading,
   Segmented,
   Tap,
@@ -246,6 +248,16 @@ export function Profile() {
           Save
         </Button>
       </View>
+      <Frame
+        style={{ marginTop: 12, paddingHorizontal: 8, paddingVertical: 4 }}
+      >
+        <LinkRow
+          title="Account & security"
+          detail="Email, password, export, delete account"
+          icon={ShieldCheck}
+          href="/me/account"
+        />
+      </Frame>
       <Sheet open={photo} title="Profile photo" onClose={() => setPhoto(false)}>
         <Button
           onPress={() =>
@@ -620,11 +632,11 @@ export function Settings() {
         </Frame>
         <SectionHeading>Data & account</SectionHeading>
         <Frame style={{ paddingHorizontal: 12, paddingVertical: 4 }}>
-          {row("Export (JSON)", "", chev, () =>
-            toast("Export is stubbed in the prototype"),
-          )}
-          {row("Sign out", "", chev, () =>
-            toast("Sign-in is mocked in the prototype"),
+          {row(
+            "Account & security",
+            "Email, password, export, sign out, delete account",
+            chev,
+            () => go("/me/account"),
           )}
         </Frame>
       </View>

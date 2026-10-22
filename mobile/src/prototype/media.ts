@@ -72,3 +72,27 @@ export async function exportCsv(name: string, rows: string[][]) {
     toast.error("Export failed. Please try again.")
   }
 }
+/** Hands a JSON document to the share sheet as a file (web: as text).
+ * Resolves false when it could not be shared. */
+export async function exportJson(name: string, value: unknown) {
+  try {
+    const content = JSON.stringify(value, null, 2)
+    if (Platform.OS === "web") {
+      await Share.share({ message: content })
+      return true
+    }
+    const { File, Paths } = await import("expo-file-system")
+    const file = new File(Paths.cache, name)
+    if (file.exists) file.delete()
+    file.write(content)
+    if (await Sharing.isAvailableAsync())
+      await Sharing.shareAsync(file.uri, {
+        mimeType: "application/json",
+        dialogTitle: "Export my data",
+      })
+    else await Share.share({ message: content })
+    return true
+  } catch {
+    return false
+  }
+}

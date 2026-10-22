@@ -26,6 +26,7 @@ import {
   RotateCcw,
   Scale,
   Share2,
+  ShieldCheck,
   Smartphone,
   Sparkles,
   SunMoon,
@@ -384,6 +385,12 @@ export function Me() {
         </Frame>
         <SectionHeading>App</SectionHeading>
         <Frame style={{ paddingHorizontal: 8, paddingVertical: 4 }}>
+          <LinkRow
+            title="Account & security"
+            detail="Email, password, export, delete account"
+            icon={ShieldCheck}
+            href="/me/account"
+          />
           <LinkRow title="Run setup again" icon={Sparkles} href="/onboarding" />
           <LinkRow
             title="Set up my data"
