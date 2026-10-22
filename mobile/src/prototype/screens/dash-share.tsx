@@ -841,7 +841,7 @@ export function ShareCard() {
     d = useCardData(params.goal ?? null),
     tpl = TEMPLATES.find((x) => x.key === kind)!,
     fields = [...tpl.fields, ...COMMON],
-    caption = `${d.name.split(" ")[0]}'s ${tpl.label.toLowerCase()} — Life Score ${d.life.score ?? "—"} (${d.level}), on-target streak ${d.w7.current} days · Personal SOP`
+    caption = `${d.name.split(" ")[0]}'s ${tpl.label.toLowerCase()} — Life Score ${d.life.score ?? "—"} (${d.level}), on-target streak ${d.w7.current} days · Unfurl`
   const change = (k: ShareTemplate) => {
     setKind(k)
     setOn(defaults(k, saved))

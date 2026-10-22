@@ -446,7 +446,7 @@ export function MeScreen() {
         />
       </Card>
       <p className="mt-4 text-center text-muted-foreground text-xs">
-        Personal SOP · prototype build
+        Unfurl · prototype build
       </p>
       <Confirm
         open={fresh}

@@ -14,10 +14,10 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Personal SOP",
+  title: "Unfurl",
   appleWebApp: {
     capable: true,
-    title: "SOP",
+    title: "Unfurl",
     statusBarStyle: "black-translucent",
   },
   icons: {

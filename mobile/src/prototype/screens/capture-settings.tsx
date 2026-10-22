@@ -442,7 +442,7 @@ function Connector() {
             </LinearGradient>
             <View style={{ flex: 1 }}>
               <Copy size={20} weight="displayMedium">
-                Use Claude with your SOP
+                Use Claude with Unfurl
               </Copy>
               <Copy size={14} muted>
                 Log and ask from the Claude app you already use.
@@ -491,7 +491,7 @@ function Connector() {
           {[
             [
               "Connect",
-              "Add the SOP server in Claude › Settings › Connectors and approve access here.",
+              "Add the Unfurl server in Claude › Settings › Connectors and approve access here.",
             ],
             [
               "Talk to Claude",

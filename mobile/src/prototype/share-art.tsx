@@ -217,8 +217,15 @@ export function ShareArtwork({
         <Text style={{ fontFamily: fonts.medium, fontSize: 11, color: muted }}>
           {name}
         </Text>
-        <Text style={{ fontFamily: fonts.display, fontSize: 12, color: ink }}>
-          PERSONAL SOP
+        <Text
+          style={{
+            fontFamily: fonts.medium,
+            fontSize: 12,
+            letterSpacing: -0.36,
+            color: ink,
+          }}
+        >
+          unfurl
         </Text>
       </View>
     </LinearGradient>
