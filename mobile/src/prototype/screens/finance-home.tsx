@@ -7,7 +7,6 @@ import { currencySymbol } from "@domain/lib/money"
 import { privacyStore, togglePrivacy } from "@domain/lib/privacy"
 import { useLocalSearchParams } from "expo-router"
 import {
-  Bot,
   CalendarClock,
   ChartLine,
   Eye,
@@ -348,7 +347,6 @@ export function FinanceHome() {
                 icon: Sparkles,
                 href: "/finance/projection?whatif=1",
               },
-              { label: "Advisor", icon: Bot, href: "/finance/advisor" },
             ].map((a) => (
               <Tap
                 key={a.label}

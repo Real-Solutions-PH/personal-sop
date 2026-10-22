@@ -5,7 +5,7 @@ import { dayKey } from "@domain/lib/day"
 import { currencySymbol } from "@domain/lib/money"
 import { privacyStore } from "@domain/lib/privacy"
 import { useLocalSearchParams } from "expo-router"
-import { Bot, ChevronDown, Sparkles, X } from "lucide-react-native"
+import { ChevronDown, Sparkles, X } from "lucide-react-native"
 import { useState } from "react"
 import { ScrollView, View } from "react-native"
 import { toast } from "sonner-native"
@@ -20,11 +20,15 @@ import {
   Segmented,
   Tap,
 } from "../native-kit"
-import { go } from "../navigation"
 import { Switch } from "../switch"
 import { radius, useTheme } from "../theme"
 import { Button, Empty, Field, Screen } from "../ui"
 import { useMoney } from "./finance"
+
+const INSTALLMENT_TERMS = [3, 6, 12, 24]
+const MAX_TERM = 60
+export const clampTerm = (months: number) =>
+  Math.min(MAX_TERM, Math.max(2, Math.round(months)))
 export function FinChip({
   label,
   active = false,
@@ -77,6 +81,9 @@ export function Projection() {
     [month, setMonth] = useState(p.month ?? C.addMonths(cur, 3)),
     [mode, setMode] = useState("lump"),
     [n, setN] = useState(12),
+    // Any term the card offers, not only the preset chips: typed months,
+    // kept between 2 and 60 (the longest 0% plans banks run).
+    [custom, setCustom] = useState<string | null>(null),
     [picked, setAcct] = useState<string>(),
     [excluded, setExcluded] = useState<string[]>([]),
     [assump, setAssump] = useState(false),
@@ -201,18 +208,7 @@ export function Projection() {
       </Screen>
     )
   return (
-    <Screen
-      title="Projection"
-      actions={
-        <IconTap
-          icon={Bot}
-          label="Ask advisor"
-          size={40}
-          color={t.text}
-          onPress={() => go("/finance/advisor?ask=runway")}
-        />
-      }
-    >
+    <Screen title="Projection">
       <Segmented
         value={String(horizon)}
         onChange={(v) =>
@@ -381,16 +377,48 @@ export function Projection() {
           />
           {mode === "inst" ? (
             <>
-              <Line style={{ gap: 8 }}>
-                {[3, 6, 12, 24].map((v) => (
+              <Line style={{ gap: 8, flexWrap: "wrap" }}>
+                {INSTALLMENT_TERMS.map((v) => (
                   <FinChip
                     key={v}
                     label={`${v}×`}
-                    active={n === v}
-                    onPress={() => setN(v)}
+                    active={custom === null && n === v}
+                    onPress={() => {
+                      setCustom(null)
+                      setN(v)
+                    }}
                   />
                 ))}
+                <FinChip
+                  label="Custom"
+                  active={custom !== null}
+                  onPress={() => setCustom("")}
+                />
               </Line>
+              {custom !== null && (
+                <View>
+                  <Field
+                    label="Months to pay"
+                    keyboardType="number-pad"
+                    value={custom}
+                    autoFocus
+                    onChangeText={(v) => {
+                      const digits = v.replace(/[^\d]/g, "").slice(0, 2)
+                      setCustom(digits)
+                      if (Number(digits) >= 1) setN(clampTerm(Number(digits)))
+                    }}
+                    placeholder={String(n)}
+                    onBlur={() => custom && setCustom(String(n))}
+                  />
+                  {(Number(custom) > MAX_TERM || Number(custom) === 1) && (
+                    <Copy size={12} muted>
+                      {Number(custom) === 1
+                        ? "One month is paying in full, so this plans 2."
+                        : `Plans run up to ${MAX_TERM} months, so this plans ${MAX_TERM}.`}
+                    </Copy>
+                  )}
+                </View>
+              )}
               <Copy size={12} muted>
                 {money(Math.round(Number(amount || 0) / n))}/mo on{" "}
                 {card?.name ?? "a credit card"}
@@ -486,23 +514,9 @@ export function Projection() {
               </Button>
             </View>
           </Line>
-          <Line style={{ gap: 8 }}>
-            <View style={{ flex: 1 }}>
-              <Button tone="quiet" onPress={() => setWhat(false)}>
-                Discard
-              </Button>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Button
-                tone="quiet"
-                icon={Bot}
-                disabled={!whatIf}
-                href={`/finance/advisor?ask=afford&amount=${amount}&month=${month}&name=${encodeURIComponent(name)}&mode=${mode}&n=${n}`}
-              >
-                Ask advisor
-              </Button>
-            </View>
-          </Line>
+          <Button tone="quiet" onPress={() => setWhat(false)}>
+            Discard
+          </Button>
         </Frame>
       )}
       {drafts.length > 0 && (
