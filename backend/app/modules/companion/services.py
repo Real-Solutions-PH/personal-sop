@@ -1034,6 +1034,72 @@ def _remember_first(
     ]
 
 
+# Learning without being asked: after a reply, the person's message is read
+# once more for lasting facts about them. Only a message that speaks about
+# them is read, so most turns cost nothing extra.
+_ABOUT_ME = re.compile(
+    r"\b(i|i'?m|im|i'?ve|i'?d|my|me|mine|myself|we|our|ako|ko|akin|aking|"
+    r"namin|kami)\b",
+    re.I,
+)
+LEARN = """Read the person's message and keep what will still be true and
+useful weeks from now, with remember_fact: who they are (job, studies,
+where they live), the people in their life (names, relation), health,
+allergies, diet and training rules, goals and what they're working towards,
+lasting likes and dislikes, routines, and how they want answers. One call
+per separate fact, as a short third-person statement with its kind; set
+always_on only for a hard constraint (an allergy, a medical rule).
+
+Do NOT keep: what they did or ate today, a purchase or a log entry, a
+question, a request or command, a feeling of the moment, or anything about
+the assistant. Most messages hold nothing lasting: then call nothing."""
+
+
+def learn(ctx: Ctx, text: str, *, already: bool) -> list[str]:
+    """Save lasting facts the message holds that nobody asked to keep; runs
+    after the reply has streamed. ``already``: this turn saved a memory
+    (asked for, or by the reply itself), so the message isn't read again."""
+    if (
+        already
+        or len(text) < 12
+        or text.rstrip().endswith("?")
+        or not _ABOUT_ME.search(text)
+    ):
+        return []
+    resolved = _resolve(ctx)
+    if resolved is None:
+        return []
+    run = SolRun(ctx=ctx, me_id=uuid.uuid4(), emit=lambda event, data: None)
+    run.judge = memory_judge(ctx, resolved)
+    tool = next(t for t in sol_tools(run) if t.name == "remember_fact")
+    saved: list[str] = []
+
+    class Heard(capture.LoopHooks):
+        def tool_finished(self, call_id: str, name: str, result: Any) -> None:
+            if isinstance(result, dict) and result.get("status") not in (
+                None,
+                "duplicate",
+            ):
+                saved.append(name)
+
+    try:
+        capture.run_agent(
+            ctx,
+            resolved,
+            system=LEARN,
+            messages=[HumanMessage(text)],
+            tools=[tool],
+            on_text=lambda d: None,
+            max_turns=2,
+            max_tool_calls=4,
+            hooks=Heard(),
+        )
+    except capture.SeamError:
+        return []
+    ctx.commit()
+    return saved
+
+
 # The day's food: macros, calories, nutrition, what is left to eat.
 _ABOUT_NUTRITION = re.compile(
     r"\b(macros?|calories|kcal|protein|carbs|nutrition(al)?|"

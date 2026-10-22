@@ -2,6 +2,7 @@
 trackers, memories, rename, and the data behind the chart and insights
 blocks."""
 
+import logging
 import uuid
 from typing import Annotated, Any
 
@@ -30,6 +31,7 @@ from app.shared.pagination import PaginationDep
 from app.shared.rate_limit import rate_limited
 from app.shared.schema import Message
 
+log = logging.getLogger(__name__)
 router = APIRouter(prefix="/companion", tags=["companion"])
 
 READ = [Depends(require_permission("companion:read"))]
@@ -111,6 +113,24 @@ def ask_stream(ctx: CtxDep, data: AskIn) -> StreamingResponse:
             media_ids=data.media_ids,
         )
         stream.finished(out.model_dump(mode="json"))
+        # The reply is out; what the message says about them that will last
+        # is kept now, unless this turn already saved a memory. A failure
+        # here is logged and never reaches the finished reply.
+        try:
+            services.learn(
+                ctx,
+                data.text,
+                # A turn that saved a memory, or recorded what the message
+                # asked for (a task, a meal), has used it already.
+                already=any(
+                    s.ok
+                    and (s.name == "remember_fact" or s.name in services.WRITE_TOOLS)
+                    for s in stream.steps
+                ),
+            )
+        except Exception as exc:  # noqa: BLE001 - after the reply, best effort
+            ctx.session.rollback()
+            log.warning("companion learn failed: %s", type(exc).__name__)
 
     return StreamingResponse(
         turn.stream_events(work),

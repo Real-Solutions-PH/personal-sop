@@ -23,6 +23,7 @@ from tests.modules.capture.api.helpers import (
     say,
     user,
 )
+from tests.utils.mobile import ctx_for
 
 
 def tool(name: str, /, **args: Any) -> dict[str, Any]:
@@ -119,3 +120,61 @@ def test_a_promised_second_part_gets_done_in_a_corrective_pass(
 )
 def test_a_promise_is_a_statement_not_an_offer(answer: str, expected: bool) -> None:
     assert services.promised(answer) is expected
+
+
+def test_a_lasting_fact_said_in_passing_is_kept_without_being_asked(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.modules.companion import memory
+
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    model = install(
+        monkeypatch,
+        say("Nice, a 4am start suits a 6am gym slot."),
+        # The pass after the reply: the message read for lasting facts.
+        say(
+            "",
+            tool(
+                "remember_fact",
+                fact="Works night shifts as a nurse",
+                kind="profile",
+            ),
+        ),
+        say(""),
+    )
+    reply = ask(api, client, "I work night shifts as a nurse, so mornings are tough")
+    assert reply["text"].startswith("Nice")
+    assert str(model.seen[1][0].content).startswith(services.LEARN[:40])
+    with ctx_for(api.user) as ctx:
+        assert [m.text for m in memory.live(ctx)] == ["Works night shifts as a nurse"]
+
+
+def test_a_message_about_nothing_lasting_costs_no_extra_call(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    model = install(monkeypatch, say("Here's your day."))
+    ask(api, client, "what's on today?")
+    # No first-person words: the reply is the only model call.
+    assert len(model.seen) == 1
+
+
+def test_an_asked_for_memory_is_not_read_again_after_the_reply(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    model = install(
+        monkeypatch,
+        # The focused "remember" pass, then the reply.
+        say("", tool("remember_fact", fact="Allergic to shrimp", kind="health")),
+        say(""),
+        say("Noted, no shrimp."),
+    )
+    ask(api, client, "remember I'm allergic to shrimp")
+    assert len(model.seen) == 3
+    assert not any(
+        str(sent[0].content).startswith(services.LEARN[:40]) for sent in model.seen
+    )

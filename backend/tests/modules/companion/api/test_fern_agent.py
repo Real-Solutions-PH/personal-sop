@@ -517,6 +517,8 @@ def test_register_those_keeps_the_day_named_just_before(
     install(
         monkeypatch,
         say("Pay rent and call the landlord tomorrow, got it."),
+        # After that reply, the message is read for lasting facts: none.
+        say(""),
         say(
             "",
             call(
