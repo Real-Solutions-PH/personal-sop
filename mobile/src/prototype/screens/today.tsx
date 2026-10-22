@@ -1,3 +1,4 @@
+import type { CalendarItem } from "@domain/contract"
 import { MODULE_KEYS, weekStartKey } from "@domain/dash/data"
 import * as D from "@domain/dash/hooks"
 import {
@@ -26,7 +27,6 @@ import { LinearGradient } from "expo-linear-gradient"
 import { useLocalSearchParams } from "expo-router"
 import {
   AlarmClock,
-  ArrowRight,
   Bell,
   CalendarClock,
   Camera,
@@ -63,7 +63,7 @@ import Animated from "react-native-reanimated"
 import { toast } from "sonner-native"
 import { AppLauncher } from "../app-launcher"
 import { Sparkline } from "../chart"
-import { AnimatedCheck, CountUp, rowEnter, rowExit } from "../motion"
+import { AnimatedCheck, CountUp, feel, rowEnter, rowExit } from "../motion"
 import {
   Bar,
   border,
@@ -96,7 +96,7 @@ import {
 
 // Native counterparts of dash/today, day-hero and the module Today cards.
 // Keep composition and dimensions aligned with the deployed prototype.
-function DayHero() {
+export function DayHero() {
   const t = useTheme(),
     s = dashStore.use((s) => s),
     ring = D.useTodayRing(),
@@ -252,73 +252,163 @@ function DayHero() {
     </Frame>
   )
 }
-function NextUp() {
+const PLAN_ROWS = 5
+/** The day's plan first, without scrolling: everything dated today across
+ * the areas (timed items in order, then anytime ones), what is open before
+ * what is done, read from this phone's own stores so a check-off shows at
+ * once. Taps open the item; More opens the full calendar on Plan. */
+function TodayPlan() {
   const t = useTheme(),
     today = dayKey(),
-    items = D.useAllCalendar(today, today),
+    items = D.useLocalCalendar(today, today),
     now = useNow(),
     hm = new Date(now).toTimeString().slice(0, 5)
-  const open = items.filter((i) => !i.done && i.module !== "finance"),
-    timed = open.filter((i) => i.time),
-    next =
-      timed.filter((i) => (i.time ?? "") < hm).at(-1) ??
-      timed.find((i) => (i.time ?? "") >= hm) ??
-      open.find((i) => !i.time)
-  if (!next) return null
-  const accent =
-    next.module === "habits" ? t.hab : next.module === "tasks" ? t.tsk : t.fit
-  const habitId =
-    next.module === "habits" && next.id.startsWith("habit-")
-      ? next.id.slice(6, -(next.day.length + 1))
+  const open = items.filter((i) => !i.done),
+    done = items.length - open.length,
+    // The item happening now or next among the timed ones.
+    nextId = (
+      open.find((i) => i.time && i.time >= hm) ?? open.find((i) => !i.time)
+    )?.id,
+    shown = open.slice(0, PLAN_ROWS),
+    more = open.length - shown.length
+  // Habits and tasks can be ticked right here; anything else opens.
+  const habitOf = (i: CalendarItem) =>
+    i.module === "habits" && i.id.startsWith("habit-")
+      ? i.id.slice(6, -(i.day.length + 1))
       : null
-  const taskId =
-    next.module === "tasks" && next.id.startsWith("task:")
-      ? next.id.slice(5)
-      : null
+  const taskOf = (i: CalendarItem) =>
+    i.module === "tasks" && i.id.startsWith("task:") ? i.id.slice(5) : null
+  const doneable = (i: CalendarItem) => Boolean(habitOf(i) || taskOf(i))
+  const markDone = (i: CalendarItem) => {
+    const h = habitOf(i)
+    const k = taskOf(i)
+    feel.success()
+    if (h) HA.checkHabit(h, today)
+    if (k) completeTask(k)
+    toast.success(`Done: ${i.title}`)
+  }
+  const accent = (m: string) =>
+    m === "habits"
+      ? t.hab
+      : m === "tasks"
+        ? t.tsk
+        : m === "fitness"
+          ? t.fit
+          : t.fin
   return (
-    <Frame style={{ padding: 16 }}>
-      <Line>
-        <Tap onPress={() => go(next.href)} style={{ flex: 1 }}>
-          <Line>
-            <View
+    <Frame style={{ padding: 16, gap: 8 }}>
+      <Line style={{ justifyContent: "space-between" }}>
+        <Copy size={12} muted style={{ letterSpacing: 1 }}>
+          TODAY'S PLAN
+        </Copy>
+        <Tap onPress={() => go("/plan?seg=calendar")} label="Open the calendar">
+          <Copy size={12} style={{ color: t.primary }}>
+            {items.length ? `${done}/${items.length} done` : "Plan"}
+          </Copy>
+        </Tap>
+      </Line>
+      {!open.length ? (
+        <Tap onPress={() => go(items.length ? "/stats" : "/tasks")}>
+          <Copy weight="semibold">
+            {items.length ? "All done for today" : "Nothing planned today"}
+          </Copy>
+          <Copy size={14} muted>
+            {items.length
+              ? "Everything on today's plan is checked off."
+              : "Add a task or a habit with a time and it shows here."}
+          </Copy>
+        </Tap>
+      ) : (
+        shown.map((i) => {
+          const isNext = i.id === nextId
+          const past = Boolean(i.time && i.time < hm)
+          return (
+            <Line
+              key={i.id}
               style={{
-                height: 44,
-                width: 44,
-                borderRadius: 12,
-                backgroundColor: `${accent}26`,
-                alignItems: "center",
+                minHeight: 44,
                 justifyContent: "center",
+                borderRadius: 12,
+                paddingHorizontal: 8,
+                marginHorizontal: -8,
+                backgroundColor: isNext
+                  ? `${accent(i.module)}14`
+                  : "transparent",
               }}
             >
-              <ArrowRight size={20} color={accent} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Copy muted size={11} style={{ letterSpacing: 0.6 }}>
-                NEXT UP{next.time ? ` · ${next.time}` : ""}
-              </Copy>
-              <Copy weight="semibold" lines={1}>
-                {next.title}
-              </Copy>
-            </View>
-          </Line>
+              <Tap
+                onPress={() => go(i.href)}
+                label={`${i.time ?? "Anytime"}, ${i.title}`}
+                style={{ flex: 1, minHeight: 44, justifyContent: "center" }}
+              >
+                <Line style={{ gap: 12 }}>
+                  <Copy
+                    size={13}
+                    muted={!isNext}
+                    weight={isNext ? "semibold" : undefined}
+                    style={{
+                      width: 48,
+                      fontVariant: ["tabular-nums"],
+                      color: isNext
+                        ? accent(i.module)
+                        : past
+                          ? t.bad
+                          : undefined,
+                    }}
+                  >
+                    {i.time ?? "Any"}
+                  </Copy>
+                  <View
+                    style={{
+                      width: 4,
+                      alignSelf: "stretch",
+                      borderRadius: 2,
+                      marginVertical: 8,
+                      backgroundColor: accent(i.module),
+                    }}
+                  />
+                  <Copy
+                    weight={isNext ? "semibold" : "medium"}
+                    lines={1}
+                    style={{ flex: 1 }}
+                  >
+                    {i.title}
+                  </Copy>
+                  {isNext && (
+                    <Copy
+                      size={11}
+                      weight="semibold"
+                      style={{ color: accent(i.module) }}
+                    >
+                      {i.time && i.time < hm ? "NOW" : "NEXT"}
+                    </Copy>
+                  )}
+                </Line>
+              </Tap>
+              {doneable(i) && (
+                <IconTap
+                  size={36}
+                  icon={Check}
+                  label={`Mark ${i.title.replace(/^\p{Extended_Pictographic}\s*/u, "")} done`}
+                  background={`${t.good}1f`}
+                  color={t.good}
+                  onPress={() => markDone(i)}
+                />
+              )}
+            </Line>
+          )
+        })
+      )}
+      {more > 0 && (
+        <Tap
+          onPress={() => go("/plan?seg=calendar")}
+          style={{ minHeight: 36, justifyContent: "center" }}
+        >
+          <Copy size={13} style={{ color: t.primary }}>
+            {more} more today
+          </Copy>
         </Tap>
-        {habitId || taskId ? (
-          <IconTap
-            size={44}
-            icon={Check}
-            label={`Mark ${next.title.replace(/^\p{Extended_Pictographic}\s*/u, "")} done`}
-            background={`${t.good}26`}
-            color={t.good}
-            onPress={() => {
-              if (habitId) HA.checkHabit(habitId, today)
-              if (taskId) completeTask(taskId)
-              toast.success(`Done: ${next.title}`)
-            }}
-          />
-        ) : (
-          <ChevronRight size={20} color={t.muted} />
-        )}
-      </Line>
+      )}
     </Frame>
   )
 }
@@ -360,6 +450,7 @@ function TodayHabit({ habit }: { habit: Habit }) {
               size={37}
               ring={3}
               checkColor={t.onPrimary}
+              progress={H.progressOf(habit, log)}
             />
             <Tap
               onPress={() => go(`/habits/${habit.id}`)}
@@ -1491,7 +1582,7 @@ export function Today() {
         </Line>
       }
     >
-      <DayHero />
+      <TodayPlan />
       <WeatherCard />
       {!s.setupHidden && pending.length > 0 && (
         <Frame style={{ padding: 16 }}>
@@ -1534,9 +1625,7 @@ export function Today() {
             </Line>
           </Tap>
         </Frame>
-      ) : (
-        ring.done < ring.due && <NextUp />
-      )}
+      ) : null}
       {Platform.OS === "web" && !s.installDismissed && (
         <Frame
           style={{
