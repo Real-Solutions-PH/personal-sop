@@ -15,3 +15,4 @@ Start new ADRs from [template.md](template.md).
 | [0017](0017-fern-memory-and-context.md) | Fern's memory layer and per-turn context |
 | [0018](0018-hey-fern-wake-word.md) | "Hey Fern": a foreground wake phrase on the phone's recogniser |
 | [0019](0019-unfurl-brand-and-design-system.md) | Unfurl brand and design system for the whole app |
+| [0020](0020-widgets-and-lock-screen-activities.md) | Home-screen widgets and lock-screen activities (WidgetKit, ActivityKit, Android widgets and ongoing notification) |

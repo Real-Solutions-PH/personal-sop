@@ -2,7 +2,7 @@
   "name": "mobile",
   "private": true,
   "version": "0.0.0",
-  "main": "expo-router/entry",
+  "main": "index.ts",
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
@@ -104,6 +104,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.0",
+    "@bacons/apple-targets": "5.0.0",
     "@biomejs/biome": "^2.5.3",
     "@hey-api/openapi-ts": "0.73.0",
     "@testing-library/react-native": "13.3.3",

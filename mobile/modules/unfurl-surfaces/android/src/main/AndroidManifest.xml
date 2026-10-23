@@ -1,0 +1,29 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+  <uses-permission android:name="android.permission.WAKE_LOCK" />
+  <application>
+    <receiver android:name="expo.modules.unfurlsurfaces.SurfaceActionReceiver" android:exported="false" />
+    <service android:name="expo.modules.unfurlsurfaces.UnfurlSurfacesTaskService" android:exported="false" />
+
+    <receiver android:name="expo.modules.unfurlsurfaces.TodayWidget" android:exported="false" android:label="Today">
+      <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+      <meta-data android:name="android.appwidget.provider" android:resource="@xml/unfurl_widget_today" />
+    </receiver>
+    <receiver android:name="expo.modules.unfurlsurfaces.HabitsWidget" android:exported="false" android:label="Habits">
+      <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+      <meta-data android:name="android.appwidget.provider" android:resource="@xml/unfurl_widget_habits" />
+    </receiver>
+    <receiver android:name="expo.modules.unfurlsurfaces.MacrosWidget" android:exported="false" android:label="Macros">
+      <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+      <meta-data android:name="android.appwidget.provider" android:resource="@xml/unfurl_widget_macros" />
+    </receiver>
+    <receiver android:name="expo.modules.unfurlsurfaces.TasksWidget" android:exported="false" android:label="Up next">
+      <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+      <meta-data android:name="android.appwidget.provider" android:resource="@xml/unfurl_widget_tasks" />
+    </receiver>
+    <receiver android:name="expo.modules.unfurlsurfaces.MoneyWidget" android:exported="false" android:label="Money">
+      <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+      <meta-data android:name="android.appwidget.provider" android:resource="@xml/unfurl_widget_money" />
+    </receiver>
+  </application>
+</manifest>

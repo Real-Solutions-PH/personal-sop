@@ -13,7 +13,20 @@
       "icon": {
         "light": "./assets/images/icon.png",
         "dark": "./assets/images/icon-dark.png"
-      }
+      },
+      "infoPlist": {
+        "NSSupportsLiveActivities": true,
+        "UnfurlKeychainGroup": "$(AppIdentifierPrefix)com.schadenkai.personal-sop.surfaces",
+        "NSSpeechRecognitionUsageDescription": "Allow Unfurl to turn what you say into text as you speak.",
+        "NSMicrophoneUsageDescription": "Allow Unfurl to use the microphone for dictation and voice captures."
+      },
+      "entitlements": {
+        "keychain-access-groups": [
+          "$(AppIdentifierPrefix)com.schadenkai.personal-sop",
+          "$(AppIdentifierPrefix)com.schadenkai.personal-sop.surfaces"
+        ]
+      },
+      "appleTeamId": "N2Y99Q8A79"
     },
     "android": {
       "adaptiveIcon": {
@@ -25,7 +38,8 @@
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
-      ]
+      ],
+      "package": "com.schadenkai.personalsop"
     },
     "web": {
       "bundler": "metro",
@@ -86,7 +100,9 @@
             "backgroundColor": "#121513"
           }
         }
-      ]
+      ],
+      "@bacons/apple-targets",
+      "./plugins/free-apple-team"
     ],
     "experiments": {
       "typedRoutes": true,

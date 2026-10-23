@@ -63,6 +63,24 @@ What happens offline and in each failure case:
 - `src/live/__tests__/sync.test.ts` covers diff rules, the offline outbox, action ordering, no echo, pulled deletes, restart persistence, the UUID v5 parity value and the SSE parser.
 - A throwaway end-to-end run of the engine against a running API server with a real GoTrue account confirmed that the offline edit was queued, then pushed on reconnect, then pulled on a second device. The second device's edit came back to the first, with no echo, and matched the server state.
 
+## Widgets and lock-screen activities (2026-10-23)
+
+ADR-0020. Home-screen widgets (Today, Habits, Macros, Up next, Money) and the
+running routine, habit timer or workout on the lock screen: a Live Activity
+with Dynamic Island on iOS, an ongoing notification on Android.
+
+| Piece | Where |
+|---|---|
+| Snapshot, live state, tap handling (JS) | `mobile/src/surfaces/` |
+| Native bridge, Android widgets, notification, receiver | `mobile/modules/unfurl-surfaces/` |
+| iOS widget extension and Live Activity (SwiftUI) | `mobile/targets/widget/` (`_shared/` also builds into the app) |
+
+Building for the iPhone with the free (personal) Apple team: prebuild with
+`UNFURL_FREE_APPLE_TEAM=1` so the push entitlement that team cannot sign is
+left out (`plugins/free-apple-team.js`). Widgets and the Live Activity need a
+development or release build; they are not in Expo Go. Tests:
+`src/surfaces/__tests__/`.
+
 ## Visual system
 
 The native prototype uses the web prototype's semantic palette, including separate light/dark module accents. Their sRGB equivalents, spacing, radii and font names live in `shared/prototype/design/tokens.ts`. Geist supplies words and Geist Mono supplies hero numbers (ADR-0019); font assets are bundled with the application from `@expo-google-fonts/geist` and `@expo-google-fonts/geist-mono`, under the SIL Open Font License 1.1 (see `mobile/THIRD_PARTY_NOTICES.md`).

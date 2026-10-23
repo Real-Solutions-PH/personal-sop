@@ -1,0 +1,9 @@
+{
+  "name": "unfurl-surfaces",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Home-screen widgets, the iOS Live Activity and the Android ongoing notification for Unfurl (ADR-0020)",
+  "license": "UNLICENSED",
+  "author": "Unfurl",
+  "homepage": "https://github.com/Real-Solutions-PH/personal-sop"
+}

@@ -10,7 +10,8 @@
       "!openapi.json",
       "!**/src/client",
       "!**/src/components/ui",
-      "!**/src/live/__tests__/fixtures"
+      "!**/src/live/__tests__/fixtures",
+      "!**/targets/*/Assets.xcassets"
     ]
   },
   "linter": {

@@ -38,6 +38,7 @@ import { stepTab, TAB_ROUTES, tabDirection } from "@/prototype/tab-swipe"
 import { AccentContext, fonts, useTheme } from "@/prototype/theme"
 import { wake } from "@/prototype/wake-word"
 import { WakeWordListener } from "@/prototype/wake-word-listener"
+import { SurfacesBridge } from "@/surfaces/bridge"
 
 const tabs = [
   { label: "Today", href: "/today", icon: House },
@@ -325,6 +326,7 @@ export default function PrototypeLayout() {
           <>
             <CaptureOverlay bottom={focus ? 0 : bar} />
             <WakeWordListener onChatPage={path === "/capture"} />
+            <SurfacesBridge />
           </>
         )}
         {!focus && (

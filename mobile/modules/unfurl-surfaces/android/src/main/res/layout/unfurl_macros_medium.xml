@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/unfurl_root" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="horizontal" android:padding="14dp" android:background="@drawable/unfurl_widget_bg">
+<FrameLayout android:layout_width="92dp" android:layout_height="92dp" android:layout_gravity="center_vertical">
+  <ProgressBar android:id="@+id/kcal_ring" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="match_parent" android:max="100" android:progressDrawable="@drawable/unfurl_ring_nut" />
+  <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center">
+    <TextView android:id="@+id/kcal_left" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="20sp" android:textColor="@color/unfurl_text" android:maxLines="1" android:ellipsize="end" android:textStyle="bold" />
+    <TextView android:id="@+id/kcal_unit" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="10sp" android:textColor="@color/unfurl_muted" android:maxLines="1" android:ellipsize="end" />
+  </LinearLayout>
+</FrameLayout>
+<LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginStart="16dp" android:orientation="vertical" android:gravity="center_vertical">
+  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="6dp">
+  <TextView android:id="@+id/protein_label" android:layout_height="wrap_content" android:textSize="11sp" android:textColor="@color/unfurl_muted" android:maxLines="1" android:ellipsize="end" android:layout_weight="1" android:layout_width="0dp"/>
+  <TextView android:id="@+id/protein" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="11sp" android:textColor="@color/unfurl_text" android:maxLines="1" android:ellipsize="end" android:textStyle="bold" />
+</LinearLayout>
+<ProgressBar android:id="@+id/protein_bar" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="5dp" android:layout_marginTop="3dp" android:max="100" android:progressDrawable="@drawable/unfurl_bar_nut" />
+  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="6dp">
+  <TextView android:id="@+id/carbs_label" android:layout_height="wrap_content" android:textSize="11sp" android:textColor="@color/unfurl_muted" android:maxLines="1" android:ellipsize="end" android:layout_weight="1" android:layout_width="0dp"/>
+  <TextView android:id="@+id/carbs" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="11sp" android:textColor="@color/unfurl_text" android:maxLines="1" android:ellipsize="end" android:textStyle="bold" />
+</LinearLayout>
+<ProgressBar android:id="@+id/carbs_bar" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="5dp" android:layout_marginTop="3dp" android:max="100" android:progressDrawable="@drawable/unfurl_bar_fit" />
+  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="6dp">
+  <TextView android:id="@+id/fat_label" android:layout_height="wrap_content" android:textSize="11sp" android:textColor="@color/unfurl_muted" android:maxLines="1" android:ellipsize="end" android:layout_weight="1" android:layout_width="0dp"/>
+  <TextView android:id="@+id/fat" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="11sp" android:textColor="@color/unfurl_text" android:maxLines="1" android:ellipsize="end" android:textStyle="bold" />
+</LinearLayout>
+<ProgressBar android:id="@+id/fat_bar" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="5dp" android:layout_marginTop="3dp" android:max="100" android:progressDrawable="@drawable/unfurl_bar_life" />
+</LinearLayout>
+</LinearLayout>
