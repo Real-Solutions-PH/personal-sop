@@ -2,7 +2,7 @@
   "expo": {
     "name": "Unfurl",
     "slug": "personal-sop",
-    "version": "0.0.0",
+    "version": "0.1.0",
     "orientation": "portrait",
     "scheme": "personalsop",
     "userInterfaceStyle": "automatic",
@@ -18,7 +18,8 @@
         "NSSupportsLiveActivities": true,
         "UnfurlKeychainGroup": "$(AppIdentifierPrefix)com.schadenkai.personal-sop.surfaces",
         "NSSpeechRecognitionUsageDescription": "Allow Unfurl to turn what you say into text as you speak.",
-        "NSMicrophoneUsageDescription": "Allow Unfurl to use the microphone for dictation and voice captures."
+        "NSMicrophoneUsageDescription": "Allow Unfurl to use the microphone for dictation and voice captures.",
+        "ITSAppUsesNonExemptEncryption": false
       },
       "entitlements": {
         "keychain-access-groups": [
@@ -26,7 +27,8 @@
           "$(AppIdentifierPrefix)com.schadenkai.personal-sop.surfaces"
         ]
       },
-      "appleTeamId": "N2Y99Q8A79"
+      "appleTeamId": "N2Y99Q8A79",
+      "buildNumber": "1"
     },
     "android": {
       "adaptiveIcon": {
