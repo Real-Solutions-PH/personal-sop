@@ -1,5 +1,6 @@
 import ExpoModulesCore
 import Foundation
+import ObjectiveC
 
 // The JS side of ADR-0020 on iOS. The work happens in UnfurlSurfacesBridge
 // (targets/widget/_shared/UnfurlShared.swift), which is compiled into the app
@@ -26,25 +27,37 @@ public class UnfurlSurfacesModule: Module {
     }
 
     Function("setSnapshot") { (json: String) in
-      Self.call("setSnapshot:", json as NSString)
+      Self.send("setSnapshot:", json as NSString)
     }
     Function("setLive") { (json: String?) in
-      Self.call("setLive:", json.map { $0 as NSString })
+      Self.send("setLive:", json.map { $0 as NSString })
     }
     Function("drainActions") { () -> String in
-      (Self.call("drainActions", nil) as? String) ?? "[]"
+      Self.drain()
     }
   }
 
-  @discardableResult
-  private static func call(_ name: String, _ arg: NSString?) -> Any? {
-    guard let bridge = NSClassFromString("UnfurlSurfacesBridge") as AnyObject? else { return nil }
+  // Called through typed function pointers rather than `perform`, whose
+  // untyped return reads garbage for a void method (and crashed the app).
+  private typealias Send = @convention(c) (AnyObject, Selector, NSString?) -> Void
+  private typealias Drain = @convention(c) (AnyObject, Selector) -> Unmanaged<NSString>?
+
+  /** The bridge's class method `name`, if the app target has it. */
+  private static func method(_ name: String) -> (AnyObject, Selector, IMP)? {
+    guard let cls = NSClassFromString("UnfurlSurfacesBridge") else { return nil }
     let sel = NSSelectorFromString(name)
-    guard bridge.responds(to: sel) else { return nil }
-    let out = arg == nil && !name.hasSuffix(":")
-      ? bridge.perform(sel)
-      : bridge.perform(sel, with: arg)
-    return out?.takeUnretainedValue()
+    guard let m = class_getClassMethod(cls, sel) else { return nil }
+    return (cls as AnyObject, sel, method_getImplementation(m))
+  }
+
+  private static func send(_ name: String, _ arg: NSString?) {
+    guard let (cls, sel, imp) = method(name) else { return }
+    unsafeBitCast(imp, to: Send.self)(cls, sel, arg)
+  }
+
+  private static func drain() -> String {
+    guard let (cls, sel, imp) = method("drainActions") else { return "[]" }
+    return (unsafeBitCast(imp, to: Drain.self)(cls, sel)?.takeUnretainedValue() as String?) ?? "[]"
   }
 
   private func startObserving() {
