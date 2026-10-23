@@ -30,7 +30,7 @@ import {
 import { go } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import { Button, Empty, Screen, undo } from "../ui"
-import { ExerciseEditor } from "./fitness"
+import { CreateExerciseRow, ExerciseEditor } from "./fitness"
 
 const MUSCLES = [
   "chest",
@@ -49,6 +49,8 @@ export function Exercises({ id }: { id?: string }) {
     [query, setQuery] = useState(""),
     [archived, setArchived] = useState(false),
     [edit, setEdit] = useState(false),
+    // A new exercise's name, from the search when it found nothing.
+    [newName, setNewName] = useState(""),
     [range, setRange] = useState("12w"),
     [metric, setMetric] = useState("e1rm")
   const ex = s.exercises.find((e) => e.id === id),
@@ -138,6 +140,13 @@ export function Exercises({ id }: { id?: string }) {
               }}
             />
           </Line>
+          <CreateExerciseRow
+            query={query}
+            onPress={(name) => {
+              setNewName(name)
+              setEdit(true)
+            }}
+          />
           <Tap
             onPress={() => setArchived(!archived)}
             style={{
@@ -501,7 +510,17 @@ export function Exercises({ id }: { id?: string }) {
           key={ex?.id ?? "new"}
           exercise={ex}
           open={edit}
-          onClose={() => setEdit(false)}
+          initialName={ex ? undefined : newName}
+          onClose={() => {
+            setEdit(false)
+            setNewName("")
+          }}
+          onSaved={(e) => {
+            if (!ex) {
+              setQuery("")
+              go(`/fitness/exercises/${e.id}`)
+            }
+          }}
         />
       )}
     </Screen>

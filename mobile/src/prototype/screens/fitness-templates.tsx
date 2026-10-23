@@ -29,6 +29,7 @@ import {
 import { go } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import { Button, Empty, Screen, Sheet, undo } from "../ui"
+import { CreateExerciseRow, ExerciseEditor } from "./fitness"
 export function Templates({ id }: { id?: string }) {
   const s = fitStore.use((s) => s),
     t = useTheme(),
@@ -37,6 +38,7 @@ export function Templates({ id }: { id?: string }) {
     [items, setItems] = useState<TemplateItem[]>(existing?.items ?? []),
     [picker, setPicker] = useState(false),
     [selected, setSelected] = useState<string[]>([]),
+    [creating, setCreating] = useState<string | null>(null),
     [query, setQuery] = useState("")
   const move = (i: number, d: number) => {
     const j = i + d
@@ -351,6 +353,13 @@ export function Templates({ id }: { id?: string }) {
               </Line>
             </Tap>
           ))}
+        <CreateExerciseRow
+          query={query}
+          onPress={(name) => {
+            setCreating(name)
+            setPicker(false)
+          }}
+        />
         <Button
           disabled={!selected.length}
           onPress={() => {
@@ -364,6 +373,25 @@ export function Templates({ id }: { id?: string }) {
           {`Add ${selected.length || ""} exercises`}
         </Button>
       </Sheet>
+      {creating !== null && (
+        <ExerciseEditor
+          key="new-exercise"
+          open
+          initialName={creating}
+          onClose={() => setCreating(null)}
+          onSaved={(e) => {
+            // The new exercise joins the template with anything already ticked.
+            setItems([
+              ...items,
+              ...[...selected, e.id].map((exerciseId) => ({
+                exerciseId,
+                sets: 3,
+              })),
+            ])
+            setSelected([])
+          }}
+        />
+      )}
     </Screen>
   )
 }

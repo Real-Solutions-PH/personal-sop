@@ -221,13 +221,44 @@ export function addSet(workoutId: string, weId: string): WorkoutSet {
   syncLive(workoutId)
   return set
 }
-export function removeSet(workoutId: string, weId: string, setId: string) {
+/** Remove a set; returns it with its place, so an undo can put it back. */
+export function removeSet(
+  workoutId: string,
+  weId: string,
+  setId: string,
+): { set: WorkoutSet; index: number } | undefined {
+  const we = fitStore
+    .get()
+    .workouts.find((x) => x.id === workoutId)
+    ?.exercises.find((e) => e.id === weId)
+  const index = we?.sets.findIndex((x) => x.id === setId) ?? -1
+  if (!we || index < 0) return undefined
+  const set = we.sets[index]
   patchExercise(workoutId, weId, (e) => ({
     ...e,
     sets: e.sets.filter((x) => x.id !== setId),
   }))
   syncLive(workoutId)
+  return { set, index }
 }
+/** Undo a removed set: back in the place it had. */
+export function restoreSet(
+  workoutId: string,
+  weId: string,
+  removed: { set: WorkoutSet; index: number },
+) {
+  patchExercise(workoutId, weId, (e) => {
+    if (e.sets.some((x) => x.id === removed.set.id)) return e
+    const sets = [...e.sets]
+    sets.splice(Math.min(removed.index, sets.length), 0, removed.set)
+    return { ...e, sets }
+  })
+  syncLive(workoutId)
+}
+/** Kilograms from pounds, to the 0.1 kg the logger shows. */
+export const LB_TO_KG = 0.45359237
+export const lbToKg = (lb: number) => Math.round(lb * LB_TO_KG * 10) / 10
+export const kgToLb = (kg: number) => Math.round((kg / LB_TO_KG) * 10) / 10
 export function addExercises(workoutId: string, exerciseIds: string[]) {
   const added = exerciseIds.map((exerciseId) => ({
     id: uid(),
