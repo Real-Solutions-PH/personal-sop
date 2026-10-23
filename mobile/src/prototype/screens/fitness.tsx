@@ -166,8 +166,18 @@ export function ExerciseEditor({
               "hamstrings",
               "glutes",
               "core",
+              "cardio",
             ] as const
-          ).map((m) => chip(m, f.muscle === m, () => set({ muscle: m })))}
+          ).map((m) =>
+            chip(m, f.muscle === m, () =>
+              // Cardio is timed, and speed is what walks and runs track.
+              set(
+                m === "cardio"
+                  ? { muscle: m, loadType: "time", track: f.track ?? "speed" }
+                  : { muscle: m },
+              ),
+            ),
+          )}
         </Line>
       </View>
       <View style={{ gap: 6 }}>
@@ -187,40 +197,64 @@ export function ExerciseEditor({
           )}
         </Line>
       </View>
-      <Line style={{ gap: 12 }}>
-        <View style={{ flex: 1 }}>
-          <Stepper
-            label="Rep min"
-            value={f.repMin ?? 8}
-            onChange={(repMin) => set({ repMin })}
-            step={1}
-            min={1}
-            max={100}
-            decimals={0}
-          />
+      {f.loadType === "time" && (
+        <View style={{ gap: 6 }}>
+          <Copy size={12} muted>
+            Also record
+          </Copy>
+          <Line style={{ gap: 8, flexWrap: "wrap" }}>
+            {(
+              [
+                { v: undefined, label: "Time only" },
+                { v: "speed", label: "Speed (km/h)" },
+                { v: "weight", label: "Added weight (kg)" },
+              ] as const
+            ).map((o) =>
+              chip(o.label, (f.track ?? undefined) === o.v, () =>
+                set({ track: o.v }),
+              ),
+            )}
+          </Line>
         </View>
-        <View style={{ flex: 1 }}>
-          <Stepper
-            label="Rep max"
-            value={f.repMax ?? 12}
-            onChange={(repMax) => set({ repMax })}
-            step={1}
-            min={1}
-            max={100}
-            decimals={0}
-          />
-        </View>
-      </Line>
-      <View style={{ gap: 6 }}>
-        <Copy size={12} muted>
-          Weight increment
-        </Copy>
-        <Line style={{ gap: 8 }}>
-          {[1, 2, 2.5, 5].map((n) =>
-            chip(`${n} kg`, f.increment === n, () => set({ increment: n })),
-          )}
+      )}
+      {f.loadType !== "time" && (
+        <Line style={{ gap: 12 }}>
+          <View style={{ flex: 1 }}>
+            <Stepper
+              label="Rep min"
+              value={f.repMin ?? 8}
+              onChange={(repMin) => set({ repMin })}
+              step={1}
+              min={1}
+              max={100}
+              decimals={0}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Stepper
+              label="Rep max"
+              value={f.repMax ?? 12}
+              onChange={(repMax) => set({ repMax })}
+              step={1}
+              min={1}
+              max={100}
+              decimals={0}
+            />
+          </View>
         </Line>
-      </View>
+      )}
+      {f.loadType !== "time" && (
+        <View style={{ gap: 6 }}>
+          <Copy size={12} muted>
+            Weight increment
+          </Copy>
+          <Line style={{ gap: 8 }}>
+            {[1, 2, 2.5, 5].map((n) =>
+              chip(`${n} kg`, f.increment === n, () => set({ increment: n })),
+            )}
+          </Line>
+        </View>
+      )}
       {(f.repMin ?? 0) > (f.repMax ?? 0) && (
         <Copy size={12} style={{ color: t.bad }}>
           Rep min is above rep max.

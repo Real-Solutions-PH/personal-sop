@@ -11,6 +11,23 @@ import type {
   WorkoutSet,
 } from "./data"
 export const isDone = (s: WorkoutSet) => !!s.completedAt
+/** Timed exercises (walking, running, planks) log time, not reps. */
+export const isTimed = (ex: Pick<Exercise, "loadType"> | undefined) =>
+  ex?.loadType === "time"
+/** A timed set's seconds (older timed sets kept them in reps). */
+export const setSeconds = (s: WorkoutSet) => s.durationSec ?? s.reps
+/** 20 min · 1:30 · 45 s — how long a timed set ran. */
+export function fmtSpan(sec: number): string {
+  const s = Math.max(0, Math.round(sec))
+  if (s < 60) return `${s} s`
+  const m = Math.floor(s / 60),
+    r = s % 60
+  if (r === 0) return `${m} min`
+  return `${m}:${String(r).padStart(2, "0")}`
+}
+/** A timed exercise's default length: 10 minutes for cardio, a minute else. */
+export const defaultSeconds = (ex: Pick<Exercise, "muscle"> | undefined) =>
+  ex?.muscle === "cardio" ? 600 : 60
 export const isWorking = (s: WorkoutSet) => s.kind !== "warmup"
 export const kg = (n: number) => `${Number.isInteger(n) ? n : n.toFixed(1)} kg`
 export const kgShort = (n: number) =>
@@ -186,7 +203,7 @@ export function prsByWorkout(prs: Pr[]) {
   return m
 }
 export interface Suggestion {
-  kind: "weight" | "reps" | "new" | "hold"
+  kind: "weight" | "reps" | "new" | "hold" | "time"
   weight: number
   reps: number
   badge: string
@@ -196,10 +213,30 @@ export interface Suggestion {
     reps: number[]
   }
 }
-export function suggestion(s: FitnessState, exerciseId: string): Suggestion {
+export function suggestion(
+  s: FitnessState,
+  exerciseId: string,
+  /** A template's time goal for a timed exercise. */
+  targetSec?: number,
+): Suggestion {
   const ex = s.exercises.find((e) => e.id === exerciseId)
   const hist = exerciseHistory(s, exerciseId)
   const last = hist.at(-1)
+  if (isTimed(ex)) {
+    const done = last?.we.sets.filter(isDone) ?? []
+    const lastSec = done.reduce((a, x) => a + setSeconds(x), 0)
+    const speed = done.find((x) => x.speedKmh)?.speedKmh
+    const goal = targetSec ?? (lastSec || defaultSeconds(ex))
+    return {
+      kind: "time",
+      weight: done[0]?.weight ?? 0,
+      reps: 0,
+      badge: targetSec ? `Goal ${fmtSpan(targetSec)}` : fmtSpan(goal),
+      detail: lastSec
+        ? `Last time ${fmtSpan(lastSec)}${speed ? ` at ${speed} km/h` : ""}.`
+        : `First time — aim for ${fmtSpan(goal)}.`,
+    }
+  }
   if (!ex || !last)
     return {
       kind: "new",

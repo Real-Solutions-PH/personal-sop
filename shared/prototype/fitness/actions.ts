@@ -3,10 +3,13 @@ import { dayKey } from "../lib/day"
 import { liveStore, startLive, stopLive } from "../lib/live"
 import { uid } from "../lib/store"
 import {
+  defaultSeconds,
   exerciseHistory,
   isDone,
+  isTimed,
   isWorking,
   labelForTime,
+  setSeconds,
   suggestion,
   targetFor,
 } from "./calc"
@@ -55,10 +58,34 @@ function patchExercise(
     exercises: w.exercises.map((e) => (e.id === weId ? fn(e) : e)),
   }))
 }
-export function plannedSets(exerciseId: string, count = 3): WorkoutSet[] {
+export function plannedSets(
+  exerciseId: string,
+  count = 3,
+  /** A timed exercise's goal from its template, in seconds. */
+  targetSec?: number,
+): WorkoutSet[] {
   const s = fitStore.get()
   const ex = s.exercises.find((e) => e.id === exerciseId)
   const last = exerciseHistory(s, exerciseId).at(-1)
+  if (isTimed(ex)) {
+    // One timed set by default (a 20-minute walk), at the goal or last
+    // time's length, keeping last time's speed or added weight.
+    const prev = last?.we.sets.filter(isDone).at(-1)
+    const sec = targetSec ?? (prev ? setSeconds(prev) : defaultSeconds(ex))
+    const n = targetSec
+      ? 1
+      : Math.max(1, Math.min(count, last?.we.sets.length ?? 1))
+    return Array.from({ length: n }, () => ({
+      id: uid(),
+      reps: 0,
+      weight: ex?.track === "weight" ? (prev?.weight ?? 0) : 0,
+      kind: "working" as const,
+      durationSec: sec,
+      ...(ex?.track === "speed" && prev?.speedKmh
+        ? { speedKmh: prev.speedKmh }
+        : {}),
+    }))
+  }
   const sug = suggestion(s, exerciseId)
   if (!ex || !last)
     return [{ id: uid(), reps: ex?.repMin ?? 8, weight: 0, kind: "working" }]
@@ -120,6 +147,7 @@ export function startWorkout(opts: StartFrom): StartResult {
   let items: {
     exerciseId: string
     sets: number
+    targetSec?: number
   }[] = []
   if (opts.from === "template") {
     const t = s.templates.find((x) => x.id === opts.templateId)
@@ -158,7 +186,7 @@ export function startWorkout(opts: StartFrom): StartResult {
     exercises: items.map((it) => ({
       id: uid(),
       exerciseId: it.exerciseId,
-      sets: plannedSets(it.exerciseId, it.sets),
+      sets: plannedSets(it.exerciseId, it.sets, it.targetSec),
     })),
   }
   fitStore.set((st) => ({
@@ -211,12 +239,22 @@ export function addSet(workoutId: string, weId: string): WorkoutSet {
   const w = fitStore.get().workouts.find((x) => x.id === workoutId)
   const we = w?.exercises.find((e) => e.id === weId)
   const last = we?.sets.filter(isWorking).at(-1)
-  const set: WorkoutSet = {
-    id: uid(),
-    reps: last?.reps ?? 8,
-    weight: last?.weight ?? 0,
-    kind: "working",
-  }
+  const ex = fitStore.get().exercises.find((e) => e.id === we?.exerciseId)
+  const set: WorkoutSet = isTimed(ex)
+    ? {
+        id: uid(),
+        reps: 0,
+        weight: last?.weight ?? 0,
+        kind: "working",
+        durationSec: last ? setSeconds(last) : defaultSeconds(ex),
+        ...(last?.speedKmh ? { speedKmh: last.speedKmh } : {}),
+      }
+    : {
+        id: uid(),
+        reps: last?.reps ?? 8,
+        weight: last?.weight ?? 0,
+        kind: "working",
+      }
   patchExercise(workoutId, weId, (e) => ({ ...e, sets: [...e.sets, set] }))
   syncLive(workoutId)
   return set

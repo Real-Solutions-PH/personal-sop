@@ -17,6 +17,10 @@ export type Muscle =
   | "hamstrings"
   | "glutes"
   | "core"
+  | "cardio"
+/** What a timed exercise records beside its time: walking or running speed,
+ * or added weight (a weighted plank). Absent: time alone. */
+export type TimeTrack = "speed" | "weight"
 export interface Exercise {
   id: string
   name: string
@@ -27,10 +31,13 @@ export interface Exercise {
   repMax: number
   increment: number
   archived?: boolean
+  track?: TimeTrack
 }
 export interface TemplateItem {
   exerciseId: string
   sets: number
+  /** A timed exercise's goal in seconds (1200: walk 20 minutes). */
+  targetSec?: number
 }
 export interface WorkoutTemplate {
   id: string
@@ -44,6 +51,9 @@ export interface WorkoutSet {
   weight: number
   kind: SetKind
   completedAt?: string
+  /** A timed set: how long, in seconds, and how fast (walking, running). */
+  durationSec?: number
+  speedKmh?: number
 }
 export interface WorkoutExercise {
   id: string
@@ -621,7 +631,29 @@ export const EXERCISES: Exercise[] = [
     repMin: 30,
     repMax: 60,
     increment: 0,
-    archived: true,
+    track: "weight",
+  },
+  {
+    id: "walk",
+    name: "Incline Walk",
+    equipment: "machine",
+    muscle: "cardio",
+    loadType: "time",
+    repMin: 1,
+    repMax: 1,
+    increment: 0,
+    track: "speed",
+  },
+  {
+    id: "run",
+    name: "Run",
+    equipment: "bodyweight",
+    muscle: "cardio",
+    loadType: "time",
+    repMin: 1,
+    repMax: 1,
+    increment: 0,
+    track: "speed",
   },
 ]
 const TEMPLATES: WorkoutTemplate[] = [

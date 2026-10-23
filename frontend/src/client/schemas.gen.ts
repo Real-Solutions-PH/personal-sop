@@ -4108,6 +4108,18 @@ export const ExerciseDetailSchema = {
             type: 'boolean',
             title: 'Archived'
         },
+        track: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['speed', 'weight']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Track'
+        },
         last_done_at: {
             anyOf: [
                 {
@@ -4241,6 +4253,18 @@ export const ExercisePublicSchema = {
         archived: {
             type: 'boolean',
             title: 'Archived'
+        },
+        track: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['speed', 'weight']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Track'
         }
     },
     type: 'object',
@@ -4264,7 +4288,7 @@ export const ExerciseUpsertSchema = {
         },
         muscle: {
             type: 'string',
-            enum: ['chest', 'back', 'shoulders', 'biceps', 'triceps', 'quads', 'hamstrings', 'glutes', 'core'],
+            enum: ['chest', 'back', 'shoulders', 'biceps', 'triceps', 'quads', 'hamstrings', 'glutes', 'core', 'cardio'],
             title: 'Muscle',
             default: 'chest'
         },
@@ -4299,6 +4323,18 @@ export const ExerciseUpsertSchema = {
             type: 'boolean',
             title: 'Archived',
             default: false
+        },
+        track: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['speed', 'weight']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Track'
         },
         id: {
             anyOf: [
@@ -4365,6 +4401,18 @@ export const ExerciseWithStatsSchema = {
         archived: {
             type: 'boolean',
             title: 'Archived'
+        },
+        track: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['speed', 'weight']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Track'
         },
         last_done_at: {
             anyOf: [
@@ -15538,6 +15586,28 @@ export const SetOutSchema = {
                 }
             ],
             title: 'Completed At'
+        },
+        duration_sec: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Duration Sec'
+        },
+        speed_kmh: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Speed Kmh'
         }
     },
     type: 'object',

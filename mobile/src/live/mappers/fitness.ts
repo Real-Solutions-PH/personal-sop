@@ -148,6 +148,7 @@ export function exerciseMapper(): Mapper<S, Exercise> {
       rep_max: e.repMax,
       increment: e.increment,
       archived: e.archived ?? false,
+      track: e.track ?? null,
     }),
     fromServer: (row) => ({
       id: str(row.id),
@@ -159,6 +160,9 @@ export function exerciseMapper(): Mapper<S, Exercise> {
       repMax: Number(row.rep_max),
       increment: Number(row.increment),
       ...(row.archived ? { archived: true } : {}),
+      ...(row.track === "speed" || row.track === "weight"
+        ? { track: row.track }
+        : {}),
     }),
     merge: (s, ups, dels) =>
       ups.length || dels.length
@@ -175,6 +179,7 @@ interface ItemRow {
   position: number
   exerciseId: string
   sets: number
+  targetSec?: number
 }
 
 export const templateItemId = (templateId: string, position: number) =>
@@ -232,7 +237,11 @@ export function templateMapper(
 function placeItems(items: WorkoutTemplate["items"], rows: ItemRow[]) {
   const out = [...items]
   for (const r of [...rows].sort((a, b) => a.position - b.position)) {
-    const it = { exerciseId: r.exerciseId, sets: r.sets }
+    const it = {
+      exerciseId: r.exerciseId,
+      sets: r.sets,
+      ...(r.targetSec ? { targetSec: r.targetSec } : {}),
+    }
     if (r.position < out.length) out[r.position] = it
     else out.push(it)
   }
@@ -251,6 +260,7 @@ export function templateItemMapper(held: Held<ItemRow>): Mapper<S, ItemRow> {
           position: i,
           exerciseId: it.exerciseId,
           sets: it.sets,
+          ...(it.targetSec ? { targetSec: it.targetSec } : {}),
         })),
       ),
     id: (r) => r.id,
@@ -259,6 +269,7 @@ export function templateItemMapper(held: Held<ItemRow>): Mapper<S, ItemRow> {
       exercise_id: r.exerciseId,
       position: r.position,
       sets: r.sets,
+      target_sec: r.targetSec ?? null,
     }),
     fromServer: (row, s) => {
       const r: ItemRow = {
@@ -267,6 +278,7 @@ export function templateItemMapper(held: Held<ItemRow>): Mapper<S, ItemRow> {
         position: Number(row.position),
         exerciseId: str(row.exercise_id),
         sets: Number(row.sets),
+        ...(row.target_sec ? { targetSec: Number(row.target_sec) } : {}),
       }
       if (s.templates.some((t) => t.id === r.templateId)) return r
       held.hold(r.templateId, r)
@@ -549,6 +561,8 @@ interface SetRow {
   weight: number
   kind: WorkoutSet["kind"]
   completedAt?: string
+  durationSec?: number
+  speedKmh?: number
   /** Its workout is in progress (ticks go through fitness.toggle_set). */
   live: boolean
 }
@@ -559,6 +573,8 @@ const toSet = (r: SetRow): WorkoutSet => ({
   weight: r.weight,
   kind: r.kind,
   ...(r.completedAt ? { completedAt: r.completedAt } : {}),
+  ...(r.durationSec !== undefined ? { durationSec: r.durationSec } : {}),
+  ...(r.speedKmh !== undefined ? { speedKmh: r.speedKmh } : {}),
 })
 
 const SET_KINDS = ["warmup", "working", "drop", "failure"] as const
@@ -579,6 +595,10 @@ export function workoutSetMapper(setsHeld: Held<SetRow>): Mapper<S, SetRow> {
             weight: x.weight,
             kind: x.kind,
             completedAt: x.completedAt,
+            ...(x.durationSec !== undefined
+              ? { durationSec: x.durationSec }
+              : {}),
+            ...(x.speedKmh !== undefined ? { speedKmh: x.speedKmh } : {}),
             live: w.status === "in_progress",
           })),
         ),
@@ -590,6 +610,8 @@ export function workoutSetMapper(setsHeld: Held<SetRow>): Mapper<S, SetRow> {
       reps: r.reps,
       weight: r.weight,
       kind: r.kind,
+      duration_sec: r.durationSec ?? null,
+      speed_kmh: r.speedKmh ?? null,
       ...(r.live ? {} : { completed_at: r.completedAt ?? null }),
     }),
     fromServer: (row, s) => {
@@ -604,6 +626,10 @@ export function workoutSetMapper(setsHeld: Held<SetRow>): Mapper<S, SetRow> {
         weight: Number(row.weight),
         kind: pick(row.kind, SET_KINDS, "working"),
         completedAt: optInstant(row.completed_at),
+        ...(row.duration_sec != null
+          ? { durationSec: Number(row.duration_sec) }
+          : {}),
+        ...(row.speed_kmh != null ? { speedKmh: Number(row.speed_kmh) } : {}),
         live: w?.status === "in_progress",
       }
       if (w) return r
