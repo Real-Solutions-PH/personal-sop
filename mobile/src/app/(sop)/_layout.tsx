@@ -1,3 +1,4 @@
+import { dashStore } from "@domain/dash/store"
 import { captureUi, closeCapture, openCapture } from "@domain/lib/capture"
 import { liveStore } from "@domain/lib/live"
 import { useConnectivity } from "@domain/lib/platform"
@@ -27,6 +28,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { syncReady } from "@/live/ready"
 import { FernMark, fernPalette } from "@/prototype/companion/brand"
 import { startReminders } from "@/prototype/local-reminders"
 import { prototypeMode } from "@/prototype/mode"
@@ -177,13 +179,23 @@ export default function PrototypeLayout() {
   const t = useTheme()
   const inset = useSafeAreaInsets()
   const path = usePathname()
+  // Until onboarding is finished the app is onboarding and nothing else: no
+  // bar, no Fern, no way round it. Setup is its last part. Waits for the
+  // first sync so a returning person is never sent here by blank stores.
+  const onboarded = dashStore.use((s) => s.onboarded)
+  const ready = syncReady((s) => s.ready)
+  const firstRun = ready && !onboarded
+  const inFirstRun = path.startsWith("/onboarding") || path.startsWith("/setup")
+  useEffect(() => {
+    if (firstRun && !inFirstRun) replace("/onboarding")
+  }, [firstRun, inFirstRun])
   const focus =
+    firstRun ||
     /^\/habits\/routines\/[^/]+\/play$/.test(path) ||
     /^\/habits\/[^/]+\/timer$/.test(path) ||
     /^\/social\/(stories|story-new|chat|compose|new-chat)/.test(path) ||
     // First-run flows own the screen: their Continue sits where the bar is.
-    path.startsWith("/onboarding") ||
-    path.startsWith("/setup") ||
+    inFirstRun ||
     path === "/capture"
   const reduced = useReducedMotion()
   const online = useConnectivity()
@@ -253,6 +265,14 @@ export default function PrototypeLayout() {
               <Stack.Screen name="stats/index" options={tabAnimation} />
               <Stack.Screen name="me/index" options={tabAnimation} />
               <Stack.Screen
+                name="onboarding/index"
+                options={{ gestureEnabled: !firstRun }}
+              />
+              <Stack.Screen
+                name="setup/index"
+                options={{ gestureEnabled: !firstRun }}
+              />
+              <Stack.Screen
                 name="social/stories/[id]/index"
                 options={{
                   animation: reduced ? "none" : "fade_from_bottom",
@@ -301,8 +321,12 @@ export default function PrototypeLayout() {
         )}
         {/* Before the bar: the + button rises above the bar into the room the
             drawer leaves for it, so it must draw over the drawer. */}
-        <CaptureOverlay bottom={focus ? 0 : bar} />
-        <WakeWordListener onChatPage={path === "/capture"} />
+        {!firstRun && (
+          <>
+            <CaptureOverlay bottom={focus ? 0 : bar} />
+            <WakeWordListener onChatPage={path === "/capture"} />
+          </>
+        )}
         {!focus && (
           <View
             onLayout={(e) => setBar(e.nativeEvent.layout.height)}

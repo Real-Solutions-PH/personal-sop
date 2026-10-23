@@ -25,6 +25,7 @@ import { modulePrefMapper, weatherPrefMapper } from "./mappers/reference"
 import { tasksMappers } from "./mappers/tasks"
 import { createOutbox } from "./outbox"
 import { registerPushDevice } from "./push"
+import { syncReady } from "./ready"
 import { startSocialLive } from "./social"
 import { createStats, type LiveStats } from "./stats"
 
@@ -89,6 +90,10 @@ export function startLive(userId: string, storage: StorageAdapter) {
     clearToBlank()
     storage.setItem(OWNER_KEY, userId)
   }
+  // A device that has pulled before already holds this account's state.
+  syncReady.setState({
+    ready: Number(storage.getItem("sop-live:cursor") ?? 0) > 0,
+  })
   let syncing: SyncEngine | null = null
   const stats = createStats({
     http,
@@ -160,7 +165,7 @@ export function startLive(userId: string, storage: StorageAdapter) {
   })
   const interval = setInterval(() => void engine.sync(), 60_000)
   const stopSocial = startSocialLive(userId, onServerEvent)
-  void engine.sync()
+  void engine.sync().finally(() => syncReady.setState({ ready: true }))
   void registerPushDevice({ http })
   active = {
     engine,

@@ -21,7 +21,6 @@ import {
   Eye,
   Flame,
   LayoutGrid,
-  ListChecks,
   LogOut,
   Pencil,
   RotateCcw,
@@ -419,11 +418,10 @@ export function Me() {
             icon={ShieldCheck}
             href="/me/account"
           />
-          <LinkRow title="Run setup again" icon={Sparkles} href="/onboarding" />
           <LinkRow
-            title="Set up my data"
+            title="Run setup again"
             detail="Accounts, habits, training, tasks — pick up where you left off"
-            icon={ListChecks}
+            icon={Sparkles}
             href="/setup"
           />
           {/* Demo-only: a live account's data is real and synced, so it is
