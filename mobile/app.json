@@ -19,8 +19,7 @@
         "UnfurlKeychainGroup": "$(AppIdentifierPrefix)com.schadenkai.personal-sop.surfaces",
         "NSSpeechRecognitionUsageDescription": "Allow Unfurl to turn what you say into text as you speak.",
         "NSMicrophoneUsageDescription": "Allow Unfurl to use the microphone for dictation and voice captures.",
-        "ITSAppUsesNonExemptEncryption": false,
-        "NSMotionUsageDescription": "Unfurl doesn't use your phone's motion data. This message is required because an animation library in the app includes optional motion support."
+        "ITSAppUsesNonExemptEncryption": false
       },
       "entitlements": {
         "keychain-access-groups": [
@@ -84,7 +83,7 @@
           "locationWhenInUsePermission": "Allow Unfurl to use your location to show local weather and the forecast for planning outdoor work.",
           "locationAlwaysAndWhenInUsePermission": false,
           "locationAlwaysPermission": false,
-          "motionUsagePermission": false
+          "motionUsagePermission": "Unfurl doesn't use your phone's motion data. This message is required because the location library used for local weather includes optional motion support."
         }
       ],
       "@react-native-community/datetimepicker",
