@@ -11,7 +11,8 @@
       "!**/src/client",
       "!**/src/components/ui",
       "!**/src/live/__tests__/fixtures",
-      "!**/targets/*/Assets.xcassets"
+      "!**/targets/*/Assets.xcassets",
+      "!**/modules/*/android/build"
     ]
   },
   "linter": {
