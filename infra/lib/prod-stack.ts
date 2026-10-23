@@ -22,8 +22,6 @@ import * as lambda from "aws-cdk-lib/aws-lambda"
 import * as lambdaNode from "aws-cdk-lib/aws-lambda-nodejs"
 import * as logs from "aws-cdk-lib/aws-logs"
 import * as rds from "aws-cdk-lib/aws-rds"
-import * as route53 from "aws-cdk-lib/aws-route53"
-import * as route53Targets from "aws-cdk-lib/aws-route53-targets"
 import * as s3 from "aws-cdk-lib/aws-s3"
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager"
 import * as ses from "aws-cdk-lib/aws-ses"
@@ -31,6 +29,7 @@ import * as sns from "aws-cdk-lib/aws-sns"
 import * as snsSubs from "aws-cdk-lib/aws-sns-subscriptions"
 import * as cr from "aws-cdk-lib/custom-resources"
 import type { Construct } from "constructs"
+import { CLIENT_IP_HEADER, CLOUDFLARE_IPV4 } from "./cloudflare"
 import {
   BACKEND_REPOSITORY,
   IMAGES,
@@ -65,15 +64,14 @@ const URL_UNSAFE = " %+~`#$&*()|[]{}:;<>?!'/@\"\\,="
 /**
  * nginx in the GoTrue task: serves `/auth/v1/*` and strips the prefix, as
  * Supabase's Kong gateway does, so `supabase-js` and the backend use the
- * same paths as against the local CLI stack. The real client IP comes from
- * the ALB's X-Forwarded-For and is handed to GoTrue as X-Real-IP, which its
- * per-IP rate limits key on.
+ * same paths as against the local CLI stack. The client IP is Cloudflare's
+ * CF-Connecting-IP (trusted only from the ALB, which only Cloudflare can
+ * reach), handed to GoTrue as X-Real-IP for its per-IP rate limits.
  */
 export const NGINX_CONF = `server {
   listen ${AUTH_PROXY_PORT};
   set_real_ip_from 10.0.0.0/8;
-  real_ip_header X-Forwarded-For;
-  real_ip_recursive on;
+  real_ip_header ${CLIENT_IP_HEADER};
   client_max_body_size 1m;
   location = /auth/v1/health {
     proxy_pass http://127.0.0.1:${GOTRUE_PORT}/health;
@@ -107,25 +105,47 @@ export class ProdStack extends Stack {
       )
     }
 
+    const { sizing } = config
+
     // ---------------------------------------------------------------- network
-    // One NAT gateway, not one per AZ: the services must reach the internet
-    // anyway (Nebius, Deepgram, Expo push, Apple and Google token checks), so
-    // VPC interface endpoints could not replace NAT, and four of them across
-    // two AZs (ECR api+dkr, Logs, Secrets Manager) would cost more than the
-    // gateway. S3 traffic skips NAT through the free gateway endpoint. The
-    // trade: an AZ outage takes egress down until the NAT is recreated.
+    // One NAT, not one per AZ: the services must reach the internet anyway
+    // (Nebius, Deepgram, Expo push, Apple and Google token checks), so VPC
+    // interface endpoints could not replace NAT, and four of them across two
+    // AZs (ECR api+dkr, Logs, Secrets Manager) would cost more than either
+    // NAT option. S3 traffic skips NAT through the free gateway endpoint.
+    // `lean` uses a t4g.nano NAT instance (~USD 4/month); `production` a
+    // managed NAT gateway (~USD 43/month, scales and self-heals). Either way
+    // an outage of the NAT's AZ stops egress until it is replaced. The fixed
+    // Elastic IP is exempted from the WAF auth limit (lib/waf.ts).
     const natEip = new ec2.CfnEIP(this, "NatEip", {
       domain: "vpc",
       tags: [{ key: "Name", value: `${PREFIX}-nat` }],
     })
+    const natInstanceProvider =
+      sizing.nat === "instance"
+        ? ec2.NatProvider.instanceV2({
+            instanceType: ec2.InstanceType.of(
+              ec2.InstanceClass.T4G,
+              ec2.InstanceSize.NANO,
+            ),
+            // Public IP for the first boot (the user data installs iptables
+            // from the internet); the Elastic IP below then replaces it.
+            associatePublicIpAddress: true,
+            // No surplus-credit charges: a burst beyond the baseline throttles.
+            creditSpecification: ec2.CpuCredits.STANDARD,
+            defaultAllowedTraffic: ec2.NatTrafficDirection.OUTBOUND_ONLY,
+          })
+        : undefined
     const vpc = new ec2.Vpc(this, "Vpc", {
       vpcName: PREFIX,
       ipAddresses: ec2.IpAddresses.cidr("10.40.0.0/16"),
       maxAzs: 2,
       natGateways: 1,
-      natGatewayProvider: ec2.NatProvider.gateway({
-        eipAllocationIds: [natEip.attrAllocationId],
-      }),
+      natGatewayProvider:
+        natInstanceProvider ??
+        ec2.NatProvider.gateway({
+          eipAllocationIds: [natEip.attrAllocationId],
+        }),
       subnetConfiguration: [
         { name: "public", subnetType: ec2.SubnetType.PUBLIC, cidrMask: 24 },
         {
@@ -143,6 +163,19 @@ export class ProdStack extends Stack {
         S3: { service: ec2.GatewayVpcEndpointAwsService.S3 },
       },
     })
+    if (natInstanceProvider) {
+      const [natInstance] = natInstanceProvider.gatewayInstances
+      new ec2.CfnEIPAssociation(this, "NatEipAssociation", {
+        allocationId: natEip.attrAllocationId,
+        instanceId: natInstance.instanceId,
+      })
+      // Traffic from the private subnets must be allowed in to be forwarded.
+      natInstanceProvider.connections.allowFrom(
+        ec2.Peer.ipv4(vpc.vpcCidrBlock),
+        ec2.Port.allTraffic(),
+        "NAT for the private subnets",
+      )
+    }
     const appSubnets = { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS }
     const dataSubnets = { subnetType: ec2.SubnetType.PRIVATE_ISOLATED }
 
@@ -160,14 +193,9 @@ export class ProdStack extends Stack {
     const dbSg = sg("Db", "RDS PostgreSQL")
     const redisSg = sg("Redis", "ElastiCache")
 
-    // ------------------------------------------------------------------- DNS
-    const publicHost = config.domain ? `api.${config.domain}` : ""
-    const zone = config.hostedZoneId
-      ? route53.HostedZone.fromHostedZoneAttributes(this, "Zone", {
-          hostedZoneId: config.hostedZoneId,
-          zoneName: config.domain,
-        })
-      : undefined
+    // DNS lives on Cloudflare: scripts/cloudflare-dns.ts applies the records
+    // (the ALB CNAME, ACM validation, SES DKIM, MAIL FROM and DMARC).
+    const publicHost = config.apiHost
 
     // ---------------------------------------------------------- load balancer
     const alb = new elbv2.ApplicationLoadBalancer(this, "Alb", {
@@ -185,29 +213,28 @@ export class ProdStack extends Stack {
 
     let listener: elbv2.ApplicationListener
     if (publicHost) {
+      // Cloudflare connects to the origin over HTTPS and, in Full (strict)
+      // mode, requires a publicly trusted certificate for the host: ACM's.
+      // The stack waits while the validation CNAME is pending; the DNS
+      // script applies it from a second terminal (or the deploy workflow).
       const certificate = new acm.Certificate(this, "Certificate", {
         domainName: publicHost,
-        // Without a hosted zone the CNAME ACM asks for must be added at the
-        // registrar by hand; the stack waits on it.
-        validation: zone
-          ? acm.CertificateValidation.fromDns(zone)
-          : acm.CertificateValidation.fromDns(),
+        validation: acm.CertificateValidation.fromDns(),
       })
       listener = alb.addListener("Https", {
         port: 443,
         certificates: [certificate],
         sslPolicy: elbv2.SslPolicy.RECOMMENDED_TLS,
         defaultAction: elbv2.ListenerAction.fixedResponse(404),
+        // Not open to the internet: only Cloudflare's edge, below.
+        open: false,
       })
-      alb.addRedirect({ sourcePort: 80, targetPort: 443 })
-      if (zone) {
-        new route53.ARecord(this, "ApiAlias", {
-          zone,
-          recordName: publicHost,
-          target: route53.RecordTarget.fromAlias(
-            new route53Targets.LoadBalancerTarget(alb),
-          ),
-        })
+      for (const cidr of CLOUDFLARE_IPV4) {
+        albSg.addIngressRule(
+          ec2.Peer.ipv4(cidr),
+          ec2.Port.tcp(443),
+          "Cloudflare edge",
+        )
       }
     } else {
       // No domain yet: plain HTTP on the ALB's own name. Not for real users.
@@ -217,7 +244,14 @@ export class ProdStack extends Stack {
       })
     }
 
-    createWebAcl(this, alb.loadBalancerArn, [natEip.ref])
+    // Behind Cloudflare the ALB's peer is a Cloudflare edge, so the WAF keys
+    // on the visitor IP Cloudflare forwards; without a host, on the peer.
+    createWebAcl(
+      this,
+      alb.loadBalancerArn,
+      [natEip.ref],
+      publicHost ? CLIENT_IP_HEADER : undefined,
+    )
 
     // ---------------------------------------------------------------- secrets
     const secret = (
@@ -316,8 +350,10 @@ export class ProdStack extends Stack {
         ),
       }),
       instanceType: ec2.InstanceType.of(
-        ec2.InstanceClass.BURSTABLE4_GRAVITON,
-        ec2.InstanceSize.SMALL,
+        ...(sizing.database.split(".") as [
+          ec2.InstanceClass,
+          ec2.InstanceSize,
+        ]),
       ),
       vpc,
       vpcSubnets: dataSubnets,
@@ -366,7 +402,7 @@ export class ProdStack extends Stack {
         "Rate limits, event replay and caches (replaces the compose redis)",
       engine: "valkey",
       engineVersion: "8.0",
-      cacheNodeType: "cache.t4g.micro",
+      cacheNodeType: sizing.cache,
       numCacheClusters: 1,
       automaticFailoverEnabled: false,
       transitEncryptionEnabled: true,
@@ -409,21 +445,17 @@ export class ProdStack extends Stack {
         resources: ["*"],
       }),
     )
-    const fromAddress = config.domain ? `no-reply@${config.domain}` : ""
-    if (config.domain) {
+    const fromAddress = config.emailDomain
+      ? `noreply@${config.emailDomain}`
+      : ""
+    if (config.emailDomain) {
+      // Easy DKIM and a custom MAIL FROM on `mail.<emailDomain>`; the DKIM
+      // CNAMEs, MAIL FROM MX/SPF and DMARC go into Cloudflare via the DNS
+      // script (they are not CloudFormation resources).
       new ses.EmailIdentity(this, "EmailIdentity", {
-        identity: zone
-          ? ses.Identity.publicHostedZone(zone)
-          : ses.Identity.domain(config.domain),
-        mailFromDomain: `mail.${config.domain}`,
+        identity: ses.Identity.domain(config.emailDomain),
+        mailFromDomain: `mail.${config.emailDomain}`,
       })
-      if (zone) {
-        new route53.TxtRecord(this, "Dmarc", {
-          zone,
-          recordName: `_dmarc.${config.domain}`,
-          values: [`v=DMARC1; p=quarantine; rua=mailto:dmarc@${config.domain}`],
-        })
-      }
     }
     const smtpHost = `email-smtp.${this.region}.amazonaws.com`
 
@@ -542,7 +574,7 @@ export class ProdStack extends Stack {
     const backendEnv: Record<string, string> = {
       ENVIRONMENT: "production",
       PROJECT_NAME: "Unfurl",
-      FRONTEND_HOST: config.domain ? `https://${config.domain}` : publicUrl,
+      FRONTEND_HOST: config.siteUrl || publicUrl,
       FIRST_SUPERUSER: config.adminEmail,
       SUPABASE_URL: publicUrl,
       POSTGRES_SERVER: db.dbInstanceEndpointAddress,
@@ -638,7 +670,7 @@ export class ProdStack extends Stack {
     }
 
     // -------------------------------------------------------------- API service
-    const apiTask = backendTask("Api", 512, 1024)
+    const apiTask = backendTask("Api", sizing.api.cpu, sizing.api.memoryMiB)
     apiTask.addContainer("api", {
       image: backendImage,
       command: [
@@ -672,7 +704,7 @@ export class ProdStack extends Stack {
       serviceName: `${PREFIX}-api`,
       cluster,
       taskDefinition: apiTask,
-      desiredCount: 2,
+      desiredCount: sizing.api.count,
       vpcSubnets: appSubnets,
       securityGroups: [apiSg],
       minHealthyPercent: 100,
@@ -697,8 +729,8 @@ export class ProdStack extends Stack {
     // ----------------------------------------------------------- GoTrue service
     const gotrueTask = new ecs.FargateTaskDefinition(this, "GotrueTask", {
       family: `${PREFIX}-gotrue`,
-      cpu: 256,
-      memoryLimitMiB: 512,
+      cpu: sizing.gotrue.cpu,
+      memoryLimitMiB: sizing.gotrue.memoryMiB,
       runtimePlatform: {
         cpuArchitecture: ecs.CpuArchitecture.X86_64,
         operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
@@ -714,7 +746,7 @@ export class ProdStack extends Stack {
       GOTRUE_DB_NAMESPACE: "auth",
       DB_HOST: db.dbInstanceEndpointAddress,
       DB_PORT: db.dbInstanceEndpointPort,
-      GOTRUE_SITE_URL: config.domain ? `https://${config.domain}` : publicUrl,
+      GOTRUE_SITE_URL: config.siteUrl || publicUrl,
       GOTRUE_URI_ALLOW_LIST: config.authRedirectUrls.join(","),
       GOTRUE_DISABLE_SIGNUP: "false",
       GOTRUE_JWT_ISSUER: issuer,
@@ -813,7 +845,7 @@ export class ProdStack extends Stack {
       serviceName: `${PREFIX}-gotrue`,
       cluster,
       taskDefinition: gotrueTask,
-      desiredCount: 2,
+      desiredCount: sizing.gotrue.count,
       vpcSubnets: appSubnets,
       securityGroups: [gotrueSg],
       minHealthyPercent: 100,
@@ -847,7 +879,11 @@ export class ProdStack extends Stack {
     // seed). The worker is a single task replaced stop-then-start, so two
     // migrations never run at once, and the API service waits for it (see
     // the dependency below), so new API code meets the migrated schema.
-    const workerTask = backendTask("Worker", 512, 1024)
+    const workerTask = backendTask(
+      "Worker",
+      sizing.worker.cpu,
+      sizing.worker.memoryMiB,
+    )
     const workerLogs = logGroup("Worker")
     const migrate = workerTask.addContainer("migrate", {
       image: backendImage,
@@ -882,7 +918,7 @@ export class ProdStack extends Stack {
       serviceName: `${PREFIX}-worker`,
       cluster,
       taskDefinition: workerTask,
-      desiredCount: 1,
+      desiredCount: sizing.worker.count,
       vpcSubnets: appSubnets,
       securityGroups: [workerSg],
       minHealthyPercent: 0,

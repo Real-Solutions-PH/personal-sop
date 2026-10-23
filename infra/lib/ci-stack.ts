@@ -73,6 +73,20 @@ export class CiStack extends Stack {
         resources: ["*"],
       }),
     )
+    // Read-only lookups for scripts/cloudflare-dns.ts, which the workflow
+    // runs beside `cdk deploy` to put the ACM, ALB and SES records into
+    // Cloudflare.
+    this.deployRole.addToPolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "acm:ListCertificates",
+          "acm:DescribeCertificate",
+          "elasticloadbalancing:DescribeLoadBalancers",
+          "ses:GetEmailIdentity",
+        ],
+        resources: ["*"],
+      }),
+    )
     // cdk deploy works by assuming the roles `cdk bootstrap` created; the
     // CloudFormation execution role (not this one) holds the broad rights.
     this.deployRole.addToPolicy(

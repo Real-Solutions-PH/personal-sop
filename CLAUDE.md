@@ -32,6 +32,7 @@ This repo follows the **Engineering Constitution** in [docs/constitution.md](doc
 | infra | test | `bun run test` (from `infra/`; synthesises both stacks offline and asserts them) |
 | infra | typecheck / lint | `bun run typecheck` / `bun run lint` (from `infra/`, Biome — **mutates**) |
 | infra | synth / diff | `bunx cdk synth -c unfurl:imageTag=<tag>` / `env -u HTTPS_PROXY -u HTTP_PROXY bunx cdk diff --profile unfurl -c unfurl:imageTag=<tag>` — never `cdk deploy` or `cdk bootstrap` without the user's go (they create billable resources); deploys go through the `workflow_dispatch` workflow `deploy-aws.yml` |
+| infra | Cloudflare DNS | `bun run dns` (from `infra/`; plan only) — DNS is on Cloudflare, not Route 53; `--apply` writes records, so only with the user's go. Token: `CLOUDFLARE_API_TOKEN="$(security find-generic-password -a "$USER" -s cloudflare-api-token -w)"`, never printed |
 | mobile | install deps | `cd mobile && bun install` |
 | mobile | typecheck | `bun run typecheck` (from `mobile/`) |
 | mobile | lint | `bun run lint` (from `mobile/`, Biome) |

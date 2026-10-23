@@ -5,7 +5,8 @@ import { App } from "aws-cdk-lib"
 import { Match, Template } from "aws-cdk-lib/assertions"
 import { BACKEND_DEFAULTED } from "../lib/backend-env"
 import { CiStack } from "../lib/ci-stack"
-import { IMAGES, loadConfig } from "../lib/config"
+import { CLOUDFLARE_IPV4 } from "../lib/cloudflare"
+import { IMAGES, loadConfig, PROFILES } from "../lib/config"
 import { ALB_IDLE_TIMEOUT_SECONDS, ProdStack } from "../lib/prod-stack"
 import { AI_PATH_REGEX, RATE_LIMITS } from "../lib/waf"
 
@@ -25,6 +26,8 @@ function synth(extra: Record<string, unknown> = {}) {
 }
 
 const { ci, prod } = synth()
+const production = synth({ "unfurl:profile": "production" }).prod
+const noHost = synth({ "unfurl:apiHost": "", "unfurl:emailDomain": "" }).prod
 
 type Container = {
   Name: string
@@ -86,12 +89,77 @@ describe("CI stack", () => {
 })
 
 describe("network", () => {
-  test("exactly one NAT gateway, two AZs, and an S3 gateway endpoint", () => {
-    prod.resourceCountIs("AWS::EC2::NatGateway", 1)
-    prod.resourceCountIs("AWS::EC2::VPCEndpoint", 1)
-    prod.hasResourceProperties("AWS::EC2::VPCEndpoint", {
-      VpcEndpointType: "Gateway",
+  test("an S3 gateway endpoint in both profiles", () => {
+    for (const t of [prod, production]) {
+      t.resourceCountIs("AWS::EC2::VPCEndpoint", 1)
+      t.hasResourceProperties("AWS::EC2::VPCEndpoint", {
+        VpcEndpointType: "Gateway",
+      })
+    }
+  })
+
+  test("lean: one t4g.nano NAT instance holding the fixed Elastic IP, no NAT gateway", () => {
+    prod.resourceCountIs("AWS::EC2::NatGateway", 0)
+    prod.resourceCountIs("AWS::EC2::Instance", 1)
+    prod.hasResourceProperties("AWS::EC2::Instance", {
+      InstanceType: "t4g.nano",
+      SourceDestCheck: false,
     })
+    prod.resourceCountIs("AWS::EC2::EIPAssociation", 1)
+  })
+
+  test("production: one managed NAT gateway on the fixed Elastic IP", () => {
+    production.resourceCountIs("AWS::EC2::NatGateway", 1)
+    production.resourceCountIs("AWS::EC2::Instance", 0)
+  })
+})
+
+describe("profiles", () => {
+  const service = (t: Template, name: string) =>
+    Object.values(t.findResources("AWS::ECS::Service")).find(
+      (s) => s.Properties.ServiceName === name,
+    )?.Properties.DesiredCount
+
+  test("lean is the default in cdk.json", () => {
+    expect(cdkJson.context["unfurl:profile"]).toBe("lean")
+  })
+
+  test("lean: one task per service, the smallest database", () => {
+    expect(service(prod, "unfurl-api")).toBe(1)
+    expect(service(prod, "unfurl-gotrue")).toBe(1)
+    expect(service(prod, "unfurl-worker")).toBe(1)
+    prod.hasResourceProperties("AWS::RDS::DBInstance", {
+      DBInstanceClass: "db.t4g.micro",
+    })
+    prod.hasResourceProperties("AWS::ElastiCache::ReplicationGroup", {
+      CacheNodeType: "cache.t4g.micro",
+    })
+  })
+
+  test("production: two API and two GoTrue tasks, db.t4g.small", () => {
+    expect(service(production, "unfurl-api")).toBe(2)
+    expect(service(production, "unfurl-gotrue")).toBe(2)
+    expect(service(production, "unfurl-worker")).toBe(1)
+    production.hasResourceProperties("AWS::RDS::DBInstance", {
+      DBInstanceClass: "db.t4g.small",
+    })
+  })
+
+  test("task sizes are valid Fargate combinations", () => {
+    // vCPU units → allowed memory (MiB) for the sizes these profiles use.
+    const allowed: Record<number, number[]> = {
+      256: [512, 1024, 2048],
+      512: [1024, 2048, 3072, 4096],
+    }
+    for (const sizing of Object.values(PROFILES)) {
+      for (const t of [sizing.api, sizing.worker, sizing.gotrue]) {
+        expect(allowed[t.cpu]).toContain(t.memoryMiB)
+      }
+    }
+  })
+
+  test("an unknown profile is refused", () => {
+    expect(() => synth({ "unfurl:profile": "huge" })).toThrow(/unfurl:profile/)
   })
 })
 
@@ -162,30 +230,68 @@ describe("load balancer", () => {
     })
   })
 
-  test("no domain: plain HTTP, no certificate, no SES identity", () => {
-    prod.resourceCountIs("AWS::CertificateManager::Certificate", 0)
-    prod.resourceCountIs("AWS::SES::EmailIdentity", 0)
+  test("no host: plain HTTP, no certificate, no SES identity", () => {
+    noHost.resourceCountIs("AWS::CertificateManager::Certificate", 0)
+    noHost.resourceCountIs("AWS::SES::EmailIdentity", 0)
   })
 
-  test("with a domain and zone: TLS on api.<domain>, HTTP redirects, SES identity", () => {
-    const withDomain = synth({
-      "unfurl:domain": "example.org",
-      "unfurl:hostedZoneId": "Z123456ABCDEFG",
-    }).prod
-    withDomain.hasResourceProperties("AWS::CertificateManager::Certificate", {
-      DomainName: "api.example.org",
+  test("API host: an ACM certificate (DNS-validated) and HTTPS only, no port 80", () => {
+    prod.hasResourceProperties("AWS::CertificateManager::Certificate", {
+      DomainName: "unfurl-api.realsolutionsph.com",
+      ValidationMethod: "DNS",
     })
-    withDomain.hasResourceProperties("AWS::ElasticLoadBalancingV2::Listener", {
+    prod.resourceCountIs("AWS::ElasticLoadBalancingV2::Listener", 1)
+    prod.hasResourceProperties("AWS::ElasticLoadBalancingV2::Listener", {
       Port: 443,
       Protocol: "HTTPS",
     })
-    withDomain.hasResourceProperties("AWS::ElasticLoadBalancingV2::Listener", {
-      Port: 80,
-      DefaultActions: [Match.objectLike({ Type: "redirect" })],
+    prod.resourceCountIs("AWS::Route53::RecordSet", 0)
+  })
+
+  test("the ALB admits only Cloudflare's edge, on 443", () => {
+    const [sg] = Object.values(
+      prod.findResources("AWS::EC2::SecurityGroup", {
+        Properties: { GroupName: "unfurl-alb" },
+      }),
+    )
+    const ingress = sg.Properties.SecurityGroupIngress as {
+      CidrIp?: string
+      FromPort: number
+      ToPort: number
+    }[]
+    expect(ingress.map((r) => r.CidrIp).sort()).toEqual(
+      [...CLOUDFLARE_IPV4].sort(),
+    )
+    for (const r of ingress) expect([r.FromPort, r.ToPort]).toEqual([443, 443])
+  })
+
+  test("SES identity on the email subdomain, with a custom MAIL FROM", () => {
+    prod.hasResourceProperties("AWS::SES::EmailIdentity", {
+      EmailIdentity: "unfurl.realsolutionsph.com",
     })
-    withDomain.hasResourceProperties("AWS::SES::EmailIdentity", {
-      EmailIdentity: "example.org",
+    prod.hasResourceProperties("AWS::SES::EmailIdentity", {
+      MailFromAttributes: { MailFromDomain: "mail.unfurl.realsolutionsph.com" },
     })
+  })
+
+  test("public URLs: the API host, the sender, and the site", () => {
+    const api = container("unfurl-api", "api")
+    expect(envValue(api, "SUPABASE_URL")).toBe(
+      "https://unfurl-api.realsolutionsph.com",
+    )
+    expect(envValue(api, "EMAILS_FROM_EMAIL")).toBe(
+      "noreply@unfurl.realsolutionsph.com",
+    )
+    expect(envValue(api, "FRONTEND_HOST")).toBe(
+      "https://unfurl.realsolutionsph.com",
+    )
+    const gotrue = container("unfurl-gotrue", "gotrue")
+    expect(envValue(gotrue, "GOTRUE_JWT_ISSUER")).toBe(
+      "https://unfurl-api.realsolutionsph.com/auth/v1",
+    )
+    expect(envValue(gotrue, "GOTRUE_SMTP_ADMIN_EMAIL")).toBe(
+      "noreply@unfurl.realsolutionsph.com",
+    )
   })
 })
 
@@ -212,6 +318,31 @@ describe("WAF", () => {
     )
     expect(scope).toContain("/auth/v1/")
     expect(scope).toContain("NotStatement")
+  })
+
+  test("behind Cloudflare, every rate rule keys on CF-Connecting-IP", () => {
+    const rules = acl().filter((r) => r.Statement.RateBasedStatement)
+    expect(rules.length).toBe(3)
+    for (const r of rules) {
+      expect(r.Statement.RateBasedStatement).toMatchObject({
+        AggregateKeyType: "FORWARDED_IP",
+        ForwardedIPConfig: { HeaderName: "CF-Connecting-IP" },
+      })
+    }
+    const auth = JSON.stringify(acl().find((r) => r.Name === "auth-rate"))
+    expect(auth).toContain(
+      '"IPSetForwardedIPConfig":{"FallbackBehavior":"NO_MATCH","HeaderName":"CF-Connecting-IP"',
+    )
+  })
+
+  test("without a proxy, rate rules key on the peer address", () => {
+    const [res] = Object.values(noHost.findResources("AWS::WAFv2::WebACL"))
+    const rules = (
+      res.Properties.Rules as { Statement: { RateBasedStatement?: object } }[]
+    )
+      .map((r) => r.Statement.RateBasedStatement)
+      .filter(Boolean)
+    for (const r of rules) expect(r).toMatchObject({ AggregateKeyType: "IP" })
   })
 
   test("rate-limits the AI endpoints", () => {
@@ -315,6 +446,8 @@ describe("services", () => {
       "location /auth/v1/ {\n    proxy_pass http://127.0.0.1:9999/;",
     )
     expect(String(conf)).toContain("location = /auth/v1/health")
+    // GoTrue's per-IP limits see the visitor, not the Cloudflare edge.
+    expect(String(conf)).toContain("real_ip_header CF-Connecting-IP;")
   })
 })
 

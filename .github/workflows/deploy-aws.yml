@@ -75,10 +75,21 @@ jobs:
       # Migrations run inside the deploy: the worker task's one-shot migrate
       # container runs scripts/prestart.sh, and the API service only updates
       # after the worker is stable (infra/lib/prod-stack.ts).
-      - name: cdk deploy
+      #
+      # DNS is on Cloudflare, so the stack cannot create its own records. The
+      # DNS script runs beside the deploy: CloudFormation waits for the ACM
+      # certificate's validation CNAME, which only exists once the deploy has
+      # requested it, and the script applies it (and the ALB, DKIM, MAIL FROM
+      # and DMARC records) as each appears. On later deploys everything
+      # already matches and it exits at once.
+      - name: cdk deploy (with Cloudflare DNS)
         working-directory: infra
-        run: >
-          bunx cdk deploy UnfurlProd
-          -c unfurl:imageTag=${{ steps.tag.outputs.tag }}
-          --require-approval never
-          --progress events
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          bun run dns --apply --watch > dns.log 2>&1 &
+          DNS_PID=$!
+          bunx cdk deploy UnfurlProd -c unfurl:imageTag="$TAG" --require-approval never --progress events
+          wait "$DNS_PID" || { cat dns.log; exit 1; }
+          cat dns.log

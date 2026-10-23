@@ -14,5 +14,5 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["bin", "lib", "lambda", "test"]
+  "include": ["bin", "lib", "lambda", "scripts", "test"]
 }
