@@ -219,6 +219,15 @@ def delete_meal(ctx: Ctx, *, meal_id: uuid.UUID) -> None:
     services._delete_meal(ctx, meal_id)
 
 
+def meal_exists(ctx: Ctx, meal_id: str | uuid.UUID) -> bool:
+    """A meal of this person's that has not been deleted."""
+    try:
+        mid = uuid.UUID(str(meal_id))
+    except ValueError:
+        return False
+    return owned_repo.get(ctx, Meal, mid) is not None
+
+
 def latest_weight_kg(ctx: Ctx) -> float | None:
     """The most recent weigh-in, in kilograms."""
     latest = repo.latest_weigh_in(ctx)

@@ -1144,3 +1144,56 @@ def test_a_planned_payment_needs_a_date_or_a_day(
     )
     assert not step["ok"]
     assert step["summary"] == "Couldn't finish: give due date or day of month"
+
+
+def test_confirm_needs_the_person_to_have_said_it(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Seen live: asked to log the rest of the day's meals, Fern confirmed
+    everything waiting on its own, and a stale breakfast was saved."""
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    install(
+        monkeypatch,
+        say(
+            "",
+            call(
+                "create_tasks",
+                tasks=[{"title": "Call mom", "due_time": "19:00", "remind": True}],
+            ),
+        ),
+        say("Call mom at 7 PM is waiting."),
+        say("", call("confirm_pending")),
+        say("Should I save Call mom?"),
+    )
+    stream(api, client, "remind me to call mom at 7pm")
+    events = stream(
+        api,
+        client,
+        "Then I also want you to record the following meals I had for the "
+        "rest of the day: a protein shake for lunch and inasal for dinner",
+    )
+    assert tasks_of(api) == []
+    step = events[-1]["result"]["messages"][1]["blocks"][0]["items"][0]
+    assert step["tool"] == "confirm_pending" and not step["ok"]
+
+
+def test_what_counts_as_saying_confirm() -> None:
+    yes = [
+        "Confirm",
+        "confirm it",
+        "yes",
+        "Ok",
+        "go ahead",
+        "sige",
+        "save them",
+        "I approve the breakfast change, please",
+    ]
+    no = [
+        "record the following meals for lunch and dinner",
+        "can I have a protein shake?",
+        "yes I had rice and two eggs and a big glass of milk with some oats "
+        "for breakfast this morning",
+    ]
+    assert all(services.said_confirm(t) for t in yes)
+    assert not any(services.said_confirm(t) for t in no)

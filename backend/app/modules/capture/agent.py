@@ -36,7 +36,7 @@ from pydantic import BaseModel, BeforeValidator, Field, ValidationError
 from app.modules.ai_providers import public as ai
 from app.modules.capture import cards as C
 from app.modules.capture import ports, qa, seams
-from app.modules.capture.models import Capture
+from app.modules.capture.models import Capture, RecordCard
 from app.modules.capture.parse import (
     RecordDraft,
     World,
@@ -919,6 +919,68 @@ def _card(run: Run, d: RecordDraft, *, setup: bool = False) -> dict[str, Any]:
     }
 
 
+_MAIN_MEALS = ("breakfast", "lunch", "dinner")
+
+
+def _waiting(run: Run) -> list[RecordCard]:
+    from app.modules.capture import public
+
+    return public.waiting_chat_cards(run.ctx)
+
+
+def _same_meal(a: dict[str, Any], b: dict[str, Any]) -> bool:
+    """Two versions of one meal: a food in common, by name or by the
+    numbers (a food renamed between versions keeps its kcal)."""
+
+    def foods(p: dict[str, Any]) -> list[dict[str, Any]]:
+        return [i for i in (p.get("items") or []) if isinstance(i, dict)]
+
+    names = {str(i.get("name", "")).strip().lower() for i in foods(a)}
+    if names & {str(i.get("name", "")).strip().lower() for i in foods(b)} - {""}:
+        return True
+    kcal_a = sorted(round(float(i.get("kcal") or 0)) for i in foods(a))
+    kcal_b = sorted(round(float(i.get("kcal") or 0)) for i in foods(b))
+    return bool(kcal_a) and kcal_a == kcal_b
+
+
+def _withdraw_earlier_versions(run: Run, d: RecordDraft, keep: str) -> int:
+    """A breakfast, lunch or dinner logged again for the same day replaces
+    the version still waiting for the person's OK. Seen live: four waiting
+    versions of one breakfast piled up, and confirming them all saved a
+    stale one with the old food names."""
+    label = d.payload.get("label")
+    if label not in _MAIN_MEALS:
+        return 0
+    n = 0
+    for card in _waiting(run):
+        p = card.payload or {}
+        if (
+            str(card.id) != keep
+            and card.kind == "meal"
+            and p.get("label") == label
+            and (card.day_offset or 0) == (d.day_offset or 0)
+            and _same_meal(p, d.payload)
+        ):
+            C.discard_row(run.ctx, card)
+            n += 1
+    return n
+
+
+def _waiting_removal(run: Run, entity: str, ids: list[str]) -> RecordCard | None:
+    want = set(ids)
+    for card in _waiting(run):
+        p: dict[str, Any] = card.payload or {}
+        got = p.get("ids")
+        if (
+            card.kind == "remove"
+            and p.get("entity") == entity
+            and isinstance(got, list)
+            and {str(i) for i in got} == want
+        ):
+            return card
+    return None
+
+
 def capture_tools(run: Run) -> list[BaseTool]:
     w = run.world
 
@@ -1539,6 +1601,9 @@ def capture_tools(run: Run) -> list[BaseTool]:
             },
         )
         out = _card(run, d)
+        replaced = _withdraw_earlier_versions(run, d, out["card_id"])
+        if replaced:
+            out = out | {"replaced_waiting_versions": replaced}
         return out | ({"from_library": from_library} if from_library else {})
 
     def save_food(**kw: Any) -> dict[str, Any]:
@@ -1948,6 +2013,19 @@ def capture_tools(run: Run) -> list[BaseTool]:
             if entity in ("planned", "account", "budget", "habit", "routine")
             else "Delete"
         )
+        if entity == "meal" and not any(
+            ports.fitness.meal_exists(run.ctx, i) for i in ids
+        ):
+            return {"error": "meal_already_deleted"}
+        twin = _waiting_removal(run, entity, ids)
+        if twin is not None:
+            # Seen live: the same delete asked for twice, then the second
+            # failed once the first had run. One request per entry.
+            return {
+                "card_id": str(twin.id),
+                "state": twin.state,
+                "already_waiting": True,
+            }
         return _manage(
             "remove",
             entity,
