@@ -188,6 +188,21 @@ class Settings(BaseSettings):
     MINIO_ROOT_PASSWORD: str = "minioadmin"
     MINIO_REGION: str = "us-east-1"
     MINIO_DEFAULT_BUCKET: str = "app-uploads"
+    # Production on AWS (infra/): S3 itself, with credentials from the ECS
+    # task role through boto3's default chain instead of static keys. When
+    # set, MINIO_ROOT_USER/MINIO_ROOT_PASSWORD are ignored.
+    OBJECT_STORAGE_IAM_AUTH: bool = False
+
+    def object_storage_credentials(self) -> dict[str, str]:
+        """Keyword arguments for ``boto3.client`` credentials: empty under
+        IAM auth, so boto3 resolves the task role itself. A method, not a
+        computed field, so the keys never appear in a settings dump."""
+        if self.OBJECT_STORAGE_IAM_AUTH:
+            return {}
+        return {
+            "aws_access_key_id": self.MINIO_ROOT_USER,
+            "aws_secret_access_key": self.MINIO_ROOT_PASSWORD,
+        }
 
     # AI Module
     AI_ENABLED: bool = False
@@ -317,14 +332,16 @@ class Settings(BaseSettings):
         )
         # Object-store root creds: minioadmin is MinIO's shipped default and
         # changethis is this template's placeholder — both are public knowledge.
-        self._check_default_secret(
-            "MINIO_ROOT_USER", self.MINIO_ROOT_USER, insecure_value="minioadmin"
-        )
-        self._check_default_secret(
-            "MINIO_ROOT_PASSWORD",
-            self.MINIO_ROOT_PASSWORD,
-            insecure_value=("minioadmin", "changethis"),
-        )
+        # Under IAM auth the static keys are never sent, so they are not checked.
+        if not self.OBJECT_STORAGE_IAM_AUTH:
+            self._check_default_secret(
+                "MINIO_ROOT_USER", self.MINIO_ROOT_USER, insecure_value="minioadmin"
+            )
+            self._check_default_secret(
+                "MINIO_ROOT_PASSWORD",
+                self.MINIO_ROOT_PASSWORD,
+                insecure_value=("minioadmin", "changethis"),
+            )
         # The CLI stack's demo service-role key is public knowledge; outside
         # a local environment it must never be the configured key.
         self._check_default_secret(

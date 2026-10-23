@@ -1,0 +1,20 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.3/schema.json",
+  "assist": { "actions": { "source": { "organizeImports": "on" } } },
+  "files": {
+    "includes": [
+      "**",
+      "!**/node_modules",
+      "!**/cdk.out",
+      "!**/test/__snapshots__"
+    ]
+  },
+  "linter": {
+    "enabled": true,
+    "rules": { "preset": "recommended" }
+  },
+  "formatter": { "indentStyle": "space" },
+  "javascript": {
+    "formatter": { "quoteStyle": "double", "semicolons": "asNeeded" }
+  }
+}

@@ -1,0 +1,84 @@
+name: Deploy to AWS
+
+# Constitution §2.2 / docs/13-deployment.md: production is promoted by hand.
+# There is deliberately no push, merge, tag or release trigger.
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Tag, branch or commit SHA to deploy
+        required: true
+        type: string
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write # GitHub OIDC → the unfurl-github-deploy role (infra/lib/ci-stack.ts)
+
+env:
+  AWS_REGION: ap-southeast-1
+  ECR_REPOSITORY: unfurl-backend
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # The deploy role trusts only jobs in this environment; add required
+    # reviewers to it in the repository settings for a second approval.
+    environment: production
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Resolve image tag
+        id: tag
+        run: echo "tag=$(git rev-parse --short=12 HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build and push the backend image (skipped if this commit is already pushed)
+        env:
+          IMAGE: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.tag.outputs.tag }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          if aws ecr describe-images --repository-name "$ECR_REPOSITORY" --image-ids imageTag="$TAG" >/dev/null 2>&1; then
+            echo "$IMAGE already in ECR; tags are immutable, reusing it."
+          else
+            docker buildx build --platform linux/amd64 -f backend/Dockerfile -t "$IMAGE" --push .
+          fi
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install CDK app
+        working-directory: infra
+        run: bun install --frozen-lockfile
+
+      - name: Test the stacks
+        working-directory: infra
+        run: bun run test
+
+      # Migrations run inside the deploy: the worker task's one-shot migrate
+      # container runs scripts/prestart.sh, and the API service only updates
+      # after the worker is stable (infra/lib/prod-stack.ts).
+      - name: cdk deploy
+        working-directory: infra
+        run: >
+          bunx cdk deploy UnfurlProd
+          -c unfurl:imageTag=${{ steps.tag.outputs.tag }}
+          --require-approval never
+          --progress events

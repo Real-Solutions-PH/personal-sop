@@ -69,6 +69,36 @@ def test_minio_root_user_default_rejected_outside_local() -> None:
         )
 
 
+def test_iam_object_storage_skips_static_key_guard_outside_local() -> None:
+    # On AWS the task role signs S3 requests, so the MinIO defaults are never
+    # sent and must not block boot.
+    s = Settings(
+        _env_file=None,  # type: ignore[call-arg]
+        ENVIRONMENT="production",
+        SUPABASE_SERVICE_ROLE_KEY="a-real-project-key",
+        OBJECT_STORAGE_IAM_AUTH=True,
+        **{
+            **_BASE,
+            "MINIO_ROOT_USER": "minioadmin",
+            "MINIO_ROOT_PASSWORD": "minioadmin",
+        },
+    )
+    assert s.object_storage_credentials() == {}
+
+
+def test_static_object_storage_passes_the_keys() -> None:
+    s = Settings(_env_file=None, ENVIRONMENT="local", **_BASE)  # type: ignore[call-arg]
+    assert s.object_storage_credentials() == {
+        "aws_access_key_id": "real-access-key",
+        "aws_secret_access_key": "real-secret-key",
+    }
+
+
+def test_object_storage_keys_never_in_a_settings_dump() -> None:
+    s = Settings(_env_file=None, ENVIRONMENT="local", **_BASE)  # type: ignore[call-arg]
+    assert "object_storage_credentials" not in s.model_dump()
+
+
 def test_minio_defaults_only_warn_in_local() -> None:
     with pytest.warns(UserWarning, match="MINIO_ROOT_PASSWORD"):
         Settings(

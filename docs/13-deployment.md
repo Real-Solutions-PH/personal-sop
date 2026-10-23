@@ -22,13 +22,13 @@ Only one of Testing or Production is deployed at a time — Testing exists befor
 
 Promotion to production is a deliberate manual act:
 
-- A `workflow_dispatch`-only GitHub Actions workflow that deploys an explicitly chosen tag or commit SHA to AWS. This workflow will be added when the production environment is built.
+- A `workflow_dispatch`-only GitHub Actions workflow that deploys an explicitly chosen tag or commit SHA to AWS. It is `.github/workflows/deploy-aws.yml` ("Deploy to AWS"); the stacks it deploys are in `infra/` ([23-aws-infrastructure.md](23-aws-infrastructure.md), [ADR-0022](adr/0022-aws-cdk-for-infrastructure.md)).
 - **Never** a `push:` or `release:` trigger. No deploy may be a side effect of merging or tagging.
 - At cutover, the Vercel testing environment is torn down (§2.5).
 
 ## Production on AWS (plan)
 
-Everything runs in one AWS account in one region, **`ap-southeast-1` (Singapore)**, the closest region to the product's users in the Philippines. Every resource is defined in infrastructure as code and deployed by the `workflow_dispatch` workflow above. Nothing is configured by hand in the console.
+Everything runs in one AWS account in one region, **`ap-southeast-1` (Singapore)**, the closest region to the product's users in the Philippines. Every resource is defined in infrastructure as code and deployed by the `workflow_dispatch` workflow above. Nothing is configured by hand in the console. The implementation, its environment-variable map, cost estimate and first-deploy commands are in [23-aws-infrastructure.md](23-aws-infrastructure.md).
 
 | Part | AWS service | Notes |
 |---|---|---|

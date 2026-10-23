@@ -1,0 +1,32 @@
+name: Test infra
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "infra/**"
+      - "backend/app/core/config.py"
+      - ".github/workflows/test-infra.yml"
+  pull_request:
+    paths:
+      - "infra/**"
+      - "backend/app/core/config.py"
+      - ".github/workflows/test-infra.yml"
+
+jobs:
+  test-infra:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bunx biome ci ./
+      - run: bun run typecheck
+      # Synthesises both stacks (no AWS calls) and checks them, including
+      # that every backend setting in config.py has a production source.
+      - run: bun run test
