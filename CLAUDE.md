@@ -7,6 +7,7 @@ This repo follows the **Engineering Constitution** in [docs/constitution.md](doc
 - `backend/` — FastAPI + SQLModel, managed with `uv`.
 - `frontend/` — Next.js 16 (App Router), a bun workspace member of the root `package.json`, linted with Biome.
 - `mobile/` — Expo SDK 57, a **standalone** bun project **not** part of the root workspace — run bun commands from inside `mobile/`.
+- `infra/` — AWS CDK v2 (TypeScript) production infrastructure (ADR-0022), a **standalone** bun project **not** part of the root workspace — run bun commands from inside `infra/`. Linted with Biome.
 - `e2e/` — Cypress E2E suite (ADR-0004), a bun workspace member of the root `package.json`, linted with Biome.
 - `docs/` — numbered context pack + pinned constitution + `adr/` + `runbook.md`.
 - `scripts/` — repo-level scripts (client generation, test runners).
@@ -27,6 +28,10 @@ This repo follows the **Engineering Constitution** in [docs/constitution.md](doc
 | frontend | lint | `bun run lint` (Biome — **mutates**, runs `--write`) |
 | e2e | test | `make e2e-test` / `bun run test` (Cypress headless — needs the stack running) |
 | e2e | interactive runner | `make e2e-test-ui` / `bun run test:ui` (Cypress open) |
+| infra | install deps | `cd infra && bun install` |
+| infra | test | `bun run test` (from `infra/`; synthesises both stacks offline and asserts them) |
+| infra | typecheck / lint | `bun run typecheck` / `bun run lint` (from `infra/`, Biome — **mutates**) |
+| infra | synth / diff | `bunx cdk synth -c unfurl:imageTag=<tag>` / `env -u HTTPS_PROXY -u HTTP_PROXY bunx cdk diff --profile unfurl -c unfurl:imageTag=<tag>` — never `cdk deploy` or `cdk bootstrap` without the user's go (they create billable resources); deploys go through the `workflow_dispatch` workflow `deploy-aws.yml` |
 | mobile | install deps | `cd mobile && bun install` |
 | mobile | typecheck | `bun run typecheck` (from `mobile/`) |
 | mobile | lint | `bun run lint` (from `mobile/`, Biome) |
@@ -57,6 +62,7 @@ This repo follows the **Engineering Constitution** in [docs/constitution.md](doc
 
 - [development.md](development.md) — local dev setup.
 - [docs/13-deployment.md](docs/13-deployment.md) — deployment story.
+- [docs/23-aws-infrastructure.md](docs/23-aws-infrastructure.md) — the AWS production stacks, env map and first-deploy commands.
 - [docs/runbook.md](docs/runbook.md) — operational runbook.
 - [docs/adr/](docs/adr/) — architecture decision records.
 - [CONTRIBUTING.md](CONTRIBUTING.md) — contribution workflow.

@@ -27,10 +27,9 @@ def _public_client() -> BaseClient:
         _public = boto3.client(
             "s3",
             endpoint_url=settings.MEDIA_PUBLIC_ENDPOINT,
-            aws_access_key_id=settings.MINIO_ROOT_USER,
-            aws_secret_access_key=settings.MINIO_ROOT_PASSWORD,
             region_name=settings.MINIO_REGION,
             config=Config(signature_version="s3v4"),
+            **settings.object_storage_credentials(),
         )
     return _public
 
