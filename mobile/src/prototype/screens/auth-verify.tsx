@@ -115,7 +115,7 @@ export function VerifyEmail() {
       subtitle={
         <>
           Enter the 6-digit code we sent to{" "}
-          <Text style={{ fontFamily: fonts.semibold, color: t.text }}>
+          <Text style={{ fontFamily: fonts.medium, color: t.text }}>
             {maskEmail(pending?.email ?? "")}
           </Text>
         </>
@@ -144,8 +144,8 @@ export function VerifyEmail() {
           style={{
             minHeight: 22,
             textAlign: "center",
-            fontFamily: fonts.medium,
-            fontSize: 14,
+            fontFamily: fonts.body,
+            fontSize: 13,
             color: submit.error ? t.bad : t.muted,
             marginBottom: 12,
           }}
@@ -180,8 +180,8 @@ export function VerifyEmail() {
             Didn't get it? Resend in{" "}
             <Text
               style={{
-                fontFamily: fonts.semibold,
-                fontVariant: ["tabular-nums"],
+                fontFamily: fonts.mono,
+                color: t.text,
               }}
             >
               {clock(left)}
