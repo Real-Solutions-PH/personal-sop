@@ -1,7 +1,7 @@
 # ADR-0005 — Supabase (Auth + RLS) over self-managed Postgres + custom JWT
 
 - **Date:** 2026-07-12
-- **Status:** accepted
+- **Status:** accepted (amended 2026-10-23: in production, auth is self-hosted GoTrue on AWS rather than a Supabase project; see [ADR-0021](0021-self-hosted-gotrue-on-aws.md))
 - **Deciders:** maintainers
 
 ## Context
