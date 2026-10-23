@@ -208,17 +208,19 @@ def test_fern_tags_a_task_and_retags_it(
         assert (t.title, t.tags) == ("Deploy AWS", ["work", "coft"])
 
 
-def test_narration_before_a_tool_call_is_discarded(
+def test_narration_before_a_tool_call_is_never_shown(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """DeepSeek narrates its plan ("let me check your macros") before using
-    a tool; that text is marked for the app to drop, so only the answer
-    stays, and the stored reply is the answer alone."""
+    """DeepSeek says its plan ("I'll check your nutrition status") in the
+    answer channel before using a tool. Seen live: it streamed onto the
+    screen and vanished when the answer came. The start of each model
+    call's text is held back, so a plan followed by a tool call never
+    reaches the app, and only the answer streams."""
     api = user(client, db, accounts=False)
     api.assign("chat")
     install(
         monkeypatch,
-        say("Got it. Let me check today's macros first.", tool("nutrition_status")),
+        say("I'll check your nutrition status first.", tool("nutrition_status")),
         say("You have 39 g of protein left."),
     )
     r = client.post(
@@ -227,12 +229,35 @@ def test_narration_before_a_tool_call_is_discarded(
         json={"text": "how much protein do I have left?"},
     )
     events = parse_agui(r.text)
-    starts = [e["messageId"] for e in events if e.get("type") == "TEXT_MESSAGE_START"]
-    discards = [
-        e["value"]["message_id"]
-        for e in events
-        if e.get("type") == "CUSTOM" and e.get("name") == "text.discard"
-    ]
-    assert len(starts) == 2 and discards == [starts[0]]
+    shown = "".join(
+        e["delta"] for e in events if e.get("type") == "TEXT_MESSAGE_CONTENT"
+    )
+    assert "nutrition status" not in shown
+    assert shown == "You have 39 g of protein left."
+    assert not [e for e in events if e.get("name") == "text.discard"]
     reply = events[-1]["result"]["messages"][1]
     assert reply["text"] == "You have 39 g of protein left."
+
+
+def test_a_long_answer_starts_streaming_before_it_ends() -> None:
+    """Held-back text is released once it is long enough to be an answer,
+    and streams live from there; a long plan before a tool is still
+    dropped by the app."""
+    from langchain_core.messages import AIMessage
+
+    from app.modules.companion.turn import HOLD_CHARS, TurnStream
+
+    events: list[Any] = []
+    stream = TurnStream(ctx=None, thread_id="t", run_id="r", sink=events.append)  # type: ignore[arg-type]
+    stream.model_started(1)
+    stream.text("x" * (HOLD_CHARS - 1))
+    assert events[-1].type.value == "STEP_STARTED"  # nothing shown yet
+    stream.text("yy")
+    assert events[-1].type.value == "TEXT_MESSAGE_CONTENT"
+    assert events[-1].delta == "x" * (HOLD_CHARS - 1) + "yy"
+    stream.text(" more")
+    assert events[-1].delta == " more"
+    stream.model_finished(
+        1, AIMessage(content="", tool_calls=[{"name": "t", "args": {}, "id": "1"}])
+    )
+    assert any(getattr(e, "name", None) == "text.discard" for e in events)
