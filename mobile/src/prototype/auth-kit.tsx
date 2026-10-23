@@ -30,6 +30,7 @@ import {
   type ViewStyle,
 } from "react-native"
 import Animated, {
+  Easing,
   FadeIn,
   FadeInDown,
   useAnimatedStyle,
@@ -37,9 +38,7 @@ import Animated, {
   useSharedValue,
   withRepeat,
   withSequence,
-  withSpring,
   withTiming,
-  ZoomIn,
 } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import Svg, { Path } from "react-native-svg"
@@ -47,7 +46,7 @@ import { liveMode } from "@/live/config"
 import { FernMark } from "./companion/brand"
 import { back } from "./navigation"
 import { passwordStrength } from "./session"
-import { fonts, useTheme } from "./theme"
+import { fonts, radius, space, useTheme } from "./theme"
 
 // Building blocks for the prototype's sign-in, sign-up and recovery screens.
 
@@ -85,7 +84,11 @@ export function Rise({
   return (
     <Animated.View
       entering={
-        reduced ? undefined : FadeInDown.delay(40 + i * 55).duration(420)
+        reduced
+          ? undefined
+          : FadeInDown.delay(i * 40)
+              .duration(240)
+              .easing(Easing.out(Easing.cubic))
       }
       style={style}
     >
@@ -94,27 +97,28 @@ export function Rise({
   )
 }
 
-export function Wordmark({
-  color = "#fff",
-  size = 13,
-}: {
-  color?: string
-  size?: number
-}) {
+/** The flat lockup: the fiddlehead in `primary`, "unfurl" in `foreground`
+ * (Geist Medium, tracking −3%). Never a gradient, glow or shadow. */
+export function Wordmark({ size = 20 }: { size?: number }) {
+  const t = useTheme()
   return (
     <View
       accessible
       accessibilityRole="header"
       accessibilityLabel="Unfurl"
-      style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+      style={{ flexDirection: "row", alignItems: "center", gap: size * 0.16 }}
     >
-      <FernMark size={size * 2.2} color={color} />
+      <FernMark
+        size={Math.max(16, size * 1.3)}
+        color={t.primary}
+        weight={size * 1.3 < 28 ? 2.4 : 2}
+      />
       <Text
         style={{
           fontFamily: fonts.medium,
-          fontSize: size * 1.6,
-          letterSpacing: -0.03 * size * 1.6,
-          color,
+          fontSize: size,
+          letterSpacing: -0.03 * size,
+          color: t.text,
         }}
       >
         unfurl
@@ -123,7 +127,8 @@ export function Wordmark({
   )
 }
 
-/** Round icon badge that heads a form or a success state. */
+/** Plain icon tile that heads a form or a success state: `card` fill, a
+ * hairline border, the icon carrying the tone. */
 export function Badge({
   icon: Icon,
   tone = "primary",
@@ -136,21 +141,22 @@ export function Badge({
   const color = tone === "good" ? t.good : tone === "bad" ? t.bad : t.primary
   return (
     <Animated.View
-      entering={reduced ? undefined : ZoomIn.springify().damping(14)}
+      entering={reduced ? undefined : FadeIn.duration(240)}
       importantForAccessibility="no-hide-descendants"
       accessibilityElementsHidden
       style={{
-        width: 64,
-        height: 64,
-        borderRadius: 22,
-        backgroundColor: `${color}1f`,
+        width: 52,
+        height: 52,
+        borderRadius: radius.card,
+        backgroundColor: t.card,
         borderWidth: 1,
-        borderColor: `${color}33`,
+        borderColor: t.line,
         alignItems: "center",
         justifyContent: "center",
+        marginBottom: space.xs,
       }}
     >
-      <Icon size={28} color={color} strokeWidth={2} />
+      <Icon size={24} color={color} strokeWidth={1.75} />
     </Animated.View>
   )
 }
@@ -183,7 +189,7 @@ export function AuthScreen({
       <View
         style={{
           paddingTop: safe.top,
-          paddingHorizontal: 8,
+          paddingHorizontal: space.sm,
           height: safe.top + 52,
           justifyContent: "center",
         }}
@@ -203,7 +209,7 @@ export function AuthScreen({
               backgroundColor: pressed ? t.soft : "transparent",
             })}
           >
-            <ChevronLeft size={24} color={t.text} />
+            <ChevronLeft size={22} color={t.text} strokeWidth={1.75} />
           </Pressable>
         )}
       </View>
@@ -212,23 +218,23 @@ export function AuthScreen({
         keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
         contentContainerStyle={{
           flexGrow: 1,
-          paddingHorizontal: 20,
-          paddingTop: 4,
-          paddingBottom: safe.bottom + 24,
+          paddingHorizontal: space.lg,
+          paddingTop: space.sm,
+          paddingBottom: safe.bottom + space.xl,
           width: "100%",
           maxWidth: 460,
           alignSelf: "center",
         }}
       >
-        <Rise i={0} style={{ gap: 12, marginBottom: 24 }}>
+        <Rise i={0} style={{ gap: space.sm, marginBottom: space.xl }}>
           {badge}
           <Text
             accessibilityRole="header"
             style={{
-              fontFamily: fonts.display,
-              fontSize: 32,
-              lineHeight: 36,
-              letterSpacing: -0.5,
+              fontFamily: fonts.semibold,
+              fontSize: 28,
+              lineHeight: 34,
+              letterSpacing: -0.4,
               color: t.text,
             }}
           >
@@ -239,7 +245,7 @@ export function AuthScreen({
               style={{
                 fontFamily: fonts.body,
                 fontSize: 16,
-                lineHeight: 23,
+                lineHeight: 24,
                 color: t.muted,
               }}
             >
@@ -276,9 +282,12 @@ export function AuthField({
 }) {
   const t = useTheme()
   const [focused, setFocused] = useState(false)
-  const border = error ? t.bad : focused ? t.primary : t.line
+  // Field (design system): 1 pt `input` outline, 2 pt `ring` when focused,
+  // 2 pt `bad` with a message below on error. No glow.
+  const border = error ? t.bad : focused ? t.ring : t.input
+  const thick = focused || !!error
   return (
-    <View style={{ gap: 6, marginBottom: 14 }}>
+    <View style={{ gap: 6, marginBottom: space.lg }}>
       <Text
         nativeID={`${label}-label`}
         style={{ fontFamily: fonts.medium, fontSize: 13, color: t.text }}
@@ -289,20 +298,18 @@ export function AuthField({
         style={{
           flexDirection: "row",
           alignItems: "center",
-          minHeight: 52,
-          borderRadius: 14,
-          borderWidth: focused || error ? 1.5 : 1,
+          minHeight: 48,
+          borderRadius: radius.control,
+          borderWidth: thick ? 2 : 1,
           borderColor: border,
           backgroundColor: t.card,
-          paddingLeft: Icon ? 12 : 14,
-          paddingRight: right ? 4 : 14,
+          // Keep the text still when the outline thickens.
+          paddingLeft: (Icon ? 12 : 14) - (thick ? 1 : 0),
+          paddingRight: (right ? 2 : 14) - (thick ? 1 : 0),
           gap: 10,
-          boxShadow: focused ? `0px 0px 0px 3px ${border}26` : undefined,
         }}
       >
-        {Icon && (
-          <Icon size={18} color={focused && !error ? t.primary : t.muted} />
-        )}
+        {Icon && <Icon size={18} color={t.muted} strokeWidth={1.75} />}
         <TextInput
           ref={ref}
           accessibilityLabel={label}
@@ -320,11 +327,11 @@ export function AuthField({
           style={[
             {
               flex: 1,
-              minHeight: 48,
+              minHeight: 44,
               fontFamily: fonts.body,
               fontSize: 16,
               color: t.text,
-              paddingVertical: 12,
+              paddingVertical: 10,
             },
             webNoOutline,
             style,
@@ -339,14 +346,19 @@ export function AuthField({
           accessibilityLiveRegion="polite"
           style={{ flexDirection: "row", gap: 6, alignItems: "flex-start" }}
         >
-          <CircleAlert size={14} color={t.bad} style={{ marginTop: 3 }} />
+          <CircleAlert
+            size={14}
+            color={t.bad}
+            strokeWidth={1.75}
+            style={{ marginTop: 2 }}
+          />
           <Text
             accessibilityRole="alert"
             style={{
               flex: 1,
-              fontFamily: fonts.medium,
+              fontFamily: fonts.body,
               fontSize: 13,
-              lineHeight: 19,
+              lineHeight: 18,
               color: t.bad,
             }}
           >
@@ -387,13 +399,13 @@ export function PasswordField(
             borderRadius: 22,
             alignItems: "center",
             justifyContent: "center",
-            opacity: pressed ? 0.6 : 1,
+            backgroundColor: pressed ? t.soft : "transparent",
           })}
         >
           {shown ? (
-            <EyeOff size={20} color={t.muted} />
+            <EyeOff size={18} color={t.muted} strokeWidth={1.75} />
           ) : (
-            <Eye size={20} color={t.muted} />
+            <Eye size={18} color={t.muted} strokeWidth={1.75} />
           )}
         </Pressable>
       }
@@ -419,16 +431,13 @@ export function AuthButton({
   icon?: ReactNode
 }) {
   const t = useTheme()
-  const reduced = useReducedMotion()
-  const scale = useSharedValue(1)
-  const pressStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }))
   const inactive = disabled || loading
   const fg =
     tone === "primary" ? t.onPrimary : tone === "ghost" ? t.primary : t.text
+  // Button (design system): primary fill once per screen, outline for the
+  // rest. Pressed is opacity 0.72 with no bounce; disabled is 0.4.
   return (
-    <Animated.View style={pressStyle}>
+    <View>
       <Pressable
         cssInterop={false}
         accessibilityRole="button"
@@ -436,40 +445,30 @@ export function AuthButton({
         accessibilityState={{ disabled: inactive, busy: loading }}
         disabled={inactive}
         onPress={onPress}
-        onPressIn={() => {
-          if (!reduced) scale.value = withSpring(0.97, { damping: 20 })
-        }}
-        onPressOut={() => {
-          scale.value = reduced ? 1 : withSpring(1, { damping: 20 })
-        }}
         style={({ pressed }) => ({
-          minHeight: 52,
-          borderRadius: 14,
-          paddingHorizontal: 18,
+          minHeight: 48,
+          borderRadius: radius.control,
+          paddingHorizontal: 20,
+          paddingVertical: 12,
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "center",
-          gap: 10,
-          backgroundColor:
-            tone === "primary"
-              ? t.primary
-              : tone === "secondary"
-                ? t.card
-                : "transparent",
+          gap: space.sm,
+          backgroundColor: tone === "primary" ? t.primary : "transparent",
           borderWidth: tone === "secondary" ? 1 : 0,
-          borderColor: t.line,
-          opacity: disabled && !loading ? 0.45 : pressed ? 0.85 : 1,
+          borderColor: t.input,
+          opacity: disabled && !loading ? 0.4 : pressed ? 0.72 : 1,
         })}
       >
         {loading ? <ActivityIndicator size="small" color={fg} /> : icon}
         <Text
           numberOfLines={1}
-          style={{ fontFamily: fonts.semibold, fontSize: 16, color: fg }}
+          style={{ fontFamily: fonts.medium, fontSize: 15, color: fg }}
         >
           {loading ? (loadingLabel ?? children) : children}
         </Text>
       </Pressable>
-    </Animated.View>
+    </View>
   )
 }
 
@@ -494,11 +493,11 @@ export function TextLink({
         minHeight: 44,
         justifyContent: "center",
         alignSelf: align,
-        opacity: pressed ? 0.6 : 1,
+        opacity: pressed ? 0.72 : 1,
       })}
     >
       <Text
-        style={{ fontFamily: fonts.semibold, fontSize: 15, color: t.primary }}
+        style={{ fontFamily: fonts.medium, fontSize: 15, color: t.primary }}
       >
         {children}
       </Text>
@@ -565,7 +564,7 @@ export function Checkbox({
         flexDirection: "row",
         alignItems: "center",
         gap: 10,
-        opacity: pressed ? 0.7 : 1,
+        opacity: pressed ? 0.72 : 1,
         flexShrink: 1,
       })}
     >
@@ -573,17 +572,17 @@ export function Checkbox({
         style={{
           width: 22,
           height: 22,
-          borderRadius: 7,
-          borderWidth: checked ? 0 : 1.5,
-          borderColor: error ? t.bad : t.muted,
+          borderRadius: 6,
+          borderWidth: checked ? 0 : error ? 2 : 1,
+          borderColor: error ? t.bad : t.input,
           backgroundColor: checked ? t.primary : "transparent",
           alignItems: "center",
           justifyContent: "center",
         }}
       >
         {checked && (
-          <Animated.View entering={reduced ? undefined : ZoomIn.duration(160)}>
-            <Check size={15} color={t.onPrimary} strokeWidth={3} />
+          <Animated.View entering={reduced ? undefined : FadeIn.duration(160)}>
+            <Check size={15} color={t.onPrimary} strokeWidth={2.5} />
           </Animated.View>
         )}
       </View>
@@ -619,34 +618,40 @@ export function ErrorBanner({
   useEffect(() => {
     if (reduced || !shakeKey) return
     x.value = withSequence(
-      withTiming(-10, { duration: 45 }),
-      withRepeat(withTiming(10, { duration: 90 }), 3, true),
-      withTiming(0, { duration: 45 }),
+      withTiming(-6, { duration: 40 }),
+      withRepeat(withTiming(6, { duration: 80 }), 3, true),
+      withTiming(0, { duration: 40 }),
     )
   }, [shakeKey, reduced, x])
   const style = useAnimatedStyle(() => ({
     transform: [{ translateX: x.value }],
   }))
+  // Errors sit on `card` with a `bad` outline and icon (Toast, design system).
   return (
     <Animated.View
-      entering={reduced ? undefined : FadeInDown.duration(220)}
+      entering={reduced ? undefined : FadeIn.duration(240)}
       accessibilityLiveRegion="assertive"
       accessibilityRole="alert"
       style={[
         {
           flexDirection: "row",
           gap: 10,
-          padding: 14,
-          borderRadius: 14,
-          backgroundColor: `${t.bad}17`,
+          padding: space.md,
+          borderRadius: radius.control,
+          backgroundColor: t.card,
           borderWidth: 1,
-          borderColor: `${t.bad}40`,
-          marginBottom: 18,
+          borderColor: t.bad,
+          marginBottom: space.lg,
         },
         style,
       ]}
     >
-      <CircleAlert size={18} color={t.bad} style={{ marginTop: 2 }} />
+      <CircleAlert
+        size={18}
+        color={t.bad}
+        strokeWidth={1.75}
+        style={{ marginTop: 2 }}
+      />
       <View style={{ flex: 1, gap: 2 }}>
         <Text
           style={{
@@ -672,9 +677,9 @@ export function DemoTip({ children }: { children: string }) {
   return (
     <View
       style={{
-        marginTop: 20,
-        padding: 12,
-        borderRadius: 12,
+        marginTop: space.xl,
+        padding: space.md,
+        borderRadius: radius.control,
         borderWidth: 1,
         borderStyle: "dashed",
         borderColor: t.line,
@@ -688,7 +693,9 @@ export function DemoTip({ children }: { children: string }) {
           color: t.muted,
         }}
       >
-        <Text style={{ fontFamily: fonts.semibold }}>Prototype · </Text>
+        <Text style={{ fontFamily: fonts.medium, color: t.text }}>
+          Prototype ·{" "}
+        </Text>
         {children}
       </Text>
     </View>
@@ -702,12 +709,12 @@ export function OrDivider({ label = "or" }: { label?: string }) {
       style={{
         flexDirection: "row",
         alignItems: "center",
-        gap: 12,
-        marginVertical: 20,
+        gap: space.md,
+        marginVertical: space.lg,
       }}
     >
       <View style={{ flex: 1, height: 1, backgroundColor: t.line }} />
-      <Text style={{ fontFamily: fonts.medium, fontSize: 13, color: t.muted }}>
+      <Text style={{ fontFamily: fonts.body, fontSize: 13, color: t.muted }}>
         {label}
       </Text>
       <View style={{ flex: 1, height: 1, backgroundColor: t.line }} />
@@ -747,7 +754,9 @@ function GoogleGlyph() {
     </Svg>
   )
 }
-/** Apple and Google buttons; Apple follows its black/white HIG styling. */
+/** Apple and Google buttons, both outline so the screen keeps one filled
+ * button (Apple's HIG allows the outlined style). The Google "G" keeps its
+ * own colours: Google's sign-in branding requires the four-colour mark. */
 export function SocialButtons({
   busy,
   onPress,
@@ -758,13 +767,9 @@ export function SocialButtons({
   disabled?: boolean
 }) {
   const t = useTheme()
-  const appleBg = t.dark ? "#fff" : "#000"
-  const appleFg = t.dark ? "#000" : "#fff"
   const button = (
     provider: "apple" | "google",
     label: string,
-    bg: string,
-    fg: string,
     glyph: ReactNode,
   ) => (
     <Pressable
@@ -780,38 +785,32 @@ export function SocialButtons({
       onPress={() => onPress(provider)}
       style={({ pressed }) => ({
         flex: 1,
-        minHeight: 52,
-        borderRadius: 14,
+        minHeight: 48,
+        borderRadius: radius.control,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        gap: 8,
-        backgroundColor: bg,
-        borderWidth: provider === "google" ? 1 : 0,
-        borderColor: t.line,
-        opacity: pressed ? 0.8 : busy && busy !== provider ? 0.5 : 1,
+        gap: space.sm,
+        backgroundColor: t.card,
+        borderWidth: 1,
+        borderColor: t.input,
+        opacity: pressed ? 0.72 : busy && busy !== provider ? 0.4 : 1,
       })}
     >
       {busy === provider ? (
-        <ActivityIndicator size="small" color={fg} />
+        <ActivityIndicator size="small" color={t.text} />
       ) : (
         glyph
       )}
-      <Text style={{ fontFamily: fonts.semibold, fontSize: 15, color: fg }}>
+      <Text style={{ fontFamily: fonts.medium, fontSize: 15, color: t.text }}>
         {label}
       </Text>
     </Pressable>
   )
   return (
-    <View style={{ flexDirection: "row", gap: 10 }}>
-      {button(
-        "apple",
-        "Apple",
-        appleBg,
-        appleFg,
-        <AppleGlyph color={appleFg} />,
-      )}
-      {button("google", "Google", t.card, t.text, <GoogleGlyph />)}
+    <View style={{ flexDirection: "row", gap: space.sm }}>
+      {button("apple", "Apple", <AppleGlyph color={t.text} />)}
+      {button("google", "Google", <GoogleGlyph />)}
     </View>
   )
 }
@@ -821,7 +820,7 @@ function Segment({ on, color }: { on: boolean; color: string }) {
   const reduced = useReducedMotion()
   const fill = useSharedValue(on ? 1 : 0)
   useEffect(() => {
-    fill.value = withTiming(on ? 1 : 0, { duration: reduced ? 0 : 260 })
+    fill.value = withTiming(on ? 1 : 0, { duration: reduced ? 0 : 240 })
   }, [on, reduced, fill])
   const style = useAnimatedStyle(() => ({
     transform: [{ scaleX: fill.value }],
@@ -830,8 +829,8 @@ function Segment({ on, color }: { on: boolean; color: string }) {
     <View
       style={{
         flex: 1,
-        height: 6,
-        borderRadius: 3,
+        height: 4,
+        borderRadius: 2,
         backgroundColor: t.soft,
         overflow: "hidden",
       }}
@@ -839,8 +838,8 @@ function Segment({ on, color }: { on: boolean; color: string }) {
       <Animated.View
         style={[
           {
-            height: 6,
-            borderRadius: 3,
+            height: 4,
+            borderRadius: 2,
             backgroundColor: color,
             transformOrigin: "left",
           },
@@ -862,7 +861,7 @@ export function StrengthMeter({
   const s = passwordStrength(password)
   const color = [t.line, t.bad, t.warn, t.primary, t.good][s.score]
   return (
-    <View style={{ gap: 10, marginTop: -4, marginBottom: 14 }}>
+    <View style={{ gap: 10, marginTop: -6, marginBottom: space.lg }}>
       <View
         accessible
         accessibilityRole="progressbar"
@@ -879,9 +878,9 @@ export function StrengthMeter({
           style={{
             minWidth: 58,
             textAlign: "right",
-            fontFamily: fonts.semibold,
+            fontFamily: fonts.medium,
             fontSize: 13,
-            color: password ? color : t.muted,
+            color: password ? t.text : t.muted,
           }}
         >
           {password ? s.label : "Strength"}
@@ -897,9 +896,9 @@ export function StrengthMeter({
               style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
             >
               {c.ok ? (
-                <CircleCheck size={16} color={t.good} />
+                <CircleCheck size={16} color={t.good} strokeWidth={1.75} />
               ) : (
-                <EmptyCircle size={16} color={t.muted} />
+                <EmptyCircle size={16} color={t.muted} strokeWidth={1.75} />
               )}
               <Text
                 style={{
@@ -958,24 +957,17 @@ export function CodeInput({
   const reduced = useReducedMotion()
   const [focused, setFocused] = useState(false)
   const x = useSharedValue(0)
-  const caret = useSharedValue(1)
   useEffect(() => {
     if (reduced || !shakeKey) return
     x.value = withSequence(
-      withTiming(-10, { duration: 45 }),
-      withRepeat(withTiming(10, { duration: 90 }), 3, true),
-      withTiming(0, { duration: 45 }),
+      withTiming(-6, { duration: 40 }),
+      withRepeat(withTiming(6, { duration: 80 }), 3, true),
+      withTiming(0, { duration: 40 }),
     )
   }, [shakeKey, reduced, x])
-  useEffect(() => {
-    caret.value = reduced
-      ? 1
-      : withRepeat(withTiming(0, { duration: 520 }), -1, true)
-  }, [reduced, caret])
   const shake = useAnimatedStyle(() => ({
     transform: [{ translateX: x.value }],
   }))
-  const blink = useAnimatedStyle(() => ({ opacity: caret.value }))
   const active = Math.min(value.length, 5)
   return (
     <Animated.View style={[{ marginBottom: 8 }, shake]}>
@@ -992,47 +984,36 @@ export function CodeInput({
               style={{
                 flex: 1,
                 maxWidth: 52,
-                height: 60,
-                borderRadius: 14,
-                borderWidth: isActive || error ? 1.5 : 1,
-                borderColor: error
-                  ? t.bad
-                  : isActive
-                    ? t.primary
-                    : value[i]
-                      ? t.muted
-                      : t.line,
+                height: 56,
+                borderRadius: radius.control,
+                borderWidth: isActive || error ? 2 : 1,
+                borderColor: error ? t.bad : isActive ? t.ring : t.input,
                 backgroundColor: t.card,
                 alignItems: "center",
                 justifyContent: "center",
-                boxShadow: isActive
-                  ? `0px 0px 0px 3px ${t.primary}26`
-                  : undefined,
               }}
             >
               {value[i] ? (
                 <Animated.Text
-                  entering={reduced ? undefined : ZoomIn.duration(140)}
+                  entering={reduced ? undefined : FadeIn.duration(160)}
                   style={{
-                    fontFamily: fonts.display,
-                    fontSize: 28,
+                    fontFamily: fonts.mono,
+                    fontSize: 24,
                     color: t.text,
                   }}
                 >
                   {value[i]}
                 </Animated.Text>
               ) : (
+                // A still caret: nothing loops outside Fern.
                 isActive && (
-                  <Animated.View
-                    style={[
-                      {
-                        width: 2,
-                        height: 26,
-                        borderRadius: 1,
-                        backgroundColor: t.primary,
-                      },
-                      blink,
-                    ]}
+                  <View
+                    style={{
+                      width: 2,
+                      height: 24,
+                      borderRadius: 1,
+                      backgroundColor: t.ring,
+                    }}
                   />
                 )
               )}
@@ -1094,11 +1075,11 @@ export function FieldStatus({
       {status === "checking" ? (
         <ActivityIndicator size="small" color={t.muted} />
       ) : (
-        <Animated.View entering={reduced ? undefined : ZoomIn.duration(180)}>
+        <Animated.View entering={reduced ? undefined : FadeIn.duration(160)}>
           {status === "ok" ? (
-            <CircleCheck size={20} color={t.good} />
+            <CircleCheck size={18} color={t.good} strokeWidth={1.75} />
           ) : (
-            <CircleAlert size={20} color={t.bad} />
+            <CircleAlert size={18} color={t.bad} strokeWidth={1.75} />
           )}
         </Animated.View>
       )}

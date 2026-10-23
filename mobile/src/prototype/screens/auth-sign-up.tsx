@@ -414,7 +414,7 @@ function NewAccount() {
                     description: "Placeholder in the prototype.",
                   })
                 }
-                style={{ fontFamily: fonts.semibold, color: t.primary }}
+                style={{ fontFamily: fonts.medium, color: t.primary }}
               >
                 Terms of Service
               </Text>{" "}
@@ -426,7 +426,7 @@ function NewAccount() {
                     description: "Placeholder in the prototype.",
                   })
                 }
-                style={{ fontFamily: fonts.semibold, color: t.primary }}
+                style={{ fontFamily: fonts.medium, color: t.primary }}
               >
                 Privacy Policy
               </Text>

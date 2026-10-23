@@ -75,7 +75,7 @@ export function ForgotPassword() {
         subtitle={
           <>
             If an account exists for{" "}
-            <Text style={{ fontFamily: fonts.semibold, color: t.text }}>
+            <Text style={{ fontFamily: fonts.medium, color: t.text }}>
               {maskEmail(email)}
             </Text>
             , you'll get a link to reset your password. It expires in 30
@@ -116,8 +116,8 @@ export function ForgotPassword() {
               Didn't get it? Resend in{" "}
               <Text
                 style={{
-                  fontFamily: fonts.semibold,
-                  fontVariant: ["tabular-nums"],
+                  fontFamily: fonts.mono,
+                  color: t.text,
                 }}
               >
                 {clock(left)}

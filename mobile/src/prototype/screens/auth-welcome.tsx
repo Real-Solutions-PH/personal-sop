@@ -1,14 +1,4 @@
-import { LinearGradient } from "expo-linear-gradient"
-import {
-  Camera,
-  Dumbbell,
-  type LucideIcon,
-  Mic,
-  Target,
-  Trophy,
-  Wallet,
-} from "lucide-react-native"
-import { useEffect, useRef, useState } from "react"
+import { type ReactNode, useEffect, useRef, useState } from "react"
 import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -18,12 +8,12 @@ import {
   View,
 } from "react-native"
 import Animated, {
+  Easing,
   useAnimatedStyle,
   useReducedMotion,
   withTiming,
 } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg"
 import { toast } from "sonner-native"
 import { liveMode } from "@/live/config"
 import {
@@ -34,118 +24,321 @@ import {
   SocialButtons,
   Wordmark,
 } from "../auth-kit"
+import { fernPalette } from "../companion/brand"
+import { Orb } from "../companion/orb"
+import { companionStore } from "../companion/store"
 import { go, replace } from "../navigation"
 import { continueWith } from "../session"
-import { fonts, useTheme } from "../theme"
-import { Ring } from "../visual"
+import { fonts, radius, space, useTheme } from "../theme"
 
-type Slide = {
-  title: string
-  body: string
-  art: "rings" | "capture" | "score"
-}
+// Each slide states one product promise from the positioning's messaging
+// pillars (docs/brand/positioning-and-name.md), shown with the app's own
+// pieces: Fern's orb and bubbles, plain cards, 8 pt module dots, mono numbers.
+type Art = "say" | "one" | "ask"
+type Slide = { art: Art; title: string; body: (fern: string) => string }
 const SLIDES: Slide[] = [
   {
-    title: "Run your days like a system.",
-    body: "Habits, tasks, training, food and money in one daily operating procedure.",
-    art: "rings",
+    art: "say",
+    title: "Say it. It's tracked.",
+    body: (fern) =>
+      `Tell ${fern} what happened in a sentence, a voice note or a photo. It lands in the right place.`,
   },
   {
-    title: "Capture anything in seconds.",
-    body: "Type it, say it or snap it. Each entry goes to the right section.",
-    art: "capture",
+    art: "one",
+    title: "One app, not five.",
+    body: () =>
+      "Habits, tasks, training, food and money, on one page you can read at a glance.",
   },
   {
-    title: "Watch your Life Score climb.",
-    body: "Streaks, reviews and goals turn ordinary days into progress you can see.",
-    art: "score",
+    art: "ask",
+    title: "Ask, don't dig.",
+    body: (fern) =>
+      `Ask ${fern} about your week. The answer comes from your own records.`,
   },
 ]
+const ART_HEIGHT = 276
+const ease = Easing.out(Easing.cubic)
 
-function Chip({ icon: Icon, color }: { icon: LucideIcon; color: string }) {
+function You({ children }: { children: string }) {
+  const t = useTheme()
   return (
     <View
       style={{
-        width: 46,
-        height: 46,
-        borderRadius: 16,
-        backgroundColor: `${color}33`,
-        borderWidth: 1,
-        borderColor: `${color}66`,
-        alignItems: "center",
-        justifyContent: "center",
+        alignSelf: "flex-end",
+        maxWidth: "82%",
+        backgroundColor: t.soft,
+        borderRadius: radius.card,
+        borderBottomRightRadius: 6,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
       }}
     >
-      <Icon size={22} color={color} />
+      <Text
+        style={{
+          fontFamily: fonts.body,
+          fontSize: 15,
+          lineHeight: 21,
+          color: t.text,
+        }}
+      >
+        {children}
+      </Text>
     </View>
   )
 }
-function Art({ kind }: { kind: Slide["art"] }) {
+
+/** Fern's reply: the orb beside a `mist` bubble (Fern's colours, Fern only). */
+function FernSays({ children }: { children: ReactNode }) {
   const t = useTheme()
-  if (kind === "rings")
-    return (
-      <Ring value={0.82} size={128} hero strokeWidth={10}>
-        <Ring
-          value={0.64}
-          size={96}
-          strokeWidth={10}
-          color={t.fit}
-          gradientColors={[t.fit, t.nut]}
-          hero
-        >
-          <Ring
-            value={0.9}
-            size={64}
-            strokeWidth={10}
-            hero
-            gradientColors={[t.primary, t.fin]}
-          />
-        </Ring>
-      </Ring>
-    )
-  if (kind === "capture")
-    return (
-      <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
-        <Chip icon={Mic} color={t.hab} />
-        <View
-          style={{
-            width: 72,
-            height: 72,
-            borderRadius: 24,
-            backgroundColor: "#ffffff1a",
-            borderWidth: 1,
-            borderColor: "#ffffff33",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Camera size={32} color="#fff" />
-        </View>
-        <Chip icon={Wallet} color={t.fin} />
-      </View>
-    )
+  const p = fernPalette(t.dark)
   return (
-    <View style={{ alignItems: "flex-start", gap: 10 }}>
-      <Text
+    <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8 }}>
+      <Orb size={28} />
+      <View
         style={{
-          fontFamily: fonts.displayBlack,
-          fontSize: 64,
-          lineHeight: 68,
-          color: "#fff",
+          flexShrink: 1,
+          maxWidth: "86%",
+          backgroundColor: p.mist,
+          borderRadius: radius.card,
+          borderBottomLeftRadius: 6,
+          paddingHorizontal: 14,
+          paddingVertical: 10,
+          gap: 6,
         }}
       >
-        87
-      </Text>
-      <View style={{ flexDirection: "row", gap: 10 }}>
-        <Chip icon={Target} color={t.hab} />
-        <Chip icon={Dumbbell} color={t.fit} />
-        <Chip icon={Trophy} color={t.life} />
+        {children}
       </View>
     </View>
   )
 }
 
-function Dot({
+function Words({ children }: { children: string }) {
+  const t = useTheme()
+  return (
+    <Text
+      style={{
+        fontFamily: fonts.body,
+        fontSize: 15,
+        lineHeight: 21,
+        color: t.text,
+      }}
+    >
+      {children}
+    </Text>
+  )
+}
+
+const Dot = ({ color }: { color: string }) => (
+  <View
+    style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: color }}
+  />
+)
+
+/** One filed record inside Fern's reply: module dot, label, mono value. */
+function Filed({
+  color,
+  label,
+  value,
+}: {
+  color: string
+  label: string
+  value: string
+}) {
+  const t = useTheme()
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+      <Dot color={color} />
+      <Text style={{ fontFamily: fonts.medium, fontSize: 13, color: t.text }}>
+        {label}
+      </Text>
+      <Text
+        style={{ fontFamily: fonts.monoRegular, fontSize: 13, color: t.muted }}
+      >
+        {value}
+      </Text>
+    </View>
+  )
+}
+
+function SayArt() {
+  const t = useTheme()
+  return (
+    <View style={{ flex: 1, justifyContent: "center", gap: space.md }}>
+      {/* Room for the orb's breathing glow, which reaches past its edge. */}
+      <View style={{ alignItems: "center", paddingVertical: space.md }}>
+        <Orb size={72} />
+      </View>
+      <You>Lunch was 250 and I did squats, 3 sets of 8</You>
+      <FernSays>
+        <Words>I logged both.</Words>
+        <Filed color={t.fin} label="Money" value="₱250.00 · Food" />
+        <Filed color={t.fit} label="Training" value="Squat 3 × 8" />
+      </FernSays>
+    </View>
+  )
+}
+
+function OneArt() {
+  const t = useTheme()
+  const rows: { key: string; color: string; label: string; value: string }[] = [
+    { key: "hab", color: t.hab, label: "Habits", value: "4 / 5" },
+    { key: "tsk", color: t.tsk, label: "Tasks", value: "3 left" },
+    { key: "fit", color: t.fit, label: "Training", value: "Push day" },
+    { key: "nut", color: t.nut, label: "Protein", value: "96 / 140 g" },
+    { key: "fin", color: t.fin, label: "Money", value: "₱1,240 left" },
+  ]
+  return (
+    <View style={{ flex: 1, justifyContent: "center" }}>
+      <View
+        style={{
+          backgroundColor: t.card,
+          borderRadius: radius.card,
+          borderWidth: 1,
+          borderColor: t.line,
+          paddingHorizontal: space.lg,
+        }}
+      >
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "baseline",
+            paddingTop: 14,
+            paddingBottom: 6,
+          }}
+        >
+          <Text
+            style={{ fontFamily: fonts.semibold, fontSize: 15, color: t.text }}
+          >
+            Today
+          </Text>
+          <Text
+            style={{
+              fontFamily: fonts.monoRegular,
+              fontSize: 12,
+              color: t.muted,
+            }}
+          >
+            {dateLabel(new Date())}
+          </Text>
+        </View>
+        {rows.map((r, i) => (
+          <View
+            key={r.key}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 10,
+              minHeight: 40,
+              borderTopWidth: i ? 1 : 0,
+              borderTopColor: t.line,
+            }}
+          >
+            <Dot color={r.color} />
+            <Text
+              style={{
+                flex: 1,
+                fontFamily: fonts.body,
+                fontSize: 15,
+                color: t.text,
+              }}
+            >
+              {r.label}
+            </Text>
+            <Text
+              style={{ fontFamily: fonts.mono, fontSize: 14, color: t.text }}
+            >
+              {r.value}
+            </Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  )
+}
+
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+const MONTHS = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(" ")
+// "Fri 23 Oct", the app's date format, so the sample reads as today.
+const dateLabel = (d: Date) =>
+  `${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`
+// Sample food spend for the last four days, ending today, in pesos.
+const SPEND = [420, 310, 860, 250]
+function AskArt() {
+  const t = useTheme()
+  const now = new Date()
+  const week = SPEND.map((value, i) => {
+    const d = new Date(now)
+    d.setDate(now.getDate() - (SPEND.length - 1 - i))
+    return { day: DAYS[d.getDay()], value }
+  })
+  const max = Math.max(...SPEND)
+  return (
+    <View style={{ flex: 1, justifyContent: "center", gap: space.lg }}>
+      <You>How much have I spent on food lately?</You>
+      <FernSays>
+        <Words>
+          ₱1,840.00 in the last 4 days, ₱180 less than the 4 before.
+        </Words>
+        <View
+          accessible
+          accessibilityLabel={`Food spend: ${week.map((d) => `${d.day} ${d.value}`).join(", ")}`}
+          style={{
+            flexDirection: "row",
+            alignItems: "flex-end",
+            gap: 10,
+            height: 84,
+            marginTop: 4,
+          }}
+        >
+          {week.map((d, i) => {
+            const today = i === week.length - 1
+            return (
+              <View key={d.day} style={{ alignItems: "center", gap: 3 }}>
+                <Text
+                  style={{
+                    fontFamily: fonts.monoRegular,
+                    fontSize: 12,
+                    color: today ? t.text : t.muted,
+                  }}
+                >
+                  {d.value}
+                </Text>
+                <View
+                  style={{
+                    width: 26,
+                    height: Math.max(6, (d.value / max) * 44),
+                    borderRadius: 4,
+                    backgroundColor: t.fin,
+                    // Past days in a light tint, today at full strength.
+                    opacity: today ? 1 : 0.35,
+                  }}
+                />
+                <Text
+                  style={{
+                    fontFamily: today ? fonts.medium : fonts.body,
+                    fontSize: 12,
+                    color: today ? t.text : t.muted,
+                  }}
+                >
+                  {d.day}
+                </Text>
+              </View>
+            )
+          })}
+        </View>
+      </FernSays>
+    </View>
+  )
+}
+
+function SlideArt({ art }: { art: Art }) {
+  if (art === "say") return <SayArt />
+  if (art === "one") return <OneArt />
+  return <AskArt />
+}
+
+function PageDot({
   active,
   index,
   onPress,
@@ -154,10 +347,14 @@ function Dot({
   index: number
   onPress: () => void
 }) {
+  const t = useTheme()
   const reduced = useReducedMotion()
   const style = useAnimatedStyle(() => ({
-    width: reduced ? (active ? 22 : 7) : withTiming(active ? 22 : 7),
-    opacity: reduced ? (active ? 1 : 0.45) : withTiming(active ? 1 : 0.45),
+    width: reduced
+      ? active
+        ? 20
+        : 8
+      : withTiming(active ? 20 : 8, { duration: 240, easing: ease }),
   }))
   return (
     <Pressable
@@ -168,13 +365,20 @@ function Dot({
       hitSlop={{ top: 16, bottom: 16, left: 4, right: 4 }}
       style={{
         height: 28,
-        minWidth: 22,
+        minWidth: 20,
         alignItems: "center",
         justifyContent: "center",
       }}
     >
       <Animated.View
-        style={[{ height: 7, borderRadius: 4, backgroundColor: "#fff" }, style]}
+        style={[
+          {
+            height: 8,
+            borderRadius: 4,
+            backgroundColor: active ? t.text : t.input,
+          },
+          style,
+        ]}
       />
     </Pressable>
   )
@@ -184,6 +388,7 @@ export function Welcome() {
   const t = useTheme()
   const safe = useSafeAreaInsets()
   const reduced = useReducedMotion()
+  const fern = companionStore.use((s) => s.name)
   const pager = useRef<ScrollView>(null)
   const [width, setWidth] = useState(0)
   const [page, setPage] = useState(0)
@@ -194,11 +399,12 @@ export function Welcome() {
     setPage(i)
     pager.current?.scrollTo({ x: i * width, animated })
   }
-  // Gentle auto-advance until the person swipes; off with reduced motion.
+  // Advance once through the slides until the person swipes, then rest on
+  // the last one: nothing loops outside Fern. Off with reduced motion.
   // biome-ignore lint/correctness/useExhaustiveDependencies: show is stable enough per render
   useEffect(() => {
-    if (reduced || touched || !width) return
-    const id = setTimeout(() => show((page + 1) % SLIDES.length), 4500)
+    if (reduced || touched || !width || page >= SLIDES.length - 1) return
+    const id = setTimeout(() => show(page + 1), 5000)
     return () => clearTimeout(id)
   }, [page, width, touched, reduced])
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -222,59 +428,24 @@ export function Welcome() {
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: t.bg }}
-      contentContainerStyle={{ flexGrow: 1 }}
+      contentContainerStyle={{
+        flexGrow: 1,
+        paddingTop: safe.top + space.md,
+        paddingBottom: safe.bottom + space.lg,
+      }}
       bounces={false}
     >
-      <LinearGradient
-        colors={[t["hero-from"], t["hero-via"], t["hero-to"]]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{
-          flexGrow: 1,
-          minHeight: 400,
-          paddingTop: safe.top + 16,
-          paddingBottom: 48,
-        }}
+      <Rise i={0} style={{ paddingHorizontal: space.lg, minHeight: 44 }}>
+        <View style={{ flex: 1, justifyContent: "center" }}>
+          <Wordmark size={20} />
+        </View>
+      </Rise>
+      <View
+        style={{ flexGrow: 1, justifyContent: "center", minHeight: 420 }}
+        onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
       >
-        <Svg
-          width="100%"
-          height="100%"
-          style={{ position: "absolute", top: 0, left: 0 }}
-          pointerEvents="none"
-        >
-          <Defs>
-            <RadialGradient
-              id="welcome-glow-a"
-              cx="100%"
-              cy="0%"
-              rx="90%"
-              ry="60%"
-            >
-              <Stop offset="0" stopColor={t.hab} stopOpacity={0.55} />
-              <Stop offset="0.7" stopColor={t.hab} stopOpacity={0} />
-            </RadialGradient>
-            <RadialGradient
-              id="welcome-glow-b"
-              cx="0%"
-              cy="100%"
-              rx="80%"
-              ry="55%"
-            >
-              <Stop offset="0" stopColor={t.primary} stopOpacity={0.45} />
-              <Stop offset="0.7" stopColor={t.primary} stopOpacity={0} />
-            </RadialGradient>
-          </Defs>
-          <Rect width="100%" height="100%" fill="url(#welcome-glow-a)" />
-          <Rect width="100%" height="100%" fill="url(#welcome-glow-b)" />
-        </Svg>
-        <Rise i={0} style={{ paddingHorizontal: 24 }}>
-          <Wordmark />
-        </Rise>
-        <View
-          style={{ flex: 1, justifyContent: "center" }}
-          onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
-        >
-          {width > 0 && (
+        {width > 0 && (
+          <Rise i={1}>
             <ScrollView
               ref={pager}
               horizontal
@@ -285,61 +456,68 @@ export function Welcome() {
               onScrollBeginDrag={() => setTouched(true)}
               accessibilityLabel="What Unfurl does"
             >
-              {SLIDES.map((s, i) => (
-                <View
-                  key={s.title}
-                  accessible
-                  accessibilityLabel={`${s.title} ${s.body}`}
-                  accessibilityHint={`Slide ${i + 1} of ${SLIDES.length}`}
-                  style={{
-                    width,
-                    paddingHorizontal: 28,
-                    paddingTop: 24,
-                    gap: 24,
-                  }}
-                >
-                  <View style={{ height: 136, justifyContent: "center" }}>
-                    <Art kind={s.art} />
-                  </View>
-                  <View style={{ gap: 10 }}>
-                    <Text
-                      style={{
-                        fontFamily: fonts.displayHeavy,
-                        fontSize: 36,
-                        lineHeight: 38,
-                        letterSpacing: -0.6,
-                        color: "#fff",
-                      }}
+              {SLIDES.map((s, i) => {
+                const body = s.body(fern)
+                return (
+                  <View
+                    key={s.title}
+                    accessible
+                    accessibilityLabel={`${s.title} ${body}`}
+                    accessibilityHint={`Slide ${i + 1} of ${SLIDES.length}`}
+                    style={{
+                      width,
+                      paddingHorizontal: space.lg,
+                      gap: space.xl,
+                    }}
+                  >
+                    <View
+                      importantForAccessibility="no-hide-descendants"
+                      accessibilityElementsHidden
+                      style={{ height: ART_HEIGHT }}
                     >
-                      {s.title}
-                    </Text>
-                    <Text
-                      style={{
-                        fontFamily: fonts.body,
-                        fontSize: 16,
-                        lineHeight: 23,
-                        color: "#ffffffc7",
-                        maxWidth: 360,
-                      }}
-                    >
-                      {s.body}
-                    </Text>
+                      <SlideArt art={s.art} />
+                    </View>
+                    <View style={{ gap: space.sm }}>
+                      <Text
+                        style={{
+                          fontFamily: fonts.semibold,
+                          fontSize: 28,
+                          lineHeight: 34,
+                          letterSpacing: -0.4,
+                          color: t.text,
+                        }}
+                      >
+                        {s.title}
+                      </Text>
+                      <Text
+                        style={{
+                          fontFamily: fonts.body,
+                          fontSize: 16,
+                          lineHeight: 24,
+                          color: t.muted,
+                          maxWidth: 380,
+                          minHeight: 48,
+                        }}
+                      >
+                        {body}
+                      </Text>
+                    </View>
                   </View>
-                </View>
-              ))}
+                )
+              })}
             </ScrollView>
-          )}
-        </View>
+          </Rise>
+        )}
         <View
           style={{
             flexDirection: "row",
-            gap: 4,
-            paddingHorizontal: 24,
-            marginTop: 8,
+            gap: 6,
+            paddingHorizontal: space.lg,
+            marginTop: space.md,
           }}
         >
           {SLIDES.map((s, i) => (
-            <Dot
+            <PageDot
               key={s.title}
               index={i}
               active={i === page}
@@ -350,58 +528,46 @@ export function Welcome() {
             />
           ))}
         </View>
-      </LinearGradient>
+      </View>
       <View
         style={{
-          marginTop: -28,
-          borderTopLeftRadius: 28,
-          borderTopRightRadius: 28,
-          backgroundColor: t.bg,
-          paddingHorizontal: 20,
-          paddingTop: 24,
-          paddingBottom: safe.bottom + 16,
+          paddingHorizontal: space.lg,
+          paddingTop: space.xl,
+          width: "100%",
+          maxWidth: 460,
+          alignSelf: "center",
+          gap: space.sm,
         }}
       >
-        <View
-          style={{
-            width: "100%",
-            maxWidth: 460,
-            alignSelf: "center",
-            gap: 10,
-          }}
-        >
-          <Rise i={2}>
-            <AuthButton onPress={() => go("/signup")}>
-              Create account
-            </AuthButton>
-          </Rise>
-          <Rise i={3}>
-            <AuthButton tone="secondary" onPress={() => go("/login")}>
-              I already have an account
-            </AuthButton>
-          </Rise>
-          <Rise i={4}>
-            <OrDivider label="or continue with" />
-            <SocialButtons busy={busy} onPress={social} />
-          </Rise>
-          <Rise i={5}>
-            <Text
-              style={{
-                marginTop: 10,
-                textAlign: "center",
-                fontFamily: fonts.body,
-                fontSize: 12,
-                lineHeight: 17,
-                color: t.muted,
-              }}
-            >
-              By continuing you agree to the Terms and Privacy Policy.
-              {liveMode
-                ? " Your data syncs to your account so it is safe across devices."
-                : " Your data stays on this device in the prototype."}
-            </Text>
-          </Rise>
-        </View>
+        <Rise i={2}>
+          <AuthButton onPress={() => go("/signup")}>Create account</AuthButton>
+        </Rise>
+        <Rise i={3}>
+          <AuthButton tone="secondary" onPress={() => go("/login")}>
+            I already have an account
+          </AuthButton>
+        </Rise>
+        <Rise i={4}>
+          <OrDivider label="or continue with" />
+          <SocialButtons busy={busy} onPress={social} />
+        </Rise>
+        <Rise i={5}>
+          <Text
+            style={{
+              marginTop: space.md,
+              textAlign: "center",
+              fontFamily: fonts.body,
+              fontSize: 12,
+              lineHeight: 17,
+              color: t.muted,
+            }}
+          >
+            By continuing you agree to the Terms and Privacy Policy.
+            {liveMode
+              ? " Your data syncs to your account so it is safe across devices."
+              : " Your data stays on this device in the prototype."}
+          </Text>
+        </Rise>
       </View>
     </ScrollView>
   )

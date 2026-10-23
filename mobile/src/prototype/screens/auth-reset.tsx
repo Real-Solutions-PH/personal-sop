@@ -86,7 +86,7 @@ export function ResetPassword() {
         email ? (
           <>
             For{" "}
-            <Text style={{ fontFamily: fonts.semibold, color: t.text }}>
+            <Text style={{ fontFamily: fonts.medium, color: t.text }}>
               {maskEmail(email)}
             </Text>
             . Choose something you don't use anywhere else.
