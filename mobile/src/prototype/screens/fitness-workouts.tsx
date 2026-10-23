@@ -326,7 +326,7 @@ export function WorkoutDetail({
       () => {
         const del = A.deleteWorkout(id)
         replace("/fitness/workouts")
-        if (del) undo(`Deleted ${del.name}`, () => A.restoreWorkout(del))
+        if (del) undo(`${del.name} deleted`, () => A.restoreWorkout(del))
       },
     )
   const heading = (title: string) => (

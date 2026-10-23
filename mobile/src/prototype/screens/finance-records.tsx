@@ -381,7 +381,7 @@ export function Records({ accountId }: { accountId?: string }) {
                       ? undefined
                       : () => {
                           const gone = A.deleteRecords([r.id])
-                          undo("Deleted 1 record", () => A.restoreRecords(gone))
+                          undo("Record deleted", () => A.restoreRecords(gone))
                         }
                   }
                 >

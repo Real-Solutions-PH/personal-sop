@@ -13,11 +13,12 @@ import { type ReactNode, useCallback, useEffect, useState } from "react"
 import { ActivityIndicator, Pressable, Text, View } from "react-native"
 import { GestureHandlerRootView } from "react-native-gesture-handler"
 import { SafeAreaProvider } from "react-native-safe-area-context"
-import { Toaster, toast } from "sonner-native"
+import { toast } from "sonner-native"
 import { liveMode } from "@/live/config"
 import { reachable } from "./connectivity"
 import { sessionStore, startLiveSession } from "./session"
 import { prototypeStorage } from "./storage"
+import { AppToaster } from "./toaster"
 
 // Live mode: server statistics refresh when a screen regains focus. Installed
 // before any screen renders (the focus hook cannot be swapped in later).
@@ -131,7 +132,7 @@ export function PrototypeProviders({ children }: { children: ReactNode }) {
             </View>
           )}
           {ready && (fontsLoaded || fontError) && children}
-          <Toaster />
+          <AppToaster />
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

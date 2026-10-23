@@ -1106,9 +1106,9 @@ export function confirm(
   ])
 }
 export function undo(message: string, action: () => void) {
-  toast.success(message, {
+  toast(message, {
     action: { label: "Undo", onClick: action },
-    duration: 6000,
+    duration: 5000,
   })
 }
 export function useNow() {

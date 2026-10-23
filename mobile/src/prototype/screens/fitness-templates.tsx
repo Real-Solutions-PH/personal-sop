@@ -271,7 +271,7 @@ export function Templates({ id }: { id?: string }) {
             onPress={() => {
               const del = A.deleteTemplate(existing.id)
               go("/fitness/templates")
-              if (del) undo(`Deleted ${del.name}`, () => A.upsertTemplate(del))
+              if (del) undo(`${del.name} deleted`, () => A.upsertTemplate(del))
             }}
             style={{
               height: 44,
