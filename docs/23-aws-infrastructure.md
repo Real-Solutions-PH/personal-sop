@@ -24,21 +24,41 @@ Nothing in AWS listens on the internet. There is no load balancer, and no securi
 
 The API host is single-label under the zone on purpose: Cloudflare's free Universal SSL certificate covers `*.realsolutionsph.com` but not deeper names.
 
-## Two sizing profiles
+## Sizing: `lean` (up to 5 users) and `production`
 
-`unfurl:profile` in `infra/cdk.json` picks the size. **`lean` is the default** for the first deploy: one user, before launch. `production` is the size planned for launch. Switching is that one value and a deploy; the database class change is an RDS modification with a short restart.
+`unfurl:profile` in `infra/cdk.json` picks the size. **`lean` is the default: up to 5 users**, the smallest setup that serves them comfortably. `production` is the size planned for launch.
 
-| | `lean` (default) | `production` |
+| | **`lean` (default, up to 5 users)** | `production` |
 |---|---|---|
-| API tasks | 1 × 0.5 vCPU / 1 GB | 2 × 0.5 vCPU / 1 GB |
-| Worker (and migrations) | 1 × 0.25 vCPU / 1 GB | 1 × 0.5 vCPU / 1 GB |
+| API tasks | 1 × 0.25 vCPU / 0.5 GB, **1 uvicorn worker** | 2 × 0.5 vCPU / 1 GB, 2 workers each |
+| Worker (and migrations) | 1 × 0.25 vCPU / 0.5 GB | 1 × 0.5 vCPU / 1 GB |
 | GoTrue tasks | 1 × 0.25 vCPU / 0.5 GB | 2 × 0.25 vCPU / 0.5 GB |
 | Tunnel (`cloudflared`) tasks | 1 × 0.25 vCPU / 0.5 GB | 2 × 0.25 vCPU / 0.5 GB |
 | RDS | `db.t4g.micro` (1 GB) | `db.t4g.small` (2 GB) |
-| Cache | `cache.t4g.micro` | `cache.t4g.micro` |
-| Estimated cost | **≈ USD 105–115 / month** | **≈ USD 180–190 / month** |
+| Cache | `cache.t4g.micro` (the smallest Valkey node) | `cache.t4g.micro` |
+| Estimated cost | **≈ USD 92–100 / month** | **≈ USD 180–190 / month** |
 
-All tasks run on Graviton (arm64).
+All tasks run on Graviton (arm64). In `lean`, every task is at Fargate's smallest size.
+
+**Why 0.5 GB is enough.** These were measured on 2026-10-24 on the backend's virtualenv: macOS arm64, AI and jobs on, after a few hundred warm-up requests. That is not the Linux container, so treat the numbers as close, not exact.
+
+| Process | Memory |
+|---|---|
+| API, 1 uvicorn worker | ≈ 250 MB |
+| API, 2 uvicorn workers + supervisor | ≈ 530 MB, over 0.5 GB, hence 1 worker in `lean` |
+| Job worker (`procrastinate`), idle and running jobs | ≈ 30 MB |
+| Migrations (`alembic upgrade head`), peak | ≈ 180 MB |
+| Seed (`app/initial_data.py`), peak | ≈ 135 MB |
+
+One uvicorn worker still serves concurrent requests: sync routes run in its thread pool and streams are async. For 5 users the API is waiting on Nebius and Deepgram, not computing. If memory runs tight, the `api-memory` and `worker-memory` alarms fire (above 85 % for 15 minutes) before a task is killed, and the next step is configuration.
+
+**Scaling is configuration, not a rebuild.** Either switch the whole profile (`"unfurl:profile": "production"`) or override single values in `infra/cdk.json`, then deploy:
+
+```json
+"unfurl:sizingOverrides": { "api": { "count": 2, "cpu": 512, "memoryMiB": 1024, "workers": 2 }, "database": "t4g.small" }
+```
+
+Overridable: `api`, `worker`, `gotrue` and `tunnel` (`count`, `cpu`, `memoryMiB`, and `workers` for the API), `database` and `cache`. A typo, an unknown key or a CPU and memory pair Fargate doesn't offer fails `cdk synth`, never deploys a default. A database class change is an RDS modification with a short restart; everything else rolls tasks with no downtime.
 
 What `lean` gives up: with one task per service, a crashed task means a minute or two of outage while ECS replaces it. A deploy still has no downtime, because ECS starts the new task before it stops the old one. With one `cloudflared` connector, a connector restart drops the tunnel for the seconds it takes to reconnect.
 
@@ -71,7 +91,7 @@ What `lean` gives up: with one task per service, a crashed task means a minute o
 | Email | SES domain identity `unfurl.realsolutionsph.com` | Easy DKIM, custom MAIL FROM `mail.unfurl.realsolutionsph.com`; sender `noreply@unfurl.realsolutionsph.com` |
 | | IAM user `unfurl-ses-smtp` | `ses:SendRawEmail` only. Its access key is turned into SES SMTP credentials by the bootstrap function |
 | Secrets | Secrets Manager (`unfurl/*`) | See the next table |
-| Observability | CloudWatch log groups `/unfurl/{api,worker,gotrue,tunnel}` (30 days), RDS logs, SNS topic `unfurl-alarms` | Alarms: API, sign-in, tunnel or worker with no running task for 10 minutes; DB CPU > 80 %; DB free storage < 2 GB |
+| Observability | CloudWatch log groups `/unfurl/{api,worker,gotrue,tunnel}` (30 days), RDS logs, SNS topic `unfurl-alarms` | Alarms: API, sign-in, tunnel or worker with no running task for 10 minutes; API or worker memory > 85 % for 15 minutes (the signal to scale up); DB CPU > 80 %; DB free storage < 2 GB |
 
 ### Secrets
 
@@ -191,10 +211,10 @@ Every setting in `backend/app/core/config.py` is either set by the stack or list
 
 On-demand prices for `ap-southeast-1`, 730 hours a month, low traffic. These rates were read from the AWS Pricing API: Fargate **Graviton** at $0.04045 per vCPU-hour and $0.00442 per GB-hour (2026-10-24; x86 is $0.05056 and $0.00553), RDS `db.t4g.micro` $0.025/h and `db.t4g.small` $0.051/h, ElastiCache $0.0192/h, public IPv4 $0.005/h, and Cloud Map $0.10 per registered instance plus $0.50 for its private hosted zone. Storage and the small items use AWS's published list prices. This is an estimate, not a bill. Cloudflare costs nothing (Free plan, one tunnel, one rate rule).
 
-| Item | `lean` | `production` |
+| Item | **`lean` (up to 5 users)** | `production` |
 |---|---|---|
-| Fargate: API | 1 × (0.5 vCPU, 1 GB): 18 | 2 ×: 36 |
-| Fargate: worker | 0.25 vCPU, 1 GB: 11 | 0.5 vCPU, 1 GB: 18 |
+| Fargate: API | 1 × (0.25 vCPU, 0.5 GB): 9 | 2 × (0.5 vCPU, 1 GB): 36 |
+| Fargate: worker | 0.25 vCPU, 0.5 GB: 9 | 0.5 vCPU, 1 GB: 18 |
 | Fargate: GoTrue | 1 × (0.25 vCPU, 0.5 GB): 9 | 2 ×: 18 |
 | Fargate: tunnel (`cloudflared`) | 1 × (0.25 vCPU, 0.5 GB): 9 | 2 ×: 18 |
 | Public IPv4, one per task | 4 × $3.65: 15 | 7 × $3.65: 26 |
@@ -202,18 +222,23 @@ On-demand prices for `ap-southeast-1`, 730 hours a month, low traffic. These rat
 | ElastiCache Valkey `cache.t4g.micro` | 14 | 14 |
 | Cloud Map (private DNS) | 1 | 1 |
 | Secrets Manager (8 secrets) | 3 | 3 |
-| CloudWatch (6 alarms, logs) | 3–6 | 3–6 |
-| S3, SES, ECR, SNS, Lambda | < 5 | < 5 |
-| **Total (USD / month)** | **≈ 105–115** | **≈ 180–190** |
+| CloudWatch (8 alarms, logs) | 2–4 | 3–6 |
+| S3, SES, ECR, SNS, Lambda | < 3 | < 5 |
+| **Total (USD / month)** | **≈ 92–100** | **≈ 180–190** |
 
-**Against the previous design** (ALB, WAF, ACM and NAT, x86; PR #63):
+In `lean`, the four tasks together are 36; the fixed floor is the database (21), the per-task IPv4 addresses (15) and the cache (14).
 
-| Profile | Before | Now | Removed | Added |
-|---|---|---|---|---|
-| `lean` | ≈ 140–150 | **≈ 105–115** | ALB 24 + its 2 IPv4 7, WAF 10, NAT instance 5 + its IPv4 4, x86 premium ≈ 9 | Tunnel task 9, per-task IPv4 15, Cloud Map 1 |
-| `production` | ≈ 240–260 | **≈ 180–190** | ALB 24 + 7, WAF 10, NAT gateway 43 + 4, x86 premium ≈ 17 | 2 tunnel tasks 18, per-task IPv4 26, Cloud Map 1 |
+**How the estimate got here:**
 
-Further levers: Fargate Spot for the worker; a Compute Savings Plan; IPv6 egress to drop the per-task IPv4 charge (15 to 26 a month).
+| Design | `lean` | `production` |
+|---|---|---|
+| ALB, WAF, ACM, NAT, x86 (PR #63) | ≈ 140–150 | ≈ 240–260 |
+| Cloudflare Tunnel, no WAF or NAT, Graviton (PR #66) | ≈ 105–115 | ≈ 180–190 |
+| **Same, `lean` resized for up to 5 users (smallest Fargate size everywhere, 1 uvicorn worker)** | **≈ 92–100** | ≈ 180–190 |
+
+The tunnel design removed the ALB (24, plus 7 for its IPv4 addresses), the WAF (10), the NAT (5 as an instance or 43 as a gateway, plus its IPv4) and the x86 premium (about 9 in `lean`, 17 in `production`). It added the tunnel tasks (9 each), a public IPv4 address per task (3.65 each) and Cloud Map (1). The 5-user sizing then took the API from 0.5 vCPU / 1 GB to 0.25 / 0.5 (−9) and the worker from 1 GB to 0.5 GB (−2).
+
+Further levers: Fargate Spot for the worker; a Compute Savings Plan; IPv6 egress to drop the per-task IPv4 charge (15 to 26 a month). Below `lean`, the next cuts are architectural (no separate cache, a smaller database engine), not sizing.
 
 ## First deploy
 

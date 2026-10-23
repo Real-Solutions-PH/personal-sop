@@ -300,6 +300,99 @@ describe("profiles", () => {
     expect(cdkJson.context["unfurl:profile"]).toBe("lean")
   })
 
+  test("lean (up to 5 users): every task at Fargate's smallest size, one uvicorn worker", () => {
+    for (const family of [
+      "unfurl-api",
+      "unfurl-worker",
+      "unfurl-gotrue",
+      "unfurl-tunnel",
+    ]) {
+      prod.hasResourceProperties("AWS::ECS::TaskDefinition", {
+        Family: family,
+        Cpu: "256",
+        Memory: "512",
+      })
+    }
+    expect(container("unfurl-api", "api").Command).toEqual([
+      "fastapi",
+      "run",
+      "--workers",
+      "1",
+      "--port",
+      "8000",
+      "app/main.py",
+    ])
+  })
+
+  test("production: the API runs two uvicorn workers in 1 GB", () => {
+    production.hasResourceProperties("AWS::ECS::TaskDefinition", {
+      Family: "unfurl-api",
+      Cpu: "512",
+      Memory: "1024",
+    })
+    const [api] = Object.values(
+      production.findResources("AWS::ECS::TaskDefinition", {
+        Properties: { Family: "unfurl-api" },
+      }),
+    )
+    expect(api.Properties.ContainerDefinitions[0].Command.slice(2, 4)).toEqual([
+      "--workers",
+      "2",
+    ])
+  })
+
+  test("scaling is configuration: overrides change counts, sizes and the DB class", () => {
+    const scaled = synth({
+      "unfurl:sizingOverrides": {
+        api: { count: 3, cpu: 512, memoryMiB: 1024, workers: 2 },
+        database: "t4g.small",
+      },
+    }).prod
+    scaled.hasResourceProperties("AWS::ECS::Service", {
+      ServiceName: "unfurl-api",
+      DesiredCount: 3,
+    })
+    scaled.hasResourceProperties("AWS::ECS::TaskDefinition", {
+      Family: "unfurl-api",
+      Cpu: "512",
+      Memory: "1024",
+    })
+    scaled.hasResourceProperties("AWS::RDS::DBInstance", {
+      DBInstanceClass: "db.t4g.small",
+    })
+    // The rest of the profile is untouched.
+    scaled.hasResourceProperties("AWS::ECS::TaskDefinition", {
+      Family: "unfurl-gotrue",
+      Cpu: "256",
+      Memory: "512",
+    })
+  })
+
+  test("overrides from the command line arrive as JSON text and work too", () => {
+    const cli = synth({
+      "unfurl:sizingOverrides": '{"gotrue":{"count":2}}',
+    }).prod
+    cli.hasResourceProperties("AWS::ECS::Service", {
+      ServiceName: "unfurl-gotrue",
+      DesiredCount: 2,
+    })
+  })
+
+  test("a typo or an impossible size is refused, never silently defaulted", () => {
+    expect(() =>
+      synth({ "unfurl:sizingOverrides": { apii: { count: 2 } } }),
+    ).toThrow(/unknown key "apii"/)
+    expect(() =>
+      synth({ "unfurl:sizingOverrides": { api: { cont: 2 } } }),
+    ).toThrow(/unknown field "cont"/)
+    expect(() =>
+      synth({ "unfurl:sizingOverrides": { api: { memoryMiB: 768 } } }),
+    ).toThrow(/not a Fargate size/)
+    expect(() =>
+      synth({ "unfurl:sizingOverrides": { api: { workers: 0 } } }),
+    ).toThrow(/at least 1/)
+  })
+
   test("lean: one task per service, the smallest database and cache", () => {
     for (const name of [
       "unfurl-api",
@@ -572,6 +665,8 @@ describe("alarms", () => {
       "unfurl-worker-down",
       "unfurl-db-cpu",
       "unfurl-db-storage",
+      "unfurl-api-memory",
+      "unfurl-worker-memory",
     ]) {
       prod.hasResourceProperties("AWS::CloudWatch::Alarm", { AlarmName: name })
     }

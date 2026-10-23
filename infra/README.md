@@ -14,7 +14,7 @@ A standalone bun project, not part of the root workspace. Run everything from th
 | Diff against the account | `env -u HTTPS_PROXY -u HTTP_PROXY bunx cdk diff --profile unfurl -c unfurl:imageTag=<tag>` |
 | Cloudflare plan (read-only) | `CLOUDFLARE_API_TOKEN=… AWS_PROFILE=unfurl bun run cloudflare` (`--apply` writes: tunnel, token secret, ingress, DNS, rate rule) |
 
-`cdk bootstrap` and `cdk deploy` create billable resources, and `bun run cloudflare --apply` creates the tunnel and writes DNS records: run them only with a go. Sizing: `unfurl:profile` in `cdk.json` is `lean` (default, ≈ USD 105–115 a month) or `production` (≈ USD 180–190). Routine deploys go through the `Deploy to AWS` workflow (`workflow_dispatch` only).
+`cdk bootstrap` and `cdk deploy` create billable resources, and `bun run cloudflare --apply` creates the tunnel and writes DNS records: run them only with a go. Sizing: `unfurl:profile` in `cdk.json` is `lean` (default: up to 5 users, ≈ USD 92–100 a month) or `production` (≈ USD 180–190); single values can be overridden with `unfurl:sizingOverrides`. Routine deploys go through the `Deploy to AWS` workflow (`workflow_dispatch` only).
 
 | Path | What |
 |---|---|

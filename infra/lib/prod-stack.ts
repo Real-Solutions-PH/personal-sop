@@ -826,7 +826,7 @@ export class ProdStack extends Stack {
         "fastapi",
         "run",
         "--workers",
-        "2",
+        String(sizing.api.workers),
         "--port",
         String(API_PORT),
         "app/main.py",
@@ -941,6 +941,25 @@ export class ProdStack extends Stack {
     down("auth-down", gotrueService, "Sign-in (GoTrue)")
     down("tunnel-down", tunnelService, "The Cloudflare tunnel (cloudflared)")
     down("worker-down", workerService, "The job worker")
+    // `lean` runs every task at 0.5 GB; this is the signal to scale up
+    // (unfurl:sizingOverrides) before a task is killed for memory.
+    const memoryHigh = (
+      id: string,
+      service: ecs.FargateService,
+      what: string,
+    ) =>
+      alarm(id, {
+        alarmDescription: `${what} above 85% of its memory for 15 minutes: raise its size`,
+        metric: service.metricMemoryUtilization({
+          period: Duration.minutes(5),
+        }),
+        threshold: 85,
+        comparisonOperator:
+          cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
+        evaluationPeriods: 3,
+      })
+    memoryHigh("api-memory", apiService, "The API")
+    memoryHigh("worker-memory", workerService, "The job worker")
     alarm("db-cpu", {
       alarmDescription: "Database CPU above 80% for 15 minutes",
       metric: db.metricCPUUtilization({ period: Duration.minutes(5) }),

@@ -65,6 +65,7 @@ describe("GoTrue secret", () => {
 })
 
 describe("database setup script (runs in the GoTrue task)", () => {
+  // Spawns python3; slow to start on a loaded host, so a generous timeout.
   test("is valid Python", () => {
     const r = Bun.spawnSync(
       [
@@ -76,7 +77,7 @@ describe("database setup script (runs in the GoTrue task)", () => {
     )
     expect(r.stderr.toString()).toBe("")
     expect(r.exitCode).toBe(0)
-  })
+  }, 30_000)
 
   test("passes passwords as SQL literals, never formatted into the text", () => {
     expect(DB_SETUP_PY).toContain('sql.Literal(env["AUTH_PASSWORD"])')

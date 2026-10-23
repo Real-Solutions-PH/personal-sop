@@ -84,7 +84,10 @@ export function loadConfig(node: Node): UnfurlConfig {
       emailDomain ? `https://${emailDomain}` : `https://${apiHost}`,
     ),
     profile: profile as ProfileName,
-    sizing: PROFILES[profile as ProfileName],
+    sizing: applySizingOverrides(
+      PROFILES[profile as ProfileName],
+      node.tryGetContext("unfurl:sizingOverrides"),
+    ),
     imageTag: str(node, "imageTag"),
     alertEmail: str(node, "alertEmail"),
     adminEmail: str(
@@ -112,7 +115,8 @@ export interface TaskSize {
 }
 
 export interface Sizing {
-  api: TaskSize
+  /** `workers` is uvicorn's process count; each holds about 250 MB. */
+  api: TaskSize & { workers: number }
   worker: TaskSize
   gotrue: TaskSize
   /** cloudflared connectors for the tunnel (each keeps 4 connections open). */
@@ -124,30 +128,96 @@ export interface Sizing {
 }
 
 /**
- * Two sizes of the same stack. `lean` is the default for the first deploy:
- * one user before launch, one task per service, the smallest database and
- * cache. `production` is the size planned for launch: two API, two GoTrue
- * and two tunnel tasks (one can fail or be replaced without downtime) and a
- * larger database. Switching is one context value and a deploy; the
- * database class change is an RDS modification with a short restart.
+ * Two sizes of the same stack. Scaling is configuration, never a rebuild:
+ * switch `unfurl:profile`, or override single values with
+ * `unfurl:sizingOverrides` in cdk.json (e.g. `{"api": {"count": 2},
+ * "database": "t4g.small"}`), then deploy. A database class change is an
+ * RDS modification with a short restart; everything else rolls tasks.
+ *
+ * `lean` (default) serves up to 5 users: one task per service, each at
+ * Fargate's smallest size (0.25 vCPU, 0.5 GB). Measured 2026-10-24 on the
+ * backend venv (arm64, AI and jobs on): one uvicorn worker holds about
+ * 250 MB after warm-up, two hold about 530 MB with the supervisor (too much
+ * for 0.5 GB), the job worker about 30 MB, an Alembic upgrade peaks at
+ * about 180 MB and the seed at about 135 MB. So the API runs one worker; a
+ * sync route still serves concurrent requests from uvicorn's thread pool.
+ *
+ * `production` is the size planned for launch: two API (two workers each),
+ * two GoTrue and two tunnel tasks, so one can fail or be replaced without
+ * downtime, and a larger database.
  */
 export const PROFILES: Record<ProfileName, Sizing> = {
   lean: {
-    api: { cpu: 512, memoryMiB: 1024, count: 1 },
-    worker: { cpu: 256, memoryMiB: 1024, count: 1 },
+    api: { cpu: 256, memoryMiB: 512, count: 1, workers: 1 },
+    worker: { cpu: 256, memoryMiB: 512, count: 1 },
     gotrue: { cpu: 256, memoryMiB: 512, count: 1 },
     tunnel: { cpu: 256, memoryMiB: 512, count: 1 },
     database: "t4g.micro",
     cache: "cache.t4g.micro",
   },
   production: {
-    api: { cpu: 512, memoryMiB: 1024, count: 2 },
+    api: { cpu: 512, memoryMiB: 1024, count: 2, workers: 2 },
     worker: { cpu: 512, memoryMiB: 1024, count: 1 },
     gotrue: { cpu: 256, memoryMiB: 512, count: 2 },
     tunnel: { cpu: 256, memoryMiB: 512, count: 2 },
     database: "t4g.small",
     cache: "cache.t4g.micro",
   },
+}
+
+/** Fargate's valid memory sizes (MiB) for the CPU sizes used here. */
+export const FARGATE_MEMORY: Record<number, number[]> = {
+  256: [512, 1024, 2048],
+  512: [1024, 2048, 3072, 4096],
+  1024: [2048, 3072, 4096, 5120, 6144, 7168, 8192],
+}
+
+/**
+ * The profile with `unfurl:sizingOverrides` merged in, field by field.
+ * Unknown keys and invalid Fargate combinations are refused at synth, so a
+ * typo never deploys a default silently.
+ */
+export function applySizingOverrides(base: Sizing, overrides: unknown): Sizing {
+  if (overrides === undefined || overrides === null || overrides === "")
+    return base
+  const o = (
+    typeof overrides === "string" ? JSON.parse(overrides) : overrides
+  ) as Record<string, unknown>
+  const out: Sizing = structuredClone(base)
+  for (const [key, value] of Object.entries(o)) {
+    if (!(key in base))
+      throw new Error(`unfurl:sizingOverrides: unknown key "${key}"`)
+    const k = key as keyof Sizing
+    if (typeof base[k] === "string") {
+      if (typeof value !== "string")
+        throw new Error(`unfurl:sizingOverrides.${key} must be a string`)
+      ;(out as unknown as Record<string, unknown>)[k] = value
+      continue
+    }
+    for (const [field, n] of Object.entries(value as Record<string, unknown>)) {
+      const task = out[k] as unknown as Record<string, number>
+      if (!(field in task))
+        throw new Error(
+          `unfurl:sizingOverrides.${key}: unknown field "${field}"`,
+        )
+      if (typeof n !== "number" || !Number.isInteger(n) || n < 0) {
+        throw new Error(
+          `unfurl:sizingOverrides.${key}.${field} must be a whole number`,
+        )
+      }
+      task[field] = n
+    }
+  }
+  for (const k of ["api", "worker", "gotrue", "tunnel"] as const) {
+    const t = out[k]
+    if (!FARGATE_MEMORY[t.cpu]?.includes(t.memoryMiB)) {
+      throw new Error(
+        `${k}: ${t.cpu} CPU units with ${t.memoryMiB} MiB is not a Fargate size`,
+      )
+    }
+  }
+  if (out.api.workers < 1) throw new Error("api.workers must be at least 1")
+  return out
 }
 
 /** Name prefix for every resource and secret. */
