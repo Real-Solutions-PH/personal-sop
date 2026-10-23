@@ -91,6 +91,14 @@ export const NGINX_CONF = `server {
 }
 `
 
+/**
+ * Kept when the stack is updated or deleted, but removed when a first
+ * create rolls back. With plain RETAIN, a failed first create left the
+ * secrets, log groups and bucket behind under their fixed names, and the
+ * next create could not reuse those names (2026-10-24).
+ */
+const RETAIN = RemovalPolicy.RETAIN_ON_UPDATE_OR_DELETE
+
 const ARM64: ecs.RuntimePlatform = {
   cpuArchitecture: ecs.CpuArchitecture.ARM64,
   operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
@@ -196,7 +204,7 @@ export class ProdStack extends Stack {
       new secretsmanager.Secret(this, name, {
         secretName: `${PREFIX}/${name.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase()}`,
         description,
-        removalPolicy: RemovalPolicy.RETAIN,
+        removalPolicy: RETAIN,
         ...opts,
       })
     const generatedPassword = (
@@ -354,7 +362,7 @@ export class ProdStack extends Stack {
       enforceSSL: true,
       versioned: true,
       objectOwnership: s3.ObjectOwnership.BUCKET_OWNER_ENFORCED,
-      removalPolicy: RemovalPolicy.RETAIN,
+      removalPolicy: RETAIN,
       lifecycleRules: [
         { abortIncompleteMultipartUploadAfter: Duration.days(7) },
         { noncurrentVersionExpiration: Duration.days(30) },
@@ -465,7 +473,7 @@ export class ProdStack extends Stack {
       new logs.LogGroup(this, `${name}Logs`, {
         logGroupName: `/${PREFIX}/${name.toLowerCase()}`,
         retention: logs.RetentionDays.ONE_MONTH,
-        removalPolicy: RemovalPolicy.RETAIN,
+        removalPolicy: RETAIN,
       })
     // By name, not a cross-stack reference: the CI stack owns the repository
     // and must stay deletable/updatable on its own.

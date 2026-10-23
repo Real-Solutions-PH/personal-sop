@@ -653,6 +653,35 @@ describe("backend environment", () => {
   })
 })
 
+describe("removal on a failed first create", () => {
+  test("secrets, log groups and the media bucket are retained on update or delete, not on create rollback", () => {
+    for (const type of [
+      "AWS::SecretsManager::Secret",
+      "AWS::Logs::LogGroup",
+      "AWS::S3::Bucket",
+    ]) {
+      const named = Object.values(prod.findResources(type)).filter(
+        (r) =>
+          // The RDS master secret follows its instance (CDK's default), so a
+          // snapshot restore sets a new password; it is not one of these.
+          (r.Properties?.Name?.startsWith?.("unfurl/") &&
+            r.Properties.Name !== "unfurl/db-master") ||
+          // Service log groups; the functions' /unfurl/fn/* groups are DESTROY.
+          (r.Properties?.LogGroupName?.startsWith?.("/unfurl/") &&
+            !r.Properties.LogGroupName.startsWith("/unfurl/fn/")) ||
+          String(JSON.stringify(r.Properties?.BucketName ?? "")).includes(
+            "unfurl-media",
+          ),
+      )
+      expect(named.length).toBeGreaterThan(0)
+      for (const r of named) {
+        expect(r.DeletionPolicy).toBe("RetainExceptOnCreate")
+        expect(r.UpdateReplacePolicy).toBe("Retain")
+      }
+    }
+  })
+})
+
 describe("storage and data", () => {
   test("media bucket is private and TLS-only", () => {
     prod.hasResourceProperties("AWS::S3::Bucket", {
