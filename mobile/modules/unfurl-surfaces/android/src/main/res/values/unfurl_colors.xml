@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- From shared/prototype/design/tokens.ts (docs/brand, ADR-0019). -->
+<resources>
+  <color name="unfurl_card">#ffffff</color>
+  <color name="unfurl_text">#1b1f1c</color>
+  <color name="unfurl_muted">#5c625d</color>
+  <color name="unfurl_soft">#eeede7</color>
+  <color name="unfurl_line">#e3e1da</color>
+  <color name="unfurl_primary">#1f5a43</color>
+  <color name="unfurl_hab">#6f46d4</color>
+  <color name="unfurl_tsk">#1f6fc0</color>
+  <color name="unfurl_fit">#c2570f</color>
+  <color name="unfurl_nut">#c2387c</color>
+  <color name="unfurl_fin">#0e8a62</color>
+  <color name="unfurl_life">#a87800</color>
+  <color name="unfurl_warn">#94600e</color>
+</resources>

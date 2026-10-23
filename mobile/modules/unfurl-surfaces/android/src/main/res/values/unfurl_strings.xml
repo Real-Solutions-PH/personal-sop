@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="unfurl_widget_today_desc">Your day\'s progress, Life Score and what\'s left.</string>
+  <string name="unfurl_widget_habits_desc">Today\'s habits with streaks. Tick one off right here.</string>
+  <string name="unfurl_widget_macros_desc">Calories and protein left for today.</string>
+  <string name="unfurl_widget_tasks_desc">Overdue and upcoming tasks.</string>
+  <string name="unfurl_widget_money_desc">What you can spend today and what\'s left of your budget.</string>
+</resources>

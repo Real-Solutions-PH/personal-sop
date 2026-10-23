@@ -25,7 +25,7 @@ Context pack for human + AI programmers building this SaaS. Fill each template; 
 | [21-onboarding.md](21-onboarding.md) | Dev setup, repo tour, runbook | Eng |
 | [22-ai-module.md](22-ai-module.md) | AI module — LLM provider/key setup, chat transport, spend-cap posture | Backend |
 | [22-data-protection.md](22-data-protection.md) | Deletion, retention, GDPR export/erase, audit trail | Backend |
-| [mobile.md](mobile.md) | Native Expo prototype, shared domain, running and verification | Eng |
+| [mobile.md](mobile.md) | Native Expo prototype, shared domain, running and verification, widgets and lock-screen activities | Eng |
 | [brand/fern.md](brand/fern.md) | Fern, the AI companion: mark, orb, colour, voice (2026-10-20) | Design |
 | [brand/positioning-and-name.md](brand/positioning-and-name.md) | Positioning, product name (Unfurl), brand, launch pricing and channels (2026-10-22) | Founder/Marketing |
 | [brand/design-system/](brand/design-system/project/README.md) | Unfurl design system: logo, tokens, brand book, component previews in HTML (2026-10-22) | Design |

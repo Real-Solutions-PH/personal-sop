@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/unfurl_root" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="horizontal" android:padding="14dp" android:background="@drawable/unfurl_widget_bg">
+<FrameLayout android:layout_width="96dp" android:layout_height="96dp" android:layout_gravity="center_vertical">
+  <ProgressBar android:id="@+id/today_ring" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="match_parent" android:max="100" android:progressDrawable="@drawable/unfurl_ring_primary" />
+  <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center">
+    <TextView android:id="@+id/today_pct" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="20sp" android:textColor="@color/unfurl_text" android:maxLines="1" android:ellipsize="end" android:textStyle="bold" />
+    <TextView android:id="@+id/today_count" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="10sp" android:textColor="@color/unfurl_muted" android:maxLines="1" android:ellipsize="end" />
+  </LinearLayout>
+</FrameLayout>
+<LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginStart="14dp" android:orientation="vertical" android:gravity="center_vertical">
+  <TextView android:id="@+id/today_headline" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="15sp" android:textColor="@color/unfurl_text" android:maxLines="1" android:ellipsize="end" android:textStyle="bold" />
+  <TextView android:id="@+id/today_live" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="12sp" android:textColor="@color/unfurl_fit" android:maxLines="1" android:ellipsize="end" android:visibility="gone"/>
+  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="4dp">
+  <TextView android:layout_width="6dp" android:layout_height="6dp" android:background="@drawable/unfurl_bar_hab" />
+  <TextView android:id="@+id/row_habits_label" android:layout_height="wrap_content" android:textSize="12sp" android:textColor="@color/unfurl_muted" android:maxLines="1" android:ellipsize="end" android:layout_marginStart="6dp" android:layout_weight="1" android:layout_width="0dp"/>
+  <TextView android:id="@+id/row_habits" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="13sp" android:textColor="@color/unfurl_text" android:maxLines="1" android:ellipsize="end" android:textStyle="bold" />
+</LinearLayout>
+  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="4dp">
+  <TextView android:layout_width="6dp" android:layout_height="6dp" android:background="@drawable/unfurl_bar_nut" />
+  <TextView android:id="@+id/row_kcal_label" android:layout_height="wrap_content" android:textSize="12sp" android:textColor="@color/unfurl_muted" android:maxLines="1" android:ellipsize="end" android:layout_marginStart="6dp" android:layout_weight="1" android:layout_width="0dp"/>
+  <TextView android:id="@+id/row_kcal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="13sp" android:textColor="@color/unfurl_text" android:maxLines="1" android:ellipsize="end" android:textStyle="bold" />
+</LinearLayout>
+  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="4dp">
+  <TextView android:layout_width="6dp" android:layout_height="6dp" android:background="@drawable/unfurl_bar_tsk" />
+  <TextView android:id="@+id/row_tasks_label" android:layout_height="wrap_content" android:textSize="12sp" android:textColor="@color/unfurl_muted" android:maxLines="1" android:ellipsize="end" android:layout_marginStart="6dp" android:layout_weight="1" android:layout_width="0dp"/>
+  <TextView android:id="@+id/row_tasks" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="13sp" android:textColor="@color/unfurl_text" android:maxLines="1" android:ellipsize="end" android:textStyle="bold" />
+</LinearLayout>
+  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="4dp">
+  <TextView android:layout_width="6dp" android:layout_height="6dp" android:background="@drawable/unfurl_bar_fin" />
+  <TextView android:id="@+id/row_money_label" android:layout_height="wrap_content" android:textSize="12sp" android:textColor="@color/unfurl_muted" android:maxLines="1" android:ellipsize="end" android:layout_marginStart="6dp" android:layout_weight="1" android:layout_width="0dp"/>
+  <TextView android:id="@+id/row_money" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="13sp" android:textColor="@color/unfurl_text" android:maxLines="1" android:ellipsize="end" android:textStyle="bold" />
+</LinearLayout>
+</LinearLayout>
+</LinearLayout>

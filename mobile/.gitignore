@@ -15,5 +15,5 @@ npm-debug.*
 yarn-debug.*
 yarn-error.*
 expo-env.d.ts
-android/
-ios/
+/android/
+/ios/
