@@ -11,9 +11,12 @@ import { parseTask } from "@domain/tasks/parse"
 import {
   ArrowLeftRight,
   BookOpen,
+  Camera,
   Check,
   CheckSquare,
   Dumbbell,
+  FileText,
+  Image as ImageIcon,
   Repeat,
   Scale,
   TrendingUp,
@@ -38,19 +41,77 @@ const types = [
   { v: "workout", label: "Set / workout", I: Dumbbell, accent: "fit" },
   { v: "journal", label: "Journal", I: BookOpen, accent: "life" },
 ] as const
-export function QuickAdd({ onClose }: { onClose: () => void }) {
+/** What the + drawer can attach to the message being written. */
+export type Attach = {
+  camera: () => void
+  photos: () => void
+  files?: () => void
+}
+/** The composer's + drawer: attach a photo or file to the message, or log
+ * something straight away with a quick add. */
+export function QuickAdd({
+  onClose,
+  attach,
+}: {
+  onClose: () => void
+  attach?: Attach
+}) {
   const t = useTheme(),
     [type, setType] = useState<string>(),
     cur = types.find((x) => x.v === type)
+  // The drawer closes first, then the picker opens over the composer.
+  const pick = (go: () => void) => () => {
+    onClose()
+    setTimeout(go, 250)
+  }
+  const tiles = attach
+    ? [
+        { key: "camera", label: "Camera", I: Camera, go: attach.camera },
+        { key: "photos", label: "Photos", I: ImageIcon, go: attach.photos },
+        ...(attach.files
+          ? [{ key: "files", label: "Files", I: FileText, go: attach.files }]
+          : []),
+      ]
+    : []
   return (
     <Sheet
-      title={cur?.label ?? "Quick add"}
+      title={cur?.label ?? (attach ? "Add" : "Quick add")}
       open
       onClose={onClose}
       onBack={cur ? () => setType(undefined) : undefined}
       backLabel="Back to all types"
     >
       <View style={{ gap: 14, paddingTop: 4, paddingBottom: 8 }}>
+        {!cur && tiles.length > 0 && (
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            {tiles.map((x) => (
+              <Tap
+                key={x.key}
+                label={`Attach from ${x.label.toLowerCase()}`}
+                onPress={pick(x.go)}
+                style={{
+                  flex: 1,
+                  minHeight: 76,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                  borderRadius: 16,
+                  backgroundColor: t.soft,
+                }}
+              >
+                <x.I size={22} color={t.text} />
+                <Copy size={13} weight="medium">
+                  {x.label}
+                </Copy>
+              </Tap>
+            ))}
+          </View>
+        )}
+        {!cur && tiles.length > 0 && (
+          <Copy size={13} weight="semibold" style={{ marginTop: 4 }}>
+            Quick add
+          </Copy>
+        )}
         <Copy size={13} muted>
           {cur
             ? "Saved straight away. Undo from the toast."

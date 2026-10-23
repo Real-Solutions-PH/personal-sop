@@ -296,6 +296,36 @@ def test_nebius_server_default_uses_the_users_pick(
     assert photo is not None and photo.model == "moonshotai/Kimi-K2.6"
 
 
+def test_photos_on_the_server_key_are_read_by_several_models(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _nebius_server(monkeypatch)
+    monkeypatch.setattr(settings, "NEBIUS_VISION_MODEL", "Qwen/Qwen3.8-27B")
+    monkeypatch.setattr(
+        settings,
+        "NEBIUS_VISION_READERS",
+        "Qwen/Qwen3.8-27B, moonshotai/Kimi-K3,openbmb/MiniCPM-V-4_5",
+    )
+    user, _ = _user(client, db)
+    with ctx_for(user) as ctx:
+        readers = public.vision_readers(ctx)
+    assert [r.model for r in readers] == [
+        "Qwen/Qwen3.8-27B",
+        "moonshotai/Kimi-K3",
+        "openbmb/MiniCPM-V-4_5",
+    ]
+    assert all(r.supports_vision and r.purpose == "vision" for r in readers)
+    # A vision model the user picked reads first, and there are still three.
+    _settings(user, model="moonshotai/Kimi-K2.6")
+    with ctx_for(user) as ctx:
+        readers = public.vision_readers(ctx)
+    assert [r.model for r in readers] == [
+        "moonshotai/Kimi-K2.6",
+        "Qwen/Qwen3.8-27B",
+        "moonshotai/Kimi-K3",
+    ]
+
+
 def test_a_pick_no_longer_offered_falls_back_to_the_default(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:

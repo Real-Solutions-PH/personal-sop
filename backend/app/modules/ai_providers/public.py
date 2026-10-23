@@ -144,6 +144,21 @@ def _vision_on_same_provider(ctx: Ctx) -> ResolvedModel | None:
     return None
 
 
+def vision_readers(ctx: Ctx) -> list[ResolvedModel]:
+    """The models that read a photo. The user's own vision model (or one on
+    their own key) reads alone; on the server's Nebius key several read in
+    parallel and vote (``NEBIUS_VISION_READERS``), with a vision model the
+    user picked in settings first. Empty when nothing can see."""
+    one = resolve_model(ctx, "vision")
+    if one is None or not one.supports_vision:
+        return []
+    if one.source != "server" or one.provider != "nebius":
+        return [one]
+    names = [m.strip() for m in settings.NEBIUS_VISION_READERS.split(",")]
+    order = [one.model, *(m for m in names if m and m != one.model)]
+    return [replace(one, model=m) for m in order[:3]]
+
+
 def resolve_model(ctx: Ctx, purpose: Purpose) -> ResolvedModel | None:
     own = _assignment(ctx, purpose)
     if own is not None:

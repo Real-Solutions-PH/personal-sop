@@ -26,6 +26,15 @@ jest.mock("react-native-reanimated", () => ({
   runOnJS: (fn: unknown) => fn,
   useReducedMotion: () => true,
 }))
+jest.mock("react-native-gesture-handler", () => {
+  // Chainable no-op gesture builder; the detector just renders its child.
+  const chain: object = new Proxy({}, { get: () => () => chain })
+  return {
+    Gesture: new Proxy({}, { get: () => () => chain }),
+    GestureDetector: ({ children }: { children: unknown }) => children,
+    ScrollView: require("react-native").ScrollView,
+  }
+})
 jest.mock("sonner-native", () => ({
   toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn() }),
 }))
@@ -48,10 +57,37 @@ beforeEach(() => {
   resetAll()
 })
 
-test("Fern's composer offers dictation and the quick add button", () => {
+test("Fern's composer offers dictation and the + button", () => {
   render(<ThreadComposer onText={jest.fn()} hints={false} />)
   expect(screen.getByRole("button", { name: "Dictate" })).toBeTruthy()
-  expect(screen.getByRole("button", { name: "Quick add" })).toBeTruthy()
+  expect(screen.getByRole("button", { name: "Add" })).toBeTruthy()
+  // Photos and files live in the + drawer, not in the footer.
+  expect(screen.queryByRole("button", { name: "Add photos" })).toBeNull()
+  expect(
+    screen.queryByRole("button", { name: "Attach statement file" }),
+  ).toBeNull()
+  // Nothing to send yet, so no Send.
+  expect(screen.queryByRole("button", { name: "Send" })).toBeNull()
+})
+
+test("the + drawer holds the camera, photos, files and quick add", () => {
+  const { SafeAreaProvider } = require("react-native-safe-area-context")
+  render(
+    <SafeAreaProvider
+      initialMetrics={{
+        frame: { x: 0, y: 0, width: 390, height: 844 },
+        insets: { top: 44, left: 0, right: 0, bottom: 34 },
+      }}
+    >
+      <ThreadComposer onText={jest.fn()} hints={false} />
+    </SafeAreaProvider>,
+  )
+  fireEvent.press(screen.getByRole("button", { name: "Add" }))
+  expect(screen.getByLabelText("Attach from camera")).toBeTruthy()
+  expect(screen.getByLabelText("Attach from photos")).toBeTruthy()
+  expect(screen.getByLabelText("Attach from files")).toBeTruthy()
+  expect(screen.getByText("Quick add")).toBeTruthy()
+  expect(screen.getByLabelText("Add expense")).toBeTruthy()
 })
 
 test("with words in the box, dictation keeps its own button beside Send", () => {
@@ -64,7 +100,7 @@ test("with words in the box, dictation keeps its own button beside Send", () => 
 test("the capture screen's composer keeps quick add and voice capture", () => {
   render(<ThreadComposer hints={false} />)
   expect(screen.getByRole("button", { name: "Record voice" })).toBeTruthy()
-  expect(screen.getByRole("button", { name: "Quick add" })).toBeTruthy()
+  expect(screen.getByRole("button", { name: "Add" })).toBeTruthy()
 })
 
 test("a capture of two photos shows both in its bubble", () => {

@@ -12,8 +12,9 @@ from langchain_core.messages import BaseMessage
 from langchain_core.tools import BaseTool
 from sqlmodel import col
 
+from app.core.config import settings
 from app.modules.ai_providers.public import ResolvedModel
-from app.modules.capture import agent, engine, journal, ports, rules, seams
+from app.modules.capture import agent, engine, journal, photo_read, ports, rules, seams
 from app.modules.capture import cards as C
 from app.modules.capture.models import AISettings, Capture, JournalEntry, RecordCard
 from app.modules.capture.schema import CaptureIn
@@ -76,27 +77,6 @@ def submit_capture(
     return engine.process(ctx, out.capture, emit or engine._noop)
 
 
-PHOTO_READER = (
-    "You read photos someone attached to a message in a personal tracking "
-    "app (tasks, money, meals, training, body, habits). Write what matters "
-    "for recording it, precisely and briefly: items and amounts with "
-    "currency, payee and date on receipts, foods and portions on plates, "
-    "exercises, sets, reps and weights on boards or screens, any written "
-    "text. Number the photos when there are several. No guesses beyond "
-    "what is visible.\n"
-    "A nutrition facts label: copy it row by row with units exactly as "
-    "printed (serving size, servings per container, calories, fat, "
-    "saturated fat, carbohydrate, fiber, sugars, protein, sodium), say "
-    "whether each column is per serving, per 100 g or per container, and "
-    "name the product and flavour if the photo shows them."
-)
-CAREFUL = (
-    "\nThis is a second, careful reading because the first may have been "
-    "wrong: go line by line, check every digit and decimal point against "
-    "the photo, and say which values you cannot read clearly."
-)
-
-
 def ask_json(
     ctx: Ctx, resolved: ResolvedModel, schema: Any, *, system: str, text: str
 ) -> Any:
@@ -124,26 +104,40 @@ def describe_photos(
     label = f"{n} photo{'' if n == 1 else 's'}"
     if not journal.settings_row(ctx).send_photos:
         return (f"[{label} attached; photo reading is off in AI settings]", [])
-    vision = ai.resolve_model(ctx, "vision")
-    if vision is None or not vision.supports_vision:
+    readers = ai.vision_readers(ctx)
+    if not readers:
         return (f"[{label} attached; no model that can read photos is set up]", [])
     images: list[tuple[bytes, str]] = []
     read: list[uuid.UUID] = []
     for mid in media_ids:
         m = media.require_ready(ctx, mid, kinds=("image",))
-        images.append((media.read_bytes(m, max_bytes=seams.IMAGE_MAX_BYTES), m.mime))
+        data = media.read_bytes(m, max_bytes=seams.IMAGE_MAX_BYTES)
+        images.append(photo_read.prepare(data, m.mime))
         read.append(mid)
-    try:
-        seen = seams.ask_text(
-            ctx,
-            vision,
-            system=PHOTO_READER + (CAREFUL if careful else ""),
-            text=f"The message with them says: {said or '(no text)'}",
-            images=images,
-        )
-    except seams.SeamError:
-        return (f"[{label} attached; they could not be read just now]", read)
-    return (f"[{label} attached. What they show:\n{seen}]", read)
+    # Each photo in its own request to every reader, all at once: one photo
+    # per request reads labels far more exactly than several together.
+    said_text = f"The message with them says: {said or '(no text)'}"
+    jobs = [
+        (r, f"{said_text}\nThis is photo {i + 1} of {n}.", [img])
+        for i, img in enumerate(images)
+        for r in readers
+    ]
+    answers = seams.ask_many(
+        ctx,
+        jobs,
+        system=photo_read.READER + (photo_read.CAREFUL if careful else ""),
+        deadline=settings.VISION_READ_DEADLINE_SECONDS,
+    )
+    k = len(readers)
+    per_photo = [answers[i * k : (i + 1) * k] for i in range(len(images))]
+    merged = photo_read.merge(per_photo)
+    if merged:
+        return (photo_read.render(merged, label), read)
+    # A reader that answered in words instead of the JSON asked for.
+    said_any = next((a for a in answers if a), None)
+    if said_any:
+        return (f"[{label} attached. What they show:\n{said_any}]", read)
+    return (f"[{label} attached; they could not be read just now]", read)
 
 
 def speak_text(ctx: Ctx, text: str) -> bytes:
