@@ -6981,6 +6981,8 @@ export type UtilsTestEmailResponse = (Message);
 
 export type UtilsHealthCheckResponse = (boolean);
 
+export type UtilsHealthCheck1Response = (boolean);
+
 export type WeatherReadPrefsResponse = (WeatherPrefPublic);
 
 export type WeatherUpdatePrefsData = {

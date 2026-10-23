@@ -28,3 +28,8 @@ def test_no_hsts_in_local(client: TestClient) -> None:
     assert settings.ENVIRONMENT == "local"
     r = client.get(f"{settings.API_V1_STR}/utils/health-check/")
     assert "strict-transport-security" not in {k.lower() for k in r.headers}
+
+
+def test_health_check_answers_head(client: TestClient) -> None:
+    r = client.head(f"{settings.API_V1_STR}/utils/health-check/")
+    assert r.status_code == 200

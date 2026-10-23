@@ -33,7 +33,8 @@ def test_email(email_to: EmailStr) -> Message:
     return Message(message="Test email sent")
 
 
-@utils_router.get("/health-check/")
+# HEAD too: the phone's connectivity check (NetInfo) sends HEAD.
+@utils_router.api_route("/health-check/", methods=["GET", "HEAD"])
 async def health_check() -> bool:
     return True
 
