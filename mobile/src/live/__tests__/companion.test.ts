@@ -8,6 +8,7 @@ import type { StorageAdapter } from "@domain/lib/store"
 import { ask } from "@/prototype/companion/brain"
 import {
   addTracker,
+  answering,
   COMPANION_NAME,
   type CompanionState,
   companionStore,
@@ -659,6 +660,7 @@ test("photos sent with a message upload first, show at once, and go as media_ids
 
 test("narration before a tool call streams, then gives way to the answer", async () => {
   const seen: string[] = []
+  const writing: boolean[] = []
   let solId = ""
   install(async (_p, body) => {
     const meId = String(body.id)
@@ -700,11 +702,17 @@ test("narration before a tool call streams, then gives way to the answer", async
           .get()
           .messages.find((m) => m.id === solId)?.text
         if (t) seen.push(t)
+        if (t) writing.push(answering.getState().id === solId)
       },
     )
   })
   ask("how much protein is left?")
   await flush()
+  // While it was written the reply was marked as still being written; once
+  // the stream ended, nothing is.
+  expect(writing.length).toBeGreaterThan(0)
+  expect(writing.every(Boolean)).toBe(true)
+  expect(answering.getState().id).toBeNull()
   // It streamed as written, then only the answer stayed.
   expect(seen).toContain("Let me check.")
   expect(seen).toContain("You have")

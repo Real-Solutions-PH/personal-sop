@@ -54,6 +54,13 @@ test("Fern's composer offers dictation and the quick add button", () => {
   expect(screen.getByRole("button", { name: "Quick add" })).toBeTruthy()
 })
 
+test("with words in the box, dictation keeps its own button beside Send", () => {
+  render(<ThreadComposer onText={jest.fn()} hints={false} />)
+  fireEvent.changeText(screen.getByLabelText("Capture message"), "Had eggs and")
+  expect(screen.getByRole("button", { name: "Send" })).toBeTruthy()
+  expect(screen.getByRole("button", { name: "Dictate" })).toBeTruthy()
+})
+
 test("the capture screen's composer keeps quick add and voice capture", () => {
   render(<ThreadComposer hints={false} />)
   expect(screen.getByRole("button", { name: "Record voice" })).toBeTruthy()

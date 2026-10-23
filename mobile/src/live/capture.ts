@@ -52,6 +52,7 @@ import { onConnectivityChange } from "@domain/lib/platform"
 import { fetch as expoFetch } from "expo/fetch"
 import {
   type AskBackend,
+  answering,
   type Block,
   COMPANION_NAME,
   companionStore,
@@ -969,6 +970,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
     let open: string | undefined
     const sol = () => {
       thinking.setState({ on: false })
+      answering.setState({ id: solId })
       solAt ||= Date.now()
       const all: Block[] = steps.length
         ? [{ t: "steps", items: steps.map((x) => ({ ...x })) }, ...blocks]
@@ -1160,6 +1162,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
       )
         fail()
       thinking.setState({ on: false })
+      answering.setState({ id: null })
       deps.kick()
       void refreshSpend()
     }
