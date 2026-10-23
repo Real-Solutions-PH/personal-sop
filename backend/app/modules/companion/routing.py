@@ -107,10 +107,11 @@ GROUPS: dict[str, tuple[frozenset[str], re.Pattern[str]]] = {
                 "remove_item",
                 "save_food",
                 "find_foods",
+                "reread_photos",
             }
         ),
         re.compile(
-            r"\b(label|nutrition facts?|serving size|per serving|per 100 ?g|"
+            r"\b(label|photos?|pictures?|image|re-?read|re-?check|nutrition facts?|serving size|per serving|per 100 ?g|"
             r"ate|eat|eaten|eating|meals?|breakfast|lunch|dinner|snacks?|"
             r"food|kcal|calories?|protein|carbs?|fats?|fiber|sugar|sodium|"
             r"macros?|nutrition|workouts?|gym|run|ran|walk(ed)?|bike|swim|"

@@ -134,13 +134,21 @@ def find_food(
     """The library food this name refers to, if one clearly does: an exact
     name or alias first, then the food whose every name word was said (the
     most specific such food wins)."""
+    return match_food(ctx, name, rows)[0]
+
+
+def match_food(
+    ctx: Ctx, name: str, rows: list[FoodItem] | None = None
+) -> tuple[FoodItem | None, bool]:
+    """``find_food`` with whether the match was exact (the name or an alias
+    itself) rather than by shared words."""
     key = fold(name)
     if not key:
-        return None
+        return None, False
     rows = _live(ctx) if rows is None else rows
     for r in rows:
         if r.key == key or key in (r.aliases or []):
-            return r
+            return r, True
     said = _words(name)
     best: tuple[int, FoodItem] | None = None
     for r in rows:
@@ -148,7 +156,14 @@ def find_food(
             words = _words(cand)
             if words and words <= said and (best is None or len(words) > best[0]):
                 best = (len(words), r)
-    return best[1] if best else None
+    return (best[1], False) if best else (None, False)
+
+
+def _agrees(item: dict[str, Any], values: dict[str, Any]) -> bool:
+    """The item's own calories are near the library's for the same amount
+    (within a third, or 40 kcal for small foods)."""
+    mine, theirs = float(item.get("kcal") or 0), float(values.get("kcal") or 0)
+    return abs(mine - theirs) <= max(40.0, theirs / 3)
 
 
 def search_foods(ctx: Ctx, query: str, limit: int = 15) -> list[FoodItem]:
@@ -211,13 +226,21 @@ def apply_library(
     used: list[str] = []
     out: list[dict[str, Any]] = []
     for it in items:
-        food = find_food(ctx, str(it.get("name", "")), rows)
+        food, exact = match_food(ctx, str(it.get("name", "")), rows)
         values = (
             scaled(food, float(it.get("qty") or 1), str(it.get("unit") or ""))
             if food
             else None
         )
-        if food is None or values is None:
+        # A match by shared words only ("pre-workout energy drink" against
+        # the alias "pre workout drink" of a 489 kcal shake) is a guess: when
+        # the item's own numbers (often read off a label in this very turn)
+        # say something else, they stand.
+        if (
+            food is None
+            or values is None
+            or (not exact and it.get("kcal") is not None and not _agrees(it, values))
+        ):
             out.append(it)
             continue
         out.append(

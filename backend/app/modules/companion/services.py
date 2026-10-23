@@ -739,6 +739,42 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
         ]
         return {"memories": run.recalled}
 
+    def reread_photos(**kw: Any) -> dict[str, Any]:
+        """The latest photos in this chat, read again slowly (a label the
+        first reading got wrong)."""
+        NoArgs(**kw)
+        latest = next(
+            (
+                (m, b)
+                for m in owned_repo.list_rows(
+                    ctx,
+                    CompanionMessage,
+                    col(CompanionMessage.role) == "me",
+                    *_thread_where(),
+                    order_by=[col(CompanionMessage.created_at).desc()],
+                    limit=20,
+                )
+                for b in m.blocks or []
+                if b.get("t") == "photos" and b.get("media")
+            ),
+            None,
+        )
+        if latest is None:
+            return {"error": "no_photos_in_this_chat"}
+        m, block = latest
+        media = block["media"]
+        ids = [uuid.UUID(str(x)) for x in media] if isinstance(media, list) else []
+        seen, read = capture.describe_photos(ctx, ids, m.text or "", careful=True)
+        if not read:
+            return {"error": "photos_could_not_be_read", "detail": seen}
+        m.blocks = [
+            {**b, "read": seen[:PHOTO_READ_CHARS]} if b is block else b
+            for b in m.blocks
+        ]
+        ctx.session.add(m)
+        ctx.session.flush()
+        return {"photos": len(read), "read": seen}
+
     def forget_fact(**kw: Any) -> dict[str, Any]:
         a = ForgetArgs(**kw)
         m = owned_repo.get(ctx, Memory, a.memory_id)
@@ -827,6 +863,12 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
             "Look up what you know about the person beyond ABOUT THEM: their "
             "likes, people, health, plans, past events. Call it before "
             "answering anything personal you are unsure of.",
+        ),
+        (
+            reread_photos,
+            NoArgs,
+            "Read this chat's last photos again, digit by digit (when they "
+            "ask to re-check a photo or label).",
         ),
         (forget_fact, ForgetArgs, "Forget one remembered fact by its id."),
         (show_memories, NoArgs, "Show what you remember about the user."),
@@ -1019,9 +1061,8 @@ Never add up or subtract
 numbers yourself; a meal still waiting for their OK is not counted yet,
 so say so if one is. Never call the same tool
 twice with the same arguments. After acting, answer in one or two short
-sentences saying what you did. Do every part of a
-many-part ask with its own tool call before replying; never end on "let
-me…" for an undone part. Answer the latest message, not earlier ones.
+sentences saying what you did. Do every part of a many-part ask before replying; never end on "let
+me…". Answer the latest message only.
 
 Memory: ABOUT THEM below is always true for {user}: follow its answer style
 and constraints in every reply. Anything else you know about them (likes,
@@ -1032,6 +1073,8 @@ something lasting about themselves or how they want answers, call
 `remember_fact` in this same reply (one short statement per call, with its
 kind); a repeat is recognised, so don't check first. Never say you'll
 remember something without calling it. Use `forget_fact` with an id when they ask.
+
+Trust label numbers read from photos over library or web values.
 """
 
 # What changes every turn goes after the rules, so the rules and the tools
@@ -1437,6 +1480,18 @@ def _window_rows(ctx: Ctx) -> list[CompanionMessage]:
 FAILED_REPLY = "(That reply failed before finishing; nothing from it was done.)"
 
 
+PHOTO_READ_CHARS = 4000
+PHOTO_HISTORY_CHARS = 1500
+
+
+def _photo_read(m: CompanionMessage) -> str:
+    """What a message's photos showed, as read when it was sent."""
+    for b in m.blocks or []:
+        if b.get("t") == "photos" and b.get("read"):
+            return str(b["read"])[:PHOTO_HISTORY_CHARS]
+    return ""
+
+
 def _did(m: CompanionMessage) -> list[str]:
     """What a reply did, from its steps block: the finished steps' sentences."""
     for b in m.blocks or []:
@@ -1467,8 +1522,11 @@ def _history(ctx: Ctx) -> list[BaseMessage]:
         if ctx.clock.day_of(m.created_at) != ctx.today:
             continue
         if m.role == "me":
-            if m.text:
-                out.append(HumanMessage(m.text[:HISTORY_CHARS]))
+            read = _photo_read(m)
+            if m.text or read:
+                out.append(
+                    HumanMessage(f"{(m.text or '')[:HISTORY_CHARS]}\n\n{read}".strip())
+                )
             continue
         # A reply carries what it did as well as what it said: without its
         # steps the model can't see a habit it already created, and re-asks
@@ -1541,6 +1599,12 @@ def _ask_ai(
         stream.tool_started(call, "read_photos", {"photos": len(photos)})
         seen, read = capture.describe_photos(ctx, photos, text)
         stream.tool_finished(call, "read_photos", {"read": len(read)})
+        # Kept with the message, so later turns know what the photos showed.
+        me.blocks = [
+            {**b, "read": seen[:PHOTO_READ_CHARS]} if b.get("t") == "photos" else b
+            for b in me.blocks
+        ]
+        ctx.session.add(me)
         text = f"{text}\n\n{seen}".strip()
     run = SolRun(ctx=ctx, me_id=me_id, emit=stream.frame)
     # What the person said today, newest last: "register those" leans on the

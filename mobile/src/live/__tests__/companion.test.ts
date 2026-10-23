@@ -656,3 +656,58 @@ test("photos sent with a message upload first, show at once, and go as media_ids
   expect(path).toBe("/companion/ask/stream")
   expect(body).toMatchObject({ text: "log this receipt", media_ids: uploads })
 })
+
+test("narration before a tool call streams, then gives way to the answer", async () => {
+  const seen: string[] = []
+  let solId = ""
+  install(async (_p, body) => {
+    const meId = String(body.id)
+    solId = derivedId("companion-reply", meId, "sol")
+    const at = new Date().toISOString()
+    const f = (d: Row): Frame => [String(d.type), d]
+    return sseResponse(
+      [
+        f({
+          type: "CUSTOM",
+          name: "message",
+          value: {
+            id: meId,
+            role: "me",
+            text: body.text,
+            blocks: [],
+            created_at: at,
+          },
+        }),
+        f({ type: "TEXT_MESSAGE_START", messageId: "a", role: "assistant" }),
+        f({
+          type: "TEXT_MESSAGE_CONTENT",
+          messageId: "a",
+          delta: "Let me check.",
+        }),
+        f({ type: "TEXT_MESSAGE_END", messageId: "a" }),
+        f({ type: "CUSTOM", name: "text.discard", value: { message_id: "a" } }),
+        f({ type: "TEXT_MESSAGE_START", messageId: "b", role: "assistant" }),
+        f({ type: "TEXT_MESSAGE_CONTENT", messageId: "b", delta: "You have " }),
+        f({
+          type: "TEXT_MESSAGE_CONTENT",
+          messageId: "b",
+          delta: "39 g left.",
+        }),
+        f({ type: "TEXT_MESSAGE_END", messageId: "b" }),
+      ],
+      () => {
+        const t = companionStore
+          .get()
+          .messages.find((m) => m.id === solId)?.text
+        if (t) seen.push(t)
+      },
+    )
+  })
+  ask("how much protein is left?")
+  await flush()
+  // It streamed as written, then only the answer stayed.
+  expect(seen).toContain("Let me check.")
+  expect(seen).toContain("You have")
+  const sol = companionStore.get().messages.find((m) => m.id === solId)
+  expect(sol?.text).toBe("You have 39 g left.")
+})
