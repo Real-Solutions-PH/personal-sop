@@ -2,7 +2,16 @@ import { useEffect, useState } from "react"
 import { Platform, TextInput, View } from "react-native"
 import { Copy, Tap } from "./native-kit"
 import { fonts, useTheme } from "./theme"
-/** Compact time control. Keep an editable draft on web; commit only a valid time. */
+import { Button, Sheet } from "./ui"
+
+const hhmm = (d: Date) =>
+  `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`
+const asDate = (v: string) => new Date(`2000-01-01T${v}:00`)
+
+/** Compact time control. One tap opens the time wheel: Android's clock
+ * dialog, and on iOS a sheet with the wheel already turning (the inline
+ * compact picker needed a second tap). Web keeps an editable draft and
+ * commits only a valid time. */
 export function TimeInput({
   value,
   onChange,
@@ -14,10 +23,11 @@ export function TimeInput({
 }) {
   const t = useTheme(),
     [draft, setDraft] = useState(value),
-    [open, setOpen] = useState(false)
+    [open, setOpen] = useState(false),
+    [turning, setTurning] = useState(() => asDate(value))
   useEffect(() => setDraft(value), [value])
   const Picker =
-    open && Platform.OS !== "web"
+    Platform.OS !== "web"
       ? (
           require("@react-native-community/datetimepicker") as typeof import("@react-native-community/datetimepicker")
         ).default
@@ -28,44 +38,71 @@ export function TimeInput({
     paddingHorizontal: 8,
     paddingVertical: 6,
   }
+  if (Platform.OS === "web")
+    return (
+      <TextInput
+        accessibilityLabel={label}
+        value={draft}
+        onChangeText={(v) => {
+          setDraft(v)
+          if (/^([01]\d|2[0-3]):[0-5]\d$/.test(v)) onChange(v)
+        }}
+        onBlur={() => setDraft(value)}
+        maxLength={5}
+        style={{
+          ...style,
+          fontFamily: fonts.body,
+          fontSize: 14,
+          color: t.text,
+          width: 70,
+        }}
+      />
+    )
   return (
     <View>
-      {Platform.OS === "web" ? (
-        <TextInput
-          accessibilityLabel={label}
-          value={draft}
-          onChangeText={(v) => {
-            setDraft(v)
-            if (/^([01]\d|2[0-3]):[0-5]\d$/.test(v)) onChange(v)
-          }}
-          onBlur={() => setDraft(value)}
-          maxLength={5}
-          style={{
-            ...style,
-            fontFamily: fonts.body,
-            fontSize: 14,
-            color: t.text,
-            width: 70,
-          }}
-        />
-      ) : (
-        <Tap label={label} onPress={() => setOpen(!open)} style={style}>
-          <Copy size={14}>{value}</Copy>
-        </Tap>
-      )}
-      {Picker && (
+      <Tap
+        label={label}
+        onPress={() => {
+          setTurning(asDate(value))
+          setOpen(true)
+        }}
+        style={style}
+      >
+        <Copy size={14}>{value}</Copy>
+      </Tap>
+      {Picker && Platform.OS === "android" && open && (
         <Picker
-          value={new Date(`2000-01-01T${value}:00`)}
+          value={asDate(value)}
           mode="time"
           display="default"
           onChange={(event, date) => {
             setOpen(false)
-            if (event.type === "set" && date)
-              onChange(
-                `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`,
-              )
+            if (event.type === "set" && date) onChange(hhmm(date))
           }}
         />
+      )}
+      {Picker && Platform.OS === "ios" && (
+        <Sheet title={label} open={open} onClose={() => setOpen(false)}>
+          <View style={{ alignItems: "center" }}>
+            <Picker
+              testID="time-wheel"
+              value={turning}
+              mode="time"
+              display="spinner"
+              themeVariant={t.dark ? "dark" : "light"}
+              textColor={t.text}
+              onChange={(_, date) => date && setTurning(date)}
+            />
+          </View>
+          <Button
+            onPress={() => {
+              onChange(hhmm(turning))
+              setOpen(false)
+            }}
+          >
+            Done
+          </Button>
+        </Sheet>
       )}
     </View>
   )
