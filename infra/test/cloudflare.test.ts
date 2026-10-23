@@ -4,6 +4,7 @@ import {
   type ExistingRecord,
   plan,
   rateLimitRule,
+  sameRateLimit,
   sameTunnelConfig,
   tunnelConfig,
 } from "../scripts/cloudflare"
@@ -169,5 +170,20 @@ describe("Cloudflare rate-limiting rule", () => {
       )
     }
     expect(rule.expression).not.toContain("/api/v1/tasks/")
+  })
+})
+
+describe("rate rule comparison", () => {
+  test("ignores the key order Cloudflare returns the rule in", () => {
+    const want = rateLimitRule().ratelimit
+    const live = {
+      characteristics: ["cf.colo.id", "ip.src"],
+      mitigation_timeout: want.mitigation_timeout,
+      period: 10,
+      requests_per_period: want.requests_per_period,
+    }
+    expect(sameRateLimit(live, want)).toBe(true)
+    expect(sameRateLimit({ ...live, period: 60 }, want)).toBe(false)
+    expect(sameRateLimit(undefined, want)).toBe(false)
   })
 })
