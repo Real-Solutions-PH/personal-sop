@@ -211,6 +211,15 @@ describe("tunnel", () => {
     )
   })
 
+  test("the backend tasks read the script-owned third-party secret by its partial ARN", () => {
+    const policies = JSON.stringify(prod.findResources("AWS::IAM::Policy"))
+    expect(policies).toContain("secret:unfurl/third-party*")
+    const nebius = container("unfurl-api", "api").Secrets?.find(
+      (x) => x.Name === "NEBIUS_API_KEY",
+    )
+    expect(JSON.stringify(nebius)).toContain("secret:unfurl/third-party")
+  })
+
   test("the tunnel's execution role can read the token secret by its partial ARN", () => {
     // ECS asks for `secret:unfurl/cloudflared-tunnel` without the random
     // suffix; a `-??????` resource alone was denied on the first deploy.
@@ -218,17 +227,17 @@ describe("tunnel", () => {
     expect(policies).toContain("secret:unfurl/cloudflared-tunnel*")
   })
 
-  test("every task stop, with its reason, is logged to /unfurl/ecs-events", () => {
-    prod.hasResourceProperties("AWS::Events::Rule", {
-      EventPattern: Match.objectLike({
-        source: ["aws.ecs"],
-        "detail-type": ["ECS Task State Change"],
-        detail: Match.objectLike({ lastStatus: ["STOPPED"] }),
-      }),
-    })
-    prod.hasResourceProperties("AWS::Logs::LogGroup", {
-      LogGroupName: "/unfurl/ecs-events",
-    })
+  test("every task stop, with its reason, goes to a kept log group", () => {
+    const rules = Object.values(prod.findResources("AWS::Events::Rule"))
+    const stop = rules.find((r) =>
+      JSON.stringify(r.Properties.EventPattern).includes(
+        "ECS Task State Change",
+      ),
+    )
+    expect(stop?.Properties.EventPattern.detail.lastStatus).toEqual(["STOPPED"])
+    const target = JSON.stringify(stop?.Properties.Targets)
+    expect(target).toContain("logs")
+    expect(target).toContain("EcsEventsLogs")
   })
 
   test("API and GoTrue register in private DNS as api. and auth.unfurl.internal", () => {
@@ -654,31 +663,50 @@ describe("backend environment", () => {
 })
 
 describe("removal on a failed first create", () => {
-  test("secrets, log groups and the media bucket are retained on update or delete, not on create rollback", () => {
-    for (const type of [
+  const named = (type: string, key: string, prefix: string) =>
+    Object.values(prod.findResources(type)).filter((r) =>
+      String(r.Properties?.[key] ?? "").startsWith(prefix),
+    )
+
+  test("named secrets and the media bucket are removed on create rollback, kept otherwise", () => {
+    const secrets = named(
       "AWS::SecretsManager::Secret",
-      "AWS::Logs::LogGroup",
-      "AWS::S3::Bucket",
-    ]) {
-      const named = Object.values(prod.findResources(type)).filter(
-        (r) =>
-          // The RDS master secret follows its instance (CDK's default), so a
-          // snapshot restore sets a new password; it is not one of these.
-          (r.Properties?.Name?.startsWith?.("unfurl/") &&
-            r.Properties.Name !== "unfurl/db-master") ||
-          // Service log groups; the functions' /unfurl/fn/* groups are DESTROY.
-          (r.Properties?.LogGroupName?.startsWith?.("/unfurl/") &&
-            !r.Properties.LogGroupName.startsWith("/unfurl/fn/")) ||
-          String(JSON.stringify(r.Properties?.BucketName ?? "")).includes(
-            "unfurl-media",
-          ),
-      )
-      expect(named.length).toBeGreaterThan(0)
-      for (const r of named) {
-        expect(r.DeletionPolicy).toBe("RetainExceptOnCreate")
-        expect(r.UpdateReplacePolicy).toBe("Retain")
-      }
+      "Name",
+      "unfurl/",
+    ).filter(
+      // The RDS master secret follows its instance (CDK's default).
+      (r) => r.Properties.Name !== "unfurl/db-master",
+    )
+    const buckets = Object.values(prod.findResources("AWS::S3::Bucket")).filter(
+      (r) =>
+        JSON.stringify(r.Properties?.BucketName ?? "").includes("unfurl-media"),
+    )
+    expect(secrets.length).toBe(6)
+    expect(buckets.length).toBe(1)
+    for (const r of [...secrets, ...buckets]) {
+      expect(r.DeletionPolicy).toBe("RetainExceptOnCreate")
     }
+  })
+
+  test("service log groups have generated names and are always kept", () => {
+    const groups = Object.entries(
+      prod.findResources("AWS::Logs::LogGroup"),
+    ).filter(([id]) => /^(Api|Worker|Gotrue|Tunnel|EcsEvents)Logs/.test(id))
+    expect(groups.length).toBe(5)
+    for (const [, g] of groups) {
+      expect(g.Properties.LogGroupName).toBeUndefined()
+      expect(g.DeletionPolicy).toBe("Retain")
+    }
+  })
+
+  test("database deletion protection is on by default and can be off for a first create", () => {
+    prod.hasResourceProperties("AWS::RDS::DBInstance", {
+      DeletionProtection: true,
+    })
+    const first = synth({ "unfurl:databaseDeletionProtection": "false" }).prod
+    first.hasResourceProperties("AWS::RDS::DBInstance", {
+      DeletionProtection: false,
+    })
   })
 })
 

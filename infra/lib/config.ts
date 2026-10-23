@@ -46,6 +46,8 @@ export interface UnfurlConfig {
   googleSignIn: boolean
   /** RDS standby in a second AZ (doubles the instance cost). */
   databaseMultiAz: boolean
+  /** RDS deletion protection; default on. Off only for a first create. */
+  databaseDeletionProtection: boolean
 }
 
 const str = (node: Node, key: string, fallback = ""): string => {
@@ -102,6 +104,9 @@ export function loadConfig(node: Node): UnfurlConfig {
     appleSignIn: bool(node, "appleSignIn"),
     googleSignIn: bool(node, "googleSignIn"),
     databaseMultiAz: bool(node, "databaseMultiAz"),
+    databaseDeletionProtection: !["false", false].includes(
+      node.tryGetContext("unfurl:databaseDeletionProtection"),
+    ),
   }
 }
 
@@ -238,6 +243,21 @@ export const IMAGES = {
 /** The Cloudflare Tunnel's name, and the secret holding its token. Both are
  * created by scripts/cloudflare.ts; the stack reads the secret by name. */
 export const TUNNEL_NAME = PREFIX
+
+/** Third-party API keys, created and filled by scripts/third-party-secrets.ts
+ * before the first deploy; the stack reads it by name. */
+export const THIRD_PARTY_SECRET = `${PREFIX}/third-party`
+/** Its fields, and which .env variable fills each. */
+export const THIRD_PARTY_FIELDS = {
+  nebius_api_key: "NEBIUS_API_KEY",
+  deepgram_api_key: "DEEPGRAM_API_KEY",
+  openrouter_api_key: "OPENROUTER_API_KEY",
+  brave_api_key: "BRAVE_API_KEY",
+  expo_access_token: "EXPO_ACCESS_TOKEN",
+  sentry_dsn: "SENTRY_DSN",
+} as const
+/** The API cannot start with AI on without these. */
+export const THIRD_PARTY_REQUIRED = ["nebius_api_key"] as const
 export const TUNNEL_TOKEN_SECRET = `${PREFIX}/cloudflared-tunnel`
 
 /** Private DNS (Cloud Map) the tunnel and the backend reach services at. */

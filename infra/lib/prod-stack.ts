@@ -40,6 +40,7 @@ import {
   PREFIX,
   SERVICE_NAMESPACE,
   SERVICE_PORTS,
+  THIRD_PARTY_SECRET,
   TUNNEL_TOKEN_SECRET,
   type UnfurlConfig,
 } from "./config"
@@ -244,28 +245,30 @@ export class ProdStack extends Stack {
         JSON.stringify({ username: "", password: "" }),
       ),
     })
-    /** Third-party keys: empty until someone puts the real values in
-     * (`aws secretsmanager put-secret-value`, see the infra README). An empty
-     * value reaches the backend as unset. */
+    /** Generated app secrets (the first superuser's password here, the AI
+     * key-encryption key from the bootstrap function). */
     const appSecret = secret(
       "App",
-      "Backend third-party keys and generated app secrets",
+      "Backend generated secrets: first superuser password, AI credentials KEK",
       {
         generateSecretString: {
-          secretStringTemplate: JSON.stringify({
-            nebius_api_key: "",
-            deepgram_api_key: "",
-            openrouter_api_key: "",
-            brave_api_key: "",
-            expo_access_token: "",
-            sentry_dsn: "",
-            ai_credentials_kek: "",
-          }),
+          secretStringTemplate: JSON.stringify({ ai_credentials_kek: "" }),
           generateStringKey: "first_superuser_password",
           excludeCharacters: URL_UNSAFE,
           passwordLength: 32,
         },
       },
+    )
+    /** Third-party keys (Nebius, Deepgram, ...): an input, not something the
+     * stack can make. `scripts/third-party-secrets.ts` creates and fills it
+     * before the first deploy, as `scripts/cloudflare.ts` does the tunnel
+     * token, because the API refuses to start with AI on and no Nebius key
+     * (the second create, 2026-10-24, rolled back on exactly that). Read by
+     * name, so its execution-role grant needs the partial-ARN wildcard. */
+    const thirdPartySecret = secretsmanager.Secret.fromSecretNameV2(
+      this,
+      "ThirdPartySecret",
+      THIRD_PARTY_SECRET,
     )
     const providersSecret = secret(
       "AuthProviders",
@@ -316,7 +319,10 @@ export class ProdStack extends Stack {
       preferredBackupWindow: "18:00-19:00", // 02:00-03:00 Manila
       preferredMaintenanceWindow: "sun:19:30-sun:20:30",
       autoMinorVersionUpgrade: true,
-      deletionProtection: true,
+      // On by default. A first create can run with it off
+      // (`-c unfurl:databaseDeletionProtection=false`) so a failure rolls
+      // back cleanly; turn it on with the next deploy once data lands.
+      deletionProtection: config.databaseDeletionProtection,
       removalPolicy: RemovalPolicy.SNAPSHOT,
       enablePerformanceInsights: true,
       cloudwatchLogsExports: ["postgresql"],
@@ -469,12 +475,20 @@ export class ProdStack extends Stack {
       dnsRecordType: servicediscovery.DnsRecordType.A,
       dnsTtl: Duration.seconds(10),
     })
-    const logGroup = (name: string) =>
-      new logs.LogGroup(this, `${name}Logs`, {
-        logGroupName: `/${PREFIX}/${name.toLowerCase()}`,
+    // Generated names, always kept: a failed create keeps its logs (the
+    // second create's API crash was unreadable once its group was removed),
+    // and a retry never collides with a leftover name. The stack outputs
+    // list the names.
+    const logGroup = (name: string) => {
+      const group = new logs.LogGroup(this, `${name}Logs`, {
         retention: logs.RetentionDays.ONE_MONTH,
-        removalPolicy: RETAIN,
+        removalPolicy: RemovalPolicy.RETAIN,
       })
+      new CfnOutput(this, `${name.replace(/-/g, "")}LogGroup`, {
+        value: group.logGroupName,
+      })
+      return group
+    }
     // By name, not a cross-stack reference: the CI stack owns the repository
     // and must stay deletable/updatable on its own.
     const repository = ecr.Repository.fromRepositoryName(
@@ -567,23 +581,26 @@ export class ProdStack extends Stack {
       SMTP_USER: ecs.Secret.fromSecretsManager(smtpSecret, "username"),
       SMTP_PASSWORD: ecs.Secret.fromSecretsManager(smtpSecret, "password"),
       NEBIUS_API_KEY: ecs.Secret.fromSecretsManager(
-        appSecret,
+        thirdPartySecret,
         "nebius_api_key",
       ),
       DEEPGRAM_API_KEY: ecs.Secret.fromSecretsManager(
-        appSecret,
+        thirdPartySecret,
         "deepgram_api_key",
       ),
       OPENROUTER_API_KEY: ecs.Secret.fromSecretsManager(
-        appSecret,
+        thirdPartySecret,
         "openrouter_api_key",
       ),
-      BRAVE_API_KEY: ecs.Secret.fromSecretsManager(appSecret, "brave_api_key"),
+      BRAVE_API_KEY: ecs.Secret.fromSecretsManager(
+        thirdPartySecret,
+        "brave_api_key",
+      ),
       EXPO_ACCESS_TOKEN: ecs.Secret.fromSecretsManager(
-        appSecret,
+        thirdPartySecret,
         "expo_access_token",
       ),
-      SENTRY_DSN: ecs.Secret.fromSecretsManager(appSecret, "sentry_dsn"),
+      SENTRY_DSN: ecs.Secret.fromSecretsManager(thirdPartySecret, "sentry_dsn"),
       AI_CREDENTIALS_KEK: ecs.Secret.fromSecretsManager(
         appSecret,
         "ai_credentials_kek",
@@ -597,6 +614,15 @@ export class ProdStack extends Stack {
         memoryLimitMiB,
         runtimePlatform: ARM64,
       })
+      // See ThirdPartySecret: ECS asks for the partial ARN.
+      task.addToExecutionRolePolicy(
+        new iam.PolicyStatement({
+          actions: ["secretsmanager:GetSecretValue"],
+          resources: [
+            `arn:${this.partition}:secretsmanager:${this.region}:${this.account}:secret:${THIRD_PARTY_SECRET}*`,
+          ],
+        }),
+      )
       mediaBucket.grantReadWrite(task.taskRole)
       mediaBucket.grantDelete(task.taskRole)
       return task

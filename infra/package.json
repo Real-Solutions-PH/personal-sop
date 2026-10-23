@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true ./",
     "test": "bun test",
-    "cloudflare": "bun scripts/cloudflare.ts"
+    "cloudflare": "bun scripts/cloudflare.ts",
+    "secrets": "bun scripts/third-party-secrets.ts"
   },
   "dependencies": {
     "aws-cdk-lib": "2.274.0",
