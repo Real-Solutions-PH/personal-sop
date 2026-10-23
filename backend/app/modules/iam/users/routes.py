@@ -14,6 +14,7 @@ from app.modules.iam.users.schema import (
 )
 from app.shared.deps import SessionDep
 from app.shared.pagination import PaginationDep
+from app.shared.rate_limit import guarded
 from app.shared.schema import Message
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -45,7 +46,12 @@ def create_user(
     )
 
 
-@router.patch("/me", response_model=UserPublic)
+@router.patch(
+    "/me",
+    response_model=UserPublic,
+    # Can change the email at GoTrue: per-user and per-address budget.
+    dependencies=[guarded("account", "update-me")],
+)
 def update_user_me(
     *, session: SessionDep, user_in: UserUpdateMe, current_user: CurrentUser
 ) -> Any:
@@ -66,7 +72,12 @@ def export_my_data(session: SessionDep, current_user: CurrentUser) -> dict[str, 
     return user_service.export_user_data(session=session, user_id=current_user.id)
 
 
-@router.delete("/me", response_model=Message)
+@router.delete(
+    "/me",
+    response_model=Message,
+    # Deletes the identity at GoTrue: per-user and per-address budget.
+    dependencies=[guarded("account", "delete-me")],
+)
 def delete_user_me(session: SessionDep, current_user: CurrentUser) -> Any:
     user_service.delete_user_me(session=session, current_user=current_user)
     return Message(message="User deleted successfully")

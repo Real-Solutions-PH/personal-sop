@@ -32,16 +32,16 @@ Everything runs in one AWS account in one region, **`ap-southeast-1` (Singapore)
 
 | Part | AWS service | Notes |
 |---|---|---|
-| API (FastAPI) | ECS Fargate service behind an Application Load Balancer, TLS from ACM | Same image as local. The ALB idle timeout is raised for the server-sent-event streams (`/events/stream`, `/companion/ask/stream`) |
+| API (FastAPI) | ECS Fargate service (Graviton) reached through a **Cloudflare Tunnel** at `unfurl-api.realsolutionsph.com`; Cloudflare terminates TLS | Same image as local, built for arm64. No load balancer ([ADR-0023](adr/0023-cloudflare-tunnel-no-alb-waf-nat.md)). Server-sent-event streams heartbeat every 25 s, inside Cloudflare's 100 s limit |
 | Background jobs (procrastinate) | ECS Fargate service from the same image | Stats rollups, push sends, retention |
-| **Sign-in (GoTrue)** | **ECS Fargate service behind the same ALB at `/auth/v1/*`** | **[ADR-0021](adr/0021-self-hosted-gotrue-on-aws.md):** self-hosted, not a Supabase project. An nginx sidecar strips the `/auth/v1` prefix; ES256 tokens; email, Apple and Google sign-in |
+| **Sign-in (GoTrue)** | **ECS Fargate service behind the same tunnel at `/auth/v1/*`** | **[ADR-0021](adr/0021-self-hosted-gotrue-on-aws.md):** self-hosted, not a Supabase project. An nginx sidecar strips the `/auth/v1` prefix; ES256 tokens; email, Apple and Google sign-in |
 | Database | RDS PostgreSQL | The app's database (`app`, Alembic, tenant RLS) and GoTrue's database (`auth`, its own role) on one instance, with automated backups and point-in-time restore |
 | Cache and rate limits | ElastiCache (Redis) | Replaces the Compose `redis` service |
 | Photos, files, audio | S3 | Replaces MinIO; presigned upload and download as today |
 | Email | SES (SMTP) | Sign-up confirmation, password reset, digests; domain verified with SPF, DKIM and DMARC |
 | Secrets | Secrets Manager | GoTrue signing key, SMTP, Apple and Google client secrets, Nebius and Deepgram keys, the database password |
-| Edge protection | AWS WAF on the ALB | Rate rules on `/auth/v1/*` and the AI endpoints |
-| Logs and alarms | CloudWatch | Health alarms on `/api/v1/utils/health-check/` and `/auth/v1/health` |
+| Edge protection | Cloudflare (proxy, one rate-limiting rule) + the API's own per-user and per-address limits + GoTrue's limits | No AWS WAF, no NAT; nothing in AWS listens on the internet ([ADR-0023](adr/0023-cloudflare-tunnel-no-alb-waf-nat.md)) |
+| Logs and alarms | CloudWatch | Container health checks on `/api/v1/utils/health-check/` and `/auth/v1/health`; alarms when a service has no running task |
 
 **Sign-in providers:**
 - **Email and password** works as soon as SES is verified.
@@ -113,7 +113,7 @@ generated secret (above) before any non-local deployment.
 
 **Supabase auth** (the backend verifies Supabase-issued JWTs via JWKS — ADR-0005)
 
-* `SUPABASE_URL`: Base URL of the GoTrue auth server, without `/auth/v1`. Locally that's the CLI stack. In production it's the self-hosted GoTrue behind the API's load balancer ([ADR-0021](adr/0021-self-hosted-gotrue-on-aws.md)).
+* `SUPABASE_URL`: Base URL of the GoTrue auth server, without `/auth/v1`. Locally that's the CLI stack. In production the backend reaches the self-hosted GoTrue privately at `http://auth.unfurl.internal:8080` and sets `SUPABASE_JWT_ISSUER` to the public `https://unfurl-api.realsolutionsph.com/auth/v1` ([ADR-0021](adr/0021-self-hosted-gotrue-on-aws.md), [ADR-0023](adr/0023-cloudflare-tunnel-no-alb-waf-nat.md)).
 * `SUPABASE_ANON_KEY`: Public anon key. The committed value is Supabase's well-known **local demo** key (safe to commit). In production it's a long-lived `anon` JWT signed with GoTrue's key. It's public: `supabase-js` sends it, and GoTrue does not trust it.
 * `SUPABASE_SERVICE_ROLE_KEY`: Service-role key, which the backend uses for GoTrue's admin API. The committed value is the local demo key. In production it's a `service_role` JWT signed with GoTrue's key, kept in Secrets Manager. It's a **secret**.
 * `SUPABASE_JWT_ISSUER`: Override the token issuer only when it differs from `SUPABASE_URL` (e.g. a containerized backend reaching the stack via `host.docker.internal` while tokens say `127.0.0.1`). Leave empty otherwise.

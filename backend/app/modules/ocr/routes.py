@@ -8,7 +8,7 @@ from app.modules.ocr import services as ocr_service
 from app.modules.ocr.providers.factory import list_available_providers
 from app.modules.ocr.schema import OcrDocumentPublic, OcrDocumentsPublic
 from app.shared.pagination import PaginationDep
-from app.shared.rate_limit import rate_limited
+from app.shared.rate_limit import guarded, rate_limited
 from app.shared.schema import Message
 from app.shared.tenant_session import TenantScopedSessionDep
 
@@ -18,7 +18,11 @@ router = APIRouter(prefix="/ocr", tags=["ocr"])
 @router.post(
     "/upload",
     response_model=OcrDocumentPublic,
-    dependencies=[rate_limited("ocr"), Depends(require_permission("ocr:write"))],
+    dependencies=[
+        rate_limited("ocr"),
+        Depends(require_permission("ocr:write")),
+        guarded("ai", "ocr"),
+    ],
 )
 async def upload_document(
     *,
@@ -88,7 +92,11 @@ def get_document(
 
 @router.delete(
     "/{id}",
-    dependencies=[rate_limited("ocr"), Depends(require_permission("ocr:write"))],
+    dependencies=[
+        rate_limited("ocr"),
+        Depends(require_permission("ocr:write")),
+        guarded("ai", "ocr"),
+    ],
 )
 def delete_document(
     session: TenantScopedSessionDep, current_user: CurrentUser, id: uuid.UUID

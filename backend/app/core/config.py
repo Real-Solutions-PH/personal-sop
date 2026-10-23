@@ -177,6 +177,15 @@ class Settings(BaseSettings):
     # it on. The bucket capacity (burst) equals one minute's budget.
     REDIS_URL: str = "redis://redis:6379/0"
     RATE_LIMIT_PER_MINUTE: int = 0
+    # Per-user AND per-client-address budgets (requests per minute, also the
+    # burst) for the routes that call a model provider (Fern, capture,
+    # dictation, speech, OCR, provider tests) and for the account routes that
+    # call GoTrue (profile and email change, account deletion). 0 = off.
+    RATE_LIMIT_AI_PER_MINUTE: int = 0
+    RATE_LIMIT_ACCOUNT_PER_MINUTE: int = 0
+    # Header holding the caller's real address when a trusted proxy sits in
+    # front (``CF-Connecting-IP`` behind Cloudflare). Unset: the peer address.
+    CLIENT_IP_HEADER: str | None = None
 
     @computed_field  # type: ignore[prop-decorator]
     @property

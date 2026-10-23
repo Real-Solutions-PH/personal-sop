@@ -16,10 +16,9 @@ export interface UnfurlConfig {
   githubEnvironment: string
   /**
    * Public host of the API and sign-in (`/api/*`, `/auth/v1/*`), e.g.
-   * `unfurl-api.realsolutionsph.com`. DNS is on Cloudflare, proxied in front
-   * of the ALB; the records are applied by `scripts/cloudflare-dns.ts`, not
-   * by the stack. Empty: plain HTTP on the ALB's own name, open to the
-   * internet, no certificate (synth and tests only, never for real users).
+   * `unfurl-api.realsolutionsph.com`. It is served by a Cloudflare Tunnel:
+   * the tunnel, its ingress rules and the DNS record are applied by
+   * `scripts/cloudflare.ts`, not by the stack. Required.
    */
   apiHost: string
   /**
@@ -61,6 +60,9 @@ const bool = (node: Node, key: string): boolean => {
 
 export function loadConfig(node: Node): UnfurlConfig {
   const apiHost = str(node, "apiHost")
+  if (!apiHost) {
+    throw new Error("unfurl:apiHost is required (the tunnel's public hostname)")
+  }
   const emailDomain = str(node, "emailDomain")
   const profile = str(node, "profile", "lean")
   if (!(profile in PROFILES)) {
@@ -79,11 +81,7 @@ export function loadConfig(node: Node): UnfurlConfig {
     siteUrl: str(
       node,
       "siteUrl",
-      emailDomain
-        ? `https://${emailDomain}`
-        : apiHost
-          ? `https://${apiHost}`
-          : "",
+      emailDomain ? `https://${emailDomain}` : `https://${apiHost}`,
     ),
     profile: profile as ProfileName,
     sizing: PROFILES[profile as ProfileName],
@@ -117,43 +115,38 @@ export interface Sizing {
   api: TaskSize
   worker: TaskSize
   gotrue: TaskSize
+  /** cloudflared connectors for the tunnel (each keeps 4 connections open). */
+  tunnel: TaskSize
   /** RDS instance class, e.g. `t4g.micro` (the `db.` prefix is implied). */
   database: string
   /** ElastiCache node type. */
   cache: string
-  /**
-   * Egress for the private subnets. `instance`: one t4g.nano NAT instance
-   * (about USD 4 a month, no redundancy, burstable bandwidth). `gateway`:
-   * one managed NAT gateway (about USD 43 a month plus USD 0.059 per GB).
-   */
-  nat: "instance" | "gateway"
 }
 
 /**
  * Two sizes of the same stack. `lean` is the default for the first deploy:
  * one user before launch, one task per service, the smallest database and
- * cache, and a NAT instance. `production` is the size planned for launch:
- * two API and two GoTrue tasks behind the ALB (a task can fail or be
- * replaced without downtime), a larger database and a managed NAT gateway.
- * Switching is one context value and a deploy; the database class change
- * is an RDS modification with a short restart.
+ * cache. `production` is the size planned for launch: two API, two GoTrue
+ * and two tunnel tasks (one can fail or be replaced without downtime) and a
+ * larger database. Switching is one context value and a deploy; the
+ * database class change is an RDS modification with a short restart.
  */
 export const PROFILES: Record<ProfileName, Sizing> = {
   lean: {
     api: { cpu: 512, memoryMiB: 1024, count: 1 },
     worker: { cpu: 256, memoryMiB: 1024, count: 1 },
     gotrue: { cpu: 256, memoryMiB: 512, count: 1 },
+    tunnel: { cpu: 256, memoryMiB: 512, count: 1 },
     database: "t4g.micro",
     cache: "cache.t4g.micro",
-    nat: "instance",
   },
   production: {
     api: { cpu: 512, memoryMiB: 1024, count: 2 },
     worker: { cpu: 512, memoryMiB: 1024, count: 1 },
     gotrue: { cpu: 256, memoryMiB: 512, count: 2 },
+    tunnel: { cpu: 256, memoryMiB: 512, count: 2 },
     database: "t4g.small",
     cache: "cache.t4g.micro",
-    nat: "gateway",
   },
 }
 
@@ -163,11 +156,25 @@ export const PREFIX = "unfurl"
 /** ECR repository the backend image is pushed to (owned by the CI stack). */
 export const BACKEND_REPOSITORY = `${PREFIX}-backend`
 
-/** Pinned images. Upgrade deliberately (ADR-0021), never `latest`. */
+/** Pinned images, all multi-arch with arm64 (every task runs on Graviton).
+ * Upgrade deliberately (ADR-0021), never `latest`. */
 export const IMAGES = {
   gotrue: "public.ecr.aws/supabase/gotrue:v2.197.0",
   nginx: "public.ecr.aws/nginx/nginx:1.31.8-alpine",
+  // Docker Hub only (no ECR Public copy).
+  cloudflared: "cloudflare/cloudflared:2026.10.3",
 } as const
+
+/** The Cloudflare Tunnel's name, and the secret holding its token. Both are
+ * created by scripts/cloudflare.ts; the stack reads the secret by name. */
+export const TUNNEL_NAME = PREFIX
+export const TUNNEL_TOKEN_SECRET = `${PREFIX}/cloudflared-tunnel`
+
+/** Private DNS (Cloud Map) the tunnel and the backend reach services at. */
+export const SERVICE_NAMESPACE = `${PREFIX}.internal`
+export const SERVICE_PORTS = { api: 8000, auth: 8080 } as const
+export const internalUrl = (service: keyof typeof SERVICE_PORTS) =>
+  `http://${service}.${SERVICE_NAMESPACE}:${SERVICE_PORTS[service]}`
 
 /** RDS engine: Postgres 18, matching `pgvector/pgvector:pg18` in compose.yml. */
 export const POSTGRES_FULL_VERSION = "18.6"

@@ -18,7 +18,7 @@ from app.modules.ai_providers.public import Purpose
 from app.modules.iam.deps import require_permission
 from app.shared.context import CtxDep
 from app.shared.pagination import PaginationDep
-from app.shared.rate_limit import rate_limited
+from app.shared.rate_limit import guarded, rate_limited
 
 router = APIRouter(prefix="/ai", tags=["ai-providers"])
 
@@ -30,6 +30,8 @@ WRITE = [
 OUTBOUND = [
     rate_limited("ai_providers"),
     Depends(require_permission("ai_providers:read")),
+    # Calls the provider with the user's key: per-user and per-address budget.
+    guarded("ai", "ai_providers"),
 ]
 
 

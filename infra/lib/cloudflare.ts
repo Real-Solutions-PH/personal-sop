@@ -1,31 +1,32 @@
 /**
- * Cloudflare sits in front of the ALB (proxied, SSL Full strict). The ALB
- * accepts HTTPS only from Cloudflare's published edge ranges, so the
- * `CF-Connecting-IP` header it forwards can be trusted as the client's
- * address (WAF rate limits and GoTrue's per-IP limits key on it).
- *
- * Source: https://www.cloudflare.com/ips-v4 (also /client/v4/ips, etag
- * 38f79d050aa027e3be3865e495dcc9bc), read 2026-10-23. IPv4 only: the ALB is
- * IPv4, so Cloudflare reaches it over IPv4. `scripts/cloudflare-dns.ts`
- * warns when the published list no longer matches this one.
+ * Cloudflare sits in front of everything: the API host is served by a
+ * Cloudflare Tunnel (scripts/cloudflare.ts), so no AWS resource listens on
+ * the internet. Cloudflare sets `CF-Connecting-IP` to the visitor's address
+ * on every request it forwards, and only the tunnel can reach the API and
+ * GoTrue's proxy, so the header can be trusted.
  */
-export const CLOUDFLARE_IPV4 = [
-  "173.245.48.0/20",
-  "103.21.244.0/22",
-  "103.22.200.0/22",
-  "103.31.4.0/22",
-  "141.101.64.0/18",
-  "108.162.192.0/18",
-  "190.93.240.0/20",
-  "188.114.96.0/20",
-  "197.234.240.0/22",
-  "198.41.128.0/17",
-  "162.158.0.0/15",
-  "104.16.0.0/13",
-  "104.24.0.0/14",
-  "172.64.0.0/13",
-  "131.0.72.0/22",
-] as const
-
-/** Header Cloudflare sets to the visitor's IP on every proxied request. */
 export const CLIENT_IP_HEADER = "CF-Connecting-IP"
+
+/**
+ * Rate limits, now that there is no AWS WAF:
+ * - in the API, per user AND per visitor address (Redis token buckets,
+ *   backend/app/shared/rate_limit.py), requests per minute;
+ * - at Cloudflare, one zone rate-limiting rule (the Free plan allows one),
+ *   per visitor address over 10 seconds, on the AI and auth paths;
+ * - GoTrue's own per-address limits for sign-in (prod-stack.ts).
+ */
+export const RATE_LIMITS = {
+  aiPerMinute: 20,
+  accountPerMinute: 10,
+  cloudflare: { requestsPer10Seconds: 50, blockSeconds: 10 },
+} as const
+
+/** Paths the Cloudflare rule counts: sign-in and the model-backed routes. */
+export const CLOUDFLARE_LIMITED_PATHS = [
+  "/auth/v1/",
+  "/api/v1/ai/",
+  "/api/v1/companion/",
+  "/api/v1/capture/",
+  "/api/v1/ocr/",
+  "/api/v1/fitness/meals/estimate",
+] as const

@@ -28,7 +28,7 @@ from app.modules.companion.schema import (
 from app.modules.iam.deps import require_permission
 from app.shared.context import Ctx, CtxDep, make_ctx
 from app.shared.pagination import PaginationDep
-from app.shared.rate_limit import rate_limited
+from app.shared.rate_limit import guarded, rate_limited
 from app.shared.schema import Message
 from app.shared.tenant_session import get_tenant_scoped_session
 
@@ -37,6 +37,8 @@ router = APIRouter(prefix="/companion", tags=["companion"])
 
 READ = [Depends(require_permission("companion:read"))]
 WRITE = [rate_limited("companion"), Depends(require_permission("companion:write"))]
+# Model-backed (an LLM turn or Deepgram speech): per-user and per-address budget.
+AI = [*WRITE, guarded("ai", "companion")]
 SSE_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
 
 
@@ -65,7 +67,7 @@ def rename(ctx: CtxDep, data: RenameIn) -> Any:
 
 @router.post(
     "/messages/{message_id}/speech",
-    dependencies=WRITE,
+    dependencies=AI,
     response_class=Response,
     responses={200: {"content": {"audio/mpeg": {}}}},
 )
@@ -76,7 +78,7 @@ def speak(ctx: CtxDep, message_id: uuid.UUID) -> Response:
     )
 
 
-@router.post("/ask", response_model=AskOut, dependencies=WRITE)
+@router.post("/ask", response_model=AskOut, dependencies=AI)
 def ask(ctx: CtxDep, data: AskIn) -> Any:
     """Ask the companion. A replayed message id returns the reply it already got."""
     return services.ask(
@@ -90,7 +92,7 @@ def ask(ctx: CtxDep, data: AskIn) -> Any:
 
 @router.post(
     "/ask/stream",
-    dependencies=WRITE,
+    dependencies=AI,
     response_class=StreamingResponse,
     responses={200: {"content": {"text/event-stream": {}}}},
 )

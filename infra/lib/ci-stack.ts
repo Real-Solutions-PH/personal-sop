@@ -8,7 +8,12 @@ import {
 import * as ecr from "aws-cdk-lib/aws-ecr"
 import * as iam from "aws-cdk-lib/aws-iam"
 import type { Construct } from "constructs"
-import { BACKEND_REPOSITORY, PREFIX, type UnfurlConfig } from "./config"
+import {
+  BACKEND_REPOSITORY,
+  PREFIX,
+  TUNNEL_TOKEN_SECRET,
+  type UnfurlConfig,
+} from "./config"
 
 export interface CiStackProps extends StackProps {
   config: UnfurlConfig
@@ -73,18 +78,27 @@ export class CiStack extends Stack {
         resources: ["*"],
       }),
     )
-    // Read-only lookups for scripts/cloudflare-dns.ts, which the workflow
-    // runs beside `cdk deploy` to put the ACM, ALB and SES records into
-    // Cloudflare.
+    // scripts/cloudflare.ts, which the workflow runs around `cdk deploy`:
+    // it reads the SES identity for the DKIM and MAIL FROM records, and
+    // creates or updates the tunnel-token secret it owns.
+    this.deployRole.addToPolicy(
+      new iam.PolicyStatement({
+        actions: ["ses:GetEmailIdentity"],
+        resources: ["*"],
+      }),
+    )
     this.deployRole.addToPolicy(
       new iam.PolicyStatement({
         actions: [
-          "acm:ListCertificates",
-          "acm:DescribeCertificate",
-          "elasticloadbalancing:DescribeLoadBalancers",
-          "ses:GetEmailIdentity",
+          "secretsmanager:CreateSecret",
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:PutSecretValue",
+          "secretsmanager:TagResource",
         ],
-        resources: ["*"],
+        // Secrets Manager appends a random 6-character suffix to the name.
+        resources: [
+          `arn:${this.partition}:secretsmanager:${this.region}:${this.account}:secret:${TUNNEL_TOKEN_SECRET}-*`,
+        ],
       }),
     )
     // cdk deploy works by assuming the roles `cdk bootstrap` created; the
