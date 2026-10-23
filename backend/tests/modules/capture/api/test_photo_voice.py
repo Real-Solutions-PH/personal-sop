@@ -3,6 +3,7 @@ all; voice captures through the one transcription seam."""
 
 import json
 import uuid
+from collections.abc import Sequence
 
 import pytest
 from fastapi.testclient import TestClient
@@ -250,8 +251,10 @@ def test_voice_is_transcribed_through_the_seam(
         filename: str,
         mime: str,
         language: str | None,
+        keyterms: Sequence[str],
     ) -> str:
         del filename, language
+        assert keyterms == []  # only Deepgram takes key terms
         calls.append((resolved.model, audio, mime))  # type: ignore[attr-defined]
         return "spent 250 on grab"
 

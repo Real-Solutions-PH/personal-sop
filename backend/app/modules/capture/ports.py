@@ -129,6 +129,17 @@ def build_world(ctx: Ctx, *, at: datetime | None = None) -> World:
 # ---------------------------------------------------------------- reads
 
 
+def speech_names(ctx: Ctx) -> tuple[list[str], list[str]]:
+    """(habit, exercise and account names; food library names): the
+    person's own words for speech to text to expect. Archived habits and
+    accounts are left out."""
+    exercises, foods = fitness.names_for_speech(ctx)
+    names = [h.name for h in habits.list_habits(ctx) if h.status != "archived"]
+    names += exercises
+    names += [a.name for a in finance.list_accounts(ctx) if not a.archived]
+    return names, foods
+
+
 def habit_log_on(ctx: Ctx, habit_id: uuid.UUID, day: date) -> dict[str, Any] | None:
     """The live (habit, day) log before a capture writes it, so undo can put
     it back."""

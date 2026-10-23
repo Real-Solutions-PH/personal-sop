@@ -36,3 +36,10 @@ def test_transcription_is_charged_by_the_second() -> None:
     assert ai.transcription_minor("deepgram", 6) == 3
     # Whisper-style $0.006/min: 60 s = $0.006 = P0.342 -> 35.
     assert ai.transcription_minor("openai", 60) == 35
+
+
+def test_key_terms_add_deepgrams_add_on() -> None:
+    # $0.0043 + $0.0013 = $0.0056/min: 60 s = P0.3192 -> 32.
+    assert ai.transcription_minor("deepgram", 60, keyterms=True) == 32
+    # A provider without the add-on is charged its base rate.
+    assert ai.transcription_minor("openai", 60, keyterms=True) == 35

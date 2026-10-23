@@ -1,8 +1,8 @@
 """The external calls capture makes, each behind one named function so a
 test substitutes exactly that function (G-C-026):
 
-- :func:`transcribe` — speech to text over the provider's OpenAI-compatible
-  ``/audio/transcriptions`` endpoint;
+- :func:`transcribe` — speech to text: Deepgram's ``/listen``, or any
+  provider's OpenAI-compatible ``/audio/transcriptions`` endpoint;
 - :func:`ocr_text` — text out of an image through the OCR module;
 - chat and vision models come from ``ai_providers.public.model_factory``
   (the AI seam), metered here by :func:`meter`.
@@ -15,6 +15,7 @@ import asyncio
 import base64
 import json
 import re
+from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor, wait
 from typing import Any, TypeVar
 
@@ -173,12 +174,16 @@ def transcribe(
     filename: str,
     mime: str,
     language: str | None,
+    keyterms: Sequence[str] = (),
 ) -> str:
     """Speech to text: Deepgram's ``/listen`` when the resolved provider is
     Deepgram, otherwise ``POST {base_url}/audio/transcriptions`` (any
-    OpenAI-compatible provider)."""
+    OpenAI-compatible provider). ``keyterms`` are words to expect (see
+    ``capture.vocabulary``); only Deepgram takes them."""
     if resolved.provider == "deepgram":
-        return _deepgram(resolved, audio, mime=mime, language=language)
+        return _deepgram(
+            resolved, audio, mime=mime, language=language, keyterms=keyterms
+        )
     data = {"model": resolved.model, "response_format": "json"}
     if language:
         data["language"] = language
@@ -207,23 +212,53 @@ def transcribe(
     return text.strip()
 
 
+def deepgram_params(
+    model: str, language: str | None, keyterms: Sequence[str]
+) -> list[tuple[str, str]]:
+    """The ``/listen`` query. ``tl`` (Taglish) goes as ``multi``, Nova-3's
+    code-switching mode: its Tagalog-only ``tl`` model misheard the English
+    half, numbers and names (30% word errors against 18%); English as
+    ``en``. Each key term is its own ``keyterm`` parameter."""
+    lang = "multi" if language == "tl" else (language or "en")
+    params = [("model", model), ("smart_format", "true"), ("language", lang)]
+    return params + [("keyterm", t) for t in keyterms]
+
+
+# Nova-3's ``multi`` mode formats a spoken "600,000 pesos" as another
+# country's peso code ("MXN600000", "ARS600000"): 11 of 350 test clips.
+# Pesos here are Philippine pesos.
+_FOREIGN_PESO = re.compile(
+    r"\b(?:MXN|ARS|CLP|COP|UYU|DOP|CUP|PHP) ?(\d[\d,]*(?:\.\d+)?)"
+)
+
+
+def _peso(m: re.Match[str]) -> str:
+    whole, _, cents = m.group(1).replace(",", "").partition(".")
+    return f"₱{int(whole):,}" + (f".{cents}" if cents else "")
+
+
+def tidy_transcript(text: str) -> str:
+    """A transcript as the person would write it: a peso amount in pesos."""
+    return _FOREIGN_PESO.sub(_peso, text).strip()
+
+
 def _deepgram(
-    resolved: ai.ResolvedModel, audio: bytes, *, mime: str, language: str | None
+    resolved: ai.ResolvedModel,
+    audio: bytes,
+    *,
+    mime: str,
+    language: str | None,
+    keyterms: Sequence[str],
 ) -> str:
-    """Deepgram's pre-recorded API. ``tl`` (Taglish) goes as ``multi``, its
-    code-switching mode; English as ``en``."""
-    params = {
-        "model": resolved.model,
-        "smart_format": "true",
-        "language": "multi" if language == "tl" else (language or "en"),
-    }
+    """Deepgram's pre-recorded API."""
+    params = deepgram_params(resolved.model, language, keyterms)
     try:
         with httpx.Client(
             timeout=settings.AI_REQUEST_TIMEOUT_SECONDS, trust_env=False
         ) as c:
             r = c.post(
                 f"{resolved.base_url.rstrip('/')}/listen",
-                params=params,
+                params=tuple(params),
                 headers={
                     "Authorization": f"Token {resolved.api_key.get_secret_value()}",
                     "Content-Type": mime,
@@ -241,7 +276,7 @@ def _deepgram(
         raise SeamError("transcription_failed") from None
     if not isinstance(text, str):
         raise SeamError("transcription_failed")
-    return text.strip()
+    return tidy_transcript(text)
 
 
 # ---------------------------------------------------------------- OCR

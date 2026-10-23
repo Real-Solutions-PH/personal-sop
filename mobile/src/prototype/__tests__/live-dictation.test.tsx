@@ -128,3 +128,96 @@ test("one tap: Fern stops talking and Hey Fern lets go before dictation starts",
   expect(wake.getState().armed).toBe(false)
   wakeListener.dispose()
 })
+
+/** A text box: ``setText`` as React's state setter takes it. */
+function box() {
+  const b = {
+    text: "",
+    set: (v: string | ((cur: string) => string)) => {
+      b.text = typeof v === "function" ? v(b.text) : v
+    },
+  }
+  return b
+}
+
+async function dictateWith(
+  refine: (uri: string, s: number) => Promise<string>,
+) {
+  const b = box()
+  const { result } = renderHook(() =>
+    useLiveDictation(b.set, jest.fn(), "en-US", refine),
+  )
+  await act(async () => {
+    await result.current.start("Note:")
+  })
+  fire("result", {
+    isFinal: true,
+    results: [{ transcript: "friend log my weight protein" }],
+  })
+  return b
+}
+
+test("the server's words replace the phone's when the person stops", async () => {
+  let answer: (t: string) => void = () => {}
+  const refine = jest.fn(
+    () =>
+      new Promise<string>((ok) => {
+        answer = ok
+      }),
+  )
+  const b = await dictateWith(refine)
+  expect(mockModule.start).toHaveBeenCalledWith(
+    expect.objectContaining({
+      recordingOptions: {
+        persist: true,
+        outputSampleRate: 16000,
+        outputEncoding: "pcmFormatInt16",
+      },
+    }),
+  )
+  expect(b.text).toBe("Note: friend log my weight protein")
+  fire("audioend", { uri: "file:///cache/rec.wav", timestamp: 1 })
+  expect(refine).toHaveBeenCalledWith(
+    "file:///cache/rec.wav",
+    expect.any(Number),
+  )
+  await act(async () => answer("Fern, log my whey protein."))
+  expect(b.text).toBe("Note: Fern, log my whey protein.")
+  // A late phone result does not undo it.
+  fire("result", { isFinal: true, results: [{ transcript: "friend" }] })
+  expect(b.text).toBe("Note: Fern, log my whey protein.")
+})
+
+test("an edit made while the server works is kept", async () => {
+  let answer: (t: string) => void = () => {}
+  const b = await dictateWith(
+    () =>
+      new Promise<string>((ok) => {
+        answer = ok
+      }),
+  )
+  fire("audioend", { uri: "file:///cache/rec.wav", timestamp: 1 })
+  b.text = "my own words"
+  await act(async () => answer("Fern, log my whey protein."))
+  expect(b.text).toBe("my own words")
+})
+
+test("a server failure keeps the phone's words", async () => {
+  const b = await dictateWith(() => Promise.reject(new Error("network")))
+  await act(async () => {
+    mockListeners.audioend({ uri: "file:///cache/rec.wav" } as never)
+  })
+  expect(b.text).toBe("Note: friend log my weight protein")
+})
+
+test("without a server nothing is recorded", async () => {
+  const { result } = renderHook(() =>
+    useLiveDictation(jest.fn(), jest.fn(), "en-US", null),
+  )
+  await act(async () => {
+    await result.current.start("")
+  })
+  expect(mockModule.start.mock.calls[0][0]).not.toHaveProperty(
+    "recordingOptions",
+  )
+})

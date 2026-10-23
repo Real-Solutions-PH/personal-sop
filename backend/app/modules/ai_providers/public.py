@@ -234,6 +234,8 @@ def _server_default(
 # Speech to text, USD per audio minute (Deepgram Nova-3 batch; OpenAI-
 # compatible Whisper endpoints).
 USD_PER_MIN = {"deepgram": 0.0043}
+# Deepgram's keyterm prompting add-on, USD per audio minute (2026-10-23).
+KEYTERM_USD_PER_MIN = {"deepgram": 0.0013}
 USD_PER_MIN_DEFAULT = 0.006
 # When a model has no catalogue price (a user's own provider), a deliberately
 # generous blended rate in USD per million tokens: the cap should bite early
@@ -375,9 +377,14 @@ def speech_model() -> ResolvedModel | None:
     )
 
 
-def transcription_minor(provider: str, seconds: float) -> int:
-    """What transcribing ``seconds`` of audio cost, in centavos."""
+def transcription_minor(
+    provider: str, seconds: float, *, keyterms: bool = False
+) -> int:
+    """What transcribing ``seconds`` of audio cost, in centavos; with
+    ``keyterms``, the provider's key-term add-on too."""
     rate = USD_PER_MIN.get(provider, USD_PER_MIN_DEFAULT)
+    if keyterms:
+        rate += KEYTERM_USD_PER_MIN.get(provider, 0.0)
     return _centavos(max(0.0, seconds) / 60 * rate)
 
 
