@@ -90,3 +90,45 @@ def test_an_empty_message_is_refused(client: TestClient, db: Session) -> None:
     api = user(client, db)
     r = client.post("/api/v1/companion/ask/stream", headers=api.h, json={"text": "  "})
     assert r.status_code == 422
+
+
+def test_a_photo_can_be_read_again_and_its_reading_stays_in_the_chat(
+    client: TestClient,
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    storage: FakeStorage,
+) -> None:
+    """Seen live: asked to re-check a label, Fern could neither see the
+    photo again nor what it had shown, and searched the web instead."""
+    from uuid import uuid4
+
+    from app.modules.capture.public import CAREFUL
+
+    api = user(client, db)
+    api.assign("chat")
+    api.assign("vision", vision=True)
+    thread = str(uuid4())
+    install(
+        monkeypatch,
+        say("Nutrition facts: 6 kcal per 240 mL serving."),
+        say("Noted the drink."),
+    )
+    ids = [media(api, storage, kind="image", mime="image/jpeg", data=JPEG)]  # type: ignore[arg-type]
+    ask(client, api, {"text": "what's in this?", "media_ids": ids, "thread_id": thread})
+
+    model = install(
+        monkeypatch,
+        say("", call("reread_photos")),
+        say("Nutrition facts: 10 kcal per 355 mL can."),
+        say("On a closer read it's 10 kcal per can."),
+    )
+    events = ask(
+        client, api, {"text": "re-check that label please", "thread_id": thread}
+    )
+    # The chat still holds what the photo showed the first time.
+    first = [str(m.content) for m in model.seen[0]]
+    assert any("6 kcal per 240 mL" in c for c in first)
+    # The photo was read again, carefully.
+    assert str(model.seen[1][0].content).endswith(CAREFUL)
+    steps = events[-1]["result"]["messages"][1]["blocks"][0]["items"]
+    assert steps[0]["summary"] == "Read 1 photo again"

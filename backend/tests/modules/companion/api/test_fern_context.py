@@ -206,3 +206,33 @@ def test_fern_tags_a_task_and_retags_it(
     with Session(engine) as s:
         [t] = s.exec(select(Task).where(Task.owner_id == api.user.id)).all()  # type: ignore[attr-defined]
         assert (t.title, t.tags) == ("Deploy AWS", ["work", "coft"])
+
+
+def test_narration_before_a_tool_call_is_discarded(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """DeepSeek narrates its plan ("let me check your macros") before using
+    a tool; that text is marked for the app to drop, so only the answer
+    stays, and the stored reply is the answer alone."""
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    install(
+        monkeypatch,
+        say("Got it. Let me check today's macros first.", tool("nutrition_status")),
+        say("You have 39 g of protein left."),
+    )
+    r = client.post(
+        "/api/v1/companion/ask/stream",
+        headers=api.h,
+        json={"text": "how much protein do I have left?"},
+    )
+    events = parse_agui(r.text)
+    starts = [e["messageId"] for e in events if e.get("type") == "TEXT_MESSAGE_START"]
+    discards = [
+        e["value"]["message_id"]
+        for e in events
+        if e.get("type") == "CUSTOM" and e.get("name") == "text.discard"
+    ]
+    assert len(starts) == 2 and discards == [starts[0]]
+    reply = events[-1]["result"]["messages"][1]
+    assert reply["text"] == "You have 39 g of protein left."
