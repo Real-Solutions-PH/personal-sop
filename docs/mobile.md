@@ -81,6 +81,40 @@ left out (`plugins/free-apple-team.js`). Widgets and the Live Activity need a
 development or release build; they are not in Expo Go. Tests:
 `src/surfaces/__tests__/`.
 
+## Android release APK for sideloading (2026-10-23)
+
+`plugins/android-release.js` does two things at prebuild:
+
+- **Cleartext to the LAN server.** If `EXPO_PUBLIC_API_URL` or
+  `EXPO_PUBLIC_SUPABASE_URL` is `http://` at prebuild, it writes
+  `res/xml/network_security_config.xml` allowing cleartext to exactly those
+  hosts; every other host stays HTTPS-only. Production URLs are `https://`, so
+  nothing is added there. The config overrides `usesCleartextTraffic`, so a
+  debug build prebuilt this way only reaches Metro on one of those hosts.
+- **Upload-key signing.** `assembleRelease` signs with the keystore named in
+  `~/.unfurl/android/keystore.properties` (or the path in
+  `UNFURL_ANDROID_KEYSTORE_PROPERTIES`), with keys `storeFile`,
+  `storePassword`, `keyAlias`, `keyPassword`. Without that file the release
+  build falls back to the template's debug key. The keystore and passwords
+  never enter the repository.
+
+Live-mode build against the API on the Mac (Java 17, Android SDK from
+Homebrew's `android-commandlinetools`):
+
+```sh
+cd mobile
+export EXPO_PUBLIC_APP_MODE=live EXPO_PUBLIC_API_URL=http://192.168.1.250:8765 \
+  EXPO_PUBLIC_SUPABASE_URL=http://192.168.1.250:54321 \
+  EXPO_PUBLIC_SUPABASE_ANON_KEY=<SUPABASE_ANON_KEY from .env.example> \
+  SENTRY_DISABLE_AUTO_UPLOAD=true
+bunx expo prebuild --platform android --clean --no-install
+(cd android && ./gradlew assembleRelease)
+# android/app/build/outputs/apk/release/app-release.apk
+```
+
+The `EXPO_PUBLIC_*` values are inlined into the JS bundle at build time, so
+the same variables must be set for both prebuild and Gradle.
+
 ## Visual system
 
 The native prototype uses the web prototype's semantic palette, including separate light/dark module accents. Their sRGB equivalents, spacing, radii and font names live in `shared/prototype/design/tokens.ts`. Geist supplies words and Geist Mono supplies hero numbers (ADR-0019); font assets are bundled with the application from `@expo-google-fonts/geist` and `@expo-google-fonts/geist-mono`, under the SIL Open Font License 1.1 (see `mobile/THIRD_PARTY_NOTICES.md`).
