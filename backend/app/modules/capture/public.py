@@ -83,7 +83,17 @@ PHOTO_READER = (
     "currency, payee and date on receipts, foods and portions on plates, "
     "exercises, sets, reps and weights on boards or screens, any written "
     "text. Number the photos when there are several. No guesses beyond "
-    "what is visible."
+    "what is visible.\n"
+    "A nutrition facts label: copy it row by row with units exactly as "
+    "printed (serving size, servings per container, calories, fat, "
+    "saturated fat, carbohydrate, fiber, sugars, protein, sodium), say "
+    "whether each column is per serving, per 100 g or per container, and "
+    "name the product and flavour if the photo shows them."
+)
+CAREFUL = (
+    "\nThis is a second, careful reading because the first may have been "
+    "wrong: go line by line, check every digit and decimal point against "
+    "the photo, and say which values you cannot read clearly."
 )
 
 
@@ -102,7 +112,7 @@ def ask_text(ctx: Ctx, resolved: ResolvedModel, *, system: str, text: str) -> st
 
 
 def describe_photos(
-    ctx: Ctx, media_ids: list[uuid.UUID], said: str
+    ctx: Ctx, media_ids: list[uuid.UUID], said: str, *, careful: bool = False
 ) -> tuple[str, list[uuid.UUID]]:
     """What the attached photos show, as text for the chat agent, and the
     ids of the photos that were read. Never raises for a model failure: the
@@ -127,7 +137,7 @@ def describe_photos(
         seen = seams.ask_text(
             ctx,
             vision,
-            system=PHOTO_READER,
+            system=PHOTO_READER + (CAREFUL if careful else ""),
             text=f"The message with them says: {said or '(no text)'}",
             images=images,
         )

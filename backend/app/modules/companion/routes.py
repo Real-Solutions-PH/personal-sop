@@ -26,10 +26,11 @@ from app.modules.companion.schema import (
     TrackerPublic,
 )
 from app.modules.iam.deps import require_permission
-from app.shared.context import Ctx, CtxDep
+from app.shared.context import Ctx, CtxDep, make_ctx
 from app.shared.pagination import PaginationDep
 from app.shared.rate_limit import rate_limited
 from app.shared.schema import Message
+from app.shared.tenant_session import get_tenant_scoped_session
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/companion", tags=["companion"])
@@ -103,8 +104,22 @@ def ask_stream(ctx: CtxDep, data: AskIn) -> StreamingResponse:
     ``RUN_FINISHED`` with the whole answer, or ``RUN_ERROR``. Validation
     happens before the stream opens."""
     run_id = str(data.id or uuid.uuid4())
+    user = ctx.user
 
     def work(sink: turn.Sink) -> None:
+        # The turn owns its database session. The request's session closes
+        # when the phone drops the connection (the app leaves the chat or
+        # goes to the background); a reply still being written on it then
+        # failed half-saved. On its own session the reply always finishes
+        # and is stored, and the app picks it up on its next sync.
+        sessions = get_tenant_scoped_session(user)
+        own = make_ctx(next(sessions), user)
+        try:
+            _turn(own, sink)
+        finally:
+            sessions.close()
+
+    def _turn(ctx: Ctx, sink: turn.Sink) -> None:
         stream = turn.TurnStream(
             ctx, thread_id=f"companion:{ctx.user_id}", run_id=run_id, sink=sink
         )

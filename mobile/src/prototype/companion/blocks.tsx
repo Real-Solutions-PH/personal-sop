@@ -37,6 +37,7 @@ import { Trend } from "../chart"
 import { Donut, FIN_PALETTE } from "../finance-charts"
 import { GrowBar } from "../motion"
 import { go } from "../navigation"
+import { CaptureSummary } from "../screens/capture-summary"
 import { useMoney } from "../screens/finance"
 import { NutritionDay } from "../screens/nutrition-day"
 import { type Accent, fonts, useTheme } from "../theme"
@@ -990,6 +991,33 @@ export function Chips({ prompts }: { prompts: string[] }) {
   )
 }
 
+/** A meal Fern logged: each item's calories, macros and its share of the
+ * day's limits, so it can be checked before Confirm (and after). */
+function StepMeal({ id }: { id: string }) {
+  const t = useTheme()
+  const card = captureStore.use(() => findCard(id)?.card)
+  if (
+    card?.payload?.kind !== "meal" ||
+    card.state === "undone" ||
+    card.state === "discarded"
+  )
+    return null
+  return (
+    <View
+      style={{
+        marginHorizontal: 12,
+        marginBottom: 8,
+        marginTop: 2,
+        padding: 12,
+        borderRadius: 10,
+        backgroundColor: t.soft,
+      }}
+    >
+      <CaptureSummary card={card} />
+    </View>
+  )
+}
+
 /** The card behind a step's write, live from the capture store once the
  * reply's capture has arrived; until then, the state the step reported. */
 function StepCard({ id, state }: { id: string; state?: string }) {
@@ -1089,6 +1117,7 @@ function StepsBlock({ items }: { items: StepItem[] }) {
               <StepCard id={s.card_id} state={s.state} />
             ) : null}
           </View>
+          {s.card_id && !s.running ? <StepMeal id={s.card_id} /> : null}
           {s.running
             ? null
             : (s.cards ?? []).map((c) => (

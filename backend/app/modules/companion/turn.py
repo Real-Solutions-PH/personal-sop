@@ -82,6 +82,7 @@ RUNNING: dict[str, str] = {
     "forget_fact": "Forgetting that",
     "show_memories": "Gathering what I remember",
     "recall_memories": "Recalling what I know",
+    "reread_photos": "Reading the photos again",
     "suggest": "Suggesting next questions",
     "read_photos": "Looking at your photos",
     "web_search": "Searching the web",
@@ -217,6 +218,9 @@ def outcome(ctx: Ctx, name: str, args: dict[str, Any], result: Any) -> tuple[boo
         if status == "updated":
             return True, f"Updated memory: {args.get('fact', '')}"
         return True, f"Remembered: {args.get('fact', '')}"
+    if name == "reread_photos":
+        n = int(res.get("photos") or 0)
+        return True, f"Read {n} photo{'s' if n != 1 else ''} again"
     if name == "recall_memories":
         n = len(res.get("memories") or [])
         return True, f"Recalled {n} thing{'s' if n != 1 else ''} about you"
@@ -349,7 +353,13 @@ class TurnStream(capture.LoopHooks):
 
     def model_finished(self, turn: int, message: BaseMessage) -> None:
         # A model call's text is one message; the next call starts another.
+        # A call that goes on to use tools was narrating its plan ("let me
+        # check your macros…"), not answering: the app drops that text, so
+        # only the answer stays (it still streams as it is written).
+        said = self._text_id
         self.end_text()
+        if said is not None and getattr(message, "tool_calls", None):
+            self.custom("text.discard", {"message_id": said})
         self.sink(StepFinishedEvent(step_name=f"think:{turn}"))
 
     def tool_started(self, call_id: str, name: str, args: dict[str, Any]) -> None:
@@ -446,7 +456,7 @@ def stream_events(
         try:
             work(q.put)
         except Exception as exc:  # noqa: BLE001 - reported as an event, never as text
-            log.warning("companion turn failed: %s", type(exc).__name__)
+            log.warning("companion turn failed: %s", type(exc).__name__, exc_info=True)
             q.put(
                 RunErrorEvent(
                     message="Couldn't finish that reply.", code="reply_failed"

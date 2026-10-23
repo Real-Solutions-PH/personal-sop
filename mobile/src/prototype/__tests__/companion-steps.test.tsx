@@ -173,3 +173,68 @@ test("a step with a saved task and a waiting reminder offers Undo and Confirm ap
   fireEvent.press(screen.getByRole("button", { name: "Confirm" }))
   expect(mockConfirm).toHaveBeenCalledWith("c-mom")
 })
+
+test("a meal waiting for its OK shows its macros under the step", () => {
+  captureStore.set((s) => ({
+    ...s,
+    captures: [
+      {
+        id: "cap-m",
+        at: new Date().toISOString(),
+        source: "chat",
+        text: "record this pre-workout",
+        status: "needs_input",
+        reply: {
+          items: [
+            {
+              t: "record",
+              id: "card-m",
+              target: "fitness",
+              tier: "confirm",
+              state: "proposed",
+              confidence: 0.8,
+              payload: {
+                kind: "meal",
+                raw: "",
+                label: "breakfast",
+                confidence: 0.8,
+                items: [
+                  {
+                    name: "Energy drink (zero sugar)",
+                    qty: 1,
+                    unit: "can",
+                    kcal: 6,
+                    protein: 0,
+                    carbs: 3,
+                    fat: 0,
+                  },
+                ],
+              },
+            } as never,
+          ],
+        },
+      } as never,
+    ],
+  }))
+  render(
+    <BlockView
+      block={{
+        t: "steps",
+        items: [
+          {
+            id: "m",
+            tool: "log_meal",
+            label: "Logging a meal",
+            ok: true,
+            summary: "Logged meal: Energy drink (waiting for your OK)",
+            card_id: "card-m",
+            state: "proposed",
+          },
+        ],
+      }}
+    />,
+  )
+  expect(screen.getByRole("button", { name: "Confirm" })).toBeTruthy()
+  expect(screen.getByText(/Energy drink \(zero sugar\)/)).toBeTruthy()
+  expect(screen.getAllByText(/6 kcal/).length).toBeGreaterThan(0)
+})

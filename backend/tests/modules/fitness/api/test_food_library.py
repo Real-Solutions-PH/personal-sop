@@ -96,6 +96,45 @@ def test_matching_by_name_alias_and_all_words(db: Session) -> None:
         assert L.find_food(ctx, "chicken adobo") is None
 
 
+def test_a_loose_match_never_overrides_a_label_that_disagrees(db: Session) -> None:
+    """Seen live: a zero-sugar energy drink read off its label at 6 kcal was
+    logged as "Pre-workout energy drink", which shares every word of the
+    alias "pre workout drink" of a 489 kcal shake recipe; the shake's
+    numbers replaced the label's. A match by shared words only stands when
+    its calories agree with the item's; an exact name or alias still wins."""
+    user_, _ = signed_in(db)
+    with ctx_for(user_) as ctx:
+        L.save_food(
+            ctx,
+            L.FoodDraft(
+                name="Pre-workout shake (standard build)",
+                kcal=489,
+                protein=45.3,
+                basis="serving",
+                aliases=["pre workout drink", "my usual shake"],
+            ),
+        )
+        drink = {
+            "name": "Pre-workout energy drink (zero sugar)",
+            "qty": 1,
+            "unit": "serving",
+            "kcal": 6,
+            "protein": 0,
+            "carbs": 3,
+            "fat": 0,
+        }
+        [kept], used = L.apply_library(ctx, [drink])
+        assert (kept["kcal"], used) == (6, [])
+        # Close enough by calories: the library's numbers are used.
+        near = {**drink, "name": "pre workout drink with extra ice", "kcal": 450}
+        [swapped], used = L.apply_library(ctx, [near])
+        assert (swapped["kcal"], used) == (489, ["Pre-workout shake (standard build)"])
+        # Said by its own alias: the person's food, whatever the estimate.
+        exact = {**drink, "name": "my usual shake", "kcal": 300}
+        [mine], _ = L.apply_library(ctx, [exact])
+        assert mine["kcal"] == 489
+
+
 def test_saving_the_same_food_again_updates_it(db: Session) -> None:
     user_, _ = signed_in(db)
     with ctx_for(user_) as ctx:

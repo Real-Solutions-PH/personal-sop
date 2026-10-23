@@ -955,6 +955,15 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
     const readAloud = takeVoiceTurn()
     let solAt = 0
     let solText = ""
+    // The reply's text, one piece per model step. A step that turned out to
+    // be the model planning a tool call is dropped ("text.discard"), so only
+    // the answer stays, still streaming as it is written.
+    const segments: { id: string; text: string }[] = []
+    const joinSegments = () =>
+      segments
+        .map((x) => x.text.trim())
+        .filter(Boolean)
+        .join("\n\n")
     let blocks: Block[] = []
     const steps: StepItem[] = []
     let open: string | undefined
@@ -985,6 +994,13 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
         case "block":
           blocks = [...blocks, d as unknown as Block]
           return sol()
+        case "text.discard": {
+          const i = segments.findIndex((x) => x.id === String(d.message_id))
+          if (i < 0) return
+          segments.splice(i, 1)
+          solText = joinSegments()
+          return sol()
+        }
         case "capture":
           thinking.setState({ on: false })
           if (!Array.isArray(d.cards)) open = String(d.id)
@@ -1048,12 +1064,17 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
           case "CUSTOM":
             return custom(String(d.name), (d.value ?? {}) as Row)
           case "TEXT_MESSAGE_START":
-            // Text from an earlier step stays above the next one.
-            if (solText) solText += "\n\n"
+            segments.push({ id: String(d.messageId ?? ""), text: "" })
             return
-          case "TEXT_MESSAGE_CONTENT":
-            solText += String(d.delta ?? "")
+          case "TEXT_MESSAGE_CONTENT": {
+            const seg =
+              segments.find((x) => x.id === String(d.messageId ?? "")) ??
+              segments.at(-1)
+            if (seg) seg.text += String(d.delta ?? "")
+            else segments.push({ id: "", text: String(d.delta ?? "") })
+            solText = joinSegments()
             return sol()
+          }
           case "TOOL_CALL_START": {
             const tool = String(d.toolCallName ?? "")
             steps.push({
@@ -1116,12 +1137,19 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
         }
       })
     } catch (error) {
-      fail()
-      toast(
-        error instanceof NetworkError || error instanceof ApiError
-          ? OFFLINE
-          : `${companionName()} couldn't finish that reply.`,
-      )
+      if (echoed) {
+        // The server has the question and finishes the reply on its own
+        // (the app left the chat, or the connection dropped); the whole
+        // reply replaces this partial one on the next sync.
+        thinking.setState({ on: false })
+      } else {
+        fail()
+        toast(
+          error instanceof NetworkError || error instanceof ApiError
+            ? OFFLINE
+            : `${companionName()} couldn't finish that reply.`,
+        )
+      }
     } finally {
       // A stream that ended without RUN_FINISHED or an error frame.
       if (
