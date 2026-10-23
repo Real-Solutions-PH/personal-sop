@@ -1,6 +1,7 @@
 import * as A from "@domain/fitness/actions"
+import * as C from "@domain/fitness/calc"
 import { lastOfTemplate, relDay } from "@domain/fitness/calc"
-import type { TemplateItem } from "@domain/fitness/data"
+import type { Exercise, TemplateItem } from "@domain/fitness/data"
 import { fitStore } from "@domain/fitness/store"
 import {
   ArrowDown,
@@ -30,12 +31,53 @@ import { go } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import { Button, Empty, Screen, Sheet, undo } from "../ui"
 import { CreateExerciseRow, ExerciseEditor } from "./fitness"
+
+/** A timed exercise's goal in a template: 5-minute steps for cardio
+ * (walk 20 minutes), 15 seconds otherwise (hold a plank 1:00). Stepping
+ * below the smallest step clears the goal. */
+function GoalStepper({
+  item,
+  exercise,
+  onChange,
+}: {
+  item: TemplateItem
+  exercise: Exercise | undefined
+  onChange: (targetSec: number | undefined) => void
+}) {
+  const t = useTheme()
+  const step = exercise?.muscle === "cardio" ? 300 : 15
+  const goal = item.targetSec
+  return (
+    <Line style={{ gap: 4 }}>
+      <IconTap
+        size={32}
+        icon={Minus}
+        background={t.soft}
+        label="Shorter goal"
+        onPress={() => onChange(goal && goal > step ? goal - step : undefined)}
+      />
+      <Copy size={14} style={{ width: 64, textAlign: "center" }}>
+        {goal ? C.fmtSpan(goal) : "No goal"}
+      </Copy>
+      <IconTap
+        size={32}
+        icon={Plus}
+        background={t.soft}
+        label="Longer goal"
+        onPress={() => onChange(Math.min(86400, (goal ?? 0) + step))}
+      />
+    </Line>
+  )
+}
+
 export function Templates({ id }: { id?: string }) {
   const s = fitStore.use((s) => s),
     t = useTheme(),
     existing = s.templates.find((x) => x.id === id),
     [name, setName] = useState(existing?.name ?? ""),
     [items, setItems] = useState<TemplateItem[]>(existing?.items ?? []),
+    exOf = (item: TemplateItem) =>
+      s.exercises.find((e) => e.id === item.exerciseId),
     [picker, setPicker] = useState(false),
     [selected, setSelected] = useState<string[]>([]),
     [creating, setCreating] = useState<string | null>(null),
@@ -94,8 +136,7 @@ export function Templates({ id }: { id?: string }) {
                   <View style={{ flex: 1 }}>
                     <Copy weight="medium">{template.name}</Copy>
                     <Copy size={14} muted>
-                      {template.items.length} exercises ·{" "}
-                      {template.items.reduce((a, i) => a + i.sets, 0)} sets ·{" "}
+                      {C.templateSummary(template.items, s.exercises)} ·{" "}
                       {last ? `last ${relDay(last.startedAt)}` : "never used"}
                     </Copy>
                   </View>
@@ -199,39 +240,57 @@ export function Templates({ id }: { id?: string }) {
                 <Copy weight="medium" lines={1} style={{ flex: 1 }}>
                   {s.exercises.find((e) => e.id === item.exerciseId)?.name}
                 </Copy>
-                <Line style={{ gap: 4 }}>
-                  <IconTap
-                    size={32}
-                    icon={Minus}
-                    background={t.soft}
-                    label="Fewer sets"
-                    onPress={() =>
+                {C.isTimed(exOf(item)) ? (
+                  <GoalStepper
+                    item={item}
+                    exercise={exOf(item)}
+                    onChange={(targetSec) =>
                       setItems(
-                        items.map((x, j) =>
-                          j === i ? { ...x, sets: Math.max(1, x.sets - 1) } : x,
-                        ),
+                        items.map((x, j) => {
+                          if (j !== i) return x
+                          const { targetSec: _, ...rest } = x
+                          return targetSec ? { ...rest, targetSec } : rest
+                        }),
                       )
                     }
                   />
-                  <Copy size={14} style={{ width: 48, textAlign: "center" }}>
-                    {item.sets} sets
-                  </Copy>
-                  <IconTap
-                    size={32}
-                    icon={Plus}
-                    background={t.soft}
-                    label="More sets"
-                    onPress={() =>
-                      setItems(
-                        items.map((x, j) =>
-                          j === i
-                            ? { ...x, sets: Math.min(10, x.sets + 1) }
-                            : x,
-                        ),
-                      )
-                    }
-                  />
-                </Line>
+                ) : (
+                  <Line style={{ gap: 4 }}>
+                    <IconTap
+                      size={32}
+                      icon={Minus}
+                      background={t.soft}
+                      label="Fewer sets"
+                      onPress={() =>
+                        setItems(
+                          items.map((x, j) =>
+                            j === i
+                              ? { ...x, sets: Math.max(1, x.sets - 1) }
+                              : x,
+                          ),
+                        )
+                      }
+                    />
+                    <Copy size={14} style={{ width: 48, textAlign: "center" }}>
+                      {item.sets} sets
+                    </Copy>
+                    <IconTap
+                      size={32}
+                      icon={Plus}
+                      background={t.soft}
+                      label="More sets"
+                      onPress={() =>
+                        setItems(
+                          items.map((x, j) =>
+                            j === i
+                              ? { ...x, sets: Math.min(10, x.sets + 1) }
+                              : x,
+                          ),
+                        )
+                      }
+                    />
+                  </Line>
+                )}
                 <IconTap
                   size={20}
                   icon={X}
@@ -271,7 +330,7 @@ export function Templates({ id }: { id?: string }) {
             onPress={() => {
               const del = A.deleteTemplate(existing.id)
               go("/fitness/templates")
-              if (del) undo(`Deleted ${del.name}`, () => A.upsertTemplate(del))
+              if (del) undo(`${del.name} deleted`, () => A.upsertTemplate(del))
             }}
             style={{
               height: 44,

@@ -393,6 +393,7 @@ describe("store edits become sync ops", () => {
       rep_max: 12,
       increment: 2.5,
       archived: false,
+      track: null,
     })
     expect(upsertOf(ops, tpl.id)).toEqual({ name: "Full body", sort_order: 0 })
     // The server's own slot id for a template item.
@@ -401,6 +402,7 @@ describe("store edits become sync ops", () => {
       exercise_id: row.id,
       position: 1,
       sets: 3,
+      target_sec: null,
     })
     expect(templateItemId(tpl.id, 0)).toBe(
       derivedId("template-item", tpl.id, "0"),
@@ -488,6 +490,8 @@ describe("store edits become sync ops", () => {
       reps: 8,
       weight: 0,
       kind: "working",
+      duration_sec: null,
+      speed_kmh: null,
     })
   })
 
@@ -855,6 +859,8 @@ describe("pulled rows", () => {
       reps: 5,
       weight: 80,
       kind: "working",
+      duration_sec: null,
+      speed_kmh: null,
     })
     expect(e.capture()).toEqual([])
   })

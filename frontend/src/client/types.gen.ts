@@ -1153,6 +1153,7 @@ export type ExerciseDetail = {
     rep_max: number;
     increment: number;
     archived: boolean;
+    track?: ('speed' | 'weight' | null);
     last_done_at: (string | null);
     best_e1rm: (number | null);
     suggestion: SuggestionOut;
@@ -1182,6 +1183,7 @@ export type ExercisePublic = {
     rep_max: number;
     increment: number;
     archived: boolean;
+    track?: ('speed' | 'weight' | null);
 };
 
 export type ExercisesOut = {
@@ -1192,18 +1194,19 @@ export type ExercisesOut = {
 export type ExerciseUpsert = {
     name: string;
     equipment?: 'barbell' | 'dumbbell' | 'machine' | 'cable' | 'bodyweight';
-    muscle?: 'chest' | 'back' | 'shoulders' | 'biceps' | 'triceps' | 'quads' | 'hamstrings' | 'glutes' | 'core';
+    muscle?: 'chest' | 'back' | 'shoulders' | 'biceps' | 'triceps' | 'quads' | 'hamstrings' | 'glutes' | 'core' | 'cardio';
     load_type?: 'weight' | 'bodyweight' | 'reps' | 'time';
     rep_min?: number;
     rep_max?: number;
     increment?: number;
     archived?: boolean;
+    track?: ('speed' | 'weight' | null);
     id?: (string | null);
 };
 
 export type equipment = 'barbell' | 'dumbbell' | 'machine' | 'cable' | 'bodyweight';
 
-export type muscle = 'chest' | 'back' | 'shoulders' | 'biceps' | 'triceps' | 'quads' | 'hamstrings' | 'glutes' | 'core';
+export type muscle = 'chest' | 'back' | 'shoulders' | 'biceps' | 'triceps' | 'quads' | 'hamstrings' | 'glutes' | 'core' | 'cardio';
 
 export type load_type = 'weight' | 'bodyweight' | 'reps' | 'time';
 
@@ -1219,6 +1222,7 @@ export type ExerciseWithStats = {
     rep_max: number;
     increment: number;
     archived: boolean;
+    track?: ('speed' | 'weight' | null);
     last_done_at: (string | null);
     best_e1rm: (number | null);
     suggestion: SuggestionOut;
@@ -3321,6 +3325,8 @@ export type SetOut = {
     weight: number;
     kind: string;
     completed_at: (string | null);
+    duration_sec?: (number | null);
+    speed_kmh?: (number | null);
 };
 
 export type SetPatch = {
@@ -5477,7 +5483,7 @@ export type FitnessRestoreTemplateResponse = (TemplateOut);
 export type FitnessListExercisesData = {
     includeArchived?: boolean;
     limit?: number;
-    muscle?: ('chest' | 'back' | 'shoulders' | 'biceps' | 'triceps' | 'quads' | 'hamstrings' | 'glutes' | 'core' | null);
+    muscle?: ('chest' | 'back' | 'shoulders' | 'biceps' | 'triceps' | 'quads' | 'hamstrings' | 'glutes' | 'core' | 'cardio' | null);
     q?: (string | null);
     skip?: number;
 };

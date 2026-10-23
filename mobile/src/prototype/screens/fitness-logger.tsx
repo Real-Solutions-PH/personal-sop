@@ -1,6 +1,6 @@
 import * as A from "@domain/fitness/actions"
 import * as C from "@domain/fitness/calc"
-import type { WorkoutSet } from "@domain/fitness/data"
+import type { Exercise, WorkoutSet } from "@domain/fitness/data"
 import { fitStore } from "@domain/fitness/store"
 import { fmtDuration } from "@domain/lib/day"
 import { liveStore } from "@domain/lib/live"
@@ -255,7 +255,17 @@ export function WorkoutLogger() {
         const ex = s.exercises.find((e) => e.id === we.exerciseId),
           other = { ...s, workouts: s.workouts.filter((x) => x.id !== w.id) },
           prev = C.exerciseHistory(other, we.exerciseId).at(-1),
-          suggestion = C.suggestion(other, we.exerciseId),
+          timed = C.isTimed(ex),
+          // A timed exercise's goal comes from the workout's template.
+          goalSec = timed
+            ? s.templates
+                .find((x) => x.id === w.templateId)
+                ?.items.find((it) => it.exerciseId === we.exerciseId)?.targetSec
+            : undefined,
+          doneSec = timed
+            ? we.sets.filter(C.isDone).reduce((a, x) => a + C.setSeconds(x), 0)
+            : 0,
+          suggestion = C.suggestion(other, we.exerciseId, goalSec),
           prevWorking = prev?.we.sets.filter(C.isWorking) ?? [],
           prevWarm = prev?.we.sets.filter((x) => !C.isWorking(x)) ?? [],
           allDone =
@@ -331,8 +341,16 @@ export function WorkoutLogger() {
               {[
                 "Set",
                 "Last",
-                ex?.loadType === "bodyweight" ? "+kg" : "kg",
-                ex?.loadType === "time" ? "sec" : "reps",
+                timed
+                  ? ex?.track === "speed"
+                    ? "km/h"
+                    : ex?.track === "weight"
+                      ? "+kg"
+                      : ""
+                  : ex?.loadType === "bodyweight"
+                    ? "+kg"
+                    : "kg",
+                timed ? "time" : "reps",
                 "",
               ].map((x, i) => (
                 <Copy
@@ -397,16 +415,28 @@ export function WorkoutLogger() {
                       </Copy>
                       <Copy size={12} muted lines={1} style={{ flex: 1 }}>
                         {ghost
-                          ? `${C.kgShort(ghost.weight)}×${ghost.reps}`
+                          ? timed
+                            ? C.fmtSpan(C.setSeconds(ghost))
+                            : `${C.kgShort(ghost.weight)}×${ghost.reps}`
                           : "—"}
                       </Copy>
                       {[
-                        needsWeight ? "—" : C.kgShort(set.weight),
-                        String(set.reps),
+                        timed
+                          ? ex?.track === "speed"
+                            ? set.speedKmh
+                              ? C.kgShort(set.speedKmh)
+                              : "—"
+                            : ex?.track === "weight"
+                              ? C.kgShort(set.weight)
+                              : ""
+                          : needsWeight
+                            ? "—"
+                            : C.kgShort(set.weight),
+                        timed ? C.fmtSpan(C.setSeconds(set)) : String(set.reps),
                       ].map((value, i) => (
                         <Tap
                           key={`${i}-${set.id}`}
-                          label={`${ex?.name} set ${label} ${i ? "reps" : "weight"}`}
+                          label={`${ex?.name} set ${label} ${i ? (timed ? "time" : "reps") : timed ? (ex?.track ?? "detail") : "weight"}`}
                           onPress={() => setEditing({ we: we.id, set: set.id })}
                           style={{
                             flex: 1,
@@ -476,6 +506,25 @@ export function WorkoutLogger() {
                 </Copy>
               </Line>
             </Tap>
+            {goalSec ? (
+              <View style={{ gap: 6, marginTop: 4 }}>
+                <Line style={{ justifyContent: "space-between" }}>
+                  <Copy size={12} muted>
+                    Goal {C.fmtSpan(goalSec)}
+                  </Copy>
+                  <Copy
+                    size={12}
+                    weight="semibold"
+                    style={{ color: doneSec >= goalSec ? t.good : t.text }}
+                  >
+                    {doneSec >= goalSec
+                      ? "Goal reached"
+                      : `${C.fmtSpan(doneSec)} of ${C.fmtSpan(goalSec)}`}
+                  </Copy>
+                </Line>
+                <Bar value={Math.min(1, doneSec / goalSec)} color={t.fit} />
+              </View>
+            ) : null}
           </Frame>
         )
       })}
@@ -644,6 +693,10 @@ export function WorkoutLogger() {
         <SetEditor
           key={target.id}
           set={target}
+          exercise={s.exercises.find(
+            (e) =>
+              e.id === w.exercises.find((x) => x.id === editing.we)?.exerciseId,
+          )}
           open
           onClose={() => setEditing(null)}
           onSave={(patch) => A.updateSet(w.id, editing.we, editing.set, patch)}
@@ -695,12 +748,15 @@ export function WorkoutLogger() {
 }
 export function SetEditor({
   set,
+  exercise,
   open,
   onClose,
   onSave,
   onDelete,
 }: {
   set: WorkoutSet
+  /** A timed exercise edits minutes and seconds, and speed or added weight. */
+  exercise?: Exercise
   open: boolean
   onClose: () => void
   onSave: (patch: Partial<WorkoutSet>) => void
@@ -714,7 +770,12 @@ export function SetEditor({
       String(unit === "lb" ? A.kgToLb(set.weight) : set.weight),
     ),
     [reps, setReps] = useState(String(set.reps)),
-    [kind, setKind] = useState(set.kind)
+    [kind, setKind] = useState(set.kind),
+    timed = C.isTimed(exercise),
+    secs = C.setSeconds(set),
+    [mins, setMins] = useState(String(Math.floor(secs / 60))),
+    [rest, setRest] = useState(String(secs % 60)),
+    [speed, setSpeed] = useState(set.speedKmh ? String(set.speedKmh) : "")
   const kg = (v: string) => (unit === "lb" ? A.lbToKg(Number(v)) : Number(v))
   const switchUnit = (next: "kg" | "lb") => {
     if (next === unit) return
@@ -740,15 +801,41 @@ export function SetEditor({
           }),
         )}
       />
-      {[
-        {
-          label: `Weight (${unit})`,
-          value: weight,
-          set: setWeight,
-          step: unit === "lb" ? 5 : 2.5,
-        },
-        { label: "Reps", value: reps, set: setReps, step: 1 },
-      ].map((row) => (
+      {(timed
+        ? [
+            { label: "Minutes", value: mins, set: setMins, step: 1 },
+            { label: "Seconds", value: rest, set: setRest, step: 15 },
+            ...(exercise?.track === "speed"
+              ? [
+                  {
+                    label: "Speed (km/h)",
+                    value: speed,
+                    set: setSpeed,
+                    step: 0.5,
+                  },
+                ]
+              : []),
+            ...(exercise?.track === "weight"
+              ? [
+                  {
+                    label: `Weight (${unit})`,
+                    value: weight,
+                    set: setWeight,
+                    step: unit === "lb" ? 5 : 2.5,
+                  },
+                ]
+              : []),
+          ]
+        : [
+            {
+              label: `Weight (${unit})`,
+              value: weight,
+              set: setWeight,
+              step: unit === "lb" ? 5 : 2.5,
+            },
+            { label: "Reps", value: reps, set: setReps, step: 1 },
+          ]
+      ).map((row) => (
         <View key={row.label} style={{ gap: 8 }}>
           <Copy size={14} muted>
             {row.label}
@@ -808,6 +895,32 @@ export function SetEditor({
       ))}
       <Button
         onPress={() => {
+          if (timed) {
+            const m = Number(mins || 0),
+              sec = Number(rest || 0),
+              total = Math.round(m * 60 + sec),
+              kmh = speed === "" ? undefined : Number(speed)
+            if (
+              !Number.isFinite(total) ||
+              total <= 0 ||
+              total > 86400 ||
+              sec >= 60 ||
+              (kmh !== undefined && !(kmh >= 0 && kmh <= 60)) ||
+              !Number.isFinite(Number(weight))
+            ) {
+              toast.error("Enter a time, and seconds under 60")
+              return
+            }
+            onSave({
+              kind,
+              reps: 0,
+              durationSec: total,
+              weight: exercise?.track === "weight" ? kg(weight) : set.weight,
+              ...(exercise?.track === "speed" ? { speedKmh: kmh } : {}),
+            })
+            onClose()
+            return
+          }
           if (
             !Number.isFinite(Number(weight)) ||
             Number(weight) < 0 ||

@@ -1,12 +1,12 @@
 import { AREA, MODULE_KEYS } from "@domain/dash/data"
 import {
+  STEPS as ALL_STEPS,
   IDENTITIES,
   NO_SKIP,
   PACES,
   PASS_THROUGH,
   type Pace,
   STARTERS,
-  STEPS,
   type Step,
 } from "@domain/dash/onboarding"
 import {
@@ -48,8 +48,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
 import { border, Copy, Frame, IconTap, Line, Tap } from "../native-kit"
 import { go } from "../navigation"
+import { enableReminders } from "../reminders"
 import { fonts, useTheme } from "../theme"
 import { TimeInput } from "../time-input"
+
+// "Install" is the web's add-to-home-screen step; the app is installed.
+const STEPS: readonly Step[] = ALL_STEPS.filter((x) => x !== "install")
 
 const modules = {
   habits: { icon: Repeat2, color: "hab" },
@@ -308,7 +312,7 @@ export function Onboarding() {
                 muted
                 style={{ marginTop: 8, textAlign: "center" }}
               >
-                About 90 seconds · sign-in is mocked in the prototype
+                About 90 seconds
               </Copy>
             </>
           )}
@@ -732,14 +736,13 @@ export function Onboarding() {
                   ? "Notifications on ✓ — continue"
                   : `Remind me at ${s.push.morning} & ${s.push.evening}`,
                 () => {
-                  toast("Notification delivery is mocked in the prototype")
-                  next()
+                  // The system asks; whatever the answer, onboarding goes on.
+                  void enableReminders().finally(next)
                 },
               )}
               {button("Not now", next, true)}
             </>
           )}
-          {step === "install" && button("Continue", next)}
           {step === "done" && (
             <>
               <Frame style={{ padding: 16, marginBottom: 16 }}>

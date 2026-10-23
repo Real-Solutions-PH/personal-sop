@@ -19,7 +19,9 @@ Muscle = Literal[
     "hamstrings",
     "glutes",
     "core",
+    "cardio",
 ]
+TimeTrack = Literal["speed", "weight"]
 SetKind = Literal["warmup", "working", "drop", "failure"]
 MealLabel = Literal["breakfast", "lunch", "dinner", "snack"]
 MealSource = Literal["photo", "voice", "text", "manual", "connector"]
@@ -55,6 +57,7 @@ class ExercisePublic(_Row):
     rep_max: int
     increment: float
     archived: bool
+    track: TimeTrack | None = None
 
 
 class WorkoutTemplatePublic(_Row):
@@ -67,6 +70,7 @@ class TemplateItemPublic(_Row):
     exercise_id: uuid.UUID
     position: int
     sets: int
+    target_sec: int | None = None
 
 
 class WorkoutPublic(_Row):
@@ -94,6 +98,8 @@ class WorkoutSetPublic(_Row):
     weight: float
     kind: str
     completed_at: datetime | None
+    duration_sec: int | None = None
+    speed_kmh: float | None = None
 
 
 class RestTimerPublic(_Row):
@@ -175,6 +181,7 @@ class ExerciseIn(BaseModel):
     rep_max: int | None = Field(default=None, ge=1, le=1000)
     increment: float | None = Field(default=None, ge=0, le=100)
     archived: bool | None = None
+    track: TimeTrack | None = None
 
 
 class WorkoutTemplateIn(BaseModel):
@@ -187,6 +194,7 @@ class TemplateItemIn(BaseModel):
     exercise_id: uuid.UUID | None = None
     position: int | None = Field(default=None, ge=0, le=1000)
     sets: int | None = Field(default=None, ge=1, le=20)
+    target_sec: int | None = Field(default=None, ge=1, le=86400)
 
 
 class WorkoutIn(BaseModel):
@@ -213,6 +221,8 @@ class WorkoutSetIn(BaseModel):
     weight: float | None = OptKg
     kind: SetKind | None = None
     completed_at: datetime | None = None
+    duration_sec: int | None = Field(default=None, ge=0, le=86400)
+    speed_kmh: float | None = Field(default=None, ge=0, le=60)
 
 
 class WeighInIn(BaseModel):
@@ -358,6 +368,7 @@ class ExerciseUpsert(BaseModel):
     rep_max: int = Field(default=12, ge=1, le=1000)
     increment: float = Field(default=2.5, ge=0, le=100)
     archived: bool = False
+    track: TimeTrack | None = None
     id: uuid.UUID | None = None
 
 

@@ -20,7 +20,11 @@ MUSCLES = (
     "hamstrings",
     "glutes",
     "core",
+    "cardio",
 )
+# What a timed exercise records beside its time: walking or running speed,
+# or added weight (a weighted plank). None: time alone.
+TIME_TRACKS = ("speed", "weight")
 SET_KINDS = ("warmup", "working", "drop", "failure")
 WORKOUT_STATUSES = ("in_progress", "finished", "discarded")
 MEAL_LABELS = ("breakfast", "lunch", "dinner", "snack")
@@ -36,6 +40,9 @@ class Exercise(OwnedRow, table=True):
         enum_check("load_type", LOAD_TYPES, name="ck_exercise_load"),
         CheckConstraint("rep_min >= 1 AND rep_max >= rep_min", name="ck_exercise_reps"),
         CheckConstraint("increment >= 0", name="ck_exercise_increment"),
+        CheckConstraint(
+            "track IS NULL OR track IN ('speed', 'weight')", name="ck_exercise_track"
+        ),
     )
 
     name: str = Field(max_length=80)
@@ -46,6 +53,7 @@ class Exercise(OwnedRow, table=True):
     rep_max: int = 12
     increment: float = Field(default=2.5, sa_type=Float)
     archived: bool = False
+    track: str | None = Field(default=None, sa_type=String(8))  # type: ignore
 
 
 class WorkoutTemplate(OwnedRow, table=True):
@@ -60,6 +68,10 @@ class TemplateItem(OwnedRow, table=True):
     __table_args__ = (
         UniqueConstraint("template_id", "position", name="uq_template_item_pos"),
         CheckConstraint("sets BETWEEN 1 AND 20", name="ck_template_item_sets"),
+        CheckConstraint(
+            "target_sec IS NULL OR target_sec BETWEEN 1 AND 86400",
+            name="ck_template_item_target",
+        ),
     )
 
     template_id: uuid.UUID = Field(
@@ -68,6 +80,8 @@ class TemplateItem(OwnedRow, table=True):
     exercise_id: uuid.UUID = Field(foreign_key="exercise.id", ondelete="CASCADE")
     position: int
     sets: int = 3
+    # A timed exercise's goal, in seconds (e.g. 1200: walk 20 minutes).
+    target_sec: int | None = None
 
 
 class Workout(OwnedRow, table=True):
@@ -119,6 +133,14 @@ class WorkoutSet(OwnedRow, table=True):
         enum_check("kind", SET_KINDS, name="ck_workout_set_kind"),
         CheckConstraint("reps >= 0 AND reps <= 1000", name="ck_workout_set_reps"),
         CheckConstraint("weight >= 0 AND weight <= 2000", name="ck_workout_set_weight"),
+        CheckConstraint(
+            "duration_sec IS NULL OR duration_sec BETWEEN 0 AND 86400",
+            name="ck_workout_set_duration",
+        ),
+        CheckConstraint(
+            "speed_kmh IS NULL OR (speed_kmh >= 0 AND speed_kmh <= 60)",
+            name="ck_workout_set_speed",
+        ),
     )
 
     workout_exercise_id: uuid.UUID = Field(
@@ -128,6 +150,9 @@ class WorkoutSet(OwnedRow, table=True):
     reps: int = 0
     weight: float = Field(default=0, sa_type=Float)
     kind: str = Field(default="working", sa_type=String(8))  # type: ignore
+    # A timed set: how long, and how fast (walking or running).
+    duration_sec: int | None = None
+    speed_kmh: float | None = Field(default=None, sa_type=Float)
     completed_at: datetime | None = Field(default=None, sa_type=tstz())  # type: ignore
 
 

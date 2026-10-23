@@ -181,6 +181,9 @@ export default function PrototypeLayout() {
     /^\/habits\/routines\/[^/]+\/play$/.test(path) ||
     /^\/habits\/[^/]+\/timer$/.test(path) ||
     /^\/social\/(stories|story-new|chat|compose|new-chat)/.test(path) ||
+    // First-run flows own the screen: their Continue sits where the bar is.
+    path.startsWith("/onboarding") ||
+    path.startsWith("/setup") ||
     path === "/capture"
   const reduced = useReducedMotion()
   const online = useConnectivity()

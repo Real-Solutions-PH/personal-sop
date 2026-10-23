@@ -12,7 +12,8 @@
       "rep_min": 8,
       "rep_max": 12,
       "increment": 2.5,
-      "archived": false
+      "archived": false,
+      "track": null
     }
   },
   {
@@ -28,7 +29,8 @@
       "rep_min": 8,
       "rep_max": 12,
       "increment": 2.5,
-      "archived": false
+      "archived": false,
+      "track": null
     }
   },
   {
@@ -44,7 +46,8 @@
       "rep_min": 5,
       "rep_max": 8,
       "increment": 2.5,
-      "archived": false
+      "archived": false,
+      "track": null
     }
   },
   {
@@ -66,7 +69,8 @@
       "template_id": "00000000-0000-4000-8000-000000000001",
       "exercise_id": "00000000-0000-4000-8000-000000000002",
       "position": 0,
-      "sets": 3
+      "sets": 3,
+      "target_sec": null
     }
   },
   {
@@ -78,7 +82,8 @@
       "template_id": "00000000-0000-4000-8000-000000000001",
       "exercise_id": "00000000-0000-4000-8000-000000000003",
       "position": 1,
-      "sets": 3
+      "sets": 3,
+      "target_sec": null
     }
   },
   {
@@ -94,7 +99,8 @@
       "rep_min": 8,
       "rep_max": 12,
       "increment": 2.5,
-      "archived": false
+      "archived": false,
+      "track": null
     }
   },
   {
@@ -110,7 +116,8 @@
       "rep_min": 8,
       "rep_max": 12,
       "increment": 2.5,
-      "archived": false
+      "archived": false,
+      "track": null
     }
   },
   {
@@ -126,7 +133,8 @@
       "rep_min": 5,
       "rep_max": 8,
       "increment": 2.5,
-      "archived": false
+      "archived": false,
+      "track": null
     }
   },
   {
@@ -148,7 +156,8 @@
       "template_id": "00000000-0000-4000-8000-000000000004",
       "exercise_id": "00000000-0000-4000-8000-000000000005",
       "position": 0,
-      "sets": 3
+      "sets": 3,
+      "target_sec": null
     }
   },
   {
@@ -160,7 +169,8 @@
       "template_id": "00000000-0000-4000-8000-000000000004",
       "exercise_id": "00000000-0000-4000-8000-000000000006",
       "position": 1,
-      "sets": 3
+      "sets": 3,
+      "target_sec": null
     }
   },
   {
@@ -206,7 +216,8 @@
       "rep_min": 8,
       "rep_max": 12,
       "increment": 2.5,
-      "archived": false
+      "archived": false,
+      "track": null
     }
   },
   {
@@ -222,7 +233,8 @@
       "rep_min": 8,
       "rep_max": 12,
       "increment": 2.5,
-      "archived": false
+      "archived": false,
+      "track": null
     }
   },
   {
@@ -238,7 +250,8 @@
       "rep_min": 5,
       "rep_max": 8,
       "increment": 2.5,
-      "archived": false
+      "archived": false,
+      "track": null
     }
   },
   {
@@ -260,7 +273,8 @@
       "template_id": "00000000-0000-4000-8000-000000000007",
       "exercise_id": "00000000-0000-4000-8000-000000000008",
       "position": 0,
-      "sets": 3
+      "sets": 3,
+      "target_sec": null
     }
   },
   {
@@ -272,7 +286,8 @@
       "template_id": "00000000-0000-4000-8000-000000000007",
       "exercise_id": "00000000-0000-4000-8000-000000000009",
       "position": 1,
-      "sets": 3
+      "sets": 3,
+      "target_sec": null
     }
   },
   {
@@ -333,7 +348,9 @@
       "position": 0,
       "reps": 8,
       "weight": 0,
-      "kind": "working"
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null
     }
   },
   {
@@ -346,7 +363,9 @@
       "position": 0,
       "reps": 8,
       "weight": 0,
-      "kind": "working"
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null
     }
   },
   {
@@ -372,7 +391,8 @@
       "rep_min": 8,
       "rep_max": 12,
       "increment": 2.5,
-      "archived": false
+      "archived": false,
+      "track": null
     }
   },
   {
@@ -388,7 +408,8 @@
       "rep_min": 8,
       "rep_max": 12,
       "increment": 2.5,
-      "archived": false
+      "archived": false,
+      "track": null
     }
   },
   {
@@ -404,7 +425,8 @@
       "rep_min": 5,
       "rep_max": 8,
       "increment": 2.5,
-      "archived": false
+      "archived": false,
+      "track": null
     }
   },
   {
@@ -426,7 +448,8 @@
       "template_id": "00000000-0000-4000-8000-00000000000e",
       "exercise_id": "00000000-0000-4000-8000-00000000000f",
       "position": 0,
-      "sets": 3
+      "sets": 3,
+      "target_sec": null
     }
   },
   {
@@ -438,7 +461,8 @@
       "template_id": "00000000-0000-4000-8000-00000000000e",
       "exercise_id": "00000000-0000-4000-8000-000000000010",
       "position": 1,
-      "sets": 3
+      "sets": 3,
+      "target_sec": null
     }
   },
   {
@@ -489,7 +513,9 @@
       "position": 0,
       "reps": 8,
       "weight": 0,
-      "kind": "working"
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null
     }
   },
   {
@@ -502,7 +528,9 @@
       "position": 0,
       "reps": 8,
       "weight": 0,
-      "kind": "working"
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null
     }
   },
   {
@@ -585,7 +613,8 @@
       "rep_min": 8,
       "rep_max": 12,
       "increment": 2.5,
-      "archived": false
+      "archived": false,
+      "track": null
     }
   },
   {
@@ -601,7 +630,8 @@
       "rep_min": 8,
       "rep_max": 12,
       "increment": 2.5,
-      "archived": false
+      "archived": false,
+      "track": null
     }
   },
   {
@@ -617,7 +647,8 @@
       "rep_min": 5,
       "rep_max": 8,
       "increment": 2.5,
-      "archived": false
+      "archived": false,
+      "track": null
     }
   },
   {
@@ -639,7 +670,8 @@
       "template_id": "00000000-0000-4000-8000-000000000015",
       "exercise_id": "00000000-0000-4000-8000-000000000016",
       "position": 0,
-      "sets": 3
+      "sets": 3,
+      "target_sec": null
     }
   },
   {
@@ -651,7 +683,8 @@
       "template_id": "00000000-0000-4000-8000-000000000015",
       "exercise_id": "00000000-0000-4000-8000-000000000017",
       "position": 1,
-      "sets": 3
+      "sets": 3,
+      "target_sec": null
     }
   },
   {
@@ -702,7 +735,9 @@
       "position": 0,
       "reps": 8,
       "weight": 0,
-      "kind": "working"
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null
     }
   },
   {
@@ -715,7 +750,9 @@
       "position": 0,
       "reps": 8,
       "weight": 0,
-      "kind": "working"
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null
     }
   },
   {
@@ -806,7 +843,8 @@
       "rep_min": 8,
       "rep_max": 12,
       "increment": 2.5,
-      "archived": false
+      "archived": false,
+      "track": null
     }
   },
   {
@@ -822,7 +860,8 @@
       "rep_min": 8,
       "rep_max": 12,
       "increment": 2.5,
-      "archived": false
+      "archived": false,
+      "track": null
     }
   },
   {
@@ -838,7 +877,8 @@
       "rep_min": 5,
       "rep_max": 8,
       "increment": 2.5,
-      "archived": false
+      "archived": false,
+      "track": null
     }
   },
   {
@@ -860,7 +900,8 @@
       "template_id": "00000000-0000-4000-8000-00000000001c",
       "exercise_id": "00000000-0000-4000-8000-00000000001d",
       "position": 0,
-      "sets": 3
+      "sets": 3,
+      "target_sec": null
     }
   },
   {
@@ -872,7 +913,8 @@
       "template_id": "00000000-0000-4000-8000-00000000001c",
       "exercise_id": "00000000-0000-4000-8000-00000000001e",
       "position": 1,
-      "sets": 3
+      "sets": 3,
+      "target_sec": null
     }
   },
   {
@@ -923,7 +965,9 @@
       "position": 0,
       "reps": 8,
       "weight": 0,
-      "kind": "working"
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null
     }
   },
   {
@@ -936,7 +980,9 @@
       "position": 0,
       "reps": 8,
       "weight": 0,
-      "kind": "working"
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null
     }
   },
   {
@@ -1018,7 +1064,8 @@
       "rep_min": 8,
       "rep_max": 12,
       "increment": 2.5,
-      "archived": false
+      "archived": false,
+      "track": null
     }
   },
   {
@@ -1034,7 +1081,8 @@
       "rep_min": 8,
       "rep_max": 12,
       "increment": 2.5,
-      "archived": false
+      "archived": false,
+      "track": null
     }
   },
   {
@@ -1050,7 +1098,8 @@
       "rep_min": 5,
       "rep_max": 8,
       "increment": 2.5,
-      "archived": false
+      "archived": false,
+      "track": null
     }
   },
   {
@@ -1072,7 +1121,8 @@
       "template_id": "00000000-0000-4000-8000-000000000023",
       "exercise_id": "00000000-0000-4000-8000-000000000024",
       "position": 0,
-      "sets": 3
+      "sets": 3,
+      "target_sec": null
     }
   },
   {
@@ -1084,7 +1134,8 @@
       "template_id": "00000000-0000-4000-8000-000000000023",
       "exercise_id": "00000000-0000-4000-8000-000000000025",
       "position": 1,
-      "sets": 3
+      "sets": 3,
+      "target_sec": null
     }
   },
   {
@@ -1135,7 +1186,9 @@
       "position": 0,
       "reps": 8,
       "weight": 0,
-      "kind": "working"
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null
     }
   },
   {
@@ -1148,7 +1201,9 @@
       "position": 0,
       "reps": 8,
       "weight": 0,
-      "kind": "working"
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null
     }
   },
   {
@@ -1183,7 +1238,8 @@
       "rep_min": 8,
       "rep_max": 12,
       "increment": 2.5,
-      "archived": false
+      "archived": false,
+      "track": null
     }
   },
   {
@@ -1199,7 +1255,8 @@
       "rep_min": 8,
       "rep_max": 12,
       "increment": 2.5,
-      "archived": false
+      "archived": false,
+      "track": null
     }
   },
   {
@@ -1215,7 +1272,8 @@
       "rep_min": 5,
       "rep_max": 8,
       "increment": 2.5,
-      "archived": false
+      "archived": false,
+      "track": null
     }
   },
   {
@@ -1237,7 +1295,8 @@
       "template_id": "00000000-0000-4000-8000-000000000029",
       "exercise_id": "00000000-0000-4000-8000-00000000002a",
       "position": 0,
-      "sets": 3
+      "sets": 3,
+      "target_sec": null
     }
   },
   {
@@ -1249,7 +1308,8 @@
       "template_id": "00000000-0000-4000-8000-000000000029",
       "exercise_id": "00000000-0000-4000-8000-00000000002b",
       "position": 1,
-      "sets": 3
+      "sets": 3,
+      "target_sec": null
     }
   },
   {
@@ -1312,7 +1372,9 @@
       "position": 0,
       "reps": 8,
       "weight": 0,
-      "kind": "working"
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null
     }
   },
   {
@@ -1325,7 +1387,9 @@
       "position": 0,
       "reps": 8,
       "weight": 0,
-      "kind": "working"
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null
     }
   },
   {
@@ -1338,7 +1402,9 @@
       "position": 0,
       "reps": 5,
       "weight": 0,
-      "kind": "working"
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null
     }
   },
   {
@@ -1381,7 +1447,9 @@
       "position": 0,
       "reps": 5,
       "weight": 0,
-      "kind": "working"
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null
     }
   },
   {
@@ -1397,7 +1465,8 @@
       "rep_min": 8,
       "rep_max": 12,
       "increment": 2.5,
-      "archived": false
+      "archived": false,
+      "track": null
     }
   },
   {
@@ -1413,7 +1482,8 @@
       "rep_min": 8,
       "rep_max": 12,
       "increment": 2.5,
-      "archived": false
+      "archived": false,
+      "track": null
     }
   },
   {
@@ -1429,7 +1499,8 @@
       "rep_min": 5,
       "rep_max": 8,
       "increment": 2.5,
-      "archived": false
+      "archived": false,
+      "track": null
     }
   },
   {
@@ -1451,7 +1522,8 @@
       "template_id": "00000000-0000-4000-8000-000000000031",
       "exercise_id": "00000000-0000-4000-8000-000000000032",
       "position": 0,
-      "sets": 3
+      "sets": 3,
+      "target_sec": null
     }
   },
   {
@@ -1463,7 +1535,8 @@
       "template_id": "00000000-0000-4000-8000-000000000031",
       "exercise_id": "00000000-0000-4000-8000-000000000033",
       "position": 1,
-      "sets": 3
+      "sets": 3,
+      "target_sec": null
     }
   },
   {
@@ -1503,6 +1576,8 @@
       "reps": 8,
       "weight": 60,
       "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null,
       "completed_at": "2026-10-19T04:00:00.000Z"
     }
   },

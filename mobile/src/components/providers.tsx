@@ -2,11 +2,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import type { ReactNode } from "react"
 import { GestureHandlerRootView } from "react-native-gesture-handler"
 import { SafeAreaProvider } from "react-native-safe-area-context"
-import { Toaster } from "sonner-native"
 import { useNetworkStatus } from "@/hooks/useNetworkStatus"
 import { useSupabaseAuthSync } from "@/hooks/useSupabaseAuthSync"
 import { useSyncOnForeground } from "@/hooks/useSyncOnForeground"
 import { initializeDatabase } from "@/lib/database"
+import { AppToaster } from "@/prototype/toaster"
 
 initializeDatabase()
 
@@ -42,7 +42,7 @@ export function Providers({ children }: ProvidersProps) {
         <QueryClientProvider client={queryClient}>
           <AppInitializer />
           {children}
-          <Toaster />
+          <AppToaster />
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

@@ -43,6 +43,7 @@ import {
 } from "../native-kit"
 import { go } from "../navigation"
 import { ProfileAvatar } from "../profile-avatar"
+import { enableReminders } from "../reminders"
 import { Switch } from "../switch"
 import { appearanceStore, fonts, useTheme } from "../theme"
 import { TimeInput } from "../time-input"
@@ -521,12 +522,7 @@ export function Settings() {
                 ? "Blocked — re-enable in your browser’s site settings"
                 : "Not asked yet",
             s.push.permission !== "granted" ? (
-              <Button
-                small
-                onPress={() =>
-                  toast("Notification delivery is mocked in the prototype")
-                }
-              >
+              <Button small onPress={() => void enableReminders()}>
                 Allow
               </Button>
             ) : null,
