@@ -7,12 +7,10 @@ import { useLocalSearchParams } from "expo-router"
 import {
   ArrowUp,
   BookOpen,
-  Camera,
   CheckSquare,
   Clock,
   Dumbbell,
   Mic,
-  Paperclip,
   Plus,
   Scale,
   Settings2,
@@ -25,7 +23,6 @@ import {
 import { useEffect, useRef, useState } from "react"
 import {
   ActivityIndicator,
-  Alert,
   Image,
   ScrollView,
   TextInput,
@@ -126,21 +123,6 @@ export function ThreadComposer({
   const MAX_PHOTOS = 10
   const addPhotos = (more: string[]) =>
     setPhotos((cur) => [...cur, ...more].slice(0, MAX_PHOTOS))
-  // Fern's camera attaches photos to the message being written, so a photo
-  // and what to do with it go out together as one message.
-  const attachPhotos = () =>
-    Alert.alert("Add photos", undefined, [
-      {
-        text: "Take photo",
-        onPress: () => void pickPhoto(true).then((v) => v && addPhotos([v])),
-      },
-      {
-        text: "Choose photos",
-        onPress: () =>
-          void pickPhotos(MAX_PHOTOS - photos.length).then(addPhotos),
-      },
-      { text: "Cancel", style: "cancel" },
-    ])
   const canSend = Boolean(text.trim()) || (Boolean(onText) && photos.length > 0)
   // Fern's composer dictates: what was said lands in the box to review and
   // send (ADR-0015). The capture screen's composer keeps voice captures.
@@ -276,7 +258,7 @@ export function ThreadComposer({
         <IconTap
           size={44}
           icon={Plus}
-          label="Quick add"
+          label="Add"
           background={t.soft}
           onPress={() => setQuick(true)}
         />
@@ -332,34 +314,10 @@ export function ThreadComposer({
               color: t.text,
             }}
           />
-          {!text && (
-            <IconTap
-              size={44}
-              icon={Paperclip}
-              label="Attach statement file"
-              onPress={() => void attachFiles(onSent)}
-            />
-          )}
-          {/* With words or photos in the box the round button is Send, so
-              dictation keeps its own button here: start it again after a
-              pause, or add to what you typed. */}
-          {dictation && canSend && !live.listening && !transcribing && (
-            <IconTap
-              size={44}
-              icon={Mic}
-              label="Dictate"
-              onPress={() => void dictate()}
-            />
-          )}
-          {(!text || onText) && (
-            <IconTap
-              size={44}
-              icon={Camera}
-              label={onText ? "Add photos" : "Photo"}
-              onPress={() => (onText ? attachPhotos() : setMode("photo"))}
-            />
-          )}
         </View>
+        {/* Dictation always has its own button, so a paused dictation
+            can start again with words already in the box; Send shows
+            once there is something to send. */}
         {live.listening ? (
           <View
             style={{
@@ -383,7 +341,41 @@ export function ThreadComposer({
               onPress={live.stop}
             />
           </View>
+        ) : transcribing ? (
+          <View
+            accessibilityLabel="Transcribing"
+            style={{
+              width: 44,
+              height: 44,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <ActivityIndicator color={t.primary} />
+          </View>
         ) : canSend ? (
+          <IconTap
+            size={44}
+            icon={Mic}
+            label={dictation ? "Dictate" : "Record voice"}
+            background={t.soft}
+            onPress={() => (dictation ? void dictate() : setMode("voice"))}
+          />
+        ) : (
+          <LinearGradient
+            colors={[t.primary, t.hab]}
+            style={{ borderRadius: 22 }}
+          >
+            <IconTap
+              size={44}
+              icon={Mic}
+              label={dictation ? "Dictate" : "Record voice"}
+              color="#fff"
+              onPress={() => (dictation ? void dictate() : setMode("voice"))}
+            />
+          </LinearGradient>
+        )}
+        {canSend && !live.listening && (
           <IconTap
             size={44}
             icon={ArrowUp}
@@ -408,31 +400,6 @@ export function ThreadComposer({
               onSent?.(id)
             }}
           />
-        ) : transcribing ? (
-          <View
-            accessibilityLabel="Transcribing"
-            style={{
-              width: 44,
-              height: 44,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <ActivityIndicator color={t.primary} />
-          </View>
-        ) : (
-          <LinearGradient
-            colors={[t.primary, t.hab]}
-            style={{ borderRadius: 22 }}
-          >
-            <IconTap
-              size={44}
-              icon={Mic}
-              label={dictation ? "Dictate" : "Record voice"}
-              color="#fff"
-              onPress={() => (dictation ? void dictate() : setMode("voice"))}
-            />
-          </LinearGradient>
         )}
       </Line>
       {mode === "photo" && (
@@ -471,7 +438,22 @@ export function ThreadComposer({
           }}
         />
       )}
-      {quick && <QuickAdd onClose={() => setQuick(false)} />}
+      {quick && (
+        <QuickAdd
+          onClose={() => setQuick(false)}
+          attach={{
+            camera: () =>
+              onText
+                ? void pickPhoto(true).then((v) => v && addPhotos([v]))
+                : setMode("photo"),
+            photos: () =>
+              onText
+                ? void pickPhotos(MAX_PHOTOS - photos.length).then(addPhotos)
+                : setMode("photo"),
+            files: () => void attachFiles(onSent),
+          }}
+        />
+      )}
     </View>
   )
 }
