@@ -75,9 +75,11 @@ with Dynamic Island on iOS, an ongoing notification on Android.
 | Native bridge, Android widgets, notification, receiver | `mobile/modules/unfurl-surfaces/` |
 | iOS widget extension and Live Activity (SwiftUI) | `mobile/targets/widget/` (`_shared/` also builds into the app) |
 
-Building for the iPhone with the free (personal) Apple team: prebuild with
-`UNFURL_FREE_APPLE_TEAM=1` so the push entitlement that team cannot sign is
-left out (`plugins/free-apple-team.js`). Widgets and the Live Activity need a
+Building for the iPhone: the Apple Developer Program membership has been
+active since 2026-10-23, on team `N2Y99Q8A79` (the same ID the personal team
+had). Prebuild **without** `UNFURL_FREE_APPLE_TEAM`, so the push entitlement
+is signed. The flag (`plugins/free-apple-team.js`) is only for a build signed
+by a free personal team. Widgets and the Live Activity need a
 development or release build; they are not in Expo Go. Tests:
 `src/surfaces/__tests__/`.
 

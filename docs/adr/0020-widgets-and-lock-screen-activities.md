@@ -129,6 +129,8 @@ module and one config-plugin dependency (`@bacons/apple-targets`).
 
 **Follow-ups:**
 
-- When the paid account is active: drop `UNFURL_FREE_APPLE_TEAM`, consider an
-  App Group for `SharedStore`, and push-to-start Live Activities from the
-  server for routines that start on schedule.
+- ~~When the paid account is active: drop `UNFURL_FREE_APPLE_TEAM`~~ (done
+  2026-10-23: the membership is active on the same team ID and builds are
+  prebuilt without the flag). Still open: consider an App Group for
+  `SharedStore`, and push-to-start Live Activities from the server for
+  routines that start on schedule.
