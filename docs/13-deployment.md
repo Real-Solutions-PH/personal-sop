@@ -26,6 +26,30 @@ Promotion to production is a deliberate manual act:
 - **Never** a `push:` or `release:` trigger. No deploy may be a side effect of merging or tagging.
 - At cutover, the Vercel testing environment is torn down (§2.5).
 
+## Production on AWS (plan)
+
+Everything runs in one AWS account in one region, **`ap-southeast-1` (Singapore)**, the closest region to the product's users in the Philippines. Every resource is defined in infrastructure as code and deployed by the `workflow_dispatch` workflow above. Nothing is configured by hand in the console.
+
+| Part | AWS service | Notes |
+|---|---|---|
+| API (FastAPI) | ECS Fargate service behind an Application Load Balancer, TLS from ACM | Same image as local. The ALB idle timeout is raised for the server-sent-event streams (`/events/stream`, `/companion/ask/stream`) |
+| Background jobs (procrastinate) | ECS Fargate service from the same image | Stats rollups, push sends, retention |
+| **Sign-in (GoTrue)** | **ECS Fargate service behind the same ALB at `/auth/v1/*`** | **[ADR-0021](adr/0021-self-hosted-gotrue-on-aws.md):** self-hosted, not a Supabase project. An nginx sidecar strips the `/auth/v1` prefix; ES256 tokens; email, Apple and Google sign-in |
+| Database | RDS PostgreSQL | The app's database (`app`, Alembic, tenant RLS) and GoTrue's database (`auth`, its own role) on one instance, with automated backups and point-in-time restore |
+| Cache and rate limits | ElastiCache (Redis) | Replaces the Compose `redis` service |
+| Photos, files, audio | S3 | Replaces MinIO; presigned upload and download as today |
+| Email | SES (SMTP) | Sign-up confirmation, password reset, digests; domain verified with SPF, DKIM and DMARC |
+| Secrets | Secrets Manager | GoTrue signing key, SMTP, Apple and Google client secrets, Nebius and Deepgram keys, the database password |
+| Edge protection | AWS WAF on the ALB | Rate rules on `/auth/v1/*` and the AI endpoints |
+| Logs and alarms | CloudWatch | Health alarms on `/api/v1/utils/health-check/` and `/auth/v1/health` |
+
+**Sign-in providers:**
+- **Email and password** works as soon as SES is verified.
+- **Sign in with Apple** needs the paid Apple Developer account (Services ID and key). The App Store requires it whenever Google sign-in is offered.
+- **Google** needs a Google Cloud OAuth consent screen and client IDs for iOS, Android and web.
+
+All three reach GoTrue through `signInWithIdToken` or the email endpoints, so the app's auth code doesn't change.
+
 ## What This Template Deliberately Does NOT Include
 
 Removed on purpose, per the constitution:
@@ -89,9 +113,9 @@ generated secret (above) before any non-local deployment.
 
 **Supabase auth** (the backend verifies Supabase-issued JWTs via JWKS — ADR-0005)
 
-* `SUPABASE_URL`: Supabase auth URL — the local CLI stack locally, the hosted project URL in a deployed environment.
-* `SUPABASE_ANON_KEY`: Public anon key. The committed value is Supabase's well-known **local demo** key (safe to commit); use the hosted project's real key when deployed.
-* `SUPABASE_SERVICE_ROLE_KEY`: Service-role key. The committed value is the local demo key; the hosted project's real value is a **secret**.
+* `SUPABASE_URL`: Base URL of the GoTrue auth server, without `/auth/v1`. Locally that's the CLI stack. In production it's the self-hosted GoTrue behind the API's load balancer ([ADR-0021](adr/0021-self-hosted-gotrue-on-aws.md)).
+* `SUPABASE_ANON_KEY`: Public anon key. The committed value is Supabase's well-known **local demo** key (safe to commit). In production it's a long-lived `anon` JWT signed with GoTrue's key. It's public: `supabase-js` sends it, and GoTrue does not trust it.
+* `SUPABASE_SERVICE_ROLE_KEY`: Service-role key, which the backend uses for GoTrue's admin API. The committed value is the local demo key. In production it's a `service_role` JWT signed with GoTrue's key, kept in Secrets Manager. It's a **secret**.
 * `SUPABASE_JWT_ISSUER`: Override the token issuer only when it differs from `SUPABASE_URL` (e.g. a containerized backend reaching the stack via `host.docker.internal` while tokens say `127.0.0.1`). Leave empty otherwise.
 * `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`: The same URL and anon key exposed to the browser. Compose derives them from the two `SUPABASE_*` values above as Docker **build args** inlined into the Next.js bundle.
 
