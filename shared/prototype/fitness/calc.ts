@@ -6,6 +6,7 @@ import type {
   MacroTarget,
   Meal,
   MealLabel,
+  TemplateItem,
   Workout,
   WorkoutExercise,
   WorkoutSet,
@@ -25,6 +26,23 @@ export function fmtSpan(sec: number): string {
   if (r === 0) return `${m} min`
   return `${m}:${String(r).padStart(2, "0")}`
 }
+/** "4 exercises · 9 sets · 20 min": timed exercises add their goal time,
+ * not sets. */
+export function templateSummary(
+  items: readonly TemplateItem[],
+  exercises: readonly Exercise[],
+) {
+  const timed = (it: TemplateItem) =>
+    isTimed(exercises.find((e) => e.id === it.exerciseId))
+  const sets = items.filter((it) => !timed(it)).reduce((a, i) => a + i.sets, 0)
+  const secs = items.filter(timed).reduce((a, i) => a + (i.targetSec ?? 0), 0)
+  return [
+    `${items.length} exercise${items.length === 1 ? "" : "s"}`,
+    ...(sets ? [`${sets} sets`] : []),
+    ...(secs ? [fmtSpan(secs)] : []),
+  ].join(" · ")
+}
+
 /** A timed exercise's default length: 10 minutes for cardio, a minute else. */
 export const defaultSeconds = (ex: Pick<Exercise, "muscle"> | undefined) =>
   ex?.muscle === "cardio" ? 600 : 60

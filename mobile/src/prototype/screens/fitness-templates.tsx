@@ -136,8 +136,7 @@ export function Templates({ id }: { id?: string }) {
                   <View style={{ flex: 1 }}>
                     <Copy weight="medium">{template.name}</Copy>
                     <Copy size={14} muted>
-                      {template.items.length} exercises ·{" "}
-                      {template.items.reduce((a, i) => a + i.sets, 0)} sets ·{" "}
+                      {C.templateSummary(template.items, s.exercises)} ·{" "}
                       {last ? `last ${relDay(last.startedAt)}` : "never used"}
                     </Copy>
                   </View>

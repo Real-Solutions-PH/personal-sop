@@ -62,3 +62,17 @@ it("next time keeps last time's speed and says how it went", () => {
   const ex = fitStore.get().exercises.find((e) => e.id === "walk")
   expect(C.exStats(done.exercises[0], ex, 70).volume).toBe(0)
 })
+
+it("a template sums sets for lifts and time for timed exercises", () => {
+  const ex = fitStore.get().exercises
+  const lift = ex.find((e) => e.loadType === "weight")!.id
+  expect(
+    C.templateSummary(
+      [
+        { exerciseId: lift, sets: 3 },
+        { exerciseId: "walk", sets: 3, targetSec: 1200 },
+      ],
+      ex,
+    ),
+  ).toBe("2 exercises · 3 sets · 20 min")
+})
