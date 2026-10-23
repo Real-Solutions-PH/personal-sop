@@ -1,6 +1,6 @@
 import type { ModuleKey } from "@domain/contract"
 import { AREA } from "@domain/dash/data"
-import { dashStore, skipSetup } from "@domain/dash/store"
+import { dashStore, setOnboarded, skipSetup } from "@domain/dash/store"
 import { finStore } from "@domain/finance/store"
 import {
   logWeighIn,
@@ -37,7 +37,7 @@ import {
   Segmented,
   Tap,
 } from "../native-kit"
-import { go } from "../navigation"
+import { back, go, replace } from "../navigation"
 import { AccentContext, fonts, useTheme } from "../theme"
 import { Button } from "../ui"
 import { FinanceSetup } from "./finance-setup"
@@ -142,6 +142,9 @@ export function Setup() {
     ),
     enabled = dashStore.use((s) => s.enabled),
     skipped = dashStore.use((s) => s.setupSkipped),
+    // The last part of onboarding: nothing here can be skipped or left
+    // until every section is set up. Afterwards it is "Run setup again".
+    firstRun = !dashStore.use((s) => s.onboarded),
     has = {
       finance: finStore.use((s) => s.accounts.length > 0),
       habits: habitsStore.use((s) => s.habits.length > 0),
@@ -152,7 +155,12 @@ export function Setup() {
     },
     steps = ORDER.filter((k) => enabled[k]),
     pending = steps.filter((k) => !has[k]),
-    allDone = steps.length > 0 && !pending.length
+    allDone = (firstRun || steps.length > 0) && !pending.length
+  const finishOnboarding = () => {
+    setOnboarded(true)
+    toast.success("You're set", { description: "Day 1 starts now" })
+    replace("/today")
+  }
   const advance = (k: ModuleKey) =>
     setStep(
       steps
@@ -189,10 +197,16 @@ export function Setup() {
         <Line style={{ height: 56, gap: 12 }}>
           <IconTap
             size={44}
-            icon={step ? ArrowLeft : X}
-            label={step ? "Back to setup" : "Close"}
+            icon={step || firstRun ? ArrowLeft : X}
+            label={step ? "Back to setup" : firstRun ? "Back" : "Close"}
             color={t.text}
-            onPress={() => (step ? setStep(null) : go("/today"))}
+            onPress={() =>
+              step
+                ? setStep(null)
+                : firstRun
+                  ? back("/onboarding")
+                  : go("/today")
+            }
           />
           {step && (
             <>
@@ -210,17 +224,19 @@ export function Setup() {
                   />
                 ))}
               </Line>
-              <Tap
-                onPress={() => {
-                  skipSetup(step)
-                  advance(step)
-                }}
-                style={{ padding: 8 }}
-              >
-                <Copy size={14} muted>
-                  Skip
-                </Copy>
-              </Tap>
+              {!firstRun && (
+                <Tap
+                  onPress={() => {
+                    skipSetup(step)
+                    advance(step)
+                  }}
+                  style={{ padding: 8 }}
+                >
+                  <Copy size={14} muted>
+                    Skip
+                  </Copy>
+                </Tap>
+              )}
             </>
           )}
         </Line>
@@ -270,7 +286,9 @@ export function Setup() {
             <Copy muted style={{ marginTop: 4, marginBottom: 20 }}>
               {allDone
                 ? "Every section has its starting data. Change any of it later from the section itself."
-                : "A few quick steps so every section starts with your real numbers. Skip anything — it waits here until you're ready."}
+                : firstRun
+                  ? "A few quick steps so every section starts with your real numbers."
+                  : "A few quick steps so every section starts with your real numbers. Skip anything — it waits here until you're ready."}
             </Copy>
             <View style={{ gap: 8 }}>
               {steps.map((k) => (
@@ -316,15 +334,21 @@ export function Setup() {
             </View>
             <View style={{ marginTop: "auto", paddingTop: 24 }}>
               {allDone ? (
-                <Button href="/today">Go to Today</Button>
+                firstRun ? (
+                  <Button onPress={finishOnboarding}>Go to Today</Button>
+                ) : (
+                  <Button href="/today">Go to Today</Button>
+                )
               ) : (
                 <>
                   <Button onPress={() => setStep(pending[0] ?? null)}>
                     {pending.length === steps.length ? "Start" : "Continue"}
                   </Button>
-                  <Button tone="quiet" href="/today">
-                    I'll finish later
-                  </Button>
+                  {!firstRun && (
+                    <Button tone="quiet" href="/today">
+                      I'll finish later
+                    </Button>
+                  )}
                 </>
               )}
             </View>

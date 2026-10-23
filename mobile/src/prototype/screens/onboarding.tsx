@@ -2,7 +2,6 @@ import { AREA, MODULE_KEYS } from "@domain/dash/data"
 import {
   STEPS as ALL_STEPS,
   IDENTITIES,
-  NO_SKIP,
   PACES,
   PASS_THROUGH,
   type Pace,
@@ -14,7 +13,6 @@ import {
   saveGoal,
   setEnabled,
   setIdentities,
-  setOnboarded,
   setPush,
 } from "@domain/dash/store"
 import { uid } from "@domain/lib/store"
@@ -47,7 +45,7 @@ import { Pressable, ScrollView, TextInput, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
 import { border, Copy, Frame, IconTap, Line, Tap } from "../native-kit"
-import { go } from "../navigation"
+import { go, replace } from "../navigation"
 import { enableReminders } from "../reminders"
 import { fonts, useTheme } from "../theme"
 import { TimeInput } from "../time-input"
@@ -101,6 +99,10 @@ export function Onboarding() {
     },
     [],
   )
+  // Onboarding is the first run only; "Run setup again" is /setup.
+  useEffect(() => {
+    if (s.onboarded) replace("/today")
+  }, [s.onboarded])
   const button = (
     label: string,
     press: () => void,
@@ -144,7 +146,7 @@ export function Onboarding() {
       </View>
     )
   }
-  const finish = (href: string) => {
+  const finish = () => {
     let n = 0
     for (const k of active) {
       const starter = STARTERS[k]
@@ -159,11 +161,12 @@ export function Onboarding() {
     }
     if (picked.length)
       setIdentities(picked.map((text) => ({ id: uid(), text })))
-    setOnboarded(true)
-    toast.success("You're set", {
-      description: n ? `${n} starter goal${n > 1 ? "s" : ""} added` : undefined,
-    })
-    go(href)
+    if (n)
+      toast.success(`${n} starter goal${n > 1 ? "s" : ""} added`, {
+        description: "Next, set up your workspace",
+      })
+    // Setup is the last part of onboarding; it marks onboarding finished.
+    go("/setup")
   }
   const configs = {
       welcome: {
@@ -219,20 +222,21 @@ export function Onboarding() {
     <View style={{ flex: 1, backgroundColor: t.bg, paddingTop: safe.top }}>
       <View style={{ paddingHorizontal: 20 }}>
         <Line style={{ height: 56, gap: 12 }}>
-          <IconTap
-            size={44}
-            icon={ArrowLeft}
-            label="Back"
-            color={t.text}
-            onPress={() => {
-              if (index === 0) go("/me")
-              else {
+          {index > 0 ? (
+            <IconTap
+              size={44}
+              icon={ArrowLeft}
+              label="Back"
+              color={t.text}
+              onPress={() => {
                 let i = index - 1
                 while (i > 0 && PASS_THROUGH.includes(STEPS[i])) i--
                 setStep(STEPS[i])
-              }
-            }}
-          />
+              }}
+            />
+          ) : (
+            <View style={{ width: 44 }} />
+          )}
           <Line style={{ flex: 1, gap: 6 }}>
             {bar.map((x) => (
               <View
@@ -247,13 +251,6 @@ export function Onboarding() {
               />
             ))}
           </Line>
-          {!NO_SKIP.includes(step) && (
-            <Tap onPress={next} style={{ padding: 8 }}>
-              <Copy size={14} muted>
-                Skip
-              </Copy>
-            </Tap>
-          )}
         </Line>
       </View>
       <ScrollView
@@ -773,8 +770,7 @@ export function Onboarding() {
                   Log one thing today to light up day 1.
                 </Copy>
               </Frame>
-              {button("Bring my data in", () => finish("/setup"))}
-              {button("Go to Today", () => finish("/today"), true)}
+              {button("Set up my workspace", finish)}
             </>
           )}
         </View>
