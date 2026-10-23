@@ -56,7 +56,7 @@ const SLIDES: Slide[] = [
       `Ask ${fern} about your week. The answer comes from your own records.`,
   },
 ]
-const ART_HEIGHT = 264
+const ART_HEIGHT = 276
 const ease = Easing.out(Easing.cubic)
 
 function You({ children }: { children: string }) {
@@ -163,8 +163,9 @@ function Filed({
 function SayArt() {
   const t = useTheme()
   return (
-    <View style={{ flex: 1, justifyContent: "center", gap: space.lg }}>
-      <View style={{ alignItems: "center", marginBottom: space.sm }}>
+    <View style={{ flex: 1, justifyContent: "center", gap: space.md }}>
+      {/* Room for the orb's breathing glow, which reaches past its edge. */}
+      <View style={{ alignItems: "center", paddingVertical: space.md }}>
         <Orb size={72} />
       </View>
       <You>Lunch was 250 and I did squats, 3 sets of 8</You>
@@ -218,7 +219,7 @@ function OneArt() {
               color: t.muted,
             }}
           >
-            Thu 23 Oct
+            {dateLabel(new Date())}
           </Text>
         </View>
         {rows.map((r, i) => (
@@ -256,24 +257,32 @@ function OneArt() {
   )
 }
 
-// Food spend per day, Mon to Thu (today), in pesos.
-const WEEK = [
-  { day: "Mon", value: 420 },
-  { day: "Tue", value: 310 },
-  { day: "Wed", value: 860 },
-  { day: "Thu", value: 250 },
-]
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+const MONTHS = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(" ")
+// "Fri 23 Oct", the app's date format, so the sample reads as today.
+const dateLabel = (d: Date) =>
+  `${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`
+// Sample food spend for the last four days, ending today, in pesos.
+const SPEND = [420, 310, 860, 250]
 function AskArt() {
   const t = useTheme()
-  const max = Math.max(...WEEK.map((d) => d.value))
+  const now = new Date()
+  const week = SPEND.map((value, i) => {
+    const d = new Date(now)
+    d.setDate(now.getDate() - (SPEND.length - 1 - i))
+    return { day: DAYS[d.getDay()], value }
+  })
+  const max = Math.max(...SPEND)
   return (
     <View style={{ flex: 1, justifyContent: "center", gap: space.lg }}>
-      <You>How much did I spend on food this week?</You>
+      <You>How much have I spent on food lately?</You>
       <FernSays>
-        <Words>₱1,840.00 since Monday, ₱180 less than last week.</Words>
+        <Words>
+          ₱1,840.00 in the last 4 days, ₱180 less than the 4 before.
+        </Words>
         <View
           accessible
-          accessibilityLabel="Food spend: Mon 420, Tue 310, Wed 860, Thu 250"
+          accessibilityLabel={`Food spend: ${week.map((d) => `${d.day} ${d.value}`).join(", ")}`}
           style={{
             flexDirection: "row",
             alignItems: "flex-end",
@@ -282,8 +291,8 @@ function AskArt() {
             marginTop: 4,
           }}
         >
-          {WEEK.map((d, i) => {
-            const today = i === WEEK.length - 1
+          {week.map((d, i) => {
+            const today = i === week.length - 1
             return (
               <View key={d.day} style={{ alignItems: "center", gap: 3 }}>
                 <Text
