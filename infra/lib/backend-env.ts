@@ -6,16 +6,15 @@
  * backend is a decision here, never a silent default.
  */
 export const BACKEND_DEFAULTED: Record<string, string> = {
-  API_V1_STR: "Constant `/api/v1`; the ALB routes `/api/*`.",
+  API_V1_STR:
+    "Constant `/api/v1`; the tunnel routes the API host's non-auth paths to the API.",
   BACKEND_CORS_ORIGINS:
     "No browser client in production yet; FRONTEND_HOST is always allowed.",
   EMAIL_TEST_USER: "Test-only.",
-  SUPABASE_JWT_ISSUER:
-    "Issuer is SUPABASE_URL + /auth/v1, which GOTRUE_JWT_ISSUER matches.",
   DEFAULT_TENANT_SLUG: "Default `default`, the seeded tenant.",
   MAX_REQUEST_BODY_SIZE_MB: "Default 25.",
   RATE_LIMIT_PER_MINUTE:
-    "Left at 0 (off): the bucket is per tenant and every user is in the one default tenant, so any budget would be global. WAF limits per IP instead.",
+    "Left at 0 (off): the bucket is per tenant and every user is in the one default tenant, so any budget would be global. RATE_LIMIT_AI_PER_MINUTE and RATE_LIMIT_ACCOUNT_PER_MINUTE limit per user and per address instead.",
   MINIO_ROOT_USER: "Unused: OBJECT_STORAGE_IAM_AUTH signs with the task role.",
   MINIO_ROOT_PASSWORD:
     "Unused: OBJECT_STORAGE_IAM_AUTH signs with the task role.",
@@ -45,7 +44,7 @@ export const BACKEND_DEFAULTED: Record<string, string> = {
   MEDIA_URL_TTL_SECONDS: "Code default.",
   EVENTS_REPLAY_SECONDS: "Code default.",
   EVENTS_HEARTBEAT_SECONDS:
-    "Code default 25 s, well inside the ALB idle timeout.",
+    "Code default 25 s, inside Cloudflare's 100 s limit on a silent proxied response.",
   EXPO_PUSH_URL: "Code default.",
   EXPO_PUSH_RECEIPTS_URL: "Code default.",
   SUPABASE_AUTH_HOOK_SECRET:

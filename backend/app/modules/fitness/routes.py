@@ -17,13 +17,15 @@ from app.modules.iam.deps import require_permission
 from app.shared import owned_repo
 from app.shared.context import Ctx, CtxDep
 from app.shared.pagination import PaginationDep
-from app.shared.rate_limit import rate_limited
+from app.shared.rate_limit import guarded, rate_limited
 from app.shared.schema import Message
 
 router = APIRouter(prefix="/fitness", tags=["fitness"])
 
 READ = [Depends(require_permission("fitness:read"))]
 WRITE = [rate_limited("fitness"), Depends(require_permission("fitness:write"))]
+# Model-backed meal estimate: per-user and per-address budget.
+AI = [*WRITE, guarded("ai", "fitness-estimate")]
 Days = Annotated[int, Query(ge=1, le=366)]
 
 
@@ -601,7 +603,7 @@ def _draft(i: S.ItemSpec) -> F.ItemDraft:
     )
 
 
-@router.post("/meals/estimate", response_model=S.MealOut, dependencies=WRITE)
+@router.post("/meals/estimate", response_model=S.MealOut, dependencies=AI)
 def estimate_meal(ctx: CtxDep, body: S.MealEstimate) -> Any:
     """Describe a meal (text or voice transcript): the built-in estimator
     itemises it for review (FIT-16). 422 ``meal_not_recognised``."""

@@ -30,12 +30,15 @@ from app.modules.capture.schema import (
 from app.modules.iam.deps import require_permission
 from app.shared.context import Ctx, CtxDep
 from app.shared.pagination import PaginationDep
-from app.shared.rate_limit import rate_limited
+from app.shared.rate_limit import guarded, rate_limited
 
 router = APIRouter(prefix="/capture", tags=["capture"])
 
 READ = [Depends(require_permission("capture:read"))]
 WRITE = [rate_limited("capture"), Depends(require_permission("capture:write"))]
+# Model-backed (an LLM parse or Deepgram transcription): per-user and
+# per-address budget.
+AI = [*WRITE, guarded("ai", "capture")]
 SSE_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
 
 
@@ -111,7 +114,7 @@ def pending(ctx: CtxDep, page: PaginationDep) -> Any:
     )
 
 
-@router.post("/", response_model=CaptureDetail, dependencies=WRITE)
+@router.post("/", response_model=CaptureDetail, dependencies=AI)
 def submit(ctx: CtxDep, data: CaptureIn, response: Response) -> Any:
     """F-CAP-01: store and read a capture; a replayed ``client_uuid``
     returns the capture it already made (200 instead of 201)."""
@@ -136,7 +139,7 @@ def _replay_frames(ctx: Ctx, cap: Capture) -> Iterator[str]:
 
 @router.post(
     "/stream",
-    dependencies=WRITE,
+    dependencies=AI,
     response_class=StreamingResponse,
     responses={200: {"content": {"text/event-stream": {}}}},
 )
@@ -169,7 +172,7 @@ async def _raw_body(request: Request) -> bytes:
 @router.post(
     "/dictate",
     response_model=DictationOut,
-    dependencies=WRITE,
+    dependencies=AI,
     openapi_extra={
         "requestBody": {
             "required": True,
@@ -260,9 +263,7 @@ def edit_card(ctx: CtxDep, card_id: uuid.UUID, data: PayloadIn) -> Any:
     return _card(ctx, C.edit(ctx, card_id=card_id, payload=dump_payload(data.payload)))
 
 
-@router.post(
-    "/cards/{card_id}/answer", response_model=CaptureDetail, dependencies=WRITE
-)
+@router.post("/cards/{card_id}/answer", response_model=CaptureDetail, dependencies=AI)
 def answer_card(ctx: CtxDep, card_id: uuid.UUID, data: AnswerIn) -> Any:
     """CAP-07 follow-up chip or free reply. Returns the whole capture (a
     photo's "what is this?" answer replaces the card with new ones)."""
@@ -285,19 +286,19 @@ def get_capture(ctx: CtxDep, capture_id: uuid.UUID) -> Any:
     return _detail(ctx, C.require_capture(ctx, capture_id))
 
 
-@router.post("/{capture_id}/retry", response_model=CaptureDetail, dependencies=WRITE)
+@router.post("/{capture_id}/retry", response_model=CaptureDetail, dependencies=AI)
 def retry(ctx: CtxDep, capture_id: uuid.UUID) -> Any:
     """CAP-14/19 Retry (also "process now" for a queued capture)."""
     return _detail(ctx, engine.retry(ctx, capture_id=capture_id))
 
 
-@router.post("/{capture_id}/rerun", response_model=CaptureDetail, dependencies=WRITE)
+@router.post("/{capture_id}/rerun", response_model=CaptureDetail, dependencies=AI)
 def rerun(ctx: CtxDep, capture_id: uuid.UUID, data: RerunIn) -> Any:
     """CAP-13 Re-run AI (optionally on an edited text or transcript)."""
     return _detail(ctx, engine.rerun(ctx, capture_id=capture_id, text=data.text))
 
 
-@router.post("/{capture_id}/resume", response_model=CaptureDetail, dependencies=WRITE)
+@router.post("/{capture_id}/resume", response_model=CaptureDetail, dependencies=AI)
 def resume(ctx: CtxDep, capture_id: uuid.UUID) -> Any:
     return _detail(ctx, engine.resume(ctx, capture_id=capture_id))
 

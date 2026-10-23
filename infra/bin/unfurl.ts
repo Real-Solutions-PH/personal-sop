@@ -21,7 +21,7 @@ if (config.imageTag) {
     env,
     config,
     description:
-      "Unfurl production: VPC, ALB+WAF, ECS Fargate (API, worker, GoTrue), RDS, ElastiCache, S3, SES, Secrets Manager, alarms",
+      "Unfurl production: VPC, ECS Fargate on Graviton (API, worker, GoTrue, Cloudflare Tunnel), RDS, ElastiCache, S3, SES, Secrets Manager, alarms",
     terminationProtection: true,
   })
 }

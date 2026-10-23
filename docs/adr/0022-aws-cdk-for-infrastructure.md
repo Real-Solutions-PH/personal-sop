@@ -12,7 +12,7 @@ The candidates:
 
 | Tool | For | Against |
 |---|---|---|
-| **AWS CDK v2, TypeScript** | High-level AWS constructs (VPC, Fargate service behind an ALB, RDS with a generated secret) in a few lines each; state lives in CloudFormation, so there is no state bucket or lock table to run; assertion tests synthesise the stack offline; TypeScript, bun and Biome are already the repo's tooling | AWS only; CloudFormation is slower than direct API calls and has a 500-resource limit per stack; needs a one-time `cdk bootstrap` |
+| **AWS CDK v2, TypeScript** | High-level AWS constructs (VPC, Fargate services, RDS with a generated secret) in a few lines each; state lives in CloudFormation, so there is no state bucket or lock table to run; assertion tests synthesise the stack offline; TypeScript, bun and Biome are already the repo's tooling | AWS only; CloudFormation is slower than direct API calls and has a 500-resource limit per stack; needs a one-time `cdk bootstrap` |
 | Terraform / OpenTofu | Multi-cloud; fast plans; large module ecosystem | A state backend to create and protect; HCL is a second language in the repo; lower-level for ECS and RDS wiring |
 | Pulumi | Real languages, multi-cloud | A state service (Pulumi Cloud or a self-managed backend); smaller AWS construct library |
 | SST | Good developer experience for serverless | Aimed at Lambda-first apps; this backend is long-running containers |
@@ -27,9 +27,9 @@ Production infrastructure is **AWS CDK v2 in TypeScript**, in `infra/`, a standa
 - **Deploys** go through the `workflow_dispatch`-only workflow `.github/workflows/deploy-aws.yml` (§2.2): it builds and pushes the image for a chosen ref and runs `cdk deploy UnfurlProd`, assuming the deploy role through GitHub OIDC. No AWS keys are stored in GitHub.
 - **No secret passes through CDK.** Generated values (database passwords, GoTrue's ES256 signing key and JWTs, SES SMTP credentials, the AI key-encryption key) are created inside AWS by Secrets Manager or by a custom-resource function. Third-party keys are put into Secrets Manager by hand after the first deploy.
 - **Settings are CDK context** in `infra/cdk.json` (API host, email domain, sizing profile, alert email, sign-in providers). They are non-secret and committed, so a laptop deploy and a workflow deploy synthesise the same stack.
-- **DNS is on Cloudflare, not Route 53** (amended 2026-10-23). The product's domain, `realsolutionsph.com`, is on Cloudflare, so the stack can't create its own records. `infra/scripts/cloudflare-dns.ts` reads the live AWS resources by name and applies the ACM validation, ALB, SES DKIM, MAIL FROM and DMARC records through the Cloudflare API, plus a per-host SSL Full (strict) rule. The deploy workflow runs it beside `cdk deploy`. A script rather than a Cloudflare provider: CDK has no first-class Cloudflare support, the ACM validation name only exists once the deploy has started (CloudFormation then waits on it), and a custom resource would put the Cloudflare token into AWS.
+- **DNS is on Cloudflare, not Route 53** (amended 2026-10-23). The product's domain, `realsolutionsph.com`, is on Cloudflare, so the stack can't create its own records. `infra/scripts/cloudflare.ts` creates the Cloudflare Tunnel and its ingress, stores the tunnel token in Secrets Manager, and applies the DNS records (the tunnel CNAME, SES DKIM, MAIL FROM, DMARC) and the zone rate-limiting rule through the Cloudflare API ([ADR-0023](0023-cloudflare-tunnel-no-alb-waf-nat.md), amended 2026-10-24). The deploy workflow runs it before and after `cdk deploy`. A script rather than a Cloudflare provider: CDK has no first-class Cloudflare support, and a custom resource would put the Cloudflare token into AWS.
 
-The design choices inside the stack (one NAT gateway, migrations in the worker task, custom resources for database and secret setup) are in [docs/23-aws-infrastructure.md](../23-aws-infrastructure.md).
+The design choices inside the stack (a Cloudflare Tunnel instead of a load balancer, no NAT, migrations in the worker task, database setup in the GoTrue task, a custom resource for generated secrets) are in [docs/23-aws-infrastructure.md](../23-aws-infrastructure.md).
 
 ## Constitution clause deviated from
 
@@ -40,7 +40,7 @@ None. §2.1 places infrastructure as code in `infra/` without naming a tool; thi
 **Positive:**
 - One language for the app's TypeScript and its infrastructure, under the same Biome and test tooling.
 - No state backend to create, secure or lock: CloudFormation holds the state and rolls back a failed deploy.
-- `bun run test` in `infra/` synthesises both stacks offline and asserts the decisions that matter (private database, pinned GoTrue image, WAF rules, migration ordering, and that every backend setting has a production source). CI runs it on every pull request that touches `infra/` or the backend's settings.
+- `bun run test` in `infra/` synthesises both stacks offline and asserts the decisions that matter (private database, nothing open to the internet, pinned images, migration ordering, and that every backend setting has a production source). CI runs it on every pull request that touches `infra/` or the backend's settings.
 
 **Negative:**
 - AWS lock-in at the infrastructure layer (accepted under §2.5 and ADR-0021).

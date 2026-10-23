@@ -16,7 +16,7 @@ from app.modules.ai.agents.definitions.plan_and_execute import (
     build_plan_and_execute_agent,
 )
 from app.modules.ai.agents.definitions.react import build_react_agent
-from app.shared.rate_limit import rate_limited
+from app.shared.rate_limit import guarded, rate_limited
 from app.shared.tenancy import TenantDep
 
 from .paths import COPILOTKIT_PATH
@@ -148,6 +148,6 @@ def build_agui_router(agents: list[LangGraphAGUIAgent]) -> APIRouter:
             # handler) and meter per-tenant AI spend: the run routes are the
             # LLM/tool-invoking, cost-bearing surface. The mount-wide bearer
             # middleware only gates on signature.
-            dependencies=[rate_limited("ai-chat")],
+            dependencies=[rate_limited("ai-chat"), guarded("ai", "ai-chat")],
         )
     return router

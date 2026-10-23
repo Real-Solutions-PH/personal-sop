@@ -5,10 +5,9 @@ import { App } from "aws-cdk-lib"
 import { Match, Template } from "aws-cdk-lib/assertions"
 import { BACKEND_DEFAULTED } from "../lib/backend-env"
 import { CiStack } from "../lib/ci-stack"
-import { CLOUDFLARE_IPV4 } from "../lib/cloudflare"
+import { RATE_LIMITS } from "../lib/cloudflare"
 import { IMAGES, loadConfig, PROFILES } from "../lib/config"
-import { ALB_IDLE_TIMEOUT_SECONDS, ProdStack } from "../lib/prod-stack"
-import { AI_PATH_REGEX, RATE_LIMITS } from "../lib/waf"
+import { ProdStack } from "../lib/prod-stack"
 
 const cdkJson = JSON.parse(
   readFileSync(path.join(import.meta.dir, "..", "cdk.json"), "utf8"),
@@ -27,7 +26,6 @@ function synth(extra: Record<string, unknown> = {}) {
 
 const { ci, prod } = synth()
 const production = synth({ "unfurl:profile": "production" }).prod
-const noHost = synth({ "unfurl:apiHost": "", "unfurl:emailDomain": "" }).prod
 
 type Container = {
   Name: string
@@ -88,29 +86,207 @@ describe("CI stack", () => {
   })
 })
 
-describe("network", () => {
-  test("an S3 gateway endpoint in both profiles", () => {
+describe("network: no NAT, no load balancer", () => {
+  test("no NAT of any kind, no load balancer, WAF or certificate", () => {
     for (const t of [prod, production]) {
-      t.resourceCountIs("AWS::EC2::VPCEndpoint", 1)
-      t.hasResourceProperties("AWS::EC2::VPCEndpoint", {
-        VpcEndpointType: "Gateway",
+      t.resourceCountIs("AWS::EC2::NatGateway", 0)
+      t.resourceCountIs("AWS::EC2::Instance", 0)
+      t.resourceCountIs("AWS::EC2::EIP", 0)
+      t.resourceCountIs("AWS::ElasticLoadBalancingV2::LoadBalancer", 0)
+      t.resourceCountIs("AWS::WAFv2::WebACL", 0)
+      t.resourceCountIs("AWS::CertificateManager::Certificate", 0)
+    }
+  })
+
+  test("an S3 gateway endpoint (free) and no interface endpoints", () => {
+    prod.resourceCountIs("AWS::EC2::VPCEndpoint", 1)
+    prod.hasResourceProperties("AWS::EC2::VPCEndpoint", {
+      VpcEndpointType: "Gateway",
+    })
+  })
+
+  test("every service runs in a public subnet with a public IP", () => {
+    const services = Object.values(prod.findResources("AWS::ECS::Service"))
+    expect(services.length).toBe(4)
+    for (const s of services) {
+      expect(
+        s.Properties.NetworkConfiguration.AwsvpcConfiguration.AssignPublicIp,
+      ).toBe("ENABLED")
+    }
+  })
+
+  const groups = () => prod.findResources("AWS::EC2::SecurityGroup")
+  const byName = (name: string) => {
+    const g = Object.entries(groups()).find(
+      ([, r]) => r.Properties.GroupName === name,
+    )
+    if (!g) throw new Error(`no security group ${name}`)
+    return g
+  }
+  const ingressTo = (logicalId: string) =>
+    Object.values(prod.findResources("AWS::EC2::SecurityGroupIngress")).filter(
+      (r) => JSON.stringify(r.Properties.GroupId).includes(`"${logicalId}"`),
+    )
+  const ref = (id: string) => JSON.stringify({ "Fn::GetAtt": [id, "GroupId"] })
+
+  test("no security group admits anything from the internet", () => {
+    const inline = Object.values(groups()).flatMap(
+      (g) => g.Properties.SecurityGroupIngress ?? [],
+    )
+    const separate = Object.values(
+      prod.findResources("AWS::EC2::SecurityGroupIngress"),
+    ).map((r) => r.Properties)
+    for (const rule of [...inline, ...separate]) {
+      expect(rule.CidrIp).toBeUndefined()
+      expect(rule.CidrIpv6).toBeUndefined()
+    }
+  })
+
+  test("the tunnel and worker accept no inbound at all", () => {
+    for (const name of ["unfurl-tunnel", "unfurl-worker"]) {
+      const [id, g] = byName(name)
+      expect(g.Properties.SecurityGroupIngress ?? []).toEqual([])
+      expect(ingressTo(id)).toEqual([])
+    }
+  })
+
+  test("the API admits only the tunnel; the auth proxy only the tunnel, API and worker", () => {
+    const [tunnelId] = byName("unfurl-tunnel")
+    const [apiId] = byName("unfurl-api")
+    const [workerId] = byName("unfurl-worker")
+    const [gotrueId] = byName("unfurl-gotrue")
+    const sources = (id: string) =>
+      ingressTo(id).map((r) => [
+        JSON.stringify(r.Properties.SourceSecurityGroupId),
+        r.Properties.FromPort,
+      ])
+    expect(sources(apiId)).toEqual([[ref(tunnelId), 8000]])
+    expect(
+      sources(gotrueId)
+        .map(([src]) => src)
+        .sort(),
+    ).toEqual([tunnelId, apiId, workerId].map(ref).sort())
+    for (const [, port] of sources(gotrueId)) expect(port).toBe(8080)
+  })
+
+  test("egress is listed, not open", () => {
+    const [, tunnel] = byName("unfurl-tunnel")
+    type Rule = { IpProtocol: string; FromPort: number; CidrIp?: string }
+    const out = (g: object) =>
+      (
+        (g as { Properties: { SecurityGroupEgress?: Rule[] } }).Properties
+          .SecurityGroupEgress ?? []
+      )
+        .filter((r) => r.CidrIp === "0.0.0.0/0")
+        .map((r) => `${r.IpProtocol}/${r.FromPort}`)
+        .sort()
+    expect(out(tunnel)).toEqual(["tcp/443", "tcp/7844", "udp/7844"])
+    expect(out(byName("unfurl-api")[1])).toEqual(["tcp/443", "tcp/587"])
+    expect(out(byName("unfurl-gotrue")[1])).toEqual(["tcp/443", "tcp/587"])
+  })
+
+  test("the database and cache admit only the task groups", () => {
+    const [dbId] = byName("unfurl-db")
+    const [redisId] = byName("unfurl-redis")
+    expect(ingressTo(dbId).map((r) => r.Properties.FromPort)).toEqual([
+      5432, 5432, 5432,
+    ])
+    expect(ingressTo(redisId).map((r) => r.Properties.FromPort)).toEqual([
+      6379, 6379,
+    ])
+  })
+})
+
+describe("tunnel", () => {
+  test("one cloudflared service, pinned image, token from the script-owned secret", () => {
+    const c = container("unfurl-tunnel", "cloudflared")
+    expect(IMAGES.cloudflared).toMatch(
+      /^cloudflare\/cloudflared:\d{4}\.\d+\.\d+$/,
+    )
+    expect(c.Image).toBe(IMAGES.cloudflared)
+    expect(c.Command).toEqual(["tunnel", "--metrics", "0.0.0.0:2000", "run"])
+    expect(secretNames(c)).toEqual(["TUNNEL_TOKEN"])
+    expect(JSON.stringify(c.Secrets)).toContain(
+      "secret:unfurl/cloudflared-tunnel",
+    )
+  })
+
+  test("API and GoTrue register in private DNS as api. and auth.unfurl.internal", () => {
+    prod.hasResourceProperties("AWS::ServiceDiscovery::PrivateDnsNamespace", {
+      Name: "unfurl.internal",
+    })
+    for (const name of ["api", "auth"]) {
+      prod.hasResourceProperties("AWS::ServiceDiscovery::Service", {
+        Name: name,
+        DnsConfig: Match.objectLike({
+          DnsRecords: [{ Type: "A", TTL: 10 }],
+        }),
       })
     }
   })
 
-  test("lean: one t4g.nano NAT instance holding the fixed Elastic IP, no NAT gateway", () => {
-    prod.resourceCountIs("AWS::EC2::NatGateway", 0)
-    prod.resourceCountIs("AWS::EC2::Instance", 1)
-    prod.hasResourceProperties("AWS::EC2::Instance", {
-      InstanceType: "t4g.nano",
-      SourceDestCheck: false,
-    })
-    prod.resourceCountIs("AWS::EC2::EIPAssociation", 1)
+  test("the backend reaches GoTrue privately but checks the public issuer", () => {
+    const api = container("unfurl-api", "api")
+    const issuer = "https://unfurl-api.realsolutionsph.com/auth/v1"
+    expect(envValue(api, "SUPABASE_URL")).toBe(
+      "http://auth.unfurl.internal:8080",
+    )
+    expect(envValue(api, "SUPABASE_JWT_ISSUER")).toBe(issuer)
+    expect(
+      envValue(container("unfurl-gotrue", "gotrue"), "GOTRUE_JWT_ISSUER"),
+    ).toBe(issuer)
   })
 
-  test("production: one managed NAT gateway on the fixed Elastic IP", () => {
-    production.resourceCountIs("AWS::EC2::NatGateway", 1)
-    production.resourceCountIs("AWS::EC2::Instance", 0)
+  test("the tunnel service starts after the API and GoTrue", () => {
+    const services = prod.findResources("AWS::ECS::Service")
+    const id = (name: string) =>
+      Object.entries(services).find(
+        ([, s]) => s.Properties.ServiceName === name,
+      )?.[0]
+    const tunnel = Object.values(services).find(
+      (s) => s.Properties.ServiceName === "unfurl-tunnel",
+    )
+    expect(tunnel?.DependsOn).toEqual(
+      expect.arrayContaining([id("unfurl-api"), id("unfurl-gotrue")]),
+    )
+  })
+})
+
+describe("Graviton", () => {
+  test("every task definition is ARM64", () => {
+    const defs = Object.values(prod.findResources("AWS::ECS::TaskDefinition"))
+    expect(defs.length).toBe(4)
+    for (const d of defs) {
+      expect(d.Properties.RuntimePlatform).toEqual({
+        CpuArchitecture: "ARM64",
+        OperatingSystemFamily: "LINUX",
+      })
+    }
+  })
+})
+
+describe("in-app rate limits replace the WAF", () => {
+  test("the API gets the visitor header and the per-minute budgets", () => {
+    const api = container("unfurl-api", "api")
+    expect(envValue(api, "CLIENT_IP_HEADER")).toBe("CF-Connecting-IP")
+    expect(envValue(api, "RATE_LIMIT_AI_PER_MINUTE")).toBe(
+      String(RATE_LIMITS.aiPerMinute),
+    )
+    expect(envValue(api, "RATE_LIMIT_ACCOUNT_PER_MINUTE")).toBe(
+      String(RATE_LIMITS.accountPerMinute),
+    )
+  })
+
+  test("GoTrue's own per-address limits are on, keyed on the visitor", () => {
+    const g = container("unfurl-gotrue", "gotrue")
+    expect(envValue(g, "GOTRUE_RATE_LIMIT_HEADER")).toBe("X-Real-IP")
+    for (const k of [
+      "GOTRUE_RATE_LIMIT_EMAIL_SENT",
+      "GOTRUE_RATE_LIMIT_TOKEN_REFRESH",
+      "GOTRUE_RATE_LIMIT_VERIFY",
+    ]) {
+      expect(Number(envValue(g, k))).toBeGreaterThan(0)
+    }
   })
 })
 
@@ -124,10 +300,15 @@ describe("profiles", () => {
     expect(cdkJson.context["unfurl:profile"]).toBe("lean")
   })
 
-  test("lean: one task per service, the smallest database", () => {
-    expect(service(prod, "unfurl-api")).toBe(1)
-    expect(service(prod, "unfurl-gotrue")).toBe(1)
-    expect(service(prod, "unfurl-worker")).toBe(1)
+  test("lean: one task per service, the smallest database and cache", () => {
+    for (const name of [
+      "unfurl-api",
+      "unfurl-gotrue",
+      "unfurl-worker",
+      "unfurl-tunnel",
+    ]) {
+      expect(service(prod, name)).toBe(1)
+    }
     prod.hasResourceProperties("AWS::RDS::DBInstance", {
       DBInstanceClass: "db.t4g.micro",
     })
@@ -136,9 +317,10 @@ describe("profiles", () => {
     })
   })
 
-  test("production: two API and two GoTrue tasks, db.t4g.small", () => {
+  test("production: two API, GoTrue and tunnel tasks, db.t4g.small", () => {
     expect(service(production, "unfurl-api")).toBe(2)
     expect(service(production, "unfurl-gotrue")).toBe(2)
+    expect(service(production, "unfurl-tunnel")).toBe(2)
     expect(service(production, "unfurl-worker")).toBe(1)
     production.hasResourceProperties("AWS::RDS::DBInstance", {
       DBInstanceClass: "db.t4g.small",
@@ -146,20 +328,41 @@ describe("profiles", () => {
   })
 
   test("task sizes are valid Fargate combinations", () => {
-    // vCPU units → allowed memory (MiB) for the sizes these profiles use.
     const allowed: Record<number, number[]> = {
       256: [512, 1024, 2048],
       512: [1024, 2048, 3072, 4096],
     }
     for (const sizing of Object.values(PROFILES)) {
-      for (const t of [sizing.api, sizing.worker, sizing.gotrue]) {
+      for (const t of [
+        sizing.api,
+        sizing.worker,
+        sizing.gotrue,
+        sizing.tunnel,
+      ]) {
         expect(allowed[t.cpu]).toContain(t.memoryMiB)
       }
     }
   })
 
-  test("an unknown profile is refused", () => {
+  test("an unknown profile, or a missing API host, is refused", () => {
     expect(() => synth({ "unfurl:profile": "huge" })).toThrow(/unfurl:profile/)
+    expect(() => synth({ "unfurl:apiHost": "" })).toThrow(/unfurl:apiHost/)
+  })
+})
+
+describe("email", () => {
+  test("SES identity on the email subdomain, with a custom MAIL FROM", () => {
+    prod.hasResourceProperties("AWS::SES::EmailIdentity", {
+      EmailIdentity: "unfurl.realsolutionsph.com",
+      MailFromAttributes: { MailFromDomain: "mail.unfurl.realsolutionsph.com" },
+    })
+    const api = container("unfurl-api", "api")
+    expect(envValue(api, "EMAILS_FROM_EMAIL")).toBe(
+      "noreply@unfurl.realsolutionsph.com",
+    )
+    expect(envValue(api, "FRONTEND_HOST")).toBe(
+      "https://unfurl.realsolutionsph.com",
+    )
   })
 })
 
@@ -177,188 +380,6 @@ describe("database", () => {
     prod.hasResource("AWS::RDS::DBInstance", {
       DeletionPolicy: "Snapshot",
     })
-  })
-
-  test("auth database and roles are set up by a custom resource in the VPC", () => {
-    prod.hasResourceProperties("AWS::CloudFormation::CustomResource", {
-      AppDatabase: "app",
-      MasterSecretArn: Match.anyValue(),
-      AuthSecretArn: Match.anyValue(),
-    })
-  })
-})
-
-describe("load balancer", () => {
-  test("idle timeout raised for server-sent-event streams", () => {
-    prod.hasResourceProperties("AWS::ElasticLoadBalancingV2::LoadBalancer", {
-      LoadBalancerAttributes: Match.arrayWith([
-        {
-          Key: "idle_timeout.timeout_seconds",
-          Value: String(ALB_IDLE_TIMEOUT_SECONDS),
-        },
-      ]),
-    })
-    expect(ALB_IDLE_TIMEOUT_SECONDS).toBeGreaterThan(60)
-  })
-
-  test("routes /api/* and /auth/v1/*, 404 for anything else", () => {
-    for (const p of ["/api/*", "/auth/v1/*"]) {
-      prod.hasResourceProperties("AWS::ElasticLoadBalancingV2::ListenerRule", {
-        Conditions: [
-          { Field: "path-pattern", PathPatternConfig: { Values: [p] } },
-        ],
-      })
-    }
-    prod.hasResourceProperties("AWS::ElasticLoadBalancingV2::Listener", {
-      DefaultActions: [
-        Match.objectLike({
-          Type: "fixed-response",
-          FixedResponseConfig: { StatusCode: "404" },
-        }),
-      ],
-    })
-  })
-
-  test("health checks: API health-check route and GoTrue through the proxy", () => {
-    prod.hasResourceProperties("AWS::ElasticLoadBalancingV2::TargetGroup", {
-      Port: 8000,
-      HealthCheckPath: "/api/v1/utils/health-check/",
-    })
-    prod.hasResourceProperties("AWS::ElasticLoadBalancingV2::TargetGroup", {
-      Port: 8080,
-      HealthCheckPath: "/auth/v1/health",
-    })
-  })
-
-  test("no host: plain HTTP, no certificate, no SES identity", () => {
-    noHost.resourceCountIs("AWS::CertificateManager::Certificate", 0)
-    noHost.resourceCountIs("AWS::SES::EmailIdentity", 0)
-  })
-
-  test("API host: an ACM certificate (DNS-validated) and HTTPS only, no port 80", () => {
-    prod.hasResourceProperties("AWS::CertificateManager::Certificate", {
-      DomainName: "unfurl-api.realsolutionsph.com",
-      ValidationMethod: "DNS",
-    })
-    prod.resourceCountIs("AWS::ElasticLoadBalancingV2::Listener", 1)
-    prod.hasResourceProperties("AWS::ElasticLoadBalancingV2::Listener", {
-      Port: 443,
-      Protocol: "HTTPS",
-    })
-    prod.resourceCountIs("AWS::Route53::RecordSet", 0)
-  })
-
-  test("the ALB admits only Cloudflare's edge, on 443", () => {
-    const [sg] = Object.values(
-      prod.findResources("AWS::EC2::SecurityGroup", {
-        Properties: { GroupName: "unfurl-alb" },
-      }),
-    )
-    const ingress = sg.Properties.SecurityGroupIngress as {
-      CidrIp?: string
-      FromPort: number
-      ToPort: number
-    }[]
-    expect(ingress.map((r) => r.CidrIp).sort()).toEqual(
-      [...CLOUDFLARE_IPV4].sort(),
-    )
-    for (const r of ingress) expect([r.FromPort, r.ToPort]).toEqual([443, 443])
-  })
-
-  test("SES identity on the email subdomain, with a custom MAIL FROM", () => {
-    prod.hasResourceProperties("AWS::SES::EmailIdentity", {
-      EmailIdentity: "unfurl.realsolutionsph.com",
-    })
-    prod.hasResourceProperties("AWS::SES::EmailIdentity", {
-      MailFromAttributes: { MailFromDomain: "mail.unfurl.realsolutionsph.com" },
-    })
-  })
-
-  test("public URLs: the API host, the sender, and the site", () => {
-    const api = container("unfurl-api", "api")
-    expect(envValue(api, "SUPABASE_URL")).toBe(
-      "https://unfurl-api.realsolutionsph.com",
-    )
-    expect(envValue(api, "EMAILS_FROM_EMAIL")).toBe(
-      "noreply@unfurl.realsolutionsph.com",
-    )
-    expect(envValue(api, "FRONTEND_HOST")).toBe(
-      "https://unfurl.realsolutionsph.com",
-    )
-    const gotrue = container("unfurl-gotrue", "gotrue")
-    expect(envValue(gotrue, "GOTRUE_JWT_ISSUER")).toBe(
-      "https://unfurl-api.realsolutionsph.com/auth/v1",
-    )
-    expect(envValue(gotrue, "GOTRUE_SMTP_ADMIN_EMAIL")).toBe(
-      "noreply@unfurl.realsolutionsph.com",
-    )
-  })
-})
-
-describe("WAF", () => {
-  const acl = () => {
-    const [res] = Object.values(prod.findResources("AWS::WAFv2::WebACL"))
-    return res.Properties.Rules as {
-      Name: string
-      Statement: {
-        RateBasedStatement?: { Limit: number; ScopeDownStatement?: unknown }
-      }
-    }[]
-  }
-
-  test("is attached to the ALB", () => {
-    prod.resourceCountIs("AWS::WAFv2::WebACLAssociation", 1)
-  })
-
-  test("rate-limits /auth/v1/* except the NAT address", () => {
-    const rule = acl().find((r) => r.Name === "auth-rate")
-    expect(rule?.Statement.RateBasedStatement?.Limit).toBe(RATE_LIMITS.auth)
-    const scope = JSON.stringify(
-      rule?.Statement.RateBasedStatement?.ScopeDownStatement,
-    )
-    expect(scope).toContain("/auth/v1/")
-    expect(scope).toContain("NotStatement")
-  })
-
-  test("behind Cloudflare, every rate rule keys on CF-Connecting-IP", () => {
-    const rules = acl().filter((r) => r.Statement.RateBasedStatement)
-    expect(rules.length).toBe(3)
-    for (const r of rules) {
-      expect(r.Statement.RateBasedStatement).toMatchObject({
-        AggregateKeyType: "FORWARDED_IP",
-        ForwardedIPConfig: { HeaderName: "CF-Connecting-IP" },
-      })
-    }
-    const auth = JSON.stringify(acl().find((r) => r.Name === "auth-rate"))
-    expect(auth).toContain(
-      '"IPSetForwardedIPConfig":{"FallbackBehavior":"NO_MATCH","HeaderName":"CF-Connecting-IP"',
-    )
-  })
-
-  test("without a proxy, rate rules key on the peer address", () => {
-    const [res] = Object.values(noHost.findResources("AWS::WAFv2::WebACL"))
-    const rules = (
-      res.Properties.Rules as { Statement: { RateBasedStatement?: object } }[]
-    )
-      .map((r) => r.Statement.RateBasedStatement)
-      .filter(Boolean)
-    for (const r of rules) expect(r).toMatchObject({ AggregateKeyType: "IP" })
-  })
-
-  test("rate-limits the AI endpoints", () => {
-    const rule = acl().find((r) => r.Name === "ai-rate")
-    expect(rule?.Statement.RateBasedStatement?.Limit).toBe(RATE_LIMITS.ai)
-    expect(JSON.stringify(rule?.Statement)).toContain(AI_PATH_REGEX)
-    for (const p of [
-      "/api/v1/companion/ask/stream",
-      "/api/v1/capture/x",
-      "/api/v1/chat/",
-    ]) {
-      expect(new RegExp(AI_PATH_REGEX).test(p)).toBe(true)
-    }
-    for (const p of ["/api/v1/tasks/", "/api/v1/ai-free/"]) {
-      expect(new RegExp(AI_PATH_REGEX).test(p)).toBe(false)
-    }
   })
 })
 
@@ -407,6 +428,7 @@ describe("services", () => {
     "GOTRUE_SECURITY_REFRESH_TOKEN_ROTATION_ENABLED",
     "GOTRUE_SECURITY_REFRESH_TOKEN_REUSE_INTERVAL",
     "GOTRUE_PASSWORD_MIN_LENGTH",
+    "GOTRUE_RATE_LIMIT_TOKEN_REFRESH",
   ])
 
   test("no secret is a plain environment variable", () => {
@@ -435,6 +457,21 @@ describe("services", () => {
       ]),
     )
     expect(envValue(c, "GOTRUE_JWT_AUD")).toBe("authenticated")
+  })
+
+  test("GoTrue starts only after the database setup container succeeds", () => {
+    const setup = container("unfurl-gotrue", "db-setup")
+    expect(setup.Command?.slice(0, 2)).toEqual(["python", "-c"])
+    expect(secretNames(setup).sort()).toEqual([
+      "APP_USER_PASSWORD",
+      "AUTH_PASSWORD",
+      "MASTER_PASSWORD",
+    ])
+    expect(container("unfurl-gotrue", "gotrue").DependsOn).toEqual([
+      { ContainerName: "db-setup", Condition: "SUCCESS" },
+    ])
+    // Only the bootstrap-secrets custom resource remains.
+    prod.resourceCountIs("AWS::CloudFormation::CustomResource", 1)
   })
 
   test("the auth proxy strips /auth/v1 before GoTrue", () => {
@@ -527,14 +564,25 @@ describe("storage and data", () => {
 })
 
 describe("alarms", () => {
-  test("health alarms exist for the API and sign-in", () => {
+  test("a no-running-task alarm per service, plus the database", () => {
     for (const name of [
-      "unfurl-api-unhealthy",
-      "unfurl-auth-unhealthy",
-      "unfurl-auth-no-healthy-hosts",
+      "unfurl-api-down",
+      "unfurl-auth-down",
+      "unfurl-tunnel-down",
       "unfurl-worker-down",
+      "unfurl-db-cpu",
+      "unfurl-db-storage",
     ]) {
       prod.hasResourceProperties("AWS::CloudWatch::Alarm", { AlarmName: name })
     }
+  })
+
+  test("the API and the auth proxy have container health checks", () => {
+    expect(JSON.stringify(container("unfurl-api", "api"))).toContain(
+      "/api/v1/utils/health-check/",
+    )
+    expect(JSON.stringify(container("unfurl-gotrue", "auth-proxy"))).toContain(
+      "/auth/v1/health",
+    )
   })
 })

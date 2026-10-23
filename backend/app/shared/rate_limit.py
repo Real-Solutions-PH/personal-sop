@@ -1,11 +1,21 @@
-"""Per-tenant rate-limit seam.
+"""Rate-limit seams.
 
-A deliberately minimal choke point: every write route calls
-:func:`check_rate_limit` with the request's :class:`TenantContext`. Which
-backend enforces it is decided at module load from settings — a Redis token
-bucket keyed on ``(tenant_id, key)`` when a positive
-``RATE_LIMIT_PER_MINUTE`` budget is configured, otherwise the no-op
-:class:`NullBackend`.
+Two kinds of limit share one token-bucket implementation:
+
+- **Per tenant**, on every write route: :func:`rate_limited` calls
+  :func:`check_rate_limit` with the request's :class:`TenantContext`, against
+  :data:`backend` (a Redis bucket when ``RATE_LIMIT_PER_MINUTE`` > 0,
+  otherwise the no-op :class:`NullBackend`).
+- **Per user and per client address**, on the routes that spend money or
+  touch the account at GoTrue: :func:`guarded` checks two buckets, one keyed
+  on the caller's user id and one on their address, against the
+  :data:`guards` backend of that class (``RATE_LIMIT_AI_PER_MINUTE``,
+  ``RATE_LIMIT_ACCOUNT_PER_MINUTE``). Production has no load balancer or WAF
+  in front of the API (only a Cloudflare tunnel), so these are where a
+  flooding user or address is stopped.
+
+The client address is ``CLIENT_IP_HEADER`` (``CF-Connecting-IP`` behind
+Cloudflare) when set and present, else the address the ASGI server reports.
 """
 
 import logging
@@ -18,6 +28,7 @@ from fastapi import Depends, HTTPException, Request, status
 from redis.exceptions import RedisError
 
 from app.core.config import settings
+from app.modules.iam.deps import CurrentUser
 from app.shared.tenancy import TenantContext, TenantDep
 
 logger = logging.getLogger(__name__)
@@ -129,18 +140,26 @@ class RedisTokenBucket:
             return self._fail_open
 
 
-def _build_backend() -> RateLimitBackend:
-    if settings.RATE_LIMIT_PER_MINUTE > 0 and settings.REDIS_URL:
+def _build_backend(per_minute: int | None = None) -> RateLimitBackend:
+    budget = settings.RATE_LIMIT_PER_MINUTE if per_minute is None else per_minute
+    if budget > 0 and settings.REDIS_URL:
         client: redis.Redis = redis.Redis.from_url(settings.REDIS_URL)
         return RedisTokenBucket(
             client,
-            capacity=settings.RATE_LIMIT_PER_MINUTE,
-            refill_per_second=settings.RATE_LIMIT_PER_MINUTE / 60.0,
+            capacity=budget,
+            refill_per_second=budget / 60.0,
         )
     return NullBackend()
 
 
 backend: RateLimitBackend = _build_backend()
+
+# Route classes with their own per-user and per-address budget. Tests
+# substitute an entry to exercise a class.
+guards: dict[str, RateLimitBackend] = {
+    "ai": _build_backend(settings.RATE_LIMIT_AI_PER_MINUTE),
+    "account": _build_backend(settings.RATE_LIMIT_ACCOUNT_PER_MINUTE),
+}
 
 
 def check_rate_limit(tenant: TenantContext, key: str = "api", *, cost: int = 1) -> None:
@@ -171,14 +190,21 @@ def rate_limited(key: str = "api", *, cost: int = 1) -> Any:
 _CLIENT_NAMESPACE = uuid.UUID("6f1d3c2a-8b4e-5a17-9c60-2d7e1f0b4a93")
 
 
-def client_bucket(request: Request) -> uuid.UUID:
-    """The per-client-address bucket id for an unauthenticated request.
+def client_ip(request: Request) -> str:
+    """The caller's address: ``CLIENT_IP_HEADER`` when configured and sent
+    (Cloudflare sets ``CF-Connecting-IP`` on every request it forwards and
+    nothing else can reach the API), else the address the ASGI server
+    reports, which is the proxy's unless it trusts proxy headers."""
+    if settings.CLIENT_IP_HEADER:
+        forwarded = request.headers.get(settings.CLIENT_IP_HEADER, "").strip()
+        if forwarded:
+            return forwarded
+    return request.client.host if request.client else "unknown"
 
-    Uses the address the ASGI server reports, which is the proxy's unless the
-    server is run with trusted proxy headers.
-    """
-    host = request.client.host if request.client else "unknown"
-    return uuid.uuid5(_CLIENT_NAMESPACE, host)
+
+def client_bucket(request: Request) -> uuid.UUID:
+    """The per-client-address bucket id (a name-based UUID of the address)."""
+    return uuid.uuid5(_CLIENT_NAMESPACE, client_ip(request))
 
 
 def rate_limited_by_client(key: str, *, cost: int = 1) -> Any:
@@ -188,6 +214,27 @@ def rate_limited_by_client(key: str, *, cost: int = 1) -> Any:
 
     def _check(request: Request) -> None:
         if not backend.allow(client_bucket(request), f"client:{key}", cost):
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Too many requests. Try again in a minute.",
+            )
+
+    return Depends(_check)
+
+
+def guarded(guard: str, key: str, *, cost: int = 1) -> Any:
+    """``dependencies=[...]`` marker for a route class with its own budget
+    (``"ai"`` or ``"account"``): the caller's user bucket and their client
+    address bucket must both allow the request. One user cannot flood from
+    many addresses, and one address cannot flood with many accounts."""
+    if guard not in guards:
+        raise ValueError(f"unknown rate-limit guard {guard!r}")
+
+    def _check(request: Request, user: CurrentUser) -> None:
+        limiter = guards[guard]
+        if not limiter.allow(user.id, f"{guard}:user:{key}", cost) or not limiter.allow(
+            client_bucket(request), f"{guard}:client:{key}", cost
+        ):
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 detail="Too many requests. Try again in a minute.",

@@ -15,7 +15,7 @@ Context pack for human + AI programmers building this SaaS. Fill each template; 
 | [08-data-model.md](08-data-model.md) | Entities, schema, relationships (incl. the mobile API domain ERD, 2026-10-18) | Backend |
 | [10-implementation-plan.md](10-implementation-plan.md) | Phases, tasks, dependencies | Tech lead |
 | [13-deployment.md](13-deployment.md) | Single-environment policy, manual promotion, production on AWS (ap-southeast-1) incl. self-hosted GoTrue (2026-10-23) | DevOps |
-| [23-aws-infrastructure.md](23-aws-infrastructure.md) | AWS production stacks (`infra/`, CDK): what they define, backend env map, cost estimate, first-deploy commands (2026-10-23) | DevOps |
+| [23-aws-infrastructure.md](23-aws-infrastructure.md) | AWS production stacks (`infra/`, CDK): what they define, backend env map, cost estimate, first-deploy commands (2026-10-23; Cloudflare Tunnel design 2026-10-24) | DevOps |
 | [14-observability.md](14-observability.md) | Logs, metrics, traces, alerts | DevOps |
 | [15-pricing-monetization.md](15-pricing-monetization.md) | Plans, billing, gates | PM/Finance |
 | [16-go-to-market.md](16-go-to-market.md) | Launch, channels, growth loops | Marketing |

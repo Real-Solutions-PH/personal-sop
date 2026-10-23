@@ -9,14 +9,12 @@ import {
   Stack,
   type StackProps,
 } from "aws-cdk-lib"
-import * as acm from "aws-cdk-lib/aws-certificatemanager"
 import * as cloudwatch from "aws-cdk-lib/aws-cloudwatch"
 import * as cwActions from "aws-cdk-lib/aws-cloudwatch-actions"
 import * as ec2 from "aws-cdk-lib/aws-ec2"
 import * as ecr from "aws-cdk-lib/aws-ecr"
 import * as ecs from "aws-cdk-lib/aws-ecs"
 import * as elasticache from "aws-cdk-lib/aws-elasticache"
-import * as elbv2 from "aws-cdk-lib/aws-elasticloadbalancingv2"
 import * as iam from "aws-cdk-lib/aws-iam"
 import * as lambda from "aws-cdk-lib/aws-lambda"
 import * as lambdaNode from "aws-cdk-lib/aws-lambda-nodejs"
@@ -24,21 +22,26 @@ import * as logs from "aws-cdk-lib/aws-logs"
 import * as rds from "aws-cdk-lib/aws-rds"
 import * as s3 from "aws-cdk-lib/aws-s3"
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager"
+import * as servicediscovery from "aws-cdk-lib/aws-servicediscovery"
 import * as ses from "aws-cdk-lib/aws-ses"
 import * as sns from "aws-cdk-lib/aws-sns"
 import * as snsSubs from "aws-cdk-lib/aws-sns-subscriptions"
 import * as cr from "aws-cdk-lib/custom-resources"
 import type { Construct } from "constructs"
-import { CLIENT_IP_HEADER, CLOUDFLARE_IPV4 } from "./cloudflare"
+import { CLIENT_IP_HEADER, RATE_LIMITS } from "./cloudflare"
 import {
   BACKEND_REPOSITORY,
   IMAGES,
+  internalUrl,
   POSTGRES_FULL_VERSION,
   POSTGRES_MAJOR_VERSION,
   PREFIX,
+  SERVICE_NAMESPACE,
+  SERVICE_PORTS,
+  TUNNEL_TOKEN_SECRET,
   type UnfurlConfig,
 } from "./config"
-import { createWebAcl } from "./waf"
+import { DB_SETUP_PY } from "./db-setup"
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const lambdaEntry = (name: string) =>
@@ -49,14 +52,9 @@ export interface ProdStackProps extends StackProps {
 }
 
 /** Ports inside the tasks. */
-const API_PORT = 8000
+const API_PORT = SERVICE_PORTS.api
 const GOTRUE_PORT = 9999
-const AUTH_PROXY_PORT = 8080
-
-/** Server-sent-event streams (`/events/stream`, `/companion/ask/stream`)
- * heartbeat every 25 s; the ALB default of 60 s would cut a stream whose
- * model is still thinking between chunks. */
-export const ALB_IDLE_TIMEOUT_SECONDS = 300
+const AUTH_PROXY_PORT = SERVICE_PORTS.auth
 
 /** Characters kept out of generated passwords that end up inside URLs. */
 const URL_UNSAFE = " %+~`#$&*()|[]{}:;<>?!'/@\"\\,="
@@ -65,8 +63,9 @@ const URL_UNSAFE = " %+~`#$&*()|[]{}:;<>?!'/@\"\\,="
  * nginx in the GoTrue task: serves `/auth/v1/*` and strips the prefix, as
  * Supabase's Kong gateway does, so `supabase-js` and the backend use the
  * same paths as against the local CLI stack. The client IP is Cloudflare's
- * CF-Connecting-IP (trusted only from the ALB, which only Cloudflare can
- * reach), handed to GoTrue as X-Real-IP for its per-IP rate limits.
+ * CF-Connecting-IP, trusted from the VPC only (the tunnel and the backend
+ * are the only callers), handed to GoTrue as X-Real-IP for its per-IP
+ * rate limits.
  */
 export const NGINX_CONF = `server {
   listen ${AUTH_PROXY_PORT};
@@ -81,7 +80,7 @@ export const NGINX_CONF = `server {
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $remote_addr;
-    proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+    proxy_set_header X-Forwarded-Proto https;
     proxy_read_timeout 60s;
   }
   location / {
@@ -89,6 +88,11 @@ export const NGINX_CONF = `server {
   }
 }
 `
+
+const ARM64: ecs.RuntimePlatform = {
+  cpuArchitecture: ecs.CpuArchitecture.ARM64,
+  operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
+}
 
 export class ProdStack extends Stack {
   /** Fixed AZs, so synth never needs an account lookup. */
@@ -104,55 +108,23 @@ export class ProdStack extends Stack {
         "unfurl:imageTag is required: pass -c unfurl:imageTag=<git sha pushed to ECR>",
       )
     }
-
     const { sizing } = config
 
     // ---------------------------------------------------------------- network
-    // One NAT, not one per AZ: the services must reach the internet anyway
-    // (Nebius, Deepgram, Expo push, Apple and Google token checks), so VPC
-    // interface endpoints could not replace NAT, and four of them across two
-    // AZs (ECR api+dkr, Logs, Secrets Manager) would cost more than either
-    // NAT option. S3 traffic skips NAT through the free gateway endpoint.
-    // `lean` uses a t4g.nano NAT instance (~USD 4/month); `production` a
-    // managed NAT gateway (~USD 43/month, scales and self-heals). Either way
-    // an outage of the NAT's AZ stops egress until it is replaced. The fixed
-    // Elastic IP is exempted from the WAF auth limit (lib/waf.ts).
-    const natEip = new ec2.CfnEIP(this, "NatEip", {
-      domain: "vpc",
-      tags: [{ key: "Name", value: `${PREFIX}-nat` }],
-    })
-    const natInstanceProvider =
-      sizing.nat === "instance"
-        ? ec2.NatProvider.instanceV2({
-            instanceType: ec2.InstanceType.of(
-              ec2.InstanceClass.T4G,
-              ec2.InstanceSize.NANO,
-            ),
-            // Public IP for the first boot (the user data installs iptables
-            // from the internet); the Elastic IP below then replaces it.
-            associatePublicIpAddress: true,
-            // No surplus-credit charges: a burst beyond the baseline throttles.
-            creditSpecification: ec2.CpuCredits.STANDARD,
-            defaultAllowedTraffic: ec2.NatTrafficDirection.OUTBOUND_ONLY,
-          })
-        : undefined
+    // No NAT and no load balancer. The tasks run in public subnets with a
+    // public IP so they reach the internet directly (ECR, Secrets Manager,
+    // CloudWatch, Nebius, Deepgram, Expo, Cloudflare), and their security
+    // groups admit nothing from the internet: requests arrive through a
+    // Cloudflare Tunnel that cloudflared opens outward. RDS and Valkey sit
+    // in isolated subnets, reachable only from the task security groups. S3
+    // goes through the free gateway endpoint.
     const vpc = new ec2.Vpc(this, "Vpc", {
       vpcName: PREFIX,
       ipAddresses: ec2.IpAddresses.cidr("10.40.0.0/16"),
       maxAzs: 2,
-      natGateways: 1,
-      natGatewayProvider:
-        natInstanceProvider ??
-        ec2.NatProvider.gateway({
-          eipAllocationIds: [natEip.attrAllocationId],
-        }),
+      natGateways: 0,
       subnetConfiguration: [
-        { name: "public", subnetType: ec2.SubnetType.PUBLIC, cidrMask: 24 },
-        {
-          name: "app",
-          subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
-          cidrMask: 22,
-        },
+        { name: "public", subnetType: ec2.SubnetType.PUBLIC, cidrMask: 22 },
         {
           name: "data",
           subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
@@ -163,95 +135,55 @@ export class ProdStack extends Stack {
         S3: { service: ec2.GatewayVpcEndpointAwsService.S3 },
       },
     })
-    if (natInstanceProvider) {
-      const [natInstance] = natInstanceProvider.gatewayInstances
-      new ec2.CfnEIPAssociation(this, "NatEipAssociation", {
-        allocationId: natEip.attrAllocationId,
-        instanceId: natInstance.instanceId,
-      })
-      // Traffic from the private subnets must be allowed in to be forwarded.
-      natInstanceProvider.connections.allowFrom(
-        ec2.Peer.ipv4(vpc.vpcCidrBlock),
-        ec2.Port.allTraffic(),
-        "NAT for the private subnets",
-      )
-    }
-    const appSubnets = { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS }
+    const taskSubnets = { subnetType: ec2.SubnetType.PUBLIC }
     const dataSubnets = { subnetType: ec2.SubnetType.PRIVATE_ISOLATED }
 
+    // Security groups: no rule admits the internet. Egress is listed per
+    // group; SG-to-SG pairs are added where the callers are defined.
     const sg = (name: string, description: string) =>
       new ec2.SecurityGroup(this, `${name}Sg`, {
         vpc,
         description,
         securityGroupName: `${PREFIX}-${name.toLowerCase()}`,
+        allowAllOutbound: false,
       })
-    const albSg = sg("Alb", "Public load balancer")
+    const tunnelSg = sg("Tunnel", "cloudflared: outbound to Cloudflare only")
     const apiSg = sg("Api", "API tasks")
     const workerSg = sg("Worker", "Job worker tasks")
     const gotrueSg = sg("Gotrue", "GoTrue tasks")
-    const dbSetupSg = sg("DbSetup", "Database setup function")
     const dbSg = sg("Db", "RDS PostgreSQL")
     const redisSg = sg("Redis", "ElastiCache")
-
-    // DNS lives on Cloudflare: scripts/cloudflare-dns.ts applies the records
-    // (the ALB CNAME, ACM validation, SES DKIM, MAIL FROM and DMARC).
-    const publicHost = config.apiHost
-
-    // ---------------------------------------------------------- load balancer
-    const alb = new elbv2.ApplicationLoadBalancer(this, "Alb", {
-      loadBalancerName: PREFIX,
-      vpc,
-      internetFacing: true,
-      securityGroup: albSg,
-      idleTimeout: Duration.seconds(ALB_IDLE_TIMEOUT_SECONDS),
-      dropInvalidHeaderFields: true,
-    })
-    const publicUrl = publicHost
-      ? `https://${publicHost}`
-      : `http://${alb.loadBalancerDnsName}`
-    const issuer = `${publicUrl}/auth/v1`
-
-    let listener: elbv2.ApplicationListener
-    if (publicHost) {
-      // Cloudflare connects to the origin over HTTPS and, in Full (strict)
-      // mode, requires a publicly trusted certificate for the host: ACM's.
-      // The stack waits while the validation CNAME is pending; the DNS
-      // script applies it from a second terminal (or the deploy workflow).
-      const certificate = new acm.Certificate(this, "Certificate", {
-        domainName: publicHost,
-        validation: acm.CertificateValidation.fromDns(),
-      })
-      listener = alb.addListener("Https", {
-        port: 443,
-        certificates: [certificate],
-        sslPolicy: elbv2.SslPolicy.RECOMMENDED_TLS,
-        defaultAction: elbv2.ListenerAction.fixedResponse(404),
-        // Not open to the internet: only Cloudflare's edge, below.
-        open: false,
-      })
-      for (const cidr of CLOUDFLARE_IPV4) {
-        albSg.addIngressRule(
-          ec2.Peer.ipv4(cidr),
-          ec2.Port.tcp(443),
-          "Cloudflare edge",
-        )
-      }
-    } else {
-      // No domain yet: plain HTTP on the ALB's own name. Not for real users.
-      listener = alb.addListener("Http", {
-        port: 80,
-        defaultAction: elbv2.ListenerAction.fixedResponse(404),
-      })
+    const https = ec2.Port.tcp(443)
+    const smtp = ec2.Port.tcp(587)
+    for (const group of [tunnelSg, apiSg, workerSg, gotrueSg]) {
+      // Image pulls, Secrets Manager, CloudWatch Logs, S3, provider APIs.
+      group.addEgressRule(ec2.Peer.anyIpv4(), https, "HTTPS out")
+    }
+    for (const group of [apiSg, workerSg, gotrueSg]) {
+      group.addEgressRule(ec2.Peer.anyIpv4(), smtp, "SES SMTP (STARTTLS)")
+    }
+    // cloudflared's tunnel connections (QUIC, falling back to HTTP/2).
+    tunnelSg.addEgressRule(
+      ec2.Peer.anyIpv4(),
+      ec2.Port.tcp(7844),
+      "Cloudflare tunnel (HTTP/2)",
+    )
+    tunnelSg.addEgressRule(
+      ec2.Peer.anyIpv4(),
+      ec2.Port.udp(7844),
+      "Cloudflare tunnel (QUIC)",
+    )
+    tunnelSg.connections.allowTo(apiSg, ec2.Port.tcp(API_PORT), "Tunnel to API")
+    for (const caller of [tunnelSg, apiSg, workerSg]) {
+      caller.connections.allowTo(
+        gotrueSg,
+        ec2.Port.tcp(AUTH_PROXY_PORT),
+        "To the auth proxy",
+      )
     }
 
-    // Behind Cloudflare the ALB's peer is a Cloudflare edge, so the WAF keys
-    // on the visitor IP Cloudflare forwards; without a host, on the peer.
-    createWebAcl(
-      this,
-      alb.loadBalancerArn,
-      [natEip.ref],
-      publicHost ? CLIENT_IP_HEADER : undefined,
-    )
+    const publicUrl = `https://${config.apiHost}`
+    const issuer = `${publicUrl}/auth/v1`
 
     // ---------------------------------------------------------------- secrets
     const secret = (
@@ -382,12 +314,8 @@ export class ProdStack extends Stack {
     })
     const masterSecret = db.secret
     if (!masterSecret) throw new Error("RDS did not generate a master secret")
-    for (const peer of [apiSg, workerSg, gotrueSg, dbSetupSg]) {
-      dbSg.addIngressRule(
-        peer,
-        ec2.Port.tcp(5432),
-        `Postgres from ${peer.node.id}`,
-      )
+    for (const peer of [apiSg, workerSg, gotrueSg]) {
+      peer.connections.allowTo(dbSg, ec2.Port.tcp(5432), "Postgres")
     }
 
     // ----------------------------------------------------------------- redis
@@ -412,11 +340,7 @@ export class ProdStack extends Stack {
       snapshotRetentionLimit: 1,
     })
     for (const peer of [apiSg, workerSg]) {
-      redisSg.addIngressRule(
-        peer,
-        ec2.Port.tcp(6379),
-        `Redis from ${peer.node.id}`,
-      )
+      peer.connections.allowTo(redisSg, ec2.Port.tcp(6379), "Redis")
     }
     const redisUrl = `rediss://${redis.attrPrimaryEndPointAddress}:${redis.attrPrimaryEndPointPort}/0`
 
@@ -450,8 +374,8 @@ export class ProdStack extends Stack {
       : ""
     if (config.emailDomain) {
       // Easy DKIM and a custom MAIL FROM on `mail.<emailDomain>`; the DKIM
-      // CNAMEs, MAIL FROM MX/SPF and DMARC go into Cloudflare via the DNS
-      // script (they are not CloudFormation resources).
+      // CNAMEs, MAIL FROM MX/SPF and DMARC go into Cloudflare via
+      // scripts/cloudflare.ts (they are not CloudFormation resources).
       new ses.EmailIdentity(this, "EmailIdentity", {
         identity: ses.Identity.domain(config.emailDomain),
         mailFromDomain: `mail.${config.emailDomain}`,
@@ -463,7 +387,7 @@ export class ProdStack extends Stack {
     const bundling: lambdaNode.BundlingOptions = {
       format: lambdaNode.OutputFormat.ESM,
       target: "node22",
-      // @aws-sdk v3 ships with the runtime; pg is bundled.
+      // @aws-sdk v3 ships with the runtime.
       externalModules: ["@aws-sdk/*"],
       banner:
         "import { createRequire } from 'module'; const require = createRequire(import.meta.url);",
@@ -514,41 +438,26 @@ export class ProdStack extends Stack {
       },
     })
 
-    const dbSetupFn = new lambdaNode.NodejsFunction(this, "DbSetupFn", {
-      entry: lambdaEntry("db-setup"),
-      runtime: lambda.Runtime.NODEJS_22_X,
-      architecture: lambda.Architecture.ARM_64,
-      timeout: Duration.minutes(2),
-      vpc,
-      vpcSubnets: appSubnets,
-      securityGroups: [dbSetupSg],
-      bundling,
-      logGroup: fnLogs("db-setup"),
-    })
-    for (const s of [masterSecret, authDbSecret, appUserSecret])
-      s.grantRead(dbSetupFn)
-    const dbSetup = new CustomResource(this, "DbSetup", {
-      serviceToken: new cr.Provider(this, "DbSetupProvider", {
-        onEventHandler: dbSetupFn,
-      }).serviceToken,
-      properties: {
-        // Bump to rerun the (idempotent) setup on the next deploy.
-        Version: "1",
-        MasterSecretArn: masterSecret.secretArn,
-        AuthSecretArn: authDbSecret.secretArn,
-        AppUserSecretArn: appUserSecret.secretArn,
-        Host: db.dbInstanceEndpointAddress,
-        Port: db.dbInstanceEndpointPort,
-        AppDatabase: "app",
-      },
-    })
-    dbSetup.node.addDependency(db)
-
     // ---------------------------------------------------------------- cluster
     const cluster = new ecs.Cluster(this, "Cluster", {
       clusterName: PREFIX,
       vpc,
       containerInsightsV2: ecs.ContainerInsights.DISABLED,
+    })
+    // Private DNS the tunnel and the backend reach the services at:
+    // api.unfurl.internal and auth.unfurl.internal (A records per task).
+    const namespace = cluster.addDefaultCloudMapNamespace({
+      name: SERVICE_NAMESPACE,
+      type: servicediscovery.NamespaceType.DNS_PRIVATE,
+      vpc,
+    })
+    const discovery = (
+      name: keyof typeof SERVICE_PORTS,
+    ): ecs.CloudMapOptions => ({
+      name,
+      cloudMapNamespace: namespace,
+      dnsRecordType: servicediscovery.DnsRecordType.A,
+      dnsTtl: Duration.seconds(10),
     })
     const logGroup = (name: string) =>
       new logs.LogGroup(this, `${name}Logs`, {
@@ -567,6 +476,14 @@ export class ProdStack extends Stack {
       repository,
       config.imageTag,
     )
+    const serviceDefaults = {
+      cluster,
+      vpcSubnets: taskSubnets,
+      // A public IP is the tasks' route out (there is no NAT); the security
+      // groups admit nothing from the internet.
+      assignPublicIp: true,
+      circuitBreaker: { enable: true, rollback: true },
+    }
 
     // Backend environment: every variable backend/app/core/config.py reads
     // that production sets. The mapping, and what is still unset, is in
@@ -574,9 +491,12 @@ export class ProdStack extends Stack {
     const backendEnv: Record<string, string> = {
       ENVIRONMENT: "production",
       PROJECT_NAME: "Unfurl",
-      FRONTEND_HOST: config.siteUrl || publicUrl,
+      FRONTEND_HOST: config.siteUrl,
       FIRST_SUPERUSER: config.adminEmail,
-      SUPABASE_URL: publicUrl,
+      // GoTrue over the private network (Cloud Map), not out through
+      // Cloudflare and back; the tokens still carry the public issuer.
+      SUPABASE_URL: internalUrl("auth"),
+      SUPABASE_JWT_ISSUER: issuer,
       POSTGRES_SERVER: db.dbInstanceEndpointAddress,
       POSTGRES_PORT: db.dbInstanceEndpointPort,
       POSTGRES_DB: "app",
@@ -603,8 +523,14 @@ export class ProdStack extends Stack {
       JOBS_ENABLED: "true",
       PUSH_ENABLED: "true",
       OCR_ENABLED: "false",
-      // uvicorn trusts X-Forwarded-* only from listed peers; the ALB's
-      // addresses are not fixed, and only the ALB can reach the tasks.
+      // No load balancer or WAF in front: the API's own per-user and
+      // per-address limits (backend/app/shared/rate_limit.py) cover the
+      // model-backed and account routes, keyed on Cloudflare's visitor IP.
+      CLIENT_IP_HEADER: CLIENT_IP_HEADER,
+      RATE_LIMIT_AI_PER_MINUTE: String(RATE_LIMITS.aiPerMinute),
+      RATE_LIMIT_ACCOUNT_PER_MINUTE: String(RATE_LIMITS.accountPerMinute),
+      // uvicorn trusts X-Forwarded-* only from listed peers; only the tunnel
+      // (cloudflared) can reach the API, from changing private addresses.
       FORWARDED_ALLOW_IPS: "*",
     }
     const backendSecrets: Record<string, ecs.Secret> = {
@@ -659,84 +585,49 @@ export class ProdStack extends Stack {
         family: `${PREFIX}-${name.toLowerCase()}`,
         cpu,
         memoryLimitMiB,
-        runtimePlatform: {
-          cpuArchitecture: ecs.CpuArchitecture.X86_64,
-          operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
-        },
+        runtimePlatform: ARM64,
       })
       mediaBucket.grantReadWrite(task.taskRole)
       mediaBucket.grantDelete(task.taskRole)
       return task
     }
 
-    // -------------------------------------------------------------- API service
-    const apiTask = backendTask("Api", sizing.api.cpu, sizing.api.memoryMiB)
-    apiTask.addContainer("api", {
-      image: backendImage,
-      command: [
-        "fastapi",
-        "run",
-        "--workers",
-        "2",
-        "--port",
-        String(API_PORT),
-        "app/main.py",
-      ],
-      environment: backendEnv,
-      secrets: backendSecrets,
-      portMappings: [{ containerPort: API_PORT }],
-      logging: ecs.LogDrivers.awsLogs({
-        streamPrefix: "api",
-        logGroup: logGroup("Api"),
-      }),
-      healthCheck: {
-        command: [
-          "CMD-SHELL",
-          `curl -fs http://localhost:${API_PORT}/api/v1/utils/health-check/ || exit 1`,
-        ],
-        interval: Duration.seconds(30),
-        timeout: Duration.seconds(5),
-        retries: 3,
-        startPeriod: Duration.seconds(60),
-      },
-    })
-    const apiService = new ecs.FargateService(this, "ApiService", {
-      serviceName: `${PREFIX}-api`,
-      cluster,
-      taskDefinition: apiTask,
-      desiredCount: sizing.api.count,
-      vpcSubnets: appSubnets,
-      securityGroups: [apiSg],
-      minHealthyPercent: 100,
-      maxHealthyPercent: 200,
-      circuitBreaker: { enable: true, rollback: true },
-      healthCheckGracePeriod: Duration.seconds(90),
-    })
-    const apiTargets = listener.addTargets("Api", {
-      priority: 20,
-      conditions: [elbv2.ListenerCondition.pathPatterns(["/api/*"])],
-      port: API_PORT,
-      protocol: elbv2.ApplicationProtocol.HTTP,
-      targets: [apiService],
-      deregistrationDelay: Duration.seconds(30),
-      healthCheck: {
-        path: "/api/v1/utils/health-check/",
-        healthyHttpCodes: "200",
-        interval: Duration.seconds(15),
-      },
-    })
-
     // ----------------------------------------------------------- GoTrue service
     const gotrueTask = new ecs.FargateTaskDefinition(this, "GotrueTask", {
       family: `${PREFIX}-gotrue`,
       cpu: sizing.gotrue.cpu,
       memoryLimitMiB: sizing.gotrue.memoryMiB,
-      runtimePlatform: {
-        cpuArchitecture: ecs.CpuArchitecture.X86_64,
-        operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
-      },
+      runtimePlatform: ARM64,
     })
     const gotrueLogs = logGroup("Gotrue")
+    // Database setup (lib/db-setup.ts) runs first in every GoTrue task:
+    // GoTrue needs its role and database before it can migrate.
+    const dbSetupContainer = gotrueTask.addContainer("db-setup", {
+      image: backendImage,
+      command: ["python", "-c", DB_SETUP_PY],
+      environment: {
+        DB_HOST: db.dbInstanceEndpointAddress,
+        DB_PORT: db.dbInstanceEndpointPort,
+        DB_NAME: "app",
+        MASTER_USER: "postgres",
+      },
+      secrets: {
+        MASTER_PASSWORD: ecs.Secret.fromSecretsManager(
+          masterSecret,
+          "password",
+        ),
+        AUTH_PASSWORD: ecs.Secret.fromSecretsManager(authDbSecret, "password"),
+        APP_USER_PASSWORD: ecs.Secret.fromSecretsManager(
+          appUserSecret,
+          "password",
+        ),
+      },
+      essential: false,
+      logging: ecs.LogDrivers.awsLogs({
+        streamPrefix: "db-setup",
+        logGroup: gotrueLogs,
+      }),
+    })
     const mailPath = "/auth/v1/verify"
     const gotrueEnv: Record<string, string> = {
       GOTRUE_API_HOST: "127.0.0.1",
@@ -746,7 +637,7 @@ export class ProdStack extends Stack {
       GOTRUE_DB_NAMESPACE: "auth",
       DB_HOST: db.dbInstanceEndpointAddress,
       DB_PORT: db.dbInstanceEndpointPort,
-      GOTRUE_SITE_URL: config.siteUrl || publicUrl,
+      GOTRUE_SITE_URL: config.siteUrl,
       GOTRUE_URI_ALLOW_LIST: config.authRedirectUrls.join(","),
       GOTRUE_DISABLE_SIGNUP: "false",
       GOTRUE_JWT_ISSUER: issuer,
@@ -770,15 +661,21 @@ export class ProdStack extends Stack {
       GOTRUE_SMTP_ADMIN_EMAIL: fromAddress,
       GOTRUE_SMTP_SENDER_NAME: "Unfurl",
       GOTRUE_SMTP_MAX_FREQUENCY: "1s",
+      // GoTrue's own per-IP limits are the sign-in limit (there is no WAF):
+      // X-Real-IP is the visitor's address (see NGINX_CONF). Values are per
+      // hour for email and per 5 minutes for the rest, per address.
       GOTRUE_RATE_LIMIT_HEADER: "X-Real-IP",
       GOTRUE_RATE_LIMIT_EMAIL_SENT: "30",
+      GOTRUE_RATE_LIMIT_TOKEN_REFRESH: "150",
+      GOTRUE_RATE_LIMIT_VERIFY: "30",
+      GOTRUE_RATE_LIMIT_OTP: "30",
       GOTRUE_EXTERNAL_APPLE_ENABLED: String(config.appleSignIn),
       GOTRUE_EXTERNAL_GOOGLE_ENABLED: String(config.googleSignIn),
       GOTRUE_EXTERNAL_APPLE_REDIRECT_URI: `${issuer}/callback`,
       GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI: `${issuer}/callback`,
       GOTRUE_LOG_LEVEL: "info",
     }
-    gotrueTask.addContainer("gotrue", {
+    const gotrue = gotrueTask.addContainer("gotrue", {
       image: ecs.ContainerImage.fromRegistry(IMAGES.gotrue),
       // GoTrue takes its database as one URL; the password arrives as its
       // own secret, so the URL is assembled at start. Generated passwords
@@ -823,6 +720,10 @@ export class ProdStack extends Stack {
       }),
       essential: true,
     })
+    gotrue.addContainerDependencies({
+      container: dbSetupContainer,
+      condition: ecs.ContainerDependencyCondition.SUCCESS,
+    })
     const proxy = gotrueTask.addContainer("auth-proxy", {
       image: ecs.ContainerImage.fromRegistry(IMAGES.nginx),
       entryPoint: ["sh", "-c"],
@@ -836,42 +737,33 @@ export class ProdStack extends Stack {
         logGroup: gotrueLogs,
       }),
       essential: true,
+      // Through the proxy, so a broken prefix rule fails the check too.
+      healthCheck: {
+        command: [
+          "CMD-SHELL",
+          `wget -q -O /dev/null http://127.0.0.1:${AUTH_PROXY_PORT}/auth/v1/health || exit 1`,
+        ],
+        interval: Duration.seconds(30),
+        timeout: Duration.seconds(5),
+        retries: 3,
+        startPeriod: Duration.seconds(60),
+      },
     })
     proxy.addContainerDependencies({
-      container: gotrueTask.findContainer("gotrue") as ecs.ContainerDefinition,
+      container: gotrue,
       condition: ecs.ContainerDependencyCondition.START,
     })
     const gotrueService = new ecs.FargateService(this, "GotrueService", {
+      ...serviceDefaults,
       serviceName: `${PREFIX}-gotrue`,
-      cluster,
       taskDefinition: gotrueTask,
       desiredCount: sizing.gotrue.count,
-      vpcSubnets: appSubnets,
       securityGroups: [gotrueSg],
       minHealthyPercent: 100,
       maxHealthyPercent: 200,
-      circuitBreaker: { enable: true, rollback: true },
-      healthCheckGracePeriod: Duration.seconds(60),
+      cloudMapOptions: discovery("auth"),
     })
-    const gotrueTargets = listener.addTargets("Gotrue", {
-      priority: 10,
-      conditions: [elbv2.ListenerCondition.pathPatterns(["/auth/v1/*"])],
-      port: AUTH_PROXY_PORT,
-      protocol: elbv2.ApplicationProtocol.HTTP,
-      targets: [
-        gotrueService.loadBalancerTarget({
-          containerName: "auth-proxy",
-          containerPort: AUTH_PROXY_PORT,
-        }),
-      ],
-      deregistrationDelay: Duration.seconds(30),
-      healthCheck: {
-        path: "/auth/v1/health",
-        healthyHttpCodes: "200",
-        interval: Duration.seconds(15),
-      },
-    })
-    gotrueService.node.addDependency(dbSetup, bootstrap)
+    gotrueService.node.addDependency(bootstrap)
 
     // ---------------------------------------------------------- worker service
     // Also the migration runner: before the worker starts, a one-shot
@@ -915,27 +807,104 @@ export class ProdStack extends Stack {
       condition: ecs.ContainerDependencyCondition.SUCCESS,
     })
     const workerService = new ecs.FargateService(this, "WorkerService", {
+      ...serviceDefaults,
       serviceName: `${PREFIX}-worker`,
-      cluster,
       taskDefinition: workerTask,
       desiredCount: sizing.worker.count,
-      vpcSubnets: appSubnets,
       securityGroups: [workerSg],
       minHealthyPercent: 0,
       maxHealthyPercent: 100,
-      circuitBreaker: { enable: true, rollback: true },
     })
     // The seed creates the first superuser through GoTrue's admin API.
-    workerService.node.addDependency(gotrueService, dbSetup, bootstrap)
+    workerService.node.addDependency(gotrueService, bootstrap)
+
+    // -------------------------------------------------------------- API service
+    const apiTask = backendTask("Api", sizing.api.cpu, sizing.api.memoryMiB)
+    apiTask.addContainer("api", {
+      image: backendImage,
+      command: [
+        "fastapi",
+        "run",
+        "--workers",
+        "2",
+        "--port",
+        String(API_PORT),
+        "app/main.py",
+      ],
+      environment: backendEnv,
+      secrets: backendSecrets,
+      portMappings: [{ containerPort: API_PORT }],
+      logging: ecs.LogDrivers.awsLogs({
+        streamPrefix: "api",
+        logGroup: logGroup("Api"),
+      }),
+      healthCheck: {
+        command: [
+          "CMD-SHELL",
+          `curl -fs http://localhost:${API_PORT}/api/v1/utils/health-check/ || exit 1`,
+        ],
+        interval: Duration.seconds(30),
+        timeout: Duration.seconds(5),
+        retries: 3,
+        startPeriod: Duration.seconds(60),
+      },
+    })
+    const apiService = new ecs.FargateService(this, "ApiService", {
+      ...serviceDefaults,
+      serviceName: `${PREFIX}-api`,
+      taskDefinition: apiTask,
+      desiredCount: sizing.api.count,
+      securityGroups: [apiSg],
+      minHealthyPercent: 100,
+      maxHealthyPercent: 200,
+      cloudMapOptions: discovery("api"),
+    })
     apiService.node.addDependency(workerService)
 
-    // Load balancer → tasks.
-    apiSg.addIngressRule(albSg, ec2.Port.tcp(API_PORT), "ALB to API")
-    gotrueSg.addIngressRule(
-      albSg,
-      ec2.Port.tcp(AUTH_PROXY_PORT),
-      "ALB to auth proxy",
+    // ----------------------------------------------------------- tunnel service
+    // One cloudflared service for the whole tunnel, not a sidecar per task:
+    // the tunnel's ingress rules (scripts/cloudflare.ts) are shared by every
+    // connector, and they route one hostname to two services by path
+    // (/auth/v1/* to GoTrue's proxy, the rest to the API), so each connector
+    // must reach both. It does so through Cloud Map DNS rather than Service
+    // Connect, whose Envoy sidecar would add memory to every task for
+    // nothing these two plain HTTP hops need. The token comes from the
+    // secret the Cloudflare script creates with the tunnel.
+    const tunnelToken = secretsmanager.Secret.fromSecretNameV2(
+      this,
+      "TunnelToken",
+      TUNNEL_TOKEN_SECRET,
     )
+    const tunnelTask = new ecs.FargateTaskDefinition(this, "TunnelTask", {
+      family: `${PREFIX}-tunnel`,
+      cpu: sizing.tunnel.cpu,
+      memoryLimitMiB: sizing.tunnel.memoryMiB,
+      runtimePlatform: ARM64,
+    })
+    tunnelTask.addContainer("cloudflared", {
+      image: ecs.ContainerImage.fromRegistry(IMAGES.cloudflared),
+      // The image's entrypoint is `cloudflared --no-autoupdate`; the token
+      // is read from TUNNEL_TOKEN.
+      command: ["tunnel", "--metrics", "0.0.0.0:2000", "run"],
+      secrets: {
+        TUNNEL_TOKEN: ecs.Secret.fromSecretsManager(tunnelToken, "token"),
+      },
+      logging: ecs.LogDrivers.awsLogs({
+        streamPrefix: "cloudflared",
+        logGroup: logGroup("Tunnel"),
+      }),
+    })
+    const tunnelService = new ecs.FargateService(this, "TunnelService", {
+      ...serviceDefaults,
+      serviceName: `${PREFIX}-tunnel`,
+      taskDefinition: tunnelTask,
+      desiredCount: sizing.tunnel.count,
+      securityGroups: [tunnelSg],
+      // A new connector registers before the old one leaves: no gap.
+      minHealthyPercent: 100,
+      maxHealthyPercent: 200,
+    })
+    tunnelService.node.addDependency(apiService, gotrueService)
 
     // ----------------------------------------------------------------- alarms
     const topic = new sns.Topic(this, "Alarms", {
@@ -953,78 +922,25 @@ export class ProdStack extends Stack {
       a.addOkAction(new cwActions.SnsAction(topic))
       return a
     }
-    const oneMinute = Duration.minutes(1)
-    alarm("api-unhealthy", {
-      alarmDescription:
-        "An API task fails /api/v1/utils/health-check/ through the ALB",
-      metric: apiTargets.metrics.unhealthyHostCount({
-        period: oneMinute,
-        statistic: "Maximum",
-      }),
-      threshold: 0,
-      comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
-      evaluationPeriods: 3,
-    })
-    alarm("api-no-healthy-hosts", {
-      alarmDescription: "No API task is healthy: the API is down",
-      metric: apiTargets.metrics.healthyHostCount({
-        period: oneMinute,
-        statistic: "Minimum",
-      }),
-      threshold: 1,
-      comparisonOperator: cloudwatch.ComparisonOperator.LESS_THAN_THRESHOLD,
-      evaluationPeriods: 2,
-      treatMissingData: cloudwatch.TreatMissingData.BREACHING,
-    })
-    alarm("auth-unhealthy", {
-      alarmDescription:
-        "A GoTrue task fails /auth/v1/health through the ALB (sign-in may be down)",
-      metric: gotrueTargets.metrics.unhealthyHostCount({
-        period: oneMinute,
-        statistic: "Maximum",
-      }),
-      threshold: 0,
-      comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
-      evaluationPeriods: 3,
-    })
-    alarm("auth-no-healthy-hosts", {
-      alarmDescription: "No GoTrue task is healthy: sign-in is down",
-      metric: gotrueTargets.metrics.healthyHostCount({
-        period: oneMinute,
-        statistic: "Minimum",
-      }),
-      threshold: 1,
-      comparisonOperator: cloudwatch.ComparisonOperator.LESS_THAN_THRESHOLD,
-      evaluationPeriods: 2,
-      treatMissingData: cloudwatch.TreatMissingData.BREACHING,
-    })
-    alarm("api-5xx", {
-      alarmDescription: "API returning 5xx responses",
-      metric: apiTargets.metrics.httpCodeTarget(
-        elbv2.HttpCodeTarget.TARGET_5XX_COUNT,
-        {
+    // ECS replaces a task whose container health check fails (the API's
+    // /api/v1/utils/health-check/, GoTrue's /auth/v1/health through nginx);
+    // these fire when a service has no running task at all for 10 minutes.
+    const down = (id: string, service: ecs.FargateService, what: string) =>
+      alarm(id, {
+        alarmDescription: `${what} has no running task (no metrics reported)`,
+        metric: service.metricCpuUtilization({
           period: Duration.minutes(5),
-          statistic: "Sum",
-        },
-      ),
-      threshold: 20,
-      comparisonOperator:
-        cloudwatch.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
-      evaluationPeriods: 1,
-      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-    })
-    alarm("worker-down", {
-      alarmDescription:
-        "The job worker has no running task (no metrics reported)",
-      metric: workerService.metricCpuUtilization({
-        period: Duration.minutes(5),
-        statistic: "SampleCount",
-      }),
-      threshold: 1,
-      comparisonOperator: cloudwatch.ComparisonOperator.LESS_THAN_THRESHOLD,
-      evaluationPeriods: 2,
-      treatMissingData: cloudwatch.TreatMissingData.BREACHING,
-    })
+          statistic: "SampleCount",
+        }),
+        threshold: 1,
+        comparisonOperator: cloudwatch.ComparisonOperator.LESS_THAN_THRESHOLD,
+        evaluationPeriods: 2,
+        treatMissingData: cloudwatch.TreatMissingData.BREACHING,
+      })
+    down("api-down", apiService, "The API")
+    down("auth-down", gotrueService, "Sign-in (GoTrue)")
+    down("tunnel-down", tunnelService, "The Cloudflare tunnel (cloudflared)")
+    down("worker-down", workerService, "The job worker")
     alarm("db-cpu", {
       alarmDescription: "Database CPU above 80% for 15 minutes",
       metric: db.metricCPUUtilization({ period: Duration.minutes(5) }),
@@ -1042,7 +958,6 @@ export class ProdStack extends Stack {
 
     // ---------------------------------------------------------------- outputs
     new CfnOutput(this, "PublicUrl", { value: publicUrl })
-    new CfnOutput(this, "AlbDnsName", { value: alb.loadBalancerDnsName })
     new CfnOutput(this, "MediaBucket", { value: mediaBucket.bucketName })
     new CfnOutput(this, "DatabaseEndpoint", {
       value: db.dbInstanceEndpointAddress,

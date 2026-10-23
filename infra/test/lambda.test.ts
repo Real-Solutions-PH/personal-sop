@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import { createPublicKey, verify } from "node:crypto"
 import { makeGotrueSecret, sesSmtpPassword } from "../lambda/bootstrap-secrets"
-import { appStatements, authRoleStatements } from "../lambda/db-setup"
+import { DB_SETUP_PY } from "../lib/db-setup"
 
 describe("SES SMTP password", () => {
   test("matches AWS's documented derivation", () => {
@@ -64,23 +64,40 @@ describe("GoTrue secret", () => {
   })
 })
 
-describe("database setup SQL", () => {
-  const lit = (s: string) => `'${s.replaceAll("'", "''")}'`
-
-  test("app_user gets LOGIN with the secret's password, idempotently", () => {
-    const sql = appStatements(lit, "pw").join("\n")
-    expect(sql).toContain(
-      "IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'app_user')",
+describe("database setup script (runs in the GoTrue task)", () => {
+  test("is valid Python", () => {
+    const r = Bun.spawnSync(
+      [
+        "python3",
+        "-c",
+        "import sys; compile(sys.stdin.read(), 'db_setup', 'exec')",
+      ],
+      { stdin: new TextEncoder().encode(DB_SETUP_PY) },
     )
-    expect(sql).toContain("ALTER ROLE app_user LOGIN PASSWORD 'pw'")
+    expect(r.stderr.toString()).toBe("")
+    expect(r.exitCode).toBe(0)
   })
 
-  test("supabase_auth_admin is created once and searches the auth schema", () => {
-    const sql = authRoleStatements(lit, "x'y").join("\n")
-    expect(sql).toContain(
-      "CREATE ROLE supabase_auth_admin NOINHERIT CREATEROLE LOGIN",
-    )
-    expect(sql).toContain("PASSWORD 'x''y'")
-    expect(sql).toContain("SET search_path = auth")
+  test("passes passwords as SQL literals, never formatted into the text", () => {
+    expect(DB_SETUP_PY).toContain('sql.Literal(env["AUTH_PASSWORD"])')
+    expect(DB_SETUP_PY).toContain('sql.Literal(env["APP_USER_PASSWORD"])')
+    expect(DB_SETUP_PY).not.toMatch(/f["'].*PASSWORD/)
+  })
+
+  test("serialises concurrent task starts with an advisory lock", () => {
+    expect(DB_SETUP_PY).toContain("pg_advisory_lock(")
+    expect(DB_SETUP_PY).toContain("pg_advisory_unlock(")
+  })
+
+  test("creates GoTrue's role, database and schema, and gives app_user LOGIN", () => {
+    for (const s of [
+      '"supabase_auth_admin", "NOINHERIT CREATEROLE LOGIN"',
+      "ALTER ROLE supabase_auth_admin SET search_path = auth",
+      "CREATE DATABASE auth OWNER supabase_auth_admin",
+      "CREATE SCHEMA IF NOT EXISTS auth AUTHORIZATION supabase_auth_admin",
+      "ALTER ROLE app_user LOGIN PASSWORD",
+    ]) {
+      expect(DB_SETUP_PY).toContain(s)
+    }
   })
 })
