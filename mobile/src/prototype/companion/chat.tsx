@@ -43,6 +43,7 @@ import Animated, {
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
+  withRepeat,
   withSpring,
   withTiming,
 } from "react-native-reanimated"
@@ -65,6 +66,7 @@ import { ask } from "./brain"
 import { ChatsSheet } from "./chats"
 import { Orb } from "./orb"
 import {
+  answering,
   chatList,
   chatMessages,
   companionStore,
@@ -78,18 +80,84 @@ const greeting = () => {
   return h < 12 ? "Morning" : h < 18 ? "Afternoon" : "Evening"
 }
 
+/** Fern is at work: thinking before a reply, or still writing one. */
+function useWorking() {
+  const on = thinking((s) => s.on)
+  const writing = answering((s) => s.id !== null)
+  return on || writing
+}
+/** Three soft dots after the line saying what Fern is doing. Still under
+ * reduced motion. */
+function ThinkDots() {
+  const t = useTheme()
+  const reduced = useReducedMotion()
+  const p = useSharedValue(0)
+  useEffect(() => {
+    if (!reduced)
+      p.value = withRepeat(
+        withTiming(1, { duration: 1200, easing: Easing.linear }),
+        -1,
+      )
+  }, [reduced, p])
+  return (
+    <View style={{ flexDirection: "row", gap: 3, marginLeft: 4 }}>
+      {[0, 1, 2].map((i) => (
+        <Dot key={i} p={p} i={i} color={t.muted} still={reduced} />
+      ))}
+    </View>
+  )
+}
+function Dot({
+  p,
+  i,
+  color,
+  still,
+}: {
+  p: { value: number }
+  i: number
+  color: string
+  still: boolean
+}) {
+  const style = useAnimatedStyle(() => ({
+    opacity: still
+      ? 0.6
+      : 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(2 * Math.PI * (p.value - i / 3))),
+  }))
+  return (
+    <Animated.View
+      style={[
+        { width: 4, height: 4, borderRadius: 2, backgroundColor: color },
+        style,
+      ]}
+    />
+  )
+}
+function ThinkLine({ children }: { children: string }) {
+  const t = useTheme()
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center" }}>
+      <Text style={{ color: t.muted, fontFamily: fonts.body, fontSize: 15 }}>
+        {children}
+      </Text>
+      <ThinkDots />
+    </View>
+  )
+}
 export function SolMessage({ m, name }: { m: Msg; name: string }) {
   const t = useTheme()
   // While a reply streams, the model's line breaks between tool calls arrive
   // before any words; blank lines must not open a gap above the steps.
   const text = m.text?.trim() ?? ""
+  // Until the reply ends its orb keeps working, as the design's thinking
+  // state: quick breath, brighter glow, the frond swaying.
+  const writing = answering((s) => s.id === m.id)
   return (
     <Animated.View
       entering={FadeInDown.springify().damping(18)}
       style={{ flexDirection: "row", gap: 8, alignItems: "flex-start" }}
     >
       <View style={{ marginTop: 2 }}>
-        <Orb size={26} />
+        <Orb size={26} active={writing} />
       </View>
       <View style={{ flex: 1, gap: 8 }}>
         <Text
@@ -112,7 +180,10 @@ export function SolMessage({ m, name }: { m: Msg; name: string }) {
         {m.blocks?.map((b, i) => (
           <BlockView key={i} block={b} />
         ))}
-        {!!text && <ReplyActions id={m.id} text={text} />}
+        {writing && !text && !m.blocks?.length && (
+          <ThinkLine>Thinking</ThinkLine>
+        )}
+        {!!text && !writing && <ReplyActions id={m.id} text={text} />}
       </View>
     </Animated.View>
   )
@@ -265,15 +336,24 @@ function Thinking({ name }: { name: string }) {
   const t = useTheme()
   const on = thinking((s) => s.on)
   if (!on) return null
+  // Laid out as the reply it turns into: the working orb, the name, and a
+  // line saying what Fern is doing.
   return (
     <Animated.View
       entering={FadeIn}
-      style={{ flexDirection: "row", gap: 8, alignItems: "center" }}
+      style={{ flexDirection: "row", gap: 8, alignItems: "flex-start" }}
     >
-      <Orb size={26} active />
-      <Text style={{ color: t.muted, fontFamily: fonts.medium, fontSize: 13 }}>
-        {name} is thinking…
-      </Text>
+      <View style={{ marginTop: 2 }}>
+        <Orb size={26} active />
+      </View>
+      <View style={{ flex: 1, gap: 8 }}>
+        <Text
+          style={{ color: t.muted, fontFamily: fonts.semibold, fontSize: 11 }}
+        >
+          {name}
+        </Text>
+        <ThinkLine>Thinking</ThinkLine>
+      </View>
     </Animated.View>
   )
 }
@@ -529,7 +609,7 @@ export function CompanionChat() {
   const trackers = companionStore.use((s) => s.trackers)
   const timeline = useTimeline()
   const params = useLocalSearchParams<{ q?: string; hint?: string }>()
-  const on = thinking((s) => s.on)
+  const on = useWorking()
   const onPage = usePathname() === "/capture"
   const drawerOpen = captureUi.use((s) => s.open)
   const armed = wake((s) => s.armed)
@@ -691,7 +771,7 @@ export function CompanionDrawer({ bottom }: { bottom: number }) {
   const open = captureUi.use((s) => s.open)
   const ctx = captureUi.use((s) => s.ctx)
   const name = companionStore.use((s) => s.name)
-  const on = thinking((s) => s.on)
+  const on = useWorking()
   const armed = wake((s) => s.armed)
   const [mounted, setMounted] = useState(open)
   const [since, setSince] = useState(Date.now())

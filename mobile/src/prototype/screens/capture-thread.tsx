@@ -340,6 +340,17 @@ export function ThreadComposer({
               onPress={() => void attachFiles(onSent)}
             />
           )}
+          {/* With words or photos in the box the round button is Send, so
+              dictation keeps its own button here: start it again after a
+              pause, or add to what you typed. */}
+          {dictation && canSend && !live.listening && !transcribing && (
+            <IconTap
+              size={44}
+              icon={Mic}
+              label="Dictate"
+              onPress={() => void dictate()}
+            />
+          )}
           {(!text || onText) && (
             <IconTap
               size={44}

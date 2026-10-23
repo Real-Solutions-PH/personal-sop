@@ -68,6 +68,7 @@ export function Orb({
       accessible
       accessibilityRole="image"
       accessibilityLabel={name}
+      accessibilityState={{ busy: active }}
       style={{
         width: size,
         height: size,

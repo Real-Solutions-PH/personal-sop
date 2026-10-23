@@ -235,6 +235,8 @@ export const takeVoiceTurn = () => {
 
 /** Transient "Fern is thinking" indicator; not persisted. */
 export const thinking = create<{ on: boolean }>(() => ({ on: false }))
+/** The reply still being written: its orb keeps working until it ends. */
+export const answering = create<{ id: string | null }>(() => ({ id: null }))
 
 const set = companionStore.set
 
