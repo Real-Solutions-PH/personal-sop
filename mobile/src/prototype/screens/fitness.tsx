@@ -2,6 +2,7 @@ import * as A from "@domain/fitness/actions"
 import type { Exercise } from "@domain/fitness/data"
 import { fitStore } from "@domain/fitness/store"
 import { useLocalSearchParams } from "expo-router"
+import { Plus } from "lucide-react-native"
 import { useState } from "react"
 import { View } from "react-native"
 import { toast } from "sonner-native"
@@ -15,14 +16,66 @@ export function FitnessHome() {
   const p = useLocalSearchParams<{ day?: string }>()
   return <FitnessTrain day={p.day} />
 }
+/** Under an exercise picker's results: make a new exercise, named from
+ * the search when it found no exact match. */
+export function CreateExerciseRow({
+  query,
+  onPress,
+}: {
+  query: string
+  onPress: (name: string) => void
+}) {
+  const t = useTheme()
+  const exercises = fitStore.use((s) => s.exercises)
+  const name = query.trim()
+  if (
+    name &&
+    exercises.some(
+      (e) => !e.archived && e.name.toLowerCase() === name.toLowerCase(),
+    )
+  )
+    return null
+  return (
+    <Tap
+      label={name ? `Create exercise ${name}` : "New exercise"}
+      onPress={() => onPress(name)}
+      style={{ paddingVertical: 10 }}
+    >
+      <Line style={{ gap: 12 }}>
+        <View
+          style={{
+            width: 24,
+            height: 24,
+            borderRadius: 6,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: `${t.fit}26`,
+          }}
+        >
+          <Plus size={16} color={t.fit} />
+        </View>
+        <Copy weight="medium" style={{ color: t.fit }}>
+          {name ? `Create “${name}”` : "New exercise"}
+        </Copy>
+      </Line>
+    </Tap>
+  )
+}
+
 export function ExerciseEditor({
   exercise,
   open,
   onClose,
+  initialName,
+  onSaved,
 }: {
   exercise?: Exercise
   open: boolean
   onClose: () => void
+  /** A new exercise's name, prefilled (what the picker's search held). */
+  initialName?: string
+  /** After saving: a picker uses the new exercise straight away. */
+  onSaved?: (e: Exercise) => void
 }) {
   const t = useTheme(),
     s = fitStore.use((s) => s),
@@ -33,6 +86,7 @@ export function ExerciseEditor({
       repMin: 8,
       repMax: 12,
       increment: 2.5,
+      ...(initialName ? { name: initialName } : {}),
       ...exercise,
     }),
     set = (patch: Partial<Exercise>) => setF({ ...f, ...patch }),
@@ -201,8 +255,9 @@ export function ExerciseEditor({
                 toast.error("Check the name and rep range")
                 return
               }
-              A.upsertExercise({ ...f, name: f.name.trim() })
+              const saved = A.upsertExercise({ ...f, name: f.name.trim() })
               onClose()
+              onSaved?.(saved)
             }}
           >
             Save exercise

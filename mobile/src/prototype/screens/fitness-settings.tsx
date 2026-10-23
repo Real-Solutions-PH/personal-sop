@@ -49,7 +49,7 @@ export function FitnessSettings() {
             />
             {st.units === "lb" && (
               <Copy size={12} muted>
-                Stored in kg; the prototype still displays kg.
+                You enter set weights in lb; they're converted and saved in kg.
               </Copy>
             )}
           </View>

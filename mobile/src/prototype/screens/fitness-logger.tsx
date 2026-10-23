@@ -29,7 +29,18 @@ import {
 } from "../native-kit"
 import { go, replace } from "../navigation"
 import { fonts, useTheme } from "../theme"
-import { Button, confirm, Empty, Field, Screen, Sheet, useNow } from "../ui"
+import {
+  Button,
+  confirm,
+  Empty,
+  Field,
+  Screen,
+  Sheet,
+  SwipeRow,
+  undo,
+  useNow,
+} from "../ui"
+import { CreateExerciseRow, ExerciseEditor } from "./fitness"
 import { StartWorkoutSheet } from "./fitness-start"
 export function WorkoutLogger() {
   const p = useLocalSearchParams<{ edit?: string; resume?: string }>(),
@@ -42,6 +53,11 @@ export function WorkoutLogger() {
         : w.id === s.activeId && w.status === "in_progress",
     ),
     [picker, setPicker] = useState<null | string>(null),
+    // A new exercise made from the picker: its name, and what the picker
+    // was for ("add", or the workout exercise it replaces).
+    [creating, setCreating] = useState<{ name: string; mode: string } | null>(
+      null,
+    ),
     [query, setQuery] = useState(""),
     [picked, setPicked] = useState<string[]>([]),
     [editing, setEditing] = useState<{ we: string; set: string } | null>(null),
@@ -103,6 +119,10 @@ export function WorkoutLogger() {
         replace("/fitness")
       },
     )
+  const deleteSet = (weId: string, setId: string) => {
+    const removed = A.removeSet(w.id, weId, setId)
+    if (removed) undo("Set deleted", () => A.restoreSet(w.id, weId, removed))
+  }
   const openPicker = (id = "add") => {
     setPicked([])
     setQuery("")
@@ -347,88 +367,96 @@ export function WorkoutLogger() {
                     set.weight === 0 &&
                     ex?.loadType === "weight"
                 return (
-                  <Line
+                  <SwipeRow
                     key={set.id}
-                    style={{
-                      gap: 8,
-                      paddingHorizontal: 4,
-                      paddingVertical: 4,
-                      borderRadius: 12,
-                      backgroundColor: C.isDone(set)
-                        ? `${t.fit}1a`
-                        : "transparent",
-                    }}
+                    onDismiss={() => deleteSet(we.id, set.id)}
+                    dismissLabel="Delete set"
+                    background={t.card}
                   >
-                    <Copy
-                      size={14}
-                      weight="semibold"
+                    <Line
                       style={{
-                        width: 32,
-                        textAlign: "center",
-                        color: isWarm ? t.warn : t.muted,
+                        gap: 8,
+                        paddingHorizontal: 4,
+                        paddingVertical: 4,
+                        borderRadius: 12,
+                        backgroundColor: C.isDone(set)
+                          ? `${t.fit}1a`
+                          : "transparent",
                       }}
                     >
-                      {label}
-                    </Copy>
-                    <Copy size={12} muted lines={1} style={{ flex: 1 }}>
-                      {ghost ? `${C.kgShort(ghost.weight)}×${ghost.reps}` : "—"}
-                    </Copy>
-                    {[
-                      needsWeight ? "—" : C.kgShort(set.weight),
-                      String(set.reps),
-                    ].map((value, i) => (
-                      <Tap
-                        key={`${i}-${set.id}`}
-                        label={`${ex?.name} set ${label} ${i ? "reps" : "weight"}`}
-                        onPress={() => setEditing({ we: we.id, set: set.id })}
+                      <Copy
+                        size={14}
+                        weight="semibold"
                         style={{
-                          flex: 1,
-                          height: 40,
-                          borderRadius: 8,
-                          backgroundColor: border(t.soft, 0.6),
-                          alignItems: "center",
-                          justifyContent: "center",
+                          width: 32,
+                          textAlign: "center",
+                          color: isWarm ? t.warn : t.muted,
                         }}
                       >
-                        <Copy
-                          weight="semibold"
+                        {label}
+                      </Copy>
+                      <Copy size={12} muted lines={1} style={{ flex: 1 }}>
+                        {ghost
+                          ? `${C.kgShort(ghost.weight)}×${ghost.reps}`
+                          : "—"}
+                      </Copy>
+                      {[
+                        needsWeight ? "—" : C.kgShort(set.weight),
+                        String(set.reps),
+                      ].map((value, i) => (
+                        <Tap
+                          key={`${i}-${set.id}`}
+                          label={`${ex?.name} set ${label} ${i ? "reps" : "weight"}`}
+                          onPress={() => setEditing({ we: we.id, set: set.id })}
                           style={{
-                            color: !i && needsWeight ? t.muted : t.text,
+                            flex: 1,
+                            height: 40,
+                            borderRadius: 8,
+                            backgroundColor: border(t.soft, 0.6),
+                            alignItems: "center",
+                            justifyContent: "center",
                           }}
                         >
-                          {value}
-                        </Copy>
-                      </Tap>
-                    ))}
-                    <View style={{ width: 44 }}>
-                      <Tap
-                        label={C.isDone(set) ? "Undo set" : "Complete set"}
-                        onPress={() =>
-                          needsWeight
-                            ? setEditing({ we: we.id, set: set.id })
-                            : A.toggleSet(w.id, we.id, set.id)
-                        }
-                        style={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: 12,
-                          borderWidth: 2,
-                          borderColor: C.isDone(set) ? t.fit : t.line,
-                          backgroundColor: C.isDone(set)
-                            ? t.fit
-                            : "transparent",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <Check
-                          size={20}
-                          strokeWidth={3}
-                          color={C.isDone(set) ? t.bg : t.muted}
-                        />
-                      </Tap>
-                    </View>
-                  </Line>
+                          <Copy
+                            weight="semibold"
+                            style={{
+                              color: !i && needsWeight ? t.muted : t.text,
+                            }}
+                          >
+                            {value}
+                          </Copy>
+                        </Tap>
+                      ))}
+                      <View style={{ width: 44 }}>
+                        <Tap
+                          label={C.isDone(set) ? "Undo set" : "Complete set"}
+                          onPress={() =>
+                            needsWeight
+                              ? setEditing({ we: we.id, set: set.id })
+                              : A.toggleSet(w.id, we.id, set.id)
+                          }
+                          style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 12,
+                            borderWidth: 2,
+                            borderColor: C.isDone(set) ? t.fit : t.line,
+                            backgroundColor: C.isDone(set)
+                              ? t.fit
+                              : "transparent",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <Check
+                            size={20}
+                            strokeWidth={3}
+                            color={C.isDone(set) ? t.bg : t.muted}
+                          />
+                        </Tap>
+                      </View>
+                    </Line>
+                  </SwipeRow>
                 )
               })}
             </View>
@@ -518,6 +546,13 @@ export function WorkoutLogger() {
               </Line>
             </Tap>
           ))}
+        <CreateExerciseRow
+          query={query}
+          onPress={(name) => {
+            setCreating({ name, mode: picker ?? "add" })
+            setPicker(null)
+          }}
+        />
         {picker === "add" && (
           <Button
             disabled={!picked.length}
@@ -592,6 +627,19 @@ export function WorkoutLogger() {
           </>
         )}
       </Sheet>
+      {creating && (
+        <ExerciseEditor
+          key="new-exercise"
+          open
+          initialName={creating.name}
+          onClose={() => setCreating(null)}
+          onSaved={(e) => {
+            if (creating.mode === "add") A.addExercises(w.id, [...picked, e.id])
+            else A.replaceExercise(w.id, creating.mode, e.id)
+            toast.success(`${e.name} added`)
+          }}
+        />
+      )}
       {target && editing && (
         <SetEditor
           key={target.id}
@@ -599,7 +647,7 @@ export function WorkoutLogger() {
           open
           onClose={() => setEditing(null)}
           onSave={(patch) => A.updateSet(w.id, editing.we, editing.set, patch)}
-          onDelete={() => A.removeSet(w.id, editing.we, editing.set)}
+          onDelete={() => deleteSet(editing.we, editing.set)}
         />
       )}
       <Sheet
@@ -645,7 +693,7 @@ export function WorkoutLogger() {
     </Screen>
   )
 }
-function SetEditor({
+export function SetEditor({
   set,
   open,
   onClose,
@@ -658,10 +706,23 @@ function SetEditor({
   onSave: (patch: Partial<WorkoutSet>) => void
   onDelete: () => void
 }) {
+  // Weight is entered in the unit from Fitness settings (switchable here)
+  // and always stored in kg.
+  const unit = fitStore.use((s) => s.settings.units)
   const t = useTheme(),
-    [weight, setWeight] = useState(String(set.weight)),
+    [weight, setWeight] = useState(
+      String(unit === "lb" ? A.kgToLb(set.weight) : set.weight),
+    ),
     [reps, setReps] = useState(String(set.reps)),
     [kind, setKind] = useState(set.kind)
+  const kg = (v: string) => (unit === "lb" ? A.lbToKg(Number(v)) : Number(v))
+  const switchUnit = (next: "kg" | "lb") => {
+    if (next === unit) return
+    const n = Number(weight)
+    if (Number.isFinite(n))
+      setWeight(String(next === "lb" ? A.kgToLb(n) : A.lbToKg(n)))
+    A.updateSettings({ units: next })
+  }
   return (
     <Sheet title="Edit set" open={open} onClose={onClose}>
       <Segmented
@@ -680,7 +741,12 @@ function SetEditor({
         )}
       />
       {[
-        { label: "Weight (kg)", value: weight, set: setWeight, step: 2.5 },
+        {
+          label: `Weight (${unit})`,
+          value: weight,
+          set: setWeight,
+          step: unit === "lb" ? 5 : 2.5,
+        },
         { label: "Reps", value: reps, set: setReps, step: 1 },
       ].map((row) => (
         <View key={row.label} style={{ gap: 8 }}>
@@ -719,6 +785,25 @@ function SetEditor({
               onPress={() => row.set(String(Number(row.value) + row.step))}
             />
           </Line>
+          {row.label.startsWith("Weight") && (
+            <View style={{ alignItems: "center", gap: 8 }}>
+              <View style={{ width: 160 }}>
+                <Segmented
+                  value={unit}
+                  onChange={switchUnit}
+                  options={[
+                    { value: "kg", label: "kg" },
+                    { value: "lb", label: "lb" },
+                  ]}
+                />
+              </View>
+              {unit === "lb" && Number.isFinite(Number(weight)) && (
+                <Copy size={12} muted>
+                  = {kg(weight)} kg, saved in kg
+                </Copy>
+              )}
+            </View>
+          )}
         </View>
       ))}
       <Button
@@ -732,14 +817,14 @@ function SetEditor({
             toast.error("Enter valid weight and reps")
             return
           }
-          onSave({ weight: Number(weight), reps: Number(reps), kind })
+          onSave({ weight: kg(weight), reps: Number(reps), kind })
           onClose()
         }}
       >
         Save
       </Button>
       <Button
-        tone="quiet"
+        tone="danger"
         onPress={() => {
           onDelete()
           onClose()
