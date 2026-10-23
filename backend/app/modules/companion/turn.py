@@ -294,6 +294,12 @@ class Step:
         return out
 
 
+# Text held back at the start of each model call before it streams: longer
+# than the plan DeepSeek says before a tool call (one sentence), short
+# enough that an answer starts showing within a moment.
+HOLD_CHARS = 240
+
+
 @dataclass
 class TurnStream(capture.LoopHooks):
     """The AG-UI side of one turn. ``sink`` receives every event in order;
@@ -305,6 +311,11 @@ class TurnStream(capture.LoopHooks):
     sink: Sink = lambda e: None
     steps: list[Step] = field(default_factory=list)
     _text_id: str | None = None
+    # The start of a model call's text, held back until it is long enough to
+    # be an answer or the call ends: DeepSeek says its plan ("I'll check your
+    # nutrition…") in the answer channel before a tool call, and only the
+    # tool call that follows shows it was not the answer.
+    _held: str = ""
     _turn: int = 0
     _args: dict[str, dict[str, Any]] = field(default_factory=dict)
     # Repeat calls of a once-a-turn tool: run, but shown nowhere.
@@ -336,11 +347,25 @@ class TurnStream(capture.LoopHooks):
         if not delta:
             return
         if self._text_id is None:
+            self._held += delta
+            if len(self._held.strip()) < HOLD_CHARS:
+                return
+            delta, self._held = self._held, ""
             self._text_id = str(uuid.uuid4())
             self.sink(TextMessageStartEvent(message_id=self._text_id, role="assistant"))
         self.sink(TextMessageContentEvent(message_id=self._text_id, delta=delta))
 
+    def _release(self) -> None:
+        """Send text still held back: the call ended and it is the answer."""
+        held, self._held = self._held, ""
+        if held.strip():
+            self._text_id = str(uuid.uuid4())
+            self.sink(TextMessageStartEvent(message_id=self._text_id, role="assistant"))
+            self.sink(TextMessageContentEvent(message_id=self._text_id, delta=held))
+
     def end_text(self) -> None:
+        if self._text_id is None:
+            self._release()
         if self._text_id is not None:
             self.sink(TextMessageEndEvent(message_id=self._text_id))
             self._text_id = None
@@ -356,9 +381,13 @@ class TurnStream(capture.LoopHooks):
         # A call that goes on to use tools was narrating its plan ("let me
         # check your macros…"), not answering: the app drops that text, so
         # only the answer stays (it still streams as it is written).
+        planning = bool(getattr(message, "tool_calls", None))
+        if planning:
+            self._held = ""  # held back, so never shown
         said = self._text_id
         self.end_text()
-        if said is not None and getattr(message, "tool_calls", None):
+        if said is not None and planning:
+            # Narration long enough to have started streaming: the app drops it.
             self.custom("text.discard", {"message_id": said})
         self.sink(StepFinishedEvent(step_name=f"think:{turn}"))
 
