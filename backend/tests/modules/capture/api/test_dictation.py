@@ -15,6 +15,7 @@ from app.modules.ai_providers.models import AIUsage
 from app.modules.capture import seams
 from app.modules.capture.models import Capture
 from tests.modules.capture.api.helpers import Api, user
+from tests.modules.habits.api.util import make_habit
 
 # The first bytes of real files: an iPhone m4a (ISO base media) and a WAV.
 M4A = b"\x00\x00\x00\x20ftypM4A \x00\x00\x00\x00M4A mp42isom" + b"\x00" * 200
@@ -139,3 +140,30 @@ def test_deepgram_is_the_servers_transcription_default_only_with_its_key(
     assert got is not None and got.provider == "deepgram"
     chat = ai_public._server_default("chat")
     assert chat is not None and chat.provider == "nebius"
+
+
+def test_deepgram_is_told_the_persons_own_names(
+    client: TestClient, db: Session, deepgram: list[Any]
+) -> None:
+    api = user(client, db, accounts=False)
+    api.account("Maya Black", type="credit")
+    make_habit(client, api.h, name="Take isotretinoin")
+    assert dictate(api, client, M4A, duration_sec=60).status_code == 200
+    terms = deepgram[0][1]["keyterms"]
+    assert terms[0] == "Fern"
+    assert {"Take isotretinoin", "Maya Black", "tapsilog"} <= set(terms)
+    with Session(db_engine) as s:
+        row = s.exec(
+            select(AIUsage).where(AIUsage.owner_id == api.user.id)  # type: ignore[attr-defined]
+        ).one()
+    # 60 s with the key-term add-on: $0.0056 = P0.3192 -> 32 centavos.
+    assert row.cost_minor == 32
+
+
+def test_a_provider_without_key_terms_is_sent_none(
+    client: TestClient, db: Session, deepgram: list[Any]
+) -> None:
+    api = user(client, db, accounts=False)
+    api.assign("transcription")
+    assert dictate(api, client, WAV).status_code == 200
+    assert deepgram[0][1]["keyterms"] == []

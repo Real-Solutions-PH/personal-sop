@@ -35,7 +35,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import col
 
 from app.modules.ai_providers import public as ai
-from app.modules.capture import agent, ports, qa, rules, seams
+from app.modules.capture import agent, ports, qa, rules, seams, vocabulary
 from app.modules.capture import cards as C
 from app.modules.capture import photo as Ph
 from app.modules.capture.journal import settings_row
@@ -348,6 +348,7 @@ def _transcript(ctx: Ctx, cap: Capture, mode: str, language: str) -> None:
         return
     m = media.require_ready(ctx, att.media_id, kinds=("audio",))
     audio = media.read_bytes(m, max_bytes=seams.AUDIO_MAX_BYTES)
+    terms = _keyterms(ctx, resolved)
     try:
         text = seams.transcribe(
             resolved,
@@ -355,6 +356,7 @@ def _transcript(ctx: Ctx, cap: Capture, mode: str, language: str) -> None:
             filename=f"capture-{cap.id}",
             mime=m.mime,
             language="tl" if language == "en-tl" else "en",
+            keyterms=terms,
         )
     except seams.SeamError as exc:
         ai.record_usage(ctx, resolved, input_tokens=0, output_tokens=0, ok=False)
@@ -366,7 +368,9 @@ def _transcript(ctx: Ctx, cap: Capture, mode: str, language: str) -> None:
         resolved,
         input_tokens=0,
         output_tokens=0,
-        cost_minor=ai.transcription_minor(resolved.provider, seconds),
+        cost_minor=ai.transcription_minor(
+            resolved.provider, seconds, keyterms=bool(terms)
+        ),
     )
     if not text:
         refuse("transcript_empty", "I couldn't hear anything in that recording")
@@ -590,6 +594,15 @@ def run(ctx: Ctx, cap: Capture, plan: Plan, emit: Emit = _noop) -> Capture:
 DICTATION_MAX_SEC = 300  # the recorder's own limit
 
 
+def _keyterms(ctx: Ctx, resolved: ai.ResolvedModel) -> list[str]:
+    """Words for speech to text to expect: the person's own names and the
+    fixed list (``capture.vocabulary``). Only Deepgram takes them."""
+    if resolved.provider != "deepgram":
+        return []
+    names, foods = ports.speech_names(ctx)
+    return vocabulary.keyterms(names, foods)
+
+
 def dictate(ctx: Ctx, audio: bytes, *, duration_sec: int | None) -> str:
     """Speech to text for the chat box (ADR-0015): the words, never a
     capture. Refuses before any provider call: no audio type the bytes
@@ -607,6 +620,7 @@ def dictate(ctx: Ctx, audio: bytes, *, duration_sec: int | None) -> str:
         raise domain_error(503, "speech_unavailable", "Voice input isn't set up yet")
     ai.check_budget(ctx)
     st = settings_row(ctx)
+    terms = _keyterms(ctx, resolved)
     try:
         text = seams.transcribe(
             resolved,
@@ -614,6 +628,7 @@ def dictate(ctx: Ctx, audio: bytes, *, duration_sec: int | None) -> str:
             filename="dictation",
             mime=mime,
             language="tl" if st.language == "en-tl" else "en",
+            keyterms=terms,
         )
     except seams.SeamError as exc:
         ai.record_usage(ctx, resolved, input_tokens=0, output_tokens=0, ok=False)
@@ -624,7 +639,9 @@ def dictate(ctx: Ctx, audio: bytes, *, duration_sec: int | None) -> str:
         resolved,
         input_tokens=0,
         output_tokens=0,
-        cost_minor=ai.transcription_minor(resolved.provider, seconds),
+        cost_minor=ai.transcription_minor(
+            resolved.provider, seconds, keyterms=bool(terms)
+        ),
     )
     if not text:
         raise invalid("transcript_empty", "I couldn't hear anything")

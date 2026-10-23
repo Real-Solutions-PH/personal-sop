@@ -16,6 +16,7 @@ from app.modules.fitness import foods as F
 from app.modules.fitness import repo, services
 from app.modules.fitness.models import (
     Exercise,
+    FoodItem,
     Meal,
     WeighIn,
     Workout,
@@ -416,6 +417,18 @@ def exercise_named(ctx: Ctx, name: str) -> Exercise | None:
     return next(
         (e for e in owned_repo.list_rows(ctx, Exercise) if e.name.lower() == n), None
     )
+
+
+def names_for_speech(ctx: Ctx, *, limit: int = 60) -> tuple[list[str], list[str]]:
+    """(exercise names, food library names), most recently touched first:
+    words speech to text should expect."""
+    ex = owned_repo.list_rows(
+        ctx, Exercise, order_by=[col(Exercise.updated_at).desc()], limit=limit
+    )
+    foods = owned_repo.list_rows(
+        ctx, FoodItem, order_by=[col(FoodItem.updated_at).desc()], limit=limit
+    )
+    return [e.name for e in ex], [f.name for f in foods]
 
 
 def create_template(

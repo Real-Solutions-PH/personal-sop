@@ -54,7 +54,8 @@ Deepgram path remains as the fallback.
 **Positive:**
 - Words appear while the person speaks, with no network round trip.
 - No cost, and no audio leaves the phone except through the platform's own
-  recogniser.
+  recogniser. (Superseded by the 2026-10-23 amendment: the recording now
+  also goes to our server.)
 
 **Negative:**
 - Quality depends on the platform. Apple's and Google's recognisers handle
@@ -67,3 +68,26 @@ Deepgram path remains as the fallback.
 **Follow-ups:**
 - If Taglish accuracy matters, mint Deepgram live tokens (needs a key with
   the Member role) and stream to Deepgram instead.
+
+## Amendment (2026-10-23): the server's words replace the phone's
+
+Measured on 350 synthetic clips of the owner's kind of message (five voices,
+clean and with background noise; English, money, food, brands, Taglish),
+the phone's recogniser (Apple, `en-US`, as shipped) made 22.6% word errors
+and kept 71% of the names and numbers that matter. Deepgram Nova-3 with the
+person's own habit, exercise, account and food names as key terms made
+14.6% and kept 88%. The real chat history showed the same misses:
+"friend" for Fern, "weight protein" for whey protein, "real solutions pH".
+Apple with the `en-PH` locale (23.2% / 69%) or with the same names as
+`contextualStrings` (19.8% / 79%) did not close the gap.
+
+So in live mode the recogniser also writes the audio to a 16 kHz mono WAV.
+When the person stops, the app sends it to `POST /capture/dictate`, and the
+server's transcript replaces the phone's words in the box, unless the person
+has edited the box in the meantime. If the server fails, the phone's words
+stay. The live words while speaking are unchanged.
+
+This reverses "no cost" and "no audio leaves the phone": each dictation is
+now metered like any server transcription (Deepgram plus its key-term
+add-on, about ₱0.32 a minute), and the recording is uploaded. Nothing is
+stored on the server but the usage row.
