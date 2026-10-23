@@ -75,6 +75,23 @@ export function PrototypeProviders({ children }: { children: ReactNode }) {
       ),
     [],
   )
+  useEffect(() => {
+    // Live mode: "online" means the app's own server answers, not that some
+    // public site does. NetInfo's default probe (a Google URL) can fail on a
+    // network that reaches the server fine, and the app then queued every
+    // message as offline.
+    if (liveMode) {
+      const { API_URL, API_PREFIX } =
+        require("@/live/config") as typeof import("@/live/config")
+      NetInfo.configure({
+        reachabilityUrl: `${API_URL}${API_PREFIX}/utils/health-check/`,
+        reachabilityTest: async (r) => r.status === 200,
+        reachabilityShortTimeout: 5_000,
+        reachabilityLongTimeout: 30_000,
+        reachabilityRequestTimeout: 8_000,
+      })
+    }
+  }, [])
   useEffect(
     () =>
       NetInfo.addEventListener((state) => {
