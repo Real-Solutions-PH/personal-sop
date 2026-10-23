@@ -91,7 +91,7 @@ What `lean` gives up: with one task per service, a crashed task means a minute o
 | Email | SES domain identity `unfurl.realsolutionsph.com` | Easy DKIM, custom MAIL FROM `mail.unfurl.realsolutionsph.com`; sender `noreply@unfurl.realsolutionsph.com` |
 | | IAM user `unfurl-ses-smtp` | `ses:SendRawEmail` only. Its access key is turned into SES SMTP credentials by the bootstrap function |
 | Secrets | Secrets Manager (`unfurl/*`) | See the next table |
-| Observability | CloudWatch log groups `/unfurl/{api,worker,gotrue,tunnel}` (30 days), RDS logs, SNS topic `unfurl-alarms` | Alarms: API, sign-in, tunnel or worker with no running task for 10 minutes; API or worker memory > 85 % for 15 minutes (the signal to scale up); DB CPU > 80 %; DB free storage < 2 GB |
+| Observability | CloudWatch log groups `/unfurl/{api,worker,gotrue,tunnel}` (30 days), `/unfurl/ecs-events` (every task stop with ECS's reason), RDS logs, SNS topic `unfurl-alarms` | Alarms: API, sign-in, tunnel or worker with no running task for 10 minutes; API or worker memory > 85 % for 15 minutes (the signal to scale up); DB CPU > 80 %; DB free storage < 2 GB |
 
 ### Secrets
 
@@ -287,6 +287,22 @@ for s in unfurl-api unfurl-worker; do env -u HTTPS_PROXY -u HTTP_PROXY aws ecs u
 6. Check: `curl https://unfurl-api.realsolutionsph.com/api/v1/utils/health-check/` and `curl https://unfurl-api.realsolutionsph.com/auth/v1/health` both return 200.
 
 The first `UnfurlProd` deploy takes roughly 20 minutes, mostly RDS. CloudFormation rolls the whole stack back if any service fails to stabilise. RDS (deletion protection, snapshot on delete), the media bucket, the secrets and the log groups are retained by design, so a failed first create can leave them behind for cleanup.
+
+## If a first create fails
+
+What happened on 2026-10-24: the tunnel tasks couldn't read their token secret (fixed in #69), the circuit breaker tripped, and CloudFormation rolled the stack back. Two protections that guard real data then blocked the cleanup of a stack that never held any:
+
+- The **database's deletion protection** stopped the rollback (`ROLLBACK_FAILED`).
+- The **stack's termination protection** stopped `delete-stack`.
+
+To recover:
+1. Read why tasks stopped: every ECS task stop is in the `/unfurl/ecs-events` log group with its reason, including failures before a container starts.
+2. Confirm the database holds no user data (it was created by the failed create).
+3. `aws rds modify-db-instance --db-instance-identifier unfurl --no-deletion-protection --apply-immediately`
+4. `aws cloudformation update-termination-protection --stack-name UnfurlProd --no-enable-termination-protection`
+5. `aws cloudformation delete-stack --stack-name UnfurlProd`. The database's final snapshot is kept.
+
+Secrets, service log groups and the media bucket use `RETAIN_ON_UPDATE_OR_DELETE`: kept on later updates and deletes, removed when a first create rolls back. So their fixed names are free for the retry. The tunnel token secret belongs to `scripts/cloudflare.ts` and stays.
 
 ## Later deploys
 

@@ -211,6 +211,26 @@ describe("tunnel", () => {
     )
   })
 
+  test("the tunnel's execution role can read the token secret by its partial ARN", () => {
+    // ECS asks for `secret:unfurl/cloudflared-tunnel` without the random
+    // suffix; a `-??????` resource alone was denied on the first deploy.
+    const policies = JSON.stringify(prod.findResources("AWS::IAM::Policy"))
+    expect(policies).toContain("secret:unfurl/cloudflared-tunnel*")
+  })
+
+  test("every task stop, with its reason, is logged to /unfurl/ecs-events", () => {
+    prod.hasResourceProperties("AWS::Events::Rule", {
+      EventPattern: Match.objectLike({
+        source: ["aws.ecs"],
+        "detail-type": ["ECS Task State Change"],
+        detail: Match.objectLike({ lastStatus: ["STOPPED"] }),
+      }),
+    })
+    prod.hasResourceProperties("AWS::Logs::LogGroup", {
+      LogGroupName: "/unfurl/ecs-events",
+    })
+  })
+
   test("API and GoTrue register in private DNS as api. and auth.unfurl.internal", () => {
     prod.hasResourceProperties("AWS::ServiceDiscovery::PrivateDnsNamespace", {
       Name: "unfurl.internal",
@@ -629,6 +649,35 @@ describe("backend environment", () => {
     for (const name of ["worker", "migrate"]) {
       const c = container("unfurl-worker", name)
       expect(new Set([...envNames(c), ...secretNames(c)])).toEqual(provided)
+    }
+  })
+})
+
+describe("removal on a failed first create", () => {
+  test("secrets, log groups and the media bucket are retained on update or delete, not on create rollback", () => {
+    for (const type of [
+      "AWS::SecretsManager::Secret",
+      "AWS::Logs::LogGroup",
+      "AWS::S3::Bucket",
+    ]) {
+      const named = Object.values(prod.findResources(type)).filter(
+        (r) =>
+          // The RDS master secret follows its instance (CDK's default), so a
+          // snapshot restore sets a new password; it is not one of these.
+          (r.Properties?.Name?.startsWith?.("unfurl/") &&
+            r.Properties.Name !== "unfurl/db-master") ||
+          // Service log groups; the functions' /unfurl/fn/* groups are DESTROY.
+          (r.Properties?.LogGroupName?.startsWith?.("/unfurl/") &&
+            !r.Properties.LogGroupName.startsWith("/unfurl/fn/")) ||
+          String(JSON.stringify(r.Properties?.BucketName ?? "")).includes(
+            "unfurl-media",
+          ),
+      )
+      expect(named.length).toBeGreaterThan(0)
+      for (const r of named) {
+        expect(r.DeletionPolicy).toBe("RetainExceptOnCreate")
+        expect(r.UpdateReplacePolicy).toBe("Retain")
+      }
     }
   })
 })

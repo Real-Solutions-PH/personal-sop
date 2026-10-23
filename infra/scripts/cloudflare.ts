@@ -224,6 +224,19 @@ export function rateLimitRule() {
   }
 }
 
+/** Field-by-field: Cloudflare returns the object with its keys reordered. */
+export function sameRateLimit(
+  live: Record<string, unknown> | undefined,
+  want: Record<string, unknown>,
+): boolean {
+  return (
+    !!live &&
+    Object.keys(want).every(
+      (k) => JSON.stringify(live[k]) === JSON.stringify(want[k]),
+    )
+  )
+}
+
 // ------------------------------------------------------------------ Cloudflare
 
 const CF = "https://api.cloudflare.com/client/v4"
@@ -276,7 +289,7 @@ async function ensureRateLimitRule(
   const matches =
     current &&
     current.expression === rule.expression &&
-    JSON.stringify(current.ratelimit) === JSON.stringify(rule.ratelimit) &&
+    sameRateLimit(current.ratelimit, rule.ratelimit) &&
     current.enabled
   const label = `rate rule   ${rule.ratelimit.requests_per_period}/10 s per IP on ${CLOUDFLARE_LIMITED_PATHS.join(" ")}`
   if (matches) return console.log(`keep    ${label}`)
