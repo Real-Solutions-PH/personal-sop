@@ -568,6 +568,23 @@ class SolRun:
         return {"shown": b["t"]}
 
 
+_CONFIRM_WORD = re.compile(r"\b(confirm(ed)?|approve[ds]?)\b", re.I)
+_CONFIRM_SHORT = re.compile(
+    r"^\W*(yes|yeah|yep|yup|ok(ay)?|sure|go( ahead)?|save( it| them| both| all)?|"
+    r"do it|add it|log it|record it|continue|proceed|sige|oo|opo|g|tama)\b",
+    re.I,
+)
+
+
+def said_confirm(said: str) -> bool:
+    """Whether the person's latest message tells Fern to save what is
+    waiting: it says confirm (or approve) anywhere, or it is a short yes."""
+    text = said.split("\n[", 1)[0].strip()  # without any photo reading
+    return bool(_CONFIRM_WORD.search(text)) or (
+        len(text) <= 60 and bool(_CONFIRM_SHORT.search(text))
+    )
+
+
 # Words a search may add to what the person said.
 SEARCH_WORDS = frozenset(
     "nutrition nutritional calories calorie kcal macros macro protein carbs "
@@ -837,6 +854,14 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
 
     def confirm_pending(**kw: Any) -> dict[str, Any]:
         NoArgs(**kw)
+        if not said_confirm(run.said):
+            # Seen live: asked to log lunch, Fern confirmed everything
+            # waiting, and a stale breakfast was saved.
+            return {
+                "error": "they_did_not_confirm",
+                "instead": "ask whether to save what is waiting; they can say "
+                "confirm or tap Confirm",
+            }
         return capture.settle_waiting(ctx, action="confirm")
 
     def discard_pending(**kw: Any) -> dict[str, Any]:
