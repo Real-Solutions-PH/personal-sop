@@ -9,6 +9,7 @@
     "unfurl:githubRepo": "Real-Solutions-PH/personal-sop",
     "unfurl:githubEnvironment": "production",
     "unfurl:profile": "lean",
+    "unfurl:sizingOverrides": {},
     "unfurl:apiHost": "unfurl-api.realsolutionsph.com",
     "unfurl:emailDomain": "unfurl.realsolutionsph.com",
     "unfurl:alertEmail": "",

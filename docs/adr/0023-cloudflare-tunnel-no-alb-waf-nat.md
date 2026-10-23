@@ -41,7 +41,7 @@ None. These are infrastructure choices inside AWS production (§2.5); ADR-0021's
 ## Consequences
 
 **Positive:**
-- `lean` drops from about USD 140–150 to about **USD 105–115** a month, and `production` from about 240–260 to about **180–190** (`docs/23-aws-infrastructure.md`).
+- `lean` drops from about USD 140–150 to about **USD 105–115** a month, and `production` from about 240–260 to about **180–190** (`docs/23-aws-infrastructure.md`). Resizing `lean` for up to 5 users (every task at Fargate's smallest size, one uvicorn worker) brought it to about **USD 92–100** (amended 2026-10-24).
 - Nothing in AWS listens on the internet. There's no load balancer to probe, and the origin can't be reached around Cloudflare.
 - Rate limits now follow the user as well as the address, which the WAF couldn't do, and they live in code with tests.
 
