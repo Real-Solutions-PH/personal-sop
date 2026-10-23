@@ -15,6 +15,8 @@ import * as ec2 from "aws-cdk-lib/aws-ec2"
 import * as ecr from "aws-cdk-lib/aws-ecr"
 import * as ecs from "aws-cdk-lib/aws-ecs"
 import * as elasticache from "aws-cdk-lib/aws-elasticache"
+import * as events from "aws-cdk-lib/aws-events"
+import * as eventsTargets from "aws-cdk-lib/aws-events-targets"
 import * as iam from "aws-cdk-lib/aws-iam"
 import * as lambda from "aws-cdk-lib/aws-lambda"
 import * as lambdaNode from "aws-cdk-lib/aws-lambda-nodejs"
@@ -881,6 +883,19 @@ export class ProdStack extends Stack {
       memoryLimitMiB: sizing.tunnel.memoryMiB,
       runtimePlatform: ARM64,
     })
+    // ECS fetches a secret imported by name through its partial ARN (no
+    // random suffix), which the policy CDK generates for fromSecretNameV2
+    // (`<name>-??????`) does not match: the first deploy's tunnel tasks
+    // stopped with AccessDenied before cloudflared ever ran. Grant on the
+    // name with a wildcard so both forms match.
+    tunnelTask.addToExecutionRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["secretsmanager:GetSecretValue"],
+        resources: [
+          `arn:${this.partition}:secretsmanager:${this.region}:${this.account}:secret:${TUNNEL_TOKEN_SECRET}*`,
+        ],
+      }),
+    )
     tunnelTask.addContainer("cloudflared", {
       image: ecs.ContainerImage.fromRegistry(IMAGES.cloudflared),
       // The image's entrypoint is `cloudflared --no-autoupdate`; the token
@@ -905,6 +920,19 @@ export class ProdStack extends Stack {
       maxHealthyPercent: 200,
     })
     tunnelService.node.addDependency(apiService, gotrueService)
+
+    // A task that stops before its container starts (a secret it cannot
+    // read, an image it cannot pull) leaves nothing in its own log group.
+    // Every task stop, with ECS's reason, goes to /unfurl/ecs-events.
+    new events.Rule(this, "TaskStoppedEvents", {
+      ruleName: `${PREFIX}-task-stopped`,
+      eventPattern: {
+        source: ["aws.ecs"],
+        detailType: ["ECS Task State Change"],
+        detail: { clusterArn: [cluster.clusterArn], lastStatus: ["STOPPED"] },
+      },
+      targets: [new eventsTargets.CloudWatchLogGroup(logGroup("Ecs-Events"))],
+    })
 
     // ----------------------------------------------------------------- alarms
     const topic = new sns.Topic(this, "Alarms", {

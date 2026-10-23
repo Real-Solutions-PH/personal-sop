@@ -211,6 +211,26 @@ describe("tunnel", () => {
     )
   })
 
+  test("the tunnel's execution role can read the token secret by its partial ARN", () => {
+    // ECS asks for `secret:unfurl/cloudflared-tunnel` without the random
+    // suffix; a `-??????` resource alone was denied on the first deploy.
+    const policies = JSON.stringify(prod.findResources("AWS::IAM::Policy"))
+    expect(policies).toContain("secret:unfurl/cloudflared-tunnel*")
+  })
+
+  test("every task stop, with its reason, is logged to /unfurl/ecs-events", () => {
+    prod.hasResourceProperties("AWS::Events::Rule", {
+      EventPattern: Match.objectLike({
+        source: ["aws.ecs"],
+        "detail-type": ["ECS Task State Change"],
+        detail: Match.objectLike({ lastStatus: ["STOPPED"] }),
+      }),
+    })
+    prod.hasResourceProperties("AWS::Logs::LogGroup", {
+      LogGroupName: "/unfurl/ecs-events",
+    })
+  })
+
   test("API and GoTrue register in private DNS as api. and auth.unfurl.internal", () => {
     prod.hasResourceProperties("AWS::ServiceDiscovery::PrivateDnsNamespace", {
       Name: "unfurl.internal",
