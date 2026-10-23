@@ -27,12 +27,21 @@ export async function pickPhoto(camera = false): Promise<string | null> {
     return null
   }
 }
+/** Long edge of a picked photo. Label digits and a kitchen scale's display
+ * must stay legible for the photo reader: at 512 px wide they were not. */
+export const PHOTO_EDGE = 1600
+
 /** Shrinks a picked image to what the AI needs and returns it as data. */
 async function shrink(uri: string): Promise<string | null> {
+  const size = await ImageManipulator.manipulateAsync(uri, [])
+  const wide = size.width >= size.height
+  const long = Math.max(size.width, size.height)
   const resized = await ImageManipulator.manipulateAsync(
     uri,
-    [{ resize: { width: 512 } }],
-    { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG, base64: true },
+    long > PHOTO_EDGE
+      ? [{ resize: wide ? { width: PHOTO_EDGE } : { height: PHOTO_EDGE } }]
+      : [],
+    { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG, base64: true },
   )
   return resized.base64 ? `data:image/jpeg;base64,${resized.base64}` : null
 }

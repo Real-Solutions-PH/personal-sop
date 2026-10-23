@@ -41,6 +41,8 @@ def test_photos_with_a_message_are_read_then_recorded(
     api.assign("vision", vision=True)
     model = install(
         monkeypatch,
+        # One reading per photo: each photo goes to the reader on its own.
+        say("1. Receipt: Jollibee, PHP 285.00, 2026-10-22."),
         say("1. Receipt: Jollibee, PHP 285.00, 2026-10-22."),
         say("", call("log_expense", amount=285, payee="Jollibee", category="dining")),
         say("Logged ₱285 at Jollibee."),
@@ -50,11 +52,11 @@ def test_photos_with_a_message_are_read_then_recorded(
         for _ in range(2)
     ]
     events = ask(client, api, {"text": "log this", "media_ids": ids})
-    # One request to the vision model carried both photos.
-    reader = model.seen[0][-1].content
-    assert [p["type"] for p in reader[1:]] == ["image_url", "image_url"]
+    # Each photo went to the vision model in a request of its own.
+    for seen in model.seen[:2]:
+        assert [p["type"] for p in seen[-1].content[1:]] == ["image_url"]
     # Fern saw what the photos show, next to what the person typed.
-    fern_in = str(model.seen[1][-1].content)
+    fern_in = str(model.seen[2][-1].content)
     assert "log this" in fern_in and "Jollibee, PHP 285" in fern_in
     with Session(db_engine) as s:
         rows = s.exec(
@@ -102,7 +104,7 @@ def test_a_photo_can_be_read_again_and_its_reading_stays_in_the_chat(
     photo again nor what it had shown, and searched the web instead."""
     from uuid import uuid4
 
-    from app.modules.capture.public import CAREFUL
+    from app.modules.capture.photo_read import CAREFUL
 
     api = user(client, db)
     api.assign("chat")
@@ -132,3 +134,57 @@ def test_a_photo_can_be_read_again_and_its_reading_stays_in_the_chat(
     assert str(model.seen[1][0].content).endswith(CAREFUL)
     steps = events[-1]["result"]["messages"][1]["blocks"][0]["items"]
     assert steps[0]["summary"] == "Read 1 photo again"
+
+
+def test_a_label_on_the_server_key_is_read_by_three_readers_and_voted(
+    client: TestClient,
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    storage: FakeStorage,
+) -> None:
+    """Seen live: one vision model reasoned until it ran out of room and
+    answered nothing, so Fern called clear labels blank. On the server key
+    three models now read each photo, and a number counts only when two of
+    them read it alike."""
+    import json
+
+    from app.core.config import settings
+    from app.modules.ai_providers import public as ai_public
+    from app.modules.capture import public as capture
+    from tests.modules.capture.api.helpers import ScriptedModel
+    from tests.utils.mobile import ctx_for
+
+    monkeypatch.setattr(settings, "AI_SERVER_FALLBACK", True)
+    monkeypatch.setattr(settings, "DEFAULT_LLM_PROVIDER", "nebius")
+    monkeypatch.setattr(settings, "NEBIUS_API_KEY", "server-nebius-key")
+    monkeypatch.setattr(settings, "NEBIUS_VISION_MODEL", "a/reader")
+    monkeypatch.setattr(settings, "NEBIUS_VISION_READERS", "a/reader,b/reader,c/reader")
+    protein = {"a/reader": 10, "b/reader": 3.3, "c/reader": 10}
+    kcal = {"a/reader": 90, "b/reader": 90, "c/reader": 30}
+    seen: dict[str, ScriptedModel] = {}
+
+    def factory(resolved: ai_public.ResolvedModel) -> ScriptedModel:
+        reading = {
+            "kind": "label",
+            "product": "Nestle Non-Fat Milk",
+            "serving_size": "250 mL",
+            "per_serving": {
+                "kcal": kcal[resolved.model],
+                "protein_g": protein[resolved.model],
+                "carbs_g": 12.5,
+            },
+        }
+        model = ScriptedModel(script=[say(json.dumps({"photos": [reading]}))], seen=[])
+        seen[resolved.model] = model
+        return model
+
+    monkeypatch.setattr(ai_public, "model_factory", factory)
+    api = user(client, db)
+    mid = media(api, storage, kind="image", mime="image/jpeg", data=JPEG)  # type: ignore[arg-type]
+    with ctx_for(api.user) as ctx:  # type: ignore[attr-defined]
+        text, read = capture.describe_photos(ctx, [mid], "log this milk")
+    assert sorted(seen) == ["a/reader", "b/reader", "c/reader"]
+    assert len(read) == 1
+    assert "Photo 1 — nutrition label: Nestle Non-Fat Milk" in text
+    assert "Per serving: 90 kcal, carbs 12.5 g, protein 10 g." in text
+    assert "Unclear" not in text

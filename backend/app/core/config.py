@@ -210,7 +210,17 @@ class Settings(BaseSettings):
     # Server defaults on the Nebius key (app.modules.ai_providers.catalog lists
     # what a user may pick instead): text for chat/capture, vision for photos.
     NEBIUS_MODEL: str = "deepseek-ai/DeepSeek-V4-Flash-0731"
-    NEBIUS_VISION_MODEL: str = "zai-org/GLM-5.3-Flash"
+    NEBIUS_VISION_MODEL: str = "Qwen/Qwen3.8-27B"
+    # Photos on the server key are read by several vision models at once and
+    # each label number is decided by majority, so one misread digit never
+    # becomes a logged value (measured on real labels: 96% agreed and right,
+    # the rest flagged unclear, none agreed and wrong). The first listed is
+    # also the one whose plate and text description is used.
+    NEBIUS_VISION_READERS: str = (
+        "Qwen/Qwen3.8-27B,moonshotai/Kimi-K3,openbmb/MiniCPM-V-4_5"
+    )
+    # How long a photo read waits for its readers; a slow one is left out.
+    VISION_READ_DEADLINE_SECONDS: float = 30.0
     # Fern's memory embeddings (multilingual, so Taglish matches English);
     # asked for at EMBEDDING_DIMENSIONS, the width the memory column holds.
     NEBIUS_EMBEDDING_MODEL: str = "Qwen/Qwen3-Embedding-8B"

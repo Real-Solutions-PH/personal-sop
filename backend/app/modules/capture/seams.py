@@ -15,6 +15,7 @@ import asyncio
 import base64
 import json
 import re
+from concurrent.futures import ThreadPoolExecutor, wait
 from typing import Any, TypeVar
 
 import httpx
@@ -82,6 +83,41 @@ def ask_text(
         raise SeamError("model_unavailable") from None
     meter(ctx, resolved, out if isinstance(out, AIMessage) else None)
     return text_of(out).strip()
+
+
+def ask_many(
+    ctx: Ctx,
+    jobs: list[tuple[ai.ResolvedModel, str, list[tuple[bytes, str]]]],
+    *,
+    system: str,
+    deadline: float,
+) -> list[str | None]:
+    """Several model calls at once, each ``(model, text, images)``; each
+    answer in ``jobs`` order, None for one that failed, answered nothing or
+    missed ``deadline`` seconds. Only the calls run in threads: every
+    ``ai_usage`` row is written here, on the request's own session."""
+
+    def message(text: str, images: list[tuple[bytes, str]]) -> list[BaseMessage]:
+        content: list[str | dict[Any, Any]] = [{"type": "text", "text": text}]
+        for data, mime in images:
+            url = f"data:{mime};base64,{base64.b64encode(data).decode()}"
+            content.append({"type": "image_url", "image_url": {"url": url}})
+        return [SystemMessage(system), HumanMessage(content=content)]
+
+    pool = ThreadPoolExecutor(max_workers=max(1, min(len(jobs), 12)))
+    futures = [
+        pool.submit(ai.build_chat_model(r).invoke, message(text, images))
+        for r, text, images in jobs
+    ]
+    done, _ = wait(futures, timeout=deadline)
+    pool.shutdown(wait=False, cancel_futures=True)
+    out: list[str | None] = []
+    for (r, _, _), f in zip(jobs, futures, strict=True):
+        msg = f.result() if f in done and f.exception() is None else None
+        meter(ctx, r, msg if isinstance(msg, AIMessage) else None, ok=msg is not None)
+        said = text_of(msg).strip() if msg is not None else ""
+        out.append(said or None)
+    return out
 
 
 # ---------------------------------------------------------------- voice
