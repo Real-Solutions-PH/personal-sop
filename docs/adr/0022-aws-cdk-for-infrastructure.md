@@ -26,7 +26,8 @@ Production infrastructure is **AWS CDK v2 in TypeScript**, in `infra/`, a standa
 - **Two stacks.** `UnfurlCi` holds the ECR repository and the GitHub OIDC deploy role, so the backend image can be pushed before anything that runs it exists. `UnfurlProd` holds everything else (VPC, ALB and WAF, ECS Fargate services, RDS, ElastiCache, S3, SES, Secrets Manager, alarms). It references the repository by name, not by a cross-stack export, so either stack can change on its own.
 - **Deploys** go through the `workflow_dispatch`-only workflow `.github/workflows/deploy-aws.yml` (§2.2): it builds and pushes the image for a chosen ref and runs `cdk deploy UnfurlProd`, assuming the deploy role through GitHub OIDC. No AWS keys are stored in GitHub.
 - **No secret passes through CDK.** Generated values (database passwords, GoTrue's ES256 signing key and JWTs, SES SMTP credentials, the AI key-encryption key) are created inside AWS by Secrets Manager or by a custom-resource function. Third-party keys are put into Secrets Manager by hand after the first deploy.
-- **Settings are CDK context** in `infra/cdk.json` (domain, hosted zone, alert email, sign-in providers). They are non-secret and committed, so a laptop deploy and a workflow deploy synthesise the same stack.
+- **Settings are CDK context** in `infra/cdk.json` (API host, email domain, sizing profile, alert email, sign-in providers). They are non-secret and committed, so a laptop deploy and a workflow deploy synthesise the same stack.
+- **DNS is on Cloudflare, not Route 53** (amended 2026-10-23). The product's domain, `realsolutionsph.com`, is on Cloudflare, so the stack can't create its own records. `infra/scripts/cloudflare-dns.ts` reads the live AWS resources by name and applies the ACM validation, ALB, SES DKIM, MAIL FROM and DMARC records through the Cloudflare API, plus a per-host SSL Full (strict) rule. The deploy workflow runs it beside `cdk deploy`. A script rather than a Cloudflare provider: CDK has no first-class Cloudflare support, the ACM validation name only exists once the deploy has started (CloudFormation then waits on it), and a custom resource would put the Cloudflare token into AWS.
 
 The design choices inside the stack (one NAT gateway, migrations in the worker task, custom resources for database and secret setup) are in [docs/23-aws-infrastructure.md](../23-aws-infrastructure.md).
 
@@ -49,4 +50,4 @@ None. §2.1 places infrastructure as code in `infra/` without naming a tool; thi
 
 **Follow-ups:**
 - First deploy (commands in [docs/23-aws-infrastructure.md](../23-aws-infrastructure.md)): bootstrap, deploy `UnfurlCi`, push the first image, deploy `UnfurlProd`.
-- When the domain is bought: set `unfurl:domain` and `unfurl:hostedZoneId` in `infra/cdk.json`, deploy, and request SES production access.
+- Request SES production access for `ap-southeast-1` once the identity is verified (a support form, not infrastructure).

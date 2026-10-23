@@ -29,18 +29,32 @@ const rateRule = (
   name: string,
   priority: number,
   limit: number,
+  clientIpHeader: string | undefined,
   scopeDownStatement?: wafv2.CfnWebACL.StatementProperty,
 ): wafv2.CfnWebACL.RuleProperty => ({
   name,
   priority,
   action: { block: { customResponse: { responseCode: 429 } } },
   statement: {
-    rateBasedStatement: {
-      aggregateKeyType: "IP",
-      evaluationWindowSec: 300,
-      limit,
-      scopeDownStatement,
-    },
+    rateBasedStatement: clientIpHeader
+      ? {
+          aggregateKeyType: "FORWARDED_IP",
+          // A request without the header did not come through Cloudflare
+          // (the ALB only admits Cloudflare), so count it rather than skip.
+          forwardedIpConfig: {
+            headerName: clientIpHeader,
+            fallbackBehavior: "MATCH",
+          },
+          evaluationWindowSec: 300,
+          limit,
+          scopeDownStatement,
+        }
+      : {
+          aggregateKeyType: "IP",
+          evaluationWindowSec: 300,
+          limit,
+          scopeDownStatement,
+        },
   },
   visibilityConfig: visibility(name),
 })
@@ -57,14 +71,18 @@ const managedRule = (
 })
 
 /**
- * Web ACL for the load balancer. `trustedIps` (the NAT gateway's address) is
- * exempt from the auth limit: the API's own GoTrue admin calls and JWKS
- * fetches leave through NAT and come back in through the load balancer.
+ * Web ACL for the load balancer. `trustedIps` (the NAT's address) is exempt
+ * from the auth limit: the API's own GoTrue admin calls and JWKS fetches
+ * leave through NAT and come back in through Cloudflare and the ALB.
+ * `clientIpHeader` (Cloudflare's CF-Connecting-IP) is where the visitor's
+ * address is when the ALB sits behind a proxy; without it every visitor
+ * would share the limit of the Cloudflare edge they arrive through.
  */
 export function createWebAcl(
   scope: Construct,
   albArn: string,
   trustedIps: string[],
+  clientIpHeader?: string,
 ) {
   const natSet = new wafv2.CfnIPSet(scope, "NatIpSet", {
     name: `${PREFIX}-nat`,
@@ -90,28 +108,37 @@ export function createWebAcl(
     rules: [
       managedRule("AWSManagedRulesAmazonIpReputationList", 0),
       managedRule("AWSManagedRulesKnownBadInputsRuleSet", 1),
-      rateRule("auth-rate", 10, RATE_LIMITS.auth, {
+      rateRule("auth-rate", 10, RATE_LIMITS.auth, clientIpHeader, {
         andStatement: {
           statements: [
             authPath,
             {
               notStatement: {
                 statement: {
-                  ipSetReferenceStatement: { arn: natSet.attrArn },
+                  ipSetReferenceStatement: {
+                    arn: natSet.attrArn,
+                    ...(clientIpHeader && {
+                      ipSetForwardedIpConfig: {
+                        headerName: clientIpHeader,
+                        fallbackBehavior: "NO_MATCH",
+                        position: "FIRST",
+                      },
+                    }),
+                  },
                 },
               },
             },
           ],
         },
       }),
-      rateRule("ai-rate", 20, RATE_LIMITS.ai, {
+      rateRule("ai-rate", 20, RATE_LIMITS.ai, clientIpHeader, {
         regexMatchStatement: {
           fieldToMatch: { uriPath: {} },
           regexString: AI_PATH_REGEX,
           textTransformations: [{ priority: 0, type: "NONE" }],
         },
       }),
-      rateRule("global-rate", 30, RATE_LIMITS.global),
+      rateRule("global-rate", 30, RATE_LIMITS.global, clientIpHeader),
     ],
   })
 

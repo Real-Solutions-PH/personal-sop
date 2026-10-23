@@ -8,7 +8,8 @@
     "diff": "cdk diff",
     "typecheck": "tsc --noEmit",
     "lint": "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true ./",
-    "test": "bun test"
+    "test": "bun test",
+    "dns": "bun scripts/cloudflare-dns.ts"
   },
   "dependencies": {
     "aws-cdk-lib": "2.274.0",
@@ -16,8 +17,11 @@
     "pg": "8"
   },
   "devDependencies": {
+    "@aws-sdk/client-acm": "^3.1156.0",
+    "@aws-sdk/client-elastic-load-balancing-v2": "^3.1156.0",
     "@aws-sdk/client-iam": "^3.1156.0",
     "@aws-sdk/client-secrets-manager": "^3.1156.0",
+    "@aws-sdk/client-sesv2": "^3.1156.0",
     "@biomejs/biome": "2.5.3",
     "@types/bun": "^1.4.4",
     "@types/node": "22",
