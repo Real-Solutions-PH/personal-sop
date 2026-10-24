@@ -1315,9 +1315,7 @@ def test_send_now_stops_the_running_reply_before_its_tools_run(
         say("Added."),
     )
     me = uuid.uuid4()
-    r = client.post(
-        f"/api/v1/companion/messages/{me}/stop", headers=api.h, json={}
-    )
+    r = client.post(f"/api/v1/companion/messages/{me}/stop", headers=api.h, json={})
     assert r.status_code == 204
     r = client.post(
         "/api/v1/companion/ask/stream",
