@@ -134,4 +134,8 @@ def snapshot(ctx: Ctx) -> dict[str, Any]:
     # Today's food against the macro target, and the latest weigh-in, so
     # "what's my macro status?" is answered from the user's own data.
     out["nutrition_today"] = fitness.nutrition_today(ctx)
+    # A workout on the Live bar: sets said now belong to it, not a new log.
+    live = fitness.chat.active_workout(ctx)
+    if live is not None:
+        out["workout_in_progress"] = {"id": str(live.id), "name": live.name}
     return out

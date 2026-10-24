@@ -95,6 +95,17 @@ RUNNING: dict[str, str] = {
     "edit_budget": "Changing a budget",
     "edit_task": "Changing a task",
     "find_fitness_logs": "Finding your logs",
+    "create_exercise": "Adding an exercise",
+    "edit_exercise": "Changing an exercise",
+    "edit_workout_template": "Changing a workout template",
+    "start_workout": "Starting a workout",
+    "edit_workout": "Changing a workout",
+    "edit_meal": "Changing a meal",
+    "copy_meal": "Logging that meal again",
+    "edit_weigh_in": "Changing a weigh-in",
+    "set_macro_target": "Changing your macro target",
+    "fitness_settings": "Changing fitness settings",
+    "edit_food": "Changing a saved food",
     "remove_item": "Removing it",
     "save_food": "Saving to your food library",
     "find_foods": "Checking your food library",
@@ -121,6 +132,8 @@ def outcome(ctx: Ctx, name: str, args: dict[str, Any], result: Any) -> tuple[boo
     """``(ok, sentence)`` for a finished tool call, from its arguments and
     result. A write that waits for the person says so."""
     res = result if isinstance(result, dict) else {}
+    if res.get("error") == "several_match":
+        return False, "More than one matches; asking which"
     if res.get("error"):
         return False, f"Couldn't finish: {str(res['error']).replace('_', ' ')}"
     waiting = res.get("state") in ("proposed", "needs_input")
@@ -152,8 +165,19 @@ def outcome(ctx: Ctx, name: str, args: dict[str, Any], result: Any) -> tuple[boo
         n = len(res.get("foods") or [])
         return True, f"Found {n} food{'s' if n != 1 else ''} in your library"
     if name == "find_fitness_logs":
-        n = len(res.get("meals") or res.get("weigh_ins") or [])
-        return True, f"Found {n} log{'s' if n != 1 else ''}"
+        if res.get("workout"):
+            return True, f"Found workout: {res['workout'].get('name', '')}"
+        key = next(
+            (
+                k
+                for k in ("meals", "weigh_ins", "workouts", "exercises", "templates")
+                if k in res
+            ),
+            "meals",
+        )
+        n = len(res.get(key) or [])
+        noun = {"weigh_ins": "weigh-in", "meals": "meal"}.get(key, key[:-1])
+        return True, f"Found {n} {noun}{'s' if n != 1 else ''}"
     if name in ("confirm_pending", "discard_pending"):
         done = res.get("confirmed") or res.get("discarded") or []
         kept = res.get("not_saved") or []

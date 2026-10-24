@@ -516,5 +516,7 @@ def recent_weigh_ins(ctx: Ctx, *, days: int = 30) -> list[WeighIn]:
 
 # ------------------------------------------------- food library
 
+# ------------------------------------------------- changes from chat (Fern)
+from app.modules.fitness import chat as chat  # noqa: E402
 from app.modules.fitness import food_library as food_library  # noqa: E402
 from app.modules.fitness.food_library import FoodDraft as FoodDraft  # noqa: E402

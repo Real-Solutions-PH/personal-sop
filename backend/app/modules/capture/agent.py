@@ -35,7 +35,7 @@ from pydantic import BaseModel, BeforeValidator, Field, ValidationError
 
 from app.modules.ai_providers import public as ai
 from app.modules.capture import cards as C
-from app.modules.capture import ports, qa, seams
+from app.modules.capture import fitness_tools, ports, qa, seams
 from app.modules.capture.models import Capture, RecordCard
 from app.modules.capture.parse import (
     RecordDraft,
@@ -732,6 +732,10 @@ RemoveWhat = Literal[
     "routine",
     "meal",
     "weigh_in",
+    "workout",
+    "exercise",
+    "template",
+    "food",
 ]
 
 
@@ -743,14 +747,9 @@ class RemoveArgs(BaseModel):
     )
     name: Opt = Field(
         default=None,
-        description="Instead of ids: the account, budget, task, habit or "
-        "routine's name.",
+        description="Instead of ids: the account, budget, task, habit, "
+        "routine, exercise, template or saved food's name.",
     )
-
-
-class FindLogsArgs(BaseModel):
-    what: Literal["meals", "weigh_ins"]
-    days: Annotated[int, Field(ge=1, le=90)] = 7
 
 
 class FoodArgs(BaseModel):
@@ -1945,32 +1944,6 @@ def capture_tools(run: Run) -> list[BaseTool]:
             f"Changed task: {t.title}",
         )
 
-    def find_fitness_logs(**kw: Any) -> dict[str, Any]:
-        a = FindLogsArgs(**kw)
-        day = run.ctx.clock.day_of
-        if a.what == "meals":
-            return {
-                "meals": [
-                    {
-                        "id": str(m.id),
-                        "day": day(m.eaten_at).isoformat(),
-                        "label": m.label,
-                        "said": m.raw_input[:80],
-                    }
-                    for m in ports.fitness.recent_meals(run.ctx, days=a.days)
-                ]
-            }
-        return {
-            "weigh_ins": [
-                {
-                    "id": str(x.id),
-                    "day": day(x.measured_at).isoformat(),
-                    "kg": x.weight_kg,
-                }
-                for x in ports.fitness.recent_weigh_ins(run.ctx, days=a.days)
-            ]
-        }
-
     def remove_item(**kw: Any) -> dict[str, Any]:
         a = RemoveArgs(**kw)
         entity, target = {
@@ -1983,6 +1956,10 @@ def capture_tools(run: Run) -> list[BaseTool]:
             "routine": ("routine", "habits"),
             "meal": ("meal", "fitness"),
             "weigh_in": ("weighIn", "fitness"),
+            "workout": ("workout", "fitness"),
+            "exercise": ("exercise", "fitness"),
+            "template": ("template", "fitness"),
+            "food": ("food", "fitness"),
         }[a.what]
         ids = list(a.ids or [])
         label = a.name or ""
@@ -2000,6 +1977,11 @@ def capture_tools(run: Run) -> list[BaseTool]:
                 hit = _habit_named(run, a.name)
             elif a.what == "routine":
                 hit = _routine_named(run, a.name)
+            elif a.what in ("exercise", "template", "food"):
+                found = fitness_tools.removal_target(run, a.what, a.name)
+                if isinstance(found, dict):
+                    return found
+                ids, label = found
             if hit is not None:
                 ids = [str(hit.id)]
                 label = str(getattr(hit, "name", None) or getattr(hit, "title", ""))
@@ -2010,7 +1992,8 @@ def capture_tools(run: Run) -> list[BaseTool]:
         label = label or f"{n} {what}{'s' if n != 1 else ''}"
         verb = (
             "Archive"
-            if entity in ("planned", "account", "budget", "habit", "routine")
+            if entity
+            in ("planned", "account", "budget", "habit", "routine", "exercise")
             else "Delete"
         )
         if entity == "meal" and not any(
@@ -2222,16 +2205,12 @@ def capture_tools(run: Run) -> list[BaseTool]:
             "Change an open task: title, due date, notes or list.",
         ),
         (
-            find_fitness_logs,
-            FindLogsArgs,
-            "List recent meals or weigh-ins with ids, to delete one.",
-        ),
-        (
             remove_item,
             RemoveArgs,
-            "Delete a transaction, task, meal or weigh-in, or archive a "
-            "scheduled item, account, budget, habit or routine. Waits for the "
-            "user's Confirm; Undo brings it back.",
+            "Delete a transaction, task, meal, weigh-in, workout, workout "
+            "template or saved food, or archive a scheduled item, account, "
+            "budget, habit, routine or exercise. Waits for the user's "
+            "Confirm; Undo brings it back.",
         ),
         (edit_last, EditLastArgs, "Change the amount of the most recent entry."),
         (delete_last, NoArgs, "Delete (undo) the most recent entry."),
@@ -2247,7 +2226,7 @@ def capture_tools(run: Run) -> list[BaseTool]:
             func=fn, name=fn.__name__, description=desc, args_schema=schema
         )
         for fn, schema, desc in specs
-    ]
+    ] + fitness_tools.fitness_tools(run, manage=_manage, card=_card)
 
 
 # The capture tools that answer rather than write; Fern has its own.
