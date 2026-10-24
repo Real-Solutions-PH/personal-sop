@@ -80,18 +80,21 @@ export async function signIn(email: string, password: string) {
   return data.user
 }
 
+/** Resolves true when the account is confirmed at sign-up (the server
+ * auto-confirms and returns a session), false when a code was emailed. */
 export async function signUp(
   email: string,
   password: string,
   name: string,
   username: string,
 ) {
-  const { error } = await getSupabase().auth.signUp({
+  const { data, error } = await getSupabase().auth.signUp({
     email,
     password,
     options: { data: { name, username } },
   })
   mapError(error)
+  return data.session !== null
 }
 
 export async function verifySignUp(email: string, code: string) {

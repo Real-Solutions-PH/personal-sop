@@ -26,6 +26,13 @@ export interface UnfurlConfig {
    * `noreply@` it. Empty: no SES identity and email is off.
    */
   emailDomain: string
+  /**
+   * Whether sign-up waits for the emailed confirmation link. Off by default:
+   * new accounts are confirmed at sign-up, because SES is still in its
+   * sandbox and cannot deliver to an unverified address. Turn it on once SES
+   * production access is granted. Password-reset email needs SES either way.
+   */
+  requireEmailConfirmation: boolean
   /** Where links in email send people (GoTrue's site URL, FRONTEND_HOST). */
   siteUrl: string
   /** Sizing profile: `lean` (first deploy, one user) or `production`. */
@@ -80,6 +87,7 @@ export function loadConfig(node: Node): UnfurlConfig {
     githubEnvironment: str(node, "githubEnvironment", "production"),
     apiHost,
     emailDomain,
+    requireEmailConfirmation: bool(node, "requireEmailConfirmation"),
     siteUrl: str(
       node,
       "siteUrl",

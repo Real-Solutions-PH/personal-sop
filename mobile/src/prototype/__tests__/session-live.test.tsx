@@ -19,6 +19,7 @@ import {
   chooseUsername,
   completeSignUp,
   sessionStore,
+  signUp,
 } from "../session"
 
 jest.mock("@/live/config", () => ({
@@ -28,7 +29,9 @@ jest.mock("@/live/config", () => ({
 }))
 const mockCheckHandle = jest.fn()
 const mockCompleteProfile = jest.fn()
+const mockSignUp = jest.fn()
 jest.mock("@/live/auth", () => ({
+  signUp: (...a: unknown[]) => mockSignUp(...a),
   checkHandle: (...a: unknown[]) => mockCheckHandle(...a),
   completeProfile: (...a: unknown[]) => mockCompleteProfile(...a),
   currentUserId: () => Promise.resolve("uid-1"),
@@ -185,6 +188,30 @@ test("any other failure rejects and keeps the sign-up retryable", async () => {
   mockCompleteProfile.mockResolvedValueOnce(undefined)
   await completeSignUp()
   expect(sessionStore.get().signedIn).toBe(true)
+})
+
+test("an account the server confirms at sign-up is signed straight in", async () => {
+  sessionStore.set((s) => ({ ...s, pending: null }))
+  mockSignUp.mockResolvedValueOnce(true)
+  mockCompleteProfile.mockResolvedValueOnce(undefined)
+  await signUp({ ...verified, password: "long-enough-1" })
+  expect(mockCompleteProfile).toHaveBeenCalledWith("New Person", "new.one")
+  expect(sessionStore.get()).toMatchObject({
+    signedIn: true,
+    pending: null,
+    user: { email: "n@x.io" },
+  })
+})
+
+test("an account waiting for its emailed code stays pending", async () => {
+  sessionStore.set((s) => ({ ...s, pending: null }))
+  mockSignUp.mockResolvedValueOnce(false)
+  await signUp({ ...verified, password: "long-enough-1" })
+  expect(mockCompleteProfile).not.toHaveBeenCalled()
+  expect(sessionStore.get()).toMatchObject({
+    signedIn: false,
+    pending: { email: "n@x.io" },
+  })
 })
 
 describe("Sign up screen", () => {
