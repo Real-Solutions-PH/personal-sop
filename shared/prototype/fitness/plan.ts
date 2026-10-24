@@ -2,7 +2,7 @@
 // when body fat is known) x activity, shifted by goal, with warn-only notes
 // for numbers the user edits into something questionable.
 
-import type { FitnessSettings, Macros } from "./data"
+import type { FitnessSettings, FitnessState, Macros } from "./data"
 
 export type Sex = "male" | "female"
 export type ActivityLevel =
@@ -149,4 +149,24 @@ export function planGoalFor(
   if (s.planGoal && GOALS[s.planGoal].direction === s.goalDirection)
     return s.planGoal
   return { cut: "lose", maintain: "maintain", bulk: "build" }[s.goalDirection] as PlanGoal
+}
+
+/** Plan inputs from saved settings and the latest weigh-in; null until the
+ * profile is complete. */
+export function planInputsFrom(s: FitnessState): PlanInputs | null {
+  const { sex, birthYear, heightCm, activity } = s.settings
+  const last = s.weighIns.reduce<FitnessState["weighIns"][number] | undefined>(
+    (a, w) => (!a || w.measuredAt > a.measuredAt ? w : a),
+    undefined,
+  )
+  if (!sex || !birthYear || !heightCm || !activity || !last) return null
+  return {
+    sex,
+    age: ageFrom(birthYear),
+    heightCm,
+    weightKg: last.weightKg,
+    bodyFatPct: last.bodyFatPct,
+    activity,
+    goal: planGoalFor(s.settings),
+  }
 }

@@ -4,8 +4,10 @@ import {
   type Plan,
   type PlanInputs,
   planGoalFor,
+  planInputsFrom,
   planNotes,
 } from "@domain/fitness/plan"
+import { fitStore } from "@domain/fitness/store"
 
 const A: PlanInputs = {
   sex: "male",
@@ -112,3 +114,50 @@ test("goal_direction wins over a stale plan_goal", () => {
   expect(planGoalFor({ goalDirection: "cut" })).toBe("lose")
 })
 test("ageFrom", () => expect(ageFrom(1996, new Date("2026-10-25"))).toBe(30))
+
+test("planInputsFrom needs a complete profile and a weigh-in", () => {
+  const s = fitStore.get()
+  const settings = {
+    ...s.settings,
+    sex: "male" as const,
+    birthYear: new Date().getFullYear() - 30,
+    heightCm: 180,
+    activity: "moderate" as const,
+    goalDirection: "maintain" as const,
+    planGoal: undefined,
+  }
+  const w = (
+    id: string,
+    at: string,
+    weightKg: number,
+    bodyFatPct?: number,
+  ) => ({
+    id,
+    measuredAt: at,
+    weightKg,
+    bodyFatPct,
+  })
+  expect(planInputsFrom({ ...s, settings, weighIns: [] })).toBeNull()
+  expect(
+    planInputsFrom({
+      ...s,
+      settings: { ...settings, sex: undefined },
+      weighIns: [w("a", "2026-01-01", 80)],
+    }),
+  ).toBeNull()
+  expect(
+    planInputsFrom({
+      ...s,
+      settings,
+      weighIns: [w("a", "2026-01-02", 81, 20), w("b", "2026-01-01", 70)],
+    }),
+  ).toEqual({
+    sex: "male",
+    age: 30,
+    heightCm: 180,
+    weightKg: 81,
+    bodyFatPct: 20,
+    activity: "moderate",
+    goal: "maintain",
+  })
+})

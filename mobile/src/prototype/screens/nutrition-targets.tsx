@@ -1,7 +1,8 @@
 import { setMacroTarget } from "@domain/fitness/actions"
-import { fmtDay, latestBodyweight, targetFor } from "@domain/fitness/calc"
+import { fmtDay, targetFor } from "@domain/fitness/calc"
 import type { Macros, NutrientLimits } from "@domain/fitness/data"
 import { DAILY_LIMITS, FIBER_GOAL } from "@domain/fitness/limits"
+import { type Plan, planInputsFrom, planNotes } from "@domain/fitness/plan"
 import { fitStore } from "@domain/fitness/store"
 import { dayKey } from "@domain/lib/day"
 import { Sparkles } from "lucide-react-native"
@@ -13,6 +14,7 @@ import { border, Copy, Frame, Line, SectionHeading, Tap } from "../native-kit"
 import { replace } from "../navigation"
 import { useTheme } from "../theme"
 import { Button, Screen } from "../ui"
+import { PlanForm, PlanNotes } from "./nutrition-plan"
 export function MacroTargets() {
   const s = fitStore.use((s) => s),
     theme = useTheme(),
@@ -26,7 +28,8 @@ export function MacroTargets() {
       sodiumMax: current?.sodiumMax ?? DAILY_LIMITS.sodium,
       fiberGoal: current?.fiberGoal ?? FIBER_GOAL,
     }),
-    [suggestion, setSuggestion] = useState<Macros | null>(null),
+    [suggestion, setSuggestion] = useState<Plan | null>(null),
+    [planning, setPlanning] = useState(false),
     calc = t.protein * 4 + t.carbs * 4 + t.fat * 9,
     mismatch = Math.abs(calc - t.kcal) > t.kcal * 0.05,
     history = [...s.targets].sort((a, b) =>
@@ -37,22 +40,8 @@ export function MacroTargets() {
       carbs = Math.max(0, Math.round((t.kcal - t.protein * 4 - fat * 9) / 4))
     setT({ ...t, fat, carbs })
   }
-  const suggest = () => {
-    const bw = latestBodyweight(s) ?? 75,
-      dir = s.settings.goalDirection,
-      kcal =
-        Math.round(
-          (bw * (dir === "cut" ? 27 : dir === "bulk" ? 36 : 32)) / 50,
-        ) * 50,
-      protein = Math.round(bw * 2.1),
-      fat = Math.round((kcal * 0.27) / 9)
-    setSuggestion({
-      kcal,
-      protein,
-      fat,
-      carbs: Math.round((kcal - protein * 4 - fat * 9) / 4),
-    })
-  }
+  const inputs = planInputsFrom(s),
+    notes = inputs ? planNotes({ ...t, fiberG: limits.fiberGoal }, inputs) : []
   return (
     <Screen title="Macro targets">
       {!current && (
@@ -69,11 +58,12 @@ export function MacroTargets() {
           value={t.kcal}
           onChange={(kcal) => setT({ ...t, kcal })}
           step={50}
-          min={800}
+          min={500}
           max={6000}
           unit="kcal"
           decimals={0}
         />
+        <PlanNotes notes={notes} field="kcal" />
         <Stepper
           label="Protein"
           value={t.protein}
@@ -83,6 +73,7 @@ export function MacroTargets() {
           unit="g"
           decimals={0}
         />
+        <PlanNotes notes={notes} field="protein" />
         <Line style={{ gap: 12 }}>
           <View style={{ flex: 1 }}>
             <Stepper
@@ -103,10 +94,11 @@ export function MacroTargets() {
               value={t.fat}
               onChange={(fat) => setT({ ...t, fat })}
               step={5}
-              max={300}
+              max={500}
               unit="g"
               decimals={0}
             />
+            <PlanNotes notes={notes} field="fat" />
           </View>
         </Line>
         <View
@@ -209,6 +201,7 @@ export function MacroTargets() {
             unit="g"
             decimals={0}
           />
+          <PlanNotes notes={notes} field="fiber" />
           <Copy size={12} muted>
             Defaults follow WHO guidance for a 2,000 kcal day. Today, Nutrition
             and Stats hold your meals against these.
@@ -222,21 +215,29 @@ export function MacroTargets() {
               Help me pick
             </Copy>
             <Copy size={12} muted>
-              From your latest weight and goal (
-              {
-                {
-                  cut: "lose weight",
-                  maintain: "maintain",
-                  bulk: "gain weight",
-                }[s.settings.goalDirection]
-              }
-              ). A starting point, not advice.
+              From your body and goal. A starting point, not advice.
             </Copy>
           </View>
-          <Button small tone="quiet" icon={Sparkles} onPress={suggest}>
+          <Button
+            small
+            tone="quiet"
+            icon={Sparkles}
+            onPress={() => setPlanning(true)}
+          >
             Suggest
           </Button>
         </Line>
+        {planning && (
+          <View style={{ marginTop: 12 }}>
+            <PlanForm
+              applyLabel="Get suggestion"
+              onApply={(p) => {
+                setSuggestion(p)
+                setPlanning(false)
+              }}
+            />
+          </View>
+        )}
         {suggestion && (
           <Line
             style={{
@@ -254,6 +255,7 @@ export function MacroTargets() {
             <Tap
               onPress={() => {
                 setT(suggestion)
+                setLimits({ ...limits, fiberGoal: suggestion.fiberG })
                 setSuggestion(null)
               }}
             >
@@ -310,7 +312,7 @@ export function MacroTargets() {
               t.carbs < 0 ||
               t.carbs > 900 ||
               t.fat < 0 ||
-              t.fat > 300
+              t.fat > 500
             ) {
               toast.error("Enter targets within the supported range")
               return

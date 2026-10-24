@@ -1,12 +1,15 @@
 // The personalized-plan form: apply stays disabled until the profile is
 // valid, then saves the profile, goal and weigh-in and hands back the estimate.
+import { targetFor } from "@domain/fitness/calc"
 import { ageFrom } from "@domain/fitness/plan"
 import { fitStore } from "@domain/fitness/store"
+import { dayKey } from "@domain/lib/day"
 import { configureStorage, resetAll } from "@domain/lib/store"
 import { fireEvent, render, screen } from "@testing-library/react-native"
 import type { ReactNode } from "react"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 import { PlanForm } from "../screens/nutrition-plan"
+import { NutritionStep } from "../screens/setup"
 
 jest.mock("expo-router", () => ({
   router: {
@@ -224,4 +227,32 @@ test("out-of-range age disables apply", () => {
   fillA()
   fill("Birth year", String(year - 10))
   expect(apply().props.accessibilityState?.disabled).toBe(true)
+})
+
+const seePlan = () => {
+  fillA()
+  fireEvent.press(screen.getByText("Maintain"))
+  fireEvent.press(screen.getByRole("button", { name: "See my plan" }))
+}
+
+test("setup nutrition step saves the estimated target", () => {
+  const onDone = jest.fn()
+  render(<NutritionStep onDone={onDone} />, { wrapper })
+  seePlan()
+  fireEvent.press(screen.getByText("Save targets"))
+  expect(targetFor(fitStore.get(), dayKey())).toMatchObject({
+    kcal: 2750,
+    protein: 144,
+  })
+  expect(onDone).toHaveBeenCalled()
+})
+
+test("lowering kcal under BMR shows the note but still saves", () => {
+  render(<NutritionStep onDone={jest.fn()} />, { wrapper })
+  seePlan()
+  expect(screen.queryByText("Below what your body burns at rest")).toBeNull()
+  fireEvent.changeText(screen.getByLabelText("Calories"), "1700")
+  expect(screen.getByText("Below what your body burns at rest")).toBeTruthy()
+  fireEvent.press(screen.getByText("Save targets"))
+  expect(targetFor(fitStore.get(), dayKey())).toMatchObject({ kcal: 1700 })
 })
