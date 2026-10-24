@@ -59,8 +59,16 @@ const API_PORT = SERVICE_PORTS.api
 const GOTRUE_PORT = 9999
 const AUTH_PROXY_PORT = SERVICE_PORTS.auth
 
-/** Characters kept out of generated passwords that end up inside URLs. */
-const URL_UNSAFE = " %+~`#$&*()|[]{}:;<>?!'/@\"\\,="
+/**
+ * Every printable character that is not a letter or digit. Generated
+ * passwords exclude all of them: they end up inside connection URLs
+ * (GoTrue's GOTRUE_DB_DATABASE_URL, the backend's DSN), and the third create
+ * (2026-10-24) failed when the GoTrue role's password drew a `^`, which Go's
+ * URL parser rejects, and GoTrue then logged the whole URL. A deny-list of
+ * "URL-unsafe" characters had missed it. 40 alphanumeric characters is
+ * about 238 bits.
+ */
+export const NOT_ALPHANUMERIC = " !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
 
 /**
  * nginx in the GoTrue task: serves `/auth/v1/*` and strips the prefix, as
@@ -213,7 +221,7 @@ export class ProdStack extends Stack {
     ): secretsmanager.SecretStringGenerator => ({
       secretStringTemplate: JSON.stringify(template),
       generateStringKey: "password",
-      excludeCharacters: URL_UNSAFE,
+      excludeCharacters: NOT_ALPHANUMERIC,
       passwordLength: 40,
     })
 
@@ -254,7 +262,7 @@ export class ProdStack extends Stack {
         generateSecretString: {
           secretStringTemplate: JSON.stringify({ ai_credentials_kek: "" }),
           generateStringKey: "first_superuser_password",
-          excludeCharacters: URL_UNSAFE,
+          excludeCharacters: NOT_ALPHANUMERIC,
           passwordLength: 32,
         },
       },
@@ -307,7 +315,7 @@ export class ProdStack extends Stack {
       databaseName: "app",
       credentials: rds.Credentials.fromGeneratedSecret("postgres", {
         secretName: `${PREFIX}/db-master`,
-        excludeCharacters: URL_UNSAFE,
+        excludeCharacters: NOT_ALPHANUMERIC,
       }),
       allocatedStorage: 20,
       maxAllocatedStorage: 100,
