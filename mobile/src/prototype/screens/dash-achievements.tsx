@@ -34,6 +34,7 @@ const moduleColor = {
   tasks: "tsk",
   fitness: "fit",
   nutrition: "nut",
+  focus: "foc",
   finance: "fin",
 } as const
 const fmt = (day: string) =>

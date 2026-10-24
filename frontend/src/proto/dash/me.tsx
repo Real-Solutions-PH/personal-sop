@@ -90,6 +90,8 @@ export const MODULE_CONFIG: Record<
   ],
   // The web prototype keeps meals on the Fitness page (ADR-0024 is native).
   nutrition: [{ href: "/fitness/nutrition/targets", label: "Macro targets" }],
+  // The focus timer is native only (ADR-0025).
+  focus: [],
   finance: [
     { href: "/finance/accounts", label: "Accounts" },
     { href: "/finance/categories", label: "Categories" },

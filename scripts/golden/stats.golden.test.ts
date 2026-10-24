@@ -15,7 +15,14 @@ mock.module("react", () => ({
 
 beforeAll(freeze);
 
-const MODULES = ["habits", "tasks", "fitness", "nutrition", "finance"] as const;
+const MODULES = [
+	"habits",
+	"tasks",
+	"fitness",
+	"nutrition",
+	"focus",
+	"finance",
+] as const;
 
 // Calendar items reduced to what the on-target series reads.
 type Item = { day: string; module: string; done: boolean };

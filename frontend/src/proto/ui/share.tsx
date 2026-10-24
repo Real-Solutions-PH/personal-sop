@@ -100,6 +100,7 @@ const PARTNER: Record<CardAccent, CardAccent> = {
   tsk: "hab",
   fit: "hab",
   nut: "life",
+  foc: "hab",
   fin: "tsk",
   life: "hab",
 }

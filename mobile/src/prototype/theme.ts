@@ -4,7 +4,15 @@ import { createContext, useContext } from "react"
 import { useColorScheme } from "react-native"
 
 export { fonts, radius, space }
-export type Accent = "primary" | "hab" | "tsk" | "fit" | "nut" | "fin" | "life"
+export type Accent =
+  | "primary"
+  | "hab"
+  | "tsk"
+  | "fit"
+  | "nut"
+  | "foc"
+  | "fin"
+  | "life"
 export const AccentContext = createContext<Accent>("primary")
 export const accents = palette.light
 export const appearanceStore = createStore<{

@@ -37,6 +37,7 @@ import {
   Sparkles,
   Sun,
   Target,
+  Timer,
   Utensils,
   Wallet,
   Zap,
@@ -59,6 +60,7 @@ const modules = {
   tasks: { icon: ListChecks, color: "tsk" },
   fitness: { icon: Dumbbell, color: "fit" },
   nutrition: { icon: Utensils, color: "nut" },
+  focus: { icon: Timer, color: "foc" },
   finance: { icon: Wallet, color: "fin" },
 } as const
 export function Onboarding() {

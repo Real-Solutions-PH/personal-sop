@@ -89,6 +89,10 @@ RUNNING: dict[str, str] = {
     "read_photos": "Looking at your photos",
     "web_search": "Searching the web",
     "nutrition_status": "Checking today's macros",
+    "focus_status": "Checking your focus time",
+    "start_focus": "Starting the focus timer",
+    "focus_control": "Changing the focus timer",
+    "stop_focus": "Stopping the focus timer",
     "find_transactions": "Finding transactions",
     "edit_transaction": "Changing transactions",
     "list_scheduled": "Checking scheduled payments",
@@ -289,6 +293,10 @@ def outcome(ctx: Ctx, name: str, args: dict[str, Any], result: Any) -> tuple[boo
         "suggest": "Suggested next questions",
         "web_search": f"Searched the web: {args.get('query', '')}",
         "nutrition_status": "Checked today's macros",
+        "focus_status": "Checked your focus time",
+        "start_focus": "Started the focus timer",
+        "focus_control": f"Focus timer: {str(args.get('action', '')).replace('_', ' ')}",
+        "stop_focus": "Stopped the focus timer",
         "read_photos": (
             f"Read {args.get('photos', '')} photo"
             f"{'' if args.get('photos') == 1 else 's'}"

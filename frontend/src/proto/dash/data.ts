@@ -3,6 +3,7 @@ import {
   ListChecks,
   type LucideIcon,
   Repeat,
+  Timer,
   Utensils,
   Wallet,
 } from "lucide-react"
@@ -11,7 +12,7 @@ export const AREA: Record<
   ModuleKey,
   {
     label: string
-    accent: "hab" | "tsk" | "fit" | "nut" | "fin"
+    accent: "hab" | "tsk" | "fit" | "nut" | "foc" | "fin"
     icon: LucideIcon
   }
 > = {
@@ -19,6 +20,7 @@ export const AREA: Record<
   tasks: { label: "Tasks", accent: "tsk", icon: ListChecks },
   fitness: { label: "Fitness", accent: "fit", icon: Dumbbell },
   nutrition: { label: "Nutrition", accent: "nut", icon: Utensils },
+  focus: { label: "Focus", accent: "foc", icon: Timer },
   finance: { label: "Finance", accent: "fin", icon: Wallet },
 }
 

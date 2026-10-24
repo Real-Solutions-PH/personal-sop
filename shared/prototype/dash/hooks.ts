@@ -43,6 +43,7 @@ const HAB = byKey.habits
 const TSK = byKey.tasks
 const FIT = byKey.fitness
 const NUT = byKey.nutrition
+const FOC = byKey.focus
 const FIN = byKey.finance
 
 export { byKey as moduleByKey }
@@ -61,6 +62,7 @@ function useLocalRates(days: number, offset: number) {
   const t = TSK.useAreaRate(days, offset)
   const f = FIT.useAreaRate(days, offset)
   const n = NUT.useAreaRate(days, offset)
+  const fo = FOC.useAreaRate(days, offset)
   const fi = FIN.useAreaRate(days, offset)
   return useMemo(() => {
     const raw: Record<ModuleKey, number | null> = {
@@ -68,6 +70,7 @@ function useLocalRates(days: number, offset: number) {
       tasks: t,
       fitness: f,
       nutrition: n,
+      focus: fo,
       finance: fi,
     }
     const rates = {} as Record<ModuleKey, number>
@@ -77,7 +80,7 @@ function useLocalRates(days: number, offset: number) {
       rated[k] = raw[k] !== null
     }
     return { rates, rated }
-  }, [h, t, f, n, fi])
+  }, [h, t, f, n, fo, fi])
 }
 export function useAreaRates(
   days: number,
@@ -309,12 +312,20 @@ export function useTodayRing() {
   const t = TSK.useTodayProgress()
   const f = FIT.useTodayProgress()
   const n = NUT.useTodayProgress()
+  const fo = FOC.useTodayProgress()
   const fi = FIN.useTodayProgress()
   const enabled = useEnabled()
   const server = useServerStat<ServerToday>(statKey.today())
   return useMemo(() => {
     if (server.data) return ringFrom(server.data.ring)
-    const per = { habits: h, tasks: t, fitness: f, nutrition: n, finance: fi }
+    const per = {
+      habits: h,
+      tasks: t,
+      fitness: f,
+      nutrition: n,
+      focus: fo,
+      finance: fi,
+    }
     let due = 0
     let done = 0
     for (const k of MODULE_KEYS)
@@ -323,12 +334,13 @@ export function useTodayRing() {
         done += Math.min(per[k].done, per[k].due)
       }
     return { due, done, per }
-  }, [h, t, f, n, fi, enabled, server.data])
+  }, [h, t, f, n, fo, fi, enabled, server.data])
 }
 export function useAllCalendar(from: string, to: string): CalendarItem[] {
   const a = HAB.useCalendar(from, to)
   const b = TSK.useCalendar(from, to)
   const c = FIT.useCalendar(from, to)
+  const fo = FOC.useCalendar(from, to)
   const d = FIN.useCalendar(from, to)
   const enabled = useEnabled()
   const server = useServerStat<ServerCalendarItem[]>(statKey.calendar(from, to))
@@ -336,13 +348,13 @@ export function useAllCalendar(from: string, to: string): CalendarItem[] {
     () =>
       (server.data
         ? calendarFrom(server.data)
-        : [...a, ...b, ...c, ...d].filter((i) => enabled[i.module])
+        : [...a, ...b, ...c, ...fo, ...d].filter((i) => enabled[i.module])
       ).sort(
         (x, y) =>
           x.day.localeCompare(y.day) ||
           (x.time ?? "99:99").localeCompare(y.time ?? "99:99"),
       ),
-    [a, b, c, d, enabled, server.data],
+    [a, b, c, fo, d, enabled, server.data],
   )
 }
 /** Today's (or any range's) items from this phone's own stores only, so
@@ -371,6 +383,7 @@ export function useAllMisses(from: string, to: string): Miss[] {
   const b = TSK.useMisses(from, to)
   const c = FIT.useMisses(from, to)
   const n = NUT.useMisses(from, to)
+  const fo = FOC.useMisses(from, to)
   const d = FIN.useMisses(from, to)
   const enabled = useEnabled()
   const server = useServerStat<ServerMiss[]>(statKey.misses(from, to))
@@ -378,9 +391,9 @@ export function useAllMisses(from: string, to: string): Miss[] {
     () =>
       (server.data
         ? missesFrom(server.data)
-        : [...a, ...b, ...c, ...n, ...d].filter((m) => enabled[m.module])
+        : [...a, ...b, ...c, ...n, ...fo, ...d].filter((m) => enabled[m.module])
       ).sort((x, y) => y.day.localeCompare(x.day)),
-    [a, b, c, n, d, enabled, server.data],
+    [a, b, c, n, fo, d, enabled, server.data],
   )
 }
 export function useAllMetrics(days: number): Record<ModuleKey, Metric[]> {
@@ -388,14 +401,22 @@ export function useAllMetrics(days: number): Record<ModuleKey, Metric[]> {
   const b = TSK.useMetrics(days)
   const c = FIT.useMetrics(days)
   const n = NUT.useMetrics(days)
+  const fo = FOC.useMetrics(days)
   const d = FIN.useMetrics(days)
   const server = useServerStat<ServerOverview>(overviewKey(days))
   return useMemo(
     () =>
       server.data
         ? metricsFrom(server.data)
-        : { habits: a, tasks: b, fitness: c, nutrition: n, finance: d },
-    [a, b, c, n, d, server.data],
+        : {
+            habits: a,
+            tasks: b,
+            fitness: c,
+            nutrition: n,
+            focus: fo,
+            finance: d,
+          },
+    [a, b, c, n, fo, d, server.data],
   )
 }
 export function parseMetric(value: string): number | null {

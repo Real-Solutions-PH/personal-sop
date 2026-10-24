@@ -24,6 +24,7 @@ import {
   ShieldCheck,
   Sparkles,
   Trash2,
+  Timer,
   Utensils,
   Wallet,
 } from "lucide-react-native"
@@ -82,6 +83,14 @@ const modules = {
     links: [
       ["Macro targets", "/nutrition/targets"],
       ["Food library", "/nutrition/foods"],
+    ],
+  },
+  focus: {
+    icon: Timer,
+    color: "foc",
+    links: [
+      ["Focus timer", "/focus"],
+      ["Focus settings", "/focus/settings"],
     ],
   },
   finance: {

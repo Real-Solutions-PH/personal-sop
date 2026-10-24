@@ -5,6 +5,7 @@ export const MODULE_KEYS: ModuleKey[] = [
   "tasks",
   "fitness",
   "nutrition",
+  "focus",
   "finance",
 ]
 export const AREA = {
@@ -12,6 +13,7 @@ export const AREA = {
   tasks: { label: "Tasks", accent: "tsk" },
   fitness: { label: "Fitness", accent: "fit" },
   nutrition: { label: "Nutrition", accent: "nut" },
+  focus: { label: "Focus", accent: "foc" },
   finance: { label: "Finance", accent: "fin" },
 } as const
 const pad = (n: number) => String(n).padStart(2, "0")
@@ -122,12 +124,20 @@ export const seed = (): DashState => ({
       { id: "id3", text: "I finish what I start", goalId: "g1" },
     ],
   },
-  weights: { habits: 3, tasks: 2, fitness: 3, nutrition: 2, finance: 2 },
+  weights: {
+    habits: 3,
+    tasks: 2,
+    fitness: 3,
+    nutrition: 2,
+    focus: 2,
+    finance: 2,
+  },
   enabled: {
     habits: true,
     tasks: true,
     fitness: true,
     nutrition: true,
+    focus: true,
     finance: true,
   },
   goals: [

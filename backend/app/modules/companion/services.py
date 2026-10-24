@@ -46,6 +46,7 @@ from app.modules.companion.schema import (
 )
 from app.modules.companion.turn import NOTHING_WAITING, TurnStream
 from app.modules.fitness import public as fitness
+from app.modules.focus import public as focus
 from app.modules.profile import public as profile
 from app.modules.stats import public as stats
 from app.shared import owned_repo
@@ -546,6 +547,27 @@ class NoArgs(BaseModel):
     pass
 
 
+class FocusStatusArgs(BaseModel):
+    days: Annotated[int, Field(ge=1, le=90)] = 1
+
+
+class StartFocusArgs(BaseModel):
+    mode: Literal["pomodoro", "stopwatch"] | None = None
+    preset: Literal["25-5", "50-10", "90-20"] | None = None
+    focus_min: Annotated[int, Field(ge=1, le=240)] | None = None
+    item: Annotated[str, Field(max_length=160)] | None = None
+
+
+class FocusControlArgs(BaseModel):
+    action: Literal["pause", "resume", "skip_break", "next", "switch", "extend"]
+    item: Annotated[str, Field(max_length=160)] | None = None
+    minutes: Annotated[int, Field(ge=1, le=60)] = 5
+
+
+class StopFocusArgs(BaseModel):
+    abandon: bool = False
+
+
 @dataclass
 class SolRun:
     ctx: Ctx
@@ -827,6 +849,24 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
         # counts; a meal waiting for the user's OK does not, yet.
         return fitness.nutrition_today(ctx)
 
+    def focus_status(**kw: Any) -> dict[str, Any]:
+        a = FocusStatusArgs(**kw)
+        return focus.summary(ctx, days=a.days)
+
+    def start_focus(**kw: Any) -> dict[str, Any]:
+        a = StartFocusArgs(**kw)
+        return focus.start(
+            ctx, mode=a.mode, preset=a.preset, focus_min=a.focus_min, item=a.item
+        )
+
+    def focus_control(**kw: Any) -> dict[str, Any]:
+        a = FocusControlArgs(**kw)
+        return focus.control(ctx, action=a.action, item=a.item, minutes=a.minutes)
+
+    def stop_focus(**kw: Any) -> dict[str, Any]:
+        a = StopFocusArgs(**kw)
+        return focus.stop(ctx, abandon=a.abandon)
+
     def web_search(**kw: Any) -> dict[str, Any]:
         a = WebSearchArgs(**kw)
         query = own_words(a.query, run.said)
@@ -906,6 +946,34 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
             "carbs, fat, fiber, saturated fat, sugar, sodium), target, what is "
             "left, meals logged, latest weigh-in. Call it for any question "
             "about macros, calories or what is left, and after logging a meal.",
+        ),
+        (
+            focus_status,
+            FocusStatusArgs,
+            "How much the user focused (the focus timer) today, or over the "
+            "last N days: the total against their daily focus goal, time by "
+            "task or habit, the goal streak, and the session running now.",
+        ),
+        (
+            start_focus,
+            StartFocusArgs,
+            "Start the focus timer now: a Pomodoro (preset 25-5, 50-10 or "
+            "90-20, or focus_min) or a free stopwatch, optionally on a task or "
+            "habit named in `item`. A session already running ends first.",
+        ),
+        (
+            focus_control,
+            FocusControlArgs,
+            "Change the running focus session: pause, resume, skip_break, "
+            "next (start the break or set it is waiting on), switch to "
+            "another task or habit (`item`; none to clear), or extend by "
+            "`minutes`.",
+        ),
+        (
+            stop_focus,
+            StopFocusArgs,
+            "End the running focus session, keeping its time; abandon=true "
+            "throws the session away so it counts nowhere.",
         ),
         (
             web_search,
@@ -1039,6 +1107,7 @@ as their own items from standard values (1 cup cooked white rice is about
 exact item, use the closest match and say which. Mention the source in a few
 words. Never present a web number as
 the user's own data.
+Focus time and the focus timer: `focus_status`, `start_focus`, `focus_control`, `stop_focus`.
 For macros, calories, nutrition or "what's left today", always call
 `nutrition_status`, even though TODAY below has the numbers: the call is what
 shows the person their nutrition card, which has every number. Then answer in

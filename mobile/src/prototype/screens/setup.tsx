@@ -12,6 +12,9 @@ import { latestBodyweight } from "@domain/fitness/calc"
 import type { FitnessSettings } from "@domain/fitness/data"
 import { fitStore } from "@domain/fitness/store"
 import { createHabit, type HabitInput } from "@domain/habits/actions"
+import { saveFocusSettings } from "@domain/focus/actions"
+import { PRESETS, type PresetKey } from "@domain/focus/data"
+import { focusStore } from "@domain/focus/store"
 import { habitsStore } from "@domain/habits/store"
 import { captureTasks } from "@domain/tasks/actions"
 import { tasksStore } from "@domain/tasks/store"
@@ -23,6 +26,7 @@ import {
   Dumbbell,
   ListChecks,
   Repeat2,
+  Timer,
   Utensils,
   Wallet,
   X,
@@ -51,6 +55,7 @@ const ORDER: ModuleKey[] = [
   "habits",
   "fitness",
   "nutrition",
+  "focus",
   "tasks",
 ]
 
@@ -74,6 +79,11 @@ const STEP: Record<ModuleKey, { title: string; why: string; time: string }> = {
     title: "Your daily targets",
     why: "Calories and protein to aim for, so every meal you log has something to count toward.",
     time: "30 sec",
+  },
+  focus: {
+    title: "Your daily focus goal",
+    why: "How many hours of deep work a day counts as a good day, and the timer you like.",
+    time: "15 sec",
   },
   tasks: {
     title: "What's on your plate",
@@ -147,6 +157,7 @@ const modules = {
   tasks: { icon: ListChecks, color: "tsk" },
   fitness: { icon: Dumbbell, color: "fit" },
   nutrition: { icon: Utensils, color: "nut" },
+  focus: { icon: Timer, color: "foc" },
   finance: { icon: Wallet, color: "fin" },
 } as const
 export function Setup() {
@@ -168,6 +179,7 @@ export function Setup() {
         (s) => s.templates.length + s.workouts.length + s.weighIns.length > 0,
       ),
       nutrition: fitStore.use((s) => s.targets.length + s.meals.length > 0),
+      focus: focusStore.use((s) => s.settingsSaved || s.sessions.length > 0),
       tasks: tasksStore.use((s) => s.tasks.length > 0),
     },
     steps = ORDER.filter((k) => enabled[k]),
@@ -291,6 +303,8 @@ export function Setup() {
                   <FitnessStep onDone={() => advance(step)} />
                 ) : step === "nutrition" ? (
                   <NutritionStep onDone={() => advance(step)} />
+                ) : step === "focus" ? (
+                  <FocusStep onDone={() => advance(step)} />
                 ) : (
                   <TasksStep onDone={() => advance(step)} />
                 )}
@@ -574,6 +588,65 @@ function FitnessStep({ onDone }: { onDone: () => void }) {
           }}
         >
           Save baseline
+        </Button>
+      </View>
+    </View>
+  )
+}
+/** The daily focus goal and the Pomodoro the timer starts with. */
+function FocusStep({ onDone }: { onDone: () => void }) {
+  const st = focusStore.use((s) => s.settings),
+    [hours, setHours] = useState(st.dailyGoalMin / 60),
+    [preset, setPreset] = useState<PresetKey>(
+      st.preset === "custom" ? "25-5" : st.preset,
+    )
+  return (
+    <View style={{ flex: 1, gap: 12 }}>
+      <Stepper
+        label="Deep work a day"
+        unit="h"
+        value={hours}
+        onChange={setHours}
+        step={0.5}
+        min={0.5}
+        max={12}
+        decimals={1}
+      />
+      <Copy size={14} weight="medium">
+        Pomodoro
+      </Copy>
+      <Segmented
+        value={preset}
+        onChange={setPreset}
+        options={(Object.keys(PRESETS) as PresetKey[]).map((k) => ({
+          value: k,
+          label: `${PRESETS[k].lengths[0]}/${PRESETS[k].lengths[1]}`,
+        }))}
+      />
+      <Copy size={12} muted>
+        {PRESETS[preset].lengths[0]} minutes of focus, a{" "}
+        {PRESETS[preset].lengths[1]}-minute break, and a longer{" "}
+        {PRESETS[preset].lengths[2]}-minute one after every{" "}
+        {PRESETS[preset].lengths[3]}. Change it any time in Focus, Settings.
+      </Copy>
+      <View style={{ marginTop: "auto", paddingTop: 24 }}>
+        <Button
+          onPress={() => {
+            const [f, sb, lb, n] = PRESETS[preset].lengths
+            saveFocusSettings({
+              dailyGoalMin: Math.round(hours * 60),
+              mode: "pomodoro",
+              preset,
+              focusMin: f,
+              shortBreakMin: sb,
+              longBreakMin: lb,
+              setsBeforeLong: n,
+            })
+            toast("Focus goal saved")
+            onDone()
+          }}
+        >
+          Save goal
         </Button>
       </View>
     </View>

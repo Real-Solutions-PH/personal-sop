@@ -902,6 +902,7 @@ const AREA_OF: Record<Accent, FeedArea | null> = {
   life: "habits",
   fit: "fitness",
   nut: "fitness",
+  foc: "tasks",
   tsk: "tasks",
   fin: "finance",
   primary: null,

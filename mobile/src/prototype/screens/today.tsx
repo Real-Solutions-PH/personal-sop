@@ -12,6 +12,7 @@ import { finStore } from "@domain/finance/store"
 import { startWorkout } from "@domain/fitness/actions"
 import * as F from "@domain/fitness/calc"
 import { fitStore } from "@domain/fitness/store"
+import { focusStore } from "@domain/focus/store"
 import * as HA from "@domain/habits/actions"
 import type { Habit } from "@domain/habits/data"
 import * as H from "@domain/habits/logic"
@@ -115,6 +116,7 @@ export function DayHero() {
     tasks: "tsk",
     fitness: "fit",
     nutrition: "nut",
+    focus: "foc",
     finance: "fin",
   } as const
   return (
@@ -1497,8 +1499,16 @@ export function Today() {
     fit = fitStore.use(
       (s) => s.templates.length + s.workouts.length + s.weighIns.length,
     ),
-    nut = fitStore.use((s) => s.targets.length + s.meals.length)
-  const has = { habits, tasks, finance: fin, fitness: fit, nutrition: nut },
+    nut = fitStore.use((s) => s.targets.length + s.meals.length),
+    foc = focusStore.use((s) => s.sessions.length + (s.settingsSaved ? 1 : 0))
+  const has = {
+      habits,
+      tasks,
+      finance: fin,
+      fitness: fit,
+      nutrition: nut,
+      focus: foc,
+    },
     pending = MODULE_KEYS.filter((k) => s.enabled[k] && !has[k]),
     greeting =
       date.getHours() >= 4 && date.getHours() < 12
