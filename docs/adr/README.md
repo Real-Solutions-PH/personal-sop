@@ -19,3 +19,4 @@ Start new ADRs from [template.md](template.md).
 | [0021](0021-self-hosted-gotrue-on-aws.md) | Self-hosted GoTrue on AWS for sign-in (email, Apple, Google), not a Supabase project |
 | [0022](0022-aws-cdk-for-infrastructure.md) | AWS CDK (TypeScript) for production infrastructure |
 | [0023](0023-cloudflare-tunnel-no-alb-waf-nat.md) | Cloudflare Tunnel instead of a load balancer, WAF and NAT |
+| [0024](0024-nutrition-as-its-own-module.md) | Nutrition as its own module, separate from Fitness |

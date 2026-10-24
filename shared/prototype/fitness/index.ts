@@ -3,36 +3,33 @@ import type { CalendarItem, Metric, Miss, ModuleContract } from "../contract"
 import { dayKey } from "../lib/day"
 import {
   addDays,
-  adherence,
   dailyWeights,
   exerciseHistory,
   finished,
   fmtVolume,
   isStalled,
-  nutritionDays,
   overloadRate,
   periodSummary,
   sessionsByWeek,
-  targetFor,
   weeklyRate,
   weekStart,
 } from "./calc"
 import { useFit } from "./store"
 
+// Training only: meals and macro targets are the nutrition module's
+// (ADR-0024), though they live in this store.
 function useAreaRate(days: number, offset = 0): number {
   const s = useFit()
-  return useMemo(() => {
-    const p = periodSummary(s, days, -offset)
-    const a = adherence(s, days, offset)
-    return a.logged ? (p.sessionRate + a.calorie) / 2 : p.sessionRate
-  }, [s, days, offset])
+  return useMemo(
+    () => periodSummary(s, days, -offset).sessionRate,
+    [s, days, offset],
+  )
 }
 function useMetrics(days: number): Metric[] {
   const s = useFit()
   return useMemo(() => {
     const cur = periodSummary(s, days)
     const prev = periodSummary(s, days, -days)
-    const a = adherence(s, days)
     const rate = weeklyRate(s)
     return [
       {
@@ -65,20 +62,6 @@ function useMetrics(days: number): Metric[] {
         key: "overload",
         label: "Progress rate",
         value: `${Math.round(overloadRate(s, Math.max(28, days)) * 100)}%`,
-        goodWhen: "up",
-        shareable: true,
-      },
-      {
-        key: "protein",
-        label: "Protein hit rate",
-        value: `${Math.round(a.protein * 100)}%`,
-        goodWhen: "up",
-        shareable: true,
-      },
-      {
-        key: "calories",
-        label: "Calories on target",
-        value: `${Math.round(a.calorie * 100)}%`,
         goodWhen: "up",
         shareable: true,
       },
@@ -135,23 +118,6 @@ function useMisses(from: string, to: string): Miss[] {
           href: "/fitness/stats",
         })
     }
-    for (const d of nutritionDays(s, 90)) {
-      if (
-        d.day < from ||
-        d.day > to ||
-        d.day === dayKey() ||
-        !d.over ||
-        !d.target
-      )
-        continue
-      out.push({
-        id: `fit-over-${d.day}`,
-        day: d.day,
-        title: `Over calories by ${Math.round((d.totals.kcal / d.target.kcal - 1) * 100)}%`,
-        module: "fitness",
-        href: `/fitness/nutrition?day=${d.day}`,
-      })
-    }
     const today = dayKey()
     if (today >= from && today <= to)
       for (const e of s.exercises)
@@ -175,18 +141,12 @@ function useTodayProgress() {
     )
     const week = sessionsByWeek(s, 1)[0]?.count ?? 0
     const workoutDue = trainedToday || week < s.settings.weeklyTarget
-    const target = targetFor(s, today)
-    const nut = nutritionDays(s, 1)[0]
     const weighed = dailyWeights(s).has(today)
     let due = 1
     let done = weighed ? 1 : 0
     if (workoutDue) {
       due++
       if (trainedToday) done++
-    }
-    if (target) {
-      due++
-      if (nut?.proteinHit) done++
     }
     return { due, done }
   }, [s])

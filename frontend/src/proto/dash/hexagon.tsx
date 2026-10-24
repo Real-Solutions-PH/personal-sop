@@ -16,6 +16,7 @@ const FACET_TEXT: Record<ModuleKey, string> = {
   habits: "text-hab",
   tasks: "text-tsk",
   fitness: "text-fit",
+  nutrition: "text-nut",
   finance: "text-fin",
 }
 
@@ -160,6 +161,7 @@ const FACET_FILL: Record<ModuleKey, string> = {
   habits: "fill-hab",
   tasks: "fill-tsk",
   fitness: "fill-fit",
+  nutrition: "fill-nut",
   finance: "fill-fin",
 }
 

@@ -181,7 +181,7 @@ class MacrosWidget : UnfurlWidget() {
         bar(v, R.id.carbs_label, R.id.carbs, R.id.carbs_bar, "Carbs", "carbs")
         bar(v, R.id.fat_label, R.id.fat, R.id.fat_bar, "Fat", "fat")
       }
-      return UnfurlWidgets.frame(ctx, v, off, "/fitness/nutrition")
+      return UnfurlWidgets.frame(ctx, v, off, "/nutrition")
     }
     return UnfurlWidgets.responsive(fill(R.layout.unfurl_macros_small, false), fill(R.layout.unfurl_macros_medium, true))
   }

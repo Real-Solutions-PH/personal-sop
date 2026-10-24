@@ -1,5 +1,5 @@
 import type { CalendarItem } from "@domain/contract"
-import { MODULE_KEYS, weekStartKey } from "@domain/dash/data"
+import { AREA, MODULE_KEYS, weekStartKey } from "@domain/dash/data"
 import * as D from "@domain/dash/hooks"
 import {
   dashStore,
@@ -114,6 +114,7 @@ export function DayHero() {
     habits: "hab",
     tasks: "tsk",
     fitness: "fit",
+    nutrition: "nut",
     finance: "fin",
   } as const
   return (
@@ -226,8 +227,8 @@ export function DayHero() {
             }}
           >
             <Line>
-              <Copy size={14} weight="medium" style={{ width: 64 }}>
-                {k[0].toUpperCase() + k.slice(1)}
+              <Copy size={14} weight="medium" style={{ width: 72 }} lines={1}>
+                {AREA[k].label}
               </Copy>
               <Bar
                 value={ring.per[k].done / ring.per[k].due}
@@ -287,7 +288,9 @@ function TodayPlan() {
         ? t.tsk
         : m === "fitness"
           ? t.fit
-          : t.fin
+          : m === "nutrition"
+            ? t.nut
+            : t.fin
   return (
     <Frame style={{ padding: 16, gap: 8 }}>
       <Line style={{ justifyContent: "space-between" }}>
@@ -934,152 +937,147 @@ function FitnessCards() {
     </View>
   )
   return (
-    <>
-      <Group title="Fitness" icon={Dumbbell} accent="fit" href="/fitness">
-        <FitnessStats />
-        {active ? (
-          <Part>
-            <Tap onPress={() => go("/fitness/workout")}>
-              <Copy weight="semibold">● {active.name} · Resume</Copy>
-            </Tap>
-          </Part>
-        ) : completed ? (
-          <Part>
-            <Tap onPress={() => go(`/fitness/workouts/${completed.id}`)}>
-              <Line>
-                {badge(Check)}
-                <Copy weight="semibold" style={{ flex: 1 }}>
-                  {completed.name} done
-                </Copy>
-                <ChevronRight size={16} color={t.muted} />
-              </Line>
-            </Tap>
-          </Part>
-        ) : next &&
-          (F.sessionsByWeek(s, 1)[0]?.count ?? 0) < s.settings.weeklyTarget ? (
-          <Part>
+    <Group title="Fitness" icon={Dumbbell} accent="fit" href="/fitness">
+      <FitnessStats />
+      {active ? (
+        <Part>
+          <Tap onPress={() => go("/fitness/workout")}>
+            <Copy weight="semibold">● {active.name} · Resume</Copy>
+          </Tap>
+        </Part>
+      ) : completed ? (
+        <Part>
+          <Tap onPress={() => go(`/fitness/workouts/${completed.id}`)}>
             <Line>
-              {badge(Dumbbell)}
-              <Tap onPress={() => go("/fitness")} style={{ flex: 1 }}>
-                <Copy weight="semibold">
-                  {next.name}
-                  <Text style={{ fontFamily: fonts.body, color: t.muted }}>
-                    {last ? ` · last ${F.relDay(last.startedAt)}` : ""}
-                  </Text>
-                </Copy>
-                <Copy size={14} muted lines={1}>
-                  {sug?.kind === "weight"
-                    ? `Suggested ${sug.badge} ${ex?.name.split(" ").slice(-2).join(" ").toLowerCase()}`
-                    : `${F.sessionsByWeek(s, 1)[0]?.count ?? 0} of ${s.settings.weeklyTarget} sessions this week`}
-                </Copy>
-              </Tap>
-              <SmallButton
-                accent="fit"
-                onPress={() => {
-                  const result = startWorkout({
-                    from: "template",
-                    templateId: next.id,
-                  })
-                  if (result.ok) go("/fitness/workout")
-                  else toast.error(result.reason)
-                }}
-              >
-                Start
-              </SmallButton>
-            </Line>
-          </Part>
-        ) : null}
-        <Part style={{ gap: 10 }}>
-          <Line>
-            {badge(Scale)}
-            <Tap onPress={() => go("/fitness/body")} style={{ flex: 1 }}>
-              <Copy weight="semibold">
-                {latest === undefined
-                  ? "Weigh in"
-                  : `${latest.weightKg.toFixed(1)} kg`}
-                {latest && (
-                  <Text style={{ fontFamily: fonts.body, color: t.muted }}>
-                    {weight === undefined
-                      ? ` · ${F.relDay(latest.measuredAt).toLowerCase()}`
-                      : " · today"}
-                  </Text>
-                )}
+              {badge(Check)}
+              <Copy weight="semibold" style={{ flex: 1 }}>
+                {completed.name} done
               </Copy>
-              <Copy size={14} muted>
-                {latest === undefined
-                  ? "Morning weight keeps the trend honest"
-                  : [
-                      avg7 !== undefined && `7-day avg ${avg7.toFixed(1)} kg`,
-                      rate &&
-                        `${rate.kg <= 0 ? "↓" : "↑"} ${Math.abs(rate.kg).toFixed(1)} kg/wk`,
-                      latest.bodyFatPct != null &&
-                        `${latest.bodyFatPct.toFixed(1)}% body fat`,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ")}
+              <ChevronRight size={16} color={t.muted} />
+            </Line>
+          </Tap>
+        </Part>
+      ) : next &&
+        (F.sessionsByWeek(s, 1)[0]?.count ?? 0) < s.settings.weeklyTarget ? (
+        <Part>
+          <Line>
+            {badge(Dumbbell)}
+            <Tap onPress={() => go("/fitness")} style={{ flex: 1 }}>
+              <Copy weight="semibold">
+                {next.name}
+                <Text style={{ fontFamily: fonts.body, color: t.muted }}>
+                  {last ? ` · last ${F.relDay(last.startedAt)}` : ""}
+                </Text>
+              </Copy>
+              <Copy size={14} muted lines={1}>
+                {sug?.kind === "weight"
+                  ? `Suggested ${sug.badge} ${ex?.name.split(" ").slice(-2).join(" ").toLowerCase()}`
+                  : `${F.sessionsByWeek(s, 1)[0]?.count ?? 0} of ${s.settings.weeklyTarget} sessions this week`}
               </Copy>
             </Tap>
-            {weight === undefined && (
-              <SmallButton
-                accent="fit"
-                onPress={() => go("/fitness/body?log=1")}
-              >
-                Log
-              </SmallButton>
-            )}
-          </Line>
-          <Tap
-            onPress={() => go("/fitness/body")}
-            style={{ opacity: trend.length >= 2 ? 1 : 0.35 }}
-          >
-            <Sparkline
-              label={
-                trend.length >= 2
-                  ? `Weight, 7-day average over the last 30 days, ${trend[0]?.toFixed(1)} to ${trend.at(-1)?.toFixed(1)} kg`
-                  : "Weight trend appears after two weigh-ins"
-              }
-              values={trend.length >= 2 ? trend : SAMPLE_TREND}
-              color={t.fit}
-              height={40}
-            />
-          </Tap>
-        </Part>
-      </Group>
-      <Group
-        title="Nutrition"
-        icon={Utensils}
-        accent="nut"
-        href="/fitness/nutrition"
-      >
-        <Part style={{ gap: 16 }}>
-          <Tap onPress={() => go("/fitness/nutrition")}>
-            <NutritionDay day={dayKey()} />
-          </Tap>
-          <Line style={{ gap: 8 }}>
-            <View style={{ flex: 1 }}>
-              <Button
-                small
-                icon={Camera}
-                tone="quiet"
-                onPress={() => openCapture({ mode: "photo", hint: "meal" })}
-              >
-                Snap a meal
-              </Button>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Button
-                small
-                icon={Pencil}
-                tone="quiet"
-                onPress={() => go("/fitness/nutrition/new")}
-              >
-                Add by hand
-              </Button>
-            </View>
+            <SmallButton
+              accent="fit"
+              onPress={() => {
+                const result = startWorkout({
+                  from: "template",
+                  templateId: next.id,
+                })
+                if (result.ok) go("/fitness/workout")
+                else toast.error(result.reason)
+              }}
+            >
+              Start
+            </SmallButton>
           </Line>
         </Part>
-      </Group>
-    </>
+      ) : null}
+      <Part style={{ gap: 10 }}>
+        <Line>
+          {badge(Scale)}
+          <Tap onPress={() => go("/fitness/body")} style={{ flex: 1 }}>
+            <Copy weight="semibold">
+              {latest === undefined
+                ? "Weigh in"
+                : `${latest.weightKg.toFixed(1)} kg`}
+              {latest && (
+                <Text style={{ fontFamily: fonts.body, color: t.muted }}>
+                  {weight === undefined
+                    ? ` · ${F.relDay(latest.measuredAt).toLowerCase()}`
+                    : " · today"}
+                </Text>
+              )}
+            </Copy>
+            <Copy size={14} muted>
+              {latest === undefined
+                ? "Morning weight keeps the trend honest"
+                : [
+                    avg7 !== undefined && `7-day avg ${avg7.toFixed(1)} kg`,
+                    rate &&
+                      `${rate.kg <= 0 ? "↓" : "↑"} ${Math.abs(rate.kg).toFixed(1)} kg/wk`,
+                    latest.bodyFatPct != null &&
+                      `${latest.bodyFatPct.toFixed(1)}% body fat`,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+            </Copy>
+          </Tap>
+          {weight === undefined && (
+            <SmallButton accent="fit" onPress={() => go("/fitness/body?log=1")}>
+              Log
+            </SmallButton>
+          )}
+        </Line>
+        <Tap
+          onPress={() => go("/fitness/body")}
+          style={{ opacity: trend.length >= 2 ? 1 : 0.35 }}
+        >
+          <Sparkline
+            label={
+              trend.length >= 2
+                ? `Weight, 7-day average over the last 30 days, ${trend[0]?.toFixed(1)} to ${trend.at(-1)?.toFixed(1)} kg`
+                : "Weight trend appears after two weigh-ins"
+            }
+            values={trend.length >= 2 ? trend : SAMPLE_TREND}
+            color={t.fit}
+            height={40}
+          />
+        </Tap>
+      </Part>
+    </Group>
+  )
+}
+/** Nutrition's own card (ADR-0024): today's rings and the two ways to log. */
+function NutritionCard() {
+  return (
+    <Group title="Nutrition" icon={Utensils} accent="nut" href="/nutrition">
+      <Part style={{ gap: 16 }}>
+        <Tap onPress={() => go("/nutrition")}>
+          <NutritionDay day={dayKey()} />
+        </Tap>
+        <Line style={{ gap: 8 }}>
+          <View style={{ flex: 1 }}>
+            <Button
+              small
+              icon={Camera}
+              tone="quiet"
+              onPress={() => openCapture({ mode: "photo", hint: "meal" })}
+            >
+              Snap a meal
+            </Button>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Button
+              small
+              icon={Pencil}
+              tone="quiet"
+              onPress={() => go("/nutrition/new")}
+            >
+              Add by hand
+            </Button>
+          </View>
+        </Line>
+      </Part>
+    </Group>
   )
 }
 function FinanceCard() {
@@ -1498,8 +1496,9 @@ export function Today() {
     fin = finStore.use((s) => s.accounts.length),
     fit = fitStore.use(
       (s) => s.templates.length + s.workouts.length + s.weighIns.length,
-    )
-  const has = { habits, tasks, finance: fin, fitness: fit },
+    ),
+    nut = fitStore.use((s) => s.targets.length + s.meals.length)
+  const has = { habits, tasks, finance: fin, fitness: fit, nutrition: nut },
     pending = MODULE_KEYS.filter((k) => s.enabled[k] && !has[k]),
     greeting =
       date.getHours() >= 4 && date.getHours() < 12
@@ -1639,6 +1638,7 @@ export function Today() {
       {s.enabled.habits && <HabitsCard />}
       {s.enabled.tasks && <TasksCard />}
       {s.enabled.fitness && <FitnessCards />}
+      {s.enabled.nutrition && <NutritionCard />}
       {s.enabled.finance && <FinanceCard />}
       <CommunityCard />
       <GoalsAndContext evening={evening} />

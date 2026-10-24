@@ -2,6 +2,13 @@ import { Minus, Plus } from "lucide-react-native"
 import { TextInput, View } from "react-native"
 import { Copy, Line, Tap } from "./native-kit"
 import { fonts, useTheme } from "./theme"
+/** Thousands grouped ("2,100"), decimals as typed ("102.5"). */
+export const grouped = (n: number) =>
+  n.toLocaleString("en-US", { maximumFractionDigits: 6 })
+/** A typed amount: a comma before exactly three digits groups thousands;
+ * any other comma is a decimal mark ("2,100" is 2100, "2,5" is 2.5). */
+export const parseAmount = (v: string) =>
+  Number.parseFloat(v.replace(/,(?=\d{3}(?!\d))/g, "").replace(",", "."))
 export function Stepper({
   value,
   onChange,
@@ -68,9 +75,9 @@ export function Stepper({
         >
           <TextInput
             accessibilityLabel={label}
-            value={Number.isFinite(value) ? String(value) : ""}
+            value={Number.isFinite(value) ? grouped(value) : ""}
             onChangeText={(v) => {
-              const n = Number.parseFloat(v.replace(",", "."))
+              const n = parseAmount(v)
               onChange(Number.isFinite(n) ? n : 0)
             }}
             onBlur={() => onChange(clamp(value))}

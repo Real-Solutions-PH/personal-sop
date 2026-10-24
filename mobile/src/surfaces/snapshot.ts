@@ -185,7 +185,7 @@ export function buildSnapshot(input: SnapshotInput): WidgetSnapshot {
     habits: dash.enabled.habits
       ? habitsPart(input.habits, now)
       : { done: 0, total: 0, items: [] },
-    macros: dash.enabled.fitness ? macrosPart(input.fit, now) : null,
+    macros: dash.enabled.nutrition ? macrosPart(input.fit, now) : null,
     tasks: dash.enabled.tasks
       ? tasksPart(input.tasks, now)
       : { open: 0, overdue: 0, items: [] },

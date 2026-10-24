@@ -75,7 +75,13 @@ function onlyHabits(onboarded: boolean) {
   dashStore.set((s) => ({
     ...s,
     onboarded,
-    enabled: { habits: true, tasks: false, fitness: false, finance: false },
+    enabled: {
+      habits: true,
+      tasks: false,
+      fitness: false,
+      nutrition: false,
+      finance: false,
+    },
   }))
   habitsStore.set((s) => ({ ...s, habits: [] }))
 }

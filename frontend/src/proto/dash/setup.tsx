@@ -50,6 +50,13 @@ const STEP: Record<ModuleKey, { title: string; why: string; time: string }> = {
     why: "Today's weight and the split you run, so progress has a day 1.",
     time: "30 sec",
   },
+  // Not in ORDER: the web prototype keeps meals inside Fitness (the native
+  // app has Nutrition as its own module, ADR-0024).
+  nutrition: {
+    title: "Your daily targets",
+    why: "Calories and protein to aim for.",
+    time: "30 sec",
+  },
   tasks: {
     title: "What's on your plate",
     why: "Dump what's in your head. Dates like 'friday' are picked up for you.",
@@ -67,6 +74,7 @@ export function useSetupStatus() {
     fitness: fitStore.use(
       (s) => s.templates.length + s.workouts.length + s.weighIns.length > 0,
     ),
+    nutrition: fitStore.use((s) => s.targets.length > 0),
     tasks: tasksStore.use((s) => s.tasks.length > 0),
   }
   const steps = ORDER.filter((k) => enabled[k])

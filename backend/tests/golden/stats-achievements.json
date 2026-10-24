@@ -10,6 +10,7 @@
             "habits": true,
             "tasks": true,
             "fitness": true,
+            "nutrition": true,
             "finance": true
           },
           "threshold": 0.8,
@@ -696,6 +697,7 @@
             "habits": true,
             "tasks": true,
             "fitness": true,
+            "nutrition": true,
             "finance": true
           },
           "threshold": 0.8,
@@ -1402,6 +1404,7 @@
             "habits": true,
             "tasks": true,
             "fitness": false,
+            "nutrition": true,
             "finance": true
           },
           "threshold": 0.8,
@@ -1488,13 +1491,13 @@
               "ref": "life",
               "label": "Life Score",
               "module": "life",
-              "value": "84",
-              "n": 84,
+              "value": "76",
+              "n": 76,
               "unit": "",
               "goodWhen": "up",
               "shareable": true
             },
-            "pct": 1.12,
+            "pct": 1.0133333333333334,
             "hit": true
           },
           {
@@ -1762,13 +1765,13 @@
             "requirement": "Reach at least 75 this month",
             "progress": {
               "pct": 1,
-              "text": "84 / 75"
+              "text": "76 / 75"
             },
             "trophy": {
               "id": "goal-g1",
               "type": "goal",
               "title": "Life Score ≥ 75 / month",
-              "value": "84",
+              "value": "76",
               "detail": "Target 75",
               "day": "2026-10-18",
               "href": "/stats/goals",
@@ -1901,7 +1904,7 @@
             "id": "goal-g1",
             "type": "goal",
             "title": "Life Score ≥ 75 / month",
-            "value": "84",
+            "value": "76",
             "detail": "Target 75",
             "day": "2026-10-18",
             "href": "/stats/goals",
@@ -1994,6 +1997,7 @@
             "habits": false,
             "tasks": true,
             "fitness": true,
+            "nutrition": true,
             "finance": true
           },
           "threshold": 0.8,
@@ -2626,6 +2630,7 @@
             "habits": true,
             "tasks": true,
             "fitness": true,
+            "nutrition": true,
             "finance": true
           },
           "threshold": 0.5,
@@ -3350,6 +3355,7 @@
             "habits": true,
             "tasks": true,
             "fitness": true,
+            "nutrition": true,
             "finance": true
           },
           "threshold": 0.8,

@@ -4,7 +4,7 @@ import type { ComponentType } from "react"
 // cross-cutting surfaces (Today, Plan calendar, Stats / Life Score, Capture).
 // Each module's index.ts exports `module: ModuleContract`.
 
-export type ModuleKey = "habits" | "tasks" | "fitness" | "finance"
+export type ModuleKey = "habits" | "tasks" | "fitness" | "nutrition" | "finance"
 
 export interface Metric {
   key: string

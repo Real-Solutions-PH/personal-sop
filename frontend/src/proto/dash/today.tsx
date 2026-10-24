@@ -296,6 +296,7 @@ function NextUpCard() {
     habits: "bg-hab/15 text-hab",
     tasks: "bg-tsk/15 text-tsk",
     fitness: "bg-fit/15 text-fit",
+    nutrition: "bg-nut/15 text-nut",
     finance: "bg-fin/15 text-fin",
   }[next.module]
   return (

@@ -75,7 +75,7 @@ export function NutritionTrend({
       locked={!logged}
       title="Your goal history starts here"
       detail="Log meals for a few days and this shows, day by day, whether you hit your protein and every other goal."
-      action={{ label: "Log a meal", href: "/fitness?tab=eat" }}
+      action={{ label: "Log a meal", href: "/nutrition" }}
     >
       <Frame style={{ padding: 16, gap: 12 }}>
         <Line style={{ justifyContent: "space-between" }}>

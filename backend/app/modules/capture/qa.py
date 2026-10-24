@@ -442,7 +442,7 @@ def macros_answer(ctx: Ctx) -> Out:
             "title": "Macros left today",
             "value": "No target set",
             "accent": "fit",
-            "links": [{"label": "Set targets", "href": "/fitness/nutrition/targets"}],
+            "links": [{"label": "Set targets", "href": "/nutrition/targets"}],
         }
     kcal, protein, carbs, fat = left
     return {
@@ -451,7 +451,7 @@ def macros_answer(ctx: Ctx) -> Out:
         "value": f"{js_round(kcal):,} kcal",
         "sub": f"{js_round(protein)} g protein · {js_round(carbs)} g carbs · {js_round(fat)} g fat",
         "accent": "fit",
-        "links": [{"label": "Open nutrition", "href": "/fitness/nutrition"}],
+        "links": [{"label": "Open nutrition", "href": "/nutrition"}],
     }
 
 

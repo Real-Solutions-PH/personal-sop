@@ -10,8 +10,14 @@ from app.shared import owned_repo
 from app.shared.context import Ctx
 from app.shared.domain import conflict
 
-ModuleKey = Literal["habits", "tasks", "fitness", "finance"]
-DEFAULT_WEIGHTS: dict[str, int] = {"habits": 3, "tasks": 2, "fitness": 3, "finance": 2}
+ModuleKey = Literal["habits", "tasks", "fitness", "nutrition", "finance"]
+DEFAULT_WEIGHTS: dict[str, int] = {
+    "habits": 3,
+    "tasks": 2,
+    "fitness": 3,
+    "nutrition": 2,
+    "finance": 2,
+}
 
 
 @dataclass(frozen=True)

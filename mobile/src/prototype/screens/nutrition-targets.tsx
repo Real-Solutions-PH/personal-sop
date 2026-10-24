@@ -123,11 +123,11 @@ export function MacroTargets() {
               weight="semibold"
               style={{ color: mismatch ? theme.warn : theme.good }}
             >
-              {calc}
+              {calc.toLocaleString("en-US")}
             </Copy>{" "}
             kcal
             {mismatch
-              ? ` — ${calc > t.kcal ? "over" : "under"} your ${t.kcal} by ${Math.abs(calc - t.kcal)}.`
+              ? ` — ${calc > t.kcal ? "over" : "under"} your ${t.kcal.toLocaleString("en-US")} by ${Math.abs(calc - t.kcal).toLocaleString("en-US")}.`
               : " ✓ adds up."}
           </Copy>
           {mismatch && (
@@ -346,7 +346,7 @@ export function MacroTargets() {
             }
             setMacroTarget({ ...t, ...own })
             toast.success("Targets saved — effective today")
-            replace("/fitness?tab=eat")
+            replace("/nutrition")
           }}
         >
           Save · effective today

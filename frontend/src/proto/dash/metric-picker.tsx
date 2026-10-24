@@ -67,6 +67,7 @@ const GROUP_TEXT: Record<ModuleKey | "life", string> = {
   habits: "text-hab",
   tasks: "text-tsk",
   fitness: "text-fit",
+  nutrition: "text-nut",
   finance: "text-fin",
 }
 

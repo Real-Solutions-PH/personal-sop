@@ -8,12 +8,14 @@ import { emit, freeze } from "./harness";
 mock.module("react", () => ({
 	useMemo: <T>(fn: () => T) => fn(),
 	useCallback: <T>(fn: T) => fn,
+	// useServerStat watches the server cache; the fixtures are local-only.
+	useEffect: () => {},
 	useSyncExternalStore: <T>(_sub: unknown, get: () => T) => get(),
 }));
 
 beforeAll(freeze);
 
-const MODULES = ["habits", "tasks", "fitness", "finance"] as const;
+const MODULES = ["habits", "tasks", "fitness", "nutrition", "finance"] as const;
 
 // Calendar items reduced to what the on-target series reads.
 type Item = { day: string; module: string; done: boolean };
@@ -264,7 +266,7 @@ test("facets", async () => {
 	const base = dashStore.get();
 	const cases: unknown[] = [];
 	for (const days of [7, 30])
-		for (const off of [null, "fitness", "finance"] as const) {
+		for (const off of [null, "fitness", "nutrition", "finance"] as const) {
 			dashStore.set((s) => ({
 				...s,
 				enabled: { ...s.enabled, ...(off ? { [off]: false } : {}) },

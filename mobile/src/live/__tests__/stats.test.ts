@@ -323,13 +323,39 @@ test("an area with nothing to rate is left out of the Life Score, as on the serv
   // (3 x 0.25 + 2 x 0.5) / (3 + 2) = 0.35. Counting habits and finance as 0
   // instead gives 1.75 / 10 = 0.175, the 18 the device showed before the
   // server's 35 arrived.
-  const rates = { habits: 0, tasks: 0.5, fitness: 0.25, finance: 0 }
-  const weights = { habits: 3, tasks: 2, fitness: 3, finance: 2 }
-  const enabled = { habits: true, tasks: true, fitness: true, finance: true }
-  const rated = { habits: false, tasks: true, fitness: true, finance: false }
+  // Nutrition (ADR-0024) with nothing logged is unrated too.
+  const rates = {
+    habits: 0,
+    tasks: 0.5,
+    fitness: 0.25,
+    nutrition: 0,
+    finance: 0,
+  }
+  const weights = { habits: 3, tasks: 2, fitness: 3, nutrition: 2, finance: 2 }
+  const enabled = {
+    habits: true,
+    tasks: true,
+    fitness: true,
+    nutrition: true,
+    finance: true,
+  }
+  const rated = {
+    habits: false,
+    tasks: true,
+    fitness: true,
+    nutrition: false,
+    finance: false,
+  }
   expect(lifeScoreOf(rates, weights, enabled, rated)).toBe(35)
-  expect(lifeScoreOf(rates, weights, enabled)).toBe(18)
-  const none = { habits: false, tasks: false, fitness: false, finance: false }
+  // Counting the unrated areas as 0: 1.75 / 12 = 0.146.
+  expect(lifeScoreOf(rates, weights, enabled)).toBe(15)
+  const none = {
+    habits: false,
+    tasks: false,
+    fitness: false,
+    nutrition: false,
+    finance: false,
+  }
   expect(lifeScoreOf(rates, weights, enabled, none)).toBeNull()
 })
 
@@ -498,6 +524,7 @@ test("live: calendar, misses, ring, achievements, trophies, metric detail", () =
       habits: { due: 5, done: 2 },
       tasks: { due: 0, done: 0 },
       fitness: { due: 0, done: 0 },
+      nutrition: { due: 0, done: 0 },
       finance: { due: 0, done: 0 },
     },
   })

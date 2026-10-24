@@ -14,7 +14,13 @@ import {
   useServerStat,
 } from "./server-stats"
 
-const MODULE_KEYS: ModuleKey[] = ["habits", "tasks", "fitness", "finance"]
+const MODULE_KEYS: ModuleKey[] = [
+  "habits",
+  "tasks",
+  "fitness",
+  "nutrition",
+  "finance",
+]
 export function facetsFrom(rows: ServerFacet[]): Facet[] {
   return rows.flatMap((r) => {
     const module = r.module as ModuleKey
@@ -70,7 +76,7 @@ function useLocalFacets(days: number): Facet[] {
     const routines = cal.filter((i) => i.id.startsWith("routine-"))
     const nut = (offset: number) => {
       const a = adherence(fit, days, offset)
-      return a.logged ? a.calorie : 0
+      return a.logged ? (a.calorie + a.protein) / 2 : 0
     }
     const f = (
       key: string,
@@ -169,18 +175,18 @@ function useLocalFacets(days: number): Facet[] {
         "fitness",
         periodSummary(fit, days).sessionRate,
         periodSummary(fit, days, -days).sessionRate,
-        "/fitness?tab=train",
+        "/fitness",
         { metricKeys: ["sessions", "prs", "volume", "overload"] },
       ),
       f(
         "nutrition",
         "Nutrition",
-        "fitness",
+        "nutrition",
         nut(0),
         nut(days),
-        "/fitness?tab=eat",
+        "/nutrition",
         {
-          metricKeys: ["calories", "protein", "weight"],
+          metricKeys: ["calories", "protein", "kcal", "logged"],
         },
       ),
       f(

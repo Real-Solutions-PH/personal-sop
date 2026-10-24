@@ -72,6 +72,7 @@ const areaColors = {
   habits: "hab",
   tasks: "tsk",
   fitness: "fit",
+  nutrition: "nut",
   finance: "fin",
 } as const
 /** A metric string, unless it carries money: share cards never show ₱. */
@@ -883,7 +884,7 @@ export function ShareCard() {
               title="Food day"
               icon={Utensils}
               accent="nut"
-              href="/fitness/nutrition/share"
+              href="/nutrition/share"
             />
             <LinkRow
               title="Journal streak"

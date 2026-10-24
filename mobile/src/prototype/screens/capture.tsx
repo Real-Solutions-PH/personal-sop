@@ -210,7 +210,7 @@ function recordHref(card: RecordCard): string | undefined {
     case "workout":
       return `/fitness/workouts/${id}`
     case "meal":
-      return `/fitness/nutrition/meals/${id}`
+      return `/nutrition/meals/${id}`
     case "journal":
       return `/journal/${id}`
     case "weighIn":

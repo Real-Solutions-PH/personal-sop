@@ -88,6 +88,8 @@ export const MODULE_CONFIG: Record<
     { href: "/fitness/nutrition/targets", label: "Macro targets" },
     { href: "/fitness/settings", label: "Fitness settings" },
   ],
+  // The web prototype keeps meals on the Fitness page (ADR-0024 is native).
+  nutrition: [{ href: "/fitness/nutrition/targets", label: "Macro targets" }],
   finance: [
     { href: "/finance/accounts", label: "Accounts" },
     { href: "/finance/categories", label: "Categories" },

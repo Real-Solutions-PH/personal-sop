@@ -107,7 +107,7 @@ export function WorkoutLogger() {
     if (A.finishWorkout(w.id, { unfinished: mode, endAt })) {
       setFinish(false)
       setResume(false)
-      replace("/fitness?tab=train")
+      replace("/fitness")
     }
   }
   const discard = () =>

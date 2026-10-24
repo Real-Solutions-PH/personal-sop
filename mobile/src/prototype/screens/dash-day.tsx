@@ -50,6 +50,7 @@ const colors = {
   habits: "hab",
   tasks: "tsk",
   fitness: "fit",
+  nutrition: "nut",
   finance: "fin",
 } as const
 const icons = {

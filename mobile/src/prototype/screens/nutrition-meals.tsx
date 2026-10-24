@@ -37,7 +37,7 @@ import { fonts, useTheme } from "../theme"
 import { TimeInput } from "../time-input"
 import { Button, Empty, Screen, undo } from "../ui"
 import { isDay } from "../validation"
-import { MealThumb } from "./fitness-nutrition"
+import { MealThumb } from "./nutrition"
 
 const keys = ["kcal", "protein", "carbs", "fat"] as const
 const labels: MealLabel[] = ["breakfast", "lunch", "snack", "dinner"]
@@ -275,7 +275,7 @@ export function MealDetail({ id }: { id: string }) {
     editable = review || editing,
     failed = p.state === "error",
     conf = meal.confidence ?? 0,
-    back = `/fitness?tab=eat&day=${dayKey(new Date(meal.eatenAt))}`
+    back = `/nutrition?day=${dayKey(new Date(meal.eatenAt))}`
   const del = () => {
       const m = A.deleteMeal(id)
       replace(back)
@@ -290,7 +290,7 @@ export function MealDetail({ id }: { id: string }) {
       setHintErr(!ok)
       if (ok) {
         setHint("")
-        if (failed) replace(`/fitness/nutrition/meals/${id}`)
+        if (failed) replace(`/nutrition/meals/${id}`)
       }
     }
   const heading = (name: string) => (
@@ -363,7 +363,7 @@ export function MealDetail({ id }: { id: string }) {
               Still couldn’t match that — try naming the dishes.
             </Copy>
           )}
-          <Button tone="quiet" href="/fitness/nutrition/new">
+          <Button tone="quiet" href="/nutrition/new">
             Enter macros manually
           </Button>
         </Frame>
@@ -634,7 +634,7 @@ export function ManualMeal() {
                 `Logged ${meal.label} · ${Math.round(totals.kcal)} kcal`,
                 () => A.deleteMeal(meal.id),
               )
-              replace(`/fitness?tab=eat&day=${day}`)
+              replace(`/nutrition?day=${day}`)
             }}
           >{`Save meal${items.length ? ` · ${Math.round(totals.kcal)} kcal` : ""}`}</Button>
         </View>
@@ -683,7 +683,7 @@ export function ManualMeal() {
               setErr(true)
               return
             }
-            replace(`/fitness/nutrition/meals/${m.id}`)
+            replace(`/nutrition/meals/${m.id}`)
           }}
         >
           Estimate macros

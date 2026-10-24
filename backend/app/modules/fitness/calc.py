@@ -804,8 +804,16 @@ def period_summary(
 def area_rate(
     s: FitState, days: int, today: date, now: datetime, offset: int = 0
 ) -> float:
-    """The fitness area rate: sessions and calorie adherence averaged when
-    meals were logged, else sessions alone (``index.ts`` ``useAreaRate``)."""
-    p = period_summary(s, days, today, now, -offset)
+    """The fitness area rate: the session rate (``index.ts``
+    ``useAreaRate``). Eating is the nutrition area's (ADR-0024)."""
+    return period_summary(s, days, today, now, -offset).session_rate
+
+
+def nutrition_area_rate(
+    s: FitState, days: int, today: date, offset: int = 0
+) -> float | None:
+    """The nutrition area rate: calories on target and protein hit rate
+    averaged over the logged days, or None when no day was logged
+    (``nutrition/index.ts`` ``useAreaRate``)."""
     a = adherence(s, days, today, offset)
-    return (p.session_rate + a.calorie) / 2 if a.logged else p.session_rate
+    return (a.calorie + a.protein) / 2 if a.logged else None

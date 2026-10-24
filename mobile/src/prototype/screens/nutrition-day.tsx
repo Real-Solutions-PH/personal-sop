@@ -3,8 +3,8 @@ import { dayDetail, fiberGoalFor, limitsFor } from "@domain/fitness/limits"
 import { fitStore } from "@domain/fitness/store"
 import { View } from "react-native"
 import { Copy } from "../native-kit"
-import { MacroRings } from "./fitness-nutrition"
 import { LimitList } from "./nutrient-limits"
+import { MacroRings } from "./nutrition"
 
 /** One day's food against the target: rings for the goals (calories,
  * protein, carbs, fat), a line with the totals, and the "Stay under" bars

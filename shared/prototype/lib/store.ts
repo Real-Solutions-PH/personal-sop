@@ -47,6 +47,9 @@ export function createStore<T>(
     /** false: kept in memory only. For screen state (a sheet or drawer
      * being open) that must not come back on the next launch. */
     persist?: boolean
+    /** Brings state saved by an older build up to the current shape (a
+     * nested record that gained a key, a renamed reference). */
+    upgrade?: (saved: T) => T
   } = {},
 ): Store<T> {
   const storageKey = `sop-proto:${key}`
@@ -78,6 +81,7 @@ export function createStore<T>(
           }
         }
         state = { ...defaults, ...saved } as T
+        if (opts.upgrade) state = opts.upgrade(state)
       }
     } catch (error) {
       report(error)

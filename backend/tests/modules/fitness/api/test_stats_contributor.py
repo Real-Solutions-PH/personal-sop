@@ -44,7 +44,13 @@ def uid(key: str) -> uuid.UUID:
     return uuid.uuid5(NS, key)
 
 
-def write_seed(ctx: Ctx) -> None:
+def write_seed(ctx: Ctx, salt: str = "") -> None:
+    """The prototype seed as rows; ``salt`` keeps a second seeded user's row
+    ids apart from the first's."""
+
+    def rid(key: str) -> uuid.UUID:
+        return uid(salt + key)
+
     st = SEED["settings"]
     owned_repo.insert(
         ctx,
@@ -72,22 +78,22 @@ def write_seed(ctx: Ctx) -> None:
                 "increment": e["increment"],
                 "archived": bool(e.get("archived")),
             },
-            row_id=uid(e["id"]),
+            row_id=rid(e["id"]),
         )
     for order, t in enumerate(SEED["templates"]):
         owned_repo.insert(
             ctx,
             WorkoutTemplate,
             {"name": t["name"], "sort_order": order},
-            row_id=uid(t["id"]),
+            row_id=rid(t["id"]),
         )
         for pos, i in enumerate(t["items"]):
             owned_repo.insert(
                 ctx,
                 TemplateItem,
                 {
-                    "template_id": uid(t["id"]),
-                    "exercise_id": uid(i["exerciseId"]),
+                    "template_id": rid(t["id"]),
+                    "exercise_id": rid(i["exerciseId"]),
                     "position": pos,
                     "sets": i["sets"],
                 },
@@ -98,30 +104,30 @@ def write_seed(ctx: Ctx) -> None:
             Workout,
             {
                 "name": w["name"],
-                "template_id": uid(w["templateId"]) if w.get("templateId") else None,
+                "template_id": rid(w["templateId"]) if w.get("templateId") else None,
                 "started_at": tsr(w["startedAt"]),
                 "ended_at": tsr(w["endedAt"]) if w.get("endedAt") else None,
                 "status": w["status"],
             },
-            row_id=uid(w["id"]),
+            row_id=rid(w["id"]),
         )
         for pos, we in enumerate(w["exercises"]):
             owned_repo.insert(
                 ctx,
                 WorkoutExercise,
                 {
-                    "workout_id": uid(w["id"]),
-                    "exercise_id": uid(we["exerciseId"]),
+                    "workout_id": rid(w["id"]),
+                    "exercise_id": rid(we["exerciseId"]),
                     "position": pos,
                 },
-                row_id=uid(we["id"]),
+                row_id=rid(we["id"]),
             )
             for i, s in enumerate(we["sets"]):
                 owned_repo.insert(
                     ctx,
                     WorkoutSet,
                     {
-                        "workout_exercise_id": uid(we["id"]),
+                        "workout_exercise_id": rid(we["id"]),
                         "position": i,
                         "reps": s["reps"],
                         "weight": s["weight"],
@@ -130,7 +136,7 @@ def write_seed(ctx: Ctx) -> None:
                         if s.get("completedAt")
                         else None,
                     },
-                    row_id=uid(s["id"]),
+                    row_id=rid(s["id"]),
                 )
     for wi in SEED["weighIns"]:
         owned_repo.insert(
@@ -153,7 +159,7 @@ def write_seed(ctx: Ctx) -> None:
                 "carbs": t["carbs"],
                 "fat": t["fat"],
             },
-            row_id=uid(t["id"]),
+            row_id=rid(t["id"]),
         )
     for m in SEED["meals"]:
         owned_repo.insert(
@@ -168,14 +174,14 @@ def write_seed(ctx: Ctx) -> None:
                 "confidence": m.get("confidence"),
                 "follow_up": m.get("followUp"),
             },
-            row_id=uid(m["id"]),
+            row_id=rid(m["id"]),
         )
         for pos, i in enumerate(m["items"]):
             owned_repo.insert(
                 ctx,
                 MealItem,
                 {
-                    "meal_id": uid(m["id"]),
+                    "meal_id": rid(m["id"]),
                     "position": pos,
                     "name": i["name"],
                     "qty": i["qty"],
@@ -249,34 +255,18 @@ def test_snapshot_from_postgres_matches_the_prototype(seeded: User) -> None:
 
 
 def test_area_rate(seeded: User) -> None:
+    """Training only: meals count toward the nutrition area (ADR-0024)."""
     with _ctx(seeded) as ctx:
-        for days, off in [(7, 0), (30, 0)]:
-            p, a = _gold_period(days, -off), _gold_adh(days, off)
-            want = (
-                (p["sessionRate"] + a["calorie"]) / 2
-                if a["logged"]
-                else p["sessionRate"]
-            )
-            assert contributor.area_rate(ctx, _win(days, -off)) == want
-        # A window with no meals logged rates sessions alone.
-        p, a = _gold_period(30, -30), _gold_adh(30, 30)
-        assert a["logged"] == 0
-        assert contributor.area_rate(ctx, _win(30, -30)) == p["sessionRate"]
+        for days, off in [(7, 0), (30, 0), (30, 30)]:
+            p = _gold_period(days, -off)
+            assert contributor.area_rate(ctx, _win(days, -off)) == p["sessionRate"]
 
 
 def test_metrics(seeded: User) -> None:
     with _ctx(seeded) as ctx:
         got = {m.key: m for m in contributor.metrics(ctx, _win(7), _win(7, -7))}
-    cur, prev, a = _gold_period(7, 0), _gold_period(7, -7), _gold_adh(7, 0)
-    assert list(got) == [
-        "sessions",
-        "prs",
-        "volume",
-        "overload",
-        "protein",
-        "calories",
-        "weight",
-    ]
+    cur, prev = _gold_period(7, 0), _gold_period(7, -7)
+    assert list(got) == ["sessions", "prs", "volume", "overload", "weight"]
     assert (got["sessions"].value, got["sessions"].delta) == (
         str(cur["sessions"]),
         cur["sessions"] - prev["sessions"],
@@ -288,8 +278,6 @@ def test_metrics(seeded: User) -> None:
     # 17,479 kg this week vs 25,368.9 kg: "17.5t", -31%.
     assert (got["volume"].value, got["volume"].delta) == ("17.5t", -31)
     assert got["overload"].value == f"{round(GOLD['overloadRate']['28'] * 100)}%"
-    assert got["protein"].value == f"{round(a['protein'] * 100)}%"
-    assert got["calories"].value == f"{round(a['calorie'] * 100)}%"
     rate = GOLD["weeklyRate"]
     assert got["weight"].value == "78.6 kg" and got["weight"].delta == -0.32
     assert rate["avg"] == pytest.approx(78.56)
@@ -307,26 +295,20 @@ def test_misses(seeded: User) -> None:
         for w in weeks
         if w["count"] < 4 and w["start"] >= first
     }
-    over = {
-        f"fit-over-{d['day']}"
-        for d in GOLD["nutritionDays30"]
-        if d["over"] and d["day"] != TODAY.isoformat()
-    }
     stalled = {f"fit-stall-{uid(k)}" for k, v in GOLD["stalled"].items() if v}
-    assert under and over and stalled
-    assert ids == under | over | stalled
+    assert under and stalled
+    assert ids == under | stalled
     assert [m.day for m in misses] == sorted((m.day for m in misses), reverse=True)
 
 
 def test_day_progress_today(seeded: User) -> None:
     with _ctx(seeded) as ctx:
         prog = contributor.day_progress(ctx, [TODAY])[TODAY]
+    """The weigh-in and, while the week is short, a workout; the protein
+    target is the nutrition ring's."""
     week = GOLD["sessionsByWeek"][-1]["count"]
-    nut = GOLD["nutritionDays30"][-1]
-    due = 1 + (1 if week < 4 else 0) + 1
-    done = (1 if TODAY.isoformat() in GOLD["dailyWeights"] else 0) + (
-        1 if nut["proteinHit"] else 0
-    )
+    due = 1 + (1 if week < 4 else 0)
+    done = 1 if TODAY.isoformat() in GOLD["dailyWeights"] else 0
     assert (prog.due, prog.done) == (due, done)
 
 
@@ -337,8 +319,7 @@ def test_facets_and_achievements(seeded: User) -> None:
         cal = contributor.calendar(ctx, _win(7))
     assert facets["training"].value == _gold_period(7, 0)["sessionRate"]
     assert facets["training"].prev == _gold_period(7, -7)["sessionRate"]
-    assert facets["nutrition"].value == _gold_adh(7, 0)["calorie"]
-    assert facets["nutrition"].prev == _gold_adh(7, 7)["calorie"]
+    assert "nutrition" not in facets
     p30 = _gold_period(30, 0)["prs"]
     assert ach["pr-30"].earned is (p30 >= 1) and ach["pr-30"].value == str(p30)
     assert ach["first-workout"].earned and ach["first-pr"].earned

@@ -37,6 +37,7 @@ import {
   Sparkles,
   Sun,
   Target,
+  Utensils,
   Wallet,
   Zap,
 } from "lucide-react-native"
@@ -57,6 +58,7 @@ const modules = {
   habits: { icon: Repeat2, color: "hab" },
   tasks: { icon: ListChecks, color: "tsk" },
   fitness: { icon: Dumbbell, color: "fit" },
+  nutrition: { icon: Utensils, color: "nut" },
   finance: { icon: Wallet, color: "fin" },
 } as const
 export function Onboarding() {
@@ -172,7 +174,7 @@ export function Onboarding() {
       welcome: {
         icon: Compass,
         title: "Your life, one dashboard",
-        body: "Habits, tasks, training and money — logged in seconds, scored honestly, shareable without leaking a cent.",
+        body: "Habits, tasks, training, food and money — logged in seconds, scored honestly, shareable without leaking a cent.",
       },
       identity: {
         icon: Fingerprint,

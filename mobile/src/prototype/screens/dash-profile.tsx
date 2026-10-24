@@ -24,6 +24,7 @@ import {
   ShieldCheck,
   Sparkles,
   Trash2,
+  Utensils,
   Wallet,
 } from "lucide-react-native"
 import { useState } from "react"
@@ -72,8 +73,15 @@ const modules = {
     color: "fit",
     links: [
       ["Exercises", "/fitness/exercises"],
-      ["Macro targets", "/fitness/nutrition/targets"],
       ["Fitness settings", "/fitness/settings"],
+    ],
+  },
+  nutrition: {
+    icon: Utensils,
+    color: "nut",
+    links: [
+      ["Macro targets", "/nutrition/targets"],
+      ["Food library", "/nutrition/foods"],
     ],
   },
   finance: {

@@ -72,6 +72,7 @@ const DOT: Record<ModuleKey, string> = {
   habits: "bg-hab",
   tasks: "bg-tsk",
   fitness: "bg-fit",
+  nutrition: "bg-nut",
   finance: "bg-fin",
 }
 

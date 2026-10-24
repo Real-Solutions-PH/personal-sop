@@ -5073,6 +5073,162 @@ export const FollowUpAnswerInSchema = {
     title: 'FollowUpAnswerIn'
 } as const;
 
+export const FoodOutSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        name: {
+            type: 'string',
+            title: 'Name'
+        },
+        aliases: {
+            items: {
+                type: 'string'
+            },
+            type: 'array',
+            title: 'Aliases'
+        },
+        basis: {
+            type: 'string',
+            title: 'Basis'
+        },
+        unit_grams: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Unit Grams'
+        },
+        state: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'State'
+        },
+        kcal: {
+            type: 'number',
+            title: 'Kcal'
+        },
+        protein: {
+            type: 'number',
+            title: 'Protein'
+        },
+        carbs: {
+            type: 'number',
+            title: 'Carbs'
+        },
+        fat: {
+            type: 'number',
+            title: 'Fat'
+        },
+        fiber: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Fiber'
+        },
+        sat_fat: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Sat Fat'
+        },
+        sugar: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Sugar'
+        },
+        sodium: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Sodium'
+        },
+        source: {
+            type: 'string',
+            title: 'Source'
+        },
+        verified: {
+            type: 'boolean',
+            title: 'Verified'
+        },
+        use_count: {
+            type: 'integer',
+            title: 'Use Count'
+        },
+        last_used_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Last Used At'
+        }
+    },
+    type: 'object',
+    required: ['id', 'name', 'aliases', 'basis', 'unit_grams', 'state', 'kcal', 'protein', 'carbs', 'fat', 'fiber', 'sat_fat', 'sugar', 'sodium', 'source', 'verified', 'use_count', 'last_used_at'],
+    title: 'FoodOut',
+    description: `One food of the person's library. Amounts are per \`\`basis\`\` (per
+100 g, per piece or per serving); sodium is in milligrams, every other
+amount in grams.`
+} as const;
+
+export const FoodsOutSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/FoodOut'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'FoodsOut'
+} as const;
+
 export const FxRatePublicSchema = {
     properties: {
         base: {
@@ -8621,7 +8777,7 @@ export const MeBundleSchema = {
         setup_skipped: {
             items: {
                 type: 'string',
-                enum: ['habits', 'tasks', 'fitness', 'finance']
+                enum: ['habits', 'tasks', 'fitness', 'nutrition', 'finance']
             },
             type: 'array',
             title: 'Setup Skipped'
@@ -9809,7 +9965,7 @@ export const ModulePrefPublicSchema = {
     properties: {
         module: {
             type: 'string',
-            enum: ['habits', 'tasks', 'fitness', 'finance'],
+            enum: ['habits', 'tasks', 'fitness', 'nutrition', 'finance'],
             title: 'Module'
         },
         enabled: {
@@ -10503,7 +10659,7 @@ export const OnboardingInSchema = {
         modules: {
             items: {
                 type: 'string',
-                enum: ['habits', 'tasks', 'fitness', 'finance']
+                enum: ['habits', 'tasks', 'fitness', 'nutrition', 'finance']
             },
             type: 'array',
             maxItems: 4,
@@ -10520,7 +10676,7 @@ export const OnboardingInSchema = {
                 type: 'number'
             },
             propertyNames: {
-                enum: ['habits', 'tasks', 'fitness', 'finance']
+                enum: ['habits', 'tasks', 'fitness', 'nutrition', 'finance']
             },
             type: 'object',
             title: 'Targets'
@@ -10543,7 +10699,7 @@ export const OnboardingOutSchema = {
         skipped: {
             items: {
                 type: 'string',
-                enum: ['habits', 'tasks', 'fitness', 'finance']
+                enum: ['habits', 'tasks', 'fitness', 'nutrition', 'finance']
             },
             type: 'array',
             title: 'Skipped'
