@@ -45,7 +45,9 @@ Sink = Callable[[BaseEvent], None]
 # What a running step says, per tool ("Adding a task…").
 # Tools a turn calls once; a repeat returns the first answer (the tool
 # enforces it) and draws no second step line.
-ONCE_A_TURN = frozenset({"recall_memories"})
+# Tools that run once a turn. Seen live: confirm_pending called twice in
+# one reply, each step listing the same refusals.
+ONCE_A_TURN = frozenset({"recall_memories", "confirm_pending", "discard_pending"})
 
 RUNNING: dict[str, str] = {
     "create_tasks": "Adding to your tasks",
@@ -206,6 +208,8 @@ def outcome(ctx: Ctx, name: str, args: dict[str, Any], result: Any) -> tuple[boo
             "log_transfer": "Logged transfer",
             "add_planned": "Planned payment",
         }[name]
+        if res.get("already_waiting"):
+            what = "Already waiting"
         label = args.get("category") or args.get("name") or args.get("payee") or ""
         return True, f"{what}: {amt}{f' · {label}' if label else ''}{wait}"
     if name == "create_account":
