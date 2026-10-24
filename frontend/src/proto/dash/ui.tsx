@@ -225,6 +225,7 @@ const AREA_TINT: Record<ModuleKey, string> = {
   habits: "bg-hab/15 text-hab",
   tasks: "bg-tsk/15 text-tsk",
   fitness: "bg-fit/15 text-fit",
+  nutrition: "bg-nut/15 text-nut",
   finance: "bg-fin/15 text-fin",
 }
 
@@ -269,6 +270,7 @@ export function ModuleDot({
     habits: "bg-hab",
     tasks: "bg-tsk",
     fitness: "bg-fit",
+    nutrition: "bg-nut",
     finance: "bg-fin",
   }[module]
   return (
