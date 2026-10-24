@@ -329,14 +329,24 @@ test("an area with nothing to rate is left out of the Life Score, as on the serv
     tasks: 0.5,
     fitness: 0.25,
     nutrition: 0,
+    focus: 0,
     finance: 0,
   }
-  const weights = { habits: 3, tasks: 2, fitness: 3, nutrition: 2, finance: 2 }
+  // Focus (ADR-0025) switched off, so the sums above stay as they were.
+  const weights = {
+    habits: 3,
+    tasks: 2,
+    fitness: 3,
+    nutrition: 2,
+    focus: 2,
+    finance: 2,
+  }
   const enabled = {
     habits: true,
     tasks: true,
     fitness: true,
     nutrition: true,
+    focus: false,
     finance: true,
   }
   const rated = {
@@ -344,6 +354,7 @@ test("an area with nothing to rate is left out of the Life Score, as on the serv
     tasks: true,
     fitness: true,
     nutrition: false,
+    focus: false,
     finance: false,
   }
   expect(lifeScoreOf(rates, weights, enabled, rated)).toBe(35)
@@ -354,6 +365,7 @@ test("an area with nothing to rate is left out of the Life Score, as on the serv
     tasks: false,
     fitness: false,
     nutrition: false,
+    focus: false,
     finance: false,
   }
   expect(lifeScoreOf(rates, weights, enabled, none)).toBeNull()
@@ -525,6 +537,7 @@ test("live: calendar, misses, ring, achievements, trophies, metric detail", () =
       tasks: { due: 0, done: 0 },
       fitness: { due: 0, done: 0 },
       nutrition: { due: 0, done: 0 },
+      focus: { due: 0, done: 0 },
       finance: { due: 0, done: 0 },
     },
   })

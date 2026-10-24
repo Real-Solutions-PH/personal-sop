@@ -12,6 +12,10 @@ import { finStore } from "@domain/finance/store"
 import { startWorkout } from "@domain/fitness/actions"
 import * as F from "@domain/fitness/calc"
 import { fitStore } from "@domain/fitness/store"
+import { liveTimeline, startFocus } from "@domain/focus/actions"
+import * as C from "@domain/focus/calc"
+import * as FL from "@domain/focus/logic"
+import { focusStore } from "@domain/focus/store"
 import * as HA from "@domain/habits/actions"
 import type { Habit } from "@domain/habits/data"
 import * as H from "@domain/habits/logic"
@@ -26,6 +30,7 @@ import { tasksStore } from "@domain/tasks/store"
 import { useLocalSearchParams } from "expo-router"
 import {
   AlarmClock,
+  ArrowRight,
   Bell,
   CalendarClock,
   Camera,
@@ -50,6 +55,7 @@ import {
   Smartphone,
   Sparkles,
   Target,
+  Timer,
   TriangleAlert,
   Trophy,
   Utensils,
@@ -115,6 +121,7 @@ export function DayHero() {
     tasks: "tsk",
     fitness: "fit",
     nutrition: "nut",
+    focus: "foc",
     finance: "fin",
   } as const
   return (
@@ -1080,6 +1087,69 @@ function NutritionCard() {
     </Group>
   )
 }
+/** Today's focus against the goal, what is running, and a way to start. */
+function FocusCard() {
+  const t = useTheme(),
+    f = focusStore.use((x) => x),
+    now = useNow(),
+    today = dayKey(new Date(now)),
+    sec = C.rangeStats(f, today, today, now).byDay[today] ?? 0,
+    goal = C.goalSec(f),
+    tl = liveTimeline(f, now),
+    p = tl ? FL.phase(tl, now) : null
+  return (
+    <Group title="Focus" icon={Timer} accent="foc" href="/focus">
+      <Part style={{ gap: 12 }}>
+        <Line>
+          <View style={{ flex: 1 }}>
+            <Copy size={24} style={{ fontFamily: fonts.mono, lineHeight: 30 }}>
+              {FL.fmtHm(sec)}
+              {goal ? (
+                <Copy size={14} muted>
+                  {" "}
+                  / {FL.fmtHm(goal)}
+                </Copy>
+              ) : null}
+            </Copy>
+            <Copy size={12} muted lines={1}>
+              {p
+                ? `${p.status === "paused" ? "Paused" : p.kind === "break" ? "On a break" : "Focusing"}${p.remaining !== null ? ` · ${FL.fmtClock(p.remaining)} left` : ""}${p.item?.title ? ` · ${p.item.title}` : ""}`
+                : goal && sec < goal
+                  ? `${FL.fmtHm(goal - sec)} to today's goal`
+                  : goal
+                    ? "Daily goal reached"
+                    : "Focused today"}
+            </Copy>
+          </View>
+          <View style={{ width: 120 }}>
+            <Button
+              small
+              icon={p ? ArrowRight : Play}
+              onPress={() => {
+                if (!p) startFocus()
+                go("/focus")
+              }}
+            >
+              {p ? "Open" : "Start"}
+            </Button>
+          </View>
+        </Line>
+        {goal > 0 && (
+          <View style={{ height: 6, borderRadius: 3, backgroundColor: t.soft }}>
+            <View
+              style={{
+                height: 6,
+                borderRadius: 3,
+                width: `${Math.min(100, (sec / goal) * 100)}%`,
+                backgroundColor: sec >= goal ? t.good : t.foc,
+              }}
+            />
+          </View>
+        )}
+      </Part>
+    </Group>
+  )
+}
 function FinanceCard() {
   const t = useTheme(),
     s = finStore.use((s) => s),
@@ -1497,8 +1567,16 @@ export function Today() {
     fit = fitStore.use(
       (s) => s.templates.length + s.workouts.length + s.weighIns.length,
     ),
-    nut = fitStore.use((s) => s.targets.length + s.meals.length)
-  const has = { habits, tasks, finance: fin, fitness: fit, nutrition: nut },
+    nut = fitStore.use((s) => s.targets.length + s.meals.length),
+    foc = focusStore.use((s) => s.sessions.length + (s.settingsSaved ? 1 : 0))
+  const has = {
+      habits,
+      tasks,
+      finance: fin,
+      fitness: fit,
+      nutrition: nut,
+      focus: foc,
+    },
     pending = MODULE_KEYS.filter((k) => s.enabled[k] && !has[k]),
     greeting =
       date.getHours() >= 4 && date.getHours() < 12
@@ -1639,6 +1717,7 @@ export function Today() {
       {s.enabled.tasks && <TasksCard />}
       {s.enabled.fitness && <FitnessCards />}
       {s.enabled.nutrition && <NutritionCard />}
+      {s.enabled.focus && <FocusCard />}
       {s.enabled.finance && <FinanceCard />}
       <CommunityCard />
       <GoalsAndContext evening={evening} />

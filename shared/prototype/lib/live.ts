@@ -1,6 +1,6 @@
 "use client"
 import { createStore } from "./store"
-export type LiveKind = "timer" | "routine" | "workout"
+export type LiveKind = "timer" | "routine" | "workout" | "focus"
 export interface Live {
   kind: LiveKind
   label: string

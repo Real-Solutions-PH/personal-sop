@@ -80,6 +80,7 @@ function onlyHabits(onboarded: boolean) {
       tasks: false,
       fitness: false,
       nutrition: false,
+      focus: false,
       finance: false,
     },
   }))

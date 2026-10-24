@@ -2,6 +2,7 @@ import * as D from "@domain/dash/hooks"
 import { dashStore } from "@domain/dash/store"
 import { finStore } from "@domain/finance/store"
 import { fitStore } from "@domain/fitness/store"
+import { focusStore } from "@domain/focus/store"
 import { habitsStore } from "@domain/habits/store"
 import { dayKey } from "@domain/lib/day"
 import { liveStore } from "@domain/lib/live"
@@ -58,6 +59,7 @@ function Bridge() {
   const targetThreshold = dashStore.use((s) => s.targetThreshold)
   const enabled = dashStore.use((s) => s.enabled)
   const live = liveStore.use((s) => s.live)
+  const focus = focusStore.use((s) => s)
   const privacy = privacyStore.use((s) => s.hidden)
   const ring = D.useTodayRing()
   const lifeScore = D.useLifeScore(7).score
@@ -129,13 +131,13 @@ function Bridge() {
   ])
 
   useEffect(() => {
-    const state = buildLiveState({ live, habits, fit })
+    const state = buildLiveState({ live, habits, fit, focus })
     const key = liveKey(state)
     if (key === lastLive.current) return
     if (state && !lastLive.current) void askNotifications()
     lastLive.current = key
     writeLive(state)
-  }, [live, habits, fit])
+  }, [live, habits, fit, focus])
 
   return null
 }

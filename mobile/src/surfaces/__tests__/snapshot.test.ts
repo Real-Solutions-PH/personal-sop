@@ -206,6 +206,7 @@ it("a module switched off leaves its widget empty", () => {
           tasks: false,
           fitness: false,
           nutrition: false,
+          focus: false,
           finance: false,
         },
       },

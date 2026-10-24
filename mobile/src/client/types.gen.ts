@@ -364,6 +364,68 @@ export type app__modules__fitness__schema__StatsOut = {
     area_rate: number;
 };
 
+export type app__modules__focus__schema__DayOut = {
+    day: string;
+    starts_at: string;
+    ends_at: string;
+    focus_sec: number;
+    goal_min: number;
+    blocks: Array<Block>;
+};
+
+export type app__modules__focus__schema__ExtendIn = {
+    sec: number;
+};
+
+export type app__modules__focus__schema__SettingsIn = {
+    daily_goal_min?: (number | null);
+    mode?: ('pomodoro' | 'stopwatch' | null);
+    preset?: ('25-5' | '50-10' | '90-20' | 'custom' | null);
+    focus_min?: (number | null);
+    short_break_min?: (number | null);
+    long_break_min?: (number | null);
+    sets_before_long?: (number | null);
+    auto_start_breaks?: (boolean | null);
+    auto_start_focus?: (boolean | null);
+    notify?: (boolean | null);
+};
+
+export type app__modules__focus__schema__SettingsPublic = {
+    daily_goal_min: number;
+    mode: 'pomodoro' | 'stopwatch';
+    preset: (string | null);
+    focus_min: number;
+    short_break_min: number;
+    long_break_min: number;
+    sets_before_long: number;
+    auto_start_breaks: boolean;
+    auto_start_focus: boolean;
+    notify: boolean;
+};
+
+export type mode = 'pomodoro' | 'stopwatch';
+
+export type app__modules__focus__schema__TodayOut = {
+    day: string;
+    goal_min: number;
+    focus_sec: number;
+    sets_completed: number;
+    sessions: number;
+    streak: number;
+    items: Array<ItemTime>;
+    current: (SessionDetail | null);
+};
+
+export type app__modules__habits__schema__ExtendIn = {
+    sec: number;
+};
+
+export type app__modules__habits__schema__SettingsIn = {
+    week_start?: (0 | 1 | null);
+    default_reminder?: (boolean | null);
+    streak_nudge?: (boolean | null);
+};
+
 export type app__modules__habits__schema__SettingsPublic = {
     week_start: number;
     default_reminder: boolean;
@@ -434,6 +496,13 @@ export type app__modules__social__schema__TodayPublic = {
     latest_post: (PostPublic | null);
 };
 
+export type app__modules__stats__schema__DayOut = {
+    day: string;
+    due: number;
+    done: number;
+    on_target: (boolean | null);
+};
+
 export type app__modules__stats__schema__OverviewOut = {
     range: '7d' | '30d' | '90d' | '1y';
     days: number;
@@ -445,7 +514,7 @@ export type app__modules__stats__schema__OverviewOut = {
     level: LevelOut;
     areas: Array<AreaOut>;
     on_target: OnTargetOut;
-    days_series: Array<DayOut>;
+    days_series: Array<app__modules__stats__schema__DayOut>;
     logged_days: number;
     gate_open: boolean;
     today: RingOut;
@@ -469,6 +538,16 @@ export type app__modules__stats__schema__SeriesOut = {
 };
 
 export type kind2 = 'line' | 'bars' | 'donut';
+
+export type app__modules__stats__schema__TodayOut = {
+    day: string;
+    ring: RingOut;
+    life_score: (number | null);
+    level: string;
+    on_target_now: boolean;
+    threshold: number;
+    streak: number;
+};
 
 export type app__modules__tasks__schema__CaptureIn = {
     text: string;
@@ -622,6 +701,22 @@ export type Badges = {
     activity_unread: number;
     chats_unread: number;
 };
+
+/**
+ * One span on the day timeline, clipped to the day.
+ */
+export type Block = {
+    session_id: string;
+    segment_id: string;
+    kind: 'focus' | 'break' | 'pause';
+    start: string;
+    end: string;
+    running: boolean;
+    abandoned: boolean;
+    item: (ItemRef | null);
+};
+
+export type kind4 = 'focus' | 'break' | 'pause';
 
 export type BodyOut = {
     latest: (WeighInPublic | null);
@@ -794,7 +889,7 @@ export type CatalogModelOut = {
     usd_out: number;
 };
 
-export type kind4 = 'text' | 'vision';
+export type kind5 = 'text' | 'vision';
 
 export type CategoriesPublic = {
     data: Array<CategoryPublic>;
@@ -812,7 +907,7 @@ export type CategoryCreate = {
     id?: (string | null);
 };
 
-export type kind5 = 'expense' | 'income';
+export type kind6 = 'expense' | 'income';
 
 export type CategoryFields = {
     name?: (string | null);
@@ -1050,16 +1145,15 @@ export type DayIn = {
     entries: Array<DayEntry>;
 };
 
-export type DayOut = {
-    day: string;
-    due: number;
-    done: number;
-    on_target: (boolean | null);
-};
-
 export type DayPublic = {
     day: string;
     habits: Array<DayHabit>;
+};
+
+export type DayTotal = {
+    day: string;
+    focus_sec: number;
+    on_goal: boolean;
 };
 
 export type DayVerdictOut = {
@@ -1099,7 +1193,7 @@ export type DraftPublic = {
     updated_at: (string | null);
 };
 
-export type kind6 = 'post' | 'story';
+export type kind7 = 'post' | 'story';
 
 export type DueIn = {
     due_date: (string | null);
@@ -1246,10 +1340,6 @@ export type ExpensePayload = {
 export type ExplorePublic = {
     suggested: Array<PersonBrief>;
     popular: Array<PostPublic>;
-};
-
-export type ExtendIn = {
-    sec: number;
 };
 
 export type ExtractedIn = {
@@ -1767,6 +1857,21 @@ export type ItemPublic = {
     created_at?: (string | null);
 };
 
+export type ItemRef = {
+    kind: 'task' | 'habit';
+    id: string;
+    title?: (string | null);
+};
+
+export type kind8 = 'task' | 'habit';
+
+export type ItemSession = {
+    session_id: string;
+    day: (string | null);
+    started_at: string;
+    focus_sec: number;
+};
+
 export type ItemSpec = {
     name: string;
     qty: number;
@@ -1782,6 +1887,23 @@ export type ItemSpec = {
 export type ItemsPublic = {
     data: Array<ItemPublic>;
     count: number;
+};
+
+export type ItemTime = {
+    item: (ItemRef | null);
+    focus_sec: number;
+};
+
+/**
+ * Time spent on one task or habit, and the sessions it came from.
+ */
+export type ItemTimeOut = {
+    item: ItemRef;
+    focus_sec: number;
+    today_sec: number;
+    week_sec: number;
+    estimate_min: (number | null);
+    recent: Array<ItemSession>;
 };
 
 export type ItemUpdate = {
@@ -1884,7 +2006,7 @@ export type ListCreate = {
     icon?: 'briefcase' | 'laptop' | 'home' | 'cart' | 'heart' | 'book' | 'plane' | 'gift' | 'list';
 };
 
-export type kind7 = 'standard' | 'shopping';
+export type kind9 = 'standard' | 'shopping';
 
 export type color = 'tsk' | 'fin' | 'hab' | 'fit' | 'life' | 'warn';
 
@@ -1937,7 +2059,7 @@ export type LivePublic = {
     paused_sec: number;
 };
 
-export type kind8 = 'timer' | 'routine' | 'workout';
+export type kind10 = 'timer' | 'routine' | 'workout';
 
 export type LiveState = {
     live: (LivePublic | null);
@@ -2157,7 +2279,7 @@ export type MeBundle = {
     profile: ProfilePublic;
     modules: Array<ModulePrefPublic>;
     identities: Array<IdentityPublic>;
-    setup_skipped: Array<('habits' | 'tasks' | 'fitness' | 'nutrition' | 'finance')>;
+    setup_skipped: Array<('habits' | 'tasks' | 'fitness' | 'nutrition' | 'focus' | 'finance')>;
     live: (LivePublic | null);
 };
 
@@ -2167,7 +2289,7 @@ export type MediaIn = {
     ratio?: (number | null);
 };
 
-export type kind9 = 'image' | 'video';
+export type kind11 = 'image' | 'video';
 
 export type MediaPublic = {
     media_id: string;
@@ -2190,7 +2312,7 @@ export type MediaWithUrl = {
     url?: (string | null);
 };
 
-export type kind10 = 'image' | 'video' | 'audio' | 'file';
+export type kind12 = 'image' | 'video' | 'audio' | 'file';
 
 export type state = 'pending' | 'ready' | 'rejected';
 
@@ -2277,12 +2399,12 @@ export type ModelsOut = {
 };
 
 export type ModulePrefPublic = {
-    module: 'habits' | 'tasks' | 'fitness' | 'nutrition' | 'finance';
+    module: 'habits' | 'tasks' | 'fitness' | 'nutrition' | 'focus' | 'finance';
     enabled: boolean;
     weight: number;
 };
 
-export type module = 'habits' | 'tasks' | 'fitness' | 'nutrition' | 'finance';
+export type module = 'habits' | 'tasks' | 'fitness' | 'nutrition' | 'focus' | 'finance';
 
 export type ModulePrefUpdate = {
     enabled?: (boolean | null);
@@ -2361,7 +2483,7 @@ export type NotificationPublic = {
     version: number;
 };
 
-export type kind11 = 'reminder' | 'achievement' | 'review' | 'system' | 'social';
+export type kind13 = 'reminder' | 'achievement' | 'review' | 'system' | 'social';
 
 export type NotificationsOut = {
     data: Array<NotificationPublic>;
@@ -2433,7 +2555,7 @@ export type Ok = {
 };
 
 export type OnboardingIn = {
-    modules: Array<('habits' | 'tasks' | 'fitness' | 'nutrition' | 'finance')>;
+    modules: Array<('habits' | 'tasks' | 'fitness' | 'nutrition' | 'focus' | 'finance')>;
     pace?: 'gentle' | 'steady' | 'ambitious';
     targets?: {
         [key: string]: (number);
@@ -2444,7 +2566,7 @@ export type pace = 'gentle' | 'steady' | 'ambitious';
 
 export type OnboardingOut = {
     created: Array<GoalPublic>;
-    skipped: Array<('habits' | 'tasks' | 'fitness' | 'nutrition' | 'finance')>;
+    skipped: Array<('habits' | 'tasks' | 'fitness' | 'nutrition' | 'focus' | 'finance')>;
 };
 
 export type OnceSchedule = {
@@ -2499,6 +2621,7 @@ export type OverdueTask = {
     reschedule_count: number;
     sort_order: number;
     series_parent_id: (string | null);
+    estimate_min?: (number | null);
     version: number;
     days_late: number;
 };
@@ -2601,6 +2724,22 @@ export type PersonPublic = {
     scores_visible: boolean;
     show_scores: boolean;
 };
+
+export type PhaseOut = {
+    status: 'running' | 'paused' | 'waiting' | 'ended';
+    kind: 'focus' | 'break';
+    set_index: number;
+    planned_sec: (number | null);
+    elapsed_sec: number;
+    remaining_sec: (number | null);
+    long_break: boolean;
+    ends_at: (string | null);
+    item: (ItemRef | null);
+};
+
+export type status5 = 'running' | 'paused' | 'waiting' | 'ended';
+
+export type kind14 = 'focus' | 'break';
 
 export type PhotoPayload = {
     kind: "photo";
@@ -2933,6 +3072,17 @@ export type QuickAddIn = {
     payload: (ExpensePayload | IncomePayload | TransferPayload | PlannedPayload | TaskPayload | TaskCompletePayload | HabitLogPayload | HabitCreatePayload | RoutineStartPayload | WorkoutPayload | WeighInPayload | MealPayload | JournalPayload | PhotoPayload | CommandPayload);
 };
 
+export type RangeOut = {
+    first: string;
+    last: string;
+    goal_min: number;
+    days: Array<DayTotal>;
+    items: Array<ItemTime>;
+    focus_sec: number;
+    streak: number;
+    best_streak: number;
+};
+
 export type ReactionIn = {
     emoji: string;
 };
@@ -3042,7 +3192,7 @@ export type Recurrence = {
     mode?: 'fixed' | 'after';
 };
 
-export type mode = 'fixed' | 'after';
+export type mode2 = 'fixed' | 'after';
 
 export type Reestimate = {
     hint?: (string | null);
@@ -3326,6 +3476,20 @@ export type SealIn = {
     id?: (string | null);
 };
 
+export type SegmentPublic = {
+    id: string;
+    session_id: string;
+    kind: 'focus' | 'break' | 'pause';
+    started_at: string;
+    ended_at: (string | null);
+    set_index: number;
+    planned_sec: (number | null);
+    item_kind: ('task' | 'habit' | null);
+    item_id: (string | null);
+    item_title: (string | null);
+    version: number;
+};
+
 export type SemimonthlySchedule = {
     kind: "semimonthly";
     days: [
@@ -3345,6 +3509,57 @@ export type ServerDefaultOut = {
     provider: string;
     model: string;
     vision_model: string;
+};
+
+export type SessionDetail = {
+    id: string;
+    mode: 'pomodoro' | 'stopwatch';
+    preset: (string | null);
+    focus_min: number;
+    short_break_min: number;
+    long_break_min: number;
+    sets_before_long: number;
+    auto_start_breaks: boolean;
+    auto_start_focus: boolean;
+    started_at: string;
+    ended_at: (string | null);
+    end_reason: ('completed' | 'abandoned' | null);
+    item_kind: ('task' | 'habit' | null);
+    item_id: (string | null);
+    item_title: (string | null);
+    day: (string | null);
+    focus_sec: number;
+    sets_completed: number;
+    version: number;
+    segments: Array<SegmentPublic>;
+    phase: PhaseOut;
+};
+
+export type SessionPublic = {
+    id: string;
+    mode: 'pomodoro' | 'stopwatch';
+    preset: (string | null);
+    focus_min: number;
+    short_break_min: number;
+    long_break_min: number;
+    sets_before_long: number;
+    auto_start_breaks: boolean;
+    auto_start_focus: boolean;
+    started_at: string;
+    ended_at: (string | null);
+    end_reason: ('completed' | 'abandoned' | null);
+    item_kind: ('task' | 'habit' | null);
+    item_id: (string | null);
+    item_title: (string | null);
+    day: (string | null);
+    focus_sec: number;
+    sets_completed: number;
+    version: number;
+};
+
+export type SessionsOut = {
+    data: Array<SessionPublic>;
+    count: number;
 };
 
 export type SetIn = {
@@ -3383,12 +3598,6 @@ export type SettingsFields = {
     nudge_days?: (number | null);
     proj_excluded_planned?: (Array<(string)> | null);
     setup_done?: (boolean | null);
-};
-
-export type SettingsIn = {
-    week_start?: (0 | 1 | null);
-    default_reminder?: (boolean | null);
-    streak_nudge?: (boolean | null);
 };
 
 export type SettingsUpdate = {
@@ -3497,6 +3706,17 @@ export type SocialProfileUpdate = {
     show_scores?: (boolean | null);
 };
 
+export type StartIn = {
+    id?: (string | null);
+    mode?: ('pomodoro' | 'stopwatch' | null);
+    preset?: ('25-5' | '50-10' | '90-20' | 'custom' | null);
+    focus_min?: (number | null);
+    short_break_min?: (number | null);
+    long_break_min?: (number | null);
+    sets_before_long?: (number | null);
+    item?: (ItemRef | null);
+};
+
 export type StartWorkout = {
     source?: 'empty' | 'template' | 'repeat';
     template_id?: (string | null);
@@ -3566,6 +3786,10 @@ export type StepsIn = {
     steps: Array<StepIn>;
 };
 
+export type StopIn = {
+    abandon?: boolean;
+};
+
 export type StoryCreate = {
     id?: (string | null);
     kind: 'image' | 'video' | 'text' | 'progress';
@@ -3579,7 +3803,7 @@ export type StoryCreate = {
     audience?: 'everyone' | 'close';
 };
 
-export type kind12 = 'image' | 'video' | 'text' | 'progress';
+export type kind15 = 'image' | 'video' | 'text' | 'progress';
 
 export type audience = 'everyone' | 'close';
 
@@ -3642,6 +3866,10 @@ export type SummaryStep = {
     streak: number;
 };
 
+export type SwitchIn = {
+    item?: (ItemRef | null);
+};
+
 export type SyncChange = {
     entity: string;
     id: string;
@@ -3663,7 +3891,7 @@ export type SyncOp = {
     base_version?: (number | null);
 };
 
-export type kind13 = 'upsert' | 'delete' | 'action';
+export type kind16 = 'upsert' | 'delete' | 'action';
 
 export type SyncOpResult = {
     op_id: string;
@@ -3679,7 +3907,7 @@ export type SyncOpResult = {
     replayed?: boolean;
 };
 
-export type status5 = 'applied' | 'conflict' | 'rejected';
+export type status6 = 'applied' | 'conflict' | 'rejected';
 
 export type SyncPull = {
     changes: Array<SyncChange>;
@@ -3756,6 +3984,7 @@ export type TaskDetail = {
     reschedule_count: number;
     sort_order: number;
     series_parent_id: (string | null);
+    estimate_min?: (number | null);
     version: number;
     repeat_text?: (string | null);
     list_name?: string;
@@ -3797,6 +4026,7 @@ export type TaskPublic = {
     reschedule_count: number;
     sort_order: number;
     series_parent_id: (string | null);
+    estimate_min?: (number | null);
     version: number;
 };
 
@@ -3822,6 +4052,7 @@ export type TaskUpdate = {
     recurrence?: (Recurrence | null);
     remind_at?: (string | null);
     due_time?: (string | null);
+    estimate_min?: (number | null);
 };
 
 export type TemplateItemOut = {
@@ -3946,16 +4177,6 @@ export type TodayHabit = {
     group: string;
     time: (string | null);
     log: (LogPublic | null);
-    streak: number;
-};
-
-export type TodayOut = {
-    day: string;
-    ring: RingOut;
-    life_score: (number | null);
-    level: string;
-    on_target_now: boolean;
-    threshold: number;
     streak: number;
 };
 
@@ -4364,7 +4585,7 @@ export type WrapActionIn = {
     note?: (string | null);
 };
 
-export type kind14 = 'complete_task' | 'move_task_tomorrow' | 'check_habit' | 'skip_habit';
+export type kind17 = 'complete_task' | 'move_task_tomorrow' | 'check_habit' | 'skip_habit';
 
 export type WrapActionOut = {
     kind: string;
@@ -5725,6 +5946,90 @@ export type FitnessResetResponse = (ResetOut);
 
 export type FitnessStartFreshResponse = (ResetOut);
 
+export type FocusFocusTodayResponse = (app__modules__focus__schema__TodayOut);
+
+export type FocusFocusRangeData = {
+    first?: (string | null);
+    last?: (string | null);
+};
+
+export type FocusFocusRangeResponse = (RangeOut);
+
+export type FocusFocusDayData = {
+    day?: (string | null);
+};
+
+export type FocusFocusDayResponse = (app__modules__focus__schema__DayOut);
+
+export type FocusFocusItemData = {
+    itemId: string;
+    kind: 'task' | 'habit';
+};
+
+export type FocusFocusItemResponse = (ItemTimeOut);
+
+export type FocusGetSettingsResponse = (app__modules__focus__schema__SettingsPublic);
+
+export type FocusPutSettingsData = {
+    requestBody: app__modules__focus__schema__SettingsIn;
+};
+
+export type FocusPutSettingsResponse = (app__modules__focus__schema__SettingsPublic);
+
+export type FocusListSessionsData = {
+    day?: (string | null);
+    limit?: number;
+    skip?: number;
+};
+
+export type FocusListSessionsResponse = (SessionsOut);
+
+export type FocusStartData = {
+    requestBody: StartIn;
+};
+
+export type FocusStartResponse = (SessionDetail);
+
+export type FocusCurrentResponse = ((SessionDetail | null));
+
+export type FocusPauseResponse = (SessionDetail);
+
+export type FocusResumeResponse = (SessionDetail);
+
+export type FocusStartNextResponse = (SessionDetail);
+
+export type FocusSkipBreakResponse = (SessionDetail);
+
+export type FocusExtendData = {
+    requestBody: app__modules__focus__schema__ExtendIn;
+};
+
+export type FocusExtendResponse = (SessionDetail);
+
+export type FocusSwitchData = {
+    requestBody: SwitchIn;
+};
+
+export type FocusSwitchResponse = (SessionDetail);
+
+export type FocusStopData = {
+    requestBody: StopIn;
+};
+
+export type FocusStopResponse = (SessionDetail);
+
+export type FocusGetSessionData = {
+    sessionId: string;
+};
+
+export type FocusGetSessionResponse = (SessionDetail);
+
+export type FocusDeleteSessionData = {
+    sessionId: string;
+};
+
+export type FocusDeleteSessionResponse = (Message);
+
 export type HabitsHabitsHomeData = {
     days?: number;
     sort?: 'rate' | 'streak' | 'skip' | 'name';
@@ -5744,7 +6049,7 @@ export type HabitsArchivedHabitsResponse = (ArchivedPublic);
 export type HabitsReadSettingsResponse = (app__modules__habits__schema__SettingsPublic);
 
 export type HabitsUpdateSettingsData = {
-    requestBody: SettingsIn;
+    requestBody: app__modules__habits__schema__SettingsIn;
 };
 
 export type HabitsUpdateSettingsResponse = (app__modules__habits__schema__SettingsPublic);
@@ -5756,7 +6061,7 @@ export type HabitsPauseTimerResponse = (TimerPublic);
 export type HabitsResumeTimerResponse = (TimerPublic);
 
 export type HabitsExtendTimerData = {
-    requestBody: ExtendIn;
+    requestBody: app__modules__habits__schema__ExtendIn;
 };
 
 export type HabitsExtendTimerResponse = (TimerPublic);
@@ -6675,7 +6980,7 @@ export type StatsCalendarResponse = (CalendarOut);
 
 export type StatsAchievementsResponse = (AchievementsOut);
 
-export type StatsTodayResponse = (TodayOut);
+export type StatsTodayResponse = (app__modules__stats__schema__TodayOut);
 
 export type StatsFacetsData = {
     range?: '7d' | '30d' | '90d' | '1y';

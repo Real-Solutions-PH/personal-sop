@@ -1,3 +1,4 @@
+import { startFocus } from "@domain/focus/actions"
 import * as A from "@domain/habits/actions"
 import type { Habit } from "@domain/habits/data"
 import * as L from "@domain/habits/logic"
@@ -12,6 +13,7 @@ import {
 } from "lucide-react-native"
 import { useState } from "react"
 import { View } from "react-native"
+import { FocusTimeCard } from "../focus-kit"
 import { Copy, Frame, IconTap, Line, SectionHeading, Tap } from "../native-kit"
 import { go } from "../navigation"
 import { useTheme } from "../theme"
@@ -360,6 +362,16 @@ export function HabitDetail({ id }: { id: string }) {
           </Copy>
         )}
       </View>
+      <FocusTimeCard
+        item={{ kind: "habit", id: h.id, title: h.name }}
+        estimateMin={h.type === "duration" ? h.target : undefined}
+        estimateLabel="daily target"
+        against="today"
+        onStart={() => {
+          startFocus({ item: { kind: "habit", id: h.id, title: h.name } })
+          go("/focus")
+        }}
+      />
       <View style={{ marginTop: -12 }}>
         <SectionHeading>Calendar</SectionHeading>
         <Frame style={{ padding: 16 }}>

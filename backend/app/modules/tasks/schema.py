@@ -172,6 +172,7 @@ class TaskUpdate(BaseModel):
     recurrence: Recurrence | None = None
     remind_at: Instant | None = None
     due_time: HM | None = None
+    estimate_min: int | None = Field(default=None, ge=1, le=6000)
 
 
 class TaskSync(BaseModel):
@@ -188,6 +189,7 @@ class TaskSync(BaseModel):
     notes: str | None = Field(default=None, max_length=4000)
     starred: bool | None = None
     tags: Tags | None = None
+    estimate_min: int | None = Field(default=None, ge=1, le=6000)
     cleared_at: Instant | None = None
     source: TaskSource | None = None
     parse_state: ParseState | None = None
@@ -257,6 +259,7 @@ class TaskPublic(BaseModel):
     reschedule_count: int
     sort_order: int
     series_parent_id: uuid.UUID | None
+    estimate_min: int | None = None
     version: int
 
 

@@ -76,6 +76,7 @@ SYNC_MODULES = (
     "tasks",
     "fitness",
     "finance",
+    "focus",
     "capture",
     "dashboard",
     "companion",

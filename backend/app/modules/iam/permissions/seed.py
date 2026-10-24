@@ -38,6 +38,8 @@ DEFAULT_PERMISSIONS: list[tuple[str, str, str]] = [
     ("tasks", "write", "Change tasks and lists"),
     ("fitness", "read", "Read workouts, body and nutrition"),
     ("fitness", "write", "Change workouts, body and nutrition"),
+    ("focus", "read", "Read focus sessions and goals"),
+    ("focus", "write", "Change focus sessions and goals"),
     ("finance", "read", "Read accounts, records, budgets and plans"),
     ("finance", "write", "Change accounts, records, budgets and plans"),
     ("capture", "read", "Read captures, record cards and the journal"),

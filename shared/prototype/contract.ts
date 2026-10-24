@@ -1,4 +1,10 @@
-export type ModuleKey = "habits" | "tasks" | "fitness" | "nutrition" | "finance"
+export type ModuleKey =
+  | "habits"
+  | "tasks"
+  | "fitness"
+  | "nutrition"
+  | "focus"
+  | "finance"
 export interface Metric {
   key: string
   label: string

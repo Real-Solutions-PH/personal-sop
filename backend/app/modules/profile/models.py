@@ -10,7 +10,7 @@ from sqlmodel import Field
 from app.shared.currency import CODES
 from app.shared.owned import JSONB, OwnedRow, enum_check, tstz
 
-MODULE_KEYS = ("habits", "tasks", "fitness", "nutrition", "finance")
+MODULE_KEYS = ("habits", "tasks", "fitness", "nutrition", "focus", "finance")
 LIVE_KINDS = ("timer", "routine", "workout")
 PUSH_PERMISSIONS = ("default", "granted", "denied")
 APPEARANCE = ("system", "light", "dark")

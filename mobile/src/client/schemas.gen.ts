@@ -1531,6 +1531,58 @@ export const BadgesSchema = {
     title: 'Badges'
 } as const;
 
+export const BlockSchema = {
+    properties: {
+        session_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Session Id'
+        },
+        segment_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Segment Id'
+        },
+        kind: {
+            type: 'string',
+            enum: ['focus', 'break', 'pause'],
+            title: 'Kind'
+        },
+        start: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Start'
+        },
+        end: {
+            type: 'string',
+            format: 'date-time',
+            title: 'End'
+        },
+        running: {
+            type: 'boolean',
+            title: 'Running'
+        },
+        abandoned: {
+            type: 'boolean',
+            title: 'Abandoned'
+        },
+        item: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/ItemRef'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        }
+    },
+    type: 'object',
+    required: ['session_id', 'segment_id', 'kind', 'start', 'end', 'running', 'abandoned', 'item'],
+    title: 'Block',
+    description: 'One span on the day timeline, clipped to the day.'
+} as const;
+
 export const BodyOutSchema = {
     properties: {
         latest: {
@@ -3708,38 +3760,6 @@ export const DayInSchema = {
     title: 'DayIn'
 } as const;
 
-export const DayOutSchema = {
-    properties: {
-        day: {
-            type: 'string',
-            format: 'date',
-            title: 'Day'
-        },
-        due: {
-            type: 'integer',
-            title: 'Due'
-        },
-        done: {
-            type: 'integer',
-            title: 'Done'
-        },
-        on_target: {
-            anyOf: [
-                {
-                    type: 'boolean'
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'On Target'
-        }
-    },
-    type: 'object',
-    required: ['day', 'due', 'done', 'on_target'],
-    title: 'DayOut'
-} as const;
-
 export const DayPublicSchema = {
     properties: {
         day: {
@@ -3758,6 +3778,27 @@ export const DayPublicSchema = {
     type: 'object',
     required: ['day', 'habits'],
     title: 'DayPublic'
+} as const;
+
+export const DayTotalSchema = {
+    properties: {
+        day: {
+            type: 'string',
+            format: 'date',
+            title: 'Day'
+        },
+        focus_sec: {
+            type: 'integer',
+            title: 'Focus Sec'
+        },
+        on_goal: {
+            type: 'boolean',
+            title: 'On Goal'
+        }
+    },
+    type: 'object',
+    required: ['day', 'focus_sec', 'on_goal'],
+    title: 'DayTotal'
 } as const;
 
 export const DayVerdictOutSchema = {
@@ -4597,20 +4638,6 @@ export const ExplorePublicSchema = {
     type: 'object',
     required: ['suggested', 'popular'],
     title: 'ExplorePublic'
-} as const;
-
-export const ExtendInSchema = {
-    properties: {
-        sec: {
-            type: 'integer',
-            maximum: 7200,
-            exclusiveMinimum: 0,
-            title: 'Sec'
-        }
-    },
-    type: 'object',
-    required: ['sec'],
-    title: 'ExtendIn'
 } as const;
 
 export const ExtractedInSchema = {
@@ -7275,6 +7302,69 @@ export const ItemPublicSchema = {
     title: 'ItemPublic'
 } as const;
 
+export const ItemRefSchema = {
+    properties: {
+        kind: {
+            type: 'string',
+            enum: ['task', 'habit'],
+            title: 'Kind'
+        },
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        title: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Title'
+        }
+    },
+    type: 'object',
+    required: ['kind', 'id'],
+    title: 'ItemRef'
+} as const;
+
+export const ItemSessionSchema = {
+    properties: {
+        session_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Session Id'
+        },
+        day: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Day'
+        },
+        started_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Started At'
+        },
+        focus_sec: {
+            type: 'integer',
+            title: 'Focus Sec'
+        }
+    },
+    type: 'object',
+    required: ['session_id', 'day', 'started_at', 'focus_sec'],
+    title: 'ItemSession'
+} as const;
+
 export const ItemSpecSchema = {
     properties: {
         name: {
@@ -7347,6 +7437,70 @@ export const ItemSpecSchema = {
     type: 'object',
     required: ['name', 'qty', 'unit', 'kcal', 'protein', 'carbs', 'fat'],
     title: 'ItemSpec'
+} as const;
+
+export const ItemTimeSchema = {
+    properties: {
+        item: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/ItemRef'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        },
+        focus_sec: {
+            type: 'integer',
+            title: 'Focus Sec'
+        }
+    },
+    type: 'object',
+    required: ['item', 'focus_sec'],
+    title: 'ItemTime'
+} as const;
+
+export const ItemTimeOutSchema = {
+    properties: {
+        item: {
+            '$ref': '#/components/schemas/ItemRef'
+        },
+        focus_sec: {
+            type: 'integer',
+            title: 'Focus Sec'
+        },
+        today_sec: {
+            type: 'integer',
+            title: 'Today Sec'
+        },
+        week_sec: {
+            type: 'integer',
+            title: 'Week Sec'
+        },
+        estimate_min: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Estimate Min'
+        },
+        recent: {
+            items: {
+                '$ref': '#/components/schemas/ItemSession'
+            },
+            type: 'array',
+            title: 'Recent'
+        }
+    },
+    type: 'object',
+    required: ['item', 'focus_sec', 'today_sec', 'week_sec', 'estimate_min', 'recent'],
+    title: 'ItemTimeOut',
+    description: 'Time spent on one task or habit, and the sessions it came from.'
 } as const;
 
 export const ItemUpdateSchema = {
@@ -8777,7 +8931,7 @@ export const MeBundleSchema = {
         setup_skipped: {
             items: {
                 type: 'string',
-                enum: ['habits', 'tasks', 'fitness', 'nutrition', 'finance']
+                enum: ['habits', 'tasks', 'fitness', 'nutrition', 'focus', 'finance']
             },
             type: 'array',
             title: 'Setup Skipped'
@@ -9965,7 +10119,7 @@ export const ModulePrefPublicSchema = {
     properties: {
         module: {
             type: 'string',
-            enum: ['habits', 'tasks', 'fitness', 'nutrition', 'finance'],
+            enum: ['habits', 'tasks', 'fitness', 'nutrition', 'focus', 'finance'],
             title: 'Module'
         },
         enabled: {
@@ -10659,7 +10813,7 @@ export const OnboardingInSchema = {
         modules: {
             items: {
                 type: 'string',
-                enum: ['habits', 'tasks', 'fitness', 'nutrition', 'finance']
+                enum: ['habits', 'tasks', 'fitness', 'nutrition', 'focus', 'finance']
             },
             type: 'array',
             maxItems: 4,
@@ -10676,7 +10830,7 @@ export const OnboardingInSchema = {
                 type: 'number'
             },
             propertyNames: {
-                enum: ['habits', 'tasks', 'fitness', 'nutrition', 'finance']
+                enum: ['habits', 'tasks', 'fitness', 'nutrition', 'focus', 'finance']
             },
             type: 'object',
             title: 'Targets'
@@ -10699,7 +10853,7 @@ export const OnboardingOutSchema = {
         skipped: {
             items: {
                 type: 'string',
-                enum: ['habits', 'tasks', 'fitness', 'nutrition', 'finance']
+                enum: ['habits', 'tasks', 'fitness', 'nutrition', 'focus', 'finance']
             },
             type: 'array',
             title: 'Skipped'
@@ -10957,6 +11111,17 @@ export const OverdueTaskSchema = {
                 }
             ],
             title: 'Series Parent Id'
+        },
+        estimate_min: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Estimate Min'
         },
         version: {
             type: 'integer',
@@ -11488,6 +11653,80 @@ export const PersonPublicSchema = {
     type: 'object',
     required: ['id', 'name', 'handle', 'accent', 'photo_media_id', 'verified', 'bio', 'followers', 'following', 'is_me', 'is_following', 'close_friend', 'scores_visible', 'show_scores'],
     title: 'PersonPublic'
+} as const;
+
+export const PhaseOutSchema = {
+    properties: {
+        status: {
+            type: 'string',
+            enum: ['running', 'paused', 'waiting', 'ended'],
+            title: 'Status'
+        },
+        kind: {
+            type: 'string',
+            enum: ['focus', 'break'],
+            title: 'Kind'
+        },
+        set_index: {
+            type: 'integer',
+            title: 'Set Index'
+        },
+        planned_sec: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Planned Sec'
+        },
+        elapsed_sec: {
+            type: 'integer',
+            title: 'Elapsed Sec'
+        },
+        remaining_sec: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Remaining Sec'
+        },
+        long_break: {
+            type: 'boolean',
+            title: 'Long Break'
+        },
+        ends_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Ends At'
+        },
+        item: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/ItemRef'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        }
+    },
+    type: 'object',
+    required: ['status', 'kind', 'set_index', 'planned_sec', 'elapsed_sec', 'remaining_sec', 'long_break', 'ends_at', 'item'],
+    title: 'PhaseOut'
 } as const;
 
 export const PhotoPayloadSchema = {
@@ -13411,6 +13650,54 @@ export const QuickAddInSchema = {
     required: ['client_uuid', 'payload'],
     title: 'QuickAddIn',
     description: 'CAP-10: a hand-entered record, saved at once (still undoable).'
+} as const;
+
+export const RangeOutSchema = {
+    properties: {
+        first: {
+            type: 'string',
+            format: 'date',
+            title: 'First'
+        },
+        last: {
+            type: 'string',
+            format: 'date',
+            title: 'Last'
+        },
+        goal_min: {
+            type: 'integer',
+            title: 'Goal Min'
+        },
+        days: {
+            items: {
+                '$ref': '#/components/schemas/DayTotal'
+            },
+            type: 'array',
+            title: 'Days'
+        },
+        items: {
+            items: {
+                '$ref': '#/components/schemas/ItemTime'
+            },
+            type: 'array',
+            title: 'Items'
+        },
+        focus_sec: {
+            type: 'integer',
+            title: 'Focus Sec'
+        },
+        streak: {
+            type: 'integer',
+            title: 'Streak'
+        },
+        best_streak: {
+            type: 'integer',
+            title: 'Best Streak'
+        }
+    },
+    type: 'object',
+    required: ['first', 'last', 'goal_min', 'days', 'items', 'focus_sec', 'streak', 'best_streak'],
+    title: 'RangeOut'
 } as const;
 
 export const ReactionInSchema = {
@@ -15631,6 +15918,100 @@ export const SealInSchema = {
     title: 'SealIn'
 } as const;
 
+export const SegmentPublicSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        session_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Session Id'
+        },
+        kind: {
+            type: 'string',
+            enum: ['focus', 'break', 'pause'],
+            title: 'Kind'
+        },
+        started_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Started At'
+        },
+        ended_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Ended At'
+        },
+        set_index: {
+            type: 'integer',
+            title: 'Set Index'
+        },
+        planned_sec: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Planned Sec'
+        },
+        item_kind: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['task', 'habit']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Item Kind'
+        },
+        item_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Item Id'
+        },
+        item_title: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Item Title'
+        },
+        version: {
+            type: 'integer',
+            title: 'Version'
+        }
+    },
+    type: 'object',
+    required: ['id', 'session_id', 'kind', 'started_at', 'ended_at', 'set_index', 'planned_sec', 'item_kind', 'item_id', 'item_title', 'version'],
+    title: 'SegmentPublic'
+} as const;
+
 export const SemimonthlyScheduleSchema = {
     properties: {
         kind: {
@@ -15712,6 +16093,317 @@ export const ServerDefaultOutSchema = {
     type: 'object',
     required: ['provider', 'model', 'vision_model'],
     title: 'ServerDefaultOut'
+} as const;
+
+export const SessionDetailSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        mode: {
+            type: 'string',
+            enum: ['pomodoro', 'stopwatch'],
+            title: 'Mode'
+        },
+        preset: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Preset'
+        },
+        focus_min: {
+            type: 'integer',
+            title: 'Focus Min'
+        },
+        short_break_min: {
+            type: 'integer',
+            title: 'Short Break Min'
+        },
+        long_break_min: {
+            type: 'integer',
+            title: 'Long Break Min'
+        },
+        sets_before_long: {
+            type: 'integer',
+            title: 'Sets Before Long'
+        },
+        auto_start_breaks: {
+            type: 'boolean',
+            title: 'Auto Start Breaks'
+        },
+        auto_start_focus: {
+            type: 'boolean',
+            title: 'Auto Start Focus'
+        },
+        started_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Started At'
+        },
+        ended_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Ended At'
+        },
+        end_reason: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['completed', 'abandoned']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'End Reason'
+        },
+        item_kind: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['task', 'habit']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Item Kind'
+        },
+        item_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Item Id'
+        },
+        item_title: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Item Title'
+        },
+        day: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Day'
+        },
+        focus_sec: {
+            type: 'integer',
+            title: 'Focus Sec'
+        },
+        sets_completed: {
+            type: 'integer',
+            title: 'Sets Completed'
+        },
+        version: {
+            type: 'integer',
+            title: 'Version'
+        },
+        segments: {
+            items: {
+                '$ref': '#/components/schemas/SegmentPublic'
+            },
+            type: 'array',
+            title: 'Segments'
+        },
+        phase: {
+            '$ref': '#/components/schemas/PhaseOut'
+        }
+    },
+    type: 'object',
+    required: ['id', 'mode', 'preset', 'focus_min', 'short_break_min', 'long_break_min', 'sets_before_long', 'auto_start_breaks', 'auto_start_focus', 'started_at', 'ended_at', 'end_reason', 'item_kind', 'item_id', 'item_title', 'day', 'focus_sec', 'sets_completed', 'version', 'segments', 'phase'],
+    title: 'SessionDetail'
+} as const;
+
+export const SessionPublicSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        mode: {
+            type: 'string',
+            enum: ['pomodoro', 'stopwatch'],
+            title: 'Mode'
+        },
+        preset: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Preset'
+        },
+        focus_min: {
+            type: 'integer',
+            title: 'Focus Min'
+        },
+        short_break_min: {
+            type: 'integer',
+            title: 'Short Break Min'
+        },
+        long_break_min: {
+            type: 'integer',
+            title: 'Long Break Min'
+        },
+        sets_before_long: {
+            type: 'integer',
+            title: 'Sets Before Long'
+        },
+        auto_start_breaks: {
+            type: 'boolean',
+            title: 'Auto Start Breaks'
+        },
+        auto_start_focus: {
+            type: 'boolean',
+            title: 'Auto Start Focus'
+        },
+        started_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Started At'
+        },
+        ended_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Ended At'
+        },
+        end_reason: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['completed', 'abandoned']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'End Reason'
+        },
+        item_kind: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['task', 'habit']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Item Kind'
+        },
+        item_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Item Id'
+        },
+        item_title: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Item Title'
+        },
+        day: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Day'
+        },
+        focus_sec: {
+            type: 'integer',
+            title: 'Focus Sec'
+        },
+        sets_completed: {
+            type: 'integer',
+            title: 'Sets Completed'
+        },
+        version: {
+            type: 'integer',
+            title: 'Version'
+        }
+    },
+    type: 'object',
+    required: ['id', 'mode', 'preset', 'focus_min', 'short_break_min', 'long_break_min', 'sets_before_long', 'auto_start_breaks', 'auto_start_focus', 'started_at', 'ended_at', 'end_reason', 'item_kind', 'item_id', 'item_title', 'day', 'focus_sec', 'sets_completed', 'version'],
+    title: 'SessionPublic'
+} as const;
+
+export const SessionsOutSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/SessionPublic'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'SessionsOut'
 } as const;
 
 export const SetInSchema = {
@@ -15986,47 +16678,6 @@ export const SettingsFieldsSchema = {
     },
     type: 'object',
     title: 'SettingsFields'
-} as const;
-
-export const SettingsInSchema = {
-    properties: {
-        week_start: {
-            anyOf: [
-                {
-                    type: 'integer',
-                    enum: [0, 1]
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Week Start'
-        },
-        default_reminder: {
-            anyOf: [
-                {
-                    type: 'boolean'
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Default Reminder'
-        },
-        streak_nudge: {
-            anyOf: [
-                {
-                    type: 'boolean'
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Streak Nudge'
-        }
-    },
-    type: 'object',
-    title: 'SettingsIn'
 } as const;
 
 export const SettingsUpdateSchema = {
@@ -16538,6 +17189,111 @@ export const SocialProfileUpdateSchema = {
     title: 'SocialProfileUpdate'
 } as const;
 
+export const StartInSchema = {
+    properties: {
+        id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Id'
+        },
+        mode: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['pomodoro', 'stopwatch']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Mode'
+        },
+        preset: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['25-5', '50-10', '90-20', 'custom']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Preset'
+        },
+        focus_min: {
+            anyOf: [
+                {
+                    type: 'integer',
+                    maximum: 240,
+                    minimum: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Focus Min'
+        },
+        short_break_min: {
+            anyOf: [
+                {
+                    type: 'integer',
+                    maximum: 60,
+                    minimum: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Short Break Min'
+        },
+        long_break_min: {
+            anyOf: [
+                {
+                    type: 'integer',
+                    maximum: 120,
+                    minimum: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Long Break Min'
+        },
+        sets_before_long: {
+            anyOf: [
+                {
+                    type: 'integer',
+                    maximum: 12,
+                    minimum: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Sets Before Long'
+        },
+        item: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/ItemRef'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        }
+    },
+    type: 'object',
+    title: 'StartIn'
+} as const;
+
 export const StartWorkoutSchema = {
     properties: {
         source: {
@@ -16835,6 +17591,18 @@ export const StepsInSchema = {
     type: 'object',
     required: ['steps'],
     title: 'StepsIn'
+} as const;
+
+export const StopInSchema = {
+    properties: {
+        abandon: {
+            type: 'boolean',
+            title: 'Abandon',
+            default: false
+        }
+    },
+    type: 'object',
+    title: 'StopIn'
 } as const;
 
 export const StoryCreateSchema = {
@@ -17198,6 +17966,23 @@ export const SummaryStepSchema = {
     type: 'object',
     required: ['position', 'habit_id', 'name', 'icon', 'status', 'actual_sec', 'planned_sec', 'streak'],
     title: 'SummaryStep'
+} as const;
+
+export const SwitchInSchema = {
+    properties: {
+        item: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/ItemRef'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        }
+    },
+    type: 'object',
+    title: 'SwitchIn'
 } as const;
 
 export const SyncChangeSchema = {
@@ -17863,6 +18648,17 @@ export const TaskDetailSchema = {
             ],
             title: 'Series Parent Id'
         },
+        estimate_min: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Estimate Min'
+        },
         version: {
             type: 'integer',
             title: 'Version'
@@ -18157,6 +18953,17 @@ export const TaskPublicSchema = {
             ],
             title: 'Series Parent Id'
         },
+        estimate_min: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Estimate Min'
+        },
         version: {
             type: 'integer',
             title: 'Version'
@@ -18265,6 +19072,19 @@ export const TaskUpdateSchema = {
                 }
             ],
             title: 'Due Time'
+        },
+        estimate_min: {
+            anyOf: [
+                {
+                    type: 'integer',
+                    maximum: 6000,
+                    minimum: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Estimate Min'
         }
     },
     type: 'object',
@@ -18876,49 +19696,6 @@ export const TodayHabitSchema = {
     type: 'object',
     required: ['habit', 'group', 'time', 'log', 'streak'],
     title: 'TodayHabit'
-} as const;
-
-export const TodayOutSchema = {
-    properties: {
-        day: {
-            type: 'string',
-            format: 'date',
-            title: 'Day'
-        },
-        ring: {
-            '$ref': '#/components/schemas/RingOut'
-        },
-        life_score: {
-            anyOf: [
-                {
-                    type: 'integer'
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Life Score'
-        },
-        level: {
-            type: 'string',
-            title: 'Level'
-        },
-        on_target_now: {
-            type: 'boolean',
-            title: 'On Target Now'
-        },
-        threshold: {
-            type: 'number',
-            title: 'Threshold'
-        },
-        streak: {
-            type: 'integer',
-            title: 'Streak'
-        }
-    },
-    type: 'object',
-    required: ['day', 'ring', 'life_score', 'level', 'on_target_now', 'threshold', 'streak'],
-    title: 'TodayOut'
 } as const;
 
 export const TodayRoutineSchema = {
@@ -21812,6 +22589,348 @@ export const app__modules__fitness__schema__StatsOutSchema = {
     title: 'StatsOut'
 } as const;
 
+export const app__modules__focus__schema__DayOutSchema = {
+    properties: {
+        day: {
+            type: 'string',
+            format: 'date',
+            title: 'Day'
+        },
+        starts_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Starts At'
+        },
+        ends_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Ends At'
+        },
+        focus_sec: {
+            type: 'integer',
+            title: 'Focus Sec'
+        },
+        goal_min: {
+            type: 'integer',
+            title: 'Goal Min'
+        },
+        blocks: {
+            items: {
+                '$ref': '#/components/schemas/Block'
+            },
+            type: 'array',
+            title: 'Blocks'
+        }
+    },
+    type: 'object',
+    required: ['day', 'starts_at', 'ends_at', 'focus_sec', 'goal_min', 'blocks'],
+    title: 'DayOut'
+} as const;
+
+export const app__modules__focus__schema__ExtendInSchema = {
+    properties: {
+        sec: {
+            type: 'integer',
+            maximum: 3600,
+            exclusiveMinimum: 0,
+            title: 'Sec'
+        }
+    },
+    type: 'object',
+    required: ['sec'],
+    title: 'ExtendIn'
+} as const;
+
+export const app__modules__focus__schema__SettingsInSchema = {
+    properties: {
+        daily_goal_min: {
+            anyOf: [
+                {
+                    type: 'integer',
+                    maximum: 960,
+                    minimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Daily Goal Min'
+        },
+        mode: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['pomodoro', 'stopwatch']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Mode'
+        },
+        preset: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['25-5', '50-10', '90-20', 'custom']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Preset'
+        },
+        focus_min: {
+            anyOf: [
+                {
+                    type: 'integer',
+                    maximum: 240,
+                    minimum: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Focus Min'
+        },
+        short_break_min: {
+            anyOf: [
+                {
+                    type: 'integer',
+                    maximum: 60,
+                    minimum: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Short Break Min'
+        },
+        long_break_min: {
+            anyOf: [
+                {
+                    type: 'integer',
+                    maximum: 120,
+                    minimum: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Long Break Min'
+        },
+        sets_before_long: {
+            anyOf: [
+                {
+                    type: 'integer',
+                    maximum: 12,
+                    minimum: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Sets Before Long'
+        },
+        auto_start_breaks: {
+            anyOf: [
+                {
+                    type: 'boolean'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Auto Start Breaks'
+        },
+        auto_start_focus: {
+            anyOf: [
+                {
+                    type: 'boolean'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Auto Start Focus'
+        },
+        notify: {
+            anyOf: [
+                {
+                    type: 'boolean'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Notify'
+        }
+    },
+    type: 'object',
+    title: 'SettingsIn'
+} as const;
+
+export const app__modules__focus__schema__SettingsPublicSchema = {
+    properties: {
+        daily_goal_min: {
+            type: 'integer',
+            title: 'Daily Goal Min'
+        },
+        mode: {
+            type: 'string',
+            enum: ['pomodoro', 'stopwatch'],
+            title: 'Mode'
+        },
+        preset: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Preset'
+        },
+        focus_min: {
+            type: 'integer',
+            title: 'Focus Min'
+        },
+        short_break_min: {
+            type: 'integer',
+            title: 'Short Break Min'
+        },
+        long_break_min: {
+            type: 'integer',
+            title: 'Long Break Min'
+        },
+        sets_before_long: {
+            type: 'integer',
+            title: 'Sets Before Long'
+        },
+        auto_start_breaks: {
+            type: 'boolean',
+            title: 'Auto Start Breaks'
+        },
+        auto_start_focus: {
+            type: 'boolean',
+            title: 'Auto Start Focus'
+        },
+        notify: {
+            type: 'boolean',
+            title: 'Notify'
+        }
+    },
+    type: 'object',
+    required: ['daily_goal_min', 'mode', 'preset', 'focus_min', 'short_break_min', 'long_break_min', 'sets_before_long', 'auto_start_breaks', 'auto_start_focus', 'notify'],
+    title: 'SettingsPublic'
+} as const;
+
+export const app__modules__focus__schema__TodayOutSchema = {
+    properties: {
+        day: {
+            type: 'string',
+            format: 'date',
+            title: 'Day'
+        },
+        goal_min: {
+            type: 'integer',
+            title: 'Goal Min'
+        },
+        focus_sec: {
+            type: 'integer',
+            title: 'Focus Sec'
+        },
+        sets_completed: {
+            type: 'integer',
+            title: 'Sets Completed'
+        },
+        sessions: {
+            type: 'integer',
+            title: 'Sessions'
+        },
+        streak: {
+            type: 'integer',
+            title: 'Streak'
+        },
+        items: {
+            items: {
+                '$ref': '#/components/schemas/ItemTime'
+            },
+            type: 'array',
+            title: 'Items'
+        },
+        current: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/SessionDetail'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        }
+    },
+    type: 'object',
+    required: ['day', 'goal_min', 'focus_sec', 'sets_completed', 'sessions', 'streak', 'items', 'current'],
+    title: 'TodayOut'
+} as const;
+
+export const app__modules__habits__schema__ExtendInSchema = {
+    properties: {
+        sec: {
+            type: 'integer',
+            maximum: 7200,
+            exclusiveMinimum: 0,
+            title: 'Sec'
+        }
+    },
+    type: 'object',
+    required: ['sec'],
+    title: 'ExtendIn'
+} as const;
+
+export const app__modules__habits__schema__SettingsInSchema = {
+    properties: {
+        week_start: {
+            anyOf: [
+                {
+                    type: 'integer',
+                    enum: [0, 1]
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Week Start'
+        },
+        default_reminder: {
+            anyOf: [
+                {
+                    type: 'boolean'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Default Reminder'
+        },
+        streak_nudge: {
+            anyOf: [
+                {
+                    type: 'boolean'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Streak Nudge'
+        }
+    },
+    type: 'object',
+    title: 'SettingsIn'
+} as const;
+
 export const app__modules__habits__schema__SettingsPublicSchema = {
     properties: {
         week_start: {
@@ -22168,6 +23287,38 @@ export const app__modules__social__schema__TodayPublicSchema = {
     description: "The Today screen's community card."
 } as const;
 
+export const app__modules__stats__schema__DayOutSchema = {
+    properties: {
+        day: {
+            type: 'string',
+            format: 'date',
+            title: 'Day'
+        },
+        due: {
+            type: 'integer',
+            title: 'Due'
+        },
+        done: {
+            type: 'integer',
+            title: 'Done'
+        },
+        on_target: {
+            anyOf: [
+                {
+                    type: 'boolean'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'On Target'
+        }
+    },
+    type: 'object',
+    required: ['day', 'due', 'done', 'on_target'],
+    title: 'DayOut'
+} as const;
+
 export const app__modules__stats__schema__OverviewOutSchema = {
     properties: {
         range: {
@@ -22237,7 +23388,7 @@ export const app__modules__stats__schema__OverviewOutSchema = {
         },
         days_series: {
             items: {
-                '$ref': '#/components/schemas/DayOut'
+                '$ref': '#/components/schemas/app__modules__stats__schema__DayOut'
             },
             type: 'array',
             title: 'Days Series'
@@ -22332,6 +23483,49 @@ export const app__modules__stats__schema__SeriesOutSchema = {
     type: 'object',
     required: ['metric', 'days', 'kind', 'unit', 'values', 'labels', 'headline', 'sub', 'points', 'slices'],
     title: 'SeriesOut'
+} as const;
+
+export const app__modules__stats__schema__TodayOutSchema = {
+    properties: {
+        day: {
+            type: 'string',
+            format: 'date',
+            title: 'Day'
+        },
+        ring: {
+            '$ref': '#/components/schemas/RingOut'
+        },
+        life_score: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Life Score'
+        },
+        level: {
+            type: 'string',
+            title: 'Level'
+        },
+        on_target_now: {
+            type: 'boolean',
+            title: 'On Target Now'
+        },
+        threshold: {
+            type: 'number',
+            title: 'Threshold'
+        },
+        streak: {
+            type: 'integer',
+            title: 'Streak'
+        }
+    },
+    type: 'object',
+    required: ['day', 'ring', 'life_score', 'level', 'on_target_now', 'threshold', 'streak'],
+    title: 'TodayOut'
 } as const;
 
 export const app__modules__tasks__schema__CaptureInSchema = {

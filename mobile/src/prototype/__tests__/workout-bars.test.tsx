@@ -233,6 +233,7 @@ describe("app launcher", () => {
       "Tasks",
       "Fitness",
       "Nutrition",
+      "Focus",
       "Finance",
       "Journal",
     ].filter((n) => screen.queryByLabelText(n))
