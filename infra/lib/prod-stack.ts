@@ -60,15 +60,15 @@ const GOTRUE_PORT = 9999
 const AUTH_PROXY_PORT = SERVICE_PORTS.auth
 
 /**
- * Every printable character that is not a letter or digit. Generated
- * passwords exclude all of them: they end up inside connection URLs
- * (GoTrue's GOTRUE_DB_DATABASE_URL, the backend's DSN), and the third create
- * (2026-10-24) failed when the GoTrue role's password drew a `^`, which Go's
- * URL parser rejects, and GoTrue then logged the whole URL. A deny-list of
- * "URL-unsafe" characters had missed it. 40 alphanumeric characters is
- * about 238 bits.
+ * Generated passwords are letters and digits only (`excludePunctuation`):
+ * they end up inside connection URLs (GoTrue's GOTRUE_DB_DATABASE_URL, the
+ * backend's DSN). The third create (2026-10-24) failed when the GoTrue
+ * role's password drew a `^`, which Go's URL parser rejects; a deny-list of
+ * "URL-unsafe" characters had missed it. Listing every punctuation
+ * character in `excludeCharacters` instead is refused by Secrets Manager
+ * (it still requires one punctuation character). 40 characters ≈ 238 bits.
  */
-export const NOT_ALPHANUMERIC = " !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
+const PASSWORD_LENGTH = 40
 
 /**
  * nginx in the GoTrue task: serves `/auth/v1/*` and strips the prefix, as
@@ -221,8 +221,9 @@ export class ProdStack extends Stack {
     ): secretsmanager.SecretStringGenerator => ({
       secretStringTemplate: JSON.stringify(template),
       generateStringKey: "password",
-      excludeCharacters: NOT_ALPHANUMERIC,
-      passwordLength: 40,
+      excludePunctuation: true,
+      includeSpace: false,
+      passwordLength: PASSWORD_LENGTH,
     })
 
     /** Filled by the bootstrap function: jwt_keys, jwt_secret, anon_key, service_role_key. */
@@ -262,8 +263,9 @@ export class ProdStack extends Stack {
         generateSecretString: {
           secretStringTemplate: JSON.stringify({ ai_credentials_kek: "" }),
           generateStringKey: "first_superuser_password",
-          excludeCharacters: NOT_ALPHANUMERIC,
-          passwordLength: 32,
+          excludePunctuation: true,
+          includeSpace: false,
+          passwordLength: PASSWORD_LENGTH,
         },
       },
     )
@@ -293,6 +295,15 @@ export class ProdStack extends Stack {
       },
     )
 
+    /** RDS master user `postgres`. */
+    const masterPasswordSecret = secret(
+      "DbMaster",
+      "RDS master user password",
+      {
+        generateSecretString: generatedPassword({ username: "postgres" }),
+      },
+    )
+
     // -------------------------------------------------------------- database
     const db = new rds.DatabaseInstance(this, "Database", {
       instanceIdentifier: PREFIX,
@@ -313,10 +324,9 @@ export class ProdStack extends Stack {
       securityGroups: [dbSg],
       multiAz: config.databaseMultiAz,
       databaseName: "app",
-      credentials: rds.Credentials.fromGeneratedSecret("postgres", {
-        secretName: `${PREFIX}/db-master`,
-        excludeCharacters: NOT_ALPHANUMERIC,
-      }),
+      // Our own secret, not fromGeneratedSecret (which only takes a deny-list
+      // of characters): letters and digits, kept like the others.
+      credentials: rds.Credentials.fromSecret(masterPasswordSecret),
       allocatedStorage: 20,
       maxAllocatedStorage: 100,
       storageType: rds.StorageType.GP3,
