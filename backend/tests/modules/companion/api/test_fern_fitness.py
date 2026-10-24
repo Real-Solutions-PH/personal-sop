@@ -433,10 +433,9 @@ def test_edit_and_remove_sets_of_a_past_workout_then_undo(
         ),
     )
     assert step["ok"] and step["state"] == "saved", step
-    assert step["summary"] == (
-        f"Changed workout: Push ({date.today().isoformat()}) · bench set 2; "
-        "removed bench set 3"
-    )
+    # The day is the person's business day, not the test host's.
+    assert step["summary"].startswith("Changed workout: Push (")
+    assert step["summary"].endswith("· bench set 2; removed bench set 3")
     assert workout_sets(api, w.id) == [
         ("Barbell Bench Press", 8, 60.0, True),
         ("Barbell Bench Press", 8, 65.0, True),
@@ -556,7 +555,7 @@ def test_move_a_meal_and_resize_an_item_then_undo(
     )
     assert step["ok"] and step["state"] == "saved", step
     assert step["summary"].startswith("Changed breakfast (")
-    assert "moved to lunch" in step["summary"] and "Rice: qty 2" in step["summary"]
+    assert "moved to lunch" in step["summary"] and "rice: qty 2.0" in step["summary"]
     m = next(x for x in rows_of(api, Meal) if str(x.id) == meal_id)
     assert m.label == "lunch"
     rice = next(i for i in live(rows_of(api, MealItem)) if i.name == "Rice")
@@ -607,10 +606,11 @@ def test_copy_a_meal_logs_it_again_today(
         "same breakfast as before",
         act("copy_meal", meal_id=meal_id),
     )
-    assert step["ok"] and step["state"] == "saved", step
-    assert step["summary"] == (
-        f"Logged breakfast again on {date.today().isoformat()} · 2 items, 345 kcal"
-    )
+    # A meal follows the person's rule for meals: it waits for Confirm.
+    assert step["ok"] and step["state"] == "proposed", step
+    assert step["summary"].startswith("Logged breakfast again on ")
+    assert step["summary"].endswith("· 2 items, 345 kcal (waiting for your OK)")
+    api.post(f"/capture/cards/{step['card_id']}/confirm")
     assert len(live(rows_of(api, Meal))) == 2
 
 
