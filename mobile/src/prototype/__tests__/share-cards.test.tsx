@@ -6,7 +6,7 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { configureStorage, resetAll } from "@domain/lib/store"
-import { render } from "@testing-library/react-native"
+import { fireEvent, render } from "@testing-library/react-native"
 import type { ReactElement } from "react"
 import { Dimensions, ScrollView, Text } from "react-native"
 import { Artwork } from "../screens/dash-share"
@@ -24,6 +24,7 @@ import {
   alpha,
   type CardBackdrop,
   type CardFormat,
+  CardFrame,
   type CardLook,
   cardInk,
   ShareComposer,
@@ -459,4 +460,24 @@ test("the composer can centre its last card", () => {
   // scroll stops before the last card reaches the middle.
   expect(card).toBeGreaterThan(0)
   expect(2 * pad + card).toBeCloseTo(Dimensions.get("window").width, 5)
+})
+
+test("a body taller than its card is scaled down to fit, a short one is not", () => {
+  const look: CardLook = { format: "1:1", backdrop: "dark", photo: null }
+  const r = render(
+    <CardFrame width={300} look={look} kicker="Test">
+      <Text>body</Text>
+    </CardFrame>,
+  )
+  const layout = (id: string, height: number) =>
+    fireEvent(r.getByTestId(id), "layout", {
+      nativeEvent: { layout: { height } },
+    })
+  const scale = () =>
+    r.getByTestId("card-body-fit").props.style.transform[1].scale
+  layout("card-body", 200)
+  layout("card-body-fit", 150)
+  expect(scale()).toBe(1)
+  layout("card-body-fit", 400)
+  expect(scale()).toBe(0.5)
 })

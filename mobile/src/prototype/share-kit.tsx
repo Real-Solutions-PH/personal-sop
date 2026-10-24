@@ -20,7 +20,9 @@ import {
   TrendingUp,
 } from "lucide-react-native"
 import {
+  cloneElement,
   createContext,
+  isValidElement,
   type ReactNode,
   useContext,
   useEffect,
@@ -35,6 +37,7 @@ import {
   Text,
   useWindowDimensions,
   View,
+  type ViewStyle,
 } from "react-native"
 import Svg, { Circle, Polygon, Polyline } from "react-native-svg"
 import { captureRef } from "react-native-view-shot"
@@ -580,6 +583,49 @@ export function Lockup({ size }: { size: number }) {
   )
 }
 
+/** The card body. It fills the space between header and footer; when what
+ * it holds is taller (long names, many rows on a short card), it is scaled
+ * down to fit instead of being clipped or drawing over the header. */
+function FitBody({ children }: { children: ReactNode }) {
+  const [box, setBox] = useState(0),
+    [inner, setInner] = useState(0),
+    scale = box > 0 && inner > box + 0.5 ? box / inner : 1
+  return (
+    <View
+      testID="card-body"
+      style={{ flex: 1, minHeight: 0, overflow: "hidden" }}
+      onLayout={(e) => setBox(e.nativeEvent.layout.height)}
+    >
+      {/* Absolute, so its height is what the body holds rather than what
+          the card allows; at least the card's height, so short bodies
+          still fill and centre. A taller one is scaled about its centre,
+          then moved up so it starts at the top of the space. */}
+      <View
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          minHeight: box,
+          transform: [{ translateY: -(inner - inner * scale) / 2 }, { scale }],
+        }}
+        testID="card-body-fit"
+        onLayout={(e) => setInner(e.nativeEvent.layout.height)}
+      >
+        {/* Bodies are `flex: 1`; here they size to their content (basis
+            auto) and grow to fill, never shrinking below what they hold. */}
+        {isValidElement<{ style?: ViewStyle }>(children)
+          ? cloneElement(children, {
+              style: [
+                children.props.style,
+                { flex: 0, flexGrow: 1, flexShrink: 0, flexBasis: "auto" },
+              ] as unknown as ViewStyle,
+            })
+          : children}
+      </View>
+    </View>
+  )
+}
 export function CardFrame({
   width,
   look,
@@ -645,10 +691,7 @@ export function CardFrame({
             </View>
           )}
         </Line>
-        {/* Clipped: a body that runs long never draws over the header. */}
-        <View style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
-          {children}
-        </View>
+        <FitBody>{children}</FitBody>
         {(mark || !!foot) && (
           <View
             style={{
