@@ -4,6 +4,7 @@ import {
   CheckSquare,
   Dumbbell,
   Target,
+  Timer,
   Utensils,
   Wallet,
 } from "lucide-react-native"
@@ -45,6 +46,13 @@ export function AppLauncher({ title = "Your apps" }: { title?: string }) {
       accent: "nut",
     },
     {
+      key: "focus",
+      label: "Focus",
+      href: "/focus",
+      icon: Timer,
+      accent: "foc",
+    },
+    {
       key: "finance",
       label: "Finance",
       href: "/finance",
@@ -60,18 +68,25 @@ export function AppLauncher({ title = "Your apps" }: { title?: string }) {
     },
   ] as const
   const shown = apps.filter((a) => a.key === "journal" || enabled[a.key])
-  // Six apps share a phone's width, so each tile gives up a little room.
-  const box = shown.length > 5 ? 50 : 56
+  // Six apps share a phone's width, so each tile gives up a little room;
+  // past six they wrap into rows of four, which keeps room for the names.
+  const wrap = shown.length > 6,
+    perRow = wrap ? 4 : shown.length
+  const box = !wrap && shown.length > 5 ? 50 : 56
   // Names show only while every one fits whole under its tile (the tile is
   // a little wider than the icon box); at a larger text size the row keeps
   // its icons, and each tile is still named for screen readers.
   const label: TextStyle = {
     fontFamily: fonts.medium,
-    fontSize: shown.length > 5 ? 11 : 12,
+    fontSize: !wrap && shown.length > 5 ? 11 : 12,
   }
   const [row, setRow] = useState(0),
     [need, setNeed] = useState<Record<string, number>>({}),
-    room = row ? (row - 4 * (shown.length - 1)) / shown.length : 0,
+    room = wrap
+      ? row / perRow
+      : row
+        ? (row - 4 * (shown.length - 1)) / shown.length
+        : 0,
     labels = room > 0 && shown.every((a) => need[a.key] && need[a.key] <= room)
   return (
     <View>
@@ -92,14 +107,14 @@ export function AppLauncher({ title = "Your apps" }: { title?: string }) {
         testID="app-launcher-row"
         onLayout={(e) => setRow(e.nativeEvent.layout.width)}
       >
-        <Line style={{ gap: 4 }}>
+        <Line style={{ gap: wrap ? 0 : 4, flexWrap: wrap ? "wrap" : "nowrap" }}>
           {shown.map((a) => (
             <Tap
               key={a.key}
               label={a.label}
               onPress={() => go(a.href)}
               style={{
-                flex: 1,
+                ...(wrap ? { width: "25%" } : { flex: 1 }),
                 alignItems: "center",
                 paddingVertical: 6,
                 gap: 6,

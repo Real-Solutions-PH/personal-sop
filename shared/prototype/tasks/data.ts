@@ -62,6 +62,9 @@ export interface Task {
   starred: boolean
   /** Free labels ("work", "errand"); absent on tasks made before tags. */
   tags?: string[]
+  /** How long it should take, in minutes; Focus shows time spent against
+   * it (ADR-0025). */
+  estimateMin?: number
   status: TaskStatus
   completedAt: string | null
   deletedAt: string | null

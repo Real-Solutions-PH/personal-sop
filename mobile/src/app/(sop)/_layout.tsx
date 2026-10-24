@@ -30,6 +30,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { syncReady } from "@/live/ready"
 import { FernMark, fernPalette } from "@/prototype/companion/brand"
+import { startFocusLive } from "@/prototype/focus-live"
 import { startReminders } from "@/prototype/local-reminders"
 import { prototypeMode } from "@/prototype/mode"
 import { go, replace } from "@/prototype/navigation"
@@ -194,6 +195,7 @@ export default function PrototypeLayout() {
     firstRun ||
     /^\/habits\/routines\/[^/]+\/play$/.test(path) ||
     /^\/habits\/[^/]+\/timer$/.test(path) ||
+    path === "/focus" ||
     /^\/social\/(stories|story-new|chat|compose|new-chat)/.test(path) ||
     // First-run flows own the screen: their Continue sits where the bar is.
     inFirstRun ||
@@ -207,6 +209,8 @@ export default function PrototypeLayout() {
   const [bar, setBar] = useState(0)
   // Task and habit reminders as notifications scheduled on this phone.
   useEffect(() => startReminders(), [])
+  // The focus timer's Live bar entry, end-of-set notice and catch-up.
+  useEffect(() => startFocusLive(), [])
   const fern = fernPalette(t.dark)
   // Swiping slides tabs in from the side you swiped toward; tapping fades.
   const tabAnimation = {

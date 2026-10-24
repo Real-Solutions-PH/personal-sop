@@ -537,6 +537,7 @@ test("live: calendar, misses, ring, achievements, trophies, metric detail", () =
       tasks: { due: 0, done: 0 },
       fitness: { due: 0, done: 0 },
       nutrition: { due: 0, done: 0 },
+      focus: { due: 0, done: 0 },
       finance: { due: 0, done: 0 },
     },
   })

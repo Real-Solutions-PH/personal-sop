@@ -154,6 +154,8 @@ const LIVE_KIND = {
   routine: "routine",
   workout: "workout",
   timer: "timer",
+  // The widget draws a running focus session as a timer (ADR-0025).
+  focus: "timer",
 } as const
 
 /** The next moment the app's day turns over (4:00 local). */

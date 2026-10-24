@@ -1,6 +1,9 @@
 import * as FA from "@domain/fitness/actions"
 import { isDone } from "@domain/fitness/calc"
 import { fitStore } from "@domain/fitness/store"
+import * as FO from "@domain/focus/actions"
+import * as FL from "@domain/focus/logic"
+import { focusStore } from "@domain/focus/store"
 import * as HA from "@domain/habits/actions"
 import { habitsStore } from "@domain/habits/store"
 import { dayKey } from "@domain/lib/day"
@@ -38,8 +41,30 @@ function routineAction(a: SurfaceAction): ApplyResult {
   return "applied"
 }
 
+/** A lock-screen tap on a focus session (drawn as a timer). */
+function focusAction(a: SurfaceAction): ApplyResult {
+  const cur = FO.current(focusStore.get())
+  if (!cur || cur.id !== a.target) return "stale"
+  const tl = FO.liveTimeline(focusStore.get(), a.at)
+  const p = tl ? FL.phase(tl, a.at) : null
+  if (!p) return "stale"
+  if (a.type === "pause") {
+    if (p.status !== "running") return "stale"
+    FO.pauseFocus()
+  } else if (a.type === "resume") {
+    if (p.status !== "paused") return "stale"
+    FO.resumeFocus()
+  } else if (a.type === "skip") {
+    if (p.kind !== "break") return "stale"
+    FO.skipBreak()
+  } else if (a.type === "finish") FO.stopFocus()
+  else return "unknown"
+  return "applied"
+}
+
 function timerAction(a: SurfaceAction): ApplyResult {
   const live = liveStore.get().live
+  if (live?.kind === "focus") return focusAction(a)
   const timer = habitsStore.get().timer
   if (live?.kind !== "timer" || timer?.habitId !== a.target) return "stale"
   if (a.type === "pause") {

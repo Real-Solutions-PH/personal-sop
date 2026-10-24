@@ -88,12 +88,13 @@ beforeEach(() => {
   resetAll()
 })
 
-test("Nutrition is a module of its own, between Fitness and Finance", () => {
+test("Nutrition is a module of its own, after Fitness", () => {
   expect(modules.map((m) => m.key)).toEqual([
     "habits",
     "tasks",
     "fitness",
     "nutrition",
+    "focus",
     "finance",
   ])
   expect(NUT.href).toBe("/nutrition")

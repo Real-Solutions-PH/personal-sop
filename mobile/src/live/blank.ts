@@ -7,6 +7,7 @@ import { captureStore } from "@domain/capture/store"
 import { dashStore } from "@domain/dash/store"
 import { finStore } from "@domain/finance/store"
 import { fitStore } from "@domain/fitness/store"
+import { focusStore } from "@domain/focus/store"
 import { habitsStore } from "@domain/habits/store"
 import { liveStore } from "@domain/lib/live"
 import { tasksStore } from "@domain/tasks/store"
@@ -23,6 +24,12 @@ export function clearToBlank() {
     timer: null,
   }))
   tasksStore.set((s) => ({ ...s, lists: [], tasks: [], events: [] }))
+  focusStore.set((s) => ({
+    ...s,
+    sessions: [],
+    segments: [],
+    settingsSaved: false,
+  }))
   fitStore.set((s) => ({
     ...s,
     exercises: [],
