@@ -635,7 +635,7 @@ export function Artwork({
             </Words>
           ))}
         {on.hexagon && tall && (
-          <Hexagon facets={d.facets30} days={30} size={40} />
+          <Hexagon facets={d.facets30} days={30} size={32} />
         )}
         <Stats
           items={[
@@ -656,7 +656,7 @@ export function Artwork({
           <View
             style={{ flexDirection: "row", flexWrap: "wrap", gap: 1.6 * q }}
           >
-            {d.trophies.slice(0, sq ? 2 : 3).map((x) => (
+            {d.trophies.slice(0, 2).map((x) => (
               <Chip key={x.id} icon={Trophy} tone={life}>
                 {`${metric(x.value)} · ${safe(x.title)}`}
               </Chip>
