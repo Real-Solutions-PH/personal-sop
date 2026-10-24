@@ -309,7 +309,7 @@ test("Targets: 600 kcal saves", () => {
   expect(targetFor(fitStore.get(), dayKey())).toMatchObject({ kcal: 600 })
 })
 
-test("body fat pre-fills from the newest weigh-in that has one", () => {
+test("body fat starts empty even when a weigh-in has one", () => {
   fitStore.set((s) => ({
     ...s,
     weighIns: [
@@ -323,8 +323,28 @@ test("body fat pre-fills from the newest weigh-in that has one", () => {
     ],
   }))
   render(<PlanForm onApply={jest.fn()} />, { wrapper })
-  expect(screen.getByLabelText("Body fat % (optional)").props.value).toBe("25")
+  expect(screen.getByLabelText("Body fat % (optional)").props.value).toBe("")
   expect(screen.getByLabelText("Weight (kg)").props.value).toBe("80")
+})
+
+test("height switches between cm and ft/in, keeping the value", () => {
+  render(<PlanForm onApply={jest.fn()} />, { wrapper })
+  fill("Height (cm)", "180")
+  fireEvent.press(screen.getByLabelText("ft units"))
+  expect(screen.getByLabelText("Height (ft)").props.value).toBe("5")
+  expect(screen.getByLabelText("Height (in)").props.value).toBe("11")
+  fireEvent.press(screen.getByLabelText("cm units"))
+  expect(screen.getByLabelText("Height (cm)").props.value).toBe("180.3")
+})
+
+test("weight switches between kg and lb, and saves kilograms", () => {
+  const onApply = jest.fn()
+  render(<PlanForm onApply={onApply} />, { wrapper })
+  fillA()
+  fireEvent.press(screen.getByLabelText("lb units"))
+  expect(screen.getByLabelText("Weight (lb)").props.value).toBe("176.4")
+  fireEvent.press(apply())
+  expect(onApply.mock.calls[0][1].weightKg).toBeCloseTo(80, 1)
 })
 
 test("birth year takes digits only, so it is always an integer", () => {

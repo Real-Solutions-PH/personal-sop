@@ -5,11 +5,7 @@ import {
   updateSettings,
   updateWeighIn,
 } from "@domain/fitness/actions"
-import {
-  latestBodyFat,
-  latestBodyweight,
-  latestWeighIn,
-} from "@domain/fitness/calc"
+import { latestBodyweight, latestWeighIn } from "@domain/fitness/calc"
 import {
   ACTIVITY,
   type ActivityLevel,
@@ -25,7 +21,7 @@ import {
   type Sex,
 } from "@domain/fitness/plan"
 import { fitStore } from "@domain/fitness/store"
-import { useState } from "react"
+import { type ReactNode, useState } from "react"
 import { TextInput, View } from "react-native"
 import { Copy, Line, Tap } from "../native-kit"
 import { fonts, useTheme } from "../theme"
@@ -33,6 +29,13 @@ import { Button } from "../ui"
 import { displayMass, kilograms } from "../units"
 
 const num = (s: string) => (s.trim() === "" ? Number.NaN : Number(s))
+
+/** cm as ft + in fields; rounding total inches first so 11.8 in carries. */
+function feetInches(cm: number | undefined) {
+  if (cm === undefined || Number.isNaN(cm)) return { ft: "", inch: "" }
+  const inches = Math.round(cm / 2.54)
+  return { ft: String(Math.floor(inches / 12)), inch: String(inches % 12) }
+}
 
 /** Muted warning copy for one field's notes; nothing when there are none. */
 export function PlanNotes({
@@ -68,25 +71,29 @@ export function PlanForm({
   const t = useTheme(),
     fit = fitStore.use((s) => s),
     st = fit.settings,
-    lb = st.units === "lb",
     latest = latestWeighIn(fit),
     bw = latestBodyweight(fit),
-    inches = st.heightCm ? Math.round(st.heightCm / 2.54) : undefined,
+    feet = feetInches(st.heightCm),
+    // Units start from the app setting; each field can be switched here.
+    [heightUnit, setHeightUnit] = useState<"cm" | "ft">(
+      st.units === "lb" ? "ft" : "cm",
+    ),
+    [massUnit, setMassUnit] = useState<"kg" | "lb">(st.units),
     [sex, setSex] = useState<Sex | undefined>(st.sex),
     [year, setYear] = useState(st.birthYear ? String(st.birthYear) : ""),
     [cm, setCm] = useState(st.heightCm ? String(st.heightCm) : ""),
-    [ft, setFt] = useState(inches ? String(Math.floor(inches / 12)) : ""),
-    [inch, setInch] = useState(inches ? String(inches % 12) : ""),
+    [ft, setFt] = useState(feet.ft),
+    [inch, setInch] = useState(feet.inch),
     [weight, setWeight] = useState(bw ? String(displayMass(bw, st.units)) : ""),
     [activity, setActivity] = useState<ActivityLevel | undefined>(st.activity),
     [goal, setGoal] = useState<PlanGoal>(planGoalFor(st)),
-    [bf, setBf] = useState(() => {
-      const v = latestBodyFat(fit)
-      return v !== undefined ? String(v) : ""
-    })
+    // Optional, so never pre-filled: an old reading would silently switch
+    // the estimate to the lean-mass formula.
+    [bf, setBf] = useState("")
 
-  const heightCm = lb ? (num(ft) * 12 + num(inch || "0")) * 2.54 : num(cm),
-    weightKg = kilograms(num(weight), st.units),
+  const heightCm =
+      heightUnit === "ft" ? (num(ft) * 12 + num(inch || "0")) * 2.54 : num(cm),
+    weightKg = kilograms(num(weight), massUnit),
     age = ageFrom(num(year)),
     bodyFat = bf.trim() === "" ? undefined : num(bf),
     valid =
@@ -129,10 +136,53 @@ export function PlanForm({
     onApply(estimatePlan(inputs), inputs)
   }
 
-  const label = (text: string) => (
-    <Copy size={14} weight="medium" style={{ marginTop: 16, marginBottom: 4 }}>
-      {text}
-    </Copy>
+  // Switching a unit converts what's typed, so nothing has to be re-entered.
+  const toHeight = (u: "cm" | "ft") => {
+    if (u === heightUnit) return
+    if (u === "ft") {
+      const f = feetInches(cm.trim() ? num(cm) : undefined)
+      setFt(f.ft)
+      setInch(f.inch)
+    } else if (ft.trim())
+      setCm(String(Math.round((num(ft) * 12 + num(inch || "0")) * 25.4) / 10))
+    setHeightUnit(u)
+  }
+  const toMass = (u: "kg" | "lb") => {
+    if (u === massUnit) return
+    if (weight.trim())
+      setWeight(String(displayMass(kilograms(num(weight), massUnit), u)))
+    setMassUnit(u)
+  }
+
+  const label = (text: string, units?: ReactNode) => (
+    <Line style={{ marginTop: 16, marginBottom: 4, gap: 8 }}>
+      <Copy size={14} weight="medium" style={{ flex: 1 }}>
+        {text}
+      </Copy>
+      {units}
+    </Line>
+  )
+  const unit = (text: string, on: boolean, press: () => void) => (
+    <Tap
+      key={text}
+      role="radio"
+      selected={on}
+      onPress={press}
+      label={`${text} units`}
+      style={{
+        height: 28,
+        paddingHorizontal: 10,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: on ? t.fit : t.line,
+        backgroundColor: on ? t.fit : "transparent",
+        justifyContent: "center",
+      }}
+    >
+      <Copy size={12} weight="medium" style={{ color: on ? t.bg : t.muted }}>
+        {text}
+      </Copy>
+    </Tap>
   )
   const input = (
     name: string,
@@ -142,7 +192,7 @@ export function PlanForm({
     unit?: string,
     integer?: boolean,
   ) => (
-    <Line style={{ gap: 8, flex: 1 }}>
+    <Line style={{ gap: 8, flex: 1, minWidth: 0 }}>
       <TextInput
         accessibilityLabel={name}
         placeholder={placeholder}
@@ -153,6 +203,8 @@ export function PlanForm({
         style={{
           height: 44,
           flex: 1,
+          // Two inputs share a row for ft + in; without this they won't shrink.
+          minWidth: 0,
           paddingHorizontal: 12,
           borderWidth: 1,
           borderColor: t.line,
@@ -198,8 +250,14 @@ export function PlanForm({
       </View>
       {label("Birth year")}
       {input("Birth year", year, setYear, "e.g. 1995", undefined, true)}
-      {label("Height")}
-      {lb ? (
+      {label(
+        "Height",
+        <>
+          {unit("cm", heightUnit === "cm", () => toHeight("cm"))}
+          {unit("ft", heightUnit === "ft", () => toHeight("ft"))}
+        </>,
+      )}
+      {heightUnit === "ft" ? (
         <Line style={{ gap: 8 }}>
           {input("Height (ft)", ft, setFt, "5", "ft")}
           {input("Height (in)", inch, setInch, "9", "in")}
@@ -207,14 +265,21 @@ export function PlanForm({
       ) : (
         input("Height (cm)", cm, setCm, "e.g. 175", "cm")
       )}
-      {askWeight && label("Weight")}
+      {askWeight &&
+        label(
+          "Weight",
+          <>
+            {unit("kg", massUnit === "kg", () => toMass("kg"))}
+            {unit("lb", massUnit === "lb", () => toMass("lb"))}
+          </>,
+        )}
       {askWeight &&
         input(
-          `Weight (${st.units})`,
+          `Weight (${massUnit})`,
           weight,
           setWeight,
-          lb ? "e.g. 160" : "e.g. 72.5",
-          st.units,
+          massUnit === "lb" ? "e.g. 160" : "e.g. 72.5",
+          massUnit,
         )}
       {label("Activity")}
       <View style={wrap}>
