@@ -91,7 +91,7 @@ What `lean` gives up: with one task per service, a crashed task means a minute o
 | Email | SES domain identity `unfurl.realsolutionsph.com` | Easy DKIM, custom MAIL FROM `mail.unfurl.realsolutionsph.com`; sender `noreply@unfurl.realsolutionsph.com` |
 | | IAM user `unfurl-ses-smtp` | `ses:SendRawEmail` only. Its access key is turned into SES SMTP credentials by the bootstrap function |
 | Secrets | Secrets Manager (`unfurl/*`) | See the next table |
-| Observability | CloudWatch log groups `/unfurl/{api,worker,gotrue,tunnel}` (30 days), `/unfurl/ecs-events` (every task stop with ECS's reason), RDS logs, SNS topic `unfurl-alarms` | Alarms: API, sign-in, tunnel or worker with no running task for 10 minutes; API or worker memory > 85 % for 15 minutes (the signal to scale up); DB CPU > 80 %; DB free storage < 2 GB |
+| Observability | CloudWatch log groups for the API, worker, GoTrue and tunnel (30 days), plus one for ECS task-stop events (every stop with ECS's reason). They have generated names, listed as stack outputs (`ApiLogGroup`, …, `EcsEventsLogGroup`), and are kept even when a create fails. Also RDS logs and the SNS topic `unfurl-alarms` | Alarms: API, sign-in, tunnel or worker with no running task for 10 minutes; API or worker memory > 85 % for 15 minutes (the signal to scale up); DB CPU > 80 %; DB free storage < 2 GB |
 
 ### Secrets
 
@@ -102,7 +102,8 @@ What `lean` gives up: with one task per service, a crashed task means a minute o
 | `unfurl/app-user-db` | `app_user` password (the RLS-enforced role) | Secrets Manager, generated |
 | `unfurl/gotrue` | ES256 signing key (`jwt_keys`), HS256 fallback (`jwt_secret`), `anon_key`, `service_role_key` | `BootstrapSecrets` function, once, at stack creation |
 | `unfurl/smtp` | SES SMTP username and password | `BootstrapSecrets` function |
-| `unfurl/app` | `first_superuser_password` (generated); `ai_credentials_kek` (bootstrap function); `nebius_api_key`, `deepgram_api_key`, `openrouter_api_key`, `brave_api_key`, `expo_access_token`, `sentry_dsn` | **By hand**, after the first deploy. Empty values reach the backend as unset |
+| `unfurl/app` | `first_superuser_password` (generated), `ai_credentials_kek` (bootstrap function) | The stack |
+| `unfurl/third-party` | `nebius_api_key`, `deepgram_api_key`, `openrouter_api_key`, `brave_api_key`, `expo_access_token`, `sentry_dsn` | **`infra/scripts/third-party-secrets.ts`**, from a `.env` file, **before the first deploy**. The API won't start with AI on and no Nebius key, so the script refuses to write without one. Empty fields reach the backend as unset. The stack reads it by name |
 | `unfurl/auth-providers` | Apple and Google client IDs and secrets | **By hand**, once the accounts exist |
 | `unfurl/cloudflared-tunnel` | `{"token": …}` for the tunnel | **`infra/scripts/cloudflare.ts`**, which owns it. It's not a CloudFormation resource; the stack reads it by name |
 
@@ -180,7 +181,7 @@ Every setting in `backend/app/core/config.py` is either set by the stack or list
 | `AI_ENABLED`, `AI_SERVER_FALLBACK`, `JOBS_ENABLED`, `PUSH_ENABLED` | `true` |
 | `OCR_ENABLED` | `false` |
 | `DEFAULT_LLM_PROVIDER` | `nebius` |
-| `NEBIUS_API_KEY`, `DEEPGRAM_API_KEY`, `OPENROUTER_API_KEY`, `BRAVE_API_KEY`, `EXPO_ACCESS_TOKEN`, `SENTRY_DSN` | Secret `unfurl/app`, filled by hand |
+| `NEBIUS_API_KEY`, `DEEPGRAM_API_KEY`, `OPENROUTER_API_KEY`, `BRAVE_API_KEY`, `EXPO_ACCESS_TOKEN`, `SENTRY_DSN` | Secret `unfurl/third-party` |
 | `AI_CREDENTIALS_KEK` | Secret `unfurl/app`, generated |
 | `FORWARDED_ALLOW_IPS` | `*` (read by uvicorn, not config.py): only the tunnel can reach the API |
 
@@ -191,7 +192,7 @@ Every setting in `backend/app/core/config.py` is either set by the stack or list
 | Variable | Why |
 |---|---|
 | `SUPABASE_AUTH_HOOK_SECRET` | It signs a Supabase Database Webhook on `auth.users`, a feature of Supabase's platform that self-hosted GoTrue on RDS doesn't have. Account deletion from the app still works: the backend deletes the GoTrue identity, then its own rows. A user deleted directly in GoTrue (admin API) keeps a local row until a replacement (a trigger on `auth.users` or a reconcile job) is built |
-| `NEBIUS_API_KEY`, `DEEPGRAM_API_KEY`, and the other third-party keys | Values exist only with their owners; put them in `unfurl/app` after the first deploy |
+| `OPENROUTER_API_KEY`, `EXPO_ACCESS_TOKEN`, `SENTRY_DSN` | Not in the local `.env` (2026-10-24); add them there and rerun `bun run secrets` when they exist |
 | Apple and Google client IDs and secrets | The accounts don't exist yet |
 
 ## Still blocked
@@ -260,9 +261,15 @@ env -u HTTPS_PROXY -u HTTP_PROXY bunx cdk bootstrap aws://619648596614/ap-southe
 env -u HTTPS_PROXY -u HTTP_PROXY bunx cdk deploy UnfurlCi --profile unfurl
 ```
 
-3. In GitHub: create the environment `production` (add required reviewers if a second approval is wanted), set the repository variable `AWS_DEPLOY_ROLE_ARN` to the `DeployRoleArn` output from step 2, and add the repository secret `CLOUDFLARE_API_TOKEN`.
+3. Create the third-party keys secret from the local `.env` (it prints names only, and refuses without a Nebius key):
 
-4. Run the **Deploy to AWS** workflow with `ref` = `master`. It builds and pushes the arm64 backend image, runs the Cloudflare script (tunnel, token secret, ingress, DNS, rate rule), runs `cdk deploy UnfurlProd`, then runs the script again for the SES records. To do the same from the Mac instead (Apple Silicon builds arm64 natively):
+```bash
+cd infra && AWS_PROFILE=unfurl env -u HTTPS_PROXY -u HTTP_PROXY bun run secrets ../.env --apply
+```
+
+4. In GitHub: create the environment `production` (add required reviewers if a second approval is wanted), set the repository variable `AWS_DEPLOY_ROLE_ARN` to the `DeployRoleArn` output from step 2, and add the repository secret `CLOUDFLARE_API_TOKEN`.
+
+5. Run the **Deploy to AWS** workflow with `ref` = `master`. It builds and pushes the arm64 backend image, runs the Cloudflare script (tunnel, token secret, ingress, DNS, rate rule), runs `cdk deploy UnfurlProd`, then runs the script again for the SES records. To do the same from the Mac instead (Apple Silicon builds arm64 natively):
 
 ```bash
 TAG=$(git rev-parse --short=12 HEAD); REPO=619648596614.dkr.ecr.ap-southeast-1.amazonaws.com/unfurl-backend
@@ -275,16 +282,13 @@ env -u HTTPS_PROXY -u HTTP_PROXY bunx cdk deploy UnfurlProd -c unfurl:imageTag=$
 env -u HTTPS_PROXY -u HTTP_PROXY bun run cloudflare --apply
 ```
 
-5. Put the third-party keys in, merging into the existing JSON so generated fields are kept, then restart the backend services so they read them:
+6. To change a third-party key later, edit `.env`, rerun `bun run secrets ../.env --apply`, then restart the backend services so they read it:
 
 ```bash
-CUR=$(env -u HTTPS_PROXY -u HTTP_PROXY aws secretsmanager get-secret-value --secret-id unfurl/app --profile unfurl --region ap-southeast-1 --query SecretString --output text)
-echo "$CUR" | jq --arg n "<nebius key>" --arg d "<deepgram key>" '.nebius_api_key=$n | .deepgram_api_key=$d' > /tmp/unfurl-app.json
-env -u HTTPS_PROXY -u HTTP_PROXY aws secretsmanager put-secret-value --secret-id unfurl/app --secret-string file:///tmp/unfurl-app.json --profile unfurl --region ap-southeast-1 && rm /tmp/unfurl-app.json
 for s in unfurl-api unfurl-worker; do env -u HTTPS_PROXY -u HTTP_PROXY aws ecs update-service --cluster unfurl --service $s --force-new-deployment --profile unfurl --region ap-southeast-1 >/dev/null; done
 ```
 
-6. Check: `curl https://unfurl-api.realsolutionsph.com/api/v1/utils/health-check/` and `curl https://unfurl-api.realsolutionsph.com/auth/v1/health` both return 200.
+7. Check: `curl https://unfurl-api.realsolutionsph.com/api/v1/utils/health-check/` and `curl https://unfurl-api.realsolutionsph.com/auth/v1/health` both return 200.
 
 The first `UnfurlProd` deploy takes roughly 20 minutes, mostly RDS. CloudFormation rolls the whole stack back if any service fails to stabilise. RDS (deletion protection, snapshot on delete), the media bucket, the secrets and the log groups are retained by design, so a failed first create can leave them behind for cleanup.
 
@@ -296,13 +300,17 @@ What happened on 2026-10-24: the tunnel tasks couldn't read their token secret (
 - The **stack's termination protection** stopped `delete-stack`.
 
 To recover:
-1. Read why tasks stopped: every ECS task stop is in the `/unfurl/ecs-events` log group with its reason, including failures before a container starts.
+1. Read why tasks stopped: every ECS task stop is in the task-stop events log group (stack output `EcsEventsLogGroup`) with its reason, including failures before a container starts. Service log groups are kept after a failed create too.
 2. Confirm the database holds no user data (it was created by the failed create).
 3. `aws rds modify-db-instance --db-instance-identifier unfurl --no-deletion-protection --apply-immediately`
 4. `aws cloudformation update-termination-protection --stack-name UnfurlProd --no-enable-termination-protection`
 5. `aws cloudformation delete-stack --stack-name UnfurlProd`. The database's final snapshot is kept.
 
-Secrets, service log groups and the media bucket use `RETAIN_ON_UPDATE_OR_DELETE`: kept on later updates and deletes, removed when a first create rolls back. So their fixed names are free for the retry. The tunnel token secret belongs to `scripts/cloudflare.ts` and stays.
+Avoid the manual part: run a **first** create with `-c unfurl:databaseDeletionProtection=false`, so a failure rolls back completely. Turn protection on with the next deploy (the default) once the stack is up and holds data.
+
+The named secrets and the media bucket use `RETAIN_ON_UPDATE_OR_DELETE`: kept on later updates and deletes, removed when a first create rolls back, so their names are free for the retry. Log groups have generated names and are always kept, so a failed create's logs stay readable. The tunnel token and third-party secrets belong to their scripts and stay.
+
+What happened on the second attempt, also 2026-10-24: the secrets came back empty with the new stack, and the API exits at startup with AI on and no Nebius key (`OpenAIError: Missing credentials`, reproduced locally). The third-party keys now live in `unfurl/third-party`, created before the deploy.
 
 ## Later deploys
 
