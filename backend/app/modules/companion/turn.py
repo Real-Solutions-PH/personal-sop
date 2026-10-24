@@ -13,6 +13,7 @@ written.
 """
 
 import json
+import time
 import uuid
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
@@ -47,6 +48,9 @@ Sink = Callable[[BaseEvent], None]
 # enforces it) and draws no second step line.
 # Tools that run once a turn. Seen live: confirm_pending called twice in
 # one reply, each step listing the same refusals.
+# How often a running reply asks whether it was told to stop.
+STOP_CHECK_SECONDS = 0.3
+
 ONCE_A_TURN = frozenset({"recall_memories", "confirm_pending", "discard_pending"})
 
 RUNNING: dict[str, str] = {
@@ -359,6 +363,11 @@ class TurnStream(capture.LoopHooks):
     _args: dict[str, dict[str, Any]] = field(default_factory=dict)
     # Repeat calls of a once-a-turn tool: run, but shown nowhere.
     _quiet: set[str] = field(default_factory=set)
+    # Whether the person asked this reply to stop (see ``gate``), checked
+    # at most every STOP_CHECK_SECONDS; once true it stays true.
+    stop_check: Callable[[], bool] = lambda: False
+    _stopped: bool = False
+    _checked_at: float = 0.0
 
     # ---------------------------------------------------------- run
 
@@ -410,6 +419,15 @@ class TurnStream(capture.LoopHooks):
             self._text_id = None
 
     # ---------------------------------------------------------- loop hooks
+
+    def stopped(self) -> bool:
+        if self._stopped:
+            return True
+        now = time.monotonic()
+        if now - self._checked_at >= STOP_CHECK_SECONDS:
+            self._checked_at = now
+            self._stopped = self.stop_check()
+        return self._stopped
 
     def model_started(self, turn: int) -> None:
         self._turn = turn

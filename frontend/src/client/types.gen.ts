@@ -4865,6 +4865,12 @@ export type CompanionAskStreamData = {
 
 export type CompanionAskStreamResponse = (unknown);
 
+export type CompanionStopReplyData = {
+    messageId: string;
+};
+
+export type CompanionStopReplyResponse = (void);
+
 export type CompanionListMessagesData = {
     limit?: number;
     skip?: number;

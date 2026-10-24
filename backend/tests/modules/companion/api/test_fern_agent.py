@@ -1295,3 +1295,36 @@ def test_confirm_twice_in_one_reply_shows_one_step(
     events = stream(api, client, "confirm")
     items = events[-1]["result"]["messages"][1]["blocks"][0]["items"]
     assert [i["tool"] for i in items] == ["confirm_pending"]
+
+
+def test_send_now_stops_the_running_reply_before_its_tools_run(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The app's "Send now": the reply asked to stop ends at its next step,
+    runs none of the tools it was about to, and says it stopped."""
+    import uuid
+
+    from app.modules.companion import gate
+    from app.modules.companion.services import STOPPED
+
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    install(
+        monkeypatch,
+        say("", call("create_tasks", tasks=[{"title": "Buy milk"}])),
+        say("Added."),
+    )
+    me = uuid.uuid4()
+    r = client.post(f"/api/v1/companion/messages/{me}/stop", headers=api.h, json={})
+    assert r.status_code == 204
+    r = client.post(
+        "/api/v1/companion/ask/stream",
+        headers=api.h,
+        json={"text": "add a task to buy milk", "id": str(me)},
+    )
+    events = parse_agui(r.text)
+    done = events[-1]["result"]
+    assert tasks_of(api) == []
+    assert done["messages"][1]["text"].endswith(STOPPED)
+    # The flag is gone once the reply ended: the next reply runs in full.
+    assert not gate.stop_requested(api.user.id, str(me))

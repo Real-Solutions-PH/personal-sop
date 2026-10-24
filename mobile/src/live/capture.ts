@@ -57,9 +57,11 @@ import {
   COMPANION_NAME,
   companionStore,
   type Msg,
+  replying,
   type StepItem,
   setAskBackend,
   setRetryAsk,
+  setStopReply,
   stepLabel,
   takeVoiceTurn,
   thinking,
@@ -945,6 +947,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
       companionStore.get().messages.find((m) => m.id === meId)?.threadId ??
       threadForSend()
     putAsk(meId, text, hint, photos, "sending", threadId)
+    replying.setState({ id: meId })
     // Set once the server has stored the question: from then on a failure
     // must not offer a Retry (it would ask twice).
     let echoed = false
@@ -1163,8 +1166,11 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
         fail()
       thinking.setState({ on: false })
       answering.setState({ id: null })
+      replying.setState({ id: null })
       deps.kick()
       void refreshSpend()
+      // Questions sent while this reply was written go next, oldest first.
+      if (deps.online()) void flushAsks()
     }
   }
 
@@ -1186,7 +1192,22 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
       }
       return
     }
+    // One reply at a time: a question sent while Fern is still answering
+    // waits, queued, and goes when the reply ends (or at once on Send now).
+    if (replying.getState().id) {
+      putAsk(newId(), text, hint, photos ?? [], "queued", threadForSend())
+      return
+    }
     void runAsk(text, hint, photos)
+  }
+
+  /** "Send now": the reply being written stops at its next step. */
+  const stop = () => {
+    const id = replying.getState().id
+    if (id)
+      void deps
+        .post(`/companion/messages/${id}/stop`, {})
+        .catch(() => undefined)
   }
 
   /** Send every queued question, oldest first (single-flight). */
@@ -1233,7 +1254,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
       : s,
   )
 
-  return { backend, ask, retry, flushAsks, refreshSpend }
+  return { backend, ask, retry, stop, flushAsks, refreshSpend }
 }
 
 // ---------------------------------------------------------------------------
@@ -1279,6 +1300,7 @@ export function installLiveCapture(deps: LiveCaptureDeps) {
   setCaptureBackend(live.backend)
   setAskBackend(live.ask)
   setRetryAsk(live.retry)
+  setStopReply(live.stop)
   unwatch?.()
   unwatch = deps.watch?.(() => void live.flushAsks()) ?? null
   void live.refreshSpend()

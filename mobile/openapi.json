@@ -15233,6 +15233,38 @@
         "security": [{ "HTTPBearer": [] }]
       }
     },
+    "/api/v1/companion/messages/{message_id}/stop": {
+      "post": {
+        "tags": ["companion"],
+        "summary": "Stop Reply",
+        "description": "Stop the reply to this message at its next step (the app's \"Send\nnow\" for a message queued behind it). What the reply already did stays.\nStopping a reply that has ended does nothing.",
+        "operationId": "companion-stop_reply",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "message_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Message Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": { "description": "Successful Response" },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
     "/api/v1/companion/messages": {
       "get": {
         "tags": ["companion"],

@@ -83,6 +83,11 @@ class LoopHooks:
     def tool_finished(self, call_id: str, name: str, result: Any) -> None:
         return None
 
+    def stopped(self) -> bool:
+        """The person asked this reply to stop: the loop ends at its next
+        step, keeping what it already did."""
+        return False
+
 
 def _text(msg: BaseMessage) -> str:
     return seams.text_of(msg)
@@ -138,6 +143,8 @@ def run_loop(
         usages: list[dict[str, Any]] = []
         try:
             for chunk in bound.stream([SystemMessage(system), *state["messages"]]):
+                if h.stopped():
+                    break
                 delta = _text(chunk)
                 if delta:
                     on_text(delta)
@@ -151,7 +158,8 @@ def run_loop(
         if isinstance(acc, AIMessageChunk):
             msg: BaseMessage = AIMessage(
                 content=acc.content,
-                tool_calls=acc.tool_calls,
+                # A stopped call's half-written tool calls never run.
+                tool_calls=[] if h.stopped() else acc.tool_calls,
                 usage_metadata=_stream_usage(usages),
                 id=acc.id,
             )
@@ -170,8 +178,10 @@ def run_loop(
             call_id = tc.get("id") or str(uuid.uuid4())
             args = tc.get("args") or {}
             h.tool_started(call_id, tc["name"], args)
-            if n >= MAX_TOOL_CALLS_PER_TURN:
-                result: Any = {"error": "too_many_calls_in_one_turn"}
+            if h.stopped():
+                result: Any = {"error": "stopped_by_the_person"}
+            elif n >= MAX_TOOL_CALLS_PER_TURN:
+                result = {"error": "too_many_calls_in_one_turn"}
             elif max_tool_calls is not None and calls >= max_tool_calls:
                 result = {"error": "too_many_calls_in_this_reply"}
             elif tool is None:
@@ -196,7 +206,11 @@ def run_loop(
 
     def route(state: LoopState) -> str:
         last = state["messages"][-1]
-        if getattr(last, "tool_calls", None) and state["turns"] < max_turns:
+        if (
+            getattr(last, "tool_calls", None)
+            and state["turns"] < max_turns
+            and not h.stopped()
+        ):
             return "tools"
         return END
 
