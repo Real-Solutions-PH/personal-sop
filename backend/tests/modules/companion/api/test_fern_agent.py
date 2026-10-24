@@ -1216,3 +1216,82 @@ def test_what_counts_as_saying_confirm() -> None:
     ]
     assert all(services.said_confirm(t) for t in yes)
     assert not any(services.said_confirm(t) for t in no)
+
+
+def _waiting_expenses(api: Api, *, saved: bool = False) -> list[Any]:
+    from app.modules.capture.models import RecordCard
+
+    states = ("proposed", "needs_input") + (("saved",) if saved else ())
+
+    with Session(db_engine) as s:
+        return [
+            c
+            for c in s.exec(
+                select(RecordCard).where(RecordCard.owner_id == api.user.id)  # type: ignore[attr-defined]
+            ).all()
+            if c.kind == "expense" and c.state in states
+        ]
+
+
+def test_the_same_screenshot_sent_twice_does_not_double_the_waiting_expenses(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    receipt = say(
+        "",
+        call("log_expense", amount=275, payee="7-Eleven"),
+        call("log_expense", amount=118, payee="7-Eleven"),
+    )
+    install(
+        monkeypatch,
+        receipt,
+        say("Two 7-Eleven purchases are waiting."),
+        receipt,
+        say("Those are already waiting."),
+    )
+    stream(api, client, "log these")
+    assert len(_waiting_expenses(api)) == 2
+    events = stream(api, client, "log these")
+    assert len(_waiting_expenses(api)) == 2
+    items = events[-1]["result"]["messages"][1]["blocks"][0]["items"]
+    assert [i["summary"].split(":")[0] for i in items] == [
+        "Already waiting",
+        "Already waiting",
+    ]
+
+
+def test_two_equal_purchases_on_one_receipt_are_both_kept(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    install(
+        monkeypatch,
+        say(
+            "",
+            call("log_expense", amount=50, payee="Jeepney"),
+            call("log_expense", amount=50, payee="Jeepney"),
+        ),
+        say("Two fares are waiting."),
+    )
+    stream(api, client, "log these: spent 50 and 50 on jeepney")
+    assert len(_waiting_expenses(api, saved=True)) == 2
+
+
+def test_confirm_twice_in_one_reply_shows_one_step(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    install(
+        monkeypatch,
+        say("", call("log_expense", amount=250, category="Food", note="Lunch")),
+        say("Lunch is waiting."),
+        say("", call("confirm_pending"), call("confirm_pending")),
+        say("Lunch can't be saved until you add an account."),
+    )
+    stream(api, client, "spent 250 on lunch")
+    events = stream(api, client, "confirm")
+    items = events[-1]["result"]["messages"][1]["blocks"][0]["items"]
+    assert [i["tool"] for i in items] == ["confirm_pending"]
