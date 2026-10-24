@@ -290,16 +290,32 @@ def test_me_reports_my_show_scores_setting(client: TestClient, trio: Trio) -> No
 
 
 def test_explore_skips_unfinished_signups(
-    client: TestClient, db: Session, trio: Trio
+    client: TestClient,
+    db: Session,
+    trio: Trio,
+    people: Callable[[str], Person],
 ) -> None:
     """An account that never chose a name and handle is not suggested:
-    there is nothing to show for it."""
+    there is nothing to show for it. Once it has a handle, it is."""
     from tests.utils.mobile import signed_in
 
-    blank, _ = signed_in(db)
-    # Two followers rank it near the top of the suggestions it must miss.
-    for who in (trio.ana, trio.ben):
+    blank, blank_headers = signed_in(db)
+    # Six followers put it at the top of the suggestions whatever else the
+    # tenant holds (suggestions rank by followers), so only the handle rule
+    # can keep it out.
+    for who in (trio.ana, trio.ben, *(people(f"F{i}") for i in range(4))):
         ok(client.put(f"{API}/people/{blank.id}/follow", headers=who.headers))
-    ex = ok(client.get(f"{API}/explore", headers=trio.cy.headers))
-    ids = [p["id"] for p in ex["suggested"]]
-    assert str(blank.id) not in ids and str(trio.ana.id) in ids
+
+    def suggested() -> list[str]:
+        ex = ok(client.get(f"{API}/explore", headers=trio.cy.headers))
+        return [p["id"] for p in ex["suggested"]]
+
+    assert str(blank.id) not in suggested()
+    ok(
+        client.patch(
+            f"{settings.API_V1_STR}/profile",
+            headers=blank_headers,
+            json={"name": "Finished", "handle": f"fin{blank.id.hex[:6]}"},
+        )
+    )
+    assert str(blank.id) in suggested()
