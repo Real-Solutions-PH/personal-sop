@@ -54,6 +54,8 @@ import {
   addMembers,
   type Chat,
   deleteChat,
+  ensurePostLive,
+  lastMineSeen,
   leaveGroup,
   ME,
   type Message,
@@ -65,6 +67,7 @@ import {
   sendMessage,
   simulateReply,
   socialStore,
+  systemLine,
   timeAgo,
   toggleMute,
   unsend,
@@ -127,15 +130,30 @@ function Dot({ v, color }: { v: { value: number }; color: string }) {
   )
 }
 
-function SharedPost({ id, mine }: { id: string; mine: boolean }) {
+export function SharedPost({ id }: { id: string }) {
   const t = useTheme()
   const post = socialStore.use((s) => s.posts.find((p) => p.id === id))
   const author = usePerson(post?.by ?? "")
+  // A post shared from outside my feed is not loaded yet: fetch it.
+  const [gone, setGone] = useState(false)
+  useEffect(() => {
+    void ensurePostLive(id).then((r) => setGone(r === "gone"))
+  }, [id])
   if (!post)
-    return (
+    return gone ? (
       <Text style={{ color: t.muted, fontStyle: "italic", padding: 10 }}>
         Post unavailable
       </Text>
+    ) : (
+      <View
+        accessibilityLabel="Loading post"
+        style={{
+          width: 220,
+          height: 120,
+          borderRadius: 18,
+          backgroundColor: t.soft,
+        }}
+      />
     )
   const img = post.media.find((m) => m.kind === "image")
   return (
@@ -147,8 +165,10 @@ function SharedPost({ id, mine }: { id: string; mine: boolean }) {
         width: 220,
         borderRadius: 18,
         overflow: "hidden",
-        backgroundColor: mine ? "#ffffff1f" : t.card,
-        borderWidth: mine ? 0 : 1,
+        // It sits on the page, not inside my coloured bubble: card colours
+        // either way, or white text vanishes on the light theme.
+        backgroundColor: t.card,
+        borderWidth: 1,
         borderColor: t.line,
       }}
     >
@@ -163,7 +183,7 @@ function SharedPost({ id, mine }: { id: string; mine: boolean }) {
         <Avatar id={post.by} size={22} ring={false} />
         <Text
           style={{
-            color: mine ? "#fff" : t.text,
+            color: t.text,
             fontFamily: fonts.semibold,
             fontSize: 13,
           }}
@@ -196,7 +216,7 @@ function SharedPost({ id, mine }: { id: string; mine: boolean }) {
         <Text
           numberOfLines={2}
           style={{
-            color: mine ? "#fff" : t.text,
+            color: t.text,
             fontSize: 13,
             padding: 8,
             fontFamily: fonts.body,
@@ -333,7 +353,7 @@ function Row({
           fontFamily: fonts.body,
         }}
       >
-        {m.text}
+        {systemLine(m, sender?.name.split(" ")[0] ?? "")}
       </Text>
     )
   return (
@@ -450,7 +470,7 @@ function Row({
               accessibilityHint="Long press for reactions and more"
               style={{ gap: 4, alignItems: mine ? "flex-end" : "flex-start" }}
             >
-              {m.postId && <SharedPost id={m.postId} mine={mine} />}
+              {m.postId && <SharedPost id={m.postId} />}
               {m.media && (
                 <Image
                   source={{ uri: m.media.uri }}
@@ -928,8 +948,7 @@ export function ChatScreen({ id }: { id: string }) {
     )
   const group = !!chat.name
   const lastMine = chat.messages.findLast((m) => m.by === ME && !m.system)
-  const seen =
-    lastMine && chat.messages.some((m) => m.by !== ME && m.at > lastMine.at)
+  const seen = lastMineSeen(chat)
   const send = (body: Partial<Message>) => {
     sendMessage(chat.id, { ...body, replyTo: replyTo?.id })
     haptic.tap()

@@ -34,6 +34,7 @@ import {
   createGroup,
   deleteChat,
   directChat,
+  liveNotes,
   ME,
   type Note,
   searchLive,
@@ -41,6 +42,7 @@ import {
   setNote,
   simulateReply,
   socialStore,
+  systemLine,
   timeAgo,
   toggleMute,
   toggleNoteLike,
@@ -103,7 +105,12 @@ function preview(chat: Chat, people: { id: string; name: string }[]) {
       : last.media
         ? "Sent a photo"
         : (last.text ?? "")
-  return last.system ? body : who + body
+  if (last.system)
+    return systemLine(
+      last,
+      people.find((p) => p.id === last.by)?.name.split(" ")[0] ?? "",
+    )
+  return who + body
 }
 
 function ChatRow({ chat }: { chat: Chat }) {
@@ -479,7 +486,8 @@ export function Inbox() {
   const params = useLocalSearchParams<{ note?: string }>()
   const me = useMe()
   const chats = socialStore.use((s) => s.chats)
-  const notes = socialStore.use((s) => s.notes)
+  const saved = socialStore.use((s) => s.notes)
+  const notes = useMemo(() => liveNotes(saved), [saved])
   const people = socialStore.use((s) => s.people)
   const [q, setQ] = useState("")
   const [composeNote, setComposeNote] = useState(!!params.note)

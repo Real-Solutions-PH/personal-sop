@@ -64,10 +64,12 @@ import {
   type Area,
   compact,
   directChat,
+  loadSavedLive,
   ME,
   openPersonLive,
   type Person,
   type Post,
+  profileLink,
   type Scorecard,
   socialStore,
   toggleCloseFriend,
@@ -738,11 +740,16 @@ export function Profile({ id }: { id: string }) {
     void openPersonLive(id).finally(() => setOpening(false))
   }, [id])
   const posts = socialStore.use((s) => s.posts)
+  const myId = socialStore.use((s) => s.me?.id)
   const showScores = socialStore.use((s) => s.showScores)
   const myCard = useMyScorecard()
   const mine = id === ME
   const [tab, setTab] = useState<Tab>("posts")
   const [create, setCreate] = useState(false)
+  // The feed holds recent posts only; the saved tab needs the full list.
+  useEffect(() => {
+    if (tab === "saved") void loadSavedLive()
+  }, [tab])
   const theirs = useMemo(
     () => posts.filter((p) => p.by === id).sort((a, b) => b.at - a.at),
     [posts, id],
@@ -906,9 +913,7 @@ export function Profile({ id }: { id: string }) {
                   />
                   <ProfileButton
                     label="Share profile"
-                    onPress={() =>
-                      copyText(`https://personal-sop.app/@${person.username}`)
-                    }
+                    onPress={() => copyText(profileLink(myId ?? ME))}
                   />
                 </>
               ) : (
