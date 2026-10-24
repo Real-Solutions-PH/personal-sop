@@ -234,7 +234,8 @@ function NewAccount() {
     )
     if (ok) {
       haptic.success()
-      go("/verify-email")
+      if (sessionStore.get().signedIn) replace("/onboarding")
+      else go("/verify-email")
     }
   }
   const onSocial = async (provider: "apple" | "google") => {

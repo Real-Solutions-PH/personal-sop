@@ -220,7 +220,7 @@ export async function continueWith(provider: "apple" | "google") {
 export async function signUp(user: User & { password: string }) {
   const email = user.email.trim().toLowerCase()
   if (liveMode) {
-    await viaLive(() =>
+    const confirmed = await viaLive(() =>
       live().signUp(email, user.password, user.name.trim(), user.username),
     )
     sessionStore.set((s) => ({
@@ -228,6 +228,8 @@ export async function signUp(user: User & { password: string }) {
       pending: { name: user.name.trim(), username: user.username, email },
       claim: null,
     }))
+    // No code to wait for: the server confirmed the account and signed it in.
+    if (confirmed) await completeSignUp()
     return
   }
   await wait()

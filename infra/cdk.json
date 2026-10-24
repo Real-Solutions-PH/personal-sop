@@ -12,6 +12,7 @@
     "unfurl:sizingOverrides": {},
     "unfurl:apiHost": "unfurl-api.realsolutionsph.com",
     "unfurl:emailDomain": "unfurl.realsolutionsph.com",
+    "unfurl:requireEmailConfirmation": false,
     "unfurl:alertEmail": "",
     "unfurl:authRedirectUrls": "personalsop://**",
     "unfurl:appleSignIn": false,

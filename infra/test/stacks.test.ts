@@ -43,8 +43,8 @@ type Container = {
   Command?: string[]
 }
 
-function containers(family: string): Container[] {
-  const defs = prod.findResources("AWS::ECS::TaskDefinition", {
+function containers(family: string, t: Template = prod): Container[] {
+  const defs = t.findResources("AWS::ECS::TaskDefinition", {
     Properties: { Family: family },
   })
   const [def] = Object.values(defs)
@@ -52,8 +52,12 @@ function containers(family: string): Container[] {
   return def.Properties.ContainerDefinitions
 }
 
-function container(family: string, name: string): Container {
-  const c = containers(family).find((x) => x.Name === name)
+function container(
+  family: string,
+  name: string,
+  t: Template = prod,
+): Container {
+  const c = containers(family, t).find((x) => x.Name === name)
   if (!c) throw new Error(`no container ${name} in ${family}`)
   return c
 }
@@ -309,6 +313,24 @@ describe("in-app rate limits replace the WAF", () => {
     expect(envValue(api, "RATE_LIMIT_ACCOUNT_PER_MINUTE")).toBe(
       String(RATE_LIMITS.accountPerMinute),
     )
+  })
+
+  test("sign-up is confirmed at once unless email confirmation is required", () => {
+    // SES is in its sandbox, so a confirmation email to a new address
+    // never arrives; the default must not wait for one.
+    expect(
+      envValue(
+        container("unfurl-gotrue", "gotrue"),
+        "GOTRUE_MAILER_AUTOCONFIRM",
+      ),
+    ).toBe("true")
+    const strict = synth({ "unfurl:requireEmailConfirmation": true }).prod
+    expect(
+      envValue(
+        container("unfurl-gotrue", "gotrue", strict),
+        "GOTRUE_MAILER_AUTOCONFIRM",
+      ),
+    ).toBe("false")
   })
 
   test("GoTrue's own per-address limits are on, keyed on the visitor", () => {
