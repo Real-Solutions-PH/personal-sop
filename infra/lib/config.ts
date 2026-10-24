@@ -258,7 +258,16 @@ export const THIRD_PARTY_FIELDS = {
 } as const
 /** The API cannot start with AI on without these. */
 export const THIRD_PARTY_REQUIRED = ["nebius_api_key"] as const
-export const TUNNEL_TOKEN_SECRET = `${PREFIX}/cloudflared-tunnel`
+export const TUNNEL_TOKEN_SECRET = `${PREFIX}/tunnel-token`
+
+/**
+ * Secret names must not end in a hyphen and six characters: Secrets Manager
+ * then reads a partial ARN (how ECS asks for a secret imported by name) as a
+ * full ARN with a random suffix, finds nothing, and denies. The tunnel token
+ * was `unfurl/cloudflared-tunnel` (`-tunnel`), and every cloudflared task
+ * failed with AccessDenied under a policy that allowed it (2026-10-24).
+ */
+export const LOOKS_LIKE_ARN_SUFFIX = /-[A-Za-z0-9]{6}$/
 
 /** Private DNS (Cloud Map) the tunnel and the backend reach services at. */
 export const SERVICE_NAMESPACE = `${PREFIX}.internal`
