@@ -24,6 +24,8 @@ MOBILE_API_PERMISSIONS: list[str] = [
     "fitness:write",
     "finance:read",
     "finance:write",
+    "focus:read",
+    "focus:write",
     "capture:read",
     "capture:write",
     "ai_providers:read",

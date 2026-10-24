@@ -190,7 +190,7 @@ def facets(
     ls = ls or life_score(ctx, s, days)
     cur, prev = windows(ctx, days)
     reported: dict[str, Facet] = {}
-    for k in ("habits", "fitness", "nutrition"):
+    for k in ("habits", "fitness", "nutrition", "focus"):
         for f in contributors()[k].facets(ctx, cur, prev):
             reported[f.key] = f
 
@@ -205,6 +205,7 @@ def facets(
         routines=pair("routines"),
         training=pair("training"),
         nutrition=pair("nutrition"),
+        focus=pair("focus"),
     )
 
 

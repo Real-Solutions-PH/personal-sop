@@ -19,7 +19,7 @@ from typing import Literal
 
 from app.modules.stats.contract import Metric
 
-MODULE_KEYS: tuple[str, ...] = ("habits", "tasks", "fitness", "nutrition", "finance")
+MODULE_KEYS: tuple[str, ...] = ("habits", "tasks", "fitness", "nutrition", "focus", "finance")
 STREAK_MILESTONES: tuple[int, ...] = (7, 30, 100, 365)
 # The on-target series always spans at least a year so the all-time streaks
 # (``useOnTarget``) see the same history whatever range the screen shows.
@@ -630,11 +630,12 @@ def compose_facets(
     routines: tuple[float, float],
     training: tuple[float, float],
     nutrition: tuple[float, float],
+    focus: tuple[float, float] = (0.0, 0.0),
     routine_extra: Sequence[Metric] = (),
 ) -> list[FacetView]:
-    """``useFacets``: the six facets in screen order. Habits, tasks and
-    finance are the area rates; routines, training and nutrition come from
-    the habits, fitness and nutrition contributors."""
+    """``useFacets``: the seven facets in screen order. Habits, tasks and
+    finance are the area rates; routines, training, nutrition and focus come
+    from the habits, fitness, nutrition and focus contributors."""
 
     def r(m: Mapping[str, float | None], k: str) -> float:
         return m.get(k) or 0.0
@@ -690,6 +691,15 @@ def compose_facets(
             nutrition[1],
             "/nutrition",
             ("calories", "protein", "kcal", "logged"),
+        ),  # fmt: skip
+        f(
+            "focus",
+            "Focus",
+            "focus",
+            focus[0],
+            focus[1],
+            "/focus/stats",
+            ("focused", "daily", "goalDays", "sessions", "pomodoros"),
         ),  # fmt: skip
         f(
             "finance",

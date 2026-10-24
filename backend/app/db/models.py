@@ -69,6 +69,11 @@ from app.modules.fitness.models import (  # noqa: F401
     WorkoutSet,
     WorkoutTemplate,
 )
+from app.modules.focus.models import (  # noqa: F401
+    FocusSegment,
+    FocusSession,
+    FocusSettings,
+)
 from app.modules.habits.models import (  # noqa: F401
     Habit,
     HabitLog,

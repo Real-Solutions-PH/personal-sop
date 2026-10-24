@@ -4,7 +4,7 @@
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import CheckConstraint, String, UniqueConstraint
+from sqlalchemy import CheckConstraint, Integer, String, UniqueConstraint
 from sqlmodel import Field
 
 from app.shared.owned import JSONB, OwnedRow, enum_check, tstz
@@ -62,6 +62,10 @@ class Task(OwnedRow, table=True):
         enum_check("source", TASK_SOURCES, name="ck_task_source"),
         enum_check("parse_state", ("parsed", "pending"), name="ck_task_parse"),
         CheckConstraint("reschedule_count >= 0", name="ck_task_reschedules"),
+        CheckConstraint(
+            "estimate_min IS NULL OR estimate_min BETWEEN 1 AND 6000",
+            name="ck_task_estimate",
+        ),
     )
 
     title: str = Field(max_length=280)
@@ -88,6 +92,9 @@ class Task(OwnedRow, table=True):
     original_due: date | None = None
     reschedule_count: int = 0
     sort_order: int = 0
+    # How long the person expects it to take; Focus shows time spent
+    # against it (ADR-0025).
+    estimate_min: int | None = Field(default=None, sa_type=Integer)
     # The task this one was spawned from by recurrence (derived id lineage).
     series_parent_id: uuid.UUID | None = Field(
         default=None, foreign_key="task.id", ondelete="SET NULL"

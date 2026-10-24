@@ -8,6 +8,7 @@ from app.modules.companion.main import router as companion_router
 from app.modules.dashboard.main import router as dashboard_router
 from app.modules.finance.main import router as finance_router
 from app.modules.fitness.main import router as fitness_router
+from app.modules.focus.main import router as focus_router
 from app.modules.habits.main import router as habits_router
 from app.modules.iam.main import router as iam_router
 from app.modules.items.main import router as items_router
@@ -35,6 +36,7 @@ v1_router.include_router(habits_router)
 v1_router.include_router(tasks_router)
 v1_router.include_router(fitness_router)
 v1_router.include_router(nutrition_router)
+v1_router.include_router(focus_router)
 v1_router.include_router(finance_router)
 v1_router.include_router(capture_router)
 v1_router.include_router(ai_providers_router)
