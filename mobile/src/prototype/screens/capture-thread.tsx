@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react-native"
 import { useEffect, useRef, useState } from "react"
+import type { TextInputInstance } from "react-native"
 import {
   ActivityIndicator,
   Image,
@@ -108,7 +109,7 @@ export function ThreadComposer({
     grown = useRef(false),
     focused = useRef(false),
     refocus = useRef(false),
-    input = useRef<TextInput>(null),
+    input = useRef<TextInputInstance>(null),
     online = useOnline()
   useEffect(() => {
     if (text || !grown.current) return

@@ -17,6 +17,7 @@ import {
   useRef,
   useState,
 } from "react"
+import type { TextInputInstance } from "react-native"
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -278,7 +279,7 @@ export function AuthField({
   error?: string
   hint?: ReactNode
   right?: ReactNode
-  ref?: Ref<TextInput>
+  ref?: Ref<TextInputInstance>
 }) {
   const t = useTheme()
   const [focused, setFocused] = useState(false)
@@ -951,7 +952,7 @@ export function CodeInput({
   error?: boolean
   shakeKey: number
   disabled?: boolean
-  ref?: Ref<TextInput>
+  ref?: Ref<TextInputInstance>
 }) {
   const t = useTheme()
   const reduced = useReducedMotion()

@@ -1,5 +1,6 @@
 import { KeyRound, Mail, MailCheck } from "lucide-react-native"
 import { useRef, useState } from "react"
+import type { TextInputInstance } from "react-native"
 import { Linking, Platform, Text, type TextInput, View } from "react-native"
 import { toast } from "sonner-native"
 import {
@@ -44,7 +45,7 @@ export function ForgotPassword() {
   const [touched, setTouched] = useState(false)
   const [sent, setSent] = useState(false)
   const [resending, setResending] = useState(false)
-  const input = useRef<TextInput>(null)
+  const input = useRef<TextInputInstance>(null)
   const submit = useSubmit()
   const { left, restart } = useCountdown(30)
   const error = emailError(email)

@@ -1,5 +1,6 @@
 import { AtSign, LockKeyhole, Mail, User } from "lucide-react-native"
 import { useEffect, useRef, useState } from "react"
+import type { TextInputInstance } from "react-native"
 import { Text, type TextInput, View } from "react-native"
 import { toast } from "sonner-native"
 import { liveMode } from "@/live/config"
@@ -181,10 +182,10 @@ function NewAccount() {
   const [social, setSocial] = useState<"apple" | "google" | null>(null)
   const [emailTaken, setEmailTaken] = useState(false)
   const refs = {
-    name: useRef<TextInput>(null),
-    username: useRef<TextInput>(null),
-    email: useRef<TextInput>(null),
-    password: useRef<TextInput>(null),
+    name: useRef<TextInputInstance>(null),
+    username: useRef<TextInputInstance>(null),
+    email: useRef<TextInputInstance>(null),
+    password: useRef<TextInputInstance>(null),
   }
   const availability = useAvailability(username)
   const submit = useSubmit()

@@ -6,7 +6,7 @@ This repo follows the **Engineering Constitution** in [docs/constitution.md](doc
 
 - `backend/` — FastAPI + SQLModel, managed with `uv`.
 - `frontend/` — Next.js 16 (App Router), a bun workspace member of the root `package.json`, linted with Biome.
-- `mobile/` — Expo SDK 57, a **standalone** bun project **not** part of the root workspace — run bun commands from inside `mobile/`.
+- `mobile/` — Expo SDK 58, a **standalone** bun project **not** part of the root workspace — run bun commands from inside `mobile/`.
 - `infra/` — AWS CDK v2 (TypeScript) production infrastructure (ADR-0022), a **standalone** bun project **not** part of the root workspace — run bun commands from inside `infra/`. Linted with Biome.
 - `e2e/` — Cypress E2E suite (ADR-0004), a bun workspace member of the root `package.json`, linted with Biome.
 - `docs/` — numbered context pack + pinned constitution + `adr/` + `runbook.md`.

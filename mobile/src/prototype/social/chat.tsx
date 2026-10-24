@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react-native"
 import { useEffect, useMemo, useRef, useState } from "react"
+import type { TextInputInstance } from "react-native"
 import {
   ActivityIndicator,
   FlatList,
@@ -910,7 +911,7 @@ export function ChatScreen({ id }: { id: string }) {
   const [info, setInfo] = useState(false)
   const [simulated, setTyping] = useState<string | null>(null)
   const typing = useTyping(id) ?? simulated
-  const input = useRef<TextInput>(null)
+  const input = useRef<TextInputInstance>(null)
   const [opening, setOpening] = useState(true)
   useEffect(() => {
     setOpening(true)

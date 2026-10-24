@@ -63,7 +63,7 @@ export default function RecoverPasswordScreen() {
         />
         <Button
           label={isSubmitting ? "Sending..." : "Send Recovery Email"}
-          onPress={handleSubmit(onSubmit)}
+          onPress={() => handleSubmit(onSubmit)()}
           disabled={isSubmitting}
         />
       </View>

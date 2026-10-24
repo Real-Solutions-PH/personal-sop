@@ -1,3 +1,4 @@
+import type { HostInstance, ScrollViewInstance } from "react-native"
 // Share cards (ADR-0019): one family of flat cards on a paper or ink ground,
 // the flat Unfurl lockup, Geist for words and Geist Mono for numbers. No
 // gradients: those belong to Fern's orb alone. Every size is a fraction of
@@ -131,9 +132,9 @@ const CardContext = createContext<{ q: number; c: CardInk }>({
 })
 /** Where a composer wants the node it exports: the card without its
  * on-screen rounding and border. */
-const CardShotContext = createContext<((v: View | null) => void) | undefined>(
-  undefined,
-)
+const CardShotContext = createContext<
+  ((v: HostInstance | null) => void) | undefined
+>(undefined)
 /** The open card's scale and colours, for the pieces below. */
 export const useCard = () => useContext(CardContext)
 
@@ -808,10 +809,10 @@ export function ShareComposer<K extends string>({
     // less, the scroll stops short and the last card could not be chosen.
     padding = (screen - width) / 2
   const look = { format, backdrop, photo, color },
-    refs = useRef<Record<string, View | null>>({}),
-    shots = useRef<Record<string, View | null>>({}),
+    refs = useRef<Record<string, HostInstance | null>>({}),
+    shots = useRef<Record<string, HostInstance | null>>({}),
     target = (key: string) => shots.current[key] ?? refs.current[key],
-    scroll = useRef<ScrollView>(null)
+    scroll = useRef<ScrollViewInstance>(null)
   useEffect(() => {
     if (!formats.includes(format)) setFormat(formats[0])
   }, [formats, format])

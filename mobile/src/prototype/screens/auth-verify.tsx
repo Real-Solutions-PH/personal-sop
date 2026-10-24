@@ -1,6 +1,7 @@
 import { Redirect } from "expo-router"
 import { BadgeCheck, MailCheck } from "lucide-react-native"
 import { useEffect, useRef, useState } from "react"
+import type { TextInputInstance } from "react-native"
 import { ActivityIndicator, Text, type TextInput } from "react-native"
 import { toast } from "sonner-native"
 import {
@@ -36,7 +37,7 @@ export function VerifyEmail() {
   const [finishError, setFinishError] = useState<string | null>(null)
   const [finishTry, setFinishTry] = useState(0)
   const [resending, setResending] = useState(false)
-  const input = useRef<TextInput>(null)
+  const input = useRef<TextInputInstance>(null)
   const submit = useSubmit()
   const { left, restart } = useCountdown(30)
 

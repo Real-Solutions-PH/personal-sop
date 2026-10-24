@@ -70,7 +70,7 @@ export default function LoginScreen() {
 
           <Button
             label={login.isPending ? "Logging in..." : "Log In"}
-            onPress={handleSubmit(onSubmit)}
+            onPress={() => handleSubmit(onSubmit)()}
             disabled={login.isPending}
           />
 

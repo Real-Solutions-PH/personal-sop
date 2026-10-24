@@ -1114,7 +1114,7 @@ export function Profile({ id }: { id: string }) {
         }
         renderItem={({ item }) => <Tile post={item} size={size} />}
         ListEmptyComponent={
-          tab === "scores" ? null : (
+          tab === "scores" ? undefined : (
             <View style={{ paddingHorizontal: 12 }}>
               <LockedPreview
                 locked
