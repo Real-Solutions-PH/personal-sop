@@ -15,7 +15,15 @@ import {
 import { useEffect, useRef, useState } from "react"
 import { Pressable, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { Copy, Frame, IconTap, Line, Tap, ToolButton } from "../native-kit"
+import {
+  Copy,
+  Countdown,
+  Frame,
+  IconTap,
+  Line,
+  Tap,
+  ToolButton,
+} from "../native-kit"
 import { back, go, replace } from "../navigation"
 import { useTheme } from "../theme"
 import { Button, confirm, useNow } from "../ui"
@@ -295,9 +303,9 @@ export function RoutinePlayer({ id }: { id: string }) {
                 strokeWidth={10}
                 color={remaining < 0 ? t.warn : t.hab}
               >
-                <Copy
+                <Countdown
                   size={48}
-                  weight="semibold"
+                  width={190}
                   style={{
                     color: remaining < 0 ? t.warn : t.text,
                     opacity: run.pausedAt ? 0.6 : 1,
@@ -306,7 +314,7 @@ export function RoutinePlayer({ id }: { id: string }) {
                   {remaining < 0
                     ? `+${fmtDuration(-remaining)}`
                     : fmtDuration(remaining)}
-                </Copy>
+                </Countdown>
                 <Copy size={14} muted>
                   {run.pausedAt
                     ? "paused"

@@ -8,7 +8,7 @@ import { join } from "node:path"
 import { configureStorage, resetAll } from "@domain/lib/store"
 import { fireEvent, render } from "@testing-library/react-native"
 import type { ReactElement } from "react"
-import { Dimensions, ScrollView, Text } from "react-native"
+import { Dimensions, ScrollView, StyleSheet, Text } from "react-native"
 import { Artwork } from "../screens/dash-share"
 import { WorkoutCard } from "../screens/fitness-share"
 import {
@@ -285,6 +285,17 @@ describe.each(CARDS)("%s card", (_, make) => {
       // instead of pushing the card's layout out of shape.
       for (const t of text)
         if (t.props.numberOfLines === undefined) expect(nested(t)).toBe(true)
+      // iOS cuts off glyph tops on a line no taller than its font, and a
+      // number's unit rides inside its one shrink-to-fit line, so "3,272 kg"
+      // shrinks as one piece rather than wrapping to "3,27 / 2".
+      for (const t of text) {
+        if (nested(t)) continue
+        const s = StyleSheet.flatten(t.props.style)
+        if (s.lineHeight !== undefined)
+          expect(s.lineHeight).toBeGreaterThanOrEqual(s.fontSize * 1.1 - 0.01)
+        if (s.fontFamily?.startsWith("GeistMono"))
+          expect(t.props.adjustsFontSizeToFit && t.props.numberOfLines).toBe(1)
+      }
       for (const c of colours(r.toJSON())) expect(c).toMatch(valid)
       r.unmount()
     }
@@ -480,4 +491,48 @@ test("a body taller than its card is scaled down to fit, a short one is not", ()
   expect(scale()).toBe(1)
   layout("card-body-fit", 400)
   expect(scale()).toBe(0.5)
+})
+
+test.each([
+  ["9:16", 1920],
+  ["4:5", 1350],
+  ["1:1", 1080],
+] as const)("a %s card exports full-bleed at 1080 wide", async (format, height) => {
+  const { captureRef } = require("react-native-view-shot")
+  captureRef.mockClear()
+  const shareRef: { current: (() => Promise<void>) | null } = { current: null }
+  render(
+    <ShareComposer
+      value="card"
+      onChange={() => {}}
+      caption=""
+      shareRef={shareRef}
+      formats={[format]}
+      items={[
+        {
+          key: "card",
+          label: "Card",
+          render: (width: number, look: CardLook) => (
+            <CardFrame width={width} look={look} kicker="Test">
+              <Text>body</Text>
+            </CardFrame>
+          ),
+        },
+      ]}
+    >
+      {null}
+    </ShareComposer>,
+  )
+  await shareRef.current?.()
+  const [node, opts] = captureRef.mock.calls[0]
+  // The exported node is the square card, not its rounded, bordered shell:
+  // transparent corners show as notches once a PNG is posted.
+  expect(node.props.testID).toBe("card-shot")
+  const style = StyleSheet.flatten(node.props.style)
+  expect(style.borderRadius ?? 0).toBe(0)
+  expect(style.borderWidth ?? 0).toBe(0)
+  expect(style.backgroundColor).toMatch(/^#[0-9a-f]{6}$/i)
+  // iOS view-shot sizes in points at the screen's scale (2× here), so
+  // 540 × 960 points is the 1080 × 1920 pixel PNG.
+  expect(opts).toMatchObject({ format: "png", width: 540, height: height / 2 })
 })

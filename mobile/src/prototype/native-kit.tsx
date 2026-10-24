@@ -68,6 +68,46 @@ export function Copy({
     </Text>
   )
 }
+/**
+ * A timer's big readout, in Geist Mono. iOS clips glyph tops when
+ * `lineHeight` is at or below the font size, so the line keeps 1.25× room;
+ * one line that shrinks to fit `width` rather than wrap or spill out of a
+ * ring, and Dynamic Type grows it only so far.
+ */
+export function Countdown({
+  children,
+  size,
+  width,
+  style,
+}: {
+  children: ReactNode
+  size: number
+  width?: number
+  style?: TextStyle
+}) {
+  const t = useTheme()
+  return (
+    <Text
+      numberOfLines={1}
+      adjustsFontSizeToFit
+      minimumFontScale={0.4}
+      maxFontSizeMultiplier={1.4}
+      style={{
+        fontFamily: fonts.mono,
+        fontVariant: ["tabular-nums"],
+        fontSize: size,
+        lineHeight: Math.ceil(size * 1.25),
+        letterSpacing: -0.02 * size,
+        textAlign: "center",
+        maxWidth: width,
+        ...style,
+        color: style?.color ?? t.text,
+      }}
+    >
+      {children}
+    </Text>
+  )
+}
 export function Line({
   children,
   style,

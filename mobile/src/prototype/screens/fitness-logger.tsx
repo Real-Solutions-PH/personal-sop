@@ -31,6 +31,7 @@ import {
   Bar,
   border,
   Copy,
+  Countdown,
   Frame,
   IconTap,
   Line,
@@ -214,10 +215,11 @@ export function WorkoutLogger() {
         >
           <Line>
             <Timer size={20} color={rest <= 0 ? t.good : t.fit} />
-            <View style={{ flex: 1 }}>
-              <Copy size={24} weight="semibold" style={{ lineHeight: 24 }}>
+            {/* The readout keeps its width; the buttons give way. */}
+            <View style={{ flex: 1, minWidth: 96 }}>
+              <Countdown size={24} style={{ textAlign: "left" }}>
                 {rest <= 0 ? `+${fmtDuration(-rest)}` : fmtDuration(rest)}
-              </Copy>
+              </Countdown>
               <Copy size={12} muted>
                 {rest <= 0
                   ? "Rest over — next set"

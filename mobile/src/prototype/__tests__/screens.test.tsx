@@ -1,11 +1,13 @@
 import { startFresh } from "@domain/finance/actions"
 import { finStore } from "@domain/finance/store"
+import { startRoutine, startTimer } from "@domain/habits/actions"
 import { habitsStore } from "@domain/habits/store"
 import { dayKey } from "@domain/lib/day"
 import { configureStorage, resetAll } from "@domain/lib/store"
 import { tasksStore } from "@domain/tasks/store"
 import { fireEvent, render, screen } from "@testing-library/react-native"
 import type { ReactNode } from "react"
+import { StyleSheet } from "react-native"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 import { RecordEditor } from "../screens/finance"
 import { FinanceHome } from "../screens/finance-home"
@@ -13,6 +15,7 @@ import { HabitForm } from "../screens/habits"
 import { HabitsHome } from "../screens/habits-home"
 import { TaskNew } from "../screens/task-new"
 import { Tasks } from "../screens/tasks"
+import { fonts } from "../theme"
 
 jest.mock("expo-router", () => ({
   router: {
@@ -272,4 +275,27 @@ test("habits with none yet show the stats layout dimmed under one add card", () 
   expect(screen.getByText("No habits yet")).toBeTruthy()
   expect(screen.getByRole("button", { name: "Add a habit" })).toBeTruthy()
   expect(screen.getByText("Year", { includeHiddenElements: true })).toBeTruthy()
+})
+
+// iOS clips the tops of digits when a Text's lineHeight is at or below its
+// font size; the big timer readouts had lineHeight 60 on a 60pt font.
+test.each([
+  ["habit timer", "HabitTimer", () => startTimer("h-meditate"), "h-meditate"],
+  [
+    "routine player",
+    "RoutinePlayer",
+    () => startRoutine("r-morning"),
+    "r-morning",
+  ],
+])("the %s countdown has headroom and fits one line", (_, name, start, id) => {
+  start()
+  const Screen = require("../screens/habits")[name]
+  render(<Screen id={id} />, { wrapper })
+  const readout = screen.getByText(/^\+?(\d+:)?\d{2}:\d{2}$/)
+  const style = StyleSheet.flatten(readout.props.style)
+  expect(style.lineHeight).toBeGreaterThanOrEqual(style.fontSize * 1.2)
+  expect(style.fontFamily).toBe(fonts.mono)
+  expect(readout.props.numberOfLines).toBe(1)
+  expect(readout.props.adjustsFontSizeToFit).toBe(true)
+  expect(readout.props.maxFontSizeMultiplier).toBeLessThanOrEqual(1.5)
 })

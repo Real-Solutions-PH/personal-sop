@@ -31,6 +31,7 @@ import {
 } from "react"
 import {
   Image,
+  PixelRatio,
   Platform,
   ScrollView,
   Share,
@@ -128,6 +129,11 @@ const CardContext = createContext<{ q: number; c: CardInk }>({
   q: 1,
   c: cardInk({ format: "9:16", backdrop: "dark", photo: null }),
 })
+/** Where a composer wants the node it exports: the card without its
+ * on-screen rounding and border. */
+const CardShotContext = createContext<((v: View | null) => void) | undefined>(
+  undefined,
+)
 /** The open card's scale and colours, for the pieces below. */
 export const useCard = () => useContext(CardContext)
 
@@ -646,76 +652,111 @@ export function CardFrame({
   children: ReactNode
 }) {
   const q = width / 100,
-    c = cardInk(look)
+    c = cardInk(look),
+    shot = useContext(CardShotContext)
   return (
     <CardContext.Provider value={{ q, c }}>
+      {/* The rounded corners and hairline are on-screen chrome only. The
+          exported image is the square-cornered card inside, so a shared PNG
+          has no transparent corners for Instagram to fill with notches. */}
       <View
         style={{
           width,
           aspectRatio: 1 / ratioOf(look.format),
-          padding: 6.5 * q,
-          gap: 3 * q,
           borderRadius: 5 * q,
           overflow: "hidden",
-          backgroundColor: c.bg,
-          borderWidth: look.backdrop === "sticker" ? 0 : 1,
-          borderColor: c.line,
         }}
       >
-        {look.backdrop === "photo" && look.photo && (
-          <>
-            <Image
-              source={{ uri: look.photo }}
-              style={{ position: "absolute", inset: 0 }}
-            />
-            <View
-              style={{
-                position: "absolute",
-                inset: 0,
-                backgroundColor: alpha(c.bg, 0.55),
-              }}
-            />
-          </>
-        )}
-        <Line style={{ gap: 3 * q, justifyContent: "space-between" }}>
-          <View style={{ flexShrink: 1 }}>
-            <Words size={3.6} weight="medium" lines={1}>
-              {kicker}
-            </Words>
-          </View>
-          {!!date && (
+        <View
+          ref={shot}
+          collapsable={false}
+          testID="card-shot"
+          style={{
+            flex: 1,
+            padding: 6.5 * q,
+            gap: 3 * q,
+            overflow: "hidden",
+            backgroundColor: c.bg,
+          }}
+        >
+          {look.backdrop === "photo" && look.photo && (
+            <>
+              <Image
+                source={{ uri: look.photo }}
+                style={{ position: "absolute", inset: 0 }}
+              />
+              <View
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  backgroundColor: alpha(c.bg, 0.55),
+                }}
+              />
+            </>
+          )}
+          <Line style={{ gap: 3 * q, justifyContent: "space-between" }}>
             <View style={{ flexShrink: 1 }}>
-              <Words size={3.3} lines={1} align="right" muted>
-                {date}
+              <Words size={3.6} weight="medium" lines={1}>
+                {kicker}
               </Words>
             </View>
-          )}
-        </Line>
-        <FitBody>{children}</FitBody>
-        {(mark || !!foot) && (
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "flex-end",
-              gap: 3 * q,
-            }}
-          >
-            <View style={{ flex: 1, minWidth: 0 }}>
-              {typeof foot === "string" ? (
-                <Words size={3} lines={2} muted>
-                  {foot}
+            {!!date && (
+              <View style={{ flexShrink: 1 }}>
+                <Words size={3.3} lines={1} align="right" muted>
+                  {date}
                 </Words>
-              ) : (
-                foot
-              )}
+              </View>
+            )}
+          </Line>
+          <FitBody>{children}</FitBody>
+          {(mark || !!foot) && (
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "flex-end",
+                gap: 3 * q,
+              }}
+            >
+              <View style={{ flex: 1, minWidth: 0 }}>
+                {typeof foot === "string" ? (
+                  <Words size={3} lines={2} muted>
+                    {foot}
+                  </Words>
+                ) : (
+                  foot
+                )}
+              </View>
+              {mark && <Lockup size={4.2} />}
             </View>
-            {mark && <Lockup size={4.2} />}
-          </View>
+          )}
+        </View>
+        {look.backdrop !== "sticker" && (
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              inset: 0,
+              borderRadius: 5 * q,
+              borderWidth: 1,
+              borderColor: c.line,
+            }}
+          />
         )}
       </View>
     </CardContext.Provider>
   )
+}
+
+/** The PNG is 1080 pixels wide. iOS view-shot takes the size in points and
+ * draws at the screen's scale, so 1080 there would come out 2160 or 3240
+ * wide; Android takes pixels. */
+function exportSize(format: CardFormat) {
+  const scale = Platform.OS === "ios" ? PixelRatio.get() : 1
+  return {
+    width: 1080 / scale,
+    height: Math.round(1080 * ratioOf(format)) / scale,
+  }
 }
 
 /** A fixed preview of a card (privacy check, tests): no composer chrome. */
@@ -768,6 +809,8 @@ export function ShareComposer<K extends string>({
     padding = (screen - width) / 2
   const look = { format, backdrop, photo, color },
     refs = useRef<Record<string, View | null>>({}),
+    shots = useRef<Record<string, View | null>>({}),
+    target = (key: string) => shots.current[key] ?? refs.current[key],
     scroll = useRef<ScrollView>(null)
   useEffect(() => {
     if (!formats.includes(format)) setFormat(formats[0])
@@ -781,12 +824,11 @@ export function ShareComposer<K extends string>({
   }, [index, width])
   const doShare = async () => {
     try {
-      if (Platform.OS !== "web" && refs.current[value]) {
-        const uri = await captureRef(refs.current[value]!, {
+      if (Platform.OS !== "web" && target(value)) {
+        const uri = await captureRef(target(value)!, {
           format: "png",
           quality: 1,
-          width: 1080,
-          height: Math.round(1080 * ratioOf(format)),
+          ...exportSize(format),
         })
         if (await Sharing.isAvailableAsync()) {
           await Sharing.shareAsync(uri, { mimeType: "image/png" })
@@ -800,7 +842,7 @@ export function ShareComposer<K extends string>({
   }
   // Render the selected card to a PNG for the in-app feed/story.
   const capture = async () => {
-    const node = refs.current[value]
+    const node = target(value)
     if (!node) return null
     try {
       if (Platform.OS === "web")
@@ -808,8 +850,7 @@ export function ShareComposer<K extends string>({
       const uri = await captureRef(node, {
         format: "png",
         quality: 1,
-        width: 1080,
-        height: Math.round(1080 * ratioOf(format)),
+        ...exportSize(format),
       })
       return await keep(uri, "png")
     } catch {
@@ -896,7 +937,13 @@ export function ShareComposer<K extends string>({
                 }}
                 collapsable={false}
               >
-                {item.render(width, look)}
+                <CardShotContext.Provider
+                  value={(v) => {
+                    shots.current[item.key] = v
+                  }}
+                >
+                  {item.render(width, look)}
+                </CardShotContext.Provider>
               </View>
             </Tap>
           ))}
