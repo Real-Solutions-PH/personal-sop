@@ -88,7 +88,10 @@ export function PrototypeProviders({ children }: { children: ReactNode }) {
         reachabilityTest: async (r) => r.status === 200,
         reachabilityShortTimeout: 5_000,
         reachabilityLongTimeout: 30_000,
-        reachabilityRequestTimeout: 8_000,
+        // The bar every API call uses (REQUEST_TIMEOUT_MS): a slow mobile
+        // link that answers in a few seconds is online, so it never shows
+        // the offline banner or pauses sync.
+        reachabilityRequestTimeout: 15_000,
       })
     }
   }, [])
