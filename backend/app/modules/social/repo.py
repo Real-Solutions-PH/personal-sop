@@ -24,6 +24,8 @@ from sqlalchemy import ColumnElement, and_, exists, or_
 from sqlmodel import col, func, select
 
 from app.modules.iam.users.models import User
+from app.modules.media import public as media
+from app.modules.media.models import MediaObject
 from app.modules.profile.models import UserProfile
 from app.modules.social.models import (
     Chat,
@@ -135,18 +137,38 @@ def briefs(ctx: Ctx, ids: Iterable[uuid.UUID]) -> dict[uuid.UUID, PersonBrief]:
         )
         .where(col(User.id).in_(wanted), User.tenant_id == ctx.tenant_id)
     ).all()
+    urls = _photo_urls(ctx, {p.photo_media_id for _, p, _ in rows if p})
     out: dict[uuid.UUID, PersonBrief] = {}
     for user, prof, soc in rows:
         name = (prof.name if prof else "") or user.full_name or ""
+        photo = prof.photo_media_id if prof else None
         out[user.id] = PersonBrief(
             id=user.id,
             name=name,
             handle=(prof.handle or None) if prof else None,
             accent=soc.accent if soc else "primary",  # type: ignore[arg-type]
-            photo_media_id=prof.photo_media_id if prof else None,
+            photo_media_id=photo,
+            photo_url=urls.get(photo) if photo else None,
             verified=soc.verified if soc else False,
         )
     return out
+
+
+def _photo_urls(ctx: Ctx, ids: set[uuid.UUID | None]) -> dict[uuid.UUID, str]:
+    """Presigned GETs for profile photos, whoever owns them (a profile photo
+    is public inside the tenant), in one query."""
+    wanted = {i for i in ids if i}
+    if not wanted:
+        return {}
+    rows = ctx.session.exec(
+        select(MediaObject).where(
+            col(MediaObject.id).in_(wanted),
+            MediaObject.tenant_id == ctx.tenant_id,
+            MediaObject.state == "ready",
+            col(MediaObject.deleted_at).is_(None),
+        )
+    ).all()
+    return {m.id: media.download_url(m) for m in rows}
 
 
 def brief(ctx: Ctx, user_id: uuid.UUID) -> PersonBrief:
@@ -202,6 +224,7 @@ def search_people(
         .where(
             User.tenant_id == ctx.tenant_id,
             col(User.is_active).is_(True),
+            col(User.deleted_at).is_(None),
             match,
         )
     )

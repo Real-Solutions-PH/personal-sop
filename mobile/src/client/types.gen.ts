@@ -227,6 +227,7 @@ export type app__modules__companion__schema__AskIn = {
     id?: (string | null);
     hint?: (string | null);
     media_ids?: Array<(string)>;
+    thread_id?: (string | null);
 };
 
 export type app__modules__companion__schema__MessagePublic = {
@@ -239,6 +240,7 @@ export type app__modules__companion__schema__MessagePublic = {
     created_at: string;
     version: number;
     deleted_at?: (string | null);
+    thread_id?: (string | null);
 };
 
 export type app__modules__companion__schema__MessagesPublic = {
@@ -565,14 +567,14 @@ export type AssignmentIn = {
 
 export type AssignmentPublic = {
     id: string;
-    purpose: 'chat' | 'capture' | 'vision' | 'transcription' | 'advisor';
+    purpose: 'chat' | 'capture' | 'vision' | 'transcription' | 'advisor' | 'embedding';
     credential_id: string;
     model: string;
     supports_vision: boolean;
     updated_at: string;
 };
 
-export type purpose = 'chat' | 'capture' | 'vision' | 'transcription' | 'advisor';
+export type purpose = 'chat' | 'capture' | 'vision' | 'transcription' | 'advisor' | 'embedding';
 
 export type AssignmentsOut = {
     data: Array<AssignmentPublic>;
@@ -850,6 +852,9 @@ export type ChatPublic = {
     muted: boolean;
     pinned: boolean;
     read_at: (string | null);
+    read_by: {
+        [key: string]: (string | null);
+    };
     unread: number;
     last_message: (app__modules__social__schema__MessagePublic | null);
     last_message_at: (string | null);
@@ -1151,6 +1156,7 @@ export type ExerciseDetail = {
     rep_max: number;
     increment: number;
     archived: boolean;
+    track?: ('speed' | 'weight' | null);
     last_done_at: (string | null);
     best_e1rm: (number | null);
     suggestion: SuggestionOut;
@@ -1180,6 +1186,7 @@ export type ExercisePublic = {
     rep_max: number;
     increment: number;
     archived: boolean;
+    track?: ('speed' | 'weight' | null);
 };
 
 export type ExercisesOut = {
@@ -1190,18 +1197,19 @@ export type ExercisesOut = {
 export type ExerciseUpsert = {
     name: string;
     equipment?: 'barbell' | 'dumbbell' | 'machine' | 'cable' | 'bodyweight';
-    muscle?: 'chest' | 'back' | 'shoulders' | 'biceps' | 'triceps' | 'quads' | 'hamstrings' | 'glutes' | 'core';
+    muscle?: 'chest' | 'back' | 'shoulders' | 'biceps' | 'triceps' | 'quads' | 'hamstrings' | 'glutes' | 'core' | 'cardio';
     load_type?: 'weight' | 'bodyweight' | 'reps' | 'time';
     rep_min?: number;
     rep_max?: number;
     increment?: number;
     archived?: boolean;
+    track?: ('speed' | 'weight' | null);
     id?: (string | null);
 };
 
 export type equipment = 'barbell' | 'dumbbell' | 'machine' | 'cable' | 'bodyweight';
 
-export type muscle = 'chest' | 'back' | 'shoulders' | 'biceps' | 'triceps' | 'quads' | 'hamstrings' | 'glutes' | 'core';
+export type muscle = 'chest' | 'back' | 'shoulders' | 'biceps' | 'triceps' | 'quads' | 'hamstrings' | 'glutes' | 'core' | 'cardio';
 
 export type load_type = 'weight' | 'bodyweight' | 'reps' | 'time';
 
@@ -1217,6 +1225,7 @@ export type ExerciseWithStats = {
     rep_max: number;
     increment: number;
     archived: boolean;
+    track?: ('speed' | 'weight' | null);
     last_done_at: (string | null);
     best_e1rm: (number | null);
     suggestion: SuggestionOut;
@@ -2171,6 +2180,11 @@ export type MemoryIn = {
 export type MemoryPublic = {
     id: string;
     text: string;
+    kind?: string;
+    tags?: Array<(string)>;
+    importance?: number;
+    always_on?: boolean;
+    source?: string;
     created_at: string;
     version: number;
     deleted_at?: (string | null);
@@ -2442,6 +2456,7 @@ export type OverdueTask = {
     recurrence: (Recurrence | null);
     notes: (string | null);
     starred: boolean;
+    tags?: Array<(string)>;
     status: 'open' | 'done' | 'deleted';
     completed_at: (string | null);
     cleared_at: (string | null);
@@ -2532,6 +2547,7 @@ export type PersonBrief = {
     handle: (string | null);
     accent: 'hab' | 'tsk' | 'fit' | 'fin' | 'life' | 'primary';
     photo_media_id: (string | null);
+    photo_url?: (string | null);
     verified: boolean;
 };
 
@@ -2543,6 +2559,7 @@ export type PersonPublic = {
     handle: (string | null);
     accent: 'hab' | 'tsk' | 'fit' | 'fin' | 'life' | 'primary';
     photo_media_id: (string | null);
+    photo_url?: (string | null);
     verified: boolean;
     bio: string;
     followers: number;
@@ -2551,6 +2568,7 @@ export type PersonPublic = {
     is_following: boolean;
     close_friend: boolean;
     scores_visible: boolean;
+    show_scores: boolean;
 };
 
 export type PhotoPayload = {
@@ -3313,6 +3331,8 @@ export type SetOut = {
     weight: number;
     kind: string;
     completed_at: (string | null);
+    duration_sec?: (number | null);
+    speed_kmh?: (number | null);
 };
 
 export type SetPatch = {
@@ -3556,6 +3576,7 @@ export type StoryPublic = {
     seen: boolean;
     liked: boolean;
     likes: (number | null);
+    views: (number | null);
 };
 
 export type StoryTray = {
@@ -3677,6 +3698,7 @@ export type TaskCreate = {
     recurrence?: (Recurrence | null);
     notes?: (string | null);
     starred?: boolean;
+    tags?: Array<(string)>;
     source?: 'manual' | 'capture-text' | 'capture-voice' | 'capture-photo';
     parse_state?: 'parsed' | 'pending';
 };
@@ -3691,6 +3713,7 @@ export type TaskDetail = {
     recurrence: (Recurrence | null);
     notes: (string | null);
     starred: boolean;
+    tags?: Array<(string)>;
     status: 'open' | 'done' | 'deleted';
     completed_at: (string | null);
     cleared_at: (string | null);
@@ -3713,6 +3736,7 @@ export type TaskDraftIn = {
     due_date?: (string | null);
     due_time?: (string | null);
     remind?: boolean;
+    tags?: Array<(string)>;
 };
 
 export type TaskPayload = {
@@ -3730,6 +3754,7 @@ export type TaskPublic = {
     recurrence: (Recurrence | null);
     notes: (string | null);
     starred: boolean;
+    tags?: Array<(string)>;
     status: 'open' | 'done' | 'deleted';
     completed_at: (string | null);
     cleared_at: (string | null);
@@ -3762,6 +3787,7 @@ export type TaskUpdate = {
     notes?: (string | null);
     list_id?: (string | null);
     starred?: (boolean | null);
+    tags?: (Array<(string)> | null);
     recurrence?: (Recurrence | null);
     remind_at?: (string | null);
     due_time?: (string | null);
@@ -4024,7 +4050,7 @@ export type UsageOut = {
 };
 
 export type UsageRow = {
-    purpose: 'chat' | 'capture' | 'vision' | 'transcription' | 'advisor';
+    purpose: 'chat' | 'capture' | 'vision' | 'transcription' | 'advisor' | 'embedding';
     model: string;
     calls: number;
     failed_calls: number;
@@ -4393,14 +4419,14 @@ export type AiProvidersListModelsResponse = (ModelsOut);
 export type AiProvidersListAssignmentsResponse = (AssignmentsOut);
 
 export type AiProvidersPutAssignmentData = {
-    purpose: 'chat' | 'capture' | 'vision' | 'transcription' | 'advisor';
+    purpose: 'chat' | 'capture' | 'vision' | 'transcription' | 'advisor' | 'embedding';
     requestBody: AssignmentIn;
 };
 
 export type AiProvidersPutAssignmentResponse = (AssignmentPublic);
 
 export type AiProvidersDeleteAssignmentData = {
-    purpose: 'chat' | 'capture' | 'vision' | 'transcription' | 'advisor';
+    purpose: 'chat' | 'capture' | 'vision' | 'transcription' | 'advisor' | 'embedding';
 };
 
 export type AiProvidersDeleteAssignmentResponse = (void);
@@ -5464,7 +5490,7 @@ export type FitnessRestoreTemplateResponse = (TemplateOut);
 export type FitnessListExercisesData = {
     includeArchived?: boolean;
     limit?: number;
-    muscle?: ('chest' | 'back' | 'shoulders' | 'biceps' | 'triceps' | 'quads' | 'hamstrings' | 'glutes' | 'core' | null);
+    muscle?: ('chest' | 'back' | 'shoulders' | 'biceps' | 'triceps' | 'quads' | 'hamstrings' | 'glutes' | 'core' | 'cardio' | null);
     q?: (string | null);
     skip?: number;
 };
@@ -6961,6 +6987,8 @@ export type UtilsTestEmailData = {
 export type UtilsTestEmailResponse = (Message);
 
 export type UtilsHealthCheckResponse = (boolean);
+
+export type UtilsHealthCheck1Response = (boolean);
 
 export type WeatherReadPrefsResponse = (WeatherPrefPublic);
 

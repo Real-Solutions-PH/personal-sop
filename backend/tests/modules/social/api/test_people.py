@@ -4,7 +4,11 @@ import uuid
 from collections.abc import Callable
 
 from fastapi.testclient import TestClient
+from sqlmodel import Session
 
+from app.core.config import settings
+from app.modules.iam.users.models import User
+from app.modules.media.models import MediaObject
 from tests.modules.social.api.conftest import Person, Trio
 from tests.modules.social.api.helpers import API, code, ok
 
@@ -239,3 +243,63 @@ def test_drafts_get_put_clear(client: TestClient, trio: Trio) -> None:
 
 def test_requires_auth(client: TestClient) -> None:
     assert client.get(f"{API}/feed").status_code in (401, 403)
+
+
+def _ready_photo(db: Session, who: Person) -> MediaObject:
+    user = db.get(User, who.id)
+    assert user is not None
+    media = MediaObject(
+        owner_id=who.id,
+        tenant_id=user.tenant_id,
+        kind="image",
+        storage_key=f"u/{who.id}/{uuid.uuid4()}",
+        mime="image/jpeg",
+        size_bytes=10,
+        state="ready",
+    )
+    db.add(media)
+    db.commit()
+    db.refresh(media)
+    return media
+
+
+def test_a_persons_photo_url_reaches_every_viewer(
+    client: TestClient, db: Session, trio: Trio
+) -> None:
+    """The device cannot read another person's media object (owner-only), so
+    the brief carries a URL any viewer in the tenant can load."""
+    photo = _ready_photo(db, trio.ana)
+    ok(
+        client.patch(
+            f"{settings.API_V1_STR}/profile",
+            headers=trio.ana.headers,
+            json={"photo_media_id": str(photo.id)},
+        )
+    )
+    for viewer in (trio.ben, trio.cy):
+        person = ok(client.get(f"{API}/people/{trio.ana.id}", headers=viewer.headers))
+        assert person["photo_url"] and photo.storage_key in person["photo_url"]
+    nobody = ok(client.get(f"{API}/people/{trio.cy.id}", headers=trio.ben.headers))
+    assert nobody["photo_url"] is None
+
+
+def test_me_reports_my_show_scores_setting(client: TestClient, trio: Trio) -> None:
+    assert ok(client.get(f"{API}/me", headers=trio.ana.headers))["show_scores"] is True
+    ok(client.patch(f"{API}/me", headers=trio.ana.headers, json={"show_scores": False}))
+    assert ok(client.get(f"{API}/me", headers=trio.ana.headers))["show_scores"] is False
+
+
+def test_explore_skips_unfinished_signups(
+    client: TestClient, db: Session, trio: Trio
+) -> None:
+    """An account that never chose a name and handle is not suggested:
+    there is nothing to show for it."""
+    from tests.utils.mobile import signed_in
+
+    blank, _ = signed_in(db)
+    # Two followers rank it near the top of the suggestions it must miss.
+    for who in (trio.ana, trio.ben):
+        ok(client.put(f"{API}/people/{blank.id}/follow", headers=who.headers))
+    ex = ok(client.get(f"{API}/explore", headers=trio.cy.headers))
+    ids = [p["id"] for p in ex["suggested"]]
+    assert str(blank.id) not in ids and str(trio.ana.id) in ids

@@ -454,3 +454,16 @@ def test_story_reply_needs_a_visible_story(client: TestClient, trio: Trio) -> No
     with_ben = _direct(client, trio.ben, trio.ana)["id"]
     m = _send(client, trio.ben, with_ben, "nice", story_id=s["id"])
     assert m["story_id"] == s["id"]
+
+
+def test_chat_shows_when_the_others_last_read(client: TestClient, trio: Trio) -> None:
+    """``read_by`` is each other member's read mark, so the sender can show
+    "Seen" after a reload, not only from live chat.read events."""
+    chat = _direct(client, trio.ben, trio.ana)
+    _send(client, trio.ben, chat["id"], "hi")
+    before = ok(client.get(f"{API}/chats/{chat['id']}", headers=trio.ben.headers))
+    assert before["read_by"] == {str(trio.ana.id): None}
+    read = ok(client.post(f"{API}/chats/{chat['id']}/read", headers=trio.ana.headers))
+    after = ok(client.get(f"{API}/chats/{chat['id']}", headers=trio.ben.headers))
+    assert after["read_by"] == {str(trio.ana.id): read["read_at"]}
+    assert str(trio.ben.id) not in after["read_by"]

@@ -1327,7 +1327,7 @@ export const AssignmentPublicSchema = {
         },
         purpose: {
             type: 'string',
-            enum: ['chat', 'capture', 'vision', 'transcription', 'advisor'],
+            enum: ['chat', 'capture', 'vision', 'transcription', 'advisor', 'embedding'],
             title: 'Purpose'
         },
         credential_id: {
@@ -2785,6 +2785,21 @@ export const ChatPublicSchema = {
             ],
             title: 'Read At'
         },
+        read_by: {
+            additionalProperties: {
+                anyOf: [
+                    {
+                        type: 'string',
+                        format: 'date-time'
+                    },
+                    {
+                        type: 'null'
+                    }
+                ]
+            },
+            type: 'object',
+            title: 'Read By'
+        },
         unread: {
             type: 'integer',
             title: 'Unread'
@@ -2813,7 +2828,7 @@ export const ChatPublicSchema = {
         }
     },
     type: 'object',
-    required: ['id', 'name', 'is_group', 'members', 'muted', 'pinned', 'read_at', 'unread', 'last_message', 'last_message_at'],
+    required: ['id', 'name', 'is_group', 'members', 'muted', 'pinned', 'read_at', 'read_by', 'unread', 'last_message', 'last_message_at'],
     title: 'ChatPublic'
 } as const;
 
@@ -4108,6 +4123,18 @@ export const ExerciseDetailSchema = {
             type: 'boolean',
             title: 'Archived'
         },
+        track: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['speed', 'weight']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Track'
+        },
         last_done_at: {
             anyOf: [
                 {
@@ -4241,6 +4268,18 @@ export const ExercisePublicSchema = {
         archived: {
             type: 'boolean',
             title: 'Archived'
+        },
+        track: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['speed', 'weight']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Track'
         }
     },
     type: 'object',
@@ -4264,7 +4303,7 @@ export const ExerciseUpsertSchema = {
         },
         muscle: {
             type: 'string',
-            enum: ['chest', 'back', 'shoulders', 'biceps', 'triceps', 'quads', 'hamstrings', 'glutes', 'core'],
+            enum: ['chest', 'back', 'shoulders', 'biceps', 'triceps', 'quads', 'hamstrings', 'glutes', 'core', 'cardio'],
             title: 'Muscle',
             default: 'chest'
         },
@@ -4299,6 +4338,18 @@ export const ExerciseUpsertSchema = {
             type: 'boolean',
             title: 'Archived',
             default: false
+        },
+        track: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['speed', 'weight']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Track'
         },
         id: {
             anyOf: [
@@ -4365,6 +4416,18 @@ export const ExerciseWithStatsSchema = {
         archived: {
             type: 'boolean',
             title: 'Archived'
+        },
+        track: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['speed', 'weight']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Track'
         },
         last_done_at: {
             anyOf: [
@@ -9440,6 +9503,34 @@ export const MemoryPublicSchema = {
             type: 'string',
             title: 'Text'
         },
+        kind: {
+            type: 'string',
+            title: 'Kind',
+            default: 'fact'
+        },
+        tags: {
+            items: {
+                type: 'string'
+            },
+            type: 'array',
+            title: 'Tags',
+            default: []
+        },
+        importance: {
+            type: 'integer',
+            title: 'Importance',
+            default: 3
+        },
+        always_on: {
+            type: 'boolean',
+            title: 'Always On',
+            default: false
+        },
+        source: {
+            type: 'string',
+            title: 'Source',
+            default: 'said'
+        },
         created_at: {
             type: 'string',
             format: 'date-time',
@@ -10615,6 +10706,14 @@ export const OverdueTaskSchema = {
             type: 'boolean',
             title: 'Starred'
         },
+        tags: {
+            items: {
+                type: 'string'
+            },
+            type: 'array',
+            title: 'Tags',
+            default: []
+        },
         status: {
             type: 'string',
             enum: ['open', 'done', 'deleted'],
@@ -11122,6 +11221,17 @@ export const PersonBriefSchema = {
             ],
             title: 'Photo Media Id'
         },
+        photo_url: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Photo Url'
+        },
         verified: {
             type: 'boolean',
             title: 'Verified'
@@ -11171,6 +11281,17 @@ export const PersonPublicSchema = {
             ],
             title: 'Photo Media Id'
         },
+        photo_url: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Photo Url'
+        },
         verified: {
             type: 'boolean',
             title: 'Verified'
@@ -11202,10 +11323,14 @@ export const PersonPublicSchema = {
         scores_visible: {
             type: 'boolean',
             title: 'Scores Visible'
+        },
+        show_scores: {
+            type: 'boolean',
+            title: 'Show Scores'
         }
     },
     type: 'object',
-    required: ['id', 'name', 'handle', 'accent', 'photo_media_id', 'verified', 'bio', 'followers', 'following', 'is_me', 'is_following', 'close_friend', 'scores_visible'],
+    required: ['id', 'name', 'handle', 'accent', 'photo_media_id', 'verified', 'bio', 'followers', 'following', 'is_me', 'is_following', 'close_friend', 'scores_visible', 'show_scores'],
     title: 'PersonPublic'
 } as const;
 
@@ -15502,6 +15627,28 @@ export const SetOutSchema = {
                 }
             ],
             title: 'Completed At'
+        },
+        duration_sec: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Duration Sec'
+        },
+        speed_kmh: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Speed Kmh'
         }
     },
     type: 'object',
@@ -16743,10 +16890,21 @@ export const StoryPublicSchema = {
                 }
             ],
             title: 'Likes'
+        },
+        views: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Views'
         }
     },
     type: 'object',
-    required: ['id', 'owner_id', 'created_at', 'expires_at', 'kind', 'media', 'text', 'bg', 'progress', 'audience', 'seen', 'liked', 'likes'],
+    required: ['id', 'owner_id', 'created_at', 'expires_at', 'kind', 'media', 'text', 'bg', 'progress', 'audience', 'seen', 'liked', 'likes', 'views'],
     title: 'StoryPublic'
 } as const;
 
@@ -17343,6 +17501,15 @@ export const TaskCreateSchema = {
             title: 'Starred',
             default: false
         },
+        tags: {
+            items: {
+                type: 'string',
+                maxLength: 40
+            },
+            type: 'array',
+            maxItems: 20,
+            title: 'Tags'
+        },
         source: {
             type: 'string',
             enum: ['manual', 'capture-text', 'capture-voice', 'capture-photo'],
@@ -17443,6 +17610,14 @@ export const TaskDetailSchema = {
         starred: {
             type: 'boolean',
             title: 'Starred'
+        },
+        tags: {
+            items: {
+                type: 'string'
+            },
+            type: 'array',
+            title: 'Tags',
+            default: []
         },
         status: {
             type: 'string',
@@ -17607,6 +17782,15 @@ export const TaskDraftInSchema = {
             type: 'boolean',
             title: 'Remind',
             default: false
+        },
+        tags: {
+            items: {
+                type: 'string',
+                maxLength: 40
+            },
+            type: 'array',
+            maxItems: 8,
+            title: 'Tags'
         }
     },
     additionalProperties: false,
@@ -17720,6 +17904,14 @@ export const TaskPublicSchema = {
         starred: {
             type: 'boolean',
             title: 'Starred'
+        },
+        tags: {
+            items: {
+                type: 'string'
+            },
+            type: 'array',
+            title: 'Tags',
+            default: []
         },
         status: {
             type: 'string',
@@ -17867,6 +18059,22 @@ export const TaskUpdateSchema = {
                 }
             ],
             title: 'Starred'
+        },
+        tags: {
+            anyOf: [
+                {
+                    items: {
+                        type: 'string',
+                        maxLength: 40
+                    },
+                    type: 'array',
+                    maxItems: 20
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Tags'
         },
         recurrence: {
             anyOf: [
@@ -19108,7 +19316,7 @@ export const UsageRowSchema = {
     properties: {
         purpose: {
             type: 'string',
-            enum: ['chat', 'capture', 'vision', 'transcription', 'advisor'],
+            enum: ['chat', 'capture', 'vision', 'transcription', 'advisor', 'embedding'],
             title: 'Purpose'
         },
         model: {
@@ -20807,6 +21015,18 @@ export const app__modules__companion__schema__AskInSchema = {
             type: 'array',
             maxItems: 10,
             title: 'Media Ids'
+        },
+        thread_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Thread Id'
         }
     },
     type: 'object',
@@ -20863,6 +21083,18 @@ export const app__modules__companion__schema__MessagePublicSchema = {
                 }
             ],
             title: 'Deleted At'
+        },
+        thread_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Thread Id'
         }
     },
     type: 'object',

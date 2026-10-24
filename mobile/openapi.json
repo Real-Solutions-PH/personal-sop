@@ -1128,6 +1128,32 @@
             }
           }
         }
+      },
+      "head": {
+        "tags": ["utils"],
+        "summary": "Health Check",
+        "operationId": "utils-health_check",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean",
+                  "title": "Response Utils-Health Check"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Client Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/private/users/": {
@@ -6708,7 +6734,8 @@
                     "quads",
                     "hamstrings",
                     "glutes",
-                    "core"
+                    "core",
+                    "cardio"
                   ],
                   "type": "string"
                 },
@@ -12806,7 +12833,14 @@
             "in": "path",
             "required": true,
             "schema": {
-              "enum": ["chat", "capture", "vision", "transcription", "advisor"],
+              "enum": [
+                "chat",
+                "capture",
+                "vision",
+                "transcription",
+                "advisor",
+                "embedding"
+              ],
               "type": "string",
               "title": "Purpose"
             }
@@ -12850,7 +12884,14 @@
             "in": "path",
             "required": true,
             "schema": {
-              "enum": ["chat", "capture", "vision", "transcription", "advisor"],
+              "enum": [
+                "chat",
+                "capture",
+                "vision",
+                "transcription",
+                "advisor",
+                "embedding"
+              ],
               "type": "string",
               "title": "Purpose"
             }
@@ -18733,7 +18774,14 @@
           "id": { "type": "string", "format": "uuid", "title": "Id" },
           "purpose": {
             "type": "string",
-            "enum": ["chat", "capture", "vision", "transcription", "advisor"],
+            "enum": [
+              "chat",
+              "capture",
+              "vision",
+              "transcription",
+              "advisor",
+              "embedding"
+            ],
             "title": "Purpose"
           },
           "credential_id": {
@@ -19625,6 +19673,16 @@
             ],
             "title": "Read At"
           },
+          "read_by": {
+            "additionalProperties": {
+              "anyOf": [
+                { "type": "string", "format": "date-time" },
+                { "type": "null" }
+              ]
+            },
+            "type": "object",
+            "title": "Read By"
+          },
           "unread": { "type": "integer", "title": "Unread" },
           "last_message": {
             "anyOf": [
@@ -19651,6 +19709,7 @@
           "muted",
           "pinned",
           "read_at",
+          "read_by",
           "unread",
           "last_message",
           "last_message_at"
@@ -20501,6 +20560,13 @@
           "rep_max": { "type": "integer", "title": "Rep Max" },
           "increment": { "type": "number", "title": "Increment" },
           "archived": { "type": "boolean", "title": "Archived" },
+          "track": {
+            "anyOf": [
+              { "type": "string", "enum": ["speed", "weight"] },
+              { "type": "null" }
+            ],
+            "title": "Track"
+          },
           "last_done_at": {
             "anyOf": [
               { "type": "string", "format": "date-time" },
@@ -20591,7 +20657,14 @@
           "rep_min": { "type": "integer", "title": "Rep Min" },
           "rep_max": { "type": "integer", "title": "Rep Max" },
           "increment": { "type": "number", "title": "Increment" },
-          "archived": { "type": "boolean", "title": "Archived" }
+          "archived": { "type": "boolean", "title": "Archived" },
+          "track": {
+            "anyOf": [
+              { "type": "string", "enum": ["speed", "weight"] },
+              { "type": "null" }
+            ],
+            "title": "Track"
+          }
         },
         "type": "object",
         "required": [
@@ -20634,7 +20707,8 @@
               "quads",
               "hamstrings",
               "glutes",
-              "core"
+              "core",
+              "cardio"
             ],
             "title": "Muscle",
             "default": "chest"
@@ -20671,6 +20745,13 @@
             "title": "Archived",
             "default": false
           },
+          "track": {
+            "anyOf": [
+              { "type": "string", "enum": ["speed", "weight"] },
+              { "type": "null" }
+            ],
+            "title": "Track"
+          },
           "id": {
             "anyOf": [
               { "type": "string", "format": "uuid" },
@@ -20700,6 +20781,13 @@
           "rep_max": { "type": "integer", "title": "Rep Max" },
           "increment": { "type": "number", "title": "Increment" },
           "archived": { "type": "boolean", "title": "Archived" },
+          "track": {
+            "anyOf": [
+              { "type": "string", "enum": ["speed", "weight"] },
+              { "type": "null" }
+            ],
+            "title": "Track"
+          },
           "last_done_at": {
             "anyOf": [
               { "type": "string", "format": "date-time" },
@@ -24163,6 +24251,24 @@
         "properties": {
           "id": { "type": "string", "format": "uuid", "title": "Id" },
           "text": { "type": "string", "title": "Text" },
+          "kind": { "type": "string", "title": "Kind", "default": "fact" },
+          "tags": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "Tags",
+            "default": []
+          },
+          "importance": {
+            "type": "integer",
+            "title": "Importance",
+            "default": 3
+          },
+          "always_on": {
+            "type": "boolean",
+            "title": "Always On",
+            "default": false
+          },
+          "source": { "type": "string", "title": "Source", "default": "said" },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -24907,6 +25013,12 @@
             "title": "Notes"
           },
           "starred": { "type": "boolean", "title": "Starred" },
+          "tags": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "Tags",
+            "default": []
+          },
           "status": {
             "type": "string",
             "enum": ["open", "done", "deleted"],
@@ -25249,6 +25361,10 @@
             ],
             "title": "Photo Media Id"
           },
+          "photo_url": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Photo Url"
+          },
           "verified": { "type": "boolean", "title": "Verified" }
         },
         "type": "object",
@@ -25282,6 +25398,10 @@
             ],
             "title": "Photo Media Id"
           },
+          "photo_url": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Photo Url"
+          },
           "verified": { "type": "boolean", "title": "Verified" },
           "bio": { "type": "string", "title": "Bio" },
           "followers": { "type": "integer", "title": "Followers" },
@@ -25289,7 +25409,8 @@
           "is_me": { "type": "boolean", "title": "Is Me" },
           "is_following": { "type": "boolean", "title": "Is Following" },
           "close_friend": { "type": "boolean", "title": "Close Friend" },
-          "scores_visible": { "type": "boolean", "title": "Scores Visible" }
+          "scores_visible": { "type": "boolean", "title": "Scores Visible" },
+          "show_scores": { "type": "boolean", "title": "Show Scores" }
         },
         "type": "object",
         "required": [
@@ -25305,7 +25426,8 @@
           "is_me",
           "is_following",
           "close_friend",
-          "scores_visible"
+          "scores_visible",
+          "show_scores"
         ],
         "title": "PersonPublic"
       },
@@ -28143,6 +28265,14 @@
               { "type": "null" }
             ],
             "title": "Completed At"
+          },
+          "duration_sec": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Duration Sec"
+          },
+          "speed_kmh": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Speed Kmh"
           }
         },
         "type": "object",
@@ -28959,6 +29089,10 @@
           "likes": {
             "anyOf": [{ "type": "integer" }, { "type": "null" }],
             "title": "Likes"
+          },
+          "views": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Views"
           }
         },
         "type": "object",
@@ -28975,7 +29109,8 @@
           "audience",
           "seen",
           "liked",
-          "likes"
+          "likes",
+          "views"
         ],
         "title": "StoryPublic"
       },
@@ -29358,6 +29493,12 @@
             "title": "Starred",
             "default": false
           },
+          "tags": {
+            "items": { "type": "string", "maxLength": 40 },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Tags"
+          },
           "source": {
             "type": "string",
             "enum": [
@@ -29420,6 +29561,12 @@
             "title": "Notes"
           },
           "starred": { "type": "boolean", "title": "Starred" },
+          "tags": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "Tags",
+            "default": []
+          },
           "status": {
             "type": "string",
             "enum": ["open", "done", "deleted"],
@@ -29551,7 +29698,13 @@
             ],
             "title": "Due Time"
           },
-          "remind": { "type": "boolean", "title": "Remind", "default": false }
+          "remind": { "type": "boolean", "title": "Remind", "default": false },
+          "tags": {
+            "items": { "type": "string", "maxLength": 40 },
+            "type": "array",
+            "maxItems": 8,
+            "title": "Tags"
+          }
         },
         "additionalProperties": false,
         "type": "object",
@@ -29614,6 +29767,12 @@
             "title": "Notes"
           },
           "starred": { "type": "boolean", "title": "Starred" },
+          "tags": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "Tags",
+            "default": []
+          },
           "status": {
             "type": "string",
             "enum": ["open", "done", "deleted"],
@@ -29733,6 +29892,17 @@
           "starred": {
             "anyOf": [{ "type": "boolean" }, { "type": "null" }],
             "title": "Starred"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "items": { "type": "string", "maxLength": 40 },
+                "type": "array",
+                "maxItems": 20
+              },
+              { "type": "null" }
+            ],
+            "title": "Tags"
           },
           "recurrence": {
             "anyOf": [
@@ -30539,7 +30709,14 @@
         "properties": {
           "purpose": {
             "type": "string",
-            "enum": ["chat", "capture", "vision", "transcription", "advisor"],
+            "enum": [
+              "chat",
+              "capture",
+              "vision",
+              "transcription",
+              "advisor",
+              "embedding"
+            ],
             "title": "Purpose"
           },
           "model": { "type": "string", "title": "Model" },
@@ -31717,6 +31894,13 @@
             "type": "array",
             "maxItems": 10,
             "title": "Media Ids"
+          },
+          "thread_id": {
+            "anyOf": [
+              { "type": "string", "format": "uuid" },
+              { "type": "null" }
+            ],
+            "title": "Thread Id"
           }
         },
         "type": "object",
@@ -31747,6 +31931,13 @@
               { "type": "null" }
             ],
             "title": "Deleted At"
+          },
+          "thread_id": {
+            "anyOf": [
+              { "type": "string", "format": "uuid" },
+              { "type": "null" }
+            ],
+            "title": "Thread Id"
           }
         },
         "type": "object",

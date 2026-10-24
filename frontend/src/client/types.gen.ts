@@ -852,6 +852,9 @@ export type ChatPublic = {
     muted: boolean;
     pinned: boolean;
     read_at: (string | null);
+    read_by: {
+        [key: string]: (string | null);
+    };
     unread: number;
     last_message: (app__modules__social__schema__MessagePublic | null);
     last_message_at: (string | null);
@@ -2544,6 +2547,7 @@ export type PersonBrief = {
     handle: (string | null);
     accent: 'hab' | 'tsk' | 'fit' | 'fin' | 'life' | 'primary';
     photo_media_id: (string | null);
+    photo_url?: (string | null);
     verified: boolean;
 };
 
@@ -2555,6 +2559,7 @@ export type PersonPublic = {
     handle: (string | null);
     accent: 'hab' | 'tsk' | 'fit' | 'fin' | 'life' | 'primary';
     photo_media_id: (string | null);
+    photo_url?: (string | null);
     verified: boolean;
     bio: string;
     followers: number;
@@ -2563,6 +2568,7 @@ export type PersonPublic = {
     is_following: boolean;
     close_friend: boolean;
     scores_visible: boolean;
+    show_scores: boolean;
 };
 
 export type PhotoPayload = {
@@ -3570,6 +3576,7 @@ export type StoryPublic = {
     seen: boolean;
     liked: boolean;
     likes: (number | null);
+    views: (number | null);
 };
 
 export type StoryTray = {

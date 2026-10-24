@@ -260,3 +260,28 @@ def test_expired_note_is_hidden(client: TestClient, trio: Trio, db: Session) -> 
         client.put(f"{API}/notes/{n['id']}/like", headers=trio.ben.headers).status_code
         == 404
     )
+
+
+def test_delete_story_tells_its_audience(
+    client: TestClient, trio: Trio, bus: Bus
+) -> None:
+    s = _story(client, trio.ana.headers)
+    bus.clear()
+    ok(client.delete(f"{API}/stories/{s['id']}", headers=trio.ana.headers), 204)
+    deleted = {"story_id": s["id"], "owner_id": str(trio.ana.id), "action": "deleted"}
+    assert deleted in bus.of(trio.ben, "social.story")
+    assert deleted in bus.of(trio.ana, "social.story")
+    assert not bus.of(trio.cy, "social.story")
+
+
+def test_own_story_counts_views(client: TestClient, trio: Trio) -> None:
+    """The author sees how many people opened each story; nobody else does."""
+    s = _story(client, trio.ana.headers)
+    assert s["views"] == 0
+    ok(client.put(f"{API}/stories/{s['id']}/seen", headers=trio.ben.headers))
+    ok(client.put(f"{API}/stories/{s['id']}/seen", headers=trio.ben.headers))
+    ok(client.put(f"{API}/stories/{s['id']}/seen", headers=trio.ana.headers))
+    mine = ok(client.get(f"{API}/stories/{s['id']}", headers=trio.ana.headers))
+    assert mine["views"] == 1
+    theirs = ok(client.get(f"{API}/stories/{s['id']}", headers=trio.ben.headers))
+    assert theirs["views"] is None

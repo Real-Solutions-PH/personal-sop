@@ -2785,6 +2785,21 @@ export const ChatPublicSchema = {
             ],
             title: 'Read At'
         },
+        read_by: {
+            additionalProperties: {
+                anyOf: [
+                    {
+                        type: 'string',
+                        format: 'date-time'
+                    },
+                    {
+                        type: 'null'
+                    }
+                ]
+            },
+            type: 'object',
+            title: 'Read By'
+        },
         unread: {
             type: 'integer',
             title: 'Unread'
@@ -2813,7 +2828,7 @@ export const ChatPublicSchema = {
         }
     },
     type: 'object',
-    required: ['id', 'name', 'is_group', 'members', 'muted', 'pinned', 'read_at', 'unread', 'last_message', 'last_message_at'],
+    required: ['id', 'name', 'is_group', 'members', 'muted', 'pinned', 'read_at', 'read_by', 'unread', 'last_message', 'last_message_at'],
     title: 'ChatPublic'
 } as const;
 
@@ -11206,6 +11221,17 @@ export const PersonBriefSchema = {
             ],
             title: 'Photo Media Id'
         },
+        photo_url: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Photo Url'
+        },
         verified: {
             type: 'boolean',
             title: 'Verified'
@@ -11255,6 +11281,17 @@ export const PersonPublicSchema = {
             ],
             title: 'Photo Media Id'
         },
+        photo_url: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Photo Url'
+        },
         verified: {
             type: 'boolean',
             title: 'Verified'
@@ -11286,10 +11323,14 @@ export const PersonPublicSchema = {
         scores_visible: {
             type: 'boolean',
             title: 'Scores Visible'
+        },
+        show_scores: {
+            type: 'boolean',
+            title: 'Show Scores'
         }
     },
     type: 'object',
-    required: ['id', 'name', 'handle', 'accent', 'photo_media_id', 'verified', 'bio', 'followers', 'following', 'is_me', 'is_following', 'close_friend', 'scores_visible'],
+    required: ['id', 'name', 'handle', 'accent', 'photo_media_id', 'verified', 'bio', 'followers', 'following', 'is_me', 'is_following', 'close_friend', 'scores_visible', 'show_scores'],
     title: 'PersonPublic'
 } as const;
 
@@ -16849,10 +16890,21 @@ export const StoryPublicSchema = {
                 }
             ],
             title: 'Likes'
+        },
+        views: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Views'
         }
     },
     type: 'object',
-    required: ['id', 'owner_id', 'created_at', 'expires_at', 'kind', 'media', 'text', 'bg', 'progress', 'audience', 'seen', 'liked', 'likes'],
+    required: ['id', 'owner_id', 'created_at', 'expires_at', 'kind', 'media', 'text', 'bg', 'progress', 'audience', 'seen', 'liked', 'likes', 'views'],
     title: 'StoryPublic'
 } as const;
 
