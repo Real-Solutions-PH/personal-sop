@@ -712,13 +712,17 @@ export function ShareComposer<K extends string>({
     [backdrop, setBackdrop] = useState<CardBackdrop>("dark"),
     [photo, setPhoto] = useState<string | null>(null),
     [color, setColor] = useState<string>(palette.light.primary)
-  const windowWidth = Math.min(useWindowDimensions().width, 480),
-    padding = (windowWidth - 32) * 0.18,
+  const screen = useWindowDimensions().width,
+    windowWidth = Math.min(screen, 480),
+    inset = (windowWidth - 32) * 0.18,
     width = Math.min(
-      (windowWidth - 2 * padding) *
+      (windowWidth - 2 * inset) *
         (format === "9:16" ? 0.64 : format === "4:5" ? 0.76 : 0.8),
       format === "9:16" ? 300 : format === "4:5" ? 340 : 360,
-    )
+    ),
+    // Side padding that centres every card, the last one included: with
+    // less, the scroll stops short and the last card could not be chosen.
+    padding = (screen - width) / 2
   const look = { format, backdrop, photo, color },
     refs = useRef<Record<string, View | null>>({}),
     scroll = useRef<ScrollView>(null)
@@ -834,13 +838,7 @@ export function ShareComposer<K extends string>({
               onPress={() => {
                 onChange(item.key)
                 scroll.current?.scrollTo({
-                  x: Math.max(
-                    0,
-                    items.indexOf(item) * (width + 12) +
-                      padding +
-                      width / 2 -
-                      windowWidth / 2,
-                  ),
+                  x: items.indexOf(item) * (width + 12),
                   animated: true,
                 })
               }}

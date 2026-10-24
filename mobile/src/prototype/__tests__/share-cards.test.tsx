@@ -8,7 +8,7 @@ import { join } from "node:path"
 import { configureStorage, resetAll } from "@domain/lib/store"
 import { render } from "@testing-library/react-native"
 import type { ReactElement } from "react"
-import { Text } from "react-native"
+import { Dimensions, ScrollView, Text } from "react-native"
 import { Artwork } from "../screens/dash-share"
 import { WorkoutCard } from "../screens/fitness-share"
 import {
@@ -26,6 +26,7 @@ import {
   type CardFormat,
   type CardLook,
   cardInk,
+  ShareComposer,
 } from "../share-kit"
 import * as F from "./share-fixtures"
 
@@ -431,4 +432,31 @@ test("share cards carry no gradient and no raw colour", () => {
     expect(code).not.toMatch(/LinearGradient|RadialGradient/)
     expect(code).not.toMatch(/["'`]#[0-9a-fA-F]{3,8}["'`]/)
   }
+})
+
+test("the composer can centre its last card", () => {
+  let card = 0
+  const r = render(
+    <ShareComposer
+      value="c"
+      onChange={() => {}}
+      caption=""
+      items={["a", "b", "c"].map((key) => ({
+        key,
+        label: key,
+        render: (width: number) => {
+          card = width
+          return null
+        },
+      }))}
+    >
+      {null}
+    </ShareComposer>,
+  )
+  const pad = r.UNSAFE_getByType(ScrollView).props.contentContainerStyle
+    .paddingHorizontal as number
+  // Centring a card needs (screen − card) / 2 on each side; with less, the
+  // scroll stops before the last card reaches the middle.
+  expect(card).toBeGreaterThan(0)
+  expect(2 * pad + card).toBeCloseTo(Dimensions.get("window").width, 5)
 })
