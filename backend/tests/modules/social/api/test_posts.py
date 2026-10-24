@@ -438,3 +438,23 @@ def test_caption_mentions_on_create_and_edit(client: TestClient, trio: Trio) -> 
         a["kind"]
         for a in ok(client.get(f"{API}/activity", headers=trio.cy.headers))["data"]
     ] == ["mention"]
+
+
+def test_delete_and_restore_tell_followers(
+    client: TestClient, trio: Trio, bus: Bus
+) -> None:
+    """A deleted post leaves followers' feeds at once, and an undo puts it
+    back, without waiting for their next refresh."""
+    p = _post(client, trio.ana.headers, "oops")
+    bus.clear()
+    ok(client.delete(f"{API}/posts/{p['id']}", headers=trio.ana.headers), 204)
+    assert {"post_id": p["id"], "author_id": str(trio.ana.id), "action": "deleted"} in (
+        bus.of(trio.ben, "social.post")
+    )
+    ok(client.post(f"{API}/posts/{p['id']}/restore", headers=trio.ana.headers))
+    assert {
+        "post_id": p["id"],
+        "author_id": str(trio.ana.id),
+        "action": "restored",
+    } in bus.of(trio.ben, "social.post")
+    assert not bus.of(trio.cy, "social.post")

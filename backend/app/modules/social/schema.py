@@ -24,6 +24,8 @@ class PersonBrief(BaseModel):
     handle: str | None
     accent: Accent
     photo_media_id: uuid.UUID | None
+    # A short-lived URL any viewer can load (the media object is owner-only).
+    photo_url: str | None = None
     verified: bool
 
 
@@ -37,6 +39,8 @@ class PersonPublic(PersonBrief):
     close_friend: bool
     # Whether the viewer may open this person's scorecard.
     scores_visible: bool
+    # The person's own "show my scores to followers" switch.
+    show_scores: bool
 
 
 class PeoplePublic(BaseModel):
@@ -229,8 +233,9 @@ class StoryPublic(BaseModel):
     audience: Audience
     seen: bool
     liked: bool
-    # Only the author sees how many liked their story.
+    # Only the author sees how many liked and how many opened their story.
     likes: int | None
+    views: int | None
 
 
 class StoryGroup(BaseModel):
@@ -339,6 +344,8 @@ class ChatPublic(BaseModel):
     muted: bool
     pinned: bool
     read_at: datetime | None
+    # Each other current member's read mark (None: never read).
+    read_by: dict[str, datetime | None]
     unread: int
     last_message: MessagePublic | None
     last_message_at: datetime | None

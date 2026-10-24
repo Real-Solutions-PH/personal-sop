@@ -22,6 +22,7 @@ from sqlmodel import col, func, select
 from app.core.config import settings
 from app.modules.iam.users.models import User
 from app.modules.media import public as media
+from app.modules.profile.models import UserProfile
 from app.modules.social import logic, notify, repo, views
 from app.modules.social.models import (
     Activity,
@@ -235,6 +236,7 @@ def _persons(ctx: Ctx, ids: list[uuid.UUID]) -> list[PersonPublic]:
                 is_following=uid in mine,
                 close_friend=uid in close,
                 scores_visible=is_me or (show and uid in mine),
+                show_scores=show,
             )
         )
     return out
@@ -425,12 +427,7 @@ def create_post(ctx: Ctx, *, body: PostCreate) -> PostPublic:
         post_id=post.id,
         text=body.caption,
     )
-    notify.event(
-        ctx,
-        repo.follower_ids(ctx, ctx.user_id) + [ctx.user_id],
-        "social.post",
-        {"post_id": str(post.id), "author_id": str(ctx.user_id), "action": "created"},
-    )
+    _post_event(ctx, post, "created")
     notify.commit(ctx)
     return get_post(ctx, post_id=post.id)
 
@@ -454,9 +451,20 @@ def update_caption(ctx: Ctx, *, post_id: uuid.UUID, caption: str) -> PostPublic:
     return get_post(ctx, post_id=post_id)
 
 
+def _post_event(ctx: Ctx, post: Post, action: str) -> None:
+    """Tell the author's followers (and the author's other devices)."""
+    notify.event(
+        ctx,
+        repo.follower_ids(ctx, ctx.user_id) + [ctx.user_id],
+        "social.post",
+        {"post_id": str(post.id), "author_id": str(ctx.user_id), "action": action},
+    )
+
+
 def delete_post(ctx: Ctx, *, post_id: uuid.UUID) -> None:
     post = owned_repo.require(ctx, Post, post_id, what="post")
     owned_repo.soft_delete(ctx, post)
+    _post_event(ctx, post, "deleted")
     notify.commit(ctx)
 
 
@@ -467,6 +475,7 @@ def restore_post(ctx: Ctx, *, post_id: uuid.UUID) -> PostPublic:
         if ctx.now - post.deleted_at > logic.POST_UNDO_WINDOW:
             raise conflict("undo_expired", "This post can no longer be restored")
         owned_repo.restore(ctx, post)
+        _post_event(ctx, post, "restored")
     notify.commit(ctx)
     return get_post(ctx, post_id=post_id)
 
@@ -645,7 +654,8 @@ def tag_posts(ctx: Ctx, *, q: str, skip: int, limit: int) -> PostsPublic:
 
 def explore(ctx: Ctx) -> ExplorePublic:
     """Suggested people (in the tenant, not yet followed, most followed
-    first) and the latest posts (the top of the everyone tab)."""
+    first, who finished sign-up) and the latest posts (the top of the
+    everyone tab)."""
     mine = repo.following_ids(ctx, ctx.user_id) | {ctx.user_id}
     followers = (
         select(Follow.followee_id, func.count().label("n"))
@@ -656,6 +666,15 @@ def explore(ctx: Ctx) -> ExplorePublic:
     suggested = list(
         ctx.session.exec(
             select(User.id)
+            .join(
+                UserProfile,
+                and_(
+                    col(UserProfile.owner_id) == User.id,
+                    col(UserProfile.deleted_at).is_(None),
+                    col(UserProfile.handle).is_not(None),
+                    col(UserProfile.handle) != "",
+                ),
+            )
             .join(followers, followers.c.followee_id == User.id, isouter=True)
             .where(
                 User.tenant_id == ctx.tenant_id,
@@ -852,19 +871,24 @@ def create_story(ctx: Ctx, *, body: StoryCreate) -> StoryPublic:
     )
     _insert(ctx, story)
     _clear_drafts(ctx)
+    _story_event(ctx, story, "created")
+    notify.commit(ctx)
+    return get_story(ctx, story_id=story.id)
+
+
+def _story_event(ctx: Ctx, story: Story, action: str) -> None:
+    """Tell the people who can see the story (and the author's devices)."""
     audience = (
         repo.close_friend_ids(ctx, ctx.user_id)
-        if body.audience == "close"
+        if story.audience == "close"
         else repo.follower_ids(ctx, ctx.user_id)
     )
     notify.event(
         ctx,
         audience + [ctx.user_id],
         "social.story",
-        {"story_id": str(story.id), "owner_id": str(ctx.user_id), "action": "created"},
+        {"story_id": str(story.id), "owner_id": str(ctx.user_id), "action": action},
     )
-    notify.commit(ctx)
-    return get_story(ctx, story_id=story.id)
 
 
 def get_story(ctx: Ctx, *, story_id: uuid.UUID) -> StoryPublic:
@@ -939,12 +963,7 @@ def like_story(ctx: Ctx, *, story_id: uuid.UUID, on: bool) -> StoryPublic:
 def delete_story(ctx: Ctx, *, story_id: uuid.UUID) -> None:
     story = owned_repo.require(ctx, Story, story_id, what="story")
     owned_repo.soft_delete(ctx, story)
-    notify.event(
-        ctx,
-        [ctx.user_id],
-        "social.story",
-        {"story_id": str(story.id), "owner_id": str(ctx.user_id), "action": "deleted"},
-    )
+    _story_event(ctx, story, "deleted")
     notify.commit(ctx)
 
 
@@ -1256,13 +1275,16 @@ def _chats_public(ctx: Ctx, pairs: list[tuple[Chat, ChatMember]]) -> list[ChatPu
         return []
     ids = [c.id for c, _ in pairs]
     member_rows = ctx.session.exec(
-        select(ChatMember.chat_id, ChatMember.owner_id)
+        select(ChatMember.chat_id, ChatMember.owner_id, ChatMember.read_at)
         .where(col(ChatMember.chat_id).in_(ids), col(ChatMember.left_at).is_(None))
         .order_by(col(ChatMember.created_at), col(ChatMember.owner_id))
     ).all()
     by_chat: dict[uuid.UUID, list[uuid.UUID]] = defaultdict(list)
-    for cid, uid in member_rows:
+    read_by: dict[uuid.UUID, dict[str, datetime | None]] = defaultdict(dict)
+    for cid, uid, seen_at in member_rows:
         by_chat[cid].append(uid)
+        if uid != ctx.user_id:
+            read_by[cid][str(uid)] = seen_at
     ranked = (
         select(
             ChatMessage.id,
@@ -1322,6 +1344,7 @@ def _chats_public(ctx: Ctx, pairs: list[tuple[Chat, ChatMember]]) -> list[ChatPu
                 muted=member.muted,
                 pinned=member.pinned,
                 read_at=read_at[chat.id],
+                read_by=read_by.get(chat.id, {}),
                 unread=unread.get(chat.id, 0),
                 last_message=last.get(chat.id),
                 last_message_at=chat.last_message_at,

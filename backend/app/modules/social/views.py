@@ -218,6 +218,17 @@ def comments(ctx: Ctx, rows: Sequence[Comment]) -> list[CommentPublic]:
     ]
 
 
+def _story_counts(
+    ctx: Ctx, model: type[StoryLike] | type[StorySeen], ids: list[uuid.UUID]
+) -> dict[uuid.UUID, int]:
+    rows = ctx.session.exec(
+        select(model.story_id, func.count())
+        .where(col(model.story_id).in_(ids), col(model.deleted_at).is_(None))
+        .group_by(col(model.story_id))
+    ).all()
+    return {sid: int(n) for sid, n in rows}
+
+
 def stories(ctx: Ctx, rows: Sequence[Story]) -> list[StoryPublic]:
     if not rows:
         return []
@@ -242,18 +253,10 @@ def stories(ctx: Ctx, rows: Sequence[Story]) -> list[StoryPublic]:
     )
     own = [s.id for s in rows if s.owner_id == ctx.user_id]
     counts: dict[uuid.UUID, int] = {}
+    views: dict[uuid.UUID, int] = {}
     if own:
-        counts = {
-            sid: int(n)
-            for sid, n in ctx.session.exec(
-                select(StoryLike.story_id, func.count())
-                .where(
-                    col(StoryLike.story_id).in_(own),
-                    col(StoryLike.deleted_at).is_(None),
-                )
-                .group_by(col(StoryLike.story_id))
-            ).all()
-        }
+        counts = _story_counts(ctx, StoryLike, own)
+        views = _story_counts(ctx, StorySeen, own)
     out: list[StoryPublic] = []
     for s in rows:
         mine = s.owner_id == ctx.user_id
@@ -279,6 +282,7 @@ def stories(ctx: Ctx, rows: Sequence[Story]) -> list[StoryPublic]:
                 seen=mine or s.id in seen,
                 liked=s.id in liked,
                 likes=counts.get(s.id, 0) if mine else None,
+                views=views.get(s.id, 0) if mine else None,
             )
         )
     return out
