@@ -8,7 +8,7 @@ import { dayKey } from "@domain/lib/day"
 import { ChevronLeft, ChevronRight, Play } from "lucide-react-native"
 import { useMemo, useState } from "react"
 import { View } from "react-native"
-import { FocusTimeline } from "../focus-kit"
+import { clockOf, FocusTimeline } from "../focus-kit"
 import { SwipeStep } from "../motion"
 import { Copy, Frame, IconTap, Line } from "../native-kit"
 import { go } from "../navigation"
@@ -99,6 +99,41 @@ export function FocusDay({ day: initial }: { day?: string }) {
               />
             </Frame>
           </LockedPreview>
+          {blocks.length > 0 && (
+            <Frame style={{ padding: 16, gap: 8 }}>
+              <Copy weight="semibold">Blocks</Copy>
+              {blocks.map((b) => (
+                <Line key={`${b.segmentId}-${b.start}`} style={{ gap: 10 }}>
+                  <View
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: 3,
+                      backgroundColor:
+                        b.kind === "focus"
+                          ? t.foc
+                          : b.kind === "break"
+                            ? `${t.foc}40`
+                            : t.soft,
+                      borderWidth: b.kind === "pause" ? 1 : 0,
+                      borderColor: t.muted,
+                    }}
+                  />
+                  <Copy size={14} style={{ fontFamily: fonts.mono, width: 96 }}>
+                    {clockOf(b.start)}–{b.running ? "now" : clockOf(b.end)}
+                  </Copy>
+                  <Copy size={14} lines={1} muted={b.kind !== "focus"} style={{ flex: 1 }}>
+                    {b.kind === "focus"
+                      ? (b.item?.title ?? "Focus")
+                      : b.kind === "pause"
+                        ? `Paused ${L.fmtHm((b.end - b.start) / 1000)}`
+                        : "Break"}
+                    {b.abandoned ? " · discarded" : ""}
+                  </Copy>
+                </Line>
+              ))}
+            </Frame>
+          )}
           {items.length > 0 && (
             <Frame style={{ padding: 16, gap: 10 }}>
               <Copy weight="semibold">By item</Copy>
