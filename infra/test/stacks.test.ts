@@ -7,7 +7,7 @@ import { BACKEND_DEFAULTED } from "../lib/backend-env"
 import { CiStack } from "../lib/ci-stack"
 import { RATE_LIMITS } from "../lib/cloudflare"
 import { IMAGES, loadConfig, PROFILES } from "../lib/config"
-import { ProdStack } from "../lib/prod-stack"
+import { NOT_ALPHANUMERIC, ProdStack } from "../lib/prod-stack"
 
 const cdkJson = JSON.parse(
   readFileSync(path.join(import.meta.dir, "..", "cdk.json"), "utf8"),
@@ -658,6 +658,26 @@ describe("backend environment", () => {
     for (const name of ["worker", "migrate"]) {
       const c = container("unfurl-worker", name)
       expect(new Set([...envNames(c), ...secretNames(c)])).toEqual(provided)
+    }
+  })
+})
+
+describe("generated passwords", () => {
+  test("are letters and digits only (they go into connection URLs)", () => {
+    const printable = Array.from({ length: 95 }, (_, i) =>
+      String.fromCharCode(32 + i),
+    )
+    const notAlnum = printable.filter((c) => !/[A-Za-z0-9]/.test(c))
+    expect([...NOT_ALPHANUMERIC].sort()).toEqual(notAlnum.sort())
+    const generators = Object.values(
+      prod.findResources("AWS::SecretsManager::Secret"),
+    )
+      .map((r) => r.Properties.GenerateSecretString)
+      .filter(Boolean)
+    // auth-db, app-user-db, app (first superuser), and the RDS master.
+    expect(generators.length).toBe(4)
+    for (const g of generators) {
+      for (const c of notAlnum) expect(g.ExcludeCharacters).toContain(c)
     }
   })
 })
