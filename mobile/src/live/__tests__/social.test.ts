@@ -163,7 +163,7 @@ test("refresh loads the feed and maps server posts into the store's shape", asyn
   expect(s.people.map((p) => [p.id, p.name, p.username])).toEqual([
     [ANA, "Ana Reyes", "ana.lifts"],
   ])
-  expect(s.me).toEqual({ bio: "hi", followers: 4, following: 5 })
+  expect(s.me).toEqual({ bio: "hi", followers: 4, following: 5, id: MEID })
   expect(calls.find((c) => c.path.includes("tab=following"))?.path).toBe(
     "/social/feed?tab=following&limit=20",
   )
@@ -310,6 +310,18 @@ test("a chat message arriving by event is fetched and merged; typing clears", as
   jest.useFakeTimers()
   socialStore.set((s) => ({
     ...s,
+    people: [
+      {
+        id: ANA,
+        name: "Ana Reyes",
+        username: "ana.lifts",
+        bio: "",
+        accent: "fit",
+        followers: 0,
+        following: 0,
+        isFollowing: true,
+      },
+    ],
     chats: [
       {
         id: CHAT,

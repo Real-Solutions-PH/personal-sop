@@ -43,6 +43,8 @@ interface WBrief {
   handle: string | null
   accent: Accent
   photo_media_id: string | null
+  /** A short-lived URL any viewer can load; absent from older servers. */
+  photo_url?: string | null
   verified: boolean
 }
 interface WPerson extends WBrief {
@@ -53,6 +55,7 @@ interface WPerson extends WBrief {
   is_following: boolean
   close_friend: boolean
   scores_visible: boolean
+  show_scores?: boolean
 }
 interface WMedia {
   media_id: string
@@ -106,6 +109,7 @@ interface WStory {
   seen: boolean
   liked: boolean
   likes: number | null
+  views?: number | null
 }
 interface WTray {
   data: { person: WBrief; items: WStory[] }[]
@@ -138,6 +142,8 @@ interface WChat {
   muted: boolean
   pinned: boolean
   read_at: string | null
+  /** Other members' read marks; absent from older servers. */
+  read_by?: Record<string, string | null>
   unread: number
   last_message: WMessage | null
 }
@@ -252,39 +258,10 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
   const lastTyping = new Map<string, number>()
 
   // ------------------------------------------------------------ people
-  const photos = new Map<string, string | null>()
-  async function resolvePhotos(briefs: WBrief[]) {
-    const wanted = briefs.filter(
-      (b) => b.photo_media_id && !photos.has(b.photo_media_id),
-    )
-    await Promise.all(
-      wanted.map(async (b) => {
-        const mid = b.photo_media_id as string
-        photos.set(mid, null)
-        try {
-          const m = await http.request<{ url: string | null }>(
-            "GET",
-            `/media/${mid}`,
-          )
-          photos.set(mid, m.url)
-        } catch {
-          // no photo: the avatar falls back to initials
-        }
-      }),
-    )
-    if (!wanted.length) return
-    set((s) => ({
-      ...s,
-      people: s.people.map((p) => {
-        const b = briefs.find((x) => x.id === p.id)
-        const url = b?.photo_media_id ? photos.get(b.photo_media_id) : null
-        return url ? { ...p, photo: url } : p
-      }),
-    }))
-  }
-
   function fromBrief(b: WBrief, prev?: Person): Person {
-    const url = b.photo_media_id ? photos.get(b.photo_media_id) : undefined
+    // The server presigns the photo for every viewer (GET /media/{id} is
+    // owner-only). No photo: the avatar falls back to initials.
+    const url = b.photo_media_id ? (b.photo_url ?? prev?.photo) : undefined
     return {
       bio: "",
       followers: 0,
@@ -296,7 +273,7 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
       username: b.handle ?? "",
       accent: b.accent,
       verified: b.verified || undefined,
-      photo: url ?? prev?.photo,
+      photo: url ?? undefined,
     }
   }
   function fromPublic(p: WPerson, prev?: Person): Person {
@@ -339,7 +316,6 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
         ),
       )
     }
-    void resolvePhotos([...briefs, ...full])
     return people
   }
 
@@ -396,6 +372,7 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
     progress: progressOut(w.progress),
     audience: w.audience,
     likes: w.likes ?? undefined,
+    views: w.views ?? undefined,
     liked: w.liked,
   })
   const mapNote = (w: WNote): Note => ({
@@ -419,6 +396,12 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
     ),
     system: w.system || undefined,
   })
+  const readMarks = (marks: WChat["read_by"]) =>
+    Object.fromEntries(
+      Object.entries(marks ?? {})
+        .filter(([, at]) => at)
+        .map(([uid, at]) => [pid(uid), ms(at)]),
+    )
   function mapChat(w: WChat, prev?: Chat): Chat {
     let messages = prev?.messages ?? []
     const last = w.last_message
@@ -433,7 +416,7 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
       pinned: w.pinned,
       readAt: ms(w.read_at),
       unread: w.unread,
-      readBy: prev?.readBy,
+      readBy: { ...prev?.readBy, ...readMarks(w.read_by) },
     }
   }
   const mapActivity = (w: WActivity): Activity => ({
@@ -498,9 +481,27 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
       }
     })
   }
+  /** Senders the store has never seen (a member who has since left the
+   * group): load them so their messages carry a name. */
+  const asked = new Set<string>()
+  function ensurePeople(ids: string[]) {
+    const known = new Set(get().people.map((p) => p.id))
+    for (const id of new Set(ids)) {
+      if (id === me || known.has(id) || asked.has(id)) continue
+      asked.add(id)
+      quietly(
+        http
+          .request<WPerson>("GET", `/social/people/${id}`)
+          .then((p) =>
+            set((s) => ({ ...s, people: upsertPeople(s, [], [p]) })),
+          ),
+      )
+    }
+  }
   function mergeMessages(chatId: string, all: WMessage[]) {
     // A read that was in flight when I unsent a message must not restore it.
     const list = all.filter((w) => !unsent.has(w.id))
+    ensurePeople(list.map((w) => w.sender_id))
     set((s) => ({
       ...s,
       chats: s.chats.map((c) => {
@@ -526,7 +527,13 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
       const w = await http.request<WPerson>("GET", "/social/me")
       set((s) => ({
         ...s,
-        me: { bio: w.bio, followers: w.followers, following: w.following },
+        me: {
+          bio: w.bio,
+          followers: w.followers,
+          following: w.following,
+          id: w.id,
+        },
+        showScores: w.show_scores ?? s.showScores,
       }))
     },
     async following() {
@@ -726,6 +733,24 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
     }))
   }
 
+  async function loadPost(id: string): Promise<"ok" | "gone"> {
+    try {
+      mergePosts([await http.request<WPost>("GET", `/social/posts/${id}`)])
+      return "ok"
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 404) return "gone"
+      throw e
+    }
+  }
+
+  async function loadSaved() {
+    const page = await http.request<WPosts>(
+      "GET",
+      `/social/saved${q({ limit: 100 })}`,
+    )
+    mergePosts(page.data)
+  }
+
   async function openPerson(id: string) {
     const uid = sid(id)
     // The follows lists show as soon as they arrive, not after the
@@ -906,6 +931,9 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
     refresh,
     loadMoreFeed,
     openPost,
+    loadPost,
+    loadSaved,
+    loadStories: loaders.stories,
     openPerson,
     openChat,
     search,
@@ -976,7 +1004,6 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
                 comments: p.comments.map((c) =>
                   c.id === comment.id ? mapComment(w) : c,
                 ),
-                commentCount: (p.commentCount ?? 0) + 1,
               }
             : p,
         ),

@@ -25,6 +25,7 @@ import Animated, {
 } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
+import { liveMode } from "@/live/config"
 import { back, go, replace } from "../navigation"
 import { fonts } from "../theme"
 import { confirm } from "../ui"
@@ -41,6 +42,8 @@ import {
 import {
   deleteStory,
   directChat,
+  liveStories,
+  loadStoriesLive,
   ME,
   markSeen,
   type StoryItem,
@@ -217,11 +220,17 @@ export function StoryViewer({ id }: { id: string }) {
       ),
     )
   }, [groups.length, stories.length, id])
+  // My own check-ins: reload so "Seen by" counts who opened them since.
+  useEffect(() => {
+    if (id === ME) void loadStoriesLive()
+  }, [id])
   const group = groups[gi]
   const items = useMemo(
     () =>
       group
-        ? stories.filter((s) => s.by === group.id).sort((a, b) => a.at - b.at)
+        ? liveStories(stories)
+            .filter((s) => s.by === group.id)
+            .sort((a, b) => a.at - b.at)
         : [],
     [stories, group],
   )
@@ -239,10 +248,11 @@ export function StoryViewer({ id }: { id: string }) {
   const dy = useSharedValue(0)
   const input = useRef<TextInput>(null)
   const close = () => back("/social")
-  const viewers = useMemo(
-    () => 3 + ((item?.id.charCodeAt(0) ?? 0) % 20),
-    [item],
-  )
+  // Live mode shows the server's count; the prototype has no viewers to
+  // count, so it shows a stand-in.
+  const viewers = liveMode
+    ? (item?.views ?? 0)
+    : 3 + ((item?.id.charCodeAt(0) ?? 0) % 20)
 
   const nextGroup = () => {
     if (gi + 1 >= groups.length) return close()

@@ -23,8 +23,8 @@ import { FollowButton } from "./profile"
 import { useMyScorecard } from "./sources"
 import {
   type Activity,
+  activityText,
   agoText,
-  CHEERS,
   loadExploreLive,
   ME,
   markActivityRead,
@@ -444,16 +444,7 @@ function ActivityRow({ a, isNew }: { a: Activity; isNew: boolean }) {
   const person = usePerson(a.by)
   const post = socialStore.use((s) => s.posts.find((p) => p.id === a.postId))
   const thumb = post?.media.find((m) => m.kind === "image")
-  const cheer = CHEERS.find((c) => c.kind === a.text)
-  const verb = {
-    like: cheer
-      ? `cheered your progress: ${cheer.emoji} ${cheer.label}.`
-      : "cheered your progress.",
-    comment: `commented: ${a.text ?? ""}`,
-    follow: "started following you.",
-    mention: `mentioned you: ${a.text ?? ""}`,
-    story: "liked your story.",
-  }[a.kind]
+  const verb = activityText(a.kind, a.text)
   return (
     <View
       style={{

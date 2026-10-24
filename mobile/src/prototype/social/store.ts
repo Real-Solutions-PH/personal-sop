@@ -103,6 +103,8 @@ export type StoryItem = {
   progress?: Progress
   audience?: "everyone" | "close"
   likes?: number
+  /** Live mode, my own check-ins only: how many people opened it. */
+  views?: number
   liked?: boolean
 }
 export type Note = {
@@ -158,8 +160,9 @@ export type SocialState = {
   drafts: { post?: Partial<Post>; story?: Partial<StoryItem> }
   /** Whether followers can see your scores and achievements. */
   showScores: boolean
-  /** Live mode: my own bio and counts from GET /social/me. */
-  me?: { bio: string; followers: number; following: number }
+  /** Live mode: my own bio and counts from GET /social/me, and my server id
+   * (what a shared profile link must carry; ``ME`` means "whoever opens it"). */
+  me?: { bio: string; followers: number; following: number; id?: string }
   /** Live mode: who follows / is followed by a person, from the server. */
   graph?: Record<string, { followers: string[]; following: string[] }>
 }
@@ -892,6 +895,13 @@ export interface SocialRemote {
   refresh(): Promise<void>
   loadMoreFeed(tab: "following" | "foryou"): Promise<void>
   openPost(id: string): Promise<void>
+  /** Load one post (a shared one not in the feed); "gone" when it is not
+   * visible any more. */
+  loadPost(id: string): Promise<"ok" | "gone">
+  /** My saved posts, oldest saves included. */
+  loadSaved(): Promise<void>
+  /** The check-in tray again (my own view and like counts move). */
+  loadStories(): Promise<void>
   openPerson(id: string): Promise<void>
   openChat(id: string): Promise<void>
   /** Explore search: people, or posts by tag when it starts with #. */
@@ -1012,6 +1022,18 @@ export const refreshSocial = () =>
 export const loadMoreFeed = (tab: "following" | "foryou") =>
   load((r) => r.loadMoreFeed(tab))
 export const openPostLive = (id: string) => load((r) => r.openPost(id))
+/** A post a screen shows by id (a shared post in a chat): fetched once when
+ * it is not in the store. Prototype mode has every post already. */
+export async function ensurePostLive(id: string): Promise<"ok" | "gone"> {
+  if (!liveMode || postOf(id)) return postOf(id) ? "ok" : "gone"
+  try {
+    return await (await connected()).loadPost(id)
+  } catch {
+    return "gone"
+  }
+}
+export const loadSavedLive = () => load((r) => r.loadSaved())
+export const loadStoriesLive = () => load((r) => r.loadStories())
 export const openPersonLive = (id: string) => load((r) => r.openPerson(id))
 export const openChatLive = (id: string) => load((r) => r.openChat(id))
 export const searchLive = (q: string) => load((r) => r.search(q))
@@ -1146,13 +1168,19 @@ export function addComment(postId: string, text: string, replyTo?: string) {
     liked: false,
     replyTo,
   }
-  mapPost(postId, (p) => ({ ...p, comments: [...p.comments, comment] }))
+  mapPost(postId, (p) => ({
+    ...p,
+    comments: [...p.comments, comment],
+    commentCount: p.commentCount === undefined ? undefined : p.commentCount + 1,
+  }))
   send(
     (r) => r.addComment(postId, comment),
     () =>
       mapPost(postId, (p) => ({
         ...p,
         comments: p.comments.filter((c) => c.id !== comment.id),
+        commentCount:
+          p.commentCount === undefined ? undefined : p.commentCount - 1,
       })),
     "post your comment",
   )
@@ -1176,12 +1204,33 @@ export function toggleCommentLike(postId: string, commentId: string) {
       "update the comment",
     )
 }
+/** A comment and every reply under it (the server deletes them together). */
+function thread(comments: Comment[], id: string): Set<string> {
+  const out = new Set([id])
+  let grew = true
+  while (grew) {
+    grew = false
+    for (const c of comments)
+      if (c.replyTo && out.has(c.replyTo) && !out.has(c.id)) {
+        out.add(c.id)
+        grew = true
+      }
+  }
+  return out
+}
 export function deleteComment(postId: string, commentId: string) {
   const prev = postOf(postId)
-  mapPost(postId, (p) => ({
-    ...p,
-    comments: p.comments.filter((c) => c.id !== commentId),
-  }))
+  mapPost(postId, (p) => {
+    const gone = thread(p.comments, commentId)
+    return {
+      ...p,
+      comments: p.comments.filter((c) => !gone.has(c.id)),
+      commentCount:
+        p.commentCount === undefined
+          ? undefined
+          : Math.max(0, p.commentCount - gone.size),
+    }
+  })
   if (prev)
     send(
       (r) => r.deleteComment(postId, commentId),
@@ -1359,8 +1408,12 @@ export function toggleNoteLike(by: string) {
 }
 export function toggleFollow(id: string) {
   const prev = personOf(id)
+  const prevMe = socialStore.get().me
+  const step = prev?.isFollowing ? -1 : 1
   set((s) => ({
     ...s,
+    // Live mode: my own following count moves with the button.
+    me: s.me && prev ? { ...s.me, following: s.me.following + step } : s.me,
     people: s.people.map((p) =>
       p.id === id
         ? {
@@ -1374,7 +1427,10 @@ export function toggleFollow(id: string) {
   if (prev)
     send(
       (r) => r.follow(id, !prev.isFollowing),
-      () => putPerson(prev),
+      () => {
+        putPerson(prev)
+        set((s) => ({ ...s, me: prevMe }))
+      },
       prev.isFollowing ? `unfollow ${prev.name}` : `follow ${prev.name}`,
     )
 }
@@ -1439,16 +1495,19 @@ export function createGroup(members: string[], name: string) {
     muted: false,
     pinned: false,
     readAt: Date.now(),
-    messages: [
-      {
-        id: uid(),
-        by: ME,
-        at: Date.now(),
-        text: `You created the group "${name}"`,
-        system: true,
-        reactions: {},
-      },
-    ],
+    // Live mode: the server writes the "created the group" line itself.
+    messages: liveMode
+      ? []
+      : [
+          {
+            id: uid(),
+            by: ME,
+            at: Date.now(),
+            text: `You created the group "${name}"`,
+            system: true,
+            reactions: {},
+          },
+        ],
   }
   set((s) => ({ ...s, chats: [chat, ...s.chats] }))
   send(
@@ -1663,10 +1722,17 @@ export const compact = (n: number) =>
     : n >= 1000
       ? `${(n / 1000).toFixed(1).replace(/\.0$/, "")}K`
       : String(n)
+/** Check-ins and notes last a day. The server stops returning them, but a
+ * saved store (opened offline, or before the next refresh) still has them. */
+export const LIFETIME = DAY
+export const liveStories = (stories: StoryItem[], now = Date.now()) =>
+  stories.filter((x) => now - x.at < LIFETIME)
+export const liveNotes = (notes: Note[], now = Date.now()) =>
+  notes.filter((n) => now - n.at < LIFETIME)
 /** Story groups for the tray: me first, then unseen, then seen. */
 export function storyGroups(s: SocialState) {
   const by = new Map<string, StoryItem[]>()
-  for (const item of [...s.stories].sort((a, b) => a.at - b.at))
+  for (const item of liveStories(s.stories).sort((a, b) => a.at - b.at))
     by.set(item.by, [...(by.get(item.by) ?? []), item])
   const groups = [...by.entries()].map(([id, items]) => ({
     id,
@@ -1703,3 +1769,39 @@ export const postingStore = create<{
   progress?: Progress
   at: number
 } | null>(() => null)
+
+/** The activity line after the person's name. A "like" is a cheer on a post
+ * unless its text says what was liked (a comment, a note). */
+export function activityText(kind: Activity["kind"], text?: string): string {
+  if (kind === "like") {
+    const c = CHEERS.find((x) => x.kind === text)
+    if (c) return `cheered your progress: ${c.emoji} ${c.label}.`
+    return text ? `${text}.` : "cheered your progress."
+  }
+  if (kind === "comment") return `commented: ${text ?? ""}`
+  if (kind === "mention") return `mentioned you: ${text ?? ""}`
+  if (kind === "follow") return "started following you."
+  return "liked your story."
+}
+
+/** A group's system line. The server stores what happened ("left the
+ * group"); this adds who did it. Lines made on this device ("You added …")
+ * already name their subject. */
+export function systemLine(m: Message, name: string): string {
+  const text = m.text ?? ""
+  if (/^You\b/.test(text)) return text
+  return `${m.by === ME ? "You" : name || "Someone"} ${text}`
+}
+
+/** Whether my last message was read: someone replied after it, or another
+ * member's read mark (live mode) reaches it. */
+export function lastMineSeen(chat: Chat): boolean {
+  const mine = chat.messages.findLast((m) => m.by === ME && !m.system)
+  if (!mine) return false
+  if (chat.messages.some((m) => m.by !== ME && m.at > mine.at)) return true
+  return Object.values(chat.readBy ?? {}).some((at) => at >= mine.at)
+}
+
+/** Links that open the post or profile in the app. */
+export const postLink = (id: string) => `personalsop://social/post/${id}`
+export const profileLink = (id: string) => `personalsop://social/u/${id}`

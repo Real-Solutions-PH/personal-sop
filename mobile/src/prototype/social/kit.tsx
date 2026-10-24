@@ -648,11 +648,14 @@ export function MediaCarousel({
   // Square when a stat strip follows, so the numbers stay near the photo;
   // 4:5 for a plain photo post and for a card-only post.
   const height = Math.round(width * (progress && !card ? 1 : 1.25))
+  // The worklet may close over plain functions only: `burst` also holds the
+  // heart element, which Worklets cannot copy (the feed failed to render).
+  const fire = burst.fire
   const doubleTap = Gesture.Tap()
     .numberOfTaps(2)
     .maxDelay(260)
     .onEnd(() => {
-      runOnJS(burst.fire)()
+      runOnJS(fire)()
       runOnJS(onDoubleTap)()
     })
   if (!pages) return null

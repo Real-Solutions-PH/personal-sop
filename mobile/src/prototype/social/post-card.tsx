@@ -38,6 +38,7 @@ import {
   like,
   ME,
   type Post,
+  postLink,
   sendMessage,
   simulateReply,
   socialStore,
@@ -255,14 +256,14 @@ export function SendSheet({
           {
             label: "Copy link",
             Icon: Link2,
-            run: () => copyText(`https://personal-sop.app/p/${postId}`),
+            run: () => copyText(postLink(postId)),
           },
           {
             label: "Share to…",
             Icon: Share2,
             run: () =>
               void Share.share({
-                message: `${post?.caption ?? ""}\nhttps://personal-sop.app/p/${postId}`,
+                message: `${post?.caption ?? ""}\n${postLink(postId)}`,
               }).catch(() => {}),
           },
         ].map(({ label, Icon, run }) => (
@@ -317,7 +318,7 @@ function PostMenu({
     {
       label: "Copy link",
       Icon: Link2,
-      run: () => copyText(`https://personal-sop.app/p/${post.id}`),
+      run: () => copyText(postLink(post.id)),
     },
     ...(mine
       ? [
