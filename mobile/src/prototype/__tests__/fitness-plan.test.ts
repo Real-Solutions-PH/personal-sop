@@ -161,3 +161,28 @@ test("planInputsFrom needs a complete profile and a weigh-in", () => {
     goal: "maintain",
   })
 })
+
+test("planInputsFrom takes body fat from the newest weigh-in that has one", () => {
+  const s = fitStore.get()
+  const settings = {
+    ...s.settings,
+    sex: "male" as const,
+    birthYear: new Date().getFullYear() - 30,
+    heightCm: 180,
+    activity: "moderate" as const,
+    goalDirection: "maintain" as const,
+  }
+  const w = (id: string, measuredAt: string, bodyFatPct?: number) => ({
+    id,
+    measuredAt,
+    weightKg: 80,
+    bodyFatPct,
+  })
+  expect(
+    planInputsFrom({
+      ...s,
+      settings,
+      weighIns: [w("a", "2026-01-02"), w("b", "2026-01-01", 25)],
+    })?.bodyFatPct,
+  ).toBe(25)
+})

@@ -5,7 +5,11 @@ import {
   updateSettings,
   updateWeighIn,
 } from "@domain/fitness/actions"
-import { latestBodyweight } from "@domain/fitness/calc"
+import {
+  latestBodyFat,
+  latestBodyweight,
+  latestWeighIn,
+} from "@domain/fitness/calc"
 import {
   ACTIVITY,
   type ActivityLevel,
@@ -15,6 +19,7 @@ import {
   type NoteField,
   type Plan,
   type PlanGoal,
+  type PlanInputs,
   type PlanNote,
   planGoalFor,
   type Sex,
@@ -54,31 +59,31 @@ export function PlanNotes({
 export function PlanForm({
   onApply,
   applyLabel = "Apply",
+  askWeight = true,
 }: {
-  onApply: (plan: Plan) => void
+  onApply: (plan: Plan, inputs: PlanInputs) => void
   applyLabel?: string
+  askWeight?: boolean
 }) {
   const t = useTheme(),
     fit = fitStore.use((s) => s),
     st = fit.settings,
     lb = st.units === "lb",
-    latest = fit.weighIns.reduce<(typeof fit.weighIns)[number] | undefined>(
-      (a, w) => (!a || w.measuredAt > a.measuredAt ? w : a),
-      undefined,
-    ),
+    latest = latestWeighIn(fit),
     bw = latestBodyweight(fit),
-    inches = st.heightCm ? st.heightCm / 2.54 : undefined,
+    inches = st.heightCm ? Math.round(st.heightCm / 2.54) : undefined,
     [sex, setSex] = useState<Sex | undefined>(st.sex),
     [year, setYear] = useState(st.birthYear ? String(st.birthYear) : ""),
     [cm, setCm] = useState(st.heightCm ? String(st.heightCm) : ""),
     [ft, setFt] = useState(inches ? String(Math.floor(inches / 12)) : ""),
-    [inch, setInch] = useState(inches ? String(Math.round(inches % 12)) : ""),
+    [inch, setInch] = useState(inches ? String(inches % 12) : ""),
     [weight, setWeight] = useState(bw ? String(displayMass(bw, st.units)) : ""),
     [activity, setActivity] = useState<ActivityLevel | undefined>(st.activity),
     [goal, setGoal] = useState<PlanGoal>(planGoalFor(st)),
-    [bf, setBf] = useState(
-      latest?.bodyFatPct !== undefined ? String(latest.bodyFatPct) : "",
-    )
+    [bf, setBf] = useState(() => {
+      const v = latestBodyFat(fit)
+      return v !== undefined ? String(v) : ""
+    })
 
   const heightCm = lb ? (num(ft) * 12 + num(inch || "0")) * 2.54 : num(cm),
     weightKg = kilograms(num(weight), st.units),
@@ -87,11 +92,13 @@ export function PlanForm({
     valid =
       !!sex &&
       !!activity &&
+      Number.isInteger(num(year)) &&
       age >= 13 &&
       age <= 100 &&
       heightCm >= 100 &&
       heightCm <= 250 &&
       weightKg > 20 &&
+      weightKg < 500 &&
       (bodyFat === undefined || (bodyFat >= 3 && bodyFat <= 70))
 
   const submit = () => {
@@ -110,17 +117,16 @@ export function PlanForm({
       logWeighIn(weightKg, undefined, undefined, bodyFat)
     else if (bodyFat !== undefined)
       updateWeighIn(latest.id, { bodyFatPct: bodyFat })
-    onApply(
-      estimatePlan({
-        sex,
-        age,
-        heightCm: h,
-        weightKg,
-        bodyFatPct: bodyFat,
-        activity,
-        goal,
-      }),
-    )
+    const inputs: PlanInputs = {
+      sex,
+      age,
+      heightCm: h,
+      weightKg,
+      bodyFatPct: bodyFat,
+      activity,
+      goal,
+    }
+    onApply(estimatePlan(inputs), inputs)
   }
 
   const label = (text: string) => (
@@ -134,6 +140,7 @@ export function PlanForm({
     set: (v: string) => void,
     placeholder: string,
     unit?: string,
+    integer?: boolean,
   ) => (
     <Line style={{ gap: 8, flex: 1 }}>
       <TextInput
@@ -141,8 +148,8 @@ export function PlanForm({
         placeholder={placeholder}
         placeholderTextColor={t.muted}
         value={value}
-        onChangeText={(v) => set(v.replace(/[^\d.]/g, ""))}
-        keyboardType="decimal-pad"
+        onChangeText={(v) => set(v.replace(integer ? /\D/g : /[^\d.]/g, ""))}
+        keyboardType={integer ? "number-pad" : "decimal-pad"}
         style={{
           height: 44,
           flex: 1,
@@ -162,6 +169,8 @@ export function PlanForm({
   const chip = (text: string, on: boolean, press: () => void) => (
     <Tap
       key={text}
+      role="radio"
+      selected={on}
       onPress={press}
       style={{
         height: 36,
@@ -188,7 +197,7 @@ export function PlanForm({
         {chip("Female", sex === "female", () => setSex("female"))}
       </View>
       {label("Birth year")}
-      {input("Birth year", year, setYear, "e.g. 1995")}
+      {input("Birth year", year, setYear, "e.g. 1995", undefined, true)}
       {label("Height")}
       {lb ? (
         <Line style={{ gap: 8 }}>
@@ -198,14 +207,15 @@ export function PlanForm({
       ) : (
         input("Height (cm)", cm, setCm, "e.g. 175", "cm")
       )}
-      {label("Weight")}
-      {input(
-        `Weight (${st.units})`,
-        weight,
-        setWeight,
-        lb ? "e.g. 160" : "e.g. 72.5",
-        st.units,
-      )}
+      {askWeight && label("Weight")}
+      {askWeight &&
+        input(
+          `Weight (${st.units})`,
+          weight,
+          setWeight,
+          lb ? "e.g. 160" : "e.g. 72.5",
+          st.units,
+        )}
       {label("Activity")}
       <View style={wrap}>
         {(Object.keys(ACTIVITY) as ActivityLevel[]).map((k) =>

@@ -9,12 +9,7 @@ import {
   upsertTemplate,
 } from "@domain/fitness/actions"
 import type { FitnessSettings } from "@domain/fitness/data"
-import {
-  type Plan,
-  type PlanInputs,
-  planInputsFrom,
-  planNotes,
-} from "@domain/fitness/plan"
+import { type Plan, type PlanInputs, planNotes } from "@domain/fitness/plan"
 import { fitStore } from "@domain/fitness/store"
 import { saveFocusSettings } from "@domain/focus/actions"
 import { PRESETS, type PresetKey } from "@domain/focus/data"
@@ -662,14 +657,16 @@ function FocusStep({ onDone }: { onDone: () => void }) {
  * editable, with warn-only notes under the ones that look off. */
 export function NutritionStep({ onDone }: { onDone: () => void }) {
   const [plan, setPlan] = useState<Plan | null>(null),
-    [inputs, setInputs] = useState<PlanInputs | null>(null)
+    [inputs, setInputs] = useState<PlanInputs | null>(null),
+    hasWeighIn = fitStore.use((s) => s.weighIns.length > 0)
   if (!plan || !inputs)
     return (
       <PlanForm
         applyLabel="See my plan"
-        onApply={(p) => {
+        askWeight={!hasWeighIn}
+        onApply={(p, i) => {
           setPlan(p)
-          setInputs(planInputsFrom(fitStore.get()))
+          setInputs(i)
         }}
       />
     )

@@ -130,16 +130,21 @@ export function Tap({
   onPress,
   label,
   style,
+  role = "button",
+  selected,
 }: {
   children: ReactNode
   onPress: () => void
   label?: string
   style?: ViewStyle
+  role?: "button" | "radio"
+  selected?: boolean
 }) {
   return (
     <Pressable
       cssInterop={false}
-      accessibilityRole="button"
+      accessibilityRole={role}
+      accessibilityState={selected === undefined ? undefined : { selected }}
       accessibilityLabel={label}
       onPress={onPress}
       hitSlop={4}

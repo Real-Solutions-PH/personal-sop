@@ -186,7 +186,10 @@ test("apply passes the maintain estimate through", () => {
   fillA()
   fireEvent.press(screen.getByText("Maintain"))
   fireEvent.press(apply())
-  expect(onApply).toHaveBeenCalledWith(expect.objectContaining({ kcal: 2750 }))
+  expect(onApply).toHaveBeenCalledWith(
+    expect.objectContaining({ kcal: 2750 }),
+    expect.anything(),
+  )
 })
 
 test("no weigh-in yet: apply creates one with weight and body fat", () => {
@@ -304,4 +307,82 @@ test("Targets: 600 kcal saves", () => {
   fireEvent.changeText(screen.getByLabelText("Calories"), "600")
   fireEvent.press(screen.getByText("Save · effective today"))
   expect(targetFor(fitStore.get(), dayKey())).toMatchObject({ kcal: 600 })
+})
+
+test("body fat pre-fills from the newest weigh-in that has one", () => {
+  fitStore.set((s) => ({
+    ...s,
+    weighIns: [
+      { id: "w2", measuredAt: "2026-01-02T06:00:00.000Z", weightKg: 80 },
+      {
+        id: "w1",
+        measuredAt: "2026-01-01T06:00:00.000Z",
+        weightKg: 81,
+        bodyFatPct: 25,
+      },
+    ],
+  }))
+  render(<PlanForm onApply={jest.fn()} />, { wrapper })
+  expect(screen.getByLabelText("Body fat % (optional)").props.value).toBe("25")
+  expect(screen.getByLabelText("Weight (kg)").props.value).toBe("80")
+})
+
+test("birth year takes digits only, so it is always an integer", () => {
+  render(<PlanForm onApply={jest.fn()} />, { wrapper })
+  fillA()
+  fill("Birth year", "1995.5")
+  expect(screen.getByLabelText("Birth year").props.value).toBe("19955")
+  expect(apply().props.accessibilityState?.disabled).toBe(true)
+})
+
+test("weight of 500 kg or more disables apply", () => {
+  render(<PlanForm onApply={jest.fn()} />, { wrapper })
+  fillA()
+  fill("Weight (kg)", "500")
+  expect(apply().props.accessibilityState?.disabled).toBe(true)
+  fill("Weight (kg)", "499")
+  expect(apply().props.accessibilityState?.disabled).toBe(false)
+})
+
+test("chips expose a radio role with selected state", () => {
+  render(<PlanForm onApply={jest.fn()} />, { wrapper })
+  const male = () => screen.getByRole("radio", { name: "Male" })
+  expect(male().props.accessibilityState).toMatchObject({ selected: false })
+  fireEvent.press(screen.getByText("Male"))
+  expect(male().props.accessibilityState).toMatchObject({ selected: true })
+})
+
+test("lb pre-fill carries rounded inches into feet", () => {
+  fitStore.set((s) => ({
+    ...s,
+    settings: { ...s.settings, units: "lb", heightCm: 5.99 * 30.48 },
+  }))
+  render(<PlanForm onApply={jest.fn()} />, { wrapper })
+  expect(screen.getByLabelText("Height (ft)").props.value).toBe("6")
+  expect(screen.getByLabelText("Height (in)").props.value).toBe("0")
+})
+
+test("onApply also hands back the inputs it estimated with", () => {
+  const onApply = jest.fn()
+  render(<PlanForm onApply={onApply} />, { wrapper })
+  fillA()
+  fireEvent.press(apply())
+  expect(onApply).toHaveBeenCalledWith(
+    expect.anything(),
+    expect.objectContaining({ weightKg: 80, age: 30, heightCm: 180 }),
+  )
+})
+
+test("setup with a weigh-in hides the weight field and still applies", () => {
+  profileA()
+  render(<NutritionStep onDone={jest.fn()} />, { wrapper })
+  expect(screen.queryByLabelText("Weight (kg)")).toBeNull()
+  fireEvent.press(screen.getByRole("button", { name: "See my plan" }))
+  expect(screen.getByText("Save targets")).toBeTruthy()
+  expect(fitStore.get().weighIns).toHaveLength(1)
+})
+
+test("setup without a weigh-in asks for weight", () => {
+  render(<NutritionStep onDone={jest.fn()} />, { wrapper })
+  expect(screen.getByLabelText("Weight (kg)")).toBeTruthy()
 })
