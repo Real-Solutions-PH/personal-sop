@@ -7,7 +7,7 @@ import { ChevronDown, Pause, Play, Square } from "lucide-react-native"
 import { useEffect, useState } from "react"
 import { View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { Copy, IconTap, Line, Tap } from "../native-kit"
+import { Copy, Countdown, IconTap, Line, Tap } from "../native-kit"
 import { back, go } from "../navigation"
 import { useTheme } from "../theme"
 import { Button, confirm, Field, Sheet, useNow } from "../ui"
@@ -150,21 +150,17 @@ export function HabitTimer({ id }: { id: string }) {
             strokeWidth={10}
             color={over > 0 ? t.good : t.hab}
           >
-            <Copy
+            <Countdown
               size={60}
-              weight="semibold"
-              style={{
-                lineHeight: 60,
-                letterSpacing: -1.5,
-                color: paused ? t.muted : over > 0 ? t.good : t.text,
-              }}
+              width={220}
+              style={{ color: paused ? t.muted : over > 0 ? t.good : t.text }}
             >
               {target
                 ? over > 0
                   ? `+${fmtDuration(over)}`
                   : fmtDuration(target - elapsed)
                 : fmtDuration(elapsed)}
-            </Copy>
+            </Countdown>
             <Copy size={14} muted style={{ marginTop: 4 }}>
               {target
                 ? over > 0

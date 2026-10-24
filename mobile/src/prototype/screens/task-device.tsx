@@ -648,7 +648,7 @@ export function TaskNotifications() {
           <Copy
             size={60}
             weight="displayMedium"
-            style={{ color: "#fff", lineHeight: 60 }}
+            style={{ color: "#fff", lineHeight: 75 }}
           >
             {L.fmtTime(new Date().toTimeString().slice(0, 5)).replace(
               / (AM|PM)/,
