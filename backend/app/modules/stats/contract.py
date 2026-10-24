@@ -15,7 +15,7 @@ from typing import Literal, Protocol
 
 from app.shared.context import Ctx
 
-ModuleKey = Literal["habits", "tasks", "fitness", "finance"]
+ModuleKey = Literal["habits", "tasks", "fitness", "nutrition", "finance"]
 GoodWhen = Literal["up", "down"]
 
 
@@ -121,7 +121,7 @@ class StatsContributor(Protocol):
 
 _contributors: dict[str, StatsContributor] = {}
 
-CONTRIBUTOR_MODULES = ("habits", "tasks", "fitness", "finance")
+CONTRIBUTOR_MODULES = ("habits", "tasks", "fitness", "nutrition", "finance")
 
 
 def contributors() -> dict[str, StatsContributor]:

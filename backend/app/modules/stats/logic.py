@@ -19,7 +19,7 @@ from typing import Literal
 
 from app.modules.stats.contract import Metric
 
-MODULE_KEYS: tuple[str, ...] = ("habits", "tasks", "fitness", "finance")
+MODULE_KEYS: tuple[str, ...] = ("habits", "tasks", "fitness", "nutrition", "finance")
 STREAK_MILESTONES: tuple[int, ...] = (7, 30, 100, 365)
 # The on-target series always spans at least a year so the all-time streaks
 # (``useOnTarget``) see the same history whatever range the screen shows.
@@ -634,7 +634,7 @@ def compose_facets(
 ) -> list[FacetView]:
     """``useFacets``: the six facets in screen order. Habits, tasks and
     finance are the area rates; routines, training and nutrition come from
-    the habits and fitness contributors."""
+    the habits, fitness and nutrition contributors."""
 
     def r(m: Mapping[str, float | None], k: str) -> float:
         return m.get(k) or 0.0
@@ -679,17 +679,17 @@ def compose_facets(
             "fitness",
             training[0],
             training[1],
-            "/fitness?tab=train",
+            "/fitness",
             ("sessions", "prs", "volume", "overload"),
         ),  # fmt: skip
         f(
             "nutrition",
             "Nutrition",
-            "fitness",
+            "nutrition",
             nutrition[0],
             nutrition[1],
-            "/fitness?tab=eat",
-            ("calories", "protein", "weight"),
+            "/nutrition",
+            ("calories", "protein", "kcal", "logged"),
         ),  # fmt: skip
         f(
             "finance",

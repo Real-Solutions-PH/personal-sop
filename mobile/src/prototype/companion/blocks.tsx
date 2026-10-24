@@ -261,9 +261,7 @@ function NutritionBlock({ day }: { day: string }) {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Open nutrition"
-        onPress={() =>
-          go(`/fitness/nutrition${day === today ? "" : `?day=${day}`}`)
-        }
+        onPress={() => go(`/nutrition${day === today ? "" : `?day=${day}`}`)}
         style={{ gap: 12 }}
       >
         <Text

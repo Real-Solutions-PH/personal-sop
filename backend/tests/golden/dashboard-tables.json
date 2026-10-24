@@ -242,6 +242,7 @@
           "habits": 60,
           "tasks": 70,
           "fitness": 2,
+          "nutrition": 60,
           "finance": 10
         }
       },
@@ -252,6 +253,7 @@
           "habits": 80,
           "tasks": 85,
           "fitness": 4,
+          "nutrition": 75,
           "finance": 20
         }
       },
@@ -262,6 +264,7 @@
           "habits": 90,
           "tasks": 95,
           "fitness": 5,
+          "nutrition": 90,
           "finance": 30
         }
       }
@@ -294,6 +297,15 @@
         "period": "week",
         "hint": "sessions per week"
       },
+      "nutrition": {
+        "metric": "nutrition:protein",
+        "label": "Protein hit rate",
+        "target": 75,
+        "unit": "%",
+        "comparator": "gte",
+        "period": "week",
+        "hint": "of logged days at your protein target"
+      },
       "finance": {
         "metric": "finance:savings-rate",
         "label": "Savings rate",
@@ -318,6 +330,10 @@
         "module": "fitness"
       },
       {
+        "text": "I eat to fuel my goals",
+        "module": "nutrition"
+      },
+      {
         "text": "I'm in control of my money",
         "module": "finance"
       },
@@ -337,6 +353,10 @@
       {
         "metric": "fitness:sessions",
         "text": "≥ 4 / week"
+      },
+      {
+        "metric": "nutrition:protein",
+        "text": "≥ 75% / week"
       },
       {
         "metric": "finance:savings-rate",

@@ -14,6 +14,7 @@ from typing import Any
 
 from app.modules.fitness import public as fitness
 from app.modules.habits import public as habits
+from app.modules.nutrition import public as nutrition
 from app.modules.stats import public as stats
 from app.modules.tasks import public as tasks
 from app.shared.context import Ctx
@@ -120,6 +121,9 @@ def snapshot(ctx: Ctx) -> dict[str, Any]:
     # read as "nothing due" whenever no habit or task was.
     out["fitness_due_today"] = [
         {"item": item, "done": done} for item, done in fitness.items_due_today(ctx)
+    ]
+    out["nutrition_due_today"] = [
+        {"item": item, "done": done} for item, done in nutrition.items_due_today(ctx)
     ]
     overdue, due, open_total = _tasks_due(ctx)
     out["tasks_overdue"] = overdue[:5]

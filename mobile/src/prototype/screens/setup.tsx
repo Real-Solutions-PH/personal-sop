@@ -4,9 +4,11 @@ import { dashStore, setOnboarded, skipSetup } from "@domain/dash/store"
 import { finStore } from "@domain/finance/store"
 import {
   logWeighIn,
+  setMacroTarget,
   updateSettings,
   upsertTemplate,
 } from "@domain/fitness/actions"
+import { latestBodyweight } from "@domain/fitness/calc"
 import type { FitnessSettings } from "@domain/fitness/data"
 import { fitStore } from "@domain/fitness/store"
 import { createHabit, type HabitInput } from "@domain/habits/actions"
@@ -21,6 +23,7 @@ import {
   Dumbbell,
   ListChecks,
   Repeat2,
+  Utensils,
   Wallet,
   X,
 } from "lucide-react-native"
@@ -28,6 +31,7 @@ import { useState } from "react"
 import { ScrollView, TextInput, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
+import { Stepper } from "../fitness-controls"
 import {
   border,
   Copy,
@@ -42,7 +46,13 @@ import { AccentContext, fonts, useTheme } from "../theme"
 import { Button } from "../ui"
 import { FinanceSetup } from "./finance-setup"
 
-const ORDER: ModuleKey[] = ["finance", "habits", "fitness", "tasks"]
+const ORDER: ModuleKey[] = [
+  "finance",
+  "habits",
+  "fitness",
+  "nutrition",
+  "tasks",
+]
 
 const STEP: Record<ModuleKey, { title: string; why: string; time: string }> = {
   finance: {
@@ -58,6 +68,11 @@ const STEP: Record<ModuleKey, { title: string; why: string; time: string }> = {
   fitness: {
     title: "Your training baseline",
     why: "Today's weight and the split you run, so progress has a day 1.",
+    time: "30 sec",
+  },
+  nutrition: {
+    title: "Your daily targets",
+    why: "Calories and protein to aim for, so every meal you log has something to count toward.",
     time: "30 sec",
   },
   tasks: {
@@ -131,6 +146,7 @@ const modules = {
   habits: { icon: Repeat2, color: "hab" },
   tasks: { icon: ListChecks, color: "tsk" },
   fitness: { icon: Dumbbell, color: "fit" },
+  nutrition: { icon: Utensils, color: "nut" },
   finance: { icon: Wallet, color: "fin" },
 } as const
 export function Setup() {
@@ -151,6 +167,7 @@ export function Setup() {
       fitness: fitStore.use(
         (s) => s.templates.length + s.workouts.length + s.weighIns.length > 0,
       ),
+      nutrition: fitStore.use((s) => s.targets.length + s.meals.length > 0),
       tasks: tasksStore.use((s) => s.tasks.length > 0),
     },
     steps = ORDER.filter((k) => enabled[k]),
@@ -272,6 +289,8 @@ export function Setup() {
                   <HabitsStep onDone={() => advance(step)} />
                 ) : step === "fitness" ? (
                   <FitnessStep onDone={() => advance(step)} />
+                ) : step === "nutrition" ? (
+                  <NutritionStep onDone={() => advance(step)} />
                 ) : (
                   <TasksStep onDone={() => advance(step)} />
                 )}
@@ -555,6 +574,80 @@ function FitnessStep({ onDone }: { onDone: () => void }) {
           }}
         >
           Save baseline
+        </Button>
+      </View>
+    </View>
+  )
+}
+/** Daily targets from body weight and goal (the same rule as Suggest on
+ * the Targets page): about 2.1 g protein per kg, 27% of calories from fat,
+ * the rest carbs. */
+function NutritionStep({ onDone }: { onDone: () => void }) {
+  const fit = fitStore.use((s) => s),
+    [goal, setGoal] = useState<FitnessSettings["goalDirection"]>(
+      fit.settings.goalDirection,
+    ),
+    bw = latestBodyweight(fit) ?? 75,
+    perKg = goal === "cut" ? 27 : goal === "bulk" ? 36 : 32,
+    [kcal, setKcal] = useState(Math.round((bw * perKg) / 50) * 50),
+    [protein, setProtein] = useState(Math.round(bw * 2.1))
+  const pick = (g: FitnessSettings["goalDirection"]) => {
+    setGoal(g)
+    const k = g === "cut" ? 27 : g === "bulk" ? 36 : 32
+    setKcal(Math.round((bw * k) / 50) * 50)
+  }
+  const fat = Math.round((kcal * 0.27) / 9),
+    carbs = Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4))
+  return (
+    <View style={{ flex: 1, gap: 12 }}>
+      <Copy size={14} weight="medium">
+        Goal
+      </Copy>
+      <Segmented
+        value={goal}
+        onChange={pick}
+        options={[
+          { value: "cut", label: "Lose" },
+          { value: "maintain", label: "Maintain" },
+          { value: "bulk", label: "Gain" },
+        ]}
+      />
+      <Stepper
+        label="Calories"
+        unit="kcal"
+        value={kcal}
+        onChange={setKcal}
+        step={50}
+        min={1000}
+        max={6000}
+        decimals={0}
+      />
+      <Stepper
+        label="Protein"
+        unit="g"
+        value={protein}
+        onChange={setProtein}
+        step={5}
+        min={30}
+        max={400}
+        decimals={0}
+      />
+      <Copy size={12} muted>
+        Carbs {carbs.toLocaleString("en-US")} g and fat{" "}
+        {fat.toLocaleString("en-US")} g fill the rest
+        {latestBodyweight(fit) ? "" : "; based on 75 kg until you weigh in"}.
+        Change any of it later in Nutrition, Targets.
+      </Copy>
+      <View style={{ marginTop: "auto", paddingTop: 24 }}>
+        <Button
+          onPress={() => {
+            setMacroTarget({ kcal, protein, carbs, fat })
+            updateSettings({ goalDirection: goal })
+            toast("Daily targets saved")
+            onDone()
+          }}
+        >
+          Save targets
         </Button>
       </View>
     </View>

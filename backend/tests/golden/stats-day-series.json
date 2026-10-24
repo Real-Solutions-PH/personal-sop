@@ -4819,6 +4819,7 @@
           "habits": true,
           "tasks": true,
           "fitness": true,
+          "nutrition": true,
           "finance": true
         },
         "wrapups": [],
@@ -8527,6 +8528,7 @@
           "habits": true,
           "tasks": true,
           "fitness": true,
+          "nutrition": true,
           "finance": true
         },
         "wrapups": [
@@ -12237,6 +12239,7 @@
           "habits": false,
           "tasks": true,
           "fitness": true,
+          "nutrition": true,
           "finance": true
         },
         "wrapups": [],
@@ -15945,6 +15948,7 @@
           "habits": false,
           "tasks": true,
           "fitness": true,
+          "nutrition": true,
           "finance": true
         },
         "wrapups": [
@@ -19655,6 +19659,7 @@
           "habits": true,
           "tasks": false,
           "fitness": true,
+          "nutrition": true,
           "finance": true
         },
         "wrapups": [],
@@ -23363,6 +23368,7 @@
           "habits": true,
           "tasks": false,
           "fitness": true,
+          "nutrition": true,
           "finance": true
         },
         "wrapups": [
@@ -27073,6 +27079,7 @@
           "habits": true,
           "tasks": true,
           "fitness": true,
+          "nutrition": true,
           "finance": true
         },
         "wrapups": [],
@@ -30781,6 +30788,7 @@
           "habits": true,
           "tasks": true,
           "fitness": true,
+          "nutrition": true,
           "finance": true
         },
         "wrapups": [
@@ -34491,6 +34499,7 @@
           "habits": false,
           "tasks": true,
           "fitness": true,
+          "nutrition": true,
           "finance": true
         },
         "wrapups": [],
@@ -38199,6 +38208,7 @@
           "habits": false,
           "tasks": true,
           "fitness": true,
+          "nutrition": true,
           "finance": true
         },
         "wrapups": [
@@ -41909,6 +41919,7 @@
           "habits": true,
           "tasks": false,
           "fitness": true,
+          "nutrition": true,
           "finance": true
         },
         "wrapups": [],
@@ -45617,6 +45628,7 @@
           "habits": true,
           "tasks": false,
           "fitness": true,
+          "nutrition": true,
           "finance": true
         },
         "wrapups": [
@@ -49327,6 +49339,7 @@
           "habits": true,
           "tasks": true,
           "fitness": true,
+          "nutrition": true,
           "finance": true
         },
         "wrapups": [],
@@ -53035,6 +53048,7 @@
           "habits": true,
           "tasks": true,
           "fitness": true,
+          "nutrition": true,
           "finance": true
         },
         "wrapups": [
@@ -56745,6 +56759,7 @@
           "habits": false,
           "tasks": true,
           "fitness": true,
+          "nutrition": true,
           "finance": true
         },
         "wrapups": [],
@@ -60453,6 +60468,7 @@
           "habits": false,
           "tasks": true,
           "fitness": true,
+          "nutrition": true,
           "finance": true
         },
         "wrapups": [
@@ -64163,6 +64179,7 @@
           "habits": true,
           "tasks": false,
           "fitness": true,
+          "nutrition": true,
           "finance": true
         },
         "wrapups": [],
@@ -67871,6 +67888,7 @@
           "habits": true,
           "tasks": false,
           "fitness": true,
+          "nutrition": true,
           "finance": true
         },
         "wrapups": [

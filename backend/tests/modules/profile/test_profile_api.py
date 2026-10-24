@@ -30,6 +30,7 @@ def test_first_read_creates_defaults(client: TestClient, db: Session) -> None:
         "habits": 3,
         "tasks": 2,
         "fitness": 3,
+        "nutrition": 2,
         "finance": 2,
     }
     assert body["identities"] == [] and body["live"] is None

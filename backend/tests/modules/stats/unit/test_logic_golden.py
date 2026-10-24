@@ -173,7 +173,7 @@ def test_goal_progress_grid() -> None:
         assert (p.pct, p.hit, p.current) == (c["pct"], c["hit"], c["current"]), c
 
 
-SEED_WEIGHTS = {"habits": 3, "tasks": 2, "fitness": 3, "finance": 2}
+SEED_WEIGHTS = {"habits": 3, "tasks": 2, "fitness": 3, "nutrition": 2, "finance": 2}
 
 
 def _books(

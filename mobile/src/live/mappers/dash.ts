@@ -43,7 +43,13 @@ import type { Mapper, Payload } from "../mapper"
 import { singleton } from "./helpers"
 
 type ModuleKey = DashState["setupSkipped"][number]
-const MODULES: ModuleKey[] = ["habits", "tasks", "fitness", "finance"]
+const MODULES: ModuleKey[] = [
+  "habits",
+  "tasks",
+  "fitness",
+  "nutrition",
+  "finance",
+]
 
 // ------------------------------------------------------------ server ids
 

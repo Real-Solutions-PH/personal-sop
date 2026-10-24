@@ -4,6 +4,7 @@ import {
   CheckSquare,
   Dumbbell,
   Target,
+  Utensils,
   Wallet,
 } from "lucide-react-native"
 import { View } from "react-native"
@@ -36,6 +37,13 @@ export function AppLauncher({ title = "Your apps" }: { title?: string }) {
       accent: "fit",
     },
     {
+      key: "nutrition",
+      label: "Nutrition",
+      href: "/nutrition",
+      icon: Utensils,
+      accent: "nut",
+    },
+    {
       key: "finance",
       label: "Finance",
       href: "/finance",
@@ -50,6 +58,9 @@ export function AppLauncher({ title = "Your apps" }: { title?: string }) {
       accent: "life",
     },
   ] as const
+  const shown = apps.filter((a) => a.key === "journal" || enabled[a.key])
+  // Six apps share a phone's width, so each tile gives up a little room.
+  const box = shown.length > 5 ? 50 : 56
   return (
     <View>
       <Copy
@@ -66,36 +77,34 @@ export function AppLauncher({ title = "Your apps" }: { title?: string }) {
         {title.toUpperCase()}
       </Copy>
       <Line style={{ gap: 4 }}>
-        {apps
-          .filter((a) => a.key === "journal" || enabled[a.key])
-          .map((a) => (
-            <Tap
-              key={a.key}
-              onPress={() => go(a.href)}
+        {shown.map((a) => (
+          <Tap
+            key={a.key}
+            onPress={() => go(a.href)}
+            style={{
+              flex: 1,
+              alignItems: "center",
+              paddingVertical: 6,
+              gap: 6,
+            }}
+          >
+            <View
               style={{
-                flex: 1,
+                height: box,
+                width: box,
+                borderRadius: 16,
+                backgroundColor: `${t[a.accent]}26`,
                 alignItems: "center",
-                paddingVertical: 6,
-                gap: 6,
+                justifyContent: "center",
               }}
             >
-              <View
-                style={{
-                  height: 56,
-                  width: 56,
-                  borderRadius: 16,
-                  backgroundColor: `${t[a.accent]}26`,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <a.icon size={24} color={t[a.accent]} />
-              </View>
-              <Copy size={12} weight="medium">
-                {a.label}
-              </Copy>
-            </Tap>
-          ))}
+              <a.icon size={24} color={t[a.accent]} />
+            </View>
+            <Copy size={shown.length > 5 ? 11 : 12} weight="medium" lines={1}>
+              {a.label}
+            </Copy>
+          </Tap>
+        ))}
       </Line>
     </View>
   )

@@ -130,13 +130,15 @@
             "shareable": true
           },
           {
-            "key": "protein",
-            "label": "Protein hit rate",
-            "value": "43%",
-            "delta": null,
-            "goodWhen": "up",
-            "shareable": true
-          },
+            "key": "weight",
+            "label": "Weight (7-day avg)",
+            "value": "78.6 kg",
+            "delta": -0.32,
+            "goodWhen": "down",
+            "shareable": false
+          }
+        ],
+        "nutrition": [
           {
             "key": "calories",
             "label": "Calories on target",
@@ -146,12 +148,28 @@
             "shareable": true
           },
           {
-            "key": "weight",
-            "label": "Weight (7-day avg)",
-            "value": "78.6 kg",
-            "delta": -0.32,
-            "goodWhen": "down",
+            "key": "protein",
+            "label": "Protein hit rate",
+            "value": "43%",
+            "delta": null,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "kcal",
+            "label": "Average calories",
+            "value": "1,583 kcal",
+            "delta": -544,
+            "goodWhen": null,
             "shareable": false
+          },
+          {
+            "key": "logged",
+            "label": "Days logged",
+            "value": "7",
+            "delta": 1,
+            "goodWhen": "up",
+            "shareable": true
           }
         ],
         "finance": [
@@ -324,13 +342,15 @@
             "shareable": true
           },
           {
-            "key": "protein",
-            "label": "Protein hit rate",
-            "value": "54%",
-            "delta": null,
-            "goodWhen": "up",
-            "shareable": true
-          },
+            "key": "weight",
+            "label": "Weight (7-day avg)",
+            "value": "78.6 kg",
+            "delta": -0.32,
+            "goodWhen": "down",
+            "shareable": false
+          }
+        ],
+        "nutrition": [
           {
             "key": "calories",
             "label": "Calories on target",
@@ -340,12 +360,28 @@
             "shareable": true
           },
           {
-            "key": "weight",
-            "label": "Weight (7-day avg)",
-            "value": "78.6 kg",
-            "delta": -0.32,
-            "goodWhen": "down",
+            "key": "protein",
+            "label": "Protein hit rate",
+            "value": "54%",
+            "delta": null,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "kcal",
+            "label": "Average calories",
+            "value": "1,834 kcal",
+            "delta": null,
+            "goodWhen": null,
             "shareable": false
+          },
+          {
+            "key": "logged",
+            "label": "Days logged",
+            "value": "13",
+            "delta": 13,
+            "goodWhen": "up",
+            "shareable": true
           }
         ],
         "finance": [
@@ -518,13 +554,15 @@
             "shareable": true
           },
           {
-            "key": "protein",
-            "label": "Protein hit rate",
-            "value": "54%",
-            "delta": null,
-            "goodWhen": "up",
-            "shareable": true
-          },
+            "key": "weight",
+            "label": "Weight (7-day avg)",
+            "value": "78.6 kg",
+            "delta": -0.32,
+            "goodWhen": "down",
+            "shareable": false
+          }
+        ],
+        "nutrition": [
           {
             "key": "calories",
             "label": "Calories on target",
@@ -534,12 +572,28 @@
             "shareable": true
           },
           {
-            "key": "weight",
-            "label": "Weight (7-day avg)",
-            "value": "78.6 kg",
-            "delta": -0.32,
-            "goodWhen": "down",
+            "key": "protein",
+            "label": "Protein hit rate",
+            "value": "54%",
+            "delta": null,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "kcal",
+            "label": "Average calories",
+            "value": "1,834 kcal",
+            "delta": null,
+            "goodWhen": null,
             "shareable": false
+          },
+          {
+            "key": "logged",
+            "label": "Days logged",
+            "value": "13",
+            "delta": 13,
+            "goodWhen": "up",
+            "shareable": true
           }
         ],
         "finance": [
@@ -588,17 +642,19 @@
     },
     "life": {
       "7": {
-        "score": 81,
+        "score": 79,
         "rates": {
           "habits": 0.9148936170212766,
           "tasks": 0.8125,
-          "fitness": 0.5892857142857143,
+          "fitness": 0.75,
+          "nutrition": 0.42857142857142855,
           "finance": 1
         },
         "prevRates": {
           "habits": 0.74,
           "tasks": 0.8888888888888888,
-          "fitness": 0.75,
+          "fitness": 1,
+          "nutrition": 0.5833333333333333,
           "finance": 1
         }
       },
@@ -607,13 +663,15 @@
         "rates": {
           "habits": 0.7101449275362319,
           "tasks": 0.8703703703703703,
-          "fitness": 0.6682692307692308,
+          "fitness": 0.875,
+          "nutrition": 0.5,
           "finance": 1
         },
         "prevRates": {
           "habits": 0.5502392344497608,
           "tasks": 0.7857142857142857,
           "fitness": 0.8166666666666667,
+          "nutrition": 0,
           "finance": 1
         }
       }
@@ -628,8 +686,8 @@
           "ref": "life",
           "label": "Life Score",
           "module": "life",
-          "value": "81",
-          "n": 81,
+          "value": "79",
+          "n": 79,
           "unit": "",
           "goodWhen": "up",
           "shareable": true
@@ -805,26 +863,6 @@
           "goodWhen": "up",
           "shareable": true
         },
-        "fitness:protein": {
-          "ref": "fitness:protein",
-          "label": "Protein hit rate",
-          "module": "fitness",
-          "value": "43%",
-          "n": 43,
-          "unit": "%",
-          "goodWhen": "up",
-          "shareable": true
-        },
-        "fitness:calories": {
-          "ref": "fitness:calories",
-          "label": "Calories on target",
-          "module": "fitness",
-          "value": "43%",
-          "n": 43,
-          "unit": "%",
-          "goodWhen": "up",
-          "shareable": true
-        },
         "fitness:weight": {
           "ref": "fitness:weight",
           "label": "Weight (7-day avg)",
@@ -835,6 +873,48 @@
           "goodWhen": "down",
           "shareable": false,
           "delta": -0.32
+        },
+        "nutrition:calories": {
+          "ref": "nutrition:calories",
+          "label": "Calories on target",
+          "module": "nutrition",
+          "value": "43%",
+          "n": 43,
+          "unit": "%",
+          "goodWhen": "up",
+          "shareable": true
+        },
+        "nutrition:protein": {
+          "ref": "nutrition:protein",
+          "label": "Protein hit rate",
+          "module": "nutrition",
+          "value": "43%",
+          "n": 43,
+          "unit": "%",
+          "goodWhen": "up",
+          "shareable": true
+        },
+        "nutrition:kcal": {
+          "ref": "nutrition:kcal",
+          "label": "Average calories",
+          "module": "nutrition",
+          "value": "1,583 kcal",
+          "n": 1583,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": false,
+          "delta": -544
+        },
+        "nutrition:logged": {
+          "ref": "nutrition:logged",
+          "label": "Days logged",
+          "module": "nutrition",
+          "value": "7",
+          "n": 7,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true,
+          "delta": 1
         },
         "finance:savings-rate": {
           "ref": "finance:savings-rate",
@@ -1072,26 +1152,6 @@
           "goodWhen": "up",
           "shareable": true
         },
-        "fitness:protein": {
-          "ref": "fitness:protein",
-          "label": "Protein hit rate",
-          "module": "fitness",
-          "value": "54%",
-          "n": 54,
-          "unit": "%",
-          "goodWhen": "up",
-          "shareable": true
-        },
-        "fitness:calories": {
-          "ref": "fitness:calories",
-          "label": "Calories on target",
-          "module": "fitness",
-          "value": "46%",
-          "n": 46,
-          "unit": "%",
-          "goodWhen": "up",
-          "shareable": true
-        },
         "fitness:weight": {
           "ref": "fitness:weight",
           "label": "Weight (7-day avg)",
@@ -1102,6 +1162,47 @@
           "goodWhen": "down",
           "shareable": false,
           "delta": -0.32
+        },
+        "nutrition:calories": {
+          "ref": "nutrition:calories",
+          "label": "Calories on target",
+          "module": "nutrition",
+          "value": "46%",
+          "n": 46,
+          "unit": "%",
+          "goodWhen": "up",
+          "shareable": true
+        },
+        "nutrition:protein": {
+          "ref": "nutrition:protein",
+          "label": "Protein hit rate",
+          "module": "nutrition",
+          "value": "54%",
+          "n": 54,
+          "unit": "%",
+          "goodWhen": "up",
+          "shareable": true
+        },
+        "nutrition:kcal": {
+          "ref": "nutrition:kcal",
+          "label": "Average calories",
+          "module": "nutrition",
+          "value": "1,834 kcal",
+          "n": 1834,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": false
+        },
+        "nutrition:logged": {
+          "ref": "nutrition:logged",
+          "label": "Days logged",
+          "module": "nutrition",
+          "value": "13",
+          "n": 13,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true,
+          "delta": 13
         },
         "finance:savings-rate": {
           "ref": "finance:savings-rate",
@@ -1502,11 +1603,6 @@
         "unit": "%"
       },
       {
-        "value": "43%",
-        "n": 43,
-        "unit": "%"
-      },
-      {
         "value": "78.6 kg",
         "n": 78.6,
         "unit": " kg"
@@ -1527,16 +1623,6 @@
         "unit": ""
       },
       {
-        "value": "54%",
-        "n": 54,
-        "unit": "%"
-      },
-      {
-        "value": "46%",
-        "n": 46,
-        "unit": "%"
-      },
-      {
         "value": "76",
         "n": 76,
         "unit": ""
@@ -1550,6 +1636,36 @@
         "value": "100%",
         "n": 100,
         "unit": "%"
+      },
+      {
+        "value": "43%",
+        "n": 43,
+        "unit": "%"
+      },
+      {
+        "value": "1,583 kcal",
+        "n": 1583,
+        "unit": ""
+      },
+      {
+        "value": "46%",
+        "n": 46,
+        "unit": "%"
+      },
+      {
+        "value": "54%",
+        "n": 54,
+        "unit": "%"
+      },
+      {
+        "value": "1,834 kcal",
+        "n": 1834,
+        "unit": ""
+      },
+      {
+        "value": "13",
+        "n": 13,
+        "unit": ""
       },
       {
         "value": "80%",

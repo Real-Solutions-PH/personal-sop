@@ -72,6 +72,7 @@ const areaColors = {
   habits: "hab",
   tasks: "tsk",
   fitness: "fit",
+  nutrition: "nut",
   finance: "fin",
 } as const
 /** A metric string, unless it carries money: share cards never show ₱. */

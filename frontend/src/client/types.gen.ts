@@ -1354,6 +1354,37 @@ export type FollowUpAnswerIn = {
 };
 
 /**
+ * One food of the person's library. Amounts are per ``basis`` (per
+ * 100 g, per piece or per serving); sodium is in milligrams, every other
+ * amount in grams.
+ */
+export type FoodOut = {
+    id: string;
+    name: string;
+    aliases: Array<(string)>;
+    basis: string;
+    unit_grams: (number | null);
+    state: (string | null);
+    kcal: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    fiber: (number | null);
+    sat_fat: (number | null);
+    sugar: (number | null);
+    sodium: (number | null);
+    source: string;
+    verified: boolean;
+    use_count: number;
+    last_used_at: (string | null);
+};
+
+export type FoodsOut = {
+    data: Array<FoodOut>;
+    count: number;
+};
+
+/**
  * One unit of ``base`` in the user's currency (``quote``), as of the
  * last published reference day.
  */
@@ -2126,7 +2157,7 @@ export type MeBundle = {
     profile: ProfilePublic;
     modules: Array<ModulePrefPublic>;
     identities: Array<IdentityPublic>;
-    setup_skipped: Array<('habits' | 'tasks' | 'fitness' | 'finance')>;
+    setup_skipped: Array<('habits' | 'tasks' | 'fitness' | 'nutrition' | 'finance')>;
     live: (LivePublic | null);
 };
 
@@ -2246,12 +2277,12 @@ export type ModelsOut = {
 };
 
 export type ModulePrefPublic = {
-    module: 'habits' | 'tasks' | 'fitness' | 'finance';
+    module: 'habits' | 'tasks' | 'fitness' | 'nutrition' | 'finance';
     enabled: boolean;
     weight: number;
 };
 
-export type module = 'habits' | 'tasks' | 'fitness' | 'finance';
+export type module = 'habits' | 'tasks' | 'fitness' | 'nutrition' | 'finance';
 
 export type ModulePrefUpdate = {
     enabled?: (boolean | null);
@@ -2402,7 +2433,7 @@ export type Ok = {
 };
 
 export type OnboardingIn = {
-    modules: Array<('habits' | 'tasks' | 'fitness' | 'finance')>;
+    modules: Array<('habits' | 'tasks' | 'fitness' | 'nutrition' | 'finance')>;
     pace?: 'gentle' | 'steady' | 'ambitious';
     targets?: {
         [key: string]: (number);
@@ -2413,7 +2444,7 @@ export type pace = 'gentle' | 'steady' | 'ambitious';
 
 export type OnboardingOut = {
     created: Array<GoalPublic>;
-    skipped: Array<('habits' | 'tasks' | 'fitness' | 'finance')>;
+    skipped: Array<('habits' | 'tasks' | 'fitness' | 'nutrition' | 'finance')>;
 };
 
 export type OnceSchedule = {
@@ -6053,6 +6084,14 @@ export type MediaDeleteMediaData = {
 };
 
 export type MediaDeleteMediaResponse = (Message);
+
+export type NutritionListFoodsData = {
+    limit?: number;
+    q?: (string | null);
+    skip?: number;
+};
+
+export type NutritionListFoodsResponse = (FoodsOut);
 
 export type PermissionsReadPermissionsData = {
     limit?: number;

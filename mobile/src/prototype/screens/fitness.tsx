@@ -1,7 +1,7 @@
 import * as A from "@domain/fitness/actions"
 import type { Exercise } from "@domain/fitness/data"
 import { fitStore } from "@domain/fitness/store"
-import { useLocalSearchParams } from "expo-router"
+import { Redirect, useLocalSearchParams } from "expo-router"
 import { Plus } from "lucide-react-native"
 import { useState } from "react"
 import { View } from "react-native"
@@ -12,9 +12,16 @@ import { useTheme } from "../theme"
 import { Button, Field, Sheet } from "../ui"
 import { FitnessTrain } from "./fitness-train"
 export function FitnessHome() {
-  // Old links still carry ?tab=eat|body; the page now holds every section.
-  const p = useLocalSearchParams<{ day?: string }>()
-  return <FitnessTrain day={p.day} />
+  // Old links still carry ?tab=eat|body. Eating is Nutrition's page now
+  // (ADR-0024); every other section is on this one.
+  const p = useLocalSearchParams<{ tab?: string; day?: string }>()
+  if (p.tab === "eat")
+    return (
+      <Redirect
+        href={{ pathname: "/nutrition", params: p.day ? { day: p.day } : {} }}
+      />
+    )
+  return <FitnessTrain />
 }
 /** Under an exercise picker's results: make a new exercise, named from
  * the search when it found no exact match. */

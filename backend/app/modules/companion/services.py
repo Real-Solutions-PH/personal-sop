@@ -957,8 +957,9 @@ ABOUT THEM, from `recall_memories`, or from a tool result in this conversation. 
 one, never guess a number, never assume a habit, project or goal. If something
 is missing, say plainly that you don't have it yet and suggest logging it. Zero
 or empty means none, so say so, never praise consistency you cannot see. Today's
-due items are habits_due_today, tasks_due_today and fitness_due_today together;
-say "Nothing is due today." only when all three are empty. The life score the
+due items are habits_due_today, tasks_due_today, fitness_due_today and
+nutrition_due_today together; say "Nothing is due today." only when all four
+are empty. The life score the
 user sees on Today is life_score_7_days_shown_on_today. TODAY is current;
 where an earlier message in this chat says otherwise, TODAY is right.
 

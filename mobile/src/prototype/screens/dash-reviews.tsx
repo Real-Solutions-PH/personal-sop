@@ -54,6 +54,7 @@ const colors = {
   habits: "hab",
   tasks: "tsk",
   fitness: "fit",
+  nutrition: "nut",
   finance: "fin",
 } as const
 function periodOf(id: string) {

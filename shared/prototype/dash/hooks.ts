@@ -42,6 +42,7 @@ const byKey = Object.fromEntries(modules.map((m) => [m.key, m])) as Record<
 const HAB = byKey.habits
 const TSK = byKey.tasks
 const FIT = byKey.fitness
+const NUT = byKey.nutrition
 const FIN = byKey.finance
 
 export { byKey as moduleByKey }
@@ -59,12 +60,14 @@ function useLocalRates(days: number, offset: number) {
   const h = HAB.useAreaRate(days, offset)
   const t = TSK.useAreaRate(days, offset)
   const f = FIT.useAreaRate(days, offset)
+  const n = NUT.useAreaRate(days, offset)
   const fi = FIN.useAreaRate(days, offset)
   return useMemo(() => {
     const raw: Record<ModuleKey, number | null> = {
       habits: h,
       tasks: t,
       fitness: f,
+      nutrition: n,
       finance: fi,
     }
     const rates = {} as Record<ModuleKey, number>
@@ -74,7 +77,7 @@ function useLocalRates(days: number, offset: number) {
       rated[k] = raw[k] !== null
     }
     return { rates, rated }
-  }, [h, t, f, fi])
+  }, [h, t, f, n, fi])
 }
 export function useAreaRates(
   days: number,
@@ -305,12 +308,13 @@ export function useTodayRing() {
   const h = HAB.useTodayProgress()
   const t = TSK.useTodayProgress()
   const f = FIT.useTodayProgress()
+  const n = NUT.useTodayProgress()
   const fi = FIN.useTodayProgress()
   const enabled = useEnabled()
   const server = useServerStat<ServerToday>(statKey.today())
   return useMemo(() => {
     if (server.data) return ringFrom(server.data.ring)
-    const per = { habits: h, tasks: t, fitness: f, finance: fi }
+    const per = { habits: h, tasks: t, fitness: f, nutrition: n, finance: fi }
     let due = 0
     let done = 0
     for (const k of MODULE_KEYS)
@@ -319,7 +323,7 @@ export function useTodayRing() {
         done += Math.min(per[k].done, per[k].due)
       }
     return { due, done, per }
-  }, [h, t, f, fi, enabled, server.data])
+  }, [h, t, f, n, fi, enabled, server.data])
 }
 export function useAllCalendar(from: string, to: string): CalendarItem[] {
   const a = HAB.useCalendar(from, to)
@@ -366,6 +370,7 @@ export function useAllMisses(from: string, to: string): Miss[] {
   const a = HAB.useMisses(from, to)
   const b = TSK.useMisses(from, to)
   const c = FIT.useMisses(from, to)
+  const n = NUT.useMisses(from, to)
   const d = FIN.useMisses(from, to)
   const enabled = useEnabled()
   const server = useServerStat<ServerMiss[]>(statKey.misses(from, to))
@@ -373,23 +378,24 @@ export function useAllMisses(from: string, to: string): Miss[] {
     () =>
       (server.data
         ? missesFrom(server.data)
-        : [...a, ...b, ...c, ...d].filter((m) => enabled[m.module])
+        : [...a, ...b, ...c, ...n, ...d].filter((m) => enabled[m.module])
       ).sort((x, y) => y.day.localeCompare(x.day)),
-    [a, b, c, d, enabled, server.data],
+    [a, b, c, n, d, enabled, server.data],
   )
 }
 export function useAllMetrics(days: number): Record<ModuleKey, Metric[]> {
   const a = HAB.useMetrics(days)
   const b = TSK.useMetrics(days)
   const c = FIT.useMetrics(days)
+  const n = NUT.useMetrics(days)
   const d = FIN.useMetrics(days)
   const server = useServerStat<ServerOverview>(overviewKey(days))
   return useMemo(
     () =>
       server.data
         ? metricsFrom(server.data)
-        : { habits: a, tasks: b, fitness: c, finance: d },
-    [a, b, c, d, server.data],
+        : { habits: a, tasks: b, fitness: c, nutrition: n, finance: d },
+    [a, b, c, n, d, server.data],
   )
 }
 export function parseMetric(value: string): number | null {

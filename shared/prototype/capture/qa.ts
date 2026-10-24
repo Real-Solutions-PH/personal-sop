@@ -396,7 +396,7 @@ function macrosAnswer(): Out {
       title: "Macros left today",
       value: "No target set",
       accent: "fit",
-      links: [{ label: "Set targets", href: "/fitness/nutrition/targets" }],
+      links: [{ label: "Set targets", href: "/nutrition/targets" }],
     }
   return {
     t: "answer",
@@ -404,7 +404,7 @@ function macrosAnswer(): Out {
     value: `${Math.round(left.kcal).toLocaleString()} kcal`,
     sub: `${Math.round(left.protein)} g protein · ${Math.round(left.carbs)} g carbs · ${Math.round(left.fat)} g fat`,
     accent: "fit",
-    links: [{ label: "Open nutrition", href: "/fitness/nutrition" }],
+    links: [{ label: "Open nutrition", href: "/nutrition" }],
   }
 }
 function workoutsAnswer(): Out {

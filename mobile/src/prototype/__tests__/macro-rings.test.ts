@@ -28,7 +28,7 @@ jest.mock("expo-audio", () => ({}))
 jest.mock("../media", () => ({ exportCsv: jest.fn(), pickPhoto: jest.fn() }))
 
 const { ringLayout } =
-  require("../screens/fitness-nutrition") as typeof import("../screens/fitness-nutrition")
+  require("../screens/nutrition") as typeof import("../screens/nutrition")
 
 const fits = (w: number) => {
   const { stacked, big, small } = ringLayout(w)

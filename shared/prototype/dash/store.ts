@@ -11,7 +11,43 @@ import {
   seed,
   type WrapUp,
 } from "./data"
-export const dashStore = createStore<DashState>("dash", seed)
+/** Goal references that moved when Nutrition became its own module
+ * (ADR-0024); the server renames its copies in the same release. */
+export const MOVED_METRICS: Record<string, string> = {
+  "fitness:protein": "nutrition:protein",
+  "fitness:calories": "nutrition:calories",
+}
+/** State saved before Nutrition was its own module: its switch follows the
+ * Fitness one (meals were part of Fitness), its weight is the default, and
+ * goals on a moved metric point at the new reference. */
+export function upgradeDash(s: DashState): DashState {
+  const enabled = { ...seed().enabled, ...s.enabled }
+  const weights = { ...seed().weights, ...s.weights }
+  if (s.enabled.nutrition === undefined)
+    enabled.nutrition = s.enabled.fitness ?? true
+  const moved = s.goals.some((g) => MOVED_METRICS[g.metric])
+  if (
+    s.enabled.nutrition !== undefined &&
+    s.weights.nutrition !== undefined &&
+    !moved
+  )
+    return s
+  return {
+    ...s,
+    enabled,
+    weights,
+    goals: moved
+      ? s.goals.map((g) =>
+          MOVED_METRICS[g.metric]
+            ? { ...g, metric: MOVED_METRICS[g.metric] }
+            : g,
+        )
+      : s.goals,
+  }
+}
+export const dashStore = createStore<DashState>("dash", seed, {
+  upgrade: upgradeDash,
+})
 const set = dashStore.set
 export function saveGoal(
   g: Omit<Goal, "id" | "createdAt" | "status"> & {

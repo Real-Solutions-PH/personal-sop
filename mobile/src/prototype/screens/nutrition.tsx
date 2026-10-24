@@ -19,7 +19,7 @@ import {
   Target,
   UtensilsCrossed,
 } from "lucide-react-native"
-import { useState } from "react"
+import { type ReactNode, useState } from "react"
 import { ScrollView, View } from "react-native"
 import {
   Bar,
@@ -194,11 +194,14 @@ export function Nutrition({
   day: initial = dayKey(),
   history = false,
   embedded = false,
+  children,
 }: {
   day?: string
   history?: boolean
-  /** A section of the Fitness page instead of its own screen. */
+  /** A section of another page instead of its own screen. */
   embedded?: boolean
+  /** Sections after the day's meals (the main page's statistics). */
+  children?: ReactNode
 }) {
   const s = fitStore.use((s) => s),
     t = useTheme(),
@@ -254,9 +257,7 @@ export function Nutrition({
           <Empty
             title="No meals logged in this range"
             detail="On-target stats appear once you log at least one day."
-            action={
-              <Button onPress={() => go("/fitness?tab=eat")}>Log today</Button>
-            }
+            action={<Button onPress={() => go("/nutrition")}>Log today</Button>}
           />
         ) : (
           <>
@@ -302,7 +303,7 @@ export function Nutrition({
               {[...adherence.days].reverse().map((d) => (
                 <Tap
                   key={d.day}
-                  onPress={() => go(`/fitness?tab=eat&day=${d.day}`)}
+                  onPress={() => go(`/nutrition?day=${d.day}`)}
                   style={{ paddingHorizontal: 4, paddingVertical: 12 }}
                 >
                   <Line>
@@ -339,9 +340,11 @@ export function Nutrition({
                             />
                           </View>
                           <Copy size={12} muted>
-                            {Math.round(d.totals.kcal)}
-                            {d.target ? `/${d.target.kcal}` : ""} kcal · P{" "}
-                            {Math.round(d.totals.protein)}
+                            {Math.round(d.totals.kcal).toLocaleString("en-US")}
+                            {d.target
+                              ? `/${d.target.kcal.toLocaleString("en-US")}`
+                              : ""}{" "}
+                            kcal · P {Math.round(d.totals.protein)}
                             {d.target ? `/${d.target.protein}` : ""} g{" "}
                             {d.proteinHit ? "✓" : ""}
                           </Copy>
@@ -407,7 +410,7 @@ export function Nutrition({
             <Copy size={14} muted>
               No targets set — showing totals eaten.
             </Copy>
-            <Button small onPress={() => go("/fitness/nutrition/targets")}>
+            <Button small onPress={() => go("/nutrition/targets")}>
               Set targets
             </Button>
           </View>
@@ -431,7 +434,7 @@ export function Nutrition({
               key={b.label}
               onPress={() =>
                 b.mode === "manual"
-                  ? go(`/fitness/nutrition/new?day=${day}`)
+                  ? go(`/nutrition/new?day=${day}`)
                   : openCapture({ mode: b.mode, hint: "meal" })
               }
               style={{
@@ -463,7 +466,7 @@ export function Nutrition({
           <Button
             icon={History}
             tone="quiet"
-            onPress={() => go("/fitness/nutrition/history")}
+            onPress={() => go("/nutrition/history")}
           >
             History
           </Button>
@@ -472,7 +475,7 @@ export function Nutrition({
           <Button
             icon={Target}
             tone="quiet"
-            onPress={() => go("/fitness/nutrition/targets")}
+            onPress={() => go("/nutrition/targets")}
           >
             Targets
           </Button>
@@ -524,7 +527,7 @@ export function Nutrition({
                 {list.map((m, i) => (
                   <Tap
                     key={m.id}
-                    onPress={() => go(`/fitness/nutrition/meals/${m.id}`)}
+                    onPress={() => go(`/nutrition/meals/${m.id}`)}
                     style={{
                       paddingHorizontal: 12,
                       paddingVertical: 12,
@@ -618,6 +621,7 @@ export function Nutrition({
           </ScrollView>
         </View>
       )}
+      {children}
     </StatsShell>
   )
 }

@@ -4,6 +4,8 @@ import { emit, freeze } from "./harness";
 mock.module("react", () => ({
 	useMemo: <T>(fn: () => T) => fn(),
 	useCallback: <T>(fn: T) => fn,
+	// useServerStat watches the server cache; the fixtures are local-only.
+	useEffect: () => {},
 	useSyncExternalStore: <T>(_sub: unknown, get: () => T) => get(),
 }));
 

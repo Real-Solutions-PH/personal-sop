@@ -14,7 +14,7 @@ from typing import Any, Literal
 
 from app.shared.currency import contains_money
 
-MODULE_KEYS: tuple[str, ...] = ("habits", "tasks", "fitness", "finance")
+MODULE_KEYS: tuple[str, ...] = ("habits", "tasks", "fitness", "nutrition", "finance")
 
 ShareTemplate = Literal[
     "life", "weekly", "monthly", "streak", "finance", "profile", "goal"
@@ -109,11 +109,14 @@ class PaceSpec:
 
 PACES: dict[str, PaceSpec] = {
     "gentle": PaceSpec("Gentle", "Easy wins first",
-                       {"habits": 60, "tasks": 70, "fitness": 2, "finance": 10}),
+                       {"habits": 60, "tasks": 70, "fitness": 2, "nutrition": 60,
+                        "finance": 10}),
     "steady": PaceSpec("Steady", "A real stretch",
-                       {"habits": 80, "tasks": 85, "fitness": 4, "finance": 20}),
+                       {"habits": 80, "tasks": 85, "fitness": 4, "nutrition": 75,
+                        "finance": 20}),
     "ambitious": PaceSpec("Ambitious", "No days off",
-                          {"habits": 90, "tasks": 95, "fitness": 5, "finance": 30}),
+                          {"habits": 90, "tasks": 95, "fitness": 5, "nutrition": 90,
+                           "finance": 30}),
 }  # fmt: skip
 
 
@@ -135,6 +138,8 @@ STARTERS: dict[str, Starter] = {
                      "tasks done by their due date"),
     "fitness": Starter("fitness:sessions", "Workouts", 4, "", "gte", "week",
                        "sessions per week"),
+    "nutrition": Starter("nutrition:protein", "Protein hit rate", 75, "%", "gte",
+                         "week", "of logged days at your protein target"),
     "finance": Starter("finance:savings-rate", "Savings rate", 20, "%", "gte",
                        "month", "of income kept this month"),
 }  # fmt: skip
@@ -143,7 +148,7 @@ STARTERS: dict[str, Starter] = {
 # ---------------------------------------------------------------- refs and keys
 
 _REF = re.compile(
-    r"^(life|onTarget|(habits|tasks|fitness|finance):[A-Za-z0-9._-]{1,48})$"
+    r"^(life|onTarget|(habits|tasks|fitness|nutrition|finance):[A-Za-z0-9._-]{1,48})$"
 )
 _REVIEW = re.compile(r"^([wm])-(\d{4}-\d{2}-\d{2})$")
 

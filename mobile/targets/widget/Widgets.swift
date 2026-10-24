@@ -368,7 +368,7 @@ struct MacrosView: View {
     case .accessoryCircular:
       Gauge(value: m.kcal.share) { Text("kcal") } currentValueLabel: { Text(whole(m.kcal.left)) }
         .gaugeStyle(.accessoryCircularCapacity)
-        .widgetURL(deepLink("/fitness/nutrition"))
+        .widgetURL(deepLink("/nutrition"))
         .containerBackground(for: .widget) { Color.clear }
     case .accessoryRectangular:
       VStack(alignment: .leading, spacing: 2) {
@@ -376,10 +376,10 @@ struct MacrosView: View {
         Text("Protein \(whole(m.protein.left)) g left").font(.caption)
         Gauge(value: m.kcal.share) {}.gaugeStyle(.accessoryLinearCapacity)
       }
-      .widgetURL(deepLink("/fitness/nutrition"))
+      .widgetURL(deepLink("/nutrition"))
       .containerBackground(for: .widget) { Color.clear }
     case .systemMedium:
-      Card(dimmed: dimmed, link: "/fitness/nutrition") {
+      Card(dimmed: dimmed, link: "/nutrition") {
         HStack(spacing: 16) {
           kcalRing(size: 92)
           VStack(alignment: .leading, spacing: 8) {
@@ -390,7 +390,7 @@ struct MacrosView: View {
         }
       }
     default:
-      Card(dimmed: dimmed, link: "/fitness/nutrition") {
+      Card(dimmed: dimmed, link: "/nutrition") {
         VStack(alignment: .leading, spacing: 8) {
           Caption(text: "Left today")
           kcalRing(size: 64).frame(maxWidth: .infinity)

@@ -21,6 +21,7 @@ export const IDENTITIES: { text: string; module?: ModuleKey }[] = [
   { text: "I show up every day", module: "habits" },
   { text: "I finish what I start", module: "tasks" },
   { text: "I'm someone who trains", module: "fitness" },
+  { text: "I eat to fuel my goals", module: "nutrition" },
   { text: "I'm in control of my money", module: "finance" },
   { text: "I keep the promises I make to myself" },
 ]
@@ -33,17 +34,17 @@ export const PACES: Record<
   gentle: {
     label: "Gentle",
     note: "Easy wins first",
-    targets: { habits: 60, tasks: 70, fitness: 2, finance: 10 },
+    targets: { habits: 60, tasks: 70, fitness: 2, nutrition: 60, finance: 10 },
   },
   steady: {
     label: "Steady",
     note: "A real stretch",
-    targets: { habits: 80, tasks: 85, fitness: 4, finance: 20 },
+    targets: { habits: 80, tasks: 85, fitness: 4, nutrition: 75, finance: 20 },
   },
   ambitious: {
     label: "Ambitious",
     note: "No days off",
-    targets: { habits: 90, tasks: 95, fitness: 5, finance: 30 },
+    targets: { habits: 90, tasks: 95, fitness: 5, nutrition: 90, finance: 30 },
   },
 }
 
@@ -84,6 +85,15 @@ export const STARTERS: Record<ModuleKey, Starter> = {
     comparator: "gte",
     period: "week",
     hint: "sessions per week",
+  },
+  nutrition: {
+    metric: "nutrition:protein",
+    label: "Protein hit rate",
+    target: 75,
+    unit: "%",
+    comparator: "gte",
+    period: "week",
+    hint: "of logged days at your protein target",
   },
   finance: {
     metric: "finance:savings-rate",

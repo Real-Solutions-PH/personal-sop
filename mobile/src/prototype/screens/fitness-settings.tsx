@@ -233,7 +233,7 @@ export function FitnessSettings() {
             icon={Target}
             title="Macro targets"
             detail="Calories, protein, carbs, fat"
-            href="/fitness/nutrition/targets"
+            href="/nutrition/targets"
             accent="fit"
           />
         </Frame>

@@ -12,7 +12,7 @@ from sqlmodel import Field
 
 from app.shared.owned import JSONB, OwnedRow, enum_check
 
-STAT_MODULES = ("habits", "tasks", "fitness", "finance")
+STAT_MODULES = ("habits", "tasks", "fitness", "nutrition", "finance")
 
 
 class DailyModuleStat(OwnedRow, table=True):
@@ -27,7 +27,7 @@ class DailyModuleStat(OwnedRow, table=True):
         ),
     )
 
-    module: str = Field(sa_type=String(8))  # type: ignore
+    module: str = Field(sa_type=String(16))  # type: ignore
     day: date = Field(index=True)
     due: int = 0
     done: int = 0

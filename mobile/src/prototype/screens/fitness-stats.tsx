@@ -1,5 +1,4 @@
 import * as C from "@domain/fitness/calc"
-import { limitAverages, limitsFor } from "@domain/fitness/limits"
 import { fitStore } from "@domain/fitness/store"
 import { dayKey } from "@domain/lib/day"
 import { ChevronRight, Share2, TriangleAlert } from "lucide-react-native"
@@ -20,7 +19,6 @@ import {
 import { go } from "../navigation"
 import { useTheme } from "../theme"
 import { LockedPreview } from "./locked-preview"
-import { LimitList } from "./nutrient-limits"
 import { StatsShell } from "./stats-shell"
 export function FitnessStats({ embedded = false }: { embedded?: boolean }) {
   const s = fitStore.use((s) => s),
@@ -42,13 +40,6 @@ export function FitnessStats({ embedded = false }: { embedded?: boolean }) {
     ),
     rate = C.weeklyRate(s),
     weight = C.weightTrend(s, days),
-    adherence = C.adherence(s, Math.min(days, 14)),
-    // Averages are held against the limits in force today.
-    dayLimits = limitsFor(C.targetFor(s, dayKey())),
-    limits = limitAverages(
-      adherence.days.map((d) => C.mealsOn(s, d.day)).filter((m) => m.length),
-      dayLimits,
-    ),
     lifts = ["bench", "squat", "row", "ohp", "rdl"]
       .map((id) => {
         const h = C.exerciseHistory(s, id),
@@ -328,41 +319,6 @@ export function FitnessStats({ embedded = false }: { embedded?: boolean }) {
                 color={t.fit}
                 height={48}
                 label="Body weight"
-              />
-            </View>
-          </Frame>
-        </Tap>
-        {heading("Nutrition · last 14 days")}
-        <Tap onPress={() => go("/fitness/nutrition/history")}>
-          <Frame style={{ padding: 16 }}>
-            {grid([
-              {
-                label: "Calories on target",
-                value: `${Math.round(adherence.calorie * 100)}%`,
-              },
-              {
-                label: "Protein hit rate",
-                value: `${Math.round(adherence.protein * 100)}%`,
-              },
-              { label: "Over-target days", value: adherence.overDays },
-              {
-                label: "Logging coverage",
-                value: `${Math.round(adherence.coverage * 100)}%`,
-              },
-            ])}
-            <View
-              style={{
-                marginTop: 16,
-                paddingTop: 16,
-                borderTopWidth: 1,
-                borderColor: t.line,
-              }}
-            >
-              <LimitList
-                scope="average"
-                detail={limits.avg}
-                limits={dayLimits}
-                overDays={limits.over}
               />
             </View>
           </Frame>

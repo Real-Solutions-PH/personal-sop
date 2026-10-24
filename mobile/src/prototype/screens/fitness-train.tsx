@@ -29,12 +29,11 @@ import { go } from "../navigation"
 import { fonts, radius, useTheme } from "../theme"
 import { Screen } from "../ui"
 import { Body } from "./fitness-body"
-import { Nutrition } from "./fitness-nutrition"
 import { StartWorkoutSheet } from "./fitness-start"
 import { FitnessStats } from "./fitness-stats"
-/** The Fitness page: training, then nutrition, body and stats as sections
- * of one scroll, so nothing hides behind a tab. */
-export function FitnessTrain({ day }: { day?: string } = {}) {
+/** The Fitness page: training, then body and stats as sections of one
+ * scroll, so nothing hides behind a tab. Meals are Nutrition's own page. */
+export function FitnessTrain() {
   const t = useTheme(),
     s = fitStore.use((s) => s),
     next = F.nextTemplate(s),
@@ -499,7 +498,6 @@ export function FitnessTrain({ day }: { day?: string } = {}) {
             </Frame>
           </>
         )}
-        <Nutrition embedded day={day} />
         <Body hub embedded />
         <FitnessStats embedded />
       </View>
