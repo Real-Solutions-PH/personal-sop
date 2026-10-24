@@ -1,19 +1,336 @@
 import * as L from "@domain/habits/logic"
 import { habitsStore } from "@domain/habits/store"
-import { dayKey, dayOffset, fmtDuration } from "@domain/lib/day"
+import { dayKey, dayOffset } from "@domain/lib/day"
 import { useLocalSearchParams } from "expo-router"
+import { Check, Flame, Medal, Trophy } from "lucide-react-native"
 import { type ReactNode, useState } from "react"
-import { ScrollView, Text, View } from "react-native"
+import { ScrollView, View } from "react-native"
 import { Copy, Frame, Line, SectionHeading, Tap } from "../native-kit"
-import { CardFrame, type CardLook, ShareComposer } from "../share-kit"
-import { fonts, useTheme } from "../theme"
+import { clock, fmt, pct, signed } from "../share-format"
+import {
+  CardFrame,
+  type CardLook,
+  CardRing,
+  Chip,
+  cardInk,
+  Delta,
+  type Dot,
+  Dots,
+  Label,
+  Meter,
+  Num,
+  ShareComposer,
+  Stats,
+  Words,
+} from "../share-kit"
+import { useTheme } from "../theme"
 import { Screen, Toggle } from "../ui"
-import { Ring } from "../visual"
 
-type Layout = "streak" | "month" | "routine" | "scoreboard"
+export type HabitLayout =
+  | "streak"
+  | "milestone"
+  | "month"
+  | "routine"
+  | "scoreboard"
+/** Everything a habit card shows, already counted: cards only lay it out. */
+export type HabitCardData = {
+  showRate: boolean
+  habit: {
+    name: string
+    current: number
+    best: number
+    rate30: number
+    last14: Dot[]
+    last35: Dot[]
+  } | null
+  routine: {
+    name: string
+    day: string
+    durationSec: number
+    done: number
+    total: number
+  } | null
+  board: {
+    rate: number
+    prevRate: number
+    top: { name: string; streak: number }[]
+    perfect: number
+    checkins: number
+  }
+}
+/** Streak milestones worth a card of their own. */
+export const MILESTONES = [
+  7, 14, 21, 30, 50, 66, 100, 150, 200, 250, 365, 500, 730, 1000, 1500, 2000,
+  2500, 3000, 3650,
+]
+export function milestoneOf(current: number) {
+  const reached = [...MILESTONES].reverse().find((m) => m <= current) ?? null
+  const next =
+    MILESTONES.find((m) => m > current) ??
+    (Math.floor(current / 1000) + 1) * 1000
+  return { reached, next }
+}
+const dotOf = (c: L.Cell): Dot =>
+  c === "done"
+    ? "on"
+    : c === "partial"
+      ? "part"
+      : c === "missed"
+        ? "off"
+        : "none"
+function verdict(rate: number) {
+  return rate >= 0.9
+    ? "Elite form"
+    : rate >= 0.75
+      ? "On fire"
+      : rate >= 0.6
+        ? "Locked in"
+        : rate >= 0.4
+          ? "Building"
+          : "Showing up"
+}
+const shortDay = (day: string) =>
+  new Date(`${day}T12:00:00`).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+  })
+
+export function HabitCard({
+  kind,
+  width,
+  look,
+  data,
+}: {
+  kind: HabitLayout
+  width: number
+  look: CardLook
+  data: HabitCardData
+}) {
+  const c = cardInk(look),
+    q = width / 100,
+    tall = look.format === "9:16",
+    hab = c.area("hab"),
+    h = data.habit
+  let body: ReactNode = null
+  if ((kind === "streak" || kind === "milestone" || kind === "month") && !h)
+    body = (
+      <View style={{ flex: 1, justifyContent: "center" }}>
+        <Words size={4} muted align="center">
+          Add a habit to share its streak.
+        </Words>
+      </View>
+    )
+  else if (kind === "streak" && h) {
+    const best = h.current > 0 && h.current >= h.best
+    body = (
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 3 * q,
+        }}
+      >
+        <CardRing
+          value={h.best ? h.current / h.best : 0}
+          size={tall ? 58 : 44}
+          color={hab}
+        >
+          <Flame size={7 * q} color={hab} strokeWidth={2} />
+          <Num size={tall ? 18 : 14} align="center">
+            {fmt(h.current)}
+          </Num>
+          <Label align="center">{h.current === 1 ? "day" : "days"}</Label>
+        </CardRing>
+        <Words size={6} weight="semibold" align="center">
+          {h.name}
+        </Words>
+        <View
+          style={{
+            flexDirection: "row",
+            flexWrap: "wrap",
+            justifyContent: "center",
+            gap: 1.6 * q,
+          }}
+        >
+          <Chip icon={best ? Trophy : undefined} tone={hab}>
+            {best ? "Personal best" : `Best ${fmt(h.best)} days`}
+          </Chip>
+          {data.showRate && (
+            <Chip icon={Check} tone={c.good}>
+              {`${pct(h.rate30)} · 30 days`}
+            </Chip>
+          )}
+        </View>
+        {tall && (
+          <View
+            style={{ alignSelf: "stretch", gap: 1.5 * q, marginTop: 2 * q }}
+          >
+            <Label>Last 14 days</Label>
+            <Dots cells={h.last14} cols={14} color={hab} />
+          </View>
+        )}
+      </View>
+    )
+  } else if (kind === "milestone" && h) {
+    const { reached, next } = milestoneOf(h.current)
+    body = (
+      <View style={{ flex: 1, justifyContent: "center", gap: 4 * q }}>
+        <Chip icon={Medal} tone={hab}>
+          {reached ? "Milestone" : "On the way"}
+        </Chip>
+        <View>
+          <Num size={tall ? 34 : 26}>{fmt(reached ?? h.current)}</Num>
+          <Words size={6} weight="semibold">
+            {reached
+              ? `${reached === 1 ? "day" : "days"} of ${h.name}`
+              : `${h.current === 1 ? "day" : "days"} of ${h.name}`}
+          </Words>
+        </View>
+        <View style={{ gap: 1.5 * q }}>
+          <Line style={{ justifyContent: "space-between", gap: 2 * q }}>
+            <View style={{ flexShrink: 1 }}>
+              <Label>{`Next: ${fmt(next)} days`}</Label>
+            </View>
+            <Num size={4}>{`${fmt(h.current)} / ${fmt(next)}`}</Num>
+          </Line>
+          <Meter value={h.current / next} color={hab} height={2} />
+        </View>
+        {look.format !== "1:1" && (
+          <Stats
+            items={[
+              { label: "Current streak", value: fmt(h.current), unit: "d" },
+              { label: "Best streak", value: fmt(h.best), unit: "d" },
+            ]}
+            size={8}
+          />
+        )}
+      </View>
+    )
+  } else if (kind === "month" && h) {
+    body = (
+      <View style={{ flex: 1, justifyContent: "center", gap: 4 * q }}>
+        <View style={{ gap: q }}>
+          <Words size={8} weight="semibold">
+            {h.name}
+          </Words>
+          <Label>Last 5 weeks</Label>
+        </View>
+        <Dots cells={h.last35} cols={7} color={hab} />
+        <Line
+          style={{
+            justifyContent: "space-between",
+            alignItems: "flex-end",
+            gap: 3 * q,
+          }}
+        >
+          {data.showRate ? (
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Label>Completion</Label>
+              <Num size={tall ? 18 : 14}>{pct(h.rate30)}</Num>
+            </View>
+          ) : (
+            <View style={{ flex: 1 }} />
+          )}
+          <Chip icon={Flame} tone={hab}>
+            {verdict(h.rate30)}
+          </Chip>
+        </Line>
+      </View>
+    )
+  } else if (kind === "routine") {
+    const r = data.routine
+    body = r ? (
+      <View style={{ flex: 1, justifyContent: "center", gap: 4 * q }}>
+        <Chip icon={Check} tone={c.good}>
+          {`Complete · ${shortDay(r.day)}`}
+        </Chip>
+        <Words size={9} weight="semibold">
+          {r.name}
+        </Words>
+        <View>
+          <Label>Time</Label>
+          <Num size={tall ? 22 : 18}>{clock(r.durationSec)}</Num>
+        </View>
+        <View style={{ gap: 1.6 * q }}>
+          <Line style={{ justifyContent: "space-between" }}>
+            <Label>Steps done</Label>
+            <Num size={4.4}>{`${fmt(r.done)}/${fmt(r.total)}`}</Num>
+          </Line>
+          <Meter value={r.done / Math.max(1, r.total)} color={hab} height={2} />
+        </View>
+      </View>
+    ) : (
+      <View style={{ flex: 1, justifyContent: "center" }}>
+        <Words size={4} muted align="center">
+          No completed run yet.
+        </Words>
+      </View>
+    )
+  } else {
+    const b = data.board,
+      top = b.top.slice(0, tall ? 5 : 3),
+      max = Math.max(1, ...top.map((x) => x.streak)),
+      delta = Math.round((b.rate - b.prevRate) * 100)
+    body = (
+      <View style={{ flex: 1, justifyContent: "center", gap: 4 * q }}>
+        <Line style={{ gap: 4 * q }}>
+          <CardRing value={b.rate} size={32} color={hab}>
+            <Num size={8} align="center">
+              {pct(b.rate)}
+            </Num>
+            <Label align="center">done</Label>
+          </CardRing>
+          <View style={{ flex: 1, gap: q }}>
+            <Words size={7} weight="semibold">
+              {verdict(b.rate)}
+            </Words>
+            <Label>Habits · 30 days</Label>
+            <Delta n={delta} unit=" pts" suffix="vs prior 30 days" />
+          </View>
+        </Line>
+        <View style={{ gap: 2.4 * q }}>
+          <Label>Top streaks</Label>
+          {top.map((x, i) => (
+            <Line key={`${x.name}-${i}`} style={{ gap: 2.4 * q }}>
+              <View style={{ flex: 1, minWidth: 0, gap: 0.8 * q }}>
+                <Words size={3.8} weight="medium" lines={1}>
+                  {x.name}
+                </Words>
+                <Meter value={x.streak / max} color={hab} height={1.4} />
+              </View>
+              <View style={{ width: 18 * q }}>
+                <Num size={4.6} unit="d" align="right">
+                  {fmt(x.streak)}
+                </Num>
+              </View>
+            </Line>
+          ))}
+        </View>
+        <Stats
+          items={[
+            { label: "Perfect days", value: fmt(b.perfect) },
+            { label: "Check-ins", value: fmt(b.checkins) },
+          ]}
+          size={8}
+        />
+      </View>
+    )
+  }
+  return (
+    <CardFrame
+      width={width}
+      look={look}
+      kicker={kind === "milestone" ? "Habit milestone" : "Habits"}
+    >
+      {body}
+    </CardFrame>
+  )
+}
+
 export function HabitShare() {
   const p = useLocalSearchParams<{
-      t?: Layout
+      t?: HabitLayout
       habit?: string
       routine?: string
       run?: string
@@ -23,7 +340,7 @@ export function HabitShare() {
   const habits = L.sortedHabits(
       state.habits.filter((h) => h.status !== "archived"),
     ),
-    [layout, setLayout] = useState<Layout>(p.t ?? "streak"),
+    [layout, setLayout] = useState<HabitLayout>(p.t ?? "streak"),
     [habitId, setHabitId] = useState(p.habit ?? habits[0]?.id),
     [routineId, setRoutineId] = useState(p.routine ?? state.routines[0]?.id),
     [hide, setHide] = useState(false),
@@ -41,322 +358,84 @@ export function HabitShare() {
     [...state.runs]
       .reverse()
       .find((r) => r.routineId === routineId && r.state === "completed")
+  const cells = (days: number) =>
+    habit
+      ? L.daysBetween(dayOffset(1 - days), today).map((d) =>
+          dotOf(L.cellFor(habit, d, idx, today)),
+        )
+      : []
+  const st = habit ? L.streaks(habit, idx) : null
+  const data: HabitCardData = {
+    showRate,
+    habit:
+      habit && st
+        ? {
+            name: name(habit.name),
+            current: st.current,
+            best: st.best,
+            rate30: L.habitStats(habit, idx, dayOffset(-29), today).rate,
+            last14: cells(14),
+            last35: cells(35),
+          }
+        : null,
+    routine:
+      run && routine
+        ? {
+            name: hide ? "Routine" : routine.name,
+            day: run.day,
+            durationSec: L.runActualSec(run),
+            done: run.results.filter((r) => r.status === "done").length,
+            total: run.steps.length,
+          }
+        : null,
+    board: {
+      rate: overall.rate,
+      prevRate: prior.rate,
+      top: habits
+        .map((h) => ({ name: h.name, streak: L.streaks(h, idx).current }))
+        .sort((a, b) => b.streak - a.streak)
+        .map((x, i) => ({ ...x, name: name(x.name, i) })),
+      perfect: overall.perfect,
+      checkins: overall.done,
+    },
+  }
+  const h = data.habit
   const caption =
     layout === "routine"
-      ? `${hide ? "Routine" : (routine?.name ?? "Routine")} done`
+      ? `${data.routine?.name ?? "Routine"} done`
       : layout === "scoreboard"
-        ? `Habits: ${L.pct(overall.rate)} completion over 30 days`
-        : habit
+        ? `Habits: ${pct(overall.rate)} completion over 30 days (${signed(Math.round((overall.rate - prior.rate) * 100))} pts)`
+        : h
           ? layout === "streak"
-            ? `${L.streaks(habit, idx).current}-day streak on ${hide ? "a habit" : habit.name}`
-            : `${hide ? "A habit" : habit.name} — ${L.pct(L.habitStats(habit, idx, dayOffset(-29), today).rate)} over the last 5 weeks`
+            ? `${fmt(h.current)}-day streak on ${hide ? "a habit" : h.name}`
+            : layout === "milestone"
+              ? `${fmt(milestoneOf(h.current).reached ?? h.current)} days of ${hide ? "a habit" : h.name}`
+              : `${hide ? "A habit" : h.name}: ${pct(h.rate30)} over the last 5 weeks`
           : "My habits"
-  function render(kind: Layout, width: number, look: CardLook) {
-    const q = width / 100,
-      tall = look.format === "9:16",
-      ink = look.backdrop === "paper" ? t["share-paper-ink"] : "#fff",
-      panel = look.backdrop === "paper" ? "#0000000d" : "#ffffff17"
-    const text = (
-      value: string,
-      size: number,
-      display = false,
-      color = ink,
-    ) => (
-      <Text
-        numberOfLines={2}
-        style={{
-          fontFamily: display ? fonts.displayHeavy : fonts.semibold,
-          fontSize: size * q,
-          lineHeight: size * q * (display ? 1 : 1.3),
-          color,
-          textAlign: "center",
-        }}
-      >
-        {value}
-      </Text>
-    )
-    const label = (value: string) => (
-      <Text
-        style={{
-          fontFamily: fonts.semibold,
-          fontSize: 3.2 * q,
-          letterSpacing: 0.3 * q,
-          color: ink,
-          opacity: 0.65,
-        }}
-      >
-        {value.toUpperCase()}
-      </Text>
-    )
-    const medal = (value: string) => (
-      <View
-        style={{
-          backgroundColor: panel,
-          borderRadius: 10 * q,
-          paddingHorizontal: 2.4 * q,
-          paddingVertical: 1.4 * q,
-        }}
-      >
-        {text(value, 3.3)}
-      </View>
-    )
-    const dots = (days: number, cols: number) => {
-      const cells = habit
-        ? L.daysBetween(dayOffset(1 - days), today).map((d) =>
-            L.cellFor(habit, d, idx, today),
-          )
-        : []
-      const size = ((87 - (cols - 1) * 1.4) / cols) * q
-      return (
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 1.4 * q }}>
-          {cells.map((c, i) => (
-            <View
-              key={`${today}-${i}`}
-              style={{
-                width: size,
-                height: size,
-                borderRadius: size * 0.2,
-                backgroundColor:
-                  c === "done"
-                    ? t.hab
-                    : c === "partial"
-                      ? `${t.hab}66`
-                      : c === "missed"
-                        ? "#ffffff0a"
-                        : panel,
-                borderWidth: c === "missed" ? 1 : 0,
-                borderColor: "#ffffff1a",
-              }}
-            />
-          ))}
-        </View>
-      )
-    }
-    let body: ReactNode
-    if (kind === "streak" && habit) {
-      const st = L.streaks(habit, idx),
-        stats = L.habitStats(habit, idx, dayOffset(-29), today)
-      body = (
-        <View
-          style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
-        >
-          <Ring
-            size={(tall ? 60 : 46) * q}
-            strokeWidth={0.06 * (tall ? 60 : 46) * q}
-            gradientColors={[t.tsk, t.hab]}
-            value={st.best ? st.current / st.best : 0}
-            hero
-          >
-            {text(hide ? "🔥" : habit.icon, 9)}
-            {text(String(st.current), tall ? 24 : 18, true)}
-          </Ring>
-          <View style={{ marginTop: 4 * q }}>
-            {text("DAY STREAK", 7, true)}
-          </View>
-          <View style={{ marginTop: 1.5 * q }}>
-            {text(name(habit.name).toUpperCase(), 6, true)}
-          </View>
-          <Line
-            style={{
-              marginTop: 3 * q,
-              gap: 1.6 * q,
-              flexWrap: "wrap",
-              justifyContent: "center",
-            }}
-          >
-            {medal(
-              st.current > 0 && st.current >= st.best
-                ? "🏆 Personal best"
-                : `Best ${st.best} days`,
-            )}
-            {showRate && medal(`✓ ${L.pct(stats.rate)} · 30 days`)}
-          </Line>
-          {tall && (
-            <View style={{ marginTop: 6 * q, width: "100%", gap: 1.5 * q }}>
-              {label("Last 14 days")}
-              {dots(14, 14)}
-            </View>
-          )}
-        </View>
-      )
-    } else if (kind === "month" && habit) {
-      const stats = L.habitStats(habit, idx, dayOffset(-29), today)
-      body = (
-        <View style={{ flex: 1, justifyContent: "center", gap: 4 * q }}>
-          <Line style={{ gap: 3 * q }}>
-            {!hide && text(habit.icon, 10)}
-            <View style={{ flex: 1, gap: q }}>
-              {text(name(habit.name).toUpperCase(), 9, true)}
-              {label("Last 5 weeks")}
-            </View>
-          </Line>
-          {dots(35, 7)}
-          <Line
-            style={{
-              justifyContent: "space-between",
-              alignItems: "flex-end",
-              gap: 3 * q,
-            }}
-          >
-            {showRate ? (
-              <View>
-                {label("Completion")}
-                {text(L.pct(stats.rate), 22, true, t.hab)}
-              </View>
-            ) : (
-              <View />
-            )}
-            {medal(verdict(stats.rate))}
-          </Line>
-        </View>
-      )
-    } else if (kind === "routine") {
-      const done = run?.results.filter((r) => r.status === "done").length ?? 0
-      body =
-        run && routine ? (
-          <View style={{ flex: 1, justifyContent: "center", gap: 4 * q }}>
-            <View style={{ alignItems: "flex-start" }}>
-              {text(routine.icon, 16)}
-            </View>
-            {medal(
-              `✓ Complete · ${new Date(`${run.day}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
-            )}
-            {text((hide ? "Routine" : routine.name).toUpperCase(), 11, true)}
-            <View style={{ alignItems: "flex-start" }}>
-              {label("Time")}
-              {text(fmtDuration(L.runActualSec(run)), 26, true, t.hab)}
-            </View>
-            <Line style={{ justifyContent: "space-between" }}>
-              {label("Steps done")}
-              {text(`${done}/${run.steps.length}`, 5, true)}
-            </Line>
-            <View
-              style={{ height: 2 * q, backgroundColor: panel, borderRadius: q }}
-            >
-              <View
-                style={{
-                  width: `${(done / Math.max(1, run.steps.length)) * 100}%`,
-                  height: "100%",
-                  backgroundColor: t.hab,
-                  borderRadius: q,
-                }}
-              />
-            </View>
-          </View>
-        ) : (
-          <View style={{ flex: 1, justifyContent: "center" }}>
-            {text("No completed run yet.", 4)}
-          </View>
-        )
-    } else {
-      const top = habits
-          .map((h) => ({ h, s: L.streaks(h, idx).current }))
-          .sort((a, b) => b.s - a.s)
-          .slice(0, tall ? 5 : 3),
-        max = Math.max(1, ...top.map((x) => x.s)),
-        delta = Math.round((overall.rate - prior.rate) * 100)
-      body = (
-        <View style={{ flex: 1, justifyContent: "center", gap: 4 * q }}>
-          <Line style={{ gap: 4 * q }}>
-            <Ring size={36 * q} value={overall.rate} hero>
-              {text(L.pct(overall.rate), 10, true)}
-              {label("done")}
-            </Ring>
-            <View style={{ flex: 1, gap: q }}>
-              {text(verdict(overall.rate).toUpperCase(), 10, true)}
-              {label("Habits · 30 days")}
-              {delta !== 0 &&
-                text(
-                  `${delta > 0 ? "↗" : "↘"} ${Math.abs(delta)}% vs prior`,
-                  3.5,
-                )}
-            </View>
-          </Line>
-          <View style={{ gap: 2.6 * q }}>
-            {label("Top streaks")}
-            {top.map(({ h, s }, i) => (
-              <Line key={h.id} style={{ gap: 2.4 * q }}>
-                {text(hide ? String(i + 1) : h.icon, 5)}
-                <View style={{ flex: 1, gap: 0.8 * q }}>
-                  <Text
-                    numberOfLines={1}
-                    style={{
-                      fontFamily: fonts.semibold,
-                      fontSize: 3.8 * q,
-                      color: ink,
-                    }}
-                  >
-                    {name(h.name, i)}
-                  </Text>
-                  <View
-                    style={{
-                      height: 1.4 * q,
-                      borderRadius: q,
-                      backgroundColor: panel,
-                    }}
-                  >
-                    <View
-                      style={{
-                        height: "100%",
-                        width: `${(s / max) * 100}%`,
-                        backgroundColor: t.hab,
-                        borderRadius: q,
-                      }}
-                    />
-                  </View>
-                </View>
-                {text(`🔥 ${s}`, 5, true)}
-              </Line>
-            ))}
-          </View>
-          <Line
-            style={{
-              backgroundColor: panel,
-              padding: 3 * q,
-              borderRadius: 3 * q,
-              gap: 3 * q,
-            }}
-          >
-            {[
-              { label: "Perfect days", value: overall.perfect },
-              { label: "Check-ins", value: overall.done },
-            ].map((x) => (
-              <View key={x.label} style={{ flex: 1, gap: q }}>
-                {label(x.label)}
-                {text(String(x.value), 10, true)}
-              </View>
-            ))}
-          </Line>
-        </View>
-      )
-    }
-    return (
-      <CardFrame width={width} look={look} accent="hab" kicker="Habits">
-        {body}
-      </CardFrame>
-    )
-  }
   return (
     <Screen title="Share card">
       <ShareComposer
         value={layout}
         onChange={setLayout}
-        accent="hab"
         caption={`${caption} · Unfurl`}
         items={(
           [
             { key: "streak", label: "Streak" },
+            { key: "milestone", label: "Milestone" },
             { key: "month", label: "Month heatmap" },
             { key: "routine", label: "Routine run" },
             { key: "scoreboard", label: "Scoreboard" },
           ] as const
         ).map((item) => ({
           ...item,
-          render: (width: number, look: CardLook) =>
-            render(item.key, width, look),
+          render: (width: number, look: CardLook) => (
+            <HabitCard kind={item.key} width={width} look={look} data={data} />
+          ),
         }))}
       >
-        {(layout === "streak" || layout === "month") && (
+        {(layout === "streak" ||
+          layout === "milestone" ||
+          layout === "month") && (
           <>
             <SectionHeading>Habit</SectionHeading>
             <ScrollView
@@ -365,22 +444,21 @@ export function HabitShare() {
               style={{ marginHorizontal: -16 }}
               contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
             >
-              {habits.map((h) => (
+              {habits.map((x) => (
                 <Tap
-                  key={h.id}
-                  onPress={() => setHabitId(h.id)}
+                  key={x.id}
+                  onPress={() => setHabitId(x.id)}
                   style={{
                     paddingHorizontal: 12,
                     paddingVertical: 6,
                     borderRadius: 20,
-                    backgroundColor: habit?.id === h.id ? t.hab : t.card,
+                    borderWidth: habit?.id === x.id ? 2 : 1,
+                    borderColor: habit?.id === x.id ? t.text : t.line,
+                    backgroundColor: t.card,
                   }}
                 >
-                  <Copy
-                    size={14}
-                    style={{ color: habit?.id === h.id ? t.bg : t.text }}
-                  >
-                    {h.icon} {h.name}
+                  <Copy size={14}>
+                    {x.icon} {x.name}
                   </Copy>
                 </Tap>
               ))}
@@ -399,7 +477,9 @@ export function HabitShare() {
                     paddingHorizontal: 12,
                     paddingVertical: 6,
                     borderRadius: 20,
-                    backgroundColor: r.id === routineId ? `${t.hab}26` : t.soft,
+                    borderWidth: r.id === routineId ? 2 : 1,
+                    borderColor: r.id === routineId ? t.text : t.line,
+                    backgroundColor: t.card,
                   }}
                 >
                   <Copy size={14}>
@@ -412,7 +492,7 @@ export function HabitShare() {
         )}
         <Frame style={{ gap: 12, padding: 16 }}>
           <Toggle label="Hide habit names" value={hide} onChange={setHide} />
-          {layout !== "routine" && layout !== "scoreboard" && (
+          {(layout === "streak" || layout === "month") && (
             <Toggle
               label="Show completion rate"
               value={showRate}
@@ -420,21 +500,10 @@ export function HabitShare() {
             />
           )}
         </Frame>
-        <Copy size={11} muted style={{ textAlign: "center" }}>
+        <Copy size={12} muted style={{ textAlign: "center" }}>
           Share cards never include money amounts.
         </Copy>
       </ShareComposer>
     </Screen>
   )
-}
-function verdict(rate: number) {
-  return rate >= 0.9
-    ? "Elite form"
-    : rate >= 0.75
-      ? "On fire"
-      : rate >= 0.6
-        ? "Locked in"
-        : rate >= 0.4
-          ? "Building"
-          : "Showing up"
 }

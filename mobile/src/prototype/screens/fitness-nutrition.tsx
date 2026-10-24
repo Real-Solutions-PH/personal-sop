@@ -14,6 +14,7 @@ import {
   Mic,
   Pencil,
   Plus,
+  Share2,
   Sparkles,
   Target,
   UtensilsCrossed,
@@ -474,6 +475,15 @@ export function Nutrition({
             onPress={() => go("/fitness/nutrition/targets")}
           >
             Targets
+          </Button>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Button
+            icon={Share2}
+            tone="quiet"
+            onPress={() => go("/fitness/nutrition/share")}
+          >
+            Share
           </Button>
         </View>
       </Line>

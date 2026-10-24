@@ -22,6 +22,7 @@ import {
   PenLine,
   Plus,
   Search,
+  Share2,
   Smile,
   Sprout,
   Trash2,
@@ -431,13 +432,22 @@ function JournalList() {
     <Screen
       title="Journal"
       actions={
-        <IconTap
-          size={44}
-          icon={Plus}
-          label="New entry"
-          color={t.text}
-          onPress={() => go("/journal/new")}
-        />
+        <Line style={{ gap: 0 }}>
+          <IconTap
+            size={44}
+            icon={Share2}
+            label="Share your journal streak"
+            color={t.text}
+            onPress={() => go("/journal/share")}
+          />
+          <IconTap
+            size={44}
+            icon={Plus}
+            label="New entry"
+            color={t.text}
+            onPress={() => go("/journal/new")}
+          />
+        </Line>
       }
     >
       <View>

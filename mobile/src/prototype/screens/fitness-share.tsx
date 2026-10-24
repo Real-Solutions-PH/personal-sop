@@ -2,22 +2,277 @@ import * as C from "@domain/fitness/calc"
 import { fitStore } from "@domain/fitness/store"
 import { dayKey } from "@domain/lib/day"
 import { useLocalSearchParams } from "expo-router"
-import { useState } from "react"
-import { Text, View } from "react-native"
-import { Sparkline } from "../chart"
+import { Trophy } from "lucide-react-native"
+import { type ReactNode, useState } from "react"
+import { View } from "react-native"
 import { border, Copy, Frame, Line, SectionHeading } from "../native-kit"
-import { CardFrame, type CardLook, ShareComposer } from "../share-kit"
-import { fonts, useTheme } from "../theme"
+import { fmt, group } from "../share-format"
+import {
+  CardFrame,
+  type CardLook,
+  Chip,
+  cardInk,
+  Delta,
+  Label,
+  Num,
+  ShareComposer,
+  Spark,
+  Stats,
+  useCard,
+  Words,
+} from "../share-kit"
+import { useTheme } from "../theme"
 import { Empty, Screen, Toggle } from "../ui"
 
-type Layout = "summary" | "pr" | "photo"
+export type WorkoutLayout = "summary" | "pr" | "photo"
+export type WorkoutFlags = {
+  exercises: boolean
+  prs: boolean
+  week: boolean
+  bodyweight: boolean
+  macros: boolean
+}
+/** What a workout card shows, already counted. Weights are in kg. */
+export type WorkoutCardData = {
+  name: string
+  date: string
+  durationSec: number
+  volume: number
+  sets: number
+  prs: { exercise: string; label: string; value: number; volume: boolean }[]
+  lines: { id: string; name: string; weight: number | null; reps: number }[]
+  focus: {
+    name: string
+    pr: string | null
+    e1rm: number
+    gain: number
+    series: number[]
+  }
+  week: number
+  weeklyTarget: number
+  streak: number
+  bodyweight: number
+  macros: { kcal: number; protein: number }
+}
+/** "1:05 h" past an hour, "45 min" under it. */
+const duration = (sec: number) => {
+  const mins = Math.round(sec / 60)
+  return mins >= 60
+    ? {
+        value: `${group(Math.floor(mins / 60))}:${String(mins % 60).padStart(2, "0")}`,
+        unit: "h",
+      }
+    : { value: String(mins), unit: "min" }
+}
+/** Volume in kg, or tonnes from 10 t: "8,450 kg", "12.3 t", "1.2k t". */
+const volume = (kg: number) =>
+  kg >= 10000
+    ? { value: fmt(Math.round(kg / 100) / 10, 5, 1), unit: "t" }
+    : { value: fmt(Math.round(kg)), unit: "kg" }
+const weight = (kg: number) => fmt(Math.round(kg * 10) / 10, 6, 1)
+
+function WeekTally({ d }: { d: WorkoutCardData }) {
+  const { q, c } = useCard(),
+    slots = Math.min(14, Math.max(d.week, d.weeklyTarget))
+  return (
+    <View style={{ gap: 1.2 * q }}>
+      <Line style={{ justifyContent: "space-between" }}>
+        <Label>This week</Label>
+        <Num size={4.4}>{`${fmt(d.week)}/${fmt(d.weeklyTarget)}`}</Num>
+      </Line>
+      {slots > 0 && (
+        <Line style={{ gap: 1.2 * q }}>
+          {Array.from({ length: slots }, (_, i) => (
+            <View
+              key={i}
+              style={{
+                flex: 1,
+                height: 1.8 * q,
+                borderRadius: q,
+                backgroundColor: i < d.week ? c.area("fit") : c.track,
+              }}
+            />
+          ))}
+        </Line>
+      )}
+    </View>
+  )
+}
+export function WorkoutCard({
+  kind,
+  width,
+  look,
+  data: d,
+  flags,
+}: {
+  kind: WorkoutLayout
+  width: number
+  look: CardLook
+  data: WorkoutCardData
+  flags: WorkoutFlags
+}) {
+  const c = cardInk(look),
+    q = width / 100,
+    tall = look.format === "9:16",
+    sq = look.format === "1:1",
+    fitC = c.area("fit"),
+    time = duration(d.durationSec),
+    vol = volume(d.volume),
+    stats = (size: number) => (
+      <Stats
+        items={[
+          { label: "Time", ...time },
+          { label: "Volume", ...vol },
+          { label: "Sets", value: fmt(d.sets) },
+        ]}
+        size={size}
+      />
+    ),
+    medals =
+      flags.prs && d.prs.length > 0 ? (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 1.6 * q }}>
+          {d.prs.slice(0, 3).map((p) => (
+            <Chip key={`${p.exercise}-${p.label}`} icon={Trophy} tone={fitC}>
+              {`${p.exercise} ${p.volume ? "volume" : `${weight(p.value)} kg`}`}
+            </Chip>
+          ))}
+        </View>
+      ) : null,
+    shown = tall ? 5 : sq ? 2 : 3
+  let body: ReactNode
+  if (kind === "pr")
+    body = (
+      <View style={{ flex: 1, justifyContent: "center", gap: 3.5 * q }}>
+        <View style={{ gap: 2 * q }}>
+          <Chip icon={Trophy} tone={fitC}>
+            {d.focus.pr ? `${d.focus.pr} PR` : "Top lift"}
+          </Chip>
+          <Words size={9} weight="semibold">
+            {d.focus.name}
+          </Words>
+        </View>
+        <View>
+          <Label>Est. 1-rep max</Label>
+          <Num size={tall ? 26 : 20} unit="kg">
+            {weight(d.focus.e1rm)}
+          </Num>
+          {d.focus.gain > 0 && (
+            <Delta
+              n={Math.round(d.focus.gain * 10) / 10}
+              unit=" kg"
+              suffix="vs previous best"
+            />
+          )}
+        </View>
+        {d.focus.series.length > 1 && !sq && (
+          <View style={{ gap: q }}>
+            <Spark
+              values={d.focus.series}
+              color={fitC}
+              height={tall ? 24 : 14}
+            />
+            <Label>{`Last ${fmt(d.focus.series.length)} sessions`}</Label>
+          </View>
+        )}
+        {tall && stats(8)}
+      </View>
+    )
+  else if (kind === "photo")
+    body = (
+      <View style={{ flex: 1, justifyContent: "flex-end", gap: 3.5 * q }}>
+        {look.backdrop === "photo" && !look.photo && (
+          <View style={{ flex: 1, justifyContent: "center" }}>
+            <Words size={3.6} align="center" muted>
+              Add your gym photo
+            </Words>
+          </View>
+        )}
+        <Words size={9} weight="semibold">
+          {d.name}
+        </Words>
+        {stats(sq ? 7 : 9)}
+        {!sq && medals}
+      </View>
+    )
+  else
+    body = (
+      <View style={{ flex: 1, justifyContent: "center", gap: 3.5 * q }}>
+        <View style={{ gap: 2 * q }}>
+          <Words size={9} weight="semibold">
+            {d.name}
+          </Words>
+          {d.prs.length > 0 && (
+            <Chip icon={Trophy} tone={fitC}>
+              {`${fmt(d.prs.length)} personal ${d.prs.length === 1 ? "record" : "records"}`}
+            </Chip>
+          )}
+        </View>
+        {stats(sq ? 7 : 9)}
+        {flags.exercises && d.lines.length > 0 && (
+          <View
+            style={{
+              borderTopWidth: 1,
+              borderColor: c.line,
+              paddingTop: 2.5 * q,
+              gap: 1.6 * q,
+            }}
+          >
+            {d.lines.slice(0, shown).map((l) => (
+              <Line key={l.id} style={{ gap: 3 * q }}>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Words size={3.8} lines={1}>
+                    {l.name}
+                  </Words>
+                </View>
+                {l.weight !== null && (
+                  <View style={{ maxWidth: "45%" }}>
+                    <Num size={4.2} align="right">
+                      {`${weight(l.weight)} × ${fmt(l.reps)}`}
+                    </Num>
+                  </View>
+                )}
+              </Line>
+            ))}
+            {d.lines.length > shown && (
+              <Label>{`+${fmt(d.lines.length - shown)} more`}</Label>
+            )}
+          </View>
+        )}
+        {tall && medals}
+        {flags.week && !sq && <WeekTally d={d} />}
+      </View>
+    )
+  const foot = [
+    d.streak > 0 ? `${fmt(d.streak)}-week streak` : "",
+    flags.bodyweight && d.bodyweight > 0
+      ? `Bodyweight ${weight(d.bodyweight)} kg`
+      : "",
+    flags.macros
+      ? `${fmt(Math.round(d.macros.kcal))} kcal · ${fmt(Math.round(d.macros.protein))} g protein today`
+      : "",
+  ]
+    .filter(Boolean)
+    .join(" · ")
+  return (
+    <CardFrame
+      width={width}
+      look={look}
+      kicker="Workout"
+      date={d.date}
+      foot={foot}
+    >
+      {body}
+    </CardFrame>
+  )
+}
+
 export function FitnessShare({ id }: { id: string }) {
   const s = fitStore.use((s) => s),
     t = useTheme(),
-    p = useLocalSearchParams<{ template?: Layout; exercise?: string }>(),
+    p = useLocalSearchParams<{ template?: WorkoutLayout; exercise?: string }>(),
     w = s.workouts.find((w) => w.id === id),
-    [layout, setLayout] = useState<Layout>(p.template ?? "summary"),
-    [flags, setFlags] = useState({
+    [layout, setLayout] = useState<WorkoutLayout>(p.template ?? "summary"),
+    [flags, setFlags] = useState<WorkoutFlags>({
       exercises: true,
       prs: true,
       week: true,
@@ -36,14 +291,17 @@ export function FitnessShare({ id }: { id: string }) {
   const totals = C.workoutTotals(s, w),
     prs = C.allPrs(s).filter((p) => p.workoutId === id),
     bw = C.latestBodyweight(s) ?? 0,
+    exName = (exerciseId: string) =>
+      s.exercises.find((e) => e.id === exerciseId)?.name ?? "",
     lines = w.exercises.map((we) => {
       const ex = s.exercises.find((e) => e.id === we.exerciseId),
         stats = C.exStats(we, ex, bw)
       return {
-        name: ex?.name ?? "",
-        top: stats.top,
-        e1rm: stats.bestE1rm,
         id: we.exerciseId,
+        name: ex?.name ?? "",
+        weight: stats.top ? stats.top.weight : null,
+        reps: stats.top?.reps ?? 0,
+        e1rm: stats.bestE1rm,
       }
     }),
     focusId =
@@ -54,281 +312,49 @@ export function FitnessShare({ id }: { id: string }) {
       prs.find((p) => p.exerciseId === focusId && p.kind === "e1rm") ??
       prs.find((p) => p.exerciseId === focusId),
     focus = lines.find((l) => l.id === focusId),
-    series = focusId
-      ? C.exerciseHistory(s, focusId)
-          .filter((h) => h.workout.startedAt <= w.startedAt)
-          .map((h) => h.stats.bestE1rm)
-      : [],
-    week =
-      C.sessionsByWeek(s, 20).find(
-        (x) => x.start === C.weekStart(dayKey(new Date(w.startedAt))),
-      )?.count ?? 1,
-    streak = C.consistencyStreak(s),
-    macros = C.dayTotals(s, dayKey(new Date(w.startedAt))).totals,
-    mins = Math.round(totals.durationSec / 60),
-    items = [
-      {
-        label: "Time",
-        value:
-          mins >= 60
-            ? `${Math.floor(mins / 60)}:${String(mins % 60).padStart(2, "0")}`
-            : String(mins),
-        unit: mins >= 60 ? "h" : "min",
-      },
-      {
-        label: "Volume",
-        value:
-          totals.volume >= 10000
-            ? (totals.volume / 1000).toFixed(1)
-            : Math.round(totals.volume).toLocaleString("en-US"),
-        unit: totals.volume >= 10000 ? "t" : "kg",
-      },
-      { label: "Sets", value: String(totals.done), unit: "" },
-    ]
-  function render(kind: Layout, width: number, look: CardLook) {
-    const q = width / 100,
-      ink = look.backdrop === "paper" ? t["share-paper-ink"] : "#fff",
-      tall = look.format === "9:16",
-      text = (s: string, size: number, display = false, color = ink) => (
-        <Text
-          style={{
-            fontFamily: display ? fonts.displayHeavy : fonts.body,
-            fontSize: size * q,
-            lineHeight: size * q * (display ? 1 : 1.3),
-            color,
-          }}
-        >
-          {s}
-        </Text>
-      ),
-      label = (s: string) => text(s.toUpperCase(), 3.2, false, `${ink}aa`),
-      title = (s: string) => (
-        <Text
-          numberOfLines={2}
-          style={{
-            fontFamily: fonts.displayHeavy,
-            fontSize: 11 * q,
-            lineHeight: 10.12 * q,
-            letterSpacing: -0.25 * q,
-            color: ink,
-          }}
-        >
-          {s.toUpperCase()}
-        </Text>
-      ),
-      medal = (s: string) => (
-        <View
-          style={{
-            alignSelf: "flex-start",
-            paddingHorizontal: 2.4 * q,
-            paddingVertical: 1.4 * q,
-            borderRadius: 10 * q,
-            backgroundColor: "#f4c76b",
-          }}
-        >
-          {text(`🏆 ${s}`, 3.3, false, "#32230c")}
-        </View>
-      ),
-      stats = (size = 12) => (
-        <Line style={{ gap: 3 * q }}>
-          {items.map((item) => (
-            <View key={item.label} style={{ flex: 1, gap: q }}>
-              {label(item.label)}
-              <Line style={{ gap: q, alignItems: "baseline" }}>
-                {text(item.value, size, true)}
-                {text(item.unit, 3.4)}
-              </Line>
-            </View>
-          ))}
-        </Line>
-      ),
-      medals =
-        flags.prs && prs.length > 0 ? (
-          <Line style={{ gap: 1.6 * q, flexWrap: "wrap" }}>
-            {prs.slice(0, 3).map((p) => (
-              <View key={`${p.exerciseId}-${p.kind}`}>
-                {medal(
-                  `${
-                    s.exercises
-                      .find((e) => e.id === p.exerciseId)
-                      ?.name.split(" ")
-                      .slice(-1)[0]
-                  } ${p.kind === "volume" ? "volume" : C.kg(Math.round(p.value * 10) / 10)}`,
-                )}
-              </View>
-            ))}
-          </Line>
-        ) : null
-    const body =
-      kind === "pr" ? (
-        <View style={{ flex: 1, justifyContent: "center", gap: 4 * q }}>
-          <View style={{ gap: 2.5 * q }}>
-            {medal(focusPr ? `${C.prLabel[focusPr.kind]} PR` : "Top lift")}
-            {title(focus?.name ?? w!.name)}
-          </View>
-          <View>
-            {label("Est. 1-rep max")}
-            <Line style={{ gap: 2 * q, alignItems: "baseline" }}>
-              {text(
-                C.kgShort(
-                  Math.round((focusPr?.value ?? focus?.e1rm ?? 0) * 10) / 10,
-                ),
-                34,
-                true,
-                t.fit,
-              )}
-              {text("kg", 5)}
-            </Line>
-            {focusPr && focusPr.value > focusPr.prev && (
-              <View style={{ marginTop: 2 * q }}>
-                {text(
-                  `↗ ${Math.round((focusPr.value - focusPr.prev) * 10) / 10} kg vs previous best`,
-                  3.4,
-                  false,
-                  t.good,
-                )}
-              </View>
-            )}
-          </View>
-          {series.length > 1 && (
-            <View>
-              <Sparkline
-                values={series}
-                color={t.fit}
-                height={(tall ? 26 : 16) * q}
-                label="Strength progression"
-              />
-              {label(`Last ${series.length} sessions`)}
-            </View>
-          )}
-          {tall && stats(10)}
-        </View>
-      ) : kind === "photo" ? (
-        <View style={{ flex: 1, justifyContent: "flex-end", gap: 4 * q }}>
-          {look.backdrop === "photo" && !look.photo && (
-            <View
-              style={{
-                flex: 1,
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-            >
-              {text("Add your gym photo", 3.6)}
-            </View>
-          )}
-          {title(w!.name)}
-          {stats(11)}
-          {medals}
-        </View>
-      ) : (
-        <View style={{ flex: 1, justifyContent: "center", gap: 4.5 * q }}>
-          <View style={{ gap: 2 * q }}>
-            {title(w!.name)}
-            {prs.length > 0 &&
-              medal(
-                `${prs.length} personal record${prs.length > 1 ? "s" : ""}`,
-              )}
-          </View>
-          {stats()}
-          {flags.exercises && (
-            <View
-              style={{
-                borderTopWidth: 1,
-                borderColor: `${ink}26`,
-                paddingTop: 3 * q,
-                gap: 1.8 * q,
-              }}
-            >
-              {lines.slice(0, tall ? 5 : 3).map((l) => (
-                <Line key={l.id} style={{ gap: 3 * q, alignItems: "baseline" }}>
-                  <Text
-                    numberOfLines={1}
-                    style={{
-                      flex: 1,
-                      fontFamily: fonts.body,
-                      fontSize: 3.8 * q,
-                      color: ink,
-                    }}
-                  >
-                    {l.name}
-                  </Text>
-                  {text(
-                    l.top ? `${C.kgShort(l.top.weight)} × ${l.top.reps}` : "",
-                    4.4,
-                    true,
-                  )}
-                </Line>
-              ))}
-              {lines.length > (tall ? 5 : 3) &&
-                text(`+${lines.length - (tall ? 5 : 3)} more`, 3.2)}
-            </View>
-          )}
-          {tall && medals}
-          {flags.week && (
-            <View>
-              <Line
-                style={{
-                  justifyContent: "space-between",
-                  alignItems: "baseline",
-                }}
-              >
-                {label("This week")}
-                {text(`${week}/${s.settings.weeklyTarget}`, 4.4, true)}
-              </Line>
-              <Line style={{ marginTop: 1.2 * q, gap: 1.2 * q }}>
-                {Array.from(
-                  { length: Math.max(week, s.settings.weeklyTarget) },
-                  (_, i) => (
-                    <View
-                      key={`week-${i}`}
-                      style={{
-                        flex: 1,
-                        height: 1.8 * q,
-                        borderRadius: q,
-                        backgroundColor: i < week ? t.fit : "#ffffff24",
-                      }}
-                    />
-                  ),
-                )}
-              </Line>
-            </View>
-          )}
-        </View>
-      )
-    return (
-      <CardFrame
-        width={width}
-        look={look}
-        accent="fit"
-        kicker="Workout"
-        date={new Date(w!.startedAt).toLocaleDateString("en-PH", {
-          weekday: "short",
-          month: "short",
-          day: "numeric",
-        })}
-        foot={
-          <>
-            {streak > 0 && text(`${streak}-week streak`, 3.2)}
-            {flags.bodyweight && bw > 0 && text(`Bodyweight ${C.kg(bw)}`, 3.2)}
-            {flags.macros &&
-              text(
-                `${Math.round(macros.kcal)} kcal · P${Math.round(macros.protein)}g today`,
-                3.2,
-              )}
-          </>
-        }
-      >
-        {body}
-      </CardFrame>
-    )
+    day = dayKey(new Date(w.startedAt))
+  const data: WorkoutCardData = {
+    name: w.name,
+    date: new Date(w.startedAt).toLocaleDateString("en-GB", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    }),
+    durationSec: totals.durationSec,
+    volume: totals.volume,
+    sets: totals.done,
+    prs: prs.map((p) => ({
+      exercise: exName(p.exerciseId).split(" ").slice(-1)[0] ?? "",
+      label: C.prLabel[p.kind],
+      value: p.value,
+      volume: p.kind === "volume",
+    })),
+    lines,
+    focus: {
+      name: focus?.name ?? w.name,
+      pr: focusPr ? C.prLabel[focusPr.kind] : null,
+      e1rm: focusPr?.value ?? focus?.e1rm ?? 0,
+      gain: focusPr ? Math.max(0, focusPr.value - focusPr.prev) : 0,
+      series: focusId
+        ? C.exerciseHistory(s, focusId)
+            .filter((h) => h.workout.startedAt <= w.startedAt)
+            .map((h) => h.stats.bestE1rm)
+        : [],
+    },
+    week:
+      C.sessionsByWeek(s, 20).find((x) => x.start === C.weekStart(day))
+        ?.count ?? 1,
+    weeklyTarget: s.settings.weeklyTarget,
+    streak: C.consistencyStreak(s),
+    bodyweight: bw,
+    macros: C.dayTotals(s, day).totals,
   }
   return (
     <Screen title="Share workout">
       <ShareComposer
         value={layout}
         onChange={setLayout}
-        accent="fit"
-        caption={`${w.name} · ${C.fmtMin(totals.durationSec)} · ${C.fmtVolume(totals.volume)}${prs.length ? ` · ${prs.length} PR` : ""}`}
+        caption={`${w.name} · ${C.fmtMin(totals.durationSec)} · ${volume(totals.volume).value} ${volume(totals.volume).unit}${prs.length ? ` · ${fmt(prs.length)} PR` : ""}`}
         items={(
           [
             { key: "summary", label: "Summary" },
@@ -337,8 +363,15 @@ export function FitnessShare({ id }: { id: string }) {
           ] as const
         ).map((item) => ({
           ...item,
-          render: (width: number, look: CardLook) =>
-            render(item.key, width, look),
+          render: (width: number, look: CardLook) => (
+            <WorkoutCard
+              kind={item.key}
+              width={width}
+              look={look}
+              data={data}
+              flags={flags}
+            />
+          ),
         }))}
       >
         <View style={{ marginTop: -12 }}>
@@ -348,9 +381,9 @@ export function FitnessShare({ id }: { id: string }) {
               [
                 { key: "exercises", label: "Exercise list" },
                 { key: "prs", label: "PR badges" },
-                { key: "week", label: "Week tally & streak" },
+                { key: "week", label: "Week tally and streak" },
                 { key: "bodyweight", label: "Bodyweight" },
-                { key: "macros", label: "Today’s macros" },
+                { key: "macros", label: "Today’s calories and protein" },
               ] as const
             ).map((f, i) => (
               <View
@@ -372,7 +405,8 @@ export function FitnessShare({ id }: { id: string }) {
           </Frame>
         </View>
         <Copy size={12} muted style={{ paddingHorizontal: 4 }}>
-          Money never appears on share cards.
+          Money never appears on share cards. Bodyweight and food stay off
+          unless you turn them on.
         </Copy>
       </ShareComposer>
     </Screen>
