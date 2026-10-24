@@ -547,3 +547,131 @@ test("re-upload sends every row again to a server that lost them, and no actions
   expect([...server.rows.keys()].sort()).toEqual(["a", "b"])
   expect(todoStore.get().todos).toHaveLength(2)
 })
+
+describe("a server row never undoes a change still in the outbox", () => {
+  const row = (id: string, title: string, status = "open") => ({
+    entity: "todo",
+    id,
+    version: 9,
+    deleted: false,
+    row: { id, title, status },
+  })
+
+  test("a row deleted here does not come back from a pull", async () => {
+    const server = new FakeServer()
+    let online = false
+    const e = engine(server, memoryStorage(), () => online)
+    todoStore.set({ todos: [{ id: "a", title: "Pay", done: false }] })
+    e.capture()
+    online = true
+    await e.sync()
+    online = false
+    todoStore.set({ todos: [] })
+    e.capture()
+
+    // Another device's edit of the row arrives before the delete is sent.
+    e.apply([row("a", "Pay rent")])
+    expect(todoStore.get().todos).toEqual([])
+
+    online = true
+    await e.sync()
+    expect(server.rows.has("a")).toBe(false)
+    expect(todoStore.get().todos).toEqual([])
+  })
+
+  test("a field written here keeps its value; the other fields update", async () => {
+    const server = new FakeServer()
+    let online = false
+    const e = engine(server, memoryStorage(), () => online)
+    todoStore.set({ todos: [{ id: "a", title: "Pay", done: false }] })
+    e.capture()
+    online = true
+    await e.sync()
+    online = false
+    todoStore.set({ todos: [{ id: "a", title: "Pay rent", done: false }] })
+    e.capture()
+
+    // An older title and a status change from elsewhere.
+    e.apply([row("a", "Pay bills", "done")])
+    expect(todoStore.get().todos).toEqual([
+      { id: "a", title: "Pay rent", done: true },
+    ])
+
+    online = true
+    await e.sync()
+    expect(server.rows.get("a")).toMatchObject({ title: "Pay rent" })
+  })
+
+  test("a delete from elsewhere wins over an edit still queued here", async () => {
+    const server = new FakeServer()
+    server.tombstones = true
+    let online = false
+    const e = engine(server, memoryStorage(), () => online)
+    todoStore.set({ todos: [{ id: "a", title: "Pay", done: false }] })
+    e.capture()
+    online = true
+    await e.sync()
+    online = false
+    todoStore.set({ todos: [{ id: "a", title: "Pay rent", done: false }] })
+    e.capture()
+    server.rows.delete("a")
+    server.dead.add("a")
+
+    e.apply([{ entity: "todo", id: "a", version: 9, deleted: true, row: null }])
+    expect(todoStore.get().todos).toEqual([])
+    online = true
+    await e.sync()
+    expect(e.pending()).toBe(0)
+    expect(todoStore.get().todos).toEqual([])
+  })
+
+  test("an undo of a delete holds while this device's own delete is pulled", async () => {
+    const server = new FakeServer()
+    server.tombstones = true
+    let online = false
+    const e = engine(server, memoryStorage(), () => online)
+    const pay = { id: "a", title: "Pay", done: false }
+    todoStore.set({ todos: [pay] })
+    e.capture()
+    online = true
+    await e.sync()
+    todoStore.set({ todos: [] })
+    e.capture()
+    await e.sync()
+    expect(server.dead.has("a")).toBe(true)
+    online = false
+    todoStore.set({ todos: [pay] }) // undo
+    e.capture()
+
+    // The tombstone of the delete arrives after the undo was queued.
+    e.apply([{ entity: "todo", id: "a", version: 9, deleted: true, row: null }])
+    expect(todoStore.get().todos).toEqual([pay])
+    online = true
+    await e.sync()
+    expect(e.pending()).toBe(0)
+    expect(server.dead.has("a")).toBe(false)
+    expect(todoStore.get().todos).toEqual([pay])
+  })
+
+  test("a row an action names waits for it, then shows what the server has", async () => {
+    const server = new FakeServer()
+    let online = false
+    const e = engine(server, memoryStorage(), () => online)
+    todoStore.set({ todos: [{ id: "a", title: "Pay", done: false }] })
+    e.capture()
+    online = true
+    await e.sync()
+    online = false
+    todoStore.set({ todos: [{ id: "a", title: "Pay", done: true }] })
+    e.capture()
+
+    e.apply([row("a", "Pay")])
+    expect(todoStore.get().todos[0].done).toBe(true)
+
+    online = true
+    await e.sync()
+    expect(todoStore.get().todos).toEqual([
+      { id: "a", title: "Pay", done: true },
+    ])
+  })
+})

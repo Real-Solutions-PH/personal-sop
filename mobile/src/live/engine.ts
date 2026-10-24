@@ -49,8 +49,13 @@ const CURSOR_KEY = "sop-live:cursor"
 export const PREVIOUS_KEY = "sop-live:previous"
 export const DEAD_LETTER_KEY = "sop-live:dead-letter"
 const DELETED_KEY = "sop-live:deleted"
+const DEFERRED_KEY = "sop-live:deferred"
 const DELETED_LIMIT = 500
 const DEAD_LETTER_LIMIT = 200
+
+// Sync requests run in the background and nothing waits on them, so a slow
+// link gets longer than an interactive call before it counts as offline.
+const SYNC_TIMEOUT_MS = 30_000
 
 // The server refused the request itself (a malformed op fails validation for
 // the whole batch, so no per-op receipt exists). Retrying the same batch can
@@ -69,6 +74,10 @@ export class SyncEngine {
   private again = false
   private unsubscribe: (() => void)[] = []
   private backoffMs = 0
+  private retry: ReturnType<typeof setTimeout> | null = null
+  /** Server rows held back while an op of this device's still speaks for
+   * them, keyed entity:id: shown once the outbox no longer names the row. */
+  private deferred: Record<string, Change> = {}
   readonly rejected: OpResult[] = []
 
   constructor(private deps: EngineDeps) {
@@ -78,6 +87,7 @@ export class SyncEngine {
       this.cursor = Number(deps.storage.getItem(CURSOR_KEY) ?? 0) || 0
       this.deleted = JSON.parse(deps.storage.getItem(DELETED_KEY) ?? "{}")
       stored = JSON.parse(deps.storage.getItem(PREVIOUS_KEY) ?? "{}")
+      this.deferred = JSON.parse(deps.storage.getItem(DEFERRED_KEY) ?? "{}")
     } catch {
       this.snapshot = {}
       this.cursor = 0
@@ -100,6 +110,7 @@ export class SyncEngine {
     this.deps.storage.setItem(CURSOR_KEY, String(this.cursor))
     this.deps.storage.setItem(DELETED_KEY, JSON.stringify(this.deleted))
     this.deps.storage.setItem(PREVIOUS_KEY, JSON.stringify(this.previous))
+    this.deps.storage.setItem(DEFERRED_KEY, JSON.stringify(this.deferred))
   }
 
   /** Watch the mapped stores. Call once at app start (after sign-in). */
@@ -112,6 +123,8 @@ export class SyncEngine {
     for (const u of this.unsubscribe) u()
     this.unsubscribe = []
     if (this.timer) clearTimeout(this.timer)
+    if (this.retry) clearTimeout(this.retry)
+    this.retry = null
   }
 
   /** Coalesce a burst of edits into one diff. */
@@ -254,6 +267,7 @@ export class SyncEngine {
     try {
       await this.push()
       await this.pull()
+      this.showDeferred()
       this.backoffMs = 0
       this.deps.onSynced?.()
     } catch (error) {
@@ -263,7 +277,12 @@ export class SyncEngine {
         60_000,
         this.backoffMs ? this.backoffMs * 2 : 2_000,
       )
-      setTimeout(() => void this.sync(), this.backoffMs)
+      // One retry pending at a time, however many triggers failed.
+      if (this.retry) clearTimeout(this.retry)
+      this.retry = setTimeout(() => {
+        this.retry = null
+        void this.sync()
+      }, this.backoffMs)
     }
   }
 
@@ -283,6 +302,7 @@ export class SyncEngine {
         "POST",
         "/sync/push",
         { ops },
+        { timeoutMs: SYNC_TIMEOUT_MS },
       )
     } catch (error) {
       if (!(error instanceof ApiError) || !MALFORMED.has(error.status))
@@ -296,26 +316,34 @@ export class SyncEngine {
       this.quarantine(ops[0], error)
       return
     }
-    const byId = new Map(ops.map((o) => [o.op_id, o]))
+    const at = new Map(ops.map((o, i) => [o.op_id, i]))
     const rows: Change[] = []
+    const after = new Map<Change, SyncOp[]>()
     for (const r of res.results) {
-      const op = byId.get(r.op_id)
+      const i = at.get(r.op_id)
+      const op = i === undefined ? undefined : ops[i]
       if (r.status === "rejected") {
         this.rejected.push(r)
         this.deps.log?.("op_rejected", { name: op?.name, code: r.code })
       }
-      if (r.row && op?.kind === "upsert" && op.id)
-        rows.push({
+      if (r.row && op?.kind === "upsert" && op.id && i !== undefined) {
+        const c: Change = {
           entity: op.name,
           id: op.id,
           version: 0,
           deleted: false,
           row: r.row,
-        })
+        }
+        rows.push(c)
+        after.set(c, ops.slice(i + 1))
+      }
     }
-    // The server's row is authoritative (derived fields, LWW outcome).
-    this.apply(rows)
     this.deps.outbox.ack(res.results.map((r) => r.op_id))
+    // The server's row is authoritative (derived fields, LWW outcome), but
+    // it is the row as of ITS op: the ops after it in this batch and the
+    // ones still queued are not in it yet, so they are laid over it.
+    const queued = this.queued()
+    this.apply(rows, (c) => [...(after.get(c) ?? []), ...queued])
   }
 
   private quarantine(op: SyncOp, error: ApiError) {
@@ -350,7 +378,9 @@ export class SyncEngine {
         changes: Change[]
         cursor: number
         truncated: boolean
-      }>("GET", `/sync/pull?cursor=${this.cursor}&limit=500`)
+      }>("GET", `/sync/pull?cursor=${this.cursor}&limit=500`, undefined, {
+        timeoutMs: SYNC_TIMEOUT_MS,
+      })
       this.apply(page.changes)
       this.cursor = page.cursor
       this.persist()
@@ -358,14 +388,27 @@ export class SyncEngine {
     }
   }
 
+  private queued(): SyncOp[] {
+    return this.deps.outbox.peek(this.deps.outbox.size())
+  }
+
   /** Merge server rows into the stores without echoing them back.
    *
    * A local edit is only diffed into the outbox once the debounce fires. A
    * server row landing inside that window used to overwrite the store and
    * reset the diff baseline, so the newer edit was never sent. So any
-   * pending edit is captured into the outbox first; the server's row then
-   * shows until that op's own push brings the edited row back. */
-  apply(changes: Change[]) {
+   * pending edit is captured into the outbox first.
+   *
+   * A server row never undoes what this device did and has not yet heard
+   * back about (on a slow link a ticked set used to untick when the reply
+   * to an earlier edit of it landed, then tick again once its own push
+   * came back). Each row is rebased onto the ops still waiting for it
+   * (``pending``, by default the whole outbox): the fields its queued
+   * upserts write are laid over the server's, and a row a queued delete or
+   * action names is held back whole (an action's effect cannot be computed
+   * here) until the outbox no longer names it. Other fields of a rebased
+   * row still take the server's value, so another device's edit shows. */
+  apply(changes: Change[], pending?: (c: Change) => SyncOp[]) {
     if (!changes.length) return
     if (this.timer && !this.applying) {
       clearTimeout(this.timer)
@@ -373,6 +416,27 @@ export class SyncEngine {
       this.capture()
       void this.sync() // in flight: runs once more when this one finishes
     }
+    const queued = pending ? null : this.queued()
+    const shown: Change[] = []
+    for (const c of changes) {
+      const key = `${c.entity}:${c.id}`
+      const r = rebase(c, pending ? pending(c) : (queued as SyncOp[]))
+      if (r) {
+        delete this.deferred[key]
+        shown.push(r)
+      } else this.deferred[key] = c
+    }
+    this.merge(shown)
+  }
+
+  /** Show the server rows held back for ops that have since been answered
+   * (a row the pull did not bring again: the op changed nothing there). */
+  private showDeferred() {
+    const held = Object.values(this.deferred)
+    if (held.length) this.apply(held)
+  }
+
+  private merge(changes: Change[]) {
     const byEntity = new Map<string, Change[]>()
     for (const c of changes)
       byEntity.set(c.entity, [...(byEntity.get(c.entity) ?? []), c])
@@ -415,4 +479,31 @@ export class SyncEngine {
   settled() {
     return !this.timer && this.deps.outbox.size() === 0
   }
+}
+
+/** ``c`` as it will be once ``ops`` reach the server, or null while one of
+ * them makes the server's row meaningless to show (a delete, an action on
+ * the row, an undo of a delete the server's tombstone predates). */
+function rebase(c: Change, ops: SyncOp[]): Change | null {
+  let fields: Payload | null = null
+  for (const op of ops) {
+    if (op.kind === "action") {
+      // An id the action names, alone or in a list (tasks.remove task_ids).
+      if (
+        Object.values(op.data ?? {})
+          .flat()
+          .includes(c.id)
+      )
+        return null
+      continue
+    }
+    if (op.name !== c.entity || op.id !== c.id) continue
+    if (op.kind === "delete") return null
+    if (c.deleted && op.data?.deleted_at === null) return null
+    fields = { ...(fields ?? {}), ...op.data }
+  }
+  // A delete from the server wins over a queued edit, as the server rules
+  // (the edit's push comes back a conflict), so it shows now.
+  if (!fields || c.deleted || !c.row) return c
+  return { ...c, row: { ...c.row, ...fields } }
 }

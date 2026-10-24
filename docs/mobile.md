@@ -58,6 +58,7 @@ Ids: rows created on the device are UUID v4 (`shared/prototype/lib/ids.ts`). Row
 What happens offline and in each failure case:
 - Offline, the app keeps working on its stores. Ops wait in the outbox, which holds at most 5,000 and drops the oldest first, and are sent on reconnect, on returning to the foreground, on another device's change nudge, or once a minute.
 - A rejected op is logged and dropped from the outbox, and the device keeps its local value until the server row changes. A conflict means the server row wins.
+- A server row that arrives while ops for it are still queued (a pull, or the reply to an earlier op, on a slow link) is rebased onto them first, so it never undoes what was just done on the phone: queued field writes keep the device's value, and a row a queued action or delete names is held back until the outbox no longer names it (`rebase()` in `src/live/engine.ts`; `src/live/__tests__/local-first.test.ts` times it against a server with 3 s of latency).
 
 **Verified:**
 - `src/live/__tests__/sync.test.ts` covers diff rules, the offline outbox, action ordering, no echo, pulled deletes, restart persistence, the UUID v5 parity value and the SSE parser.
