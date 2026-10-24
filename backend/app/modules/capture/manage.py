@@ -5,8 +5,10 @@ Two card kinds cover every module: ``edit`` (payload ``entity``, ``ids``,
 owning module's ``public.py`` and the same rules as its screen. An edit
 keeps every row's earlier values in ``prior`` so Undo puts them back; a
 removal deletes what has a restore (a transaction, a task, a meal, a
-weigh-in) and archives the rest (a scheduled payment, an account, a budget,
-a habit, a routine), which keeps their history and undoes cleanly.
+weigh-in, a workout, a workout template, a saved food) and archives the rest
+(a scheduled payment, an account, a budget, a habit, a routine, an
+exercise), which keeps their history and undoes cleanly. Fitness edits are
+the fitness module's own (``fitness.chat``).
 """
 
 import uuid
@@ -17,9 +19,17 @@ from app.shared.context import Ctx
 from app.shared.domain import invalid
 
 FINANCE = ("record", "planned", "account", "budget")
-ENTITIES = (*FINANCE, "task", "habit", "routine", "meal", "weighIn")
+FITNESS = ports.fitness.chat
+FITNESS_EDITS = (*FITNESS.EDITS, *FITNESS.EDITS_TOO)
+ENTITIES = (
+    *FINANCE,
+    "task",
+    "habit",
+    "routine",
+    *dict.fromkeys((*FITNESS_EDITS, *FITNESS.REMOVALS)),
+)
 # What a removal does: archive (reversible, history kept) or delete.
-ARCHIVED = ("planned", "account", "budget", "habit", "routine")
+ARCHIVED = ("planned", "account", "budget", "habit", "routine", *FITNESS.ARCHIVED)
 
 
 def _ids(p: dict[str, Any]) -> list[uuid.UUID]:
@@ -51,6 +61,8 @@ def _edit_one(
         before = ports.tasks.task_state(ctx, task_id=row_id)
         ports.tasks.edit_task(ctx, task_id=row_id, changes=changes)
         return {k: before[k] for k in changes if k in before}
+    if entity in FITNESS_EDITS:
+        return FITNESS.edit(ctx, entity, row_id, changes)
     raise invalid("not_editable", "That can't be changed from chat")
 
 
@@ -87,6 +99,10 @@ def apply(ctx: Ctx, p: dict[str, Any]) -> tuple[list[str], dict[str, Any]]:
             ports.fitness.delete_meal(ctx, meal_id=i)
         elif entity == "weighIn":
             ports.fitness.delete_weigh_in(ctx, weigh_in_id=i)
+        elif entity in FITNESS.REMOVALS:
+            FITNESS.remove(ctx, entity, i)
+        else:
+            raise invalid("not_removable", "That can't be removed from chat")
     return [str(i) for i in ids], {
         "how": "archived" if entity in ARCHIVED else "deleted"
     }
@@ -100,7 +116,11 @@ def undo(ctx: Ctx, p: dict[str, Any], refs: list[str], prior: dict[str, Any]) ->
         before: dict[str, Any] = dict(prior.get("before") or {})
         for i in ids:
             values = before.get(str(i))
-            if values:
+            if not values:
+                continue
+            if entity in FITNESS_EDITS:
+                FITNESS.undo_edit(ctx, entity, i, dict(values))
+            else:
                 _edit_one(ctx, entity, i, dict(values))
         return
     for i in ids:
@@ -123,3 +143,5 @@ def undo(ctx: Ctx, p: dict[str, Any], refs: list[str], prior: dict[str, Any]) ->
             ports.fitness.restore_meal(ctx, meal_id=i)
         elif entity == "weighIn":
             ports.fitness.restore_weigh_in(ctx, weigh_in_id=i)
+        elif entity in FITNESS.REMOVALS:
+            FITNESS.restore(ctx, entity, i)

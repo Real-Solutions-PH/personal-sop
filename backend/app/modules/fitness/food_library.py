@@ -274,8 +274,38 @@ def food_public(f: FoodItem) -> dict[str, Any]:
     }
 
 
+# What a person can change on a saved food.
+EDITABLE = ("name", "basis", "unit_grams", "state", "aliases", *NUTRIENTS)
+
+
+def update_food(ctx: Ctx, food_id: uuid.UUID, changes: dict[str, Any]) -> FoodItem:
+    """Change a saved food's name, basis, aliases or numbers; a new name
+    becomes its new key. Flushes only."""
+    row = owned_repo.require(ctx, FoodItem, food_id, what="food")
+    data = {k: v for k, v in changes.items() if k in EDITABLE}
+    if "name" in data:
+        key = fold(str(data["name"]))
+        if not key:
+            raise ValueError("a food needs a name")
+        data["name"] = str(data["name"]).strip()[:160]
+        data["key"] = key[:160]
+    if "aliases" in data:
+        data["aliases"] = sorted({fold(a) for a in data["aliases"] if fold(a)})
+    owned_repo.apply(row, data)
+    ctx.session.add(row)
+    ctx.session.flush()
+    return row
+
+
 def delete_food(ctx: Ctx, food_id: uuid.UUID) -> None:
     owned_repo.soft_delete(ctx, owned_repo.require(ctx, FoodItem, food_id, what="food"))
+
+
+def restore_food(ctx: Ctx, food_id: uuid.UUID) -> None:
+    owned_repo.restore(
+        ctx,
+        owned_repo.require(ctx, FoodItem, food_id, what="food", include_deleted=True),
+    )
 
 
 def count_foods(ctx: Ctx) -> int:

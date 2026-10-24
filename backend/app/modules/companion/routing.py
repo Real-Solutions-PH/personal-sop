@@ -32,6 +32,26 @@ CORE = frozenset(
     }
 )
 
+# Changing fitness records that exist; "manage" words alone offer the edits
+# ("rename lat pulldown"), fitness words offer them all.
+FITNESS_EDITS = frozenset(
+    {
+        "edit_exercise",
+        "edit_workout_template",
+        "edit_workout",
+        "edit_meal",
+        "edit_weigh_in",
+        "edit_food",
+    }
+)
+FITNESS_MANAGE = FITNESS_EDITS | {
+    "create_exercise",
+    "start_workout",
+    "copy_meal",
+    "set_macro_target",
+    "fitness_settings",
+}
+
 GROUPS: dict[str, tuple[frozenset[str], re.Pattern[str]]] = {
     "money": (
         frozenset(
@@ -108,6 +128,7 @@ GROUPS: dict[str, tuple[frozenset[str], re.Pattern[str]]] = {
                 "save_food",
                 "find_foods",
                 "reread_photos",
+                *FITNESS_MANAGE,
             }
         ),
         re.compile(
@@ -116,8 +137,13 @@ GROUPS: dict[str, tuple[frozenset[str], re.Pattern[str]]] = {
             r"food|kcal|calories?|protein|carbs?|fats?|fiber|sugar|sodium|"
             r"macros?|nutrition|workouts?|gym|run|ran|walk(ed)?|bike|swim|"
             r"lift(ed)?|bench|squat|deadlift|press|sets?|reps?|kg|lbs?|weigh\w*|"
-            r"weight|body ?fat|train(ing)?|exercise|cardio|steps|drank|drink|"
-            r"coffee|rice)\b",
+            r"weight|body ?fat|train(ing)?|exercises?|cardio|steps|drank|drink|"
+            r"coffee|rice|templates?|(push|pull|leg|upper|lower|arm) day|split|"
+            r"curls?|rows?|pull-?ups?|pulldowns?|raises?|plank|treadmill|"
+            r"lunges?|rest (time|timer)|macro target|goal weight|food library|"
+            r"saved foods?)\b"
+            # "8kg", "3x12": a number joined to its unit has no word break.
+            r"|\d ?(kg|lbs?)\b|\b\d+ ?x ?\d+\b",
             re.I,
         ),
     ),
@@ -138,6 +164,7 @@ GROUPS: dict[str, tuple[frozenset[str], re.Pattern[str]]] = {
                 "update_routine",
                 "find_fitness_logs",
                 "remove_item",
+                *FITNESS_EDITS,
             }
         ),
         re.compile(

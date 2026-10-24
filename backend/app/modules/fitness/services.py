@@ -819,7 +819,10 @@ def _put_template(
     items: list[tuple[uuid.UUID, int]],
     *,
     sort_order: int | None = None,
+    target_secs: list[int | None] | None = None,
 ) -> WorkoutTemplate:
+    """Write a template's name and slots. ``target_secs`` (one per item)
+    also sets each slot's timed goal; without it a slot keeps its own."""
     existing = owned_repo.get(ctx, WorkoutTemplate, template_id, include_deleted=True)
     data: dict[str, Any] = {"name": name}
     if sort_order is not None:
@@ -835,11 +838,19 @@ def _put_template(
     t, _ = owned_repo.upsert(ctx, WorkoutTemplate, template_id, data)
     # Items are slots by position: rewrite slot i, tombstone the rest.
     for pos, (ex_id, sets) in enumerate(items):
+        slot: dict[str, Any] = {
+            "template_id": t.id,
+            "exercise_id": ex_id,
+            "position": pos,
+            "sets": sets,
+        }
+        if target_secs is not None:
+            slot["target_sec"] = target_secs[pos]
         owned_repo.upsert(
             ctx,
             TemplateItem,
             derived_id("template-item", t.id, str(pos)),
-            {"template_id": t.id, "exercise_id": ex_id, "position": pos, "sets": sets},
+            slot,
             natural_key=("template_id", "position"),
         )
     for it in repo.template_items(ctx, t.id):
