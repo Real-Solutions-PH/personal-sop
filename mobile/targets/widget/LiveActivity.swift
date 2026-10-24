@@ -71,35 +71,43 @@ struct LiveProgress: View {
   }
 }
 
+/** A control on the lock screen or in the Dynamic Island. Its title shows
+ * while title and symbol fit whole in the button's share of the row; when
+ * they would be cut off it keeps only the symbol. The full name is always
+ * the accessibility label, and the button is 44pt tall. */
 struct LiveButton: View {
   var action: String
   var state: LiveState
   var body: some View {
-    let (title, symbol, primary) = Self.look(action)
+    let (title, symbol, primary, name) = Self.look(action, kind: state.kind)
     Button(intent: LiveControlIntent(action, state: state)) {
-      Label(title, systemImage: symbol)
-        .font(.system(size: 13, weight: .semibold))
-        .labelStyle(.titleAndIcon)
-        .lineLimit(1)
-        .frame(maxWidth: .infinity, minHeight: 34)
-        .foregroundStyle(primary ? Tone.card : Tone.text)
-        .background(Capsule().fill(primary ? Tone.primary : Tone.soft))
+      ViewThatFits(in: .horizontal) {
+        Label(title, systemImage: symbol).labelStyle(.titleAndIcon).fixedSize()
+        Label(title, systemImage: symbol).labelStyle(.iconOnly).font(.system(size: 16, weight: .semibold))
+      }
+      .font(.system(size: 13, weight: .semibold))
+      .padding(.horizontal, 4)
+      .frame(maxWidth: .infinity, minHeight: 44)
+      .foregroundStyle(primary ? Tone.card : Tone.text)
+      .background(Capsule().fill(primary ? Tone.primary : Tone.soft))
+      .contentShape(Capsule())
     }
     .buttonStyle(.plain)
-    .accessibilityLabel(title)
+    .accessibilityLabel(name)
   }
 
-  static func look(_ action: String) -> (String, String, Bool) {
+  static func look(_ action: String, kind: String) -> (String, String, Bool, String) {
     switch action {
-    case "done": return ("Done", "checkmark", true)
-    case "skip": return ("Skip", "forward.end", false)
-    case "pause": return ("Pause", "pause.fill", false)
-    case "resume": return ("Resume", "play.fill", false)
-    case "finishSet": return ("Set done", "checkmark", true)
-    case "skipRest": return ("Skip rest", "forward.end", false)
-    case "addRest": return ("+30s", "plus", false)
-    case "finish": return ("Finish", "flag.checkered", false)
-    default: return (action, "circle", false)
+    case "done": return ("Done", "checkmark", true, "Step done")
+    case "skip": return ("Skip", "forward.end", false, "Skip step")
+    case "pause": return ("Pause", "pause.fill", false, kind == "routine" ? "Pause routine" : "Pause timer")
+    case "resume": return ("Resume", "play.fill", false, kind == "routine" ? "Resume routine" : "Resume timer")
+    case "finishSet": return ("Set done", "checkmark", true, "Complete set")
+    case "skipRest": return ("Skip rest", "forward.end", false, "Skip rest")
+    case "addRest": return ("+30s", "goforward.30", false, "Rest 30 seconds more")
+    case "finish":
+      return ("Finish", "flag.checkered", false, kind == "workout" ? "Finish workout" : "Finish timer")
+    default: return (action, "circle", false, action)
     }
   }
 }
@@ -107,7 +115,7 @@ struct LiveButton: View {
 struct LiveLockScreen: View {
   var state: LiveState
   var body: some View {
-    VStack(alignment: .leading, spacing: 10) {
+    VStack(alignment: .leading, spacing: 8) {
       HStack(spacing: 6) {
         Image(systemName: state.symbol).foregroundStyle(state.accent)
         Text("\(state.icon) \(state.title)").font(.system(size: 13, weight: .medium))
@@ -139,7 +147,8 @@ struct LiveLockScreen: View {
         }
       }
     }
-    .padding(16)
+    .padding(.horizontal, 16)
+    .padding(.vertical, 12)
   }
 }
 

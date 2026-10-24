@@ -3,6 +3,7 @@ import {
   BellOff,
   Camera,
   Check,
+  PenLine,
   Pin,
   PinOff,
   Search,
@@ -23,6 +24,7 @@ import Swipeable from "react-native-gesture-handler/ReanimatedSwipeable"
 import Animated, { FadeIn, FadeInDown, ZoomIn } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
+import { Measure } from "../native-kit"
 import { go, replace } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import { Sheet, undo } from "../ui"
@@ -573,16 +575,7 @@ export function Inbox() {
                     <Bubble text={myNote?.text} mine />
                     <Avatar id={ME} size={72} ring={false} />
                   </View>
-                  <Text
-                    numberOfLines={1}
-                    style={{
-                      color: t.muted,
-                      fontSize: 12,
-                      fontFamily: fonts.body,
-                    }}
-                  >
-                    {myNote ? "Your note" : "Leave a note"}
-                  </Text>
+                  <NoteLabel text={myNote ? "Your note" : "Leave a note"} />
                 </Pressable>
                 {notes
                   .filter((n) => n.by !== ME)
@@ -884,6 +877,26 @@ export function NewChat() {
         }}
         contentContainerStyle={{ paddingBottom: safe.bottom + 24 }}
       />
+    </View>
+  )
+}
+// The label under your own note bubble. At a larger text size it would be
+// cut off in its 80pt column, so a pen stands in for it; the button keeps
+// the full name for screen readers.
+function NoteLabel({ text }: { text: string }) {
+  const t = useTheme()
+  const [need, setNeed] = useState(0)
+  const style = { color: t.muted, fontSize: 12, fontFamily: fonts.body }
+  return (
+    <View style={{ width: 80, alignItems: "center", overflow: "hidden" }}>
+      {need === 0 ? null : need <= 80 ? (
+        <Text numberOfLines={1} style={style}>
+          {text}
+        </Text>
+      ) : (
+        <PenLine size={16} color={t.muted} />
+      )}
+      <Measure text={text} style={style} onWidth={setNeed} />
     </View>
   )
 }

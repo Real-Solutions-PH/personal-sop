@@ -57,6 +57,8 @@ jest.mock("../media", () => ({ exportCsv: jest.fn(), pickPhoto: jest.fn() }))
 
 const { ToolButton } =
   require("../native-kit") as typeof import("../native-kit")
+const { AppLauncher } =
+  require("../app-launcher") as typeof import("../app-launcher")
 const { WorkoutLogger } =
   require("../screens/fitness-logger") as typeof import("../screens/fitness-logger")
 const { RoutinePlayer } =
@@ -220,5 +222,30 @@ describe("active routine", () => {
     expect(run().current).toBe(1)
     fireEvent.press(screen.getByLabelText("Previous step"))
     expect(run().current).toBe(0)
+  })
+})
+
+describe("app launcher", () => {
+  it("names its tiles only while every name fits, else keeps icons", () => {
+    render(<AppLauncher />, { wrapper })
+    const names = [
+      "Habits",
+      "Tasks",
+      "Fitness",
+      "Nutrition",
+      "Finance",
+      "Journal",
+    ].filter((n) => screen.queryByLabelText(n))
+    expect(names.length).toBeGreaterThan(2)
+    layout(screen.getByTestId("app-launcher-row"), 343)
+    for (const n of names) layout(measurer(n), 40)
+    for (const n of names) expect(screen.getByText(n)).toBeTruthy()
+    // One name grows past its tile at a larger text size: the whole row
+    // drops to icons, and every tile is still reachable by its name.
+    layout(measurer(names[0]), 90)
+    for (const n of names) {
+      expect(screen.queryByText(n)).toBeNull()
+      expect(screen.getByLabelText(n)).toBeTruthy()
+    }
   })
 })

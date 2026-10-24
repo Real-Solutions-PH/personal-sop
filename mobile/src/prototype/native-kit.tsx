@@ -236,28 +236,44 @@ export function ToolButton({
           {label}
         </Text>
       )}
-      <View
-        pointerEvents="none"
-        aria-hidden
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-        style={{
-          position: "absolute",
-          left: 0,
-          top: 0,
-          width: 1000,
-          flexDirection: "row",
-          opacity: 0,
-        }}
-      >
-        <Text
-          style={text}
-          onLayout={(e) => setNeed(Math.ceil(e.nativeEvent.layout.width))}
-        >
-          {label}
-        </Text>
-      </View>
+      <Measure text={label} style={text} onWidth={setNeed} />
     </Pressable>
+  )
+}
+/** Lays a label out off-screen, unconstrained, and reports its natural width
+ * at the phone's current text size. Hidden from screen readers; the parent
+ * should clip overflow so it never widens the page. */
+export function Measure({
+  text,
+  style,
+  onWidth,
+}: {
+  text: string
+  style: TextStyle
+  onWidth: (width: number) => void
+}) {
+  return (
+    <View
+      pointerEvents="none"
+      aria-hidden
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{
+        position: "absolute",
+        left: 0,
+        top: 0,
+        width: 1000,
+        flexDirection: "row",
+        opacity: 0,
+      }}
+    >
+      <Text
+        style={style}
+        onLayout={(e) => onWidth(Math.ceil(e.nativeEvent.layout.width))}
+      >
+        {text}
+      </Text>
+    </View>
   )
 }
 export function SmallButton({
