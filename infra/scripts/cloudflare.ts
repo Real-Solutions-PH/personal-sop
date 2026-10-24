@@ -11,7 +11,7 @@
  * | Object | Value |
  * |---|---|
  * | Tunnel `unfurl` (remotely managed) | created once |
- * | Secret `unfurl/cloudflared-tunnel` in Secrets Manager | `{"token": …}`, read by the stack's cloudflared service |
+ * | Secret `unfurl/tunnel-token` in Secrets Manager | `{"token": …}`, read by the stack's cloudflared service |
  * | Tunnel ingress | `<apiHost>` + `^/auth/v1/` → `http://auth.unfurl.internal:8080`; `<apiHost>` → `http://api.unfurl.internal:8000`; else 404 |
  * | `<apiHost>` CNAME | `<tunnel id>.cfargotunnel.com`, proxied |
  * | `<token>._domainkey.<emailDomain>` ×3 | SES Easy DKIM (once the stack has created the identity) |

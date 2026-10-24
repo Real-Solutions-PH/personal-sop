@@ -35,6 +35,7 @@ import {
   BACKEND_REPOSITORY,
   IMAGES,
   internalUrl,
+  LOOKS_LIKE_ARN_SUFFIX,
   POSTGRES_FULL_VERSION,
   POSTGRES_MAJOR_VERSION,
   PREFIX,
@@ -209,13 +210,20 @@ export class ProdStack extends Stack {
       name: string,
       description: string,
       opts: Partial<secretsmanager.SecretProps> = {},
-    ) =>
-      new secretsmanager.Secret(this, name, {
-        secretName: `${PREFIX}/${name.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase()}`,
+    ) => {
+      const secretName = `${PREFIX}/${name.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase()}`
+      if (LOOKS_LIKE_ARN_SUFFIX.test(secretName)) {
+        throw new Error(
+          `secret name ${secretName} ends like an ARN suffix (see config.ts)`,
+        )
+      }
+      return new secretsmanager.Secret(this, name, {
+        secretName,
         description,
         removalPolicy: RETAIN,
         ...opts,
       })
+    }
     const generatedPassword = (
       template: Record<string, string>,
     ): secretsmanager.SecretStringGenerator => ({
@@ -297,7 +305,7 @@ export class ProdStack extends Stack {
 
     /** RDS master user `postgres`. */
     const masterPasswordSecret = secret(
-      "DbMaster",
+      "RdsMasterUser",
       "RDS master user password",
       {
         generateSecretString: generatedPassword({ username: "postgres" }),

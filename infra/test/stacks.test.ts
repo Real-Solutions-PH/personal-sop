@@ -6,7 +6,14 @@ import { Match, Template } from "aws-cdk-lib/assertions"
 import { BACKEND_DEFAULTED } from "../lib/backend-env"
 import { CiStack } from "../lib/ci-stack"
 import { RATE_LIMITS } from "../lib/cloudflare"
-import { IMAGES, loadConfig, PROFILES } from "../lib/config"
+import {
+  IMAGES,
+  LOOKS_LIKE_ARN_SUFFIX,
+  loadConfig,
+  PROFILES,
+  THIRD_PARTY_SECRET,
+  TUNNEL_TOKEN_SECRET,
+} from "../lib/config"
 import { ProdStack } from "../lib/prod-stack"
 
 const cdkJson = JSON.parse(
@@ -206,9 +213,7 @@ describe("tunnel", () => {
     expect(c.Image).toBe(IMAGES.cloudflared)
     expect(c.Command).toEqual(["tunnel", "--metrics", "0.0.0.0:2000", "run"])
     expect(secretNames(c)).toEqual(["TUNNEL_TOKEN"])
-    expect(JSON.stringify(c.Secrets)).toContain(
-      "secret:unfurl/cloudflared-tunnel",
-    )
+    expect(JSON.stringify(c.Secrets)).toContain("secret:unfurl/tunnel-token")
   })
 
   test("the backend tasks read the script-owned third-party secret by its partial ARN", () => {
@@ -221,10 +226,10 @@ describe("tunnel", () => {
   })
 
   test("the tunnel's execution role can read the token secret by its partial ARN", () => {
-    // ECS asks for `secret:unfurl/cloudflared-tunnel` without the random
+    // ECS asks for `secret:unfurl/tunnel-token` without the random
     // suffix; a `-??????` resource alone was denied on the first deploy.
     const policies = JSON.stringify(prod.findResources("AWS::IAM::Policy"))
-    expect(policies).toContain("secret:unfurl/cloudflared-tunnel*")
+    expect(policies).toContain("secret:unfurl/tunnel-token*")
   })
 
   test("every task stop, with its reason, goes to a kept log group", () => {
@@ -662,6 +667,26 @@ describe("backend environment", () => {
   })
 })
 
+describe("secret names", () => {
+  test("none ends like an ARN suffix (a hyphen and six characters)", () => {
+    const names = [
+      ...Object.values(prod.findResources("AWS::SecretsManager::Secret")).map(
+        (r) => r.Properties.Name as string,
+      ),
+      TUNNEL_TOKEN_SECRET,
+      THIRD_PARTY_SECRET,
+    ]
+    expect(names.length).toBeGreaterThan(8)
+    for (const n of names)
+      expect({ n, bad: LOOKS_LIKE_ARN_SUFFIX.test(n) }).toEqual({
+        n,
+        bad: false,
+      })
+    // The rule itself catches the name that broke the tunnel.
+    expect(LOOKS_LIKE_ARN_SUFFIX.test("unfurl/cloudflared-tunnel")).toBe(true)
+  })
+})
+
 describe("generated passwords", () => {
   test("are letters and digits only (they go into connection URLs)", () => {
     const generators = Object.values(
@@ -669,7 +694,7 @@ describe("generated passwords", () => {
     )
       .map((r) => r.Properties.GenerateSecretString)
       .filter(Boolean)
-    // auth-db, app-user-db, app (first superuser), db-master.
+    // auth-db, app-user-db, app (first superuser), rds-master-user.
     expect(generators.length).toBe(4)
     for (const g of generators) {
       expect(g.ExcludePunctuation).toBe(true)
@@ -682,7 +707,7 @@ describe("generated passwords", () => {
 
   test("the RDS master secret is ours, named and kept", () => {
     prod.hasResource("AWS::SecretsManager::Secret", {
-      Properties: Match.objectLike({ Name: "unfurl/db-master" }),
+      Properties: Match.objectLike({ Name: "unfurl/rds-master-user" }),
       DeletionPolicy: "RetainExceptOnCreate",
     })
   })

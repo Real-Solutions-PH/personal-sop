@@ -70,7 +70,7 @@ What `lean` gives up: with one task per service, a crashed task means a minute o
 |---|---|
 | ECR repository `unfurl-backend` | Immutable tags (the git SHA), scan on push, keeps the last 30 images |
 | GitHub OIDC provider | `token.actions.githubusercontent.com`; the account had none |
-| IAM role `unfurl-github-deploy` | Trusts only `repo:Real-Solutions-PH/personal-sop:environment:production`. It can push to the repository, assume the `cdk bootstrap` roles, read the SES identity, and create or update the `unfurl/cloudflared-tunnel` secret. Nothing else |
+| IAM role `unfurl-github-deploy` | Trusts only `repo:Real-Solutions-PH/personal-sop:environment:production`. It can push to the repository, assume the `cdk bootstrap` roles, read the SES identity, and create or update the `unfurl/tunnel-token` secret. Nothing else |
 
 ### `UnfurlProd`: everything that runs
 
@@ -80,7 +80,7 @@ What `lean` gives up: with one task per service, a crashed task means a minute o
 | | Security groups | **None admits an internet address.** `unfurl-tunnel` and `unfurl-worker` admit nothing. `unfurl-api` admits the tunnel on 8000. `unfurl-gotrue` admits the tunnel, the API and the worker on 8080. The DB admits the three task groups on 5432; the cache admits the API and worker on 6379. Egress is listed: 443 (images, Secrets Manager, CloudWatch, S3, provider APIs), 587 (SES SMTP), 7844 TCP/UDP for the tunnel, and the data stores |
 | Edge | Cloudflare Tunnel `unfurl` | Created by [`infra/scripts/cloudflare.ts`](../infra/scripts/cloudflare.ts) (next section). The stack runs its connector |
 | Compute | ECS cluster `unfurl` (Fargate, arm64) + Cloud Map namespace `unfurl.internal` | API and GoTrue register A records `api.unfurl.internal`, `auth.unfurl.internal` |
-| | `unfurl-tunnel` | `cloudflare/cloudflared:2026.10.3`, `tunnel run` with the token from `unfurl/cloudflared-tunnel`. Starts after the API and GoTrue |
+| | `unfurl-tunnel` | `cloudflare/cloudflared:2026.10.3`, `tunnel run` with the token from `unfurl/tunnel-token`. Starts after the API and GoTrue |
 | | `unfurl-api` | Backend image, `fastapi run --workers 2` on port 8000. A container health check on `/api/v1/utils/health-check/` makes ECS replace an unhealthy task |
 | | `unfurl-worker` | Same image. A one-shot `migrate` container runs `scripts/prestart.sh` (Alembic `upgrade head`, then the seed). The `procrastinate` worker starts only if it succeeds |
 | | `unfurl-gotrue` | A one-shot `db-setup` container (the backend image running [`infra/lib/db-setup.ts`](../infra/lib/db-setup.ts)) prepares the database, then `public.ecr.aws/supabase/gotrue:v2.197.0` starts on 127.0.0.1:9999, behind an `nginx:1.31.8-alpine` proxy on 8080 that strips `/auth/v1` and passes `CF-Connecting-IP` to GoTrue as the client address. Health check: `/auth/v1/health` through nginx |
@@ -97,7 +97,7 @@ What `lean` gives up: with one task per service, a crashed task means a minute o
 
 | Secret | Holds | Filled by |
 |---|---|---|
-| `unfurl/db-master` | RDS master user `postgres` | RDS, generated |
+| `unfurl/rds-master-user` | RDS master user `postgres` | RDS, generated |
 | `unfurl/auth-db` | `supabase_auth_admin` password | Secrets Manager, generated |
 | `unfurl/app-user-db` | `app_user` password (the RLS-enforced role) | Secrets Manager, generated |
 | `unfurl/gotrue` | ES256 signing key (`jwt_keys`), HS256 fallback (`jwt_secret`), `anon_key`, `service_role_key` | `BootstrapSecrets` function, once, at stack creation |
@@ -105,7 +105,7 @@ What `lean` gives up: with one task per service, a crashed task means a minute o
 | `unfurl/app` | `first_superuser_password` (generated), `ai_credentials_kek` (bootstrap function) | The stack |
 | `unfurl/third-party` | `nebius_api_key`, `deepgram_api_key`, `openrouter_api_key`, `brave_api_key`, `expo_access_token`, `sentry_dsn` | **`infra/scripts/third-party-secrets.ts`**, from a `.env` file, **before the first deploy**. The API won't start with AI on and no Nebius key, so the script refuses to write without one. Empty fields reach the backend as unset. The stack reads it by name |
 | `unfurl/auth-providers` | Apple and Google client IDs and secrets | **By hand**, once the accounts exist |
-| `unfurl/cloudflared-tunnel` | `{"token": …}` for the tunnel | **`infra/scripts/cloudflare.ts`**, which owns it. It's not a CloudFormation resource; the stack reads it by name |
+| `unfurl/tunnel-token` | `{"token": …}` for the tunnel | **`infra/scripts/cloudflare.ts`**, which owns it. It's not a CloudFormation resource; the stack reads it by name |
 
 The stack's secrets are kept (`RETAIN`) if the stack is deleted.
 
@@ -116,7 +116,7 @@ The stack's secrets are kept (`RETAIN`) if the stack is deleted.
 | Object | Value |
 |---|---|
 | Tunnel `unfurl` | Remotely managed; created once |
-| Secret `unfurl/cloudflared-tunnel` | The tunnel's token, created or updated in Secrets Manager; never printed |
+| Secret `unfurl/tunnel-token` | The tunnel's token, created or updated in Secrets Manager; never printed |
 | Tunnel ingress | `unfurl-api.realsolutionsph.com` + path `^/auth/v1/` → `http://auth.unfurl.internal:8080`; `unfurl-api.realsolutionsph.com` → `http://api.unfurl.internal:8000`; anything else → 404. Idle origin connections kept 300 s |
 | `unfurl-api.realsolutionsph.com` CNAME | `<tunnel id>.cfargotunnel.com`, proxied |
 | `<token>._domainkey.unfurl.realsolutionsph.com` CNAME ×3 | `<token>.dkim.amazonses.com` (once the stack has created the SES identity) |
@@ -167,7 +167,7 @@ Every setting in `backend/app/core/config.py` is either set by the stack or list
 | `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | Secret `unfurl/gotrue` |
 | `POSTGRES_SERVER`, `POSTGRES_PORT` | RDS endpoint |
 | `POSTGRES_DB`, `POSTGRES_USER` | `app`, `postgres` |
-| `POSTGRES_PASSWORD` | Secret `unfurl/db-master` |
+| `POSTGRES_PASSWORD` | Secret `unfurl/rds-master-user` |
 | `POSTGRES_APP_USER`, `POSTGRES_APP_PASSWORD` | `app_user`, secret `unfurl/app-user-db`. Tenant RLS is enforced from the first deploy |
 | `REDIS_URL` | `rediss://<cache endpoint>:6379/0` |
 | `CLIENT_IP_HEADER` | `CF-Connecting-IP` |
