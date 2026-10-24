@@ -123,7 +123,7 @@ export function JournalCard({
         </View>
       ) : (
         <View style={{ flex: 1, justifyContent: "center", gap: 4 * q }}>
-          <Words size={9} weight="semibold">
+          <Words size={tall ? 9 : 7} weight="semibold">
             {`Wrote on ${fmt(d.days30)} of 30 days`}
           </Words>
           <Dots

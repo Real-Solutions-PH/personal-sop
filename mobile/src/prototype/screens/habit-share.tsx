@@ -274,13 +274,13 @@ export function HabitCard({
     )
   } else {
     const b = data.board,
-      top = b.top.slice(0, tall ? 5 : 3),
+      top = b.top.slice(0, tall ? 5 : look.format === "1:1" ? 2 : 3),
       max = Math.max(1, ...top.map((x) => x.streak)),
       delta = Math.round((b.rate - b.prevRate) * 100)
     body = (
       <View style={{ flex: 1, justifyContent: "center", gap: 4 * q }}>
         <Line style={{ gap: 4 * q }}>
-          <CardRing value={b.rate} size={32} color={hab}>
+          <CardRing value={b.rate} size={tall ? 32 : 26} color={hab}>
             <Num size={8} align="center">
               {pct(b.rate)}
             </Num>

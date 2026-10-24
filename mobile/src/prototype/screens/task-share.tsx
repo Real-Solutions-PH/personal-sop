@@ -129,11 +129,16 @@ export function TaskCard({
     body = (
       <View style={{ flex: 1, justifyContent: "center", gap: 4.5 * q }}>
         <View style={{ gap: 2 * q }}>
-          <Words size={8} weight="semibold" lines={1}>
+          <Words size={tall ? 8 : 6} weight="semibold" lines={1}>
             {RANGE_LABEL[s.range].replace(/^./, (x) => x.toUpperCase())}
           </Words>
           <View
-            style={{ flexDirection: "row", flexWrap: "wrap", gap: 1.6 * q }}
+            style={{
+              flexDirection: "row",
+              flexWrap: "wrap",
+              gap: 1.6 * q,
+              display: look.format === "1:1" ? "none" : "flex",
+            }}
           >
             <Chip icon={Flame} tone={tsk}>
               {verdict(s.onTimeRate)}
@@ -209,7 +214,11 @@ export function TaskCard({
         }}
       >
         <Label align="center">Follow-through ratio</Label>
-        <CardRing value={ratio} size={tall ? 56 : 42} color={tsk}>
+        <CardRing
+          value={ratio}
+          size={tall ? 56 : look.format === "1:1" ? 34 : 42}
+          color={tsk}
+        >
           <Num size={tall ? 16 : 12} align="center">
             {`${group(s.followThrough, 1)}×`}
           </Num>
@@ -218,9 +227,11 @@ export function TaskCard({
         <Chip icon={Flame} tone={tsk}>
           {verdict(ratio)}
         </Chip>
-        <Words size={3.4} align="center" muted>
-          Tasks finished for every one that slipped. Late counts half.
-        </Words>
+        {look.format !== "1:1" && (
+          <Words size={3.4} align="center" muted>
+            Tasks finished for every one that slipped. Late counts half.
+          </Words>
+        )}
         {tall && (
           <View style={{ alignSelf: "stretch", marginTop: 2 * q }}>
             <Stats

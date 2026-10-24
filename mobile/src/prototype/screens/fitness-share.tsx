@@ -198,10 +198,10 @@ export function WorkoutCard({
     body = (
       <View style={{ flex: 1, justifyContent: "center", gap: 3.5 * q }}>
         <View style={{ gap: 2 * q }}>
-          <Words size={9} weight="semibold">
+          <Words size={sq ? 7 : 9} weight="semibold" lines={sq ? 1 : 2}>
             {d.name}
           </Words>
-          {d.prs.length > 0 && (
+          {d.prs.length > 0 && !sq && (
             <Chip icon={Trophy} tone={fitC}>
               {`${fmt(d.prs.length)} personal ${d.prs.length === 1 ? "record" : "records"}`}
             </Chip>

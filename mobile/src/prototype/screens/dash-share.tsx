@@ -342,7 +342,7 @@ export function Artwork({
           <Hexagon
             facets={d.facets30}
             days={30}
-            size={sq ? 40 : tall ? 46 : 34}
+            size={sq ? 40 : tall ? 46 : 28}
           />
         )}
         {on.areas && (tall || !on.hexagon) && !sq && (
@@ -465,7 +465,7 @@ export function Artwork({
         </View>
         {!sq && <Dots cells={dayDots(d.w30.range)} cols={10} color={life} />}
         {on.hexagon && tall && (
-          <Hexagon facets={d.facets30} days={30} size={30} />
+          <Hexagon facets={d.facets30} days={30} size={24} />
         )}
         <Stats items={items} cols={tall ? 2 : 4} size={tall ? 9 : 6.5} />
         {on.highlight && tall && !on.hexagon && (
@@ -629,8 +629,8 @@ export function Artwork({
         </Line>
         {on.identity &&
           !sq &&
-          d.identities.slice(0, 3).map((x) => (
-            <Words key={x} size={3.6} muted>
+          d.identities.slice(0, 2).map((x) => (
+            <Words key={x} size={3.6} lines={1} muted>
               {`“${x}”`}
             </Words>
           ))}
