@@ -541,6 +541,7 @@ export function Screen({
             accessibilityRole="button"
             accessibilityLabel="Back"
             onPress={() => back()}
+            hitSlop={4}
             style={{
               minWidth: prototypeLayout ? 40 : 44,
               minHeight: 44,

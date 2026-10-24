@@ -150,6 +150,132 @@ export function IconTap({
     </Tap>
   )
 }
+// A bar control that never shows a cut-off label. The label is measured at
+// the phone's own text size: while it fits whole it is shown, and when it
+// would be truncated the button keeps only its icon. The full name is the
+// accessibility label either way, and the touch target is at least 44pt.
+// Sizing: `width` fixes it, `max` lets it hug its content up to that width,
+// and with neither it fills the space its parent gives it (`style.flex`).
+export function ToolButton({
+  icon: Icon,
+  label,
+  name = label,
+  onPress,
+  disabled = false,
+  tone = "quiet",
+  keepIcon = false,
+  stacked = false,
+  width,
+  max,
+  style,
+}: {
+  icon: LucideIcon
+  label: string
+  /** The full name for screen readers, when the label is a short form. */
+  name?: string
+  onPress: () => void
+  disabled?: boolean
+  tone?: "quiet" | "primary"
+  /** Shows the icon beside (or above) the label while the label fits. */
+  keepIcon?: boolean
+  stacked?: boolean
+  width?: number
+  max?: number
+  style?: ViewStyle
+}) {
+  const t = useTheme()
+  const [box, setBox] = useState(0)
+  const [need, setNeed] = useState(0)
+  const pad = stacked ? 6 : 12,
+    room = width ?? max ?? box,
+    fits =
+      need > 0 &&
+      room > 0 &&
+      need + (keepIcon && !stacked ? 22 : 0) + pad * 2 <= room,
+    color = tone === "primary" ? (t.dark ? t.bg : "#FFF") : t.text,
+    text: TextStyle = {
+      fontFamily: fonts.semibold,
+      fontSize: stacked ? 12 : 14,
+      color,
+    }
+  return (
+    <Pressable
+      cssInterop={false}
+      accessibilityRole="button"
+      accessibilityLabel={name}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      hitSlop={4}
+      onLayout={
+        width || max ? undefined : (e) => setBox(e.nativeEvent.layout.width)
+      }
+      onPress={() => {
+        void Haptics.selectionAsync().catch(() => {})
+        onPress()
+      }}
+      style={({ pressed }) => ({
+        minWidth: 44,
+        minHeight: 44,
+        width,
+        maxWidth: max,
+        flexDirection: stacked ? "column" : "row",
+        gap: stacked ? 4 : 6,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: pad,
+        borderRadius: 12,
+        overflow: "hidden",
+        backgroundColor: tone === "primary" ? t.accent : t.soft,
+        opacity: disabled ? 0.3 : pressed ? 0.8 : 1,
+        ...style,
+      })}
+    >
+      {(keepIcon || !fits) && <Icon size={stacked ? 20 : 18} color={color} />}
+      {fits && (
+        <Text numberOfLines={1} style={text}>
+          {label}
+        </Text>
+      )}
+      <Measure text={label} style={text} onWidth={setNeed} />
+    </Pressable>
+  )
+}
+/** Lays a label out off-screen, unconstrained, and reports its natural width
+ * at the phone's current text size. Hidden from screen readers; the parent
+ * should clip overflow so it never widens the page. */
+export function Measure({
+  text,
+  style,
+  onWidth,
+}: {
+  text: string
+  style: TextStyle
+  onWidth: (width: number) => void
+}) {
+  return (
+    <View
+      pointerEvents="none"
+      aria-hidden
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{
+        position: "absolute",
+        left: 0,
+        top: 0,
+        width: 1000,
+        flexDirection: "row",
+        opacity: 0,
+      }}
+    >
+      <Text
+        style={style}
+        onLayout={(e) => onWidth(Math.ceil(e.nativeEvent.layout.width))}
+      >
+        {text}
+      </Text>
+    </View>
+  )
+}
 export function SmallButton({
   children,
   onPress,
