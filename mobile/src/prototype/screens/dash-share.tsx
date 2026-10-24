@@ -884,7 +884,7 @@ export function ShareCard() {
               title="Food day"
               icon={Utensils}
               accent="nut"
-              href="/fitness/nutrition/share"
+              href="/nutrition/share"
             />
             <LinkRow
               title="Journal streak"

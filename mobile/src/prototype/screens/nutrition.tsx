@@ -484,7 +484,7 @@ export function Nutrition({
           <Button
             icon={Share2}
             tone="quiet"
-            onPress={() => go("/fitness/nutrition/share")}
+            onPress={() => go("/nutrition/share")}
           >
             Share
           </Button>
