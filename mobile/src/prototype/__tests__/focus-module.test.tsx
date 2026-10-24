@@ -3,10 +3,10 @@
 // Score inputs, the sync rows, the Live bar and lock screen, and the
 // screens. Expected values are worked out from the minutes in each test.
 
+import { module as FOC } from "@domain/focus"
 import * as A from "@domain/focus/actions"
 import * as C from "@domain/focus/calc"
 import { DEFAULT_SETTINGS, type FocusState } from "@domain/focus/data"
-import { module as FOC } from "@domain/focus"
 import * as L from "@domain/focus/logic"
 import { focusStore } from "@domain/focus/store"
 import { habitsStore } from "@domain/habits/store"
@@ -22,8 +22,12 @@ import {
   screen,
 } from "@testing-library/react-native"
 import { SafeAreaProvider } from "react-native-safe-area-context"
-import { segmentMapper, sessionMapper, settingsMapper } from "@/live/mappers/focus"
 import { diffEntity } from "@/live/mapper"
+import {
+  segmentMapper,
+  sessionMapper,
+  settingsMapper,
+} from "@/live/mappers/focus"
 import { applySurfaceAction } from "@/surfaces/actions"
 import { buildLiveState } from "@/surfaces/live-state"
 import { focusLive, phaseNotice, syncLiveBar } from "../focus-live"
@@ -106,7 +110,13 @@ afterEach(() => jest.useRealTimers())
 const kinds = () =>
   [...focusStore.get().segments]
     .sort((a, b) => a.startedAt.localeCompare(b.startedAt))
-    .map((g) => [g.kind, g.setIndex, g.startedAt, g.endedAt ?? null, g.item?.id ?? null])
+    .map((g) => [
+      g.kind,
+      g.setIndex,
+      g.startedAt,
+      g.endedAt ?? null,
+      g.item?.id ?? null,
+    ])
 const iso = (m: number) => new Date(T0 + m * MIN).toISOString()
 
 describe("the timer", () => {
@@ -159,12 +169,18 @@ describe("the timer", () => {
     at(12)
     A.stopFocus()
     const kept = focusStore.get().sessions[0]
-    expect([kept.endReason, kept.focusSec, kept.setsCompleted]).toEqual(["completed", 720, 0])
+    expect([kept.endReason, kept.focusSec, kept.setsCompleted]).toEqual([
+      "completed",
+      720,
+      0,
+    ])
     A.startFocus({ mode: "stopwatch" })
     at(30)
     A.stopFocus(true)
     expect(focusStore.get().sessions[1].endReason).toBe("abandoned")
-    expect(C.rangeStats(focusStore.get(), dayKey(), dayKey()).byDay[dayKey()]).toBe(720)
+    expect(
+      C.rangeStats(focusStore.get(), dayKey(), dayKey()).byDay[dayKey()],
+    ).toBe(720)
   })
 
   it("starting again ends the one running first", () => {
@@ -172,7 +188,11 @@ describe("the timer", () => {
     at(5)
     A.startFocus({ mode: "stopwatch" })
     const [a, b] = focusStore.get().sessions
-    expect([a.endedAt, a.endReason, b.endedAt]).toEqual([iso(5), "completed", undefined])
+    expect([a.endedAt, a.endReason, b.endedAt]).toEqual([
+      iso(5),
+      "completed",
+      undefined,
+    ])
     expect(A.current(focusStore.get())?.id).toBe(b.id)
   })
 })
@@ -180,7 +200,10 @@ describe("the timer", () => {
 describe("the module contract", () => {
   it("leaves Focus out of the Life Score until the timer is first used", () => {
     expect(renderHook(() => FOC.useAreaRate(7)).result.current).toBeNull()
-    expect(renderHook(() => FOC.useTodayProgress()).result.current).toEqual({ due: 0, done: 0 })
+    expect(renderHook(() => FOC.useTodayProgress()).result.current).toEqual({
+      due: 0,
+      done: 0,
+    })
   })
 
   it("rates a day by its share of the goal and rings when the goal is met", () => {
@@ -190,11 +213,17 @@ describe("the module contract", () => {
     A.stopFocus()
     // Due today only (the first session): 30 of 60 minutes.
     expect(renderHook(() => FOC.useAreaRate(7)).result.current).toBe(0.5)
-    expect(renderHook(() => FOC.useTodayProgress()).result.current).toEqual({ due: 1, done: 0 })
+    expect(renderHook(() => FOC.useTodayProgress()).result.current).toEqual({
+      due: 1,
+      done: 0,
+    })
     A.startFocus({ mode: "stopwatch" })
     at(60)
     A.stopFocus()
-    expect(renderHook(() => FOC.useTodayProgress()).result.current).toEqual({ due: 1, done: 1 })
+    expect(renderHook(() => FOC.useTodayProgress()).result.current).toEqual({
+      due: 1,
+      done: 1,
+    })
     const m = renderHook(() => FOC.useMetrics(7)).result.current
     expect(m.find((x) => x.key === "focused")?.value).toBe("1h 00m")
     expect(m.find((x) => x.key === "sessions")?.value).toBe("2")
@@ -216,7 +245,11 @@ describe("sync rows", () => {
       ended_at: null,
     })
     expect(sess.upserts[0].data).not.toHaveProperty("focus_sec")
-    expect(segs.upserts[0].data).toMatchObject({ kind: "focus", planned_sec: 1500, set_index: 0 })
+    expect(segs.upserts[0].data).toMatchObject({
+      kind: "focus",
+      planned_sec: 1500,
+      set_index: 0,
+    })
   })
 
   it("reads server rows back, settings marking the setup step done", () => {
@@ -235,13 +268,20 @@ describe("sync rows", () => {
       },
       empty(),
     )
-    expect(row).toMatchObject({ mode: "stopwatch", focusSec: 600, item: { kind: "habit", id: "h1" } })
+    expect(row).toMatchObject({
+      mode: "stopwatch",
+      focusSec: 600,
+      item: { kind: "habit", id: "h1" },
+    })
     expect(row).not.toHaveProperty("endedAt")
     const st = settingsMapper("u1")
     const pulled = st.fromServer({ daily_goal_min: 180 }, empty())
     if (!pulled) throw new Error("settings row dropped")
     const merged = st.merge(empty(), [pulled], [])
-    expect([merged.settings.dailyGoalMin, merged.settingsSaved]).toEqual([180, true])
+    expect([merged.settings.dailyGoalMin, merged.settingsSaved]).toEqual([
+      180,
+      true,
+    ])
   })
 })
 
@@ -249,11 +289,21 @@ describe("outside the screen", () => {
   it("shows in the Live bar, paused when paused, and leaves a habit timer alone", () => {
     A.startFocus({ preset: "25-5", item: TASK })
     syncLiveBar()
-    expect(liveStore.get().live).toMatchObject({ kind: "focus", label: "Focus · Review PR #214" })
+    expect(liveStore.get().live).toMatchObject({
+      kind: "focus",
+      label: "Focus · Review PR #214",
+    })
     A.pauseFocus()
     syncLiveBar()
     expect(liveStore.get().live?.pausedAt).toBeTruthy()
-    liveStore.set({ live: { kind: "timer", label: "Read", href: "/habits/x/timer", startedAt: iso(0) } })
+    liveStore.set({
+      live: {
+        kind: "timer",
+        label: "Read",
+        href: "/habits/x/timer",
+        startedAt: iso(0),
+      },
+    })
     syncLiveBar()
     expect(liveStore.get().live?.kind).toBe("timer")
   })
@@ -285,9 +335,27 @@ describe("outside the screen", () => {
       controls: ["pause", "finish"],
     })
     at(3)
-    expect(applySurfaceAction({ id: "x", type: "pause", kind: "timer", target: sid, at: Date.now() })).toBe("applied")
-    expect(L.phase(A.liveTimeline(focusStore.get())!, Date.now()).status).toBe("paused")
-    expect(applySurfaceAction({ id: "y", type: "pause", kind: "timer", target: sid, at: Date.now() })).toBe("stale")
+    expect(
+      applySurfaceAction({
+        id: "x",
+        type: "pause",
+        kind: "timer",
+        target: sid,
+        at: Date.now(),
+      }),
+    ).toBe("applied")
+    expect(L.phase(A.liveTimeline(focusStore.get())!, Date.now()).status).toBe(
+      "paused",
+    )
+    expect(
+      applySurfaceAction({
+        id: "y",
+        type: "pause",
+        kind: "timer",
+        target: sid,
+        at: Date.now(),
+      }),
+    ).toBe("stale")
   })
 
   it("draws a live session's Live bar from its own fields", () => {
@@ -301,7 +369,12 @@ describe("screens", () => {
       ...s,
       tasks: [
         ...s.tasks.filter((x) => x.id !== "t-focus"),
-        { ...s.tasks[0], id: "t-focus", title: "Write the ADR", status: "open" },
+        {
+          ...s.tasks[0],
+          id: "t-focus",
+          title: "Write the ADR",
+          status: "open",
+        },
       ],
     }))
     render(<FocusTimer />, { wrapper })
@@ -347,13 +420,17 @@ describe("screens", () => {
   })
 
   it("puts time spent against the estimate on a task", () => {
-    const id = tasksStore.get().tasks.find((x) => x.status === "open")?.id as string
+    const id = tasksStore.get().tasks.find((x) => x.status === "open")
+      ?.id as string
     tasksStore.set((s) => ({
       ...s,
       tasks: s.tasks.map((x) => (x.id === id ? { ...x, estimateMin: 30 } : x)),
     }))
     const task = tasksStore.get().tasks.find((x) => x.id === id)!
-    A.startFocus({ mode: "stopwatch", item: { kind: "task", id, title: task.title } })
+    A.startFocus({
+      mode: "stopwatch",
+      item: { kind: "task", id, title: task.title },
+    })
     at(45)
     A.stopFocus()
     render(<TaskDetail id={id} />, { wrapper })

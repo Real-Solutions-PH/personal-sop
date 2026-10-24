@@ -184,9 +184,25 @@ function LifeHero({
             </Tap>
           </View>
         </Line>
-        <Line style={{ marginTop: 16, gap: 8 }}>
+        {/* Six areas no longer fit one row: they wrap, three to a row. */}
+        <Line
+          style={{
+            marginTop: 16,
+            columnGap: 8,
+            rowGap: 10,
+            flexWrap: MODULE_KEYS.length > 5 ? "wrap" : "nowrap",
+          }}
+        >
           {MODULE_KEYS.map((k) => (
-            <View key={k} style={{ flex: 1, opacity: enabled[k] ? 1 : 0.3 }}>
+            <View
+              key={k}
+              style={{
+                ...(MODULE_KEYS.length > 5
+                  ? { width: "30%", flexGrow: 1 }
+                  : { flex: 1 }),
+                opacity: enabled[k] ? 1 : 0.3,
+              }}
+            >
               <View
                 style={{
                   height: 6,
@@ -323,9 +339,11 @@ function Areas({ days }: { days: number }) {
     [sel, setSel] = useState<string | null>(null),
     [all, setAll] = useState(false),
     facet = facets.find((f) => f.key === sel)
-  const point = (i: number, r: number) => [
-      160 + r * Math.cos(((-90 + i * 60) * Math.PI) / 180),
-      160 + r * Math.sin(((-90 + i * 60) * Math.PI) / 180),
+  // One corner per facet: a hexagon for six, a heptagon with Focus.
+  const step = 360 / Math.max(3, facets.length),
+    point = (i: number, r: number) => [
+      160 + r * Math.cos(((-90 + i * step) * Math.PI) / 180),
+      160 + r * Math.sin(((-90 + i * step) * Math.PI) / 180),
     ],
     poly = (values: number[]) =>
       values
@@ -365,7 +383,7 @@ function Areas({ days }: { days: number }) {
             {[0.25, 0.5, 0.75, 1].map((v) => (
               <Polygon
                 key={v}
-                points={poly(Array(6).fill(v))}
+                points={poly(Array(facets.length).fill(v))}
                 fill="none"
                 stroke={v === 1 ? `${t.muted}66` : t.line}
                 strokeWidth={1}

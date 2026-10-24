@@ -33,12 +33,16 @@ import { useEffect, useMemo, useState } from "react"
 import { ScrollView, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
-import { FocusTimeline, ItemPicker, SessionStrip } from "../focus-kit"
+import {
+  FocusTimeline,
+  ItemPicker,
+  SessionStrip,
+  TimerRing,
+} from "../focus-kit"
 import { Copy, Frame, IconTap, Line, Segmented, Tap } from "../native-kit"
 import { back, go } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import { Button, confirm, Sheet, useNow } from "../ui"
-import { Ring } from "../visual"
 
 type PresetChoice = PresetKey | "custom"
 
@@ -102,12 +106,11 @@ export function FocusTimer() {
   }
   const item = p?.item ?? session?.item ?? null
   const accent = p?.kind === "break" ? t.good : t.foc
-  const progress =
-    p?.plannedSec
-      ? p.elapsed / p.plannedSec
-      : p
-        ? (p.elapsed % 3600) / 3600
-        : 0
+  const progress = p?.plannedSec
+    ? p.elapsed / p.plannedSec
+    : p
+      ? (p.elapsed % 3600) / 3600
+      : 0
   const clock = !p
     ? L.fmtClock(mode === "pomodoro" ? lengths[0] * 60 : 0)
     : p.remaining !== null
@@ -210,7 +213,7 @@ export function FocusTimer() {
           onPress={() => setPick(true)}
           switching={!!session}
         />
-        <Ring value={progress} size={264} strokeWidth={10} color={accent}>
+        <TimerRing value={progress} size={264} stroke={10} color={accent}>
           <Copy
             size={56}
             lines={1}
@@ -253,7 +256,7 @@ export function FocusTimer() {
               })}
             </Line>
           )}
-        </Ring>
+        </TimerRing>
         {!session ? (
           <Tap label="Start focus" onPress={start} style={round(88, t.foc)}>
             <Play size={36} color={t.bg} fill={t.bg} />
@@ -302,18 +305,14 @@ export function FocusTimer() {
               >
                 <SkipForward size={22} color={t.text} />
               </Tap>
-            ) : (
+            ) : p?.plannedSec ? (
               <Tap
                 label="Add 5 minutes"
                 onPress={() => {
-                  if (!p?.plannedSec) return
                   A.extendFocus(300)
                   toast("5 minutes added")
                 }}
-                style={{
-                  ...round(56, t.soft),
-                  opacity: p?.plannedSec ? 1 : 0.4,
-                }}
+                style={round(56, t.soft)}
               >
                 <Copy
                   size={14}
@@ -323,6 +322,9 @@ export function FocusTimer() {
                   +5m
                 </Copy>
               </Tap>
+            ) : (
+              // A stopwatch has no length to extend.
+              <View style={{ width: 56 }} />
             )}
             <Tap
               label={p?.status === "paused" ? "Resume" : "Pause"}
@@ -354,7 +356,7 @@ export function FocusTimer() {
                 This session · {L.fmtHm(tl ? L.focusSec(tl, now) : 0)} focused
               </Copy>
               <Copy size={12} muted>
-                {blocks.filter((b) => b.kind === "pause").length} pauses
+                {pauseLabel(blocks.filter((b) => b.kind === "pause").length)}
               </Copy>
             </Line>
           </View>
@@ -445,6 +447,13 @@ export function FocusTimer() {
     </View>
   )
 }
+
+const pauseLabel = (n: number) =>
+  n === 0
+    ? "No pauses"
+    : n === 1
+      ? "1 pause"
+      : `${n.toLocaleString("en-US")} pauses`
 
 function ItemChip({
   item,

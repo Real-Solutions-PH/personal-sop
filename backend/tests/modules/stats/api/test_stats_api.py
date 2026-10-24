@@ -83,7 +83,7 @@ def test_empty_user_overview(client: TestClient, db: Session) -> None:
     assert ov["on_target"]["threshold"] == 0.8
     assert len(ov["days_series"]) == 7
     assert [f["key"] for f in ov["facets"]] == [
-        "habits", "routines", "tasks", "training", "nutrition", "finance",
+        "habits", "routines", "tasks", "training", "nutrition", "focus", "finance",
     ]  # fmt: skip
     # The score is exactly the weighted mean of the reported area rates.
     rates = {k: a["rate"] for k, a in areas(ov).items()}

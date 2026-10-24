@@ -7,6 +7,7 @@ import type { FocusItem } from "@domain/focus/data"
 import * as L from "@domain/focus/logic"
 import { useFocusState } from "@domain/focus/store"
 import { habitsStore } from "@domain/habits/store"
+import { dayKey } from "@domain/lib/day"
 import { tasksStore } from "@domain/tasks/store"
 import {
   CheckSquare,
@@ -16,27 +17,109 @@ import {
   Target,
   Timer,
 } from "lucide-react-native"
-import { useMemo, useState } from "react"
+import { type ReactNode, useMemo, useState } from "react"
 import { TextInput, View } from "react-native"
-import Svg, { Defs, Pattern, Rect, Line as SvgLine } from "react-native-svg"
+import Svg, {
+  Circle,
+  Defs,
+  Pattern,
+  Rect,
+  Line as SvgLine,
+} from "react-native-svg"
 import { Copy, Frame, Line, Tap } from "./native-kit"
 import { go } from "./navigation"
 import { fonts, useTheme } from "./theme"
 import { Sheet } from "./ui"
 
 const pad = (n: number) => String(n).padStart(2, "0")
+/** "Today", "Yesterday", "Tomorrow" or "Oct 22" for a business day. */
+export function dayLabel(day: string, today = dayKey()) {
+  if (day === today) return "Today"
+  if (day === C.prevDay(today)) return "Yesterday"
+  if (day === L.nextDay(today)) return "Tomorrow"
+  return new Date(`${day}T12:00:00`).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  })
+}
+const relative = (label: string) =>
+  ["Today", "Yesterday", "Tomorrow"].includes(label)
+    ? label.toLowerCase()
+    : label
 export const clockOf = (ms: number) => {
   const d = new Date(ms)
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
+// ---------------------------------------------------------------- ring
+
+/** The timer's ring. Drawn straight from the value with no sweep: the
+ * clock moves it every second, and a reveal animation restarted that
+ * often would never settle. */
+export function TimerRing({
+  value,
+  size,
+  stroke = 10,
+  color,
+  children,
+}: {
+  value: number
+  size: number
+  stroke?: number
+  color: string
+  children?: ReactNode
+}) {
+  const t = useTheme()
+  const r = (size - stroke) / 2
+  const c = 2 * Math.PI * r
+  const p = Math.min(1, Math.max(0, Number.isFinite(value) ? value : 0))
+  return (
+    <View
+      accessible
+      accessibilityLabel={`${Math.round(p * 100)} percent`}
+      style={{
+        width: size,
+        height: size,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Svg width={size} height={size} style={{ position: "absolute" }}>
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke={t.soft}
+          strokeWidth={stroke}
+          fill="none"
+        />
+        {p > 0 && (
+          <Circle
+            cx={size / 2}
+            cy={size / 2}
+            r={r}
+            stroke={color}
+            strokeWidth={stroke}
+            strokeLinecap="round"
+            strokeDasharray={`${c * p} ${c}`}
+            fill="none"
+            transform={`rotate(-90 ${size / 2} ${size / 2})`}
+          />
+        )}
+      </Svg>
+      {children}
+    </View>
+  )
+}
+
 // ---------------------------------------------------------------- timeline
 
-const HOUR_PX = 64
+const HOUR_PX = 160
 
 /** One business day as a vertical timeline: focus blocks in the Focus
  * colour labelled with the item, breaks in a light tint, pauses hatched.
- * Shows the hours that hold a block (at least four). */
+ * Only hours that hold a block are drawn; a stretch with none folds into a
+ * single "no focus" line. */
 export function FocusTimeline({
   blocks,
   day,
@@ -48,16 +131,20 @@ export function FocusTimeline({
 }) {
   const t = useTheme()
   const lo = L.dayStart(day)
-  const hourOf = (ms: number) => Math.floor((ms - lo) / 3600_000)
-  const first = blocks.length ? Math.max(0, hourOf(blocks[0].start)) : 4
-  const last = blocks.length
-    ? Math.min(23, hourOf(Math.max(...blocks.map((b) => b.end)) - 1))
-    : 7
-  const from = Math.min(first, Math.max(0, last - 3))
-  const to = Math.max(last, from + 3)
-  const top = lo + from * 3600_000
-  const height = (to - from + 1) * HOUR_PX
-  const y = (ms: number) => ((ms - top) / 3600_000) * HOUR_PX
+  const hourOf = (ms: number) =>
+    Math.min(23, Math.max(0, Math.floor((ms - lo) / 3600_000)))
+  const touched = new Set<number>()
+  for (const b of blocks)
+    for (let h = hourOf(b.start); h <= hourOf(b.end - 1); h++) touched.add(h)
+  const hours = [...touched].sort((a, b) => a - b)
+  const runs: [number, number][] = []
+  for (const h of hours) {
+    const last = runs[runs.length - 1]
+    if (last && h === last[1] + 1) last[1] = h
+    else runs.push([h, h])
+  }
+  if (!runs.length) runs.push([5, 6])
+  const at = (h: number) => lo + h * 3600_000
   return (
     <View
       accessible
@@ -68,17 +155,77 @@ export function FocusTimeline({
             `${clockOf(b.start)} to ${clockOf(b.end)} ${b.item?.title ?? "focus"}`,
         )
         .join(", ")}`}
-      style={{ flexDirection: "row", opacity: dimmed ? 0.35 : 1 }}
+      style={{ opacity: dimmed ? 0.35 : 1, gap: 8 }}
     >
+      {runs.map(([from, to], i) => (
+        <View key={from} style={{ gap: 8 }}>
+          {i > 0 && (
+            <Line style={{ gap: 8 }}>
+              <View
+                style={{
+                  flex: 1,
+                  borderTopWidth: 1,
+                  borderStyle: "dashed",
+                  borderColor: t.line,
+                }}
+              />
+              <Copy size={11} muted>
+                No focus {clockOf(at(runs[i - 1][1] + 1))}–{clockOf(at(from))}
+              </Copy>
+              <View
+                style={{
+                  flex: 1,
+                  borderTopWidth: 1,
+                  borderStyle: "dashed",
+                  borderColor: t.line,
+                }}
+              />
+            </Line>
+          )}
+          <HourRun
+            blocks={blocks}
+            top={at(from)}
+            bottom={at(to + 1)}
+            hours={to - from + 1}
+          />
+        </View>
+      ))}
+    </View>
+  )
+}
+
+function HourRun({
+  blocks,
+  top,
+  bottom,
+  hours,
+}: {
+  blocks: C.Block[]
+  top: number
+  bottom: number
+  hours: number
+}) {
+  const t = useTheme()
+  const height = hours * HOUR_PX
+  const y = (ms: number) => ((ms - top) / 3600_000) * HOUR_PX
+  const here = blocks
+    .filter((b) => b.end > top && b.start < bottom)
+    .map((b) => ({
+      ...b,
+      start: Math.max(b.start, top),
+      end: Math.min(b.end, bottom),
+    }))
+  return (
+    <View style={{ flexDirection: "row" }}>
       <View style={{ width: 48, height }}>
-        {Array.from({ length: to - from + 1 }, (_, i) => (
+        {Array.from({ length: hours }, (_, i) => (
           <Copy
             key={i}
             size={11}
             muted
             style={{
               position: "absolute",
-              top: i * HOUR_PX - 8,
+              top: i * HOUR_PX - 2,
               fontFamily: fonts.monoRegular,
             }}
           >
@@ -87,7 +234,7 @@ export function FocusTimeline({
         ))}
       </View>
       <View style={{ flex: 1, height }}>
-        {Array.from({ length: to - from + 1 }, (_, i) => (
+        {Array.from({ length: hours }, (_, i) => (
           <View
             key={i}
             style={{
@@ -100,14 +247,15 @@ export function FocusTimeline({
             }}
           />
         ))}
-        {blocks.map((b) => {
-          const h = Math.max(2, y(b.end) - y(b.start))
+        {here.map((b) => {
+          const h = Math.max(3, y(b.end) - y(b.start) - 1)
           const label =
             b.kind === "focus"
               ? (b.item?.title ?? "Focus")
               : b.kind === "pause"
                 ? `Paused ${L.fmtHm((b.end - b.start) / 1000)}`
                 : "Break"
+          const onAccent = b.kind === "focus" && !b.abandoned
           return (
             <View
               key={`${b.segmentId}-${b.start}`}
@@ -133,27 +281,24 @@ export function FocusTimeline({
             >
               {b.kind === "pause" && <Hatch color={t.muted} />}
               {h >= 18 && (
-                <Line style={{ gap: 6, paddingHorizontal: 8, paddingTop: 2 }}>
+                <Line style={{ gap: 6, paddingHorizontal: 8, paddingTop: 1 }}>
                   <Copy
                     size={12}
                     weight="medium"
                     lines={1}
                     style={{
                       flex: 1,
-                      color:
-                        b.kind === "focus" && !b.abandoned
-                          ? t["on-accent"]
-                          : t.text,
+                      color: onAccent ? t["on-accent"] : t.text,
                     }}
                   >
                     {label}
                   </Copy>
-                  {h >= 18 && b.kind === "focus" && (
+                  {b.kind === "focus" && (
                     <Copy
                       size={11}
                       style={{
                         fontFamily: fonts.mono,
-                        color: b.abandoned ? t.muted : t["on-accent"],
+                        color: onAccent ? t["on-accent"] : t.muted,
                       }}
                     >
                       {clockOf(b.start)}–{b.running ? "now" : clockOf(b.end)}
@@ -268,7 +413,9 @@ export function ItemPicker({
         out.push({
           item: { kind: "task", id: x.id, title: x.title },
           label: x.title,
-          detail: x.dueDate ? `Task · due ${x.dueDate}` : "Task",
+          detail: x.dueDate
+            ? `Task · due ${relative(dayLabel(x.dueDate))}`
+            : "Task",
           icon: "task",
         })
     for (const h of habits)
@@ -482,7 +629,7 @@ export function FocusTimeCard({
             >
               <Line>
                 <Copy size={14} muted style={{ flex: 1 }}>
-                  {r.day} · {clockOf(new Date(r.startedAt).getTime())}
+                  {dayLabel(r.day)} · {clockOf(new Date(r.startedAt).getTime())}
                 </Copy>
                 <Copy size={14} style={{ fontFamily: fonts.mono }}>
                   {L.fmtHm(r.sec)}

@@ -122,7 +122,12 @@ export function FocusDay({ day: initial }: { day?: string }) {
                   <Copy size={14} style={{ fontFamily: fonts.mono, width: 96 }}>
                     {clockOf(b.start)}–{b.running ? "now" : clockOf(b.end)}
                   </Copy>
-                  <Copy size={14} lines={1} muted={b.kind !== "focus"} style={{ flex: 1 }}>
+                  <Copy
+                    size={14}
+                    lines={1}
+                    muted={b.kind !== "focus"}
+                    style={{ flex: 1 }}
+                  >
                     {b.kind === "focus"
                       ? (b.item?.title ?? "Focus")
                       : b.kind === "pause"

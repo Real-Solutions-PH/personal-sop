@@ -23,8 +23,8 @@ import {
   Repeat2,
   ShieldCheck,
   Sparkles,
-  Trash2,
   Timer,
+  Trash2,
   Utensils,
   Wallet,
 } from "lucide-react-native"

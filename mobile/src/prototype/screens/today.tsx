@@ -1113,7 +1113,7 @@ function FocusCard() {
             </Copy>
             <Copy size={12} muted lines={1}>
               {p
-                ? `${p.status === "paused" ? "Paused" : p.kind === "break" ? "On a break" : "Focusing"}${p.item?.title ? ` · ${p.item.title}` : ""}${p.remaining !== null ? ` · ${FL.fmtClock(p.remaining)} left` : ""}`
+                ? `${p.status === "paused" ? "Paused" : p.kind === "break" ? "On a break" : "Focusing"}${p.remaining !== null ? ` · ${FL.fmtClock(p.remaining)} left` : ""}${p.item?.title ? ` · ${p.item.title}` : ""}`
                 : goal && sec < goal
                   ? `${FL.fmtHm(goal - sec)} to today's goal`
                   : goal
