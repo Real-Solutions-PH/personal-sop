@@ -136,8 +136,11 @@ def outcome(ctx: Ctx, name: str, args: dict[str, Any], result: Any) -> tuple[boo
         return False, "More than one matches; asking which"
     if res.get("error"):
         return False, f"Couldn't finish: {str(res['error']).replace('_', ' ')}"
-    waiting = res.get("state") in ("proposed", "needs_input")
-    wait = " (waiting for your OK)" if waiting else ""
+    # A card with a question can't be confirmed until it's answered.
+    wait = {
+        "proposed": " (waiting for your OK)",
+        "needs_input": f" ({res.get('question') or 'needs an answer'})",
+    }.get(str(res.get("state")), "")
     if name == "create_tasks":
         tasks = args.get("tasks") or []
         if len(tasks) == 1:

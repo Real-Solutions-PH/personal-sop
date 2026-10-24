@@ -8,8 +8,10 @@ import { BlockView } from "../companion/blocks"
 
 const mockUndo = jest.fn()
 const mockConfirm = jest.fn()
+const mockAnswer = jest.fn()
 jest.mock("@domain/capture/engine", () => ({
   ...jest.requireActual("@domain/capture/engine"),
+  answerCard: (...a: unknown[]) => mockAnswer(...a),
   undoCard: (...a: unknown[]) => mockUndo(...a),
   confirmCard: (...a: unknown[]) => mockConfirm(...a),
 }))
@@ -46,6 +48,7 @@ beforeEach(() => {
   resetAll()
   mockUndo.mockReset()
   mockConfirm.mockReset()
+  mockAnswer.mockReset()
 })
 
 test("running, finished and failed steps read as such; a saved write offers Undo", () => {
@@ -237,4 +240,59 @@ test("a meal waiting for its OK shows its macros under the step", () => {
   expect(screen.getByRole("button", { name: "Confirm" })).toBeTruthy()
   expect(screen.getByText(/Energy drink \(zero sugar\)/)).toBeTruthy()
   expect(screen.getAllByText(/6 kcal/).length).toBeGreaterThan(0)
+})
+
+test("an expense waiting on its category shows the question and answers it", () => {
+  captureStore.set((s) => ({
+    ...s,
+    captures: [
+      {
+        id: "cap-3",
+        at: new Date().toISOString(),
+        source: "chat",
+        text: "log 275 at 7-Eleven",
+        status: "needs_input",
+        reply: {
+          items: [
+            {
+              t: "record",
+              id: "c-exp",
+              kind: "expense",
+              state: "needs_input",
+              ask: {
+                question: "What was ₱275 for?",
+                field: "categoryId",
+                options: [
+                  { label: "Groceries", value: "cat-groceries" },
+                  { label: "Gifts", value: "cat-gifts" },
+                ],
+              },
+            },
+          ],
+        },
+      } as never,
+    ],
+  }))
+  render(
+    <BlockView
+      block={{
+        t: "steps",
+        items: [
+          {
+            id: "e",
+            tool: "log_expense",
+            label: "Logging an expense",
+            ok: true,
+            summary: "Logged expense: ₱275 · 7-Eleven (What was ₱275 for?)",
+            card_id: "c-exp",
+            state: "needs_input",
+          },
+        ],
+      }}
+    />,
+  )
+  expect(screen.getByText("What was ₱275 for?")).toBeTruthy()
+  expect(screen.queryByRole("button", { name: "Confirm" })).toBeNull()
+  fireEvent.press(screen.getByRole("button", { name: "Groceries" }))
+  expect(mockAnswer).toHaveBeenCalledWith("c-exp", "cat-groceries")
 })

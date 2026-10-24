@@ -910,12 +910,16 @@ def _card(run: Run, d: RecordDraft, *, setup: bool = False) -> dict[str, Any]:
         C.save(run.ctx, card, cap, actor="ai")
     run.made.append(card.id)
     engine.emit_card(run.ctx, run.emit, card)
-    return {
+    out: dict[str, Any] = {
         "card_id": str(card.id),
         "state": card.state,
         "tier": card.tier,
         "warn": card.warn,
     }
+    if card.state == "needs_input" and card.ask:
+        # Ask it: the card can't be confirmed until this is answered.
+        out["question"] = card.ask.get("question")
+    return out
 
 
 _MAIN_MEALS = ("breakfast", "lunch", "dinner")

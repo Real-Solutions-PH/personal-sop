@@ -170,6 +170,25 @@ def test_a_write_waiting_for_the_user_says_so(
     assert tasks_of(api) == []
 
 
+def test_a_write_waiting_on_a_question_asks_it_instead_of_an_ok(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An expense with no category can't be confirmed until it has one, so
+    the step names the question rather than "waiting for your OK"."""
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    install(
+        monkeypatch,
+        say("", call("log_expense", amount=275, payee="7-Eleven")),
+        say("What was it for?"),
+    )
+    events = stream(api, client, "log 275 at 7-Eleven")
+    step = events[-1]["result"]["messages"][1]["blocks"][0]["items"][0]
+    assert step["state"] == "needs_input"
+    assert step["summary"].endswith("275 for?)"), step["summary"]
+    assert "waiting for your OK" not in step["summary"]
+
+
 def test_tool_calls_past_the_reply_cap_are_refused(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
