@@ -1,4 +1,9 @@
-import { confirmCard, findCard, undoCard } from "@domain/capture/engine"
+import {
+  answerCard,
+  confirmCard,
+  findCard,
+  undoCard,
+} from "@domain/capture/engine"
 import { captureStore } from "@domain/capture/store"
 import * as D from "@domain/dash/hooks"
 import { dashStore } from "@domain/dash/store"
@@ -1016,6 +1021,62 @@ function StepMeal({ id }: { id: string }) {
   )
 }
 
+/** A card waiting on an answer (an expense with no category, say): its
+ * question and options under the step, since it can't be confirmed until
+ * answered. Answering turns it into a proposal, and Confirm appears. */
+function StepAsk({ id }: { id: string }) {
+  const t = useTheme()
+  const card = captureStore.use(() => findCard(id)?.card)
+  if (card?.state !== "needs_input" || !card.ask) return null
+  return (
+    <View
+      style={{
+        marginHorizontal: 12,
+        marginBottom: 8,
+        marginTop: 2,
+        padding: 12,
+        gap: 8,
+        borderRadius: 10,
+        backgroundColor: t.soft,
+      }}
+    >
+      <Text style={{ color: t.text, fontFamily: fonts.medium, fontSize: 13 }}>
+        {card.ask.question}
+      </Text>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+        {card.ask.options.map((o) => (
+          <Pressable
+            key={o.value}
+            cssInterop={false}
+            accessibilityRole="button"
+            accessibilityLabel={o.label}
+            onPress={() => answerCard(id, o.value)}
+            style={({ pressed }) => ({
+              paddingHorizontal: 12,
+              minHeight: 32,
+              borderRadius: 16,
+              justifyContent: "center",
+              borderWidth: 1,
+              borderColor: `${t.primary}66`,
+              backgroundColor: pressed ? `${t.primary}26` : "transparent",
+            })}
+          >
+            <Text
+              style={{
+                color: t.primary,
+                fontFamily: fonts.medium,
+                fontSize: 12,
+              }}
+            >
+              {o.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  )
+}
+
 /** The card behind a step's write, live from the capture store once the
  * reply's capture has arrived; until then, the state the step reported. */
 function StepCard({ id, state }: { id: string; state?: string }) {
@@ -1116,6 +1177,7 @@ function StepsBlock({ items }: { items: StepItem[] }) {
             ) : null}
           </View>
           {s.card_id && !s.running ? <StepMeal id={s.card_id} /> : null}
+          {s.card_id && !s.running ? <StepAsk id={s.card_id} /> : null}
           {s.running
             ? null
             : (s.cards ?? []).map((c) => (
