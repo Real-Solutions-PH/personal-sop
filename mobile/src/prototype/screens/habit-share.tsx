@@ -211,7 +211,11 @@ export function HabitCard({
     body = (
       <View style={{ flex: 1, justifyContent: "center", gap: 4 * q }}>
         <View style={{ gap: q }}>
-          <Words size={8} weight="semibold">
+          <Words
+            size={tall ? 8 : 6}
+            weight="semibold"
+            lines={look.format === "1:1" ? 1 : 2}
+          >
             {h.name}
           </Words>
           <Label>Last 5 weeks</Label>
