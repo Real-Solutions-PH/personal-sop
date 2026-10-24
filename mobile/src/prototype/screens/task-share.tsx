@@ -82,7 +82,7 @@ function Bars({ s, tall }: { s: TaskCardData; tall: boolean }) {
             return a
           }, []),
     max = Math.max(1, ...bars),
-    h = (tall ? 18 : 12) * q
+    h = (tall ? 18 : 8) * q
   return (
     <Line style={{ gap: q, alignItems: "flex-end" }}>
       {bars.map((n, i) => (
@@ -148,12 +148,12 @@ export function TaskCard({
         <Line style={{ gap: 5 * q }}>
           <View style={{ flex: 1, minWidth: 0, gap: q }}>
             <Label>Tasks done</Label>
-            <Num size={tall ? 24 : 20}>{fmt(s.done)}</Num>
+            <Num size={tall ? 24 : 16}>{fmt(s.done)}</Num>
             {s.prevDone > 0 && (
               <Delta n={s.done - s.prevDone} suffix="vs last period" />
             )}
           </View>
-          <CardRing value={s.onTimeRate ?? 0} size={30} color={tsk}>
+          <CardRing value={s.onTimeRate ?? 0} size={tall ? 30 : 24} color={tsk}>
             <Num size={8} align="center">
               {pct(s.onTimeRate)}
             </Num>

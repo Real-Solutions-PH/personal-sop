@@ -514,17 +514,20 @@ export function Dots({
   cells,
   cols,
   color,
+  width = "100%",
 }: {
   cells: Dot[]
   cols: number
   color: string
+  /** Narrower on short cards, so a tall grid never crowds the header. */
+  width?: `${number}%`
 }) {
   const { q, c } = useCard(),
     rows: Dot[][] = []
   for (let i = 0; i < cells.length; i += cols)
     rows.push(cells.slice(i, i + cols))
   return (
-    <View style={{ gap: 1.4 * q }}>
+    <View style={{ gap: 1.4 * q, width, alignSelf: "center" }}>
       {rows.map((row, r) => (
         <View key={r} style={{ flexDirection: "row", gap: 1.4 * q }}>
           {Array.from({ length: cols }, (_, i) => row[i] ?? null).map(
@@ -642,7 +645,10 @@ export function CardFrame({
             </View>
           )}
         </Line>
-        <View style={{ flex: 1, minHeight: 0 }}>{children}</View>
+        {/* Clipped: a body that runs long never draws over the header. */}
+        <View style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+          {children}
+        </View>
         {(mark || !!foot) && (
           <View
             style={{

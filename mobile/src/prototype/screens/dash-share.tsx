@@ -410,12 +410,12 @@ export function Artwork({
             )}
           </View>
         </Line>
-        <View>
+        <View style={{ width: sq ? "72%" : "100%", alignSelf: "center" }}>
           <Dots cells={dayDots(d.w7.range)} cols={7} color={life} />
           <Weekdays range={d.w7.range} />
         </View>
-        {on.hexagon && !sq && (
-          <Hexagon facets={d.facets7} days={7} size={tall ? 38 : 24} />
+        {on.hexagon && tall && (
+          <Hexagon facets={d.facets7} days={7} size={38} />
         )}
         <Stats items={items} cols={3} size={tall ? 8 : 7} />
         {on.trophy && d.trophy && !sq && (
@@ -467,7 +467,7 @@ export function Artwork({
         {on.hexagon && tall && (
           <Hexagon facets={d.facets30} days={30} size={30} />
         )}
-        <Stats items={items} cols={sq ? 4 : 2} size={sq ? 6.5 : 9} />
+        <Stats items={items} cols={tall ? 2 : 4} size={tall ? 9 : 6.5} />
         {on.highlight && tall && !on.hexagon && (
           <Words size={3.6}>
             {`${fmt(d.w30.onTarget)} on-target days out of ${fmt(d.w30.scored)}.`}
@@ -634,8 +634,8 @@ export function Artwork({
               {`“${x}”`}
             </Words>
           ))}
-        {on.hexagon && !sq && (
-          <Hexagon facets={d.facets30} days={30} size={tall ? 40 : 28} />
+        {on.hexagon && tall && (
+          <Hexagon facets={d.facets30} days={30} size={40} />
         )}
         <Stats
           items={[

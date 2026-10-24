@@ -216,7 +216,12 @@ export function HabitCard({
           </Words>
           <Label>Last 5 weeks</Label>
         </View>
-        <Dots cells={h.last35} cols={7} color={hab} />
+        <Dots
+          cells={h.last35}
+          cols={7}
+          color={hab}
+          width={tall ? "100%" : look.format === "4:5" ? "62%" : "44%"}
+        />
         <Line
           style={{
             justifyContent: "space-between",

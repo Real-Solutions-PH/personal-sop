@@ -126,7 +126,12 @@ export function JournalCard({
           <Words size={9} weight="semibold">
             {`Wrote on ${fmt(d.days30)} of 30 days`}
           </Words>
-          {!sq && <Dots cells={d.grid} cols={7} color={ink} />}
+          <Dots
+            cells={d.grid}
+            cols={7}
+            color={ink}
+            width={tall ? "100%" : sq ? "40%" : "58%"}
+          />
           <Stats
             items={[
               { label: "Entries", value: fmt(d.entries30) },
