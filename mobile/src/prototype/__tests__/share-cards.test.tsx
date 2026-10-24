@@ -492,3 +492,47 @@ test("a body taller than its card is scaled down to fit, a short one is not", ()
   layout("card-body-fit", 400)
   expect(scale()).toBe(0.5)
 })
+
+test.each([
+  ["9:16", 1920],
+  ["4:5", 1350],
+  ["1:1", 1080],
+] as const)("a %s card exports full-bleed at 1080 wide", async (format, height) => {
+  const { captureRef } = require("react-native-view-shot")
+  captureRef.mockClear()
+  const shareRef: { current: (() => Promise<void>) | null } = { current: null }
+  render(
+    <ShareComposer
+      value="card"
+      onChange={() => {}}
+      caption=""
+      shareRef={shareRef}
+      formats={[format]}
+      items={[
+        {
+          key: "card",
+          label: "Card",
+          render: (width: number, look: CardLook) => (
+            <CardFrame width={width} look={look} kicker="Test">
+              <Text>body</Text>
+            </CardFrame>
+          ),
+        },
+      ]}
+    >
+      {null}
+    </ShareComposer>,
+  )
+  await shareRef.current?.()
+  const [node, opts] = captureRef.mock.calls[0]
+  // The exported node is the square card, not its rounded, bordered shell:
+  // transparent corners show as notches once a PNG is posted.
+  expect(node.props.testID).toBe("card-shot")
+  const style = StyleSheet.flatten(node.props.style)
+  expect(style.borderRadius ?? 0).toBe(0)
+  expect(style.borderWidth ?? 0).toBe(0)
+  expect(style.backgroundColor).toMatch(/^#[0-9a-f]{6}$/i)
+  // iOS view-shot sizes in points at the screen's scale (2× here), so
+  // 540 × 960 points is the 1080 × 1920 pixel PNG.
+  expect(opts).toMatchObject({ format: "png", width: 540, height: height / 2 })
+})
