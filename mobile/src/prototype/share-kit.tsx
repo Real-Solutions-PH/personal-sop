@@ -427,9 +427,7 @@ export function CardRing({
           />
         )}
       </Svg>
-      <View style={{ width: px - stroke * 4, alignItems: "center" }}>
-        {children}
-      </View>
+      <View style={{ width: px * 0.62, alignItems: "center" }}>{children}</View>
     </View>
   )
 }

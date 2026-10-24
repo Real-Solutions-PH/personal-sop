@@ -345,6 +345,21 @@ test("long values come out grouped or abbreviated", () => {
   ).toContain("1.2M / 2,100")
 })
 
+test("percent metrics are regrouped too", () => {
+  const look: CardLook = { format: "9:16", backdrop: "dark", photo: null }
+  const r = render(
+    <Artwork
+      kind="monthly"
+      width={300}
+      look={look}
+      on={on}
+      d={F.dashData(true)}
+    />,
+  )
+  expect(r.getAllByText("1,234%").length).toBeGreaterThan(0)
+  expect(r.queryByText("1234%")).toBeNull()
+})
+
 test("a money metric never reaches a card", () => {
   const look: CardLook = { format: "9:16", backdrop: "dark", photo: null }
   const r = render(

@@ -80,8 +80,12 @@ const safe = (s: string) => (containsMoney(s) ? "—" : s)
 const metric = (s: string | undefined) => {
   if (!s) return "—"
   if (containsMoney(s)) return "—"
-  const n = parseMetric(s)
-  return n !== null && /^-?[\d,]+(\.\d+)?$/.test(s.trim()) ? fmt(n) : s
+  // A plain count or percent ("1234567", "1234%", "+1,234%") is regrouped;
+  // anything with words or units is shown as the area wrote it.
+  const m = s.trim().match(/^([+−-]?)([\d,]+(?:\.\d+)?)(%?)$/)
+  if (!m) return s
+  const n = Number(m[2].replace(/,/g, ""))
+  return `${m[1]}${fmt(n, m[3] ? 5 : 6)}${m[3]}`
 }
 /** "≥ 1.2M kg / week": the goal's target, grouped like every card number. */
 const goalTarget = (g: Goal) =>
