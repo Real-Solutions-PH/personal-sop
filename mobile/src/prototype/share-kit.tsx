@@ -1,4 +1,10 @@
-import { LinearGradient } from "expo-linear-gradient"
+// Share cards (ADR-0019): one family of flat cards on a paper or ink ground,
+// the flat Unfurl lockup, Geist for words and Geist Mono for numbers. No
+// gradients: those belong to Fern's orb alone. Every size is a fraction of
+// the card's width (`q` = 1% of it), so a card reads the same at 180 pt in
+// the privacy check and at 1080 px in the exported PNG.
+
+import { palette } from "@domain/design/tokens"
 import * as Sharing from "expo-sharing"
 import {
   Copy as CopyIcon,
@@ -6,11 +12,23 @@ import {
   Ellipsis,
   Image as ImageIcon,
   ImagePlus,
+  type LucideIcon,
   Palette,
   PlusCircle,
   Sticker,
+  TrendingDown,
+  TrendingUp,
 } from "lucide-react-native"
-import { type ReactNode, useEffect, useId, useRef, useState } from "react"
+import {
+  cloneElement,
+  createContext,
+  isValidElement,
+  type ReactNode,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react"
 import {
   Image,
   Platform,
@@ -19,45 +37,598 @@ import {
   Text,
   useWindowDimensions,
   View,
+  type ViewStyle,
 } from "react-native"
-import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg"
+import Svg, { Circle, Polygon, Polyline } from "react-native-svg"
 import { captureRef } from "react-native-view-shot"
 import { toast } from "sonner-native"
-import { ColorPicker, luminance, shade } from "./color-picker"
+import { ColorPicker, luminance } from "./color-picker"
+import { FernMark } from "./companion/brand"
 import { copyText, pickPhoto } from "./media"
 import { Copy, Line, Segmented, Tap } from "./native-kit"
 import { go } from "./navigation"
+import { signed } from "./share-format"
 import { keep } from "./social/media"
 import { addStory, setPostDraft } from "./social/store"
 import { type Accent, fonts, useTheme } from "./theme"
 
 export type CardFormat = "9:16" | "4:5" | "1:1"
 const BACKDROPS = [
-  { key: "vivid", label: "Vivid" },
-  { key: "night", label: "Night" },
-  { key: "paper", label: "Paper" },
-  { key: "custom", label: "Custom" },
+  { key: "dark", label: "Dark" },
+  { key: "light", label: "Light" },
+  { key: "custom", label: "Colour" },
   { key: "photo", label: "Photo" },
   { key: "sticker", label: "Sticker" },
 ] as const
-export type CardBackdrop =
-  | "vivid"
-  | "night"
-  | "paper"
-  | "photo"
-  | "custom"
-  | "sticker"
+export type CardBackdrop = (typeof BACKDROPS)[number]["key"]
 export type CardLook = {
   format: CardFormat
   backdrop: CardBackdrop
   photo: string | null
-  /** The Custom background's colour (``#rrggbb``). */
+  /** The Colour background (``#rrggbb``), picked by the person. */
   color?: string
+}
+export const ratioOf = (format: CardFormat) =>
+  format === "9:16" ? 16 / 9 : format === "4:5" ? 5 / 4 : 1
+
+/** ``hex`` (3, 6 or 8 digits) at ``opacity``, as ``#rrggbbaa``. Short hex
+ * is expanded first: ``"#fff" + "a6"`` is not a colour. */
+export function alpha(hex: string, opacity: number): string {
+  let h = hex.replace("#", "")
+  if (h.length === 3 || h.length === 4) h = [...h].map((ch) => ch + ch).join("")
+  const base = h.length === 8 ? Number.parseInt(h.slice(6), 16) / 255 : 1
+  const a = Math.round(Math.max(0, Math.min(1, base * opacity)) * 255)
+  return `#${h.slice(0, 6)}${a.toString(16).padStart(2, "0")}`
+}
+
+type Tokens = (typeof palette)["light" | "dark"]
+/** The colours one card is drawn with: theme tokens for its ground. */
+export type CardInk = {
+  dark: boolean
+  /** Card ground; ``transparent`` for the sticker. */
+  bg: string
+  /** Tiles and chips sitting on the ground. */
+  panel: string
+  line: string
+  ink: string
+  muted: string
+  /** Empty part of a ring, meter or dot. */
+  track: string
+  /** The logo mark: moss on paper, sprout on dark (docs/brand Logos). */
+  mark: string
+  good: string
+  bad: string
+  area: (a: Accent) => string
+}
+export function cardInk(look: CardLook): CardInk {
+  const custom = look.backdrop === "custom" ? (look.color ?? null) : null
+  const dark =
+    look.backdrop === "light" ? false : custom ? luminance(custom) <= 0.4 : true
+  const p: Tokens = palette[dark ? "dark" : "light"]
+  const see = look.backdrop === "photo" || look.backdrop === "sticker"
+  const tinted = !!custom || see
+  return {
+    dark,
+    bg:
+      custom ??
+      (look.backdrop === "sticker" ? alpha(p.background, 0.72) : p.background),
+    panel: tinted ? alpha(p.foreground, dark ? 0.1 : 0.07) : p.card,
+    line: tinted ? alpha(p.foreground, 0.14) : p.border,
+    ink: p.foreground,
+    muted: tinted ? alpha(p.foreground, 0.78) : p["muted-foreground"],
+    track: alpha(p.foreground, dark ? 0.16 : 0.1),
+    mark: dark ? p.sprout : p.primary,
+    good: p.good,
+    bad: p.bad,
+    area: (a) => p[a],
+  }
+}
+
+const CardContext = createContext<{ q: number; c: CardInk }>({
+  q: 1,
+  c: cardInk({ format: "9:16", backdrop: "dark", photo: null }),
+})
+/** The open card's scale and colours, for the pieces below. */
+export const useCard = () => useContext(CardContext)
+
+/** A number in Geist Mono that shrinks to fit its box rather than clip. */
+export function Num({
+  children,
+  size,
+  unit,
+  color,
+  align = "left",
+}: {
+  children: string
+  size: number
+  unit?: string
+  color?: string
+  align?: "left" | "center" | "right"
+}) {
+  const { q, c } = useCard()
+  return (
+    <Text
+      numberOfLines={1}
+      adjustsFontSizeToFit
+      minimumFontScale={0.3}
+      allowFontScaling={false}
+      style={{
+        fontFamily: fonts.mono,
+        fontSize: size * q,
+        lineHeight: size * q * 1.18,
+        letterSpacing: -0.02 * size * q,
+        color: color ?? c.ink,
+        textAlign: align,
+        fontVariant: ["tabular-nums"],
+      }}
+    >
+      {children}
+      {unit ? (
+        <Text
+          style={{
+            fontFamily: fonts.monoRegular,
+            fontSize: Math.max(3.4, size * 0.38) * q,
+            letterSpacing: 0,
+            color: c.muted,
+          }}
+        >
+          {` ${unit}`}
+        </Text>
+      ) : null}
+    </Text>
+  )
+}
+
+/** Words in Geist: names, titles and verdicts. Long ones wrap to ``lines``
+ * then shrink a little, then end in an ellipsis; they never spill. */
+export function Words({
+  children,
+  size = 3.8,
+  weight = "body",
+  color,
+  lines = 2,
+  align = "left",
+  muted = false,
+}: {
+  children: ReactNode
+  size?: number
+  weight?: "body" | "medium" | "semibold"
+  color?: string
+  lines?: number
+  align?: "left" | "center" | "right"
+  muted?: boolean
+}) {
+  const { q, c } = useCard()
+  return (
+    <Text
+      numberOfLines={lines}
+      adjustsFontSizeToFit
+      minimumFontScale={0.7}
+      allowFontScaling={false}
+      ellipsizeMode="tail"
+      style={{
+        fontFamily: fonts[weight],
+        fontSize: size * q,
+        lineHeight: size * q * (size >= 8 ? 1.1 : 1.3),
+        letterSpacing: size >= 8 ? -0.02 * size * q : 0,
+        color: color ?? (muted ? c.muted : c.ink),
+        textAlign: align,
+      }}
+    >
+      {children}
+    </Text>
+  )
+}
+
+/** A small muted caption under or beside a value, in sentence case. */
+export function Label({
+  children,
+  align,
+}: {
+  children: ReactNode
+  align?: "left" | "center" | "right"
+}) {
+  return (
+    <Words size={3.3} weight="medium" lines={1} align={align} muted>
+      {children}
+    </Words>
+  )
+}
+
+/** A pill with an optional icon: a verdict, a badge, a best. */
+export function Chip({
+  children,
+  icon: Icon,
+  tone,
+}: {
+  children: ReactNode
+  icon?: LucideIcon
+  tone?: string
+}) {
+  const { q, c } = useCard()
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        alignSelf: "flex-start",
+        maxWidth: "100%",
+        gap: 1.2 * q,
+        paddingHorizontal: 2.6 * q,
+        paddingVertical: 1.3 * q,
+        borderRadius: 10 * q,
+        backgroundColor: c.panel,
+        borderWidth: 1,
+        borderColor: c.line,
+      }}
+    >
+      {Icon && <Icon size={3.6 * q} color={tone ?? c.ink} strokeWidth={2} />}
+      <View style={{ flexShrink: 1 }}>
+        <Words size={3.3} weight="medium" lines={1}>
+          {children}
+        </Words>
+      </View>
+    </View>
+  )
+}
+
+/** A change with its direction as an icon and a word, never colour alone. */
+export function Delta({
+  n,
+  unit = "",
+  suffix,
+}: {
+  n: number | null | undefined
+  unit?: string
+  suffix: string
+}) {
+  const { q, c } = useCard()
+  if (n == null || !Number.isFinite(n) || n === 0) return null
+  const Icon = n > 0 ? TrendingUp : TrendingDown,
+    tone = n > 0 ? c.good : c.bad
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: q }}>
+      <Icon size={3.4 * q} color={tone} strokeWidth={2} />
+      <View style={{ flexShrink: 1 }}>
+        <Words size={3.2} weight="medium" lines={1} color={tone}>
+          {`${signed(n)}${unit} ${suffix}`}
+        </Words>
+      </View>
+    </View>
+  )
+}
+
+/** A value tile: number on top, label under it. */
+export function Stat({
+  value,
+  unit,
+  label,
+  size = 9,
+  children,
+}: {
+  value: string
+  unit?: string
+  label: string
+  size?: number
+  children?: ReactNode
+}) {
+  const { q, c } = useCard()
+  return (
+    <View
+      style={{
+        flex: 1,
+        minWidth: 0,
+        padding: 3 * q,
+        gap: 0.6 * q,
+        borderRadius: 3 * q,
+        backgroundColor: c.panel,
+        borderWidth: 1,
+        borderColor: c.line,
+      }}
+    >
+      <Num size={size} unit={unit}>
+        {value}
+      </Num>
+      <Label>{label}</Label>
+      {children}
+    </View>
+  )
+}
+
+/** Tiles in rows of ``cols``; the last row keeps the same tile width. */
+export function Stats({
+  items,
+  cols = items.length,
+  size,
+}: {
+  items: { label: string; value: string; unit?: string; delta?: ReactNode }[]
+  cols?: number
+  size?: number
+}) {
+  const { q } = useCard()
+  if (!items.length) return null
+  const per = Math.max(1, cols),
+    rows: (typeof items)[] = []
+  for (let i = 0; i < items.length; i += per) rows.push(items.slice(i, i + per))
+  return (
+    <View style={{ gap: 2 * q }}>
+      {rows.map((row) => (
+        <View
+          key={row.map((x) => x.label).join("|")}
+          style={{ flexDirection: "row", gap: 2 * q }}
+        >
+          {row.map((x) => (
+            <Stat
+              key={x.label}
+              value={x.value}
+              unit={x.unit}
+              label={x.label}
+              size={size}
+            >
+              {x.delta}
+            </Stat>
+          ))}
+          {Array.from({ length: per - row.length }, (_, i) => (
+            <View key={`gap-${i}`} style={{ flex: 1 }} />
+          ))}
+        </View>
+      ))}
+    </View>
+  )
+}
+
+/** A progress ring in one solid area colour; children sit in its hole and
+ * are kept inside it. */
+export function CardRing({
+  value,
+  size,
+  color,
+  children,
+}: {
+  value: number
+  size: number
+  color: string
+  children?: ReactNode
+}) {
+  const { q, c } = useCard(),
+    px = size * q,
+    stroke = px * 0.08,
+    r = (px - stroke) / 2,
+    around = 2 * Math.PI * r,
+    v = Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0))
+  return (
+    <View
+      style={{
+        width: px,
+        height: px,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+      accessible
+      accessibilityLabel={`${Math.round(v * 100)} percent`}
+    >
+      <Svg width={px} height={px} style={{ position: "absolute" }}>
+        <Circle
+          cx={px / 2}
+          cy={px / 2}
+          r={r}
+          stroke={c.track}
+          strokeWidth={stroke}
+          fill="none"
+        />
+        {v > 0 && (
+          <Circle
+            cx={px / 2}
+            cy={px / 2}
+            r={r}
+            stroke={color}
+            strokeWidth={stroke}
+            strokeLinecap="round"
+            strokeDasharray={`${around * v} ${around}`}
+            fill="none"
+            transform={`rotate(-90 ${px / 2} ${px / 2})`}
+          />
+        )}
+      </Svg>
+      <View style={{ width: px * 0.62, alignItems: "center" }}>{children}</View>
+    </View>
+  )
+}
+
+/** A horizontal bar: ``value`` 0–1 of the track filled. */
+export function Meter({
+  value,
+  color,
+  height = 1.8,
+}: {
+  value: number
+  color: string
+  height?: number
+}) {
+  const { q, c } = useCard(),
+    v = Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0))
+  return (
+    <View
+      style={{
+        height: height * q,
+        borderRadius: height * q,
+        backgroundColor: c.track,
+        overflow: "hidden",
+      }}
+    >
+      <View
+        style={{
+          width: `${v * 100}%`,
+          height: "100%",
+          borderRadius: height * q,
+          backgroundColor: color,
+        }}
+      />
+    </View>
+  )
+}
+
+/** A still trend line (no reveal motion: it is captured as an image). */
+export function Spark({
+  values,
+  height,
+  color,
+}: {
+  values: number[]
+  height: number
+  color: string
+}) {
+  const { q } = useCard(),
+    px = height * q
+  if (values.length < 2) return null
+  const min = Math.min(...values),
+    span = Math.max(...values) - min || 1,
+    points = values
+      .map(
+        (v, i) =>
+          `${(i / (values.length - 1)) * 100},${px - ((v - min) / span) * (px - 4) - 2}`,
+      )
+      .join(" ")
+  return (
+    <Svg
+      width="100%"
+      height={px}
+      viewBox={`0 0 100 ${px}`}
+      preserveAspectRatio="none"
+    >
+      <Polygon
+        points={`${points} 100,${px} 0,${px}`}
+        fill={alpha(color, 0.16)}
+      />
+      <Polyline
+        points={points}
+        stroke={color}
+        strokeWidth={2}
+        vectorEffect="non-scaling-stroke"
+        fill="none"
+      />
+    </Svg>
+  )
+}
+
+export type Dot = "on" | "part" | "off" | "none"
+/** A day grid: one square per day, ``cols`` to a row. */
+export function Dots({
+  cells,
+  cols,
+  color,
+  width = "100%",
+}: {
+  cells: Dot[]
+  cols: number
+  color: string
+  /** Narrower on short cards, so a tall grid never crowds the header. */
+  width?: `${number}%`
+}) {
+  const { q, c } = useCard(),
+    rows: Dot[][] = []
+  for (let i = 0; i < cells.length; i += cols)
+    rows.push(cells.slice(i, i + cols))
+  return (
+    <View style={{ gap: 1.4 * q, width, alignSelf: "center" }}>
+      {rows.map((row, r) => (
+        <View key={r} style={{ flexDirection: "row", gap: 1.4 * q }}>
+          {Array.from({ length: cols }, (_, i) => row[i] ?? null).map(
+            (d, i) => (
+              <View
+                key={i}
+                style={{
+                  flex: 1,
+                  aspectRatio: 1,
+                  borderRadius: q,
+                  backgroundColor:
+                    d === "on"
+                      ? color
+                      : d === "part"
+                        ? alpha(color, 0.45)
+                        : d === "off"
+                          ? c.track
+                          : "transparent",
+                  borderWidth: d === "none" ? 1 : 0,
+                  borderColor: c.line,
+                }}
+              />
+            ),
+          )}
+        </View>
+      ))}
+    </View>
+  )
+}
+
+/** The flat lockup: fiddlehead plus "unfurl" in Geist Medium, −3%. */
+export function Lockup({ size }: { size: number }) {
+  const { q, c } = useCard()
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 0.6 * q }}>
+      <FernMark size={size * 1.1 * q} color={c.mark} weight={2.2} />
+      <Text
+        numberOfLines={1}
+        allowFontScaling={false}
+        style={{
+          fontFamily: fonts.medium,
+          fontSize: size * q,
+          letterSpacing: -0.03 * size * q,
+          color: c.ink,
+        }}
+      >
+        unfurl
+      </Text>
+    </View>
+  )
+}
+
+/** The card body. It fills the space between header and footer; when what
+ * it holds is taller (long names, many rows on a short card), it is scaled
+ * down to fit instead of being clipped or drawing over the header. */
+function FitBody({ children }: { children: ReactNode }) {
+  const [box, setBox] = useState(0),
+    [inner, setInner] = useState(0),
+    scale = box > 0 && inner > box + 0.5 ? box / inner : 1
+  return (
+    <View
+      testID="card-body"
+      style={{ flex: 1, minHeight: 0, overflow: "hidden" }}
+      onLayout={(e) => setBox(e.nativeEvent.layout.height)}
+    >
+      {/* Absolute, so its height is what the body holds rather than what
+          the card allows; at least the card's height, so short bodies
+          still fill and centre. A taller one is scaled about its centre,
+          then moved up so it starts at the top of the space. */}
+      <View
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          minHeight: box,
+          transform: [{ translateY: -(inner - inner * scale) / 2 }, { scale }],
+        }}
+        testID="card-body-fit"
+        onLayout={(e) => setInner(e.nativeEvent.layout.height)}
+      >
+        {/* Bodies are `flex: 1`; here they size to their content (basis
+            auto) and grow to fill, never shrinking below what they hold. */}
+        {isValidElement<{ style?: ViewStyle }>(children)
+          ? cloneElement(children, {
+              style: [
+                children.props.style,
+                { flex: 0, flexGrow: 1, flexShrink: 0, flexBasis: "auto" },
+              ] as unknown as ViewStyle,
+            })
+          : children}
+      </View>
+    </View>
+  )
 }
 export function CardFrame({
   width,
   look,
-  accent,
   kicker,
   children,
   date,
@@ -69,190 +640,93 @@ export function CardFrame({
   foot?: ReactNode
   width: number
   look: CardLook
-  accent: Accent
+  /** Kept for call sites; cards no longer tint their ground by area. */
+  accent?: Accent
   kicker: string
   children: ReactNode
 }) {
-  const gradientId = useId().replaceAll(":", ""),
-    t = useTheme(),
-    q = width / 100,
-    custom = look.backdrop === "custom" ? (look.color ?? "#3E63DD") : null,
-    paper = look.backdrop === "paper" || (!!custom && luminance(custom) > 0.55),
-    partner: Accent = {
-      primary: "hab",
-      hab: "tsk",
-      tsk: "hab",
-      fit: "hab",
-      nut: "life",
-      fin: "tsk",
-      life: "hab",
-    }[accent] as Accent
-  const colors: readonly [string, string, string] = custom
-    ? [custom, shade(custom, 0.18), shade(custom, 0.38)]
-    : paper
-      ? [t["share-paper"], t["share-paper"], t["share-paper"]]
-      : look.backdrop === "night"
-        ? [t["share-night"], t["share-night"], t["share-night"]]
-        : look.backdrop === "sticker"
-          ? // A see-through panel: the saved PNG keeps the transparency, so
-            // the card sits on top of whatever photo it is pasted onto.
-            ["#0b0b10b8", "#0b0b10a6", "#0b0b10b8"]
-          : [t["share-vivid-from"], t["share-vivid-to"], t["share-vivid-to"]]
-  const ink = paper ? t["share-paper-ink"] : "#fff"
+  const q = width / 100,
+    c = cardInk(look)
   return (
-    <LinearGradient
-      colors={colors}
-      start={{ x: 1, y: 0 }}
-      end={{ x: 0, y: 1 }}
-      style={{
-        width,
-        aspectRatio:
-          look.format === "9:16" ? 9 / 16 : look.format === "4:5" ? 4 / 5 : 1,
-        padding: 6.5 * q,
-        borderRadius: 5 * q,
-        overflow: "hidden",
-      }}
-    >
-      {look.backdrop !== "photo" &&
-        look.backdrop !== "sticker" &&
-        look.backdrop !== "custom" && (
-          <Svg
-            width="100%"
-            height="100%"
-            style={{ position: "absolute", inset: 0 }}
-          >
-            <Defs>
-              <RadialGradient
-                id={`${gradientId}top`}
-                cx={look.backdrop === "night" ? "50%" : "100%"}
-                cy="0%"
-                rx="120%"
-                ry="70%"
-              >
-                <Stop
-                  offset="0"
-                  stopColor={t[accent]}
-                  stopOpacity={paper || look.backdrop === "night" ? 0.22 : 0.75}
-                />
-                <Stop offset=".6" stopColor={t[accent]} stopOpacity={0} />
-              </RadialGradient>
-              <RadialGradient
-                id={`${gradientId}bottom`}
-                cx="0%"
-                cy="100%"
-                rx="90%"
-                ry="60%"
-              >
-                <Stop offset="0" stopColor={t[partner]} stopOpacity={0.55} />
-                <Stop offset=".65" stopColor={t[partner]} stopOpacity={0} />
-              </RadialGradient>
-            </Defs>
-            <Rect width="100%" height="100%" fill={`url(#${gradientId}top)`} />
-            {look.backdrop === "vivid" && (
-              <Rect
-                width="100%"
-                height="100%"
-                fill={`url(#${gradientId}bottom)`}
-              />
-            )}
-          </Svg>
-        )}
-      {look.backdrop === "photo" && look.photo && (
-        <Image
-          source={{ uri: look.photo }}
-          style={{ position: "absolute", inset: 0, opacity: 0.55 }}
-        />
-      )}
-      <Line style={{ gap: 2 * q, justifyContent: "space-between" }}>
-        <Line style={{ gap: 2 * q }}>
-          <Text
-            style={{
-              fontFamily: fonts.display,
-              fontSize: 4 * q,
-              color: ink,
-              backgroundColor: "#ffffff22",
-              width: 5.5 * q,
-              height: 5.5 * q,
-              textAlign: "center",
-              borderRadius: 1.4 * q,
-            }}
-          >
-            S
-          </Text>
-          <Text
-            style={{
-              fontFamily: fonts.semibold,
-              fontSize: 3.4 * q,
-              letterSpacing: 0.48 * q,
-              color: ink,
-            }}
-          >
-            {kicker.toUpperCase()}
-          </Text>
-        </Line>
-        <Text
-          style={{
-            fontFamily: fonts.body,
-            fontSize: 3.4 * q,
-            color: ink,
-            opacity: 0.65,
-          }}
-        >
-          {date ??
-            new Date().toLocaleDateString("en-PH", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            })}
-        </Text>
-      </Line>
-      {children}
+    <CardContext.Provider value={{ q, c }}>
       <View
         style={{
-          paddingTop: 4 * q,
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "flex-end",
+          width,
+          aspectRatio: 1 / ratioOf(look.format),
+          padding: 6.5 * q,
           gap: 3 * q,
+          borderRadius: 5 * q,
+          overflow: "hidden",
+          backgroundColor: c.bg,
+          borderWidth: look.backdrop === "sticker" ? 0 : 1,
+          borderColor: c.line,
         }}
       >
-        <View style={{ flex: 1 }}>
-          {typeof foot === "string" ? (
-            <Text
+        {look.backdrop === "photo" && look.photo && (
+          <>
+            <Image
+              source={{ uri: look.photo }}
+              style={{ position: "absolute", inset: 0 }}
+            />
+            <View
               style={{
-                fontFamily: fonts.body,
-                fontSize: 2.5 * q,
-                color: ink,
-                opacity: 0.5,
+                position: "absolute",
+                inset: 0,
+                backgroundColor: alpha(c.bg, 0.55),
               }}
-            >
-              {foot}
-            </Text>
-          ) : (
-            foot
+            />
+          </>
+        )}
+        <Line style={{ gap: 3 * q, justifyContent: "space-between" }}>
+          <View style={{ flexShrink: 1 }}>
+            <Words size={3.6} weight="medium" lines={1}>
+              {kicker}
+            </Words>
+          </View>
+          {!!date && (
+            <View style={{ flexShrink: 1 }}>
+              <Words size={3.3} lines={1} align="right" muted>
+                {date}
+              </Words>
+            </View>
           )}
-        </View>
-        {mark && (
-          <Text
+        </Line>
+        <FitBody>{children}</FitBody>
+        {(mark || !!foot) && (
+          <View
             style={{
-              fontFamily: fonts.display,
-              fontSize: 4 * q,
-              color: ink,
-              letterSpacing: -0.03 * 4 * q,
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "flex-end",
+              gap: 3 * q,
             }}
           >
-            unfurl
-          </Text>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              {typeof foot === "string" ? (
+                <Words size={3} lines={2} muted>
+                  {foot}
+                </Words>
+              ) : (
+                foot
+              )}
+            </View>
+            {mark && <Lockup size={4.2} />}
+          </View>
         )}
       </View>
-    </LinearGradient>
+    </CardContext.Provider>
   )
 }
+
+/** A fixed preview of a card (privacy check, tests): no composer chrome. */
+export function CardPreview({ children }: { children: ReactNode }) {
+  return <View collapsable={false}>{children}</View>
+}
+
 export function ShareComposer<K extends string>({
   value,
   onChange,
   items,
-  accent,
   caption,
   children,
   formats = ["9:16", "4:5", "1:1"],
@@ -267,7 +741,8 @@ export function ShareComposer<K extends string>({
     label: string
     render: (width: number, look: CardLook) => ReactNode
   }[]
-  accent: Accent
+  /** Kept for call sites; the composer chrome uses theme tokens only. */
+  accent?: Accent
   caption: string
   children: ReactNode
   formats?: CardFormat[]
@@ -275,30 +750,35 @@ export function ShareComposer<K extends string>({
   onLookChange?: (look: CardLook) => void
   shareRef?: { current: (() => Promise<void>) | null }
 }) {
+  const t = useTheme()
   const [format, setFormat] = useState<CardFormat>("9:16"),
-    [backdrop, setBackdrop] = useState<CardBackdrop>("vivid"),
+    [backdrop, setBackdrop] = useState<CardBackdrop>("dark"),
     [photo, setPhoto] = useState<string | null>(null),
-    [color, setColor] = useState("#3E63DD")
-  const t = useTheme(),
-    windowWidth = Math.min(useWindowDimensions().width, 480),
-    padding = (windowWidth - 32) * 0.18,
+    [color, setColor] = useState<string>(palette.light.primary)
+  const screen = useWindowDimensions().width,
+    windowWidth = Math.min(screen, 480),
+    inset = (windowWidth - 32) * 0.18,
     width = Math.min(
-      (windowWidth - 2 * padding) *
+      (windowWidth - 2 * inset) *
         (format === "9:16" ? 0.64 : format === "4:5" ? 0.76 : 0.8),
       format === "9:16" ? 300 : format === "4:5" ? 340 : 360,
-    )
+    ),
+    // Side padding that centres every card, the last one included: with
+    // less, the scroll stops short and the last card could not be chosen.
+    padding = (screen - width) / 2
   const look = { format, backdrop, photo, color },
     refs = useRef<Record<string, View | null>>({}),
     scroll = useRef<ScrollView>(null)
   useEffect(() => {
     if (!formats.includes(format)) setFormat(formats[0])
   }, [formats, format])
+  const index = items.findIndex((i) => i.key === value)
   useEffect(() => {
     scroll.current?.scrollTo({
-      x: Math.max(0, items.findIndex((i) => i.key === value) * (width + 12)),
+      x: Math.max(0, index * (width + 12)),
       animated: false,
     })
-  }, [value, width, items.findIndex])
+  }, [index, width])
   const doShare = async () => {
     try {
       if (Platform.OS !== "web" && refs.current[value]) {
@@ -306,9 +786,7 @@ export function ShareComposer<K extends string>({
           format: "png",
           quality: 1,
           width: 1080,
-          height: Math.round(
-            1080 * (format === "9:16" ? 16 / 9 : format === "4:5" ? 5 / 4 : 1),
-          ),
+          height: Math.round(1080 * ratioOf(format)),
         })
         if (await Sharing.isAvailableAsync()) {
           await Sharing.shareAsync(uri, { mimeType: "image/png" })
@@ -325,14 +803,13 @@ export function ShareComposer<K extends string>({
     const node = refs.current[value]
     if (!node) return null
     try {
-      const ratio = format === "9:16" ? 16 / 9 : format === "4:5" ? 5 / 4 : 1
       if (Platform.OS === "web")
         return await captureRef(node, { format: "png", result: "data-uri" })
       const uri = await captureRef(node, {
         format: "png",
         quality: 1,
         width: 1080,
-        height: Math.round(1080 * ratio),
+        height: Math.round(1080 * ratioOf(format)),
       })
       return await keep(uri, "png")
     } catch {
@@ -343,15 +820,7 @@ export function ShareComposer<K extends string>({
     const uri = await capture()
     setPostDraft({
       caption,
-      media: uri
-        ? [
-            {
-              kind: "image",
-              uri,
-              ratio: format === "9:16" ? 9 / 16 : format === "4:5" ? 4 / 5 : 1,
-            },
-          ]
-        : [],
+      media: uri ? [{ kind: "image", uri, ratio: 1 / ratioOf(format) }] : [],
     })
     go(uri ? "/social/compose" : "/social/compose?progress=1")
   }
@@ -371,6 +840,14 @@ export function ShareComposer<K extends string>({
     onLookChange?.({ format, backdrop, photo, color })
   }, [format, backdrop, photo, color, onLookChange])
   const share = () => (beforeShare ? beforeShare(doShare) : doShare())
+  const swatch = (key: CardBackdrop) =>
+    key === "dark"
+      ? palette.dark.background
+      : key === "light"
+        ? palette.light.background
+        : key === "custom"
+          ? color
+          : t.soft
   return (
     <View style={{ gap: 12, paddingTop: 4 }}>
       <View>
@@ -404,13 +881,7 @@ export function ShareComposer<K extends string>({
               onPress={() => {
                 onChange(item.key)
                 scroll.current?.scrollTo({
-                  x: Math.max(
-                    0,
-                    items.indexOf(item) * (width + 12) +
-                      padding +
-                      width / 2 -
-                      windowWidth / 2,
-                  ),
+                  x: items.indexOf(item) * (width + 12),
                   animated: true,
                 })
               }}
@@ -442,7 +913,7 @@ export function ShareComposer<K extends string>({
                   width: item.key === value ? 16 : 6,
                   height: 6,
                   borderRadius: 3,
-                  backgroundColor: item.key === value ? t.text : t.soft,
+                  backgroundColor: item.key === value ? t.text : t.line,
                 }}
               />
             ))}
@@ -463,48 +934,28 @@ export function ShareComposer<K extends string>({
             onPress={() => void action()}
             style={{ flex: 1, alignItems: "center", gap: 6 }}
           >
-            {label === "Story" ? (
-              <LinearGradient
-                colors={["#f77737", "#d62976", "#962fbf"]}
-                style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 24,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Icon size={20} color="#fff" />
-              </LinearGradient>
-            ) : (
-              <View
-                style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 24,
-                  backgroundColor: t.soft,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Icon size={20} color={t.text} />
-              </View>
-            )}
+            <View
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 24,
+                backgroundColor: t.soft,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Icon size={20} color={t.text} strokeWidth={1.75} />
+            </View>
             <Copy size={12}>{label}</Copy>
           </Tap>
         ))}
       </Line>
       <Copy
-        size={12}
+        size={13}
         muted
-        style={{
-          marginTop: 12,
-          marginBottom: -8,
-          paddingHorizontal: 4,
-          letterSpacing: 0.6,
-        }}
+        style={{ marginTop: 12, marginBottom: -4, paddingHorizontal: 4 }}
       >
-        SIZE
+        Size
       </Copy>
       <Segmented
         value={format}
@@ -515,18 +966,12 @@ export function ShareComposer<K extends string>({
         }))}
       />
       <Copy
-        size={12}
+        size={13}
         muted
-        style={{
-          marginTop: 12,
-          marginBottom: -8,
-          paddingHorizontal: 4,
-          letterSpacing: 0.6,
-        }}
+        style={{ marginTop: 12, marginBottom: -4, paddingHorizontal: 4 }}
       >
-        BACKGROUND
+        Background
       </Copy>
-      {/* All six fit one row: no swatch hides off the edge. */}
       <Line style={{ justifyContent: "space-between", gap: 4 }}>
         {BACKDROPS.map((b) => (
           <Tap
@@ -538,46 +983,39 @@ export function ShareComposer<K extends string>({
               if (b.key === "photo" && !photo)
                 void pickPhoto().then((v) => v && setPhoto(v))
             }}
-            style={{ alignItems: "center", gap: 6, width: 52 }}
+            style={{ alignItems: "center", gap: 6, width: 56 }}
           >
-            <LinearGradient
-              colors={
-                b.key === "vivid"
-                  ? [t[accent], t["share-vivid-to"]]
-                  : b.key === "paper"
-                    ? ["#eee8df", "#eee8df"]
-                    : b.key === "night"
-                      ? ["#08090d", "#08090d"]
-                      : b.key === "custom"
-                        ? [color, shade(color, 0.38)]
-                        : b.key === "photo"
-                          ? ["#8a817c", "#474341"]
-                          : ["#ffffff00", "#ffffff00"]
-              }
+            <View
               style={{
                 width: 44,
                 height: 44,
                 borderRadius: 22,
                 alignItems: "center",
                 justifyContent: "center",
-                // Night and Sticker vanish on a dark screen without an edge.
-                borderWidth:
-                  backdrop === b.key
-                    ? 2
-                    : b.key === "sticker" || b.key === "night"
-                      ? 1
-                      : 0,
+                backgroundColor: swatch(b.key),
+                // Selected: a 2 pt ink outline, never colour alone.
+                borderWidth: backdrop === b.key ? 2 : 1,
                 borderStyle:
                   b.key === "sticker" && backdrop !== b.key
                     ? "dashed"
                     : "solid",
-                borderColor: backdrop === b.key ? t[accent] : t.muted,
+                borderColor: backdrop === b.key ? t.text : t.input,
               }}
             >
-              {b.key === "photo" && <ImageIcon size={20} color="#fff" />}
-              {b.key === "custom" && <Palette size={20} color="#fff" />}
-              {b.key === "sticker" && <Sticker size={20} color={t.text} />}
-            </LinearGradient>
+              {b.key === "photo" && (
+                <ImageIcon size={18} color={t.text} strokeWidth={1.75} />
+              )}
+              {b.key === "custom" && (
+                <Palette
+                  size={18}
+                  color={luminance(color) > 0.4 ? t.text : t.bg}
+                  strokeWidth={1.75}
+                />
+              )}
+              {b.key === "sticker" && (
+                <Sticker size={18} color={t.text} strokeWidth={1.75} />
+              )}
+            </View>
             <Copy size={12}>{b.label}</Copy>
           </Tap>
         ))}
@@ -591,8 +1029,8 @@ export function ShareComposer<K extends string>({
             borderRadius: 16,
             borderWidth: 1,
             borderStyle: photo ? "solid" : "dashed",
-            borderColor: photo ? t.line : t[accent],
-            backgroundColor: t.soft,
+            borderColor: photo ? t.line : t.input,
+            backgroundColor: t.card,
             padding: 10,
           }}
         >
@@ -608,12 +1046,12 @@ export function ShareComposer<K extends string>({
                   width: 44,
                   height: 44,
                   borderRadius: 12,
-                  backgroundColor: `${t[accent]}26`,
+                  backgroundColor: t.soft,
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <ImagePlus size={22} color={t[accent]} />
+                <ImagePlus size={22} color={t.text} strokeWidth={1.75} />
               </View>
             )}
             <View style={{ flex: 1 }}>
@@ -649,11 +1087,11 @@ export function ShareComposer<K extends string>({
             backgroundColor: t.soft,
           }}
         >
-          <Sticker size={18} color={t[accent]} />
+          <Sticker size={18} color={t.text} strokeWidth={1.75} />
           <Copy size={13} muted style={{ flex: 1 }}>
             A see-through card to paste on top of your own photo or story. Save
-            it, then add it as a sticker in Instagram (or any app that takes
-            images).
+            it, then add it as a sticker in Instagram or any app that takes
+            images.
           </Copy>
         </Line>
       )}

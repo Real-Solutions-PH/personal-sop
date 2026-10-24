@@ -1,6 +1,11 @@
-import { AREA, MODULE_KEYS, type ShareTemplate } from "@domain/dash/data"
+import {
+  AREA,
+  type Goal,
+  MODULE_KEYS,
+  type ShareTemplate,
+} from "@domain/dash/data"
 import type { Facet } from "@domain/dash/facets"
-import { fmtGoal, parseMetric } from "@domain/dash/hooks"
+import { parseMetric } from "@domain/dash/hooks"
 import {
   type CardData,
   COMMON,
@@ -9,9 +14,9 @@ import {
 } from "@domain/dash/share-data"
 import { dashStore, saveShareDefaults } from "@domain/dash/store"
 import { containsMoney } from "@domain/lib/money"
-import { LinearGradient } from "expo-linear-gradient"
 import { useLocalSearchParams } from "expo-router"
 import {
+  BookOpen,
   Check,
   Crown,
   Dumbbell,
@@ -22,9 +27,10 @@ import {
   Target,
   TrendingUp,
   Trophy,
+  Utensils,
 } from "lucide-react-native"
 import { type ReactNode, useRef, useState } from "react"
-import { Image, Text, View } from "react-native"
+import { Image, View } from "react-native"
 import Svg, {
   Polygon,
   Line as SvgLine,
@@ -40,28 +46,52 @@ import {
   SectionHeading,
   Tap,
 } from "../native-kit"
-import { CardFrame, type CardLook, ShareComposer } from "../share-kit"
+import { fmt, pct } from "../share-format"
+import {
+  alpha,
+  CardFrame,
+  type CardLook,
+  CardRing,
+  Chip,
+  cardInk,
+  Delta,
+  type Dot,
+  Dots,
+  Label,
+  Meter,
+  Num,
+  ShareComposer,
+  Stats,
+  useCard,
+  Words,
+} from "../share-kit"
 import { fonts, useTheme } from "../theme"
-import { Button, Screen, Sheet, shareText } from "../ui"
-import { Ring } from "../visual"
+import { Button, Screen, Sheet, shareText, Toggle } from "../ui"
 
-const accents = {
-  life: "life",
-  weekly: "life",
-  monthly: "hab",
-  streak: "life",
-  finance: "fin",
-  profile: "life",
-  goal: "life",
-} as const
 const areaColors = {
   habits: "hab",
   tasks: "tsk",
   fitness: "fit",
   finance: "fin",
 } as const
-const pct = (n: number | null) => (n === null ? "—" : `${Math.round(n * 100)}%`)
+/** A metric string, unless it carries money: share cards never show ₱. */
 const safe = (s: string) => (containsMoney(s) ? "—" : s)
+/** A metric's number, grouped ("1,234 kg") when it is a plain count. */
+const metric = (s: string | undefined) => {
+  if (!s) return "—"
+  if (containsMoney(s)) return "—"
+  // A plain count or percent ("1234567", "1234%", "+1,234%") is regrouped;
+  // anything with words or units is shown as the area wrote it.
+  const m = s.trim().match(/^([+−-]?)([\d,]+(?:\.\d+)?)(%?)$/)
+  if (!m) return s
+  const n = Number(m[2].replace(/,/g, ""))
+  return `${m[1]}${fmt(n, m[3] ? 5 : 6)}${m[3]}`
+}
+/** "≥ 1.2M kg / week": the goal's target, grouped like every card number. */
+const goalTarget = (g: Goal) =>
+  safe(
+    `${g.comparator === "gte" ? "≥" : "≤"} ${fmt(g.target, 6, 1)}${g.unit === "%" ? "%" : g.unit ? ` ${g.unit}` : ""} / ${g.period}`,
+  )
 const verdict = (n: number | null) =>
   n === null
     ? "Getting started"
@@ -86,18 +116,32 @@ const defaults = (
   ),
   ...saved[key],
 })
+const short = (day: string | undefined) =>
+  day
+    ? new Date(`${day}T12:00:00`).toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+      })
+    : ""
+const dayDots = (range: CardData["w30"]["range"]): Dot[] =>
+  range.map((x) =>
+    x.onTarget === true ? "on" : x.onTarget === false ? "off" : "none",
+  )
+/** The six area facets as a hexagon: this period solid, the last dashed. */
 function Hexagon({
   facets,
   size,
-  ink,
   days,
+  legend = true,
 }: {
   facets: Facet[]
   size: number
-  ink: string
   days: number
+  /** Off where the card is too narrow for the two legend entries. */
+  legend?: boolean
 }) {
-  const t = useTheme(),
+  const { q, c } = useCard(),
+    life = c.area("life"),
     point = (i: number, r: number) => [
       160 + r * Math.cos(((-90 + i * 60) * Math.PI) / 180),
       160 + r * Math.sin(((-90 + i * 60) * Math.PI) / 180),
@@ -107,15 +151,14 @@ function Hexagon({
         .map((v, i) => point(i, 100 * Math.max(0.04, Math.min(1, v))).join(","))
         .join(" ")
   return (
-    <View style={{ alignItems: "center" }}>
-      <Svg width={size * 1.04} height={size} viewBox="-12 -6 344 332">
+    <View style={{ alignItems: "center", gap: q }}>
+      <Svg width={size * q * 1.04} height={size * q} viewBox="-12 -6 344 332">
         {[0.25, 0.5, 0.75, 1].map((v) => (
           <Polygon
             key={v}
             points={poly(Array(6).fill(v))}
             fill="none"
-            stroke={ink}
-            strokeOpacity={v === 1 ? 0.35 : 0.15}
+            stroke={c.track}
             strokeWidth={1.5}
           />
         ))}
@@ -128,8 +171,7 @@ function Hexagon({
               y1={160}
               x2={x}
               y2={y}
-              stroke={ink}
-              strokeOpacity={0.15}
+              stroke={c.track}
               strokeWidth={1.5}
             />
           )
@@ -137,15 +179,14 @@ function Hexagon({
         <Polygon
           points={poly(facets.map((f) => (f.off ? 0 : f.prev)))}
           fill="none"
-          stroke={ink}
-          strokeOpacity={0.6}
+          stroke={c.muted}
           strokeDasharray="6 5"
           strokeWidth={2}
         />
         <Polygon
           points={poly(facets.map((f) => (f.off ? 0 : f.value)))}
-          fill={border(t.life, 0.3)}
-          stroke={t.life}
+          fill={alpha(life, 0.28)}
+          stroke={life}
           strokeWidth={3.5}
           strokeLinejoin="round"
         />
@@ -156,19 +197,18 @@ function Hexagon({
               <TSpan
                 x={x}
                 dy="-.1em"
-                fontFamily={fonts.displayHeavy}
-                fontSize={30}
-                fill={f.off ? ink : t[areaColors[f.module]]}
+                fontFamily={fonts.mono}
+                fontSize={28}
+                fill={c.ink}
               >
                 {f.off ? "—" : Math.round(f.value * 100)}
               </TSpan>
               <TSpan
                 x={x}
-                dy="1.05em"
-                fontFamily={fonts.displayMedium}
+                dy="1.1em"
+                fontFamily={fonts.medium}
                 fontSize={18}
-                fill={ink}
-                fillOpacity={0.75}
+                fill={c.muted}
               >
                 {f.label}
               </TSpan>
@@ -176,21 +216,72 @@ function Hexagon({
           )
         })}
       </Svg>
-      <Text
-        style={{
-          fontFamily: fonts.body,
-          fontSize: size * 0.061,
-          color: ink,
-          opacity: 0.75,
-          letterSpacing: 0.4,
-        }}
-      >
-        ━ LAST {days}D ┄ PRIOR {days}D
-      </Text>
+      {legend && (
+        <Line style={{ gap: 3 * q }}>
+          <Line style={{ gap: q }}>
+            <View
+              style={{ width: 4 * q, height: 0.6 * q, backgroundColor: life }}
+            />
+            <Label>{`Last ${days} days`}</Label>
+          </Line>
+          <Line style={{ gap: q }}>
+            <View
+              style={{
+                width: 4 * q,
+                height: 0,
+                borderTopWidth: 0.6 * q,
+                borderStyle: "dashed",
+                borderColor: c.muted,
+              }}
+            />
+            <Label>{`Prior ${days} days`}</Label>
+          </Line>
+        </Line>
+      )}
     </View>
   )
 }
-function Artwork({
+/** Area bars: one per enabled area, its on-target rate. */
+function AreaMeters({ d }: { d: CardData }) {
+  const { q, c } = useCard()
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        flexWrap: "wrap",
+        rowGap: 3 * q,
+        columnGap: 5 * q,
+      }}
+    >
+      {MODULE_KEYS.filter((k) => d.enabled[k]).map((k) => (
+        <View key={k} style={{ width: "46%", gap: q }}>
+          <Line style={{ justifyContent: "space-between", gap: q }}>
+            <View style={{ flexShrink: 1 }}>
+              <Label>{AREA[k].label}</Label>
+            </View>
+            <Num size={3.6}>{pct(d.life.rates[k])}</Num>
+          </Line>
+          <Meter value={d.life.rates[k]} color={c.area(areaColors[k])} />
+        </View>
+      ))}
+    </View>
+  )
+}
+function Weekdays({ range }: { range: CardData["w7"]["range"] }) {
+  const { q } = useCard()
+  return (
+    <Line style={{ gap: 1.4 * q, marginTop: q }}>
+      {range.map((x) => (
+        <View key={x.day} style={{ flex: 1 }}>
+          <Label align="center">
+            {"SMTWTFS"[new Date(`${x.day}T12:00:00`).getDay()]}
+          </Label>
+        </View>
+      ))}
+    </Line>
+  )
+}
+export function Artwork({
   kind,
   width,
   look,
@@ -203,192 +294,47 @@ function Artwork({
   on: Record<string, boolean>
   d: CardData
 }) {
-  const t = useTheme(),
+  const c = cardInk(look),
     q = width / 100,
     tall = look.format === "9:16",
     sq = look.format === "1:1",
-    ink = look.backdrop === "paper" ? t["share-paper-ink"] : "#fff",
-    hi = t[accents[kind]],
-    panel = look.backdrop === "paper" ? "#0000000d" : "#ffffff17",
+    life = c.area("life"),
     date =
       kind === "weekly"
-        ? `${new Date(`${d.w7.range[0]?.day}T12:00:00`).toLocaleDateString("en-PH", { month: "short", day: "numeric" })} – ${new Date(`${d.w7.range.at(-1)?.day}T12:00:00`).toLocaleDateString("en-PH", { month: "short", day: "numeric" })}`
+        ? `${short(d.w7.range[0]?.day)} – ${short(d.w7.range.at(-1)?.day)}`
         : ["life", "monthly", "finance"].includes(kind)
           ? "Last 30 days"
-          : new Date().toLocaleDateString("en-PH", {
+          : new Date().toLocaleDateString("en-GB", {
               month: "long",
               year: "numeric",
             })
-  const text = (
-    s: string,
-    n: number,
-    display = false,
-    color = ink,
-    align: "left" | "center" = "left",
-  ) => (
-    <Text
-      numberOfLines={2}
-      style={{
-        fontFamily: display ? fonts.displayHeavy : fonts.semibold,
-        fontSize: n * q,
-        lineHeight: n * q * (display ? 1 : 1.3),
-        color,
-        textAlign: align,
-      }}
-    >
-      {safe(s)}
-    </Text>
-  )
-  const label = (s: string) => (
-    <Text
-      style={{
-        fontFamily: fonts.semibold,
-        fontSize: 3.2 * q,
-        color: ink,
-        opacity: 0.65,
-        letterSpacing: 0.3 * q,
-        textTransform: "uppercase",
-      }}
-    >
-      {s}
-    </Text>
-  )
-  const medal = (s: string, Icon?: typeof Crown, gold = false) => (
-    <View
-      style={{
-        alignSelf: "flex-start",
-        paddingHorizontal: 2.5 * q,
-        paddingVertical: 1.5 * q,
-        borderRadius: 12 * q,
-        backgroundColor: gold ? border(t.life, 0.17) : panel,
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 1.4 * q,
-      }}
-    >
-      {Icon && <Icon size={3.6 * q} color={gold ? t.life : ink} />}
-      {text(s, 3.2, false, gold ? t.life : ink)}
-    </View>
-  )
-  const delta = (n: number | null | undefined, suffix = "") =>
-    n != null && n !== 0 ? (
-      <View style={{ alignSelf: "flex-start" }}>
-        {text(
-          `${n > 0 ? "▲" : "▼"} ${Math.abs(n)} ${suffix}`,
-          3.2,
-          false,
-          n > 0 ? t.good : t.bad,
-        )}
-      </View>
-    ) : null
-  const stats = (
-    items: { label: string; value: string; delta?: number }[],
-    cols = items.length,
-    size = 10,
-  ) => (
-    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 2 * q }}>
-      {items.map((x) => (
-        <View
-          key={x.label}
-          style={{
-            width: `${(100 - (cols - 1) * 2) / cols}%`,
-            padding: 3 * q,
-            backgroundColor: panel,
-            borderRadius: 3 * q,
-          }}
-        >
-          {text(x.value, size, true)}
-          <View style={{ marginTop: 1 * q }}>{label(x.label)}</View>
-          {x.delta !== undefined && delta(x.delta)}
-        </View>
-      ))}
-    </View>
-  )
-  const grid = (range: CardData["w30"]["range"], cols: number) => (
-    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 1.5 * q }}>
-      {range.map((x) => (
-        <View
-          key={x.day}
-          style={{
-            width: `${(100 - (cols - 1) * 1.5) / cols}%`,
-            aspectRatio: 1,
-            borderRadius: 1.5 * q,
-            backgroundColor:
-              x.onTarget === true
-                ? hi
-                : x.onTarget === false
-                  ? border(ink, 0.18)
-                  : border(ink, 0.07),
-          }}
-        />
-      ))}
-    </View>
-  )
-  const ring = (value: number, size: number, children: ReactNode) => (
-    <Ring
-      value={value}
-      size={size * q}
-      strokeWidth={size * 0.085 * q}
-      color={hi}
-      hero
-      gradientColors={[t.hab, hi]}
-    >
-      {children}
-    </Ring>
-  )
-  const meters = (
-    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 3 * q }}>
-      {MODULE_KEYS.filter((k) => d.enabled[k]).map((k) => (
-        <View key={k} style={{ width: "47%" }}>
-          <Line style={{ justifyContent: "space-between", gap: q }}>
-            {label(AREA[k].label)}
-            {text(pct(d.life.rates[k]), 3.5)}
-          </Line>
-          <View
-            style={{
-              height: 1.8 * q,
-              backgroundColor: panel,
-              borderRadius: q,
-              marginTop: q,
-            }}
-          >
-            <View
-              style={{
-                height: "100%",
-                width: `${Math.max(0, Math.min(1, d.life.rates[k])) * 100}%`,
-                backgroundColor: t[areaColors[k]],
-                borderRadius: q,
-              }}
-            />
-          </View>
-        </View>
-      ))}
-    </View>
-  )
   let body: ReactNode = null,
     kicker = "Life Score"
   if (kind === "life") {
     const size = sq ? 38 : tall ? 54 : 40
     const score = (
-      <View style={{ alignItems: "center", gap: 2.5 * q }}>
-        {ring(
-          (d.life.score ?? 0) / 100,
-          size,
-          <>
-            {text(String(d.life.score ?? "—"), size * 0.42, true)}
-            {label("of 100")}
-          </>,
-        )}
-        <View
-          style={{
-            flexDirection: "row",
-            flexWrap: "wrap",
-            justifyContent: "center",
-            gap: 1.6 * q,
-          }}
-        >
-          {on.level && medal(d.level, Crown, true)}
-          {on.delta && delta(d.life.delta, "vs last month")}
+      <View
+        style={{
+          alignItems: "center",
+          gap: 2.5 * q,
+          width: sq ? "46%" : undefined,
+        }}
+      >
+        <CardRing value={(d.life.score ?? 0) / 100} size={size} color={life}>
+          <Num size={size * 0.34} align="center">
+            {d.life.score === null ? "—" : fmt(d.life.score)}
+          </Num>
+          <Label align="center">of 100</Label>
+        </CardRing>
+        <View style={{ alignItems: "center", gap: 1.4 * q }}>
+          {on.level && (
+            <Chip icon={Crown} tone={life}>
+              {d.level}
+            </Chip>
+          )}
+          {on.delta && (
+            <Delta n={d.life.delta} unit=" pts" suffix="vs last month" />
+          )}
         </View>
       </View>
     )
@@ -397,7 +343,7 @@ function Artwork({
         style={{
           flex: 1,
           justifyContent: "center",
-          alignItems: sq ? "center" : undefined,
+          alignItems: "center",
           flexDirection: sq ? "row" : "column",
           gap: 4 * q,
         }}
@@ -407,23 +353,29 @@ function Artwork({
           <Hexagon
             facets={d.facets30}
             days={30}
-            size={(sq ? 40 : tall ? 46 : 34) * q}
-            ink={ink}
+            size={sq ? 40 : tall ? 46 : 28}
+            legend={!sq}
           />
         )}
-        {on.areas && (tall || !on.hexagon) && meters}
+        {on.areas && (tall || !on.hexagon) && !sq && (
+          <View style={{ alignSelf: "stretch" }}>
+            <AreaMeters d={d} />
+          </View>
+        )}
       </View>
     )
   }
   if (kind === "weekly") {
     kicker = "Week recap"
+    const delta = (n?: number) =>
+      on.deltas && n ? <Delta n={n} suffix="vs last wk" /> : undefined
     const items = [
       ...(on.habits && d.habits7
         ? [
             {
               label: "Habits",
-              value: d.habits7.value,
-              delta: on.deltas ? d.habits7.delta : undefined,
+              value: metric(d.habits7.value),
+              delta: delta(d.habits7.delta),
             },
           ]
         : []),
@@ -431,8 +383,8 @@ function Artwork({
         ? [
             {
               label: "Training",
-              value: d.training7.value,
-              delta: on.deltas ? d.training7.delta : undefined,
+              value: metric(d.training7.value),
+              delta: delta(d.training7.delta),
             },
           ]
         : []),
@@ -440,8 +392,8 @@ function Artwork({
         ? [
             {
               label: "Saved",
-              value: safe(d.savings7.value),
-              delta: on.deltas ? d.savings7.delta : undefined,
+              value: metric(d.savings7.value),
+              delta: delta(d.savings7.delta),
             },
           ]
         : []),
@@ -449,46 +401,40 @@ function Artwork({
     body = (
       <View style={{ flex: 1, justifyContent: "center", gap: 4 * q }}>
         <Line style={{ gap: 4 * q }}>
-          {on.onTarget &&
-            ring(
-              d.w7.rate ?? 0,
-              sq ? 28 : 34,
-              <>
-                {text(pct(d.w7.rate), 10, true)}
-                {label("on target")}
-              </>,
+          {on.onTarget && (
+            <CardRing value={d.w7.rate ?? 0} size={sq ? 28 : 32} color={life}>
+              <Num size={8} align="center">
+                {pct(d.w7.rate)}
+              </Num>
+              <Label align="center">on target</Label>
+            </CardRing>
+          )}
+          <View style={{ flex: 1, gap: q }}>
+            <Words size={8} weight="semibold">
+              {verdict(d.w7.rate)}
+            </Words>
+            {on.deltas && d.w7.rate !== null && d.w7.prevRate !== null && (
+              <Delta
+                n={Math.round((d.w7.rate - d.w7.prevRate) * 100)}
+                unit=" pts"
+                suffix="vs last week"
+              />
             )}
-          <View style={{ flex: 1 }}>
-            {text(verdict(d.w7.rate), 11, true)}
-            {on.deltas &&
-              d.w7.rate !== null &&
-              d.w7.prevRate !== null &&
-              delta(
-                Math.round((d.w7.rate - d.w7.prevRate) * 100),
-                "% vs last week",
-              )}
           </View>
         </Line>
-        <View>
-          {grid(d.w7.range, 7)}
-          <Line style={{ gap: 0, marginTop: q }}>
-            {d.w7.range.map((x) => (
-              <View key={x.day} style={{ flex: 1, alignItems: "center" }}>
-                {text("SMTWTFS"[new Date(x.day).getDay()], 2.8)}
-              </View>
-            ))}
-          </Line>
+        <View style={{ width: sq ? "72%" : "100%", alignSelf: "center" }}>
+          <Dots cells={dayDots(d.w7.range)} cols={7} color={life} />
+          <Weekdays range={d.w7.range} />
         </View>
-        {on.hexagon && !sq && (
-          <Hexagon
-            facets={d.facets7}
-            days={7}
-            size={(tall ? 40 : 26) * q}
-            ink={ink}
-          />
+        {on.hexagon && tall && (
+          <Hexagon facets={d.facets7} days={7} size={38} />
         )}
-        {stats(items, 3)}
-        {on.trophy && d.trophy && !sq && medal(d.trophy.title, Trophy, true)}
+        <Stats items={items} cols={3} size={tall ? 8 : 7} />
+        {on.trophy && d.trophy && !sq && (
+          <Chip icon={Trophy} tone={life}>
+            {safe(d.trophy.title)}
+          </Chip>
+        )}
       </View>
     )
   }
@@ -497,53 +443,54 @@ function Artwork({
     const items = on.hero
       ? [
           { label: "On target", value: pct(d.w30.rate) },
-          ...(d.habits30 ? [{ label: "Habits", value: d.habits30.value }] : []),
+          ...(d.habits30
+            ? [{ label: "Habits", value: metric(d.habits30.value) }]
+            : []),
           ...(d.training30
-            ? [{ label: "Workouts", value: d.training30.value }]
+            ? [{ label: "Workouts", value: metric(d.training30.value) }]
             : []),
           ...(d.savings30
-            ? [{ label: "Saved", value: safe(d.savings30.value) }]
+            ? [{ label: "Saved", value: metric(d.savings30.value) }]
             : []),
         ]
       : []
+    const prs = d.prs30 ? (parseMetric(d.prs30.value) ?? 0) : 0
     body = (
       <View style={{ flex: 1, justifyContent: "center", gap: 4 * q }}>
-        <View>
-          {text(
-            new Date().toLocaleDateString("en-PH", { month: "long" }),
-            16,
-            true,
-          )}
+        <View style={{ gap: 2 * q }}>
+          <Words size={12} weight="semibold" lines={1}>
+            {new Date().toLocaleDateString("en-GB", { month: "long" })}
+          </Words>
           <View
-            style={{
-              marginTop: 2 * q,
-              flexDirection: "row",
-              flexWrap: "wrap",
-              gap: 1.6 * q,
-            }}
+            style={{ flexDirection: "row", flexWrap: "wrap", gap: 1.6 * q }}
           >
-            {medal(verdict(d.w30.rate), Flame)}
-            {on.prs &&
-              d.prs30 &&
-              (parseMetric(d.prs30.value) ?? 0) > 0 &&
-              medal(`${d.prs30.value} PRs`, Trophy, true)}
-            {on.streak && medal(`${d.w30.best}-day best streak`, Flame)}
+            <Chip icon={Flame} tone={life}>
+              {verdict(d.w30.rate)}
+            </Chip>
+            {on.prs && prs > 0 && (
+              <Chip icon={Trophy} tone={life}>
+                {`${fmt(prs)} ${prs === 1 ? "PR" : "PRs"}`}
+              </Chip>
+            )}
+            {on.streak && <Chip>{`${fmt(d.w30.best)}-day best streak`}</Chip>}
           </View>
         </View>
-        {!sq && grid(d.w30.range, 10)}
+        {!sq && <Dots cells={dayDots(d.w30.range)} cols={10} color={life} />}
         {on.hexagon && tall && (
-          <Hexagon facets={d.facets30} days={30} size={28 * q} ink={ink} />
+          <Hexagon facets={d.facets30} days={30} size={24} />
         )}
-        {stats(items, sq ? 4 : 2, sq ? 8 : 11)}
-        {on.highlight &&
-          tall &&
-          !on.hexagon &&
-          text(`${d.w30.onTarget} on-target days out of ${d.w30.scored}.`, 3.4)}
+        <Stats items={items} cols={tall ? 2 : 4} size={tall ? 9 : 6.5} />
+        {on.highlight && tall && !on.hexagon && (
+          <Words size={3.6}>
+            {`${fmt(d.w30.onTarget)} on-target days out of ${fmt(d.w30.scored)}.`}
+          </Words>
+        )}
       </View>
     )
   }
   if (kind === "streak") {
     kicker = "On-target streak"
+    const best = d.w7.current > 0 && d.w7.current >= d.w7.best
     body = (
       <View
         style={{
@@ -553,41 +500,46 @@ function Artwork({
           gap: 3.5 * q,
         }}
       >
-        {ring(
-          d.w7.best ? d.w7.current / d.w7.best : 0,
-          tall ? 58 : 42,
-          <>
-            <Flame size={9 * q} fill={hi} color={hi} />
-            {text(String(d.w7.current), tall ? 24 : 18, true)}
-          </>,
+        <CardRing
+          value={d.w7.best ? d.w7.current / d.w7.best : 0}
+          size={tall ? 58 : 42}
+          color={life}
+        >
+          <Flame size={7 * q} color={life} strokeWidth={2} />
+          <Num size={tall ? 18 : 13} align="center">
+            {fmt(d.w7.current)}
+          </Num>
+          <Label align="center">{d.w7.current === 1 ? "day" : "days"}</Label>
+        </CardRing>
+        <Words size={5} weight="semibold" align="center">
+          On target, day after day
+        </Words>
+        {on.best && (
+          <Chip icon={best ? Trophy : undefined} tone={life}>
+            {best ? "Personal best" : `Best ${fmt(d.w7.best)} days`}
+          </Chip>
         )}
-        {text("DAY STREAK", 7, true)}
-        {on.best &&
-          medal(
-            d.w7.current > 0 && d.w7.current >= d.w7.best
-              ? "Personal best"
-              : `Best ${d.w7.best} days`,
-            d.w7.current >= d.w7.best ? Trophy : undefined,
-            d.w7.current >= d.w7.best,
-          )}
         {on.grid && !sq && (
-          <View style={{ width: "100%" }}>{grid(d.w30.range, 10)}</View>
+          <View style={{ alignSelf: "stretch" }}>
+            <Dots cells={dayDots(d.w30.range)} cols={10} color={life} />
+          </View>
         )}
       </View>
     )
   }
   if (kind === "finance") {
-    kicker = "Money, in %"
-    const sr = d.savings30 ? parseMetric(d.savings30.value) : null,
+    kicker = "Money, in percent"
+    const fin = c.area("fin"),
+      sr = d.savings30 ? parseMetric(d.savings30.value) : null,
       items = [
         ...(on.spend && d.spend30
-          ? [{ label: "Spend vs last mo.", value: d.spend30.value }]
+          ? [{ label: "Spend vs last month", value: metric(d.spend30.value) }]
           : []),
         ...(on.budgets && (sq || d.budgetsPct === null)
           ? [
               {
                 label: "Budgets kept",
-                value: d.budgetsPct === null ? "—" : `${d.budgetsPct}%`,
+                value: d.budgetsPct === null ? "—" : `${fmt(d.budgetsPct)}%`,
               },
             ]
           : []),
@@ -595,7 +547,7 @@ function Artwork({
           ? [
               {
                 label: "No-spend days",
-                value: String(parseMetric(d.nospend30.value) ?? "—"),
+                value: fmt(parseMetric(d.nospend30.value) ?? Number.NaN),
               },
             ]
           : []),
@@ -604,59 +556,43 @@ function Artwork({
       <View style={{ flex: 1, justifyContent: "center", gap: 5 * q }}>
         {on.savings && d.savings30 && (
           <Line style={{ gap: 5 * q }}>
-            {ring(
-              (sr ?? 0) / 100,
-              sq ? 32 : tall ? 46 : 40,
-              text(safe(d.savings30.value), 14, true),
-            )}
-            <View style={{ flex: 1 }}>
-              {label("Savings rate")}
-              <View style={{ marginTop: q }}>
-                {text(
-                  sr === null
-                    ? "Tracking"
-                    : sr >= 20
-                      ? "Saving strong"
-                      : sr > 0
-                        ? "In the green"
-                        : "Rebuilding",
-                  10,
-                  true,
-                )}
-              </View>
+            <CardRing
+              value={(sr ?? 0) / 100}
+              size={sq ? 30 : tall ? 44 : 38}
+              color={fin}
+            >
+              <Num size={sq ? 8 : 10} align="center">
+                {sr === null ? "—" : `${fmt(Math.round(sr), 5)}%`}
+              </Num>
+            </CardRing>
+            <View style={{ flex: 1, gap: q }}>
+              <Label>Savings rate</Label>
+              <Words size={7} weight="semibold">
+                {sr === null
+                  ? "Tracking"
+                  : sr >= 20
+                    ? "Saving strong"
+                    : sr > 0
+                      ? "In the green"
+                      : "Rebuilding"}
+              </Words>
             </View>
           </Line>
         )}
         {on.budgets && d.budgetsPct !== null && !sq && (
-          <View>
+          <View style={{ gap: 1.6 * q }}>
             <Line style={{ justifyContent: "space-between" }}>
-              {label("Budgets kept")}
-              {text(`${d.budgetsPct}%`, 4)}
+              <Label>Budgets kept</Label>
+              <Num size={4.4}>{`${fmt(d.budgetsPct)}%`}</Num>
             </Line>
-            <View
-              style={{
-                height: 2 * q,
-                borderRadius: q,
-                backgroundColor: panel,
-                marginTop: 2 * q,
-              }}
-            >
-              <View
-                style={{
-                  height: "100%",
-                  width: `${d.budgetsPct}%`,
-                  borderRadius: q,
-                  backgroundColor: hi,
-                }}
-              />
-            </View>
+            <Meter value={d.budgetsPct / 100} color={fin} height={2} />
           </View>
         )}
-        {stats(
-          items,
-          items.length === 2 ? 2 : Math.max(1, items.length),
-          tall ? 13 : 10,
-        )}
+        <Stats
+          items={items}
+          cols={items.length === 2 ? 2 : Math.max(1, items.length)}
+          size={tall ? 10 : 8}
+        />
       </View>
     )
   }
@@ -668,88 +604,74 @@ function Artwork({
           {on.photo && d.photo ? (
             <Image
               source={{ uri: d.photo }}
-              style={{
-                width: 18 * q,
-                height: 18 * q,
-                borderRadius: 9 * q,
-                borderWidth: 0.8 * q,
-                borderColor: hi,
-              }}
+              style={{ width: 18 * q, height: 18 * q, borderRadius: 9 * q }}
             />
           ) : (
-            <LinearGradient
-              colors={[t.hab, t.primary, t.fit]}
+            <View
               style={{
                 width: 18 * q,
                 height: 18 * q,
                 borderRadius: 9 * q,
                 alignItems: "center",
                 justifyContent: "center",
+                backgroundColor: c.panel,
+                borderWidth: 1,
+                borderColor: c.line,
               }}
             >
-              {text(
-                d.name
-                  .split(" ")
+              <Words size={6} weight="semibold" lines={1}>
+                {d.name
+                  .split(/\s+/)
+                  .filter(Boolean)
                   .map((w) => w[0])
                   .slice(0, 2)
-                  .join(""),
-                7,
-                true,
-                "#fff",
-              )}
-            </LinearGradient>
-          )}
-          <View style={{ flex: 1 }}>
-            {text(d.name, 10, true)}
-            <View style={{ marginTop: 1.5 * q }}>
-              {medal(d.level, Crown, true)}
+                  .join("")
+                  .toUpperCase()}
+              </Words>
             </View>
+          )}
+          <View style={{ flex: 1, gap: 1.5 * q }}>
+            <Words size={8} weight="semibold">
+              {d.name}
+            </Words>
+            <Chip icon={Crown} tone={life}>
+              {d.level}
+            </Chip>
           </View>
         </Line>
         {on.identity &&
           !sq &&
-          d.identities.slice(0, 3).map((x) => (
-            <Text
-              key={x}
-              style={{
-                fontFamily: fonts.body,
-                fontSize: 3.6 * q,
-                color: ink,
-                fontStyle: "italic",
-                opacity: 0.85,
-              }}
-            >
-              “{x}”
-            </Text>
+          d.identities.slice(0, 2).map((x) => (
+            <Words key={x} size={3.6} lines={1} muted>
+              {`“${x}”`}
+            </Words>
           ))}
-        {on.hexagon && !sq && (
-          <Hexagon
-            facets={d.facets30}
-            days={30}
-            size={(tall ? 42 : 30) * q}
-            ink={ink}
-          />
+        {on.hexagon && tall && (
+          <Hexagon facets={d.facets30} days={30} size={32} />
         )}
-        {stats(
-          [
-            { label: "Score", value: String(d.life.score ?? "—") },
+        <Stats
+          items={[
+            {
+              label: "Score",
+              value: d.life.score === null ? "—" : fmt(d.life.score),
+            },
             { label: "Hit rate", value: pct(d.w30.rate) },
-            { label: "Streak", value: `${d.w30.best}d` },
+            { label: "Best streak", value: fmt(d.w30.best), unit: "d" },
             ...(d.savings30
-              ? [{ label: "Saved", value: safe(d.savings30.value) }]
+              ? [{ label: "Saved", value: metric(d.savings30.value) }]
               : []),
-          ],
-          4,
-          8,
-        )}
+          ]}
+          cols={2}
+          size={7}
+        />
         {on.records && (
           <View
             style={{ flexDirection: "row", flexWrap: "wrap", gap: 1.6 * q }}
           >
-            {d.trophies.slice(0, sq ? 2 : 3).map((x) => (
-              <View key={x.id}>
-                {medal(`${safe(x.value)} · ${x.title}`, Trophy)}
-              </View>
+            {d.trophies.slice(0, 2).map((x) => (
+              <Chip key={x.id} icon={Trophy} tone={life}>
+                {`${metric(x.value)} · ${safe(x.title)}`}
+              </Chip>
             ))}
           </View>
         )}
@@ -760,44 +682,45 @@ function Artwork({
     kicker = "Goal"
     const g = d.goal,
       fin = g?.goal.metric.startsWith("finance:"),
-      Icon = g?.hit ? Target : TrendingUp
+      Icon = g?.hit ? Target : TrendingUp,
+      shown = g ? `${fmt(Math.round(Math.min(g.pct, 99.99) * 100), 5)}%` : "—"
     body = g ? (
       <View
         style={{
           flex: 1,
           alignItems: "center",
           justifyContent: "center",
-          gap: 3.5 * q,
+          gap: 3 * q,
         }}
       >
-        {ring(
-          g.pct,
-          tall ? 54 : 40,
-          <>
-            <Icon size={10 * q} color={hi} />
-            {text(`${Math.round(Math.min(g.pct, 9.99) * 100)}%`, 11, true)}
-          </>,
-        )}
-        {medal(
-          g.hit ? "Goal hit" : "In progress",
-          g.hit ? Check : undefined,
-          g.hit,
-        )}
-        {text(g.goal.label, 10, true, ink, "center")}
-        <View style={{ alignItems: "center" }}>
-          {text(
-            fin ? `${Math.round(g.pct * 100)}%` : safe(g.entry?.value ?? "—"),
-            18,
-            true,
-            hi,
-            "center",
+        <CardRing value={g.pct} size={tall ? 52 : sq ? 36 : 40} color={life}>
+          <Icon size={7 * q} color={life} strokeWidth={2} />
+          <Num size={tall ? 11 : 9} align="center">
+            {shown}
+          </Num>
+        </CardRing>
+        <Chip icon={g.hit ? Check : undefined} tone={c.good}>
+          {g.hit ? "Goal hit" : "In progress"}
+        </Chip>
+        <Words size={7} weight="semibold" align="center">
+          {safe(g.goal.label)}
+        </Words>
+        <View style={{ alignItems: "center", alignSelf: "stretch" }}>
+          <Num size={tall ? 14 : 11} align="center">
+            {fin ? shown : metric(g.entry?.value)}
+          </Num>
+          {on.target && (
+            <Label align="center">
+              {fin ? "of target" : `Target ${goalTarget(g.goal)}`}
+            </Label>
           )}
-          {on.target && label(fin ? "of target" : `target ${fmtGoal(g.goal)}`)}
         </View>
       </View>
     ) : (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        {text("No goals yet", 4)}
+        <Words size={4} muted align="center">
+          No goals yet
+        </Words>
       </View>
     )
   }
@@ -805,14 +728,13 @@ function Artwork({
     <CardFrame
       width={width}
       look={look}
-      accent={accents[kind]}
       kicker={kicker}
       date={on.dates ? date : ""}
       mark={on.mark}
       foot={[
         on.handle ? d.handle : "",
         kind === "finance"
-          ? "Percentages only — amounts never leave the app."
+          ? "Percentages only. Amounts never leave the app."
           : "",
       ]
         .filter(Boolean)
@@ -834,14 +756,14 @@ export function ShareCard() {
     [remember, setRemember] = useState(false),
     [currentLook, setCurrentLook] = useState<CardLook>({
       format: "9:16",
-      backdrop: "vivid",
+      backdrop: "dark",
       photo: null,
     }),
     proceed = useRef<(() => Promise<void>) | null>(null),
     d = useCardData(params.goal ?? null),
     tpl = TEMPLATES.find((x) => x.key === kind)!,
     fields = [...tpl.fields, ...COMMON],
-    caption = `${d.name.split(" ")[0]}'s ${tpl.label.toLowerCase()} — Life Score ${d.life.score ?? "—"} (${d.level}), on-target streak ${d.w7.current} days · Unfurl`
+    caption = `${d.name.split(" ")[0]}'s ${tpl.label.toLowerCase()}: Life Score ${d.life.score === null ? "—" : fmt(d.life.score)} (${d.level}), on-target streak ${fmt(d.w7.current)} days · Unfurl`
   const change = (k: ShareTemplate) => {
     setKind(k)
     setOn(defaults(k, saved))
@@ -871,7 +793,6 @@ export function ShareCard() {
             />
           ),
         }))}
-        accent={accents[kind]}
         formats={tpl.formats}
         caption={caption}
         beforeShare={(action) => {
@@ -932,7 +853,7 @@ export function ShareCard() {
             <ShieldCheck size={14} color={t.muted} />
             <Copy size={12} muted style={{ flex: 1 }}>
               Money amounts, body weight, task titles, journal text and account
-              names can never appear on a card.
+              names never appear on a card.
             </Copy>
           </Line>
           <View style={{ marginTop: 16 }}>
@@ -957,6 +878,18 @@ export function ShareCard() {
               icon={ListChecks}
               accent="tsk"
               href="/tasks/share"
+            />
+            <LinkRow
+              title="Food day"
+              icon={Utensils}
+              accent="nut"
+              href="/fitness/nutrition/share"
+            />
+            <LinkRow
+              title="Journal streak"
+              icon={BookOpen}
+              accent="life"
+              href="/journal/share"
             />
           </Frame>
         </View>
@@ -996,13 +929,13 @@ export function ShareCard() {
             </Line>
           ))}
         <Copy size={14} muted>
-          No money amounts (never allowed)
+          No money amounts. Cards never show them.
         </Copy>
-        <Tap onPress={() => setRemember((v) => !v)}>
-          <Copy size={14}>
-            {remember ? "☑" : "☐"} Remember these as defaults for {tpl.label}
-          </Copy>
-        </Tap>
+        <Toggle
+          label={`Remember these as defaults for ${tpl.label}`}
+          value={remember}
+          onChange={setRemember}
+        />
         <Line style={{ gap: 8 }}>
           <View style={{ flex: 1 }}>
             <Button tone="quiet" onPress={() => setCheck(false)}>
