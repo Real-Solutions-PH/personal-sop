@@ -16,6 +16,7 @@
 // screen; the caller decides that and calls ``setWanted``.
 import { createStore } from "@domain/lib/store"
 import { create } from "zustand"
+import { recognitionModule } from "@/live/speech"
 
 type Module =
   typeof import("expo-speech-recognition").ExpoSpeechRecognitionModule
@@ -99,9 +100,7 @@ export function wakeCommand(said: string, name = "Fern"): string | null {
 
 function recogniser(): Module | null {
   try {
-    const m = (
-      require("expo-speech-recognition") as typeof import("expo-speech-recognition")
-    ).ExpoSpeechRecognitionModule
+    const m = recognitionModule()
     return m?.isRecognitionAvailable?.() ? m : null
   } catch {
     return null

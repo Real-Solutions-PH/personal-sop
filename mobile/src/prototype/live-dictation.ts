@@ -12,7 +12,7 @@
 import { useEffect, useRef, useState } from "react"
 import { create } from "zustand"
 import { liveMode } from "@/live/config"
-import { stopSpeech } from "@/live/speech"
+import { recognitionModule, stopSpeech } from "@/live/speech"
 import { releaseWake } from "./wake-word"
 
 /** Whether any composer is dictating right now. The phone has one
@@ -27,9 +27,7 @@ type Sub = { remove(): void }
 // the composer must still work without it (it falls back to recording).
 function speech(): Module | null {
   try {
-    const m = (
-      require("expo-speech-recognition") as typeof import("expo-speech-recognition")
-    ).ExpoSpeechRecognitionModule
+    const m = recognitionModule()
     return m?.isRecognitionAvailable?.() ? m : null
   } catch {
     return null

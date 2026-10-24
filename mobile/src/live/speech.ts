@@ -3,6 +3,7 @@
 // file, so playing it again costs nothing. ``speaking`` drives the play /
 // pause button under each reply.
 
+import Constants from "expo-constants"
 import { create } from "zustand"
 import type { Http } from "./http"
 
@@ -66,10 +67,7 @@ function defaults(): Required<Omit<SpeechDeps, "http">> {
  * the live recogniser set. A no-op where that module is absent. */
 function playbackSession() {
   try {
-    const m = (
-      require("expo-speech-recognition") as typeof import("expo-speech-recognition")
-    ).ExpoSpeechRecognitionModule
-    m?.setCategoryIOS?.({
+    recognitionModule()?.setCategoryIOS?.({
       category: "playback",
       categoryOptions: [],
       mode: "spokenAudio",
@@ -151,5 +149,21 @@ export function stopSpeech() {
 export class SpeechError extends Error {
   constructor(readonly code: "unavailable" | "failed") {
     super(code)
+  }
+}
+
+/** The live speech recogniser's native module, or null where this binary has
+ * none. Expo Go ships without it, and requiring the package there reports an
+ * error even inside a try, so it is not required at all. */
+export function recognitionModule():
+  | typeof import("expo-speech-recognition").ExpoSpeechRecognitionModule
+  | null {
+  if (Constants.executionEnvironment === "storeClient") return null // Expo Go
+  try {
+    return (
+      require("expo-speech-recognition") as typeof import("expo-speech-recognition")
+    ).ExpoSpeechRecognitionModule
+  } catch {
+    return null
   }
 }
