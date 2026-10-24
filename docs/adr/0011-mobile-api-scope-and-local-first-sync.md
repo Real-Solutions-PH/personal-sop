@@ -35,7 +35,7 @@ There are two tensions with the ratified IA (`docs/ia/README.md`):
    | A business rule refuses the op | `rejected` with the rule's code |
    | Derived fields (scores, balances, streaks) | The server is authoritative |
 
-5. **Mobile keeps its stores as the UI's source of truth.** An outbox of ops in the native SQLite store is pushed on reconnect, on foreground, or when another device nudges over the event stream (ADR-0013). Server-computed reads are cached and shown stale offline. The web client is unchanged.
+5. **Mobile keeps its stores as the UI's source of truth.** An outbox of ops in the native SQLite store is pushed on reconnect, on foreground, or when another device nudges over the event stream (ADR-0013). Server-computed reads are cached and shown stale offline. A server row (pulled, or in a push reply) never undoes a change still in the outbox: it is rebased onto the queued ops first, so the fields a queued upsert writes keep the device's value, and a row a queued delete or action names is held back until the outbox no longer names it (amended 2026-10-24). The web client is unchanged.
 
 6. **Money and days.**
    - Money is integer centavos everywhere.
