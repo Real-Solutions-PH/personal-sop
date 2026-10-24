@@ -8,7 +8,7 @@ import { join } from "node:path"
 import { configureStorage, resetAll } from "@domain/lib/store"
 import { fireEvent, render } from "@testing-library/react-native"
 import type { ReactElement } from "react"
-import { Dimensions, ScrollView, Text } from "react-native"
+import { Dimensions, ScrollView, StyleSheet, Text } from "react-native"
 import { Artwork } from "../screens/dash-share"
 import { WorkoutCard } from "../screens/fitness-share"
 import {
@@ -285,6 +285,17 @@ describe.each(CARDS)("%s card", (_, make) => {
       // instead of pushing the card's layout out of shape.
       for (const t of text)
         if (t.props.numberOfLines === undefined) expect(nested(t)).toBe(true)
+      // iOS cuts off glyph tops on a line no taller than its font, and a
+      // number's unit rides inside its one shrink-to-fit line, so "3,272 kg"
+      // shrinks as one piece rather than wrapping to "3,27 / 2".
+      for (const t of text) {
+        if (nested(t)) continue
+        const s = StyleSheet.flatten(t.props.style)
+        if (s.lineHeight !== undefined)
+          expect(s.lineHeight).toBeGreaterThanOrEqual(s.fontSize * 1.1 - 0.01)
+        if (s.fontFamily?.startsWith("GeistMono"))
+          expect(t.props.adjustsFontSizeToFit && t.props.numberOfLines).toBe(1)
+      }
       for (const c of colours(r.toJSON())) expect(c).toMatch(valid)
       r.unmount()
     }
