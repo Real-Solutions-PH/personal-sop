@@ -1,6 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient"
 import { Eye, Plus, Send, Trash2, X } from "lucide-react-native"
 import { useEffect, useMemo, useRef, useState } from "react"
+import type { TextInputInstance } from "react-native"
 import {
   Image,
   KeyboardAvoidingView,
@@ -246,7 +247,7 @@ export function StoryViewer({ id }: { id: string }) {
   const progress = useSharedValue(0)
   const dx = useSharedValue(0)
   const dy = useSharedValue(0)
-  const input = useRef<TextInput>(null)
+  const input = useRef<TextInputInstance>(null)
   const close = () => back("/social")
   // Live mode shows the server's count; the prototype has no viewers to
   // count, so it shows a stand-in.

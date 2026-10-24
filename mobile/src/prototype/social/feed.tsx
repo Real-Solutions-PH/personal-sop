@@ -14,13 +14,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   FlatList,
   Image,
+  type ListViewToken,
   Pressable,
   RefreshControl,
   ScrollView,
   Text,
   useWindowDimensions,
   View,
-  type ViewToken,
 } from "react-native"
 import { Gesture, GestureDetector } from "react-native-gesture-handler"
 import Animated, {
@@ -481,8 +481,8 @@ export function SocialFeed() {
   const dmCount = chats.filter((c) => !c.muted && unread(c) > 0).length
   const newActivity = activity.filter((a) => a.at > readAt).length
   const onViewable = useRef(
-    ({ viewableItems }: { viewableItems: ViewToken<Post>[] }) => {
-      setVisible(viewableItems[0]?.item?.id ?? null)
+    ({ viewableItems }: { viewableItems: ListViewToken[] }) => {
+      setVisible((viewableItems[0]?.item as Post | undefined)?.id ?? null)
     },
   ).current
   const refresh = () => {
@@ -769,7 +769,7 @@ export function SocialFeed() {
                   </Text>
                 </Pressable>
               </View>
-            ) : null
+            ) : undefined
           }
           contentContainerStyle={{ paddingBottom: safe.bottom + 64 }}
         />

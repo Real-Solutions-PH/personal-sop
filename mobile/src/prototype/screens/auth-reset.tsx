@@ -1,5 +1,6 @@
 import { CircleCheckBig, LockKeyhole, ShieldCheck } from "lucide-react-native"
 import { useRef, useState } from "react"
+import type { TextInputInstance } from "react-native"
 import { Text, type TextInput } from "react-native"
 import {
   AuthButton,
@@ -28,8 +29,8 @@ export function ResetPassword() {
   const [touched, setTouched] = useState({ password: false, confirm: false })
   const [done, setDone] = useState(false)
   const refs = {
-    password: useRef<TextInput>(null),
-    confirm: useRef<TextInput>(null),
+    password: useRef<TextInputInstance>(null),
+    confirm: useRef<TextInputInstance>(null),
   }
   const submit = useSubmit()
   const strength = passwordStrength(password)

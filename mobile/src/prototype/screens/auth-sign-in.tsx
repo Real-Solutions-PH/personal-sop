@@ -1,5 +1,6 @@
 import { LockKeyhole, Mail } from "lucide-react-native"
 import { useRef, useState } from "react"
+import type { TextInputInstance } from "react-native"
 import { type TextInput, View } from "react-native"
 import { toast } from "sonner-native"
 import {
@@ -35,8 +36,8 @@ export function SignIn() {
   const [remember, setRemember] = useState(true)
   const [touched, setTouched] = useState({ email: false, password: false })
   const [social, setSocial] = useState<"apple" | "google" | null>(null)
-  const passwordRef = useRef<TextInput>(null)
-  const emailRef = useRef<TextInput>(null)
+  const passwordRef = useRef<TextInputInstance>(null)
+  const emailRef = useRef<TextInputInstance>(null)
   const submit = useSubmit()
 
   const errors = {

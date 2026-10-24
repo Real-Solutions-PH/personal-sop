@@ -87,7 +87,7 @@ export default function SignupScreen() {
 
           <Button
             label={signup.isPending ? "Creating..." : "Sign Up"}
-            onPress={handleSubmit((d) => signup.mutate(d))}
+            onPress={() => handleSubmit((d) => signup.mutate(d))()}
             disabled={signup.isPending}
           />
 

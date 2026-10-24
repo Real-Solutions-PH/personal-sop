@@ -8,7 +8,7 @@ export function useSyncOnForeground() {
   useEffect(() => {
     const sub = AppState.addEventListener("change", (nextState) => {
       if (
-        appState.current.match(/inactive|background/) &&
+        appState.current?.match(/inactive|background/) &&
         nextState === "active"
       ) {
         runSync()

@@ -106,7 +106,7 @@ export default function ResetPasswordScreen() {
 
         <Button
           label={isSubmitting ? "Resetting..." : "Reset Password"}
-          onPress={handleSubmit(onSubmit)}
+          onPress={() => handleSubmit(onSubmit)()}
           disabled={isSubmitting}
         />
       </View>

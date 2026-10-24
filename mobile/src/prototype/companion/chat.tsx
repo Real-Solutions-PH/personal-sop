@@ -21,6 +21,7 @@ import {
   Volume2,
 } from "lucide-react-native"
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react"
+import type { ScrollViewInstance } from "react-native"
 import {
   ActivityIndicator,
   BackHandler,
@@ -779,7 +780,7 @@ export function CompanionDrawer({ bottom }: { bottom: number }) {
   const base = Math.min(area - safe.top - 24, Math.max(460, area * 0.66))
   const y = useSharedValue(base)
   const grow = useSharedValue(0)
-  const scroller = useRef<ScrollView>(null)
+  const scroller = useRef<ScrollViewInstance>(null)
   const timeline = useTimeline(since)
   const [typing, setTyping] = useState(false)
   // The keyboard's height, tracked directly: a KeyboardAvoidingView inside

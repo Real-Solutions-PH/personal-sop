@@ -1,5 +1,6 @@
 import { ChevronLeft, Heart, X } from "lucide-react-native"
 import { useEffect, useRef, useState } from "react"
+import type { TextInputInstance } from "react-native"
 import {
   FlatList,
   KeyboardAvoidingView,
@@ -157,7 +158,7 @@ export function PostDetail({ id }: { id: string }) {
   useEffect(() => void openPostLive(id), [id])
   const [text, setText] = useState("")
   const [replyTo, setReplyTo] = useState<Comment | null>(null)
-  const input = useRef<TextInput>(null)
+  const input = useRef<TextInputInstance>(null)
   const list = useRef<FlatList<Comment>>(null)
   if (!post)
     return (

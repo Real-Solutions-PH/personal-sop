@@ -6,3 +6,11 @@ jest.mock("expo-video", () => {
     useVideoPlayer: () => ({ play() {}, pause() {}, muted: true, loop: false }),
   }
 })
+
+// react-native-worklets 0.13 has no native module under Jest; use its own mock.
+jest.mock("react-native-worklets", () =>
+  require("react-native-worklets/lib/module/mock"),
+)
+
+// react-native-gesture-handler 3 ships its own Jest mocks for the native module.
+require("react-native-gesture-handler/jestSetup")

@@ -23,6 +23,7 @@ import {
   Star,
 } from "lucide-react-native"
 import { useRef, useState } from "react"
+import type { TextInputInstance } from "react-native"
 import { TextInput, View } from "react-native"
 import { toast } from "sonner-native"
 import {
@@ -403,7 +404,7 @@ export function TaskListPage({ id }: { id: string }) {
     [showDone, setShowDone] = useState(false),
     [edit, setEdit] = useState(false),
     [text, setText] = useState(""),
-    input = useRef<TextInput>(null),
+    input = useRef<TextInputInstance>(null),
     mine = s.tasks.filter((task) =>
       id === "inbox"
         ? task.listId === null

@@ -16,6 +16,7 @@ import {
   useRef,
   useState,
 } from "react"
+import type { ScrollViewInstance } from "react-native"
 import {
   Alert,
   AppState,
@@ -503,7 +504,7 @@ export function Screen({
 }) {
   const t = useTheme()
   const safe = useSafeAreaInsets()
-  const scroller = useRef<ScrollView>(null)
+  const scroller = useRef<ScrollViewInstance>(null)
   // A drag inside the page (reordering a list) pauses its scrolling.
   const [locked, setLocked] = useState(false)
   // A hairline appears under the header once content scrolls beneath it.

@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect, useRef, useState } from "react"
+import type { ScrollViewInstance } from "react-native"
 import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -389,7 +390,7 @@ export function Welcome() {
   const safe = useSafeAreaInsets()
   const reduced = useReducedMotion()
   const fern = companionStore.use((s) => s.name)
-  const pager = useRef<ScrollView>(null)
+  const pager = useRef<ScrollViewInstance>(null)
   const [width, setWidth] = useState(0)
   const [page, setPage] = useState(0)
   const [touched, setTouched] = useState(false)
