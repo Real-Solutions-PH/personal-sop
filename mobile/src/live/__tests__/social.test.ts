@@ -149,7 +149,9 @@ test("refresh loads the feed and maps server posts into the store's shape", asyn
       by: ANA,
       at: Date.parse("2026-10-19T08:00:00Z"),
       caption: "Squat PR #legday",
-      media: [{ kind: "image", uri: "https://cdn.test/m1.jpg", ratio: 1.5 }],
+      media: [
+        { id: "m1", kind: "image", uri: "https://cdn.test/m1.jpg", ratio: 1.5 },
+      ],
       progress: undefined,
       location: "BGC",
       likes: 3,

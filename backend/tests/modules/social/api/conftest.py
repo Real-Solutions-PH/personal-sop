@@ -88,7 +88,9 @@ def pushes(monkeypatch: pytest.MonkeyPatch) -> Pushes:
 
 def _person(client: TestClient, db: Session, name: str) -> Person:
     user, headers = signed_in(db)
-    handle = f"{name.lower()}{secrets.token_hex(3)}"
+    # 3 random bytes collided with a leftover user in CI ("handle_taken");
+    # 6 keep the handle under its 20-character limit.
+    handle = f"{name.lower()[:6]}{secrets.token_hex(6)}"
     ok(
         client.patch(
             f"{settings.API_V1_STR}/profile",

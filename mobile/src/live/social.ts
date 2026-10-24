@@ -329,6 +329,7 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
     return { ...(rest as Progress), beforeAfter: before_after === true }
   }
   const mapMedia = (m: WMedia, prev?: Media): Media => ({
+    id: m.media_id,
     kind: m.kind,
     uri: m.url ?? prev?.uri ?? "",
     ratio: m.ratio ?? prev?.ratio,
@@ -1016,8 +1017,9 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
     async createStory(story) {
       storyWrittenAt.set(story.id, now())
       const media_id =
-        (story.kind === "image" || story.kind === "video") && story.uri
-          ? await upload(story.uri, story.kind)
+        story.kind === "image" || story.kind === "video"
+          ? (story.mediaId ??
+            (story.uri ? await upload(story.uri, story.kind) : null))
           : null
       const w = await http.request<WStory>("POST", "/social/stories", {
         id: story.id,

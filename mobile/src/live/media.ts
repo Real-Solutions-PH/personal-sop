@@ -107,6 +107,10 @@ async function read(
   } catch (error) {
     throw new Error(`Could not read the file: ${String(error)}`)
   }
+  // An expired presigned link answers 403 with an XML body: never upload
+  // that as the photo.
+  if (res.ok === false)
+    throw new Error(`Could not read the file (${res.status})`)
   const bytes = new Uint8Array(await res.arrayBuffer())
   return {
     mime: input.mime ?? res.headers?.get?.("content-type") ?? "",
