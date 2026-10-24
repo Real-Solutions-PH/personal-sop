@@ -132,10 +132,13 @@ function Hexagon({
   facets,
   size,
   days,
+  legend = true,
 }: {
   facets: Facet[]
   size: number
   days: number
+  /** Off where the card is too narrow for the two legend entries. */
+  legend?: boolean
 }) {
   const { q, c } = useCard(),
     life = c.area("life"),
@@ -213,26 +216,28 @@ function Hexagon({
           )
         })}
       </Svg>
-      <Line style={{ gap: 3 * q }}>
-        <Line style={{ gap: q }}>
-          <View
-            style={{ width: 4 * q, height: 0.6 * q, backgroundColor: life }}
-          />
-          <Label>{`Last ${days} days`}</Label>
+      {legend && (
+        <Line style={{ gap: 3 * q }}>
+          <Line style={{ gap: q }}>
+            <View
+              style={{ width: 4 * q, height: 0.6 * q, backgroundColor: life }}
+            />
+            <Label>{`Last ${days} days`}</Label>
+          </Line>
+          <Line style={{ gap: q }}>
+            <View
+              style={{
+                width: 4 * q,
+                height: 0,
+                borderTopWidth: 0.6 * q,
+                borderStyle: "dashed",
+                borderColor: c.muted,
+              }}
+            />
+            <Label>{`Prior ${days} days`}</Label>
+          </Line>
         </Line>
-        <Line style={{ gap: q }}>
-          <View
-            style={{
-              width: 4 * q,
-              height: 0,
-              borderTopWidth: 0.6 * q,
-              borderStyle: "dashed",
-              borderColor: c.muted,
-            }}
-          />
-          <Label>{`Prior ${days} days`}</Label>
-        </Line>
-      </Line>
+      )}
     </View>
   )
 }
@@ -308,7 +313,13 @@ export function Artwork({
   if (kind === "life") {
     const size = sq ? 38 : tall ? 54 : 40
     const score = (
-      <View style={{ alignItems: "center", gap: 2.5 * q }}>
+      <View
+        style={{
+          alignItems: "center",
+          gap: 2.5 * q,
+          width: sq ? "46%" : undefined,
+        }}
+      >
         <CardRing value={(d.life.score ?? 0) / 100} size={size} color={life}>
           <Num size={size * 0.34} align="center">
             {d.life.score === null ? "—" : fmt(d.life.score)}
@@ -343,6 +354,7 @@ export function Artwork({
             facets={d.facets30}
             days={30}
             size={sq ? 40 : tall ? 46 : 28}
+            legend={!sq}
           />
         )}
         {on.areas && (tall || !on.hexagon) && !sq && (
