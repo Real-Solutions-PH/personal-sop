@@ -19,6 +19,7 @@ const MODULE_KEYS: ModuleKey[] = [
   "tasks",
   "fitness",
   "nutrition",
+  "focus",
   "finance",
 ]
 export function facetsFrom(rows: ServerFacet[]): Facet[] {
@@ -187,6 +188,17 @@ function useLocalFacets(days: number): Facet[] {
         "/nutrition",
         {
           metricKeys: ["calories", "protein", "kcal", "logged"],
+        },
+      ),
+      f(
+        "focus",
+        "Focus",
+        "focus",
+        ls.rates.focus,
+        ls.prevRates.focus,
+        "/focus/stats",
+        {
+          metricKeys: ["focused", "daily", "goalDays", "sessions", "pomodoros"],
         },
       ),
       f(

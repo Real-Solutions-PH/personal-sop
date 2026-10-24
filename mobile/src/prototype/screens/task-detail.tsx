@@ -1,3 +1,5 @@
+import { startFocus } from "@domain/focus/actions"
+import { fmtHm } from "@domain/focus/logic"
 import * as A from "@domain/tasks/actions"
 import type { Recurrence, Task } from "@domain/tasks/data"
 import * as L from "@domain/tasks/logic"
@@ -7,6 +9,7 @@ import {
   CalendarDays,
   Check,
   Copy as CopyIcon,
+  Hourglass,
   Inbox,
   Plus,
   Repeat,
@@ -17,6 +20,7 @@ import {
 import { useEffect, useRef, useState } from "react"
 import { ScrollView, TextInput, View } from "react-native"
 import { toast } from "sonner-native"
+import { FocusTimeCard } from "../focus-kit"
 import { border, Copy, Frame, IconTap, Line, Tap } from "../native-kit"
 import { go } from "../navigation"
 import { fonts, useTheme } from "../theme"
@@ -169,6 +173,7 @@ export function TaskDetail({ id }: { id: string }) {
     [when, setWhen] = useState(false),
     [repeat, setRepeat] = useState(false),
     [confirmDel, setConfirmDel] = useState(false),
+    [estimating, setEstimating] = useState(false),
     title = useDraft(task?.title ?? "", (v) => {
       const next = v.replace(/\n/g, " ").trim()
       if (next) A.updateTask(id, { title: next })
@@ -358,12 +363,21 @@ export function TaskDetail({ id }: { id: string }) {
             press: () => setRepeat(true),
             clear: () => A.updateTask(id, { recurrence: null }),
           },
-        ].map((f, i) => (
+          {
+            icon: Hourglass,
+            label: "Add an estimate",
+            value: task.estimateMin
+              ? `Estimate ${fmtHm(task.estimateMin * 60)}`
+              : null,
+            press: () => setEstimating(true),
+            clear: () => A.updateTask(id, { estimateMin: undefined }),
+          },
+        ].map((f, i, all) => (
           <Line
             key={f.label}
             style={{
               minHeight: 48,
-              borderBottomWidth: i < 2 ? 1 : 0,
+              borderBottomWidth: i < all.length - 1 ? 1 : 0,
               borderColor: border(t.line, 0.5),
             }}
           >
@@ -426,6 +440,50 @@ export function TaskDetail({ id }: { id: string }) {
           textAlignVertical: "top",
         }}
       />
+      {!deleted && (
+        <FocusTimeCard
+          item={{ kind: "task", id: task.id, title: task.title }}
+          estimateMin={task.estimateMin}
+          onStart={() => {
+            startFocus({
+              item: { kind: "task", id: task.id, title: task.title },
+            })
+            go("/focus")
+          }}
+        />
+      )}
+      <Sheet
+        title="How long should it take?"
+        open={estimating}
+        onClose={() => setEstimating(false)}
+      >
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+          {[15, 30, 45, 60, 90, 120, 180, 240, 480].map((m) => (
+            <Tap
+              key={m}
+              label={`Estimate ${fmtHm(m * 60)}`}
+              onPress={() => {
+                A.updateTask(id, { estimateMin: m })
+                setEstimating(false)
+                toast(`Estimate set to ${fmtHm(m * 60)}`)
+              }}
+              style={{
+                paddingHorizontal: 16,
+                height: 40,
+                borderRadius: 20,
+                justifyContent: "center",
+                borderWidth: 1,
+                borderColor: task.estimateMin === m ? t.foc : t.line,
+                backgroundColor: task.estimateMin === m ? `${t.foc}1f` : t.card,
+              }}
+            >
+              <Copy size={14} style={{ fontFamily: fonts.mono }}>
+                {fmtHm(m * 60)}
+              </Copy>
+            </Tap>
+          ))}
+        </View>
+      </Sheet>
       <View style={{ paddingHorizontal: 4, gap: 4 }}>
         <Copy size={12} muted>
           {SOURCE[task.source]} · {L.fmtInstant(task.createdAt)}

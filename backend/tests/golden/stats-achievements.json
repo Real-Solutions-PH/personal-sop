@@ -11,6 +11,7 @@
             "tasks": true,
             "fitness": true,
             "nutrition": true,
+            "focus": true,
             "finance": true
           },
           "threshold": 0.8,
@@ -97,13 +98,13 @@
               "ref": "life",
               "label": "Life Score",
               "module": "life",
-              "value": "79",
-              "n": 79,
+              "value": "78",
+              "n": 78,
               "unit": "",
               "goodWhen": "up",
               "shareable": true
             },
-            "pct": 1.0533333333333332,
+            "pct": 1.04,
             "hit": true
           },
           {
@@ -438,13 +439,13 @@
             "requirement": "Reach at least 75 this month",
             "progress": {
               "pct": 1,
-              "text": "79 / 75"
+              "text": "78 / 75"
             },
             "trophy": {
               "id": "goal-g1",
               "type": "goal",
               "title": "Life Score ≥ 75 / month",
-              "value": "79",
+              "value": "78",
               "detail": "Target 75",
               "day": "2026-10-18",
               "href": "/stats/goals",
@@ -577,7 +578,7 @@
             "id": "goal-g1",
             "type": "goal",
             "title": "Life Score ≥ 75 / month",
-            "value": "79",
+            "value": "78",
             "detail": "Target 75",
             "day": "2026-10-18",
             "href": "/stats/goals",
@@ -698,6 +699,7 @@
             "tasks": true,
             "fitness": true,
             "nutrition": true,
+            "focus": true,
             "finance": true
           },
           "threshold": 0.8,
@@ -787,13 +789,13 @@
               "ref": "life",
               "label": "Life Score",
               "module": "life",
-              "value": "79",
-              "n": 79,
+              "value": "78",
+              "n": 78,
               "unit": "",
               "goodWhen": "up",
               "shareable": true
             },
-            "pct": 1.0533333333333332,
+            "pct": 1.04,
             "hit": true
           },
           {
@@ -1128,13 +1130,13 @@
             "requirement": "Reach at least 75 this month",
             "progress": {
               "pct": 1,
-              "text": "79 / 75"
+              "text": "78 / 75"
             },
             "trophy": {
               "id": "goal-g1",
               "type": "goal",
               "title": "Life Score ≥ 75 / month",
-              "value": "79",
+              "value": "78",
               "detail": "Target 75",
               "day": "2026-10-18",
               "href": "/stats/goals",
@@ -1275,7 +1277,7 @@
             "id": "goal-g1",
             "type": "goal",
             "title": "Life Score ≥ 75 / month",
-            "value": "79",
+            "value": "78",
             "detail": "Target 75",
             "day": "2026-10-18",
             "href": "/stats/goals",
@@ -1405,6 +1407,7 @@
             "tasks": true,
             "fitness": false,
             "nutrition": true,
+            "focus": true,
             "finance": true
           },
           "threshold": 0.8,
@@ -1491,13 +1494,13 @@
               "ref": "life",
               "label": "Life Score",
               "module": "life",
-              "value": "76",
-              "n": 76,
+              "value": "75",
+              "n": 75,
               "unit": "",
               "goodWhen": "up",
               "shareable": true
             },
-            "pct": 1.0133333333333334,
+            "pct": 1,
             "hit": true
           },
           {
@@ -1765,13 +1768,13 @@
             "requirement": "Reach at least 75 this month",
             "progress": {
               "pct": 1,
-              "text": "76 / 75"
+              "text": "75 / 75"
             },
             "trophy": {
               "id": "goal-g1",
               "type": "goal",
               "title": "Life Score ≥ 75 / month",
-              "value": "76",
+              "value": "75",
               "detail": "Target 75",
               "day": "2026-10-18",
               "href": "/stats/goals",
@@ -1904,7 +1907,7 @@
             "id": "goal-g1",
             "type": "goal",
             "title": "Life Score ≥ 75 / month",
-            "value": "76",
+            "value": "75",
             "detail": "Target 75",
             "day": "2026-10-18",
             "href": "/stats/goals",
@@ -1998,6 +2001,7 @@
             "tasks": true,
             "fitness": true,
             "nutrition": true,
+            "focus": true,
             "finance": true
           },
           "threshold": 0.8,
@@ -2084,13 +2088,13 @@
               "ref": "life",
               "label": "Life Score",
               "module": "life",
-              "value": "82",
-              "n": 82,
+              "value": "80",
+              "n": 80,
               "unit": "",
               "goodWhen": "up",
               "shareable": true
             },
-            "pct": 1.0933333333333333,
+            "pct": 1.0666666666666667,
             "hit": true
           },
           {
@@ -2389,13 +2393,13 @@
             "requirement": "Reach at least 75 this month",
             "progress": {
               "pct": 1,
-              "text": "82 / 75"
+              "text": "80 / 75"
             },
             "trophy": {
               "id": "goal-g1",
               "type": "goal",
               "title": "Life Score ≥ 75 / month",
-              "value": "82",
+              "value": "80",
               "detail": "Target 75",
               "day": "2026-10-18",
               "href": "/stats/goals",
@@ -2510,7 +2514,7 @@
             "id": "goal-g1",
             "type": "goal",
             "title": "Life Score ≥ 75 / month",
-            "value": "82",
+            "value": "80",
             "detail": "Target 75",
             "day": "2026-10-18",
             "href": "/stats/goals",
@@ -2631,6 +2635,7 @@
             "tasks": true,
             "fitness": true,
             "nutrition": true,
+            "focus": true,
             "finance": true
           },
           "threshold": 0.5,
@@ -2717,13 +2722,13 @@
               "ref": "life",
               "label": "Life Score",
               "module": "life",
-              "value": "79",
-              "n": 79,
+              "value": "78",
+              "n": 78,
               "unit": "",
               "goodWhen": "up",
               "shareable": true
             },
-            "pct": 1.0533333333333332,
+            "pct": 1.04,
             "hit": true
           },
           {
@@ -3076,13 +3081,13 @@
             "requirement": "Reach at least 75 this month",
             "progress": {
               "pct": 1,
-              "text": "79 / 75"
+              "text": "78 / 75"
             },
             "trophy": {
               "id": "goal-g1",
               "type": "goal",
               "title": "Life Score ≥ 75 / month",
-              "value": "79",
+              "value": "78",
               "detail": "Target 75",
               "day": "2026-10-18",
               "href": "/stats/goals",
@@ -3215,7 +3220,7 @@
             "id": "goal-g1",
             "type": "goal",
             "title": "Life Score ≥ 75 / month",
-            "value": "79",
+            "value": "78",
             "detail": "Target 75",
             "day": "2026-10-18",
             "href": "/stats/goals",
@@ -3356,6 +3361,7 @@
             "tasks": true,
             "fitness": true,
             "nutrition": true,
+            "focus": true,
             "finance": true
           },
           "threshold": 0.8,
@@ -3442,13 +3448,13 @@
               "ref": "life",
               "label": "Life Score",
               "module": "life",
-              "value": "79",
-              "n": 79,
+              "value": "78",
+              "n": 78,
               "unit": "",
               "goodWhen": "up",
               "shareable": true
             },
-            "pct": 79,
+            "pct": 78,
             "hit": true
           },
           {
@@ -3783,13 +3789,13 @@
             "requirement": "Reach at least 1 this month",
             "progress": {
               "pct": 1,
-              "text": "79 / 1"
+              "text": "78 / 1"
             },
             "trophy": {
               "id": "goal-g1",
               "type": "goal",
               "title": "Life Score ≥ 1 / month",
-              "value": "79",
+              "value": "78",
               "detail": "Target 1",
               "day": "2026-10-18",
               "href": "/stats/goals",
@@ -3931,7 +3937,7 @@
             "id": "goal-g1",
             "type": "goal",
             "title": "Life Score ≥ 1 / month",
-            "value": "79",
+            "value": "78",
             "detail": "Target 1",
             "day": "2026-10-18",
             "href": "/stats/goals",

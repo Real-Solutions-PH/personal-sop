@@ -10,6 +10,7 @@
           "tasks": true,
           "fitness": true,
           "nutrition": true,
+          "focus": true,
           "finance": true
         },
         "rates": {
@@ -17,6 +18,7 @@
           "tasks": 0.8125,
           "fitness": 0.75,
           "nutrition": 0.42857142857142855,
+          "focus": 0.7083333333333333,
           "finance": 1
         },
         "prevRates": {
@@ -24,6 +26,7 @@
           "tasks": 0.8888888888888888,
           "fitness": 1,
           "nutrition": 0.5833333333333333,
+          "focus": 0,
           "finance": 1
         },
         "facets": [
@@ -112,6 +115,23 @@
               "protein",
               "kcal",
               "logged"
+            ],
+            "extra": null
+          },
+          {
+            "key": "focus",
+            "label": "Focus",
+            "module": "focus",
+            "value": 0.7083333333333333,
+            "prev": 0,
+            "href": "/focus/stats",
+            "off": false,
+            "metricKeys": [
+              "focused",
+              "daily",
+              "goalDays",
+              "sessions",
+              "pomodoros"
             ],
             "extra": null
           },
@@ -135,6 +155,7 @@
           "tasks": true,
           "fitness": false,
           "nutrition": true,
+          "focus": true,
           "finance": true
         },
         "rates": {
@@ -142,6 +163,7 @@
           "tasks": 0.8125,
           "fitness": 0.75,
           "nutrition": 0.42857142857142855,
+          "focus": 0.7083333333333333,
           "finance": 1
         },
         "prevRates": {
@@ -149,6 +171,7 @@
           "tasks": 0.8888888888888888,
           "fitness": 1,
           "nutrition": 0.5833333333333333,
+          "focus": 0,
           "finance": 1
         },
         "facets": [
@@ -237,6 +260,23 @@
               "protein",
               "kcal",
               "logged"
+            ],
+            "extra": null
+          },
+          {
+            "key": "focus",
+            "label": "Focus",
+            "module": "focus",
+            "value": 0.7083333333333333,
+            "prev": 0,
+            "href": "/focus/stats",
+            "off": false,
+            "metricKeys": [
+              "focused",
+              "daily",
+              "goalDays",
+              "sessions",
+              "pomodoros"
             ],
             "extra": null
           },
@@ -260,6 +300,7 @@
           "tasks": true,
           "fitness": false,
           "nutrition": false,
+          "focus": true,
           "finance": true
         },
         "rates": {
@@ -267,6 +308,7 @@
           "tasks": 0.8125,
           "fitness": 0.75,
           "nutrition": 0.42857142857142855,
+          "focus": 0.7083333333333333,
           "finance": 1
         },
         "prevRates": {
@@ -274,6 +316,7 @@
           "tasks": 0.8888888888888888,
           "fitness": 1,
           "nutrition": 0.5833333333333333,
+          "focus": 0,
           "finance": 1
         },
         "facets": [
@@ -362,6 +405,23 @@
               "protein",
               "kcal",
               "logged"
+            ],
+            "extra": null
+          },
+          {
+            "key": "focus",
+            "label": "Focus",
+            "module": "focus",
+            "value": 0.7083333333333333,
+            "prev": 0,
+            "href": "/focus/stats",
+            "off": false,
+            "metricKeys": [
+              "focused",
+              "daily",
+              "goalDays",
+              "sessions",
+              "pomodoros"
             ],
             "extra": null
           },
@@ -385,6 +445,7 @@
           "tasks": true,
           "fitness": false,
           "nutrition": false,
+          "focus": true,
           "finance": false
         },
         "rates": {
@@ -392,6 +453,7 @@
           "tasks": 0.8125,
           "fitness": 0.75,
           "nutrition": 0.42857142857142855,
+          "focus": 0.7083333333333333,
           "finance": 1
         },
         "prevRates": {
@@ -399,6 +461,7 @@
           "tasks": 0.8888888888888888,
           "fitness": 1,
           "nutrition": 0.5833333333333333,
+          "focus": 0,
           "finance": 1
         },
         "facets": [
@@ -491,6 +554,23 @@
             "extra": null
           },
           {
+            "key": "focus",
+            "label": "Focus",
+            "module": "focus",
+            "value": 0.7083333333333333,
+            "prev": 0,
+            "href": "/focus/stats",
+            "off": false,
+            "metricKeys": [
+              "focused",
+              "daily",
+              "goalDays",
+              "sessions",
+              "pomodoros"
+            ],
+            "extra": null
+          },
+          {
             "key": "finance",
             "label": "Finance",
             "module": "finance",
@@ -510,6 +590,7 @@
           "tasks": true,
           "fitness": false,
           "nutrition": false,
+          "focus": true,
           "finance": false
         },
         "rates": {
@@ -517,6 +598,7 @@
           "tasks": 0.8703703703703703,
           "fitness": 0.875,
           "nutrition": 0.5,
+          "focus": 0.7083333333333333,
           "finance": 1
         },
         "prevRates": {
@@ -524,6 +606,7 @@
           "tasks": 0.7857142857142857,
           "fitness": 0.8166666666666667,
           "nutrition": 0,
+          "focus": 0,
           "finance": 1
         },
         "facets": [
@@ -616,6 +699,23 @@
             "extra": null
           },
           {
+            "key": "focus",
+            "label": "Focus",
+            "module": "focus",
+            "value": 0.7083333333333333,
+            "prev": 0,
+            "href": "/focus/stats",
+            "off": false,
+            "metricKeys": [
+              "focused",
+              "daily",
+              "goalDays",
+              "sessions",
+              "pomodoros"
+            ],
+            "extra": null
+          },
+          {
             "key": "finance",
             "label": "Finance",
             "module": "finance",
@@ -635,6 +735,7 @@
           "tasks": true,
           "fitness": false,
           "nutrition": false,
+          "focus": true,
           "finance": false
         },
         "rates": {
@@ -642,6 +743,7 @@
           "tasks": 0.8703703703703703,
           "fitness": 0.875,
           "nutrition": 0.5,
+          "focus": 0.7083333333333333,
           "finance": 1
         },
         "prevRates": {
@@ -649,6 +751,7 @@
           "tasks": 0.7857142857142857,
           "fitness": 0.8166666666666667,
           "nutrition": 0,
+          "focus": 0,
           "finance": 1
         },
         "facets": [
@@ -741,6 +844,23 @@
             "extra": null
           },
           {
+            "key": "focus",
+            "label": "Focus",
+            "module": "focus",
+            "value": 0.7083333333333333,
+            "prev": 0,
+            "href": "/focus/stats",
+            "off": false,
+            "metricKeys": [
+              "focused",
+              "daily",
+              "goalDays",
+              "sessions",
+              "pomodoros"
+            ],
+            "extra": null
+          },
+          {
             "key": "finance",
             "label": "Finance",
             "module": "finance",
@@ -760,6 +880,7 @@
           "tasks": true,
           "fitness": false,
           "nutrition": false,
+          "focus": true,
           "finance": false
         },
         "rates": {
@@ -767,6 +888,7 @@
           "tasks": 0.8703703703703703,
           "fitness": 0.875,
           "nutrition": 0.5,
+          "focus": 0.7083333333333333,
           "finance": 1
         },
         "prevRates": {
@@ -774,6 +896,7 @@
           "tasks": 0.7857142857142857,
           "fitness": 0.8166666666666667,
           "nutrition": 0,
+          "focus": 0,
           "finance": 1
         },
         "facets": [
@@ -866,6 +989,23 @@
             "extra": null
           },
           {
+            "key": "focus",
+            "label": "Focus",
+            "module": "focus",
+            "value": 0.7083333333333333,
+            "prev": 0,
+            "href": "/focus/stats",
+            "off": false,
+            "metricKeys": [
+              "focused",
+              "daily",
+              "goalDays",
+              "sessions",
+              "pomodoros"
+            ],
+            "extra": null
+          },
+          {
             "key": "finance",
             "label": "Finance",
             "module": "finance",
@@ -885,6 +1025,7 @@
           "tasks": true,
           "fitness": false,
           "nutrition": false,
+          "focus": true,
           "finance": false
         },
         "rates": {
@@ -892,6 +1033,7 @@
           "tasks": 0.8703703703703703,
           "fitness": 0.875,
           "nutrition": 0.5,
+          "focus": 0.7083333333333333,
           "finance": 1
         },
         "prevRates": {
@@ -899,6 +1041,7 @@
           "tasks": 0.7857142857142857,
           "fitness": 0.8166666666666667,
           "nutrition": 0,
+          "focus": 0,
           "finance": 1
         },
         "facets": [
@@ -987,6 +1130,23 @@
               "protein",
               "kcal",
               "logged"
+            ],
+            "extra": null
+          },
+          {
+            "key": "focus",
+            "label": "Focus",
+            "module": "focus",
+            "value": 0.7083333333333333,
+            "prev": 0,
+            "href": "/focus/stats",
+            "off": false,
+            "metricKeys": [
+              "focused",
+              "daily",
+              "goalDays",
+              "sessions",
+              "pomodoros"
             ],
             "extra": null
           },

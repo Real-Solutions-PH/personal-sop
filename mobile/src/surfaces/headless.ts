@@ -1,4 +1,5 @@
 import { fitStore } from "@domain/fitness/store"
+import { focusStore } from "@domain/focus/store"
 import { habitsStore } from "@domain/habits/store"
 import { liveStore } from "@domain/lib/live"
 import { configureStorage, flushStores } from "@domain/lib/store"
@@ -25,6 +26,7 @@ export async function surfacesHeadlessTask(): Promise<void> {
       live: liveStore.get().live,
       habits: habitsStore.get(),
       fit: fitStore.get(),
+      focus: focusStore.get(),
     }),
   )
 }

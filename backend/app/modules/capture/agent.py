@@ -969,6 +969,28 @@ def _withdraw_earlier_versions(run: Run, d: RecordDraft, keep: str) -> int:
     return n
 
 
+def _waiting_expense(run: Run, d: RecordDraft) -> RecordCard | None:
+    """The same expense (amount, payee, day) still waiting from an earlier
+    message. Seen live: the same bank screenshot sent twice made a second
+    pair of waiting expenses, and confirming would have doubled them. Cards
+    from this message are never matched: one receipt can hold two equal
+    purchases."""
+    p = d.payload
+    payee = str(p.get("payee") or "").strip().lower()
+    cap = run.capture().id
+    for card in _waiting(run):
+        q: dict[str, Any] = card.payload or {}
+        if (
+            card.capture_id != cap
+            and q.get("kind") == "expense"
+            and q.get("amount_minor") == p.get("amount_minor")
+            and str(q.get("payee") or "").strip().lower() == payee
+            and (card.day_offset or 0) == (d.day_offset or 0)
+        ):
+            return card
+    return None
+
+
 def _waiting_removal(run: Run, entity: str, ids: list[str]) -> RecordCard | None:
     want = set(ids)
     for card in _waiting(run):
@@ -1021,6 +1043,15 @@ def capture_tools(run: Run) -> list[BaseTool]:
                 "options": list(w.recent_cats),
             },
         )
+        same = _waiting_expense(run, d)
+        if same is not None:
+            return {
+                "card_id": str(same.id),
+                "state": same.state,
+                "already_waiting": True,
+                "question": (same.ask or {}).get("question"),
+                "instead": "it's already logged and waiting; don't log it again",
+            }
         return _with_converted(_card(run, d), fx, w.currency)
 
     def log_income(**kw: Any) -> dict[str, Any]:

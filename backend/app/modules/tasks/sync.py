@@ -78,7 +78,11 @@ def upsert_task(ctx: Ctx, task_id: uuid.UUID, payload: BaseModel) -> OwnedRow:
                 )
             ],
         )[0]
-        extra = {k: data[k] for k in ("cleared_at", "sort_order") if k in data}
+        extra = {
+            k: data[k]
+            for k in ("cleared_at", "sort_order", "estimate_min")
+            if k in data
+        }
         if extra:
             ops.update(ctx, t, extra)
     else:

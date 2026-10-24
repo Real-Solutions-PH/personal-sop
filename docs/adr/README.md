@@ -20,3 +20,4 @@ Start new ADRs from [template.md](template.md).
 | [0022](0022-aws-cdk-for-infrastructure.md) | AWS CDK (TypeScript) for production infrastructure |
 | [0023](0023-cloudflare-tunnel-no-alb-waf-nat.md) | Cloudflare Tunnel instead of a load balancer, WAF and NAT |
 | [0024](0024-nutrition-as-its-own-module.md) | Nutrition as its own module, separate from Fitness |
+| [0025](0025-focus-module.md) | Focus: a Pomodoro and stopwatch that record what the time went to |

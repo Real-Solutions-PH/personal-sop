@@ -45,7 +45,9 @@ Sink = Callable[[BaseEvent], None]
 # What a running step says, per tool ("Adding a task…").
 # Tools a turn calls once; a repeat returns the first answer (the tool
 # enforces it) and draws no second step line.
-ONCE_A_TURN = frozenset({"recall_memories"})
+# Tools that run once a turn. Seen live: confirm_pending called twice in
+# one reply, each step listing the same refusals.
+ONCE_A_TURN = frozenset({"recall_memories", "confirm_pending", "discard_pending"})
 
 RUNNING: dict[str, str] = {
     "create_tasks": "Adding to your tasks",
@@ -87,6 +89,10 @@ RUNNING: dict[str, str] = {
     "read_photos": "Looking at your photos",
     "web_search": "Searching the web",
     "nutrition_status": "Checking today's macros",
+    "focus_status": "Checking your focus time",
+    "start_focus": "Starting the focus timer",
+    "focus_control": "Changing the focus timer",
+    "stop_focus": "Stopping the focus timer",
     "find_transactions": "Finding transactions",
     "edit_transaction": "Changing transactions",
     "list_scheduled": "Checking scheduled payments",
@@ -206,6 +212,8 @@ def outcome(ctx: Ctx, name: str, args: dict[str, Any], result: Any) -> tuple[boo
             "log_transfer": "Logged transfer",
             "add_planned": "Planned payment",
         }[name]
+        if res.get("already_waiting"):
+            what = "Already waiting"
         label = args.get("category") or args.get("name") or args.get("payee") or ""
         return True, f"{what}: {amt}{f' · {label}' if label else ''}{wait}"
     if name == "create_account":
@@ -285,6 +293,10 @@ def outcome(ctx: Ctx, name: str, args: dict[str, Any], result: Any) -> tuple[boo
         "suggest": "Suggested next questions",
         "web_search": f"Searched the web: {args.get('query', '')}",
         "nutrition_status": "Checked today's macros",
+        "focus_status": "Checked your focus time",
+        "start_focus": "Started the focus timer",
+        "focus_control": f"Focus timer: {str(args.get('action', '')).replace('_', ' ')}",
+        "stop_focus": "Stopped the focus timer",
         "read_photos": (
             f"Read {args.get('photos', '')} photo"
             f"{'' if args.get('photos') == 1 else 's'}"

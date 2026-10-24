@@ -10,7 +10,14 @@ import { weatherStore } from "@/prototype/weather"
 import type { Mapper } from "../mapper"
 import { singleton } from "./helpers"
 
-const MODULES = ["habits", "tasks", "fitness", "nutrition", "finance"] as const
+const MODULES = [
+  "habits",
+  "tasks",
+  "fitness",
+  "nutrition",
+  "focus",
+  "finance",
+] as const
 type ModuleKey = (typeof MODULES)[number]
 
 type WeatherState = ReturnType<typeof weatherStore.get>

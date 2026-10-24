@@ -172,6 +172,48 @@
             "shareable": true
           }
         ],
+        "focus": [
+          {
+            "key": "focused",
+            "label": "Focused time",
+            "value": "10h 25m",
+            "delta": 625,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "daily",
+            "label": "Average a day",
+            "value": "1h 29m",
+            "delta": null,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "goalDays",
+            "label": "Days on goal",
+            "value": "3",
+            "delta": 3,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "sessions",
+            "label": "Sessions",
+            "value": "10",
+            "delta": 10,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "pomodoros",
+            "label": "Pomodoros",
+            "value": "17",
+            "delta": 17,
+            "goodWhen": "up",
+            "shareable": true
+          }
+        ],
         "finance": [
           {
             "key": "savings-rate",
@@ -380,6 +422,48 @@
             "label": "Days logged",
             "value": "13",
             "delta": 13,
+            "goodWhen": "up",
+            "shareable": true
+          }
+        ],
+        "focus": [
+          {
+            "key": "focused",
+            "label": "Focused time",
+            "value": "10h 25m",
+            "delta": 625,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "daily",
+            "label": "Average a day",
+            "value": "1h 29m",
+            "delta": null,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "goalDays",
+            "label": "Days on goal",
+            "value": "3",
+            "delta": 3,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "sessions",
+            "label": "Sessions",
+            "value": "10",
+            "delta": 10,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "pomodoros",
+            "label": "Pomodoros",
+            "value": "17",
+            "delta": 17,
             "goodWhen": "up",
             "shareable": true
           }
@@ -596,6 +680,48 @@
             "shareable": true
           }
         ],
+        "focus": [
+          {
+            "key": "focused",
+            "label": "Focused time",
+            "value": "10h 25m",
+            "delta": 625,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "daily",
+            "label": "Average a day",
+            "value": "1h 29m",
+            "delta": null,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "goalDays",
+            "label": "Days on goal",
+            "value": "3",
+            "delta": 3,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "sessions",
+            "label": "Sessions",
+            "value": "10",
+            "delta": 10,
+            "goodWhen": "up",
+            "shareable": true
+          },
+          {
+            "key": "pomodoros",
+            "label": "Pomodoros",
+            "value": "17",
+            "delta": 17,
+            "goodWhen": "up",
+            "shareable": true
+          }
+        ],
         "finance": [
           {
             "key": "savings-rate",
@@ -642,12 +768,13 @@
     },
     "life": {
       "7": {
-        "score": 79,
+        "score": 78,
         "rates": {
           "habits": 0.9148936170212766,
           "tasks": 0.8125,
           "fitness": 0.75,
           "nutrition": 0.42857142857142855,
+          "focus": 0.7083333333333333,
           "finance": 1
         },
         "prevRates": {
@@ -655,16 +782,18 @@
           "tasks": 0.8888888888888888,
           "fitness": 1,
           "nutrition": 0.5833333333333333,
+          "focus": 0,
           "finance": 1
         }
       },
       "30": {
-        "score": 79,
+        "score": 78,
         "rates": {
           "habits": 0.7101449275362319,
           "tasks": 0.8703703703703703,
           "fitness": 0.875,
           "nutrition": 0.5,
+          "focus": 0.7083333333333333,
           "finance": 1
         },
         "prevRates": {
@@ -672,6 +801,7 @@
           "tasks": 0.7857142857142857,
           "fitness": 0.8166666666666667,
           "nutrition": 0,
+          "focus": 0,
           "finance": 1
         }
       }
@@ -686,8 +816,8 @@
           "ref": "life",
           "label": "Life Score",
           "module": "life",
-          "value": "79",
-          "n": 79,
+          "value": "78",
+          "n": 78,
           "unit": "",
           "goodWhen": "up",
           "shareable": true
@@ -916,6 +1046,60 @@
           "shareable": true,
           "delta": 1
         },
+        "focus:focused": {
+          "ref": "focus:focused",
+          "label": "Focused time",
+          "module": "focus",
+          "value": "10h 25m",
+          "n": null,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true,
+          "delta": 625
+        },
+        "focus:daily": {
+          "ref": "focus:daily",
+          "label": "Average a day",
+          "module": "focus",
+          "value": "1h 29m",
+          "n": null,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true
+        },
+        "focus:goalDays": {
+          "ref": "focus:goalDays",
+          "label": "Days on goal",
+          "module": "focus",
+          "value": "3",
+          "n": 3,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true,
+          "delta": 3
+        },
+        "focus:sessions": {
+          "ref": "focus:sessions",
+          "label": "Sessions",
+          "module": "focus",
+          "value": "10",
+          "n": 10,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true,
+          "delta": 10
+        },
+        "focus:pomodoros": {
+          "ref": "focus:pomodoros",
+          "label": "Pomodoros",
+          "module": "focus",
+          "value": "17",
+          "n": 17,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true,
+          "delta": 17
+        },
         "finance:savings-rate": {
           "ref": "finance:savings-rate",
           "label": "Savings rate",
@@ -975,8 +1159,8 @@
           "ref": "life",
           "label": "Life Score",
           "module": "life",
-          "value": "79",
-          "n": 79,
+          "value": "78",
+          "n": 78,
           "unit": "",
           "goodWhen": "up",
           "shareable": true
@@ -1204,6 +1388,60 @@
           "shareable": true,
           "delta": 13
         },
+        "focus:focused": {
+          "ref": "focus:focused",
+          "label": "Focused time",
+          "module": "focus",
+          "value": "10h 25m",
+          "n": null,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true,
+          "delta": 625
+        },
+        "focus:daily": {
+          "ref": "focus:daily",
+          "label": "Average a day",
+          "module": "focus",
+          "value": "1h 29m",
+          "n": null,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true
+        },
+        "focus:goalDays": {
+          "ref": "focus:goalDays",
+          "label": "Days on goal",
+          "module": "focus",
+          "value": "3",
+          "n": 3,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true,
+          "delta": 3
+        },
+        "focus:sessions": {
+          "ref": "focus:sessions",
+          "label": "Sessions",
+          "module": "focus",
+          "value": "10",
+          "n": 10,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true,
+          "delta": 10
+        },
+        "focus:pomodoros": {
+          "ref": "focus:pomodoros",
+          "label": "Pomodoros",
+          "module": "focus",
+          "value": "17",
+          "n": 17,
+          "unit": "",
+          "goodWhen": "up",
+          "shareable": true,
+          "delta": 17
+        },
         "finance:savings-rate": {
           "ref": "finance:savings-rate",
           "label": "Savings rate",
@@ -1339,15 +1577,15 @@
           "ref": "life",
           "label": "Life Score",
           "module": "life",
-          "value": "79",
-          "n": 79,
+          "value": "78",
+          "n": 78,
           "unit": "",
           "goodWhen": "up",
           "shareable": true
         },
-        "pct": 1.0533333333333332,
+        "pct": 1.04,
         "hit": true,
-        "current": 79
+        "current": 78
       },
       {
         "goal": {
@@ -1665,6 +1903,26 @@
       {
         "value": "13",
         "n": 13,
+        "unit": ""
+      },
+      {
+        "value": "10h 25m",
+        "n": null,
+        "unit": ""
+      },
+      {
+        "value": "1h 29m",
+        "n": null,
+        "unit": ""
+      },
+      {
+        "value": "10",
+        "n": 10,
+        "unit": ""
+      },
+      {
+        "value": "17",
+        "n": 17,
         "unit": ""
       },
       {

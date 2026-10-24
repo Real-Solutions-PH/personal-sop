@@ -6,12 +6,22 @@ import { fmtDuration } from "@domain/lib/day"
 import { liveStore } from "@domain/lib/live"
 import { useLocalSearchParams } from "expo-router"
 import {
+  ArrowDown,
+  ArrowUp,
   Check,
+  ClockArrowDown,
+  ClockArrowUp,
   Dumbbell,
   Ellipsis,
+  Flag,
+  History,
   Minus,
+  NotebookPen,
   Plus,
+  Replace,
+  SkipForward,
   Timer,
+  Trash2,
   TrendingUp,
 } from "lucide-react-native"
 import { useState } from "react"
@@ -27,6 +37,7 @@ import {
   Line,
   Segmented,
   Tap,
+  ToolButton,
 } from "../native-kit"
 import { go, replace } from "../navigation"
 import { fonts, useTheme } from "../theme"
@@ -134,8 +145,12 @@ export function WorkoutLogger() {
       title={p.edit ? `Edit · ${w.name}` : w.name}
       onTitlePress={() => setRename(!rename)}
       actions={
-        <Button
-          small
+        <ToolButton
+          tone="primary"
+          icon={p.edit ? Check : Flag}
+          label={p.edit ? "Done" : "Finish"}
+          name={p.edit ? "Done editing" : "Finish workout"}
+          max={96}
           onPress={() => {
             if (p.edit) {
               toast.success("Workout updated — PRs recomputed")
@@ -143,9 +158,7 @@ export function WorkoutLogger() {
             } else if (unfinished) setFinish(true)
             else finishWorkout("remove")
           }}
-        >
-          {p.edit ? "Done" : "Finish"}
-        </Button>
+        />
       }
     >
       {rename && (
@@ -215,17 +228,29 @@ export function WorkoutLogger() {
             </View>
             {rest > 0 && (
               <>
-                <Button small tone="quiet" onPress={() => A.adjustRest(-15)}>
-                  −15
-                </Button>
-                <Button small tone="quiet" onPress={() => A.adjustRest(15)}>
-                  +15
-                </Button>
+                <ToolButton
+                  icon={ClockArrowDown}
+                  label="−15"
+                  name="Rest 15 seconds less"
+                  max={56}
+                  onPress={() => A.adjustRest(-15)}
+                />
+                <ToolButton
+                  icon={ClockArrowUp}
+                  label="+15"
+                  name="Rest 15 seconds more"
+                  max={56}
+                  onPress={() => A.adjustRest(15)}
+                />
               </>
             )}
-            <Button small tone="quiet" onPress={A.skipRest}>
-              {rest <= 0 ? "OK" : "Skip"}
-            </Button>
+            <ToolButton
+              icon={rest <= 0 ? Check : SkipForward}
+              label={rest <= 0 ? "OK" : "Skip"}
+              name={rest <= 0 ? "Dismiss rest timer" : "Skip rest"}
+              max={56}
+              onPress={A.skipRest}
+            />
           </Line>
           {rest > 0 && (
             <View style={{ marginTop: 8 }}>
@@ -313,7 +338,6 @@ export function WorkoutLogger() {
                 </Line>
               </View>
               <IconTap
-                size={32}
                 icon={Ellipsis}
                 label={`Options for ${ex?.name}`}
                 onPress={() => setMenu(we.id)}
@@ -623,6 +647,7 @@ export function WorkoutLogger() {
           <>
             <Button
               tone="quiet"
+              icon={History}
               onPress={() => {
                 go(`/fitness/exercises/${we.exerciseId}`)
                 setMenu(null)
@@ -632,6 +657,7 @@ export function WorkoutLogger() {
             </Button>
             <Button
               tone="quiet"
+              icon={Replace}
               onPress={() => {
                 openPicker(we.id)
                 setMenu(null)
@@ -641,6 +667,7 @@ export function WorkoutLogger() {
             </Button>
             <Button
               tone="quiet"
+              icon={NotebookPen}
               onPress={() => {
                 setNote(we.id)
                 setMenu(null)
@@ -650,6 +677,7 @@ export function WorkoutLogger() {
             </Button>
             <Button
               tone="quiet"
+              icon={ArrowUp}
               onPress={() => {
                 A.moveExercise(w.id, we.id, -1)
                 setMenu(null)
@@ -659,6 +687,7 @@ export function WorkoutLogger() {
             </Button>
             <Button
               tone="quiet"
+              icon={ArrowDown}
               onPress={() => {
                 A.moveExercise(w.id, we.id, 1)
                 setMenu(null)
@@ -668,6 +697,7 @@ export function WorkoutLogger() {
             </Button>
             <Button
               tone="danger"
+              icon={Trash2}
               onPress={() => {
                 A.removeExercise(w.id, we.id)
                 setMenu(null)

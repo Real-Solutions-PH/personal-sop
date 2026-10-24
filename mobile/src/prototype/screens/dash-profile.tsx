@@ -23,6 +23,7 @@ import {
   Repeat2,
   ShieldCheck,
   Sparkles,
+  Timer,
   Trash2,
   Utensils,
   Wallet,
@@ -82,6 +83,14 @@ const modules = {
     links: [
       ["Macro targets", "/nutrition/targets"],
       ["Food library", "/nutrition/foods"],
+    ],
+  },
+  focus: {
+    icon: Timer,
+    color: "foc",
+    links: [
+      ["Focus timer", "/focus"],
+      ["Focus settings", "/focus/settings"],
     ],
   },
   finance: {

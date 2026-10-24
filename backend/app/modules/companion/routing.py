@@ -175,6 +175,15 @@ GROUPS: dict[str, tuple[frozenset[str], re.Pattern[str]]] = {
             re.I,
         ),
     ),
+    "focus": (
+        frozenset({"focus_status", "start_focus", "focus_control", "stop_focus"}),
+        re.compile(
+            r"\b(focus\w*|pomodoros?|pomo|deep work|in the zone|timer|stopwatch|"
+            r"concentrat\w*|study|studied|studying|working on|work session|"
+            r"time on|spent on|how long did i)\b",
+            re.I,
+        ),
+    ),
     "journal": (
         frozenset({"save_journal"}),
         re.compile(

@@ -20,6 +20,7 @@ import { companionMappers } from "./mappers/companion"
 import { dashMappers } from "./mappers/dash"
 import { financeMappers } from "./mappers/finance"
 import { fitnessMappers } from "./mappers/fitness"
+import { focusMappers } from "./mappers/focus"
 import { habitsMappers } from "./mappers/habits"
 import { modulePrefMapper, weatherPrefMapper } from "./mappers/reference"
 import { tasksMappers } from "./mappers/tasks"
@@ -39,6 +40,8 @@ const factories: MapperFactory[] = [
   fitnessMappers,
   habitsMappers,
   tasksMappers,
+  // After tasks and habits: a session names one of them.
+  focusMappers,
   captureMappers,
   companionMappers,
 ]

@@ -150,6 +150,12 @@ export const tint: Record<
     text: "text-nut",
     solid: "bg-nut",
   },
+  foc: {
+    bg: "bg-foc/12",
+    border: "border-foc/30",
+    text: "text-foc",
+    solid: "bg-foc",
+  },
   fin: {
     bg: "bg-fin/12",
     border: "border-fin/30",

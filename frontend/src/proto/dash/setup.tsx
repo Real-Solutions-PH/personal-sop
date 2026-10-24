@@ -57,6 +57,12 @@ const STEP: Record<ModuleKey, { title: string; why: string; time: string }> = {
     why: "Calories and protein to aim for.",
     time: "30 sec",
   },
+  // Not in ORDER either: the focus timer is native only (ADR-0025).
+  focus: {
+    title: "Your daily focus goal",
+    why: "Hours of deep work a day.",
+    time: "15 sec",
+  },
   tasks: {
     title: "What's on your plate",
     why: "Dump what's in your head. Dates like 'friday' are picked up for you.",
@@ -75,6 +81,7 @@ export function useSetupStatus() {
       (s) => s.templates.length + s.workouts.length + s.weighIns.length > 0,
     ),
     nutrition: fitStore.use((s) => s.targets.length > 0),
+    focus: true,
     tasks: tasksStore.use((s) => s.tasks.length > 0),
   }
   const steps = ORDER.filter((k) => enabled[k])

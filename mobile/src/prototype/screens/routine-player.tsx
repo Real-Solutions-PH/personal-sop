@@ -4,6 +4,7 @@ import { habitsStore } from "@domain/habits/store"
 import { dayKey, fmtDuration } from "@domain/lib/day"
 import { liveStore } from "@domain/lib/live"
 import {
+  AlarmClockPlus,
   Check,
   Pause,
   Play,
@@ -14,7 +15,15 @@ import {
 import { useEffect, useRef, useState } from "react"
 import { Pressable, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { Copy, Countdown, Frame, IconTap, Line, Tap } from "../native-kit"
+import {
+  Copy,
+  Countdown,
+  Frame,
+  IconTap,
+  Line,
+  Tap,
+  ToolButton,
+} from "../native-kit"
 import { back, go, replace } from "../navigation"
 import { useTheme } from "../theme"
 import { Button, confirm, useNow } from "../ui"
@@ -123,7 +132,7 @@ export function RoutinePlayer({ id }: { id: string }) {
             >
               {r.icon} {r.name}
             </Copy>
-            <Copy size={14} muted style={{ width: 40, textAlign: "center" }}>
+            <Copy size={14} muted style={{ minWidth: 40, textAlign: "center" }}>
               {run.current + 1}/{run.steps.length}
             </Copy>
           </>
@@ -337,52 +346,41 @@ export function RoutinePlayer({ id }: { id: string }) {
               {[
                 {
                   label: "Back",
+                  name: "Previous step",
                   icon: SkipBack,
                   action: () => A.stepBack(run),
                   disabled: run.current === 0,
                 },
                 {
                   label: "Skip",
+                  name: "Skip step",
                   icon: SkipForward,
                   action: () => act(A.stepSkip),
                 },
                 {
                   label: run.pausedAt ? "Resume" : "Pause",
+                  name: run.pausedAt ? "Resume routine" : "Pause routine",
                   icon: run.pausedAt ? Play : Pause,
                   action: () => A.toggleRunPause(run),
                 },
                 {
                   label: "+1 min",
-                  icon: null,
+                  name: "Add a minute to this step",
+                  icon: AlarmClockPlus,
                   action: () => A.stepAddMinute(run),
                 },
               ].map((b) => (
-                <Pressable
+                <ToolButton
                   key={b.label}
-                  accessibilityRole="button"
-                  accessibilityLabel={b.label}
+                  icon={b.icon}
+                  label={b.label}
+                  name={b.name}
                   disabled={b.disabled}
                   onPress={b.action}
-                  style={{
-                    flex: 1,
-                    height: 64,
-                    borderRadius: 16,
-                    backgroundColor: t.soft,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 4,
-                    opacity: b.disabled ? 0.3 : 1,
-                  }}
-                >
-                  {b.icon ? (
-                    <b.icon size={20} color={t.text} />
-                  ) : (
-                    <Copy weight="semibold">+1</Copy>
-                  )}
-                  <Copy size={12} weight="medium">
-                    {b.label}
-                  </Copy>
-                </Pressable>
+                  stacked
+                  keepIcon
+                  style={{ flex: 1, height: 64, borderRadius: 16 }}
+                />
               ))}
             </Line>
             {!already && (

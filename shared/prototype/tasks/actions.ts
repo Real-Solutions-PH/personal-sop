@@ -249,6 +249,7 @@ export function updateTask(
       | "remindAt"
       | "dueTime"
       | "tags"
+      | "estimateMin"
     >
   >,
 ): void {

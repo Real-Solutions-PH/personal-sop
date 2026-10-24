@@ -13,6 +13,7 @@ and the prompt tells the model that a missing fact is unknown, not zero.
 from typing import Any
 
 from app.modules.fitness import public as fitness
+from app.modules.focus import public as focus
 from app.modules.habits import public as habits
 from app.modules.nutrition import public as nutrition
 from app.modules.stats import public as stats
@@ -138,6 +139,8 @@ def snapshot(ctx: Ctx) -> dict[str, Any]:
     # Today's food against the macro target, and the latest weigh-in, so
     # "what's my macro status?" is answered from the user's own data.
     out["nutrition_today"] = fitness.nutrition_today(ctx)
+    # Focused time today against the goal, and the focus timer if it runs.
+    out["focus_today"] = focus.today_line(ctx)
     # A workout on the Live bar: sets said now belong to it, not a new log.
     live = fitness.chat.active_workout(ctx)
     if live is not None:

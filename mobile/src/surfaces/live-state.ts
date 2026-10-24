@@ -1,5 +1,8 @@
 import { isDone, isTimed, isWorking, setSeconds } from "@domain/fitness/calc"
 import type { FitnessState, Workout } from "@domain/fitness/data"
+import { liveTimeline } from "@domain/focus/actions"
+import type { FocusState } from "@domain/focus/data"
+import * as FL from "@domain/focus/logic"
 import type { HabitsState, RoutineRun } from "@domain/habits/data"
 import * as H from "@domain/habits/logic"
 import { dayKey } from "@domain/lib/day"
@@ -201,15 +204,72 @@ function workoutState(
   }
 }
 
+/** A focus session, drawn by the native timer layout (ADR-0025): a
+ * Pomodoro counts down to the end of its set or break, a stopwatch counts
+ * up. The id is the session's, so a tap is checked against it. */
+function focusState(live: Live, s: FocusState, now: number): LiveState | null {
+  const tl = liveTimeline(s, now)
+  if (!tl) return null
+  const p = FL.phase(tl, now)
+  const paused = p.status !== "running"
+  const pomodoro = tl.sess.mode === "pomodoro"
+  const sets = tl.sess.setsBeforeLong
+  const title = p.item?.title ?? "Focus"
+  const step =
+    p.status === "waiting"
+      ? p.kind === "break"
+        ? `Set ${p.setIndex + 1} done`
+        : "Break over"
+      : p.kind === "break"
+        ? p.longBreak
+          ? "Long break"
+          : "Break"
+        : pomodoro
+          ? `Set ${(p.setIndex % sets) + 1} of ${sets}`
+          : "Stopwatch"
+  const remaining = p.remaining ?? 0
+  return {
+    kind: "timer",
+    id: tl.sess.id,
+    title,
+    icon: "⏱",
+    step,
+    detail: `${FL.fmtHm(FL.focusSec(tl, now))} focused`,
+    key: `${p.kind}-${p.setIndex}-${p.status}`,
+    index: pomodoro ? p.setIndex % sets : 0,
+    count: pomodoro ? sets : 0,
+    paused,
+    // Where the phase's clock reads zero, pauses excluded; deterministic
+    // while running so re-renders do not push updates.
+    startedAt: paused ? tl.sess.start : Math.round(now - p.elapsed * 1000),
+    elapsedSec: Math.round(p.elapsed),
+    ...(p.plannedSec
+      ? paused
+        ? { remainingSec: Math.round(remaining) }
+        : { stepEndsAt: Math.round(now + remaining * 1000) }
+      : {}),
+    restSec: 0,
+    next: [],
+    controls:
+      p.kind === "break"
+        ? ["skip", "finish"]
+        : [paused ? "resume" : "pause", "finish"],
+    href: live.href,
+  }
+}
+
 export function buildLiveState(input: {
   live: Live | null
   habits: HabitsState
   fit: FitnessState
+  focus?: FocusState
   now?: number
 }): LiveState | null {
   const { live } = input
   if (!live) return null
   const now = input.now ?? Date.now()
+  if (live.kind === "focus")
+    return input.focus ? focusState(live, input.focus, now) : null
   if (live.kind === "routine") return routineState(live, input.habits, now)
   if (live.kind === "timer") return timerState(live, input.habits, now)
   return workoutState(input.fit, live, now)

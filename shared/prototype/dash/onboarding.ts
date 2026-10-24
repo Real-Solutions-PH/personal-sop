@@ -22,6 +22,7 @@ export const IDENTITIES: { text: string; module?: ModuleKey }[] = [
   { text: "I finish what I start", module: "tasks" },
   { text: "I'm someone who trains", module: "fitness" },
   { text: "I eat to fuel my goals", module: "nutrition" },
+  { text: "I do deep work every day", module: "focus" },
   { text: "I'm in control of my money", module: "finance" },
   { text: "I keep the promises I make to myself" },
 ]
@@ -34,17 +35,38 @@ export const PACES: Record<
   gentle: {
     label: "Gentle",
     note: "Easy wins first",
-    targets: { habits: 60, tasks: 70, fitness: 2, nutrition: 60, finance: 10 },
+    targets: {
+      habits: 60,
+      tasks: 70,
+      fitness: 2,
+      nutrition: 60,
+      focus: 3,
+      finance: 10,
+    },
   },
   steady: {
     label: "Steady",
     note: "A real stretch",
-    targets: { habits: 80, tasks: 85, fitness: 4, nutrition: 75, finance: 20 },
+    targets: {
+      habits: 80,
+      tasks: 85,
+      fitness: 4,
+      nutrition: 75,
+      focus: 5,
+      finance: 20,
+    },
   },
   ambitious: {
     label: "Ambitious",
     note: "No days off",
-    targets: { habits: 90, tasks: 95, fitness: 5, nutrition: 90, finance: 30 },
+    targets: {
+      habits: 90,
+      tasks: 95,
+      fitness: 5,
+      nutrition: 90,
+      focus: 6,
+      finance: 30,
+    },
   },
 }
 
@@ -94,6 +116,15 @@ export const STARTERS: Record<ModuleKey, Starter> = {
     comparator: "gte",
     period: "week",
     hint: "of logged days at your protein target",
+  },
+  focus: {
+    metric: "focus:goalDays",
+    label: "Days on focus goal",
+    target: 5,
+    unit: "",
+    comparator: "gte",
+    period: "week",
+    hint: "days you reach your focus goal",
   },
   finance: {
     metric: "finance:savings-rate",

@@ -295,6 +295,7 @@ export const MODULES: ModuleKey[] = [
   "tasks",
   "fitness",
   "nutrition",
+  "focus",
   "finance",
 ]
 const isModule = (m: string): m is ModuleKey =>
@@ -313,7 +314,14 @@ export function metricFrom(m: ServerMetric): Metric {
 }
 
 export function ratesFrom(o: ServerOverview, which: "rate" | "prev") {
-  const out = { habits: 0, tasks: 0, fitness: 0, nutrition: 0, finance: 0 }
+  const out = {
+    habits: 0,
+    tasks: 0,
+    fitness: 0,
+    nutrition: 0,
+    focus: 0,
+    finance: 0,
+  }
   for (const a of o.areas) if (isModule(a.module)) out[a.module] = a[which] ?? 0
   return out as Record<ModuleKey, number>
 }
@@ -324,6 +332,7 @@ export function metricsFrom(o: ServerOverview): Record<ModuleKey, Metric[]> {
     tasks: [],
     fitness: [],
     nutrition: [],
+    focus: [],
     finance: [],
   }
   for (const m of o.metrics)

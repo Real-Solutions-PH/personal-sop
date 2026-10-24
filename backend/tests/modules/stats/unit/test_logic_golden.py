@@ -173,7 +173,14 @@ def test_goal_progress_grid() -> None:
         assert (p.pct, p.hit, p.current) == (c["pct"], c["hit"], c["current"]), c
 
 
-SEED_WEIGHTS = {"habits": 3, "tasks": 2, "fitness": 3, "nutrition": 2, "finance": 2}
+SEED_WEIGHTS = {
+    "habits": 3,
+    "tasks": 2,
+    "fitness": 3,
+    "nutrition": 2,
+    "focus": 2,
+    "finance": 2,
+}
 
 
 def _books(
@@ -346,6 +353,7 @@ def test_facets_compose_like_prototype(idx: int) -> None:
         routines=pair("routines"),
         training=pair("training"),
         nutrition=pair("nutrition"),
+        focus=pair("focus"),
         routine_extra=[metric(m) for m in by_key["routines"]["extra"]],
     )
     assert [f.key for f in got] == [f["key"] for f in case["facets"]]
