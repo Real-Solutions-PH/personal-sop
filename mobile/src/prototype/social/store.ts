@@ -10,7 +10,13 @@ import type { Accent } from "../theme"
 // the same actions also call the server (see "live mode" below), and
 // src/live/social.ts fills the store from the /social routes and events.
 
-export type Media = { kind: "image" | "video"; uri: string; ratio?: number }
+export type Media = {
+  kind: "image" | "video"
+  uri: string
+  ratio?: number
+  /** Live mode: the server's media id, once it is on the server. */
+  id?: string
+}
 export type ProgressStat = { label: string; value: string; unit?: string }
 export type Progress = {
   accent: Accent
@@ -102,6 +108,9 @@ export type StoryItem = {
   bg?: [string, string]
   progress?: Progress
   audience?: "everyone" | "close"
+  /** Live mode: media already on the server (my post's photo shared to my
+   * story), sent by id instead of uploaded again. */
+  mediaId?: string
   likes?: number
   /** Live mode, my own check-ins only: how many people opened it. */
   views?: number

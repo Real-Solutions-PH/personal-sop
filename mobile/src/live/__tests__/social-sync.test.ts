@@ -3,6 +3,7 @@
 // beyond the feed (a shared post, the saved list).
 
 import {
+  addStory,
   connectSocial,
   ensurePostLive,
   loadSavedLive,
@@ -363,4 +364,56 @@ test("opening my check-ins reloads the tray, so the view count is current", asyn
   await loadStoriesLive()
   expect(calls.filter((c) => c.path === "/social/stories")).toHaveLength(2)
   expect(socialStore.get().stories.find((x) => x.id === STORY)?.views).toBe(2)
+})
+
+test("a story from my own post reuses the post's photo, no second upload", async () => {
+  const bodies: unknown[] = []
+  const { http, calls } = fakeHttp({
+    "POST /social/stories": ({ body }) => {
+      bodies.push(body)
+      const b = body as { id: string }
+      return {
+        id: b.id,
+        owner_id: MEID,
+        created_at: new Date().toISOString(),
+        kind: "image",
+        media: { media_id: "m-post", kind: "image", ratio: null, url: "u" },
+        text: null,
+        bg: null,
+        progress: null,
+        audience: "everyone",
+        seen: true,
+        liked: false,
+        likes: 0,
+        views: 0,
+      }
+    },
+  })
+  const upload = jest.fn(async () => "m-new")
+  connectSocial(createSocialLive({ http, userId: MEID, upload }))
+  addStory({ kind: "image", uri: "https://s3.test/old", mediaId: "m-post" })
+  await settle()
+  expect(upload).not.toHaveBeenCalled()
+  expect(bodies[0]).toMatchObject({ kind: "image", media_id: "m-post" })
+  expect(calls.some((c) => c.path === "/media/uploads")).toBe(false)
+})
+
+test("a post's photos keep their server media ids", async () => {
+  const { http } = fakeHttp(
+    refreshRoutes({
+      "GET /social/feed": () => ({
+        data: [
+          wirePost({
+            author: brief(MEID, "Me"),
+            media: [
+              { media_id: "m-1", kind: "image", ratio: 1, url: "https://x/1" },
+            ],
+          }),
+        ],
+        count: 1,
+      }),
+    }),
+  )
+  await createSocialLive({ http, userId: MEID }).refresh()
+  expect(socialStore.get().posts[0].media[0].id).toBe("m-1")
 })

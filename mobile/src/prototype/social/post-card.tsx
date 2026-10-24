@@ -242,7 +242,12 @@ export function SendSheet({
                 post.progress
                   ? { kind: "progress", progress: post.progress }
                   : post.media[0]?.kind === "image"
-                    ? { kind: "image", uri: post.media[0].uri }
+                    ? {
+                        kind: "image",
+                        uri: post.media[0].uri,
+                        // My own photo is already on the server: no upload.
+                        mediaId: post.by === ME ? post.media[0].id : undefined,
+                      }
                     : {
                         kind: "text",
                         text: post.caption,
