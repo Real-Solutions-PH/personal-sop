@@ -5,7 +5,7 @@ import uuid
 from datetime import date, datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 Equipment = Literal["barbell", "dumbbell", "machine", "cable", "bodyweight"]
 LoadType = Literal["weight", "bodyweight", "reps", "time"]
@@ -30,6 +30,9 @@ Units = Literal["kg", "lb"]
 Progression = Literal["double", "linear"]
 AiSource = Literal["builtin", "connector"]
 GoalDirection = Literal["cut", "maintain", "bulk"]
+Sex = Literal["male", "female"]
+ActivityLevel = Literal["sedentary", "light", "moderate", "active", "very_active"]
+PlanGoal = Literal["lose", "maintain", "recomp", "build"]
 
 Macro = Field(ge=0, le=100000)
 OptMacro = Field(default=None, ge=0, le=100000)
@@ -165,6 +168,11 @@ class FitnessSettingsPublic(_Row):
     goal_direction: str
     goal_weight: float | None
     setup_done: bool
+    sex: str | None
+    birth_year: int | None
+    height_cm: float | None
+    activity_level: str | None
+    plan_goal: str | None
 
 
 # --------------------------------------------------------------------------
@@ -284,6 +292,18 @@ class FitnessSettingsIn(BaseModel):
     goal_direction: GoalDirection | None = None
     goal_weight: float | None = Field(default=None, gt=0, lt=500)
     setup_done: bool | None = None
+    sex: Sex | None = None
+    birth_year: int | None = Field(default=None, ge=1900)
+    height_cm: float | None = Field(default=None, ge=100, le=250)
+    activity_level: ActivityLevel | None = None
+    plan_goal: PlanGoal | None = None
+
+    @field_validator("birth_year")
+    @classmethod
+    def _adult_enough(cls, v: int | None) -> int | None:
+        if v is not None and v > date.today().year - 13:
+            raise ValueError("must be at least 13 years old")
+        return v
 
 
 # --------------------------------------------------------------------------

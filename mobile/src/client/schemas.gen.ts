@@ -4950,6 +4950,67 @@ export const FitnessSettingsInSchema = {
                 }
             ],
             title: 'Setup Done'
+        },
+        sex: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['male', 'female']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Sex'
+        },
+        birth_year: {
+            anyOf: [
+                {
+                    type: 'integer',
+                    minimum: 1900
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Birth Year'
+        },
+        height_cm: {
+            anyOf: [
+                {
+                    type: 'number',
+                    maximum: 250,
+                    minimum: 100
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Height Cm'
+        },
+        activity_level: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['sedentary', 'light', 'moderate', 'active', 'very_active']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Activity Level'
+        },
+        plan_goal: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['lose', 'maintain', 'recomp', 'build']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Plan Goal'
         }
     },
     type: 'object',
@@ -5021,10 +5082,65 @@ export const FitnessSettingsPublicSchema = {
         setup_done: {
             type: 'boolean',
             title: 'Setup Done'
+        },
+        sex: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Sex'
+        },
+        birth_year: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Birth Year'
+        },
+        height_cm: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Height Cm'
+        },
+        activity_level: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Activity Level'
+        },
+        plan_goal: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Plan Goal'
         }
     },
     type: 'object',
-    required: ['id', 'version', 'updated_at', 'units', 'rest_sec', 'weekly_target', 'weigh_in_reminder', 'progression', 'ai_source', 'goal_direction', 'goal_weight', 'setup_done'],
+    required: ['id', 'version', 'updated_at', 'units', 'rest_sec', 'weekly_target', 'weigh_in_reminder', 'progression', 'ai_source', 'goal_direction', 'goal_weight', 'setup_done', 'sex', 'birth_year', 'height_cm', 'activity_level', 'plan_goal'],
     title: 'FitnessSettingsPublic'
 } as const;
 
