@@ -19,7 +19,14 @@ from typing import Literal
 
 from app.modules.stats.contract import Metric
 
-MODULE_KEYS: tuple[str, ...] = ("habits", "tasks", "fitness", "nutrition", "focus", "finance")
+MODULE_KEYS: tuple[str, ...] = (
+    "habits",
+    "tasks",
+    "fitness",
+    "nutrition",
+    "focus",
+    "finance",
+)
 STREAK_MILESTONES: tuple[int, ...] = (7, 30, 100, 365)
 # The on-target series always spans at least a year so the all-time streaks
 # (``useOnTarget``) see the same history whatever range the screen shows.

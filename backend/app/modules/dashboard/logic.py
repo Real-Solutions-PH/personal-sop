@@ -14,7 +14,14 @@ from typing import Any, Literal
 
 from app.shared.currency import contains_money
 
-MODULE_KEYS: tuple[str, ...] = ("habits", "tasks", "fitness", "nutrition", "focus", "finance")
+MODULE_KEYS: tuple[str, ...] = (
+    "habits",
+    "tasks",
+    "fitness",
+    "nutrition",
+    "focus",
+    "finance",
+)
 
 ShareTemplate = Literal[
     "life", "weekly", "monthly", "streak", "finance", "profile", "goal"
