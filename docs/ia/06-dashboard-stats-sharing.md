@@ -274,6 +274,9 @@ All cards are rendered on the client (DOM → PNG at 1080×1920 or 1080×1080) a
 | **Finance %** | Savings rate, spend vs budget %, budgets kept, no-spend days; trend sparkline without a y-axis scale | 9:16, 1:1 | **Percentages only. ₱ amounts cannot be shown on any card** (OQ-DSH-7) |
 | **Player profile** | Profile header, 4 hero stats (all-time or YTD), records strip | 9:16 | Identity statements off |
 | **Goal hit** | Goal, target, achieved value, timeframe | 9:16, 1:1 | Finance goals shown as % of target |
+| **Habit milestone** | The streak milestone reached (7, 30, 100, 365, 1,000 days…), progress to the next one, current and best streak | 9:16, 4:5, 1:1 | Habit name can be hidden |
+| **Food day / Food week** | Calories, protein, carbs and fat as % of the day's target; 7-day on-target dots; calorie and protein day rates | 9:16, 4:5, 1:1 | Grams and calories off by default (sensitive toggle); meal names and photos never |
+| **Journal streak / month** | Days-written streak, best streak, entries and days written in 30 days, a 5-week dot grid | 9:16, 4:5, 1:1 | Counts only; journal text, moods and tags never |
 
 Rules that apply to every template: task titles, journal text and account names are **never** renderable. Sensitive slots (`sensitive = true`) start off, and each one needs a toggle plus the DSH-31 privacy check.
 
