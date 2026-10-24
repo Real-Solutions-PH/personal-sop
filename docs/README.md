@@ -36,6 +36,13 @@ Context pack for human + AI programmers building this SaaS. Fill each template; 
 | [adr/](adr/) | Architecture Decision Records — one file per decision | Tech lead |
 | [runbook.md](runbook.md) | Deploy, rollback, backup/restore, common ops, incidents | DevOps |
 
+### Feature specs and plans
+
+| File | Purpose | Owner |
+|------|---------|-------|
+| [superpowers/specs/2026-10-25-personalized-plans-design.md](superpowers/specs/2026-10-25-personalized-plans-design.md) | Personalized plans: design spec (2026-10-25) | Eng |
+| [superpowers/plans/2026-10-25-personalized-plans.md](superpowers/plans/2026-10-25-personalized-plans.md) | Personalized plans: implementation plan, six tasks (2026-10-25) | Eng |
+
 ## Conventions
 
 - Update doc when reality changes. Stale doc worse than no doc.
