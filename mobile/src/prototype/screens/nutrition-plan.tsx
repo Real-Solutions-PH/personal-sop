@@ -22,7 +22,7 @@ import {
 import { fitStore } from "@domain/fitness/store"
 import { useState } from "react"
 import { TextInput, View } from "react-native"
-import { Copy, Line, Segmented, Tap } from "../native-kit"
+import { Copy, Line, Tap } from "../native-kit"
 import { fonts, useTheme } from "../theme"
 import { Button } from "../ui"
 import { displayMass, kilograms } from "../units"
@@ -68,7 +68,7 @@ export function PlanForm({
     ),
     bw = latestBodyweight(fit),
     inches = st.heightCm ? st.heightCm / 2.54 : undefined,
-    [sex, setSex] = useState<Sex>(st.sex ?? "male"),
+    [sex, setSex] = useState<Sex | undefined>(st.sex),
     [year, setYear] = useState(st.birthYear ? String(st.birthYear) : ""),
     [cm, setCm] = useState(st.heightCm ? String(st.heightCm) : ""),
     [ft, setFt] = useState(inches ? String(Math.floor(inches / 12)) : ""),
@@ -85,6 +85,7 @@ export function PlanForm({
     age = ageFrom(num(year)),
     bodyFat = bf.trim() === "" ? undefined : num(bf),
     valid =
+      !!sex &&
       !!activity &&
       age >= 13 &&
       age <= 100 &&
@@ -94,7 +95,7 @@ export function PlanForm({
       (bodyFat === undefined || (bodyFat >= 3 && bodyFat <= 70))
 
   const submit = () => {
-    if (!valid || !activity) return
+    if (!valid || !sex || !activity) return
     const h = Math.round(heightCm * 10) / 10
     updateSettings({
       sex,
@@ -182,14 +183,10 @@ export function PlanForm({
   return (
     <View>
       {label("Sex")}
-      <Segmented<Sex>
-        value={sex}
-        onChange={setSex}
-        options={[
-          { value: "male", label: "Male" },
-          { value: "female", label: "Female" },
-        ]}
-      />
+      <View style={wrap}>
+        {chip("Male", sex === "male", () => setSex("male"))}
+        {chip("Female", sex === "female", () => setSex("female"))}
+      </View>
       {label("Birth year")}
       {input("Birth year", year, setYear, "e.g. 1995")}
       {label("Height")}

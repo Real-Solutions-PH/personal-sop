@@ -90,6 +90,73 @@ test("apply is disabled until the profile is complete", () => {
   expect(apply().props.accessibilityState?.disabled).toBe(false)
 })
 
+test("apply stays disabled until sex is chosen", () => {
+  render(<PlanForm onApply={jest.fn()} />, { wrapper })
+  fill("Birth year", String(year - 30))
+  fill("Height (cm)", "180")
+  fill("Weight (kg)", "80")
+  fireEvent.press(screen.getByText("Exercise 3–5 days/wk"))
+  expect(apply().props.accessibilityState?.disabled).toBe(true)
+  fireEvent.press(screen.getByText("Male"))
+  expect(apply().props.accessibilityState?.disabled).toBe(false)
+})
+
+test("partial profile opens with birth year blank until filled", () => {
+  fitStore.set((s) => ({
+    ...s,
+    settings: {
+      ...s.settings,
+      sex: "male",
+      heightCm: 180,
+      activity: "moderate",
+    },
+    weighIns: [
+      { id: "w1", measuredAt: "2026-01-01T06:00:00.000Z", weightKg: 80 },
+    ],
+  }))
+  render(<PlanForm onApply={jest.fn()} />, { wrapper })
+  expect(screen.getByLabelText("Birth year").props.value).toBe("")
+  expect(apply().props.accessibilityState?.disabled).toBe(true)
+  fill("Birth year", String(year - 30))
+  expect(apply().props.accessibilityState?.disabled).toBe(false)
+})
+
+test.each([["99"], ["251"]])("height %s cm disables apply", (cm) => {
+  render(<PlanForm onApply={jest.fn()} />, { wrapper })
+  fillA()
+  fill("Height (cm)", cm)
+  expect(apply().props.accessibilityState?.disabled).toBe(true)
+})
+
+test.each([["2"], ["71"]])("body fat %s%% disables apply", (bf) => {
+  render(<PlanForm onApply={jest.fn()} />, { wrapper })
+  fillA()
+  fill("Body fat % (optional)", bf)
+  expect(apply().props.accessibilityState?.disabled).toBe(true)
+})
+
+test("lb mode converts ft/in to cm and a round-tripped weight is not new", () => {
+  fitStore.set((s) => ({
+    ...s,
+    settings: { ...s.settings, units: "lb" },
+    weighIns: [
+      { id: "w1", measuredAt: "2026-01-01T06:00:00.000Z", weightKg: 80 },
+    ],
+  }))
+  render(<PlanForm onApply={jest.fn()} />, { wrapper })
+  fireEvent.press(screen.getByText("Male"))
+  fill("Birth year", String(year - 30))
+  fill("Height (ft)", "5")
+  fill("Height (in)", "11")
+  fill("Body fat % (optional)", "20")
+  fireEvent.press(screen.getByText("Exercise 3–5 days/wk"))
+  fireEvent.press(apply())
+  expect(fitStore.get().settings.heightCm).toBe(180.3)
+  const w = fitStore.get().weighIns
+  expect(w).toHaveLength(1)
+  expect(w[0]).toMatchObject({ id: "w1", bodyFatPct: 20 })
+})
+
 test("apply writes profile, both goal fields, and the estimate", () => {
   const onApply = jest.fn()
   render(<PlanForm onApply={onApply} />, { wrapper })
