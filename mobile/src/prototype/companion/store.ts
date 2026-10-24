@@ -221,6 +221,16 @@ export const setRetryAsk = (b: ((id: string) => void) | null) => {
 /** Send a failed question again (live mode). */
 export const retryAsk = (id: string) => retryBackend?.(id)
 
+/** The question whose reply is being written now (live mode). A question
+ * sent meanwhile waits behind it, queued, the way chat assistants do. */
+export const replying = create<{ id: string | null }>(() => ({ id: null }))
+let stopBackend: (() => void) | null = null
+export const setStopReply = (b: (() => void) | null) => {
+  stopBackend = b
+}
+/** "Send now": stop the reply being written; the queued question goes next. */
+export const stopReply = () => stopBackend?.()
+
 /** The next message was spoken (dictated): its reply is read aloud as soon
  * as it arrives, the way voice chat works in other assistants. */
 let voiceTurn = false

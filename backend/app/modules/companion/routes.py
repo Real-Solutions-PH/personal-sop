@@ -9,7 +9,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response, StreamingResponse
 
-from app.modules.companion import services, turn
+from app.modules.companion import gate, services, turn
 from app.modules.companion.schema import (
     AskIn,
     AskOut,
@@ -123,17 +123,33 @@ def ask_stream(ctx: CtxDep, data: AskIn) -> StreamingResponse:
 
     def _turn(ctx: Ctx, sink: turn.Sink) -> None:
         stream = turn.TurnStream(
-            ctx, thread_id=f"companion:{ctx.user_id}", run_id=run_id, sink=sink
+            ctx,
+            thread_id=f"companion:{ctx.user_id}",
+            run_id=run_id,
+            sink=sink,
+            stop_check=lambda: gate.stop_requested(ctx.user_id, run_id),
         )
         stream.started()
-        out = services.ask(
-            ctx,
-            text=data.text,
-            message_id=data.id,
-            stream=stream,
-            media_ids=data.media_ids,
-            thread_id=data.thread_id,
-        )
+        # One reply at a time in a chat: a message sent while Fern is still
+        # answering waits here ("queued"), then reads the finished reply.
+        try:
+            with gate.turn_slot(
+                ctx.user_id,
+                str(data.thread_id or "latest"),
+                run_id,
+                on_wait=lambda ahead: stream.custom("queued", {"behind": ahead}),
+            ):
+                out = services.ask(
+                    ctx,
+                    text=data.text,
+                    message_id=data.id,
+                    stream=stream,
+                    media_ids=data.media_ids,
+                    thread_id=data.thread_id,
+                )
+        except gate.Busy:
+            stream.failed("busy", "Still answering your last message. Try again.")
+            return
         stream.finished(out.model_dump(mode="json"))
         # The reply is out; what the message says about them that will last
         # is kept now, unless this turn already saved a memory. A failure
@@ -159,6 +175,15 @@ def ask_stream(ctx: CtxDep, data: AskIn) -> StreamingResponse:
         media_type="text/event-stream",
         headers=SSE_HEADERS,
     )
+
+
+@router.post("/messages/{message_id}/stop", status_code=204, dependencies=AI)
+def stop_reply(ctx: CtxDep, message_id: uuid.UUID) -> Response:
+    """Stop the reply to this message at its next step (the app's "Send
+    now" for a message queued behind it). What the reply already did stays.
+    Stopping a reply that has ended does nothing."""
+    gate.request_stop(ctx.user_id, str(message_id))
+    return Response(status_code=204)
 
 
 @router.get("/messages", response_model=MessagesPublic, dependencies=READ)

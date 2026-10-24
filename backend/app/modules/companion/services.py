@@ -62,6 +62,9 @@ Emit = Callable[[str, dict[str, Any]], None]
 HISTORY = 6
 HISTORY_CHARS = 600
 MAX_STEPS = 6
+# The reply's last line when the person sent another message and asked
+# for it at once ("Send now").
+STOPPED = "Stopped here to get to your next message."
 MAX_TOOL_CALLS = 20
 
 
@@ -1739,7 +1742,12 @@ def _ask_ai(
     )
     answer = plain_text(reply)
     unbacked = unbacked_claim(text, answer, stream.steps)
-    if unbacked or promised(answer):
+    if stream.stopped():
+        # Stopped for the person's next message: what was done stays, and
+        # the reply says it stopped instead of being made to finish.
+        stream.end_text()
+        answer = f"{answer}\n\n{STOPPED}" if answer.strip() else STOPPED
+    elif unbacked or promised(answer):
         # One corrective pass: told plainly that nothing was saved, or that
         # part of the ask was only promised.
         nudge = (NUDGE if unbacked else FINISH_NUDGE).format(text=text)

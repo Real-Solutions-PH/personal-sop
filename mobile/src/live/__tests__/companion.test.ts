@@ -18,7 +18,9 @@ import {
   remember,
   removeTracker,
   renameCompanion,
+  replying,
   retryAsk,
+  stopReply,
   thinking,
 } from "@/prototype/companion/store"
 import { installLiveCapture, type LiveCaptureDeps } from "../capture"
@@ -185,6 +187,7 @@ beforeEach(() => {
   companionStore.set(blank())
   captureStore.set({ ...captureSeed(), captures: [], journal: [] })
   thinking.setState({ on: false })
+  replying.setState({ id: null })
   toasts.length = 0
 })
 
@@ -718,4 +721,48 @@ test("narration before a tool call streams, then gives way to the answer", async
   expect(seen).toContain("You have")
   const sol = companionStore.get().messages.find((m) => m.id === solId)
   expect(sol?.text).toBe("You have 39 g left.")
+})
+
+test("a question sent while Fern is answering waits, then goes when the reply ends", async () => {
+  const answers: ((r: Response) => void)[] = []
+  const { post } = install((path, body) =>
+    path === "/companion/ask/stream"
+      ? new Promise<Response>((done) => {
+          answers.push((r) => done(r))
+          void body
+        })
+      : Promise.resolve({ ok: true, status: 204 } as Response),
+  )
+  ask("first")
+  await flush()
+  ask("second")
+  await flush()
+  // One reply at a time: the second is queued, not sent beside the first.
+  const asks = () =>
+    post.mock.calls.filter(([path]) => path === "/companion/ask/stream")
+  expect(asks().map(([, b]) => b.text)).toEqual(["first"])
+  expect(companionStore.get().messages.map((m) => [m.text, m.status])).toEqual([
+    ["first", "sending"],
+    ["second", "queued"],
+  ])
+  answers[0](sseResponse([]))
+  await flush()
+  expect(asks().map(([, b]) => b.text)).toEqual(["first", "second"])
+  answers[1](sseResponse([]))
+  await flush()
+})
+
+test("Send now stops the reply being written", async () => {
+  const { post } = install((path) =>
+    path === "/companion/ask/stream"
+      ? new Promise<Response>(() => {})
+      : Promise.resolve({ ok: true, status: 204 } as Response),
+  )
+  ask("first")
+  await flush()
+  const id = replying.getState().id
+  expect(id).toBe(companionStore.get().messages[0].id)
+  stopReply()
+  await flush()
+  expect(post).toHaveBeenCalledWith(`/companion/messages/${id}/stop`, {})
 })
