@@ -254,7 +254,12 @@ export function MacroTargets() {
             </Copy>
             <Tap
               onPress={() => {
-                setT(suggestion)
+                setT({
+                  kcal: suggestion.kcal,
+                  protein: suggestion.protein,
+                  carbs: suggestion.carbs,
+                  fat: suggestion.fat,
+                })
                 setLimits({ ...limits, fiberGoal: suggestion.fiberG })
                 setSuggestion(null)
               }}
@@ -305,7 +310,7 @@ export function MacroTargets() {
           onPress={() => {
             if (
               ![t.kcal, t.protein, t.carbs, t.fat].every(Number.isFinite) ||
-              t.kcal < 800 ||
+              t.kcal < 500 ||
               t.kcal > 6000 ||
               t.protein < 0 ||
               t.protein > 500 ||

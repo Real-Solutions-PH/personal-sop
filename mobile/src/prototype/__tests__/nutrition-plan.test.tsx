@@ -1,7 +1,7 @@
 // The personalized-plan form: apply stays disabled until the profile is
 // valid, then saves the profile, goal and weigh-in and hands back the estimate.
 import { targetFor } from "@domain/fitness/calc"
-import { ageFrom } from "@domain/fitness/plan"
+import { ageFrom, estimatePlan } from "@domain/fitness/plan"
 import { fitStore } from "@domain/fitness/store"
 import { dayKey } from "@domain/lib/day"
 import { configureStorage, resetAll } from "@domain/lib/store"
@@ -9,6 +9,7 @@ import { fireEvent, render, screen } from "@testing-library/react-native"
 import type { ReactNode } from "react"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 import { PlanForm } from "../screens/nutrition-plan"
+import { MacroTargets } from "../screens/nutrition-targets"
 import { NutritionStep } from "../screens/setup"
 
 jest.mock("expo-router", () => ({
@@ -255,4 +256,52 @@ test("lowering kcal under BMR shows the note but still saves", () => {
   expect(screen.getByText("Below what your body burns at rest")).toBeTruthy()
   fireEvent.press(screen.getByText("Save targets"))
   expect(targetFor(fitStore.get(), dayKey())).toMatchObject({ kcal: 1700 })
+})
+
+const profileA = () =>
+  fitStore.set((s) => ({
+    ...s,
+    settings: {
+      ...s.settings,
+      sex: "male",
+      birthYear: year - 30,
+      heightCm: 180,
+      activity: "moderate",
+    },
+    weighIns: [
+      { id: "w1", measuredAt: "2026-01-01T06:00:00.000Z", weightKg: 80 },
+    ],
+  }))
+
+test("Targets: suggest, use and save stores only target fields", () => {
+  profileA()
+  render(<MacroTargets />, { wrapper })
+  fireEvent.press(screen.getByText("Suggest"))
+  fireEvent.press(screen.getByRole("button", { name: "Get suggestion" }))
+  fireEvent.press(screen.getByText("Use"))
+  fireEvent.press(screen.getByText("Save · effective today"))
+  const p = estimatePlan({
+    sex: "male",
+    age: 30,
+    heightCm: 180,
+    weightKg: 80,
+    activity: "moderate",
+    goal: "maintain",
+  })
+  const saved = targetFor(fitStore.get(), dayKey())
+  expect(saved).toMatchObject({
+    kcal: p.kcal,
+    protein: p.protein,
+    carbs: p.carbs,
+    fat: p.fat,
+    fiberGoal: p.fiberG,
+  })
+  for (const k of ["fiberG", "bmr", "tdee"]) expect(saved).not.toHaveProperty(k)
+})
+
+test("Targets: 600 kcal saves", () => {
+  render(<MacroTargets />, { wrapper })
+  fireEvent.changeText(screen.getByLabelText("Calories"), "600")
+  fireEvent.press(screen.getByText("Save · effective today"))
+  expect(targetFor(fitStore.get(), dayKey())).toMatchObject({ kcal: 600 })
 })
