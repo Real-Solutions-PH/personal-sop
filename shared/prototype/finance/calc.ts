@@ -885,3 +885,70 @@ export function scheduledFlow(s: FinState, to: string) {
   }
   return { income, spend }
 }
+
+// ---------------------------------------------------------------------------
+// Savings: interest, time deposits, goals
+// ---------------------------------------------------------------------------
+
+/** Final withholding tax on PH deposit interest. */
+export const INTEREST_TAX = 0.2
+const cents = (n: number) => Math.round(n * 100) / 100
+
+export interface SavingsView {
+  /** Interest a month at today's balance, after tax. */
+  monthlyInterest: number | null
+  /** Interest logged on this account this calendar year. */
+  earnedThisYear: number
+  /** Days to maturity; zero or less once matured. */
+  maturesIn: number | null
+  /** Balance plus net interest to maturity (simple interest). */
+  maturityValue: number | null
+  /** Balance over goal, capped at 1. */
+  goalProgress: number | null
+  /** Still to put in each month to hit the goal by its day. */
+  perMonth: number | null
+}
+
+export function savingsView(
+  s: FinState,
+  a: Account,
+  balance: number,
+  on = today(),
+): SavingsView {
+  const net = a.rate ? (a.rate / 100) * (1 - INTEREST_TAX) : 0
+  const cats = catMap(s)
+  const year = on.slice(0, 4)
+  const earnedThisYear = s.records
+    .filter(
+      (r) =>
+        r.type === "income" &&
+        r.accountId === a.id &&
+        recDay(r).startsWith(year) &&
+        topCat(r.categoryId, cats)?.id === "interest",
+    )
+    .reduce((n, r) => n + r.amount, 0)
+  const maturesIn = a.maturesOn ? diffDays(a.maturesOn, on) : null
+  const left = a.goal ? a.goal - balance : 0
+  const months = a.goalBy
+    ? Math.max(
+        1,
+        (Number(a.goalBy.slice(0, 4)) - Number(year)) * 12 +
+          Number(a.goalBy.slice(5, 7)) -
+          Number(on.slice(5, 7)),
+      )
+    : 0
+  return {
+    monthlyInterest: a.rate ? cents((Math.max(0, balance) * net) / 12) : null,
+    earnedThisYear: cents(earnedThisYear),
+    maturesIn,
+    maturityValue:
+      maturesIn === null
+        ? null
+        : cents(balance + balance * net * (Math.max(0, maturesIn) / 365)),
+    goalProgress: a.goal ? Math.min(1, Math.max(0, balance) / a.goal) : null,
+    perMonth:
+      a.goal && a.goalBy && a.goalBy >= on && left > 0
+        ? cents(left / months)
+        : null,
+  }
+}

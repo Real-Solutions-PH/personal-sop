@@ -30,6 +30,7 @@ import {
 } from "./actions"
 import { avgSpend, catMap, recDay, suggestCategory, today } from "./calc"
 import type {
+  Account,
   AccountType,
   Budget,
   Category,
@@ -544,26 +545,46 @@ export function AccountEditor({
   open,
   onOpenChange,
   id,
-}: SheetProps & { id?: string }) {
+  prefill,
+}: SheetProps & {
+  id?: string
+  /** Starting values for a new account (from the rates directory). */
+  prefill?: Partial<Account>
+}) {
   const s = useFin()
   const ex = id ? s.accounts.find((a) => a.id === id) : undefined
-  const [name, setName] = useState(ex?.name ?? "")
-  const [type, setType] = useState<AccountType>(ex?.type ?? "ewallet")
+  const seed = ex ?? prefill
+  const [name, setName] = useState(seed?.name ?? "")
+  const [type, setType] = useState<AccountType>(seed?.type ?? "ewallet")
+  const [rate, setRate] = useState(seed?.rate ? String(seed.rate) : "")
+  const [deposit, setDeposit] = useState(Boolean(seed?.maturesOn))
+  const [matures, setMatures] = useState(seed?.maturesOn ?? today())
+  const [goal, setGoal] = useState(seed?.goal ? String(seed.goal) : "")
+  const [dated, setDated] = useState(Boolean(seed?.goalBy))
+  const [goalBy, setGoalBy] = useState(seed?.goalBy ?? today())
   const [opening, setOpening] = useState(ex ? String(ex.opening) : "")
   const [openingDate, setOpeningDate] = useState(ex?.openingDate ?? today())
   const [limit, setLimit] = useState(ex?.limit ? String(ex.limit) : "")
   const [color, setColor] = useState(ex?.color ?? COLORS[1])
   const [nw, setNw] = useState(ex?.inNetWorth ?? true)
-  const [proj, setProj] = useState(ex?.inProjection ?? true)
+  const [proj, setProj] = useState(ex?.inProjection ?? !seed?.maturesOn)
   const [tried, setTried] = useState(false)
   const recCount = ex
     ? s.records.filter((r) => r.accountId === ex.id || r.toAccountId === ex.id)
         .length
     : 0
+  const savings = type !== "credit"
   const err = !name.trim() ? "Give it a name" : null
+  const savingsErr =
+    savings &&
+    (!(Number(rate) >= 0 && Number(rate) <= 100) ||
+      (deposit && !matures) ||
+      (Number(goal) > 0 && dated && !goalBy))
+      ? "Check the interest, goal and dates"
+      : null
   const save = () => {
     setTried(true)
-    if (err) return
+    if (err || savingsErr) return
     const data = {
       name: name.trim(),
       type,
@@ -576,6 +597,10 @@ export function AccountEditor({
       inNetWorth: nw,
       inProjection: type === "credit" || type === "investment" ? false : proj,
       manual: type === "investment",
+      rate: savings && rate ? Number(rate) : undefined,
+      maturesOn: savings && deposit ? matures : undefined,
+      goal: savings && Number(goal) > 0 ? Number(goal) : undefined,
+      goalBy: savings && Number(goal) > 0 && dated ? goalBy : undefined,
     }
     if (ex) updateAccount(ex.id, { ...data, opening: Number(opening || 0) })
     else addAccount(data)
@@ -677,6 +702,67 @@ export function AccountEditor({
             onChange={(e) => setLimit(num(e.target.value))}
           />
         </Field>
+      )}
+      {savings && (
+        <>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Interest % a year" error={tried ? savingsErr : null}>
+              <NumberInput
+                inputMode="decimal"
+                className={inputCls}
+                value={rate}
+                placeholder="e.g. 4.5"
+                onChange={(e) => setRate(num(e.target.value))}
+              />
+            </Field>
+            <Field label="Savings goal ₱">
+              <NumberInput
+                inputMode="decimal"
+                className={inputCls}
+                value={goal}
+                placeholder="Optional"
+                onChange={(e) => setGoal(num(e.target.value))}
+              />
+            </Field>
+          </div>
+          {Number(goal) > 0 && (
+            <Toggle
+              checked={dated}
+              onChange={setDated}
+              label="Reach the goal by a date"
+            />
+          )}
+          {Number(goal) > 0 && dated && (
+            <Field label="Goal date">
+              <input
+                type="date"
+                className={inputCls}
+                value={goalBy}
+                onChange={(e) => setGoalBy(e.target.value)}
+              />
+            </Field>
+          )}
+          <Toggle
+            checked={deposit}
+            onChange={(v) => {
+              setDeposit(v)
+              // Locked money isn't spendable in the forecast.
+              if (v && !ex) setProj(false)
+            }}
+            label="Time deposit"
+            hint="Locked until it matures."
+          />
+          {deposit && (
+            <Field label="Matures on">
+              <input
+                type="date"
+                className={inputCls}
+                value={matures}
+                onChange={(e) => setMatures(e.target.value)}
+              />
+            </Field>
+          )}
+        </>
       )}
       <Field label="Colour">
         <div className="flex flex-wrap gap-2">

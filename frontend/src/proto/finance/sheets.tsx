@@ -39,7 +39,13 @@ import {
   shortDate,
   today,
 } from "./calc"
-import type { AdvisorScope, Budget, FinRecord, PlannedItem } from "./data"
+import type {
+  Account,
+  AdvisorScope,
+  Budget,
+  FinRecord,
+  PlannedItem,
+} from "./data"
 import {
   AccountEditor,
   BudgetEditor,
@@ -66,7 +72,7 @@ export type SheetSpec =
   | { kind: "quick-add"; type?: "expense" | "income" }
   | { kind: "record"; id?: string; prefill?: Partial<FinRecord> }
   | { kind: "receipt" }
-  | { kind: "account"; id?: string }
+  | { kind: "account"; id?: string; prefill?: Partial<Account> }
   | { kind: "adjust"; accountId: string; actual?: number; note?: string }
   | {
       kind: "category"
@@ -158,7 +164,7 @@ export function FinSheets() {
     case "receipt":
       return <ReceiptReview {...common} />
     case "account":
-      return <AccountEditor {...common} id={spec.id} />
+      return <AccountEditor {...common} id={spec.id} prefill={spec.prefill} />
     case "adjust":
       return <BalanceAdjust {...common} spec={spec} />
     case "category":

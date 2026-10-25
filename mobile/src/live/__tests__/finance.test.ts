@@ -396,6 +396,43 @@ test("a new account is a full create with centavos and snake_case", () => {
     manual: false,
     sort_order: 0,
     last_reconciled: null,
+    rate_bp: null,
+    matures_on: null,
+    goal_minor: null,
+    goal_by: null,
+  })
+})
+
+test("a time deposit's rate, maturity and goal travel as basis points, days and centavos", () => {
+  const e = synced()
+  addAccount({
+    name: "Tonik TD",
+    type: "bank",
+    opening: 50000,
+    color: "#000",
+    inNetWorth: true,
+    inProjection: false,
+    rate: 5.25,
+    maturesOn: "2027-04-25",
+    goal: 60000.5,
+    goalBy: "2027-10-25",
+  })
+  const [op] = upserts(captureWire(e, seen), "account")
+  expect(op.data).toMatchObject({
+    rate_bp: 525,
+    matures_on: "2027-04-25",
+    goal_minor: 6000050,
+    goal_by: "2027-10-25",
+  })
+  const back = accountMapper().fromServer(
+    { id: op.id, ...op.data } as never,
+    finStore.get(),
+  )
+  expect(back).toMatchObject({
+    rate: 5.25,
+    maturesOn: "2027-04-25",
+    goal: 60000.5,
+    goalBy: "2027-10-25",
   })
 })
 

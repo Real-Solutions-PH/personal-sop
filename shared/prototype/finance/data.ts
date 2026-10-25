@@ -14,6 +14,13 @@ export interface Account {
   lastReconciled?: string
   manual?: boolean
   order: number
+  /** Interest, % p.a. (4.5 = 4.5%). */
+  rate?: number
+  /** A time deposit's maturity day. */
+  maturesOn?: string
+  /** Savings goal: target amount, and optionally the day to reach it by. */
+  goal?: number
+  goalBy?: string
 }
 export type RecordType = "expense" | "income" | "transfer"
 export type RecordSource =

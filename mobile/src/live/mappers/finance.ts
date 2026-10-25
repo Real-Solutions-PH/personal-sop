@@ -135,6 +135,10 @@ export function accountMapper(): Mapper<FinState, Account> {
       manual: Boolean(a.manual),
       sort_order: a.order,
       last_reconciled: a.lastReconciled ?? null,
+      rate_bp: a.rate === undefined ? null : Math.round(a.rate * 100),
+      matures_on: a.maturesOn ?? null,
+      goal_minor: a.goal === undefined ? null : toMinor(a.goal),
+      goal_by: a.goalBy ?? null,
     }),
     fromServer: (row) => ({
       id: String(row.id),
@@ -150,6 +154,10 @@ export function accountMapper(): Mapper<FinState, Account> {
       lastReconciled: str(row.last_reconciled),
       manual: row.manual ? true : undefined,
       order: Number(row.sort_order),
+      rate: row.rate_bp == null ? undefined : Number(row.rate_bp) / 100,
+      maturesOn: str(row.matures_on),
+      goal: row.goal_minor == null ? undefined : fromMinor(row.goal_minor),
+      goalBy: str(row.goal_by),
     }),
     merge: (s, ups, dels) => ({
       ...s,

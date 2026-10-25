@@ -48,6 +48,10 @@ class Account(OwnedRow, table=True):
             "limit_minor IS NULL OR (limit_minor > 0 AND limit_minor <= 100000000000000)",
             name="ck_account_limit",
         ),
+        CheckConstraint(
+            "rate_bp IS NULL OR rate_bp BETWEEN 0 AND 10000", name="ck_account_rate"
+        ),
+        minor_check("goal_minor", name="ck_account_goal"),
     )
 
     name: str = Field(max_length=60)
@@ -62,6 +66,12 @@ class Account(OwnedRow, table=True):
     last_reconciled: date | None = None
     manual: bool = False
     sort_order: int = 0
+    # Savings: interest p.a. in basis points, a time deposit's maturity, and
+    # an optional goal (target amount, target date).
+    rate_bp: int | None = None
+    matures_on: date | None = None
+    goal_minor: int | None = Field(default=None, sa_type=_money())  # type: ignore
+    goal_by: date | None = None
 
 
 class Category(OwnedRow, table=True):

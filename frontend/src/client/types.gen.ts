@@ -13,6 +13,10 @@ export type AccountCreate = {
     manual?: (boolean | null);
     sort_order?: (number | null);
     last_reconciled?: (string | null);
+    rate_bp?: (number | null);
+    matures_on?: (string | null);
+    goal_minor?: (number | null);
+    goal_by?: (string | null);
     id?: (string | null);
 };
 
@@ -36,6 +40,10 @@ export type AccountFields = {
     manual?: (boolean | null);
     sort_order?: (number | null);
     last_reconciled?: (string | null);
+    rate_bp?: (number | null);
+    matures_on?: (string | null);
+    goal_minor?: (number | null);
+    goal_by?: (string | null);
 };
 
 export type AccountPublic = {
@@ -52,6 +60,10 @@ export type AccountPublic = {
     last_reconciled: (string | null);
     manual: boolean;
     sort_order: number;
+    rate_bp: (number | null);
+    matures_on: (string | null);
+    goal_minor: (number | null);
+    goal_by: (string | null);
     version: number;
 };
 
@@ -76,6 +88,10 @@ export type AccountView = {
     last_reconciled: (string | null);
     manual: boolean;
     sort_order: number;
+    rate_bp: (number | null);
+    matures_on: (string | null);
+    goal_minor: (number | null);
+    goal_by: (string | null);
     version: number;
     balance_minor: number;
     reconciled_days_ago: (number | null);

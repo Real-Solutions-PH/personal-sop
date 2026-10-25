@@ -13,7 +13,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { useMemo, useState } from "react"
+import { type ReactNode, useMemo, useState } from "react"
 import { cn } from "@/lib/utils"
 import {
   Bar,
@@ -33,6 +33,7 @@ import {
   addDays,
   balances,
   catMap,
+  diffDays,
   flowIn,
   lastReconciledDays,
   monthOf,
@@ -40,10 +41,11 @@ import {
   netWorth,
   occurrencesIn,
   recDay,
+  savingsView,
   shortDate,
   today,
 } from "../calc"
-import type { AccountType } from "../data"
+import type { Account, AccountType, FinState } from "../data"
 import { openSheet } from "../sheets"
 import { useFin } from "../store"
 import {
@@ -59,6 +61,88 @@ import {
 } from "../ui"
 
 const ORDER: AccountType[] = ["cash", "ewallet", "bank", "credit", "investment"]
+
+/** Interest, maturity and goal for a savings account or time deposit. */
+function SavingsPanel({
+  s,
+  account: a,
+  balance,
+}: {
+  s: FinState
+  account: Account
+  balance: number
+}) {
+  const v = savingsView(s, a, balance)
+  const row = (label: string, value: ReactNode) => (
+    <div key={label} className="flex justify-between text-sm">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="num">{value}</span>
+    </div>
+  )
+  return (
+    <Card className="mt-3 space-y-2">
+      {v.goalProgress !== null && a.goal && (
+        <>
+          <div className="flex justify-between text-sm">
+            <span>Goal</span>
+            <span className="num">
+              <Money value={Math.max(0, balance)} /> / <Money value={a.goal} />
+            </span>
+          </div>
+          <Bar value={v.goalProgress} accent="fin" />
+          <div
+            className={cn(
+              "text-xs",
+              v.goalProgress >= 1 ? "text-good" : "text-muted-foreground",
+            )}
+          >
+            {v.goalProgress >= 1 ? (
+              "Goal reached"
+            ) : v.perMonth !== null && a.goalBy ? (
+              <>
+                <Money value={v.perMonth} /> a month to reach it by{" "}
+                {shortDate(a.goalBy)}
+              </>
+            ) : (
+              <>
+                <Money value={a.goal - balance} /> to go
+              </>
+            )}
+          </div>
+        </>
+      )}
+      {a.rate !== undefined && row("Interest", `${a.rate}% a year`)}
+      {v.monthlyInterest !== null &&
+        row("Est. a month, after 20% tax", <Money value={v.monthlyInterest} />)}
+      {row("Interest earned this year", <Money value={v.earnedThisYear} />)}
+      {v.maturesIn !== null &&
+        a.maturesOn &&
+        row(
+          v.maturesIn > 0 ? "Matures" : "Matured",
+          `${shortDate(a.maturesOn)}${v.maturesIn > 0 ? ` · ${v.maturesIn}d` : ""}`,
+        )}
+      {v.maturityValue !== null &&
+        v.maturesIn !== null &&
+        v.maturesIn > 0 &&
+        row("Value at maturity, after tax", <Money value={v.maturityValue} />)}
+    </Card>
+  )
+}
+
+/** Card line for a time deposit or a goal, else null. */
+function savingsNote(a: Account, balance: number): ReactNode {
+  if (a.maturesOn) {
+    const days = diffDays(a.maturesOn, today())
+    return days > 0 ? (
+      `Matures in ${days}d`
+    ) : (
+      <span className="text-warn">Matured</span>
+    )
+  }
+  if (a.goal)
+    return `${Math.round((Math.max(0, balance) / a.goal) * 100)}% of goal`
+  return null
+}
 
 // ------------------------------------------------------------------ FIN-09
 
@@ -197,6 +281,8 @@ export function AccountsScreen() {
                             {Math.round((Math.abs(bal[a.id]) / a.limit) * 100)}%
                             of limit
                           </span>
+                        ) : savingsNote(a, bal[a.id]) ? (
+                          savingsNote(a, bal[a.id])
                         ) : a.manual ? (
                           "Manual value"
                         ) : days === null ? (
@@ -228,6 +314,12 @@ export function AccountsScreen() {
           )
         })
       )}
+      <Link
+        href="/finance/rates"
+        className="mt-4 block text-center text-fin text-sm"
+      >
+        Compare savings rates
+      </Link>
       {archived > 0 && (
         <Link
           href="/finance/archived"
@@ -338,6 +430,10 @@ export function AccountDetail() {
           height={140}
         />
       </Card>
+
+      {!!(a.rate !== undefined || a.maturesOn || a.goal) && (
+        <SavingsPanel s={s} account={a} balance={d.bal} />
+      )}
 
       {a.type === "credit" && a.limit ? (
         <Card className="mt-3">
