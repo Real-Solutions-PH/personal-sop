@@ -1,6 +1,6 @@
-import type { ActivityLevel, PlanGoal, Sex } from "./plan"
 import { at, dayKey } from "../lib/day"
 import { newId } from "../lib/ids"
+import type { ActivityLevel, PlanGoal, Sex } from "./plan"
 export type Equipment =
   | "barbell"
   | "dumbbell"
