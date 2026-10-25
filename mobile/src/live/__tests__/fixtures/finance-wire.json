@@ -14,7 +14,11 @@
       "archived": false,
       "manual": false,
       "sort_order": 0,
-      "last_reconciled": null
+      "last_reconciled": null,
+      "rate_bp": null,
+      "matures_on": null,
+      "goal_minor": null,
+      "goal_by": null
     }
   },
   {
@@ -32,7 +36,11 @@
       "archived": false,
       "manual": false,
       "sort_order": 1,
-      "last_reconciled": null
+      "last_reconciled": null,
+      "rate_bp": null,
+      "matures_on": null,
+      "goal_minor": null,
+      "goal_by": null
     }
   },
   {
@@ -384,7 +392,33 @@
       "archived": false,
       "manual": false,
       "sort_order": 0,
-      "last_reconciled": null
+      "last_reconciled": null,
+      "rate_bp": null,
+      "matures_on": null,
+      "goal_minor": null,
+      "goal_by": null
+    }
+  },
+  {
+    "entity": "account",
+    "create": true,
+    "data": {
+      "name": "Tonik TD",
+      "type": "bank",
+      "opening_minor": 5000000,
+      "opening_date": "2026-10-19",
+      "limit_minor": null,
+      "color": "#000",
+      "in_net_worth": true,
+      "in_projection": false,
+      "archived": false,
+      "manual": false,
+      "sort_order": 0,
+      "last_reconciled": null,
+      "rate_bp": 525,
+      "matures_on": "2026-10-19",
+      "goal_minor": 6000050,
+      "goal_by": "2026-10-19"
     }
   },
   {
@@ -402,7 +436,11 @@
       "archived": false,
       "manual": false,
       "sort_order": 0,
-      "last_reconciled": null
+      "last_reconciled": null,
+      "rate_bp": null,
+      "matures_on": null,
+      "goal_minor": null,
+      "goal_by": null
     }
   },
   {

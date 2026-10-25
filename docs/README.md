@@ -42,6 +42,7 @@ Context pack for human + AI programmers building this SaaS. Fill each template; 
 |------|---------|-------|
 | [superpowers/specs/2026-10-25-personalized-plans-design.md](superpowers/specs/2026-10-25-personalized-plans-design.md) | Personalized plans: design spec (2026-10-25) | Eng |
 | [superpowers/plans/2026-10-25-personalized-plans.md](superpowers/plans/2026-10-25-personalized-plans.md) | Personalized plans: implementation plan, six tasks (2026-10-25) | Eng |
+| [superpowers/specs/2026-10-25-savings-tracking-design.md](superpowers/specs/2026-10-25-savings-tracking-design.md) | Savings tracking: goals, interest, time deposits, rates directory (2026-10-25) | Eng |
 
 ## Conventions
 

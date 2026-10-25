@@ -25,25 +25,38 @@ const COLORS = [
   "slate",
 ] as const
 export function AccountEditor({
-  account: ex,
+  account,
+  prefill,
   open,
   onClose,
 }: {
   account?: Account
+  /** Starting values for a new account (from the rates directory). */
+  prefill?: Partial<Account>
   open: boolean
   onClose: () => void
 }) {
+  const ex = account,
+    seed = ex ?? prefill
   const s = finStore.use((s) => s),
     t = useTheme(),
     sym = useCurrency().symbol,
-    [name, setName] = useState(ex?.name ?? ""),
-    [type, setType] = useState<Account["type"]>(ex?.type ?? "ewallet"),
+    [name, setName] = useState(seed?.name ?? ""),
+    [type, setType] = useState<Account["type"]>(seed?.type ?? "ewallet"),
+    [rate, setRate] = useState(
+      seed?.rate !== undefined ? String(seed.rate) : "",
+    ),
+    [deposit, setDeposit] = useState(Boolean(seed?.maturesOn)),
+    [matures, setMatures] = useState(seed?.maturesOn ?? dayKey()),
+    [goal, setGoal] = useState(seed?.goal ? String(seed.goal) : ""),
+    [dated, setDated] = useState(Boolean(seed?.goalBy)),
+    [goalBy, setGoalBy] = useState(seed?.goalBy ?? dayKey()),
     [opening, setOpening] = useState(ex ? String(ex.opening) : ""),
     [date, setDate] = useState(ex?.openingDate ?? dayKey()),
     [limit, setLimit] = useState(ex?.limit ? String(ex.limit) : ""),
     [color, setColor] = useState(ex?.color ?? "var(--acct-blue)"),
     [nw, setNw] = useState(ex?.inNetWorth ?? true),
-    [proj, setProj] = useState(ex?.inProjection ?? true),
+    [proj, setProj] = useState(ex?.inProjection ?? !seed?.maturesOn),
     [tried, setTried] = useState(false),
     count = ex
       ? s.records.filter(
@@ -108,6 +121,77 @@ export function AccountEditor({
           onChangeText={setLimit}
           keyboardType="decimal-pad"
         />
+      )}
+      {type !== "credit" && (
+        <>
+          <Line style={{ alignItems: "flex-start" }}>
+            <View style={{ flex: 1 }}>
+              <Field
+                label="Interest % a year"
+                placeholder="e.g. 4.5"
+                value={rate}
+                onChangeText={setRate}
+                keyboardType="decimal-pad"
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Field
+                label={`Savings goal ${sym}`}
+                placeholder="Optional"
+                value={goal}
+                onChangeText={setGoal}
+                keyboardType="decimal-pad"
+              />
+            </View>
+          </Line>
+          {!!goal && (
+            <Line style={{ paddingVertical: 4 }}>
+              <Copy size={14} weight="medium" style={{ flex: 1 }}>
+                Reach the goal by a date
+              </Copy>
+              <Switch
+                label="Reach the goal by a date"
+                accent="fin"
+                value={dated}
+                onChange={setDated}
+              />
+            </Line>
+          )}
+          {!!goal && dated && (
+            <DateField
+              label="Goal date"
+              value={goalBy}
+              onChangeText={setGoalBy}
+            />
+          )}
+          <Line style={{ paddingVertical: 4 }}>
+            <View style={{ flex: 1 }}>
+              <Copy size={14} weight="medium">
+                Time deposit
+              </Copy>
+              <Copy size={12} muted>
+                Locked until it matures.
+              </Copy>
+            </View>
+            <Switch
+              label="Time deposit"
+              accent="fin"
+              value={deposit}
+              onChange={(v) => {
+                setDeposit(v)
+                // Locked money isn't spendable in the forecast.
+                if (v && !ex) setProj(false)
+              }}
+            />
+          </Line>
+          {deposit && (
+            <DateField
+              label="Matures on"
+              value={matures}
+              onChangeText={setMatures}
+            />
+          )}
+        </>
       )}
       <Copy size={12} muted>
         Colour
@@ -214,6 +298,17 @@ export function AccountEditor({
                 toast.error("Check the balance and date")
                 return
               }
+              const savings = type !== "credit"
+              if (
+                savings &&
+                (!(Number(rate) >= 0 && Number(rate) <= 100) ||
+                  !(Number(goal) >= 0) ||
+                  (deposit && !isDay(matures)) ||
+                  (goal && dated && !isDay(goalBy)))
+              ) {
+                toast.error("Check the interest, goal and dates")
+                return
+              }
               const input = {
                 name: name.trim(),
                 type,
@@ -227,6 +322,11 @@ export function AccountEditor({
                 inProjection:
                   type === "credit" || type === "investment" ? false : proj,
                 manual: type === "investment",
+                rate: savings && rate ? Number(rate) : undefined,
+                maturesOn: savings && deposit ? matures : undefined,
+                goal: savings && Number(goal) > 0 ? Number(goal) : undefined,
+                goalBy:
+                  savings && Number(goal) > 0 && dated ? goalBy : undefined,
               }
               if (ex)
                 A.updateAccount(ex.id, {

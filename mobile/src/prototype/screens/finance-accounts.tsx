@@ -81,6 +81,66 @@ export function AccountIcon({
     </View>
   )
 }
+/** Interest, maturity and goal for a savings account or time deposit. */
+function SavingsPanel({
+  account: a,
+  balance,
+}: {
+  account: Account
+  balance: number
+}) {
+  const t = useTheme(),
+    money = useMoney(),
+    s = finStore.use((s) => s),
+    v = C.savingsView(s, a, balance)
+  const row = (label: string, value: string) => (
+    <Line key={label} style={{ justifyContent: "space-between" }}>
+      <Copy size={14} muted>
+        {label}
+      </Copy>
+      <Copy size={14}>{value}</Copy>
+    </Line>
+  )
+  return (
+    <Frame style={{ padding: 16, gap: 8 }}>
+      {v.goalProgress !== null && a.goal && (
+        <>
+          <Line style={{ justifyContent: "space-between" }}>
+            <Copy size={14}>Goal</Copy>
+            <Copy size={14}>
+              {money(Math.max(0, balance))} / {money(a.goal)}
+            </Copy>
+          </Line>
+          <Bar value={v.goalProgress} color={t.fin} />
+          <Copy
+            size={12}
+            style={{ color: v.goalProgress >= 1 ? t.good : t.muted }}
+          >
+            {v.goalProgress >= 1
+              ? "Goal reached"
+              : v.perMonth !== null && a.goalBy
+                ? `${money(v.perMonth)} a month to reach it by ${C.shortDate(a.goalBy)}`
+                : `${money(a.goal - balance)} to go`}
+          </Copy>
+        </>
+      )}
+      {a.rate !== undefined && row("Interest", `${a.rate}% a year`)}
+      {v.monthlyInterest !== null &&
+        row("Est. a month, after 20% tax", money(v.monthlyInterest))}
+      {row("Interest earned this year", money(v.earnedThisYear))}
+      {v.maturesIn !== null &&
+        a.maturesOn &&
+        row(
+          v.maturesIn > 0 ? "Matures" : "Matured",
+          `${C.shortDate(a.maturesOn)}${v.maturesIn > 0 ? ` · ${v.maturesIn}d` : ""}`,
+        )}
+      {v.maturityValue !== null &&
+        v.maturesIn !== null &&
+        v.maturesIn > 0 &&
+        row("Value at maturity, after tax", money(v.maturityValue))}
+    </Frame>
+  )
+}
 export function Accounts({ id }: { id?: string }) {
   const t = useTheme(),
     s = finStore.use((s) => s),
@@ -193,6 +253,9 @@ export function Accounts({ id }: { id?: string }) {
               height={140}
             />
           </Frame>
+          {!!(a.rate !== undefined || a.maturesOn || a.goal) && (
+            <SavingsPanel account={a} balance={bal[a.id]} />
+          )}
           {a.type === "credit" && a.limit ? (
             <Frame style={{ padding: 16, gap: 8 }}>
               <Line style={{ justifyContent: "space-between" }}>
@@ -477,6 +540,9 @@ export function Accounts({ id }: { id?: string }) {
               )
             })
           )}
+          <Button tone="quiet" href="/finance/rates">
+            Compare savings rates
+          </Button>
           {s.accounts.some((a) => a.archived) && (
             <Tap onPress={() => go("/finance/archived")}>
               <Copy

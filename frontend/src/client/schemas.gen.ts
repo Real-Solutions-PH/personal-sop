@@ -354,6 +354,56 @@ export const AccountCreateSchema = {
             ],
             title: 'Last Reconciled'
         },
+        rate_bp: {
+            anyOf: [
+                {
+                    type: 'integer',
+                    maximum: 10000,
+                    minimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Rate Bp'
+        },
+        matures_on: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Matures On'
+        },
+        goal_minor: {
+            anyOf: [
+                {
+                    type: 'integer',
+                    maximum: 100000000000000,
+                    minimum: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Goal Minor'
+        },
+        goal_by: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Goal By'
+        },
         id: {
             anyOf: [
                 {
@@ -535,6 +585,56 @@ export const AccountFieldsSchema = {
                 }
             ],
             title: 'Last Reconciled'
+        },
+        rate_bp: {
+            anyOf: [
+                {
+                    type: 'integer',
+                    maximum: 10000,
+                    minimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Rate Bp'
+        },
+        matures_on: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Matures On'
+        },
+        goal_minor: {
+            anyOf: [
+                {
+                    type: 'integer',
+                    maximum: 100000000000000,
+                    minimum: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Goal Minor'
+        },
+        goal_by: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Goal By'
         }
     },
     type: 'object',
@@ -612,13 +712,59 @@ export const AccountPublicSchema = {
             type: 'integer',
             title: 'Sort Order'
         },
+        rate_bp: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Rate Bp'
+        },
+        matures_on: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Matures On'
+        },
+        goal_minor: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Goal Minor'
+        },
+        goal_by: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Goal By'
+        },
         version: {
             type: 'integer',
             title: 'Version'
         }
     },
     type: 'object',
-    required: ['id', 'name', 'type', 'opening_minor', 'opening_date', 'limit_minor', 'color', 'in_net_worth', 'in_projection', 'archived', 'last_reconciled', 'manual', 'sort_order', 'version'],
+    required: ['id', 'name', 'type', 'opening_minor', 'opening_date', 'limit_minor', 'color', 'in_net_worth', 'in_projection', 'archived', 'last_reconciled', 'manual', 'sort_order', 'rate_bp', 'matures_on', 'goal_minor', 'goal_by', 'version'],
     title: 'AccountPublic'
 } as const;
 
@@ -693,6 +839,52 @@ export const AccountViewSchema = {
             type: 'integer',
             title: 'Sort Order'
         },
+        rate_bp: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Rate Bp'
+        },
+        matures_on: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Matures On'
+        },
+        goal_minor: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Goal Minor'
+        },
+        goal_by: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Goal By'
+        },
         version: {
             type: 'integer',
             title: 'Version'
@@ -714,7 +906,7 @@ export const AccountViewSchema = {
         }
     },
     type: 'object',
-    required: ['id', 'name', 'type', 'opening_minor', 'opening_date', 'limit_minor', 'color', 'in_net_worth', 'in_projection', 'archived', 'last_reconciled', 'manual', 'sort_order', 'version', 'balance_minor', 'reconciled_days_ago'],
+    required: ['id', 'name', 'type', 'opening_minor', 'opening_date', 'limit_minor', 'color', 'in_net_worth', 'in_projection', 'archived', 'last_reconciled', 'manual', 'sort_order', 'rate_bp', 'matures_on', 'goal_minor', 'goal_by', 'version', 'balance_minor', 'reconciled_days_ago'],
     title: 'AccountView'
 } as const;
 

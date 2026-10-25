@@ -108,6 +108,10 @@ class AccountFields(BaseModel):
     manual: bool | None = None
     sort_order: int | None = Field(default=None, ge=0, le=10_000)
     last_reconciled: date | None = None
+    rate_bp: int | None = Field(default=None, ge=0, le=10_000)
+    matures_on: date | None = None
+    goal_minor: Minor | None = None
+    goal_by: date | None = None
 
 
 class AccountCreate(AccountFields):
@@ -131,6 +135,10 @@ class AccountPublic(BaseModel):
     last_reconciled: date | None
     manual: bool
     sort_order: int
+    rate_bp: int | None
+    matures_on: date | None
+    goal_minor: int | None
+    goal_by: date | None
     version: int
 
 

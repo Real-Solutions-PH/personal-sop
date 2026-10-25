@@ -66,6 +66,27 @@ function footnote(
       text: `${Math.round((Math.abs(balance) / a.limit) * 100)}% of limit used`,
       stale: false,
     }
+  if (a.maturesOn) {
+    const days = C.diffDays(a.maturesOn, C.today())
+    return {
+      text: days > 0 ? `Matures in ${days}d` : "Matured",
+      stale: days <= 0,
+    }
+  }
+  const note = freshness(a, nudgeDays)
+  // A stale balance outranks the goal: the goal % is only as good as it.
+  if (a.goal && !note.stale)
+    return {
+      text: `${Math.round((Math.max(0, balance) / a.goal) * 100)}% of goal`,
+      stale: false,
+    }
+  return note
+}
+
+function freshness(
+  a: Account,
+  nudgeDays: number,
+): { text: string; stale: boolean } {
   if (a.manual) return { text: "Value you set", stale: false }
   // Only banks and e-wallets have statements to match against.
   if (a.type !== "bank" && a.type !== "ewallet")

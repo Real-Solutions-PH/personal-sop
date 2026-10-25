@@ -18901,6 +18901,38 @@
             ],
             "title": "Last Reconciled"
           },
+          "rate_bp": {
+            "anyOf": [
+              { "type": "integer", "maximum": 10000.0, "minimum": 0.0 },
+              { "type": "null" }
+            ],
+            "title": "Rate Bp"
+          },
+          "matures_on": {
+            "anyOf": [
+              { "type": "string", "format": "date" },
+              { "type": "null" }
+            ],
+            "title": "Matures On"
+          },
+          "goal_minor": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 100000000000000.0,
+                "minimum": 1.0
+              },
+              { "type": "null" }
+            ],
+            "title": "Goal Minor"
+          },
+          "goal_by": {
+            "anyOf": [
+              { "type": "string", "format": "date" },
+              { "type": "null" }
+            ],
+            "title": "Goal By"
+          },
           "id": {
             "anyOf": [
               { "type": "string", "format": "uuid" },
@@ -19010,6 +19042,38 @@
               { "type": "null" }
             ],
             "title": "Last Reconciled"
+          },
+          "rate_bp": {
+            "anyOf": [
+              { "type": "integer", "maximum": 10000.0, "minimum": 0.0 },
+              { "type": "null" }
+            ],
+            "title": "Rate Bp"
+          },
+          "matures_on": {
+            "anyOf": [
+              { "type": "string", "format": "date" },
+              { "type": "null" }
+            ],
+            "title": "Matures On"
+          },
+          "goal_minor": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 100000000000000.0,
+                "minimum": 1.0
+              },
+              { "type": "null" }
+            ],
+            "title": "Goal Minor"
+          },
+          "goal_by": {
+            "anyOf": [
+              { "type": "string", "format": "date" },
+              { "type": "null" }
+            ],
+            "title": "Goal By"
           }
         },
         "type": "object",
@@ -19043,6 +19107,28 @@
           },
           "manual": { "type": "boolean", "title": "Manual" },
           "sort_order": { "type": "integer", "title": "Sort Order" },
+          "rate_bp": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Rate Bp"
+          },
+          "matures_on": {
+            "anyOf": [
+              { "type": "string", "format": "date" },
+              { "type": "null" }
+            ],
+            "title": "Matures On"
+          },
+          "goal_minor": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Goal Minor"
+          },
+          "goal_by": {
+            "anyOf": [
+              { "type": "string", "format": "date" },
+              { "type": "null" }
+            ],
+            "title": "Goal By"
+          },
           "version": { "type": "integer", "title": "Version" }
         },
         "type": "object",
@@ -19060,6 +19146,10 @@
           "last_reconciled",
           "manual",
           "sort_order",
+          "rate_bp",
+          "matures_on",
+          "goal_minor",
+          "goal_by",
           "version"
         ],
         "title": "AccountPublic"
@@ -19092,6 +19182,28 @@
           },
           "manual": { "type": "boolean", "title": "Manual" },
           "sort_order": { "type": "integer", "title": "Sort Order" },
+          "rate_bp": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Rate Bp"
+          },
+          "matures_on": {
+            "anyOf": [
+              { "type": "string", "format": "date" },
+              { "type": "null" }
+            ],
+            "title": "Matures On"
+          },
+          "goal_minor": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Goal Minor"
+          },
+          "goal_by": {
+            "anyOf": [
+              { "type": "string", "format": "date" },
+              { "type": "null" }
+            ],
+            "title": "Goal By"
+          },
           "version": { "type": "integer", "title": "Version" },
           "balance_minor": { "type": "integer", "title": "Balance Minor" },
           "reconciled_days_ago": {
@@ -19114,6 +19226,10 @@
           "last_reconciled",
           "manual",
           "sort_order",
+          "rate_bp",
+          "matures_on",
+          "goal_minor",
+          "goal_by",
           "version",
           "balance_minor",
           "reconciled_days_ago"
