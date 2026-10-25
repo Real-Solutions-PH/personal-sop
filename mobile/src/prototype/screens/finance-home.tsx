@@ -171,7 +171,7 @@ export function foreignAmount(amount: number, code: string) {
   }
 }
 
-export function FinanceHome() {
+export function FinanceHome({ prefill }: { prefill?: Partial<FinRecord> }) {
   const params = useLocalSearchParams<{ add?: string }>()
   const t = useTheme(),
     s = finStore.use((s) => s),
@@ -179,7 +179,7 @@ export function FinanceHome() {
     narrow = useWindowDimensions().width < 380,
     hidden = privacyStore.use((s) => s.hidden),
     [adding, setAdding] = useState(
-      params.add === "expense" || params.add === "income",
+      !!prefill || params.add === "expense" || params.add === "income",
     ),
     today = dayKey(),
     mk = N.monthOf(today, s.settings.monthStartDay),
@@ -829,7 +829,9 @@ export function FinanceHome() {
         </LockedPreview>
       </View>
       <RecordEditor
-        prefill={{ type: params.add === "income" ? "income" : "expense" }}
+        prefill={
+          prefill ?? { type: params.add === "income" ? "income" : "expense" }
+        }
         open={adding}
         onClose={() => setAdding(false)}
       />

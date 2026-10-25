@@ -12,6 +12,7 @@ import {
   type LucideIcon,
   RotateCcw,
   ShieldCheck,
+  Smartphone,
   Sparkles,
 } from "lucide-react-native"
 import { useState } from "react"
@@ -180,6 +181,12 @@ export function FinanceSettings() {
           <Copy size={11} muted>
             Pre-selected in quick-add and chat when you don't say which.
           </Copy>
+          {row(
+            "Log Apple Pay taps automatically",
+            Smartphone,
+            () => go("/finance/apple-pay"),
+            "Set up an iPhone Shortcuts automation",
+          )}
           <Copy
             size={12}
             muted
