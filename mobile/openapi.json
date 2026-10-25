@@ -21905,6 +21905,53 @@
           "setup_done": {
             "anyOf": [{ "type": "boolean" }, { "type": "null" }],
             "title": "Setup Done"
+          },
+          "sex": {
+            "anyOf": [
+              { "type": "string", "enum": ["male", "female"] },
+              { "type": "null" }
+            ],
+            "title": "Sex"
+          },
+          "birth_year": {
+            "anyOf": [
+              { "type": "integer", "minimum": 1900.0 },
+              { "type": "null" }
+            ],
+            "title": "Birth Year"
+          },
+          "height_cm": {
+            "anyOf": [
+              { "type": "number", "maximum": 250.0, "minimum": 100.0 },
+              { "type": "null" }
+            ],
+            "title": "Height Cm"
+          },
+          "activity_level": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "sedentary",
+                  "light",
+                  "moderate",
+                  "active",
+                  "very_active"
+                ]
+              },
+              { "type": "null" }
+            ],
+            "title": "Activity Level"
+          },
+          "plan_goal": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["lose", "maintain", "recomp", "build"]
+              },
+              { "type": "null" }
+            ],
+            "title": "Plan Goal"
           }
         },
         "type": "object",
@@ -21933,7 +21980,27 @@
             "anyOf": [{ "type": "number" }, { "type": "null" }],
             "title": "Goal Weight"
           },
-          "setup_done": { "type": "boolean", "title": "Setup Done" }
+          "setup_done": { "type": "boolean", "title": "Setup Done" },
+          "sex": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Sex"
+          },
+          "birth_year": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Birth Year"
+          },
+          "height_cm": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Height Cm"
+          },
+          "activity_level": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Activity Level"
+          },
+          "plan_goal": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Plan Goal"
+          }
         },
         "type": "object",
         "required": [
@@ -21948,7 +22015,12 @@
           "ai_source",
           "goal_direction",
           "goal_weight",
-          "setup_done"
+          "setup_done",
+          "sex",
+          "birth_year",
+          "height_cm",
+          "activity_level",
+          "plan_goal"
         ],
         "title": "FitnessSettingsPublic"
       },

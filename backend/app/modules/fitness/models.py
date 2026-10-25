@@ -282,6 +282,24 @@ class FitnessSettings(OwnedRow, table=True):
         ),
         CheckConstraint("rest_sec BETWEEN 0 AND 900", name="ck_fitness_rest"),
         CheckConstraint("weekly_target BETWEEN 0 AND 14", name="ck_fitness_weekly"),
+        enum_check("sex", ("male", "female"), name="ck_fitness_sex"),
+        enum_check(
+            "activity_level",
+            ("sedentary", "light", "moderate", "active", "very_active"),
+            name="ck_fitness_activity",
+        ),
+        enum_check(
+            "plan_goal",
+            ("lose", "maintain", "recomp", "build"),
+            name="ck_fitness_plan_goal",
+        ),
+        CheckConstraint(
+            "height_cm IS NULL OR height_cm BETWEEN 100 AND 250",
+            name="ck_fitness_height",
+        ),
+        CheckConstraint(
+            "birth_year IS NULL OR birth_year >= 1900", name="ck_fitness_birth_year"
+        ),
     )
 
     units: str = Field(default="kg", sa_type=String(2))  # type: ignore
@@ -294,6 +312,12 @@ class FitnessSettings(OwnedRow, table=True):
     goal_direction: str = Field(default="maintain", sa_type=String(8))  # type: ignore
     goal_weight: float | None = Field(default=None, sa_type=Float)
     setup_done: bool = False
+    # Profile for the formula-based daily plan; all optional.
+    sex: str | None = Field(default=None, sa_type=String(6))  # type: ignore
+    birth_year: int | None = None
+    height_cm: float | None = Field(default=None, sa_type=Float)
+    activity_level: str | None = Field(default=None, sa_type=String(11))  # type: ignore
+    plan_goal: str | None = Field(default=None, sa_type=String(8))  # type: ignore
 
 
 FOOD_BASES = ("100g", "piece", "serving")

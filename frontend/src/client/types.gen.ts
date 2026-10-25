@@ -1407,6 +1407,11 @@ export type FitnessSettingsIn = {
     goal_direction?: ('cut' | 'maintain' | 'bulk' | null);
     goal_weight?: (number | null);
     setup_done?: (boolean | null);
+    sex?: ('male' | 'female' | null);
+    birth_year?: (number | null);
+    height_cm?: (number | null);
+    activity_level?: ('sedentary' | 'light' | 'moderate' | 'active' | 'very_active' | null);
+    plan_goal?: ('lose' | 'maintain' | 'recomp' | 'build' | null);
 };
 
 export type FitnessSettingsPublic = {
@@ -1422,6 +1427,11 @@ export type FitnessSettingsPublic = {
     goal_direction: string;
     goal_weight: (number | null);
     setup_done: boolean;
+    sex: (string | null);
+    birth_year: (number | null);
+    height_cm: (number | null);
+    activity_level: (string | null);
+    plan_goal: (string | null);
 };
 
 export type FlowOut = {

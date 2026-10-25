@@ -352,6 +352,57 @@ describe("round trip from the prototype seed", () => {
     expect(m.toServer(on, s).weigh_in_reminder).toBe("06:30")
   })
 
+  test("plan profile round-trips through the settings mapper", () => {
+    const m = settingsMapper(USER)
+    const [base] = m.list(s)
+    const row = m.toServer(base, s)
+    const back = m.fromServer(
+      {
+        ...row,
+        sex: "female",
+        birth_year: 1996,
+        height_cm: 165,
+        activity_level: "light",
+        plan_goal: "recomp",
+      },
+      s,
+    )?.value
+    expect(back).toMatchObject({
+      sex: "female",
+      birthYear: 1996,
+      heightCm: 165,
+      activity: "light",
+      planGoal: "recomp",
+    })
+    const withPlan = { ...s, settings: { ...s.settings, ...back } }
+    expect(m.toServer(m.list(withPlan)[0], withPlan)).toMatchObject({
+      sex: "female",
+      birth_year: 1996,
+      height_cm: 165,
+      activity_level: "light",
+      plan_goal: "recomp",
+    })
+    expect(row).toMatchObject({
+      sex: null,
+      birth_year: null,
+      height_cm: null,
+      activity_level: null,
+      plan_goal: null,
+    })
+    const junk = m.fromServer(
+      {
+        ...row,
+        sex: "x",
+        activity_level: "x",
+        plan_goal: "x",
+        birth_year: null,
+      },
+      withPlan,
+    )?.value
+    for (const k of ["sex", "birthYear", "heightCm", "activity", "planGoal"])
+      expect(junk).not.toHaveProperty(k)
+  })
+
   test("cardio from a chat-logged workout is kept, never sent", () => {
     const m = by("workout")
     const w = s.workouts[0]

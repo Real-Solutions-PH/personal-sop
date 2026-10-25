@@ -8,8 +8,13 @@ import {
   updateSettings,
   upsertTemplate,
 } from "@domain/fitness/actions"
-import { latestBodyweight } from "@domain/fitness/calc"
 import type { FitnessSettings } from "@domain/fitness/data"
+import {
+  type Plan,
+  type PlanInputs,
+  planNotes,
+  TARGET_MAX,
+} from "@domain/fitness/plan"
 import { fitStore } from "@domain/fitness/store"
 import { saveFocusSettings } from "@domain/focus/actions"
 import { PRESETS, type PresetKey } from "@domain/focus/data"
@@ -49,6 +54,7 @@ import { back, go, replace } from "../navigation"
 import { AccentContext, fonts, useTheme } from "../theme"
 import { Button } from "../ui"
 import { FinanceSetup } from "./finance-setup"
+import { PlanForm, PlanNotes } from "./nutrition-plan"
 
 const ORDER: ModuleKey[] = [
   "finance",
@@ -77,7 +83,7 @@ const STEP: Record<ModuleKey, { title: string; why: string; time: string }> = {
   },
   nutrition: {
     title: "Your daily targets",
-    why: "Calories and protein to aim for, so every meal you log has something to count toward.",
+    why: "Your calories and macros, worked out from your body and goal. Adjust anything.",
     time: "30 sec",
   },
   focus: {
@@ -652,70 +658,86 @@ function FocusStep({ onDone }: { onDone: () => void }) {
     </View>
   )
 }
-/** Daily targets from body weight and goal (the same rule as Suggest on
- * the Targets page): about 2.1 g protein per kg, 27% of calories from fat,
- * the rest carbs. */
-function NutritionStep({ onDone }: { onDone: () => void }) {
-  const fit = fitStore.use((s) => s),
-    [goal, setGoal] = useState<FitnessSettings["goalDirection"]>(
-      fit.settings.goalDirection,
-    ),
-    bw = latestBodyweight(fit) ?? 75,
-    perKg = goal === "cut" ? 27 : goal === "bulk" ? 36 : 32,
-    [kcal, setKcal] = useState(Math.round((bw * perKg) / 50) * 50),
-    [protein, setProtein] = useState(Math.round(bw * 2.1))
-  const pick = (g: FitnessSettings["goalDirection"]) => {
-    setGoal(g)
-    const k = g === "cut" ? 27 : g === "bulk" ? 36 : 32
-    setKcal(Math.round((bw * k) / 50) * 50)
-  }
-  const fat = Math.round((kcal * 0.27) / 9),
-    carbs = Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4))
+/** Daily targets worked out from the body-stats form; every number stays
+ * editable, with warn-only notes under the ones that look off. */
+export function NutritionStep({ onDone }: { onDone: () => void }) {
+  const [plan, setPlan] = useState<Plan | null>(null),
+    [inputs, setInputs] = useState<PlanInputs | null>(null),
+    // Fixed at mount: a weigh-in syncing in mid-flow must not drop a question.
+    [askWeight] = useState(() => !fitStore.get().weighIns.length)
+  if (!plan || !inputs)
+    return (
+      <PlanForm
+        guided
+        applyLabel="See my plan"
+        askWeight={askWeight}
+        onApply={(p, i) => {
+          setPlan(p)
+          setInputs(i)
+        }}
+      />
+    )
+  const set = (patch: Partial<Plan>) => setPlan({ ...plan, ...patch }),
+    notes = planNotes(plan, inputs)
   return (
     <View style={{ flex: 1, gap: 12 }}>
-      <Copy size={14} weight="medium">
-        Goal
-      </Copy>
-      <Segmented
-        value={goal}
-        onChange={pick}
-        options={[
-          { value: "cut", label: "Lose" },
-          { value: "maintain", label: "Maintain" },
-          { value: "bulk", label: "Gain" },
-        ]}
-      />
       <Stepper
         label="Calories"
         unit="kcal"
-        value={kcal}
-        onChange={setKcal}
+        value={plan.kcal}
+        onChange={(kcal) => set({ kcal })}
         step={50}
-        min={1000}
-        max={6000}
+        min={500}
+        max={TARGET_MAX.kcal}
         decimals={0}
       />
+      <PlanNotes notes={notes} field="kcal" />
       <Stepper
         label="Protein"
         unit="g"
-        value={protein}
-        onChange={setProtein}
+        value={plan.protein}
+        onChange={(protein) => set({ protein })}
         step={5}
         min={30}
-        max={400}
+        max={TARGET_MAX.protein}
         decimals={0}
       />
-      <Copy size={12} muted>
-        Carbs {carbs.toLocaleString("en-US")} g and fat{" "}
-        {fat.toLocaleString("en-US")} g fill the rest
-        {latestBodyweight(fit) ? "" : "; based on 75 kg until you weigh in"}.
-        Change any of it later in Nutrition, Targets.
-      </Copy>
+      <PlanNotes notes={notes} field="protein" />
+      <Stepper
+        label="Carbs"
+        unit="g"
+        value={plan.carbs}
+        onChange={(carbs) => set({ carbs })}
+        step={5}
+        max={TARGET_MAX.carbs}
+        decimals={0}
+      />
+      <Stepper
+        label="Fat"
+        unit="g"
+        value={plan.fat}
+        onChange={(fat) => set({ fat })}
+        step={5}
+        max={TARGET_MAX.fat}
+        decimals={0}
+      />
+      <PlanNotes notes={notes} field="fat" />
+      <Stepper
+        label="Fiber"
+        unit="g"
+        value={plan.fiberG}
+        onChange={(fiberG) => set({ fiberG })}
+        step={1}
+        max={TARGET_MAX.fiber}
+        decimals={0}
+      />
+      <PlanNotes notes={notes} field="fiber" />
+      <PlanNotes notes={notes} field="totals" />
       <View style={{ marginTop: "auto", paddingTop: 24 }}>
         <Button
           onPress={() => {
-            setMacroTarget({ kcal, protein, carbs, fat })
-            updateSettings({ goalDirection: goal })
+            const { kcal, protein, carbs, fat, fiberG } = plan
+            setMacroTarget({ kcal, protein, carbs, fat, fiberGoal: fiberG })
             toast("Daily targets saved")
             onDone()
           }}

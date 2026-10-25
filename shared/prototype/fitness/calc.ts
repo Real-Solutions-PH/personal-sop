@@ -7,6 +7,7 @@ import type {
   Meal,
   MealLabel,
   TemplateItem,
+  WeighIn,
   Workout,
   WorkoutExercise,
   WorkoutSet,
@@ -58,17 +59,21 @@ export function e1rm(load: number, reps: number): number {
   if (reps <= 0 || reps > 12 || load <= 0) return 0
   return reps === 1 ? load : load * (1 + reps / 30)
 }
+export function latestWeighIn(s: FitnessState): WeighIn | undefined {
+  return s.weighIns.reduce<WeighIn | undefined>(
+    (a, w) => (!a || w.measuredAt > a.measuredAt ? w : a),
+    undefined,
+  )
+}
 export function latestBodyweight(s: FitnessState): number | undefined {
-  let best:
-    | {
-        t: string
-        w: number
-      }
-    | undefined
-  for (const w of s.weighIns)
-    if (!best || w.measuredAt > best.t)
-      best = { t: w.measuredAt, w: w.weightKg }
-  return best?.w
+  return latestWeighIn(s)?.weightKg
+}
+/** Body fat from the newest weigh-in that has one. */
+export function latestBodyFat(s: FitnessState): number | undefined {
+  return latestWeighIn({
+    ...s,
+    weighIns: s.weighIns.filter((w) => w.bodyFatPct !== undefined),
+  })?.bodyFatPct
 }
 export function exMap(s: FitnessState) {
   return new Map(s.exercises.map((e) => [e.id, e]))

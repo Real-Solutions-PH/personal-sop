@@ -1,5 +1,6 @@
 import { at, dayKey } from "../lib/day"
 import { newId } from "../lib/ids"
+import type { ActivityLevel, PlanGoal, Sex } from "./plan"
 export type Equipment =
   | "barbell"
   | "dumbbell"
@@ -142,6 +143,11 @@ export interface FitnessSettings {
   aiSource: "builtin" | "connector"
   goalDirection: "cut" | "maintain" | "bulk"
   goalWeight?: number
+  sex?: Sex
+  birthYear?: number
+  heightCm?: number
+  activity?: ActivityLevel
+  planGoal?: PlanGoal
 }
 export interface FitnessState {
   exercises: Exercise[]

@@ -318,3 +318,29 @@ def test_another_user_cannot_use_my_templates_or_exercises(
         404,
         "exercise_not_found",
     )
+
+
+def test_settings_plan_profile_round_trip_and_validation(
+    client: TestClient, db: Session
+) -> None:
+    _, h = signed_in(db)
+    body = {
+        "sex": "female",
+        "birth_year": 1996,
+        "height_cm": 165,
+        "activity_level": "light",
+        "plan_goal": "recomp",
+    }
+    st = ok(client.patch(f"{API}/settings", headers=h, json=body))
+    assert {k: st[k] for k in body} == body
+    assert st["goal_direction"] == "maintain"  # untouched; client writes both
+    for bad in (
+        {"height_cm": 99},
+        {"height_cm": 251},
+        {"birth_year": 1899},
+        {"birth_year": utcnow().year - 12},
+        {"sex": "x"},
+        {"activity_level": "extreme"},
+        {"plan_goal": "bulk"},
+    ):
+        assert client.patch(f"{API}/settings", headers=h, json=bad).status_code == 422

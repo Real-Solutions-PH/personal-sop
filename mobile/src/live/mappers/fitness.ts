@@ -75,6 +75,9 @@ const instant = (v: unknown) => new Date(String(v)).toISOString()
 const optInstant = (v: unknown) => (v == null ? undefined : instant(v))
 const pick = <T extends string>(v: unknown, allowed: readonly T[], or: T) =>
   allowed.includes(v as T) ? (v as T) : or
+/** An enum that stays unset (undefined) when null or unknown. */
+const optPick = <T extends string>(v: unknown, allowed: readonly T[]) =>
+  allowed.includes(v as T) ? (v as T) : undefined
 
 /** A workout as the device holds it once synced. */
 export type SyncedWorkout = Workout & {
@@ -966,9 +969,36 @@ export function settingsMapper(userId: string) {
       ai_source: v.aiSource,
       goal_direction: v.goalDirection,
       goal_weight: v.goalWeight ?? null,
+      sex: v.sex ?? null,
+      birth_year: v.birthYear ?? null,
+      height_cm: v.heightCm ?? null,
+      activity_level: v.activity ?? null,
+      plan_goal: v.planGoal ?? null,
     }),
     fromServer: (row: Payload, cur) => {
-      const { goalWeight: _, ...rest } = cur
+      const {
+        goalWeight: _,
+        sex: _s,
+        birthYear: _b,
+        heightCm: _h,
+        activity: _a,
+        planGoal: _p,
+        ...rest
+      } = cur
+      const sex = optPick(row.sex, ["male", "female"] as const)
+      const activity = optPick(row.activity_level, [
+        "sedentary",
+        "light",
+        "moderate",
+        "active",
+        "very_active",
+      ] as const)
+      const planGoal = optPick(row.plan_goal, [
+        "lose",
+        "maintain",
+        "recomp",
+        "build",
+      ] as const)
       return {
         ...rest,
         units: row.units === "lb" ? "lb" : "kg",
@@ -987,6 +1017,13 @@ export function settingsMapper(userId: string) {
         ...(row.goal_weight != null
           ? { goalWeight: Number(row.goal_weight) }
           : {}),
+        ...(sex ? { sex } : {}),
+        ...(row.birth_year != null
+          ? { birthYear: Number(row.birth_year) }
+          : {}),
+        ...(row.height_cm != null ? { heightCm: Number(row.height_cm) } : {}),
+        ...(activity ? { activity } : {}),
+        ...(planGoal ? { planGoal } : {}),
       }
     },
   })
