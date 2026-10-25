@@ -5,7 +5,7 @@ import { ageFrom, estimatePlan } from "@domain/fitness/plan"
 import { fitStore } from "@domain/fitness/store"
 import { dayKey } from "@domain/lib/day"
 import { configureStorage, resetAll } from "@domain/lib/store"
-import { fireEvent, render, screen } from "@testing-library/react-native"
+import { act, fireEvent, render, screen } from "@testing-library/react-native"
 import type { ReactNode } from "react"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 import { PlanForm } from "../screens/nutrition-plan"
@@ -233,11 +233,30 @@ test("out-of-range age disables apply", () => {
   expect(apply().props.accessibilityState?.disabled).toBe(true)
 })
 
-const seePlan = () => {
-  fillA()
-  fireEvent.press(screen.getByText("Maintain"))
-  fireEvent.press(screen.getByRole("button", { name: "See my plan" }))
+// Setup's guided form: one question per screen, then the building beat.
+const next = () =>
+  fireEvent.press(screen.getByRole("button", { name: "Continue" }))
+const build = () => {
+  fireEvent.press(screen.getByRole("button", { name: "Skip and see my plan" }))
+  for (let i = 0; i < 6; i++) act(() => jest.advanceTimersByTime(450))
 }
+const seePlan = () => {
+  fireEvent.press(screen.getByText("Male"))
+  next()
+  fill("Birth year", String(year - 30))
+  next()
+  fill("Height (cm)", "180")
+  next()
+  fill("Weight (kg)", "80")
+  next()
+  fireEvent.press(screen.getByText("Exercise 3–5 days/wk"))
+  next()
+  fireEvent.press(screen.getByText("Maintain"))
+  next()
+  build()
+}
+beforeEach(() => jest.useFakeTimers())
+afterEach(() => jest.useRealTimers())
 
 test("setup nutrition step saves the estimated target", () => {
   const onDone = jest.fn()
@@ -396,13 +415,58 @@ test("onApply also hands back the inputs it estimated with", () => {
 test("setup with a weigh-in hides the weight field and still applies", () => {
   profileA()
   render(<NutritionStep onDone={jest.fn()} />, { wrapper })
-  expect(screen.queryByLabelText("Weight (kg)")).toBeNull()
-  fireEvent.press(screen.getByRole("button", { name: "See my plan" }))
+  for (let i = 0; i < 5; i++) {
+    expect(screen.queryByLabelText("Weight (kg)")).toBeNull()
+    next()
+  }
+  build()
   expect(screen.getByText("Save targets")).toBeTruthy()
   expect(fitStore.get().weighIns).toHaveLength(1)
 })
 
 test("setup without a weigh-in asks for weight", () => {
   render(<NutritionStep onDone={jest.fn()} />, { wrapper })
+  fireEvent.press(screen.getByText("Male"))
+  next()
+  fill("Birth year", String(year - 30))
+  next()
+  fill("Height (cm)", "180")
+  next()
+  expect(screen.getByText("What do you weigh?")).toBeTruthy()
   expect(screen.getByLabelText("Weight (kg)")).toBeTruthy()
+})
+
+test("guided setup: one question at a time, Continue waits for an answer", () => {
+  render(<NutritionStep onDone={jest.fn()} />, { wrapper })
+  expect(screen.getByText("What's your sex?")).toBeTruthy()
+  expect(screen.queryByLabelText("Birth year")).toBeNull()
+  const cont = () => screen.getByRole("button", { name: "Continue" })
+  expect(cont().props.accessibilityState?.disabled).toBe(true)
+  fireEvent.press(screen.getByText("Female"))
+  next()
+  expect(screen.getByText("What year were you born?")).toBeTruthy()
+  fill("Birth year", String(year - 5))
+  expect(cont().props.accessibilityState?.disabled).toBe(true)
+  fireEvent.press(screen.getByRole("button", { name: "Back" }))
+  expect(screen.getByText("What's your sex?")).toBeTruthy()
+})
+
+test("guided setup shows the building checklist before the plan", () => {
+  render(<NutritionStep onDone={jest.fn()} />, { wrapper })
+  fireEvent.press(screen.getByText("Male"))
+  next()
+  fill("Birth year", String(year - 30))
+  next()
+  fill("Height (cm)", "180")
+  next()
+  fill("Weight (kg)", "80")
+  next()
+  fireEvent.press(screen.getByText("Exercise 3–5 days/wk"))
+  next()
+  next()
+  fireEvent.press(screen.getByRole("button", { name: "Skip and see my plan" }))
+  expect(screen.getByText("Building your plan…")).toBeTruthy()
+  expect(screen.queryByText("Save targets")).toBeNull()
+  for (let i = 0; i < 6; i++) act(() => jest.advanceTimersByTime(450))
+  expect(screen.getByText("Save targets")).toBeTruthy()
 })

@@ -33,14 +33,16 @@ export interface PlanNote {
   text: string
 }
 
-export const ACTIVITY: Record<ActivityLevel, { label: string; factor: number }> =
-  {
-    sedentary: { label: "Mostly sitting", factor: 1.2 },
-    light: { label: "Light exercise 1–3 days/wk", factor: 1.375 },
-    moderate: { label: "Exercise 3–5 days/wk", factor: 1.55 },
-    active: { label: "Hard exercise 6–7 days/wk", factor: 1.725 },
-    very_active: { label: "Physical job + training", factor: 1.9 },
-  }
+export const ACTIVITY: Record<
+  ActivityLevel,
+  { label: string; factor: number }
+> = {
+  sedentary: { label: "Mostly sitting", factor: 1.2 },
+  light: { label: "Light exercise 1–3 days/wk", factor: 1.375 },
+  moderate: { label: "Exercise 3–5 days/wk", factor: 1.55 },
+  active: { label: "Hard exercise 6–7 days/wk", factor: 1.725 },
+  very_active: { label: "Physical job + training", factor: 1.9 },
+}
 
 export const GOALS: Record<
   PlanGoal,
@@ -124,6 +126,8 @@ export function planNotes(
   if (t.kcal < bmr) add("kcal", "Below what your body burns at rest")
   else if (t.kcal < L.kcalFloor[i.sex])
     add("kcal", "Very low — hard to get enough nutrients")
+  else if (i.goal === "lose" && t.kcal >= tdee)
+    add("kcal", "At or above your daily burn, so this won't lose fat")
   else if (weekly > L.maxWeeklyPct * w)
     add(
       "kcal",
@@ -149,7 +153,9 @@ export function planGoalFor(
 ): PlanGoal {
   if (s.planGoal && GOALS[s.planGoal].direction === s.goalDirection)
     return s.planGoal
-  return { cut: "lose", maintain: "maintain", bulk: "build" }[s.goalDirection] as PlanGoal
+  return { cut: "lose", maintain: "maintain", bulk: "build" }[
+    s.goalDirection
+  ] as PlanGoal
 }
 
 /** Plan inputs from saved settings and the latest weigh-in; null until the

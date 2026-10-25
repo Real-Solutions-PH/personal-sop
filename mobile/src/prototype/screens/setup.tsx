@@ -662,6 +662,7 @@ export function NutritionStep({ onDone }: { onDone: () => void }) {
   if (!plan || !inputs)
     return (
       <PlanForm
+        guided
         applyLabel="See my plan"
         askWeight={!hasWeighIn}
         onApply={(p, i) => {

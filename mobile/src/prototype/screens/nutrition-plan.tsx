@@ -21,7 +21,8 @@ import {
   type Sex,
 } from "@domain/fitness/plan"
 import { fitStore } from "@domain/fitness/store"
-import { type ReactNode, useState } from "react"
+import { Check } from "lucide-react-native"
+import { type ReactNode, useEffect, useState } from "react"
 import { TextInput, View } from "react-native"
 import { Copy, Line, Tap } from "../native-kit"
 import { fonts, useTheme } from "../theme"
@@ -36,6 +37,22 @@ function feetInches(cm: number | undefined) {
   const inches = Math.round(cm / 2.54)
   return { ft: String(Math.floor(inches / 12)), inch: String(inches % 12) }
 }
+
+const QUESTION: Record<string, string> = {
+  Sex: "What's your sex?",
+  "Birth year": "What year were you born?",
+  Height: "How tall are you?",
+  Weight: "What do you weigh?",
+  Activity: "How active are you?",
+  Goal: "What's your goal?",
+  "Body fat % (optional)": "Know your body fat %?",
+}
+const BUILDING = [
+  "Working out your resting burn",
+  "Adding your activity",
+  "Setting calories for your goal",
+  "Splitting protein, carbs, fat and fiber",
+]
 
 /** Muted warning copy for one field's notes; nothing when there are none. */
 export function PlanNotes({
@@ -63,10 +80,13 @@ export function PlanForm({
   onApply,
   applyLabel = "Apply",
   askWeight = true,
+  guided = false,
 }: {
   onApply: (plan: Plan, inputs: PlanInputs) => void
   applyLabel?: string
   askWeight?: boolean
+  /** One question per screen, then a short "building" beat before applying. */
+  guided?: boolean
 }) {
   const t = useTheme(),
     fit = fitStore.use((s) => s),
@@ -89,24 +109,20 @@ export function PlanForm({
     [goal, setGoal] = useState<PlanGoal>(planGoalFor(st)),
     // Optional, so never pre-filled: an old reading would silently switch
     // the estimate to the lean-mass formula.
-    [bf, setBf] = useState("")
+    [bf, setBf] = useState(""),
+    [at, setAt] = useState(0),
+    [building, setBuilding] = useState(-1)
 
   const heightCm =
       heightUnit === "ft" ? (num(ft) * 12 + num(inch || "0")) * 2.54 : num(cm),
     weightKg = kilograms(num(weight), massUnit),
     age = ageFrom(num(year)),
     bodyFat = bf.trim() === "" ? undefined : num(bf),
-    valid =
-      !!sex &&
-      !!activity &&
-      Number.isInteger(num(year)) &&
-      age >= 13 &&
-      age <= 100 &&
-      heightCm >= 100 &&
-      heightCm <= 250 &&
-      weightKg > 20 &&
-      weightKg < 500 &&
-      (bodyFat === undefined || (bodyFat >= 3 && bodyFat <= 70))
+    yearOk = Number.isInteger(num(year)) && age >= 13 && age <= 100,
+    heightOk = heightCm >= 100 && heightCm <= 250,
+    weightOk = weightKg > 20 && weightKg < 500,
+    bfOk = bodyFat === undefined || (bodyFat >= 3 && bodyFat <= 70),
+    valid = !!sex && !!activity && yearOk && heightOk && weightOk && bfOk
 
   const submit = () => {
     if (!valid || !sex || !activity) return
@@ -225,85 +241,211 @@ export function PlanForm({
       selected={on}
       onPress={press}
       style={{
-        height: 36,
-        paddingHorizontal: 14,
-        borderRadius: 18,
+        height: guided ? 56 : 36,
+        width: guided ? "100%" : undefined,
+        paddingHorizontal: guided ? 18 : 14,
+        borderRadius: guided ? 14 : 18,
         borderWidth: 1,
         borderColor: on ? t.fit : t.line,
         backgroundColor: on ? t.fit : t.card,
         justifyContent: "center",
       }}
     >
-      <Copy size={14} weight="medium" style={{ color: on ? t.bg : t.text }}>
+      <Copy
+        size={guided ? 16 : 14}
+        weight="medium"
+        style={{ color: on ? t.bg : t.text }}
+      >
         {text}
       </Copy>
     </Tap>
   )
   const wrap = { flexDirection: "row", flexWrap: "wrap", gap: 8 } as const
 
-  return (
-    <View>
-      {label("Sex")}
-      <View style={wrap}>
-        {chip("Male", sex === "male", () => setSex("male"))}
-        {chip("Female", sex === "female", () => setSex("female"))}
-      </View>
-      {label("Birth year")}
-      {input("Birth year", year, setYear, "e.g. 1995", undefined, true)}
-      {label(
-        "Height",
+  const sections: { title: string; ok: boolean; body: ReactNode }[] = [
+    {
+      title: "Sex",
+      ok: !!sex,
+      body: (
+        <View style={wrap}>
+          {chip("Male", sex === "male", () => setSex("male"))}
+          {chip("Female", sex === "female", () => setSex("female"))}
+        </View>
+      ),
+    },
+    {
+      title: "Birth year",
+      ok: yearOk,
+      body: input("Birth year", year, setYear, "e.g. 1995", undefined, true),
+    },
+    {
+      title: "Height",
+      ok: heightOk,
+      body: (
         <>
-          {unit("cm", heightUnit === "cm", () => toHeight("cm"))}
-          {unit("ft", heightUnit === "ft", () => toHeight("ft"))}
-        </>,
-      )}
-      {heightUnit === "ft" ? (
-        <Line style={{ gap: 8 }}>
-          {input("Height (ft)", ft, setFt, "5", "ft")}
-          {input("Height (in)", inch, setInch, "9", "in")}
-        </Line>
-      ) : (
-        input("Height (cm)", cm, setCm, "e.g. 175", "cm")
-      )}
-      {askWeight &&
-        label(
-          "Weight",
-          <>
-            {unit("kg", massUnit === "kg", () => toMass("kg"))}
-            {unit("lb", massUnit === "lb", () => toMass("lb"))}
-          </>,
-        )}
-      {askWeight &&
-        input(
-          `Weight (${massUnit})`,
-          weight,
-          setWeight,
-          massUnit === "lb" ? "e.g. 160" : "e.g. 72.5",
-          massUnit,
-        )}
-      {label("Activity")}
-      <View style={wrap}>
-        {(Object.keys(ACTIVITY) as ActivityLevel[]).map((k) =>
-          chip(ACTIVITY[k].label, activity === k, () => setActivity(k)),
-        )}
+          {heightUnit === "ft" ? (
+            <Line style={{ gap: 8 }}>
+              {input("Height (ft)", ft, setFt, "5", "ft")}
+              {input("Height (in)", inch, setInch, "9", "in")}
+            </Line>
+          ) : (
+            input("Height (cm)", cm, setCm, "e.g. 175", "cm")
+          )}
+        </>
+      ),
+    },
+    ...(askWeight
+      ? [
+          {
+            title: "Weight",
+            ok: weightOk,
+            body: input(
+              `Weight (${massUnit})`,
+              weight,
+              setWeight,
+              massUnit === "lb" ? "e.g. 160" : "e.g. 72.5",
+              massUnit,
+            ),
+          },
+        ]
+      : []),
+    {
+      title: "Activity",
+      ok: !!activity,
+      body: (
+        <View style={wrap}>
+          {(Object.keys(ACTIVITY) as ActivityLevel[]).map((k) =>
+            chip(ACTIVITY[k].label, activity === k, () => setActivity(k)),
+          )}
+        </View>
+      ),
+    },
+    {
+      title: "Goal",
+      ok: true,
+      body: (
+        <>
+          <View style={wrap}>
+            {(Object.keys(GOALS) as PlanGoal[]).map((k) =>
+              chip(GOALS[k].label, goal === k, () => setGoal(k)),
+            )}
+          </View>
+          {GOALS[goal].help && (
+            <Copy size={12} muted style={{ marginTop: 8 }}>
+              {GOALS[goal].help}
+            </Copy>
+          )}
+        </>
+      ),
+    },
+    {
+      title: "Body fat % (optional)",
+      ok: bfOk,
+      body: input("Body fat % (optional)", bf, setBf, "e.g. 20", "%"),
+    },
+  ]
+  const units = (title: string) =>
+    title === "Height" ? (
+      <>
+        {unit("cm", heightUnit === "cm", () => toHeight("cm"))}
+        {unit("ft", heightUnit === "ft", () => toHeight("ft"))}
+      </>
+    ) : title === "Weight" ? (
+      <>
+        {unit("kg", massUnit === "kg", () => toMass("kg"))}
+        {unit("lb", massUnit === "lb", () => toMass("lb"))}
+      </>
+    ) : undefined
+
+  // Ticks the checklist, then applies; leaving mid-way cancels it.
+  useEffect(() => {
+    if (building < 0) return
+    const id = setTimeout(
+      () => (building < BUILDING.length ? setBuilding(building + 1) : submit()),
+      450,
+    )
+    return () => clearTimeout(id)
+  })
+
+  if (!guided)
+    return (
+      <View>
+        {sections.map((x) => (
+          <View key={x.title}>
+            {label(x.title, units(x.title))}
+            {x.body}
+          </View>
+        ))}
+        <View style={{ marginTop: "auto", paddingTop: 24 }}>
+          <Button disabled={!valid} onPress={submit}>
+            {applyLabel}
+          </Button>
+        </View>
       </View>
-      {label("Goal")}
-      <View style={wrap}>
-        {(Object.keys(GOALS) as PlanGoal[]).map((k) =>
-          chip(GOALS[k].label, goal === k, () => setGoal(k)),
-        )}
-      </View>
-      {GOALS[goal].help && (
-        <Copy size={12} muted style={{ marginTop: 8 }}>
-          {GOALS[goal].help}
+    )
+
+  if (building >= 0)
+    return (
+      <View style={{ flex: 1, justifyContent: "center", gap: 12 }}>
+        <Copy size={24} weight="display" style={{ letterSpacing: -0.6 }}>
+          Building your plan…
         </Copy>
-      )}
-      {label("Body fat % (optional)")}
-      {input("Body fat % (optional)", bf, setBf, "e.g. 20", "%")}
-      <View style={{ marginTop: "auto", paddingTop: 24 }}>
-        <Button disabled={!valid} onPress={submit}>
-          {applyLabel}
+        {BUILDING.map((line, i) => (
+          <Line key={line} style={{ gap: 12, opacity: i < building ? 1 : 0.3 }}>
+            <Check size={24} color={t.fit} />
+            <Copy size={14}>{line}</Copy>
+          </Line>
+        ))}
+      </View>
+    )
+
+  const q = sections[at],
+    last = at === sections.length - 1
+  return (
+    <View style={{ flex: 1 }}>
+      <Line style={{ gap: 6 }}>
+        {sections.map((x, i) => (
+          <View
+            key={x.title}
+            style={{
+              height: 4,
+              flex: 1,
+              borderRadius: 2,
+              backgroundColor: i <= at ? t.fit : t.line,
+            }}
+          />
+        ))}
+      </Line>
+      <Copy size={12} muted style={{ marginTop: 16 }}>
+        {at + 1} of {sections.length}
+      </Copy>
+      <Line style={{ marginTop: 4, marginBottom: 16, gap: 8 }}>
+        <Copy
+          size={24}
+          weight="display"
+          style={{ flex: 1, letterSpacing: -0.6 }}
+        >
+          {QUESTION[q.title] ?? q.title}
+        </Copy>
+        {units(q.title)}
+      </Line>
+      <View>{q.body}</View>
+      <View style={{ marginTop: "auto", paddingTop: 24, gap: 8 }}>
+        <Button
+          disabled={!q.ok || (last && !valid)}
+          onPress={() => (last ? setBuilding(0) : setAt(at + 1))}
+        >
+          {last
+            ? bf.trim()
+              ? applyLabel
+              : "Skip and see my plan"
+            : "Continue"}
         </Button>
+        {at > 0 && (
+          <Button tone="quiet" onPress={() => setAt(at - 1)}>
+            Back
+          </Button>
+        )}
       </View>
     </View>
   )

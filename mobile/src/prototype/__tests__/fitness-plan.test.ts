@@ -186,3 +186,20 @@ test("planInputsFrom takes body fat from the newest weigh-in that has one", () =
     })?.bodyFatPct,
   ).toBe(25)
 })
+
+test("lose fat notes when the calorie floor lands above daily burn", () => {
+  const small: PlanInputs = {
+    sex: "female",
+    age: 60,
+    heightCm: 150,
+    weightKg: 45,
+    activity: "sedentary",
+    goal: "lose",
+  }
+  const p = estimatePlan(small)
+  expect(p.kcal).toBeGreaterThanOrEqual(p.tdee)
+  expect(planNotes(p, small)).toContainEqual({
+    field: "kcal",
+    text: "At or above your daily burn, so this won't lose fat",
+  })
+})
