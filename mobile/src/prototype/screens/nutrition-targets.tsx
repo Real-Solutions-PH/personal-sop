@@ -2,7 +2,13 @@ import { setMacroTarget } from "@domain/fitness/actions"
 import { fmtDay, targetFor } from "@domain/fitness/calc"
 import type { Macros, NutrientLimits } from "@domain/fitness/data"
 import { DAILY_LIMITS, FIBER_GOAL } from "@domain/fitness/limits"
-import { type Plan, planInputsFrom, planNotes } from "@domain/fitness/plan"
+import {
+  type Plan,
+  type PlanInputs,
+  planInputsFrom,
+  planNotes,
+  TARGET_MAX,
+} from "@domain/fitness/plan"
 import { fitStore } from "@domain/fitness/store"
 import { dayKey } from "@domain/lib/day"
 import { Sparkles } from "lucide-react-native"
@@ -30,6 +36,8 @@ export function MacroTargets() {
     }),
     [suggestion, setSuggestion] = useState<Plan | null>(null),
     [planning, setPlanning] = useState(false),
+    // The inputs the last suggestion was estimated from, so its notes agree.
+    [planIn, setPlanIn] = useState<PlanInputs | null>(null),
     calc = t.protein * 4 + t.carbs * 4 + t.fat * 9,
     mismatch = Math.abs(calc - t.kcal) > t.kcal * 0.05,
     history = [...s.targets].sort((a, b) =>
@@ -40,7 +48,7 @@ export function MacroTargets() {
       carbs = Math.max(0, Math.round((t.kcal - t.protein * 4 - fat * 9) / 4))
     setT({ ...t, fat, carbs })
   }
-  const inputs = planInputsFrom(s),
+  const inputs = planIn ?? planInputsFrom(s),
     notes = inputs ? planNotes({ ...t, fiberG: limits.fiberGoal }, inputs) : []
   return (
     <Screen title="Macro targets">
@@ -59,7 +67,7 @@ export function MacroTargets() {
           onChange={(kcal) => setT({ ...t, kcal })}
           step={50}
           min={500}
-          max={6000}
+          max={TARGET_MAX.kcal}
           unit="kcal"
           decimals={0}
         />
@@ -69,7 +77,7 @@ export function MacroTargets() {
           value={t.protein}
           onChange={(protein) => setT({ ...t, protein })}
           step={5}
-          max={500}
+          max={TARGET_MAX.protein}
           unit="g"
           decimals={0}
         />
@@ -82,7 +90,7 @@ export function MacroTargets() {
               value={t.carbs}
               onChange={(carbs) => setT({ ...t, carbs })}
               step={5}
-              max={900}
+              max={TARGET_MAX.carbs}
               unit="g"
               decimals={0}
             />
@@ -94,7 +102,7 @@ export function MacroTargets() {
               value={t.fat}
               onChange={(fat) => setT({ ...t, fat })}
               step={5}
-              max={500}
+              max={TARGET_MAX.fat}
               unit="g"
               decimals={0}
             />
@@ -197,7 +205,7 @@ export function MacroTargets() {
             value={limits.fiberGoal}
             onChange={(fiberGoal) => setLimits({ ...limits, fiberGoal })}
             step={1}
-            max={150}
+            max={TARGET_MAX.fiber}
             unit="g"
             decimals={0}
           />
@@ -231,8 +239,9 @@ export function MacroTargets() {
           <View style={{ marginTop: 12 }}>
             <PlanForm
               applyLabel="Get suggestion"
-              onApply={(p) => {
+              onApply={(p, i) => {
                 setSuggestion(p)
+                setPlanIn(i)
                 setPlanning(false)
               }}
             />
@@ -311,13 +320,13 @@ export function MacroTargets() {
             if (
               ![t.kcal, t.protein, t.carbs, t.fat].every(Number.isFinite) ||
               t.kcal < 500 ||
-              t.kcal > 6000 ||
+              t.kcal > TARGET_MAX.kcal ||
               t.protein < 0 ||
-              t.protein > 500 ||
+              t.protein > TARGET_MAX.protein ||
               t.carbs < 0 ||
-              t.carbs > 900 ||
+              t.carbs > TARGET_MAX.carbs ||
               t.fat < 0 ||
-              t.fat > 500
+              t.fat > TARGET_MAX.fat
             ) {
               toast.error("Enter targets within the supported range")
               return

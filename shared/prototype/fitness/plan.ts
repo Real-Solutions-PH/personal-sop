@@ -86,6 +86,16 @@ export const NOTE_LIMITS = {
   totalsTolerance: 0.05,
 }
 
+/** Sanity-only target bounds, wide enough for any estimate the form accepts
+ * (up to 500 kg, very active, build). The notes do the "too high" job. */
+export const TARGET_MAX = {
+  kcal: 15000,
+  protein: 3000,
+  carbs: 3000,
+  fat: 3000,
+  fiber: 250,
+}
+
 const round50 = (x: number) => Math.round(x / 50) * 50
 const ceil50 = (x: number) => Math.ceil(x / 50) * 50
 

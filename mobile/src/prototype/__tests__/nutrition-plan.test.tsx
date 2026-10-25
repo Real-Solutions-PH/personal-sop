@@ -470,3 +470,47 @@ test("guided setup shows the building checklist before the plan", () => {
   for (let i = 0; i < 6; i++) act(() => jest.advanceTimersByTime(450))
   expect(screen.getByText("Save targets")).toBeTruthy()
 })
+
+test("Targets saves a very large suggestion within its bounds", () => {
+  fitStore.set((s) => ({
+    ...s,
+    settings: {
+      ...s.settings,
+      sex: "male",
+      birthYear: year - 25,
+      heightCm: 195,
+      activity: "very_active",
+      goalDirection: "bulk",
+    },
+    weighIns: [
+      { id: "w1", measuredAt: "2026-01-01T06:00:00.000Z", weightKg: 190 },
+    ],
+  }))
+  render(<MacroTargets />, { wrapper })
+  fireEvent.press(screen.getByText("Suggest"))
+  fireEvent.press(screen.getByRole("button", { name: "Get suggestion" }))
+  fireEvent.press(screen.getByText("Use"))
+  fireEvent.press(screen.getByText("Save · effective today"))
+  expect(targetFor(fitStore.get(), dayKey())?.kcal).toBeGreaterThan(6000)
+})
+
+test("Targets notes use the suggestion's inputs, not an old body fat", () => {
+  profileA()
+  fitStore.set((s) => ({
+    ...s,
+    settings: { ...s.settings, activity: "very_active", goalDirection: "cut" },
+    weighIns: [
+      {
+        id: "w1",
+        measuredAt: "2026-01-01T06:00:00.000Z",
+        weightKg: 80,
+        bodyFatPct: 10,
+      },
+    ],
+  }))
+  render(<MacroTargets />, { wrapper })
+  fireEvent.press(screen.getByText("Suggest"))
+  fireEvent.press(screen.getByRole("button", { name: "Get suggestion" }))
+  fireEvent.press(screen.getByText("Use"))
+  expect(screen.queryByText(/Faster than/)).toBeNull()
+})

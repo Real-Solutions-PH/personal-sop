@@ -139,7 +139,7 @@ export function PlanForm({
     if (!latest || Math.abs(weightKg - latest.weightKg) > 0.05)
       logWeighIn(weightKg, undefined, undefined, bodyFat)
     else if (bodyFat !== undefined)
-      updateWeighIn(latest.id, { bodyFatPct: bodyFat })
+      updateWeighIn(latest.id, { bodyFatPct: Math.round(bodyFat * 10) / 10 })
     const inputs: PlanInputs = {
       sex,
       age,
@@ -358,14 +358,16 @@ export function PlanForm({
     ) : undefined
 
   // Ticks the checklist, then applies; leaving mid-way cancels it.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: ticks on building only
   useEffect(() => {
     if (building < 0) return
-    const id = setTimeout(
-      () => (building < BUILDING.length ? setBuilding(building + 1) : submit()),
-      450,
-    )
+    const id = setTimeout(() => {
+      if (building < BUILDING.length) return setBuilding(building + 1)
+      setBuilding(-1)
+      submit()
+    }, 450)
     return () => clearTimeout(id)
-  })
+  }, [building])
 
   if (!guided)
     return (

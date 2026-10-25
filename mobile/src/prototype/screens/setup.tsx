@@ -9,7 +9,12 @@ import {
   upsertTemplate,
 } from "@domain/fitness/actions"
 import type { FitnessSettings } from "@domain/fitness/data"
-import { type Plan, type PlanInputs, planNotes } from "@domain/fitness/plan"
+import {
+  type Plan,
+  type PlanInputs,
+  planNotes,
+  TARGET_MAX,
+} from "@domain/fitness/plan"
 import { fitStore } from "@domain/fitness/store"
 import { saveFocusSettings } from "@domain/focus/actions"
 import { PRESETS, type PresetKey } from "@domain/focus/data"
@@ -658,13 +663,14 @@ function FocusStep({ onDone }: { onDone: () => void }) {
 export function NutritionStep({ onDone }: { onDone: () => void }) {
   const [plan, setPlan] = useState<Plan | null>(null),
     [inputs, setInputs] = useState<PlanInputs | null>(null),
-    hasWeighIn = fitStore.use((s) => s.weighIns.length > 0)
+    // Fixed at mount: a weigh-in syncing in mid-flow must not drop a question.
+    [askWeight] = useState(() => !fitStore.get().weighIns.length)
   if (!plan || !inputs)
     return (
       <PlanForm
         guided
         applyLabel="See my plan"
-        askWeight={!hasWeighIn}
+        askWeight={askWeight}
         onApply={(p, i) => {
           setPlan(p)
           setInputs(i)
@@ -682,7 +688,7 @@ export function NutritionStep({ onDone }: { onDone: () => void }) {
         onChange={(kcal) => set({ kcal })}
         step={50}
         min={500}
-        max={6000}
+        max={TARGET_MAX.kcal}
         decimals={0}
       />
       <PlanNotes notes={notes} field="kcal" />
@@ -693,7 +699,7 @@ export function NutritionStep({ onDone }: { onDone: () => void }) {
         onChange={(protein) => set({ protein })}
         step={5}
         min={30}
-        max={500}
+        max={TARGET_MAX.protein}
         decimals={0}
       />
       <PlanNotes notes={notes} field="protein" />
@@ -703,7 +709,7 @@ export function NutritionStep({ onDone }: { onDone: () => void }) {
         value={plan.carbs}
         onChange={(carbs) => set({ carbs })}
         step={5}
-        max={900}
+        max={TARGET_MAX.carbs}
         decimals={0}
       />
       <Stepper
@@ -712,7 +718,7 @@ export function NutritionStep({ onDone }: { onDone: () => void }) {
         value={plan.fat}
         onChange={(fat) => set({ fat })}
         step={5}
-        max={500}
+        max={TARGET_MAX.fat}
         decimals={0}
       />
       <PlanNotes notes={notes} field="fat" />
@@ -722,7 +728,7 @@ export function NutritionStep({ onDone }: { onDone: () => void }) {
         value={plan.fiberG}
         onChange={(fiberG) => set({ fiberG })}
         step={1}
-        max={150}
+        max={TARGET_MAX.fiber}
         decimals={0}
       />
       <PlanNotes notes={notes} field="fiber" />

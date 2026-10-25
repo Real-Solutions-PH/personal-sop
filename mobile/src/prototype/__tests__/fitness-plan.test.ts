@@ -203,3 +203,20 @@ test("lose fat notes when the calorie floor lands above daily burn", () => {
     text: "At or above your daily burn, so this won't lose fat",
   })
 })
+
+test("very low note fires under the sex floor but above BMR", () => {
+  const small: PlanInputs = {
+    sex: "female",
+    age: 60,
+    heightCm: 150,
+    weightKg: 45,
+    activity: "sedentary",
+    goal: "maintain",
+  }
+  const p = estimatePlan(small)
+  expect(
+    planNotes({ ...p, kcal: 1100 }, small).filter((n) => n.field === "kcal"),
+  ).toEqual([
+    { field: "kcal", text: "Very low — hard to get enough nutrients" },
+  ])
+})
