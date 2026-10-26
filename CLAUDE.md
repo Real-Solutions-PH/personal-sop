@@ -37,6 +37,7 @@ This repo follows the **Engineering Constitution** in [docs/constitution.md](doc
 | mobile | typecheck | `bun run typecheck` (from `mobile/`) |
 | mobile | lint | `bun run lint` (from `mobile/`, Biome) |
 | mobile | test | `bun run test` (from `mobile/`, jest-expo — always `bun run test`, never `bun test`, which invokes bun's own runner) |
+| mobile | iOS release | `bunx eas-cli build -p ios --profile production --auto-submit` (native change) / `bunx eas-cli update --channel production --environment production -m "..."` (JS only), from `mobile/` (ADR-0026) — only with the user's go |
 
 ## Codegen rule
 

@@ -115,7 +115,17 @@
       "router": {
         "origin": false,
         "root": "./src/app"
+      },
+      "eas": {
+        "projectId": "829bee26-9c8a-489a-863a-d5d53b072847"
       }
+    },
+    "owner": "ervinpiol",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/829bee26-9c8a-489a-863a-d5d53b072847"
     }
   }
 }

@@ -118,6 +118,20 @@ bunx expo prebuild --platform android --clean --no-install
 The `EXPO_PUBLIC_*` values are inlined into the JS bundle at build time, so
 the same variables must be set for both prebuild and Gradle.
 
+## iOS releases with EAS (2026-10-26)
+
+ADR-0026. From `mobile/`, signed in with `bunx eas-cli login`:
+
+- **Native change** (new module, permission, plugin, widget) or first release:
+  `bunx eas-cli build -p ios --profile production --auto-submit`. Builds in
+  Expo's cloud, bumps the build number remotely and uploads to App Store
+  Connect; it appears in TestFlight after Apple's processing.
+- **JavaScript-only change:**
+  `bunx eas-cli update --channel production --environment production -m "<what changed>"`.
+  Installed builds with the same native fingerprint pick it up on next launch.
+- **Build values** live in EAS (environment `production`), not the repo:
+  `bunx eas-cli env:list --environment production`.
+
 ## Visual system
 
 The native prototype uses the web prototype's semantic palette, including separate light/dark module accents. Their sRGB equivalents, spacing, radii and font names live in `shared/prototype/design/tokens.ts`. Geist supplies words and Geist Mono supplies hero numbers (ADR-0019); font assets are bundled with the application from `@expo-google-fonts/geist` and `@expo-google-fonts/geist-mono`, under the SIL Open Font License 1.1 (see `mobile/THIRD_PARTY_NOTICES.md`).
