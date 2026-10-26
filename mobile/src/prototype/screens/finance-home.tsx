@@ -171,7 +171,13 @@ export function foreignAmount(amount: number, code: string) {
   }
 }
 
-export function FinanceHome({ prefill }: { prefill?: Partial<FinRecord> }) {
+export function FinanceHome({
+  prefill,
+  onSaved,
+}: {
+  prefill?: Partial<FinRecord>
+  onSaved?: (r: FinRecord) => void
+}) {
   const params = useLocalSearchParams<{ add?: string }>()
   const t = useTheme(),
     s = finStore.use((s) => s),
@@ -834,6 +840,7 @@ export function FinanceHome({ prefill }: { prefill?: Partial<FinRecord> }) {
         }
         open={adding}
         onClose={() => setAdding(false)}
+        onSaved={onSaved}
       />
     </Screen>
   )

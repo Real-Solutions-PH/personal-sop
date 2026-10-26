@@ -211,6 +211,8 @@ export interface FinSettings {
   defaultAccountId: string
   lastAccountId?: string
   lastCategoryId?: string
+  /** Wallet card name (lowercased) → account, learned from Apple Pay taps. */
+  cardAccounts?: Record<string, string>
   monthStartDay: number
   horizon: 6 | 12 | 24
   includeUnplanned: boolean

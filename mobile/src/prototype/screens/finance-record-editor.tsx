@@ -21,11 +21,13 @@ type Props = {
   prefill?: Partial<FinRecord>
   open: boolean
   onClose: () => void
+  /** A new (not edited) record was saved. */
+  onSaved?: (r: FinRecord) => void
 }
 export function RecordEditor(props: Props) {
   return props.open ? <Editor {...props} /> : null
 }
-function Editor({ record, prefill, onClose }: Props) {
+function Editor({ record, prefill, onClose, onSaved }: Props) {
   const s = finStore.use((s) => s),
     t = useTheme(),
     cur = useCurrency(),
@@ -138,6 +140,7 @@ function Editor({ record, prefill, onClose }: Props) {
       })
       created = [r.transfer, ...(r.fee ? [r.fee] : [])]
     } else created = [A.addRecord({ ...input, source: "manual" })]
+    onSaved?.(created[0])
     undo(`Saved ${money(n, cur)}`, () =>
       A.deleteRecords(created.map((r) => r.id)),
     )

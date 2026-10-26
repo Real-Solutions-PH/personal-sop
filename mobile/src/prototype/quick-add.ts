@@ -1,8 +1,9 @@
 // An Apple Pay tap, as an iOS Shortcuts "Transaction" automation hands it to
 // personalsop://finance/quick-add?amount=…&merchant=…&card=… — untrusted text
-// from any app, so it only ever prefills an editor the user confirms.
+// from any app, so it saves on its own only when the card's account is
+// certain; anything else prefills an editor the user confirms.
 import * as C from "@domain/finance/calc"
-import type { Account, FinRecord, FinState } from "@domain/finance/data"
+import type { FinRecord, FinState } from "@domain/finance/data"
 
 type Params = Record<string, string | string[] | undefined>
 
@@ -38,24 +39,41 @@ export function parseAmount(raw: string | undefined): number | undefined {
   return n > 0 && n < 1e9 ? Math.round(n * 100) / 100 : undefined
 }
 
-/** The open account named like the Wallet card: its name contains the card
- * name ("BPI Visa" → "BPI Visa"), else the card name contains it. */
-export function cardAccount(accounts: Account[], card?: string) {
+/** The open account for a Wallet card: the one the user tied it to, else
+ * one named like it — its name contains the card name ("BPI Visa" → "BPI
+ * Visa"), else the card name contains it. `sure` when tied, or when only one
+ * account matches by name ("UnionBank" against "UnionBank Debit" and
+ * "UnionBank Visa" is a guess). */
+export function cardAccount(
+  s: Pick<FinState, "accounts" | "settings">,
+  card?: string,
+): { id: string; sure: boolean } | undefined {
   const c = card?.toLowerCase()
   if (!c) return undefined
-  const open = accounts.filter((a) => !a.archived && a.name)
-  return (
-    open.find((a) => a.name.toLowerCase().includes(c)) ??
-    open.find((a) => c.includes(a.name.toLowerCase()))
-  )?.id
+  const open = s.accounts.filter((a) => !a.archived && a.name),
+    tied = s.settings.cardAccounts?.[c]
+  if (tied && open.some((a) => a.id === tied)) return { id: tied, sure: true }
+  const named = open.filter((a) => a.name.toLowerCase().includes(c)),
+    within = open.filter((a) => c.includes(a.name.toLowerCase())),
+    id = (named[0] ?? within[0])?.id
+  return id
+    ? { id, sure: new Set([...named, ...within]).size === 1 }
+    : undefined
 }
 
 /** The editor prefill for a quick-add link, or an empty expense and an
- * error when the amount is missing or unreadable. */
+ * error when the amount is missing or unreadable. `auto` when the card's
+ * account is certain, so the expense can save straight away;
+ * `card` is the cleaned, lowercased card name to remember on save. */
 export function quickAdd(
   s: FinState,
   params: Params,
-): { prefill: Partial<FinRecord>; error?: string } {
+): {
+  prefill: Partial<FinRecord>
+  error?: string
+  card?: string
+  auto?: boolean
+} {
   const amount = parseAmount(first(params.amount))
   if (!amount)
     return {
@@ -69,14 +87,20 @@ export function quickAdd(
     // Hints name stock categories the user may have archived or deleted.
     known = s.categories.some(
       (c) => c.id === cat && !c.archived && c.kind === "expense",
-    )
+    ),
+    card = clean(first(params.card), 120)?.toLowerCase(),
+    account = cardAccount(s, card),
+    categoryId = known ? cat : undefined
   return {
     prefill: {
       type: "expense",
       amount,
       payee,
-      accountId: cardAccount(s.accounts, clean(first(params.card), 120)),
-      categoryId: known ? cat : undefined,
+      accountId: account?.id,
+      categoryId,
     },
+    card,
+    // An expense can't save without a category, so that one still asks.
+    auto: !!account?.sure && !!categoryId,
   }
 }

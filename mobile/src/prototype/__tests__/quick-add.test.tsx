@@ -1,9 +1,9 @@
 // Apple Pay quick-add: the Shortcuts link is untrusted, so it is parsed
-// strictly and only ever prefills an editor the user confirms.
+// strictly and saves on its own only when the card's account is certain.
 import type { Account } from "@domain/finance/data"
 import { finStore } from "@domain/finance/store"
 import { configureStorage, resetAll } from "@domain/lib/store"
-import { render, screen } from "@testing-library/react-native"
+import { fireEvent, render, screen } from "@testing-library/react-native"
 import type { ReactNode } from "react"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
@@ -119,10 +119,38 @@ test("a card picks the account named like it, ignoring case and archived ones", 
     acct("bpi", "BPI Visa"),
     acct("gc", "GCash"),
   ]
-  expect(cardAccount(accounts, "bpi visa")).toBe("bpi")
-  expect(cardAccount(accounts, "BPI Visa Signature")).toBe("bpi")
-  expect(cardAccount(accounts, "Metrobank Mastercard")).toBeUndefined()
-  expect(cardAccount(accounts, undefined)).toBeUndefined()
+  const s = { accounts, settings: finStore.get().settings }
+  expect(cardAccount(s, "bpi visa")).toEqual({ id: "bpi", sure: true })
+  expect(cardAccount(s, "BPI Visa Signature")?.id).toBe("bpi")
+  expect(cardAccount(s, "Metrobank Mastercard")).toBeUndefined()
+  expect(cardAccount(s, undefined)).toBeUndefined()
+})
+
+test("a card tied to an account wins over names, unless that account is archived", () => {
+  const accounts = [acct("bpi", "BPI Visa"), acct("gc", "GCash")],
+    settings = {
+      ...finStore.get().settings,
+      cardAccounts: { "bpi visa": "gc" },
+    }
+  expect(cardAccount({ accounts, settings }, "BPI Visa")).toEqual({
+    id: "gc",
+    sure: true,
+  })
+  accounts[1] = acct("gc", "GCash", true)
+  expect(cardAccount({ accounts, settings }, "BPI Visa")).toEqual({
+    id: "bpi",
+    sure: true,
+  })
+})
+
+test("a card named like more than one account is a guess", () => {
+  const accounts = [
+      acct("ubd", "UnionBank Debit"),
+      acct("ubv", "UnionBank Visa"),
+    ],
+    s = { accounts, settings: finStore.get().settings }
+  expect(cardAccount(s, "UnionBank")).toEqual({ id: "ubd", sure: false })
+  expect(cardAccount(s, "UnionBank Visa")).toEqual({ id: "ubv", sure: true })
 })
 
 test("a link prefills an expense with payee, category and the card's account", () => {
@@ -164,7 +192,7 @@ test("a missing or bad amount gives an empty expense and an error", () => {
   }
 })
 
-test("the quick-add route opens the editor prefilled and saves nothing", () => {
+test("a new card opens the editor prefilled and saves nothing", () => {
   const count = finStore.get().records.length
   mockParams = { amount: "1,234.50", merchant: "Jollibee", card: "" }
   render(<FinanceQuickAdd />, { wrapper })
@@ -181,4 +209,79 @@ test("the quick-add route with a bad amount opens empty with a toast", () => {
   expect(screen.getByLabelText("Amount ₱").props.value).toBe("")
   expect(screen.getByLabelText("Payee").props.value).toBe("")
   expect(toast.error).toHaveBeenCalled()
+})
+
+test("saving a new card's expense remembers its account; the next tap saves on its own", () => {
+  const count = finStore.get().records.length
+  mockParams = { amount: "289", merchant: "Jollibee", card: "My Card" }
+  const first = render(<FinanceQuickAdd />, { wrapper })
+  expect(finStore.get().settings.cardAccounts).toBeUndefined()
+  fireEvent.press(screen.getByText("Save"))
+  expect(finStore.get().records).toHaveLength(count + 1)
+  const tied = finStore.get().settings.cardAccounts?.["my card"]
+  expect(tied).toBeTruthy()
+  first.unmount()
+
+  mockParams = { amount: "150", merchant: "Jollibee", card: "MY CARD" }
+  render(<FinanceQuickAdd />, { wrapper })
+  expect(screen.queryByText("New transaction")).toBeNull()
+  const s = finStore.get(),
+    r = s.records.find((r) => r.amount === 150)
+  expect(s.records).toHaveLength(count + 2)
+  expect(r).toMatchObject({
+    type: "expense",
+    accountId: tied,
+    payee: "Jollibee",
+    categoryId: "dining",
+    source: "quick-add",
+  })
+  // Undo takes it back.
+  const [, opts] = (toast as unknown as jest.Mock).mock.calls.at(-1)
+  opts.action.onClick()
+  expect(finStore.get().records).toHaveLength(count + 1)
+})
+
+test("a tied card with an uncategorised merchant still asks", () => {
+  const account = finStore.get().accounts.find((a) => !a.archived) as Account,
+    count = finStore.get().records.length
+  finStore.set((s) => ({
+    ...s,
+    settings: { ...s.settings, cardAccounts: { "my card": account.id } },
+  }))
+  mockParams = { amount: "99", merchant: "Zqx Unknown Shop", card: "My Card" }
+  render(<FinanceQuickAdd />, { wrapper })
+  expect(screen.getByText("New transaction")).toBeTruthy()
+  expect(finStore.get().records).toHaveLength(count)
+})
+
+test("a first tap saves straight away to the one account named like the card", () => {
+  const s = finStore.get(),
+    account = s.accounts.find(
+      (a) => !a.archived && cardAccount(s, a.name)?.sure,
+    ) as Account,
+    count = finStore.get().records.length
+  mockParams = { amount: "289", merchant: "Jollibee", card: account.name }
+  render(<FinanceQuickAdd />, { wrapper })
+  expect(screen.queryByText("New transaction")).toBeNull()
+  expect(finStore.get().records).toHaveLength(count + 1)
+  expect(finStore.get().records.find((r) => r.amount === 289)?.accountId).toBe(
+    account.id,
+  )
+})
+
+test("a first tap with a card named like two accounts asks", () => {
+  const base = finStore.get().accounts[0] as Account,
+    count = finStore.get().records.length
+  finStore.set((s) => ({
+    ...s,
+    accounts: [
+      ...s.accounts,
+      { ...base, id: "ubd", name: "UnionBank Debit", archived: false },
+      { ...base, id: "ubv", name: "UnionBank Visa", archived: false },
+    ],
+  }))
+  mockParams = { amount: "289", merchant: "Jollibee", card: "UnionBank" }
+  render(<FinanceQuickAdd />, { wrapper })
+  expect(screen.getByText("New transaction")).toBeTruthy()
+  expect(finStore.get().records).toHaveLength(count)
 })

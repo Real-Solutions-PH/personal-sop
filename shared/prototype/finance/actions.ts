@@ -31,10 +31,11 @@ export type NewRecord = Omit<FinRecord, "id" | "status" | "source" | "at"> &
   Partial<Pick<FinRecord, "id" | "status" | "source" | "at">>
 export function addRecord(input: NewRecord): FinRecord {
   const r: FinRecord = {
-    status: "cleared",
-    source: "manual",
-    at: nowIso(),
     ...input,
+    // Defaults after the spread: callers pass keys explicitly set to undefined.
+    status: input.status ?? "cleared",
+    source: input.source ?? "manual",
+    at: input.at ?? nowIso(),
     id: input.id ?? uid(),
   }
   set((s) => ({
