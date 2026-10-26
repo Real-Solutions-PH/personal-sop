@@ -6,10 +6,17 @@
 
 type StorageModule = typeof import("@/lib/storage")
 
-function loadStorage(platform: "ios" | "android" | "web"): StorageModule {
+function loadStorage(
+  platform: "ios" | "android" | "web",
+  executionEnvironment = "standalone",
+): StorageModule {
   let mod: StorageModule | undefined
   jest.isolateModules(() => {
     jest.doMock("react-native", () => ({ Platform: { OS: platform } }))
+    jest.doMock("expo-constants", () => ({
+      __esModule: true,
+      default: { executionEnvironment },
+    }))
     mod = require("@/lib/storage")
   })
   if (!mod) throw new Error("storage module failed to load")
@@ -54,6 +61,21 @@ describe("native platforms", () => {
     expect(mmkv.getString("token")).toBe("stored")
     mmkv.remove("token")
     expect(mockMmkvRemove).toHaveBeenCalledWith("token")
+  })
+})
+
+describe("Expo Go (no Nitro native module)", () => {
+  it("keeps both stores in memory and never opens MMKV", async () => {
+    const { mmkv, getEncryptedSessionStore } = loadStorage("ios", "storeClient")
+
+    mmkv.set("k", "v")
+    expect(mmkv.getString("k")).toBe("v")
+    const session = await getEncryptedSessionStore()
+    session.set("s", "jwt")
+    expect(session.getString("s")).toBe("jwt")
+
+    expect(mockCreateMMKV).not.toHaveBeenCalled()
+    expect(mockGetItemAsync).not.toHaveBeenCalled()
   })
 })
 

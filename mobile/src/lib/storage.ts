@@ -1,7 +1,14 @@
+import Constants from "expo-constants"
 import * as Crypto from "expo-crypto"
 import * as SecureStore from "expo-secure-store"
 import { Platform } from "react-native"
 import type { StateStorage } from "zustand/middleware"
+
+// MMKV runs on Nitro, a native module Expo Go does not ship. There (and on
+// web) both stores fall back to the localStorage/in-memory store, so state
+// and the session do not survive a reload in Expo Go.
+const noMMKV =
+  Platform.OS === "web" || Constants.executionEnvironment === "storeClient"
 
 interface KVStore {
   getString(key: string): string | undefined
@@ -52,8 +59,7 @@ function createNativeStore(): KVStore {
 
 let generalStore: KVStore | undefined
 function getGeneralStore() {
-  generalStore ??=
-    Platform.OS === "web" ? createWebStore() : createNativeStore()
+  generalStore ??= noMMKV ? createWebStore() : createNativeStore()
   return generalStore
 }
 export const mmkv: KVStore = {
@@ -125,9 +131,7 @@ let sessionStorePromise: Promise<KVStore> | null = null
  */
 export function getEncryptedSessionStore(): Promise<KVStore> {
   sessionStorePromise ??= (
-    Platform.OS === "web"
-      ? Promise.resolve(createWebStore())
-      : openEncryptedNativeStore()
+    noMMKV ? Promise.resolve(createWebStore()) : openEncryptedNativeStore()
   ).catch((err) => {
     sessionStorePromise = null
     throw err
