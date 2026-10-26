@@ -80,6 +80,7 @@ export default function SignUpForm() {
                       data-testid="full-name-input"
                       placeholder="User"
                       type="text"
+                      autoComplete="name"
                       {...field}
                     />
                   </FormControl>
@@ -99,6 +100,7 @@ export default function SignUpForm() {
                       data-testid="email-input"
                       placeholder="user@example.com"
                       type="email"
+                      autoComplete="username"
                       {...field}
                     />
                   </FormControl>
@@ -117,6 +119,7 @@ export default function SignUpForm() {
                     <PasswordInput
                       data-testid="password-input"
                       placeholder="Password"
+                      autoComplete="new-password"
                       {...field}
                     />
                   </FormControl>
@@ -135,6 +138,7 @@ export default function SignUpForm() {
                     <PasswordInput
                       data-testid="confirm-password-input"
                       placeholder="Confirm Password"
+                      autoComplete="new-password"
                       {...field}
                     />
                   </FormControl>

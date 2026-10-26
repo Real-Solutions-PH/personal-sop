@@ -69,6 +69,7 @@ export default function LoginForm() {
                       data-testid="email-input"
                       placeholder="user@example.com"
                       type="email"
+                      autoComplete="username"
                       {...field}
                     />
                   </FormControl>
@@ -95,6 +96,7 @@ export default function LoginForm() {
                     <PasswordInput
                       data-testid="password-input"
                       placeholder="Password"
+                      autoComplete="current-password"
                       {...field}
                     />
                   </FormControl>

@@ -147,6 +147,7 @@ export default function ResetPasswordForm() {
                     <PasswordInput
                       data-testid="new-password-input"
                       placeholder="New Password"
+                      autoComplete="new-password"
                       {...field}
                     />
                   </FormControl>
@@ -165,6 +166,7 @@ export default function ResetPasswordForm() {
                     <PasswordInput
                       data-testid="confirm-password-input"
                       placeholder="Confirm Password"
+                      autoComplete="new-password"
                       {...field}
                     />
                   </FormControl>

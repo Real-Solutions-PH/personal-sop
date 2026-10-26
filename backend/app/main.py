@@ -211,6 +211,18 @@ app.include_router(
 )
 
 
+# Lets iOS password managers (iCloud Keychain, Bitwarden, 1Password) tie
+# credentials saved for this host to the app, so they autofill its login.
+# Pairs with `webcredentials:<apiHost>` in mobile/app.json.
+@app.get(
+    "/.well-known/apple-app-site-association",
+    tags=["well-known"],
+    include_in_schema=False,
+)
+def apple_app_site_association() -> dict[str, Any]:
+    return {"webcredentials": {"apps": ["N2Y99Q8A79.com.schadenkai.personal-sop"]}}
+
+
 def custom_openapi() -> dict[str, Any]:
     """OpenAPI schema with error responses using the §3.6 envelope.
 

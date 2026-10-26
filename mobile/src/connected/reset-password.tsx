@@ -80,6 +80,8 @@ export default function ResetPasswordScreen() {
                 onChangeText={onChange}
                 placeholder="********"
                 secureTextEntry
+                textContentType="newPassword"
+                autoComplete="new-password"
               />
             </FormField>
           )}
@@ -99,6 +101,8 @@ export default function ResetPasswordScreen() {
                 onChangeText={onChange}
                 placeholder="********"
                 secureTextEntry
+                textContentType="newPassword"
+                autoComplete="new-password"
               />
             </FormField>
           )}

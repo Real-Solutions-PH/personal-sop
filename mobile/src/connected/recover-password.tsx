@@ -57,6 +57,8 @@ export default function RecoverPasswordScreen() {
                 placeholder="you@example.com"
                 autoCapitalize="none"
                 keyboardType="email-address"
+                textContentType="emailAddress"
+                autoComplete="email"
               />
             </FormField>
           )}

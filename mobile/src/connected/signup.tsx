@@ -44,6 +44,8 @@ export default function SignupScreen() {
                   value={value}
                   onChangeText={onChange}
                   placeholder="Jane Doe"
+                  textContentType="name"
+                  autoComplete="name"
                 />
               </FormField>
             )}
@@ -61,6 +63,8 @@ export default function SignupScreen() {
                   placeholder="you@example.com"
                   autoCapitalize="none"
                   keyboardType="email-address"
+                  textContentType="username"
+                  autoComplete="email"
                 />
               </FormField>
             )}
@@ -80,6 +84,8 @@ export default function SignupScreen() {
                   onChangeText={onChange}
                   placeholder="********"
                   secureTextEntry
+                  textContentType="newPassword"
+                  autoComplete="new-password"
                 />
               </FormField>
             )}

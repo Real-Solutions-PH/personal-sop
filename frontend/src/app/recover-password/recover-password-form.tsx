@@ -82,6 +82,7 @@ export default function RecoverPasswordForm() {
                       data-testid="email-input"
                       placeholder="user@example.com"
                       type="email"
+                      autoComplete="email"
                       {...field}
                     />
                   </FormControl>
