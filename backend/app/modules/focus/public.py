@@ -2,7 +2,7 @@
 other modules may call. Plain dicts out, so a tool result is JSON as is."""
 
 import uuid
-from datetime import timedelta
+from datetime import date, timedelta
 from typing import Any, Literal
 
 from sqlmodel import col, func
@@ -158,3 +158,17 @@ def today_line(ctx: Ctx) -> dict[str, Any]:
     """The few focus facts Fern may state without a tool call."""
     s = summary(ctx)
     return {k: s[k] for k in ("focused", "daily_goal", "goal_left", "running")}
+
+
+def session_facts(ctx: Ctx, first: date, last: date) -> list[dict[str, Any]]:
+    """One row per stretch of counted focus over the days ``[first, last]``,
+    on the day it started."""
+    r = svc.focus_range(ctx, first, last)
+    return [
+        {
+            "day": ctx.clock.day_of(f.start).isoformat(),
+            "item": f.item.title if f.item else None,
+            "focus_min": round((f.end - f.start).total_seconds() / 60, 1),
+        }
+        for f in sorted(r.spans, key=lambda f: f.start)
+    ]

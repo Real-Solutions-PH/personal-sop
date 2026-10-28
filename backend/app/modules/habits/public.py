@@ -5,7 +5,7 @@ None of these commit: the calling use case does (see ``app.shared.context``).
 
 import uuid
 from datetime import date, timedelta
-from typing import Literal
+from typing import Any, Literal
 
 from sqlmodel import col
 
@@ -340,3 +340,26 @@ def set_routine_archived(ctx: Ctx, *, routine_id: uuid.UUID, archived: bool) -> 
     ctx.session.add(row)
     ctx.session.flush()
     svc._dirty(ctx, ctx.today)
+
+
+def log_facts(ctx: Ctx, first: date, last: date) -> list[dict[str, Any]]:
+    """One row per habit check-in over the days ``[first, last]``."""
+    names = {
+        h.id: h.name for h in owned_repo.list_rows(ctx, Habit, include_deleted=True)
+    }
+    return [
+        {
+            "day": g.day.isoformat(),
+            "habit": names.get(g.habit_id, ""),
+            "status": g.status,
+            "done": 1 if g.status == "done" else 0,
+            "value": g.value,
+        }
+        for g in owned_repo.list_rows(
+            ctx,
+            HabitLog,
+            col(HabitLog.day) >= first,
+            col(HabitLog.day) <= last,
+            order_by=[col(HabitLog.day)],
+        )
+    ]

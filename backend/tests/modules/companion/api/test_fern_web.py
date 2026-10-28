@@ -54,6 +54,9 @@ def test_an_unknown_dish_is_searched_then_logged_with_those_numbers(
                         "protein": 34,
                         "carbs": 12,
                         "fat": 26,
+                        "sugar": 1,
+                        "sodium": 800,
+                        "grams": 200,
                     }
                 ],
                 confidence=0.8,
@@ -106,7 +109,18 @@ def test_a_promise_to_log_after_searching_gets_the_corrective_pass(
             call(
                 "log_meal",
                 description="Classic Savory chicken",
-                items=[{"name": "Classic Savory chicken", "kcal": 420, "protein": 34}],
+                items=[
+                    {
+                        "name": "Classic Savory chicken",
+                        "kcal": 420,
+                        "protein": 34,
+                        "carbs": 12,
+                        "fat": 26,
+                        "sugar": 1,
+                        "sodium": 800,
+                        "grams": 200,
+                    }
+                ],
                 confidence=0.8,
             ),
         ),
@@ -161,6 +175,9 @@ def test_logging_a_meal_hands_back_the_day_with_it_counted(
                         "protein": 25,
                         "carbs": 30,
                         "fat": 15,
+                        "sugar": 2,
+                        "sodium": 500,
+                        "grams": 200,
                     },
                     {
                         "name": "Rice",
@@ -168,6 +185,9 @@ def test_logging_a_meal_hands_back_the_day_with_it_counted(
                         "protein": 4,
                         "carbs": 45,
                         "fat": 0.5,
+                        "sugar": 0,
+                        "sodium": 2,
+                        "grams": 158,
                     },
                 ],
                 confidence=0.5,

@@ -184,3 +184,34 @@ def delete_task(ctx: Ctx, *, task_id: uuid.UUID) -> None:
 
 def restore_task(ctx: Ctx, *, task_id: uuid.UUID) -> None:
     ops.restore(ctx, repo.soft_deleted_task(ctx, task_id))
+
+
+def task_facts(ctx: Ctx, first: date, last: date) -> list[dict[str, Any]]:
+    """One row per task finished, or due, in the days ``[first, last]``,
+    on the day it was finished (else its due day)."""
+    lo, hi = ctx.clock.window(first, last)
+    lists = {t.id: t.name for t in owned_repo.list_rows(ctx, TaskList)}
+    rows = owned_repo.list_rows(
+        ctx,
+        Task,
+        (col(Task.completed_at) >= lo) & (col(Task.completed_at) < hi)
+        | (col(Task.due_date) >= first) & (col(Task.due_date) <= last),
+    )
+    out = []
+    for t in rows:
+        done_on = ctx.clock.day_of(t.completed_at) if t.completed_at else None
+        day = done_on if done_on and first <= done_on <= last else t.due_date
+        if day is None:
+            continue
+        out.append(
+            {
+                "day": day.isoformat(),
+                "task": t.title,
+                "list": lists.get(t.list_id, "Inbox") if t.list_id else "Inbox",
+                "status": t.status,
+                "due": t.due_date.isoformat() if t.due_date else None,
+                "done": 1 if t.status == "done" else 0,
+                "open": 1 if t.status == "open" else 0,
+            }
+        )
+    return sorted(out, key=lambda r: r["day"])

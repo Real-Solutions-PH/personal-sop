@@ -47,7 +47,18 @@ def results(events: list[dict[str, Any]]) -> list[Any]:
 def breakfast(*foods: tuple[str, float]) -> dict[str, Any]:
     return {
         "description": "Breakfast: " + " + ".join(n for n, _ in foods),
-        "items": [{"name": n, "kcal": k} for n, k in foods],
+        # All carbs, so the energy adds up (4 kcal per gram).
+        "items": [
+            {
+                "name": n,
+                "kcal": k,
+                "carbs": k / 4,
+                "sugar": 0,
+                "sodium": 0,
+                "grams": 100,
+            }
+            for n, k in foods
+        ],
         "confidence": 0.5,
     }
 

@@ -18,8 +18,11 @@ from app.modules.fitness.models import (
     Exercise,
     FoodItem,
     Meal,
+    MealItem,
     WeighIn,
     Workout,
+    WorkoutExercise,
+    WorkoutSet,
     WorkoutTemplate,
 )
 from app.modules.media import public as media_public
@@ -514,9 +517,116 @@ def recent_weigh_ins(ctx: Ctx, *, days: int = 30) -> list[WeighIn]:
     )
 
 
+# ------------------------------------------------- facts for Fern's reads
+
+
+_NUTRIENTS = ("kcal", "protein", "carbs", "fat", "fiber", "sat_fat", "sugar", "sodium")
+
+
+def meal_item_facts(ctx: Ctx, first: date, last: date) -> list[dict[str, Any]]:
+    """One row per food eaten over the business days ``[first, last]``."""
+    lo, hi = ctx.clock.window(first, last)
+    meals = {
+        m.id: m
+        for m in owned_repo.list_rows(
+            ctx, Meal, col(Meal.eaten_at) >= lo, col(Meal.eaten_at) < hi
+        )
+    }
+    if not meals:
+        return []
+    items = owned_repo.list_rows(
+        ctx,
+        MealItem,
+        col(MealItem.meal_id).in_(list(meals)),
+        order_by=[col(MealItem.position)],
+    )
+    out = []
+    for it in items:
+        m = meals[it.meal_id]
+        out.append(
+            {
+                "day": ctx.clock.day_of(m.eaten_at).isoformat(),
+                "time": m.eaten_at.astimezone(ctx.clock.zone).strftime("%H:%M"),
+                "meal": m.label,
+                "food": it.name,
+                "amount": f"{it.qty:g} {it.unit}",
+                "assumed": it.assumption,
+                "estimated": m.status != "confirmed",
+                **{k: getattr(it, k) for k in _NUTRIENTS},
+            }
+        )
+    return sorted(out, key=lambda r: (r["day"], r["time"]))
+
+
+def workout_facts(ctx: Ctx, first: date, last: date) -> list[dict[str, Any]]:
+    """One row per exercise of each finished workout in ``[first, last]``:
+    its working sets, reps, top weight and volume (reps x weight)."""
+    lo, hi = ctx.clock.window(first, last)
+    workouts = {
+        w.id: w
+        for w in owned_repo.list_rows(
+            ctx,
+            Workout,
+            col(Workout.started_at) >= lo,
+            col(Workout.started_at) < hi,
+            col(Workout.status) == "finished",
+        )
+    }
+    if not workouts:
+        return []
+    names = {e.id: e.name for e in owned_repo.list_rows(ctx, Exercise)}
+    wes = owned_repo.list_rows(
+        ctx, WorkoutExercise, col(WorkoutExercise.workout_id).in_(list(workouts))
+    )
+    sets: dict[uuid.UUID, list[WorkoutSet]] = {}
+    for st in owned_repo.list_rows(
+        ctx,
+        WorkoutSet,
+        col(WorkoutSet.workout_exercise_id).in_([we.id for we in wes]),
+    ):
+        if st.kind != "warmup" and st.completed_at is not None:
+            sets.setdefault(st.workout_exercise_id, []).append(st)
+    out = []
+    for we in wes:
+        w, done = workouts[we.workout_id], sets.get(we.id, [])
+        mins = sum(st.duration_sec or 0 for st in done) / 60
+        out.append(
+            {
+                "day": ctx.clock.day_of(w.started_at).isoformat(),
+                "workout": w.name,
+                "exercise": names.get(we.exercise_id, ""),
+                "sets": len(done),
+                "reps": sum(st.reps for st in done),
+                "top_kg": max((st.weight for st in done), default=None) or None,
+                "volume_kg": sum(st.reps * st.weight for st in done),
+                "minutes": round(mins, 1) if mins else None,
+            }
+        )
+    return sorted(out, key=lambda r: r["day"])
+
+
+def weigh_in_facts(ctx: Ctx, first: date, last: date) -> list[dict[str, Any]]:
+    lo, hi = ctx.clock.window(first, last)
+    return [
+        {
+            "day": ctx.clock.day_of(w.measured_at).isoformat(),
+            "kg": w.weight_kg,
+            "body_fat_pct": w.body_fat_pct,
+        }
+        for w in owned_repo.list_rows(
+            ctx,
+            WeighIn,
+            col(WeighIn.measured_at) >= lo,
+            col(WeighIn.measured_at) < hi,
+            order_by=[col(WeighIn.measured_at)],
+        )
+    ]
+
+
 # ------------------------------------------------- food library
 
 # ------------------------------------------------- changes from chat (Fern)
 from app.modules.fitness import chat as chat  # noqa: E402
 from app.modules.fitness import food_library as food_library  # noqa: E402
+from app.modules.fitness import nutrient_check as nutrient_check  # noqa: E402
 from app.modules.fitness.food_library import FoodDraft as FoodDraft  # noqa: E402

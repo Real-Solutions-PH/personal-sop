@@ -717,7 +717,7 @@ def _edit_meal(ctx: Ctx, row_id: uuid.UUID, ch: dict[str, Any]) -> dict[str, Any
                     float(it.get("protein") or 0),
                     float(it.get("carbs") or 0),
                     float(it.get("fat") or 0),
-                    None,
+                    it.get("assumption"),
                     fiber=it.get("fiber"),
                     sat_fat=it.get("sat_fat"),
                     sugar=it.get("sugar"),

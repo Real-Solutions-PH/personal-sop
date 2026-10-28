@@ -583,7 +583,16 @@ def test_remove_and_add_meal_items_then_undo(
             meal_id=meal_id,
             remove_items=["rice"],
             add_items=[
-                {"name": "Banana", "qty": 1, "unit": "pc", "kcal": 105, "carbs": 27}
+                {
+                    "name": "Banana",
+                    "qty": 1,
+                    "unit": "pc",
+                    "kcal": 105,
+                    "carbs": 27,
+                    "sugar": 14,
+                    "sodium": 1,
+                    "grams": 118,
+                }
             ],
         ),
     )

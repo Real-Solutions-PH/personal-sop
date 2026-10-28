@@ -15,6 +15,7 @@ import uuid
 from collections.abc import Callable
 from contextvars import ContextVar
 from dataclasses import dataclass, field
+from datetime import date, timedelta
 from typing import Annotated, Any, Literal
 
 from fastapi import HTTPException
@@ -26,7 +27,7 @@ from sqlmodel import col
 
 from app.modules.ai_providers import public as ai
 from app.modules.capture import public as capture
-from app.modules.companion import brain, grounding, memory, routing, web
+from app.modules.companion import brain, grounding, memory, records, routing, web
 from app.modules.companion.defaults import COMPANION_NAME
 from app.modules.companion.models import (
     MEMORY_KINDS,
@@ -538,6 +539,32 @@ class LookupArgs(BaseModel):
     question: Annotated[str, Field(min_length=1, max_length=300)]
 
 
+class RecordsArgs(BaseModel):
+    area: Literal["meals", "workouts", "weight", "money", "habits", "tasks", "focus"]
+    first_day: date | None = Field(
+        default=None, description="First day (YYYY-MM-DD); else `days` back."
+    )
+    last_day: date | None = Field(
+        default=None, description="Last day (YYYY-MM-DD); default today."
+    )
+    days: Annotated[int, Field(ge=1, le=366)] = Field(
+        default=7, description="How many days up to last_day, when no first_day."
+    )
+    group_by: Literal[
+        "none", "day", "week", "month", "weekday",
+        "meal", "food", "workout", "exercise", "type", "category", "payee",
+        "account", "habit", "status", "task", "list", "item",
+    ] = Field(
+        default="day",
+        description="'none' lists the records themselves (newest first).",
+    )  # fmt: skip
+    contains: Annotated[str, Field(min_length=1, max_length=60)] | None = Field(
+        default=None,
+        description="Only records whose text (food, category, payee, habit, "
+        "task, exercise...) contains this.",
+    )
+
+
 class WebSearchArgs(BaseModel):
     query: Annotated[str, Field(min_length=2, max_length=200)]
 
@@ -842,6 +869,19 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
             if body.get(k)
         }
 
+    def query_records(**kw: Any) -> dict[str, Any]:
+        a = RecordsArgs(**kw)
+        last = a.last_day or ctx.today
+        first = a.first_day or last - timedelta(days=a.days - 1)
+        return records.query(
+            ctx,
+            area=a.area,
+            first=first,
+            last=last,
+            group_by=a.group_by,
+            contains=a.contains,
+        )
+
     def nutrition_status(**kw: Any) -> dict[str, Any]:
         NoArgs(**kw)
         # The person sees the day as a card (rings for the goals, bars for
@@ -942,6 +982,14 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
         (show_memories, NoArgs, "Show what you remember about the user."),
         (suggest, ChipsArgs, "Offer up to four follow-up prompts as chips."),
         (lookup, LookupArgs, "Look up a number in the user's own data."),
+        (
+            query_records,
+            RecordsArgs,
+            "Read the user's own records in one area (meals, workouts, weight, "
+            "money, habits, tasks, focus) over any days, filtered and grouped, "
+            "with totals and per-day averages already worked out. Use it for "
+            "any question about their past, comparisons and patterns.",
+        ),
         (
             nutrition_status,
             NoArgs,
@@ -1098,12 +1146,30 @@ be told to register or add them; listing them back is not recording them.
 - A write that returns an error did not happen; say so plainly.
 Show charts, insights, coaching, plans, trackers and memories with their
 tools instead of describing them; each returns what its card shows, so speak
-only to that. Use `lookup` for a number not in TODAY. When they name a food,
+only to that.
+Questions and thinking things through are as much your job as recording.
+When they ask about their past, compare periods, look for a pattern or ask
+what you think ("what did I eat Tuesday", "am I eating enough protein this
+month", "do I spend more on weekends", "why am I not losing weight"), read
+the records with `query_records` instead of guessing: one call per area and
+range, grouped the way the question needs (by day for trends, by food,
+category or exercise for "what drives it", by weekday for habits of the
+week), and more calls to compare two periods or two areas. Then answer from
+what it returned: the number, what it means for them, and one concrete
+suggestion. Say the range and how many days had records when an average is
+involved, and say plainly when there is too little data. Use `lookup` only
+for a quick number it already knows. When they name a food,
 dish, drink or product you don't know well (a restaurant or branded item,
 a local dish), call `web_search` first for that item alone, in the user's
 own words plus "nutrition", for example "<restaurant> <dish> nutrition";
 never add words they didn't say (no "sandwich" for "chicken") and never add
-the rest of the meal to the query. Name `log_meal` items in their words too. Then call `log_meal` in the same turn: the
+the rest of the meal to the query. Name `log_meal` items in their words too. Every estimated item carries
+`grams` (the edible weight of what they ate, no bone or shell), a short
+`assumption` naming the portion you priced, and its sugar and sodium as
+well as the macros; a piece of chicken is priced at its real size (a breast
+quarter is about 150 g of meat, about 40 g protein), not a generic serving.
+If `log_meal` answers `fix_these_items_then_call_again`, correct the named
+values and call it again in this reply. Then call `log_meal` in the same turn: the
 searched item scaled to what they ate, and common foods (rice, eggs, bread)
 as their own items from standard values (1 cup cooked white rice is about
 205 kcal, 4 g protein, 45 g carbs). If the results have nothing for that
