@@ -136,8 +136,8 @@ def test_log_meal_keeps_the_assumed_portion(
     assert (it.protein, it.sugar, it.sodium) == (40, 2, 600)
 
 
-def _drink_meal(api: Any) -> str:
-    return str(
+def _drink_meal(api: Any, db: Session) -> str:
+    meal_id = str(
         api.post(
             "/fitness/meals",
             {
@@ -152,19 +152,26 @@ def _drink_meal(api: Any) -> str:
                         "protein": 7,
                         "carbs": 34,
                         "fat": 11,
-                        "sugar": 22,
                     }
                 ],
             },
         )["id"]
     )
+    # The hand-entry route takes no sugar; the chat-logged drink had 22 g.
+    [row] = live(rows_of(api, MealItem))
+    it = db.get(MealItem, row.id)
+    assert it is not None
+    it.sugar = 22
+    db.add(it)
+    db.commit()
+    return meal_id
 
 
 def test_edit_meal_can_change_sugar(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     api = fern(client, db)
-    meal_id = _drink_meal(api)
+    meal_id = _drink_meal(api, db)
     step, _ = turn(
         api,
         client,
@@ -187,7 +194,7 @@ def test_edit_meal_refuses_sugar_above_carbs(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     api = fern(client, db)
-    meal_id = _drink_meal(api)
+    meal_id = _drink_meal(api, db)
     # The live failure: carbs lowered, sugar left at 22.
     _, model = turn(
         api,
