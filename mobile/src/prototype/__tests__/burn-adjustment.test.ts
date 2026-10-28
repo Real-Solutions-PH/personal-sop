@@ -97,3 +97,39 @@ test("re-saving the target on an eat-back day keeps the base", () => {
   if (t) setMacroTarget(t)
   expect(targetFor(fitStore.get(), today())?.kcal).toBe(2000)
 })
+
+test("state saved by a build before eat-back loads with no adjustments", () => {
+  // The phone's stored fitness state from build 12 has no `adjustments`.
+  const { adjustments: _, ...rest } = fitStore.get()
+  const old = {
+    ...rest,
+    meals: [],
+    settings: { ...rest.settings, restSec: 97 },
+  }
+  jest.isolateModules(() => {
+    const lib =
+      require("@domain/lib/store") as typeof import("@domain/lib/store")
+    const errors: unknown[] = []
+    lib.configureStorage(
+      {
+        getItem: (k) =>
+          k === "sop-proto:fitness" ? JSON.stringify(old) : null,
+        setItem: () => {},
+        removeItem: () => {},
+      },
+      (e) => errors.push(e),
+    )
+    const { fitStore: fresh } =
+      require("@domain/fitness/store") as typeof import("@domain/fitness/store")
+    const C =
+      require("@domain/fitness/calc") as typeof import("@domain/fitness/calc")
+    expect(fresh.get().adjustments).toEqual([])
+    // Hydrated, not reseeded: the stored meals came back.
+    expect(fresh.get().settings.restSec).toBe(97)
+    expect(fresh.get().meals).toEqual([])
+    expect(C.budgetFor(fresh.get(), today())).toEqual(
+      C.targetFor(fresh.get(), today()),
+    )
+    expect(errors).toEqual([])
+  })
+})
