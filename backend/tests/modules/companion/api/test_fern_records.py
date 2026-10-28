@@ -116,7 +116,7 @@ def test_log_meal_keeps_the_assumed_portion(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     api = fern(client, db)
-    _, model = turn(
+    step, model = turn(
         api,
         client,
         monkeypatch,
@@ -129,6 +129,8 @@ def test_log_meal_keeps_the_assumed_portion(
         ),
     )
     assert "error" not in tool_result(model)
+    # A meal waits for the person's OK before it is saved.
+    api.post(f"/capture/cards/{step['card_id']}/confirm")
     [it] = [i for i in live(rows_of(api, MealItem)) if i.name == "Chicken inasal pecho"]
     assert it.assumption == "breast quarter with skin, about 150 g"
     assert (it.protein, it.sugar, it.sodium) == (40, 2, 600)
@@ -167,7 +169,7 @@ def test_edit_meal_can_change_sugar(
         api,
         client,
         monkeypatch,
-        "the chocolate was unsweetened",
+        "fix it, the chocolate drink was unsweetened",
         act(
             "edit_meal",
             meal_id=meal_id,
@@ -191,7 +193,7 @@ def test_edit_meal_refuses_sugar_above_carbs(
         api,
         client,
         monkeypatch,
-        "the chocolate was unsweetened",
+        "fix it, the chocolate drink was unsweetened",
         act(
             "edit_meal",
             meal_id=meal_id,
