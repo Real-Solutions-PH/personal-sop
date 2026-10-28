@@ -36,6 +36,7 @@ import { go } from "../navigation"
 import { useTheme } from "../theme"
 import { Button, Empty, Screen, undo } from "../ui"
 import { Ring } from "../visual"
+import { ActivityCard } from "./activity-card"
 import { LimitList } from "./nutrient-limits"
 import { NutritionTrend } from "./nutrition-trend"
 import { StatsShell } from "./stats-shell"
@@ -209,7 +210,7 @@ export function Nutrition({
     today = dayKey(),
     [range, setRange] = useState("14"),
     totals = C.dayTotals(s, day),
-    target = C.targetFor(s, day),
+    target = C.budgetFor(s, day),
     meals = C.mealsOn(s, day),
     detail = dayDetail(meals),
     seen = new Set<string>(),
@@ -416,6 +417,7 @@ export function Nutrition({
           </View>
         )}
       </Frame>
+      <ActivityCard day={day} />
       <Frame style={{ padding: 16 }}>
         <LimitList detail={detail} limits={limitsFor(target)} />
       </Frame>

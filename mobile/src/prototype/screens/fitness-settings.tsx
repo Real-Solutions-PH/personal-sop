@@ -27,6 +27,7 @@ import { useTheme } from "../theme"
 import { TimeInput } from "../time-input"
 import { Screen } from "../ui"
 import { GoalSheet } from "./fitness-body"
+import { HealthSettings } from "./health-connect"
 export function FitnessSettings() {
   const s = fitStore.use((s) => s),
     st = s.settings,
@@ -211,6 +212,9 @@ export function FitnessSettings() {
               : "Claude connector · Coming soon. Add this app as a custom connector in Claude; meals you log there land here as ‘via Claude’."}
           </Copy>
         </Frame>
+      </View>
+      <View style={{ marginTop: -12 }}>
+        <HealthSettings />
       </View>
       <View style={{ marginTop: -12 }}>
         <SectionHeading>Library</SectionHeading>

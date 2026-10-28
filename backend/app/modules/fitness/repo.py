@@ -20,6 +20,7 @@ from app.modules.fitness.models import (
     Meal,
     MealItem,
     RestTimer,
+    TargetAdjustment,
     TemplateItem,
     WeighIn,
     Workout,
@@ -286,6 +287,10 @@ def load_state(ctx: Ctx, *, meals: bool = True) -> C.FitState:
             for t in owned_repo.list_rows(
                 ctx, MacroTarget, order_by=[col(MacroTarget.effective_from)]
             )
+        ],
+        adjustments=[
+            C.AdjustmentS(id=str(a.id), day=a.day, kcal=a.kcal)
+            for a in owned_repo.list_rows(ctx, TargetAdjustment)
         ],
         meals=[meal_s(m, m_items[m.id]) for m in meal_rows],
         settings=settings_s(get_settings(ctx)),

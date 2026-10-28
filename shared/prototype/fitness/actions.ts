@@ -3,6 +3,7 @@ import { dayKey } from "../lib/day"
 import { liveStore, startLive, stopLive } from "../lib/live"
 import { uid } from "../lib/store"
 import {
+  budgetFor,
   defaultSeconds,
   exerciseHistory,
   isDone,
@@ -934,6 +935,16 @@ export function setMacroTarget(m: Macros & NutrientLimits): MacroTarget {
   }))
   return t
 }
+/** Sets the burned kcal added to `day`'s budget: a re-tap replaces the
+ * amount (one row per day, same id), kcal <= 0 removes it. */
+export function setBurnAdjustment(day: string, kcal: number) {
+  fitStore.set((s) => {
+    const rest = s.adjustments.filter((a) => a.day !== day)
+    if (kcal <= 0) return { ...s, adjustments: rest }
+    const id = s.adjustments.find((a) => a.day === day)?.id ?? uid()
+    return { ...s, adjustments: [...rest, { id, day, kcal }] }
+  })
+}
 export function updateSettings(patch: Partial<FitnessSettings>) {
   fitStore.set((s) => ({ ...s, settings: { ...s.settings, ...patch } }))
 }
@@ -943,7 +954,7 @@ export function resetFitness() {
 }
 export function macrosLeftToday() {
   const s = fitStore.get()
-  const t = targetFor(s, dayKey())
+  const t = budgetFor(s, dayKey())
   const eaten = s.meals
     .filter(
       (m) =>

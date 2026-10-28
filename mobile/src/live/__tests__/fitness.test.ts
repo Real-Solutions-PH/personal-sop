@@ -43,6 +43,7 @@ import {
   restActions,
   type SyncedWorkout,
   settingsMapper,
+  targetAdjustmentMapper,
   templateItemId,
   weighInMapper,
 } from "../mappers/fitness"
@@ -234,6 +235,15 @@ test("a blank live account starts with the server's goal, not the demo's", () =>
   const st = fitStore.get().settings
   expect(st.goalDirection).toBe("maintain")
   expect(st.goalWeight).toBeUndefined()
+})
+
+test("a blank live account drops eat-back rows tapped in the demo", () => {
+  fitStore.set((s) => ({
+    ...s,
+    adjustments: [{ id: "demo", day: "2026-10-28", kcal: 300 }],
+  }))
+  clearToBlank()
+  expect(fitStore.get().adjustments).toEqual([])
 })
 
 test("estimated and picked meal items carry UUID ids", () => {
@@ -1108,4 +1118,32 @@ test("rest actions: start, adjust, restart, skip", () => {
   ])
   expect(exerciseMapper().entity).toBe("exercise")
   expect(macroTargetMapper().entity).toBe("macro_target")
+})
+
+test("target adjustments sync one row per day", () => {
+  const m = targetAdjustmentMapper()
+  expect(m.entity).toBe("target_adjustment")
+  const s = {
+    ...seed(),
+    adjustments: [{ id: "local", day: "2026-10-28", kcal: 300 }],
+  }
+  const a = { id: "a1", day: "2026-10-28", kcal: 420 }
+  expect(m.toServer(a, s)).toEqual({
+    day: "2026-10-28",
+    kcal: 420,
+    source: "health",
+  })
+  expect(m.fromServer({ id: "a1", day: "2026-10-28", kcal: "420" }, s)).toEqual(
+    a,
+  )
+  // A pulled row for the same day under another id (a second device's tap,
+  // which the server folded onto its row) replaces the local one.
+  const merged = m.merge(
+    s,
+    [{ id: "server", day: "2026-10-28", kcal: 450 }],
+    [],
+  )
+  expect(merged.adjustments).toEqual([
+    { id: "server", day: "2026-10-28", kcal: 450 },
+  ])
 })

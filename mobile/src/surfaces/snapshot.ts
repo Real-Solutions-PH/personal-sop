@@ -118,7 +118,7 @@ function tasksPart(s: TasksState, now: Date): WidgetSnapshot["tasks"] {
 
 function macrosPart(s: FitnessState, now: Date): WidgetSnapshot["macros"] {
   const day = dayKey(now)
-  const target = F.targetFor(s, day)
+  const target = F.budgetFor(s, day)
   if (!target) return null
   const { totals, count } = F.dayTotals(s, day)
   const part = (k: "kcal" | "protein" | "carbs" | "fat") => ({

@@ -395,3 +395,43 @@ def test_rest_timer_round_trips_through_its_actions(
 
     assert push(client, h, op("action", "fitness.rest.skip"))[0]["status"] == "applied"
     assert last_rest()["deleted"] is True
+
+
+def test_target_adjustment_is_one_row_per_day_near_today(
+    client: TestClient, db: Session
+) -> None:
+    _, h = signed_in(db)
+    today = utcnow().date()
+    first = push(
+        client,
+        h,
+        op("upsert", "target_adjustment", uuid.uuid4(), day=str(today), kcal=300),
+    )[0]
+    assert first["status"] == "applied" and first["row"]["kcal"] == 300
+    # A second device's row for the same day lands on the same row.
+    again = push(
+        client,
+        h,
+        op("upsert", "target_adjustment", uuid.uuid4(), day=str(today), kcal=450),
+    )[0]
+    assert again["row"]["id"] == first["row"]["id"]
+    assert again["row"]["kcal"] == 450
+    far = [
+        push(
+            client,
+            h,
+            op(
+                "upsert",
+                "target_adjustment",
+                uuid.uuid4(),
+                day=str(today + timedelta(days=d)),
+                kcal=100,
+            ),
+        )[0]
+        # ±3: the UTC date used here is within a day of the server's own
+        # business day (Manila, 04:00 rollover), so ±2 could land on ±1.
+        for d in (3, -3)
+    ]
+    assert [(r["status"], r["code"]) for r in far] == [
+        ("rejected", "adjustment_day_out_of_range")
+    ] * 2

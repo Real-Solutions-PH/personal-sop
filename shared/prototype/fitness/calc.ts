@@ -443,6 +443,33 @@ export function targetFor(
     .filter((t) => t.effectiveFrom <= day)
     .at(-1)
 }
+export function adjustmentOn(s: FitnessState, day: string): number {
+  // ?? []: states built elsewhere (web wiring, fixtures) may predate the field.
+  return (s.adjustments ?? []).find((a) => a.day === day)?.kcal ?? 0
+}
+/** The day's budget: its target plus the burned kcal the user added that
+ * day. Protein stays; the extra kcal go to carbs and fat in the target's
+ * carbs:fat calorie ratio (all to carbs when it has neither), in whole
+ * grams. Editors use
+ * targetFor, so an eat-back never gets saved into a target. */
+export function budgetFor(
+  s: FitnessState,
+  day: string,
+): MacroTarget | undefined {
+  const t = targetFor(s, day)
+  const extra = adjustmentOn(s, day)
+  if (!t || extra <= 0) return t
+  const carbKcal = t.carbs * 4,
+    fatKcal = t.fat * 9,
+    both = carbKcal + fatKcal,
+    carbShare = both > 0 ? carbKcal / both : 1
+  return {
+    ...t,
+    kcal: t.kcal + extra,
+    carbs: Math.round(t.carbs + (extra * carbShare) / 4),
+    fat: Math.round(t.fat + (extra * (1 - carbShare)) / 9),
+  }
+}
 export type DayVerdict = "hit" | "over" | "under" | "none"
 export interface DayNutrition {
   day: string
@@ -459,7 +486,7 @@ export function nutritionDays(s: FitnessState, days: number): DayNutrition[] {
   for (let i = -days + 1; i <= 0; i++) {
     const day = dayOffset(i)
     const { totals, count } = dayTotals(s, day)
-    const target = targetFor(s, day)
+    const target = budgetFor(s, day)
     const kcalOk =
       !!target &&
       count > 0 &&

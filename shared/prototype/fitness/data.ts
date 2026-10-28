@@ -155,12 +155,20 @@ export interface FitnessSettings {
   activity?: ActivityLevel
   planGoal?: PlanGoal
 }
+/** Burned kcal the user chose to add to one day's budget (eat-back). It
+ * applies to `day` only; the versioned target stays as it is. */
+export interface TargetAdjustment {
+  id: string
+  day: string
+  kcal: number
+}
 export interface FitnessState {
   exercises: Exercise[]
   templates: WorkoutTemplate[]
   workouts: Workout[]
   weighIns: WeighIn[]
   targets: MacroTarget[]
+  adjustments: TargetAdjustment[]
   meals: Meal[]
   settings: FitnessSettings
   activeId: string | null
@@ -1007,6 +1015,7 @@ export function seed(): FitnessState {
         fat: 70,
       },
     ],
+    adjustments: [],
     meals: seedMeals(rnd),
     settings: {
       units: "kg",

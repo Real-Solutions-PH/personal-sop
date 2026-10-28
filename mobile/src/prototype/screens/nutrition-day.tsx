@@ -12,7 +12,7 @@ import { MacroRings } from "./nutrition"
 export function NutritionDay({ day }: { day: string }) {
   const s = fitStore.use((s) => s)
   const totals = C.dayTotals(s, day)
-  const target = C.targetFor(s, day)
+  const target = C.budgetFor(s, day)
   const detail = dayDetail(C.mealsOn(s, day))
   return (
     <View style={{ gap: 16 }}>
