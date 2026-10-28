@@ -3,7 +3,7 @@
 // only this app's own notifications.
 
 import { fitStore } from "@domain/fitness/store"
-import type { Habit, Routine } from "@domain/habits/data"
+import type { Habit, HabitLog, Routine } from "@domain/habits/data"
 import { habitsStore } from "@domain/habits/store"
 import { configureStorage, resetAll } from "@domain/lib/store"
 import type { Task } from "@domain/tasks/data"
@@ -129,6 +129,123 @@ test("a sync replaces only this app's reminders, and needs permission", async ()
   expect(await syncReminders(N, NOW)).toBe(1)
   expect(cancelled).toEqual(["task-old"])
   expect(scheduled).toEqual(["task-a"])
+})
+
+describe("reminders skip what's already done today", () => {
+  // Thursday (weekday 4) 08:00, local time; the app's day is 2026-10-22.
+  const now = new Date(2026, 9, 22, 8, 0)
+  const thursdayEvening = habit({
+    schedule: [{ days: [2, 4], time: "18:00" }],
+  })
+  const log = (extra: Partial<HabitLog> = {}): HabitLog => ({
+    id: "l1",
+    habitId: "h1",
+    day: "2026-10-22",
+    status: "done",
+    loggedAt: now.toISOString(),
+    source: "tap",
+    ...extra,
+  })
+
+  test("nothing logged: weekly reminders as usual", () => {
+    const plan = planReminders([], [thursdayEvening], now, { logs: [] })
+    expect(plan.map((p) => p.id)).toEqual([
+      "habit-h1-2-18:00",
+      "habit-h1-4-18:00",
+    ])
+    expect(plan.every((p) => "weekly" in p)).toBe(true)
+  })
+
+  test("done or skipped today: today's reminder moves to next week, the others stay", () => {
+    for (const status of ["done", "skipped"] as const) {
+      const plan = planReminders([], [thursdayEvening], now, {
+        logs: [log({ status })],
+      })
+      expect(plan).toEqual([
+        expect.objectContaining({
+          id: "habit-h1-2-18:00",
+          weekly: { weekday: 3, hour: 18, minute: 0 },
+        }),
+        expect.objectContaining({
+          id: "habit-h1-4-18:00",
+          at: new Date(2026, 9, 29, 18, 0),
+        }),
+      ])
+    }
+  })
+
+  test("a count habit only part-way there still gets today's reminder", () => {
+    const plan = planReminders(
+      [],
+      [{ ...thursdayEvening, type: "count", target: 8 } as Habit],
+      now,
+      { logs: [log({ status: "partial", value: 3 })] },
+    )
+    expect(plan.every((p) => "weekly" in p)).toBe(true)
+  })
+
+  test("another day's log changes nothing", () => {
+    const plan = planReminders([], [thursdayEvening], now, {
+      logs: [log({ day: "2026-10-20" })],
+    })
+    expect(plan.every((p) => "weekly" in p)).toBe(true)
+  })
+
+  test("a sync reads today's logs and weigh-ins from the stores", async () => {
+    tasksStore.set((s) => ({ ...s, tasks: [] }))
+    habitsStore.set((s) => ({
+      ...s,
+      habits: [thursdayEvening],
+      routines: [],
+      logs: [log()],
+    }))
+    fitStore.set((s) => ({
+      ...s,
+      settings: { ...s.settings, weighInReminder: "07:00" },
+      weighIns: [
+        {
+          ...(s.weighIns[0] as (typeof s.weighIns)[number]),
+          measuredAt: now.toISOString(),
+        },
+      ],
+    }))
+    const triggers: Record<string, string> = {}
+    const N = {
+      getPermissionsAsync: async () => ({ status: "granted" }),
+      getAllScheduledNotificationsAsync: async () => [],
+      cancelScheduledNotificationAsync: async () => {},
+      scheduleNotificationAsync: async (r: {
+        identifier: string
+        trigger: { type: string }
+      }) => {
+        triggers[r.identifier] = r.trigger.type
+        return r.identifier
+      },
+      SchedulableTriggerInputTypes: {
+        DATE: "date",
+        WEEKLY: "weekly",
+        DAILY: "daily",
+      },
+    } as unknown as typeof import("expo-notifications")
+    await syncReminders(N, now)
+    expect(triggers["habit-h1-4-18:00"]).toBe("date")
+    expect(triggers["habit-h1-2-18:00"]).toBe("weekly")
+    expect(triggers["weigh-in"]).toBeUndefined()
+    expect(triggers["weigh-in-1"]).toBe("date")
+  })
+
+  test("weighed in already today: the next six mornings, not today's", () => {
+    const plan = planReminders([], [], now, {
+      weighIn: "07:00",
+      weighedToday: true,
+    })
+    expect(plan.map((p) => ("at" in p ? p.at : null))).toEqual(
+      [23, 24, 25, 26, 27, 28].map((d) => new Date(2026, 9, d, 7, 0)),
+    )
+    expect(plan.map((p) => p.id)).toEqual(
+      [1, 2, 3, 4, 5, 6].map((n) => `weigh-in-${n}`),
+    )
+  })
 })
 
 describe("routines and the weigh-in", () => {

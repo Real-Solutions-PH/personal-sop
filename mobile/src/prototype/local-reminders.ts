@@ -1,12 +1,13 @@
 // Reminders as notifications scheduled on the phone itself: a task's
 // reminder time, and each habit that has reminders on, at its scheduled
-// time on its days. Local notifications need no push service or paid
+// time on its days. What's already done today is not reminded today. Local notifications need no push service or paid
 // Apple account, and fire offline. The plan is rebuilt whenever tasks or
 // habits change; iOS keeps at most 64 pending, so the soonest win.
 
 import { fitStore } from "@domain/fitness/store"
-import type { Habit, Routine } from "@domain/habits/data"
+import type { Habit, HabitLog, Routine } from "@domain/habits/data"
 import { habitsStore } from "@domain/habits/store"
+import { dayKey, weekday } from "@domain/lib/day"
 import type { Task } from "@domain/tasks/data"
 import { tasksStore } from "@domain/tasks/store"
 import { Platform } from "react-native"
@@ -39,10 +40,13 @@ export type Planned =
     }
 
 /** Reminders beyond tasks and habits: routines with reminders on, and the
- * daily weigh-in time from Fitness settings (empty = off). */
+ * daily weigh-in time from Fitness settings (empty = off). `logs` and
+ * `weighedToday` drop today's reminder for what's already done. */
 export interface MoreReminders {
   routines?: readonly Routine[]
   weighIn?: string | null
+  logs?: readonly HabitLog[]
+  weighedToday?: boolean
 }
 
 /** iOS allows 64 pending notifications; leave room for the system's own. */
@@ -65,15 +69,28 @@ export function planReminders(
   more: MoreReminders = {},
 ): Planned[] {
   const habitPlans: Planned[] = []
+  // A repeating trigger can't skip one day, so what's done today gets
+  // dated one-offs instead; the next sync (any habit change or app open)
+  // puts the repeating ones back.
+  const today = dayKey(now),
+    [y, mo, d] = today.split("-").map(Number) as [number, number, number],
+    onDay = (plus: number, t: { hour: number; minute: number }) =>
+      new Date(y, mo - 1, d + plus, t.hour, t.minute)
   const weighIn = more.weighIn ? hm(more.weighIn) : null
-  if (weighIn)
-    habitPlans.push({
-      id: "weigh-in",
-      title: "⚖️ Weigh-in",
-      body: "Before water or training. Tap to log it.",
-      href: "/fitness/body",
-      daily: weighIn,
-    })
+  const weighInText = {
+    title: "⚖️ Weigh-in",
+    body: "Before water or training. Tap to log it.",
+    href: "/fitness/body",
+  }
+  if (weighIn && more.weighedToday)
+    for (let n = 1; n <= 6; n++)
+      habitPlans.push({
+        id: `weigh-in-${n}`,
+        ...weighInText,
+        at: onDay(n, weighIn),
+      })
+  else if (weighIn)
+    habitPlans.push({ id: "weigh-in", ...weighInText, daily: weighIn })
   for (const r of more.routines ?? []) {
     if (!r.reminder || r.status !== "active" || !r.steps.length) continue
     for (const slot of r.schedule) {
@@ -91,17 +108,25 @@ export function planReminders(
   }
   for (const h of habits) {
     if (!h.reminder || h.status !== "active") continue
+    const log = more.logs?.find((l) => l.habitId === h.id && l.day === today),
+      // Done or skipped; a count habit part-way there still needs the nudge.
+      doneToday = !!log && (log.status !== "partial" || h.type === "check")
     for (const slot of h.schedule) {
       const time = slot.time ? hm(slot.time) : null
       if (!time) continue
-      for (const day of slot.days)
-        habitPlans.push({
+      for (const day of slot.days) {
+        const text = {
           id: `habit-${h.id}-${day}-${slot.time}`,
           title: `${h.icon} ${h.name}`,
           body: "Time for this one. Tap to check it off.",
           href: `/habits/${h.id}`,
-          weekly: { weekday: day + 1, ...time },
-        })
+        }
+        habitPlans.push(
+          doneToday && day === weekday(today)
+            ? { ...text, at: onDay(7, time) }
+            : { ...text, weekly: { weekday: day + 1, ...time } },
+        )
+      }
     }
   }
   const end = now.getTime() + HORIZON_DAYS * 86_400_000
@@ -147,6 +172,10 @@ export async function syncReminders(
     {
       routines: habitsStore.get().routines,
       weighIn: fitStore.get().settings.weighInReminder,
+      logs: habitsStore.get().logs,
+      weighedToday: fitStore
+        .get()
+        .weighIns.some((w) => dayKey(new Date(w.measuredAt)) === dayKey(now)),
     },
   )
   for (const p of plan)
