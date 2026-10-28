@@ -91,18 +91,33 @@ export function plannedSets(
     return [{ id: uid(), reps: ex?.repMin ?? 8, weight: 0, kind: "working" }]
   const warm = last.we.sets
     .filter((x) => x.kind === "warmup")
-    .map((x) => ({ id: uid(), reps: x.reps, weight: x.weight, kind: x.kind }))
+    .map((x) => ({
+      id: uid(),
+      reps: x.reps,
+      weight: x.weight,
+      kind: x.kind,
+      ...(x.unit ? { unit: x.unit } : {}),
+    }))
   const work = last.we.sets.filter((x) => isWorking(x) && isDone(x))
   const n = Math.max(count, 1)
   const sets: WorkoutSet[] = Array.from({ length: n }, (_, i) => {
     const prev = work[Math.min(i, work.length - 1)]
+    // Last time's unit carries on: a set logged in lb plans the next in lb.
+    const unit = prev?.unit ? { unit: prev.unit } : {}
     if (sug.kind === "weight")
-      return { id: uid(), reps: sug.reps, weight: sug.weight, kind: "working" }
+      return {
+        id: uid(),
+        reps: sug.reps,
+        weight: sug.weight,
+        kind: "working",
+        ...unit,
+      }
     return {
       id: uid(),
       reps: Math.min(ex.repMax, Math.max(prev?.reps ?? ex.repMin, sug.reps)),
       weight: prev?.weight ?? sug.weight,
       kind: "working",
+      ...unit,
     }
   })
   return [...warm, ...sets]
@@ -248,12 +263,14 @@ export function addSet(workoutId: string, weId: string): WorkoutSet {
         kind: "working",
         durationSec: last ? setSeconds(last) : defaultSeconds(ex),
         ...(last?.speedKmh ? { speedKmh: last.speedKmh } : {}),
+        ...(last?.unit ? { unit: last.unit } : {}),
       }
     : {
         id: uid(),
         reps: last?.reps ?? 8,
         weight: last?.weight ?? 0,
         kind: "working",
+        ...(last?.unit ? { unit: last.unit } : {}),
       }
   patchExercise(workoutId, weId, (e) => ({ ...e, sets: [...e.sets, set] }))
   syncLive(workoutId)

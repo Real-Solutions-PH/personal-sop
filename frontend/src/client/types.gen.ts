@@ -1307,7 +1307,7 @@ export type ExercisesOut = {
 export type ExerciseUpsert = {
     name: string;
     equipment?: 'barbell' | 'dumbbell' | 'machine' | 'cable' | 'bodyweight';
-    muscle?: 'chest' | 'back' | 'shoulders' | 'biceps' | 'triceps' | 'quads' | 'hamstrings' | 'glutes' | 'core' | 'cardio';
+    muscle?: 'chest' | 'back' | 'shoulders' | 'biceps' | 'triceps' | 'quads' | 'hamstrings' | 'glutes' | 'core' | 'cardio' | 'calves' | 'forearms';
     load_type?: 'weight' | 'bodyweight' | 'reps' | 'time';
     rep_min?: number;
     rep_max?: number;
@@ -1319,7 +1319,7 @@ export type ExerciseUpsert = {
 
 export type equipment = 'barbell' | 'dumbbell' | 'machine' | 'cable' | 'bodyweight';
 
-export type muscle = 'chest' | 'back' | 'shoulders' | 'biceps' | 'triceps' | 'quads' | 'hamstrings' | 'glutes' | 'core' | 'cardio';
+export type muscle = 'chest' | 'back' | 'shoulders' | 'biceps' | 'triceps' | 'quads' | 'hamstrings' | 'glutes' | 'core' | 'cardio' | 'calves' | 'forearms';
 
 export type load_type = 'weight' | 'bodyweight' | 'reps' | 'time';
 
@@ -3605,6 +3605,7 @@ export type SetOut = {
     completed_at: (string | null);
     duration_sec?: (number | null);
     speed_kmh?: (number | null);
+    unit?: ('kg' | 'lb' | null);
 };
 
 export type SetPatch = {
@@ -5774,7 +5775,7 @@ export type FitnessRestoreTemplateResponse = (TemplateOut);
 export type FitnessListExercisesData = {
     includeArchived?: boolean;
     limit?: number;
-    muscle?: ('chest' | 'back' | 'shoulders' | 'biceps' | 'triceps' | 'quads' | 'hamstrings' | 'glutes' | 'core' | 'cardio' | null);
+    muscle?: ('chest' | 'back' | 'shoulders' | 'biceps' | 'triceps' | 'quads' | 'hamstrings' | 'glutes' | 'core' | 'cardio' | 'calves' | 'forearms' | null);
     q?: (string | null);
     skip?: number;
 };

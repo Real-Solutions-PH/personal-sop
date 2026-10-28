@@ -91,3 +91,23 @@ describe("rest timer", () => {
     expect(restNotice(fitStore.get())).toBeNull()
   })
 })
+
+describe("a set's own unit", () => {
+  it("carries to the next set and to next time's plan", () => {
+    const ex = fitStore.get().exercises.find((e) => e.loadType === "weight")
+    if (!ex) throw new Error("no weighted exercise in the seed")
+    const res = FA.startWorkout({ from: "empty" })
+    if (!res.ok) throw new Error(res.reason)
+    const w = res.workout
+    const [we] = FA.addExercises(w.id, [ex.id])
+    // Every set entered in lb: stored in kg, shown in lb.
+    const sets =
+      fitStore.get().workouts.find((x) => x.id === w.id)?.exercises[0].sets ??
+      []
+    for (const x of sets) FA.updateSet(w.id, we.id, x.id, { unit: "lb" })
+    expect(FA.addSet(w.id, we.id).unit).toBe("lb")
+    FA.finishWorkout(w.id, { unfinished: "done" })
+    const next = FA.plannedSets(ex.id, 3).filter((x) => x.kind === "working")
+    expect(next.every((x) => x.unit === "lb")).toBe(true)
+  })
+})

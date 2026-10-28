@@ -350,7 +350,8 @@
       "weight": 0,
       "kind": "working",
       "duration_sec": null,
-      "speed_kmh": null
+      "speed_kmh": null,
+      "unit": null
     }
   },
   {
@@ -365,7 +366,8 @@
       "weight": 0,
       "kind": "working",
       "duration_sec": null,
-      "speed_kmh": null
+      "speed_kmh": null,
+      "unit": null
     }
   },
   {
@@ -515,7 +517,8 @@
       "weight": 0,
       "kind": "working",
       "duration_sec": null,
-      "speed_kmh": null
+      "speed_kmh": null,
+      "unit": null
     }
   },
   {
@@ -530,7 +533,8 @@
       "weight": 0,
       "kind": "working",
       "duration_sec": null,
-      "speed_kmh": null
+      "speed_kmh": null,
+      "unit": null
     }
   },
   {
@@ -737,7 +741,8 @@
       "weight": 0,
       "kind": "working",
       "duration_sec": null,
-      "speed_kmh": null
+      "speed_kmh": null,
+      "unit": null
     }
   },
   {
@@ -752,7 +757,8 @@
       "weight": 0,
       "kind": "working",
       "duration_sec": null,
-      "speed_kmh": null
+      "speed_kmh": null,
+      "unit": null
     }
   },
   {
@@ -967,7 +973,8 @@
       "weight": 0,
       "kind": "working",
       "duration_sec": null,
-      "speed_kmh": null
+      "speed_kmh": null,
+      "unit": null
     }
   },
   {
@@ -982,7 +989,8 @@
       "weight": 0,
       "kind": "working",
       "duration_sec": null,
-      "speed_kmh": null
+      "speed_kmh": null,
+      "unit": null
     }
   },
   {
@@ -1188,7 +1196,8 @@
       "weight": 0,
       "kind": "working",
       "duration_sec": null,
-      "speed_kmh": null
+      "speed_kmh": null,
+      "unit": null
     }
   },
   {
@@ -1203,7 +1212,8 @@
       "weight": 0,
       "kind": "working",
       "duration_sec": null,
-      "speed_kmh": null
+      "speed_kmh": null,
+      "unit": null
     }
   },
   {
@@ -1374,7 +1384,8 @@
       "weight": 0,
       "kind": "working",
       "duration_sec": null,
-      "speed_kmh": null
+      "speed_kmh": null,
+      "unit": null
     }
   },
   {
@@ -1389,7 +1400,8 @@
       "weight": 0,
       "kind": "working",
       "duration_sec": null,
-      "speed_kmh": null
+      "speed_kmh": null,
+      "unit": null
     }
   },
   {
@@ -1404,7 +1416,8 @@
       "weight": 0,
       "kind": "working",
       "duration_sec": null,
-      "speed_kmh": null
+      "speed_kmh": null,
+      "unit": null
     }
   },
   {
@@ -1449,7 +1462,8 @@
       "weight": 0,
       "kind": "working",
       "duration_sec": null,
-      "speed_kmh": null
+      "speed_kmh": null,
+      "unit": null
     }
   },
   {
@@ -1578,6 +1592,7 @@
       "kind": "working",
       "duration_sec": null,
       "speed_kmh": null,
+      "unit": null,
       "completed_at": "2026-10-19T04:00:00.000Z"
     }
   },

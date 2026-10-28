@@ -543,6 +543,7 @@ describe("store edits become sync ops", () => {
       kind: "working",
       duration_sec: null,
       speed_kmh: null,
+      unit: null,
     })
   })
 
@@ -912,6 +913,7 @@ describe("pulled rows", () => {
       kind: "working",
       duration_sec: null,
       speed_kmh: null,
+      unit: null,
     })
     expect(e.capture()).toEqual([])
   })

@@ -114,7 +114,29 @@ it("a weight typed in pounds is saved in kilograms", () => {
     weight: 20.4,
     reps: 5,
     kind: "working",
+    unit: "lb",
   })
+})
+
+it("switching one set to pounds keeps the others, and the setting, in kg", () => {
+  const onSave = jest.fn()
+  render(
+    <SetEditor
+      set={{ id: "s", weight: 20, reps: 5, kind: "working" }}
+      open
+      onClose={() => {}}
+      onSave={onSave}
+      onDelete={() => {}}
+    />,
+    { wrapper },
+  )
+  fireEvent.press(screen.getByText("lb"))
+  expect(screen.getByLabelText("Weight (lb)").props.value).toBe("44.1")
+  fireEvent.press(screen.getByText("Save"))
+  expect(onSave).toHaveBeenCalledWith(
+    expect.objectContaining({ weight: 20, unit: "lb" }),
+  )
+  expect(fitStore.get().settings.units).toBe("kg")
 })
 
 it("offers to create an exercise the search didn't find, not one it did", () => {

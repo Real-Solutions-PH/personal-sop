@@ -19,6 +19,8 @@ export type Muscle =
   | "glutes"
   | "core"
   | "cardio"
+  | "calves"
+  | "forearms"
 /** What a timed exercise records beside its time: walking or running speed,
  * or added weight (a weighted plank). Absent: time alone. */
 export type TimeTrack = "speed" | "weight"
@@ -55,6 +57,9 @@ export interface WorkoutSet {
   /** A timed set: how long, in seconds, and how fast (walking, running). */
   durationSec?: number
   speedKmh?: number
+  /** The unit this set's weight is entered and shown in (the weight itself
+   * is always kg); absent: the settings unit. */
+  unit?: "kg" | "lb"
 }
 export interface WorkoutExercise {
   id: string

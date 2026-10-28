@@ -105,8 +105,12 @@ export function WorkoutLogger() {
         {start && <StartWorkoutSheet onClose={() => setStart(false)} />}
       </Screen>
     )
-  const unit = s.settings.units,
-    mass = (kg: number) => C.kgShort(displayMass(kg, unit))
+  // Each set shows its weight in its own unit (stored in kg either way);
+  // a set with none follows the settings unit.
+  const mass = (x: WorkoutSet) => {
+    const u = x.unit ?? s.settings.units
+    return `${C.kgShort(displayMass(x.weight, u))} ${u}`
+  }
   const totals = C.workoutTotals(s, w),
     unfinished = w.exercises.flatMap((e) =>
       e.sets.filter((x) => !C.isDone(x)),
@@ -374,52 +378,29 @@ export function WorkoutLogger() {
                   ? ex?.track === "speed"
                     ? "km/h"
                     : ex?.track === "weight"
-                      ? `+${unit}`
+                      ? "+weight"
                       : ""
                   : ex?.loadType === "bodyweight"
-                    ? `+${unit}`
-                    : unit,
+                    ? "+weight"
+                    : "weight",
                 timed ? "time" : "reps",
                 "",
-              ].map((x, i) => {
-                const label = (
-                  <Copy
-                    key="label"
-                    size={10}
-                    muted={!(i === 2 && x.includes(unit))}
-                    style={{
-                      textAlign: i > 1 ? "center" : "left",
-                      letterSpacing: 0.5,
-                      textTransform: "uppercase",
-                      ...(i === 2 && x.includes(unit) ? { color: t.fit } : {}),
-                    }}
-                  >
-                    {x}
-                  </Copy>
-                )
-                const style = {
-                  width: i === 0 ? 32 : i === 4 ? 44 : undefined,
-                  flex: i > 0 && i < 4 ? 1 : undefined,
-                }
-                // The weight column's unit switches kg and lb (weights are
-                // stored in kg either way).
-                return i === 2 && x.includes(unit) ? (
-                  <Tap
-                    key={`${i}-${x}`}
-                    label={`Show weights in ${unit === "kg" ? "lb" : "kg"}`}
-                    onPress={() =>
-                      A.updateSettings({ units: unit === "kg" ? "lb" : "kg" })
-                    }
-                    style={style}
-                  >
-                    {label}
-                  </Tap>
-                ) : (
-                  <View key={`${i}-${x}`} style={style}>
-                    {label}
-                  </View>
-                )
-              })}
+              ].map((x, i) => (
+                <Copy
+                  key={`${i}-${x}`}
+                  size={10}
+                  muted
+                  style={{
+                    width: i === 0 ? 32 : i === 4 ? 44 : undefined,
+                    flex: i > 0 && i < 4 ? 1 : undefined,
+                    textAlign: i > 1 ? "center" : "left",
+                    letterSpacing: 0.5,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {x}
+                </Copy>
+              ))}
             </Line>
             <View style={{ marginTop: 4, gap: 4 }}>
               {we.sets.map((set) => {
@@ -469,7 +450,7 @@ export function WorkoutLogger() {
                         {ghost
                           ? timed
                             ? C.fmtSpan(C.setSeconds(ghost))
-                            : `${mass(ghost.weight)}×${ghost.reps}`
+                            : `${mass(ghost)}×${ghost.reps}`
                           : "—"}
                       </Copy>
                       {[
@@ -479,11 +460,11 @@ export function WorkoutLogger() {
                               ? C.kgShort(set.speedKmh)
                               : "—"
                             : ex?.track === "weight"
-                              ? mass(set.weight)
+                              ? mass(set)
                               : ""
                           : needsWeight
                             ? "—"
-                            : mass(set.weight),
+                            : mass(set),
                         timed ? C.fmtSpan(C.setSeconds(set)) : String(set.reps),
                       ].map((value, i) => (
                         <Tap
@@ -820,9 +801,10 @@ export function SetEditor({
   onSave: (patch: Partial<WorkoutSet>) => void
   onDelete: () => void
 }) {
-  // Weight is entered in the unit from Fitness settings (switchable here)
-  // and always stored in kg.
-  const unit = fitStore.use((s) => s.settings.units)
+  // Weight is entered in this set's own unit (the settings unit until it is
+  // switched here) and always stored in kg.
+  const fallback = fitStore.use((s) => s.settings.units)
+  const [unit, setUnit] = useState(set.unit ?? fallback)
   const t = useTheme(),
     [weight, setWeight] = useState(
       String(unit === "lb" ? A.kgToLb(set.weight) : set.weight),
@@ -840,7 +822,7 @@ export function SetEditor({
     const n = Number(weight)
     if (Number.isFinite(n))
       setWeight(String(next === "lb" ? A.kgToLb(n) : A.lbToKg(n)))
-    A.updateSettings({ units: next })
+    setUnit(next)
   }
   return (
     <Sheet title="Edit set" open={open} onClose={onClose}>
@@ -974,6 +956,7 @@ export function SetEditor({
               reps: 0,
               durationSec: total,
               weight: exercise?.track === "weight" ? kg(weight) : set.weight,
+              ...(exercise?.track === "weight" ? { unit } : {}),
               ...(exercise?.track === "speed" ? { speedKmh: kmh } : {}),
             })
             onClose()
@@ -988,7 +971,7 @@ export function SetEditor({
             toast.error("Enter valid weight and reps")
             return
           }
-          onSave({ weight: kg(weight), reps: Number(reps), kind })
+          onSave({ weight: kg(weight), reps: Number(reps), kind, unit })
           onClose()
         }}
       >

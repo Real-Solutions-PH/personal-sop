@@ -42,6 +42,8 @@ const MUSCLES = [
   "hamstrings",
   "glutes",
   "core",
+  "calves",
+  "forearms",
   "cardio",
 ]
 export function Exercises({ id }: { id?: string }) {

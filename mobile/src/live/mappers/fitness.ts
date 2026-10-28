@@ -566,6 +566,7 @@ interface SetRow {
   completedAt?: string
   durationSec?: number
   speedKmh?: number
+  unit?: WorkoutSet["unit"]
   /** Its workout is in progress (ticks go through fitness.toggle_set). */
   live: boolean
 }
@@ -578,6 +579,7 @@ const toSet = (r: SetRow): WorkoutSet => ({
   ...(r.completedAt ? { completedAt: r.completedAt } : {}),
   ...(r.durationSec !== undefined ? { durationSec: r.durationSec } : {}),
   ...(r.speedKmh !== undefined ? { speedKmh: r.speedKmh } : {}),
+  ...(r.unit ? { unit: r.unit } : {}),
 })
 
 const SET_KINDS = ["warmup", "working", "drop", "failure"] as const
@@ -602,6 +604,7 @@ export function workoutSetMapper(setsHeld: Held<SetRow>): Mapper<S, SetRow> {
               ? { durationSec: x.durationSec }
               : {}),
             ...(x.speedKmh !== undefined ? { speedKmh: x.speedKmh } : {}),
+            ...(x.unit ? { unit: x.unit } : {}),
             live: w.status === "in_progress",
           })),
         ),
@@ -615,6 +618,7 @@ export function workoutSetMapper(setsHeld: Held<SetRow>): Mapper<S, SetRow> {
       kind: r.kind,
       duration_sec: r.durationSec ?? null,
       speed_kmh: r.speedKmh ?? null,
+      unit: r.unit ?? null,
       ...(r.live ? {} : { completed_at: r.completedAt ?? null }),
     }),
     fromServer: (row, s) => {
@@ -633,6 +637,7 @@ export function workoutSetMapper(setsHeld: Held<SetRow>): Mapper<S, SetRow> {
           ? { durationSec: Number(row.duration_sec) }
           : {}),
         ...(row.speed_kmh != null ? { speedKmh: Number(row.speed_kmh) } : {}),
+        ...(row.unit === "kg" || row.unit === "lb" ? { unit: row.unit } : {}),
         live: w?.status === "in_progress",
       }
       if (w) return r
