@@ -1,7 +1,7 @@
 // Fitness mappers: the prototype fitness store against the server's
 // exercise, workout_template, template_item, workout, workout_exercise,
-// workout_set, weigh_in, macro_target, meal, meal_item, fitness_settings and
-// rest_timer entities. Weights are kilograms on both sides (`units` is a
+// workout_set, weigh_in, macro_target, target_adjustment, meal, meal_item,
+// fitness_settings and rest_timer entities. Weights are kilograms on both sides (`units` is a
 // display setting only).
 //
 // Nested arrays become child rows:
@@ -53,6 +53,7 @@ import type {
   Meal,
   MealItem,
   RestTimer,
+  TargetAdjustment,
   WeighIn,
   Workout,
   WorkoutExercise,
@@ -788,6 +789,34 @@ export function macroTargetMapper(): Mapper<S, MacroTarget> {
   }
 }
 
+// ---------------------------------------------------------- target adjustments
+
+/** Eat-back rows: one per day, like targets (the server's upsert reuses its
+ * row by day, so a pulled row replaces a local one for the same day). */
+export function targetAdjustmentMapper(): Mapper<S, TargetAdjustment> {
+  return {
+    entity: "target_adjustment",
+    store: fitStore,
+    list: (s) => s.adjustments,
+    id: (a) => a.id,
+    toServer: (a) => ({ day: a.day, kcal: a.kcal, source: "health" }),
+    fromServer: (row) => ({
+      id: str(row.id),
+      day: str(row.day),
+      kcal: Number(row.kcal),
+    }),
+    merge: (s, ups, dels) => {
+      if (!ups.length && !dels.length) return s
+      const pulled = new Map(ups.map((u) => [u.day, u.id]))
+      const kept = s.adjustments.filter((a) => {
+        const winner = pulled.get(a.day)
+        return winner === undefined || winner === a.id
+      })
+      return { ...s, adjustments: mergeById(kept, ups, dels, (a) => a.id) }
+    },
+  }
+}
+
 // ---------------------------------------------------------------- meals
 
 const MEAL_LABELS = ["breakfast", "lunch", "dinner", "snack"] as const
@@ -1117,6 +1146,7 @@ export const fitnessMappers = (userId: string) => {
     workoutSetMapper(sets),
     weighInMapper(),
     macroTargetMapper(),
+    targetAdjustmentMapper(),
     mealMapper(mealItems),
     mealItemMapper(mealItems),
     settingsMapper(userId),

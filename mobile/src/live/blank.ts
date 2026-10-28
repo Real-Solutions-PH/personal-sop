@@ -37,6 +37,7 @@ export function clearToBlank() {
     workouts: [],
     weighIns: [],
     targets: [],
+    adjustments: [],
     meals: [],
     activeId: null,
     rest: null,
