@@ -234,3 +234,36 @@ def test_money_text_leaves_counts_alone() -> None:
         "unknown": {"spent": 3},
         "days_with_value": {"spent": 2},
     }
+
+
+def test_a_per_group_metric_stays_out_of_the_whole() -> None:
+    rows = [
+        {"day": "2026-10-26", "habit": "Water", "value": 8},
+        {"day": "2026-10-26", "habit": "Reading", "value": 30},
+    ]
+    out = summarize(
+        rows,
+        metrics=("value",),
+        group_by="habit",
+        first=FIRST,
+        last=LAST,
+        per_group_only=("value",),
+    )
+    assert out["total"] == {}
+    assert {g["key"]: g["sum"]["value"] for g in out["groups"]} == {
+        "Reading": 30,
+        "Water": 8,
+    }
+
+
+def test_a_group_names_the_days_its_average_divides_by() -> None:
+    # Rice on 2 days, sugar known on 1: 6 g over 1 day.
+    rows = [
+        {"day": "2026-10-26", "food": "Rice", "sugar": 6},
+        {"day": "2026-10-27", "food": "Rice", "sugar": None},
+    ]
+    out = summarize(rows, metrics=("sugar",), group_by="food", first=FIRST, last=LAST)
+    [rice] = out["groups"]
+    assert rice["days"] == 2
+    assert rice["days_with_value"] == {"sugar": 1}
+    assert rice["average_per_day"] == {"sugar": 6}

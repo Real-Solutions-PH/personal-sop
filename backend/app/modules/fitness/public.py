@@ -589,6 +589,10 @@ def workout_facts(ctx: Ctx, first: date, last: date) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     for we in wes:
         w, done = workouts[we.workout_id], sets.get(we.id, [])
+        if w.cardio:
+            # Chat cardio also saves a stand-in "Run" set (reps = minutes);
+            # the cardio row below is the one record of it.
+            continue
         mins = sum(st.duration_sec or 0 for st in done) / 60
         row: dict[str, Any] = {
             "day": ctx.clock.day_of(w.started_at).isoformat(),

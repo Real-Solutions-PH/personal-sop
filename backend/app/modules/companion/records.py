@@ -149,6 +149,7 @@ def summarize(
     last: date,
     contains: str | None = None,
     search: Sequence[str] = (),
+    per_group_only: Sequence[str] = (),
     limit: int = RECORD_LIMIT,
 ) -> dict[str, Any]:
     if contains:
@@ -158,7 +159,8 @@ def summarize(
             for r in rows
             if any(needle in str(r.get(f) or "").casefold() for f in search)
         ]
-    whole = _stats(rows, metrics)
+    # Metrics that only add up within one group stay out of the whole.
+    whole = _stats(rows, [m for m in metrics if m not in per_group_only])
     out: dict[str, Any] = {
         "first_day": first.isoformat(),
         "last_day": last.isoformat(),
@@ -197,7 +199,7 @@ def summarize(
             "key": k,
             "count": len(g),
             "days": len({r["day"] for r in g}),
-        } | {n: v for n, v in st.items() if n != "days_with_value"}
+        } | st
         if k in calendar:
             group["calendar_days"] = calendar[k]
             group["average_per_calendar_day"] = {
@@ -269,6 +271,7 @@ def query(
         last=last,
         contains=contains,
         search=a.fields,
+        per_group_only=list(a.only_by),
     )
     answer: dict[str, Any] = _money(out | {"area": area}, ctx)
     return answer
