@@ -46,6 +46,7 @@ import { captureRef } from "react-native-view-shot"
 import { toast } from "sonner-native"
 import { ColorPicker, luminance } from "./color-picker"
 import { FernMark } from "./companion/brand"
+import { useShown } from "./extras"
 import { copyText, pickPhoto } from "./media"
 import { Copy, Line, Segmented, Tap } from "./native-kit"
 import { go } from "./navigation"
@@ -792,7 +793,8 @@ export function ShareComposer<K extends string>({
   onLookChange?: (look: CardLook) => void
   shareRef?: { current: (() => Promise<void>) | null }
 }) {
-  const t = useTheme()
+  const t = useTheme(),
+    social = useShown("social")
   const [format, setFormat] = useState<CardFormat>("9:16"),
     [backdrop, setBackdrop] = useState<CardBackdrop>("dark"),
     [photo, setPhoto] = useState<string | null>(null),
@@ -970,8 +972,12 @@ export function ShareComposer<K extends string>({
       </View>
       <Line style={{ paddingTop: 8, justifyContent: "space-around" }}>
         {[
-          { label: "Post", Icon: ImagePlus, action: toFeed },
-          { label: "Story", Icon: PlusCircle, action: toStory },
+          ...(social
+            ? [
+                { label: "Post", Icon: ImagePlus, action: toFeed },
+                { label: "Story", Icon: PlusCircle, action: toStory },
+              ]
+            : []),
           { label: "Save", Icon: Download, action: share },
           { label: "Caption", Icon: CopyIcon, action: () => copyText(caption) },
           { label: "More", Icon: Ellipsis, action: share },

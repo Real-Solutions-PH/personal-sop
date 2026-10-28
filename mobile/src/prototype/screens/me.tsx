@@ -42,6 +42,7 @@ import { liveMode } from "@/live/config"
 import { AppLauncher } from "../app-launcher"
 import { memoryCount } from "../companion/memory-labels"
 import { companionStore } from "../companion/store"
+import { extrasStore } from "../extras"
 import {
   Bar,
   Copy,
@@ -71,7 +72,8 @@ export function Me() {
     hidden = privacyStore.use((s) => s.hidden),
     account = sessionStore.use((s) => s.user?.email),
     companionName = companionStore.use((s) => s.name),
-    memories = companionStore.use((s) => s.memories)
+    memories = companionStore.use((s) => s.memories),
+    shown = extrasStore.use((s) => s)
   const fresh = () =>
     confirm(
       "Start as a new user?",
@@ -258,13 +260,15 @@ export function Me() {
             accent="life"
             href="/stats"
           />
-          <LinkRow
-            title="Social profile"
-            detail="Your streaks, goals and progress posts"
-            icon={Users}
-            accent="primary"
-            href="/social/u/me"
-          />
+          {shown.social && (
+            <LinkRow
+              title="Social profile"
+              detail="Your streaks, goals and progress posts"
+              icon={Users}
+              accent="primary"
+              href="/social/u/me"
+            />
+          )}
           <LinkRow
             title="Goals"
             detail={`${goals.filter((g) => g.goal.status === "active").length} active`}
@@ -292,13 +296,15 @@ export function Me() {
             accent="fit"
             href="/stats/share"
           />
-          <LinkRow
-            title="Journal"
-            detail="Wrap-up & review reflections"
-            icon={BookOpen}
-            accent="tsk"
-            href="/journal"
-          />
+          {shown.journal && (
+            <LinkRow
+              title="Journal"
+              detail="Wrap-up & review reflections"
+              icon={BookOpen}
+              accent="tsk"
+              href="/journal"
+            />
+          )}
         </Frame>
         <SectionHeading>Setup</SectionHeading>
         <Frame style={{ paddingHorizontal: 8, paddingVertical: 4 }}>

@@ -10,12 +10,14 @@ import {
 } from "lucide-react-native"
 import { useState } from "react"
 import { type TextStyle, View } from "react-native"
+import { useShown } from "./extras"
 import { Copy, Line, Measure, Tap } from "./native-kit"
 import { go } from "./navigation"
 import { fonts, useTheme } from "./theme"
 export function AppLauncher({ title = "Your apps" }: { title?: string }) {
   const t = useTheme(),
-    enabled = useEnabled()
+    enabled = useEnabled(),
+    journal = useShown("journal")
   const apps = [
     {
       key: "habits",
@@ -67,7 +69,9 @@ export function AppLauncher({ title = "Your apps" }: { title?: string }) {
       accent: "life",
     },
   ] as const
-  const shown = apps.filter((a) => a.key === "journal" || enabled[a.key])
+  const shown = apps.filter((a) =>
+    a.key === "journal" ? journal : enabled[a.key],
+  )
   // Six apps share a phone's width, so each tile gives up a little room;
   // past six they wrap into rows of four, which keeps room for the names.
   const wrap = shown.length > 6,
