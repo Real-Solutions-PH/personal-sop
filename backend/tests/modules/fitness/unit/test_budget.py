@@ -4,8 +4,6 @@ so the device and the server agree on the day's budget."""
 
 from datetime import date, timedelta
 
-import pytest
-
 from app.modules.fitness import calc as C
 
 DAY = date(2026, 10, 28)
@@ -27,8 +25,8 @@ def test_burn_goes_to_carbs_and_fat_by_calorie_ratio_protein_fixed() -> None:
     b = C.budget_for(s, DAY)
     assert b is not None
     assert (b.kcal, b.protein) == (2350, 150)
-    assert b.carbs == pytest.approx(200 + 350 * 800 / 1400 / 4)
-    assert b.fat == pytest.approx(600 / 9 + 350 * 600 / 1400 / 9)
+    # Whole grams: 200 + 50 carbs, 66.7 + 16.7 fat.
+    assert (b.carbs, b.fat) == (250, 83)
 
 
 def test_adjustment_does_not_carry_to_the_next_day() -> None:

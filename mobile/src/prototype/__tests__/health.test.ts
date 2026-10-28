@@ -86,3 +86,13 @@ test("connect asks to read only, never to write", async () => {
     ],
   })
 })
+
+// Last: it swaps the module registry.
+test("a build without the native module reads as no Health", () => {
+  jest.resetModules()
+  jest.doMock("@kingstinct/react-native-healthkit", () => {
+    throw new Error("NitroModules could not be found")
+  })
+  const h = require("../health") as typeof import("../health")
+  expect(h.healthAvailable()).toBe(false)
+})

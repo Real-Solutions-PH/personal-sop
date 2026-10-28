@@ -449,7 +449,8 @@ export function adjustmentOn(s: FitnessState, day: string): number {
 }
 /** The day's budget: its target plus the burned kcal the user added that
  * day. Protein stays; the extra kcal go to carbs and fat in the target's
- * carbs:fat calorie ratio (all to carbs when it has neither). Editors use
+ * carbs:fat calorie ratio (all to carbs when it has neither), in whole
+ * grams. Editors use
  * targetFor, so an eat-back never gets saved into a target. */
 export function budgetFor(
   s: FitnessState,
@@ -465,8 +466,8 @@ export function budgetFor(
   return {
     ...t,
     kcal: t.kcal + extra,
-    carbs: t.carbs + (extra * carbShare) / 4,
-    fat: t.fat + (extra * (1 - carbShare)) / 9,
+    carbs: Math.round(t.carbs + (extra * carbShare) / 4),
+    fat: Math.round(t.fat + (extra * (1 - carbShare)) / 9),
   }
 }
 export type DayVerdict = "hit" | "over" | "under" | "none"

@@ -1,13 +1,22 @@
 // Apple Health, read-only: the day's steps, active energy, walking+running
 // distance and workout count. Nothing here is synced; only an eat-back the
 // user taps (setBurnAdjustment) reaches the server.
-import {
-  isHealthDataAvailable,
-  queryStatisticsForQuantity,
-  queryWorkoutSamples,
-  requestAuthorization,
-} from "@kingstinct/react-native-healthkit"
 import { Platform } from "react-native"
+
+type HealthKit = typeof import("@kingstinct/react-native-healthkit")
+// Loaded on first use, not at import: a binary built before HealthKit was
+// added (reached by an over-the-air update) has no native module, and an
+// import would crash the whole app instead of hiding the card.
+let kit: HealthKit | null | undefined
+function load(): HealthKit | null {
+  if (kit === undefined)
+    try {
+      kit = require("@kingstinct/react-native-healthkit") as HealthKit
+    } catch {
+      kit = null
+    }
+  return kit
+}
 
 export interface Activity {
   steps: number
@@ -23,7 +32,7 @@ const STEPS = "HKQuantityTypeIdentifierStepCount",
 
 export function healthAvailable(): boolean {
   try {
-    return Platform.OS === "ios" && isHealthDataAvailable()
+    return Platform.OS === "ios" && !!load()?.isHealthDataAvailable()
   } catch {
     return false
   }
@@ -34,7 +43,7 @@ export function healthAvailable(): boolean {
 export async function connectHealth(): Promise<boolean> {
   if (!healthAvailable()) return false
   try {
-    return await requestAuthorization({
+    return await (load() as HealthKit).requestAuthorization({
       toRead: [STEPS, ENERGY, DISTANCE, WORKOUT],
     })
   } catch {
@@ -46,6 +55,7 @@ export async function connectHealth(): Promise<boolean> {
  * day Health sums over. null: no Health here, or it failed to answer. */
 export async function readActivity(day: string): Promise<Activity | null> {
   if (!healthAvailable()) return null
+  const hk = load() as HealthKit
   const [y, m, d] = day.split("-").map(Number) as [number, number, number]
   const date = {
     startDate: new Date(y, m - 1, d),
@@ -56,7 +66,7 @@ export async function readActivity(day: string): Promise<Activity | null> {
     unit: "count" | "kcal" | "km",
   ) =>
     (
-      await queryStatisticsForQuantity(id, ["cumulativeSum"], {
+      await hk.queryStatisticsForQuantity(id, ["cumulativeSum"], {
         filter: { date },
         unit,
       })
@@ -66,7 +76,7 @@ export async function readActivity(day: string): Promise<Activity | null> {
       sum(STEPS, "count"),
       sum(ENERGY, "kcal"),
       sum(DISTANCE, "km"),
-      queryWorkoutSamples({ filter: { date }, limit: 0 }),
+      hk.queryWorkoutSamples({ filter: { date }, limit: 0 }),
     ])
     return {
       steps: Math.round(steps),

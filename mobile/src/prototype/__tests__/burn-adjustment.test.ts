@@ -35,8 +35,9 @@ test("budgetFor adds burn to carbs and fat by calorie ratio, protein fixed", () 
   const b = budgetFor(fitStore.get(), today())
   expect(b?.kcal).toBe(2350)
   expect(b?.protein).toBe(150)
-  expect(b?.carbs).toBeCloseTo(200 + (350 * 800) / 1400 / 4)
-  expect(b?.fat).toBeCloseTo(600 / 9 + (350 * 600) / 1400 / 9)
+  // Whole grams: 200 + 50 carbs, 66.7 + 16.7 fat.
+  expect(b?.carbs).toBe(250)
+  expect(b?.fat).toBe(83)
 })
 
 test("adjustment does not carry to the next day", () => {

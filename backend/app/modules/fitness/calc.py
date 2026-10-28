@@ -640,7 +640,8 @@ def adjustment_on(s: FitState, day: date) -> float:
 def budget_for(s: FitState, day: date) -> TargetS | None:
     """The day's budget: its target plus the burned kcal the user added that
     day. Protein stays; the extra kcal go to carbs and fat in the target's
-    carbs:fat calorie ratio (all to carbs when it has neither). Editors use
+    carbs:fat calorie ratio (all to carbs when it has neither), in whole grams
+    rounded like JavaScript. Editors use
     ``target_for``, so an eat-back never gets saved into a target."""
     t = target_for(s, day)
     extra = adjustment_on(s, day)
@@ -652,8 +653,8 @@ def budget_for(s: FitState, day: date) -> TargetS | None:
     return replace(
         t,
         kcal=t.kcal + extra,
-        carbs=t.carbs + extra * carb_share / 4,
-        fat=t.fat + extra * (1 - carb_share) / 9,
+        carbs=js_round(t.carbs + extra * carb_share / 4),
+        fat=js_round(t.fat + extra * (1 - carb_share) / 9),
     )
 
 
