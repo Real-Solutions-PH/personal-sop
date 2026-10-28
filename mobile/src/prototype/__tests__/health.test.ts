@@ -47,11 +47,8 @@ test("sums the local day's steps, active kcal, distance and workouts", async () 
 test("asks for km and kcal units", async () => {
   await readActivity("2026-10-28")
   const unit = (id: string) =>
-    (
-      mockStats.mock.calls.find((c) => c[0] === id)?.[2] as {
-        unit?: string
-      }
-    ).unit
+    (mockStats.mock.calls.find((c) => c[0] === id)?.[2] as { unit?: string })
+      ?.unit
   expect(unit("HKQuantityTypeIdentifierActiveEnergyBurned")).toBe("kcal")
   expect(unit("HKQuantityTypeIdentifierDistanceWalkingRunning")).toBe("km")
 })
