@@ -71,6 +71,11 @@ export function WorkoutLogger() {
     [creating, setCreating] = useState<{ name: string; mode: string } | null>(
       null,
     ),
+    // "Create" in the picker: held until the picker is gone, then opened
+    // (iOS will not present the editor while the picker is still leaving).
+    [handoff, setHandoff] = useState<{ name: string; mode: string } | null>(
+      null,
+    ),
     [query, setQuery] = useState(""),
     [picked, setPicked] = useState<string[]>([]),
     [editing, setEditing] = useState<{ we: string; set: string } | null>(null),
@@ -578,6 +583,11 @@ export function WorkoutLogger() {
         title={picker === "add" ? "Add exercises" : "Replace exercise"}
         open={picker !== null}
         onClose={() => setPicker(null)}
+        onClosed={() => {
+          if (!handoff) return
+          setCreating(handoff)
+          setHandoff(null)
+        }}
       >
         <Field label="Search exercises" value={query} onChangeText={setQuery} />
         {s.exercises
@@ -631,7 +641,7 @@ export function WorkoutLogger() {
         <CreateExerciseRow
           query={query}
           onPress={(name) => {
-            setCreating({ name, mode: picker ?? "add" })
+            setHandoff({ name, mode: picker ?? "add" })
             setPicker(null)
           }}
         />

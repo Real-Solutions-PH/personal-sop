@@ -81,6 +81,9 @@ export function Templates({ id }: { id?: string }) {
     [picker, setPicker] = useState(false),
     [selected, setSelected] = useState<string[]>([]),
     [creating, setCreating] = useState<string | null>(null),
+    // "Create" in the picker: opened once the picker is gone (iOS will not
+    // present the editor while the picker is still leaving).
+    [handoff, setHandoff] = useState<string | null>(null),
     [query, setQuery] = useState("")
   const move = (i: number, d: number) => {
     const j = i + d
@@ -351,6 +354,11 @@ export function Templates({ id }: { id?: string }) {
         title="Add exercises"
         open={picker}
         onClose={() => setPicker(false)}
+        onClosed={() => {
+          if (handoff === null) return
+          setCreating(handoff)
+          setHandoff(null)
+        }}
       >
         <TextInput
           accessibilityLabel="Search exercises"
@@ -415,7 +423,7 @@ export function Templates({ id }: { id?: string }) {
         <CreateExerciseRow
           query={query}
           onPress={(name) => {
-            setCreating(name)
+            setHandoff(name)
             setPicker(false)
           }}
         />

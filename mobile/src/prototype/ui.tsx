@@ -733,6 +733,7 @@ export function Sheet({
   onClose,
   onBack,
   backLabel = "Back",
+  onClosed,
   children,
 }: {
   title: string
@@ -741,6 +742,9 @@ export function Sheet({
   /** A step inside the sheet: shows a back chevron before the title. */
   onBack?: () => void
   backLabel?: string
+  /** Once the sheet is fully gone (its modal dismissed): the moment to open
+   * the next one, which iOS would refuse while this one is still leaving. */
+  onClosed?: () => void
   children: ReactNode
 }) {
   const t = useTheme()
@@ -753,10 +757,13 @@ export function Sheet({
   const closing = useRef(false)
   // Whether this sheet counts in ``closingSheets`` until its modal is gone.
   const counted = useRef(false)
+  const closed = useRef(onClosed)
+  closed.current = onClosed
   const gone = useCallback(() => {
     if (!counted.current) return
     counted.current = false
     sheetGone()
+    closed.current?.()
   }, [])
   // Runs on open/close only: adding `mounted` would restart the open spring.
   // biome-ignore lint/correctness/useExhaustiveDependencies: see above

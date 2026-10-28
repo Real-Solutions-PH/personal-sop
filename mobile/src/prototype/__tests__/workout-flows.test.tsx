@@ -143,6 +143,46 @@ describe("sheet hand-off", () => {
     expect(screen.queryByText("Create")).toBeNull()
   })
 
+  it("onClosed fires once the sheet is gone, so the next one can open", () => {
+    function Mounting() {
+      const [picker, setPicker] = useState(true)
+      const [handoff, setHandoff] = useState(false)
+      const [creating, setCreating] = useState(false)
+      return (
+        <>
+          <Sheet
+            title="Picker"
+            open={picker}
+            onClose={() => setPicker(false)}
+            onClosed={() => {
+              if (handoff) setCreating(true)
+              setHandoff(false)
+            }}
+          >
+            <Pressable
+              onPress={() => {
+                setHandoff(true)
+                setPicker(false)
+              }}
+            >
+              <Text>Create</Text>
+            </Pressable>
+          </Sheet>
+          {creating && (
+            <Sheet title="Editor" open onClose={() => setCreating(false)}>
+              <Text>Editor body</Text>
+            </Sheet>
+          )}
+        </>
+      )
+    }
+    render(<Mounting />, { wrapper })
+    fireEvent.press(screen.getByText("Create"))
+    expect(screen.queryByText("Editor body")).toBeNull()
+    act(() => jest.advanceTimersByTime(400))
+    expect(screen.getByText("Editor body")).toBeTruthy()
+  })
+
   it("with nothing closing, a sheet opens at once", () => {
     function One() {
       const [open, setOpen] = useState(false)
@@ -173,6 +213,8 @@ describe("workout logger", () => {
       "Zercher Squat",
     )
     fireEvent.press(screen.getByText("Create “Zercher Squat”"))
+    // Not while the picker is still being dismissed (iOS would drop it).
+    expect(screen.queryByLabelText("Exercise name")).toBeNull()
     act(() => jest.advanceTimersByTime(400))
     expect(screen.getByLabelText("Exercise name").props.value).toBe(
       "Zercher Squat",
