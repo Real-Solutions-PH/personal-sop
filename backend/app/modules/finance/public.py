@@ -712,12 +712,18 @@ def list_budgets(ctx: Ctx) -> list[Budget]:
 
 def record_facts(ctx: Ctx, first: date, last: date) -> list[dict[str, Any]]:
     """One row per expense, income or transfer over the business days
-    ``[first, last]``. ``spent_minor`` is what an expense cost (a refund
-    takes it back); ``received_minor`` is income that isn't a refund.
-    Balance adjustments are left out: nothing was spent or received."""
+    ``[first, last]``. An expense has ``spent_minor`` (a refund has it
+    negative: it takes spending back); income that isn't a refund has
+    ``received_minor``; a transfer has neither. Balance adjustments are left
+    out: nothing was spent or received."""
     lo, hi = ctx.clock.window(first, last)
-    cats = {c.id: c.name for c in list_categories(ctx)}
-    accounts = {a.id: a.name for a in list_accounts(ctx)}
+    # Archived and deleted categories still name the records filed in them.
+    cats = {
+        c.id: c.name for c in owned_repo.list_rows(ctx, Category, include_deleted=True)
+    }
+    accounts = {
+        a.id: a.name for a in owned_repo.list_rows(ctx, Account, include_deleted=True)
+    }
     out = []
     for r in owned_repo.list_rows(
         ctx,
@@ -728,24 +734,19 @@ def record_facts(ctx: Ctx, first: date, last: date) -> list[dict[str, Any]]:
         order_by=[col(FinRecord.at)],
     ):
         refund = r.type == "income" and r.is_refund
-        out.append(
-            {
-                "day": ctx.clock.day_of(r.at).isoformat(),
-                "type": "refund" if refund else r.type,
-                "category": cats.get(r.category_id) if r.category_id else None,
-                "payee": r.payee,
-                "note": r.note,
-                "account": accounts.get(r.account_id),
-                "spent_minor": (
-                    r.amount_minor
-                    if r.type == "expense"
-                    else -r.amount_minor
-                    if refund
-                    else None
-                ),
-                "received_minor": (
-                    r.amount_minor if r.type == "income" and not refund else None
-                ),
-            }
-        )
+        row: dict[str, Any] = {
+            "day": ctx.clock.day_of(r.at).isoformat(),
+            "type": "refund" if refund else r.type,
+            "category": cats.get(r.category_id) if r.category_id else None,
+            "payee": r.payee,
+            "note": r.note,
+            "account": accounts.get(r.account_id),
+        }
+        if r.type == "expense":
+            row["spent_minor"] = r.amount_minor
+        elif refund:
+            row["spent_minor"] = -r.amount_minor
+        elif r.type == "income":
+            row["received_minor"] = r.amount_minor
+        out.append(row)
     return out

@@ -200,7 +200,8 @@ def task_facts(ctx: Ctx, first: date, last: date) -> list[dict[str, Any]]:
     out = []
     for t in rows:
         done_on = ctx.clock.day_of(t.completed_at) if t.completed_at else None
-        day = done_on if done_on and first <= done_on <= last else t.due_date
+        done_here = done_on is not None and first <= done_on <= last
+        day = done_on if done_here else t.due_date
         if day is None:
             continue
         out.append(
@@ -210,7 +211,9 @@ def task_facts(ctx: Ctx, first: date, last: date) -> list[dict[str, Any]]:
                 "list": lists.get(t.list_id, "Inbox") if t.list_id else "Inbox",
                 "status": t.status,
                 "due": t.due_date.isoformat() if t.due_date else None,
-                "done": 1 if t.status == "done" else 0,
+                # Done in this range; one finished before or after it
+                # counts there, not on its due day here.
+                "done": 1 if t.status == "done" and done_here else 0,
                 "open": 1 if t.status == "open" else 0,
             }
         )

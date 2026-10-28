@@ -807,9 +807,22 @@ def fitness_tools(run: "Run", *, manage: Manage, card: Card) -> list[BaseTool]:
             if len(spec) == 1:
                 return {"error": "nothing_to_change", "item": e.item}
             row = rows.get(str(iid))
-            if row is not None and any(k in spec for k in _ITEM_VALUES):
-                after = {k: getattr(row, k) for k in _ITEM_VALUES} | spec
-                found = ports.fitness.nutrient_check.value_problems(after)
+            touched = {k for k in spec if k in _ITEM_VALUES}
+            if row is not None and touched:
+                # A new amount rescales the stored values first (as the
+                # edit itself does), then the named values replace them.
+                f = float(e.qty) / row.qty if e.qty and row.qty > 0 else 1.0
+                before = {
+                    k: None if getattr(row, k) is None else getattr(row, k) * f
+                    for k in _ITEM_VALUES
+                }
+                found = [
+                    p
+                    for p in ports.fitness.nutrient_check.value_problems(before | spec)
+                    # An item already off before this edit (an old kcal-only
+                    # entry) can still take a fix to something else.
+                    if ports.fitness.nutrient_check.involves(p) & touched
+                ]
                 if found:
                     wrong.append({"item": e.item, "problems": found})
             ch.setdefault("edit_items", []).append(spec)

@@ -32,6 +32,19 @@ def _num(item: Mapping[str, Any], key: str) -> float | None:
     return None if v is None else float(v)
 
 
+_INVOLVES = {
+    "sugar_more_than_carbs": {"sugar", "carbs"},
+    "fiber_more_than_carbs": {"fiber", "carbs"},
+    "sat_fat_more_than_fat": {"sat_fat", "fat"},
+    "kcal_does_not_match_macros": {"kcal", "protein", "carbs", "fat"},
+}
+
+
+def involves(problem: Problem) -> set[str]:
+    """The values a ``value_problems`` problem is about."""
+    return _INVOLVES.get(str(problem["problem"]), set())
+
+
 def kcal_from_macros(item: Mapping[str, Any]) -> float | None:
     """Atwater energy (4/4/9, alcohol 7), or None when a macro is missing."""
     p, c, f = (_num(item, k) for k in ("protein", "carbs", "fat"))

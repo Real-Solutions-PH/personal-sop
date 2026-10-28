@@ -586,23 +586,39 @@ def workout_facts(ctx: Ctx, first: date, last: date) -> list[dict[str, Any]]:
     ):
         if st.kind != "warmup" and st.completed_at is not None:
             sets.setdefault(st.workout_exercise_id, []).append(st)
-    out = []
+    out: list[dict[str, Any]] = []
     for we in wes:
         w, done = workouts[we.workout_id], sets.get(we.id, [])
         mins = sum(st.duration_sec or 0 for st in done) / 60
-        out.append(
-            {
+        row: dict[str, Any] = {
+            "day": ctx.clock.day_of(w.started_at).isoformat(),
+            "workout": w.name,
+            "exercise": names.get(we.exercise_id, ""),
+            "sets": len(done),
+            "reps": sum(st.reps for st in done),
+            "volume_kg": sum(st.reps * st.weight for st in done),
+        }
+        top = max((st.weight for st in done), default=0)
+        if top:
+            row["top_kg"] = top
+        if mins:
+            row["minutes"] = round(mins, 1)
+        out.append(row)
+    # Cardio logged from chat is kept on the workout itself.
+    for w in workouts.values():
+        c = w.cardio or {}
+        if c:
+            row = {
                 "day": ctx.clock.day_of(w.started_at).isoformat(),
                 "workout": w.name,
-                "exercise": names.get(we.exercise_id, ""),
-                "sets": len(done),
-                "reps": sum(st.reps for st in done),
-                "top_kg": max((st.weight for st in done), default=None) or None,
-                "volume_kg": sum(st.reps * st.weight for st in done),
-                "minutes": round(mins, 1) if mins else None,
+                "exercise": str(c.get("activity") or "Cardio"),
             }
-        )
-    return sorted(out, key=lambda r: r["day"])
+            for key, name in (("min", "minutes"), ("km", "km")):
+                v = c.get(key)
+                if isinstance(v, (int, float)):
+                    row[name] = float(v)
+            out.append(row)
+    return sorted(out, key=lambda r: str(r["day"]))
 
 
 def weigh_in_facts(ctx: Ctx, first: date, last: date) -> list[dict[str, Any]]:

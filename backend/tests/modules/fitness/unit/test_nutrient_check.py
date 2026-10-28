@@ -3,7 +3,11 @@
 Expected values are worked by hand from the Atwater factors (4 kcal per g
 of protein and carbs, 9 per g of fat, 7 per g of alcohol)."""
 
-from app.modules.fitness.nutrient_check import estimate_problems, value_problems
+from app.modules.fitness.nutrient_check import (
+    estimate_problems,
+    involves,
+    value_problems,
+)
 
 # 1 cup cooked white rice, USDA: 205 kcal, 4.3 g protein, 44.5 g carbs,
 # 0.4 g fat -> 4*4.3 + 4*44.5 + 9*0.4 = 198.8 kcal.
@@ -127,3 +131,12 @@ def test_macros_heavier_than_the_food() -> None:
         "grams": 100,
     }
     assert codes(estimate_problems(chicken)) == ["macros_heavier_than_the_food"]
+
+
+def test_each_problem_names_the_values_it_is_about() -> None:
+    [p] = value_problems(RICE | {"sugar": 60})
+    assert involves(p) == {"sugar", "carbs"}
+    [p] = value_problems(
+        {"name": "x", "kcal": 400, "protein": 20, "carbs": 0, "fat": 19}
+    )
+    assert involves(p) == {"kcal", "protein", "carbs", "fat"}

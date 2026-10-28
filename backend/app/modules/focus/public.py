@@ -161,14 +161,24 @@ def today_line(ctx: Ctx) -> dict[str, Any]:
 
 
 def session_facts(ctx: Ctx, first: date, last: date) -> list[dict[str, Any]]:
-    """One row per stretch of counted focus over the days ``[first, last]``,
-    on the day it started."""
+    """Focus minutes per business day and item over ``[first, last]``,
+    worked out as the Focus screen does: a stretch crossing the day
+    boundary split at it, overlaps within an item counted once."""
     r = svc.focus_range(ctx, first, last)
-    return [
-        {
-            "day": ctx.clock.day_of(f.start).isoformat(),
-            "item": f.item.title if f.item else None,
-            "focus_min": round((f.end - f.start).total_seconds() / 60, 1),
-        }
-        for f in sorted(r.spans, key=lambda f: f.start)
-    ]
+    by_item: dict[Any, list[Any]] = {}
+    for f in r.spans:
+        key = (f.item.kind, f.item.id) if f.item else None
+        by_item.setdefault(key, []).append(f)
+    out = []
+    for spans in by_item.values():
+        title = spans[0].item.title if spans[0].item else None
+        for day, sec in sorted(L.per_day(spans, ctx.clock, first, last).items()):
+            if sec:
+                out.append(
+                    {
+                        "day": day.isoformat(),
+                        "item": title,
+                        "focus_min": round(sec / 60, 1),
+                    }
+                )
+    return sorted(out, key=lambda x: str(x["day"]))

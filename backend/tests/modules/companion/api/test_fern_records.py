@@ -14,6 +14,7 @@ from sqlmodel import Session
 
 from app.modules.capture.models import RecordCard
 from app.modules.fitness.models import MealItem
+from app.shared.currency import PHP, money
 from tests.modules.companion.api.test_fern_agent import act, live, rows_of
 from tests.modules.companion.api.test_fern_fitness import _meal, fern, tool_result, turn
 
@@ -85,7 +86,7 @@ def test_query_records_money_reads_as_money(
     # Minor units never reach the model: the keys lose "_minor" and the
     # values are money text.
     assert "spent_minor" not in out["total"]
-    assert out["total"]["spent"].endswith("0.00")
+    assert out["total"]["spent"] == money(0, PHP)
 
 
 def test_log_meal_sends_an_unchecked_estimate_back(
@@ -202,3 +203,25 @@ def test_edit_meal_refuses_sugar_above_carbs(
     assert out["items"][0]["problems"][0]["problem"] == "sugar_more_than_carbs"
     [it] = live(rows_of(api, MealItem))
     assert (it.kcal, it.carbs) == (260, 34)
+
+
+def test_edit_meal_checks_a_new_amount_after_scaling(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = fern(client, db)
+    meal_id = _meal(api)["id"]  # 1 cup rice: 205 kcal, 4 / 45 / 0 g
+    # Twice the rice at twice the kcal is consistent once the macros scale.
+    step, _ = turn(
+        api,
+        client,
+        monkeypatch,
+        "it was 2 cups of rice",
+        act(
+            "edit_meal",
+            meal_id=meal_id,
+            edit_items=[{"item": "rice", "qty": 2, "kcal": 410}],
+        ),
+    )
+    assert step["ok"], step
+    rice = next(i for i in live(rows_of(api, MealItem)) if i.name == "Rice")
+    assert (rice.qty, rice.kcal, rice.carbs) == (2, 410, 90)
