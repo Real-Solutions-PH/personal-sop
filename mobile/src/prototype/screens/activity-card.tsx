@@ -15,6 +15,7 @@ import {
 import { scheduleEatBackReminder } from "../local-reminders"
 import { Copy, Frame, Line } from "../native-kit"
 import { Button, undo } from "../ui"
+import { ConnectHealthCard, useHealthAsked } from "./health-connect"
 
 /** What the button offers: nothing added yet, more once the burn has grown
  * by 50 kcal since the last tap, else already added. */
@@ -46,7 +47,8 @@ export function ActivityCard({ day }: { day: string }) {
     added = fitStore.use((s) => adjustmentOn(s, day)),
     addedYesterday = fitStore.use((s) => adjustmentOn(s, yesterday)),
     [activity, setActivity] = useState<Activity | null | undefined>(),
-    [prev, setPrev] = useState<Activity | null>(null)
+    [prev, setPrev] = useState<Activity | null>(null),
+    { asked, connect } = useHealthAsked()
   const load = useCallback(async () => {
     const [a, p] = await Promise.all([
       readActivity(day),
@@ -66,28 +68,18 @@ export function ActivityCard({ day }: { day: string }) {
   }, [available, load])
   const burned = activity?.activeKcal
   useEffect(() => {
-    if (day === today && burned !== undefined)
+    if (day === today && asked && burned !== undefined)
       scheduleEatBackReminder(burned, added).catch(() => {})
-  }, [day, today, burned, added])
-  if (!available || activity === undefined) return null
-  if (activity === null)
+  }, [day, today, asked, burned, added])
+  if (!available || activity === undefined || asked === undefined) return null
+  if (!asked || activity === null)
     return (
-      <Frame style={{ padding: 16, gap: 8 }}>
-        <Copy weight="semibold">Activity</Copy>
-        <Copy size={13} muted>
-          See your steps and the calories you burn, and add them to your budget
-          when you choose.
-        </Copy>
-        <Button
-          small
-          onPress={async () => {
-            await connectHealth()
-            await load()
-          }}
-        >
-          Connect Apple Health
-        </Button>
-      </Frame>
+      <ConnectHealthCard
+        onConnect={async () => {
+          await connect()
+          await load()
+        }}
+      />
     )
   const offer = eatBackOffer(activity.activeKcal, added),
     late =

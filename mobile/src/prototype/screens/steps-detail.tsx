@@ -8,6 +8,7 @@ import { DailyBars } from "../chart"
 import { Copy, Frame, Segmented } from "../native-kit"
 import { useTheme } from "../theme"
 import { Empty, Screen } from "../ui"
+import { ConnectHealthCard, useHealthAsked } from "./health-connect"
 import {
   GOAL,
   lastDays,
@@ -24,12 +25,19 @@ export function StepsDetail() {
   const t = useTheme(),
     [range, setRange] = useState<Range>("week"),
     offsets = lastDays(range === "week" ? 7 : monthSoFar()),
-    days = useDays(offsets),
+    { asked, connect } = useHealthAsked(),
+    days = useDays(offsets, asked),
     [pick, setPick] = useState<number | null>(null)
   const changeRange = (r: Range) => {
     setRange(r)
     setPick(null)
   }
+  if (asked === false)
+    return (
+      <Screen title="Steps">
+        <ConnectHealthCard onConnect={connect} />
+      </Screen>
+    )
   if (!days)
     return (
       <Screen title="Steps">

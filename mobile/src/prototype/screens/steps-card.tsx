@@ -10,6 +10,7 @@ import { type Activity, healthAvailable, readActivity } from "../health"
 import { Copy, Frame, Line, Tap } from "../native-kit"
 import { go } from "../navigation"
 import { useTheme } from "../theme"
+import { ConnectHealthCard, useHealthAsked } from "./health-connect"
 
 export const GOAL = 10_000
 export const n = (v: number) => v.toLocaleString("en-US")
@@ -43,9 +44,13 @@ export function stepStats(days: readonly (Activity | null)[]) {
   }
 }
 
-/** Reads `offsets` from Health now and whenever the app comes back. */
-export function useDays(offsets: readonly number[]) {
-  const available = healthAvailable(),
+/** Reads `offsets` from Health once its sheet has been answered (`ready`),
+ * and again whenever the app comes back. */
+export function useDays(
+  offsets: readonly number[],
+  ready: boolean | undefined,
+) {
+  const available = healthAvailable() && ready === true,
     key = offsets.join(","),
     [days, setDays] = useState<(Activity | null)[] | undefined>()
   // biome-ignore lint/correctness/useExhaustiveDependencies: key stands for offsets
@@ -68,8 +73,11 @@ export function StepsCard() {
     // ponytail: one Health read per day (4 queries each); a statistics
     // collection query if a month of reads ever feels slow.
     span = lastDays(Math.max(7, monthSoFar())),
-    days = useDays(span),
+    { asked, connect } = useHealthAsked(),
+    days = useDays(span, asked),
     [pick, setPick] = useState(6)
+  if (asked === false)
+    return <ConnectHealthCard onConnect={connect} style={{ marginTop: 16 }} />
   if (!days) return null
   const week = days.slice(-7),
     month = days.slice(-monthSoFar()),

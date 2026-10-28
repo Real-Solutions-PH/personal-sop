@@ -12,10 +12,12 @@ const mockStats = jest.fn(async (id: string, _s: unknown, _o: unknown) => ({
 }))
 const mockWorkouts = jest.fn(async (_o: unknown) => [{}, {}])
 const mockAuth = jest.fn(async (_t: unknown) => true)
+let mockStatus = 1 // HealthKit: 1 = never asked, 2 = already answered
 let mockAvailable = true
 jest.mock("@kingstinct/react-native-healthkit", () => ({
   isHealthDataAvailable: () => mockAvailable,
   requestAuthorization: (t: unknown) => mockAuth(t),
+  getRequestStatusForAuthorization: async () => mockStatus,
   queryStatisticsForQuantity: (id: string, s: unknown, o: unknown) =>
     mockStats(id, s, o),
   queryWorkoutSamples: (o: unknown) => mockWorkouts(o),
@@ -31,10 +33,16 @@ jest.mock("expo-constants", () => ({
   },
 }))
 
-import { connectHealth, healthAvailable, readActivity } from "../health"
+import {
+  connectHealth,
+  healthAsked,
+  healthAvailable,
+  readActivity,
+} from "../health"
 
 beforeEach(() => {
   mockEnv = "bare"
+  mockStatus = 1
   mockAvailable = true
   Platform.OS = "ios"
   jest.clearAllMocks()
@@ -125,6 +133,19 @@ test("a real build never shows sample activity", async () => {
   mockAvailable = false
   expect(healthAvailable()).toBe(false)
   expect(await readActivity("2026-10-28")).toBeNull()
+})
+
+test("asked: false until the Health sheet has been answered", async () => {
+  expect(await healthAsked()).toBe(false)
+  mockStatus = 2
+  expect(await healthAsked()).toBe(true)
+})
+
+test("asked: false where there is no Health, true in Expo Go's sample", async () => {
+  mockAvailable = false
+  expect(await healthAsked()).toBe(false)
+  mockEnv = "storeClient"
+  expect(await healthAsked()).toBe(true)
 })
 
 // Last: it swaps the module registry.

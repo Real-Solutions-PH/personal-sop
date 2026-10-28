@@ -46,8 +46,10 @@ let mockUndo: (() => void) | undefined
 const mockRead = jest.fn<Promise<Activity | null>, [string]>()
 const mockConnect = jest.fn(async () => true)
 let mockAvailable = true
+let mockAsked = true
 jest.mock("../health", () => ({
   healthAvailable: () => mockAvailable,
+  healthAsked: async () => mockAsked,
   connectHealth: () => mockConnect(),
   readActivity: (day: string) => mockRead(day),
 }))
@@ -73,6 +75,7 @@ beforeEach(() => {
   resetAll()
   fitStore.set((s) => ({ ...s, adjustments: [] }))
   mockAvailable = true
+  mockAsked = true
   mockRead.mockReset()
 })
 
@@ -189,4 +192,12 @@ test("undoing an add-more puts back what was added before", async () => {
   await act(async () => fireEvent.press(btn))
   await act(async () => mockUndo?.())
   expect(adjustmentOn(fitStore.get(), dayKey())).toBe(420)
+})
+
+test("before Health is allowed, Connect even though reads come back", async () => {
+  mockAsked = false
+  mockRead.mockResolvedValue(act1(0))
+  render(<ActivityCard day={dayKey()} />)
+  expect(await screen.findByText("Connect Apple Health")).toBeTruthy()
+  expect(screen.queryByText("Add 0 kcal to budget")).toBeNull()
 })

@@ -63,6 +63,21 @@ export function healthAvailable(): boolean {
   }
 }
 
+/** Whether the Health sheet has been answered. iOS hides allow vs deny, so
+ * true means "asked", not "allowed": a denied read shows up as zeros. */
+export async function healthAsked(): Promise<boolean> {
+  if (expoGo()) return true
+  if (!healthAvailable()) return false
+  try {
+    const status = await (load() as HealthKit).getRequestStatusForAuthorization(
+      { toRead: [STEPS, ENERGY, DISTANCE, WORKOUT] },
+    )
+    return status === 2 // AuthorizationRequestStatus.unnecessary
+  } catch {
+    return false
+  }
+}
+
 /** Shows the system Health sheet. iOS never says whether reading was
  * allowed, so a denied read later shows up as zeros, not an error. */
 export async function connectHealth(): Promise<boolean> {

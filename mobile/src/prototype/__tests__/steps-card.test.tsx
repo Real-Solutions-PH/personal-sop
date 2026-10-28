@@ -1,7 +1,7 @@
 // Steps from Apple Health: Fitness's card (today, this week, this month, a
 // bar per day) and the detail screen (week or month, totals and bests).
 import { dayOffset } from "@domain/lib/day"
-import { fireEvent, render, screen } from "@testing-library/react-native"
+import { act, fireEvent, render, screen } from "@testing-library/react-native"
 import { router } from "expo-router"
 import type { ReactNode } from "react"
 import { SafeAreaProvider } from "react-native-safe-area-context"
@@ -48,8 +48,15 @@ const wrapper = ({ children }: { children: ReactNode }) => (
 )
 const mockRead = jest.fn<Promise<Activity | null>, [string]>()
 let mockAvailable = true
+let mockAsked = true
+const mockConnect = jest.fn(async () => {
+  mockAsked = true
+  return true
+})
 jest.mock("../health", () => ({
   healthAvailable: () => mockAvailable,
+  healthAsked: async () => mockAsked,
+  connectHealth: () => mockConnect(),
   readActivity: (day: string) => mockRead(day),
 }))
 
@@ -68,6 +75,8 @@ const label = (offset: number) =>
   })
 beforeEach(() => {
   mockAvailable = true
+  mockAsked = true
+  mockConnect.mockClear()
   mockRead.mockClear()
   jest.mocked(router.push).mockClear()
   mockRead.mockImplementation(async (d) => {
@@ -169,4 +178,21 @@ test("detail: Month reads every day from the 1st", async () => {
   const n = Number(dayOffset(0).slice(8))
   expect(await screen.findByText(`1 of ${n}`)).toBeTruthy()
   expect(mockRead).toHaveBeenCalledTimes(n)
+})
+
+test("card: before Health is allowed, a Connect button instead of zeros", async () => {
+  mockAsked = false
+  render(<StepsCard />)
+  const connect = await screen.findByText("Connect Apple Health")
+  expect(screen.queryByText("STEPS TODAY")).toBeNull()
+  await act(async () => fireEvent.press(connect))
+  expect(mockConnect).toHaveBeenCalled()
+  expect(await screen.findByText("7,000")).toBeTruthy()
+})
+
+test("detail: before Health is allowed, a Connect button", async () => {
+  mockAsked = false
+  render(<StepsDetail />, { wrapper })
+  expect(await screen.findByText("Connect Apple Health")).toBeTruthy()
+  expect(screen.queryByText("Total steps")).toBeNull()
 })
