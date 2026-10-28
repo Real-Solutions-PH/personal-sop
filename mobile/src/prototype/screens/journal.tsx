@@ -1,6 +1,7 @@
 import * as A from "@domain/capture/actions"
 import {
   AREAS,
+  CHECK_IN,
   type JournalEntry,
   MOODS,
   type Mood,
@@ -9,21 +10,16 @@ import { journalDraft } from "@domain/capture/parse"
 import { captureStore, isOnline } from "@domain/capture/store"
 import { dayKey, dayOffset, weekday } from "@domain/lib/day"
 import {
-  Annoyed,
   Briefcase,
   Compass,
   Flame,
-  Frown,
   HeartPulse,
-  Laugh,
-  Meh,
   Mic,
   Moon,
   PenLine,
   Plus,
   Search,
   Share2,
-  Smile,
   Sprout,
   Trash2,
   Users,
@@ -53,8 +49,8 @@ import { Switch } from "../switch"
 import { fonts, useTheme } from "../theme"
 import { Button, DateField, Screen } from "../ui"
 import { CaptureVoice } from "./capture-voice"
+import { MoodPicker, moodIcons } from "./mood-picker"
 
-const moodIcons = { 1: Frown, 2: Annoyed, 3: Meh, 4: Smile, 5: Laugh }
 const areaIcons = {
   identity: Compass,
   career: Briefcase,
@@ -78,46 +74,6 @@ const timeLabel = (at: string) =>
     hour: "numeric",
     minute: "2-digit",
   })
-export function MoodPicker({
-  value,
-  onChange,
-}: {
-  value?: Mood
-  onChange: (v: Mood | undefined) => void
-}) {
-  const t = useTheme()
-  return (
-    <Line style={{ gap: 6 }}>
-      {MOODS.map((m) => {
-        const I = moodIcons[m.v],
-          on = value === m.v
-        return (
-          <Tap
-            key={m.v}
-            label={m.label}
-            onPress={() => onChange(on ? undefined : m.v)}
-            style={{
-              height: 56,
-              flex: 1,
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 2,
-              borderRadius: 12,
-              backgroundColor: on ? border(t.life, 0.2) : t.soft,
-              borderWidth: on ? 2 : 0,
-              borderColor: t.life,
-            }}
-          >
-            <I size={20} color={on ? t.life : t.muted} />
-            <Copy size={10} style={{ color: on ? t.life : t.muted }}>
-              {m.label}
-            </Copy>
-          </Tap>
-        )
-      })}
-    </Line>
-  )
-}
 export function AreaPicker({
   value,
   onChange,
@@ -406,7 +362,10 @@ function JournalList() {
     [q, setQ] = useState(""),
     [area, setArea] = useState<string>(),
     [talk, setTalk] = useState(false),
-    entries = [...all].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    // Mood check-ins count in the trend only, not as entries or streak days.
+    entries = all
+      .filter((e) => !e.tags.includes(CHECK_IN))
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     shown = entries.filter(
       (e) =>
         (!area || e.area === area) &&
@@ -511,9 +470,7 @@ function JournalList() {
           <Copy size={11} muted style={{ marginTop: 4 }}>
             Last 4 weeks
           </Copy>
-          {entries.filter((e) => e.mood).length >= 5 && (
-            <MoodTrend entries={entries} />
-          )}
+          {all.filter((e) => e.mood).length >= 5 && <MoodTrend entries={all} />}
         </Frame>
         <Line style={{ gap: 8, marginTop: 12 }}>
           <View style={{ flex: 1 }}>

@@ -371,6 +371,9 @@ export const AREAS = [
   { key: "relationships", label: "People" },
   { key: "growth", label: "Growth" },
 ] as const
+/** Tag on a one-tap mood check-in: one a day, counted in the mood trend but
+ * kept out of the entry list and never ticking the Journal habit. */
+export const CHECK_IN = "check-in"
 export const MOODS: {
   v: Mood
   label: string

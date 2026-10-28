@@ -32,7 +32,7 @@ import {
   restoreJournalEntry,
   updateJournalEntry,
 } from "../actions"
-import { AREAS, type JournalEntry, MOODS, type Mood } from "../data"
+import { AREAS, CHECK_IN, type JournalEntry, MOODS, type Mood } from "../data"
 import { AreaPicker, MoodPicker } from "../edit"
 import { MoodTrend } from "../mood-trend"
 import { journalDraft } from "../parse"
@@ -109,12 +109,14 @@ export function JournalListScreen() {
   const [area, setArea] = useState<string | null>(null)
   const [talk, setTalk] = useState(false)
 
+  // Mood check-ins count in the trend only, not as entries or streak days.
+  const mooded = useMemo(() => (state === "empty" ? [] : all), [all, state])
   const entries = useMemo(
     () =>
-      state === "empty"
-        ? []
-        : [...all].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
-    [all, state],
+      mooded
+        .filter((e) => !e.tags.includes(CHECK_IN))
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    [mooded],
   )
   const shown = useMemo(
     () =>
@@ -148,9 +150,9 @@ export function JournalListScreen() {
       ),
     ]
     const week = entries.filter((e) => e.day >= dayOffset(-6)).length
-    const withMood = entries.filter((e) => e.mood).length
+    const withMood = mooded.filter((e) => e.mood).length
     return { streak: journalStreak(entries), heat, week, withMood }
-  }, [entries])
+  }, [entries, mooded])
 
   const today = dayKey()
   return (
@@ -202,7 +204,7 @@ export function JournalListScreen() {
                 Last 4 weeks
               </div>
             </div>
-            {stats.withMood >= 5 && <MoodTrend entries={entries} />}
+            {stats.withMood >= 5 && <MoodTrend entries={mooded} />}
           </Card>
 
           <div className="mt-3 grid grid-cols-2 gap-2">

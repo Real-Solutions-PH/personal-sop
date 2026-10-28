@@ -24,8 +24,9 @@ def _dirty(ctx: Ctx, day: date) -> None:
 
 def _tick_journal_habit(ctx: Ctx, entry: JournalEntry) -> None:
     """The prototype's ``addJournalEntry`` checks an active habit named like
-    "Journal" for the entry's day when it has no log yet."""
-    if entry.day > ctx.today:
+    "Journal" for the entry's day when it has no log yet. A one-tap mood
+    check-in (tagged ``check-in``) is not journaling and never ticks it."""
+    if entry.day > ctx.today or "check-in" in entry.tags:
         return
     for h in ports.habits.find_habits(ctx, "journal", limit=5):
         if h.status != "active" or "journal" not in h.name.lower():
