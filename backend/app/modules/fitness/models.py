@@ -213,6 +213,21 @@ class MacroTarget(OwnedRow, table=True):
     fiber_g: float | None = Field(default=None, sa_type=Float)
 
 
+class TargetAdjustment(OwnedRow, table=True):
+    """Burned kcal the user chose to add to one day's budget (eat-back from
+    Apple Health). Applies to ``day`` only, unlike a versioned target."""
+
+    __tablename__ = "target_adjustment"
+    __table_args__ = (
+        UniqueConstraint("owner_id", "day", name="uq_target_adjustment_day"),
+        CheckConstraint("kcal >= 0", name="ck_target_adjustment_nonneg"),
+    )
+
+    day: date
+    kcal: float = Field(sa_type=Float)
+    source: str = Field(default="health", sa_type=String(8))  # type: ignore
+
+
 class Meal(OwnedRow, table=True):
     __tablename__ = "meal"
     __table_args__ = (

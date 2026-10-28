@@ -13,7 +13,7 @@ Python's ``round``. See :func:`js_round` and :func:`to_fixed`.
 
 import math
 from collections.abc import Iterable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Literal
@@ -118,6 +118,13 @@ class TargetS(Macros):
 
 
 @dataclass
+class AdjustmentS:
+    id: str
+    day: date
+    kcal: float
+
+
+@dataclass
 class MealItemS(Macros):
     id: str = ""
     name: str = ""
@@ -155,6 +162,7 @@ class FitState:
     workouts: list[WorkoutS] = field(default_factory=list)
     weigh_ins: list[WeighInS] = field(default_factory=list)
     targets: list[TargetS] = field(default_factory=list)
+    adjustments: list[AdjustmentS] = field(default_factory=list)
     meals: list[MealS] = field(default_factory=list)
     settings: SettingsS = field(default_factory=SettingsS)
     clock: DayClock = field(default_factory=DayClock)
@@ -623,6 +631,30 @@ def target_for(s: FitState, day: date) -> TargetS | None:
     if not eligible:
         return None
     return sorted(eligible, key=lambda t: t.effective_from)[-1]
+
+
+def adjustment_on(s: FitState, day: date) -> float:
+    return next((a.kcal for a in s.adjustments if a.day == day), 0)
+
+
+def budget_for(s: FitState, day: date) -> TargetS | None:
+    """The day's budget: its target plus the burned kcal the user added that
+    day. Protein stays; the extra kcal go to carbs and fat in the target's
+    carbs:fat calorie ratio (all to carbs when it has neither). Editors use
+    ``target_for``, so an eat-back never gets saved into a target."""
+    t = target_for(s, day)
+    extra = adjustment_on(s, day)
+    if t is None or extra <= 0:
+        return t
+    carb_kcal, fat_kcal = t.carbs * 4, t.fat * 9
+    both = carb_kcal + fat_kcal
+    carb_share = carb_kcal / both if both > 0 else 1
+    return replace(
+        t,
+        kcal=t.kcal + extra,
+        carbs=t.carbs + extra * carb_share / 4,
+        fat=t.fat + extra * (1 - carb_share) / 9,
+    )
 
 
 DayVerdict = Literal["hit", "over", "under", "none"]

@@ -130,6 +130,12 @@ class MacroTargetPublic(_Row):
     fiber_g: float | None = None
 
 
+class TargetAdjustmentPublic(_Row):
+    day: date
+    kcal: float
+    source: str
+
+
 class MealPublic(_Row):
     eaten_at: datetime
     label: str
@@ -250,6 +256,12 @@ class MacroTargetIn(BaseModel):
     sugar_max_g: float | None = OptMacro
     sodium_max_mg: float | None = OptMacro
     fiber_g: float | None = OptMacro
+
+
+class TargetAdjustmentIn(BaseModel):
+    day: date | None = None
+    kcal: float | None = Field(default=None, ge=0, le=10000)
+    source: Literal["health"] | None = None
 
 
 class MealIn(BaseModel):

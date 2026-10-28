@@ -27,6 +27,7 @@ from app.modules.fitness.models import (
     Meal,
     MealItem,
     RestTimer,
+    TargetAdjustment,
     TemplateItem,
     WeighIn,
     Workout,
@@ -138,6 +139,23 @@ def _upsert_target(ctx: Ctx, row_id: uuid.UUID, p: BaseModel) -> OwnedRow:
     natural = ("effective_from",) if "effective_from" in data else ()
     row = owned_repo.upsert(ctx, MacroTarget, row_id, data, natural_key=natural)[0]
     services._dirty(ctx, row.effective_from)
+    return row
+
+
+def _upsert_adjustment(ctx: Ctx, row_id: uuid.UUID, p: BaseModel) -> OwnedRow:
+    # The device's local day can be a day off the server's (travel, or
+    # adding yesterday's burn after midnight); anything further is a bug.
+    data = _data(p)
+    before = owned_repo.get(ctx, TargetAdjustment, row_id, include_deleted=True)
+    day = data.get("day") or (before.day if before else None)
+    if day is not None and abs((day - ctx.today).days) > 1:
+        raise invalid(
+            "adjustment_day_out_of_range",
+            "An eat-back can only be added to today or yesterday.",
+        )
+    natural = ("day",) if "day" in data else ()
+    row = owned_repo.upsert(ctx, TargetAdjustment, row_id, data, natural_key=natural)[0]
+    services._dirty(ctx, row.day)
     return row
 
 
@@ -350,6 +368,14 @@ def register(r: Registry) -> None:
             S.MacroTargetPublic,
             upsert=_upsert_target,
             create_required=("effective_from", "kcal", "protein", "carbs", "fat"),
+        ),
+        Entity(
+            "target_adjustment",
+            TargetAdjustment,
+            S.TargetAdjustmentIn,
+            S.TargetAdjustmentPublic,
+            upsert=_upsert_adjustment,
+            create_required=("day", "kcal"),
         ),
         Entity(
             "meal",
