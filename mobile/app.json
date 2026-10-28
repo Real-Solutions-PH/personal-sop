@@ -86,6 +86,14 @@
           "motionUsagePermission": "Unfurl doesn't use your phone's motion data. This message is required because the location library used for local weather includes optional motion support."
         }
       ],
+      [
+        "@kingstinct/react-native-healthkit",
+        {
+          "NSHealthShareUsageDescription": "Unfurl reads your steps, active calories, distance and workouts to show your daily activity and, if you choose, add the calories you burned to that day's budget.",
+          "NSHealthUpdateUsageDescription": false,
+          "background": false
+        }
+      ],
       "@react-native-community/datetimepicker",
       "expo-asset",
       "expo-font",
