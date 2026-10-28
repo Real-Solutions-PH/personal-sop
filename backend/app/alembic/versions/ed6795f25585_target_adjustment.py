@@ -2,7 +2,7 @@
 budget. One row per user and day; the versioned macro target is unchanged.
 
 Revision ID: ed6795f25585
-Revises: 958f09719229
+Revises: a7c3e9d51f20
 Create Date: 2026-10-28
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision = "ed6795f25585"
-down_revision = "958f09719229"
+down_revision = "a7c3e9d51f20"
 branch_labels = None
 depends_on = None
 
