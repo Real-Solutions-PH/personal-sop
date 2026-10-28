@@ -1,6 +1,6 @@
 // Apple Health, read-only: the day's steps, active energy, walking+running
-// distance and workout count. Nothing here is synced; only an eat-back the
-// user taps (setBurnAdjustment) reaches the server.
+// distance, workout count and the night's sleep. Nothing here is synced; only
+// an eat-back the user taps (setBurnAdjustment) reaches the server.
 import Constants from "expo-constants"
 import { Platform } from "react-native"
 
@@ -29,7 +29,9 @@ export interface Activity {
 const STEPS = "HKQuantityTypeIdentifierStepCount",
   ENERGY = "HKQuantityTypeIdentifierActiveEnergyBurned",
   DISTANCE = "HKQuantityTypeIdentifierDistanceWalkingRunning",
-  WORKOUT = "HKWorkoutTypeIdentifier"
+  WORKOUT = "HKWorkoutTypeIdentifier",
+  SLEEP = "HKCategoryTypeIdentifierSleepAnalysis",
+  READ = [STEPS, ENERGY, DISTANCE, WORKOUT, SLEEP] as const
 
 // Expo Go ships without HealthKit (Apple grants it per app), so there the
 // card shows sample activity instead, to try the eat-back flow. Real builds
@@ -126,6 +128,67 @@ export async function readDays(
   }
 }
 
+export interface SleepSample {
+  startDate: Date
+  endDate: Date
+  value: number
+}
+// CategoryValueSleepAnalysis: asleep (1), core (3), deep (4), REM (5).
+// In bed (0) and awake (2) are not sleep.
+const ASLEEP = new Set([1, 3, 4, 5])
+
+/** Minutes asleep within [from, to). Watch and iPhone often record the same
+ * night, so overlapping samples are merged before summing. */
+export function asleepMinutes(
+  samples: readonly SleepSample[],
+  from: Date,
+  to: Date,
+): number {
+  const spans = samples
+    .filter((s) => ASLEEP.has(s.value))
+    .map((s): [number, number] => [
+      Math.max(s.startDate.getTime(), from.getTime()),
+      Math.min(s.endDate.getTime(), to.getTime()),
+    ])
+    .filter(([a, b]) => b > a)
+    .sort((x, y) => x[0] - y[0])
+  let total = 0,
+    end = -Infinity
+  for (const [a, b] of spans) {
+    if (b <= end) continue
+    total += b - Math.max(a, end)
+    end = b
+  }
+  return Math.round(total / 60_000)
+}
+
+/** Minutes asleep for each night, oldest first. A night belongs to the day
+ * you wake: day D's night runs 18:00 the evening before to 18:00 on D. One
+ * query for the whole run; null for every night when Health can't answer. */
+export async function readSleep(
+  days: readonly string[],
+): Promise<(number | null)[]> {
+  if (expoGo()) return days.map((d) => 380 + (Number(d.slice(-2)) % 5) * 25)
+  const first = days[0],
+    last = days.at(-1)
+  if (!healthAvailable() || !first || !last) return days.map(() => null)
+  const evening = (day: string, plus = 0) => {
+    const [y, m, d] = day.split("-").map(Number) as [number, number, number]
+    return new Date(y, m - 1, d + plus, 18)
+  }
+  try {
+    const samples = await (load() as HealthKit).queryCategorySamples(SLEEP, {
+      limit: 0,
+      filter: {
+        date: { startDate: evening(first, -1), endDate: evening(last) },
+      },
+    })
+    return days.map((d) => asleepMinutes(samples, evening(d, -1), evening(d)))
+  } catch {
+    return days.map(() => null)
+  }
+}
+
 /** Whether the Health sheet has been answered. iOS hides allow vs deny, so
  * true means "asked", not "allowed": a denied read shows up as zeros. */
 export async function healthAsked(): Promise<boolean> {
@@ -133,7 +196,7 @@ export async function healthAsked(): Promise<boolean> {
   if (!healthAvailable()) return false
   try {
     const status = await (load() as HealthKit).getRequestStatusForAuthorization(
-      { toRead: [STEPS, ENERGY, DISTANCE, WORKOUT] },
+      { toRead: READ },
     )
     return status === 2 // AuthorizationRequestStatus.unnecessary
   } catch {
@@ -148,7 +211,7 @@ export async function connectHealth(): Promise<boolean> {
   if (!healthAvailable()) return false
   try {
     return await (load() as HealthKit).requestAuthorization({
-      toRead: [STEPS, ENERGY, DISTANCE, WORKOUT],
+      toRead: READ,
     })
   } catch {
     return false
