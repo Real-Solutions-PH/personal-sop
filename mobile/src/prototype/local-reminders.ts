@@ -166,6 +166,32 @@ export async function syncReminders(
   return plan.length
 }
 
+/** Tonight's nudge to add the day's burned kcal to the budget: at 20:00, only
+ * while what Apple Health counted is more than 100 kcal past what was added.
+ * Its id is outside ``OURS``, so rebuilding task and habit reminders keeps it. */
+export async function scheduleEatBackReminder(
+  burned: number,
+  added: number,
+  N: Notifications = load(),
+  now: Date = new Date(),
+) {
+  if (Platform.OS === "web") return
+  if ((await N.getPermissionsAsync()).status !== "granted") return
+  await N.cancelScheduledNotificationAsync("eat-back")
+  const at = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 20)
+  const extra = burned - added
+  if (extra <= 100 || now >= at) return
+  await N.scheduleNotificationAsync({
+    identifier: "eat-back",
+    content: {
+      title: "🔥 Add today's burn?",
+      body: `Apple Health counted ${extra.toLocaleString("en-US")} kcal not yet in your budget. Tap to add it, or ignore.`,
+      data: { href: "/nutrition" },
+    },
+    trigger: { type: N.SchedulableTriggerInputTypes.DATE, date: at },
+  })
+}
+
 /** A real notification a few seconds from now, to see reminders work. */
 export async function sendTestReminder(N: Notifications = load()) {
   if (Platform.OS === "web") return false

@@ -8,7 +8,12 @@ import { habitsStore } from "@domain/habits/store"
 import { configureStorage, resetAll } from "@domain/lib/store"
 import type { Task } from "@domain/tasks/data"
 import { tasksStore } from "@domain/tasks/store"
-import { MAX_PENDING, planReminders, syncReminders } from "../local-reminders"
+import {
+  MAX_PENDING,
+  planReminders,
+  scheduleEatBackReminder,
+  syncReminders,
+} from "../local-reminders"
 
 jest.mock("expo-router", () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn() },
@@ -163,5 +168,55 @@ describe("routines and the weigh-in", () => {
     const [p] = planReminders([], [], NOW, { weighIn: "06:30" })
     expect(p).toMatchObject({ id: "weigh-in", daily: { hour: 6, minute: 30 } })
     expect(planReminders([], [], NOW, { weighIn: "" })).toEqual([])
+  })
+})
+
+describe("the evening eat-back reminder", () => {
+  const fakeN = () => {
+    const scheduled: { identifier: string; date: Date; href: string }[] = []
+    const cancelled: string[] = []
+    const N = {
+      getPermissionsAsync: async () => ({ status: "granted" }),
+      cancelScheduledNotificationAsync: async (id: string) => {
+        cancelled.push(id)
+      },
+      scheduleNotificationAsync: async (r: {
+        identifier: string
+        content: { data: { href: string } }
+        trigger: { date: Date }
+      }) => {
+        scheduled.push({
+          identifier: r.identifier,
+          date: r.trigger.date,
+          href: r.content.data.href,
+        })
+        return r.identifier
+      },
+      SchedulableTriggerInputTypes: { DATE: "date" },
+    } as unknown as typeof import("expo-notifications")
+    return { N, scheduled, cancelled }
+  }
+  const at = (h: number) => new Date(2026, 9, 28, h, 0)
+
+  test("burned well past what was added: one reminder at 20:00 today", async () => {
+    const { N, scheduled, cancelled } = fakeN()
+    await scheduleEatBackReminder(300, 0, N, at(15))
+    expect(cancelled).toEqual(["eat-back"])
+    expect(scheduled).toEqual([
+      { identifier: "eat-back", date: at(20), href: "/nutrition" },
+    ])
+  })
+
+  test("within 100 kcal of what was added: none, and any pending one goes", async () => {
+    const { N, scheduled, cancelled } = fakeN()
+    await scheduleEatBackReminder(300, 250, N, at(15))
+    expect(cancelled).toEqual(["eat-back"])
+    expect(scheduled).toEqual([])
+  })
+
+  test("after 20:00: none", async () => {
+    const { N, scheduled } = fakeN()
+    await scheduleEatBackReminder(300, 0, N, at(21))
+    expect(scheduled).toEqual([])
   })
 })

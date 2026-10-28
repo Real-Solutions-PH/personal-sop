@@ -12,6 +12,7 @@ import {
   healthAvailable,
   readActivity,
 } from "../health"
+import { scheduleEatBackReminder } from "../local-reminders"
 import { Copy, Frame, Line } from "../native-kit"
 import { Button } from "../ui"
 
@@ -49,6 +50,11 @@ export function ActivityCard({ day }: { day: string }) {
   useEffect(() => {
     if (available) void load()
   }, [available, load])
+  const burned = activity?.activeKcal
+  useEffect(() => {
+    if (day === today && burned !== undefined)
+      scheduleEatBackReminder(burned, added).catch(() => {})
+  }, [day, today, burned, added])
   if (!available || activity === undefined) return null
   if (activity === null)
     return (

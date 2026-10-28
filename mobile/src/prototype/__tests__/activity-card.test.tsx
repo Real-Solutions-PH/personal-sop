@@ -45,6 +45,11 @@ jest.mock("../health", () => ({
   readActivity: (day: string) => mockRead(day),
 }))
 
+const mockRemind = jest.fn(async (_b: number, _a: number) => {})
+jest.mock("../local-reminders", () => ({
+  scheduleEatBackReminder: (b: number, a: number) => mockRemind(b, a),
+}))
+
 const act1 = (activeKcal: number): Activity => ({
   steps: 8412,
   activeKcal,
@@ -131,4 +136,13 @@ test("older days get no card", () => {
   render(<ActivityCard day={dayOffset(-2)} />)
   expect(screen.toJSON()).toBeNull()
   expect(mockRead).not.toHaveBeenCalled()
+})
+
+test("today's card keeps tonight's reminder in step with what was added", async () => {
+  mockRead.mockImplementation(async (d) => (d === dayKey() ? act1(420) : null))
+  render(<ActivityCard day={dayKey()} />)
+  const btn = await screen.findByText("Add 420 kcal to budget")
+  await waitFor(() => expect(mockRemind).toHaveBeenLastCalledWith(420, 0))
+  await act(async () => fireEvent.press(btn))
+  await waitFor(() => expect(mockRemind).toHaveBeenLastCalledWith(420, 420))
 })
