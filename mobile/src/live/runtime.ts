@@ -4,6 +4,7 @@
 // restored. Everything here is silent: the UI only ever reads its stores.
 
 import { setFxSource } from "@domain/finance/fx"
+import { installStarter } from "@domain/fitness/actions"
 import { getConnectivity } from "@domain/lib/platform"
 import type { StorageAdapter } from "@domain/lib/store"
 import { fetch as expoFetch } from "expo/fetch"
@@ -120,6 +121,14 @@ export function startLive(userId: string, storage: StorageAdapter) {
     mappers: factories.flatMap((f) => f(userId)),
     online: getConnectivity,
     onSynced: () => {
+      // Once per account on this device, after a pull really reached the
+      // server (a new account's first pull can be empty): the gym library
+      // and splits, measured against the account's own rows.
+      const starter = `sop-live:starter:${userId}`
+      if (!storage.getItem(starter)) {
+        installStarter(userId)
+        storage.setItem(starter, "1")
+      }
       void stats.refreshAll()
       // The server is reachable: voice entries saved offline get their words.
       void transcribePending()

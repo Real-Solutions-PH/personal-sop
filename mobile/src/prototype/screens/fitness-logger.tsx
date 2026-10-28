@@ -52,6 +52,7 @@ import {
   undo,
   useNow,
 } from "../ui"
+import { displayMass } from "../units"
 import { CreateExerciseRow, ExerciseEditor } from "./fitness"
 import { StartWorkoutSheet } from "./fitness-start"
 export function WorkoutLogger() {
@@ -68,6 +69,11 @@ export function WorkoutLogger() {
     // A new exercise made from the picker: its name, and what the picker
     // was for ("add", or the workout exercise it replaces).
     [creating, setCreating] = useState<{ name: string; mode: string } | null>(
+      null,
+    ),
+    // "Create" in the picker: held until the picker is gone, then opened
+    // (iOS will not present the editor while the picker is still leaving).
+    [handoff, setHandoff] = useState<{ name: string; mode: string } | null>(
       null,
     ),
     [query, setQuery] = useState(""),
@@ -104,6 +110,12 @@ export function WorkoutLogger() {
         {start && <StartWorkoutSheet onClose={() => setStart(false)} />}
       </Screen>
     )
+  // Each set shows its weight in its own unit (stored in kg either way);
+  // a set with none follows the settings unit.
+  const mass = (x: WorkoutSet) => {
+    const u = x.unit ?? s.settings.units
+    return `${C.kgShort(displayMass(x.weight, u))} ${u}`
+  }
   const totals = C.workoutTotals(s, w),
     unfinished = w.exercises.flatMap((e) =>
       e.sets.filter((x) => !C.isDone(x)),
@@ -371,11 +383,11 @@ export function WorkoutLogger() {
                   ? ex?.track === "speed"
                     ? "km/h"
                     : ex?.track === "weight"
-                      ? "+kg"
+                      ? "+weight"
                       : ""
                   : ex?.loadType === "bodyweight"
-                    ? "+kg"
-                    : "kg",
+                    ? "+weight"
+                    : "weight",
                 timed ? "time" : "reps",
                 "",
               ].map((x, i) => (
@@ -443,7 +455,7 @@ export function WorkoutLogger() {
                         {ghost
                           ? timed
                             ? C.fmtSpan(C.setSeconds(ghost))
-                            : `${C.kgShort(ghost.weight)}×${ghost.reps}`
+                            : `${mass(ghost)}×${ghost.reps}`
                           : "—"}
                       </Copy>
                       {[
@@ -453,11 +465,11 @@ export function WorkoutLogger() {
                               ? C.kgShort(set.speedKmh)
                               : "—"
                             : ex?.track === "weight"
-                              ? C.kgShort(set.weight)
+                              ? mass(set)
                               : ""
                           : needsWeight
                             ? "—"
-                            : C.kgShort(set.weight),
+                            : mass(set),
                         timed ? C.fmtSpan(C.setSeconds(set)) : String(set.reps),
                       ].map((value, i) => (
                         <Tap
@@ -571,6 +583,11 @@ export function WorkoutLogger() {
         title={picker === "add" ? "Add exercises" : "Replace exercise"}
         open={picker !== null}
         onClose={() => setPicker(null)}
+        onClosed={() => {
+          if (!handoff) return
+          setCreating(handoff)
+          setHandoff(null)
+        }}
       >
         <Field label="Search exercises" value={query} onChangeText={setQuery} />
         {s.exercises
@@ -624,7 +641,7 @@ export function WorkoutLogger() {
         <CreateExerciseRow
           query={query}
           onPress={(name) => {
-            setCreating({ name, mode: picker ?? "add" })
+            setHandoff({ name, mode: picker ?? "add" })
             setPicker(null)
           }}
         />
@@ -794,9 +811,10 @@ export function SetEditor({
   onSave: (patch: Partial<WorkoutSet>) => void
   onDelete: () => void
 }) {
-  // Weight is entered in the unit from Fitness settings (switchable here)
-  // and always stored in kg.
-  const unit = fitStore.use((s) => s.settings.units)
+  // Weight is entered in this set's own unit (the settings unit until it is
+  // switched here) and always stored in kg.
+  const fallback = fitStore.use((s) => s.settings.units)
+  const [unit, setUnit] = useState(set.unit ?? fallback)
   const t = useTheme(),
     [weight, setWeight] = useState(
       String(unit === "lb" ? A.kgToLb(set.weight) : set.weight),
@@ -808,13 +826,24 @@ export function SetEditor({
     [mins, setMins] = useState(String(Math.floor(secs / 60))),
     [rest, setRest] = useState(String(secs % 60)),
     [speed, setSpeed] = useState(set.speedKmh ? String(set.speedKmh) : "")
-  const kg = (v: string) => (unit === "lb" ? A.lbToKg(Number(v)) : Number(v))
+  // The stored weight as the editor shows it in a unit. While the field
+  // still shows exactly that, the stored kg is kept: flipping kg/lb back and
+  // forth never drifts it (20 kg → 44.1 lb → 20.003 kg).
+  const shown = (u: "kg" | "lb") =>
+    String(u === "lb" ? A.kgToLb(set.weight) : set.weight)
+  const kg = (v: string) =>
+    v === shown(unit)
+      ? set.weight
+      : unit === "lb"
+        ? A.lbToKg(Number(v))
+        : Number(v)
   const switchUnit = (next: "kg" | "lb") => {
     if (next === unit) return
     const n = Number(weight)
-    if (Number.isFinite(n))
+    if (weight === shown(unit)) setWeight(shown(next))
+    else if (Number.isFinite(n))
       setWeight(String(next === "lb" ? A.kgToLb(n) : A.lbToKg(n)))
-    A.updateSettings({ units: next })
+    setUnit(next)
   }
   return (
     <Sheet title="Edit set" open={open} onClose={onClose}>
@@ -918,7 +947,8 @@ export function SetEditor({
               </View>
               {unit === "lb" && Number.isFinite(Number(weight)) && (
                 <Copy size={12} muted>
-                  = {kg(weight)} kg, saved in kg
+                  = {C.kgShort(Math.round(kg(weight) * 10) / 10)} kg, saved in
+                  kg
                 </Copy>
               )}
             </View>
@@ -948,6 +978,7 @@ export function SetEditor({
               reps: 0,
               durationSec: total,
               weight: exercise?.track === "weight" ? kg(weight) : set.weight,
+              ...(exercise?.track === "weight" ? { unit } : {}),
               ...(exercise?.track === "speed" ? { speedKmh: kmh } : {}),
             })
             onClose()
@@ -962,7 +993,7 @@ export function SetEditor({
             toast.error("Enter valid weight and reps")
             return
           }
-          onSave({ weight: kg(weight), reps: Number(reps), kind })
+          onSave({ weight: kg(weight), reps: Number(reps), kind, unit })
           onClose()
         }}
       >

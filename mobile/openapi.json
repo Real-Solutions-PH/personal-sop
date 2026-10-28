@@ -6739,7 +6739,9 @@
                     "hamstrings",
                     "glutes",
                     "core",
-                    "cardio"
+                    "cardio",
+                    "calves",
+                    "forearms"
                   ],
                   "type": "string"
                 },
@@ -21617,7 +21619,9 @@
               "hamstrings",
               "glutes",
               "core",
-              "cardio"
+              "cardio",
+              "calves",
+              "forearms"
             ],
             "title": "Muscle",
             "default": "chest"
@@ -29818,6 +29822,13 @@
           "speed_kmh": {
             "anyOf": [{ "type": "number" }, { "type": "null" }],
             "title": "Speed Kmh"
+          },
+          "unit": {
+            "anyOf": [
+              { "type": "string", "enum": ["kg", "lb"] },
+              { "type": "null" }
+            ],
+            "title": "Unit"
           }
         },
         "type": "object",

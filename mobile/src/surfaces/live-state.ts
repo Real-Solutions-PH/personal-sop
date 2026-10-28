@@ -145,7 +145,7 @@ function setLabel(
     : isTimed(ex)
       ? `${Math.round(setSeconds(set) / 60)} min`
       : set.weight > 0
-        ? `${displayMass(set.weight, s.settings.units)} × ${set.reps}`
+        ? `${displayMass(set.weight, set.unit ?? s.settings.units)} ${set.unit ?? s.settings.units} × ${set.reps}`
         : `${set.reps} reps`
   const which =
     set?.kind === "warmup" ? "Warm-up" : `Set ${n} of ${working.length}`
@@ -195,11 +195,10 @@ function workoutState(
       key: `${p.we}/${p.set}`,
       ...setLabel(s, w, p.we, p.set),
     })),
-    controls: [
-      ...(cur ? (["finishSet"] as const) : []),
-      ...(resting ? (["skipRest", "addRest"] as const) : []),
-      "finish",
-    ],
+    // Resting: the in-app rest controls (four fit the lock screen).
+    controls: resting
+      ? ["subRest", "addRest", "skipRest", "finish"]
+      : [...(cur ? (["finishSet"] as const) : []), "finish"],
     href: live.href,
   }
 }

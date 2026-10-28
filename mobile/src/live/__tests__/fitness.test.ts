@@ -521,13 +521,14 @@ describe("store edits become sync ops", () => {
     if (!r.ok) throw new Error(r.reason)
     const w = r.workout
     const ops = step(e, seen)
+    // Never done before, each exercise plans the template's set count.
+    const sets = tpl.items.reduce((n, it) => n + it.sets, 0)
     expect(names(ops)).toEqual([
       "fitness.start_workout",
       "upsert:workout",
       "upsert:workout_exercise",
       "upsert:workout_exercise",
-      "upsert:workout_set",
-      "upsert:workout_set",
+      ...Array(sets).fill("upsert:workout_set"),
     ])
     expect(ops[0]).toMatchObject({
       data: { source: "empty", workout_id: w.id },
@@ -553,6 +554,7 @@ describe("store edits become sync ops", () => {
       kind: "working",
       duration_sec: null,
       speed_kmh: null,
+      unit: null,
     })
   })
 
@@ -922,6 +924,7 @@ describe("pulled rows", () => {
       kind: "working",
       duration_sec: null,
       speed_kmh: null,
+      unit: null,
     })
     expect(e.capture()).toEqual([])
   })

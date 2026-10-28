@@ -71,19 +71,22 @@ object LiveTransitions {
         }
         val rest = s.optDouble("restSec", 0.0)
         if (rest > 0) s.put("restEndsAt", now + (rest * 1000).toLong())
-        val list = mutableListOf<String>()
-        if (s.optString("key").isNotEmpty()) list.add("finishSet")
-        if (s.has("restEndsAt")) list.addAll(listOf("skipRest", "addRest"))
-        list.add("finish")
-        setControls(s, list)
+        setControls(s, workoutControls(s))
       }
       "skipRest" -> {
         s.remove("restEndsAt")
-        setControls(s, controls(s).filter { it != "skipRest" && it != "addRest" })
+        setControls(s, workoutControls(s))
       }
-      "addRest" -> if (s.has("restEndsAt")) s.put("restEndsAt", s.optLong("restEndsAt") + 30_000)
+      "addRest" -> if (s.has("restEndsAt")) s.put("restEndsAt", s.optLong("restEndsAt") + 15_000)
+      // Never past now: the app clamps the same way once it applies the tap.
+      "subRest" -> if (s.has("restEndsAt")) s.put("restEndsAt", maxOf(now, s.optLong("restEndsAt") - 15_000))
       "finish" -> return null
     }
     return s
   }
+
+  /** Resting: the in-app rest controls; otherwise the next set and finish. */
+  private fun workoutControls(s: JSONObject): List<String> =
+    if (s.has("restEndsAt")) listOf("subRest", "addRest", "skipRest", "finish")
+    else (if (s.optString("key").isNotEmpty()) listOf("finishSet") else emptyList()) + "finish"
 }

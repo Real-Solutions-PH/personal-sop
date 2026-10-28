@@ -87,8 +87,10 @@ it("a deleted set comes back in its place on undo", () => {
 })
 
 it("converts pounds and kilograms to a tenth", () => {
-  expect(A.lbToKg(30)).toBe(13.6)
-  expect(A.lbToKg(45)).toBe(20.4)
+  expect(A.lbToKg(30)).toBe(13.608)
+  expect(A.lbToKg(45)).toBe(20.412)
+  // Kept to the gram, so pounds come back exact.
+  expect(A.kgToLb(A.lbToKg(135))).toBe(135)
   expect(A.kgToLb(20)).toBe(44.1)
 })
 
@@ -111,21 +113,43 @@ it("a weight typed in pounds is saved in kilograms", () => {
   expect(screen.getByText(/= 20.4 kg/)).toBeTruthy()
   fireEvent.press(screen.getByText("Save"))
   expect(onSave).toHaveBeenCalledWith({
-    weight: 20.4,
+    weight: 20.412,
     reps: 5,
     kind: "working",
+    unit: "lb",
   })
+})
+
+it("switching one set to pounds keeps the others, and the setting, in kg", () => {
+  const onSave = jest.fn()
+  render(
+    <SetEditor
+      set={{ id: "s", weight: 20, reps: 5, kind: "working" }}
+      open
+      onClose={() => {}}
+      onSave={onSave}
+      onDelete={() => {}}
+    />,
+    { wrapper },
+  )
+  fireEvent.press(screen.getByText("lb"))
+  expect(screen.getByLabelText("Weight (lb)").props.value).toBe("44.1")
+  fireEvent.press(screen.getByText("Save"))
+  expect(onSave).toHaveBeenCalledWith(
+    expect.objectContaining({ weight: 20, unit: "lb" }),
+  )
+  expect(fitStore.get().settings.units).toBe("kg")
 })
 
 it("offers to create an exercise the search didn't find, not one it did", () => {
   const onPress = jest.fn()
   const known = fitStore.get().exercises[0].name
   const { rerender } = render(
-    <CreateExerciseRow query="Cable lateral raise" onPress={onPress} />,
+    <CreateExerciseRow query="Zercher squat" onPress={onPress} />,
     { wrapper },
   )
-  fireEvent.press(screen.getByText("Create “Cable lateral raise”"))
-  expect(onPress).toHaveBeenCalledWith("Cable lateral raise")
+  fireEvent.press(screen.getByText("Create “Zercher squat”"))
+  expect(onPress).toHaveBeenCalledWith("Zercher squat")
   rerender(<CreateExerciseRow query={known.toUpperCase()} onPress={onPress} />)
   expect(screen.queryByText(/Create/)).toBeNull()
 })

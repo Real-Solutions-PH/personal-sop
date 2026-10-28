@@ -173,6 +173,8 @@ export function ExerciseEditor({
               "hamstrings",
               "glutes",
               "core",
+              "calves",
+              "forearms",
               "cardio",
             ] as const
           ).map((m) =>

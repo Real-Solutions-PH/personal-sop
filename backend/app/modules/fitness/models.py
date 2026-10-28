@@ -21,6 +21,8 @@ MUSCLES = (
     "glutes",
     "core",
     "cardio",
+    "calves",
+    "forearms",
 )
 # What a timed exercise records beside its time: walking or running speed,
 # or added weight (a weighted plank). None: time alone.
@@ -141,6 +143,9 @@ class WorkoutSet(OwnedRow, table=True):
             "speed_kmh IS NULL OR (speed_kmh >= 0 AND speed_kmh <= 60)",
             name="ck_workout_set_speed",
         ),
+        CheckConstraint(
+            "unit IS NULL OR unit IN ('kg', 'lb')", name="ck_workout_set_unit"
+        ),
     )
 
     workout_exercise_id: uuid.UUID = Field(
@@ -153,6 +158,9 @@ class WorkoutSet(OwnedRow, table=True):
     # A timed set: how long, and how fast (walking or running).
     duration_sec: int | None = None
     speed_kmh: float | None = Field(default=None, sa_type=Float)
+    # The unit this set's weight was entered and is shown in; the weight
+    # itself is always kilograms. None: the person's settings unit.
+    unit: str | None = Field(default=None, sa_type=String(2))  # type: ignore
     completed_at: datetime | None = Field(default=None, sa_type=tstz())  # type: ignore
 
 

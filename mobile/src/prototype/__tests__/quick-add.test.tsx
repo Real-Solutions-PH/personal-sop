@@ -226,7 +226,8 @@ test("saving a new card's expense remembers its account; the next tap saves on i
   render(<FinanceQuickAdd />, { wrapper })
   expect(screen.queryByText("New transaction")).toBeNull()
   const s = finStore.get(),
-    r = s.records.find((r) => r.amount === 150)
+    // The demo seed can hold its own ₱150 purchase today: match this one.
+    r = s.records.find((r) => r.amount === 150 && r.source === "quick-add")
   expect(s.records).toHaveLength(count + 2)
   expect(r).toMatchObject({
     type: "expense",
