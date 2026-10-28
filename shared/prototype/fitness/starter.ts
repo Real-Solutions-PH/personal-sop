@@ -438,9 +438,10 @@ export const STARTER_SPLITS: Split[] = [
   ],
 ]
 
-/** Adds the starter exercises and splits an account is missing, matched by
- * name so nothing the person already has is duplicated. Returns how many
- * exercises and splits were added. */
+/** Adds the starter exercises an account is missing (matched by name, so
+ * nothing the person has is doubled; exercises are archived, never deleted,
+ * so none comes back), and the splits when it has no split at all (a split
+ * the person deleted never comes back). Returns how many were added. */
 export function installStarter(owner: string): {
   exercises: number
   templates: number
@@ -478,9 +479,8 @@ export function installStarter(owner: string): {
       ...(track ? { track } : {}),
     })
   }
-  const named = new Set(s.templates.map((t) => t.name.toLowerCase()))
-  const templates: WorkoutTemplate[] = STARTER_SPLITS.filter(
-    ([, name]) => !named.has(name.toLowerCase()),
+  const templates: WorkoutTemplate[] = (
+    s.templates.length ? [] : STARTER_SPLITS
   ).map(([key, name, items]) => ({
     id: derivedId("starter-template", owner, key),
     name,

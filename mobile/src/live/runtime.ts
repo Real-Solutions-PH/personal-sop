@@ -121,6 +121,14 @@ export function startLive(userId: string, storage: StorageAdapter) {
     mappers: factories.flatMap((f) => f(userId)),
     online: getConnectivity,
     onSynced: () => {
+      // Once per account on this device, after a pull really reached the
+      // server (a new account's first pull can be empty): the gym library
+      // and splits, measured against the account's own rows.
+      const starter = `sop-live:starter:${userId}`
+      if (!storage.getItem(starter)) {
+        installStarter(userId)
+        storage.setItem(starter, "1")
+      }
       void stats.refreshAll()
       // The server is reachable: voice entries saved offline get their words.
       void transcribePending()
@@ -170,19 +178,7 @@ export function startLive(userId: string, storage: StorageAdapter) {
   })
   const interval = setInterval(() => void engine.sync(), 60_000)
   const stopSocial = startSocialLive(userId, onServerEvent)
-  void engine
-    .sync()
-    .then(() => {
-      // Once per account, after the account's own rows are here (so a name
-      // it already has is never doubled): the gym library and splits.
-      // Deleting a starter split later stays deleted.
-      const key = `sop-live:starter:${userId}`
-      if (storage.getItem(key) || !Number(storage.getItem("sop-live:cursor")))
-        return
-      installStarter(userId)
-      storage.setItem(key, "1")
-    })
-    .finally(() => syncReady.setState({ ready: true }))
+  void engine.sync().finally(() => syncReady.setState({ ready: true }))
   void registerPushDevice({ http })
   active = {
     engine,

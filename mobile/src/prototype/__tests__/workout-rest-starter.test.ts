@@ -39,11 +39,11 @@ describe("starter library", () => {
     }
   })
 
-  it("never doubles what the account already has, and runs again as a no-op", () => {
+  it("never doubles an exercise the account has, and runs again as a no-op", () => {
     fitStore.set((s) => ({
       ...s,
       exercises: s.exercises.filter((e) => e.name === "Barbell Bench Press"),
-      templates: [{ id: "mine", name: "Push", items: [] }],
+      templates: [],
     }))
     const bench = fitStore.get().exercises[0]
     installStarter(OWNER)
@@ -51,11 +51,22 @@ describe("starter library", () => {
     expect(
       s.exercises.filter((e) => e.name === "Barbell Bench Press"),
     ).toHaveLength(1)
-    expect(s.templates.filter((t) => t.name === "Push")).toHaveLength(1)
     // A split using the bench uses the account's own bench.
     const upper = s.templates.find((t) => t.name === "Upper")
     expect(upper?.items[0].exerciseId).toBe(bench.id)
     expect(installStarter(OWNER)).toEqual({ exercises: 0, templates: 0 })
+  })
+
+  it("an account with its own splits gets the exercises but no splits", () => {
+    fitStore.set((s) => ({
+      ...s,
+      exercises: [],
+      templates: [{ id: "mine", name: "My Day", items: [] }],
+    }))
+    const added = installStarter(OWNER)
+    expect(added.exercises).toBe(STARTER_EXERCISES.length)
+    expect(added.templates).toBe(0)
+    expect(fitStore.get().templates.map((t) => t.name)).toEqual(["My Day"])
   })
 })
 
