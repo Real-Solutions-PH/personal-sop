@@ -92,6 +92,7 @@ import { WeatherCard } from "../weather-card"
 import { RecordEditor, useMoney } from "./finance"
 import { HabitLog } from "./habits"
 import { NutritionDay } from "./nutrition-day"
+import { SleepPart } from "./sleep-card"
 import { TaskRow } from "./tasks"
 import {
   FinanceStats,
@@ -1051,6 +1052,7 @@ function FitnessCards() {
           />
         </Tap>
       </Part>
+      <SleepPart />
     </Group>
   )
 }

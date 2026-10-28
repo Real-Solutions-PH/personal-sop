@@ -76,7 +76,7 @@ export function HealthSettings() {
       <Frame style={{ padding: 16, gap: 12 }}>
         <Copy size={13} muted>
           {asked
-            ? "Unfurl reads steps, active calories, distance and workouts. To change what it can read, open the Health app: Sharing → Apps → Unfurl."
+            ? "Unfurl reads steps, active calories, distance, workouts and sleep. To change what it can read, open the Health app: Sharing → Apps → Unfurl."
             : "Connect to see your steps and burned calories on Fitness and Nutrition."}
         </Copy>
         {asked ? (

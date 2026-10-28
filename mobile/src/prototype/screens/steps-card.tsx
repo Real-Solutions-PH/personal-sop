@@ -56,11 +56,12 @@ export function stepStats(days: readonly (DayActivity | null)[]) {
   }
 }
 
-/** Reads `offsets` from Health in one batch once its sheet has been
- * answered (`ready`), and again whenever the app comes back. */
-export function useDays(
+/** Reads `offsets` from Health with `reader` in one batch once its sheet has
+ * been answered (`ready`), and again whenever the app comes back. */
+export function useHealthDays<T>(
   offsets: readonly number[],
   ready: boolean | undefined,
+  reader: (days: readonly string[]) => Promise<(T | null)[]>,
 ) {
   const available = healthAvailable() && ready === true,
     key = offsets.map(calDay).join(","),
@@ -69,14 +70,14 @@ export function useDays(
     // that a newer one has overtaken.
     [read, setRead] = useState<{
       key: string
-      days: (DayActivity | null)[]
+      days: (T | null)[]
     }>(),
     latest = useRef(0)
   const load = useCallback(async () => {
     const seq = ++latest.current
-    const days = await readDays(key.split(","))
+    const days = await reader(key.split(","))
     if (seq === latest.current) setRead({ key, days })
-  }, [key])
+  }, [key, reader])
   useEffect(() => {
     if (!available) return
     void load()
@@ -87,6 +88,11 @@ export function useDays(
   }, [available, load])
   return available && read?.key === key ? read.days : undefined
 }
+
+export const useDays = (
+  offsets: readonly number[],
+  ready: boolean | undefined,
+) => useHealthDays<DayActivity>(offsets, ready, readDays)
 
 export function StepsCard() {
   const t = useTheme(),
