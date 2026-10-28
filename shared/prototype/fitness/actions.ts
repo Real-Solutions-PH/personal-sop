@@ -32,6 +32,7 @@ import {
   type WorkoutSet,
   type WorkoutTemplate,
 } from "./data"
+import { starterRows } from "./starter"
 import { fitStore } from "./store"
 
 const now = () => new Date().toISOString()
@@ -575,6 +576,21 @@ export function upsertExercise(
       : [...s.exercises, full],
   }))
   return full
+}
+/** Adds the starter gym library and splits the account is missing (see
+ * starterRows); returns how many of each were added. */
+export function installStarter(owner: string): {
+  exercises: number
+  templates: number
+} {
+  const { exercises, templates } = starterRows(fitStore.get(), owner)
+  if (exercises.length || templates.length)
+    fitStore.set((s) => ({
+      ...s,
+      exercises: [...s.exercises, ...exercises],
+      templates: [...s.templates, ...templates],
+    }))
+  return { exercises: exercises.length, templates: templates.length }
 }
 export function setExerciseArchived(id: string, archived: boolean) {
   fitStore.set((s) => ({

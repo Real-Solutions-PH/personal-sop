@@ -4,7 +4,7 @@
 // restored. Everything here is silent: the UI only ever reads its stores.
 
 import { setFxSource } from "@domain/finance/fx"
-import { installStarter } from "@domain/fitness/starter"
+import { installStarter } from "@domain/fitness/actions"
 import { getConnectivity } from "@domain/lib/platform"
 import type { StorageAdapter } from "@domain/lib/store"
 import { fetch as expoFetch } from "expo/fetch"

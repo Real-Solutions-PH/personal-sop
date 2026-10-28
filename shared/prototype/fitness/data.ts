@@ -1,6 +1,7 @@
 import { at, dayKey } from "../lib/day"
 import { newId } from "../lib/ids"
 import type { ActivityLevel, PlanGoal, Sex } from "./plan"
+import { starterRows } from "./starter"
 export type Equipment =
   | "barbell"
   | "dumbbell"
@@ -980,9 +981,12 @@ export function seed(): FitnessState {
   itemSeq = 0
   seeding = true
   const rnd = mulberry32(3)
+  // The demo starts as a new account does: the whole gym library and the
+  // ready-made splits, beside the demo's own history and Push/Pull/Legs A.
+  const starter = starterRows({ exercises: EXERCISES, templates: [] }, "demo")
   const state: FitnessState = {
-    exercises: EXERCISES,
-    templates: TEMPLATES,
+    exercises: [...EXERCISES, ...starter.exercises],
+    templates: [...TEMPLATES, ...starter.templates],
     workouts: seedWorkouts(rnd),
     weighIns: seedWeighIns(rnd),
     targets: [

@@ -143,11 +143,11 @@ it("offers to create an exercise the search didn't find, not one it did", () => 
   const onPress = jest.fn()
   const known = fitStore.get().exercises[0].name
   const { rerender } = render(
-    <CreateExerciseRow query="Cable lateral raise" onPress={onPress} />,
+    <CreateExerciseRow query="Zercher squat" onPress={onPress} />,
     { wrapper },
   )
-  fireEvent.press(screen.getByText("Create “Cable lateral raise”"))
-  expect(onPress).toHaveBeenCalledWith("Cable lateral raise")
+  fireEvent.press(screen.getByText("Create “Zercher squat”"))
+  expect(onPress).toHaveBeenCalledWith("Zercher squat")
   rerender(<CreateExerciseRow query={known.toUpperCase()} onPress={onPress} />)
   expect(screen.queryByText(/Create/)).toBeNull()
 })

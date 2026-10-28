@@ -3,13 +3,13 @@ import { derivedId } from "../lib/ids"
 import type {
   Equipment,
   Exercise,
+  FitnessState,
   LoadType,
   Muscle,
   TemplateItem,
   TimeTrack,
   WorkoutTemplate,
 } from "./data"
-import { fitStore } from "./store"
 
 // The gym library and ready-made splits a new account starts with, so a
 // first workout is a tap, not an evening of data entry. Ids are derived
@@ -438,15 +438,15 @@ export const STARTER_SPLITS: Split[] = [
   ],
 ]
 
-/** Adds the starter exercises an account is missing (matched by name, so
- * nothing the person has is doubled; exercises are archived, never deleted,
- * so none comes back), and the splits when it has no split at all (a split
- * the person deleted never comes back). Returns how many were added. */
-export function installStarter(owner: string): {
-  exercises: number
-  templates: number
-} {
-  const s = fitStore.get()
+/** The starter exercises a library is missing (matched by name, so nothing
+ * the person has is doubled; exercises are archived, never deleted, so none
+ * comes back), and the splits when it has no split at all (a split the
+ * person deleted never comes back). Pure: the demo seed and installStarter
+ * (./actions) both use it. */
+export function starterRows(
+  s: Pick<FitnessState, "exercises" | "templates">,
+  owner: string,
+): { exercises: Exercise[]; templates: WorkoutTemplate[] } {
   const byName = new Map(s.exercises.map((e) => [e.name.toLowerCase(), e.id]))
   const idOf = new Map<string, string>()
   const exercises: Exercise[] = []
@@ -492,11 +492,5 @@ export function installStarter(owner: string): {
       }),
     ),
   }))
-  if (exercises.length || templates.length)
-    fitStore.set((st) => ({
-      ...st,
-      exercises: [...st.exercises, ...exercises],
-      templates: [...st.templates, ...templates],
-    }))
-  return { exercises: exercises.length, templates: templates.length }
+  return { exercises, templates }
 }

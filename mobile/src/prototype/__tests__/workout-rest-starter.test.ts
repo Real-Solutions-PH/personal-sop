@@ -1,7 +1,7 @@
 // The starter gym library and splits, the rest timer's −15/+15, and the
 // alarm that rings when rest is over.
 import * as FA from "@domain/fitness/actions"
-import { installStarter, STARTER_EXERCISES } from "@domain/fitness/starter"
+import { STARTER_EXERCISES, STARTER_SPLITS } from "@domain/fitness/starter"
 import { fitStore } from "@domain/fitness/store"
 import { isUuid } from "@domain/lib/ids"
 import { configureStorage, resetAll } from "@domain/lib/store"
@@ -21,7 +21,7 @@ const OWNER = "8b1f7c55-0c0e-4b7e-9a51-2f7e2d1c3a10"
 describe("starter library", () => {
   it("gives an empty account every exercise and complete splits", () => {
     fitStore.set((s) => ({ ...s, exercises: [], templates: [] }))
-    const added = installStarter(OWNER)
+    const added = FA.installStarter(OWNER)
     const s = fitStore.get()
     expect(added.exercises).toBe(STARTER_EXERCISES.length)
     expect(added.templates).toBeGreaterThanOrEqual(10)
@@ -46,7 +46,7 @@ describe("starter library", () => {
       templates: [],
     }))
     const bench = fitStore.get().exercises[0]
-    installStarter(OWNER)
+    FA.installStarter(OWNER)
     const s = fitStore.get()
     expect(
       s.exercises.filter((e) => e.name === "Barbell Bench Press"),
@@ -54,7 +54,7 @@ describe("starter library", () => {
     // A split using the bench uses the account's own bench.
     const upper = s.templates.find((t) => t.name === "Upper")
     expect(upper?.items[0].exerciseId).toBe(bench.id)
-    expect(installStarter(OWNER)).toEqual({ exercises: 0, templates: 0 })
+    expect(FA.installStarter(OWNER)).toEqual({ exercises: 0, templates: 0 })
   })
 
   it("an account with its own splits gets the exercises but no splits", () => {
@@ -63,7 +63,7 @@ describe("starter library", () => {
       exercises: [],
       templates: [{ id: "mine", name: "My Day", items: [] }],
     }))
-    const added = installStarter(OWNER)
+    const added = FA.installStarter(OWNER)
     expect(added.exercises).toBe(STARTER_EXERCISES.length)
     expect(added.templates).toBe(0)
     expect(fitStore.get().templates.map((t) => t.name)).toEqual(["My Day"])
@@ -120,5 +120,22 @@ describe("a set's own unit", () => {
     FA.finishWorkout(w.id, { unfinished: "done" })
     const next = FA.plannedSets(ex.id, 3).filter((x) => x.kind === "working")
     expect(next.every((x) => x.unit === "lb")).toBe(true)
+  })
+})
+
+describe("demo data", () => {
+  it("starts with the whole gym library and every split, no name twice", () => {
+    const s = fitStore.get()
+    const names = s.exercises.map((e) => e.name.toLowerCase())
+    expect(new Set(names).size).toBe(names.length)
+    for (const [, name] of STARTER_EXERCISES)
+      expect(names).toContain(name.toLowerCase())
+    const splits = s.templates.map((t) => t.name)
+    for (const [, name] of STARTER_SPLITS) expect(splits).toContain(name)
+    // The demo's own history still runs on its Push/Pull/Legs A.
+    expect(splits.slice(0, 3)).toEqual(["Push A", "Pull A", "Legs A"])
+    const ids = new Set(s.exercises.map((e) => e.id))
+    for (const t of s.templates)
+      for (const it of t.items) expect(ids.has(it.exerciseId)).toBe(true)
   })
 })
