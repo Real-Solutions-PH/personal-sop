@@ -68,6 +68,7 @@ import Animated from "react-native-reanimated"
 import { toast } from "sonner-native"
 import { AppLauncher } from "../app-launcher"
 import { Sparkline } from "../chart"
+import { extrasStore } from "../extras"
 import { AnimatedCheck, CountUp, feel, rowEnter, rowExit } from "../motion"
 import {
   Bar,
@@ -1568,7 +1569,8 @@ export function Today() {
       (s) => s.templates.length + s.workouts.length + s.weighIns.length,
     ),
     nut = fitStore.use((s) => s.targets.length + s.meals.length),
-    foc = focusStore.use((s) => s.sessions.length + (s.settingsSaved ? 1 : 0))
+    foc = focusStore.use((s) => s.sessions.length + (s.settingsSaved ? 1 : 0)),
+    shown = extrasStore.use((s) => s)
   const has = {
       habits,
       tasks,
@@ -1606,7 +1608,7 @@ export function Today() {
             color={hidden ? t.primary : t.muted}
             onPress={togglePrivacy}
           />
-          <CommunityButton />
+          {shown.social && <CommunityButton />}
           <View>
             <IconTap
               size={44}
@@ -1642,7 +1644,7 @@ export function Today() {
       }
     >
       <TodayPlan />
-      <WeatherCard />
+      {shown.weather && <WeatherCard />}
       {!s.setupHidden && pending.length > 0 && (
         <Frame style={{ padding: 16 }}>
           <Line>
@@ -1719,7 +1721,7 @@ export function Today() {
       {s.enabled.nutrition && <NutritionCard />}
       {s.enabled.focus && <FocusCard />}
       {s.enabled.finance && <FinanceCard />}
-      <CommunityCard />
+      {shown.social && <CommunityCard />}
       <GoalsAndContext evening={evening} />
     </Screen>
   )

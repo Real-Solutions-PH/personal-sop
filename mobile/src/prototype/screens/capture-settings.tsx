@@ -19,6 +19,7 @@ import { toast } from "sonner-native"
 import { priceText, useServerModels } from "../../live/ai-models"
 import { memoryCount } from "../companion/memory-labels"
 import { companionStore } from "../companion/store"
+import { useShown } from "../extras"
 import {
   Bar,
   border,
@@ -59,6 +60,7 @@ function Settings() {
     captures = captureStore.use((s) => s.captures),
     companionName = companionStore.use((s) => s.name),
     memories = companionStore.use((s) => s.memories),
+    journal = useShown("journal"),
     recs = captures.flatMap((c) =>
       (c.reply?.items ?? []).filter((i): i is RecordCard => i.t === "record"),
     ),
@@ -395,11 +397,17 @@ function Settings() {
               sub: st.simulateOffline ? "Simulating offline" : "",
               href: "/capture/queue",
             },
-          ].map((x) => (
-            <Tap key={x.href} onPress={() => go(x.href)}>
-              {row(x.title, x.sub, <ChevronRight size={16} color={t.muted} />)}
-            </Tap>
-          ))}
+          ]
+            .filter((x) => journal || x.href !== "/journal")
+            .map((x) => (
+              <Tap key={x.href} onPress={() => go(x.href)}>
+                {row(
+                  x.title,
+                  x.sub,
+                  <ChevronRight size={16} color={t.muted} />,
+                )}
+              </Tap>
+            ))}
           <Tap
             onPress={() =>
               confirm(

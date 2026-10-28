@@ -14,8 +14,10 @@ import {
 import { privacyStore, togglePrivacy } from "@domain/lib/privacy"
 import { uid } from "@domain/lib/store"
 import {
+  BookOpen,
   Camera,
   ChevronRight,
+  CloudSun,
   Dumbbell,
   ListChecks,
   Minus,
@@ -25,12 +27,14 @@ import {
   Sparkles,
   Timer,
   Trash2,
+  Users,
   Utensils,
   Wallet,
 } from "lucide-react-native"
 import { useState } from "react"
 import { ScrollView, TextInput, View } from "react-native"
 import { toast } from "sonner-native"
+import { EXTRAS, extrasStore, setShown } from "../extras"
 import { pickPhoto } from "../media"
 import {
   border,
@@ -415,7 +419,15 @@ export function Settings() {
   const t = useTheme(),
     s = dashStore.use((s) => s),
     hidden = privacyStore.use((s) => s.hidden),
-    theme = appearanceStore.use((s) => s.mode)
+    theme = appearanceStore.use((s) => s.mode),
+    shown = extrasStore.use((s) => s)
+  const allOn =
+    MODULE_KEYS.every((k) => s.enabled[k]) && EXTRAS.every((x) => shown[x.key])
+  const setAll = (on: boolean) => {
+    for (const k of MODULE_KEYS) setEnabled(k, on)
+    for (const x of EXTRAS) setShown(x.key, on)
+  }
+  const extraIcon = { journal: BookOpen, social: Users, weather: CloudSun }
   const row = (
     title: string,
     subtitle: string,
@@ -442,6 +454,36 @@ export function Settings() {
       <View>
         <SectionHeading>Sections & settings</SectionHeading>
         <Frame style={{ paddingHorizontal: 12, paddingVertical: 4 }}>
+          <Line
+            style={{
+              gap: 12,
+              paddingVertical: 12,
+              borderBottomWidth: 1,
+              borderBottomColor: border(t.line, 0.5),
+            }}
+          >
+            <View style={{ flex: 1 }}>
+              <Copy weight="semibold">All features</Copy>
+              <Copy size={12} muted>
+                Hide what you don't use for a cleaner app
+              </Copy>
+            </View>
+            <Switch
+              compact
+              accent="primary"
+              label="All features"
+              value={allOn}
+              onChange={() =>
+                allOn
+                  ? confirm(
+                      "Turn off all features?",
+                      "Everything but Capture hides. Your data is kept — turn features back on anytime.",
+                      () => setAll(false),
+                    )
+                  : setAll(true)
+              }
+            />
+          </Line>
           {MODULE_KEYS.map((k) => {
             const m = modules[k],
               I = m.icon
@@ -513,6 +555,43 @@ export function Settings() {
                   </View>
                 )}
               </View>
+            )
+          })}
+          {EXTRAS.map((x) => {
+            const I = extraIcon[x.key]
+            return (
+              <Line
+                key={x.key}
+                style={{
+                  gap: 12,
+                  paddingVertical: 12,
+                  borderBottomWidth: 1,
+                  borderBottomColor: border(t.line, 0.5),
+                }}
+              >
+                <View
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 14,
+                    backgroundColor: border(t.life, 0.15),
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <I size={16} color={t.life} />
+                </View>
+                <Copy weight="medium" style={{ flex: 1 }}>
+                  {x.label}
+                </Copy>
+                <Switch
+                  compact
+                  accent="primary"
+                  label={x.label}
+                  value={shown[x.key]}
+                  onChange={(on) => setShown(x.key, on)}
+                />
+              </Line>
             )
           })}
           <Line style={{ paddingVertical: 12 }}>

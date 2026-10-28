@@ -37,6 +37,7 @@ import Svg, {
   Text as SvgText,
   TSpan,
 } from "react-native-svg"
+import { useShown } from "../extras"
 import {
   border,
   Copy,
@@ -750,6 +751,7 @@ export function ShareCard() {
   const t = useTheme(),
     params = useLocalSearchParams<{ t?: ShareTemplate; goal?: string }>(),
     saved = dashStore.use((s) => s.share),
+    journal = useShown("journal"),
     [kind, setKind] = useState<ShareTemplate>(
       TEMPLATES.some((x) => x.key === params.t) ? params.t! : "life",
     ),
@@ -887,12 +889,14 @@ export function ShareCard() {
               accent="nut"
               href="/nutrition/share"
             />
-            <LinkRow
-              title="Journal streak"
-              icon={BookOpen}
-              accent="life"
-              href="/journal/share"
-            />
+            {journal && (
+              <LinkRow
+                title="Journal streak"
+                icon={BookOpen}
+                accent="life"
+                href="/journal/share"
+              />
+            )}
           </Frame>
         </View>
       </ShareComposer>

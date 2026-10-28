@@ -32,6 +32,7 @@ import {
 import { useState } from "react"
 import { TextInput, View } from "react-native"
 import { toast } from "sonner-native"
+import { useShown } from "../extras"
 import {
   border,
   Copy,
@@ -224,6 +225,7 @@ export function WrapUp() {
     misses = useAllMisses(today, today),
     s = dashStore.use((s) => s),
     sealed = s.wrapups[today],
+    journal = useShown("journal"),
     [dismissed, setDismissed] = useState<string[]>([]),
     [text, setText] = useState(""),
     ratio = ring.due ? ring.done / ring.due : 1,
@@ -321,11 +323,13 @@ export function WrapUp() {
               </Copy>
             )}
             <Line>
-              <View style={{ flex: 1 }}>
-                <Button tone="quiet" href="/journal">
-                  Journal
-                </Button>
-              </View>
+              {journal && (
+                <View style={{ flex: 1 }}>
+                  <Button tone="quiet" href="/journal">
+                    Journal
+                  </Button>
+                </View>
+              )}
               <View style={{ flex: 1 }}>
                 <Button tone="quiet" onPress={() => unsealDay(today)}>
                   Reopen day
