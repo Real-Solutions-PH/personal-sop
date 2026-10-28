@@ -1,6 +1,6 @@
 import { compact } from "@domain/finance/calc"
 import { privacyStore } from "@domain/lib/privacy"
-import { Text, View } from "react-native"
+import { Pressable, Text, View } from "react-native"
 import Svg, {
   Circle,
   G,
@@ -115,22 +115,35 @@ export function DailyBars({
   labels,
   color,
   label,
+  selected,
+  onSelect,
+  barLabels,
 }: {
   values: number[]
   labels: string[]
   color?: string
   /** Screen-reader text; defaults to the values as percentages. */
   label?: string
+  /** The highlighted bar; defaults to the last (today). */
+  selected?: number
+  /** Makes each bar a button, read out as its `barLabels` entry. */
+  onSelect?: (index: number) => void
+  barLabels?: string[]
 }) {
   const t = useTheme()
   const max = Math.max(1, ...values)
+  const lit = selected ?? values.length - 1
   return (
     <View
-      accessibilityRole="image"
-      accessibilityLabel={
-        label ??
-        `Daily form: ${values.map((v) => `${Math.round(v * 100)}%`).join(", ")}`
-      }
+      // Tappable bars are read one by one; a single image would hide them.
+      {...(onSelect
+        ? {}
+        : {
+            accessibilityRole: "image" as const,
+            accessibilityLabel:
+              label ??
+              `Daily form: ${values.map((v) => `${Math.round(v * 100)}%`).join(", ")}`,
+          })}
       style={{
         flexDirection: "row",
         gap: 4,
@@ -140,8 +153,14 @@ export function DailyBars({
       }}
     >
       {values.map((v, i) => (
-        <View
+        <Pressable
           key={`${i}-${labels[i]}`}
+          disabled={!onSelect}
+          onPress={() => onSelect?.(i)}
+          accessible={!!onSelect}
+          accessibilityRole={onSelect ? "button" : undefined}
+          accessibilityLabel={onSelect ? barLabels?.[i] : undefined}
+          accessibilityState={onSelect ? { selected: i === lit } : undefined}
           style={{ flex: 1, alignItems: "center", gap: 6 }}
         >
           <GrowBar
@@ -152,15 +171,19 @@ export function DailyBars({
               borderTopLeftRadius: 6,
               borderTopRightRadius: 6,
               backgroundColor: color ?? t.life,
-              opacity: i === values.length - 1 ? 1 : 0.45,
+              opacity: i === lit ? 1 : 0.45,
             }}
           />
           <Text
-            style={{ fontFamily: fonts.body, fontSize: 10, color: t.muted }}
+            style={{
+              fontFamily: fonts.body,
+              fontSize: 10,
+              color: i === lit && onSelect ? t.text : t.muted,
+            }}
           >
             {labels[i]}
           </Text>
-        </View>
+        </Pressable>
       ))}
     </View>
   )
