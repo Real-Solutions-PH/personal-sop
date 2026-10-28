@@ -31,6 +31,7 @@ import { Screen } from "../ui"
 import { Body } from "./fitness-body"
 import { StartWorkoutSheet } from "./fitness-start"
 import { FitnessStats } from "./fitness-stats"
+import { StepsCard } from "./steps-card"
 /** The Fitness page: training, then body and stats as sections of one
  * scroll, so nothing hides behind a tab. Meals are Nutrition's own page. */
 export function FitnessTrain() {
@@ -222,6 +223,7 @@ export function FitnessTrain() {
             </>
           )}
         </Frame>
+        <StepsCard />
         <Frame style={{ padding: 16, marginTop: 12 }}>
           <Line style={{ justifyContent: "space-between" }}>
             <View>

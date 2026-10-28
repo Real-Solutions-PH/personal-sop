@@ -113,6 +113,10 @@ test("Expo Go has no HealthKit, so it shows sample activity that grows over the 
   expect((await readActivity("2026-10-27"))?.activeKcal).toBeGreaterThan(
     evening?.activeKcal ?? 0,
   )
+  const week = await Promise.all(
+    ["2026-10-24", "2026-10-25", "2026-10-26"].map(readActivity),
+  )
+  expect(new Set(week.map((a) => a?.steps)).size).toBe(3)
   expect(mockStats).not.toHaveBeenCalled()
 })
 

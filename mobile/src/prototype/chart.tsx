@@ -114,17 +114,23 @@ export function DailyBars({
   values,
   labels,
   color,
+  label,
 }: {
   values: number[]
   labels: string[]
   color?: string
+  /** Screen-reader text; defaults to the values as percentages. */
+  label?: string
 }) {
   const t = useTheme()
   const max = Math.max(1, ...values)
   return (
     <View
       accessibilityRole="image"
-      accessibilityLabel={`Daily form: ${values.map((v) => `${Math.round(v * 100)}%`).join(", ")}`}
+      accessibilityLabel={
+        label ??
+        `Daily form: ${values.map((v) => `${Math.round(v * 100)}%`).join(", ")}`
+      }
       style={{
         flexDirection: "row",
         gap: 4,

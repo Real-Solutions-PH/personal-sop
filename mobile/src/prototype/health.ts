@@ -44,7 +44,8 @@ function sample(day: string): Activity {
     24,
     Math.max(0, (Date.now() - new Date(y, m - 1, d).getTime()) / 3_600_000),
   )
-  const steps = Math.round(h * 450)
+  // Steps vary by date so the week's chart has shape.
+  const steps = Math.round(h * 450 * (0.6 + (d % 5) * 0.2))
   return {
     steps,
     activeKcal: Math.round(h * 40),
