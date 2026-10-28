@@ -345,7 +345,7 @@ def nutrition_today(ctx: Ctx) -> dict[str, Any]:
         if v is not None
     }
     state = repo.load_state(ctx, meals=False)
-    t = C.target_for(state, day)
+    t = C.budget_for(state, day)
     out: dict[str, Any] = {
         "meals_logged": len(counted),
         "meals_waiting_for_estimate": len(meals) - len(counted),

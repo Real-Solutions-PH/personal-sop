@@ -52,7 +52,7 @@ export function NutritionStats() {
     kcal = avg(cur, (d) => d.totals.kcal),
     kcalPrev = avg(prev, (d) => d.totals.kcal),
     logged = eaten(cur).length,
-    target = C.targetFor(s, dayKey()),
+    target = C.budgetFor(s, dayKey()),
     // Averages are held against the limits in force today.
     dayLimits = limitsFor(target),
     limits = limitAverages(

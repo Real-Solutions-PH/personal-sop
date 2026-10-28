@@ -3,6 +3,7 @@ import { dayKey } from "../lib/day"
 import { liveStore, startLive, stopLive } from "../lib/live"
 import { uid } from "../lib/store"
 import {
+  budgetFor,
   defaultSeconds,
   exerciseHistory,
   isDone,
@@ -905,7 +906,7 @@ export function resetFitness() {
 }
 export function macrosLeftToday() {
   const s = fitStore.get()
-  const t = targetFor(s, dayKey())
+  const t = budgetFor(s, dayKey())
   const eaten = s.meals
     .filter(
       (m) =>

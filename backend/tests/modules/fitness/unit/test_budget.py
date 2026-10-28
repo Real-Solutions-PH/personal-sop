@@ -55,3 +55,12 @@ def test_base_with_no_carbs_or_fat_puts_burn_into_carbs() -> None:
     s.adjustments = [C.AdjustmentS(id="a", day=DAY, kcal=400)]
     b = C.budget_for(s, DAY)
     assert b is not None and (b.carbs, b.fat) == (100, 0)
+
+
+def test_day_verdict_and_macros_left_use_the_budget() -> None:
+    s = state()
+    s.adjustments = [C.AdjustmentS(id="a", day=DAY, kcal=400)]
+    day = C.nutrition_day(s, DAY)
+    assert day.target is not None and day.target.kcal == 2400
+    left = C.macros_left(s, DAY)
+    assert left is not None and left.kcal == 2400 and left.protein == 150

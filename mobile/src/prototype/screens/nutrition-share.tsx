@@ -177,7 +177,7 @@ export function NutritionShare() {
     week = C.nutritionDays(s, 7),
     streakDays = C.nutritionDays(s, 120),
     { totals, count } = C.dayTotals(s, today),
-    target = C.targetFor(s, today),
+    target = C.budgetFor(s, today),
     logged = week.filter((x) => x.meals > 0 && x.target)
   const data: FoodCardData = {
     date: new Date().toLocaleDateString("en-GB", {

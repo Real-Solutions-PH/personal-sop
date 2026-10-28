@@ -209,7 +209,7 @@ export function Nutrition({
     today = dayKey(),
     [range, setRange] = useState("14"),
     totals = C.dayTotals(s, day),
-    target = C.targetFor(s, day),
+    target = C.budgetFor(s, day),
     meals = C.mealsOn(s, day),
     detail = dayDetail(meals),
     seen = new Set<string>(),

@@ -1,7 +1,7 @@
 // A nutrient day by day against its goal, for the Nutrition page's history
 // chart: whether each logged day hit it, how many did, and the average.
 import { dayOffset } from "../lib/day"
-import { dayTotals, mealsOn, targetFor } from "./calc"
+import { budgetFor, dayTotals, mealsOn } from "./calc"
 import type { FitnessState } from "./data"
 import { dayDetail, fiberGoalFor, limitsFor } from "./limits"
 
@@ -82,7 +82,7 @@ export function nutrientHistory(
   for (let i = -days + 1; i <= 0; i++) {
     const day = dayOffset(i)
     const { totals, count } = dayTotals(s, day)
-    const target = targetFor(s, day)
+    const target = budgetFor(s, day)
     const detail = dayDetail(mealsOn(s, day))
     const value =
       count === 0

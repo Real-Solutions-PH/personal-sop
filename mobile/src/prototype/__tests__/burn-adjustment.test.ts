@@ -1,6 +1,15 @@
 // Eat-back: the burned kcal the user chose to add to one day's budget.
-import { setBurnAdjustment, setMacroTarget } from "@domain/fitness/actions"
-import { adjustmentOn, budgetFor, targetFor } from "@domain/fitness/calc"
+import {
+  macrosLeftToday,
+  setBurnAdjustment,
+  setMacroTarget,
+} from "@domain/fitness/actions"
+import {
+  adjustmentOn,
+  budgetFor,
+  nutritionDays,
+  targetFor,
+} from "@domain/fitness/calc"
 import { fitStore } from "@domain/fitness/store"
 import { dayKey, dayOffset } from "@domain/lib/day"
 import { configureStorage, resetAll } from "@domain/lib/store"
@@ -69,4 +78,21 @@ test("base with no carbs or fat puts the burn into carbs", () => {
   const b = budgetFor(fitStore.get(), today())
   expect(b?.carbs).toBe(100)
   expect(b?.fat).toBe(0)
+})
+
+test("what is left today and the day verdict use the budget", () => {
+  base()
+  fitStore.set((st) => ({ ...st, meals: [] }))
+  setBurnAdjustment(today(), 400)
+  expect(macrosLeftToday()?.kcal).toBe(2400)
+  expect(macrosLeftToday()?.protein).toBe(150)
+  expect(nutritionDays(fitStore.get(), 1)[0]?.target?.kcal).toBe(2400)
+})
+
+test("re-saving the target on an eat-back day keeps the base", () => {
+  base()
+  setBurnAdjustment(today(), 400)
+  const t = targetFor(fitStore.get(), today())
+  if (t) setMacroTarget(t)
+  expect(targetFor(fitStore.get(), today())?.kcal).toBe(2000)
 })

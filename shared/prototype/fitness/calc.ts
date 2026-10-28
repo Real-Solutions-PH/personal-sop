@@ -444,7 +444,8 @@ export function targetFor(
     .at(-1)
 }
 export function adjustmentOn(s: FitnessState, day: string): number {
-  return s.adjustments.find((a) => a.day === day)?.kcal ?? 0
+  // ?? []: states built elsewhere (web wiring, fixtures) may predate the field.
+  return (s.adjustments ?? []).find((a) => a.day === day)?.kcal ?? 0
 }
 /** The day's budget: its target plus the burned kcal the user added that
  * day. Protein stays; the extra kcal go to carbs and fat in the target's
@@ -484,7 +485,7 @@ export function nutritionDays(s: FitnessState, days: number): DayNutrition[] {
   for (let i = -days + 1; i <= 0; i++) {
     const day = dayOffset(i)
     const { totals, count } = dayTotals(s, day)
-    const target = targetFor(s, day)
+    const target = budgetFor(s, day)
     const kcalOk =
       !!target &&
       count > 0 &&

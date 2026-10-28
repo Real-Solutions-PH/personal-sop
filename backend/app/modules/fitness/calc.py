@@ -675,7 +675,7 @@ class DayNutrition:
 def nutrition_day(s: FitState, day: date) -> DayNutrition:
     dt = day_totals(s, day)
     totals, count = dt.totals, dt.count
-    target = target_for(s, day)
+    target = budget_for(s, day)
     kcal_ok = (
         target is not None
         and count > 0
@@ -744,8 +744,9 @@ def label_for_time(at: datetime, clock: DayClock) -> MealLabel:
 
 
 def macros_left(s: FitState, day: date) -> Macros | None:
-    """Target minus everything eaten that day (pending estimates excluded)."""
-    t = target_for(s, day)
+    """Budget (target plus any eat-back) minus everything eaten that day
+    (pending estimates excluded)."""
+    t = budget_for(s, day)
     if t is None:
         return None
     eaten = sum_macros(
