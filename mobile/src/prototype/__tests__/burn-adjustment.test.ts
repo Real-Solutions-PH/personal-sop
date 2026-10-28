@@ -1,0 +1,72 @@
+// Eat-back: the burned kcal the user chose to add to one day's budget.
+import { setBurnAdjustment, setMacroTarget } from "@domain/fitness/actions"
+import { adjustmentOn, budgetFor, targetFor } from "@domain/fitness/calc"
+import { fitStore } from "@domain/fitness/store"
+import { dayKey, dayOffset } from "@domain/lib/day"
+import { configureStorage, resetAll } from "@domain/lib/store"
+
+const today = () => dayKey()
+
+beforeEach(() => {
+  configureStorage({
+    getItem: () => null,
+    setItem: () => {},
+    removeItem: () => {},
+  })
+  resetAll()
+  fitStore.set((s) => ({ ...s, targets: [], adjustments: [] }))
+})
+
+const base = () =>
+  setMacroTarget({ kcal: 2000, protein: 150, carbs: 200, fat: 600 / 9 })
+
+test("budgetFor adds burn to carbs and fat by calorie ratio, protein fixed", () => {
+  base()
+  setBurnAdjustment(today(), 350)
+  const b = budgetFor(fitStore.get(), today())
+  expect(b?.kcal).toBe(2350)
+  expect(b?.protein).toBe(150)
+  expect(b?.carbs).toBeCloseTo(200 + (350 * 800) / 1400 / 4)
+  expect(b?.fat).toBeCloseTo(600 / 9 + (350 * 600) / 1400 / 9)
+})
+
+test("adjustment does not carry to the next day", () => {
+  base()
+  setBurnAdjustment(today(), 350)
+  expect(budgetFor(fitStore.get(), dayOffset(1))?.kcal).toBe(2000)
+})
+
+test("re-tap replaces the day's adjustment instead of summing", () => {
+  base()
+  setBurnAdjustment(today(), 300)
+  setBurnAdjustment(today(), 450)
+  expect(adjustmentOn(fitStore.get(), today())).toBe(450)
+  expect(fitStore.get().adjustments).toHaveLength(1)
+})
+
+test("kcal 0 removes the row", () => {
+  base()
+  setBurnAdjustment(today(), 300)
+  setBurnAdjustment(today(), 0)
+  expect(fitStore.get().adjustments).toHaveLength(0)
+  expect(adjustmentOn(fitStore.get(), today())).toBe(0)
+})
+
+test("no base target means no budget from burn alone", () => {
+  setBurnAdjustment(today(), 300)
+  expect(budgetFor(fitStore.get(), today())).toBeUndefined()
+})
+
+test("targetFor ignores adjustments", () => {
+  base()
+  setBurnAdjustment(today(), 350)
+  expect(targetFor(fitStore.get(), today())?.kcal).toBe(2000)
+})
+
+test("base with no carbs or fat puts the burn into carbs", () => {
+  setMacroTarget({ kcal: 600, protein: 150, carbs: 0, fat: 0 })
+  setBurnAdjustment(today(), 400)
+  const b = budgetFor(fitStore.get(), today())
+  expect(b?.carbs).toBe(100)
+  expect(b?.fat).toBe(0)
+})
