@@ -428,7 +428,9 @@ def test_target_adjustment_is_one_row_per_day_near_today(
                 kcal=100,
             ),
         )[0]
-        for d in (2, -2)
+        # ±3: the UTC date used here is within a day of the server's own
+        # business day (Manila, 04:00 rollover), so ±2 could land on ±1.
+        for d in (3, -3)
     ]
     assert [(r["status"], r["code"]) for r in far] == [
         ("rejected", "adjustment_day_out_of_range")

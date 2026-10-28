@@ -173,7 +173,12 @@ describe("routines and the weigh-in", () => {
 
 describe("the evening eat-back reminder", () => {
   const fakeN = () => {
-    const scheduled: { identifier: string; date: Date; href: string }[] = []
+    const scheduled: {
+      identifier: string
+      date: Date
+      href: string
+      body: string
+    }[] = []
     const cancelled: string[] = []
     const N = {
       getPermissionsAsync: async () => ({ status: "granted" }),
@@ -182,13 +187,14 @@ describe("the evening eat-back reminder", () => {
       },
       scheduleNotificationAsync: async (r: {
         identifier: string
-        content: { data: { href: string } }
+        content: { body: string; data: { href: string } }
         trigger: { date: Date }
       }) => {
         scheduled.push({
           identifier: r.identifier,
           date: r.trigger.date,
           href: r.content.data.href,
+          body: r.content.body,
         })
         return r.identifier
       },
@@ -202,8 +208,14 @@ describe("the evening eat-back reminder", () => {
     const { N, scheduled, cancelled } = fakeN()
     await scheduleEatBackReminder(300, 0, N, at(15))
     expect(cancelled).toEqual(["eat-back"])
+    // No number: it would be stale by 20:00, after more burning.
     expect(scheduled).toEqual([
-      { identifier: "eat-back", date: at(20), href: "/nutrition" },
+      {
+        identifier: "eat-back",
+        date: at(20),
+        href: "/nutrition",
+        body: "Apple Health counted calories you haven't added to today's budget. Tap to add them, or ignore.",
+      },
     ])
   })
 

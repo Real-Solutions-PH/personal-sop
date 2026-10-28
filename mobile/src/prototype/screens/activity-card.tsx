@@ -5,7 +5,7 @@ import { adjustmentOn } from "@domain/fitness/calc"
 import { fitStore } from "@domain/fitness/store"
 import { dayKey, dayOffset } from "@domain/lib/day"
 import { useCallback, useEffect, useState } from "react"
-import { View } from "react-native"
+import { AppState, View } from "react-native"
 import {
   type Activity,
   connectHealth,
@@ -14,7 +14,7 @@ import {
 } from "../health"
 import { scheduleEatBackReminder } from "../local-reminders"
 import { Copy, Frame, Line } from "../native-kit"
-import { Button } from "../ui"
+import { Button, undo } from "../ui"
 
 /** What the button offers: nothing added yet, more once the burn has grown
  * by 50 kcal since the last tap, else already added. */
@@ -29,6 +29,14 @@ export function eatBackOffer(
 }
 
 const n = (v: number) => v.toLocaleString("en-US")
+
+function addBurn(day: string, kcal: number) {
+  const before = adjustmentOn(fitStore.get(), day)
+  setBurnAdjustment(day, kcal)
+  undo("Added burned calories to the budget", () =>
+    setBurnAdjustment(day, before),
+  )
+}
 
 export function ActivityCard({ day }: { day: string }) {
   const today = dayKey(),
@@ -48,7 +56,13 @@ export function ActivityCard({ day }: { day: string }) {
     setPrev(p)
   }, [day, today, yesterday])
   useEffect(() => {
-    if (available) void load()
+    if (!available) return
+    void load()
+    // Health keeps counting while the screen stays open in the background.
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") void load()
+    })
+    return () => sub.remove()
   }, [available, load])
   const burned = activity?.activeKcal
   useEffect(() => {
@@ -113,17 +127,14 @@ export function ActivityCard({ day }: { day: string }) {
           </Copy>
         )
       ) : (
-        <Button
-          small
-          onPress={() => setBurnAdjustment(day, activity.activeKcal)}
-        >
+        <Button small onPress={() => addBurn(day, activity.activeKcal)}>
           {offer.kind === "add"
             ? `Add ${n(offer.kcal)} kcal to budget`
             : `Add ${n(offer.kcal)} more kcal`}
         </Button>
       )}
       {late > 0 && (
-        <Button small onPress={() => setBurnAdjustment(yesterday, late)}>
+        <Button small onPress={() => addBurn(yesterday, late)}>
           {`Add yesterday's ${n(late)} kcal`}
         </Button>
       )}

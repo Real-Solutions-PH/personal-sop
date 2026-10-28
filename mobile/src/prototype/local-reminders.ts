@@ -185,7 +185,8 @@ export async function scheduleEatBackReminder(
     identifier: "eat-back",
     content: {
       title: "🔥 Add today's burn?",
-      body: `Apple Health counted ${extra.toLocaleString("en-US")} kcal not yet in your budget. Tap to add it, or ignore.`,
+      // No number: more burning by 20:00 would make it wrong.
+      body: "Apple Health counted calories you haven't added to today's budget. Tap to add them, or ignore.",
       data: { href: "/nutrition" },
     },
     trigger: { type: N.SchedulableTriggerInputTypes.DATE, date: at },

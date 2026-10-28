@@ -11,6 +11,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react-native"
+import { AppState } from "react-native"
 import type { Activity } from "../health"
 import { ActivityCard, eatBackOffer } from "../screens/activity-card"
 
@@ -34,8 +35,14 @@ jest.mock("expo-router", () => ({
   usePathname: () => "/",
 }))
 jest.mock("sonner-native", () => ({
-  toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn() }),
+  toast: Object.assign(
+    jest.fn((_m: string, o?: { action?: { onClick: () => void } }) => {
+      mockUndo = o?.action?.onClick
+    }),
+    { success: jest.fn(), error: jest.fn() },
+  ),
 }))
+let mockUndo: (() => void) | undefined
 const mockRead = jest.fn<Promise<Activity | null>, [string]>()
 const mockConnect = jest.fn(async () => true)
 let mockAvailable = true
@@ -145,4 +152,41 @@ test("today's card keeps tonight's reminder in step with what was added", async 
   await waitFor(() => expect(mockRemind).toHaveBeenLastCalledWith(420, 0))
   await act(async () => fireEvent.press(btn))
   await waitFor(() => expect(mockRemind).toHaveBeenLastCalledWith(420, 420))
+})
+
+test("coming back to the app reads Health again", async () => {
+  let onChange: ((s: string) => void) | undefined
+  jest.spyOn(AppState, "addEventListener").mockImplementation((_e, fn) => {
+    onChange = fn as (s: string) => void
+    return { remove: () => {} } as ReturnType<typeof AppState.addEventListener>
+  })
+  mockRead.mockImplementation(async (d) => (d === dayKey() ? act1(180) : null))
+  render(<ActivityCard day={dayKey()} />)
+  await screen.findByText("Add 180 kcal to budget")
+  mockRead.mockImplementation(async (d) => (d === dayKey() ? act1(900) : null))
+  await act(async () => onChange?.("active"))
+  expect(await screen.findByText("Add 900 kcal to budget")).toBeTruthy()
+})
+
+test("an eat-back can be undone from its toast", async () => {
+  mockRead.mockImplementation(async (d) => (d === dayKey() ? act1(420) : null))
+  render(<ActivityCard day={dayKey()} />)
+  const btn = await screen.findByText("Add 420 kcal to budget")
+  await act(async () => fireEvent.press(btn))
+  expect(adjustmentOn(fitStore.get(), dayKey())).toBe(420)
+  await act(async () => mockUndo?.())
+  expect(adjustmentOn(fitStore.get(), dayKey())).toBe(0)
+})
+
+test("undoing an add-more puts back what was added before", async () => {
+  fitStore.set((s) => ({
+    ...s,
+    adjustments: [{ id: "a", day: dayKey(), kcal: 420 }],
+  }))
+  mockRead.mockImplementation(async (d) => (d === dayKey() ? act1(500) : null))
+  render(<ActivityCard day={dayKey()} />)
+  const btn = await screen.findByText("Add 80 more kcal")
+  await act(async () => fireEvent.press(btn))
+  await act(async () => mockUndo?.())
+  expect(adjustmentOn(fitStore.get(), dayKey())).toBe(420)
 })
