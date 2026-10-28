@@ -9,6 +9,7 @@ import ActivityKit
 import AppIntents
 import Foundation
 import Security
+import UserNotifications
 import WidgetKit
 
 // MARK: - Shapes (keep in step with src/surfaces/types.ts)
@@ -175,13 +176,17 @@ struct LiveState: Codable, Hashable {
         s.key = n.key
       }
       if s.restSec > 0 { s.restEndsAt = now + s.restSec * 1000 }
-      s.controls = (s.key.isEmpty ? [] : ["finishSet"])
-        + (s.restEndsAt != nil ? ["skipRest", "addRest"] : []) + ["finish"]
+      s.controls = s.restEndsAt != nil
+        ? ["subRest", "addRest", "skipRest", "finish"]
+        : (s.key.isEmpty ? [] : ["finishSet"]) + ["finish"]
     case "skipRest":
       s.restEndsAt = nil
-      s.controls = s.controls.filter { $0 != "skipRest" && $0 != "addRest" }
+      s.controls = (s.key.isEmpty ? [] : ["finishSet"]) + ["finish"]
     case "addRest":
-      if let end = s.restEndsAt { s.restEndsAt = end + 30_000 }
+      if let end = s.restEndsAt { s.restEndsAt = end + 15_000 }
+    case "subRest":
+      // Never past now: the app clamps the same way once it applies the tap.
+      if let end = s.restEndsAt { s.restEndsAt = max(now, end - 15_000) }
     case "finish":
       return nil
     default:
@@ -323,11 +328,30 @@ enum SurfaceTaps {
       if let key, !key.isEmpty, ["done", "skip", "finishSet"].contains(type), key != current.key { continue }
       if let next = current.applying(type) {
         await activity.update(ActivityContent(state: next, staleDate: nil))
+        if ["addRest", "subRest", "skipRest"].contains(type) { await moveRestAlarm(to: next.restEnd) }
       } else {
         await activity.end(ActivityContent(state: current, staleDate: nil), dismissalPolicy: .immediate)
       }
     }
   }
+}
+
+/** The rest-over alarm the app schedules (src/prototype/rest-alarm.ts),
+ * moved with a lock-screen −15/+15 or cleared by Skip, so a locked phone
+ * rings on time even before the app's JS has run. Only an alarm the app
+ * already scheduled is moved: no permission, no alarm. */
+func moveRestAlarm(to end: Date?) async {
+  let center = UNUserNotificationCenter.current()
+  let id = "workout-rest"
+  guard let end, end > Date() else {
+    center.removePendingNotificationRequests(withIdentifiers: [id])
+    return
+  }
+  guard let old = await center.pendingNotificationRequests().first(where: { $0.identifier == id })
+  else { return }
+  let when = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute, .second], from: end)
+  let trigger = UNCalendarNotificationTrigger(dateMatching: when, repeats: false)
+  try? await center.add(UNNotificationRequest(identifier: id, content: old.content, trigger: trigger))
 }
 
 /** A button on the Live Activity or Dynamic Island. As a LiveActivityIntent

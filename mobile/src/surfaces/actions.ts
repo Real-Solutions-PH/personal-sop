@@ -101,8 +101,9 @@ function workoutAction(a: SurfaceAction): ApplyResult {
       FA.skipRest()
       return "applied"
     case "addRest":
+    case "subRest":
       if (!s.rest) return "stale"
-      FA.adjustRest(30)
+      FA.adjustRest(a.type === "addRest" ? 15 : -15)
       return "applied"
     case "finish":
       FA.finishWorkout(w.id, { endAt: new Date(a.at).toISOString() })

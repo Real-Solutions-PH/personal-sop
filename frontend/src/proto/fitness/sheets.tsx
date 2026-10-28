@@ -564,6 +564,9 @@ export const MUSCLES: Muscle[] = [
   "hamstrings",
   "glutes",
   "core",
+  "calves",
+  "forearms",
+  "cardio",
 ]
 
 export function ExercisePicker({

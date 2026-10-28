@@ -40,6 +40,8 @@ Muscle = Literal[
     "glutes",
     "core",
     "cardio",
+    "calves",
+    "forearms",
 ]
 Equipment = Literal["barbell", "dumbbell", "machine", "cable", "bodyweight"]
 LoadType = Literal["weight", "bodyweight", "reps", "time"]

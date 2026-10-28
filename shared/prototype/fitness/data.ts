@@ -1,6 +1,7 @@
 import { at, dayKey } from "../lib/day"
 import { newId } from "../lib/ids"
 import type { ActivityLevel, PlanGoal, Sex } from "./plan"
+import { starterRows } from "./starter"
 export type Equipment =
   | "barbell"
   | "dumbbell"
@@ -19,6 +20,8 @@ export type Muscle =
   | "glutes"
   | "core"
   | "cardio"
+  | "calves"
+  | "forearms"
 /** What a timed exercise records beside its time: walking or running speed,
  * or added weight (a weighted plank). Absent: time alone. */
 export type TimeTrack = "speed" | "weight"
@@ -55,6 +58,9 @@ export interface WorkoutSet {
   /** A timed set: how long, in seconds, and how fast (walking, running). */
   durationSec?: number
   speedKmh?: number
+  /** The unit this set's weight is entered and shown in (the weight itself
+   * is always kg); absent: the settings unit. */
+  unit?: "kg" | "lb"
 }
 export interface WorkoutExercise {
   id: string
@@ -975,9 +981,12 @@ export function seed(): FitnessState {
   itemSeq = 0
   seeding = true
   const rnd = mulberry32(3)
+  // The demo starts as a new account does: the whole gym library and the
+  // ready-made splits, beside the demo's own history and Push/Pull/Legs A.
+  const starter = starterRows({ exercises: EXERCISES, templates: [] }, "demo")
   const state: FitnessState = {
-    exercises: EXERCISES,
-    templates: TEMPLATES,
+    exercises: [...EXERCISES, ...starter.exercises],
+    templates: [...TEMPLATES, ...starter.templates],
     workouts: seedWorkouts(rnd),
     weighIns: seedWeighIns(rnd),
     targets: [

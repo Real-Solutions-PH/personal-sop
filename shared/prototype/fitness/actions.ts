@@ -32,6 +32,7 @@ import {
   type WorkoutSet,
   type WorkoutTemplate,
 } from "./data"
+import { starterRows } from "./starter"
 import { fitStore } from "./store"
 
 const now = () => new Date().toISOString()
@@ -87,22 +88,43 @@ export function plannedSets(
     }))
   }
   const sug = suggestion(s, exerciseId)
+  // Never done before: as many sets as planned (a split's 3, not 1).
   if (!ex || !last)
-    return [{ id: uid(), reps: ex?.repMin ?? 8, weight: 0, kind: "working" }]
+    return Array.from({ length: Math.max(count, 1) }, () => ({
+      id: uid(),
+      reps: ex?.repMin ?? 8,
+      weight: 0,
+      kind: "working" as const,
+    }))
   const warm = last.we.sets
     .filter((x) => x.kind === "warmup")
-    .map((x) => ({ id: uid(), reps: x.reps, weight: x.weight, kind: x.kind }))
+    .map((x) => ({
+      id: uid(),
+      reps: x.reps,
+      weight: x.weight,
+      kind: x.kind,
+      ...(x.unit ? { unit: x.unit } : {}),
+    }))
   const work = last.we.sets.filter((x) => isWorking(x) && isDone(x))
   const n = Math.max(count, 1)
   const sets: WorkoutSet[] = Array.from({ length: n }, (_, i) => {
     const prev = work[Math.min(i, work.length - 1)]
+    // Last time's unit carries on: a set logged in lb plans the next in lb.
+    const unit = prev?.unit ? { unit: prev.unit } : {}
     if (sug.kind === "weight")
-      return { id: uid(), reps: sug.reps, weight: sug.weight, kind: "working" }
+      return {
+        id: uid(),
+        reps: sug.reps,
+        weight: sug.weight,
+        kind: "working",
+        ...unit,
+      }
     return {
       id: uid(),
       reps: Math.min(ex.repMax, Math.max(prev?.reps ?? ex.repMin, sug.reps)),
       weight: prev?.weight ?? sug.weight,
       kind: "working",
+      ...unit,
     }
   })
   return [...warm, ...sets]
@@ -248,12 +270,14 @@ export function addSet(workoutId: string, weId: string): WorkoutSet {
         kind: "working",
         durationSec: last ? setSeconds(last) : defaultSeconds(ex),
         ...(last?.speedKmh ? { speedKmh: last.speedKmh } : {}),
+        ...(last?.unit ? { unit: last.unit } : {}),
       }
     : {
         id: uid(),
         reps: last?.reps ?? 8,
         weight: last?.weight ?? 0,
         kind: "working",
+        ...(last?.unit ? { unit: last.unit } : {}),
       }
   patchExercise(workoutId, weId, (e) => ({ ...e, sets: [...e.sets, set] }))
   syncLive(workoutId)
@@ -293,9 +317,10 @@ export function restoreSet(
   })
   syncLive(workoutId)
 }
-/** Kilograms from pounds, to the 0.1 kg the logger shows. */
+/** Kilograms from pounds, to the gram: rounding to the 0.1 kg the logger
+ * shows would turn 135 lb into 134.9 lb on the way back. */
 export const LB_TO_KG = 0.45359237
-export const lbToKg = (lb: number) => Math.round(lb * LB_TO_KG * 10) / 10
+export const lbToKg = (lb: number) => Math.round(lb * LB_TO_KG * 1000) / 1000
 export const kgToLb = (kg: number) => Math.round((kg / LB_TO_KG) * 10) / 10
 export function addExercises(workoutId: string, exerciseIds: string[]) {
   const added = exerciseIds.map((exerciseId) => ({
@@ -364,19 +389,27 @@ export function startRest(sec?: number) {
   })
 }
 export function adjustRest(delta: number) {
-  fitStore.set((s) =>
-    s.rest
+  fitStore.set((s) => {
+    if (!s.rest) return s
+    const ends = new Date(s.rest.endsAt).getTime()
+    // Taking time never goes past now or below zero, and the end and the
+    // length move together: the server replays the same delta (an uneven
+    // pair would sync as a fresh full-length timer).
+    const d = Math.max(
+      delta,
+      -s.rest.durationSec,
+      -Math.max(0, Math.ceil((ends - Date.now()) / 1000)),
+    )
+    return d
       ? {
           ...s,
           rest: {
-            durationSec: Math.max(0, s.rest.durationSec + delta),
-            endsAt: new Date(
-              new Date(s.rest.endsAt).getTime() + delta * 1000,
-            ).toISOString(),
+            durationSec: s.rest.durationSec + d,
+            endsAt: new Date(ends + d * 1000).toISOString(),
           },
         }
-      : s,
-  )
+      : s
+  })
 }
 export const skipRest = () => fitStore.set((s) => ({ ...s, rest: null }))
 export function lastActivity(w: Workout): string {
@@ -550,6 +583,21 @@ export function upsertExercise(
       : [...s.exercises, full],
   }))
   return full
+}
+/** Adds the starter gym library and splits the account is missing (see
+ * starterRows); returns how many of each were added. */
+export function installStarter(owner: string): {
+  exercises: number
+  templates: number
+} {
+  const { exercises, templates } = starterRows(fitStore.get(), owner)
+  if (exercises.length || templates.length)
+    fitStore.set((s) => ({
+      ...s,
+      exercises: [...s.exercises, ...exercises],
+      templates: [...s.templates, ...templates],
+    }))
+  return { exercises: exercises.length, templates: templates.length }
 }
 export function setExerciseArchived(id: string, archived: boolean) {
   fitStore.set((s) => ({

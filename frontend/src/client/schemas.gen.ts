@@ -4536,7 +4536,7 @@ export const ExerciseUpsertSchema = {
         },
         muscle: {
             type: 'string',
-            enum: ['chest', 'back', 'shoulders', 'biceps', 'triceps', 'quads', 'hamstrings', 'glutes', 'core', 'cardio'],
+            enum: ['chest', 'back', 'shoulders', 'biceps', 'triceps', 'quads', 'hamstrings', 'glutes', 'core', 'cardio', 'calves', 'forearms'],
             title: 'Muscle',
             default: 'chest'
         },
@@ -16805,6 +16805,18 @@ export const SetOutSchema = {
                 }
             ],
             title: 'Speed Kmh'
+        },
+        unit: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['kg', 'lb']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Unit'
         }
     },
     type: 'object',

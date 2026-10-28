@@ -20,6 +20,8 @@ Muscle = Literal[
     "glutes",
     "core",
     "cardio",
+    "calves",
+    "forearms",
 ]
 TimeTrack = Literal["speed", "weight"]
 SetKind = Literal["warmup", "working", "drop", "failure"]
@@ -103,6 +105,7 @@ class WorkoutSetPublic(_Row):
     completed_at: datetime | None
     duration_sec: int | None = None
     speed_kmh: float | None = None
+    unit: Units | None = None
 
 
 class RestTimerPublic(_Row):
@@ -231,6 +234,7 @@ class WorkoutSetIn(BaseModel):
     completed_at: datetime | None = None
     duration_sec: int | None = Field(default=None, ge=0, le=86400)
     speed_kmh: float | None = Field(default=None, ge=0, le=60)
+    unit: Units | None = None
 
 
 class WeighInIn(BaseModel):

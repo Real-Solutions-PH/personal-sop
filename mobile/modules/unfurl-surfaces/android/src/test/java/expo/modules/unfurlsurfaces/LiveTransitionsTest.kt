@@ -74,10 +74,15 @@ class LiveTransitionsTest {
     assertEquals("we1/s2", s.getString("key"))
     assertEquals(1, s.getInt("index"))
     assertEquals(now + 90_000, s.getLong("restEndsAt"))
-    assertEquals(listOf("finishSet", "skipRest", "addRest", "finish"), controls(s))
-    assertEquals(listOf("finishSet", "skipRest", "finish"), LiveNotification.buttons(s))
+    assertEquals(listOf("subRest", "addRest", "skipRest", "finish"), controls(s))
+    assertEquals(listOf("subRest", "addRest", "skipRest"), LiveNotification.buttons(s))
     val longer = LiveTransitions.apply(s, "addRest", now)!!
-    assertEquals(now + 120_000, longer.getLong("restEndsAt"))
+    assertEquals(now + 105_000, longer.getLong("restEndsAt"))
+    val shorter = LiveTransitions.apply(longer, "subRest", now)!!
+    assertEquals(now + 90_000, shorter.getLong("restEndsAt"))
+    // Taking time never goes past now.
+    val late = now + 85_000
+    assertEquals(late, LiveTransitions.apply(shorter, "subRest", late)!!.getLong("restEndsAt"))
     val skipped = LiveTransitions.apply(longer, "skipRest", now)!!
     assertFalse(skipped.has("restEndsAt"))
     assertEquals(listOf("finishSet", "finish"), controls(skipped))
@@ -88,7 +93,7 @@ class LiveTransitionsTest {
     s = LiveTransitions.apply(s, "finishSet", now)!!
     assertEquals("All sets done", s.getString("step"))
     assertEquals("", s.getString("key"))
-    assertEquals(listOf("skipRest", "addRest", "finish"), controls(s))
+    assertEquals(listOf("subRest", "addRest", "skipRest", "finish"), controls(s))
     assertNull(LiveTransitions.apply(s, "finish", now))
   }
 
