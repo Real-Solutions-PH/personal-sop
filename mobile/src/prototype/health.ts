@@ -1,6 +1,7 @@
 // Apple Health, read-only: the day's steps, active energy, walking+running
 // distance and workout count. Nothing here is synced; only an eat-back the
 // user taps (setBurnAdjustment) reaches the server.
+import Constants from "expo-constants"
 import { Platform } from "react-native"
 
 type HealthKit = typeof import("@kingstinct/react-native-healthkit")
@@ -30,7 +31,30 @@ const STEPS = "HKQuantityTypeIdentifierStepCount",
   DISTANCE = "HKQuantityTypeIdentifierDistanceWalkingRunning",
   WORKOUT = "HKWorkoutTypeIdentifier"
 
+// Expo Go ships without HealthKit (Apple grants it per app), so there the
+// card shows sample activity instead, to try the eat-back flow. Real builds
+// are "standalone" or "bare" and never see it.
+const expoGo = () => Constants.executionEnvironment === "storeClient"
+
+/** Sample activity for Expo Go: it grows through the day (40 kcal an hour),
+ * so "add more" can be tried; a past day is a whole day. */
+function sample(day: string): Activity {
+  const [y, m, d] = day.split("-").map(Number) as [number, number, number]
+  const h = Math.min(
+    24,
+    Math.max(0, (Date.now() - new Date(y, m - 1, d).getTime()) / 3_600_000),
+  )
+  const steps = Math.round(h * 450)
+  return {
+    steps,
+    activeKcal: Math.round(h * 40),
+    distanceKm: Math.round(steps * 0.075) / 100,
+    workouts: h >= 7 ? 1 : 0,
+  }
+}
+
 export function healthAvailable(): boolean {
+  if (expoGo()) return true
   try {
     return Platform.OS === "ios" && !!load()?.isHealthDataAvailable()
   } catch {
@@ -41,6 +65,7 @@ export function healthAvailable(): boolean {
 /** Shows the system Health sheet. iOS never says whether reading was
  * allowed, so a denied read later shows up as zeros, not an error. */
 export async function connectHealth(): Promise<boolean> {
+  if (expoGo()) return true
   if (!healthAvailable()) return false
   try {
     return await (load() as HealthKit).requestAuthorization({
@@ -54,6 +79,7 @@ export async function connectHealth(): Promise<boolean> {
 /** `day` is a dayKey (YYYY-MM-DD) in the device's own time zone, the same
  * day Health sums over. null: no Health here, or it failed to answer. */
 export async function readActivity(day: string): Promise<Activity | null> {
+  if (expoGo()) return sample(day)
   if (!healthAvailable()) return null
   const hk = load() as HealthKit
   const [y, m, d] = day.split("-").map(Number) as [number, number, number]

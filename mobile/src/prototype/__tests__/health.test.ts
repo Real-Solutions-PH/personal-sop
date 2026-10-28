@@ -21,9 +21,20 @@ jest.mock("@kingstinct/react-native-healthkit", () => ({
   queryWorkoutSamples: (o: unknown) => mockWorkouts(o),
 }))
 
+let mockEnv = "bare"
+jest.mock("expo-constants", () => ({
+  __esModule: true,
+  default: {
+    get executionEnvironment() {
+      return mockEnv
+    },
+  },
+}))
+
 import { connectHealth, healthAvailable, readActivity } from "../health"
 
 beforeEach(() => {
+  mockEnv = "bare"
   mockAvailable = true
   Platform.OS = "ios"
   jest.clearAllMocks()
@@ -82,6 +93,34 @@ test("connect asks to read only, never to write", async () => {
       "HKWorkoutTypeIdentifier",
     ],
   })
+})
+
+test("Expo Go has no HealthKit, so it shows sample activity that grows over the day", async () => {
+  mockEnv = "storeClient"
+  mockAvailable = false
+  expect(healthAvailable()).toBe(true)
+  expect(await connectHealth()).toBe(true)
+  jest.useFakeTimers().setSystemTime(new Date(2026, 9, 28, 9, 0))
+  const morning = await readActivity("2026-10-28")
+  jest.setSystemTime(new Date(2026, 9, 28, 18, 0))
+  const evening = await readActivity("2026-10-28")
+  jest.useRealTimers()
+  expect(morning?.activeKcal).toBeGreaterThan(0)
+  expect(
+    (evening?.activeKcal ?? 0) - (morning?.activeKcal ?? 0),
+  ).toBeGreaterThan(50)
+  // A past day is a full day.
+  expect((await readActivity("2026-10-27"))?.activeKcal).toBeGreaterThan(
+    evening?.activeKcal ?? 0,
+  )
+  expect(mockStats).not.toHaveBeenCalled()
+})
+
+test("a real build never shows sample activity", async () => {
+  mockEnv = "standalone"
+  mockAvailable = false
+  expect(healthAvailable()).toBe(false)
+  expect(await readActivity("2026-10-28")).toBeNull()
 })
 
 // Last: it swaps the module registry.
