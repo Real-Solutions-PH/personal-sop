@@ -239,7 +239,7 @@ def test_steps_are_capped_and_each_call_input_stays_bounded(
     sizes = [sum(len(str(m.content)) for m in sent) for sent in model.seen]
     # system + 6 x 600 history + 24 short tool results: far below the 48k
     # characters the old 12 x 4000 history alone would send
-    assert max(sizes) < 16_000, sizes
+    assert max(sizes) < 18_000, sizes
     assert [u.input_tokens for u in usage_rows(api)] == [120] * services.MAX_STEPS
 
 

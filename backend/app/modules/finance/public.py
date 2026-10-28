@@ -708,3 +708,45 @@ def list_planned_items(ctx: Ctx) -> list[PlannedItem]:
 
 def list_budgets(ctx: Ctx) -> list[Budget]:
     return owned_repo.list_rows(ctx, Budget, col(Budget.archived).is_(False))
+
+
+def record_facts(ctx: Ctx, first: date, last: date) -> list[dict[str, Any]]:
+    """One row per expense, income or transfer over the business days
+    ``[first, last]``. An expense has ``spent_minor`` (a refund has it
+    negative: it takes spending back); income that isn't a refund has
+    ``received_minor``; a transfer has neither. Balance adjustments are left
+    out: nothing was spent or received."""
+    lo, hi = ctx.clock.window(first, last)
+    # Archived and deleted categories still name the records filed in them.
+    cats = {
+        c.id: c.name for c in owned_repo.list_rows(ctx, Category, include_deleted=True)
+    }
+    accounts = {
+        a.id: a.name for a in owned_repo.list_rows(ctx, Account, include_deleted=True)
+    }
+    out = []
+    for r in owned_repo.list_rows(
+        ctx,
+        FinRecord,
+        col(FinRecord.at) >= lo,
+        col(FinRecord.at) < hi,
+        col(FinRecord.is_adjustment).is_(False),
+        order_by=[col(FinRecord.at)],
+    ):
+        refund = r.type == "income" and r.is_refund
+        row: dict[str, Any] = {
+            "day": ctx.clock.day_of(r.at).isoformat(),
+            "type": "refund" if refund else r.type,
+            "category": cats.get(r.category_id) if r.category_id else None,
+            "payee": r.payee,
+            "note": r.note,
+            "account": accounts.get(r.account_id),
+        }
+        if r.type == "expense":
+            row["spent_minor"] = r.amount_minor
+        elif refund:
+            row["spent_minor"] = -r.amount_minor
+        elif r.type == "income":
+            row["received_minor"] = r.amount_minor
+        out.append(row)
+    return out

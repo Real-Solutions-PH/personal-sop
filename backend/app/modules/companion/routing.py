@@ -23,6 +23,7 @@ CORE = frozenset(
         "show_memories",
         "suggest",
         "lookup",
+        "query_records",
         "web_search",
         "stats_overview",
         "confirm_pending",

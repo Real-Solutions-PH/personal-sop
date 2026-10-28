@@ -207,6 +207,13 @@ class ItemArgs(BaseModel):
     sat_fat: Macro | None = None
     sugar: Macro | None = None
     sodium: Annotated[float, Field(ge=0, le=100000)] | None = None
+    grams: Annotated[float, Field(gt=0, le=5000)] | None = Field(
+        default=None,
+        description="Edible grams this amount weighs (no bone or shell). "
+        "Required for estimates.",
+    )
+    assumption: Annotated[str, Field(max_length=120)] | None = None
+    alcohol: Annotated[float, Field(ge=0, le=500)] | None = None
 
 
 class ItemEditArgs(BaseModel):
@@ -221,6 +228,25 @@ class ItemEditArgs(BaseModel):
     protein: Macro | None = None
     carbs: Macro | None = None
     fat: Macro | None = None
+    fiber: Macro | None = None
+    sat_fat: Macro | None = None
+    sugar: Macro | None = None
+    sodium: Annotated[float, Field(ge=0, le=100000)] | None = Field(
+        default=None, description="milligrams"
+    )
+
+
+# The values an edit can change, checked together with the ones it keeps.
+_ITEM_VALUES = (
+    "kcal",
+    "protein",
+    "carbs",
+    "fat",
+    "fiber",
+    "sat_fat",
+    "sugar",
+    "sodium",
+)
 
 
 class MealEditArgs(BaseModel):
@@ -748,6 +774,8 @@ def fitness_tools(run: "Run", *, manage: Manage, card: Card) -> list[BaseTool]:
             return m
         items = fx.meal_items_public(ctx, m.id)
         pairs = [(it["id"], it["name"]) for it in items]
+        rows = {str(r.id): r for r in fx.meal_item_rows(ctx, m.id)}
+        wrong: list[dict[str, Any]] = []
 
         def item_id(name: str) -> Any:
             hits = fx.best_matches(name, pairs)
@@ -778,14 +806,46 @@ def fitness_tools(run: "Run", *, manage: Manage, card: Card) -> list[BaseTool]:
                 spec["name"] = e.new_name
             if len(spec) == 1:
                 return {"error": "nothing_to_change", "item": e.item}
+            row = rows.get(str(iid))
+            touched = {k for k in spec if k in _ITEM_VALUES}
+            if row is not None and touched:
+                # A new amount rescales the stored values first (as the
+                # edit itself does), then the named values replace them.
+                f = float(e.qty) / row.qty if e.qty and row.qty > 0 else 1.0
+                before = {
+                    k: None if getattr(row, k) is None else getattr(row, k) * f
+                    for k in _ITEM_VALUES
+                }
+                found = [
+                    p
+                    for p in ports.fitness.nutrient_check.value_problems(before | spec)
+                    # An item already off before this edit (an old kcal-only
+                    # entry) can still take a fix to something else.
+                    if ports.fitness.nutrient_check.involves(p) & touched
+                ]
+                if found:
+                    wrong.append({"item": e.item, "problems": found})
             ch.setdefault("edit_items", []).append(spec)
             said.append(
                 f"{e.item}: "
                 + ", ".join(f"{k} {v}" for k, v in spec.items() if k != "id")
             )
         for it in a.add_items:
-            ch.setdefault("add_items", []).append(it.model_dump(exclude_none=True))
+            found = ports.fitness.nutrient_check.estimate_problems(
+                it.model_dump(exclude_none=True)
+            )
+            if found:
+                wrong.append({"item": it.name, "problems": found})
+            added = it.model_dump(exclude_none=True, exclude={"grams", "alcohol"})
+            if it.grams:
+                weight = f"about {it.grams:g} g"
+                added["assumption"] = (
+                    f"{it.assumption}, {weight}" if it.assumption else weight
+                )
+            ch.setdefault("add_items", []).append(added)
             said.append(f"added {it.name}")
+        if wrong:
+            return {"error": "fix_these_items_then_call_again", "items": wrong}
         if a.confirmed:
             ch["confirmed"] = True
             said.append("marked checked")

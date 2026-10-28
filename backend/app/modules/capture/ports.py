@@ -321,3 +321,15 @@ def library_items(
     """Meal items with nutrition from the person's food library where a
     food matches (the library comes before any estimate)."""
     return fitness.food_library.apply_library(ctx, items)
+
+
+def meal_item_problems(ctx: Ctx, items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """What is wrong with each estimated item (one the food library won't
+    replace), as ``{"item": name, "problems": [...]}``; empty when none."""
+    hits = fitness.food_library.library_hits(ctx, items)
+    out = []
+    for it, hit in zip(items, hits, strict=True):
+        found = [] if hit else fitness.nutrient_check.estimate_problems(it)
+        if found:
+            out.append({"item": it.get("name"), "problems": found})
+    return out

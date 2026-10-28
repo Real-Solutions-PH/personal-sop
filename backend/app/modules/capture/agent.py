@@ -560,6 +560,31 @@ class MealItemArgs(BaseModel):
     sodium: Annotated[float, Field(ge=0, le=100000)] | None = Field(
         default=None, description="milligrams"
     )
+    grams: Annotated[float, Field(gt=0, le=5000)] | None = Field(
+        default=None,
+        description="Edible grams this amount weighs (no bone or shell). "
+        "Required for estimates.",
+    )
+    assumption: Annotated[str, Field(max_length=120)] | None = Field(
+        default=None,
+        description="The portion you assumed, e.g. 'breast quarter with skin'.",
+    )
+    alcohol: Annotated[float, Field(ge=0, le=500)] | None = Field(
+        default=None, description="Grams of alcohol, for drinks that have it."
+    )
+
+
+# Checked on the way in, never stored on the item itself.
+_CHECK_ONLY = ("grams", "alcohol")
+
+
+def _stored_item(i: MealItemArgs) -> dict[str, Any]:
+    """The item as saved: its weight goes into the assumption shown with it."""
+    it = i.model_dump(exclude_none=True, exclude=set(_CHECK_ONLY))
+    if i.grams:
+        weight = f"about {i.grams:g} g"
+        it["assumption"] = f"{i.assumption}, {weight}" if i.assumption else weight
+    return it
 
 
 class MealArgs(BaseModel):
@@ -1617,7 +1642,12 @@ def capture_tools(run: Run) -> list[BaseTool]:
     def log_meal(**kw: Any) -> dict[str, Any]:
         a = MealArgs(**kw)
         if a.items:
-            items = [i.model_dump(exclude_none=True) for i in a.items]
+            wrong = ports.meal_item_problems(
+                run.ctx, [i.model_dump(exclude_none=True) for i in a.items]
+            )
+            if wrong:
+                return {"error": "fix_these_items_then_call_again", "items": wrong}
+            items = [_stored_item(i) for i in a.items]
             confidence = a.confidence
         else:
             est = ports.meal_estimate(run.ctx, a.description)

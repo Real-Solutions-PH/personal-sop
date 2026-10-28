@@ -213,6 +213,37 @@ def scaled(food: FoodItem, qty: float, unit: str) -> dict[str, float] | None:
     return out
 
 
+def _library_match(
+    ctx: Ctx, it: dict[str, Any], rows: list[FoodItem]
+) -> tuple[FoodItem, dict[str, float]] | None:
+    """The library food that replaces this item's nutrition, with its
+    values scaled to the item's amount, or None."""
+    food, exact = match_food(ctx, str(it.get("name", "")), rows)
+    values = (
+        scaled(food, float(it.get("qty") or 1), str(it.get("unit") or ""))
+        if food
+        else None
+    )
+    # A match by shared words only ("pre-workout energy drink" against
+    # the alias "pre workout drink" of a 489 kcal shake) is a guess: when
+    # the item's own numbers (often read off a label in this very turn)
+    # say something else, they stand.
+    if (
+        food is None
+        or values is None
+        or (not exact and it.get("kcal") is not None and not _agrees(it, values))
+    ):
+        return None
+    return food, values
+
+
+def library_hits(ctx: Ctx, items: list[dict[str, Any]]) -> list[bool]:
+    """Which items ``apply_library`` would take from the library. Reads
+    only: nothing is counted as used."""
+    rows = _live(ctx)
+    return [bool(rows) and _library_match(ctx, it, rows) is not None for it in items]
+
+
 def apply_library(
     ctx: Ctx, items: list[dict[str, Any]]
 ) -> tuple[list[dict[str, Any]], list[str]]:
@@ -226,23 +257,11 @@ def apply_library(
     used: list[str] = []
     out: list[dict[str, Any]] = []
     for it in items:
-        food, exact = match_food(ctx, str(it.get("name", "")), rows)
-        values = (
-            scaled(food, float(it.get("qty") or 1), str(it.get("unit") or ""))
-            if food
-            else None
-        )
-        # A match by shared words only ("pre-workout energy drink" against
-        # the alias "pre workout drink" of a 489 kcal shake) is a guess: when
-        # the item's own numbers (often read off a label in this very turn)
-        # say something else, they stand.
-        if (
-            food is None
-            or values is None
-            or (not exact and it.get("kcal") is not None and not _agrees(it, values))
-        ):
+        hit = _library_match(ctx, it, rows)
+        if hit is None:
             out.append(it)
             continue
+        food, values = hit
         out.append(
             {k: v for k, v in it.items() if k not in NUTRIENTS}
             | values
