@@ -1,12 +1,16 @@
 // Steps from Apple Health on Fitness: the selected day's count (today until
 // a bar is tapped), this week's and this month's daily averages, and a bar
 // per day. Read-only; nothing is synced.
-import { dayOffset } from "@domain/lib/day"
 import { ChevronRight } from "lucide-react-native"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { AppState, View } from "react-native"
 import { DailyBars } from "../chart"
-import { type Activity, healthAvailable, readActivity } from "../health"
+import {
+  type DayActivity,
+  healthAvailable,
+  localDay,
+  readDays,
+} from "../health"
 import { Copy, Frame, Line, Tap } from "../native-kit"
 import { go } from "../navigation"
 import { useTheme } from "../theme"
@@ -14,9 +18,17 @@ import { ConnectHealthCard, useHealthAsked } from "./health-connect"
 
 export const GOAL = 10_000
 export const n = (v: number) => v.toLocaleString("en-US")
-/** "Tue, Oct 27" for a dayOffset. */
+/** The calendar day `offset` days from today, as Health counts days
+ * (midnight to midnight, not the app's 04:00 dayKey). */
+export const calDay = (offset: number) => {
+  const now = new Date()
+  return localDay(
+    new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset),
+  )
+}
+/** "Tue, Oct 27" for a calendar-day offset. */
 export const longDay = (offset: number) =>
-  new Date(`${dayOffset(offset)}T12:00:00`).toLocaleDateString("en-US", {
+  new Date(`${calDay(offset)}T12:00:00`).toLocaleDateString("en-US", {
     weekday: "short",
     month: "short",
     day: "numeric",
@@ -25,11 +37,11 @@ export const longDay = (offset: number) =>
 export const lastDays = (count: number) =>
   Array.from({ length: count }, (_, i) => i - count + 1)
 /** Days so far this month, today included. */
-export const monthSoFar = () => Number(dayOffset(0).slice(8))
+export const monthSoFar = () => new Date().getDate()
 
 /** A run of days, oldest first; a day Health had nothing for counts as 0.
  * best: the index of the day with the most steps, -1 if none. */
-export function stepStats(days: readonly (Activity | null)[]) {
+export function stepStats(days: readonly (DayActivity | null)[]) {
   const steps = days.map((a) => a?.steps ?? 0),
     total = steps.reduce((a, b) => a + b, 0),
     top = Math.max(0, ...steps)
@@ -44,24 +56,26 @@ export function stepStats(days: readonly (Activity | null)[]) {
   }
 }
 
-/** Reads `offsets` from Health once its sheet has been answered (`ready`),
- * and again whenever the app comes back. */
+/** Reads `offsets` from Health in one batch once its sheet has been
+ * answered (`ready`), and again whenever the app comes back. */
 export function useDays(
   offsets: readonly number[],
   ready: boolean | undefined,
 ) {
   const available = healthAvailable() && ready === true,
-    key = offsets.join(","),
-    // Tagged with the range it was read for: after a range change (or a
-    // slow read of the old one landing late) the old days are never paired
-    // with the new range's dates.
-    [read, setRead] = useState<{ key: string; days: (Activity | null)[] }>()
-  // biome-ignore lint/correctness/useExhaustiveDependencies: key stands for offsets
+    key = offsets.map(calDay).join(","),
+    // Tagged with the days it was read for, so after a range change the old
+    // days are never paired with the new dates; `latest` drops any read
+    // that a newer one has overtaken.
+    [read, setRead] = useState<{
+      key: string
+      days: (DayActivity | null)[]
+    }>(),
+    latest = useRef(0)
   const load = useCallback(async () => {
-    const days = await Promise.all(
-      offsets.map((d) => readActivity(dayOffset(d))),
-    )
-    setRead({ key, days })
+    const seq = ++latest.current
+    const days = await readDays(key.split(","))
+    if (seq === latest.current) setRead({ key, days })
   }, [key])
   useEffect(() => {
     if (!available) return
@@ -76,8 +90,6 @@ export function useDays(
 
 export function StepsCard() {
   const t = useTheme(),
-    // ponytail: one Health read per day (4 queries each); a statistics
-    // collection query if a month of reads ever feels slow.
     span = lastDays(Math.max(7, monthSoFar())),
     { asked, connect } = useHealthAsked(),
     days = useDays(span, asked),
@@ -132,7 +144,7 @@ export function StepsCard() {
       <DailyBars
         values={week.map((a) => a?.steps ?? 0)}
         labels={weekOffsets.map((d) =>
-          new Date(`${dayOffset(d)}T12:00:00`).toLocaleDateString("en-US", {
+          new Date(`${calDay(d)}T12:00:00`).toLocaleDateString("en-US", {
             weekday: "narrow",
           }),
         )}

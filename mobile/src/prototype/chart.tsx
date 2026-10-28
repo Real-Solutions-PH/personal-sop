@@ -146,7 +146,7 @@ export function DailyBars({
           })}
       style={{
         flexDirection: "row",
-        gap: 4,
+        gap: values.length > 14 ? 2 : 4,
         height: 116,
         alignItems: "flex-end",
         paddingTop: 12,
@@ -175,7 +175,11 @@ export function DailyBars({
             }}
           />
           <Text
+            // A month of bars leaves ~6pt a column: "15" must not wrap.
+            numberOfLines={1}
             style={{
+              width: 28,
+              textAlign: "center",
               fontFamily: fonts.body,
               fontSize: 10,
               color: i === lit && onSelect ? t.text : t.muted,

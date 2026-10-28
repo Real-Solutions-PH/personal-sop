@@ -63,6 +63,69 @@ export function healthAvailable(): boolean {
   }
 }
 
+/** The calendar date (YYYY-MM-DD) of `at` on this device. Health's days run
+ * midnight to midnight, unlike the app's dayKey (which rolls at 04:00). */
+export function localDay(at: Date): string {
+  const p = (v: number) => String(v).padStart(2, "0")
+  return `${at.getFullYear()}-${p(at.getMonth() + 1)}-${p(at.getDate())}`
+}
+
+export type DayActivity = Omit<Activity, "workouts">
+
+/** Steps, active energy and distance for consecutive calendar `days`
+ * (oldest first) in one daily-total query per metric, not one per day.
+ * A day with no samples is 0; null for every day when Health can't answer. */
+export async function readDays(
+  days: readonly string[],
+): Promise<(DayActivity | null)[]> {
+  if (expoGo())
+    return days.map((d) => {
+      const { workouts: _, ...rest } = sample(d)
+      return rest
+    })
+  const first = days[0],
+    last = days.at(-1)
+  if (!healthAvailable() || !first || !last) return days.map(() => null)
+  const hk = load() as HealthKit
+  const at = (day: string, plus = 0) => {
+    const [y, m, d] = day.split("-").map(Number) as [number, number, number]
+    return new Date(y, m - 1, d + plus)
+  }
+  const start = at(first),
+    filter = { date: { startDate: start, endDate: at(last, 1) } }
+  const daily = async (
+    id: typeof STEPS | typeof ENERGY | typeof DISTANCE,
+    unit: "count" | "kcal" | "km",
+  ) => {
+    const rows = await hk.queryStatisticsCollectionForQuantity(
+      id,
+      ["cumulativeSum"],
+      start,
+      { day: 1 },
+      { filter, unit },
+    )
+    const by = new Map<string, number>()
+    for (const r of rows)
+      if (r.startDate)
+        by.set(localDay(r.startDate), r.sumQuantity?.quantity ?? 0)
+    return by
+  }
+  try {
+    const [steps, kcal, km] = await Promise.all([
+      daily(STEPS, "count"),
+      daily(ENERGY, "kcal"),
+      daily(DISTANCE, "km"),
+    ])
+    return days.map((d) => ({
+      steps: Math.round(steps.get(d) ?? 0),
+      activeKcal: Math.round(kcal.get(d) ?? 0),
+      distanceKm: Math.round((km.get(d) ?? 0) * 100) / 100,
+    }))
+  } catch {
+    return days.map(() => null)
+  }
+}
+
 /** Whether the Health sheet has been answered. iOS hides allow vs deny, so
  * true means "asked", not "allowed": a denied read shows up as zeros. */
 export async function healthAsked(): Promise<boolean> {

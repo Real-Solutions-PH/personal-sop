@@ -10,6 +10,17 @@ const sums: Record<string, number> = {
 const mockStats = jest.fn(async (id: string, _s: unknown, _o: unknown) => ({
   sumQuantity: { unit: "x", quantity: sums[id] ?? 0 },
 }))
+// Daily buckets for a range: Oct 26 and Oct 28 have samples, Oct 27 none.
+const mockCollection = jest.fn(
+  async (id: string, _s: unknown, _anchor: Date, _i: unknown, _o: unknown) =>
+    [26, 28].map((d) => ({
+      startDate: new Date(2026, 9, d),
+      sumQuantity: {
+        unit: "x",
+        quantity: (sums[id] ?? 0) / (d === 26 ? 2 : 1),
+      },
+    })),
+)
 const mockWorkouts = jest.fn(async (_o: unknown) => [{}, {}])
 const mockAuth = jest.fn(async (_t: unknown) => true)
 let mockStatus = 1 // HealthKit: 1 = never asked, 2 = already answered
@@ -21,6 +32,13 @@ jest.mock("@kingstinct/react-native-healthkit", () => ({
   queryStatisticsForQuantity: (id: string, s: unknown, o: unknown) =>
     mockStats(id, s, o),
   queryWorkoutSamples: (o: unknown) => mockWorkouts(o),
+  queryStatisticsCollectionForQuantity: (
+    id: string,
+    s: unknown,
+    a: Date,
+    i: unknown,
+    o: unknown,
+  ) => mockCollection(id, s, a, i, o),
 }))
 
 let mockEnv = "bare"
@@ -37,13 +55,16 @@ import {
   connectHealth,
   healthAsked,
   healthAvailable,
+  localDay,
   readActivity,
+  readDays,
 } from "../health"
 
 beforeEach(() => {
   mockEnv = "bare"
   mockStatus = 1
   mockAvailable = true
+  mockCollection.mockClear()
   Platform.OS = "ios"
   jest.clearAllMocks()
 })
@@ -146,6 +167,47 @@ test("asked: false where there is no Health, true in Expo Go's sample", async ()
   expect(await healthAsked()).toBe(false)
   mockEnv = "storeClient"
   expect(await healthAsked()).toBe(true)
+})
+
+test("a run of days: one daily-total query per metric, days with nothing are 0", async () => {
+  const days = await readDays(["2026-10-26", "2026-10-27", "2026-10-28"])
+  expect(days).toEqual([
+    { steps: 4206, activeKcal: 216, distanceKm: 3.14 },
+    { steps: 0, activeKcal: 0, distanceKm: 0 },
+    { steps: 8412, activeKcal: 432, distanceKm: 6.27 },
+  ])
+  expect(mockCollection).toHaveBeenCalledTimes(3)
+  expect(mockStats).not.toHaveBeenCalled()
+  expect(mockWorkouts).not.toHaveBeenCalled()
+  const [, stats, anchor, interval, opts] = mockCollection.mock.calls[0] ?? []
+  expect(stats).toEqual(["cumulativeSum"])
+  expect(anchor).toEqual(new Date(2026, 9, 26))
+  expect(interval).toEqual({ day: 1 })
+  expect(opts).toMatchObject({
+    filter: {
+      date: {
+        startDate: new Date(2026, 9, 26),
+        endDate: new Date(2026, 9, 29),
+      },
+    },
+  })
+})
+
+test("a run of days: a Health error reads as nothing for every day", async () => {
+  mockCollection.mockRejectedValueOnce(new Error("denied"))
+  expect(await readDays(["2026-10-27", "2026-10-28"])).toEqual([null, null])
+})
+
+test("a run of days in Expo Go: the sample, no Health calls", async () => {
+  mockEnv = "storeClient"
+  const days = await readDays(["2026-10-26", "2026-10-27"])
+  expect(days.every((d) => (d?.steps ?? 0) > 0)).toBe(true)
+  expect(mockCollection).not.toHaveBeenCalled()
+})
+
+test("localDay is the calendar date, midnight to midnight", () => {
+  expect(localDay(new Date(2026, 9, 28, 1, 30))).toBe("2026-10-28")
+  expect(localDay(new Date(2026, 0, 5, 23, 59))).toBe("2026-01-05")
 })
 
 // Last: it swaps the module registry.

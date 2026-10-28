@@ -1,15 +1,16 @@
 // Steps in detail: this week (last 7 days) or this month so far, a bar per
 // day you can tap, and the range's totals, average, best day, distance,
 // active kcal and days at 10,000 steps.
-import { dayOffset } from "@domain/lib/day"
 import { useState } from "react"
 import { View } from "react-native"
 import { DailyBars } from "../chart"
+import { healthAvailable } from "../health"
 import { Copy, Frame, Segmented } from "../native-kit"
 import { useTheme } from "../theme"
 import { Empty, Screen } from "../ui"
 import { ConnectHealthCard, useHealthAsked } from "./health-connect"
 import {
+  calDay,
   GOAL,
   lastDays,
   longDay,
@@ -48,7 +49,9 @@ export function StepsDetail() {
       ]}
     />
   )
-  if (asked && !days) return <Screen title="Steps">{toggle}</Screen>
+  // Still checking Health or reading this range: keep the toggle, no
+  // "isn't connected" flash.
+  if (healthAvailable() && !days) return <Screen title="Steps">{toggle}</Screen>
   if (!days)
     return (
       <Screen title="Steps">
@@ -86,10 +89,9 @@ export function StepsDetail() {
           values={days.map((a) => a?.steps ?? 0)}
           labels={offsets.map((d, i) =>
             range === "week"
-              ? new Date(`${dayOffset(d)}T12:00:00`).toLocaleDateString(
-                  "en-US",
-                  { weekday: "narrow" },
-                )
+              ? new Date(`${calDay(d)}T12:00:00`).toLocaleDateString("en-US", {
+                  weekday: "narrow",
+                })
               : // A month of bars: label the 1st, every 5th and today.
                 i === 0 || (i + 1) % 5 === 0 || i === offsets.length - 1
                 ? String(i + 1)

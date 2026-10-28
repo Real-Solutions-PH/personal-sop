@@ -1,12 +1,12 @@
 // Steps from Apple Health: Fitness's card (today, this week, this month, a
 // bar per day) and the detail screen (week or month, totals and bests).
-import { dayOffset } from "@domain/lib/day"
+// Days are calendar days (midnight to midnight), as Health counts them.
 import { act, fireEvent, render, screen } from "@testing-library/react-native"
 import { router } from "expo-router"
 import type { ReactNode } from "react"
 import { SafeAreaProvider } from "react-native-safe-area-context"
-import type { Activity } from "../health"
-import { StepsCard, stepStats } from "../screens/steps-card"
+import type { DayActivity } from "../health"
+import { calDay, StepsCard, stepStats } from "../screens/steps-card"
 import { StepsDetail } from "../screens/steps-detail"
 
 jest.mock("react-native-reanimated", () => ({
@@ -46,44 +46,50 @@ const metrics = {
 const wrapper = ({ children }: { children: ReactNode }) => (
   <SafeAreaProvider initialMetrics={metrics}>{children}</SafeAreaProvider>
 )
-const mockRead = jest.fn<Promise<Activity | null>, [string]>()
+const mockReadDays = jest.fn<
+  Promise<(DayActivity | null)[]>,
+  [readonly string[]]
+>()
 let mockAvailable = true
-let mockAsked = true
+let mockAsked: () => Promise<boolean> = async () => true
 const mockConnect = jest.fn(async () => {
-  mockAsked = true
+  mockAsked = async () => true
   return true
 })
 jest.mock("../health", () => ({
   healthAvailable: () => mockAvailable,
-  healthAsked: async () => mockAsked,
+  healthAsked: () => mockAsked(),
   connectHealth: () => mockConnect(),
-  readActivity: (day: string) => mockRead(day),
+  readDays: (days: readonly string[]) => mockReadDays(days),
+  localDay: jest.requireActual("../health").localDay,
 }))
 
 const week = [4000, 6000, 8000, 10000, 2000, 5000, 7000] // oldest → today
-const day = (s: number, km = 5.2, kcal = 300): Activity => ({
+const day = (s: number, km = 5.2, kcal = 300): DayActivity => ({
   steps: s,
   activeKcal: kcal,
   distanceKm: km,
-  workouts: 0,
 })
 const label = (offset: number) =>
-  new Date(`${dayOffset(offset)}T12:00:00`).toLocaleDateString("en-US", {
+  new Date(`${calDay(offset)}T12:00:00`).toLocaleDateString("en-US", {
     weekday: "short",
     month: "short",
     day: "numeric",
   })
-beforeEach(() => {
-  mockAvailable = true
-  mockAsked = true
-  mockConnect.mockClear()
-  mockRead.mockClear()
-  jest.mocked(router.push).mockClear()
-  mockRead.mockImplementation(async (d) => {
-    const i = [6, 5, 4, 3, 2, 1, 0].findIndex((n) => dayOffset(-n) === d)
+const fromWeek = async (days: readonly string[]) =>
+  days.map((d) => {
+    const i = [6, 5, 4, 3, 2, 1, 0].findIndex((n) => calDay(-n) === d)
     return i < 0 ? null : day(week[i] ?? 0)
   })
+beforeEach(() => {
+  mockAvailable = true
+  mockAsked = async () => true
+  mockConnect.mockClear()
+  mockReadDays.mockReset()
+  mockReadDays.mockImplementation(fromWeek)
+  jest.mocked(router.push).mockClear()
 })
+afterEach(() => jest.useRealTimers())
 
 test("stats: total, average, best day, distance, kcal and 10k days", () => {
   expect(
@@ -119,7 +125,7 @@ test("card: today's steps, this week's and this month's averages", async () => {
     screen.getByLabelText("This week: 6,000 steps a day on average"),
   ).toBeTruthy()
   // This month: the 1st to today; days Health had nothing for count 0.
-  const n = Number(dayOffset(0).slice(8))
+  const n = new Date().getDate()
   const month = Array.from({ length: n }, (_, i) => n - 1 - i).map(
     (o) => week[6 - o] ?? 0,
   )
@@ -129,6 +135,16 @@ test("card: today's steps, this week's and this month's averages", async () => {
       `This month: ${avg.toLocaleString("en-US")} steps a day on average`,
     ),
   ).toBeTruthy()
+  // One batched read for the whole span, not one per day.
+  expect(mockReadDays).toHaveBeenCalledTimes(1)
+})
+
+test("card: after midnight 'today' is the new calendar day, as in Health", async () => {
+  jest.useFakeTimers({ doNotFake: ["nextTick", "setImmediate"] })
+  jest.setSystemTime(new Date(2026, 9, 28, 1, 30))
+  render(<StepsCard />)
+  await act(async () => {})
+  expect(mockReadDays.mock.calls[0]?.[0].at(-1)).toBe("2026-10-28")
 })
 
 test("card: tapping a day's bar shows that day's steps", async () => {
@@ -157,7 +173,31 @@ test("card: no Health on the device, no card", () => {
   mockAvailable = false
   render(<StepsCard />)
   expect(screen.toJSON()).toBeNull()
-  expect(mockRead).not.toHaveBeenCalled()
+  expect(mockReadDays).not.toHaveBeenCalled()
+})
+
+test("card: before Health is allowed, a Connect button instead of zeros", async () => {
+  mockAsked = async () => false
+  render(<StepsCard />)
+  const connect = await screen.findByText("Connect Apple Health")
+  expect(screen.queryByText("STEPS TODAY")).toBeNull()
+  await act(async () => fireEvent.press(connect))
+  expect(mockConnect).toHaveBeenCalled()
+  expect(await screen.findByText("7,000")).toBeTruthy()
+})
+
+test("connecting in one place updates every card at once", async () => {
+  mockAsked = async () => false
+  render(
+    <>
+      <StepsCard />
+      <StepsCard />
+    </>,
+  )
+  const [first] = await screen.findAllByText("Connect Apple Health")
+  await act(async () => fireEvent.press(first as never))
+  expect(await screen.findAllByText("7,000")).toHaveLength(2)
+  expect(screen.queryByText("Connect Apple Health")).toBeNull()
 })
 
 test("detail: the week's totals, best day and 10k days", async () => {
@@ -170,31 +210,23 @@ test("detail: the week's totals, best day and 10k days", async () => {
   expect(screen.getByText("2,100 kcal")).toBeTruthy()
 })
 
-test("detail: Month reads every day from the 1st", async () => {
+test("detail: Month reads every day from the 1st in one batch", async () => {
   render(<StepsDetail />, { wrapper })
   await screen.findByText("42,000")
-  mockRead.mockClear()
+  mockReadDays.mockClear()
   fireEvent.press(screen.getByText("Month"))
-  const n = Number(dayOffset(0).slice(8))
+  const n = new Date().getDate()
   expect(await screen.findByText(`1 of ${n}`)).toBeTruthy()
-  expect(mockRead).toHaveBeenCalledTimes(n)
+  expect(mockReadDays).toHaveBeenCalledTimes(1)
+  expect(mockReadDays.mock.calls[0]?.[0]).toHaveLength(n)
 })
 
-test("card: before Health is allowed, a Connect button instead of zeros", async () => {
-  mockAsked = false
-  render(<StepsCard />)
-  const connect = await screen.findByText("Connect Apple Health")
-  expect(screen.queryByText("STEPS TODAY")).toBeNull()
-  await act(async () => fireEvent.press(connect))
-  expect(mockConnect).toHaveBeenCalled()
-  expect(await screen.findByText("7,000")).toBeTruthy()
-})
-
-test("detail: before Health is allowed, a Connect button", async () => {
-  mockAsked = false
+test("detail: month labels stay on one line", async () => {
   render(<StepsDetail />, { wrapper })
-  expect(await screen.findByText("Connect Apple Health")).toBeTruthy()
-  expect(screen.queryByText("Total steps")).toBeNull()
+  await screen.findByText("42,000")
+  fireEvent.press(screen.getByText("Month"))
+  await screen.findByText(`1 of ${new Date().getDate()}`)
+  expect(screen.getByText("1").props.numberOfLines).toBe(1)
 })
 
 test("detail: switching range never pairs the old days with the new dates", async () => {
@@ -204,16 +236,32 @@ test("detail: switching range never pairs the old days with the new dates", asyn
   const gate = new Promise<void>((r) => {
     finish = r
   })
-  mockRead.mockImplementation(async (d) => {
+  mockReadDays.mockImplementation(async (d) => {
     await gate
-    const i = [6, 5, 4, 3, 2, 1, 0].findIndex((n) => dayOffset(-n) === d)
-    return i < 0 ? null : day(week[i] ?? 0)
+    return fromWeek(d)
   })
   fireEvent.press(screen.getByText("Month"))
-  // While the month is still loading, no week figures under month labels.
   expect(screen.queryByText("1 of 7")).toBeNull()
   expect(screen.queryByText("42,000")).toBeNull()
   await act(async () => finish())
-  const n = Number(dayOffset(0).slice(8))
-  expect(await screen.findByText(`1 of ${n}`)).toBeTruthy()
+  expect(await screen.findByText(`1 of ${new Date().getDate()}`)).toBeTruthy()
+})
+
+test("detail: while checking Health, no 'isn't connected' flash", async () => {
+  let answer: (v: boolean) => void = () => {}
+  mockAsked = () =>
+    new Promise<boolean>((r) => {
+      answer = r
+    })
+  render(<StepsDetail />, { wrapper })
+  expect(screen.queryByText("Apple Health isn't connected")).toBeNull()
+  await act(async () => answer(true))
+  expect(await screen.findByText("42,000")).toBeTruthy()
+})
+
+test("detail: before Health is allowed, a Connect button", async () => {
+  mockAsked = async () => false
+  render(<StepsDetail />, { wrapper })
+  expect(await screen.findByText("Connect Apple Health")).toBeTruthy()
+  expect(screen.queryByText("Total steps")).toBeNull()
 })
