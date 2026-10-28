@@ -196,3 +196,24 @@ test("detail: before Health is allowed, a Connect button", async () => {
   expect(await screen.findByText("Connect Apple Health")).toBeTruthy()
   expect(screen.queryByText("Total steps")).toBeNull()
 })
+
+test("detail: switching range never pairs the old days with the new dates", async () => {
+  render(<StepsDetail />, { wrapper })
+  await screen.findByText("42,000")
+  let finish: () => void = () => {}
+  const gate = new Promise<void>((r) => {
+    finish = r
+  })
+  mockRead.mockImplementation(async (d) => {
+    await gate
+    const i = [6, 5, 4, 3, 2, 1, 0].findIndex((n) => dayOffset(-n) === d)
+    return i < 0 ? null : day(week[i] ?? 0)
+  })
+  fireEvent.press(screen.getByText("Month"))
+  // While the month is still loading, no week figures under month labels.
+  expect(screen.queryByText("1 of 7")).toBeNull()
+  expect(screen.queryByText("42,000")).toBeNull()
+  await act(async () => finish())
+  const n = Number(dayOffset(0).slice(8))
+  expect(await screen.findByText(`1 of ${n}`)).toBeTruthy()
+})

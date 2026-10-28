@@ -38,6 +38,17 @@ export function StepsDetail() {
         <ConnectHealthCard onConnect={connect} />
       </Screen>
     )
+  const toggle = (
+    <Segmented
+      value={range}
+      onChange={changeRange}
+      options={[
+        { value: "week", label: "Week" },
+        { value: "month", label: "Month" },
+      ]}
+    />
+  )
+  if (asked && !days) return <Screen title="Steps">{toggle}</Screen>
   if (!days)
     return (
       <Screen title="Steps">
@@ -60,14 +71,7 @@ export function StepsDetail() {
     )
   return (
     <Screen title="Steps">
-      <Segmented
-        value={range}
-        onChange={changeRange}
-        options={[
-          { value: "week", label: "Week" },
-          { value: "month", label: "Month" },
-        ]}
-      />
+      {toggle}
       <Frame style={{ padding: 16, gap: 4 }}>
         <Copy size={12} muted style={{ letterSpacing: 0.6 }}>
           {longDay(offsets[at] ?? 0).toUpperCase()}

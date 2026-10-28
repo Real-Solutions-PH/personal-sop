@@ -52,10 +52,16 @@ export function useDays(
 ) {
   const available = healthAvailable() && ready === true,
     key = offsets.join(","),
-    [days, setDays] = useState<(Activity | null)[] | undefined>()
+    // Tagged with the range it was read for: after a range change (or a
+    // slow read of the old one landing late) the old days are never paired
+    // with the new range's dates.
+    [read, setRead] = useState<{ key: string; days: (Activity | null)[] }>()
   // biome-ignore lint/correctness/useExhaustiveDependencies: key stands for offsets
   const load = useCallback(async () => {
-    setDays(await Promise.all(offsets.map((d) => readActivity(dayOffset(d)))))
+    const days = await Promise.all(
+      offsets.map((d) => readActivity(dayOffset(d))),
+    )
+    setRead({ key, days })
   }, [key])
   useEffect(() => {
     if (!available) return
@@ -65,7 +71,7 @@ export function useDays(
     })
     return () => sub.remove()
   }, [available, load])
-  return available ? days : undefined
+  return available && read?.key === key ? read.days : undefined
 }
 
 export function StepsCard() {
