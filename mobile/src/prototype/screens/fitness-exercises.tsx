@@ -42,6 +42,7 @@ const MUSCLES = [
   "hamstrings",
   "glutes",
   "core",
+  "cardio",
 ]
 export function Exercises({ id }: { id?: string }) {
   const s = fitStore.use((s) => s),
@@ -231,7 +232,10 @@ export function Exercises({ id }: { id?: string }) {
               title={`No exercise matches “${query}”`}
               action={
                 <Button
-                  onPress={() => setEdit(true)}
+                  onPress={() => {
+                    setNewName(query.trim())
+                    setEdit(true)
+                  }}
                 >{`Create “${query}”`}</Button>
               }
             />

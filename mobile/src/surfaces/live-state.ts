@@ -195,11 +195,10 @@ function workoutState(
       key: `${p.we}/${p.set}`,
       ...setLabel(s, w, p.we, p.set),
     })),
-    controls: [
-      ...(cur ? (["finishSet"] as const) : []),
-      ...(resting ? (["skipRest", "addRest"] as const) : []),
-      "finish",
-    ],
+    // Resting: the in-app rest controls (four fit the lock screen).
+    controls: resting
+      ? ["subRest", "addRest", "skipRest", "finish"]
+      : [...(cur ? (["finishSet"] as const) : []), "finish"],
     href: live.href,
   }
 }

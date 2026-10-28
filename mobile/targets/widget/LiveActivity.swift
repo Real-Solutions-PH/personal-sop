@@ -104,7 +104,8 @@ struct LiveButton: View {
     case "resume": return ("Resume", "play.fill", false, kind == "routine" ? "Resume routine" : "Resume timer")
     case "finishSet": return ("Set done", "checkmark", true, "Complete set")
     case "skipRest": return ("Skip rest", "forward.end", false, "Skip rest")
-    case "addRest": return ("+30s", "goforward.30", false, "Rest 30 seconds more")
+    case "subRest": return ("−15s", "gobackward.15", false, "Rest 15 seconds less")
+    case "addRest": return ("+15s", "goforward.15", false, "Rest 15 seconds more")
     case "finish":
       return ("Finish", "flag.checkered", false, kind == "workout" ? "Finish workout" : "Finish timer")
     default: return (action, "circle", false, action)

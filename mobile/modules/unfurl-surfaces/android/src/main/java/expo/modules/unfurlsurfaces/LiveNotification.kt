@@ -61,14 +61,15 @@ object LiveNotification {
 
   private val labels = mapOf(
     "done" to "Done", "skip" to "Skip", "pause" to "Pause", "resume" to "Resume",
-    "finishSet" to "Set done", "skipRest" to "Skip rest", "addRest" to "+30s", "finish" to "Finish",
+    "finishSet" to "Set done", "skipRest" to "Skip rest", "addRest" to "+15s", "subRest" to "−15s",
+    "finish" to "Finish",
   )
 
-  /** At most three buttons fit; "+30s" gives way first. */
+  /** At most three buttons fit; while resting, "Finish" gives way. */
   fun buttons(state: JSONObject): List<String> {
     val a = state.optJSONArray("controls") ?: return emptyList()
     val list = MutableList(a.length()) { a.getString(it) }
-    if (list.size > 3) list.remove("addRest")
+    if (list.size > 3) list.remove("finish")
     return list.take(3)
   }
 

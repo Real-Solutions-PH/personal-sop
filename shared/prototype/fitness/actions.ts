@@ -364,19 +364,27 @@ export function startRest(sec?: number) {
   })
 }
 export function adjustRest(delta: number) {
-  fitStore.set((s) =>
-    s.rest
+  fitStore.set((s) => {
+    if (!s.rest) return s
+    const ends = new Date(s.rest.endsAt).getTime()
+    // Taking time never goes past now or below zero, and the end and the
+    // length move together: the server replays the same delta (an uneven
+    // pair would sync as a fresh full-length timer).
+    const d = Math.max(
+      delta,
+      -s.rest.durationSec,
+      -Math.max(0, Math.ceil((ends - Date.now()) / 1000)),
+    )
+    return d
       ? {
           ...s,
           rest: {
-            durationSec: Math.max(0, s.rest.durationSec + delta),
-            endsAt: new Date(
-              new Date(s.rest.endsAt).getTime() + delta * 1000,
-            ).toISOString(),
+            durationSec: s.rest.durationSec + d,
+            endsAt: new Date(ends + d * 1000).toISOString(),
           },
         }
-      : s,
-  )
+      : s
+  })
 }
 export const skipRest = () => fitStore.set((s) => ({ ...s, rest: null }))
 export function lastActivity(w: Workout): string {

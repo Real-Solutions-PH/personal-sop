@@ -52,6 +52,7 @@ import {
   undo,
   useNow,
 } from "../ui"
+import { displayMass } from "../units"
 import { CreateExerciseRow, ExerciseEditor } from "./fitness"
 import { StartWorkoutSheet } from "./fitness-start"
 export function WorkoutLogger() {
@@ -104,6 +105,8 @@ export function WorkoutLogger() {
         {start && <StartWorkoutSheet onClose={() => setStart(false)} />}
       </Screen>
     )
+  const unit = s.settings.units,
+    mass = (kg: number) => C.kgShort(displayMass(kg, unit))
   const totals = C.workoutTotals(s, w),
     unfinished = w.exercises.flatMap((e) =>
       e.sets.filter((x) => !C.isDone(x)),
@@ -371,29 +374,52 @@ export function WorkoutLogger() {
                   ? ex?.track === "speed"
                     ? "km/h"
                     : ex?.track === "weight"
-                      ? "+kg"
+                      ? `+${unit}`
                       : ""
                   : ex?.loadType === "bodyweight"
-                    ? "+kg"
-                    : "kg",
+                    ? `+${unit}`
+                    : unit,
                 timed ? "time" : "reps",
                 "",
-              ].map((x, i) => (
-                <Copy
-                  key={`${i}-${x}`}
-                  size={10}
-                  muted
-                  style={{
-                    width: i === 0 ? 32 : i === 4 ? 44 : undefined,
-                    flex: i > 0 && i < 4 ? 1 : undefined,
-                    textAlign: i > 1 ? "center" : "left",
-                    letterSpacing: 0.5,
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {x}
-                </Copy>
-              ))}
+              ].map((x, i) => {
+                const label = (
+                  <Copy
+                    key="label"
+                    size={10}
+                    muted={!(i === 2 && x.includes(unit))}
+                    style={{
+                      textAlign: i > 1 ? "center" : "left",
+                      letterSpacing: 0.5,
+                      textTransform: "uppercase",
+                      ...(i === 2 && x.includes(unit) ? { color: t.fit } : {}),
+                    }}
+                  >
+                    {x}
+                  </Copy>
+                )
+                const style = {
+                  width: i === 0 ? 32 : i === 4 ? 44 : undefined,
+                  flex: i > 0 && i < 4 ? 1 : undefined,
+                }
+                // The weight column's unit switches kg and lb (weights are
+                // stored in kg either way).
+                return i === 2 && x.includes(unit) ? (
+                  <Tap
+                    key={`${i}-${x}`}
+                    label={`Show weights in ${unit === "kg" ? "lb" : "kg"}`}
+                    onPress={() =>
+                      A.updateSettings({ units: unit === "kg" ? "lb" : "kg" })
+                    }
+                    style={style}
+                  >
+                    {label}
+                  </Tap>
+                ) : (
+                  <View key={`${i}-${x}`} style={style}>
+                    {label}
+                  </View>
+                )
+              })}
             </Line>
             <View style={{ marginTop: 4, gap: 4 }}>
               {we.sets.map((set) => {
@@ -443,7 +469,7 @@ export function WorkoutLogger() {
                         {ghost
                           ? timed
                             ? C.fmtSpan(C.setSeconds(ghost))
-                            : `${C.kgShort(ghost.weight)}×${ghost.reps}`
+                            : `${mass(ghost.weight)}×${ghost.reps}`
                           : "—"}
                       </Copy>
                       {[
@@ -453,11 +479,11 @@ export function WorkoutLogger() {
                               ? C.kgShort(set.speedKmh)
                               : "—"
                             : ex?.track === "weight"
-                              ? C.kgShort(set.weight)
+                              ? mass(set.weight)
                               : ""
                           : needsWeight
                             ? "—"
-                            : C.kgShort(set.weight),
+                            : mass(set.weight),
                         timed ? C.fmtSpan(C.setSeconds(set)) : String(set.reps),
                       ].map((value, i) => (
                         <Tap

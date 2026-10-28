@@ -12,6 +12,7 @@ import {
 import {
   createContext,
   type ReactNode,
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -712,6 +713,20 @@ export function ListScreen<T>({
     </KeyboardAvoidingView>
   )
 }
+// iOS will not present a modal while another is still being dismissed: a
+// sheet asked to open as another closes (a picker handing off to the
+// new-exercise editor) silently never appears. Such a sheet waits until
+// every closing sheet is gone.
+let closingSheets = 0
+const waitingSheets = new Set<() => void>()
+function sheetGone() {
+  closingSheets = Math.max(0, closingSheets - 1)
+  if (closingSheets) return
+  for (const show of [...waitingSheets]) {
+    waitingSheets.delete(show)
+    show()
+  }
+}
 export function Sheet({
   title,
   open,
@@ -736,24 +751,50 @@ export function Sheet({
   const [mounted, setMounted] = useState(open)
   const y = useSharedValue(screen)
   const closing = useRef(false)
+  // Whether this sheet counts in ``closingSheets`` until its modal is gone.
+  const counted = useRef(false)
+  const gone = useCallback(() => {
+    if (!counted.current) return
+    counted.current = false
+    sheetGone()
+  }, [])
   // Runs on open/close only: adding `mounted` would restart the open spring.
   // biome-ignore lint/correctness/useExhaustiveDependencies: see above
   useEffect(() => {
     if (open) {
       closing.current = false
-      setMounted(true)
-      y.value = screen
-      y.value = reduced
-        ? 0
-        : withSpring(0, { damping: 26, stiffness: 260, mass: 0.9 })
-    } else if (mounted && reduced) {
-      setMounted(false)
+      const show = () => {
+        setMounted(true)
+        y.value = screen
+        y.value = reduced
+          ? 0
+          : withSpring(0, { damping: 26, stiffness: 260, mass: 0.9 })
+      }
+      if (!closingSheets) show()
+      else {
+        waitingSheets.add(show)
+        return () => {
+          waitingSheets.delete(show)
+        }
+      }
     } else if (mounted) {
-      y.value = withTiming(screen, { duration: reduced ? 0 : 220 }, (done) => {
-        if (done) runOnJS(setMounted)(false)
-      })
+      counted.current = true
+      closingSheets++
+      if (reduced) setMounted(false)
+      else
+        y.value = withTiming(screen, { duration: 220 }, (done) => {
+          if (done) runOnJS(setMounted)(false)
+        })
     }
   }, [open])
+  // Gone once the modal is dismissed: iOS reports it (onDismiss); the
+  // timer covers a dismissal that is never reported, and other platforms.
+  useEffect(() => {
+    if (mounted || !counted.current) return
+    const id = setTimeout(gone, Platform.OS === "ios" ? 400 : 0)
+    return () => clearTimeout(id)
+  }, [mounted, gone])
+  useEffect(() => gone, [gone])
   const dismiss = () => {
     if (closing.current) return
     closing.current = true
@@ -781,6 +822,7 @@ export function Sheet({
       animationType="none"
       statusBarTranslucent
       onRequestClose={dismiss}
+      onDismiss={Platform.OS === "ios" ? gone : undefined}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}

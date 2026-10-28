@@ -175,13 +175,17 @@ struct LiveState: Codable, Hashable {
         s.key = n.key
       }
       if s.restSec > 0 { s.restEndsAt = now + s.restSec * 1000 }
-      s.controls = (s.key.isEmpty ? [] : ["finishSet"])
-        + (s.restEndsAt != nil ? ["skipRest", "addRest"] : []) + ["finish"]
+      s.controls = s.restEndsAt != nil
+        ? ["subRest", "addRest", "skipRest", "finish"]
+        : (s.key.isEmpty ? [] : ["finishSet"]) + ["finish"]
     case "skipRest":
       s.restEndsAt = nil
-      s.controls = s.controls.filter { $0 != "skipRest" && $0 != "addRest" }
+      s.controls = (s.key.isEmpty ? [] : ["finishSet"]) + ["finish"]
     case "addRest":
-      if let end = s.restEndsAt { s.restEndsAt = end + 30_000 }
+      if let end = s.restEndsAt { s.restEndsAt = end + 15_000 }
+    case "subRest":
+      // Never past now: the app clamps the same way once it applies the tap.
+      if let end = s.restEndsAt { s.restEndsAt = max(now, end - 15_000) }
     case "finish":
       return nil
     default:

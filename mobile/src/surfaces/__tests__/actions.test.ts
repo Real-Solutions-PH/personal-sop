@@ -166,10 +166,11 @@ describe("workout", () => {
     // a finished warm-up leaves it at 0).
     expect(state()?.key).not.toBe(live?.key)
     expect(state()?.index).toBe(set?.kind === "warmup" ? 0 : 1)
+    // Resting: the lock screen offers the in-app rest buttons.
     expect(state()?.controls).toEqual([
-      "finishSet",
-      "skipRest",
+      "subRest",
       "addRest",
+      "skipRest",
       "finish",
     ])
     // Delivered again: the set is done already.
@@ -185,18 +186,24 @@ describe("workout", () => {
     ).toBe("stale")
   })
 
-  it("rest can be extended and skipped from the lock screen", () => {
+  it("rest can be moved 15 seconds either way and skipped from the lock screen", () => {
     const w = start()
     FA.startRest(60)
-    const before = new Date(fitStore.get().rest?.endsAt ?? 0).getTime()
+    const ends = () => new Date(fitStore.get().rest?.endsAt ?? 0).getTime()
+    const before = ends()
     expect(
       applySurfaceAction(
         tap({ type: "addRest", kind: "workout", target: w.id }),
       ),
     ).toBe("applied")
-    expect(new Date(fitStore.get().rest?.endsAt ?? 0).getTime()).toBe(
-      before + 30_000,
-    )
+    expect(ends()).toBe(before + 15_000)
+    expect(
+      applySurfaceAction(
+        tap({ type: "subRest", kind: "workout", target: w.id }),
+      ),
+    ).toBe("applied")
+    expect(ends()).toBe(before)
+    expect(fitStore.get().rest?.durationSec).toBe(60)
     expect(
       applySurfaceAction(
         tap({ type: "skipRest", kind: "workout", target: w.id }),

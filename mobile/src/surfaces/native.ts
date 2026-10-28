@@ -59,6 +59,7 @@ const TYPES = new Set([
   "finishSet",
   "skipRest",
   "addRest",
+  "subRest",
   "finish",
   "checkHabit",
 ])

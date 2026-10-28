@@ -4,6 +4,7 @@
 // restored. Everything here is silent: the UI only ever reads its stores.
 
 import { setFxSource } from "@domain/finance/fx"
+import { installStarter } from "@domain/fitness/starter"
 import { getConnectivity } from "@domain/lib/platform"
 import type { StorageAdapter } from "@domain/lib/store"
 import { fetch as expoFetch } from "expo/fetch"
@@ -169,7 +170,19 @@ export function startLive(userId: string, storage: StorageAdapter) {
   })
   const interval = setInterval(() => void engine.sync(), 60_000)
   const stopSocial = startSocialLive(userId, onServerEvent)
-  void engine.sync().finally(() => syncReady.setState({ ready: true }))
+  void engine
+    .sync()
+    .then(() => {
+      // Once per account, after the account's own rows are here (so a name
+      // it already has is never doubled): the gym library and splits.
+      // Deleting a starter split later stays deleted.
+      const key = `sop-live:starter:${userId}`
+      if (storage.getItem(key) || !Number(storage.getItem("sop-live:cursor")))
+        return
+      installStarter(userId)
+      storage.setItem(key, "1")
+    })
+    .finally(() => syncReady.setState({ ready: true }))
   void registerPushDevice({ http })
   active = {
     engine,

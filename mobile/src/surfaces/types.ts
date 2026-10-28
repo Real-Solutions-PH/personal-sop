@@ -102,7 +102,9 @@ export type LiveControl =
   | "resume"
   | "finishSet"
   | "skipRest"
+  /** Rest 15 seconds more / less, as the in-app buttons. */
   | "addRest"
+  | "subRest"
   | "finish"
 
 export interface LiveState {
