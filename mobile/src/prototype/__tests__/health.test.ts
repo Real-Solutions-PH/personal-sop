@@ -22,6 +22,14 @@ const mockCollection = jest.fn(
     })),
 )
 const mockWorkouts = jest.fn(async (_o: unknown) => [{}, {}])
+const at = (d: number, h: number, m = 0) => new Date(2026, 9, d, h, m)
+// The night into Oct 28: Watch and iPhone overlap; in-bed and awake don't count.
+const mockSleep = jest.fn(async (_id: string, _o: unknown) => [
+  { startDate: at(27, 23), endDate: at(28, 7), value: 3 },
+  { startDate: at(28, 1), endDate: at(28, 7, 30), value: 1 },
+  { startDate: at(27, 22), endDate: at(28, 8), value: 0 },
+  { startDate: at(28, 3), endDate: at(28, 3, 20), value: 2 },
+])
 const mockAuth = jest.fn(async (_t: unknown) => true)
 let mockStatus = 1 // HealthKit: 1 = never asked, 2 = already answered
 let mockAvailable = true
@@ -32,6 +40,7 @@ jest.mock("@kingstinct/react-native-healthkit", () => ({
   queryStatisticsForQuantity: (id: string, s: unknown, o: unknown) =>
     mockStats(id, s, o),
   queryWorkoutSamples: (o: unknown) => mockWorkouts(o),
+  queryCategorySamples: (id: string, o: unknown) => mockSleep(id, o),
   queryStatisticsCollectionForQuantity: (
     id: string,
     s: unknown,
@@ -52,12 +61,14 @@ jest.mock("expo-constants", () => ({
 }))
 
 import {
+  asleepMinutes,
   connectHealth,
   healthAsked,
   healthAvailable,
   localDay,
   readActivity,
   readDays,
+  readSleep,
 } from "../health"
 
 beforeEach(() => {
@@ -120,8 +131,50 @@ test("connect asks to read only, never to write", async () => {
       "HKQuantityTypeIdentifierActiveEnergyBurned",
       "HKQuantityTypeIdentifierDistanceWalkingRunning",
       "HKWorkoutTypeIdentifier",
+      "HKCategoryTypeIdentifierSleepAnalysis",
     ],
   })
+})
+
+test("asleep minutes: overlapping sources count once, in-bed and awake never", () => {
+  const night = [
+    { startDate: at(27, 23), endDate: at(28, 7), value: 3 },
+    { startDate: at(28, 1), endDate: at(28, 7, 30), value: 1 },
+    { startDate: at(27, 22), endDate: at(28, 8), value: 0 },
+    { startDate: at(28, 3), endDate: at(28, 3, 20), value: 2 },
+  ]
+  expect(asleepMinutes(night, at(27, 18), at(28, 18))).toBe(510)
+})
+
+test("asleep minutes: a sample across 18:00 is split between the two nights", () => {
+  const nap = [{ startDate: at(27, 17), endDate: at(27, 19), value: 1 }]
+  expect(asleepMinutes(nap, at(27, 18), at(28, 18))).toBe(60)
+  expect(asleepMinutes(nap, at(26, 18), at(27, 18))).toBe(60)
+})
+
+test("sleep for a run of nights: one query, each night on the day you wake", async () => {
+  expect(await readSleep(["2026-10-27", "2026-10-28"])).toEqual([0, 510])
+  expect(mockSleep).toHaveBeenCalledTimes(1)
+  const [id, opts] = mockSleep.mock.calls[0] ?? []
+  expect(id).toBe("HKCategoryTypeIdentifierSleepAnalysis")
+  expect(opts).toMatchObject({
+    limit: 0,
+    filter: { date: { startDate: at(26, 18), endDate: at(28, 18) } },
+  })
+})
+
+test("sleep: nothing for every night when Health can't answer", async () => {
+  mockSleep.mockRejectedValueOnce(new Error("denied"))
+  expect(await readSleep(["2026-10-27", "2026-10-28"])).toEqual([null, null])
+  mockAvailable = false
+  expect(await readSleep(["2026-10-28"])).toEqual([null])
+})
+
+test("sleep in Expo Go: sample nights, no Health calls", async () => {
+  mockEnv = "storeClient"
+  const nights = await readSleep(["2026-10-26", "2026-10-27"])
+  expect(nights.every((m) => (m ?? 0) > 0)).toBe(true)
+  expect(mockSleep).not.toHaveBeenCalled()
 })
 
 test("Expo Go has no HealthKit, so it shows sample activity that grows over the day", async () => {

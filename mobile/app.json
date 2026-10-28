@@ -89,7 +89,7 @@
       [
         "@kingstinct/react-native-healthkit",
         {
-          "NSHealthShareUsageDescription": "Unfurl reads your steps, active calories, distance and workouts to show your daily activity and, if you choose, add the calories you burned to that day's budget.",
+          "NSHealthShareUsageDescription": "Unfurl reads your steps, active calories, distance, workouts and sleep to show your daily activity and sleep and, if you choose, add the calories you burned to that day's budget.",
           "NSHealthUpdateUsageDescription": false,
           "background": false
         }
