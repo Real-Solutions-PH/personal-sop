@@ -52,6 +52,7 @@ import type {
   ReplyItem,
   Tier,
 } from "./data"
+import { CHECK_IN, MOODS } from "./data"
 import { type Draft, draftDay, parseCapture } from "./parse"
 import { answer, budgetNote } from "./qa"
 import { captureStore, isOnline } from "./store"
@@ -145,12 +146,23 @@ export function addJournalEntry(input: {
     captureId: input.captureId,
   }
   S.set((s) => ({ ...s, journal: [...s.journal, e] }))
+  if (e.tags.includes(CHECK_IN)) return e
   const h = habitsStore
     .get()
     .habits.find((x) => x.status === "active" && /journal/i.test(x.name))
   if (h && !logIndex(habitsStore.get().logs).get(lk(h.id, e.day)))
     checkHabit(h.id, e.day, "capture")
   return e
+}
+/** Today's mood check-in: one entry a day, changed in place on a retap. */
+export function checkInMood(mood: Mood, day = dayKey()): JournalEntry {
+  const body = `Mood check-in: ${MOODS.find((m) => m.v === mood)?.label}`,
+    had = S.get().journal.find(
+      (j) => j.day === day && j.tags.includes(CHECK_IN),
+    )
+  if (!had) return addJournalEntry({ body, day, mood, tags: [CHECK_IN] })
+  updateJournalEntry(had.id, { body, mood })
+  return { ...had, body, mood }
 }
 export function updateJournalEntry(
   id: string,

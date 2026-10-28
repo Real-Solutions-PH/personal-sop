@@ -11,7 +11,8 @@ import { Copy, Line, Segmented, Tap } from "../native-kit"
 import { fonts, useTheme } from "../theme"
 import { TimeInput } from "../time-input"
 import { Button, Choices, DateField, Field, Sheet, Toggle } from "../ui"
-import { AreaPicker, MoodPicker } from "./journal"
+import { AreaPicker } from "./journal"
+import { MoodPicker } from "./mood-picker"
 export function NumberControl({
   label,
   value,

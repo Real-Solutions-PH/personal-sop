@@ -196,6 +196,25 @@ def test_journal_screens(client: TestClient, db: Session) -> None:
         assert [(lg.status, lg.source) for lg in logs] == [("done", "capture")]
 
 
+def test_mood_check_in_never_ticks_the_journal_habit(
+    client: TestClient, db: Session
+) -> None:
+    from sqlmodel import select
+
+    from app.modules.habits.models import Habit, HabitLog
+
+    api = user(client, db)
+    api.post("/habits/", {"name": "Journal"})
+    api.post(
+        "/journal/",
+        {"body": "Mood check-in: Good", "mood": 4, "tags": ["check-in"]},
+        status=201,
+    )
+    with Session(db_engine) as s:
+        h = s.exec(select(Habit).where(Habit.owner_id == api.user.id)).one()  # type: ignore[attr-defined]
+        assert s.exec(select(HabitLog).where(HabitLog.habit_id == h.id)).all() == []
+
+
 def test_queue_retry_rerun_resume_delete_clear_retention(
     client: TestClient, db: Session
 ) -> None:

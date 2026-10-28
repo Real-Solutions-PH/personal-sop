@@ -91,6 +91,7 @@ import { refreshWeather } from "../weather"
 import { WeatherCard } from "../weather-card"
 import { RecordEditor, useMoney } from "./finance"
 import { HabitLog } from "./habits"
+import { MoodCheckIn } from "./mood-check-in"
 import { NutritionDay } from "./nutrition-day"
 import { TaskRow } from "./tasks"
 import {
@@ -1715,6 +1716,7 @@ export function Today() {
           </Line>
         </Frame>
       )}
+      {shown.journal && <MoodCheckIn />}
       {s.enabled.habits && <HabitsCard />}
       {s.enabled.tasks && <TasksCard />}
       {s.enabled.fitness && <FitnessCards />}

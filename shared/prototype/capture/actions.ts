@@ -2,6 +2,7 @@
 export {
   addJournalEntry,
   answerCard,
+  checkInMood,
   clearThread,
   confirmAll,
   confirmCard,
