@@ -360,8 +360,72 @@
     "name": "workout_set",
     "create": true,
     "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-00000000000b",
+      "position": 1,
+      "reps": 8,
+      "weight": 0,
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null,
+      "unit": null
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-00000000000b",
+      "position": 2,
+      "reps": 8,
+      "weight": 0,
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null,
+      "unit": null
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
       "workout_exercise_id": "00000000-0000-4000-8000-00000000000c",
       "position": 0,
+      "reps": 8,
+      "weight": 0,
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null,
+      "unit": null
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-00000000000c",
+      "position": 1,
+      "reps": 8,
+      "weight": 0,
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null,
+      "unit": null
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-00000000000c",
+      "position": 2,
       "reps": 8,
       "weight": 0,
       "kind": "working",
@@ -527,8 +591,72 @@
     "name": "workout_set",
     "create": true,
     "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-000000000011",
+      "position": 1,
+      "reps": 8,
+      "weight": 0,
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null,
+      "unit": null
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-000000000011",
+      "position": 2,
+      "reps": 8,
+      "weight": 0,
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null,
+      "unit": null
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
       "workout_exercise_id": "00000000-0000-4000-8000-000000000012",
       "position": 0,
+      "reps": 8,
+      "weight": 0,
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null,
+      "unit": null
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-000000000012",
+      "position": 1,
+      "reps": 8,
+      "weight": 0,
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null,
+      "unit": null
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-000000000012",
+      "position": 2,
       "reps": 8,
       "weight": 0,
       "kind": "working",
@@ -751,8 +879,72 @@
     "name": "workout_set",
     "create": true,
     "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-000000000018",
+      "position": 1,
+      "reps": 8,
+      "weight": 0,
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null,
+      "unit": null
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-000000000018",
+      "position": 2,
+      "reps": 8,
+      "weight": 0,
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null,
+      "unit": null
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
       "workout_exercise_id": "00000000-0000-4000-8000-000000000019",
       "position": 0,
+      "reps": 8,
+      "weight": 0,
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null,
+      "unit": null
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-000000000019",
+      "position": 1,
+      "reps": 8,
+      "weight": 0,
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null,
+      "unit": null
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-000000000019",
+      "position": 2,
       "reps": 8,
       "weight": 0,
       "kind": "working",
@@ -806,6 +998,42 @@
     "create": false,
     "data": {
       "ended_at": "2026-10-19T04:00:00.000Z"
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": false,
+    "data": {
+      "completed_at": "2026-10-19T04:00:00.000Z"
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": false,
+    "data": {
+      "completed_at": "2026-10-19T04:00:00.000Z"
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": false,
+    "data": {
+      "completed_at": "2026-10-19T04:00:00.000Z"
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": false,
+    "data": {
+      "completed_at": "2026-10-19T04:00:00.000Z"
     }
   },
   {
@@ -983,8 +1211,72 @@
     "name": "workout_set",
     "create": true,
     "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-00000000001f",
+      "position": 1,
+      "reps": 8,
+      "weight": 0,
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null,
+      "unit": null
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-00000000001f",
+      "position": 2,
+      "reps": 8,
+      "weight": 0,
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null,
+      "unit": null
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
       "workout_exercise_id": "00000000-0000-4000-8000-000000000020",
       "position": 0,
+      "reps": 8,
+      "weight": 0,
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null,
+      "unit": null
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-000000000020",
+      "position": 1,
+      "reps": 8,
+      "weight": 0,
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null,
+      "unit": null
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-000000000020",
+      "position": 2,
       "reps": 8,
       "weight": 0,
       "kind": "working",
@@ -1206,8 +1498,72 @@
     "name": "workout_set",
     "create": true,
     "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-000000000026",
+      "position": 1,
+      "reps": 8,
+      "weight": 0,
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null,
+      "unit": null
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-000000000026",
+      "position": 2,
+      "reps": 8,
+      "weight": 0,
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null,
+      "unit": null
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
       "workout_exercise_id": "00000000-0000-4000-8000-000000000027",
       "position": 0,
+      "reps": 8,
+      "weight": 0,
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null,
+      "unit": null
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-000000000027",
+      "position": 1,
+      "reps": 8,
+      "weight": 0,
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null,
+      "unit": null
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-000000000027",
+      "position": 2,
       "reps": 8,
       "weight": 0,
       "kind": "working",
@@ -1394,6 +1750,38 @@
     "name": "workout_set",
     "create": true,
     "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-00000000002d",
+      "position": 1,
+      "reps": 8,
+      "weight": 0,
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null,
+      "unit": null
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-00000000002d",
+      "position": 2,
+      "reps": 8,
+      "weight": 0,
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null,
+      "unit": null
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
       "workout_exercise_id": "00000000-0000-4000-8000-00000000002e",
       "position": 0,
       "reps": 8,
@@ -1410,8 +1798,72 @@
     "name": "workout_set",
     "create": true,
     "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-00000000002e",
+      "position": 1,
+      "reps": 8,
+      "weight": 0,
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null,
+      "unit": null
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-00000000002e",
+      "position": 2,
+      "reps": 8,
+      "weight": 0,
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null,
+      "unit": null
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
       "workout_exercise_id": "00000000-0000-4000-8000-00000000002f",
       "position": 0,
+      "reps": 5,
+      "weight": 0,
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null,
+      "unit": null
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-00000000002f",
+      "position": 1,
+      "reps": 5,
+      "weight": 0,
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null,
+      "unit": null
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-00000000002f",
+      "position": 2,
       "reps": 5,
       "weight": 0,
       "kind": "working",
@@ -1458,6 +1910,38 @@
     "data": {
       "workout_exercise_id": "00000000-0000-4000-8000-000000000030",
       "position": 0,
+      "reps": 5,
+      "weight": 0,
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null,
+      "unit": null
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-000000000030",
+      "position": 1,
+      "reps": 5,
+      "weight": 0,
+      "kind": "working",
+      "duration_sec": null,
+      "speed_kmh": null,
+      "unit": null
+    }
+  },
+  {
+    "entity": "workout_set",
+    "kind": "upsert",
+    "name": "workout_set",
+    "create": true,
+    "data": {
+      "workout_exercise_id": "00000000-0000-4000-8000-000000000030",
+      "position": 2,
       "reps": 5,
       "weight": 0,
       "kind": "working",

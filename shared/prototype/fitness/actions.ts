@@ -88,8 +88,14 @@ export function plannedSets(
     }))
   }
   const sug = suggestion(s, exerciseId)
+  // Never done before: as many sets as planned (a split's 3, not 1).
   if (!ex || !last)
-    return [{ id: uid(), reps: ex?.repMin ?? 8, weight: 0, kind: "working" }]
+    return Array.from({ length: Math.max(count, 1) }, () => ({
+      id: uid(),
+      reps: ex?.repMin ?? 8,
+      weight: 0,
+      kind: "working" as const,
+    }))
   const warm = last.we.sets
     .filter((x) => x.kind === "warmup")
     .map((x) => ({
@@ -311,9 +317,10 @@ export function restoreSet(
   })
   syncLive(workoutId)
 }
-/** Kilograms from pounds, to the 0.1 kg the logger shows. */
+/** Kilograms from pounds, to the gram: rounding to the 0.1 kg the logger
+ * shows would turn 135 lb into 134.9 lb on the way back. */
 export const LB_TO_KG = 0.45359237
-export const lbToKg = (lb: number) => Math.round(lb * LB_TO_KG * 10) / 10
+export const lbToKg = (lb: number) => Math.round(lb * LB_TO_KG * 1000) / 1000
 export const kgToLb = (kg: number) => Math.round((kg / LB_TO_KG) * 10) / 10
 export function addExercises(workoutId: string, exerciseIds: string[]) {
   const added = exerciseIds.map((exerciseId) => ({

@@ -87,8 +87,10 @@ it("a deleted set comes back in its place on undo", () => {
 })
 
 it("converts pounds and kilograms to a tenth", () => {
-  expect(A.lbToKg(30)).toBe(13.6)
-  expect(A.lbToKg(45)).toBe(20.4)
+  expect(A.lbToKg(30)).toBe(13.608)
+  expect(A.lbToKg(45)).toBe(20.412)
+  // Kept to the gram, so pounds come back exact.
+  expect(A.kgToLb(A.lbToKg(135))).toBe(135)
   expect(A.kgToLb(20)).toBe(44.1)
 })
 
@@ -111,7 +113,7 @@ it("a weight typed in pounds is saved in kilograms", () => {
   expect(screen.getByText(/= 20.4 kg/)).toBeTruthy()
   fireEvent.press(screen.getByText("Save"))
   expect(onSave).toHaveBeenCalledWith({
-    weight: 20.4,
+    weight: 20.412,
     reps: 5,
     kind: "working",
     unit: "lb",

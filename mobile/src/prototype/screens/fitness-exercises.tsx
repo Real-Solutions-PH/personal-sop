@@ -1,5 +1,6 @@
 import * as A from "@domain/fitness/actions"
 import * as C from "@domain/fitness/calc"
+import type { Exercise } from "@domain/fitness/data"
 import { fitStore } from "@domain/fitness/store"
 import { dayKey, dayOffset } from "@domain/lib/day"
 import {
@@ -46,6 +47,12 @@ const MUSCLES = [
   "forearms",
   "cardio",
 ]
+/** What an exercise is logged as: a rep range and step, or a timed one
+ * ("1–1 reps · +0 kg" said nothing about a run). */
+const spec = (e: Exercise) =>
+  e.loadType === "time"
+    ? `timed${e.track === "speed" ? " · speed" : e.track === "weight" ? " · added weight" : ""}`
+    : `${e.repMin}–${e.repMax} reps · +${e.increment} kg`
 export function Exercises({ id }: { id?: string }) {
   const s = fitStore.use((s) => s),
     t = useTheme(),
@@ -214,8 +221,7 @@ export function Exercises({ id }: { id?: string }) {
                           muted
                           style={{ textTransform: "capitalize" }}
                         >
-                          {e.equipment} · {e.repMin}–{e.repMax} reps · +
-                          {e.increment} kg
+                          {e.equipment} · {spec(e)}
                         </Copy>
                       </View>
                       {e.archived && pill("Archived")}
@@ -246,8 +252,7 @@ export function Exercises({ id }: { id?: string }) {
       ) : (
         <>
           <Copy size={14} muted style={{ textTransform: "capitalize" }}>
-            {ex.muscle} · {ex.equipment} · {ex.repMin}–{ex.repMax} reps · +
-            {ex.increment} kg
+            {ex.muscle} · {ex.equipment} · {spec(ex)}
           </Copy>
           {!hist.length ? (
             <Empty

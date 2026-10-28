@@ -816,11 +816,22 @@ export function SetEditor({
     [mins, setMins] = useState(String(Math.floor(secs / 60))),
     [rest, setRest] = useState(String(secs % 60)),
     [speed, setSpeed] = useState(set.speedKmh ? String(set.speedKmh) : "")
-  const kg = (v: string) => (unit === "lb" ? A.lbToKg(Number(v)) : Number(v))
+  // The stored weight as the editor shows it in a unit. While the field
+  // still shows exactly that, the stored kg is kept: flipping kg/lb back and
+  // forth never drifts it (20 kg → 44.1 lb → 20.003 kg).
+  const shown = (u: "kg" | "lb") =>
+    String(u === "lb" ? A.kgToLb(set.weight) : set.weight)
+  const kg = (v: string) =>
+    v === shown(unit)
+      ? set.weight
+      : unit === "lb"
+        ? A.lbToKg(Number(v))
+        : Number(v)
   const switchUnit = (next: "kg" | "lb") => {
     if (next === unit) return
     const n = Number(weight)
-    if (Number.isFinite(n))
+    if (weight === shown(unit)) setWeight(shown(next))
+    else if (Number.isFinite(n))
       setWeight(String(next === "lb" ? A.kgToLb(n) : A.lbToKg(n)))
     setUnit(next)
   }
@@ -926,7 +937,8 @@ export function SetEditor({
               </View>
               {unit === "lb" && Number.isFinite(Number(weight)) && (
                 <Copy size={12} muted>
-                  = {kg(weight)} kg, saved in kg
+                  = {C.kgShort(Math.round(kg(weight) * 10) / 10)} kg, saved in
+                  kg
                 </Copy>
               )}
             </View>

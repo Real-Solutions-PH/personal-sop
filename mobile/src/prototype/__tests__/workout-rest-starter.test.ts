@@ -139,3 +139,17 @@ describe("demo data", () => {
       for (const it of t.items) expect(ids.has(it.exerciseId)).toBe(true)
   })
 })
+
+describe("a split for someone who never trained", () => {
+  it("plans every set the split asks for, not one", () => {
+    fitStore.set((s) => ({ ...s, workouts: [], exercises: [], templates: [] }))
+    FA.installStarter(OWNER)
+    const push = fitStore.get().templates.find((t) => t.name === "Push")
+    if (!push) throw new Error("no Push split")
+    const res = FA.startWorkout({ from: "template", templateId: push.id })
+    if (!res.ok) throw new Error(res.reason)
+    expect(res.workout.exercises.map((e) => e.sets.length)).toEqual(
+      push.items.map((it) => it.sets),
+    )
+  })
+})
