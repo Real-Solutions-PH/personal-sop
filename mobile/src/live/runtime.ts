@@ -77,7 +77,13 @@ const PULL_EVENTS = new Set(["sync.changed", "dashboard.notification"])
 
 const OWNER_KEY = "sop-live:owner"
 
-export function startLive(userId: string, storage: StorageAdapter) {
+/** `isNew`: an account created just now, so its state is already known
+ * (blank, not onboarded) without waiting for the first pull. */
+export function startLive(
+  userId: string,
+  storage: StorageAdapter,
+  isNew = false,
+) {
   stopLive()
   if (storage.getItem(OWNER_KEY) !== userId) {
     // First run of this account on this device: no demo data, no other
@@ -97,7 +103,7 @@ export function startLive(userId: string, storage: StorageAdapter) {
   }
   // A device that has pulled before already holds this account's state.
   syncReady.setState({
-    ready: Number(storage.getItem("sop-live:cursor") ?? 0) > 0,
+    ready: isNew || Number(storage.getItem("sop-live:cursor") ?? 0) > 0,
   })
   let syncing: SyncEngine | null = null
   const stats = createStats({

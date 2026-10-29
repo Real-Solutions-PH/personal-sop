@@ -45,7 +45,7 @@ test("starts sync for the device's account when the refresh fails offline", asyn
   sessionStore.set((s) => ({ ...s, signedIn: true }))
   mockGetSession.mockResolvedValueOnce(offline)
   await expect(startLiveSession()).resolves.toBe("u1")
-  expect(mockStartLive).toHaveBeenCalledWith("u1", expect.anything())
+  expect(mockStartLive).toHaveBeenCalledWith("u1", expect.anything(), false)
 })
 
 test("a person who was signed out is not signed back in offline", async () => {

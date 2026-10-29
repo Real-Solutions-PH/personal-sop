@@ -23,7 +23,7 @@ async function viaLive<T>(run: () => Promise<T>): Promise<T> {
 }
 
 /** Live mode: start sync for the signed-in Supabase user. */
-export async function startLiveSession() {
+export async function startLiveSession(isNew = false) {
   live().onSessionLost(sessionEnded)
   // Offline launch: the account this device was already syncing, if the
   // person never signed out. Its outbox and snapshot are kept by startLive.
@@ -31,7 +31,7 @@ export async function startLiveSession() {
     ? storage().getItem("sop-live:owner")
     : null
   const uid = await live().currentUserId(known)
-  if (uid) runtime().startLive(uid, storage())
+  if (uid) runtime().startLive(uid, storage(), isNew)
   return uid
 }
 
@@ -285,6 +285,13 @@ export async function completeSignUp() {
         sessionStore.set((s) => ({ ...s, pending: null, claim: user }))
       throw error
     }
+    // A brand-new account: nothing to wait for on the first pull. Clear the
+    // demo seed before the app renders it, and tell the first-run gate the
+    // state is known (not onboarded) so it never parks the account on Today.
+    ;(require("@/live/blank") as typeof import("@/live/blank")).clearToBlank()
+    ;(
+      require("@/live/ready") as typeof import("@/live/ready")
+    ).syncReady.setState({ ready: true })
   }
   updateProfile({ name: user.name, handle: `@${user.username}` })
   sessionStore.set((s) => ({
@@ -294,7 +301,7 @@ export async function completeSignUp() {
     pending: null,
     claim: null,
   }))
-  if (liveMode) void startLiveSession()
+  if (liveMode) void startLiveSession(true)
 }
 /** Sign up's second try after the server refused the username. */
 export async function chooseUsername(username: string) {
