@@ -333,3 +333,36 @@ def meal_item_problems(ctx: Ctx, items: list[dict[str, Any]]) -> list[dict[str, 
         if found:
             out.append({"item": it.get("name"), "problems": found})
     return out
+
+
+def meal_missing_details(items: list[dict[str, Any]]) -> str | None:
+    """The card warning for items saved without sugar or sodium (they count
+    toward the daily limits): "No sugar or sodium estimate for Rice"."""
+    gaps: dict[tuple[str, ...], list[str]] = {}
+    for it in items:
+        missing = fitness.nutrient_check.missing_details(it)
+        if missing:
+            gaps.setdefault(tuple(missing), []).append(str(it.get("name")))
+    return (
+        "; ".join(
+            f"No {' or '.join(m)} estimate for {', '.join(names)}"
+            for m, names in gaps.items()
+        )
+        or None
+    )
+
+
+def saved_meal_with(
+    ctx: Ctx, label: str, day: date, items: list[dict[str, Any]]
+) -> uuid.UUID | None:
+    """A meal already saved with this label on this day that shares a food
+    with ``items``: logging it again would count that food twice."""
+    names = {str(i.get("name", "")).strip().casefold() for i in items} - {""}
+    for m in fitness.recent_meals(ctx, days=(ctx.today - day).days + 2):
+        if m.label != label or ctx.clock.day_of(m.eaten_at) != day:
+            continue
+        if names & {
+            r.name.strip().casefold() for r in fitness.chat.meal_item_rows(ctx, m.id)
+        }:
+            return m.id
+    return None

@@ -57,6 +57,11 @@ def _fx() -> Any:
 
 # ------------------------------------------------------------- arguments
 
+# Asked for on every estimate (the daily limits count them); a meal sent
+# without them is still saved, with a warning on its card.
+SUGAR_SAYS = "Grams of sugar; estimate it, 0 when there is none."
+SODIUM_SAYS = "Milligrams of sodium; estimate it, 0 when there is none."
+
 
 class FindLogsArgs(BaseModel):
     what: Literal["meals", "weigh_ins", "workouts", "exercises", "templates"]
@@ -205,8 +210,10 @@ class ItemArgs(BaseModel):
     fat: Macro = 0
     fiber: Macro | None = None
     sat_fat: Macro | None = None
-    sugar: Macro | None = None
-    sodium: Annotated[float, Field(ge=0, le=100000)] | None = None
+    sugar: Macro | None = Field(default=None, description=SUGAR_SAYS)
+    sodium: Annotated[float, Field(ge=0, le=100000)] | None = Field(
+        default=None, description=SODIUM_SAYS
+    )
     grams: Annotated[float, Field(gt=0, le=5000)] | None = Field(
         default=None,
         description="Edible grams this amount weighs (no bone or shell). "
@@ -402,6 +409,9 @@ def _in_workout(pairs: list[tuple[Any, str]], name: str) -> Any:
 def fitness_tools(run: "Run", *, manage: Manage, card: Card) -> list[BaseTool]:
     ctx = run.ctx
     fx = _fx()
+    # Foods each meal was given by this run. Seen live: a retry after a
+    # refused call added the same polvoron to a lunch a second time.
+    run_added: dict[str, set[str]] = {}
 
     def edit(
         entity: str, row_id: Any, label: str, changes: dict[str, Any], summary: str
@@ -830,7 +840,11 @@ def fitness_tools(run: "Run", *, manage: Manage, card: Card) -> list[BaseTool]:
                 f"{e.item}: "
                 + ", ".join(f"{k} {v}" for k, v in spec.items() if k != "id")
             )
+        done = run_added.setdefault(str(m.id), set())
+        again = [it.name for it in a.add_items if it.name.casefold() in done]
         for it in a.add_items:
+            if it.name.casefold() in done:
+                continue
             found = ports.fitness.nutrient_check.estimate_problems(
                 it.model_dump(exclude_none=True)
             )
@@ -849,16 +863,26 @@ def fitness_tools(run: "Run", *, manage: Manage, card: Card) -> list[BaseTool]:
         if a.confirmed:
             ch["confirmed"] = True
             said.append("marked checked")
-        if not ch:
-            return {"error": "nothing_to_change"}
         when = ctx.clock.day_of(m.eaten_at).isoformat()
-        return edit(
+        if again:
+            said.append(f"{', '.join(again)} already added")
+        if not ch:
+            if again:
+                return {"summary": f"{m.label.capitalize()} ({when}) · {said[-1]}"}
+            return {"error": "nothing_to_change"}
+        out = edit(
             "meal",
             m.id,
             f"{m.label} {when}",
             ch,
             f"Changed {m.label} ({when}) · {'; '.join(said)}",
         )
+        if "error" not in out:
+            done.update(i["name"].casefold() for i in ch.get("add_items", []))
+            missing = ports.meal_missing_details(ch.get("add_items", []))
+            if missing:
+                out = out | {"saved_without": missing}
+        return out
 
     def copy_meal(**kw: Any) -> dict[str, Any]:
         a = MealCopyArgs(**kw)

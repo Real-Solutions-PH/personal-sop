@@ -556,9 +556,11 @@ class MealItemArgs(BaseModel):
     fat: Annotated[float, Field(ge=0, le=2000)] = 0
     fiber: Annotated[float, Field(ge=0, le=2000)] | None = None
     sat_fat: Annotated[float, Field(ge=0, le=2000)] | None = None
-    sugar: Annotated[float, Field(ge=0, le=2000)] | None = None
+    sugar: Annotated[float, Field(ge=0, le=2000)] | None = Field(
+        default=None, description=fitness_tools.SUGAR_SAYS
+    )
     sodium: Annotated[float, Field(ge=0, le=100000)] | None = Field(
-        default=None, description="milligrams"
+        default=None, description=fitness_tools.SODIUM_SAYS
     )
     grams: Annotated[float, Field(gt=0, le=5000)] | None = Field(
         default=None,
@@ -592,6 +594,11 @@ class MealArgs(BaseModel):
     items: list[MealItemArgs] | None = Field(default=None, max_length=30)
     confidence: Annotated[float, Field(ge=0, le=1)] = 0.6
     days_ago: DaysAgo = 0
+    eaten_again: bool = Field(
+        default=False,
+        description="true only when the person ate a second breakfast, lunch "
+        "or dinner that day; otherwise change the saved one with edit_meal.",
+    )
 
 
 class JournalArgs(BaseModel):
@@ -1659,11 +1666,24 @@ def capture_tools(run: Run) -> list[BaseTool]:
         items, from_library = ports.library_items(run.ctx, items)
         if from_library and len(from_library) == len(items):
             confidence = max(confidence, 0.95)
+        label = meal_label(a.description)
+        # Seen live: a lunch retried after a refusal was logged a second time
+        # on top of the saved one, counting its food twice.
+        if label in _MAIN_MEALS and not a.eaten_again:
+            day = run.ctx.today - timedelta(days=a.days_ago)
+            saved = ports.saved_meal_with(run.ctx, label, day, items)
+            if saved is not None:
+                return {
+                    "error": f"{label}_already_logged_today_change_it_with_edit_meal",
+                    "meal_id": str(saved),
+                }
+        missing = ports.meal_missing_details(items)
         d = RecordDraft(
             kind="meal",
             target="fitness",
             rule="meal",
             confirm=confidence < 0.7,
+            warn=missing,
             confidence=confidence,
             day_offset=_offset(a.days_ago),
             payload={
@@ -1671,7 +1691,7 @@ def capture_tools(run: Run) -> list[BaseTool]:
                 for k, v in {
                     "kind": "meal",
                     "raw": a.description,
-                    "label": meal_label(a.description),
+                    "label": label,
                     "items": items,
                     "confidence": confidence,
                 }.items()
@@ -1682,6 +1702,8 @@ def capture_tools(run: Run) -> list[BaseTool]:
         replaced = _withdraw_earlier_versions(run, d, out["card_id"])
         if replaced:
             out = out | {"replaced_waiting_versions": replaced}
+        if missing:
+            out = out | {"saved_without": missing}
         return out | ({"from_library": from_library} if from_library else {})
 
     def save_food(**kw: Any) -> dict[str, Any]:
