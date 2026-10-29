@@ -261,6 +261,24 @@ describe("reconcile", () => {
     ])
     expect(out.logs.map((l) => l.day)).toEqual(["2026-10-20"])
   })
+  test("an end fired mid-day by a reschedule does not close the day", () => {
+    const events: NativeEvent[] = [
+      { kind: "start", groupId: G, at: t(20, H), hasSelection: true },
+      { kind: "rung", groupId: G, at: t(20, 12), rungMin: 5 },
+      { kind: "end", groupId: G, at: t(20, 14) },
+    ]
+    const out = reconcile({
+      events,
+      habits: [habit("h1", 30)],
+      logs: [],
+      existingDays: [],
+      nowMs: now,
+      dayStartHour: H,
+      newId,
+    })
+    expect(out.days.map((d) => d.closed)).toEqual([false])
+    expect(out.logs).toEqual([])
+  })
   test("archived, paused and unscheduled habits get no log", () => {
     const archived = { ...habit("h1", 30), status: "archived" as const }
     const paused = { ...habit("h2", 30), pauses: [{ from: "2026-10-19" }] }

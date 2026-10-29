@@ -25,6 +25,16 @@ const DAYS_BACK = 7
 // `end` belongs to the window that closed up to this long before it arrived.
 const END_GRACE_MS = 3 * 3600_000
 
+// Stopping monitoring to reschedule may fire intervalDidEnd mid-window; only
+// an `end` near the window's real end closes the day.
+const END_EARLY_MS = 5 * 60_000
+
+/** True when an `end` event marks its window's real close, not a reschedule. */
+function closesWindow(e: NativeEvent, dayStartHour: number): boolean {
+  const { endMs } = windowFor(eventDay(e, dayStartHour), dayStartHour)
+  return e.at >= endMs - END_EARLY_MS
+}
+
 /** The app day an event belongs to: its own instant, or for an `end` the
  * window that had just closed. */
 function eventDay(e: NativeEvent, dayStartHour: number): string {
@@ -122,7 +132,7 @@ export function observe(
     let usedMin = 0
     for (const e of b.events) {
       if (e.kind === "start") observed ||= e.hasSelection
-      else if (e.kind === "end") closed = true
+      else if (e.kind === "end") closed ||= closesWindow(e, dayStartHour)
       else if (plausible(e.rungMin, e.at, startMs))
         usedMin = Math.max(usedMin, e.rungMin)
     }
@@ -196,7 +206,7 @@ export function reconcile(args: {
   const logged = new Set(logs.map((l) => `${l.habitId}|${l.day}`))
   const ends = new Map<string, number>()
   for (const e of events) {
-    if (e.kind !== "end") continue
+    if (e.kind !== "end" || !closesWindow(e, dayStartHour)) continue
     const k = `${eventDay(e, dayStartHour)}|${e.groupId}`
     ends.set(k, Math.min(ends.get(k) ?? e.at, e.at))
   }
