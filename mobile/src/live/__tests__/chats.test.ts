@@ -109,3 +109,32 @@ it("a question the router turns into a capture still names its chat", () => {
   expect(chat.title).toBe("Plan my week of workouts")
   expect(chat.lastAt).not.toBeNull()
 })
+
+it("a chat reaches the server only once it has a message", () => {
+  const m = threadMapper()
+  const id = newChat()
+  expect(m.list(state()).map((t) => t.id)).not.toContain(id)
+  addMessage({ role: "me", text: "hello" })
+  expect(m.list(state()).map((t) => t.id)).toContain(id)
+})
+
+it("a new chat reuses any untouched one, not only the chat on screen", () => {
+  const empty = newChat()
+  addMessage({ role: "me", text: "kept" })
+  // An older untouched chat (made, never written in) and a busy one open.
+  companionStore.set((s) => ({
+    ...s,
+    threads: [
+      ...(s.threads ?? []),
+      {
+        id: "a9a3e0b6-3f4e-4a51-9a59-7d0f3c0b1f11",
+        title: null,
+        lastAt: null,
+        createdAt: 1,
+      },
+    ],
+  }))
+  expect(empty).toBe(currentThread(state()))
+  const again = newChat()
+  expect(again).toBe("a9a3e0b6-3f4e-4a51-9a59-7d0f3c0b1f11")
+})

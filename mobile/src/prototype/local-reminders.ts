@@ -11,7 +11,11 @@ import { dayKey, weekday } from "@domain/lib/day"
 import type { Task } from "@domain/tasks/data"
 import { tasksStore } from "@domain/tasks/store"
 import { Platform } from "react-native"
-import { go } from "./navigation"
+import {
+  openNotification,
+  routeLaunchNotification,
+  showsBanner,
+} from "./notifications"
 
 type Notifications = typeof import("expo-notifications")
 
@@ -251,19 +255,23 @@ export function startReminders() {
   } catch {
     return // the native module is missing from this build
   }
-  // Show reminders as banners even while the app is open.
+  // Show reminders and pushes as banners even while the app is open,
+  // except Fern's reply to the chat already on screen.
   N.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowBanner: true,
-      shouldShowList: true,
-      shouldPlaySound: true,
-      shouldSetBadge: false,
-    }),
+    handleNotification: async (n) => {
+      const show = showsBanner(n.request.content.data)
+      return {
+        shouldShowBanner: show,
+        shouldShowList: show,
+        shouldPlaySound: show,
+        shouldSetBadge: false,
+      }
+    },
   })
-  N.addNotificationResponseReceivedListener((r) => {
-    const href = r.notification.request.content.data?.href
-    if (typeof href === "string") go(href)
-  })
+  N.addNotificationResponseReceivedListener((r) =>
+    openNotification(r.notification.request.content.data),
+  )
+  routeLaunchNotification(N)
   let timer: ReturnType<typeof setTimeout> | null = null
   const soon = () => {
     if (timer) clearTimeout(timer)

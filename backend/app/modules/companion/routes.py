@@ -9,7 +9,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response, StreamingResponse
 
-from app.modules.companion import gate, services, turn
+from app.modules.companion import gate, notify, services, turn
 from app.modules.companion.schema import (
     AskIn,
     AskOut,
@@ -151,6 +151,9 @@ def ask_stream(ctx: CtxDep, data: AskIn) -> StreamingResponse:
             stream.failed("busy", "Still answering your last message. Try again.")
             return
         stream.finished(out.model_dump(mode="json"))
+        # A person who left the app (the phone dropped this stream) hears
+        # that the reply is ready; one still in the app sees it arrive.
+        notify.reply_pushed(ctx, out)
         # The reply is out; what the message says about them that will last
         # is kept now, unless this turn already saved a memory. A failure
         # here is logged and never reaches the finished reply.

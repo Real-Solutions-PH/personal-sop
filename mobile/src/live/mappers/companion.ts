@@ -18,6 +18,7 @@ import {
   type Msg,
   type Thread,
   type Tracker,
+  untouched,
 } from "@/prototype/companion/store"
 import type { Mapper, Payload } from "../mapper"
 import { singleton } from "./helpers"
@@ -185,7 +186,10 @@ export function threadMapper(): Mapper<CompanionState, Thread> {
   return {
     entity: "companion_thread",
     store: companionStore,
-    list: (s) => (s.threads ?? []).filter((t) => isUuid(t.id)),
+    // A chat nobody has written in stays on the phone: opening Fern's
+    // drawer makes one every time, and the server should not keep them.
+    list: (s) =>
+      (s.threads ?? []).filter((t) => isUuid(t.id) && !untouched(s, t)),
     id: (t) => t.id,
     // Only the title is the phone's to write; a new chat's first message
     // also makes it on the server.

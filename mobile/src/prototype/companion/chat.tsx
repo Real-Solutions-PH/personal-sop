@@ -57,6 +57,7 @@ import { copyText } from "../media"
 import { feel } from "../motion"
 import { IconTap, Line } from "../native-kit"
 import { go } from "../navigation"
+import { chatPage } from "../notifications"
 import { Exchange, ThreadComposer } from "../screens/capture-thread"
 import { fonts, useTheme } from "../theme"
 import { Screen } from "../ui"
@@ -68,11 +69,12 @@ import { ChatsSheet } from "./chats"
 import { Orb } from "./orb"
 import {
   answering,
-  chatList,
+  chatCaptures,
+  chatForDrawer,
   chatMessages,
   companionStore,
-  currentThread,
   type Msg,
+  openChat,
   thinking,
 } from "./store"
 
@@ -359,28 +361,16 @@ function Thinking({ name }: { name: string }) {
   )
 }
 
-const NO_CAPTURES: ReturnType<typeof captureStore.get>["captures"] = []
-
 /** Companion messages and captures interleaved by time. */
-function useTimeline(since = 0) {
-  // The chat on screen; entries logged outside chat show in the most
-  // recent chat only, not in every one.
+function useTimeline() {
+  // The chat on screen, with the entries logged from it; entries logged
+  // outside chat show in the most recent chat only, from when it began.
   const store = companionStore.use((s) => s)
   const messages = useMemo(() => chatMessages(store), [store])
-  // Entries logged outside chat show in the most recent chat, from when
-  // it began: a new chat starts clean.
-  const capturesFrom = useMemo(() => {
-    const first = chatList(store)[0]
-    if (!first) return 0
-    return currentThread(store) === first.id ? first.createdAt : null
-  }, [store])
   const allCaptures = captureStore.use((s) => s.captures)
   const captures = useMemo(
-    () =>
-      capturesFrom === null
-        ? NO_CAPTURES
-        : allCaptures.filter((c) => new Date(c.at).getTime() >= capturesFrom),
-    [allCaptures, capturesFrom],
+    () => chatCaptures(store, allCaptures),
+    [store, allCaptures],
   )
   return useMemo(() => {
     const items: {
@@ -388,17 +378,14 @@ function useTimeline(since = 0) {
       key: string
       node: { kind: "msg"; m: Msg } | { kind: "cap"; id: string }
     }[] = [
-      ...messages
-        .filter((m) => m.at >= since)
-        .map((m) => ({
-          at: m.at,
-          key: m.id,
-          node: { kind: "msg" as const, m },
-        })),
+      ...messages.map((m) => ({
+        at: m.at,
+        key: m.id,
+        node: { kind: "msg" as const, m },
+      })),
       ...captures
         // Fern's own writes show as steps in its reply (ADR-0015).
         .filter((c) => c.source !== "chat")
-        .filter((c) => new Date(c.at).getTime() >= since)
         .map((c) => ({
           at: new Date(c.at).getTime(),
           key: c.id,
@@ -406,7 +393,7 @@ function useTimeline(since = 0) {
         })),
     ]
     return items.sort((a, b) => a.at - b.at)
-  }, [messages, captures, since])
+  }, [messages, captures])
 }
 function TimelineItem({
   node,
@@ -609,9 +596,23 @@ export function CompanionChat() {
   const name = companionStore.use((s) => s.name)
   const trackers = companionStore.use((s) => s.trackers)
   const timeline = useTimeline()
-  const params = useLocalSearchParams<{ q?: string; hint?: string }>()
+  const params = useLocalSearchParams<{
+    q?: string
+    hint?: string
+    thread?: string
+  }>()
   const on = useWorking()
   const onPage = usePathname() === "/capture"
+  // Opened on one chat (the tap on Fern's "replied" push): show it. A chat
+  // this phone has not pulled yet shows once the sync brings it.
+  useEffect(() => {
+    if (params.thread) openChat(params.thread)
+  }, [params.thread])
+  // While this page is on screen, Fern's reply to its chat shows no banner.
+  useEffect(() => {
+    chatPage.setState({ on: onPage })
+    return () => chatPage.setState({ on: false })
+  }, [onPage])
   const drawerOpen = captureUi.use((s) => s.open)
   const armed = wake((s) => s.armed)
   const inset = useSafeAreaInsets()
@@ -775,13 +776,13 @@ export function CompanionDrawer({ bottom }: { bottom: number }) {
   const on = useWorking()
   const armed = wake((s) => s.armed)
   const [mounted, setMounted] = useState(open)
-  const [since, setSince] = useState(Date.now())
   const area = screen - bottom
   const base = Math.min(area - safe.top - 24, Math.max(460, area * 0.66))
   const y = useSharedValue(base)
   const grow = useSharedValue(0)
   const scroller = useRef<ScrollViewInstance>(null)
-  const timeline = useTimeline(since)
+  const timeline = useTimeline()
+  const [chats, setChats] = useState(false)
   const [typing, setTyping] = useState(false)
   // The keyboard's height, tracked directly: a KeyboardAvoidingView inside
   // this absolutely placed, transformed sheet measured itself wrong and never
@@ -812,7 +813,8 @@ export function CompanionDrawer({ bottom }: { bottom: number }) {
   // biome-ignore lint/correctness/useExhaustiveDependencies: open/close only
   useEffect(() => {
     if (open) {
-      setSince(Date.now())
+      // Each open is a new chat; the earlier ones are under Chats.
+      chatForDrawer()
       setMounted(true)
       grow.value = 0
       y.value = base
@@ -985,6 +987,13 @@ export function CompanionDrawer({ bottom }: { bottom: number }) {
                 </View>
                 <IconTap
                   size={40}
+                  icon={MessagesSquare}
+                  label="Chats"
+                  color={t.text}
+                  onPress={() => setChats(true)}
+                />
+                <IconTap
+                  size={40}
                   icon={Maximize2}
                   label="Open full chat"
                   color={t.text}
@@ -1032,6 +1041,7 @@ export function CompanionDrawer({ bottom }: { bottom: number }) {
           {bottom > 0 && !typing && <View style={{ height: FAB_RISE }} />}
         </View>
       </Animated.View>
+      <ChatsSheet open={chats} onClose={() => setChats(false)} />
     </View>
   )
 }
