@@ -5,11 +5,12 @@ export const EXTRAS = [
   { key: "journal", label: "Journal" },
   { key: "social", label: "Community" },
   { key: "weather", label: "Weather" },
+  { key: "calendar", label: "Calendar" },
 ] as const
 export type Extra = (typeof EXTRAS)[number]["key"]
 export const extrasStore = createStore<Record<Extra, boolean>>(
   "native-extras",
-  () => ({ journal: true, social: true, weather: true }),
+  () => ({ journal: true, social: true, weather: true, calendar: true }),
 )
 export const useShown = (k: Extra) => extrasStore.use((s) => s[k])
 export const setShown = (k: Extra, on: boolean) =>

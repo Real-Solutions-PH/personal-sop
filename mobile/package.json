@@ -61,6 +61,8 @@
     "expo": "~58.0.19",
     "expo-asset": "~58.0.18",
     "expo-audio": "~58.0.10",
+    "expo-calendar": "~58.0.6",
+    "expo-camera": "~58.0.14",
     "expo-clipboard": "~58.0.4",
     "expo-constants": "~58.0.13",
     "expo-crypto": "~58.0.7",

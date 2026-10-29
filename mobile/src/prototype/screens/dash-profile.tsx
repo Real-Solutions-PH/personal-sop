@@ -15,11 +15,13 @@ import { privacyStore, togglePrivacy } from "@domain/lib/privacy"
 import { uid } from "@domain/lib/store"
 import {
   BookOpen,
+  CalendarDays,
   Camera,
   ChevronRight,
   CloudSun,
   Dumbbell,
   ListChecks,
+  type LucideIcon,
   Minus,
   Plus,
   Repeat2,
@@ -34,7 +36,7 @@ import {
 import { useState } from "react"
 import { ScrollView, TextInput, View } from "react-native"
 import { toast } from "sonner-native"
-import { EXTRAS, extrasStore, setShown } from "../extras"
+import { EXTRAS, type Extra, extrasStore, setShown } from "../extras"
 import { pickPhoto } from "../media"
 import {
   border,
@@ -427,7 +429,12 @@ export function Settings() {
     for (const k of MODULE_KEYS) setEnabled(k, on)
     for (const x of EXTRAS) setShown(x.key, on)
   }
-  const extraIcon = { journal: BookOpen, social: Users, weather: CloudSun }
+  const extraIcon: Record<Extra, LucideIcon> = {
+    journal: BookOpen,
+    social: Users,
+    weather: CloudSun,
+    calendar: CalendarDays,
+  }
   const row = (
     title: string,
     subtitle: string,

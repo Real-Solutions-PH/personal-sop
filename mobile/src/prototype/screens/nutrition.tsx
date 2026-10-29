@@ -14,6 +14,7 @@ import {
   Mic,
   Pencil,
   Plus,
+  ScanBarcode,
   Share2,
   Sparkles,
   Target,
@@ -430,6 +431,7 @@ export function Nutrition({
               { label: "Chat", icon: MessageSquare, mode: "text" },
               { label: "Voice", icon: Mic, mode: "voice" },
               { label: "Manual", icon: Pencil, mode: "manual" },
+              { label: "Scan", icon: ScanBarcode, mode: "scan" },
             ] as const
           ).map((b) => (
             <Tap
@@ -437,7 +439,9 @@ export function Nutrition({
               onPress={() =>
                 b.mode === "manual"
                   ? go(`/nutrition/new?day=${day}`)
-                  : openCapture({ mode: b.mode, hint: "meal" })
+                  : b.mode === "scan"
+                    ? go(`/nutrition/scan?day=${day}`)
+                    : openCapture({ mode: b.mode, hint: "meal" })
               }
               style={{
                 flex: 1,
