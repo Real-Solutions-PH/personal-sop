@@ -18,10 +18,10 @@ id, so `src/live/push.ts` never registered for push.
 
 - **Expo project `@real-solutions-ph/unfurl`** (`extra.eas.projectId` in
   `mobile/app.json`). Push registration now gets a project id. (Amended
-  2026-10-29: first created as `@ervinpiol/personal-sop`, moved to the app
-  owner's account `@schadenkai/unfurl`, then transferred to the
-  `real-solutions-ph` organisation so releases do not depend on one person's
-  login. See *Amendments* below.)
+  2026-10-29: first created as `@ervinpiol/personal-sop`, then moved to the
+  app owner's own Expo account `@schadenkai/unfurl` so releases do not depend
+  on a contributor's login, then transferred to the `real-solutions-ph`
+  organisation. See *Amendments* below.)
 - **EAS Build + Submit** (`mobile/eas.json`, `production` profile): builds run
   in Expo's cloud with `eas build -p ios --profile production --auto-submit`,
   which uploads to App Store Connect for TestFlight. The build number is
@@ -88,10 +88,11 @@ started by hand.
   - Other people release by being added to the Expo account or an Expo
     organisation that owns the project, not by sharing the owner's login.
 - **2026-10-29 — project transferred to the `real-solutions-ph` organisation**
-  (`@real-solutions-ph/unfurl`, same id). `owner` in `mobile/app.json` changed
-  to match; EAS refuses to build while it disagrees with the project id's
-  owner. The transfer does not carry iOS signing credentials, so the Apple
-  account holder runs `eas credentials -p ios` once on the new owner. The
-  Apple team is an individual membership: App Store Connect Admins have no
-  Certificates, Identifiers & Profiles access, so only the account holder can
-  create them.
+  (`@real-solutions-ph/unfurl`, same id `348dbc4a-78e1-47e9-922d-3006c4e0455a`).
+  Only `owner` in `mobile/app.json` changed: the project id, slug, `updates.url`,
+  remote build number and environment variables moved with the project, so
+  existing builds keep receiving updates.
+  The transfer does not carry iOS signing credentials, so the Apple account
+  holder runs `eas credentials -p ios` once on the new owner. The Apple team is
+  an individual membership: App Store Connect Admins have no Certificates,
+  Identifiers & Profiles access, so only the account holder can create them.
