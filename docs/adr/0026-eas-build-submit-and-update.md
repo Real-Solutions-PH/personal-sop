@@ -16,10 +16,11 @@ id, so `src/live/push.ts` never registered for push.
 
 ## Decision
 
-- **Expo project `@schadenkai/unfurl`** (`extra.eas.projectId` in
+- **Expo project `@real-solutions-ph/unfurl`** (`extra.eas.projectId` in
   `mobile/app.json`). Push registration now gets a project id. (Amended
-  2026-10-29: first created as `@ervinpiol/personal-sop`, then moved to the
-  app owner's own Expo account so releases do not depend on a contributor's
+  2026-10-29: first created as `@ervinpiol/personal-sop`, moved to the app
+  owner's account `@schadenkai/unfurl`, then transferred to the
+  `real-solutions-ph` organisation so releases do not depend on one person's
   login. See *Amendments* below.)
 - **EAS Build + Submit** (`mobile/eas.json`, `production` profile): builds run
   in Expo's cloud with `eas build -p ios --profile production --auto-submit`,
@@ -86,3 +87,11 @@ started by hand.
     date), so no backend change was needed.
   - Other people release by being added to the Expo account or an Expo
     organisation that owns the project, not by sharing the owner's login.
+- **2026-10-29 — project transferred to the `real-solutions-ph` organisation**
+  (`@real-solutions-ph/unfurl`, same id). `owner` in `mobile/app.json` changed
+  to match; EAS refuses to build while it disagrees with the project id's
+  owner. The transfer does not carry iOS signing credentials, so the Apple
+  account holder runs `eas credentials -p ios` once on the new owner. The
+  Apple team is an individual membership: App Store Connect Admins have no
+  Certificates, Identifiers & Profiles access, so only the account holder can
+  create them.
