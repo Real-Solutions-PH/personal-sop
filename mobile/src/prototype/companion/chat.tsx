@@ -69,11 +69,10 @@ import { ChatsSheet } from "./chats"
 import { Orb } from "./orb"
 import {
   answering,
+  chatCaptures,
   chatForDrawer,
-  chatList,
   chatMessages,
   companionStore,
-  currentThread,
   type Msg,
   openChat,
   thinking,
@@ -362,28 +361,16 @@ function Thinking({ name }: { name: string }) {
   )
 }
 
-const NO_CAPTURES: ReturnType<typeof captureStore.get>["captures"] = []
-
 /** Companion messages and captures interleaved by time. */
 function useTimeline() {
-  // The chat on screen; entries logged outside chat show in the most
-  // recent chat only, not in every one.
+  // The chat on screen, with the entries logged from it; entries logged
+  // outside chat show in the most recent chat only, from when it began.
   const store = companionStore.use((s) => s)
   const messages = useMemo(() => chatMessages(store), [store])
-  // Entries logged outside chat show in the most recent chat, from when
-  // it began: a new chat starts clean.
-  const capturesFrom = useMemo(() => {
-    const first = chatList(store)[0]
-    if (!first) return 0
-    return currentThread(store) === first.id ? first.createdAt : null
-  }, [store])
   const allCaptures = captureStore.use((s) => s.captures)
   const captures = useMemo(
-    () =>
-      capturesFrom === null
-        ? NO_CAPTURES
-        : allCaptures.filter((c) => new Date(c.at).getTime() >= capturesFrom),
-    [allCaptures, capturesFrom],
+    () => chatCaptures(store, allCaptures),
+    [store, allCaptures],
   )
   return useMemo(() => {
     const items: {

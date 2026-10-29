@@ -1,18 +1,24 @@
 // Every time Fern's drawer opens it starts a new chat; earlier chats stay
 // in the Chats list, reachable from the drawer's header.
+import { captureStore } from "@domain/capture/store"
 import { closeCapture, openCapture } from "@domain/lib/capture"
 import { configureStorage, resetAll } from "@domain/lib/store"
 import { act, fireEvent, render, screen } from "@testing-library/react-native"
 import type { ReactNode } from "react"
 import { SafeAreaProvider } from "react-native-safe-area-context"
+import { ask } from "../companion/brain"
 import { CompanionDrawer } from "../companion/chat"
 import {
   addMessage,
+  chatCaptures,
   chatList,
   chatMessages,
   companionStore,
   currentThread,
+  openChat,
   replying,
+  threadForSend,
+  touchThread,
 } from "../companion/store"
 
 jest.mock("expo-router", () => ({
@@ -103,6 +109,40 @@ test("each open of the drawer starts a new chat, reusing an untouched one", () =
   act(() => openCapture())
   expect(currentThread(state())).not.toBe(first)
   expect(chatList(state())).toHaveLength(3)
+})
+
+test("a chat that only logged an entry is not reused on the next open", () => {
+  render(<CompanionDrawer bottom={83} />, { wrapper })
+  act(() => openCapture())
+  const logged = currentThread(state())
+  // A log ("spent 250 on lunch") goes to the capture engine: the chat is
+  // named and touched, but holds no chat message of its own.
+  act(() => {
+    touchThread(threadForSend(), { role: "me", text: "spent 250 on lunch" })
+  })
+  act(() => closeCapture())
+  act(() => openCapture())
+  expect(currentThread(state())).not.toBe(logged)
+  expect(chatList(state())).toHaveLength(2)
+})
+
+test("an entry logged in a chat stays with that chat once the drawer starts another", () => {
+  render(<CompanionDrawer bottom={83} />, { wrapper })
+  act(() => openCapture())
+  const logged = currentThread(state())
+  act(() => ask("spent 250 on lunch"))
+  const lunch = captureStore.get().captures.at(-1)?.id
+  const shown = () =>
+    chatCaptures(state(), captureStore.get().captures).map((c) => c.id)
+  expect(shown()).toContain(lunch)
+
+  act(() => closeCapture())
+  act(() => openCapture())
+  expect(shown()).not.toContain(lunch)
+
+  // Back in the chat it was logged in, from the Chats list.
+  act(() => openChat(logged as string))
+  expect(shown()).toContain(lunch)
 })
 
 test("a reply still being written keeps its chat when the drawer reopens", () => {

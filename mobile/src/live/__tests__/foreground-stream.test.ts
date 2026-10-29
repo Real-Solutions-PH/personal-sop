@@ -1,7 +1,7 @@
 // The live event stream is open only while the app is in the foreground:
 // the server reads an open stream as "in the app" and pushes Fern's replies
 // only to people who are not.
-import { foregroundStream } from "../events"
+import { foregroundStream } from "../foreground-stream"
 
 const opener = () => {
   const opened: { stopped: boolean }[] = []

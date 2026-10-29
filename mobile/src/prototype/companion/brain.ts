@@ -7,6 +7,7 @@ import {
   type Block,
   companionStore,
   liveAsk,
+  logCaptureIn,
   type Metric,
   remember,
   thinking,
@@ -261,7 +262,8 @@ export function ask(text: string, hint?: string, photos?: string[]) {
   if (!v && !photos?.length) return
   // Whichever path answers (a reply or a capture), the question belongs to
   // the chat on screen: it names a new chat and marks its last activity.
-  touchThread(threadForSend(), { role: "me", text: v || "Photo" })
+  const thread = threadForSend()
+  touchThread(thread, { role: "me", text: v || "Photo" })
   const live = liveAsk()
   if (live)
     return live(
@@ -272,18 +274,21 @@ export function ask(text: string, hint?: string, photos?: string[]) {
     )
   // On the device, photos go through the photo capture (it reads them).
   if (photos?.length) {
-    A.sendCapture({
-      text: v,
-      source: "photo",
-      photo: photos[0],
-      photos: photos.slice(1),
-      hint,
-    })
+    logCaptureIn(
+      A.sendCapture({
+        text: v,
+        source: "photo",
+        photo: photos[0],
+        photos: photos.slice(1),
+        hint,
+      }),
+      thread,
+    )
     return
   }
   const r = route(v)
   if (r.kind === "capture") {
-    A.sendCapture({ text: v, source: "text", hint })
+    logCaptureIn(A.sendCapture({ text: v, source: "text", hint }), thread)
     return
   }
   addMessage({ role: "me", text: v })

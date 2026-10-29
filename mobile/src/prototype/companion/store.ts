@@ -146,6 +146,8 @@ export type CompanionState = {
   threads?: Thread[]
   /** The chat on screen; null or absent: the most recent one. */
   activeThread?: string | null
+  /** The chat each entry logged from chat was logged in, by entry id. */
+  captureChats?: Record<string, string>
 }
 
 /** The companion's default name (brand: docs/brand/fern.md). A user may
@@ -267,6 +269,29 @@ export function chatMessages(s: CompanionState): Msg[] {
   const id = currentThread(s)
   return s.messages.filter((m) => (m.threadId ?? null) === id)
 }
+/** The entries logged on this phone that the chat on screen shows: the ones
+ * logged from it, and those logged outside chat since the most recent chat
+ * began (in that chat only). */
+export function chatCaptures<C extends { id: string; at: string }>(
+  s: CompanionState,
+  captures: C[],
+): C[] {
+  const id = currentThread(s)
+  const from = s.captureChats ?? {}
+  const first = chatList(s)[0]
+  const since = !first ? 0 : id === first.id ? first.createdAt : null
+  return captures.filter((c) =>
+    from[c.id]
+      ? from[c.id] === id
+      : since !== null && new Date(c.at).getTime() >= since,
+  )
+}
+/** Remember the chat an entry was logged from. */
+export const logCaptureIn = (captureId: string, threadId: string) =>
+  set((s) => ({
+    ...s,
+    captureChats: { ...s.captureChats, [captureId]: threadId },
+  }))
 /** Chats, most recent first. */
 export function chatList(s: CompanionState): Thread[] {
   return [...threadsOf(s)].sort(
@@ -286,9 +311,9 @@ export function untouched(s: CompanionState, t: Thread): boolean {
  * one first) is reused rather than piling up empty ones, and starts now. */
 export function newChat(): string {
   const s = companionStore.get()
-  const cur = currentThread(s)
+  const cur = threadsOf(s).find((t) => t.id === currentThread(s))
   const empty =
-    (cur && !s.messages.some((m) => m.threadId === cur) ? cur : null) ??
+    (cur && untouched(s, cur) ? cur.id : null) ??
     threadsOf(s).find((t) => untouched(s, t))?.id
   if (empty) {
     set((x) => ({
