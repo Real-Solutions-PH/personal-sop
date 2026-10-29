@@ -14,7 +14,6 @@ import {
   Mic,
   Pencil,
   Plus,
-  ScanBarcode,
   Share2,
   Sparkles,
   Target,
@@ -418,55 +417,14 @@ export function Nutrition({
           </View>
         )}
       </Frame>
+      <Button icon={Plus} onPress={() => go(`/nutrition/new?day=${day}`)}>
+        Log a meal
+      </Button>
       <ActivityCard day={day} />
       <Frame style={{ padding: 16 }}>
         <LimitList detail={detail} limits={limitsFor(target)} />
       </Frame>
       <NutritionTrend onPickDay={setDay} />
-      <Frame style={{ padding: 8 }}>
-        <Line style={{ gap: 8 }}>
-          {(
-            [
-              { label: "Photo", icon: Camera, mode: "photo" },
-              { label: "Chat", icon: MessageSquare, mode: "text" },
-              { label: "Voice", icon: Mic, mode: "voice" },
-              { label: "Manual", icon: Pencil, mode: "manual" },
-              { label: "Scan", icon: ScanBarcode, mode: "scan" },
-            ] as const
-          ).map((b) => (
-            <Tap
-              key={b.label}
-              onPress={() =>
-                b.mode === "manual"
-                  ? go(`/nutrition/new?day=${day}`)
-                  : b.mode === "scan"
-                    ? go(`/nutrition/scan?day=${day}`)
-                    : openCapture({ mode: b.mode, hint: "meal" })
-              }
-              style={{
-                flex: 1,
-                alignItems: "center",
-                paddingVertical: 8,
-                gap: 4,
-              }}
-            >
-              <View
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 16,
-                  backgroundColor: `${t.nut}26`,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <b.icon size={20} color={t.nut} />
-              </View>
-              <Copy size={12}>{b.label}</Copy>
-            </Tap>
-          ))}
-        </Line>
-      </Frame>
       <Line style={{ gap: 8 }}>
         <View style={{ flex: 1 }}>
           <Button

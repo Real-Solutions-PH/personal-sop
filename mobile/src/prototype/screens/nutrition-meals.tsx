@@ -7,14 +7,18 @@ import {
   type MealLabel,
 } from "@domain/fitness/data"
 import { fitStore } from "@domain/fitness/store"
+import { openCapture } from "@domain/lib/capture"
 import { dayKey } from "@domain/lib/day"
 import { uid } from "@domain/lib/store"
 import { useLocalSearchParams } from "expo-router"
 import {
+  Camera,
   CloudOff,
   Copy as CopyIcon,
+  Mic,
   Minus,
   Plus,
+  ScanBarcode,
   Sparkles,
   Trash2,
   X,
@@ -32,7 +36,7 @@ import {
   SectionHeading,
   Tap,
 } from "../native-kit"
-import { replace } from "../navigation"
+import { go, replace } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import { TimeInput } from "../time-input"
 import { Button, Empty, Screen, undo } from "../ui"
@@ -590,6 +594,8 @@ export function ManualMeal() {
     [err, setErr] = useState(false),
     [items, setItems] = useState<MealItem[]>([]),
     [custom, setCustom] = useState({ name: "", ...C.zero() }),
+    [recipeName, setRecipeName] = useState(""),
+    recipes = fitStore.use((s) => s.recipes),
     totals = C.sumMacros(items)
   const stamp = () => {
     if (!isDay(day) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) {
@@ -640,6 +646,47 @@ export function ManualMeal() {
         </View>
       }
     >
+      <Frame style={{ padding: 8 }}>
+        <Line style={{ gap: 8 }}>
+          {(
+            [
+              { label: "Scan", icon: ScanBarcode, mode: "scan" },
+              { label: "Photo", icon: Camera, mode: "photo" },
+              { label: "Voice", icon: Mic, mode: "voice" },
+            ] as const
+          ).map((b) => (
+            <Tap
+              key={b.label}
+              label={b.label}
+              onPress={() =>
+                b.mode === "scan"
+                  ? go(`/nutrition/scan?day=${day}`)
+                  : openCapture({ mode: b.mode, hint: "meal" })
+              }
+              style={{
+                flex: 1,
+                alignItems: "center",
+                paddingVertical: 8,
+                gap: 4,
+              }}
+            >
+              <View
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 16,
+                  backgroundColor: `${t.nut}26`,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <b.icon size={20} color={t.nut} />
+              </View>
+              <Copy size={12}>{b.label}</Copy>
+            </Tap>
+          ))}
+        </Line>
+      </Frame>
       <Frame style={{ padding: 16, gap: 8 }}>
         <Line style={{ gap: 8 }}>
           <Sparkles size={16} color={t.nut} />
@@ -712,6 +759,66 @@ export function ManualMeal() {
             ])
         }}
       />
+      {!!recipes.length && (
+        <Frame style={{ padding: 16, gap: 8 }}>
+          <Copy size={14} weight="medium">
+            My recipes
+          </Copy>
+          <Line style={{ gap: 6, flexWrap: "wrap" }}>
+            {recipes.map((r) => (
+              <Line
+                key={r.id}
+                style={{
+                  gap: 8,
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 99,
+                  borderWidth: 1,
+                  borderColor: t.line,
+                }}
+              >
+                <Tap
+                  label={`Add ${r.name}`}
+                  onPress={() =>
+                    setItems([
+                      ...items,
+                      {
+                        id: uid(),
+                        name: r.name,
+                        qty: 1,
+                        unit: "serving",
+                        assumption: r.items
+                          .map((i) => `${i.name} ${i.qty} ${i.unit}`)
+                          .join(", "),
+                        ...C.sumMacros(r.items),
+                      },
+                    ])
+                  }
+                >
+                  <Line style={{ gap: 4 }}>
+                    <Plus size={12} color={t.text} />
+                    <Copy size={12}>{r.name}</Copy>
+                  </Line>
+                </Tap>
+                <Tap
+                  label={`Delete recipe ${r.name}`}
+                  onPress={() => {
+                    A.deleteRecipe(r.id)
+                    undo(`Deleted ${r.name}`, () =>
+                      fitStore.set((s) => ({
+                        ...s,
+                        recipes: [...s.recipes, r],
+                      })),
+                    )
+                  }}
+                >
+                  <X size={12} color={t.muted} />
+                </Tap>
+              </Line>
+            ))}
+          </Line>
+        </Frame>
+      )}
       <Frame style={{ padding: 16, gap: 8 }}>
         <Copy size={14} weight="medium">
           Custom item
@@ -788,6 +895,35 @@ export function ManualMeal() {
                 />
               </View>
             ))}
+          </Frame>
+          <Frame style={{ padding: 16, gap: 8, marginTop: 12 }}>
+            <Copy size={14} weight="medium">
+              Save as recipe
+            </Copy>
+            <Copy size={12} muted>
+              Keep these items as one food to log again in a tap.
+            </Copy>
+            <Input
+              accessibilityLabel="Recipe name"
+              value={recipeName}
+              onChangeText={setRecipeName}
+              placeholder="Name (e.g. Iced coffee)"
+            />
+            <Button
+              icon={Plus}
+              tone="quiet"
+              disabled={!recipeName.trim()}
+              onPress={() => {
+                const r = A.saveRecipe(
+                  recipeName,
+                  items.map(({ id: _id, ...rest }) => rest),
+                )
+                setRecipeName("")
+                toast.success(`Saved ${r.name}`)
+              }}
+            >
+              Save recipe
+            </Button>
           </Frame>
         </View>
       )}

@@ -246,6 +246,16 @@ test("a blank live account drops eat-back rows tapped in the demo", () => {
   expect(fitStore.get().adjustments).toEqual([])
 })
 
+test("a blank live account drops the previous account's recipes", () => {
+  // Recipes live only on the device, so the next account must not see them.
+  fitStore.set((s) => ({
+    ...s,
+    recipes: [{ id: "r1", name: "Iced coffee", items: [] }],
+  }))
+  clearToBlank()
+  expect(fitStore.get().recipes).toEqual([])
+})
+
 test("estimated and picked meal items carry UUID ids", () => {
   // Live E2E: estimator items had ids like "mi-adobo-lnxell"; /sync/push
   // validates every op id as a UUID, so the whole batch got a 422 and the
