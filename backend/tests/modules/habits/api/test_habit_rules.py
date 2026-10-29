@@ -384,3 +384,19 @@ def test_a_screen_log_never_overwrites_a_log_from_before_the_rule(
         )
     )
     ok(client.post(f"{API}/{hid}/skip", headers=h, json={}))
+
+
+def test_a_deleted_manual_log_cannot_be_restored_onto_a_rule_habit(
+    client: TestClient, db: Session
+) -> None:
+    _, h = signed_in(db)
+    g, hid = uuid.uuid4(), uuid.uuid4()
+    applied(push(client, h, op("upsert", "screen_group", g, name="S", kind="custom")))
+    make_habit(client, h, id=str(hid), name="Little social")
+    tick = ok(client.post(f"{API}/{hid}/check", headers=h, json={}))
+    ok(client.delete(f"{API}/logs/{tick['id']}", headers=h))
+    applied(push(client, h, op("upsert", "habit", hid, **rule(g))))
+
+    err(client.post(f"{API}/logs/{tick['id']}/restore", headers=h), 409, "habit_auto")
+    res = push(client, h, op("upsert", "habit_log", tick["id"], deleted_at=None))
+    rejected(res[0], "habit_auto")

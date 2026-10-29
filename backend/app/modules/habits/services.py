@@ -325,7 +325,9 @@ def _restore_log(ctx: Ctx, *, log_id: uuid.UUID) -> HabitLog:
     row = owned_repo.require(
         ctx, HabitLog, log_id, what="habit_log", include_deleted=True
     )
-    require_habit(ctx, row.habit_id)
+    habit = require_habit(ctx, row.habit_id)
+    if row.source != "screen":
+        _require_manual(habit)
     owned_repo.restore(ctx, row)
     _dirty(ctx, row.day)
     return row
