@@ -1,7 +1,7 @@
 import { AtSign, LockKeyhole, Mail, User } from "lucide-react-native"
 import { useEffect, useRef, useState } from "react"
 import type { TextInputInstance } from "react-native"
-import { Text, type TextInput, View } from "react-native"
+import { Text, View } from "react-native"
 import { toast } from "sonner-native"
 import { liveMode } from "@/live/config"
 import {

@@ -1,7 +1,7 @@
 import { CircleCheckBig, LockKeyhole, ShieldCheck } from "lucide-react-native"
 import { useRef, useState } from "react"
 import type { TextInputInstance } from "react-native"
-import { Text, type TextInput } from "react-native"
+import { Text } from "react-native"
 import {
   AuthButton,
   AuthScreen,
