@@ -26,6 +26,7 @@ const colors = {
   fitness: "fit",
   nutrition: "nut",
   focus: "foc",
+  screen: "scr",
   finance: "fin",
 } as const
 const hrefs = {
@@ -34,6 +35,7 @@ const hrefs = {
   fitness: "/fitness/stats",
   nutrition: "/nutrition",
   focus: "/focus/stats",
+  screen: "/screen",
   finance: "/finance/reports",
 }
 export function MetricDetail({ metric }: { metric: string }) {

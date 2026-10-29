@@ -7,17 +7,20 @@ import {
 } from "@domain/habits/data"
 import { scheduleLabel } from "@domain/habits/logic"
 import { habitsStore } from "@domain/habits/store"
+import { useScreen } from "@domain/screen/store"
 import { useLocalSearchParams } from "expo-router"
 import { CalendarClock, ChevronRight } from "lucide-react-native"
 import { useState } from "react"
 import { ScrollView, TextInput, View } from "react-native"
 import { toast } from "sonner-native"
+import { Stepper } from "../fitness-controls"
 import { Copy, Frame, Line, Segmented, Tap } from "../native-kit"
 import { back, go } from "../navigation"
 import { askForReminders } from "../reminders"
+import { syncScreenTime } from "../screen-sync"
 import { Switch } from "../switch"
 import { fonts, useTheme } from "../theme"
-import { Button, confirm, Empty, Screen, Sheet } from "../ui"
+import { Button, Choices, confirm, Empty, Screen, Sheet } from "../ui"
 import { Schedule, validSchedule } from "./habits"
 
 export function HabitForm({
@@ -53,6 +56,16 @@ export function HabitForm({
       old?.reminder ?? s.settings.defaultReminder,
     ),
     [linked, setLinked] = useState(h?.linkWorkout ?? false),
+    groups = useScreen()
+      .groups.filter((g) => !g.archivedAt)
+      .sort((a, b) => a.sortOrder - b.sortOrder),
+    // Completes from screen time: a group and "none" or a minute limit.
+    [auto, setAuto] = useState(!routine && !!h?.rule),
+    [groupId, setGroupId] = useState(h?.rule?.groupId ?? groups[0]?.id ?? ""),
+    [limited, setLimited] = useState<"none" | "limit">(
+      h?.rule?.maxMin ? "limit" : "none",
+    ),
+    [maxMin, setMaxMin] = useState(h?.rule?.maxMin || 30),
     [scheduleOpen, setScheduleOpen] = useState(false),
     [tried, setTried] = useState(false),
     [failed, setFailed] = useState(p.state === "save-error")
@@ -95,7 +108,8 @@ export function HabitForm({
     if (
       !name.trim() ||
       !validSchedule(schedule) ||
-      (!routine && type !== "check" && !(Number(target) > 0))
+      (!routine && !auto && type !== "check" && !(Number(target) > 0)) ||
+      (auto && !groups.some((g) => g.id === groupId))
     )
       return
     if (failed) {
@@ -119,14 +133,32 @@ export function HabitForm({
       }
       return
     }
-    const data = {
-      ...common,
-      type,
-      target: type === "check" ? undefined : Number(target),
-      unit: type === "count" ? unit || undefined : undefined,
-      step: type === "count" ? Number(step) || 1 : undefined,
-      linkWorkout: linked,
-    }
+    const limit =
+      limited === "none"
+        ? 0
+        : Math.min(1440, Math.max(0, Math.round(maxMin) || 0))
+    const data = auto
+      ? {
+          ...common,
+          type: "check" as const,
+          target: undefined,
+          unit: undefined,
+          step: undefined,
+          linkWorkout: false,
+          rule: { kind: "screen_limit" as const, groupId, maxMin: limit },
+        }
+      : {
+          ...common,
+          type,
+          target: type === "check" ? undefined : Number(target),
+          unit: type === "count" ? unit || undefined : undefined,
+          step: type === "count" ? Number(step) || 1 : undefined,
+          linkWorkout: linked,
+          // Turning the option off makes the habit manual again from today.
+          ...(h?.rule ? { rule: undefined } : {}),
+        }
+    // A new or changed limit is a new rung to watch for.
+    if (auto || h?.rule) void syncScreenTime()
     if (h) {
       A.updateHabit(h.id, data)
       back()
@@ -223,6 +255,69 @@ export function HabitForm({
           ))}
         </ScrollView>
         {!routine && (
+          <Frame style={{ padding: 16, gap: 12 }}>
+            {toggle(
+              "Completes from screen time",
+              "Done by itself when the day ends within a limit. It can't be ticked by hand.",
+              auto,
+              setAuto,
+            )}
+            {auto &&
+              (groups.length ? (
+                <>
+                  <Choices
+                    label="Apps"
+                    wrap
+                    value={groupId}
+                    onChange={setGroupId}
+                    options={groups.map((g) => ({
+                      value: g.id,
+                      label: g.name,
+                    }))}
+                  />
+                  <Segmented
+                    value={limited}
+                    onChange={setLimited}
+                    options={[
+                      { value: "none", label: "None at all" },
+                      { value: "limit", label: "A minute limit" },
+                    ]}
+                  />
+                  {limited === "limit" && (
+                    <Stepper
+                      label="Daily limit"
+                      unit="min"
+                      value={maxMin}
+                      onChange={setMaxMin}
+                      step={5}
+                      min={5}
+                      max={1440}
+                      decimals={0}
+                    />
+                  )}
+                  {tried && !groups.some((g) => g.id === groupId) && (
+                    <Copy size={12} style={{ color: t.bad }}>
+                      Pick the apps it counts.
+                    </Copy>
+                  )}
+                  <Copy size={12} muted>
+                    Minutes come from Screen Time in steps, so they are at least
+                    figures. A day Screen Time didn't see counts as missed.
+                  </Copy>
+                </>
+              ) : (
+                <>
+                  <Copy size={12} muted>
+                    Make a group of apps in Screen time settings first.
+                  </Copy>
+                  <Button tone="quiet" onPress={() => go("/screen")}>
+                    Screen time settings
+                  </Button>
+                </>
+              ))}
+          </Frame>
+        )}
+        {!routine && !auto && (
           <View style={{ gap: 6 }}>
             <Copy size={12} muted>
               Type
@@ -242,7 +337,7 @@ export function HabitForm({
             />
           </View>
         )}
-        {!routine && type !== "check" && (
+        {!routine && !auto && type !== "check" && (
           <Line style={{ gap: 8, alignItems: "flex-start" }}>
             {[
               {
@@ -314,6 +409,7 @@ export function HabitForm({
             </Copy>
           )}
           {!routine &&
+            !auto &&
             toggle(
               "Link to workouts",
               "Auto-check when any workout is logged in Fitness",

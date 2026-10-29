@@ -235,6 +235,7 @@ describe("app launcher", () => {
       "Nutrition",
       "Focus",
       "Finance",
+      "Screen time",
       "Journal",
     ].filter((n) => screen.queryByLabelText(n))
     expect(names.length).toBeGreaterThan(2)

@@ -77,7 +77,7 @@ function habitsPart(s: HabitsState, now: Date): WidgetSnapshot["habits"] {
       streak: H.streaks(h, idx, today).current,
       done: group === "done",
       ...(time ? { time } : {}),
-      checkable: h.type === "check",
+      checkable: h.type === "check" && !h.rule,
     }))
   return { done, total: open.length, items }
 }

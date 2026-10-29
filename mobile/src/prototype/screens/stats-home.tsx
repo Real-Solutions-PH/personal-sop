@@ -3,6 +3,7 @@ import { useFacets } from "@domain/dash/facets"
 import * as D from "@domain/dash/hooks"
 import { dashStore, resetWeights, setWeight } from "@domain/dash/store"
 import { dayKey, dayOffset } from "@domain/lib/day"
+import { module as SCR } from "@domain/screen"
 import { useLocalSearchParams } from "expo-router"
 import {
   CalendarRange,
@@ -37,6 +38,7 @@ import { fonts, useTheme } from "../theme"
 import { Button, Field, Screen, Sheet } from "../ui"
 import { LockedPreview } from "./locked-preview"
 import { PatternsCard } from "./patterns-card"
+import { ScreenTimeCard } from "./screen-card"
 import { DayHero } from "./today"
 
 function Delta({
@@ -335,7 +337,13 @@ function DailyForm({ days }: { days: number }) {
 }
 function Areas({ days }: { days: number }) {
   const t = useTheme(),
-    facets = useFacets(days),
+    raw = useFacets(days),
+    // Screen time with nothing recorded reads like an area switched off:
+    // its corner dimmed at the centre, not a score of 0.
+    screenRate = SCR.useAreaRate(days),
+    empty = (f: { module: string; value: number }) =>
+      f.module === "screen" && screenRate === null && f.value === 0,
+    facets = raw.map((f) => (empty(f) ? { ...f, off: true } : f)),
     metrics = D.useAllMetrics(days),
     [sel, setSel] = useState<string | null>(null),
     [all, setAll] = useState(false),
@@ -441,7 +449,7 @@ function Areas({ days }: { days: number }) {
             return (
               <Tap
                 key={f.key}
-                label={`${f.label}: ${f.off ? "off" : Math.round(f.value * 100)}. Show details`}
+                label={`${f.label}: ${empty(f) ? "no data yet" : f.off ? "off" : Math.round(f.value * 100)}. Show details`}
                 onPress={() => setSel(sel === f.key ? null : f.key)}
                 style={{
                   position: "absolute",
@@ -454,6 +462,7 @@ function Areas({ days }: { days: number }) {
                   justifyContent: "center",
                   borderRadius: 12,
                   backgroundColor: sel === f.key ? t.soft : "transparent",
+                  opacity: f.off ? 0.4 : 1,
                 }}
               >
                 <Copy
@@ -751,6 +760,7 @@ export function StatsHome() {
               </>
             )}
             <Areas days={days} />
+            {enabled.screen && <ScreenTimeCard />}
             <SectionHeading
               action={
                 <Tap onPress={() => go("/stats/misses")}>

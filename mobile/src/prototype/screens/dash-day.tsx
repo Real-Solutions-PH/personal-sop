@@ -15,6 +15,7 @@ import {
   unsealDay,
 } from "@domain/dash/store"
 import { checkHabit, skipHabit } from "@domain/habits/actions"
+import { habitsStore } from "@domain/habits/store"
 import { openCapture } from "@domain/lib/capture"
 import { dayKey, dayOffset } from "@domain/lib/day"
 import { completeTask, rescheduleBy } from "@domain/tasks/actions"
@@ -53,6 +54,7 @@ const colors = {
   fitness: "fit",
   nutrition: "nut",
   focus: "foc",
+  screen: "scr",
   finance: "fin",
 } as const
 const icons = {
@@ -222,6 +224,8 @@ export function WrapUp() {
     ring = useTodayRing(),
     target = useOnTarget(7),
     items = useAllCalendar(today, today),
+    habitList = habitsStore.use((s) => s.habits),
+    autoHabits = new Set(habitList.filter((h) => h.rule).map((h) => h.id)),
     misses = useAllMisses(today, today),
     s = dashStore.use((s) => s),
     sealed = s.wrapups[today],
@@ -352,6 +356,8 @@ export function WrapUp() {
               ) : (
                 open.map((i) => {
                   const r = refOf(i)
+                  // Screen time closes its habits by itself: no tick here.
+                  const auto = r?.kind === "habit" && autoHabits.has(r.id)
                   return (
                     <Line
                       key={i.id}
@@ -368,17 +374,19 @@ export function WrapUp() {
                           {i.title}
                         </Copy>
                       </Tap>
-                      <IconTap
-                        size={44}
-                        icon={Check}
-                        label={`Done ${i.title}`}
-                        color={t.good}
-                        background={border(t.good, 0.15)}
-                        onPress={() => {
-                          if (r?.kind === "habit") checkHabit(r.id, i.day)
-                          else if (r?.kind === "task") completeTask(r.id)
-                        }}
-                      />
+                      {!auto && (
+                        <IconTap
+                          size={44}
+                          icon={Check}
+                          label={`Done ${i.title}`}
+                          color={t.good}
+                          background={border(t.good, 0.15)}
+                          onPress={() => {
+                            if (r?.kind === "habit") checkHabit(r.id, i.day)
+                            else if (r?.kind === "task") completeTask(r.id)
+                          }}
+                        />
+                      )}
                       {r?.kind === "task" && (
                         <IconTap
                           size={44}
@@ -391,18 +399,20 @@ export function WrapUp() {
                           }}
                         />
                       )}
-                      <IconTap
-                        size={44}
-                        icon={X}
-                        label={`Didn't happen: ${i.title}`}
-                        color={t.bad}
-                        background={border(t.bad, 0.1)}
-                        onPress={() => {
-                          if (r?.kind === "habit")
-                            skipHabit(r.id, i.day, "wrap-up: didn't happen")
-                          setDismissed((l) => [...l, i.id])
-                        }}
-                      />
+                      {!auto && (
+                        <IconTap
+                          size={44}
+                          icon={X}
+                          label={`Didn't happen: ${i.title}`}
+                          color={t.bad}
+                          background={border(t.bad, 0.1)}
+                          onPress={() => {
+                            if (r?.kind === "habit")
+                              skipHabit(r.id, i.day, "wrap-up: didn't happen")
+                            setDismissed((l) => [...l, i.id])
+                          }}
+                        />
+                      )}
                     </Line>
                   )
                 })

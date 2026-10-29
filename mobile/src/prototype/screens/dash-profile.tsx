@@ -26,6 +26,7 @@ import {
   Plus,
   Repeat2,
   ShieldCheck,
+  Smartphone,
   Sparkles,
   Timer,
   Trash2,
@@ -98,6 +99,11 @@ const modules = {
       ["Focus timer", "/focus"],
       ["Focus settings", "/focus/settings"],
     ],
+  },
+  screen: {
+    icon: Smartphone,
+    color: "scr",
+    links: [["Screen time settings", "/screen"]],
   },
   finance: {
     icon: Wallet,

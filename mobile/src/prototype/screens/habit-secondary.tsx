@@ -280,43 +280,49 @@ function DayRow({ habit: h, day }: { habit: Habit; day: string }) {
           />
         )}
       </Line>
-      {cell !== "paused" && (
-        <Line style={{ gap: 6 }}>
-          {[
-            {
-              label: "Done",
-              status: "done",
-              on: cell === "done" || cell === "bonus",
-            },
-            { label: "Partial", status: "partial", on: cell === "partial" },
-            { label: "Skip", status: "skipped", on: cell === "skipped" },
-            {
-              label: cell === "pending" ? "Not yet" : "Missed",
-              status: "clear",
-              on: cell === "missed" || cell === "pending",
-            },
-          ].map((x) => (
-            <Tap
-              key={x.status}
-              onPress={() => set(x.status as LogStatus | "clear")}
-              style={{
-                height: 32,
-                paddingHorizontal: 12,
-                borderRadius: 99,
-                backgroundColor: x.on ? `${t.hab}26` : t.soft,
-                justifyContent: "center",
-              }}
-            >
-              <Copy
-                size={12}
-                weight="medium"
-                style={{ color: x.on ? t.hab : t.muted }}
+      {h.rule ? (
+        <Copy size={12} muted>
+          Completes automatically from screen time
+        </Copy>
+      ) : (
+        cell !== "paused" && (
+          <Line style={{ gap: 6 }}>
+            {[
+              {
+                label: "Done",
+                status: "done",
+                on: cell === "done" || cell === "bonus",
+              },
+              { label: "Partial", status: "partial", on: cell === "partial" },
+              { label: "Skip", status: "skipped", on: cell === "skipped" },
+              {
+                label: cell === "pending" ? "Not yet" : "Missed",
+                status: "clear",
+                on: cell === "missed" || cell === "pending",
+              },
+            ].map((x) => (
+              <Tap
+                key={x.status}
+                onPress={() => set(x.status as LogStatus | "clear")}
+                style={{
+                  height: 32,
+                  paddingHorizontal: 12,
+                  borderRadius: 99,
+                  backgroundColor: x.on ? `${t.hab}26` : t.soft,
+                  justifyContent: "center",
+                }}
               >
-                {x.label}
-              </Copy>
-            </Tap>
-          ))}
-        </Line>
+                <Copy
+                  size={12}
+                  weight="medium"
+                  style={{ color: x.on ? t.hab : t.muted }}
+                >
+                  {x.label}
+                </Copy>
+              </Tap>
+            ))}
+          </Line>
+        )
       )}
     </View>
   )

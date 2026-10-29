@@ -56,6 +56,7 @@ const colors = {
   fitness: "fit",
   nutrition: "nut",
   focus: "foc",
+  screen: "scr",
   finance: "fin",
 } as const
 function periodOf(id: string) {
