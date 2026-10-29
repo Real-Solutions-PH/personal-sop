@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Unfurl",
-    "slug": "personal-sop",
+    "slug": "unfurl",
     "version": "0.1.0",
     "orientation": "portrait",
     "scheme": "personalsop",
@@ -140,15 +140,15 @@
         "root": "./src/app"
       },
       "eas": {
-        "projectId": "829bee26-9c8a-489a-863a-d5d53b072847"
+        "projectId": "348dbc4a-78e1-47e9-922d-3006c4e0455a"
       }
     },
-    "owner": "ervinpiol",
+    "owner": "schadenkai",
     "runtimeVersion": {
       "policy": "fingerprint"
     },
     "updates": {
-      "url": "https://u.expo.dev/829bee26-9c8a-489a-863a-d5d53b072847"
+      "url": "https://u.expo.dev/348dbc4a-78e1-47e9-922d-3006c4e0455a"
     }
   }
 }
