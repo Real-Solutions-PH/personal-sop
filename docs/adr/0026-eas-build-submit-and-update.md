@@ -16,11 +16,12 @@ id, so `src/live/push.ts` never registered for push.
 
 ## Decision
 
-- **Expo project `@schadenkai/unfurl`** (`extra.eas.projectId` in
+- **Expo project `@real-solutions-ph/unfurl`** (`extra.eas.projectId` in
   `mobile/app.json`). Push registration now gets a project id. (Amended
   2026-10-29: first created as `@ervinpiol/personal-sop`, then moved to the
-  app owner's own Expo account so releases do not depend on a contributor's
-  login. See *Amendments* below.)
+  app owner's own Expo account `@schadenkai/unfurl` so releases do not depend
+  on a contributor's login, then transferred to the `real-solutions-ph`
+  organisation. See *Amendments* below.)
 - **EAS Build + Submit** (`mobile/eas.json`, `production` profile): builds run
   in Expo's cloud with `eas build -p ios --profile production --auto-submit`,
   which uploads to App Store Connect for TestFlight. The build number is
@@ -86,3 +87,8 @@ started by hand.
     date), so no backend change was needed.
   - Other people release by being added to the Expo account or an Expo
     organisation that owns the project, not by sharing the owner's login.
+- **2026-10-29 — project transferred to the `real-solutions-ph` organisation**
+  (`@real-solutions-ph/unfurl`, same id `348dbc4a-78e1-47e9-922d-3006c4e0455a`).
+  Only `owner` in `mobile/app.json` changed: the project id, slug, `updates.url`,
+  remote build number and environment variables moved with the project, so
+  existing builds keep receiving updates.
