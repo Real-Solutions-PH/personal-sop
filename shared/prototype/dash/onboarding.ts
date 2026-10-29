@@ -3,7 +3,7 @@ import type { Goal } from "./data"
 export const STEPS = [
   "welcome",
   "identity", // identity-based habits: who you're becoming, not what you do
-  "modules", // pre-selected from identity (default effect)
+  "modules", // all pre-selected; untick what you don't need (default effect)
   "targets", // pace presets, gentle start recommended (tiny-wins)
   "when", // implementation intention: a time you pick yourself
   "building", // labor illusion — the plan feels made for you

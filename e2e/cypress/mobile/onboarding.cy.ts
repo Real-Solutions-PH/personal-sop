@@ -9,7 +9,7 @@
 // | Verify email   | 6-digit code from the mail                     | "signs up, claims name and handle"          |
 // | Onboarding     | welcome → Build my plan                        | "runs every step"                           |
 // | Onboarding     | identity pick, capped at 3 (4th is refused)    | "runs every step"                           |
-// | Onboarding     | identity pick drives module defaults           | "runs every step"                           |
+// | Onboarding     | every module starts selected                   | "runs every step"                           |
 // | Onboarding     | modules toggle (module_pref.enabled)           | "runs every step"                           |
 // | Onboarding     | pace preset + per-module target + skip one     | "runs every step"                           |
 // | Onboarding     | check-in times (push_morning / push_evening)   | "runs every step"                           |
@@ -162,10 +162,11 @@ describe("onboarding (live)", {
         .should("have.css", "opacity", "0.4")
       cy.findByRole("button", { name: "That's me" }).click()
 
-      // Modules: pre-selected from identity (habits, tasks, finance on;
-      // fitness off). Turn finance off again here.
+      // Modules: every one starts selected, whoever you picked. Keep habits
+      // and tasks; turn the rest off.
       cy.findByText("What do you want to track?").should("exist")
-      cy.findByText("Finance").click()
+      for (const label of ["Fitness", "Nutrition", "Focus", "Finance"])
+        cy.findByText(label).click()
       cy.findByRole("button", { name: "Next" }).click()
 
       // Targets: Steady preset, then a custom habits target, tasks skipped.
