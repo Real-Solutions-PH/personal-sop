@@ -14,7 +14,7 @@ import { clearToBlank } from "./blank"
 import { captureMappers } from "./capture"
 import { API_PREFIX, API_URL } from "./config"
 import { SyncEngine } from "./engine"
-import { runEventStream, type ServerEvent } from "./events"
+import { foregroundStream, runEventStream, type ServerEvent } from "./events"
 import { transcribePending } from "./journal-audio"
 import type { AnyMapper } from "./mapper"
 import { companionMappers } from "./mappers/companion"
@@ -152,35 +152,39 @@ export function startLive(
       }
     })
   })
-  const appState = AppState.addEventListener("change", (s) => {
-    if (s === "active") void engine.sync()
-    // Leaving the foreground: an edit still in the debounce window would be
-    // lost if the OS kills the app, so queue it now.
-    else engine.flush()
-  })
   // Web: a reload or a closed tab never reaches the debounce either.
   const onPageHide = () => engine.flush()
   const page = typeof window !== "undefined" ? window : null
   page?.addEventListener?.("pagehide", onPageHide)
-  const stream = runEventStream({
-    online: getConnectivity,
-    open: async (lastId, signal) => {
-      const token = await tokens.current()
-      const res = await expoFetch(`${API_URL}${API_PREFIX}/events/stream`, {
-        headers: {
-          Authorization: `Bearer ${token ?? ""}`,
-          Accept: "text/event-stream",
-          ...(lastId ? { "Last-Event-ID": lastId } : {}),
-        },
-        signal,
-      })
-      if (res.status === 401) await tokens.refresh()
-      return res.ok ? (res.body as ReadableStream<Uint8Array>) : null
-    },
-    onEvent: (e) => {
-      if (PULL_EVENTS.has(e.type)) void engine.sync()
-      for (const l of listeners) l(e)
-    },
+  // Open only while the app is in the foreground (see foregroundStream).
+  const stream = foregroundStream(() =>
+    runEventStream({
+      online: getConnectivity,
+      open: async (lastId, signal) => {
+        const token = await tokens.current()
+        const res = await expoFetch(`${API_URL}${API_PREFIX}/events/stream`, {
+          headers: {
+            Authorization: `Bearer ${token ?? ""}`,
+            Accept: "text/event-stream",
+            ...(lastId ? { "Last-Event-ID": lastId } : {}),
+          },
+          signal,
+        })
+        if (res.status === 401) await tokens.refresh()
+        return res.ok ? (res.body as ReadableStream<Uint8Array>) : null
+      },
+      onEvent: (e) => {
+        if (PULL_EVENTS.has(e.type)) void engine.sync()
+        for (const l of listeners) l(e)
+      },
+    }),
+  )
+  const appState = AppState.addEventListener("change", (s) => {
+    stream.onAppState(s)
+    if (s === "active") void engine.sync()
+    // Leaving the foreground: an edit still in the debounce window would be
+    // lost if the OS kills the app, so queue it now.
+    else engine.flush()
   })
   const interval = setInterval(() => void engine.sync(), 60_000)
   const stopSocial = startSocialLive(userId, onServerEvent)

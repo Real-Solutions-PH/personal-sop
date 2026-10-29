@@ -273,14 +273,32 @@ export function chatList(s: CompanionState): Thread[] {
     (a, b) => (b.lastAt ?? b.createdAt) - (a.lastAt ?? a.createdAt),
   )
 }
-/** Start a new chat and open it. An open chat with nothing in it yet is
- * reused rather than piling up empty ones. */
+/** A chat nobody has written in or named: it lives only on this phone
+ * (threadMapper sends a chat once it has a message). */
+export function untouched(s: CompanionState, t: Thread): boolean {
+  return (
+    t.title === null &&
+    t.lastAt === null &&
+    !s.messages.some((m) => m.threadId === t.id)
+  )
+}
+/** Start a new chat and open it. A chat with nothing in it yet (the open
+ * one first) is reused rather than piling up empty ones, and starts now. */
 export function newChat(): string {
   const s = companionStore.get()
   const cur = currentThread(s)
-  if (cur && !s.messages.some((m) => m.threadId === cur)) {
-    set((x) => ({ ...x, activeThread: cur }))
-    return cur
+  const empty =
+    (cur && !s.messages.some((m) => m.threadId === cur) ? cur : null) ??
+    threadsOf(s).find((t) => untouched(s, t))?.id
+  if (empty) {
+    set((x) => ({
+      ...x,
+      threads: threadsOf(x).map((t) =>
+        t.id === empty && untouched(x, t) ? { ...t, createdAt: Date.now() } : t,
+      ),
+      activeThread: empty,
+    }))
+    return empty
   }
   const t: Thread = {
     id: uid(),
@@ -290,6 +308,17 @@ export function newChat(): string {
   }
   set((x) => ({ ...x, threads: [...threadsOf(x), t], activeThread: t.id }))
   return t.id
+}
+/** The chat Fern's drawer opens on: a new one every time, except while a
+ * reply is still being written, which keeps its chat so the answer is seen
+ * arriving. */
+export function chatForDrawer(): string {
+  const cur = currentThread(companionStore.get())
+  if (cur && replying.getState().id) {
+    openChat(cur)
+    return cur
+  }
+  return newChat()
 }
 /** The chat a new message goes to (making one when there is none). */
 export function threadForSend(): string {
