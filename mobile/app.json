@@ -73,8 +73,23 @@
         "expo-image-picker",
         {
           "photosPermission": "Choose a profile picture or capture photo.",
-          "cameraPermission": "Take a photo for a capture.",
+          "cameraPermission": "Take a photo for a capture, or scan a food's barcode to log it.",
           "microphonePermission": false
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Take a photo for a capture, or scan a food's barcode to log it.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Allow Unfurl to read your calendars to show today's events on Today. Unfurl never changes them.",
+          "remindersPermission": false
         }
       ],
       [

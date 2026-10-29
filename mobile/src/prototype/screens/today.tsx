@@ -89,6 +89,7 @@ import { Button, Screen, SwipeRow, undo, useNow } from "../ui"
 import { Ring } from "../visual"
 import { refreshWeather } from "../weather"
 import { WeatherCard } from "../weather-card"
+import { CalendarCard } from "./calendar-card"
 import { RecordEditor, useMoney } from "./finance"
 import { HabitLog } from "./habits"
 import { MoodCheckIn } from "./mood-check-in"
@@ -1648,6 +1649,7 @@ export function Today() {
     >
       <TodayPlan />
       {shown.weather && <WeatherCard />}
+      {shown.calendar && <CalendarCard />}
       {!s.setupHidden && pending.length > 0 && (
         <Frame style={{ padding: 16 }}>
           <Line>
