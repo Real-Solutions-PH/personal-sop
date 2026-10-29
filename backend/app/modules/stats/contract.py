@@ -119,16 +119,21 @@ class StatsContributor(Protocol):
     def facets(self, ctx: Ctx, window: Window, prev: Window) -> list[Facet]: ...
 
 
-_contributors: dict[str, StatsContributor] = {}
+_contributors: dict[str, StatsContributor] | None = None
 
 CONTRIBUTOR_MODULES = ("habits", "tasks", "fitness", "nutrition", "focus", "finance")
 
 
 def contributors() -> dict[str, StatsContributor]:
-    if not _contributors:
+    global _contributors
+    if _contributors is None:
         from importlib import import_module
 
+        # Built aside and published whole: a request that arrives mid-build
+        # builds its own copy instead of reading a half-filled shared dict.
+        found: dict[str, StatsContributor] = {}
         for name in CONTRIBUTOR_MODULES:
             contributor = import_module(f"app.modules.{name}.stats").contributor
-            _contributors[contributor.key] = contributor
+            found[contributor.key] = contributor
+        _contributors = found
     return _contributors
