@@ -94,3 +94,13 @@ test("runtime registers the dash mappers, push and pulls on a notification", asy
   rt.stopLive()
   expect(rt.liveStats()).toBeNull()
 })
+
+test("a brand-new account is ready at once; a new device waits for its pull", () => {
+  const rt = require("../runtime") as typeof import("../runtime")
+  const { syncReady } = require("../ready") as typeof import("../ready")
+  rt.startLive(USER, memoryStorage(), true)
+  expect(syncReady.getState().ready).toBe(true)
+  rt.stopLive()
+  rt.startLive(USER, memoryStorage())
+  expect(syncReady.getState().ready).toBe(false)
+})

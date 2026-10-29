@@ -1,7 +1,9 @@
 // Live mode: deleting the account clears this device without pushing the
 // outbox (the server copy is already gone), and the export carries the
 // person's data but not sign-in state or caches.
+import { dashStore } from "@domain/dash/store"
 import { configureStorage } from "@domain/lib/store"
+import { syncReady } from "@/live/ready"
 
 jest.mock("@/live/config", () => ({
   liveMode: true,
@@ -12,10 +14,14 @@ const mockDelete = jest.fn()
 jest.mock("@/live/auth", () => ({
   deleteAccount: (...a: unknown[]) => mockDelete(...a),
   onSessionLost: () => {},
+  completeProfile: () => Promise.resolve(),
+  currentUserId: () => Promise.resolve("new-user"),
 }))
 const mockStopLive = jest.fn()
 const mockEngine = jest.fn()
+const mockStartLive = jest.fn()
 jest.mock("@/live/runtime", () => ({
+  startLive: (...a: unknown[]) => mockStartLive(...a),
   stopLive: () => mockStopLive(),
   engine: () => mockEngine(),
 }))
@@ -85,6 +91,38 @@ test("the export holds the data stores but not sign-in state or caches", () => {
     expect.arrayContaining(["weather", "auth-session"]),
   )
   expect(JSON.stringify(out)).not.toContain("auth-session")
+})
+
+test("a new account is signed in with blank stores, known not to be onboarded", async () => {
+  // The demo seed is onboarded; a brand-new account must never be shown it,
+  // or the first-run gate waits for a sync it does not need.
+  dashStore.set((s) => ({ ...s, onboarded: true }))
+  syncReady.setState({ ready: false })
+  session.sessionStore.set((s) => ({
+    ...s,
+    signedIn: false,
+    user: null,
+    pending: { name: "Kai", username: "kai", email: "me@example.test" },
+  }))
+  let atSignIn: { blanked: boolean; ready: boolean } | null = null
+  const stop = session.sessionStore.subscribe(() => {
+    if (session.sessionStore.get().signedIn && !atSignIn)
+      atSignIn = {
+        blanked: mockBlank.mock.calls.length > 0,
+        ready: syncReady.getState().ready,
+      }
+  })
+  await session.completeSignUp()
+  stop()
+  expect(atSignIn).toEqual({ blanked: true, ready: true })
+  expect(dashStore.get().profile.name).toBe("Kai")
+  // ...and sync starts knowing it, instead of waiting for the first pull.
+  await new Promise((r) => setTimeout(r, 0))
+  expect(mockStartLive).toHaveBeenCalledWith(
+    "new-user",
+    expect.anything(),
+    true,
+  )
 })
 
 test("the new-password rules", () => {
