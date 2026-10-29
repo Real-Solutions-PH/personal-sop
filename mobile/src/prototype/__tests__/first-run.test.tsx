@@ -127,6 +127,16 @@ describe("onboarding", () => {
     expect(dashStore.get().onboarded).toBe(false)
   })
 
+  test("every feature starts selected, whoever you pick to become", () => {
+    resetAll()
+    params.step = "identity"
+    render(<Onboarding />, { wrapper })
+    fireEvent.press(screen.getByText("“I'm someone who trains”"))
+    fireEvent.press(screen.getByText("That's me"))
+    expect(screen.getByText("What do you want to track?")).toBeTruthy()
+    expect(Object.values(dashStore.get().enabled).every(Boolean)).toBe(true)
+  })
+
   test("someone already onboarded is sent on to Today", () => {
     onlyHabits(true)
     render(<Onboarding />, { wrapper })

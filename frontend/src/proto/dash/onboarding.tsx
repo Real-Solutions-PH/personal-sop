@@ -100,14 +100,6 @@ export function OnboardingScreen() {
   const bar = STEPS.filter((s) => !PASS_THROUGH.includes(s))
   const barAt = bar.filter((s) => STEPS.indexOf(s) <= i).length - 1
 
-  const leaveIdentity = () => {
-    const mods = IDENTITIES.filter((d) => picked.includes(d.text)).flatMap(
-      (d) => (d.module ? [d.module] : []),
-    )
-    if (mods.length)
-      for (const k of MODULE_KEYS) setEnabled(k, mods.includes(k))
-    next()
-  }
   const choosePace = (p: Pace) => {
     setPace(p)
     setTargets((t) => {
@@ -253,7 +245,7 @@ export function OnboardingScreen() {
             <Btn
               className="h-12 w-full"
               disabled={!picked.length}
-              onClick={leaveIdentity}
+              onClick={next}
             >
               {picked.length ? "That's me" : "Pick at least one"}
             </Btn>

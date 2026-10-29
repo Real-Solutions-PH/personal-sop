@@ -369,14 +369,7 @@ export function Onboarding() {
               </View>
               {button(
                 picked.length ? "That's me" : "Pick at least one",
-                () => {
-                  const mods = IDENTITIES.filter((d) =>
-                    picked.includes(d.text),
-                  ).flatMap((d) => (d.module ? [d.module] : []))
-                  if (mods.length)
-                    for (const k of MODULE_KEYS) setEnabled(k, mods.includes(k))
-                  next()
-                },
+                next,
                 false,
                 !picked.length,
               )}
