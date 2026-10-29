@@ -48,6 +48,10 @@ export interface WorkoutTemplate {
   name: string
   items: TemplateItem[]
 }
+/** The repeating weekly routine, Monday first (index 0 = Mon … 6 = Sun),
+ * so it lines up with weekStart(). Each day is a template id to train, or
+ * null for a rest day. Always length 7. */
+export type WeekSchedule = (string | null)[]
 export type SetKind = "warmup" | "working" | "drop" | "failure"
 export interface WorkoutSet {
   id: string
@@ -172,6 +176,8 @@ export interface TargetAdjustment {
 export interface FitnessState {
   exercises: Exercise[]
   templates: WorkoutTemplate[]
+  /** The repeating weekly training plan; see WeekSchedule. */
+  schedule: WeekSchedule
   workouts: Workout[]
   weighIns: WeighIn[]
   targets: MacroTarget[]
@@ -1003,6 +1009,8 @@ export function seed(): FitnessState {
   const state: FitnessState = {
     exercises: [...EXERCISES, ...starter.exercises],
     templates: [...TEMPLATES, ...starter.templates],
+    // A demo week: Push, Pull, rest, Legs, Push, rest, rest.
+    schedule: ["push-a", "pull-a", null, "legs-a", "push-a", null, null],
     workouts: seedWorkouts(rnd),
     weighIns: seedWeighIns(rnd),
     targets: [

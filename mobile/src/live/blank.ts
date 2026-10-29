@@ -36,6 +36,7 @@ export function clearToBlank() {
     ...s,
     exercises: [],
     templates: [],
+    schedule: Array(7).fill(null),
     workouts: [],
     weighIns: [],
     targets: [],
