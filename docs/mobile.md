@@ -120,8 +120,8 @@ the same variables must be set for both prebuild and Gradle.
 
 ## iOS releases with EAS (2026-10-26)
 
-ADR-0026. Expo project `@schadenkai/unfurl` (moved from `@ervinpiol/personal-sop`
-on 2026-10-29). From `mobile/`, signed in with `bunx eas-cli login` as an
+ADR-0026. Expo project `@real-solutions-ph/unfurl` (moved from `@ervinpiol/personal-sop`
+to `@schadenkai/unfurl`, then to the `real-solutions-ph` organisation, on 2026-10-29). From `mobile/`, signed in with `bunx eas-cli login` as an
 account with access to that project:
 
 - **Native change** (new module, permission, plugin, widget) or first release:
