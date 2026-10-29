@@ -41,7 +41,7 @@ import { MealThumb } from "./nutrition"
 
 const keys = ["kcal", "protein", "carbs", "fat"] as const
 const labels: MealLabel[] = ["breakfast", "lunch", "snack", "dinner"]
-function Input(props: TextInputProps) {
+export function Input(props: TextInputProps) {
   const t = useTheme()
   return (
     <TextInput
