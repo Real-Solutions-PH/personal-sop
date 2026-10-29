@@ -331,8 +331,10 @@ test("an area with nothing to rate is left out of the Life Score, as on the serv
     nutrition: 0,
     focus: 0,
     finance: 0,
+    screen: 0,
   }
-  // Focus (ADR-0025) switched off, so the sums above stay as they were.
+  // Focus (ADR-0025) switched off, and Screen time unrated, so the sums
+  // above stay as they were.
   const weights = {
     habits: 3,
     tasks: 2,
@@ -340,6 +342,7 @@ test("an area with nothing to rate is left out of the Life Score, as on the serv
     nutrition: 2,
     focus: 2,
     finance: 2,
+    screen: 2,
   }
   const enabled = {
     habits: true,
@@ -348,6 +351,7 @@ test("an area with nothing to rate is left out of the Life Score, as on the serv
     nutrition: true,
     focus: false,
     finance: true,
+    screen: true,
   }
   const rated = {
     habits: false,
@@ -356,10 +360,11 @@ test("an area with nothing to rate is left out of the Life Score, as on the serv
     nutrition: false,
     focus: false,
     finance: false,
+    screen: false,
   }
   expect(lifeScoreOf(rates, weights, enabled, rated)).toBe(35)
-  // Counting the unrated areas as 0: 1.75 / 12 = 0.146.
-  expect(lifeScoreOf(rates, weights, enabled)).toBe(15)
+  // Counting the unrated areas as 0: 1.75 / 14 = 0.125.
+  expect(lifeScoreOf(rates, weights, enabled)).toBe(13)
   const none = {
     habits: false,
     tasks: false,
@@ -367,6 +372,7 @@ test("an area with nothing to rate is left out of the Life Score, as on the serv
     nutrition: false,
     focus: false,
     finance: false,
+    screen: false,
   }
   expect(lifeScoreOf(rates, weights, enabled, none)).toBeNull()
 })
@@ -539,6 +545,7 @@ test("live: calendar, misses, ring, achievements, trophies, metric detail", () =
       nutrition: { due: 0, done: 0 },
       focus: { due: 0, done: 0 },
       finance: { due: 0, done: 0 },
+      screen: { due: 0, done: 0 },
     },
   })
   expect(renderHook(() => useAchievements()).result.current).toEqual([

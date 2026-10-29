@@ -22,6 +22,7 @@ const MODULES = [
 	"nutrition",
 	"focus",
 	"finance",
+	"screen",
 ] as const;
 
 // Calendar items reduced to what the on-target series reads.
@@ -273,7 +274,13 @@ test("facets", async () => {
 	const base = dashStore.get();
 	const cases: unknown[] = [];
 	for (const days of [7, 30])
-		for (const off of [null, "fitness", "nutrition", "finance"] as const) {
+		for (const off of [
+			null,
+			"fitness",
+			"nutrition",
+			"finance",
+			"screen",
+		] as const) {
 			dashStore.set((s) => ({
 				...s,
 				enabled: { ...s.enabled, ...(off ? { [off]: false } : {}) },
@@ -291,6 +298,28 @@ test("facets", async () => {
 				})),
 			});
 		}
+	// Screen time with no data: its rate reads 0, the Life Score leaves it
+	// out, and its facet is valued 0 but still on.
+	const { screenStore } = await import("../../shared/prototype/screen/store");
+	const screenBase = screenStore.get();
+	screenStore.set(() => ({ groups: [], days: [] }));
+	for (const days of [7, 30]) {
+		dashStore.set(() => base);
+		const ls = H.useLifeScore(days);
+		cases.push({
+			days,
+			enabled: dashStore.get().enabled,
+			rates: ls.rates,
+			prevRates: ls.prevRates,
+			score: ls.score,
+			facets: useFacets(days).map((f) => ({
+				...f,
+				metricKeys: f.metricKeys ?? null,
+				extra: f.extra ?? null,
+			})),
+		});
+	}
+	screenStore.set(() => screenBase);
 	dashStore.set(() => base);
 	emit("stats-facets", { cases });
 });

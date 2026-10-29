@@ -24,3 +24,19 @@ test("no log is empty, done is full, a plain check has no partial", () => {
   expect(progressOf(habit({ target: 2 }), log({ status: "done" }))).toBe(1)
   expect(progressOf(habit({ type: "check" }), log({ value: 1 }))).toBe(0)
 })
+
+// A habit driven by screen time fills with the day, not with taps.
+test("a screen-time rule: done is full, tracking fills, broken and untracked are empty", () => {
+  const rule = habit({
+    type: "check",
+    rule: { kind: "screen_limit", groupId: "g", maxMin: 30 },
+  })
+  const tracking = { kind: "tracking", usedMin: 15, progress: 0.4 } as const
+  expect(progressOf(rule, log({ status: "done" }), tracking)).toBe(1)
+  expect(progressOf(rule, undefined, tracking)).toBe(0.4)
+  expect(
+    progressOf(rule, undefined, { kind: "broken", usedMin: 45, overMin: 15 }),
+  ).toBe(0)
+  expect(progressOf(rule, undefined, { kind: "untracked" })).toBe(0)
+  expect(progressOf(rule)).toBe(0)
+})

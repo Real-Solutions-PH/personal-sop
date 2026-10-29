@@ -27,6 +27,7 @@ export type Accent =
   | "nut"
   | "foc"
   | "fin"
+  | "scr"
   | "life"
   | "primary"
 const accentText: Record<Accent, string> = {
@@ -36,6 +37,7 @@ const accentText: Record<Accent, string> = {
   nut: "text-nut",
   foc: "text-foc",
   fin: "text-fin",
+  scr: "text-scr",
   life: "text-life",
   primary: "text-primary",
 }
@@ -46,6 +48,7 @@ const accentStroke: Record<Accent, string> = {
   nut: "stroke-nut",
   foc: "stroke-foc",
   fin: "stroke-fin",
+  scr: "stroke-scr",
   life: "stroke-life",
   primary: "stroke-primary",
 }
@@ -56,6 +59,7 @@ const accentFill: Record<Accent, string> = {
   nut: "fill-nut",
   foc: "fill-foc",
   fin: "fill-fin",
+  scr: "fill-scr",
   life: "fill-life",
   primary: "fill-primary",
 }
@@ -66,6 +70,7 @@ const accentBg: Record<Accent, string> = {
   nut: "bg-nut",
   foc: "bg-foc",
   fin: "bg-fin",
+  scr: "bg-scr",
   life: "bg-life",
   primary: "bg-primary",
 }
@@ -181,6 +186,7 @@ const accentSoft: Record<Accent, string> = {
   nut: "bg-nut/15 text-nut",
   foc: "bg-foc/15 text-foc",
   fin: "bg-fin/15 text-fin",
+  scr: "bg-scr/15 text-scr",
   life: "bg-life/15 text-life",
   primary: "bg-primary/15 text-primary",
 }

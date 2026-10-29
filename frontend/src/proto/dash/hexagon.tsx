@@ -19,6 +19,7 @@ const FACET_TEXT: Record<ModuleKey, string> = {
   nutrition: "text-nut",
   focus: "text-foc",
   finance: "text-fin",
+  screen: "text-scr",
 }
 
 const SIZE = 320
@@ -165,6 +166,7 @@ const FACET_FILL: Record<ModuleKey, string> = {
   nutrition: "fill-nut",
   focus: "fill-foc",
   finance: "fill-fin",
+  screen: "fill-scr",
 }
 
 /** Static share-card variant: no controls, labels drawn in the SVG, inherits

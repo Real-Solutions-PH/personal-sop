@@ -42,6 +42,7 @@ import { dayKey } from "@domain/lib/day"
 import { derivedId } from "@domain/lib/ids"
 import { type Live, liveStore } from "@domain/lib/live"
 import type { Store } from "@domain/lib/store"
+import type { HabitRule } from "@domain/screen/data"
 import type { ActionOp, Mapper } from "../mapper"
 import { singleton } from "./helpers"
 
@@ -110,6 +111,22 @@ function mergeById<T>(
 
 // ---------------------------------------------------------------- habit
 
+/** A screen-time rule is three columns, all set or all null. */
+const ruleOut = (r?: HabitRule) => ({
+  rule_kind: r?.kind ?? null,
+  rule_group_id: r?.groupId ?? null,
+  rule_max_min: r?.maxMin ?? null,
+})
+function ruleIn(row: Record<string, unknown>): HabitRule | undefined {
+  if (row.rule_kind !== "screen_limit" || row.rule_group_id == null) return
+  if (row.rule_max_min == null) return
+  return {
+    kind: "screen_limit",
+    groupId: str(row.rule_group_id),
+    maxMin: Number(row.rule_max_min),
+  }
+}
+
 function habitMapper(
   held: ReturnType<typeof orphans<PauseRow>>,
 ): Mapper<S, Habit> {
@@ -131,12 +148,15 @@ function habitMapper(
       link_workout: h.linkWorkout,
       archived_at: h.archivedAt ? dayToInstant(h.archivedAt) : null,
       sort_order: h.sortOrder,
+      ...ruleOut(h.rule),
     }),
     fromServer: (row, s) => {
       const id = str(row.id)
       const cur = s.habits.find((h) => h.id === id)
+      const rule = ruleIn(row)
       return {
         id,
+        ...(rule ? { rule } : {}),
         name: str(row.name),
         icon: str(row.icon),
         type: str(row.type) as HabitType,

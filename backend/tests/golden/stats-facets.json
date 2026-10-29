@@ -11,7 +11,8 @@
           "fitness": true,
           "nutrition": true,
           "focus": true,
-          "finance": true
+          "finance": true,
+          "screen": true
         },
         "rates": {
           "habits": 0.9148936170212766,
@@ -19,7 +20,8 @@
           "fitness": 0.75,
           "nutrition": 0.42857142857142855,
           "focus": 0.7083333333333333,
-          "finance": 1
+          "finance": 1,
+          "screen": 0.9930555555555555
         },
         "prevRates": {
           "habits": 0.74,
@@ -27,7 +29,8 @@
           "fitness": 1,
           "nutrition": 0.5833333333333333,
           "focus": 0,
-          "finance": 1
+          "finance": 1,
+          "screen": 0.9464285714285714
         },
         "facets": [
           {
@@ -142,6 +145,17 @@
             "value": 1,
             "prev": 1,
             "href": "/finance/reports",
+            "off": false,
+            "metricKeys": null,
+            "extra": null
+          },
+          {
+            "key": "screen",
+            "label": "Screen time",
+            "module": "screen",
+            "value": 0.9930555555555555,
+            "prev": 0.9464285714285714,
+            "href": "/screen",
             "off": false,
             "metricKeys": null,
             "extra": null
@@ -156,7 +170,8 @@
           "fitness": false,
           "nutrition": true,
           "focus": true,
-          "finance": true
+          "finance": true,
+          "screen": true
         },
         "rates": {
           "habits": 0.9148936170212766,
@@ -164,7 +179,8 @@
           "fitness": 0.75,
           "nutrition": 0.42857142857142855,
           "focus": 0.7083333333333333,
-          "finance": 1
+          "finance": 1,
+          "screen": 0.9930555555555555
         },
         "prevRates": {
           "habits": 0.74,
@@ -172,7 +188,8 @@
           "fitness": 1,
           "nutrition": 0.5833333333333333,
           "focus": 0,
-          "finance": 1
+          "finance": 1,
+          "screen": 0.9464285714285714
         },
         "facets": [
           {
@@ -287,6 +304,17 @@
             "value": 1,
             "prev": 1,
             "href": "/finance/reports",
+            "off": false,
+            "metricKeys": null,
+            "extra": null
+          },
+          {
+            "key": "screen",
+            "label": "Screen time",
+            "module": "screen",
+            "value": 0.9930555555555555,
+            "prev": 0.9464285714285714,
+            "href": "/screen",
             "off": false,
             "metricKeys": null,
             "extra": null
@@ -301,7 +329,8 @@
           "fitness": false,
           "nutrition": false,
           "focus": true,
-          "finance": true
+          "finance": true,
+          "screen": true
         },
         "rates": {
           "habits": 0.9148936170212766,
@@ -309,7 +338,8 @@
           "fitness": 0.75,
           "nutrition": 0.42857142857142855,
           "focus": 0.7083333333333333,
-          "finance": 1
+          "finance": 1,
+          "screen": 0.9930555555555555
         },
         "prevRates": {
           "habits": 0.74,
@@ -317,7 +347,8 @@
           "fitness": 1,
           "nutrition": 0.5833333333333333,
           "focus": 0,
-          "finance": 1
+          "finance": 1,
+          "screen": 0.9464285714285714
         },
         "facets": [
           {
@@ -432,6 +463,17 @@
             "value": 1,
             "prev": 1,
             "href": "/finance/reports",
+            "off": false,
+            "metricKeys": null,
+            "extra": null
+          },
+          {
+            "key": "screen",
+            "label": "Screen time",
+            "module": "screen",
+            "value": 0.9930555555555555,
+            "prev": 0.9464285714285714,
+            "href": "/screen",
             "off": false,
             "metricKeys": null,
             "extra": null
@@ -446,7 +488,8 @@
           "fitness": false,
           "nutrition": false,
           "focus": true,
-          "finance": false
+          "finance": false,
+          "screen": true
         },
         "rates": {
           "habits": 0.9148936170212766,
@@ -454,7 +497,8 @@
           "fitness": 0.75,
           "nutrition": 0.42857142857142855,
           "focus": 0.7083333333333333,
-          "finance": 1
+          "finance": 1,
+          "screen": 0.9930555555555555
         },
         "prevRates": {
           "habits": 0.74,
@@ -462,7 +506,8 @@
           "fitness": 1,
           "nutrition": 0.5833333333333333,
           "focus": 0,
-          "finance": 1
+          "finance": 1,
+          "screen": 0.9464285714285714
         },
         "facets": [
           {
@@ -580,6 +625,176 @@
             "off": true,
             "metricKeys": null,
             "extra": null
+          },
+          {
+            "key": "screen",
+            "label": "Screen time",
+            "module": "screen",
+            "value": 0.9930555555555555,
+            "prev": 0.9464285714285714,
+            "href": "/screen",
+            "off": false,
+            "metricKeys": null,
+            "extra": null
+          }
+        ]
+      },
+      {
+        "days": 7,
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": false,
+          "nutrition": false,
+          "focus": true,
+          "finance": false,
+          "screen": false
+        },
+        "rates": {
+          "habits": 0.9148936170212766,
+          "tasks": 0.8125,
+          "fitness": 0.75,
+          "nutrition": 0.42857142857142855,
+          "focus": 0.7083333333333333,
+          "finance": 1,
+          "screen": 0.9930555555555555
+        },
+        "prevRates": {
+          "habits": 0.74,
+          "tasks": 0.8888888888888888,
+          "fitness": 1,
+          "nutrition": 0.5833333333333333,
+          "focus": 0,
+          "finance": 1,
+          "screen": 0.9464285714285714
+        },
+        "facets": [
+          {
+            "key": "habits",
+            "label": "Habits",
+            "module": "habits",
+            "value": 0.9148936170212766,
+            "prev": 0.74,
+            "href": "/habits",
+            "off": false,
+            "metricKeys": null,
+            "extra": null
+          },
+          {
+            "key": "routines",
+            "label": "Routines",
+            "module": "habits",
+            "value": 0.9,
+            "prev": 0.3333333333333333,
+            "href": "/habits/routines",
+            "off": false,
+            "metricKeys": [],
+            "extra": [
+              {
+                "key": "routines.rate",
+                "label": "Routines completed",
+                "value": "90%",
+                "delta": 57,
+                "goodWhen": "up",
+                "shareable": true
+              },
+              {
+                "key": "routines.runs",
+                "label": "Runs finished",
+                "value": "9",
+                "delta": 5,
+                "goodWhen": "up",
+                "shareable": true
+              },
+              {
+                "key": "routines.avg",
+                "label": "Avg run time",
+                "value": "52m",
+                "shareable": true
+              }
+            ]
+          },
+          {
+            "key": "tasks",
+            "label": "Tasks",
+            "module": "tasks",
+            "value": 0.8125,
+            "prev": 0.8888888888888888,
+            "href": "/tasks/stats",
+            "off": false,
+            "metricKeys": null,
+            "extra": null
+          },
+          {
+            "key": "training",
+            "label": "Training",
+            "module": "fitness",
+            "value": 0.75,
+            "prev": 1,
+            "href": "/fitness",
+            "off": true,
+            "metricKeys": [
+              "sessions",
+              "prs",
+              "volume",
+              "overload"
+            ],
+            "extra": null
+          },
+          {
+            "key": "nutrition",
+            "label": "Nutrition",
+            "module": "nutrition",
+            "value": 0.42857142857142855,
+            "prev": 0.5833333333333333,
+            "href": "/nutrition",
+            "off": true,
+            "metricKeys": [
+              "calories",
+              "protein",
+              "kcal",
+              "logged"
+            ],
+            "extra": null
+          },
+          {
+            "key": "focus",
+            "label": "Focus",
+            "module": "focus",
+            "value": 0.7083333333333333,
+            "prev": 0,
+            "href": "/focus/stats",
+            "off": false,
+            "metricKeys": [
+              "focused",
+              "daily",
+              "goalDays",
+              "sessions",
+              "pomodoros"
+            ],
+            "extra": null
+          },
+          {
+            "key": "finance",
+            "label": "Finance",
+            "module": "finance",
+            "value": 1,
+            "prev": 1,
+            "href": "/finance/reports",
+            "off": true,
+            "metricKeys": null,
+            "extra": null
+          },
+          {
+            "key": "screen",
+            "label": "Screen time",
+            "module": "screen",
+            "value": 0.9930555555555555,
+            "prev": 0.9464285714285714,
+            "href": "/screen",
+            "off": true,
+            "metricKeys": null,
+            "extra": null
           }
         ]
       },
@@ -591,7 +806,8 @@
           "fitness": false,
           "nutrition": false,
           "focus": true,
-          "finance": false
+          "finance": false,
+          "screen": false
         },
         "rates": {
           "habits": 0.7101449275362319,
@@ -599,7 +815,8 @@
           "fitness": 0.875,
           "nutrition": 0.5,
           "focus": 0.7083333333333333,
-          "finance": 1
+          "finance": 1,
+          "screen": 0.9305555555555555
         },
         "prevRates": {
           "habits": 0.5502392344497608,
@@ -607,7 +824,8 @@
           "fitness": 0.8166666666666667,
           "nutrition": 0,
           "focus": 0,
-          "finance": 1
+          "finance": 1,
+          "screen": 0
         },
         "facets": [
           {
@@ -725,6 +943,17 @@
             "off": true,
             "metricKeys": null,
             "extra": null
+          },
+          {
+            "key": "screen",
+            "label": "Screen time",
+            "module": "screen",
+            "value": 0.9305555555555555,
+            "prev": 0,
+            "href": "/screen",
+            "off": true,
+            "metricKeys": null,
+            "extra": null
           }
         ]
       },
@@ -736,7 +965,8 @@
           "fitness": false,
           "nutrition": false,
           "focus": true,
-          "finance": false
+          "finance": false,
+          "screen": false
         },
         "rates": {
           "habits": 0.7101449275362319,
@@ -744,7 +974,8 @@
           "fitness": 0.875,
           "nutrition": 0.5,
           "focus": 0.7083333333333333,
-          "finance": 1
+          "finance": 1,
+          "screen": 0.9305555555555555
         },
         "prevRates": {
           "habits": 0.5502392344497608,
@@ -752,7 +983,8 @@
           "fitness": 0.8166666666666667,
           "nutrition": 0,
           "focus": 0,
-          "finance": 1
+          "finance": 1,
+          "screen": 0
         },
         "facets": [
           {
@@ -870,6 +1102,17 @@
             "off": true,
             "metricKeys": null,
             "extra": null
+          },
+          {
+            "key": "screen",
+            "label": "Screen time",
+            "module": "screen",
+            "value": 0.9305555555555555,
+            "prev": 0,
+            "href": "/screen",
+            "off": true,
+            "metricKeys": null,
+            "extra": null
           }
         ]
       },
@@ -881,7 +1124,8 @@
           "fitness": false,
           "nutrition": false,
           "focus": true,
-          "finance": false
+          "finance": false,
+          "screen": false
         },
         "rates": {
           "habits": 0.7101449275362319,
@@ -889,7 +1133,8 @@
           "fitness": 0.875,
           "nutrition": 0.5,
           "focus": 0.7083333333333333,
-          "finance": 1
+          "finance": 1,
+          "screen": 0.9305555555555555
         },
         "prevRates": {
           "habits": 0.5502392344497608,
@@ -897,7 +1142,8 @@
           "fitness": 0.8166666666666667,
           "nutrition": 0,
           "focus": 0,
-          "finance": 1
+          "finance": 1,
+          "screen": 0
         },
         "facets": [
           {
@@ -1015,6 +1261,17 @@
             "off": true,
             "metricKeys": null,
             "extra": null
+          },
+          {
+            "key": "screen",
+            "label": "Screen time",
+            "module": "screen",
+            "value": 0.9305555555555555,
+            "prev": 0,
+            "href": "/screen",
+            "off": true,
+            "metricKeys": null,
+            "extra": null
           }
         ]
       },
@@ -1026,7 +1283,8 @@
           "fitness": false,
           "nutrition": false,
           "focus": true,
-          "finance": false
+          "finance": false,
+          "screen": false
         },
         "rates": {
           "habits": 0.7101449275362319,
@@ -1034,7 +1292,8 @@
           "fitness": 0.875,
           "nutrition": 0.5,
           "focus": 0.7083333333333333,
-          "finance": 1
+          "finance": 1,
+          "screen": 0.9305555555555555
         },
         "prevRates": {
           "habits": 0.5502392344497608,
@@ -1042,7 +1301,8 @@
           "fitness": 0.8166666666666667,
           "nutrition": 0,
           "focus": 0,
-          "finance": 1
+          "finance": 1,
+          "screen": 0
         },
         "facets": [
           {
@@ -1158,6 +1418,496 @@
             "prev": 1,
             "href": "/finance/reports",
             "off": true,
+            "metricKeys": null,
+            "extra": null
+          },
+          {
+            "key": "screen",
+            "label": "Screen time",
+            "module": "screen",
+            "value": 0.9305555555555555,
+            "prev": 0,
+            "href": "/screen",
+            "off": true,
+            "metricKeys": null,
+            "extra": null
+          }
+        ]
+      },
+      {
+        "days": 30,
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": false,
+          "nutrition": false,
+          "focus": true,
+          "finance": false,
+          "screen": false
+        },
+        "rates": {
+          "habits": 0.7101449275362319,
+          "tasks": 0.8703703703703703,
+          "fitness": 0.875,
+          "nutrition": 0.5,
+          "focus": 0.7083333333333333,
+          "finance": 1,
+          "screen": 0.9305555555555555
+        },
+        "prevRates": {
+          "habits": 0.5502392344497608,
+          "tasks": 0.7857142857142857,
+          "fitness": 0.8166666666666667,
+          "nutrition": 0,
+          "focus": 0,
+          "finance": 1,
+          "screen": 0
+        },
+        "facets": [
+          {
+            "key": "habits",
+            "label": "Habits",
+            "module": "habits",
+            "value": 0.7101449275362319,
+            "prev": 0.5502392344497608,
+            "href": "/habits",
+            "off": false,
+            "metricKeys": null,
+            "extra": null
+          },
+          {
+            "key": "routines",
+            "label": "Routines",
+            "module": "habits",
+            "value": 0.5111111111111111,
+            "prev": 0.32653061224489793,
+            "href": "/habits/routines",
+            "off": false,
+            "metricKeys": [],
+            "extra": [
+              {
+                "key": "routines.rate",
+                "label": "Routines completed",
+                "value": "51%",
+                "delta": 18,
+                "goodWhen": "up",
+                "shareable": true
+              },
+              {
+                "key": "routines.runs",
+                "label": "Runs finished",
+                "value": "23",
+                "delta": 8,
+                "goodWhen": "up",
+                "shareable": true
+              },
+              {
+                "key": "routines.avg",
+                "label": "Avg run time",
+                "value": "46m",
+                "shareable": true
+              }
+            ]
+          },
+          {
+            "key": "tasks",
+            "label": "Tasks",
+            "module": "tasks",
+            "value": 0.8703703703703703,
+            "prev": 0.7857142857142857,
+            "href": "/tasks/stats",
+            "off": false,
+            "metricKeys": null,
+            "extra": null
+          },
+          {
+            "key": "training",
+            "label": "Training",
+            "module": "fitness",
+            "value": 0.875,
+            "prev": 0.8166666666666667,
+            "href": "/fitness",
+            "off": true,
+            "metricKeys": [
+              "sessions",
+              "prs",
+              "volume",
+              "overload"
+            ],
+            "extra": null
+          },
+          {
+            "key": "nutrition",
+            "label": "Nutrition",
+            "module": "nutrition",
+            "value": 0.5,
+            "prev": 0,
+            "href": "/nutrition",
+            "off": true,
+            "metricKeys": [
+              "calories",
+              "protein",
+              "kcal",
+              "logged"
+            ],
+            "extra": null
+          },
+          {
+            "key": "focus",
+            "label": "Focus",
+            "module": "focus",
+            "value": 0.7083333333333333,
+            "prev": 0,
+            "href": "/focus/stats",
+            "off": false,
+            "metricKeys": [
+              "focused",
+              "daily",
+              "goalDays",
+              "sessions",
+              "pomodoros"
+            ],
+            "extra": null
+          },
+          {
+            "key": "finance",
+            "label": "Finance",
+            "module": "finance",
+            "value": 1,
+            "prev": 1,
+            "href": "/finance/reports",
+            "off": true,
+            "metricKeys": null,
+            "extra": null
+          },
+          {
+            "key": "screen",
+            "label": "Screen time",
+            "module": "screen",
+            "value": 0.9305555555555555,
+            "prev": 0,
+            "href": "/screen",
+            "off": true,
+            "metricKeys": null,
+            "extra": null
+          }
+        ]
+      },
+      {
+        "days": 7,
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "nutrition": true,
+          "focus": true,
+          "finance": true,
+          "screen": true
+        },
+        "rates": {
+          "habits": 0.9148936170212766,
+          "tasks": 0.8125,
+          "fitness": 0.75,
+          "nutrition": 0.42857142857142855,
+          "focus": 0.7083333333333333,
+          "finance": 1,
+          "screen": 0
+        },
+        "prevRates": {
+          "habits": 0.74,
+          "tasks": 0.8888888888888888,
+          "fitness": 1,
+          "nutrition": 0.5833333333333333,
+          "focus": 0,
+          "finance": 1,
+          "screen": 0
+        },
+        "score": 78,
+        "facets": [
+          {
+            "key": "habits",
+            "label": "Habits",
+            "module": "habits",
+            "value": 0.9148936170212766,
+            "prev": 0.74,
+            "href": "/habits",
+            "off": false,
+            "metricKeys": null,
+            "extra": null
+          },
+          {
+            "key": "routines",
+            "label": "Routines",
+            "module": "habits",
+            "value": 0.9,
+            "prev": 0.3333333333333333,
+            "href": "/habits/routines",
+            "off": false,
+            "metricKeys": [],
+            "extra": [
+              {
+                "key": "routines.rate",
+                "label": "Routines completed",
+                "value": "90%",
+                "delta": 57,
+                "goodWhen": "up",
+                "shareable": true
+              },
+              {
+                "key": "routines.runs",
+                "label": "Runs finished",
+                "value": "9",
+                "delta": 5,
+                "goodWhen": "up",
+                "shareable": true
+              },
+              {
+                "key": "routines.avg",
+                "label": "Avg run time",
+                "value": "52m",
+                "shareable": true
+              }
+            ]
+          },
+          {
+            "key": "tasks",
+            "label": "Tasks",
+            "module": "tasks",
+            "value": 0.8125,
+            "prev": 0.8888888888888888,
+            "href": "/tasks/stats",
+            "off": false,
+            "metricKeys": null,
+            "extra": null
+          },
+          {
+            "key": "training",
+            "label": "Training",
+            "module": "fitness",
+            "value": 0.75,
+            "prev": 1,
+            "href": "/fitness",
+            "off": false,
+            "metricKeys": [
+              "sessions",
+              "prs",
+              "volume",
+              "overload"
+            ],
+            "extra": null
+          },
+          {
+            "key": "nutrition",
+            "label": "Nutrition",
+            "module": "nutrition",
+            "value": 0.42857142857142855,
+            "prev": 0.5833333333333333,
+            "href": "/nutrition",
+            "off": false,
+            "metricKeys": [
+              "calories",
+              "protein",
+              "kcal",
+              "logged"
+            ],
+            "extra": null
+          },
+          {
+            "key": "focus",
+            "label": "Focus",
+            "module": "focus",
+            "value": 0.7083333333333333,
+            "prev": 0,
+            "href": "/focus/stats",
+            "off": false,
+            "metricKeys": [
+              "focused",
+              "daily",
+              "goalDays",
+              "sessions",
+              "pomodoros"
+            ],
+            "extra": null
+          },
+          {
+            "key": "finance",
+            "label": "Finance",
+            "module": "finance",
+            "value": 1,
+            "prev": 1,
+            "href": "/finance/reports",
+            "off": false,
+            "metricKeys": null,
+            "extra": null
+          },
+          {
+            "key": "screen",
+            "label": "Screen time",
+            "module": "screen",
+            "value": 0,
+            "prev": 0,
+            "href": "/screen",
+            "off": false,
+            "metricKeys": null,
+            "extra": null
+          }
+        ]
+      },
+      {
+        "days": 30,
+        "enabled": {
+          "habits": true,
+          "tasks": true,
+          "fitness": true,
+          "nutrition": true,
+          "focus": true,
+          "finance": true,
+          "screen": true
+        },
+        "rates": {
+          "habits": 0.7101449275362319,
+          "tasks": 0.8703703703703703,
+          "fitness": 0.875,
+          "nutrition": 0.5,
+          "focus": 0.7083333333333333,
+          "finance": 1,
+          "screen": 0
+        },
+        "prevRates": {
+          "habits": 0.5502392344497608,
+          "tasks": 0.7857142857142857,
+          "fitness": 0.8166666666666667,
+          "nutrition": 0,
+          "focus": 0,
+          "finance": 1,
+          "screen": 0
+        },
+        "score": 78,
+        "facets": [
+          {
+            "key": "habits",
+            "label": "Habits",
+            "module": "habits",
+            "value": 0.7101449275362319,
+            "prev": 0.5502392344497608,
+            "href": "/habits",
+            "off": false,
+            "metricKeys": null,
+            "extra": null
+          },
+          {
+            "key": "routines",
+            "label": "Routines",
+            "module": "habits",
+            "value": 0.5111111111111111,
+            "prev": 0.32653061224489793,
+            "href": "/habits/routines",
+            "off": false,
+            "metricKeys": [],
+            "extra": [
+              {
+                "key": "routines.rate",
+                "label": "Routines completed",
+                "value": "51%",
+                "delta": 18,
+                "goodWhen": "up",
+                "shareable": true
+              },
+              {
+                "key": "routines.runs",
+                "label": "Runs finished",
+                "value": "23",
+                "delta": 8,
+                "goodWhen": "up",
+                "shareable": true
+              },
+              {
+                "key": "routines.avg",
+                "label": "Avg run time",
+                "value": "46m",
+                "shareable": true
+              }
+            ]
+          },
+          {
+            "key": "tasks",
+            "label": "Tasks",
+            "module": "tasks",
+            "value": 0.8703703703703703,
+            "prev": 0.7857142857142857,
+            "href": "/tasks/stats",
+            "off": false,
+            "metricKeys": null,
+            "extra": null
+          },
+          {
+            "key": "training",
+            "label": "Training",
+            "module": "fitness",
+            "value": 0.875,
+            "prev": 0.8166666666666667,
+            "href": "/fitness",
+            "off": false,
+            "metricKeys": [
+              "sessions",
+              "prs",
+              "volume",
+              "overload"
+            ],
+            "extra": null
+          },
+          {
+            "key": "nutrition",
+            "label": "Nutrition",
+            "module": "nutrition",
+            "value": 0.5,
+            "prev": 0,
+            "href": "/nutrition",
+            "off": false,
+            "metricKeys": [
+              "calories",
+              "protein",
+              "kcal",
+              "logged"
+            ],
+            "extra": null
+          },
+          {
+            "key": "focus",
+            "label": "Focus",
+            "module": "focus",
+            "value": 0.7083333333333333,
+            "prev": 0,
+            "href": "/focus/stats",
+            "off": false,
+            "metricKeys": [
+              "focused",
+              "daily",
+              "goalDays",
+              "sessions",
+              "pomodoros"
+            ],
+            "extra": null
+          },
+          {
+            "key": "finance",
+            "label": "Finance",
+            "module": "finance",
+            "value": 1,
+            "prev": 1,
+            "href": "/finance/reports",
+            "off": false,
+            "metricKeys": null,
+            "extra": null
+          },
+          {
+            "key": "screen",
+            "label": "Screen time",
+            "module": "screen",
+            "value": 0,
+            "prev": 0,
+            "href": "/screen",
+            "off": false,
             "metricKeys": null,
             "extra": null
           }

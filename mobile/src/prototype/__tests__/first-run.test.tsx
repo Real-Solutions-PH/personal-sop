@@ -82,6 +82,7 @@ function onlyHabits(onboarded: boolean) {
       nutrition: false,
       focus: false,
       finance: false,
+      screen: false,
     },
   }))
   habitsStore.set((s) => ({ ...s, habits: [] }))

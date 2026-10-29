@@ -39,6 +39,42 @@ test("life score + levels", async () => {
 		score: lifeScoreOf(zero, zero, enabledAll),
 		level: levelFor(null).name,
 	});
+	// Screen time: on with weight 2 like Focus; an unrated area (null in the
+	// fixture, `rated` false here) is left out rather than counted as 0.
+	const all7 = {
+		habits: true,
+		tasks: true,
+		fitness: true,
+		nutrition: true,
+		focus: true,
+		finance: true,
+		screen: true,
+	};
+	const w7 = { habits: 3, tasks: 2, fitness: 3, nutrition: 2, focus: 2, finance: 2, screen: 2 };
+	for (const screen of [null, 0, 0.4, 1])
+		for (const off of [null, "screen", "finance"] as const) {
+			const rates = {
+				habits: 0.8,
+				tasks: 0.6,
+				fitness: 0.5,
+				nutrition: 0.7,
+				focus: 0.3,
+				finance: 0.33,
+				screen: screen ?? 0,
+			};
+			const enabled = { ...all7, ...(off ? { [off]: false } : {}) };
+			const rated = Object.fromEntries(
+				Object.keys(all7).map((k) => [k, k !== "screen" || screen !== null]),
+			) as Record<keyof typeof all7, boolean>;
+			const score = lifeScoreOf(rates, w7, enabled, rated);
+			cases.push({
+				rates: { ...rates, screen },
+				weights: w7,
+				enabled,
+				score,
+				level: levelFor(score).name,
+			});
+		}
 	const levels = [0, 39, 40, 54, 55, 64, 65, 74, 75, 84, 85, 100].map((s) => ({
 		score: s,
 		level: levelFor(s).name,

@@ -228,6 +228,7 @@ const AREA_TINT: Record<ModuleKey, string> = {
   nutrition: "bg-nut/15 text-nut",
   focus: "bg-foc/15 text-foc",
   finance: "bg-fin/15 text-fin",
+  screen: "bg-scr/15 text-scr",
 }
 
 /** Module glyph in its accent tint (lucide, never emoji — design MASTER). */
@@ -274,6 +275,7 @@ export function ModuleDot({
     nutrition: "bg-nut",
     focus: "bg-foc",
     finance: "bg-fin",
+    screen: "bg-scr",
   }[module]
   return (
     <span

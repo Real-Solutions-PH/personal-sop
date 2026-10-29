@@ -26,13 +26,15 @@ export function upgradeDash(s: DashState): DashState {
   if (s.enabled.nutrition === undefined)
     enabled.nutrition = s.enabled.fitness ?? true
   const moved = s.goals.some((g) => MOVED_METRICS[g.metric])
-  // Focus (ADR-0025) arrives switched on with the default weight; it is
-  // left out of the Life Score until the timer is first used.
+  // Focus (ADR-0025) and Screen time arrive switched on with the default
+  // weight; each is left out of the Life Score until it has data.
   if (
     s.enabled.nutrition !== undefined &&
     s.weights.nutrition !== undefined &&
     s.enabled.focus !== undefined &&
     s.weights.focus !== undefined &&
+    s.enabled.screen !== undefined &&
+    s.weights.screen !== undefined &&
     !moved
   )
     return s

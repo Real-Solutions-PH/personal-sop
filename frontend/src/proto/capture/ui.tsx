@@ -162,6 +162,12 @@ export const tint: Record<
     text: "text-fin",
     solid: "bg-fin",
   },
+  scr: {
+    bg: "bg-scr/12",
+    border: "border-scr/30",
+    text: "text-scr",
+    solid: "bg-scr",
+  },
   life: {
     bg: "bg-life/12",
     border: "border-life/30",

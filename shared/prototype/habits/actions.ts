@@ -19,6 +19,12 @@ import { habitsStore } from "./store"
 const S = habitsStore
 const nowIso = () => new Date().toISOString()
 const findHabit = (id: string) => S.get().habits.find((h) => h.id === id)
+/** A habit driven by screen time completes itself: every manual action on
+ * it is a no-op (the UI never offers one; the server answers 409). */
+const manual = (id: string) => {
+  const h = findHabit(id)
+  return h && !h.rule ? h : undefined
+}
 export interface LogInput {
   habitId: string
   day?: string
@@ -35,7 +41,7 @@ function autoStatus(h: Habit, value?: number): LogStatus {
   return value >= h.target ? "done" : "partial"
 }
 export function logHabit(input: LogInput): HabitLog | null {
-  const h = findHabit(input.habitId)
+  const h = manual(input.habitId)
   if (!h) return null
   const day = input.day ?? dayKey()
   const existing = logIndex(S.get().logs).get(lk(h.id, day))
@@ -67,7 +73,7 @@ export function checkHabit(
   source: LogSource = "tap",
   id?: string,
 ): HabitLog | null {
-  const h = findHabit(habitId)
+  const h = manual(habitId)
   if (!h) return null
   return logHabit({
     habitId,
@@ -79,13 +85,14 @@ export function checkHabit(
   })
 }
 export function incrementCount(habitId: string, by?: number, day?: string) {
-  const h = findHabit(habitId)
+  const h = manual(habitId)
   if (!h) return null
   return logHabit({ habitId, day, value: by ?? h.step ?? 1, add: true })
 }
 export const skipHabit = (habitId: string, day?: string, note?: string) =>
   logHabit({ habitId, day, status: "skipped", note })
 export function clearLog(habitId: string, day = dayKey()): HabitLog | null {
+  if (!manual(habitId)) return null
   const existing = logIndex(S.get().logs).get(lk(habitId, day))
   if (!existing) return null
   S.set((s) => ({ ...s, logs: s.logs.filter((l) => l.id !== existing.id) }))
@@ -267,7 +274,7 @@ export const timerHref = (habitId: string) => `/habits/${habitId}/timer`
 export const playerHref = (routineId: string) =>
   `/habits/routines/${routineId}/play`
 export function startTimer(habitId: string): boolean {
-  const h = findHabit(habitId)
+  const h = manual(habitId)
   if (!h) return false
   const ok = startLive({
     kind: "timer",

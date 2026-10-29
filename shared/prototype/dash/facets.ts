@@ -21,6 +21,7 @@ const MODULE_KEYS: ModuleKey[] = [
   "nutrition",
   "focus",
   "finance",
+  "screen",
 ]
 export function facetsFrom(rows: ServerFacet[]): Facet[] {
   return rows.flatMap((r) => {
@@ -208,6 +209,15 @@ function useLocalFacets(days: number): Facet[] {
         ls.rates.finance,
         ls.prevRates.finance,
         "/finance/reports",
+      ),
+      // Last, so the corners before it keep their places.
+      f(
+        "screen",
+        "Screen time",
+        "screen",
+        ls.rates.screen,
+        ls.prevRates.screen,
+        "/screen",
       ),
     ]
   }, [ls, enabled, fit, cal, runs, days])

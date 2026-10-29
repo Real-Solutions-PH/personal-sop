@@ -74,6 +74,7 @@ export const ANALYTICS_HREF: Record<ModuleKey, string> = {
   nutrition: "/fitness?tab=eat",
   focus: "/stats",
   finance: "/finance/reports",
+  screen: "/stats",
 }
 
 const RING_TEXT: Record<ModuleKey, string> = {
@@ -83,6 +84,7 @@ const RING_TEXT: Record<ModuleKey, string> = {
   nutrition: "text-nut",
   focus: "text-foc",
   finance: "text-fin",
+  screen: "text-scr",
 }
 const BAR_BG: Record<ModuleKey, string> = {
   habits: "bg-hab",
@@ -91,6 +93,7 @@ const BAR_BG: Record<ModuleKey, string> = {
   nutrition: "bg-nut",
   focus: "bg-foc",
   finance: "bg-fin",
+  screen: "bg-scr",
 }
 
 export const initials = (name: string) =>

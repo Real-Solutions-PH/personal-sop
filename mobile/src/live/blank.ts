@@ -10,6 +10,7 @@ import { fitStore } from "@domain/fitness/store"
 import { focusStore } from "@domain/focus/store"
 import { habitsStore } from "@domain/habits/store"
 import { liveStore } from "@domain/lib/live"
+import { screenStore } from "@domain/screen/store"
 import { tasksStore } from "@domain/tasks/store"
 import { companionStore } from "@/prototype/companion/store"
 import { socialStore } from "@/prototype/social/store"
@@ -30,6 +31,7 @@ export function clearToBlank() {
     segments: [],
     settingsSaved: false,
   }))
+  screenStore.set((s) => ({ ...s, groups: [], days: [] }))
   fitStore.set((s) => ({
     ...s,
     exercises: [],
