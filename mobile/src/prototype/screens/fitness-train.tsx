@@ -3,9 +3,11 @@ import { fitStore } from "@domain/fitness/store"
 import { dayKey, dayOffset } from "@domain/lib/day"
 import { useLocalSearchParams } from "expo-router"
 import {
+  CalendarDays,
   ChevronRight,
   Dumbbell,
   LayoutList,
+  Moon,
   Play,
   Settings,
   Trophy,
@@ -38,9 +40,9 @@ import { StepsCard } from "./steps-card"
 export function FitnessTrain() {
   const t = useTheme(),
     s = fitStore.use((s) => s),
-    next = F.nextTemplate(s),
-    last = next ? F.lastOfTemplate(s, next.id) : undefined,
-    week = F.sessionsByWeek(s, 1)[0],
+    todayTemplate = F.scheduledTemplate(s),
+    restToday = F.isRestDay(s),
+    last = todayTemplate ? F.lastOfTemplate(s, todayTemplate.id) : undefined,
     active = s.workouts.find(
       (w) => w.id === s.activeId && w.status === "in_progress",
     ),
@@ -51,6 +53,22 @@ export function FitnessTrain() {
   const params = useLocalSearchParams<{ start?: string }>()
   const [startOpen, setStartOpen] = useState(params.start === "1")
   const start = () => setStartOpen(true)
+  const todayName = new Date().toLocaleDateString("en-PH", { weekday: "long" })
+  // This week, Monday first, against the routine: which days are planned
+  // training vs rest, and which are already done.
+  const wkStart = F.weekStart(dayKey())
+  const planDays = Array.from({ length: 7 }, (_, i) => {
+    const key = F.addDays(wkStart, i)
+    return {
+      key,
+      letter: "MTWTFSS"[i],
+      training: s.schedule[i] !== null,
+      done: F.finished(s).some((w) => dayKey(new Date(w.startedAt)) === key),
+      isToday: key === dayKey(),
+    }
+  })
+  const doneThisWeek = planDays.filter((d) => d.done).length
+  const weeklyGoal = F.weeklyGoal(s)
   const lifts = s.exercises
     .filter((e) => !e.archived)
     .map((ex) => {
@@ -137,21 +155,41 @@ export function FitnessTrain() {
                 Start another workout
               </SmallButton>
             </>
-          ) : next ? (
+          ) : restToday ? (
+            <Line style={{ justifyContent: "space-between" }}>
+              <View style={{ flex: 1 }}>
+                <Copy size={12} muted style={{ letterSpacing: 0.6 }}>
+                  TODAY · {todayName.toUpperCase()}
+                </Copy>
+                <Copy size={20} weight="semibold">
+                  Rest day
+                </Copy>
+                <Copy size={14} muted>
+                  Nothing scheduled — recover.
+                </Copy>
+                <Tap onPress={start} style={{ marginTop: 10 }}>
+                  <Copy size={14} weight="medium" style={{ color: t.fit }}>
+                    Start a workout anyway
+                  </Copy>
+                </Tap>
+              </View>
+              <Moon size={28} color={t.muted} />
+            </Line>
+          ) : todayTemplate ? (
             <>
               <Line style={{ justifyContent: "space-between" }}>
                 <View>
                   <Copy size={12} muted style={{ letterSpacing: 0.6 }}>
-                    UP NEXT
+                    TODAY · {todayName.toUpperCase()}
                   </Copy>
                   <Copy size={20} weight="semibold">
-                    {next.name}
+                    {todayTemplate.name}
                   </Copy>
                   <Copy size={14} muted>
                     {last
                       ? `Last done ${F.relDay(last.startedAt)}`
                       : "Never done"}{" "}
-                    · {next.items.length} exercises
+                    · {todayTemplate.items.length} exercises
                   </Copy>
                 </View>
                 <Tap
@@ -177,7 +215,7 @@ export function FitnessTrain() {
                 </Tap>
               </Line>
               <View style={{ gap: 6, marginTop: 12 }}>
-                {next.items.slice(0, 3).map((item) => {
+                {todayTemplate.items.slice(0, 3).map((item) => {
                   const sug = F.suggestion(s, item.exerciseId),
                     ex = s.exercises.find((e) => e.id === item.exerciseId)
                   return (
@@ -217,53 +255,98 @@ export function FitnessTrain() {
             </>
           ) : (
             <>
-              <Copy weight="semibold">No workouts yet — start one</Copy>
-              <SmallButton accent="fit" onPress={start}>
-                Start workout
-              </SmallButton>
+              <Copy weight="semibold">No workout set for today</Copy>
+              <Copy size={14} muted>
+                Add it to your weekly routine, or just start one.
+              </Copy>
+              <Line style={{ gap: 12, marginTop: 10 }}>
+                <SmallButton accent="fit" onPress={start}>
+                  Start workout
+                </SmallButton>
+                <Tap onPress={() => go("/fitness/routine")}>
+                  <Copy size={14} weight="medium" style={{ color: t.fit }}>
+                    Set routine
+                  </Copy>
+                </Tap>
+              </Line>
             </>
           )}
         </Frame>
-        <StepsCard />
-        <SleepCard />
-        <Frame style={{ padding: 16, marginTop: 12 }}>
-          <Line style={{ justifyContent: "space-between" }}>
-            <View>
-              <Copy size={12} muted>
-                This week
-              </Copy>
-              <Copy size={24} weight="semibold">
-                {week?.count ?? 0}
-                <Text style={{ fontSize: 16, color: t.muted }}>
-                  /{s.settings.weeklyTarget} sessions
-                </Text>
-              </Copy>
-            </View>
-            <View style={{ alignItems: "flex-end" }}>
-              <Copy size={24} weight="semibold">
-                {F.consistencyStreak(s)}
-              </Copy>
-              <Copy size={12} muted>
-                week streak
-              </Copy>
-            </View>
-          </Line>
-          <Line style={{ gap: 6, marginTop: 12 }}>
-            {Array.from({ length: s.settings.weeklyTarget }, (_, i) => (
-              <View
-                key={i}
-                style={{
-                  flex: 1,
-                  height: 8,
-                  borderRadius: 4,
-                  backgroundColor: i < (week?.count ?? 0) ? t.fit : t.soft,
-                }}
-              />
-            ))}
-          </Line>
-        </Frame>
+        <Tap onPress={() => go("/fitness/routine")}>
+          <Frame style={{ padding: 16, marginTop: 12 }}>
+            <Line style={{ justifyContent: "space-between" }}>
+              <View>
+                <Copy size={12} muted>
+                  This week
+                </Copy>
+                <Copy size={24} weight="semibold">
+                  {doneThisWeek}
+                  <Text style={{ fontSize: 16, color: t.muted }}>
+                    /{weeklyGoal} planned
+                  </Text>
+                </Copy>
+              </View>
+              <View style={{ alignItems: "flex-end" }}>
+                <Copy size={24} weight="semibold">
+                  {F.consistencyStreak(s)}
+                </Copy>
+                <Copy size={12} muted>
+                  week streak
+                </Copy>
+              </View>
+            </Line>
+            <Line style={{ gap: 6, marginTop: 12, alignItems: "flex-start" }}>
+              {planDays.map((d) => (
+                <View key={d.key} style={{ flex: 1, alignItems: "center" }}>
+                  <View
+                    style={{
+                      width: "100%",
+                      height: 34,
+                      borderRadius: 10,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      backgroundColor: d.done
+                        ? t.fit
+                        : d.isToday
+                          ? `${t.fit}26`
+                          : t.soft,
+                      borderWidth: d.isToday && !d.done ? 1.5 : 0,
+                      borderColor: t.fit,
+                    }}
+                  >
+                    <Copy
+                      size={12}
+                      weight="semibold"
+                      style={{
+                        color: d.done
+                          ? t.onPrimary
+                          : d.isToday
+                            ? t.fit
+                            : d.training
+                              ? t.text
+                              : t.muted,
+                      }}
+                    >
+                      {d.letter}
+                    </Copy>
+                  </View>
+                  <View
+                    style={{
+                      marginTop: 4,
+                      width: 4,
+                      height: 4,
+                      borderRadius: 2,
+                      backgroundColor: d.training ? t.fit : "transparent",
+                    }}
+                  />
+                </View>
+              ))}
+            </Line>
+          </Frame>
+        </Tap>
         <Line style={{ gap: 8, marginTop: 12 }}>
           {[
+            { label: "Routine", href: "/fitness/routine", icon: CalendarDays },
             {
               label: "Templates",
               href: "/fitness/templates",
@@ -291,6 +374,8 @@ export function FitnessTrain() {
             </Tap>
           ))}
         </Line>
+        <StepsCard />
+        <SleepCard />
         {lifts.length > 0 && (
           <>
             <SectionHeading>Progress · 8 weeks</SectionHeading>
