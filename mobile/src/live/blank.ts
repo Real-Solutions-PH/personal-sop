@@ -39,6 +39,7 @@ export function clearToBlank() {
     targets: [],
     adjustments: [],
     meals: [],
+    recipes: [],
     activeId: null,
     rest: null,
     // The demo's goal (lose weight → 76 kg) is sample data, not a setting:

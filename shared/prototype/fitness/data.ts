@@ -125,6 +125,13 @@ export interface MealItem extends Macros {
   sugar?: number
   sodium?: number
 }
+/** A named mix of ingredients the person built once (iced coffee: coffee,
+ * milk, sugar) and logs again as one serving. Kept on this device. */
+export interface Recipe {
+  id: string
+  name: string
+  items: Omit<MealItem, "id">[]
+}
 export interface Meal {
   id: string
   eatenAt: string
@@ -170,6 +177,7 @@ export interface FitnessState {
   targets: MacroTarget[]
   adjustments: TargetAdjustment[]
   meals: Meal[]
+  recipes: Recipe[]
   settings: FitnessSettings
   activeId: string | null
   rest: RestTimer | null
@@ -1017,6 +1025,7 @@ export function seed(): FitnessState {
     ],
     adjustments: [],
     meals: seedMeals(rnd),
+    recipes: [],
     settings: {
       units: "kg",
       restSec: 120,

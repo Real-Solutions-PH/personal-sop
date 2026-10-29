@@ -27,6 +27,7 @@ import {
   type MealLabel,
   type MealSource,
   type NutrientLimits,
+  type Recipe,
   type WeighIn,
   type Workout,
   type WorkoutExercise,
@@ -881,6 +882,20 @@ export function deleteMeal(id: string): Meal | undefined {
   const m = fitStore.get().meals.find((x) => x.id === id)
   fitStore.set((s) => ({ ...s, meals: s.meals.filter((x) => x.id !== id) }))
   return m
+}
+export function saveRecipe(
+  name: string,
+  items: Omit<MealItem, "id">[],
+): Recipe {
+  const recipe = { id: uid(), name: name.trim(), items }
+  fitStore.set((s) => ({ ...s, recipes: [...s.recipes, recipe] }))
+  return recipe
+}
+export function deleteRecipe(id: string) {
+  fitStore.set((s) => ({
+    ...s,
+    recipes: s.recipes.filter((r) => r.id !== id),
+  }))
 }
 export function restoreMeal(m: Meal) {
   fitStore.set((s) => ({ ...s, meals: [...s.meals, m] }))

@@ -11,10 +11,18 @@ import { dayKey, dayOffset } from "@domain/lib/day"
 import { configureStorage, createStore, resetAll } from "@domain/lib/store"
 import { modules } from "@domain/modules"
 import { module as NUT } from "@domain/nutrition"
-import { render, renderHook, screen } from "@testing-library/react-native"
+import {
+  fireEvent,
+  render,
+  renderHook,
+  screen,
+} from "@testing-library/react-native"
+import { router } from "expo-router"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 import { FoodLibrary } from "../screens/nutrition-foods"
 import { NutritionHome } from "../screens/nutrition-home"
+import { ManualMeal } from "../screens/nutrition-meals"
+import { NutritionTrend } from "../screens/nutrition-trend"
 
 jest.mock("react-native-reanimated", () => ({
   __esModule: true,
@@ -240,6 +248,45 @@ test("with nothing logged the stats show dimmed, under one card", () => {
   expect(
     screen.getByText("Calories on target", { includeHiddenElements: true }),
   ).toBeTruthy()
+})
+
+test("the empty goal history's Log a meal opens the meal form", () => {
+  // The card sits on /nutrition itself, so linking back there did nothing.
+  fitStore.set((s) => ({ ...s, targets: [target], meals: [] }))
+  render(<NutritionTrend />, { wrapper })
+  fireEvent.press(screen.getByText("Log a meal"))
+  expect(router.push).toHaveBeenCalledWith("/nutrition/new")
+})
+
+test("Log meal offers the barcode scanner", () => {
+  render(<ManualMeal />, { wrapper })
+  fireEvent.press(screen.getByLabelText("Scan"))
+  expect(router.push).toHaveBeenCalledWith(`/nutrition/scan?day=${dayKey()}`)
+})
+
+test("a meal saved as a recipe logs again as one serving", () => {
+  fitStore.set((s) => ({ ...s, targets: [target], meals: [], recipes: [] }))
+  render(<ManualMeal />, { wrapper })
+  // Coffee 5 kcal + milk 60 kcal, entered as custom items.
+  for (const [name, kcal] of [
+    ["Black coffee 7g", "5"],
+    ["Milk 100g", "60"],
+  ]) {
+    fireEvent.changeText(screen.getByLabelText("Custom item name"), name)
+    fireEvent.changeText(screen.getAllByLabelText("kcal")[0], kcal)
+    fireEvent.press(screen.getByText("Add custom item"))
+  }
+  fireEvent.changeText(screen.getByLabelText("Recipe name"), "Iced coffee")
+  fireEvent.press(screen.getByText("Save recipe"))
+  const [recipe] = fitStore.get().recipes
+  expect(recipe.name).toBe("Iced coffee")
+  expect(recipe.items.map((i) => i.name)).toEqual([
+    "Black coffee 7g",
+    "Milk 100g",
+  ])
+
+  fireEvent.press(screen.getByLabelText("Add Iced coffee"))
+  expect(screen.getByText("Save meal · 130 kcal")).toBeTruthy()
 })
 
 test("the food library lists the built-in foods offline", () => {
