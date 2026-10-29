@@ -36,6 +36,7 @@ import { ProfileAvatar } from "../profile-avatar"
 import { fonts, useTheme } from "../theme"
 import { Button, Field, Screen, Sheet } from "../ui"
 import { LockedPreview } from "./locked-preview"
+import { PatternsCard } from "./patterns-card"
 import { DayHero } from "./today"
 
 function Delta({
@@ -628,6 +629,7 @@ export function StatsHome() {
         <View style={{ marginTop: 16 }}>
           <DayHero />
         </View>
+        <PatternsCard />
         <LockedPreview
           locked={locked}
           title={`${target.logged}/3 logged days`}
