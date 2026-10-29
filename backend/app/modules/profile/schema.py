@@ -8,7 +8,9 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from app.shared.currency import check_currency
 from app.shared.day import check_timezone, parse_hm
 
-ModuleKey = Literal["habits", "tasks", "fitness", "nutrition", "focus", "finance"]
+ModuleKey = Literal[
+    "habits", "tasks", "fitness", "nutrition", "focus", "finance", "screen"
+]
 Appearance = Literal["system", "light", "dark"]
 PushPermission = Literal["default", "granted", "denied"]
 

@@ -26,6 +26,7 @@ MODULE_KEYS: tuple[str, ...] = (
     "nutrition",
     "focus",
     "finance",
+    "screen",
 )
 STREAK_MILESTONES: tuple[int, ...] = (7, 30, 100, 365)
 # The on-target series always spans at least a year so the all-time streaks
@@ -640,9 +641,10 @@ def compose_facets(
     focus: tuple[float, float] = (0.0, 0.0),
     routine_extra: Sequence[Metric] = (),
 ) -> list[FacetView]:
-    """``useFacets``: the seven facets in screen order. Habits, tasks and
-    finance are the area rates; routines, training, nutrition and focus come
-    from the habits, fitness, nutrition and focus contributors."""
+    """``useFacets``: the eight facets in screen order. Habits, tasks,
+    finance and screen time are the area rates; routines, training, nutrition
+    and focus come from the habits, fitness, nutrition and focus
+    contributors."""
 
     def r(m: Mapping[str, float | None], k: str) -> float:
         return m.get(k) or 0.0
@@ -715,5 +717,14 @@ def compose_facets(
             r(rates, "finance"),
             r(prev_rates, "finance"),
             "/finance/reports",
+        ),  # fmt: skip
+        # Last, so the corners before it keep their places.
+        f(
+            "screen",
+            "Screen time",
+            "screen",
+            r(rates, "screen"),
+            r(prev_rates, "screen"),
+            "/screen",
         ),  # fmt: skip
     ]

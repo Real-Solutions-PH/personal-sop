@@ -12,6 +12,10 @@ HabitType = Literal["check", "duration", "count"]
 HabitStatus = Literal["active", "paused", "archived"]
 LogStatus = Literal["done", "partial", "skipped"]
 LogSource = Literal["tap", "timer", "routine", "capture", "workout"]
+# What a synced log may carry: the manual sources plus "screen", which only
+# the phone's screen-time reconciler writes (never a person's tap).
+SyncLogSource = Literal["tap", "timer", "routine", "capture", "workout", "screen"]
+RuleKind = Literal["screen_limit"]
 RoutineStatus = Literal["active", "archived"]
 SortKey = Literal["rate", "streak", "skip", "name"]
 
@@ -93,6 +97,10 @@ class HabitSyncIn(HabitUpdate):
 
     status: HabitStatus | None = None
     archived_at: datetime | None = None
+    # The screen-time rule: all three set, or all three null (no rule).
+    rule_kind: RuleKind | None = None
+    rule_group_id: uuid.UUID | None = None
+    rule_max_min: int | None = Field(default=None, ge=0, le=1440)
 
 
 class PauseIn(BaseModel):
@@ -138,6 +146,9 @@ class HabitPublic(BaseModel):
     sort_order: int
     created_at: datetime
     version: int
+    rule_kind: str | None = None
+    rule_group_id: uuid.UUID | None = None
+    rule_max_min: int | None = None
 
 
 class StatsOut(BaseModel):
@@ -247,7 +258,7 @@ class HabitLogSyncIn(BaseModel):
     status: LogStatus | None = None
     value: float | None = Field(default=None, ge=0, le=100000)
     logged_at: datetime | None = None
-    source: LogSource | None = None
+    source: SyncLogSource | None = None
     note: str | None = Field(default=None, max_length=280)
 
 

@@ -105,6 +105,10 @@ from app.modules.profile.models import (  # noqa: F401
     SetupSkip,
     UserProfile,
 )
+from app.modules.screen.models import (  # noqa: F401
+    ScreenDay,
+    ScreenGroup,
+)
 from app.modules.social.models import (  # noqa: F401
     Activity,
     Chat,

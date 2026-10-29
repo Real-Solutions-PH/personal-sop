@@ -180,6 +180,7 @@ SEED_WEIGHTS = {
     "nutrition": 2,
     "focus": 2,
     "finance": 2,
+    "screen": 2,
 }
 
 
@@ -338,7 +339,7 @@ def test_achievements_match_prototype(idx: int) -> None:
 # ---------------------------------------------------------------- facets
 
 
-@pytest.mark.parametrize("idx", range(6))
+@pytest.mark.parametrize("idx", range(12))
 def test_facets_compose_like_prototype(idx: int) -> None:
     case = load("stats-facets")["cases"][idx]
     by_key = {f["key"]: f for f in case["facets"]}

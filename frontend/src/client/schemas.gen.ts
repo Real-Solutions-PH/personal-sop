@@ -6352,6 +6352,40 @@ export const HabitPublicSchema = {
         version: {
             type: 'integer',
             title: 'Version'
+        },
+        rule_kind: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Rule Kind'
+        },
+        rule_group_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Rule Group Id'
+        },
+        rule_max_min: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Rule Max Min'
         }
     },
     type: 'object',
@@ -9239,7 +9273,7 @@ export const MeBundleSchema = {
         setup_skipped: {
             items: {
                 type: 'string',
-                enum: ['habits', 'tasks', 'fitness', 'nutrition', 'focus', 'finance']
+                enum: ['habits', 'tasks', 'fitness', 'nutrition', 'focus', 'finance', 'screen']
             },
             type: 'array',
             title: 'Setup Skipped'
@@ -10427,7 +10461,7 @@ export const ModulePrefPublicSchema = {
     properties: {
         module: {
             type: 'string',
-            enum: ['habits', 'tasks', 'fitness', 'nutrition', 'focus', 'finance'],
+            enum: ['habits', 'tasks', 'fitness', 'nutrition', 'focus', 'finance', 'screen'],
             title: 'Module'
         },
         enabled: {
@@ -11121,7 +11155,7 @@ export const OnboardingInSchema = {
         modules: {
             items: {
                 type: 'string',
-                enum: ['habits', 'tasks', 'fitness', 'nutrition', 'focus', 'finance']
+                enum: ['habits', 'tasks', 'fitness', 'nutrition', 'focus', 'finance', 'screen']
             },
             type: 'array',
             maxItems: 4,
@@ -11138,7 +11172,7 @@ export const OnboardingInSchema = {
                 type: 'number'
             },
             propertyNames: {
-                enum: ['habits', 'tasks', 'fitness', 'nutrition', 'focus', 'finance']
+                enum: ['habits', 'tasks', 'fitness', 'nutrition', 'focus', 'finance', 'screen']
             },
             type: 'object',
             title: 'Targets'
@@ -11161,7 +11195,7 @@ export const OnboardingOutSchema = {
         skipped: {
             items: {
                 type: 'string',
-                enum: ['habits', 'tasks', 'fitness', 'nutrition', 'focus', 'finance']
+                enum: ['habits', 'tasks', 'fitness', 'nutrition', 'focus', 'finance', 'screen']
             },
             type: 'array',
             title: 'Skipped'

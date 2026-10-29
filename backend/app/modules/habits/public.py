@@ -128,6 +128,18 @@ def delete_habit(ctx: Ctx, *, habit_id: uuid.UUID) -> None:
     svc._delete_habit(ctx, habit_id)
 
 
+def rule_habits(ctx: Ctx, *, group_id: uuid.UUID) -> list[Habit]:
+    """The live (not archived, not deleted) habits whose screen-time rule
+    points at ``group_id``."""
+    return owned_repo.list_rows(
+        ctx,
+        Habit,
+        col(Habit.rule_group_id) == group_id,
+        col(Habit.status) != "archived",
+        order_by=(col(Habit.sort_order),),
+    )
+
+
 def get_log(ctx: Ctx, *, habit_id: uuid.UUID, day: date) -> HabitLog | None:
     """The live (habit, day) log, if any."""
     return owned_repo.find_one(

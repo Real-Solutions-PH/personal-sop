@@ -24,7 +24,10 @@ from app.shared.owned import JSONB, OwnedRow, enum_check, tstz
 HABIT_TYPES = ("check", "duration", "count")
 HABIT_STATUSES = ("active", "paused", "archived")
 LOG_STATUSES = ("done", "partial", "skipped")
-LOG_SOURCES = ("tap", "timer", "routine", "capture", "workout")
+LOG_SOURCES = ("tap", "timer", "routine", "capture", "workout", "screen")
+# A habit that completes itself from screen time (spec 2026-10-29).
+RULE_KINDS = ("screen_limit",)
+RULE_MAX_MIN = 1440
 RUN_STATES = ("in_progress", "completed", "abandoned")
 STEP_STATUSES = ("done", "skipped", "not_reached")
 
@@ -35,6 +38,19 @@ class Habit(OwnedRow, table=True):
         enum_check("type", HABIT_TYPES, name="ck_habit_type"),
         enum_check("status", HABIT_STATUSES, name="ck_habit_status"),
         CheckConstraint("target IS NULL OR target > 0", name="ck_habit_target"),
+        CheckConstraint(
+            "rule_kind IS NULL OR rule_kind IN ('screen_limit')",
+            name="ck_habit_rule_kind",
+        ),
+        CheckConstraint(
+            "(rule_kind IS NULL) = (rule_group_id IS NULL)"
+            " AND (rule_kind IS NULL) = (rule_max_min IS NULL)",
+            name="ck_habit_rule",
+        ),
+        CheckConstraint(
+            "rule_max_min IS NULL OR rule_max_min BETWEEN 0 AND 1440",
+            name="ck_habit_rule_max",
+        ),
     )
 
     name: str = Field(max_length=80)
@@ -49,6 +65,14 @@ class Habit(OwnedRow, table=True):
     link_workout: bool = False
     archived_at: datetime | None = Field(default=None, sa_type=tstz())  # type: ignore
     sort_order: int = 0
+    # A screen-time rule: "group G, at most M minutes today". All three set
+    # or none. A rule habit completes itself (``source="screen"`` logs the
+    # phone writes) and refuses every manual action.
+    rule_kind: str | None = Field(default=None, sa_type=String(16))  # type: ignore
+    rule_group_id: uuid.UUID | None = Field(
+        default=None, foreign_key="screen_group.id", ondelete="RESTRICT", index=True
+    )
+    rule_max_min: int | None = Field(default=None, sa_type=Integer)
 
 
 class HabitPause(OwnedRow, table=True):

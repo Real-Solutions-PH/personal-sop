@@ -21,6 +21,7 @@ MODULE_KEYS: tuple[str, ...] = (
     "nutrition",
     "focus",
     "finance",
+    "screen",
 )
 
 ShareTemplate = Literal[
@@ -117,13 +118,13 @@ class PaceSpec:
 PACES: dict[str, PaceSpec] = {
     "gentle": PaceSpec("Gentle", "Easy wins first",
                        {"habits": 60, "tasks": 70, "fitness": 2, "nutrition": 60,
-                        "focus": 3, "finance": 10}),
+                        "focus": 3, "finance": 10, "screen": 240}),
     "steady": PaceSpec("Steady", "A real stretch",
                        {"habits": 80, "tasks": 85, "fitness": 4, "nutrition": 75,
-                        "focus": 5, "finance": 20}),
+                        "focus": 5, "finance": 20, "screen": 180}),
     "ambitious": PaceSpec("Ambitious", "No days off",
                           {"habits": 90, "tasks": 95, "fitness": 5, "nutrition": 90,
-                           "focus": 6, "finance": 30}),
+                           "focus": 6, "finance": 30, "screen": 120}),
 }  # fmt: skip
 
 
@@ -151,13 +152,15 @@ STARTERS: dict[str, Starter] = {
                      "days you reach your focus goal"),
     "finance": Starter("finance:savings-rate", "Savings rate", 20, "%", "gte",
                        "month", "of income kept this month"),
+    "screen": Starter("screen:screen.used", "Screen time a day", 180, "", "lte",
+                      "week", "minutes on your phone a day, at most"),
 }  # fmt: skip
 
 
 # ---------------------------------------------------------------- refs and keys
 
 _REF = re.compile(
-    r"^(life|onTarget|(habits|tasks|fitness|nutrition|focus|finance):[A-Za-z0-9._-]{1,48})$"
+    r"^(life|onTarget|(habits|tasks|fitness|nutrition|focus|finance|screen):[A-Za-z0-9._-]{1,48})$"
 )
 _REVIEW = re.compile(r"^([wm])-(\d{4}-\d{2}-\d{2})$")
 

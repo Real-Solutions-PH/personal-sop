@@ -1645,6 +1645,9 @@ export type HabitPublic = {
     sort_order: number;
     created_at: string;
     version: number;
+    rule_kind?: (string | null);
+    rule_group_id?: (string | null);
+    rule_max_min?: (number | null);
 };
 
 /**
@@ -2305,7 +2308,7 @@ export type MeBundle = {
     profile: ProfilePublic;
     modules: Array<ModulePrefPublic>;
     identities: Array<IdentityPublic>;
-    setup_skipped: Array<('habits' | 'tasks' | 'fitness' | 'nutrition' | 'focus' | 'finance')>;
+    setup_skipped: Array<('habits' | 'tasks' | 'fitness' | 'nutrition' | 'focus' | 'finance' | 'screen')>;
     live: (LivePublic | null);
 };
 
@@ -2425,12 +2428,12 @@ export type ModelsOut = {
 };
 
 export type ModulePrefPublic = {
-    module: 'habits' | 'tasks' | 'fitness' | 'nutrition' | 'focus' | 'finance';
+    module: 'habits' | 'tasks' | 'fitness' | 'nutrition' | 'focus' | 'finance' | 'screen';
     enabled: boolean;
     weight: number;
 };
 
-export type module = 'habits' | 'tasks' | 'fitness' | 'nutrition' | 'focus' | 'finance';
+export type module = 'habits' | 'tasks' | 'fitness' | 'nutrition' | 'focus' | 'finance' | 'screen';
 
 export type ModulePrefUpdate = {
     enabled?: (boolean | null);
@@ -2581,7 +2584,7 @@ export type Ok = {
 };
 
 export type OnboardingIn = {
-    modules: Array<('habits' | 'tasks' | 'fitness' | 'nutrition' | 'focus' | 'finance')>;
+    modules: Array<('habits' | 'tasks' | 'fitness' | 'nutrition' | 'focus' | 'finance' | 'screen')>;
     pace?: 'gentle' | 'steady' | 'ambitious';
     targets?: {
         [key: string]: (number);
@@ -2592,7 +2595,7 @@ export type pace = 'gentle' | 'steady' | 'ambitious';
 
 export type OnboardingOut = {
     created: Array<GoalPublic>;
-    skipped: Array<('habits' | 'tasks' | 'fitness' | 'nutrition' | 'focus' | 'finance')>;
+    skipped: Array<('habits' | 'tasks' | 'fitness' | 'nutrition' | 'focus' | 'finance' | 'screen')>;
 };
 
 export type OnceSchedule = {

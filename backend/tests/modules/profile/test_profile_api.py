@@ -33,6 +33,7 @@ def test_first_read_creates_defaults(client: TestClient, db: Session) -> None:
         "nutrition": 2,
         "focus": 2,
         "finance": 2,
+        "screen": 2,
     }
     assert body["identities"] == [] and body["live"] is None
     assert p["version"] > 0
