@@ -1,9 +1,10 @@
 import { startFocus } from "@domain/focus/actions"
 import * as A from "@domain/habits/actions"
-import type { Habit } from "@domain/habits/data"
+import type { Habit, HabitLog as LogRow } from "@domain/habits/data"
 import * as L from "@domain/habits/logic"
 import { habitsStore } from "@domain/habits/store"
 import { dayKey, dayOffset } from "@domain/lib/day"
+import { useScreen } from "@domain/screen/store"
 import {
   ChevronLeft,
   ChevronRight,
@@ -19,6 +20,7 @@ import { go } from "../navigation"
 import { useTheme } from "../theme"
 import { Button, confirm, DateField, Empty, Field, Screen, Sheet } from "../ui"
 import { HabitLog } from "./habits"
+import { AutoMark, RuleRing, RuleText, useRuleState } from "./screen-card"
 
 function fmt(day: string) {
   return new Date(`${day}T12:00:00`).toLocaleDateString("en-US", {
@@ -163,6 +165,38 @@ function Month({ habit }: { habit: Habit }) {
     </View>
   )
 }
+/** Today for a habit screen time completes: the ring and what's used. */
+function RuleToday({ habit, log }: { habit: Habit; log?: LogRow }) {
+  const state = useRuleState(habit),
+    group = useScreen().groups.find((g) => g.id === habit.rule?.groupId),
+    max = habit.rule?.maxMin ?? 0
+  return (
+    <Frame style={{ padding: 12 }}>
+      <Line style={{ gap: 12 }}>
+        <RuleRing habit={habit} log={log} state={state} size={37} ring={3} />
+        <View style={{ flex: 1, gap: 2 }}>
+          <Copy size={14} weight="medium">
+            {max === 0
+              ? `No ${group?.name ?? "screen time"} today`
+              : `At most ${max} min of ${group?.name ?? "screen time"}`}
+          </Copy>
+          <Line style={{ gap: 6 }}>
+            <RuleText
+              state={state}
+              maxMin={max}
+              done={log?.status === "done"}
+            />
+            <AutoMark />
+          </Line>
+          <Copy size={12} muted>
+            Completes itself when the day ends within the limit.
+          </Copy>
+        </View>
+      </Line>
+    </Frame>
+  )
+}
+
 export function HabitDetail({ id }: { id: string }) {
   const t = useTheme(),
     s = habitsStore.use((s) => s),
@@ -263,9 +297,11 @@ export function HabitDetail({ id }: { id: string }) {
             <Copy size={14} muted>
               {L.scheduleLabel(h.schedule)}
             </Copy>
-            <Copy size={14} muted>
-              Target · {L.targetLabel(h)}
-            </Copy>
+            {!h.rule && (
+              <Copy size={14} muted>
+                Target · {L.targetLabel(h)}
+              </Copy>
+            )}
             {h.linkWorkout && (
               <Copy size={12} style={{ color: t.fit }}>
                 Auto-checks when a workout is logged
@@ -283,6 +319,8 @@ export function HabitDetail({ id }: { id: string }) {
               Resume
             </Button>
           </Frame>
+        ) : h.rule ? (
+          <RuleToday habit={h} log={log} />
         ) : (
           <Line style={{ gap: 8 }}>
             <View style={{ flex: 1 }}>
@@ -453,7 +491,9 @@ export function HabitDetail({ id }: { id: string }) {
           {recent.map((l) => (
             <Tap
               key={l.id}
-              onPress={() => setLogDay(l.day)}
+              onPress={() => {
+                if (!h.rule) setLogDay(l.day)
+              }}
               style={{ paddingHorizontal: 12, paddingVertical: 10 }}
             >
               <Line>

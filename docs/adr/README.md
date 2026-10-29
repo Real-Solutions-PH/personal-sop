@@ -22,3 +22,4 @@ Start new ADRs from [template.md](template.md).
 | [0024](0024-nutrition-as-its-own-module.md) | Nutrition as its own module, separate from Fitness |
 | [0025](0025-focus-module.md) | Focus: a Pomodoro and stopwatch that record what the time went to |
 | [0026](0026-eas-build-submit-and-update.md) | EAS Build, Submit and Update for iOS releases (no Xcode, over-the-air JS updates) |
+| [0027](0027-screen-time.md) | Screen time: lower-bound minutes from DeviceActivity thresholds, auto habits, gated entitlement |

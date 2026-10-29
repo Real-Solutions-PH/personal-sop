@@ -905,6 +905,8 @@ const AREA_OF: Record<Accent, FeedArea | null> = {
   foc: "tasks",
   tsk: "tasks",
   fin: "finance",
+  // Screen time has no feed filter of its own.
+  scr: null,
   primary: null,
 }
 export const areaOf = (p?: Progress) => (p ? AREA_OF[p.accent] : null)

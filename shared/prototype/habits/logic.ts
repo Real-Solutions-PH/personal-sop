@@ -1,4 +1,5 @@
 import { DAY_START_HOUR, dayKey, dayOffset, weekday } from "../lib/day"
+import type { RuleState } from "../screen/logic"
 import {
   type Habit,
   type HabitLog,
@@ -273,10 +274,18 @@ export function valueLabel(h: Habit, v?: number) {
   return ""
 }
 /** How far today's log is toward the habit's target, 0–1: counts and
- * minutes against their target; a plain check is all or nothing. */
-export function progressOf(h: Habit, log?: HabitLog): number {
+ * minutes against their target; a plain check is all or nothing. A habit
+ * driven by screen time fills with the day while within its limit
+ * (``state`` from screen/logic ``ruleState``) and is empty once broken or
+ * when the day is not tracked. */
+export function progressOf(
+  h: Habit,
+  log?: HabitLog,
+  state?: RuleState,
+): number {
+  if (log?.status === "done") return 1
+  if (h.rule) return state?.kind === "tracking" ? state.progress : 0
   if (!log) return 0
-  if (log.status === "done") return 1
   if (h.type === "check" || log.value === undefined) return 0
   const target = h.target ?? (h.type === "count" ? 1 : 0)
   return target > 0 ? Math.max(0, Math.min(1, log.value / target)) : 0

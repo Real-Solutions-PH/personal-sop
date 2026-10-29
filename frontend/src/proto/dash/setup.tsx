@@ -68,6 +68,12 @@ const STEP: Record<ModuleKey, { title: string; why: string; time: string }> = {
     why: "Dump what's in your head. Dates like 'friday' are picked up for you.",
     time: "1 min",
   },
+  // Not in ORDER: screen time is read on the phone only.
+  screen: {
+    title: "Your screen time",
+    why: "Pick the apps to watch and a daily budget.",
+    time: "1 min",
+  },
 }
 
 /** Which modules already hold data (a step is done when its module does). */
@@ -82,6 +88,7 @@ export function useSetupStatus() {
     ),
     nutrition: fitStore.use((s) => s.targets.length > 0),
     focus: true,
+    screen: true,
     tasks: tasksStore.use((s) => s.tasks.length > 0),
   }
   const steps = ORDER.filter((k) => enabled[k])

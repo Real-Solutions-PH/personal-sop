@@ -12,6 +12,7 @@ export type Accent =
   | "nut"
   | "foc"
   | "fin"
+  | "scr"
   | "life"
 export const AccentContext = createContext<Accent>("primary")
 export const accents = palette.light

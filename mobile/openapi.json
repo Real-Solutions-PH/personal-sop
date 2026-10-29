@@ -171,7 +171,7 @@
       "get": {
         "tags": ["users"],
         "summary": "Export My Data",
-        "description": "Self-service data export (GDPR portability): the caller's own record and\nall their items. Gated by authentication only \u2014 it is your own data.",
+        "description": "Self-service data export (GDPR portability): the caller's own record and\nall their items. Gated by authentication only — it is your own data.",
         "operationId": "users-export_my_data",
         "responses": {
           "200": {
@@ -6398,7 +6398,7 @@
       "post": {
         "tags": ["fitness"],
         "summary": "Adjust Rest",
-        "description": "\u00b115 s on the rest banner (FIT-08).",
+        "description": "±15 s on the rest banner (FIT-08).",
         "operationId": "fitness-adjust_rest",
         "requestBody": {
           "content": {
@@ -16498,7 +16498,7 @@
       "delete": {
         "tags": ["social"],
         "summary": "Delete Post",
-        "description": "Soft delete; ``POST \u2026/restore`` undoes it for a short window.",
+        "description": "Soft delete; ``POST …/restore`` undoes it for a short window.",
         "operationId": "social-delete_post",
         "security": [{ "HTTPBearer": [] }],
         "parameters": [
@@ -19765,7 +19765,7 @@
           "created_at"
         ],
         "title": "AuditLogPublic",
-        "description": "One audit row as returned over the API.\n\n``before``/``after`` are the snapshots captured at write time via\n``audit.snapshot``, which is an explicit non-secret allow-list \u2014 so they\ncarry no credentials or connection secrets (MCP/tool ``config`` is never\ncaptured) and are safe to expose to an ``audit:read`` holder."
+        "description": "One audit row as returned over the API.\n\n``before``/``after`` are the snapshots captured at write time via\n``audit.snapshot``, which is an explicit non-secret allow-list — so they\ncarry no credentials or connection secrets (MCP/tool ``config`` is never\ncaptured) and are safe to expose to an ``audit:read`` holder."
       },
       "AuditLogsPublic": {
         "properties": {
@@ -22652,7 +22652,7 @@
             "type": "string",
             "maxLength": 32,
             "title": "Icon",
-            "default": "\u2705"
+            "default": "✅"
           },
           "type": {
             "type": "string",
@@ -22817,7 +22817,22 @@
             "format": "date-time",
             "title": "Created At"
           },
-          "version": { "type": "integer", "title": "Version" }
+          "version": { "type": "integer", "title": "Version" },
+          "rule_kind": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Rule Kind"
+          },
+          "rule_group_id": {
+            "anyOf": [
+              { "type": "string", "format": "uuid" },
+              { "type": "null" }
+            ],
+            "title": "Rule Group Id"
+          },
+          "rule_max_min": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Rule Max Min"
+          }
         },
         "type": "object",
         "required": [
@@ -23046,7 +23061,7 @@
         "type": "object",
         "required": ["status"],
         "title": "HandleAvailability",
-        "description": "Sign-up's check, made before any account exists: the verdict only \u2014\nnever the handle back, and nothing about the account holding it."
+        "description": "Sign-up's check, made before any account exists: the verdict only —\nnever the handle back, and nothing about the account holding it."
       },
       "HandleCheck": {
         "properties": {
@@ -24805,7 +24820,8 @@
                 "fitness",
                 "nutrition",
                 "focus",
-                "finance"
+                "finance",
+                "screen"
               ]
             },
             "type": "array",
@@ -25581,7 +25597,8 @@
               "fitness",
               "nutrition",
               "focus",
-              "finance"
+              "finance",
+              "screen"
             ],
             "title": "Module"
           },
@@ -26048,7 +26065,8 @@
                 "fitness",
                 "nutrition",
                 "focus",
-                "finance"
+                "finance",
+                "screen"
               ]
             },
             "type": "array",
@@ -26070,7 +26088,8 @@
                 "fitness",
                 "nutrition",
                 "focus",
-                "finance"
+                "finance",
+                "screen"
               ]
             },
             "type": "object",
@@ -26097,7 +26116,8 @@
                 "fitness",
                 "nutrition",
                 "focus",
-                "finance"
+                "finance",
+                "screen"
               ]
             },
             "type": "array",

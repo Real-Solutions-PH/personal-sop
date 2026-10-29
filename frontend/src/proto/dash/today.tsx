@@ -299,6 +299,7 @@ function NextUpCard() {
     nutrition: "bg-nut/15 text-nut",
     focus: "bg-foc/15 text-foc",
     finance: "bg-fin/15 text-fin",
+    screen: "bg-scr/15 text-scr",
   }[next.module]
   return (
     <Card className="flex items-center gap-3">

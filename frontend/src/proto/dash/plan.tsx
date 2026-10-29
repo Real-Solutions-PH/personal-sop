@@ -75,6 +75,7 @@ const DOT: Record<ModuleKey, string> = {
   nutrition: "bg-nut",
   focus: "bg-foc",
   finance: "bg-fin",
+  screen: "bg-scr",
 }
 
 const mondayOf = (key: string) => {

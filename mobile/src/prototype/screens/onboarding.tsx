@@ -61,6 +61,7 @@ const modules = {
   fitness: { icon: Dumbbell, color: "fit" },
   nutrition: { icon: Utensils, color: "nut" },
   focus: { icon: Timer, color: "foc" },
+  screen: { icon: Smartphone, color: "scr" },
   finance: { icon: Wallet, color: "fin" },
 } as const
 export function Onboarding() {

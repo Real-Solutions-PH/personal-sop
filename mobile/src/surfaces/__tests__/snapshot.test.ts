@@ -101,8 +101,29 @@ it("habits are today's due ones, open first, with their streaks", () => {
     const h = st.habits.find((x) => x.id === item.id)
     if (!h) throw new Error("unknown habit in snapshot")
     expect(item.streak).toBe(H.streaks(h, idx, today).current)
-    expect(item.checkable).toBe(h.type === "check")
+    expect(item.checkable).toBe(h.type === "check" && !h.rule)
   }
+})
+
+it("a habit that completes from screen time is never checkable on a widget", () => {
+  const st = habitsStore.get()
+  const target = st.habits.find(
+    (h) =>
+      h.type === "check" && h.status !== "archived" && H.isDue(h, dayKey()),
+  )
+  if (!target) throw new Error("seed has no due check habit")
+  habitsStore.set((s) => ({
+    ...s,
+    habits: s.habits.map((h) =>
+      h.id === target.id
+        ? { ...h, rule: { kind: "screen_limit", groupId: "g", maxMin: 0 } }
+        : h,
+    ),
+  }))
+  const item = buildSnapshot(input()).habits.items.find(
+    (i) => i.id === target.id,
+  )
+  expect(item?.checkable).toBe(false)
 })
 
 it("checking a habit changes the snapshot; the write time alone does not", () => {
@@ -208,6 +229,7 @@ it("a module switched off leaves its widget empty", () => {
           nutrition: false,
           focus: false,
           finance: false,
+          screen: false,
         },
       },
     }),

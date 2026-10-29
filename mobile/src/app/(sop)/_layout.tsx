@@ -35,6 +35,7 @@ import { startReminders } from "@/prototype/local-reminders"
 import { prototypeMode } from "@/prototype/mode"
 import { go, replace } from "@/prototype/navigation"
 import { startRestAlarm } from "@/prototype/rest-alarm"
+import { startScreenSync } from "@/prototype/screen-sync"
 import { CaptureOverlay } from "@/prototype/screens/capture"
 import { stepTab, TAB_ROUTES, tabDirection } from "@/prototype/tab-swipe"
 import { AccentContext, fonts, useTheme } from "@/prototype/theme"
@@ -213,6 +214,8 @@ export default function PrototypeLayout() {
   // The focus timer's Live bar entry, end-of-set notice and catch-up.
   useEffect(() => startFocusLive(), [])
   useEffect(() => startRestAlarm(), [])
+  // Screen time: reconcile the monitor's events on every foreground.
+  useEffect(() => startScreenSync(), [])
   const fern = fernPalette(t.dark)
   // Swiping slides tabs in from the side you swiped toward; tapping fades.
   const tabAnimation = {

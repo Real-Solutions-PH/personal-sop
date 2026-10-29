@@ -244,7 +244,8 @@
           "fitness": 2,
           "nutrition": 60,
           "focus": 3,
-          "finance": 10
+          "finance": 10,
+          "screen": 240
         }
       },
       "steady": {
@@ -256,7 +257,8 @@
           "fitness": 4,
           "nutrition": 75,
           "focus": 5,
-          "finance": 20
+          "finance": 20,
+          "screen": 180
         }
       },
       "ambitious": {
@@ -268,7 +270,8 @@
           "fitness": 5,
           "nutrition": 90,
           "focus": 6,
-          "finance": 30
+          "finance": 30,
+          "screen": 120
         }
       }
     },
@@ -326,6 +329,15 @@
         "comparator": "gte",
         "period": "month",
         "hint": "of income kept this month"
+      },
+      "screen": {
+        "metric": "screen:screen.used",
+        "label": "Screen time a day",
+        "target": 180,
+        "unit": "",
+        "comparator": "lte",
+        "period": "week",
+        "hint": "minutes on your phone a day, at most"
       }
     },
     "identities": [
@@ -352,6 +364,10 @@
       {
         "text": "I'm in control of my money",
         "module": "finance"
+      },
+      {
+        "text": "I choose where my attention goes",
+        "module": "screen"
       },
       {
         "text": "I keep the promises I make to myself"
@@ -381,6 +397,10 @@
       {
         "metric": "finance:savings-rate",
         "text": "≥ 20% / month"
+      },
+      {
+        "metric": "screen:screen.used",
+        "text": "≤ 180 / week"
       }
     ]
   }

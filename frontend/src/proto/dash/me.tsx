@@ -98,6 +98,8 @@ export const MODULE_CONFIG: Record<
     { href: "/finance/budgets", label: "Budgets" },
     { href: "/finance/settings", label: "Finance settings" },
   ],
+  // Screen time reads the phone's Screen Time API: native only.
+  screen: [],
 }
 
 export function useInstallState() {

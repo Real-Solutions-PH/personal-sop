@@ -49,6 +49,7 @@
   --color-fit: var(--fit);
   --color-nut: var(--nut);
   --color-foc: var(--foc);
+  --color-scr: var(--scr);
   --color-fin: var(--fin);
   --color-life: var(--life);
   --color-good: var(--good);
@@ -105,6 +106,7 @@
   --fit: #c2570f;
   --nut: #c2387c;
   --foc: #0a7d92;
+  --scr: #736a34;
   --fin: #0e8a62;
   --life: #a87800;
   --good: #2c7350;
@@ -191,6 +193,7 @@
   --fit: #d06e2b;
   --nut: #d45c98;
   --foc: #3cb0c4;
+  --scr: #b2a862;
   --fin: #25a877;
   --life: #b8871a;
   --good: #8fcaa6;

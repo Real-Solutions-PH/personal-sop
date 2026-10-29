@@ -3,6 +3,7 @@ import {
   ListChecks,
   type LucideIcon,
   Repeat,
+  Smartphone,
   Timer,
   Utensils,
   Wallet,
@@ -12,7 +13,7 @@ export const AREA: Record<
   ModuleKey,
   {
     label: string
-    accent: "hab" | "tsk" | "fit" | "nut" | "foc" | "fin"
+    accent: "hab" | "tsk" | "fit" | "nut" | "foc" | "fin" | "scr"
     icon: LucideIcon
   }
 > = {
@@ -22,6 +23,7 @@ export const AREA: Record<
   nutrition: { label: "Nutrition", accent: "nut", icon: Utensils },
   focus: { label: "Focus", accent: "foc", icon: Timer },
   finance: { label: "Finance", accent: "fin", icon: Wallet },
+  screen: { label: "Screen time", accent: "scr", icon: Smartphone },
 }
 
 export * from "../../../../shared/prototype/dash/data"

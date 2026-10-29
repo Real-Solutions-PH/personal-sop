@@ -5,6 +5,7 @@ export type ModuleKey =
   | "nutrition"
   | "focus"
   | "finance"
+  | "screen"
 export interface Metric {
   key: string
   label: string

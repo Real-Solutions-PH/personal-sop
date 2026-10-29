@@ -83,6 +83,7 @@ import {
   Tap,
 } from "../native-kit"
 import { go } from "../navigation"
+import { useScreenSetUp } from "../screen-sync"
 import { CommunityButton, CommunityCard } from "../social/today-card"
 import { fonts, radius, useTheme } from "../theme"
 import { Button, Screen, SwipeRow, undo, useNow } from "../ui"
@@ -94,6 +95,7 @@ import { RecordEditor, useMoney } from "./finance"
 import { HabitLog } from "./habits"
 import { MoodCheckIn } from "./mood-check-in"
 import { NutritionDay } from "./nutrition-day"
+import { AutoMark, RuleRing, RuleText, useRuleState } from "./screen-card"
 import { SleepPart } from "./sleep-card"
 import { TaskRow } from "./tasks"
 import {
@@ -127,6 +129,7 @@ export function DayHero() {
     nutrition: "nut",
     focus: "foc",
     finance: "fin",
+    screen: "scr",
   } as const
   return (
     <Frame style={{ borderRadius: 24 }}>
@@ -283,7 +286,12 @@ function TodayPlan() {
       : null
   const taskOf = (i: CalendarItem) =>
     i.module === "tasks" && i.id.startsWith("task:") ? i.id.slice(5) : null
-  const doneable = (i: CalendarItem) => Boolean(habitOf(i) || taskOf(i))
+  const habitList = habitsStore.use((s) => s.habits),
+    auto = new Set(habitList.filter((h) => h.rule).map((h) => h.id))
+  const doneable = (i: CalendarItem) => {
+    const h = habitOf(i)
+    return Boolean((h && !auto.has(h)) || taskOf(i))
+  }
   const markDone = (i: CalendarItem) => {
     const h = habitOf(i)
     const k = taskOf(i)
@@ -414,6 +422,83 @@ function TodayPlan() {
   )
 }
 function TodayHabit({ habit }: { habit: Habit }) {
+  return habit.rule ? (
+    <RuleTodayHabit habit={habit} />
+  ) : (
+    <ManualTodayHabit habit={habit} />
+  )
+}
+/** A habit screen time completes: its ring fills through the day and the
+ * row says how much is used, with nothing to tick, swipe or log by hand. */
+function RuleTodayHabit({ habit }: { habit: Habit }) {
+  const t = useTheme(),
+    logs = habitsStore.use((s) => s.logs),
+    today = dayKey(),
+    idx = H.logIndex(logs),
+    log = idx.get(H.lk(habit.id, today)),
+    streak = H.streaks(habit, idx, today).current,
+    done = log?.status === "done",
+    state = useRuleState(habit, today)
+  return (
+    <Animated.View entering={rowEnter} exiting={rowExit}>
+      <Line style={{ gap: 8, paddingVertical: 4 }}>
+        <View
+          style={{
+            minWidth: 44,
+            minHeight: 44,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <RuleRing habit={habit} log={log} state={state} size={37} ring={3} />
+        </View>
+        <Tap
+          onPress={() => go(`/habits/${habit.id}`)}
+          style={{ flex: 1, paddingVertical: 6 }}
+        >
+          <Copy
+            weight="medium"
+            lines={1}
+            style={
+              done ? { color: t.muted, textDecorationLine: "line-through" } : {}
+            }
+          >
+            {habit.icon} {habit.name}
+          </Copy>
+          <Line style={{ gap: 6 }}>
+            <RuleText
+              state={state}
+              maxMin={habit.rule?.maxMin ?? 0}
+              done={done}
+            />
+            <AutoMark />
+            {streak > 0 && (
+              <Line
+                style={{
+                  gap: 2,
+                  borderRadius: 12,
+                  backgroundColor: `${t.warn}26`,
+                  paddingHorizontal: 6,
+                  paddingVertical: 1,
+                }}
+              >
+                <Flame size={12} color={t.warn} />
+                <Copy
+                  size={11}
+                  weight="semibold"
+                  style={{ color: t.warn, lineHeight: 14 }}
+                >
+                  {streak}
+                </Copy>
+              </Line>
+            )}
+          </Line>
+        </Tap>
+      </Line>
+    </Animated.View>
+  )
+}
+function ManualTodayHabit({ habit }: { habit: Habit }) {
   const t = useTheme(),
     logs = habitsStore.use((s) => s.logs),
     [sheet, setSheet] = useState(false),
@@ -1574,6 +1659,7 @@ export function Today() {
     ),
     nut = fitStore.use((s) => s.targets.length + s.meals.length),
     foc = focusStore.use((s) => s.sessions.length + (s.settingsSaved ? 1 : 0)),
+    scr = useScreenSetUp(),
     shown = extrasStore.use((s) => s)
   const has = {
       habits,
@@ -1582,6 +1668,7 @@ export function Today() {
       fitness: fit,
       nutrition: nut,
       focus: foc,
+      screen: scr,
     },
     pending = MODULE_KEYS.filter((k) => s.enabled[k] && !has[k]),
     greeting =

@@ -18,6 +18,11 @@ Decisions recorded here (each overridable in one place):
   abandoned this way: the start fails with 409 ``live_session_busy``.
 - Exiting the player releases the Live bar but keeps the run in progress, so
   it is resumable until the day ends (F-HAB-27).
+- A habit with a screen-time rule completes itself: every manual way to log,
+  skip, clear or time it is refused with 409 ``habit_auto``
+  (:func:`_require_manual`). Its only logs are the phone's ``source="screen"``
+  ones, synced under a derived id; such a log never overwrites a log the
+  day already has from before the rule.
 """
 
 import uuid
@@ -50,6 +55,7 @@ from app.modules.habits.schema import (
     StepIn,
 )
 from app.modules.profile import public as profile
+from app.modules.screen import public as screen_public
 from app.modules.stats import public as stats
 from app.shared import owned_repo
 from app.shared.context import Ctx
@@ -82,6 +88,42 @@ def require_habit(ctx: Ctx, habit_id: uuid.UUID) -> Habit:
 
 def require_routine(ctx: Ctx, routine_id: uuid.UUID) -> Routine:
     return owned_repo.require(ctx, Routine, routine_id, what="routine")
+
+
+def _require_manual(habit: Habit) -> None:
+    """A habit with a screen-time rule completes itself: no manual action."""
+    if habit.rule_kind is not None:
+        raise conflict(
+            "habit_auto", "This habit completes itself from your screen time"
+        )
+
+
+RULE_FIELDS = ("rule_kind", "rule_group_id", "rule_max_min")
+
+
+def _check_rule(ctx: Ctx, existing: Habit | None, values: dict[str, Any]) -> None:
+    """A rule is all three fields or none, on a check habit, pointing at one
+    of the caller's live screen-time groups when it starts pointing there."""
+
+    def after(key: str, default: Any = None) -> Any:
+        if key in values:
+            return values[key]
+        return getattr(existing, key) if existing is not None else default
+
+    kind, group_id, max_min = (after(k) for k in RULE_FIELDS)
+    present = [v is not None for v in (kind, group_id, max_min)]
+    if any(present) and not all(present):
+        raise invalid(
+            "habit_rule_incomplete", "A screen-time rule needs a group and a limit"
+        )
+    if kind is None:
+        return
+    if after("type", "check") != "check":
+        raise invalid(
+            "habit_rule_type", "A habit that completes from screen time is a check"
+        )
+    if existing is None or existing.rule_group_id != group_id:
+        screen_public.require_live_group(ctx, group_id)
 
 
 def _dump_schedule(slots: list[Any] | None) -> list[dict[str, object]] | None:
@@ -149,6 +191,7 @@ def _log(
     log_id: uuid.UUID | None = None,
 ) -> HabitLog:
     """Create-or-edit the (habit, day) log (``logHabit``). Flushes only."""
+    _require_manual(habit)
     the_day = day or ctx.today
     if the_day > ctx.today:
         raise invalid("log_day_in_future", "You can't log a day that hasn't happened")
@@ -253,7 +296,7 @@ def skip_habit(
 
 def clear_log(ctx: Ctx, *, habit_id: uuid.UUID, day: date | None = None) -> HabitLog:
     """Undo the (habit, day) log. Returns the removed log for an undo toast."""
-    require_habit(ctx, habit_id)
+    _require_manual(require_habit(ctx, habit_id))
     the_day = day or ctx.today
     row = _find_log(ctx, habit_id, the_day)
     if row is None:
@@ -266,6 +309,9 @@ def clear_log(ctx: Ctx, *, habit_id: uuid.UUID, day: date | None = None) -> Habi
 
 def _delete_log(ctx: Ctx, *, log_id: uuid.UUID) -> None:
     row = owned_repo.require(ctx, HabitLog, log_id, what="habit_log")
+    habit = owned_repo.get(ctx, Habit, row.habit_id)
+    if habit is not None:
+        _require_manual(habit)
     owned_repo.soft_delete(ctx, row)
     _dirty(ctx, row.day)
 
@@ -279,7 +325,9 @@ def _restore_log(ctx: Ctx, *, log_id: uuid.UUID) -> HabitLog:
     row = owned_repo.require(
         ctx, HabitLog, log_id, what="habit_log", include_deleted=True
     )
-    require_habit(ctx, row.habit_id)
+    habit = require_habit(ctx, row.habit_id)
+    if row.source != "screen":
+        _require_manual(habit)
     owned_repo.restore(ctx, row)
     _dirty(ctx, row.day)
     return row
@@ -304,6 +352,7 @@ def set_day(
         if status is None:
             existing = _find_log(ctx, habit_id, day)
             if existing is not None:
+                _require_manual(habit)
                 owned_repo.soft_delete(ctx, existing)
             continue
         out.append(
@@ -323,9 +372,28 @@ def upsert_log_sync(ctx: Ctx, row_id: uuid.UUID, data: dict[str, Any]) -> HabitL
     day = data.get("day") or (existing.day if existing else None)
     if habit_id is None or day is None:
         raise invalid("missing_fields", "A log needs a habit and a day")
-    require_habit(ctx, habit_id)
+    habit = require_habit(ctx, habit_id)
     if day > ctx.today:
         raise invalid("log_day_in_future", "You can't log a day that hasn't happened")
+    source = data.get("source") or (existing.source if existing else "tap")
+    if habit.rule_kind is None:
+        if source == "screen":
+            raise invalid(
+                "screen_source_mismatch",
+                "Only a habit with a screen-time rule completes from screen time",
+            )
+    else:
+        if source != "screen":
+            _require_manual(habit)
+        # The reconciler only fills a day with no log: one that predates the
+        # rule (a tap, say) stands, and the replay lands on it unchanged.
+        current = existing if existing is not None else _find_log(ctx, habit_id, day)
+        if (
+            current is not None
+            and current.deleted_at is None
+            and current.source != "screen"
+        ):
+            return current
     data = {**data, "habit_id": habit_id, "day": day}
     if existing is None:
         data.setdefault("logged_at", ctx.now)
@@ -391,6 +459,7 @@ def update_habit(ctx: Ctx, *, habit_id: uuid.UUID, patch: HabitUpdate) -> Habit:
     for key in ("name", "icon", "type", "reminder", "link_workout", "sort_order"):
         if key in values and values[key] is None:
             raise invalid("field_required", "That field can't be empty")
+    _check_rule(ctx, row, values)
     owned_repo.apply(row, values)
     ctx.session.add(row)
     ctx.session.flush()
@@ -404,6 +473,7 @@ def upsert_habit_sync(ctx: Ctx, row_id: uuid.UUID, payload: HabitSyncIn) -> Habi
     if payload.schedule is not None:
         values["schedule"] = _dump_schedule(payload.schedule)
     existing = owned_repo.get(ctx, Habit, row_id, include_deleted=True)
+    _check_rule(ctx, existing, values)
     if existing is None:
         values.setdefault("sort_order", _next_sort_order(ctx))
         values.setdefault("schedule", [{"days": EVERY_DAY}])
@@ -758,6 +828,7 @@ def start_timer(ctx: Ctx, *, habit_id: uuid.UUID) -> HabitTimer:
     """Claim the Live bar for this habit's timer (409 ``live_session_busy``
     when something else holds it), then start or keep its timer."""
     habit = require_habit(ctx, habit_id)
+    _require_manual(habit)
     profile.start_live(
         ctx,
         kind="timer",
@@ -1218,10 +1289,15 @@ def auto_check_workout_habits(
     ctx: Ctx, *, day: date, workout_id: uuid.UUID
 ) -> list[HabitLog]:
     """Tick every non-archived habit linked to workouts that is not already
-    done on ``day`` (``autoCheckWorkoutHabits``). Flushes only."""
+    done on ``day`` (``autoCheckWorkoutHabits``). A habit with a screen-time
+    rule is left alone: only screen time completes it. Flushes only."""
     out: list[HabitLog] = []
     for h in owned_repo.list_rows(
-        ctx, Habit, col(Habit.link_workout).is_(True), col(Habit.status) != "archived"
+        ctx,
+        Habit,
+        col(Habit.link_workout).is_(True),
+        col(Habit.status) != "archived",
+        col(Habit.rule_kind).is_(None),
     ):
         cur = _find_log(ctx, h.id, day)
         if cur is not None and cur.status == "done":

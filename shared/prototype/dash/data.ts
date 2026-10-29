@@ -7,6 +7,7 @@ export const MODULE_KEYS: ModuleKey[] = [
   "nutrition",
   "focus",
   "finance",
+  "screen",
 ]
 export const AREA = {
   habits: { label: "Habits", accent: "hab" },
@@ -15,6 +16,7 @@ export const AREA = {
   nutrition: { label: "Nutrition", accent: "nut" },
   focus: { label: "Focus", accent: "foc" },
   finance: { label: "Finance", accent: "fin" },
+  screen: { label: "Screen time", accent: "scr" },
 } as const
 const pad = (n: number) => String(n).padStart(2, "0")
 const keyOf = (d: Date) =>
@@ -131,6 +133,7 @@ export const seed = (): DashState => ({
     nutrition: 2,
     focus: 2,
     finance: 2,
+    screen: 2,
   },
   enabled: {
     habits: true,
@@ -139,6 +142,7 @@ export const seed = (): DashState => ({
     nutrition: true,
     focus: true,
     finance: true,
+    screen: true,
   },
   goals: [
     {

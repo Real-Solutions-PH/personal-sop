@@ -31,6 +31,7 @@ import {
   Dumbbell,
   ListChecks,
   Repeat2,
+  Smartphone,
   Timer,
   Utensils,
   Wallet,
@@ -51,6 +52,13 @@ import {
   Tap,
 } from "../native-kit"
 import { back, go, replace } from "../navigation"
+import {
+  refreshScreenStatus,
+  screenStatus,
+  syncScreenTime,
+  useScreenSetUp,
+} from "../screen-sync"
+import { requestScreenTime, screenTimeAvailable } from "../screen-time"
 import { AccentContext, fonts, useTheme } from "../theme"
 import { Button } from "../ui"
 import { FinanceSetup } from "./finance-setup"
@@ -62,6 +70,7 @@ const ORDER: ModuleKey[] = [
   "fitness",
   "nutrition",
   "focus",
+  "screen",
   "tasks",
 ]
 
@@ -90,6 +99,11 @@ const STEP: Record<ModuleKey, { title: string; why: string; time: string }> = {
     title: "Your daily focus goal",
     why: "How many hours of deep work a day counts as a good day, and the timer you like.",
     time: "15 sec",
+  },
+  screen: {
+    title: "Connect Screen Time",
+    why: "Pick the apps to count, like social media or games, and how many minutes a day is enough.",
+    time: "1 min",
   },
   tasks: {
     title: "What's on your plate",
@@ -164,6 +178,7 @@ const modules = {
   fitness: { icon: Dumbbell, color: "fit" },
   nutrition: { icon: Utensils, color: "nut" },
   focus: { icon: Timer, color: "foc" },
+  screen: { icon: Smartphone, color: "scr" },
   finance: { icon: Wallet, color: "fin" },
 } as const
 export function Setup() {
@@ -186,9 +201,13 @@ export function Setup() {
       ),
       nutrition: fitStore.use((s) => s.targets.length + s.meals.length > 0),
       focus: focusStore.use((s) => s.settingsSaved || s.sessions.length > 0),
+      screen: useScreenSetUp(),
       tasks: tasksStore.use((s) => s.tasks.length > 0),
     },
-    steps = ORDER.filter((k) => enabled[k]),
+    // A phone that can't read Screen Time has no Screen time step.
+    steps = ORDER.filter(
+      (k) => enabled[k] && (k !== "screen" || screenTimeAvailable()),
+    ),
     pending = steps.filter((k) => !has[k]),
     allDone = (firstRun || steps.length > 0) && !pending.length
   const finishOnboarding = () => {
@@ -311,6 +330,8 @@ export function Setup() {
                   <NutritionStep onDone={() => advance(step)} />
                 ) : step === "focus" ? (
                   <FocusStep onDone={() => advance(step)} />
+                ) : step === "screen" ? (
+                  <ScreenStep onDone={() => advance(step)} />
                 ) : (
                   <TasksStep onDone={() => advance(step)} />
                 )}
@@ -594,6 +615,46 @@ function FitnessStep({ onDone }: { onDone: () => void }) {
           }}
         >
           Save baseline
+        </Button>
+      </View>
+    </View>
+  )
+}
+/** The Screen Time permission, asked here because first-run setup can't
+ * leave for the settings screen; groups and apps are picked there later. */
+function ScreenStep({ onDone }: { onDone: () => void }) {
+  const t = useTheme(),
+    auth = screenStatus((s) => s.auth),
+    [busy, setBusy] = useState(false)
+  const connect = async () => {
+    setBusy(true)
+    try {
+      const next = await requestScreenTime()
+      await refreshScreenStatus()
+      if (next === "approved") {
+        void syncScreenTime()
+        onDone()
+      }
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <View style={{ flex: 1, gap: 12 }}>
+      <Copy size={14} muted>
+        iOS asks once for Screen Time access. Then, in Stats › Screen time, name
+        a group, pick its apps and set a daily budget. Minutes are at least
+        figures, counted in steps.
+      </Copy>
+      {auth === "denied" && (
+        <Copy size={14} style={{ color: t.bad }}>
+          Screen Time access is off. Allow it when asked, or turn it on in
+          Settings › Screen Time.
+        </Copy>
+      )}
+      <View style={{ marginTop: "auto", paddingTop: 24 }}>
+        <Button onPress={() => void connect()} disabled={busy}>
+          {auth === "denied" ? "Try again" : "Connect Screen Time"}
         </Button>
       </View>
     </View>

@@ -17,6 +17,7 @@ const MODULES = [
   "nutrition",
   "focus",
   "finance",
+  "screen",
 ] as const
 type ModuleKey = (typeof MODULES)[number]
 

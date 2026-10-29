@@ -104,6 +104,7 @@ test("Nutrition is a module of its own, after Fitness", () => {
     "nutrition",
     "focus",
     "finance",
+    "screen",
   ])
   expect(NUT.href).toBe("/nutrition")
 })

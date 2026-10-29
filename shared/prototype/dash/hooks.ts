@@ -45,6 +45,7 @@ const FIT = byKey.fitness
 const NUT = byKey.nutrition
 const FOC = byKey.focus
 const FIN = byKey.finance
+const SCR = byKey.screen
 
 export { byKey as moduleByKey }
 
@@ -64,6 +65,7 @@ function useLocalRates(days: number, offset: number) {
   const n = NUT.useAreaRate(days, offset)
   const fo = FOC.useAreaRate(days, offset)
   const fi = FIN.useAreaRate(days, offset)
+  const sc = SCR.useAreaRate(days, offset)
   return useMemo(() => {
     const raw: Record<ModuleKey, number | null> = {
       habits: h,
@@ -72,6 +74,7 @@ function useLocalRates(days: number, offset: number) {
       nutrition: n,
       focus: fo,
       finance: fi,
+      screen: sc,
     }
     const rates = {} as Record<ModuleKey, number>
     const rated = {} as Record<ModuleKey, boolean>
@@ -80,7 +83,7 @@ function useLocalRates(days: number, offset: number) {
       rated[k] = raw[k] !== null
     }
     return { rates, rated }
-  }, [h, t, f, n, fo, fi])
+  }, [h, t, f, n, fo, fi, sc])
 }
 export function useAreaRates(
   days: number,
@@ -314,6 +317,7 @@ export function useTodayRing() {
   const n = NUT.useTodayProgress()
   const fo = FOC.useTodayProgress()
   const fi = FIN.useTodayProgress()
+  const sc = SCR.useTodayProgress()
   const enabled = useEnabled()
   const server = useServerStat<ServerToday>(statKey.today())
   return useMemo(() => {
@@ -325,6 +329,7 @@ export function useTodayRing() {
       nutrition: n,
       focus: fo,
       finance: fi,
+      screen: sc,
     }
     let due = 0
     let done = 0
@@ -334,7 +339,7 @@ export function useTodayRing() {
         done += Math.min(per[k].done, per[k].due)
       }
     return { due, done, per }
-  }, [h, t, f, n, fo, fi, enabled, server.data])
+  }, [h, t, f, n, fo, fi, sc, enabled, server.data])
 }
 export function useAllCalendar(from: string, to: string): CalendarItem[] {
   const a = HAB.useCalendar(from, to)
@@ -342,19 +347,22 @@ export function useAllCalendar(from: string, to: string): CalendarItem[] {
   const c = FIT.useCalendar(from, to)
   const fo = FOC.useCalendar(from, to)
   const d = FIN.useCalendar(from, to)
+  const sc = SCR.useCalendar(from, to)
   const enabled = useEnabled()
   const server = useServerStat<ServerCalendarItem[]>(statKey.calendar(from, to))
   return useMemo(
     () =>
       (server.data
         ? calendarFrom(server.data)
-        : [...a, ...b, ...c, ...fo, ...d].filter((i) => enabled[i.module])
+        : [...a, ...b, ...c, ...fo, ...d, ...sc].filter(
+            (i) => enabled[i.module],
+          )
       ).sort(
         (x, y) =>
           x.day.localeCompare(y.day) ||
           (x.time ?? "99:99").localeCompare(y.time ?? "99:99"),
       ),
-    [a, b, c, fo, d, enabled, server.data],
+    [a, b, c, fo, d, sc, enabled, server.data],
   )
 }
 /** Today's (or any range's) items from this phone's own stores only, so
@@ -385,15 +393,18 @@ export function useAllMisses(from: string, to: string): Miss[] {
   const n = NUT.useMisses(from, to)
   const fo = FOC.useMisses(from, to)
   const d = FIN.useMisses(from, to)
+  const sc = SCR.useMisses(from, to)
   const enabled = useEnabled()
   const server = useServerStat<ServerMiss[]>(statKey.misses(from, to))
   return useMemo(
     () =>
       (server.data
         ? missesFrom(server.data)
-        : [...a, ...b, ...c, ...n, ...fo, ...d].filter((m) => enabled[m.module])
+        : [...a, ...b, ...c, ...n, ...fo, ...d, ...sc].filter(
+            (m) => enabled[m.module],
+          )
       ).sort((x, y) => y.day.localeCompare(x.day)),
-    [a, b, c, n, fo, d, enabled, server.data],
+    [a, b, c, n, fo, d, sc, enabled, server.data],
   )
 }
 export function useAllMetrics(days: number): Record<ModuleKey, Metric[]> {
@@ -403,6 +414,7 @@ export function useAllMetrics(days: number): Record<ModuleKey, Metric[]> {
   const n = NUT.useMetrics(days)
   const fo = FOC.useMetrics(days)
   const d = FIN.useMetrics(days)
+  const sc = SCR.useMetrics(days)
   const server = useServerStat<ServerOverview>(overviewKey(days))
   return useMemo(
     () =>
@@ -415,8 +427,9 @@ export function useAllMetrics(days: number): Record<ModuleKey, Metric[]> {
             nutrition: n,
             focus: fo,
             finance: d,
+            screen: sc,
           },
-    [a, b, c, n, fo, d, server.data],
+    [a, b, c, n, fo, d, sc, server.data],
   )
 }
 export function parseMetric(value: string): number | null {

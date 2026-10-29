@@ -30,7 +30,10 @@
       "status": "active",
       "link_workout": false,
       "archived_at": null,
-      "sort_order": 1
+      "sort_order": 1,
+      "rule_kind": null,
+      "rule_group_id": null,
+      "rule_max_min": null
     },
     "create": true
   },
@@ -103,7 +106,10 @@
       "status": "active",
       "link_workout": false,
       "archived_at": null,
-      "sort_order": 1
+      "sort_order": 1,
+      "rule_kind": null,
+      "rule_group_id": null,
+      "rule_max_min": null
     },
     "create": true
   },
@@ -189,7 +195,10 @@
       "status": "active",
       "link_workout": false,
       "archived_at": null,
-      "sort_order": 1
+      "sort_order": 1,
+      "rule_kind": null,
+      "rule_group_id": null,
+      "rule_max_min": null
     },
     "create": true
   },
@@ -213,7 +222,10 @@
       "status": "active",
       "link_workout": false,
       "archived_at": null,
-      "sort_order": 2
+      "sort_order": 2,
+      "rule_kind": null,
+      "rule_group_id": null,
+      "rule_max_min": null
     },
     "create": true
   },
@@ -314,7 +326,10 @@
       "status": "active",
       "link_workout": false,
       "archived_at": null,
-      "sort_order": 1
+      "sort_order": 1,
+      "rule_kind": null,
+      "rule_group_id": null,
+      "rule_max_min": null
     },
     "create": true
   },
@@ -338,7 +353,10 @@
       "status": "active",
       "link_workout": false,
       "archived_at": null,
-      "sort_order": 2
+      "sort_order": 2,
+      "rule_kind": null,
+      "rule_group_id": null,
+      "rule_max_min": null
     },
     "create": true
   },
@@ -362,7 +380,10 @@
       "status": "active",
       "link_workout": false,
       "archived_at": null,
-      "sort_order": 3
+      "sort_order": 3,
+      "rule_kind": null,
+      "rule_group_id": null,
+      "rule_max_min": null
     },
     "create": true
   },
@@ -553,7 +574,10 @@
       "status": "active",
       "link_workout": false,
       "archived_at": null,
-      "sort_order": 1
+      "sort_order": 1,
+      "rule_kind": null,
+      "rule_group_id": null,
+      "rule_max_min": null
     },
     "create": true
   },
@@ -577,7 +601,10 @@
       "status": "active",
       "link_workout": false,
       "archived_at": null,
-      "sort_order": 2
+      "sort_order": 2,
+      "rule_kind": null,
+      "rule_group_id": null,
+      "rule_max_min": null
     },
     "create": true
   },
@@ -683,7 +710,10 @@
       "status": "active",
       "link_workout": false,
       "archived_at": null,
-      "sort_order": 1
+      "sort_order": 1,
+      "rule_kind": null,
+      "rule_group_id": null,
+      "rule_max_min": null
     },
     "create": true
   },

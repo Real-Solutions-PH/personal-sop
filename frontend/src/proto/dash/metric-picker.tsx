@@ -70,6 +70,7 @@ const GROUP_TEXT: Record<ModuleKey | "life", string> = {
   nutrition: "text-nut",
   focus: "text-foc",
   finance: "text-fin",
+  screen: "text-scr",
 }
 
 /** Facet label for a module metric; falls back to the module's catch-all facet. */

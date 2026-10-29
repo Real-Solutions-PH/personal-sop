@@ -24,6 +24,7 @@ export const IDENTITIES: { text: string; module?: ModuleKey }[] = [
   { text: "I eat to fuel my goals", module: "nutrition" },
   { text: "I do deep work every day", module: "focus" },
   { text: "I'm in control of my money", module: "finance" },
+  { text: "I choose where my attention goes", module: "screen" },
   { text: "I keep the promises I make to myself" },
 ]
 
@@ -42,6 +43,7 @@ export const PACES: Record<
       nutrition: 60,
       focus: 3,
       finance: 10,
+      screen: 240,
     },
   },
   steady: {
@@ -54,6 +56,7 @@ export const PACES: Record<
       nutrition: 75,
       focus: 5,
       finance: 20,
+      screen: 180,
     },
   },
   ambitious: {
@@ -66,6 +69,7 @@ export const PACES: Record<
       nutrition: 90,
       focus: 6,
       finance: 30,
+      screen: 120,
     },
   },
 }
@@ -134,5 +138,14 @@ export const STARTERS: Record<ModuleKey, Starter> = {
     comparator: "gte",
     period: "month",
     hint: "of income kept this month",
+  },
+  screen: {
+    metric: "screen:screen.used",
+    label: "Screen time a day",
+    target: 180,
+    unit: "",
+    comparator: "lte",
+    period: "week",
+    hint: "minutes on your phone a day, at most",
   },
 }

@@ -297,6 +297,7 @@ export const MODULES: ModuleKey[] = [
   "nutrition",
   "focus",
   "finance",
+  "screen",
 ]
 const isModule = (m: string): m is ModuleKey =>
   (MODULES as string[]).includes(m)
@@ -321,6 +322,7 @@ export function ratesFrom(o: ServerOverview, which: "rate" | "prev") {
     nutrition: 0,
     focus: 0,
     finance: 0,
+    screen: 0,
   }
   for (const a of o.areas) if (isModule(a.module)) out[a.module] = a[which] ?? 0
   return out as Record<ModuleKey, number>
@@ -334,6 +336,7 @@ export function metricsFrom(o: ServerOverview): Record<ModuleKey, Metric[]> {
     nutrition: [],
     focus: [],
     finance: [],
+    screen: [],
   }
   for (const m of o.metrics)
     if (isModule(m.module)) out[m.module].push(metricFrom(m))

@@ -3,6 +3,7 @@ import {
   BookOpen,
   CheckSquare,
   Dumbbell,
+  Smartphone,
   Target,
   Timer,
   Utensils,
@@ -60,6 +61,13 @@ export function AppLauncher({ title = "Your apps" }: { title?: string }) {
       href: "/finance",
       icon: Wallet,
       accent: "fin",
+    },
+    {
+      key: "screen",
+      label: "Screen time",
+      href: "/screen",
+      icon: Smartphone,
+      accent: "scr",
     },
     {
       key: "journal",

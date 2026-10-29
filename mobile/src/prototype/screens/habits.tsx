@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner-native"
 import { Trend } from "../chart"
 import { AnimatedCheck } from "../motion"
+import { Line } from "../native-kit"
 import { go } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import {
@@ -39,6 +40,7 @@ import {
   undo,
 } from "../ui"
 import { IconButton, Metric, Ring, Section } from "../visual"
+import { AutoMark, RuleRing, RuleText, useRuleState } from "./screen-card"
 
 export function Schedule({
   value,
@@ -129,6 +131,40 @@ export function HabitRow({
   habit: Habit
   day?: string
 }) {
+  return habit.rule ? (
+    <RuleHabitRow habit={habit} day={day} />
+  ) : (
+    <ManualHabitRow habit={habit} day={day} />
+  )
+}
+/** A habit screen time completes: its ring and what's used, read-only. */
+function RuleHabitRow({ habit, day }: { habit: Habit; day: string }) {
+  const log = habitsStore.use((s) =>
+      s.logs.find((l) => l.habitId === habit.id && l.day === day),
+    ),
+    state = useRuleState(habit, day)
+  return (
+    <Row
+      title={`${habit.icon} ${habit.name}`}
+      detail={L.scheduleLabel(habit.schedule)}
+      href={`/habits/${habit.id}`}
+      right={
+        <Line style={{ gap: 8 }}>
+          <View style={{ alignItems: "flex-end", gap: 2 }}>
+            <RuleText
+              state={state}
+              maxMin={habit.rule?.maxMin ?? 0}
+              done={log?.status === "done"}
+            />
+            <AutoMark />
+          </View>
+          <RuleRing habit={habit} log={log} state={state} size={28} />
+        </Line>
+      }
+    />
+  )
+}
+function ManualHabitRow({ habit, day }: { habit: Habit; day: string }) {
   const t = useTheme()
   const logs = habitsStore.use((s) => s.logs)
   const log = logs.find((l) => l.habitId === habit.id && l.day === day)

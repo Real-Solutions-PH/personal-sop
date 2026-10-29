@@ -84,6 +84,10 @@ def _delete_log(ctx: Ctx, row_id: uuid.UUID) -> None:
     svc.delete_log(ctx, log_id=row_id)
 
 
+def _restore_log(ctx: Ctx, row_id: uuid.UUID) -> OwnedRow:
+    return svc.restore_log(ctx, log_id=row_id)
+
+
 def _upsert_pause(ctx: Ctx, row_id: uuid.UUID, payload: BaseModel) -> OwnedRow:
     data = payload.model_dump(exclude_unset=True)
     existing = owned_repo.get(ctx, HabitPause, row_id, include_deleted=True)
@@ -235,6 +239,7 @@ def register(r: Registry) -> None:
             public=LogPublic,
             upsert=_upsert_log,
             delete=_delete_log,
+            restore=_restore_log,
             create_required=("habit_id", "day", "status"),
         )
     )

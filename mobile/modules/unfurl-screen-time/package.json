@@ -1,0 +1,9 @@
+{
+  "name": "unfurl-screen-time",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Screen Time for Unfurl: FamilyControls permission, the app picker and DeviceActivity monitoring (iOS only)",
+  "license": "UNLICENSED",
+  "author": "Unfurl",
+  "homepage": "https://github.com/Real-Solutions-PH/personal-sop"
+}

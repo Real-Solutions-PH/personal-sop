@@ -13,7 +13,9 @@ from app.modules.stats.schema import (
     TrophyOut,
 )
 
-ModuleKey = Literal["habits", "tasks", "fitness", "nutrition", "focus", "finance"]
+ModuleKey = Literal[
+    "habits", "tasks", "fitness", "nutrition", "focus", "finance", "screen"
+]
 Comparator = Literal["gte", "lte"]
 Period = Literal["week", "month"]
 GoalStatus = Literal["active", "archived"]

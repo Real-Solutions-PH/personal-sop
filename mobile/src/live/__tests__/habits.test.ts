@@ -265,6 +265,9 @@ describe("diffs on store edits", () => {
           link_workout: false,
           archived_at: null,
           sort_order: 1,
+          rule_kind: null,
+          rule_group_id: null,
+          rule_max_min: null,
         },
       },
     ])
@@ -869,4 +872,44 @@ test("a workout's auto-check mints the server's derived log id", () => {
     status: "done",
     source: "workout",
   })
+})
+
+// ---------------------------------------------------------------- screen rule
+
+test("a habit's screen-time rule round-trips as three columns, all null without one", () => {
+  const m = byName("habit")
+  const seed = seedHabits()
+  const plain = seed.habits[0]
+  expect(m.toServer(plain, seed)).toMatchObject({
+    rule_kind: null,
+    rule_group_id: null,
+    rule_max_min: null,
+  })
+  const ruled = {
+    ...plain,
+    rule: {
+      kind: "screen_limit" as const,
+      groupId: "55555555-0000-4000-8000-000000000001",
+      maxMin: 30,
+    },
+  }
+  const out = m.toServer(ruled, seed)
+  expect(out).toMatchObject({
+    rule_kind: "screen_limit",
+    rule_group_id: "55555555-0000-4000-8000-000000000001",
+    rule_max_min: 30,
+  })
+  const row = {
+    id: ruled.id,
+    ...out,
+    created_at: noon(ruled.createdAt),
+    version: 1,
+  }
+  expect(m.fromServer(row, seed)).toEqual(ruled)
+  // A zero limit ("none today") is a rule, not a missing one.
+  expect(m.fromServer({ ...row, rule_max_min: 0 }, seed)?.rule?.maxMin).toBe(0)
+  // Half a rule is no rule.
+  expect(
+    m.fromServer({ ...row, rule_group_id: null }, seed)?.rule,
+  ).toBeUndefined()
 })
