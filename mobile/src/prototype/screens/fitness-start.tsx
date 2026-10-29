@@ -11,7 +11,9 @@ import { Sheet } from "../ui"
 export function StartWorkoutSheet({ onClose }: { onClose: () => void }) {
   const s = fitStore.use((s) => s),
     t = useTheme(),
-    next = C.nextTemplate(s),
+    // Highlight today's scheduled workout; fall back to the round-robin
+    // guess on a rest day or when no routine is set.
+    next = C.scheduledTemplate(s) ?? C.nextTemplate(s),
     [err, setErr] = useState<{ reason: string; href?: string }>()
   const begin = (opts: StartFrom) => {
     const r = startWorkout(opts)

@@ -963,6 +963,15 @@ export function setBurnAdjustment(day: string, kcal: number) {
 export function updateSettings(patch: Partial<FitnessSettings>) {
   fitStore.set((s) => ({ ...s, settings: { ...s.settings, ...patch } }))
 }
+/** Set one weekday's routine slot (0 = Mon … 6 = Sun): a template id to
+ * train that day, or null for a rest day. */
+export function setScheduleDay(index: number, templateId: string | null) {
+  fitStore.set((s) => {
+    const schedule = [...s.schedule]
+    schedule[index] = templateId
+    return { ...s, schedule }
+  })
+}
 export function resetFitness() {
   if (liveStore.get().live?.kind === "workout") stopLive()
   fitStore.reset()

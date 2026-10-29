@@ -1,4 +1,4 @@
-import { dayKey, dayOffset } from "../lib/day"
+import { dayKey, dayOffset, weekday } from "../lib/day"
 import type {
   Exercise,
   FitnessState,
@@ -564,6 +564,23 @@ export function nextTemplate(s: FitnessState) {
   if (!s.templates.length) return undefined
   const i = s.templates.findIndex((t) => t.id === last?.templateId)
   return s.templates[(i + 1) % s.templates.length]
+}
+/** The weekly routine's slot index (0 = Mon … 6 = Sun) for a day key,
+ * matching weekStart()'s Monday-first weeks. */
+export const scheduleIndex = (key: string = dayKey()) => (weekday(key) + 6) % 7
+/** A day is a planned rest day when its slot is explicitly null. */
+export const isRestDay = (s: FitnessState, key: string = dayKey()) =>
+  s.schedule[scheduleIndex(key)] === null
+/** The template scheduled for a day — undefined on a rest day, or when the
+ * slot points at a template that no longer exists. */
+export function scheduledTemplate(s: FitnessState, key: string = dayKey()) {
+  const id = s.schedule[scheduleIndex(key)]
+  return id ? s.templates.find((t) => t.id === id) : undefined
+}
+/** Training days the plan asks for each week — the count of non-rest slots,
+ * falling back to the manual weeklyTarget when no routine is set. */
+export function weeklyGoal(s: FitnessState) {
+  return s.schedule.filter((d) => d !== null).length || s.settings.weeklyTarget
 }
 export function lastOfTemplate(s: FitnessState, templateId: string) {
   return finished(s)

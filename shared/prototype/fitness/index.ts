@@ -11,6 +11,7 @@ import {
   overloadRate,
   periodSummary,
   sessionsByWeek,
+  weeklyGoal,
   weeklyRate,
   weekStart,
 } from "./calc"
@@ -105,15 +106,16 @@ function useMisses(from: string, to: string): Miss[] {
   return useMemo(() => {
     const out: Miss[] = []
     const thisWeek = weekStart(dayKey())
+    const goal = weeklyGoal(s)
     for (const w of sessionsByWeek(s, 20)) {
       const end = addDays(w.start, 6)
       if (w.start < from || end > to || w.start >= thisWeek) continue
-      const miss = s.settings.weeklyTarget - w.count
+      const miss = goal - w.count
       if (miss > 0)
         out.push({
           id: `fit-miss-${w.start}`,
           day: end,
-          title: `Missed ${miss} gym session${miss > 1 ? "s" : ""} (${w.count}/${s.settings.weeklyTarget})`,
+          title: `Missed ${miss} gym session${miss > 1 ? "s" : ""} (${w.count}/${goal})`,
           module: "fitness",
           href: "/fitness/stats",
         })
@@ -140,7 +142,7 @@ function useTodayProgress() {
       (w) => dayKey(new Date(w.startedAt)) === today,
     )
     const week = sessionsByWeek(s, 1)[0]?.count ?? 0
-    const workoutDue = trainedToday || week < s.settings.weeklyTarget
+    const workoutDue = trainedToday || week < weeklyGoal(s)
     const weighed = dailyWeights(s).has(today)
     let due = 1
     let done = weighed ? 1 : 0
