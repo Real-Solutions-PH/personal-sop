@@ -1,8 +1,15 @@
 import { at, dayOffset, weekday } from "../lib/day"
+import type { HabitRule } from "../screen/data"
 export type HabitType = "check" | "duration" | "count"
 export type HabitStatus = "active" | "paused" | "archived"
 export type LogStatus = "done" | "partial" | "skipped"
-export type LogSource = "tap" | "timer" | "routine" | "capture" | "workout"
+export type LogSource =
+  | "tap"
+  | "timer"
+  | "routine"
+  | "capture"
+  | "workout"
+  | "screen"
 export interface ScheduleSlot {
   days: number[]
   time?: string
@@ -26,6 +33,8 @@ export interface Habit {
   status: HabitStatus
   pauses: PauseRange[]
   linkWorkout: boolean
+  /** Completes itself from screen time; manual actions are refused. */
+  rule?: HabitRule
   createdAt: string
   archivedAt?: string
   sortOrder: number
