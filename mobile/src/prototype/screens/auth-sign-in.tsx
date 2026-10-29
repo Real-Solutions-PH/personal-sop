@@ -1,7 +1,7 @@
 import { LockKeyhole, Mail } from "lucide-react-native"
 import { useRef, useState } from "react"
 import type { TextInputInstance } from "react-native"
-import { type TextInput, View } from "react-native"
+import { View } from "react-native"
 import { toast } from "sonner-native"
 import {
   AuthButton,

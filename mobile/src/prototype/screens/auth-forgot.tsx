@@ -1,7 +1,7 @@
 import { KeyRound, Mail, MailCheck } from "lucide-react-native"
 import { useRef, useState } from "react"
 import type { TextInputInstance } from "react-native"
-import { Linking, Platform, Text, type TextInput, View } from "react-native"
+import { Linking, Platform, Text, View } from "react-native"
 import { toast } from "sonner-native"
 import {
   AuthButton,

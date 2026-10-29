@@ -2,7 +2,7 @@ import { Redirect } from "expo-router"
 import { BadgeCheck, MailCheck } from "lucide-react-native"
 import { useEffect, useRef, useState } from "react"
 import type { TextInputInstance } from "react-native"
-import { ActivityIndicator, Text, type TextInput } from "react-native"
+import { ActivityIndicator, Text } from "react-native"
 import { toast } from "sonner-native"
 import {
   AuthButton,

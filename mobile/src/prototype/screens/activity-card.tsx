@@ -6,12 +6,7 @@ import { fitStore } from "@domain/fitness/store"
 import { dayKey, dayOffset } from "@domain/lib/day"
 import { useCallback, useEffect, useState } from "react"
 import { AppState, View } from "react-native"
-import {
-  type Activity,
-  connectHealth,
-  healthAvailable,
-  readActivity,
-} from "../health"
+import { type Activity, healthAvailable, readActivity } from "../health"
 import { scheduleEatBackReminder } from "../local-reminders"
 import { Copy, Frame, Line } from "../native-kit"
 import { Button, undo } from "../ui"

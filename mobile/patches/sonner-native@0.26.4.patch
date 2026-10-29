@@ -1,0 +1,46 @@
+diff --git a/lib/commonjs/gestures.js b/lib/commonjs/gestures.js
+index 581796369046a65673c5707ccad81eec8561ecf1..af6d5b42b2deb67859d66f3c6c56d97907ddaa80 100644
+--- a/lib/commonjs/gestures.js
++++ b/lib/commonjs/gestures.js
+@@ -78,9 +78,7 @@ const ToastSwipeHandler = ({
+         translate.value = (0, _reactNativeReanimated.withTiming)(0, {
+           easing: _reactNativeReanimated.Easing.elastic(0.8)
+         });
+-        return;
+-      }
+-      if (shouldDismiss) {
++      } else if (shouldDismiss) {
+         translate.value = (0, _reactNativeReanimated.withTiming)(-WINDOW_WIDTH, {
+           easing: _reactNativeReanimated.Easing.inOut(_reactNativeReanimated.Easing.ease)
+         }, isDone => {
+diff --git a/lib/module/gestures.js b/lib/module/gestures.js
+index 006393c2afe8dfe45719948c6df344a925e0c717..2feaa07905c724a312f96eed102750aa8b295bba 100644
+--- a/lib/module/gestures.js
++++ b/lib/module/gestures.js
+@@ -71,9 +71,7 @@ export const ToastSwipeHandler = ({
+         translate.value = withTiming(0, {
+           easing: Easing.elastic(0.8)
+         });
+-        return;
+-      }
+-      if (shouldDismiss) {
++      } else if (shouldDismiss) {
+         translate.value = withTiming(-windowWidth, {
+           easing: Easing.inOut(Easing.ease)
+         }, isDone => {
+diff --git a/src/gestures.tsx b/src/gestures.tsx
+index a27988c3740c6a15165dfc2aa72d66b7fada1899..ff569bfeab654e01c1eeeb11a4b46784f6a1babc 100644
+--- a/src/gestures.tsx
++++ b/src/gestures.tsx
+@@ -100,10 +100,7 @@ export const ToastSwipeHandler: React.FC<
+           translate.value = withTiming(0, {
+             easing: Easing.elastic(0.8),
+           });
+-          return;
+-        }
+-
+-        if (shouldDismiss) {
++        } else if (shouldDismiss) {
+           translate.value = withTiming(
+             -windowWidth,
+             {

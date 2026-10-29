@@ -16,8 +16,11 @@ id, so `src/live/push.ts` never registered for push.
 
 ## Decision
 
-- **Expo project `@ervinpiol/personal-sop`** (`extra.eas.projectId` in
-  `mobile/app.json`). Push registration now gets a project id.
+- **Expo project `@schadenkai/unfurl`** (`extra.eas.projectId` in
+  `mobile/app.json`). Push registration now gets a project id. (Amended
+  2026-10-29: first created as `@ervinpiol/personal-sop`, then moved to the
+  app owner's own Expo account so releases do not depend on a contributor's
+  login. See *Amendments* below.)
 - **EAS Build + Submit** (`mobile/eas.json`, `production` profile): builds run
   in Expo's cloud with `eas build -p ios --profile production --auto-submit`,
   which uploads to App Store Connect for TestFlight. The build number is
@@ -63,3 +66,23 @@ started by hand.
 - Move the Expo project to an organisation if more people need to release.
 - The backend's `EXPO_ACCESS_TOKEN` must belong to this Expo account for
   push sends to be accepted.
+
+## Amendments
+
+- **2026-10-29 — project moved to `@schadenkai/unfurl`**
+  (id `348dbc4a-78e1-47e9-922d-3006c4e0455a`, slug `unfurl`). Owner, project
+  id, slug and `updates.url` in `mobile/app.json` changed; the `production`
+  environment variables were recreated on the new project with the values
+  listed above. Consequences:
+  - Builds made under the old project (TestFlight builds up to and including
+    the last `@ervinpiol` build) keep polling the old update URL, so an
+    `eas update` published to the new project does not reach them. The first
+    build from the new project is the first one that receives updates.
+  - Signing credentials and the App Store Connect API key for submit are set
+    up again on the new project (`eas credentials`, run by the Apple account
+    holder); the Apple team `N2Y99Q8A79` and bundle ids are unchanged.
+  - Push tokens issued to old builds belong to the old project. Production
+    sends without `EXPO_ACCESS_TOKEN` (unset in `unfurl/third-party` on this
+    date), so no backend change was needed.
+  - Other people release by being added to the Expo account or an Expo
+    organisation that owns the project, not by sharing the owner's login.
