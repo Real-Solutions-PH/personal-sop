@@ -1,3 +1,4 @@
+import { dashStore } from "@domain/dash/store"
 import { startFocus } from "@domain/focus/actions"
 import * as A from "@domain/habits/actions"
 import type { Habit, HabitLog as LogRow } from "@domain/habits/data"
@@ -22,7 +23,13 @@ import { go } from "../navigation"
 import { useTheme } from "../theme"
 import { Button, confirm, DateField, Empty, Field, Screen, Sheet } from "../ui"
 import { HabitLog } from "./habits"
-import { AutoMark, RuleRing, RuleText, useRuleState } from "./screen-card"
+import {
+  AutoMark,
+  RuleRing,
+  RuleText,
+  ScreenOffMark,
+  useRuleState,
+} from "./screen-card"
 
 function fmt(day: string) {
   return new Date(`${day}T12:00:00`).toLocaleDateString("en-US", {
@@ -210,13 +217,17 @@ export function HabitDetail({ id }: { id: string }) {
     [marked, setMarked] = useState(0),
     [pausing, setPausing] = useState(params.pause === "1"),
     [until, setUntil] = useState(dayOffset(7)),
-    [reason, setReason] = useState("")
+    [reason, setReason] = useState(""),
+    screenOn = dashStore.use((s) => s.enabled.screen)
   if (!h)
     return (
       <Screen prototypeLayout title="Habit">
         <Empty title="Habit not found" />
       </Screen>
     )
+  // Screen time drives it only while Screen time is on; off, it is a
+  // habit logged by hand.
+  const auto = !!h.rule && screenOn
   const today = dayKey(),
     idx = L.logIndex(s.logs),
     a = L.habitStats(h, idx, dayOffset(-29), today, today),
@@ -302,11 +313,12 @@ export function HabitDetail({ id }: { id: string }) {
             <Copy size={14} muted>
               {L.scheduleLabel(h.schedule)}
             </Copy>
-            {!h.rule && (
+            {!auto && (
               <Copy size={14} muted>
                 Target · {L.targetLabel(h)}
               </Copy>
             )}
+            {h.rule && !auto && <ScreenOffMark />}
             {h.linkWorkout && (
               <Copy size={12} style={{ color: t.fit }}>
                 Auto-checks when a workout is logged
@@ -324,7 +336,7 @@ export function HabitDetail({ id }: { id: string }) {
               Resume
             </Button>
           </Frame>
-        ) : h.rule ? (
+        ) : auto ? (
           <RuleToday habit={h} log={log} />
         ) : (
           <Line style={{ gap: 8 }}>
@@ -508,7 +520,7 @@ export function HabitDetail({ id }: { id: string }) {
             <Tap
               key={l.id}
               onPress={() => {
-                if (!h.rule) setLogDay(l.day)
+                if (!auto) setLogDay(l.day)
               }}
               style={{ paddingHorizontal: 12, paddingVertical: 10 }}
             >

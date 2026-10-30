@@ -1,3 +1,4 @@
+import { dashStore } from "@domain/dash/store"
 import * as A from "@domain/habits/actions"
 import type { Habit } from "@domain/habits/data"
 import * as L from "@domain/habits/logic"
@@ -23,6 +24,7 @@ export function HabitActions({
   day?: string
 }) {
   const live = habitsStore.use((s) => s.habits.find((h) => h.id === habit.id))
+  const screenOn = dashStore.use((s) => s.enabled.screen)
   const gone = !live || live.status === "archived"
   // What a button does runs once this sheet has fully left: iOS drops a
   // navigation, an alert or a second sheet while the first is leaving.
@@ -30,6 +32,8 @@ export function HabitActions({
   const [logging, setLogging] = useState(false)
   const h = live ?? habit
   const paused = L.effectiveStatus(h) === "paused"
+  // Logged by hand unless screen time drives it (a rule, Screen time on).
+  const auto = !!h.rule && screenOn
   useEffect(() => {
     // Archived or deleted elsewhere while the sheet was open.
     if (open && gone) onClose()
@@ -53,7 +57,7 @@ export function HabitActions({
         <Button onPress={() => close(() => go(`/habits/${h.id}/edit`))}>
           Edit habit
         </Button>
-        {!h.rule && (
+        {!auto && (
           <Button tone="quiet" onPress={() => close(() => setLogging(true))}>
             Log…
           </Button>

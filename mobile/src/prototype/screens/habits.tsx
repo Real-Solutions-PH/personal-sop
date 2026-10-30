@@ -41,7 +41,14 @@ import {
 } from "../ui"
 import { IconButton, Metric, Ring, Section } from "../visual"
 import { HabitActions } from "./habit-actions"
-import { AutoMark, RuleRing, RuleText, useRuleState } from "./screen-card"
+import {
+  AutoMark,
+  RuleRing,
+  RuleText,
+  SCREEN_OFF_LABEL,
+  useAutoRule,
+  useRuleState,
+} from "./screen-card"
 
 export function Schedule({
   value,
@@ -132,7 +139,7 @@ export function HabitRow({
   habit: Habit
   day?: string
 }) {
-  return habit.rule ? (
+  return useAutoRule(habit) ? (
     <RuleHabitRow habit={habit} day={day} />
   ) : (
     <ManualHabitRow habit={habit} day={day} />
@@ -206,7 +213,7 @@ function ManualHabitRow({ habit, day }: { habit: Habit; day: string }) {
       <SwipeRow onComplete={swipe.onComplete} onMore={() => setOpen(true)}>
         <Row
           title={`${habit.icon} ${habit.name}`}
-          detail={`${log?.status ?? L.scheduleLabel(habit.schedule)}${habit.target ? ` · ${L.targetLabel(habit)}` : ""}`}
+          detail={`${log?.status ?? L.scheduleLabel(habit.schedule)}${habit.target ? ` · ${L.targetLabel(habit)}` : ""}${habit.rule ? ` · ${SCREEN_OFF_LABEL}` : ""}`}
           href={`/habits/${habit.id}`}
           onLongPress={() => {
             feel.tap()

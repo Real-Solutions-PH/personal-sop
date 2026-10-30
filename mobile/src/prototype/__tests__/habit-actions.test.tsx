@@ -1,3 +1,4 @@
+import { dashStore } from "@domain/dash/store"
 import * as A from "@domain/habits/actions"
 import { habitsStore } from "@domain/habits/store"
 import { dayKey } from "@domain/lib/day"
@@ -9,7 +10,7 @@ import { Alert } from "react-native"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
 import { HabitsList } from "../screens/habit-list"
-import { HabitForm, HabitLog } from "../screens/habits"
+import { HabitDetail, HabitForm, HabitLog } from "../screens/habits"
 import { HabitsCard } from "../screens/today"
 
 const mockParams: { current: Record<string, string> } = { current: {} }
@@ -100,12 +101,47 @@ test("long-pressing a Today habit opens its actions; Edit opens the form", () =>
   expect(push).toHaveBeenCalledWith(`/habits/${h.id}/edit`)
 })
 
+const screenTime = (on: boolean) =>
+  dashStore.set((s) => ({ ...s, enabled: { ...s.enabled, screen: on } }))
+
 test("a screen-time habit's actions have no Log", () => {
+  screenTime(true)
   screenHabit()
   render(<HabitsCard />, { wrapper })
   fireEvent(screen.getByText(/Phone/), "longPress")
   expect(screen.getByText("Edit habit")).toBeTruthy()
   expect(screen.queryByText("Log…")).toBeNull()
+})
+
+test("with Screen time off, a screen-time habit is logged by hand everywhere", () => {
+  screenTime(false)
+  const h = screenHabit()
+  // The actions offer Log, as for any habit.
+  const card = render(<HabitsCard />, { wrapper })
+  fireEvent(screen.getByText(/Phone/), "longPress")
+  expect(screen.getByText("Log…")).toBeTruthy()
+  card.unmount()
+  // The Habits list's Today view shows a check and says why.
+  const list = render(<HabitsList />, { wrapper })
+  fireEvent.press(screen.getByText("Today"))
+  expect(screen.getByRole("checkbox", { name: "Check Phone" })).toBeTruthy()
+  expect(screen.getByText(/Screen Time off · log it yourself/)).toBeTruthy()
+  list.unmount()
+  // Its page offers Mark done instead of the automatic ring.
+  render(<HabitDetail id={h.id} />, { wrapper })
+  expect(screen.getByText("Mark done today")).toBeTruthy()
+  expect(screen.getByText("Screen Time off · log it yourself")).toBeTruthy()
+})
+
+test("with Screen time on, the list and the page keep it automatic", () => {
+  screenTime(true)
+  const h = screenHabit()
+  const list = render(<HabitsList />, { wrapper })
+  fireEvent.press(screen.getByText("Today"))
+  expect(screen.queryByRole("checkbox", { name: "Check Phone" })).toBeNull()
+  list.unmount()
+  render(<HabitDetail id={h.id} />, { wrapper })
+  expect(screen.queryByText("Mark done today")).toBeNull()
 })
 
 test("rows in Manage habits open the actions for that habit", () => {
