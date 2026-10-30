@@ -19,7 +19,8 @@
 // - The onboarding finish is not ``dashboard.onboarding``: the onboarding
 //   screen already saves its goals locally, which sync as goal creates.
 // - The profile photo is NOT mapped: the device holds a file URI and the
-//   server holds a media id; mapping it needs the media upload first.
+//   server holds a media id; src/live/profile-photo.ts uploads it and sets
+//   it with PATCH /profile.
 // - ``push.review`` is a schedule label on the device ("Sun 19:00") and a
 //   switch on the server: any label sends true, an empty one false.
 
@@ -36,6 +37,7 @@ import { dashStore } from "@domain/dash/store"
 import { dayKey } from "@domain/lib/day"
 import { derivedId, isUuid } from "@domain/lib/ids"
 import { currencyStore, isCurrency } from "@domain/lib/money"
+import { toast } from "@domain/lib/platform"
 import { privacyStore } from "@domain/lib/privacy"
 import { createStore, type Store } from "@domain/lib/store"
 import { appearanceStore } from "@/prototype/theme"
@@ -184,6 +186,17 @@ const PERMISSIONS = ["default", "granted", "denied"] as const
 const pick = <T extends string>(all: readonly T[], v: unknown, cur: T): T =>
   all.includes(v as T) ? (v as T) : cur
 
+/** The handle this device last sent and the server has not echoed back. A
+ * row that comes back with another handle means it was refused (taken
+ * meanwhile): the server applies the rest of the edit and keeps its own. */
+let sentHandle: string | undefined
+/** Refused handles already reported, so each is told once. */
+const toldRefused = new Set<string>()
+export function resetHandleRefusals() {
+  sentHandle = undefined
+  toldRefused.clear()
+}
+
 /** Profile payload; a value the server would refuse is left out. */
 export function profileToServer(v: ProfileState): Payload {
   const d = v.dash
@@ -205,7 +218,10 @@ export function profileToServer(v: ProfileState): Payload {
   const name = d.profile.name.trim()
   if (name.length >= 2 && name.length <= 80) out.name = name
   const handle = d.profile.handle.replace(/^@/, "")
-  if (HANDLE.test(handle)) out.handle = handle
+  if (HANDLE.test(handle)) {
+    out.handle = handle
+    sentHandle = handle
+  }
   if (!HM.test(d.eveningStart)) delete out.evening_start
   if (!(d.targetThreshold > 0 && d.targetThreshold <= 1))
     delete out.target_threshold
@@ -219,6 +235,18 @@ export function profileFromServer(
   const d = cur.dash
   const handle = str(row.handle)
   const since = str(row.since)
+  if (sentHandle !== undefined && handle) {
+    const refused = sentHandle
+    sentHandle = undefined
+    if (
+      refused !== handle &&
+      d.profile.handle.replace(/^@/, "") === refused &&
+      !toldRefused.has(refused)
+    ) {
+      toldRefused.add(refused)
+      toast(`@${refused} is taken, so your username was kept as @${handle}`)
+    }
+  }
   return {
     dash: {
       ...d,

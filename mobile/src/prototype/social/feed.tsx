@@ -45,6 +45,7 @@ import {
   FEED_AREAS,
   type FeedArea,
   haptic,
+  NoteComposer,
   ProgressCard,
 } from "./kit"
 import { PostCard } from "./post-card"
@@ -355,12 +356,25 @@ function PostSkeleton({ width }: { width: number }) {
 export function CreateSheet({
   open,
   onClose,
+  onNote,
 }: {
   open: boolean
   onClose: () => void
+  /** Note opens its sheet over this screen once this one is gone; without
+   * it, Note is not offered. */
+  onNote?: () => void
 }) {
   const t = useTheme()
-  const rows = [
+  // Opened once the Create sheet has fully closed: iOS will not present a
+  // second sheet while the first is still dismissing.
+  const pending = useRef<"note" | null>(null)
+  const rows: {
+    label: string
+    detail: string
+    Icon: typeof CircleCheck
+    href?: string
+    action?: () => void
+  }[] = [
     {
       label: "Check in",
       detail: "Day 12 of 30, done today. Gone in 24 hours",
@@ -377,20 +391,34 @@ export function CreateSheet({
       label: "Note",
       detail: "A short thought above your avatar",
       Icon: MessageSquareQuote,
-      href: "/social/inbox?note=1",
+      action: onNote
+        ? () => {
+            pending.current = "note"
+          }
+        : undefined,
     },
-  ]
+  ].filter((r) => r.href || r.action)
   return (
-    <Sheet title="Create" open={open} onClose={onClose}>
-      {rows.map(({ label, detail, Icon, href }) => (
+    <Sheet
+      title="Create"
+      open={open}
+      onClose={onClose}
+      onClosed={() => {
+        const next = pending.current
+        pending.current = null
+        if (next === "note") onNote?.()
+      }}
+    >
+      {rows.map(({ label, detail, Icon, href, action }) => (
         <Pressable
           cssInterop={false}
           key={label}
           accessibilityRole="button"
           accessibilityLabel={`${label}. ${detail}`}
           onPress={() => {
+            action?.()
             onClose()
-            go(href)
+            if (href) go(href)
           }}
           style={({ pressed }) => ({
             flexDirection: "row",
@@ -449,6 +477,7 @@ export function SocialFeed() {
   const [area, setArea] = useState<FeedArea | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [create, setCreate] = useState(false)
+  const [noteOpen, setNoteOpen] = useState(false)
   const [visible, setVisible] = useState<string | null>(null)
   const [focused, setFocused] = useState(true)
   const list = useRef<FlatList<Post>>(null)
@@ -774,7 +803,12 @@ export function SocialFeed() {
           contentContainerStyle={{ paddingBottom: safe.bottom + 64 }}
         />
       </GestureDetector>
-      <CreateSheet open={create} onClose={() => setCreate(false)} />
+      <CreateSheet
+        open={create}
+        onClose={() => setCreate(false)}
+        onNote={() => setNoteOpen(true)}
+      />
+      <NoteComposer open={noteOpen} onClose={() => setNoteOpen(false)} />
     </View>
   )
 }

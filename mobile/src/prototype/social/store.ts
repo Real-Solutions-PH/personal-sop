@@ -16,6 +16,8 @@ export type Media = {
   ratio?: number
   /** Live mode: the server's media id, once it is on the server. */
   id?: string
+  /** Live mode: when ``uri`` (a presigned URL) was taken from the server. */
+  urlAt?: number
 }
 export type ProgressStat = { label: string; value: string; unit?: string }
 export type Progress = {
@@ -171,7 +173,14 @@ export type SocialState = {
   showScores: boolean
   /** Live mode: my own bio and counts from GET /social/me, and my server id
    * (what a shared profile link must carry; ``ME`` means "whoever opens it"). */
-  me?: { bio: string; followers: number; following: number; id?: string }
+  me?: {
+    bio: string
+    followers: number
+    following: number
+    id?: string
+    /** My photo as the server has it (set from another device). */
+    photo?: string
+  }
   /** Live mode: who follows / is followed by a person, from the server. */
   graph?: Record<string, { followers: string[]; following: string[] }>
 }
@@ -967,6 +976,7 @@ let waiting: ((r: SocialRemote) => void)[] = []
 /** Live mode: route actions to the server (null disconnects at sign-out). */
 export function connectSocial(next: SocialRemote | null) {
   remote = next
+  intents.clear()
   if (!next) return
   const ready = waiting
   waiting = []
@@ -1005,6 +1015,96 @@ function send(
   void Promise.race([connected(), late]).then((r) => (r ? run(r) : offline()))
 }
 const CONNECT_WAIT_MS = 10_000
+
+// Toggles (cheer, save, likes, follow, reactions) go through ``intent``: one
+// write in flight per target, and when it lands the latest tap is sent if it
+// differs. A burst of taps sends at most two requests and the server ends on
+// the last one; reads that land meanwhile overlay the pending value (see
+// ``pendingIntent``) so the button never flips back.
+type Intent = {
+  desired: unknown
+  confirmed: unknown
+  inFlight: boolean
+  write: (r: SocialRemote, v: unknown) => Promise<unknown>
+  revert: (confirmed: unknown) => void
+  what: string
+}
+const intents = new Map<string, Intent>()
+/** The value a toggle is heading to while its writes are still settling. */
+export function pendingIntent<T>(key: string): { value: T } | undefined {
+  const e = intents.get(key)
+  return e ? { value: e.desired as T } : undefined
+}
+export const hasPendingIntent = (key: string) => intents.has(key)
+const gone = (e: unknown) => (e as { status?: number })?.status === 404
+function intent<T>(
+  key: string,
+  desired: T,
+  write: (r: SocialRemote, v: T) => Promise<unknown>,
+  revert: (confirmed: T) => void,
+  what: string,
+  confirmed: T,
+) {
+  if (!liveMode) return
+  const known = intents.get(key)
+  const e: Intent = known ?? {
+    desired,
+    confirmed,
+    inFlight: false,
+    write: write as Intent["write"],
+    revert: revert as Intent["revert"],
+    what,
+  }
+  e.desired = desired
+  e.write = write as Intent["write"]
+  e.revert = revert as Intent["revert"]
+  e.what = what
+  if (!known) intents.set(key, e)
+  if (e.inFlight) return
+  const fail = (offline: boolean) => {
+    if (intents.get(key) !== e) return
+    intents.delete(key)
+    e.revert(e.confirmed)
+    toast(
+      offline
+        ? `You're offline. Couldn't ${e.what}.`
+        : `Couldn't ${e.what}. Please try again.`,
+    )
+  }
+  const run = (r: SocialRemote) => {
+    if (intents.get(key) !== e) return
+    const v = e.desired
+    e.inFlight = true
+    e.write(r, v).then(
+      () => {
+        if (intents.get(key) !== e) return
+        e.inFlight = false
+        e.confirmed = v
+        if (e.desired !== v) run(r)
+        else intents.delete(key)
+      },
+      (err) => {
+        e.inFlight = false
+        // The target is gone (deleted elsewhere): its removal is handled by
+        // the delete path, so there is nothing to put back.
+        if (gone(err))
+          return void (intents.get(key) === e && intents.delete(key))
+        fail(false)
+      },
+    )
+  }
+  if (!getConnectivity()) return fail(true)
+  if (remote) return run(remote)
+  e.inFlight = true
+  const late = new Promise<null>((resolve) =>
+    setTimeout(() => resolve(null), CONNECT_WAIT_MS),
+  )
+  void Promise.race([connected(), late]).then((r) => {
+    e.inFlight = false
+    if (r) run(r)
+    else fail(true)
+  })
+}
 /** Passive sync the person did not ask for (seen, read, typing): no toast,
  * nothing to undo, skipped offline. */
 function nudge(call: (r: SocialRemote) => Promise<unknown>) {
@@ -1066,11 +1166,6 @@ const personOf = (id: string) =>
   socialStore.get().people.find((p) => p.id === id)
 const putPost = (prev: Post) => mapPost(prev.id, () => prev)
 const putChat = (prev: Chat) => mapChat(prev.id, () => prev)
-const putPerson = (prev: Person) =>
-  set((s) => ({
-    ...s,
-    people: s.people.map((p) => (p.id === prev.id ? prev : p)),
-  }))
 const dropPost = (id: string) =>
   set((s) => ({ ...s, posts: s.posts.filter((p) => p.id !== id) }))
 const dropChat = (id: string) =>
@@ -1095,7 +1190,7 @@ export function useMe(): Person {
       "you",
     bio: live ? live.bio : "Building better days, one rep at a time.",
     accent: "primary",
-    photo: profile.photo || undefined,
+    photo: profile.photo || live?.photo || undefined,
     followers: live ? live.followers : 128 + followers,
     following: live ? live.following : 90 + following,
     isFollowing: false,
@@ -1120,7 +1215,7 @@ export function cheerCounts(p: Post): Record<Cheer, number> {
 }
 const myCheerOf = (p: Post): Cheer | undefined =>
   p.myCheer ?? (p.liked ? "keep_going" : undefined)
-function withCheer(p: Post, next: Cheer | undefined): Post {
+export function withCheer(p: Post, next: Cheer | undefined): Post {
   const counts = cheerCounts(p)
   const was = myCheerOf(p)
   if (was) counts[was] = Math.max(0, counts[was] - 1)
@@ -1138,12 +1233,16 @@ function withCheer(p: Post, next: Cheer | undefined): Post {
 export function cheer(id: string, kind: Cheer) {
   const prev = postOf(id)
   if (!prev) return
-  const on = myCheerOf(prev) !== kind
+  const was = myCheerOf(prev) ?? null
+  const on = was !== kind
   mapPost(id, (p) => withCheer(p, on ? kind : undefined))
-  send(
-    (r) => r.likePost(id, on, on ? kind : undefined),
-    () => putPost(prev),
+  intent<Cheer | null>(
+    `cheer:${id}`,
+    on ? kind : null,
+    (r, v) => r.likePost(id, v !== null, v ?? undefined),
+    (c) => mapPost(id, (p) => withCheer(p, c ?? undefined)),
     on ? "cheer the post" : "take back your cheer",
+    was,
   )
 }
 /** The heart-free toggle: cheer "keep going", or take any cheer back. */
@@ -1161,10 +1260,13 @@ export function toggleSave(id: string) {
   const prev = postOf(id)
   mapPost(id, (p) => ({ ...p, saved: !p.saved }))
   if (prev)
-    send(
-      (r) => r.savePost(id, !prev.saved),
-      () => putPost(prev),
+    intent(
+      `save:${id}`,
+      !prev.saved,
+      (r, v) => r.savePost(id, v),
+      (c) => mapPost(id, (p) => ({ ...p, saved: c })),
       prev.saved ? "unsave the post" : "save the post",
+      prev.saved,
     )
 }
 export function addComment(postId: string, text: string, replyTo?: string) {
@@ -1207,10 +1309,21 @@ export function toggleCommentLike(postId: string, commentId: string) {
     ),
   }))
   if (prev && was !== undefined)
-    send(
-      (r) => r.likeComment(postId, commentId, !was),
-      () => putPost(prev),
+    intent(
+      `clike:${postId}:${commentId}`,
+      !was,
+      (r, v) => r.likeComment(postId, commentId, v),
+      (c) =>
+        mapPost(postId, (p) => ({
+          ...p,
+          comments: p.comments.map((x) =>
+            x.id === commentId && x.liked !== c
+              ? { ...x, liked: c, likes: Math.max(0, x.likes + (c ? 1 : -1)) }
+              : x,
+          ),
+        })),
       "update the comment",
+      was,
     )
 }
 /** A comment and every reply under it (the server deletes them together). */
@@ -1368,16 +1481,21 @@ export function markSeen(id: string) {
   if (!already) nudge((r) => r.seen(id))
 }
 export function toggleStoryLike(id: string) {
-  const was = socialStore.get().stories.find((x) => x.id === id)?.liked
-  const flip = () =>
+  const was = !!socialStore.get().stories.find((x) => x.id === id)?.liked
+  const put = (liked: boolean) =>
     set((s) => ({
       ...s,
-      stories: s.stories.map((x) =>
-        x.id === id ? { ...x, liked: !x.liked } : x,
-      ),
+      stories: s.stories.map((x) => (x.id === id ? { ...x, liked } : x)),
     }))
-  flip()
-  send((r) => r.likeStory(id, !was), flip, "like the story")
+  put(!was)
+  intent(
+    `slike:${id}`,
+    !was,
+    (r, v) => r.likeStory(id, v),
+    put,
+    "like the story",
+    was,
+  )
 }
 export function setNote(text: string) {
   const before = socialStore.get().notes
@@ -1405,15 +1523,23 @@ export function clearNote() {
 }
 export function toggleNoteLike(by: string) {
   const note = socialStore.get().notes.find((n) => n.by === by)
-  const flip = () =>
+  const was = !!note?.liked
+  const put = (liked: boolean) =>
     set((s) => ({
       ...s,
-      notes: s.notes.map((n) => (n.by === by ? { ...n, liked: !n.liked } : n)),
+      notes: s.notes.map((n) => (n.by === by ? { ...n, liked } : n)),
     }))
-  flip()
+  put(!was)
   const noteId = note?.id
   if (noteId)
-    send((r) => r.likeNote(noteId, !note.liked), flip, "like the note")
+    intent(
+      `nlike:${by}`,
+      !was,
+      (r, v) => r.likeNote(noteId, v),
+      put,
+      "like the note",
+      was,
+    )
 }
 export function toggleFollow(id: string) {
   const prev = personOf(id)
@@ -1434,13 +1560,34 @@ export function toggleFollow(id: string) {
     ),
   }))
   if (prev)
-    send(
-      (r) => r.follow(id, !prev.isFollowing),
-      () => {
-        putPerson(prev)
-        set((s) => ({ ...s, me: prevMe }))
-      },
+    intent(
+      `follow:${id}`,
+      !prev.isFollowing,
+      (r, v) => r.follow(id, v),
+      (c) =>
+        set((s) => {
+          const now = s.people.find((p) => p.id === id)
+          if (!now || now.isFollowing === c) return s
+          const d = c ? 1 : -1
+          return {
+            ...s,
+            me:
+              s.me && prevMe
+                ? { ...s.me, following: s.me.following + d }
+                : s.me,
+            people: s.people.map((p) =>
+              p.id === id
+                ? {
+                    ...p,
+                    isFollowing: c,
+                    followers: Math.max(0, p.followers + d),
+                  }
+                : p,
+            ),
+          }
+        }),
       prev.isFollowing ? `unfollow ${prev.name}` : `follow ${prev.name}`,
+      prev.isFollowing,
     )
 }
 export function toggleCloseFriend(id: string) {
@@ -1452,10 +1599,19 @@ export function toggleCloseFriend(id: string) {
     ),
   }))
   if (prev)
-    send(
-      (r) => r.closeFriend(id, !prev.closeFriend),
-      () => putPerson(prev),
+    intent(
+      `close:${id}`,
+      !prev.closeFriend,
+      (r, v) => r.closeFriend(id, v),
+      (c) =>
+        set((s) => ({
+          ...s,
+          people: s.people.map((p) =>
+            p.id === id ? { ...p, closeFriend: c || undefined } : p,
+          ),
+        })),
       "update close friends",
+      !!prev.closeFriend,
     )
 }
 export function toggleShowScores() {
@@ -1595,10 +1751,23 @@ export function reactTo(chatId: string, messageId: string, emoji: string) {
     }),
   }))
   if (prev)
-    send(
-      (r) => r.react(chatId, messageId, mine === emoji ? null : emoji),
-      () => putChat(prev),
+    intent<string | null>(
+      `react:${chatId}:${messageId}`,
+      mine === emoji ? null : emoji,
+      (r, v) => r.react(chatId, messageId, v),
+      (c) =>
+        mapChat(chatId, (ch) => ({
+          ...ch,
+          messages: ch.messages.map((m) => {
+            if (m.id !== messageId) return m
+            const reactions = { ...m.reactions }
+            if (c === null) delete reactions[ME]
+            else reactions[ME] = c
+            return { ...m, reactions }
+          }),
+        })),
       "react to the message",
+      mine ?? null,
     )
 }
 export function unsend(chatId: string, messageId: string) {

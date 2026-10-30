@@ -2,6 +2,10 @@ import { act, renderHook } from "@testing-library/react-native"
 import { useRing } from "../social/kit"
 import { addStory, ME, markSeen, socialStore } from "../social/store"
 
+// The note sheet in the social kit uses the shared Sheet, which loads sonner.
+jest.mock("sonner-native", () => ({
+  toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn() }),
+}))
 jest.mock("react-native-reanimated", () => ({
   __esModule: true,
   ...require("./reanimated-extras").extras,

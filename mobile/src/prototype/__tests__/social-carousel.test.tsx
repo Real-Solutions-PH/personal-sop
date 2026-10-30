@@ -2,6 +2,10 @@ import { render } from "@testing-library/react-native"
 import { isValidElement } from "react"
 import { MediaCarousel } from "../social/kit"
 
+// The note sheet in the social kit uses the shared Sheet, which loads sonner.
+jest.mock("sonner-native", () => ({
+  toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn() }),
+}))
 jest.mock("react-native-reanimated", () => ({
   __esModule: true,
   ...require("./reanimated-extras").extras,

@@ -49,6 +49,7 @@ import {
   Avatar,
   Bounce,
   haptic,
+  NoteComposer,
   ProgressCard,
   TrophyChip,
   useRing,
@@ -746,6 +747,7 @@ export function Profile({ id }: { id: string }) {
   const mine = id === ME
   const [tab, setTab] = useState<Tab>("posts")
   const [create, setCreate] = useState(false)
+  const [noteOpen, setNoteOpen] = useState(false)
   // The feed holds recent posts only; the saved tab needs the full list.
   useEffect(() => {
     if (tab === "saved") void loadSavedLive()
@@ -1169,7 +1171,12 @@ export function Profile({ id }: { id: string }) {
           )
         }
       />
-      <CreateSheet open={create} onClose={() => setCreate(false)} />
+      <CreateSheet
+        open={create}
+        onClose={() => setCreate(false)}
+        onNote={() => setNoteOpen(true)}
+      />
+      <NoteComposer open={noteOpen} onClose={() => setNoteOpen(false)} />
     </View>
   )
 }
