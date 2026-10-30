@@ -47,6 +47,7 @@ FITNESS_ACTIONS = {
     "fitness.rest.skip",
     "fitness.confirm_meal",
     "fitness.answer_follow_up",
+    "fitness.merge_exercises",
 }
 
 

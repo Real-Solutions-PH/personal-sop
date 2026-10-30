@@ -1267,6 +1267,8 @@ export type ExerciseDetail = {
     increment: number;
     archived: boolean;
     track?: ('speed' | 'weight' | null);
+    aliases?: Array<(string)>;
+    merged_into_id?: (string | null);
     last_done_at: (string | null);
     best_e1rm: (number | null);
     suggestion: SuggestionOut;
@@ -1297,6 +1299,8 @@ export type ExercisePublic = {
     increment: number;
     archived: boolean;
     track?: ('speed' | 'weight' | null);
+    aliases?: Array<(string)>;
+    merged_into_id?: (string | null);
 };
 
 export type ExercisesOut = {
@@ -1336,6 +1340,8 @@ export type ExerciseWithStats = {
     increment: number;
     archived: boolean;
     track?: ('speed' | 'weight' | null);
+    aliases?: Array<(string)>;
+    merged_into_id?: (string | null);
     last_done_at: (string | null);
     best_e1rm: (number | null);
     suggestion: SuggestionOut;
@@ -2370,6 +2376,10 @@ export type MemoryPublic = {
     created_at: string;
     version: number;
     deleted_at?: (string | null);
+};
+
+export type MergeExercise = {
+    target_id: string;
 };
 
 export type Message = {
@@ -5810,6 +5820,13 @@ export type FitnessArchiveExerciseData = {
 };
 
 export type FitnessArchiveExerciseResponse = (ExercisePublic);
+
+export type FitnessMergeExerciseData = {
+    exerciseId: string;
+    requestBody: MergeExercise;
+};
+
+export type FitnessMergeExerciseResponse = (ExercisePublic);
 
 export type FitnessBodyWeightData = {
     days?: number;

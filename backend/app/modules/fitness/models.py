@@ -45,6 +45,10 @@ class Exercise(OwnedRow, table=True):
         CheckConstraint(
             "track IS NULL OR track IN ('speed', 'weight')", name="ck_exercise_track"
         ),
+        CheckConstraint(
+            "merged_into_id IS NULL OR merged_into_id <> id",
+            name="ck_exercise_not_self_merged",
+        ),
     )
 
     name: str = Field(max_length=80)
@@ -56,6 +60,17 @@ class Exercise(OwnedRow, table=True):
     increment: float = Field(default=2.5, sa_type=Float)
     archived: bool = False
     track: str | None = Field(default=None, sa_type=String(8))  # type: ignore
+    # Former names that resolve to this exercise (merged rows' names).
+    aliases: list[str] = Field(
+        default_factory=list,
+        sa_type=JSONB,
+        sa_column_kwargs={"server_default": text("'[]'::jsonb")},
+    )
+    # Set: this row was merged into that one and is kept, archived, as a
+    # pointer. Written only by ``merge_exercises``.
+    merged_into_id: uuid.UUID | None = Field(
+        default=None, foreign_key="exercise.id", ondelete="SET NULL", index=True
+    )
 
 
 class WorkoutTemplate(OwnedRow, table=True):

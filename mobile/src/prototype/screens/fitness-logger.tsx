@@ -613,12 +613,8 @@ export function WorkoutLogger() {
         }}
       >
         <Field label="Search exercises" value={query} onChangeText={setQuery} />
-        {s.exercises
-          .filter(
-            (e) =>
-              !e.archived &&
-              e.name.toLowerCase().includes(query.trim().toLowerCase()),
-          )
+        {C.liveExercises(s)
+          .filter((e) => !e.archived && C.exerciseMatches(e, query))
           .map((e) => (
             <Tap
               key={e.id}

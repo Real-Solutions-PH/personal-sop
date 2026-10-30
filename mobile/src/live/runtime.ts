@@ -4,7 +4,7 @@
 // restored. Everything here is silent: the UI only ever reads its stores.
 
 import { setFxSource } from "@domain/finance/fx"
-import { installStarter } from "@domain/fitness/actions"
+import { installStarter, setSyncHooks } from "@domain/fitness/actions"
 import { getConnectivity } from "@domain/lib/platform"
 import type { StorageAdapter } from "@domain/lib/store"
 import { fetch as expoFetch } from "expo/fetch"
@@ -143,8 +143,21 @@ export function startLive(
       // The server is reachable: voice entries saved offline get their words.
       void transcribePending()
     },
+    onRejected: (name) => {
+      // Loaded on use: the toaster pulls in the UI's animation runtime.
+      if (name === "fitness.merge_exercises")
+        void import("sonner-native").then(({ toast }) =>
+          toast.error("Couldn't merge — exercises changed on another device"),
+        )
+    },
   })
   syncing = engine
+  // A merge flushes pending edits, then keeps its repointed rows out of
+  // the diff (the server's merge action moves them).
+  setSyncHooks({
+    flush: () => engine.capture(),
+    adopt: (entity, ids) => engine.adopt(entity, ids),
+  })
   engine.start((m, onChange) => {
     let last = m.store.get()
     return m.store.subscribe(() => {
@@ -198,6 +211,7 @@ export function startLive(
     engine,
     stats,
     stop: () => {
+      setSyncHooks(null)
       engine.stop()
       stats.stop()
       appState.remove()

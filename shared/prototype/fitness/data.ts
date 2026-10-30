@@ -36,6 +36,10 @@ export interface Exercise {
   increment: number
   archived?: boolean
   track?: TimeTrack
+  /** Former names that resolve to this exercise (merged rows' names). */
+  aliases?: string[]
+  /** Set: merged into that exercise; this row stays archived as a pointer. */
+  mergedInto?: string
 }
 export interface TemplateItem {
   exerciseId: string

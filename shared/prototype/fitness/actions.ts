@@ -1,11 +1,13 @@
 "use client"
 import { dayKey } from "../lib/day"
+import { derivedId } from "../lib/ids"
 import { liveStore, startLive, stopLive } from "../lib/live"
 import { uid } from "../lib/store"
 import {
   budgetFor,
   defaultSeconds,
   exerciseHistory,
+  exerciseNamed,
   isDone,
   isTimed,
   isWorking,
@@ -507,14 +509,11 @@ export function logWorkoutFromChat(input: {
   const day = input.day ?? dayKey()
   const start = new Date(`${day}T18:30:00`).toISOString()
   const exs = input.exercises.map((e) => {
+    const state = fitStore.get()
     const found =
-      fitStore
-        .get()
-        .exercises.find(
-          (x) =>
-            x.id === e.exercise ||
-            x.name.toLowerCase() === e.exercise.toLowerCase(),
-        ) ?? upsertExercise({ name: e.exercise })
+      state.exercises.find((x) => x.id === e.exercise && !x.mergedInto) ??
+      exerciseNamed(state, e.exercise) ??
+      upsertExercise({ name: e.exercise })
     return {
       id: uid(),
       exerciseId: found.id,
@@ -585,6 +584,9 @@ export function upsertExercise(
     name: string
   },
 ): Exercise {
+  const prior = e.id
+    ? fitStore.get().exercises.find((x) => x.id === e.id)
+    : undefined
   const full: Exercise = {
     id: e.id ?? uid(),
     name: e.name.trim(),
@@ -595,6 +597,11 @@ export function upsertExercise(
     repMax: e.repMax ?? 12,
     increment: e.increment ?? 2.5,
     archived: e.archived,
+    // Only a merge writes these: an edit keeps them.
+    ...(prior?.aliases?.length ? { aliases: prior.aliases } : {}),
+    ...(prior?.mergedInto
+      ? { mergedInto: prior.mergedInto, archived: true }
+      : {}),
   }
   fitStore.set((s) => ({
     ...s,
@@ -622,8 +629,113 @@ export function installStarter(owner: string): {
 export function setExerciseArchived(id: string, archived: boolean) {
   fitStore.set((s) => ({
     ...s,
-    exercises: s.exercises.map((x) => (x.id === id ? { ...x, archived } : x)),
+    exercises: s.exercises.map((x) =>
+      // A merged exercise stays archived: it only points at its survivor.
+      x.id === id && !(x.mergedInto && !archived) ? { ...x, archived } : x,
+    ),
   }))
+}
+/** How the sync engine sees a merge: flush pending edits before it, then
+ * take the repointed workout and template rows as already synced (the
+ * server's merge action moves them, so they are never pushed). Set by the
+ * mobile live session; no-ops elsewhere. */
+export interface SyncHooks {
+  flush(): void
+  adopt(entity: string, ids: string[]): void
+}
+const noHooks: SyncHooks = { flush: () => {}, adopt: () => {} }
+let syncHooks: SyncHooks = noHooks
+export function setSyncHooks(hooks: SyncHooks | null) {
+  syncHooks = hooks ?? noHooks
+}
+const MAX_ALIASES = 20
+/** The target's former names plus the source's name and former names, each
+ * once (ignoring case, never the target's own name), newest 20 kept. */
+function mergedAliases(target: Exercise, source: Exercise): string[] {
+  const seen = new Set([target.name.trim().toLowerCase()]),
+    out: string[] = []
+  for (const a of [
+    ...(target.aliases ?? []),
+    source.name,
+    ...(source.aliases ?? []),
+  ].reverse()) {
+    const name = a.trim()
+    if (name && !seen.has(name.toLowerCase())) {
+      seen.add(name.toLowerCase())
+      out.push(name)
+    }
+  }
+  return out.slice(0, MAX_ALIASES).reverse()
+}
+export type MergeResult =
+  | { ok: true; target: Exercise }
+  | { ok: false; reason: string }
+/** Folds one exercise into another of the same type: every workout and
+ * template slot moves to the target, the source is archived pointing at it,
+ * and its name becomes one of the target's former names. One store write;
+ * the server repeats it from the fitness.merge_exercises action. */
+export function mergeExercises(sourceId: string, targetId: string): MergeResult {
+  const s0 = fitStore.get(),
+    source = s0.exercises.find((e) => e.id === sourceId),
+    target = s0.exercises.find((e) => e.id === targetId)
+  if (!source || !target)
+    return { ok: false, reason: "That exercise is no longer here" }
+  if (source.id === target.id)
+    return { ok: false, reason: "Pick a different exercise to merge into" }
+  if (source.mergedInto)
+    return { ok: false, reason: "That exercise was already merged" }
+  if (target.mergedInto)
+    return { ok: false, reason: "That exercise was merged into another one" }
+  if (source.loadType !== target.loadType)
+    return { ok: false, reason: "Only exercises of the same type can merge" }
+  syncHooks.flush()
+  const merged: Exercise = {
+    ...target,
+    aliases: mergedAliases(target, source),
+  }
+  const moved: string[] = [],
+    slots: string[] = []
+  fitStore.set((s) => ({
+    ...s,
+    workouts: s.workouts.map((w) =>
+      w.exercises.some((we) => we.exerciseId === sourceId)
+        ? {
+            ...w,
+            exercises: w.exercises.map((we) => {
+              if (we.exerciseId !== sourceId) return we
+              moved.push(we.id)
+              return { ...we, exerciseId: targetId }
+            }),
+          }
+        : w,
+    ),
+    templates: s.templates.map((t) =>
+      t.items.some((i) => i.exerciseId === sourceId)
+        ? {
+            ...t,
+            items: t.items.map((i, pos) => {
+              if (i.exerciseId !== sourceId) return i
+              // The template_item row id the sync mapper gives this slot.
+              slots.push(derivedId("template-item", t.id, String(pos)))
+              return { ...i, exerciseId: targetId }
+            }),
+          }
+        : t,
+    ),
+    exercises: s.exercises.map((e) =>
+      e.id === targetId
+        ? merged
+        : e.id === sourceId
+          ? { ...e, archived: true, mergedInto: targetId }
+          : e.mergedInto === sourceId
+            ? { ...e, mergedInto: targetId }
+            : e,
+    ),
+  }))
+  // The source's own change goes out as the merge action itself.
+  syncHooks.adopt("workout_exercise", moved)
+  syncHooks.adopt("template_item", slots)
+  return { ok: true, target: merged }
 }
 export function logWeighIn(
   weightKg: number,

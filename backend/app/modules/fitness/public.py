@@ -424,11 +424,8 @@ class TemplateItemDraft:
 
 
 def exercise_named(ctx: Ctx, name: str) -> Exercise | None:
-    """A live exercise with this name (case-insensitive)."""
-    n = name.strip().lower()
-    return next(
-        (e for e in owned_repo.list_rows(ctx, Exercise) if e.name.lower() == n), None
-    )
+    """A live, unmerged exercise with this name or alias (case-insensitive)."""
+    return services.exercise_by_name(ctx, name)
 
 
 def names_for_speech(ctx: Ctx, *, limit: int = 60) -> tuple[list[str], list[str]]:

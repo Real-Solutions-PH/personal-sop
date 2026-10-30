@@ -63,6 +63,8 @@ class ExercisePublic(_Row):
     increment: float
     archived: bool
     track: TimeTrack | None = None
+    aliases: list[str] = []
+    merged_into_id: uuid.UUID | None = None
 
 
 class WorkoutTemplatePublic(_Row):
@@ -410,6 +412,10 @@ class ExerciseUpsert(BaseModel):
 
 class ArchiveExercise(BaseModel):
     archived: bool = True
+
+
+class MergeExercise(BaseModel):
+    target_id: uuid.UUID
 
 
 class WeighInCreate(BaseModel):

@@ -227,13 +227,23 @@ def exercises(
     include_archived: bool,
 ) -> S.ExercisesOut:
     state = repo.load_state(ctx, meals=False)
-    rows = owned_repo.list_rows(ctx, Exercise, order_by=[col(Exercise.name)])
+    rows = owned_repo.list_rows(
+        ctx,
+        Exercise,
+        col(Exercise.merged_into_id).is_(None),
+        order_by=[col(Exercise.name)],
+    )
     if not include_archived:
         rows = [e for e in rows if not e.archived]
     if muscle:
         rows = [e for e in rows if e.muscle == muscle]
     if q:
-        rows = [e for e in rows if q.lower() in e.name.lower()]
+        n = q.lower()
+        rows = [
+            e
+            for e in rows
+            if n in e.name.lower() or any(n in a.lower() for a in e.aliases)
+        ]
     page = rows[skip : skip + limit]
     return S.ExercisesOut(
         data=[exercise_with_stats(state, e, ctx.today) for e in page], count=len(rows)

@@ -6966,6 +6966,53 @@
         }
       }
     },
+    "/api/v1/fitness/exercises/{exercise_id}/merge": {
+      "post": {
+        "tags": ["fitness"],
+        "summary": "Merge Exercise",
+        "description": "Merge this exercise into ``target_id``; returns the survivor.",
+        "operationId": "fitness-merge_exercise",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "exercise_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Exercise Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/MergeExercise" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ExercisePublic" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
     "/api/v1/fitness/body": {
       "get": {
         "tags": ["fitness"],
@@ -21478,6 +21525,19 @@
             ],
             "title": "Track"
           },
+          "aliases": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "Aliases",
+            "default": []
+          },
+          "merged_into_id": {
+            "anyOf": [
+              { "type": "string", "format": "uuid" },
+              { "type": "null" }
+            ],
+            "title": "Merged Into Id"
+          },
           "last_done_at": {
             "anyOf": [
               { "type": "string", "format": "date-time" },
@@ -21575,6 +21635,19 @@
               { "type": "null" }
             ],
             "title": "Track"
+          },
+          "aliases": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "Aliases",
+            "default": []
+          },
+          "merged_into_id": {
+            "anyOf": [
+              { "type": "string", "format": "uuid" },
+              { "type": "null" }
+            ],
+            "title": "Merged Into Id"
           }
         },
         "type": "object",
@@ -21700,6 +21773,19 @@
               { "type": "null" }
             ],
             "title": "Track"
+          },
+          "aliases": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "Aliases",
+            "default": []
+          },
+          "merged_into_id": {
+            "anyOf": [
+              { "type": "string", "format": "uuid" },
+              { "type": "null" }
+            ],
+            "title": "Merged Into Id"
           },
           "last_done_at": {
             "anyOf": [
@@ -25451,6 +25537,18 @@
         "type": "object",
         "required": ["id", "text", "created_at", "version"],
         "title": "MemoryPublic"
+      },
+      "MergeExercise": {
+        "properties": {
+          "target_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Target Id"
+          }
+        },
+        "type": "object",
+        "required": ["target_id"],
+        "title": "MergeExercise"
       },
       "Message": {
         "properties": { "message": { "type": "string", "title": "Message" } },

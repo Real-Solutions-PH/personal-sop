@@ -551,24 +551,40 @@ def log_workout_from_chat(
 
 
 def find_or_create_exercise(ctx: Ctx, name: str) -> Exercise:
-    """A live exercise with this name (case-insensitive), else a new one
-    with the default shape. The new id is derived from the name, so a
-    replayed capture does not create it twice."""
+    """A live exercise with this name or alias (case-insensitive), else a new
+    one with the default shape. The new id is derived from the name, so a
+    replayed capture does not create it twice; when that id was since merged
+    into another exercise, the survivor is returned instead."""
     clean = name.strip()
     if not clean:
         raise invalid("exercise_name_required", "An exercise needs a name")
     ensure_settings(ctx)
-    for e in owned_repo.list_rows(ctx, Exercise):
-        if e.name.lower() == clean.lower():
-            return e
+    found = exercise_by_name(ctx, clean)
+    if found is not None:
+        return found
+    row_id = derived_id("exercise", ctx.user_id, "name:" + clean.lower())
+    prior = owned_repo.get(ctx, Exercise, row_id)
+    if prior is not None and prior.merged_into_id is not None:
+        return _survivor(ctx, prior)
     ex, _ = owned_repo.upsert(
         ctx,
         Exercise,
-        derived_id("exercise", ctx.user_id, "name:" + clean.lower()),
+        row_id,
         # ``upsertExercise({name})`` defaults: a barbell chest lift, 8-12.
         {"name": clean[:80], "equipment": "barbell", "muscle": "chest"},
     )
     return ex
+
+
+def exercise_by_name(ctx: Ctx, name: str) -> Exercise | None:
+    """The live, unmerged exercise called ``name`` or carrying it as an alias
+    (case-insensitive); a name match wins over an alias match."""
+    n = name.strip().lower()
+    rows = [e for e in owned_repo.list_rows(ctx, Exercise) if e.merged_into_id is None]
+    by_name = next((e for e in rows if e.name.lower() == n), None)
+    if by_name is not None:
+        return by_name
+    return next((e for e in rows if n in (a.lower() for a in e.aliases)), None)
 
 
 # --------------------------------------------------------------------------
@@ -929,6 +945,12 @@ def restore_template(*, ctx: Ctx, template_id: uuid.UUID) -> WorkoutTemplate:
 # --------------------------------------------------------------------------
 
 
+def _guard_merged(ex: Exercise | None, archived: bool | None) -> None:
+    """A merged exercise stays archived: only the merge writes its state."""
+    if ex is not None and ex.merged_into_id is not None and archived is False:
+        raise invalid("exercise_merged", "That exercise was merged into another one")
+
+
 def upsert_exercise(
     *, ctx: Ctx, data: dict[str, Any], exercise_id: uuid.UUID | None = None
 ) -> Exercise:
@@ -937,7 +959,9 @@ def upsert_exercise(
         raise invalid("exercise_name_required", "An exercise needs a name")
     if data["rep_max"] < data["rep_min"]:
         raise invalid("invalid_rep_range", "The rep range ends before it starts")
-    ex, _ = owned_repo.upsert(ctx, Exercise, exercise_id or uuid.uuid4(), data)
+    row_id = exercise_id or uuid.uuid4()
+    _guard_merged(owned_repo.get(ctx, Exercise, row_id), data.get("archived"))
+    ex, _ = owned_repo.upsert(ctx, Exercise, row_id, data)
     ctx.commit()
     return ex
 
@@ -946,11 +970,108 @@ def set_exercise_archived(
     *, ctx: Ctx, exercise_id: uuid.UUID, archived: bool
 ) -> Exercise:
     ex = _exercise(ctx, exercise_id)
+    _guard_merged(ex, archived)
     ex.archived = archived
     ctx.session.add(ex)
     ctx.session.flush()
     ctx.commit()
     return ex
+
+
+MAX_ALIASES = 20
+MAX_MERGE_HOPS = 5
+
+
+def _survivor(ctx: Ctx, ex: Exercise) -> Exercise:
+    """Follow ``merged_into_id`` to the live row it ends at."""
+    seen = {ex.id}
+    for _ in range(MAX_MERGE_HOPS):
+        if ex.merged_into_id is None:
+            return ex
+        ex = _exercise(ctx, ex.merged_into_id)
+        if ex.id in seen:
+            break
+        seen.add(ex.id)
+    if ex.merged_into_id is None:
+        return ex
+    raise invalid("merge_cycle", "Those exercises point at each other")
+
+
+def _merged_aliases(target: Exercise, source: Exercise) -> list[str]:
+    """Target's aliases plus the source's name and aliases, de-duplicated
+    case-insensitively (the target's own name is never an alias), keeping
+    the newest ``MAX_ALIASES``."""
+    out: list[str] = []
+    seen = {target.name.strip().lower()}
+    for a in reversed([*target.aliases, source.name, *source.aliases]):
+        key = a.strip().lower()
+        if key and key not in seen:
+            seen.add(key)
+            out.append(a.strip())
+    return list(reversed(out[:MAX_ALIASES]))
+
+
+def merge_exercises(
+    *, ctx: Ctx, source_id: uuid.UUID, target_id: uuid.UUID
+) -> Exercise:
+    """Move every workout and template reference from ``source`` to
+    ``target``, archive ``source`` with a pointer to it, and keep its name as
+    an alias. Replaying a finished merge returns the target unchanged."""
+    if source_id == target_id:
+        raise invalid("merge_same_exercise", "Pick a different exercise to merge into")
+    source = _exercise(ctx, source_id)
+    target = _survivor(ctx, _exercise(ctx, target_id))
+    if source.merged_into_id is not None:
+        if _survivor(ctx, source).id == target.id:
+            return target
+        raise invalid("exercise_already_merged", "That exercise was already merged")
+    if source.id == target.id:
+        raise invalid("merge_cycle", "Those exercises point at each other")
+    if source.load_type != target.load_type:
+        raise invalid(
+            "merge_load_type_mismatch", "Only exercises of the same type can merge"
+        )
+    # Tombstoned references move too, so an undo never revives a split.
+    moved = owned_repo.list_rows(
+        ctx,
+        WorkoutExercise,
+        col(WorkoutExercise.exercise_id) == source.id,
+        include_deleted=True,
+    )
+    for we in moved:
+        we.exercise_id = target.id
+        ctx.session.add(we)
+    for item in owned_repo.list_rows(
+        ctx,
+        TemplateItem,
+        col(TemplateItem.exercise_id) == source.id,
+        include_deleted=True,
+    ):
+        item.exercise_id = target.id
+        ctx.session.add(item)
+    for earlier in owned_repo.list_rows(
+        ctx, Exercise, col(Exercise.merged_into_id) == source.id
+    ):
+        earlier.merged_into_id = target.id
+        ctx.session.add(earlier)
+    target.aliases = _merged_aliases(target, source)
+    source.merged_into_id = target.id
+    source.archived = True
+    ctx.session.add_all([target, source])
+    ctx.session.flush()
+    workout_ids = {we.workout_id for we in moved if we.deleted_at is None}
+    if workout_ids:
+        started = [
+            w.started_at
+            for w in owned_repo.list_rows(
+                ctx, Workout, col(Workout.id).in_(workout_ids)
+            )
+        ]
+        if started:
+            _dirty_at(ctx, min(started))
+    ctx.commit()
+    ctx.session.refresh(target)  # the version the trigger assigned
+    return target
 
 
 # --------------------------------------------------------------------------
