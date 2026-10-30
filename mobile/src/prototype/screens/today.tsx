@@ -22,7 +22,6 @@ import * as H from "@domain/habits/logic"
 import { habitsStore } from "@domain/habits/store"
 import { openCapture } from "@domain/lib/capture"
 import { dayKey, dayOffset, fmtDuration, isEvening } from "@domain/lib/day"
-import { privacyStore, togglePrivacy } from "@domain/lib/privacy"
 import { completeTask } from "@domain/tasks/actions"
 import { useStats, useTodayData } from "@domain/tasks/hooks"
 import { fmtInstant, isDueNow } from "@domain/tasks/logic"
@@ -39,8 +38,6 @@ import {
   ChevronDown,
   ChevronRight,
   Dumbbell,
-  Eye,
-  EyeOff,
   Flame,
   History,
   type LucideIcon,
@@ -83,6 +80,7 @@ import {
   Tap,
 } from "../native-kit"
 import { go } from "../navigation"
+import { PrivacyEye } from "../privacy-eye"
 import { useScreenSetUp } from "../screen-sync"
 import { CommunityButton, CommunityCard } from "../social/today-card"
 import { fonts, radius, useTheme } from "../theme"
@@ -1646,7 +1644,6 @@ function GoalsAndContext({ evening }: { evening: boolean }) {
 export function Today() {
   const t = useTheme(),
     s = dashStore.use((s) => s),
-    hidden = privacyStore.use((s) => s.hidden),
     now = useNow(),
     date = new Date(now),
     { mode } = useLocalSearchParams<{ mode?: string }>(),
@@ -1696,13 +1693,7 @@ export function Today() {
         .toUpperCase()}
       actions={
         <Line style={{ gap: 4 }}>
-          <IconTap
-            size={44}
-            icon={hidden ? EyeOff : Eye}
-            label={hidden ? "Show amounts" : "Hide amounts"}
-            color={hidden ? t.primary : t.muted}
-            onPress={togglePrivacy}
-          />
+          <PrivacyEye />
           {shown.social && <CommunityButton />}
           <View>
             <IconTap
