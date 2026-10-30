@@ -150,7 +150,13 @@ test("refresh loads the feed and maps server posts into the store's shape", asyn
       at: Date.parse("2026-10-19T08:00:00Z"),
       caption: "Squat PR #legday",
       media: [
-        { id: "m1", kind: "image", uri: "https://cdn.test/m1.jpg", ratio: 1.5 },
+        {
+          id: "m1",
+          kind: "image",
+          uri: "https://cdn.test/m1.jpg",
+          urlAt: expect.any(Number),
+          ratio: 1.5,
+        },
       ],
       progress: undefined,
       location: "BGC",
@@ -222,7 +228,7 @@ test("a like is applied at once and rolled back with a toast when the server fai
   expect(mockToasts).toEqual(["Couldn't cheer the post. Please try again."])
 })
 
-test("a cheer sends its kind and keeps the server's counts and progress day", async () => {
+test("a cheer sends its kind and keeps the server's counts, not its other fields", async () => {
   socialStore.set((s) => ({
     ...s,
     posts: [
@@ -276,8 +282,9 @@ test("a cheer sends its kind and keeps the server's counts and progress day", as
     liked: true,
     myCheer: "proud",
     cheers: { keep_going: 2, proud: 2, inspired: 0 },
-    progress: { day: 12, of: 30, beforeAfter: false },
   })
+  // A reaction answer moves counters only; the card is read with the post.
+  expect(socialStore.get().posts[0].progress).toBeUndefined()
 })
 
 test("a write made offline fails at once with a toast and changes nothing", () => {

@@ -93,6 +93,10 @@ export interface DashState {
     identities: Identity[]
     photo?: string
   }
+  /** Live mode: a profile photo change the server has not taken yet (offline
+   * or refused); ``uri`` null is a removal, ``mediaId`` an upload already
+   * done. Retried on the next connect. */
+  profilePhotoPending?: { uri: string | null; mediaId?: string }
   weights: Record<ModuleKey, number>
   enabled: Record<ModuleKey, boolean>
   goals: Goal[]

@@ -265,6 +265,7 @@ export function WorkoutCard({
     <CardFrame
       width={width}
       look={look}
+      accent="fit"
       kicker="Workout"
       date={d.date}
       foot={foot}
@@ -282,6 +283,8 @@ export function FitnessShare({ id }: { id: string }) {
       exercise?: string
       // Just finished: the card is offered before going back to Fitness.
       done?: string
+      // Open the post composer with the card once it has rendered.
+      post?: string
     }>(),
     w = s.workouts.find((w) => w.id === id),
     [layout, setLayout] = useState<WorkoutLayout>(p.template ?? "summary"),
@@ -378,6 +381,7 @@ export function FitnessShare({ id }: { id: string }) {
       <ShareComposer
         value={layout}
         onChange={setLayout}
+        autoPost={p.post === "1"}
         caption={`${w.name} · ${C.fmtMin(totals.durationSec)} · ${volume(totals.volume).value} ${volume(totals.volume).unit}${prs.length ? ` · ${fmt(prs.length)} PR` : ""}`}
         items={(
           [

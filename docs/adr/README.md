@@ -23,3 +23,4 @@ Start new ADRs from [template.md](template.md).
 | [0025](0025-focus-module.md) | Focus: a Pomodoro and stopwatch that record what the time went to |
 | [0026](0026-eas-build-submit-and-update.md) | EAS Build, Submit and Update for iOS releases (no Xcode, over-the-air JS updates) |
 | [0027](0027-screen-time.md) | Screen time: lower-bound minutes from DeviceActivity thresholds, auto habits, gated entitlement |
+| [0028](0028-share-card-gradients.md) | Gradients on share artwork only (Fern and Dusk grounds); the interface stays flat |

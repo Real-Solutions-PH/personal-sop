@@ -22,6 +22,8 @@ import {
 import { useContext, useRef, useState } from "react"
 import { PanResponder, Pressable, View } from "react-native"
 import { toast } from "sonner-native"
+import { Celebration, useCelebrate } from "../celebration"
+import { useShown } from "../extras"
 import {
   border,
   Copy,
@@ -815,7 +817,10 @@ export function RoutineSummary({ id, runId }: { id: string; runId?: string }) {
     r = s.routines.find((r) => r.id === id),
     run =
       s.runs.find((r) => r.id === runId && r.routineId === id) ??
-      [...s.runs].reverse().find((r) => r.routineId === id)
+      [...s.runs].reverse().find((r) => r.routineId === id),
+    social = useShown("social"),
+    // A partial or abandoned run gets the calm header: no burst, no haptic.
+    play = useCelebrate(run?.id ?? id, !!run && L.runState(run) === "completed")
   if (!r || !run)
     return (
       <Screen prototypeLayout title="Routine summary">
@@ -836,58 +841,75 @@ export function RoutineSummary({ id, runId }: { id: string; runId?: string }) {
       st === "completed" &&
       completed.length > 2 &&
       completed.every((x) => x.id === run.id || L.runActualSec(x) >= actual),
-    idx = L.logIndex(s.logs)
+    idx = L.logIndex(s.logs),
+    date = new Date(`${run.day}T12:00:00`).toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    }),
+    shareUrl = `/habits/share?t=routine&routine=${id}&run=${run.id}`
   return (
     <Screen prototypeLayout title="Routine summary">
       <View style={{ gap: 12, paddingTop: 4 }}>
-        <View style={{ alignItems: "center", gap: 8, paddingVertical: 16 }}>
-          <View
-            style={{
-              width: 80,
-              height: 80,
-              borderRadius: 24,
-              backgroundColor: `${t.hab}1f`,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Copy size={40}>{r.icon}</Copy>
-            {st === "completed" && (
+        {st === "completed" ? (
+          <Celebration
+            kind="routine"
+            icon={r.icon}
+            title={`${r.name} done!`}
+            subtitle={date}
+            stats={[
+              {
+                label: "Steps done",
+                value: done,
+                format: (n) => `${Math.round(n)}/${run.steps.length}`,
+              },
+              {
+                label: "Actual",
+                value: actual,
+                format: (n) => fmtDuration(n),
+              },
+              {
+                label: "vs planned",
+                value: planned,
+                format: (n) => fmtDuration(n),
+              },
+            ]}
+            play={play}
+          />
+        ) : null}
+        <View
+          style={{
+            alignItems: "center",
+            gap: 8,
+            paddingVertical: st === "completed" ? 0 : 16,
+          }}
+        >
+          {st !== "completed" && (
+            <>
               <View
                 style={{
-                  position: "absolute",
-                  right: -8,
-                  bottom: -8,
-                  width: 40,
-                  height: 40,
-                  borderRadius: 20,
-                  backgroundColor: t.good,
-                  borderWidth: 4,
-                  borderColor: t.bg,
+                  width: 80,
+                  height: 80,
+                  borderRadius: 24,
+                  backgroundColor: `${t.hab}1f`,
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <Check size={20} color={t.bg} />
+                <Copy size={40}>{r.icon}</Copy>
               </View>
-            )}
-          </View>
-          <Copy
-            size={24}
-            weight="semibold"
-            style={{ marginTop: 8, textAlign: "center" }}
-          >
-            {st === "completed"
-              ? `${r.name} done!`
-              : `${r.name} — ${st.replace("_", " ")}`}
-          </Copy>
-          <Copy size={14} muted>
-            {new Date(`${run.day}T12:00:00`).toLocaleDateString("en-US", {
-              weekday: "short",
-              month: "short",
-              day: "numeric",
-            })}
-          </Copy>
+              <Copy
+                size={24}
+                weight="semibold"
+                style={{ marginTop: 8, textAlign: "center" }}
+              >
+                {`${r.name} — ${st.replace("_", " ")}`}
+              </Copy>
+              <Copy size={14} muted>
+                {date}
+              </Copy>
+            </>
+          )}
           {fastest && (
             <Copy
               size={14}
@@ -903,28 +925,30 @@ export function RoutineSummary({ id, runId }: { id: string; runId?: string }) {
             </Copy>
           )}
         </View>
-        <Frame style={{ padding: 16 }}>
-          <Line>
-            {[
-              ["Steps done", `${done}/${run.steps.length}`],
-              ["Actual", fmtDuration(actual)],
-              ["vs planned", fmtDuration(planned)],
-            ].map(([label, value], i) => (
-              <View key={label} style={{ flex: 1 }}>
-                <Copy
-                  weight="displayMedium"
-                  size={30}
-                  style={{ color: i === 0 ? t.hab : t.text }}
-                >
-                  {value}
-                </Copy>
-                <Copy size={12} muted>
-                  {label}
-                </Copy>
-              </View>
-            ))}
-          </Line>
-        </Frame>
+        {st !== "completed" && (
+          <Frame style={{ padding: 16 }}>
+            <Line>
+              {[
+                ["Steps done", `${done}/${run.steps.length}`],
+                ["Actual", fmtDuration(actual)],
+                ["vs planned", fmtDuration(planned)],
+              ].map(([label, value], i) => (
+                <View key={label} style={{ flex: 1 }}>
+                  <Copy
+                    weight="displayMedium"
+                    size={30}
+                    style={{ color: i === 0 ? t.hab : t.text }}
+                  >
+                    {value}
+                  </Copy>
+                  <Copy size={12} muted>
+                    {label}
+                  </Copy>
+                </View>
+              ))}
+            </Line>
+          </Frame>
+        )}
       </View>
       <View style={{ marginTop: -12 }}>
         <SectionHeading>Steps</SectionHeading>
@@ -995,15 +1019,19 @@ export function RoutineSummary({ id, runId }: { id: string; runId?: string }) {
       </View>
       <Line style={{ paddingTop: 8, gap: 8 }}>
         <View style={{ flex: 1 }}>
-          <Button
-            tone="quiet"
-            href={`/habits/share?t=routine&routine=${id}&run=${run.id}`}
-          >
-            Share
-          </Button>
+          <Button href={shareUrl}>Share</Button>
         </View>
+        {social && (
+          <View style={{ flex: 1 }}>
+            <Button tone="quiet" href={`${shareUrl}&post=1`}>
+              Post
+            </Button>
+          </View>
+        )}
         <View style={{ flex: 1 }}>
-          <Button href="/today">Done</Button>
+          <Button tone="quiet" href="/today">
+            Done
+          </Button>
         </View>
       </Line>
     </Screen>
