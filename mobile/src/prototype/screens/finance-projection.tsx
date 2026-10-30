@@ -9,12 +9,11 @@ import {
 } from "@domain/finance/forecast"
 import { finStore } from "@domain/finance/store"
 import { dayKey } from "@domain/lib/day"
-import { currencySymbol } from "@domain/lib/money"
-import { privacyStore } from "@domain/lib/privacy"
+import { currencySymbol, money as formatMoney } from "@domain/lib/money"
 import { useLocalSearchParams } from "expo-router"
 import { ChevronDown, Sparkles, X } from "lucide-react-native"
 import { useState } from "react"
-import { ScrollView, View } from "react-native"
+import { ScrollView, Text, View } from "react-native"
 import { toast } from "sonner-native"
 import { FinanceLineChart } from "../chart"
 import { MoneyInput } from "../money-input"
@@ -103,7 +102,6 @@ export function Projection() {
   const s = finStore.use((s) => s),
     t = useTheme(),
     money = useMoney(),
-    hidden = privacyStore.use((s) => s.hidden),
     p = useLocalSearchParams<Record<string, string>>(),
     cur = C.monthOf(dayKey(), 1),
     [whatOpen, setWhat] = useState(!!p.whatif || !!p.amount),
@@ -242,7 +240,6 @@ export function Projection() {
       <Switch accent="fin" label={label} value={value} onChange={onChange} />
     </Line>
   )
-  const compact = (v: number) => (hidden ? "•••" : C.compact(v))
   if (!proj.hasIncome)
     return (
       <Screen title="Projection">
@@ -319,7 +316,7 @@ export function Projection() {
               <Copy size={12} muted>
                 Available money on {dayMonth(range.to, true)}
               </Copy>
-              <Copy size={30} weight="displayMedium">
+              <Copy size={30} weight="displayMedium" fit>
                 {money(f.atTo)}
               </Copy>
               {range.from !== C.today() && (
@@ -328,7 +325,7 @@ export function Projection() {
                 </Copy>
               )}
             </View>
-            <Line style={{ gap: 8, paddingHorizontal: 4, marginTop: 12 }}>
+            <View style={{ gap: 6, paddingHorizontal: 4, marginTop: 12 }}>
               {[
                 { label: "Expected income", value: `+${money(f.income)}` },
                 { label: "Bills", value: `−${money(f.bills)}` },
@@ -339,21 +336,27 @@ export function Projection() {
                   color: f.net >= 0 ? t.good : t.bad,
                 },
               ].map((m) => (
-                <View key={m.label} style={{ flex: 1 }}>
+                <Line
+                  key={m.label}
+                  style={{
+                    justifyContent: "space-between",
+                    alignItems: "baseline",
+                    gap: 12,
+                  }}
+                >
+                  <Copy size={12} muted style={{ flex: 1 }}>
+                    {m.label}
+                  </Copy>
                   <Copy
                     size={14}
                     weight="semibold"
-                    lines={1}
                     style={{ color: m.color ?? t.text }}
                   >
                     {m.value}
                   </Copy>
-                  <Copy size={12} muted lines={2}>
-                    {m.label}
-                  </Copy>
-                </View>
+                </Line>
               ))}
-            </Line>
+            </View>
             <Copy
               size={12}
               weight="medium"
@@ -414,18 +417,12 @@ export function Projection() {
         <Frame
           style={{ paddingHorizontal: 12, paddingTop: 16, paddingBottom: 8 }}
         >
-          <Line
-            style={{
-              alignItems: "flex-start",
-              paddingHorizontal: 4,
-              justifyContent: "space-between",
-            }}
-          >
-            <View style={{ flex: 1 }}>
+          <View style={{ paddingHorizontal: 4, gap: 8 }}>
+            <View>
               <Copy size={12} muted>
                 Available money by {last ? C.monthLabel(last.key, true) : ""}
               </Copy>
-              <Copy size={30} weight="displayMedium">
+              <Copy size={30} weight="displayMedium" fit>
                 {money(last?.end ?? proj.start)}
               </Copy>
               {whatIf && last && (
@@ -434,30 +431,34 @@ export function Projection() {
                 </Copy>
               )}
             </View>
-            <View style={{ alignItems: "flex-end" }}>
-              <Copy size={12} muted>
-                Avg left over
-              </Copy>
-              <Copy
-                size={12}
-                weight="semibold"
-                style={{ color: proj.avgSurplus >= 0 ? t.good : t.bad }}
-              >
-                {proj.avgSurplus >= 0 ? "+" : ""}
-                {compact(proj.avgSurplus)}/mo
-              </Copy>
-              <Copy size={12} muted style={{ marginTop: 4 }}>
-                Lowest point
-              </Copy>
-              <Copy
-                size={12}
-                weight="semibold"
-                style={{ color: proj.low.value < floor ? t.warn : t.text }}
-              >
-                {money(proj.low.value)} · {C.monthLabel(proj.low.key)}
-              </Copy>
-            </View>
-          </Line>
+            <Line style={{ gap: 12, alignItems: "flex-start" }}>
+              <View style={{ flex: 1 }}>
+                <Copy size={12} muted>
+                  Avg left over
+                </Copy>
+                <Copy
+                  size={12}
+                  weight="semibold"
+                  style={{ color: proj.avgSurplus >= 0 ? t.good : t.bad }}
+                >
+                  {proj.avgSurplus >= 0 ? "+" : "−"}
+                  {money(Math.abs(proj.avgSurplus))} a month
+                </Copy>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Copy size={12} muted>
+                  Lowest point
+                </Copy>
+                <Copy
+                  size={12}
+                  weight="semibold"
+                  style={{ color: proj.low.value < floor ? t.warn : t.text }}
+                >
+                  {money(proj.low.value)} · {C.monthLabel(proj.low.key)}
+                </Copy>
+              </View>
+            </Line>
+          </View>
           <FinanceLineChart
             height={190}
             floor={floor}
@@ -542,7 +543,7 @@ export function Projection() {
             [10000, 25000, 45000, 100000].map((v) => (
               <FinChip
                 key={v}
-                label={C.compact(v)}
+                label={formatMoney(v)}
                 active={Number(amount) === v}
                 onPress={() => setAmount(String(v))}
               />
@@ -671,7 +672,7 @@ export function Projection() {
                   {
                     label: "End balance",
                     value: money(last?.end ?? 0),
-                    detail: `−${compact((last?.endBase ?? 0) - (last?.end ?? 0))}`,
+                    detail: `−${money((last?.endBase ?? 0) - (last?.end ?? 0))}`,
                   },
                 ].map((x) => (
                   <View key={x.label} style={{ flex: 1 }}>
@@ -725,7 +726,7 @@ export function Projection() {
             drafts.map((p) => (
               <FinChip
                 key={p.id}
-                label={`${p.name} · ${compact(p.amount)}`}
+                label={`${p.name} · ${money(p.amount)}`}
                 onPress={() => {
                   setName(p.name.replace(" (draft)", ""))
                   setAmount(String(p.amount))
@@ -741,7 +742,7 @@ export function Projection() {
       )}
       <Line style={{ alignItems: "stretch" }}>
         <Frame style={{ flex: 1, padding: 16 }}>
-          <Copy size={30} weight="displayMedium">
+          <Copy size={30} weight="displayMedium" fit>
             {money(proj.start)}
           </Copy>
           <Copy size={12} muted>
@@ -818,74 +819,56 @@ export function Projection() {
       ) : (
         <View style={{ marginTop: -12 }}>
           <SectionHeading>Left over each month</SectionHeading>
-          <Frame>
-            <Line
-              style={{
-                gap: 0,
-                paddingVertical: 8,
-                borderBottomWidth: 1,
-                borderColor: border(t.line, 0.6),
-              }}
-            >
-              {["Month", "In", "Out", "Net", "Balance"].map((x, i) => (
-                <Copy
-                  key={x}
-                  size={12}
-                  muted
-                  weight="medium"
-                  style={{
-                    flex: 1,
-                    paddingHorizontal: 8,
-                    textAlign: i ? "right" : "left",
-                  }}
-                >
-                  {x}
-                </Copy>
-              ))}
-            </Line>
+          {/* One row per month: the balance it ends on, then what came in,
+              went out and was left over, each in full. Five columns of full
+              amounts do not fit a phone, so the breakdown wraps at its dots
+              instead of being cut or abbreviated. */}
+          <Frame style={{ paddingHorizontal: 16, paddingVertical: 4 }}>
             {proj.months.map((m, i) => (
-              <Line
+              <View
                 key={m.key}
                 style={{
-                  gap: 0,
-                  paddingVertical: 8,
-                  borderBottomWidth: 1,
+                  paddingVertical: 10,
+                  marginHorizontal: -16,
+                  paddingHorizontal: 16,
+                  borderTopWidth: i ? 1 : 0,
                   borderColor: border(t.line, 0.4),
                   backgroundColor: m.whatIf > 0 ? `${t.fin}0d` : undefined,
                 }}
               >
-                {[
-                  `${C.monthLabel(m.key)}${i === 0 ? " (rest)" : ""}${m.whatIf > 0 ? " •" : ""}`,
-                  compact(m.inflow),
-                  compact(m.planned + m.unplanned + m.whatIf),
-                  `${m.net >= 0 ? "+" : ""}${compact(m.net)}`,
-                  compact(m.end),
-                ].map((v, j) => (
+                <Line
+                  style={{
+                    justifyContent: "space-between",
+                    alignItems: "baseline",
+                    gap: 12,
+                  }}
+                >
+                  <Copy size={14} weight="medium" style={{ flex: 1 }}>
+                    {C.monthLabel(m.key)}
+                    {i === 0 ? " (rest)" : ""}
+                    {m.whatIf > 0 ? " •" : ""}
+                  </Copy>
                   <Copy
-                    key={`cell-${j}`}
-                    size={12}
+                    size={14}
+                    weight="semibold"
                     style={{
-                      flex: 1,
-                      paddingHorizontal: 8,
-                      textAlign: j ? "right" : "left",
                       color:
-                        j === 1
-                          ? t.good
-                          : j === 3
-                            ? m.net < 0
-                              ? t.bad
-                              : t.good
-                            : j === 4 && m.end < floor
-                              ? m.end < 0
-                                ? t.bad
-                                : t.warn
-                              : t.text,
+                        m.end < floor ? (m.end < 0 ? t.bad : t.warn) : t.text,
                     }}
                   >
-                    {v}
+                    {money(m.end)}
                   </Copy>
-                ))}
-              </Line>
+                </Line>
+                <Copy size={12} muted style={{ marginTop: 2 }}>
+                  In <Text style={{ color: t.good }}>{money(m.inflow)}</Text>
+                  {" · "}Out {money(m.planned + m.unplanned + m.whatIf)}
+                  {" · "}Net{" "}
+                  <Text style={{ color: m.net < 0 ? t.bad : t.good }}>
+                    {m.net >= 0 ? "+" : "−"}
+                    {money(Math.abs(m.net))}
+                  </Text>
+                </Copy>
+              </View>
             ))}
           </Frame>
         </View>

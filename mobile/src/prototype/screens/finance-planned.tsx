@@ -6,7 +6,7 @@ import { dayKey } from "@domain/lib/day"
 import { useLocalSearchParams } from "expo-router"
 import { ArrowLeftRight, Pencil, Plus, Tag } from "lucide-react-native"
 import { useState } from "react"
-import { ScrollView, Text, useWindowDimensions, View } from "react-native"
+import { ScrollView, Text, View } from "react-native"
 import { toast } from "sonner-native"
 import {
   border,
@@ -205,7 +205,6 @@ export function Planned({ id }: { id?: string }) {
   const s = finStore.use((s) => s),
     t = useTheme(),
     money = useMoney(),
-    narrow = useWindowDimensions().width < 380,
     [tab, setTab] = useState("recurring"),
     [edit, setEdit] = useState(!!params.amount),
     [due, setDue] = useState<{
@@ -256,24 +255,32 @@ export function Planned({ id }: { id?: string }) {
             p.amount
         : 0
   const stats = (items: { label: string; value: string; color?: string }[]) => (
-    <Frame style={{ padding: 16 }}>
-      <Line style={{ gap: 8, alignItems: "flex-start" }}>
-        {items.map((x) => (
-          <View key={x.label} style={{ flex: 1 }}>
-            <Copy
-              size={narrow ? 22 : 30}
-              weight="displayMedium"
-              fit
-              style={{ color: x.color ?? t.text }}
-            >
-              {x.value}
-            </Copy>
-            <Copy size={12} muted>
-              {x.label}
-            </Copy>
-          </View>
-        ))}
-      </Line>
+    // One row per figure, so every amount has the card's full width.
+    <Frame style={{ paddingHorizontal: 16, paddingVertical: 4 }}>
+      {items.map((x, i) => (
+        <Line
+          key={x.label}
+          style={{
+            justifyContent: "space-between",
+            alignItems: "baseline",
+            gap: 12,
+            paddingVertical: 10,
+            borderTopWidth: i ? 1 : 0,
+            borderColor: border(t.line, 0.6),
+          }}
+        >
+          <Copy size={14} muted style={{ flex: 1 }}>
+            {x.label}
+          </Copy>
+          <Copy
+            size={20}
+            weight="displayMedium"
+            style={{ color: x.color ?? t.text }}
+          >
+            {x.value}
+          </Copy>
+        </Line>
+      ))}
     </Frame>
   )
   if (id && !p)
@@ -588,12 +595,7 @@ export function Planned({ id }: { id?: string }) {
                     <Copy size={11} muted>
                       {C.dayLabel(o.day)}
                     </Copy>
-                    <Copy
-                      size={14}
-                      weight="medium"
-                      lines={1}
-                      style={{ marginTop: 4 }}
-                    >
+                    <Copy size={14} weight="medium" style={{ marginTop: 4 }}>
                       {o.item.name}
                     </Copy>
                     <Copy size={14}>{signed(o.item)}</Copy>
@@ -623,13 +625,13 @@ export function Planned({ id }: { id?: string }) {
                   <PlannedIcon p={p} />
                   <View style={{ flex: 1 }}>
                     <Line style={{ gap: 6 }}>
-                      <Copy weight="medium" lines={1} style={{ flexShrink: 1 }}>
+                      <Copy weight="medium" style={{ flexShrink: 1 }}>
                         {p.name}
                       </Copy>
                       {p.isInstallment && <FinPill>installment</FinPill>}
                       {p.autoLog && <FinPill tone="fin">auto</FinPill>}
                     </Line>
-                    <Copy size={14} muted lines={1}>
+                    <Copy size={14} muted>
                       {C.scheduleLabel(p)} ·{" "}
                       {plannedWhere(p, s.accounts, s.categories)}
                     </Copy>

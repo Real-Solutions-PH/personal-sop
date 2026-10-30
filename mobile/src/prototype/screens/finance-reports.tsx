@@ -181,18 +181,22 @@ export function Reports({ kind }: { kind?: string }) {
       down?: boolean
     }[],
   ) => (
-    <Line style={{ gap: 8, alignItems: "stretch" }}>
-      {items.map((x) => (
-        <Frame key={x.label} style={{ padding: 12, flex: 1 }}>
-          <Copy
-            size={22}
-            weight="displayMedium"
-            lines={1}
-            style={{ color: x.color ?? t.text }}
-          >
-            {x.value}
-          </Copy>
-          <Copy size={12} muted lines={1}>
+    // One row per figure, label left and amount right, so every amount has
+    // the card's full width and is never cut short.
+    <Frame style={{ paddingHorizontal: 16, paddingVertical: 4 }}>
+      {items.map((x, i) => (
+        <Line
+          key={x.label}
+          style={{
+            justifyContent: "space-between",
+            alignItems: "baseline",
+            gap: 12,
+            paddingVertical: 10,
+            borderTopWidth: i ? 1 : 0,
+            borderColor: border(t.line, 0.6),
+          }}
+        >
+          <Copy size={14} muted style={{ flex: 1 }}>
             {x.label}
             {x.delta !== undefined && x.delta !== 0 && (
               <Copy
@@ -205,9 +209,16 @@ export function Reports({ kind }: { kind?: string }) {
               </Copy>
             )}
           </Copy>
-        </Frame>
+          <Copy
+            size={20}
+            weight="displayMedium"
+            style={{ color: x.color ?? t.text }}
+          >
+            {x.value}
+          </Copy>
+        </Line>
       ))}
-    </Line>
+    </Frame>
   )
   if (kind && !TITLES[kind])
     return (

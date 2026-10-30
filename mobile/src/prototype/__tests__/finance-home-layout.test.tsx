@@ -161,8 +161,8 @@ test("the category donut shows the top category's icon, never the word top", () 
 
 test("budgets show what is left, with a minus when over", () => {
   const view = render(<FinanceHome />, { wrapper })
-  expect(screen.getByText("Left")).toBeTruthy()
-  expect(allText()).not.toMatch(/−₱[\d,]+\nLeft\n/)
+  expect(screen.getByText(/^Left of ₱[\d,.]+ this month$/)).toBeTruthy()
+  expect(allText()).not.toMatch(/−₱[\d,.]+\nLeft of /)
   view.unmount()
   finStore.set((x) => ({
     ...x,
@@ -171,7 +171,29 @@ test("budgets show what is left, with a minus when over", () => {
     ),
   }))
   render(<FinanceHome />, { wrapper })
-  expect(allText()).toMatch(/−₱[\d,]+\nLeft\n/)
+  expect(allText()).toMatch(/−₱[\d,.]+\nLeft of /)
+})
+
+test("category budgets alone give a live summary, not the locked preview", () => {
+  finStore.set((x) => ({
+    ...x,
+    budgets: x.budgets.filter((b) => b.categoryIds !== null),
+  }))
+  const n = finStore.get().budgets.filter((b) => !b.archived).length
+  expect(n).toBeGreaterThan(0)
+  render(<FinanceHome />, { wrapper })
+  expect(screen.queryByText("Set a monthly budget")).toBeNull()
+  expect(
+    screen.getByText(
+      new RegExp(`^Left of ₱[\\d,.]+ across ${n} category budgets?$`),
+    ),
+  ).toBeTruthy()
+})
+
+test("with no budget at all the card says to set one", () => {
+  finStore.set((x) => ({ ...x, budgets: [] }))
+  render(<FinanceHome />, { wrapper })
+  expect(screen.getByText("Set a monthly budget")).toBeTruthy()
 })
 
 test("with amounts hidden no peso figure shows on the home", () => {

@@ -231,7 +231,6 @@ export function AccountCard({
             <Copy
               size={compact ? 12 : 14}
               weight="semibold"
-              lines={1}
               style={{ color: "white" }}
             >
               {a.name}
@@ -249,7 +248,7 @@ export function AccountCard({
           <Copy
             size={compact ? 18 : 24}
             weight="semibold"
-            lines={1}
+            fit
             style={{ color: "white", letterSpacing: -0.4 }}
           >
             {!owed && balance < 0 ? "−" : ""}
@@ -277,11 +276,7 @@ export function AccountCard({
                 }}
               />
             </View>
-            <Copy
-              size={10}
-              lines={1}
-              style={{ color: "rgba(255,255,255,0.85)" }}
-            >
+            <Copy size={10} style={{ color: "rgba(255,255,255,0.85)" }}>
               {note.text}
             </Copy>
           </View>
@@ -297,11 +292,7 @@ export function AccountCard({
                 }}
               />
             )}
-            <Copy
-              size={10}
-              lines={1}
-              style={{ color: "rgba(255,255,255,0.85)" }}
-            >
+            <Copy size={10} style={{ color: "rgba(255,255,255,0.85)" }}>
               {note.text}
             </Copy>
           </View>

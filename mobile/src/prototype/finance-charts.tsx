@@ -266,11 +266,21 @@ export function ExpectedBars({
     <View style={{ gap: 10 }}>
       {rows.map((r) => (
         <View key={r.label} style={{ gap: 4 }}>
-          <Line style={{ justifyContent: "space-between" }}>
+          <Line
+            style={{
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+              gap: 12,
+            }}
+          >
             <Copy size={12} muted>
               {r.label}
             </Copy>
-            <Copy size={12} weight="medium">
+            <Copy
+              size={12}
+              weight="medium"
+              style={{ flexShrink: 1, textAlign: "right" }}
+            >
               {r.value}
             </Copy>
           </Line>

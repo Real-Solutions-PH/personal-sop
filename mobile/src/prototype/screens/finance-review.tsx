@@ -4,8 +4,6 @@ import type { Budget, PlannedItem } from "@domain/finance/data"
 import { lookback } from "@domain/finance/review"
 import { finStore } from "@domain/finance/store"
 import { dayKey } from "@domain/lib/day"
-import { currencySymbol } from "@domain/lib/money"
-import { privacyStore } from "@domain/lib/privacy"
 import { LinearGradient } from "expo-linear-gradient"
 import { useLocalSearchParams } from "expo-router"
 import {
@@ -65,7 +63,6 @@ export function FinanceReview() {
   const s = finStore.use((s) => s),
     t = useTheme(),
     money = useMoney(),
-    hidden = privacyStore.use((v) => v.hidden),
     p = useLocalSearchParams<Record<string, string>>(),
     cur = C.monthOf(dayKey(), s.settings.monthStartDay),
     [period, setPeriod] = useState(p.period ?? C.addMonths(cur, -1)),
@@ -293,7 +290,7 @@ export function FinanceReview() {
             <Copy
               size={30}
               weight="displayMedium"
-              lines={1}
+              fit
               style={{ color: x.color ?? t.text }}
             >
               {x.value}
@@ -467,7 +464,7 @@ export function FinanceReview() {
               <View style={{ alignItems: "flex-end" }}>
                 <Copy size={14}>{money(x.v)}</Copy>
                 <Copy size={11} muted>
-                  ≈ {hidden ? `${currencySymbol()}•••` : C.compact(x.v * 12)}/yr
+                  ≈ {money(x.v * 12)} a year
                 </Copy>
               </View>
             </Line>

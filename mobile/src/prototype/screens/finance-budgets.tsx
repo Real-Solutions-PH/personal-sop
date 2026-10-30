@@ -73,8 +73,16 @@ export function Budgets({ id }: { id?: string }) {
           onPress={() => go(`/finance/budgets/${view.b.id}`)}
           style={{ padding: 16 }}
         >
-          <Line style={{ justifyContent: "space-between" }}>
-            <Copy weight="medium">{view.b.name}</Copy>
+          <Line
+            style={{
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+              gap: 8,
+            }}
+          >
+            <Copy weight="medium" style={{ flex: 1 }}>
+              {view.b.name}
+            </Copy>
             <Copy
               size={11}
               style={{
@@ -95,7 +103,15 @@ export function Budgets({ id }: { id?: string }) {
           <View style={{ marginTop: 12 }}>
             <Bar value={view.pct} color={t.fin} target={view.pace} />
           </View>
-          <Line style={{ justifyContent: "space-between", marginTop: 8 }}>
+          <Line
+            style={{
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              columnGap: 12,
+              rowGap: 2,
+              marginTop: 8,
+            }}
+          >
             <Copy size={12} style={{ color: over ? t.bad : t.text }}>
               {money(view.spent)} of {money(view.limit)}
             </Copy>
@@ -145,34 +161,34 @@ export function Budgets({ id }: { id?: string }) {
                   used
                 </Copy>
               </Ring>
-              <View
-                style={{
-                  flex: 1,
-                  flexDirection: "row",
-                  flexWrap: "wrap",
-                  rowGap: 12,
-                }}
-              >
-                {[
-                  ["Spent", money(v.spent)],
-                  ["Left", money(Math.max(0, v.limit - v.spent))],
-                  ["Safe to spend / day", money(v.safePerDay)],
-                  ["Days left", String(v.daysLeft)],
-                ].map(([label, value], i) => (
-                  <View key={label} style={{ width: "50%", paddingRight: 4 }}>
-                    <Copy
-                      size={30}
-                      weight="displayMedium"
-                      style={{ color: i === 2 ? t.fin : t.text }}
-                    >
-                      {value}
-                    </Copy>
-                    <Copy size={12} muted>
-                      {label}
-                    </Copy>
-                  </View>
-                ))}
+              <View style={{ flex: 1, gap: 2 }}>
+                <Copy size={30} weight="displayMedium" fit>
+                  {money(Math.max(0, v.limit - v.spent))}
+                </Copy>
+                <Copy size={12} muted>
+                  Left of {money(v.limit)}
+                </Copy>
+                <Copy size={12} muted>
+                  {v.daysLeft === 1 ? "1 day left" : `${v.daysLeft} days left`}
+                </Copy>
               </View>
+            </Line>
+            {/* Two figures to a row at most, each shrinking to fit its half
+                rather than wrapping mid-number. */}
+            <Line style={{ gap: 12, marginTop: 16, alignItems: "flex-start" }}>
+              {[
+                ["Spent", money(v.spent), t.text],
+                ["Safe to spend / day", money(v.safePerDay), t.fin],
+              ].map(([label, value, color]) => (
+                <View key={label} style={{ flex: 1 }}>
+                  <Copy size={24} weight="displayMedium" fit style={{ color }}>
+                    {value}
+                  </Copy>
+                  <Copy size={12} muted>
+                    {label}
+                  </Copy>
+                </View>
+              ))}
             </Line>
           </Frame>
           <View style={{ marginTop: -12 }}>
@@ -286,8 +302,12 @@ export function Budgets({ id }: { id?: string }) {
             </Line>
           </Frame>
           <View style={{ marginTop: -12 }}>
-            <SectionHeading>Overall</SectionHeading>
-            {views.filter((v) => v.b.categoryIds === null).map(card)}
+            {views.some((v) => v.b.categoryIds === null) && (
+              <>
+                <SectionHeading>Overall</SectionHeading>
+                {views.filter((v) => v.b.categoryIds === null).map(card)}
+              </>
+            )}
             <SectionHeading>By category</SectionHeading>
             {views
               .filter((v) => v.b.categoryIds !== null)
