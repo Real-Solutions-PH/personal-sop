@@ -26,6 +26,15 @@ def _upsert_profile(ctx: Ctx, row_id: uuid.UUID, payload: BaseModel) -> UserProf
     # One profile per user: the device's id for it is advisory.
     del row_id
     assert isinstance(payload, ProfileUpdate)
+    if payload.handle is not None and not services.handle_claimable(
+        ctx, payload.handle
+    ):
+        # A taken or reserved handle must not cost the rest of the row (the
+        # name changed in the same edit): apply it without the handle, and
+        # the returned row tells the device which handle it kept.
+        payload = ProfileUpdate.model_validate(
+            payload.model_dump(exclude_unset=True, exclude={"handle"})
+        )
     return services.update_profile(ctx, payload)
 
 

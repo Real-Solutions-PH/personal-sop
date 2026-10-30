@@ -1,10 +1,14 @@
 import { dashStore } from "@domain/dash/store"
 import { LinearGradient } from "expo-linear-gradient"
 import { Image, Text, View } from "react-native"
+import { socialStore } from "./social/store"
 import { fonts, useTheme } from "./theme"
 export function ProfileAvatar({ size = 68 }: { size?: number }) {
   const t = useTheme(),
-    p = dashStore.use((s) => s.profile)
+    profile = dashStore.use((s) => s.profile),
+    // The photo set on another device, until this one picks its own.
+    synced = socialStore.use((s) => s.me?.photo),
+    p = { ...profile, photo: profile.photo || synced }
   return (
     <LinearGradient
       colors={[t.hab, t.primary, t.fit]}

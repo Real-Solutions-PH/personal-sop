@@ -169,3 +169,21 @@ export const markTrophiesSeen = (ids: string[]) =>
   }))
 export const setProfilePhoto = (photo: string | undefined) =>
   set((s) => ({ ...s, profile: { ...s.profile, photo } }))
+export const setProfilePhotoPending = (
+  pending: DashState["profilePhotoPending"],
+) => set((s) => ({ ...s, profilePhotoPending: pending }))
+/** Edit profile's Save: name, handle and identities in one write. */
+export const saveProfileEdits = (p: {
+  name: string
+  handle: string
+  identities: Identity[]
+}) =>
+  set((s) => ({
+    ...s,
+    profile: {
+      ...s.profile,
+      name: p.name,
+      handle: p.handle,
+      identities: p.identities.slice(0, 3),
+    },
+  }))

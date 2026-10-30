@@ -64,8 +64,11 @@ import { fonts, useTheme } from "../theme"
 import { confirm, Screen } from "../ui"
 export function Me() {
   const t = useTheme(),
-    s = dashStore.use((s) => s),
-    p = s.profile,
+    // Only what this screen shows: a write elsewhere in the dash store (a
+    // goal, a notification) does not re-render Me.
+    p = dashStore.use((s) => s.profile),
+    permission = dashStore.use((s) => s.push.permission),
+    eveningStart = dashStore.use((s) => s.eveningStart),
     goals = D.useGoals(),
     score = D.useLifeScore(30),
     target = D.useOnTarget(30),
@@ -215,7 +218,7 @@ export function Me() {
         <View style={{ marginTop: 12 }}>
           <AppLauncher title="Apps" />
         </View>
-        {(Platform.OS === "web" || s.push.permission !== "granted") && (
+        {(Platform.OS === "web" || permission !== "granted") && (
           <Frame
             style={{
               marginTop: 12,
@@ -235,7 +238,7 @@ export function Me() {
                 <Copy size={12} muted>
                   {Platform.OS === "web"
                     ? "Install for full-screen and reminders."
-                    : `Notifications: ${s.push.permission}`}
+                    : `Notifications: ${permission}`}
                 </Copy>
               </View>
               <SmallButton
@@ -321,9 +324,9 @@ export function Me() {
           <LinkRow
             title="Notifications"
             detail={
-              s.push.permission === "granted"
+              permission === "granted"
                 ? "On"
-                : s.push.permission === "denied"
+                : permission === "denied"
                   ? "Blocked"
                   : "Not set up"
             }
@@ -332,7 +335,7 @@ export function Me() {
           />
           <LinkRow
             title="Day & time"
-            detail={`Day starts ${String(DAY_START_HOUR).padStart(2, "0")}:00 · Evening ${s.eveningStart} · Asia/Manila`}
+            detail={`Day starts ${String(DAY_START_HOUR).padStart(2, "0")}:00 · Evening ${eveningStart} · Asia/Manila`}
             icon={Clock}
             href="/me/settings"
           />
