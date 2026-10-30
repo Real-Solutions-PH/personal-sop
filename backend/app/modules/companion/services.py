@@ -1183,7 +1183,14 @@ any food. When they send a nutrition label (a photo, or the numbers typed
 from one) or give a food's nutrition themselves, call `save_food` with the
 values exactly as given and what they are per (100 g, piece or serving,
 with the serving's grams when shown), then log what they ate if they did.
-A label photo is saved for you; don't save it twice. Before estimating a
+A label photo is saved for you; don't save it twice. When a label or the
+web gives only some numbers (calories alone, say), estimate the rest
+(protein, carbs, fat, saturated fat, sugar, sodium) from the closest similar
+food so they add up to the calories, say they are estimates, and save and
+log it with them; never save or log a food with calories alone. When they
+say a logged meal is missing numbers or ask to fix one, change it with
+`edit_meal` in that reply, estimating what is missing the same way, rather
+than only explaining. Before estimating a
 packaged or regular food, `find_foods` to use their own values; `log_meal`
 also swaps in library values for matching foods by itself, and its
 `from_library` says which, so say those are from their library.
@@ -1415,6 +1422,15 @@ _GIVES_DATA = re.compile(
     r"sets?|kcal|cal|pesos?|php)(?!\w)|[₱$]\s*\d",
     re.I,
 )
+# A message asking about records already kept, even without a question mark
+# ("check my meals for today why there are no sat fat records"): a reply
+# describing what was logged before is not a claim to have written now.
+_ASKS_ABOUT = re.compile(
+    r"^\s*(?:why|how|what|which|when|where|is|are|did|do|does|can|could)\b|"
+    r"\b(?:why|check|show me|look at|not showing|there (?:are|is) no|"
+    r"isn'?t|aren'?t|doesn'?t|don'?t see|missing)\b",
+    re.I,
+)
 _CLAIMS_A_WRITE = re.compile(
     r"\b(added|logged|saved|recorded|created|scheduled|marked|set up|"
     r"updated|changed|rearranged|reordered|renamed|edited|moved|deleted|removed|archived|"
@@ -1466,6 +1482,11 @@ FINISH_NUDGE = (
     "Call the tool for each part that is not done yet (a routine step is "
     "added with update_routine), then say in one or two sentences what you "
     "did. Do not redo what is already done this turn."
+)
+SAY_NUDGE = (
+    "Your reply was empty. Answer my last message now in one to three "
+    'sentences: "{text}". Say what you did this turn and what is left, if '
+    "anything. Do not repeat a tool that already ran."
 )
 NOT_RECORDED = (
     "I didn't manage to record that, so nothing was saved. Try asking again "
@@ -1573,6 +1594,15 @@ def not_recorded(steps: list[Any]) -> str:
     )
 
 
+def done_so_far(steps: list[Any]) -> str:
+    """The reply when the model still said nothing: what this turn's tools
+    did, so the bubble is never blank."""
+    done = [str(s.summary) for s in steps if s.ok and s.summary]
+    if not done:
+        return NOT_RECORDED
+    return "Done this turn: " + "; ".join(done[-4:]) + "."
+
+
 def unbacked_claim(asked: str, answer: str, steps: list[Any]) -> bool:
     """The reply claims something the turn's tools did not do, while no
     write tool of this turn succeeded: it points at a Confirm button with
@@ -1591,7 +1621,7 @@ def unbacked_claim(asked: str, answer: str, steps: list[Any]) -> bool:
     )
     if _POINTS_AT_CONFIRM.search(answer) and not waiting and not wrote:
         return True
-    statement = "?" not in asked
+    statement = "?" not in asked and not _ASKS_ABOUT.search(asked)
     asks = bool(_ASKS_TO_WRITE.search(asked)) or (
         statement
         and (bool(_GIVES_DATA.search(asked)) or bool(_NAMES_RECORDS.search(asked)))
@@ -1870,10 +1900,13 @@ def _ask_ai(
         # the reply says it stopped instead of being made to finish.
         stream.end_text()
         answer = f"{answer}\n\n{STOPPED}" if answer.strip() else STOPPED
-    elif unbacked or promised(answer):
-        # One corrective pass: told plainly that nothing was saved, or that
-        # part of the ask was only promised.
-        nudge = (NUDGE if unbacked else FINISH_NUDGE).format(text=text)
+    elif unbacked or promised(answer) or not answer.strip():
+        # One corrective pass: told plainly that nothing was saved, that
+        # part of the ask was only promised, or that the reply said nothing
+        # (seen live 2026-10-30: a blank bubble after reading two photos).
+        nudge = (
+            NUDGE if unbacked else FINISH_NUDGE if answer.strip() else SAY_NUDGE
+        ).format(text=text)
         stream.end_text()
         reply = capture.run_agent(
             ctx,
@@ -1894,6 +1927,8 @@ def _ask_ai(
         answer = plain_text(reply)
         if unbacked_claim(text, answer, stream.steps):
             answer = not_recorded(stream.steps)
+        elif not answer.strip():
+            answer = done_so_far(stream.steps)
     if _ABOUT_NUTRITION.search(text) and not any(
         b["t"] == "nutrition" for b in run.blocks
     ):

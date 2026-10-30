@@ -271,10 +271,17 @@ Currency = Annotated[
 class ExpenseArgs(BaseModel):
     amount: Amount
     currency: Currency = None
-    category: Opt = None
+    category: Opt = Field(
+        default=None,
+        description="One of the person's expense categories that fits what "
+        "it was for (a snack is Food, a gift or condolence is Gifts if they "
+        "have it). Pick one whenever they said what it was for.",
+    )
     account: Opt = None
     payee: Opt = None
-    note: Opt = None
+    note: Opt = Field(
+        default=None, description="What it was for, in their words, when they said."
+    )
     days_ago: DaysAgo = 0
 
 
@@ -420,9 +427,21 @@ class BalanceArgs(BaseModel):
     account: Annotated[str, Field(min_length=1, max_length=60)] = Field(
         description="The existing account, by its name as the user has it."
     )
-    balance: Annotated[float, Field(ge=-MAX_MINOR / 100, le=MAX_MINOR / 100)] = Field(
-        description="What is in it now, in the user's currency. For a "
-        "credit card, what is owed, as a negative number."
+    balance: Annotated[float, Field(ge=-MAX_MINOR / 100, le=MAX_MINOR / 100)] | None = (
+        Field(
+            default=None,
+            description="What is in it now, in the user's currency, when they "
+            "say what it holds. For a credit card, what is owed, as a negative "
+            "number. Leave out when they add to or take from it.",
+        )
+    )
+    change: Annotated[float, Field(ge=-MAX_MINOR / 100, le=MAX_MINOR / 100)] | None = (
+        Field(
+            default=None,
+            description="How much to add to what it holds now (negative to take "
+            'away), when they say "add 100 to BDO" or "take 50 from cash". '
+            "Leave out when they say what it holds.",
+        )
     )
 
 
@@ -1061,6 +1080,20 @@ def capture_tools(run: Run) -> list[BaseTool]:
         if "error" in fx:
             return fx
         cat = _category_id(run, a.category, "expense")
+        if a.category and cat is None:
+            # Seen live 2026-10-29: "pre-workout" and "condolence" matched no
+            # category, so both expenses asked the person what they were for
+            # though they had just said. The model picks one of theirs.
+            return {
+                "error": "unknown_category",
+                "categories": [
+                    c.name
+                    for c in ports.finance.list_categories(run.ctx)
+                    if c.kind == "expense" and not c.archived
+                ],
+                "instead": "call again with the closest of these categories, "
+                "and put what it was for in note",
+            }
         d = RecordDraft(
             kind="expense",
             target="finance",
@@ -1351,6 +1384,16 @@ def capture_tools(run: Run) -> list[BaseTool]:
                 "error": "no_account_with_that_name",
                 "accounts": [x.name for x in ports.finance.list_accounts(run.ctx)],
             }
+        if (a.balance is None) == (a.change is None):
+            return {"error": "give_either_balance_or_change"}
+        # Seen live 2026-10-29: "add 100 to my BDO" set it to 100 instead of
+        # adding to the 1 it held.
+        balance_minor = (
+            _minor(a.balance)
+            if a.balance is not None
+            else ports.finance.account_balance(run.ctx, account_id=acc.id)
+            + _minor(a.change or 0)
+        )
         d = RecordDraft(
             kind="accountBalance",
             target="finance",
@@ -1359,7 +1402,7 @@ def capture_tools(run: Run) -> list[BaseTool]:
                 "kind": "accountBalance",
                 "account_id": str(acc.id),
                 "name": acc.name,
-                "balance_minor": _minor(a.balance),
+                "balance_minor": balance_minor,
             },
         )
         return _card(run, d, setup=True)
