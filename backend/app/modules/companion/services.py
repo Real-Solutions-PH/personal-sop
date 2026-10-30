@@ -1484,12 +1484,6 @@ FINISH_NUDGE = (
     "added with update_routine), then say in one or two sentences what you "
     "did. Do not redo what is already done this turn."
 )
-SAY_NUDGE = (
-    "Your reply was empty. Answer my last message now in one to three "
-    'sentences: "{text}". Say what you did this turn and what is left, if '
-    "anything. Do not repeat a tool that already ran."
-)
-LOST_REPLY = "Sorry, I lost my reply there. Could you ask me again?"
 NOT_RECORDED = (
     "I didn't manage to record that, so nothing was saved. Try asking again "
     "in other words, or add it from its tab."
@@ -1594,15 +1588,6 @@ def not_recorded(steps: list[Any]) -> str:
         f"I couldn't save that, so nothing was recorded: {why[-1]}. "
         f"{NEEDS_WEIGHT if 'portion weight' in why[-1] else FIX_AND_RETRY}"
     )
-
-
-def done_so_far(steps: list[Any]) -> str:
-    """The reply when the model still said nothing: what this turn's tools
-    did, so the bubble is never blank."""
-    done = [str(s.summary) for s in steps if s.ok and s.summary]
-    if not done:
-        return LOST_REPLY
-    return "Done this turn: " + "; ".join(done[-4:]) + "."
 
 
 def unbacked_claim(asked: str, answer: str, steps: list[Any]) -> bool:
@@ -1907,13 +1892,10 @@ def _ask_ai(
         # the reply says it stopped instead of being made to finish.
         stream.end_text()
         answer = f"{answer}\n\n{STOPPED}" if answer.strip() else STOPPED
-    elif unbacked or promised(answer) or not answer.strip():
-        # One corrective pass: told plainly that nothing was saved, that
-        # part of the ask was only promised, or that the reply said nothing
-        # (seen live 2026-10-30: a blank bubble after reading two photos).
-        nudge = (
-            NUDGE if unbacked else FINISH_NUDGE if answer.strip() else SAY_NUDGE
-        ).format(text=text)
+    elif unbacked or promised(answer):
+        # One corrective pass: told plainly that nothing was saved, or that
+        # part of the ask was only promised.
+        nudge = (NUDGE if unbacked else FINISH_NUDGE).format(text=text)
         stream.end_text()
         reply = capture.run_agent(
             ctx,
@@ -1934,8 +1916,6 @@ def _ask_ai(
         answer = plain_text(reply)
         if unbacked_claim(text, answer, stream.steps):
             answer = not_recorded(stream.steps)
-        elif not answer.strip():
-            answer = done_so_far(stream.steps)
     if _ABOUT_NUTRITION.search(text) and not any(
         b["t"] == "nutrition" for b in run.blocks
     ):

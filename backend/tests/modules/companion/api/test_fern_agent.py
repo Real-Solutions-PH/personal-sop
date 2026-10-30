@@ -485,38 +485,6 @@ def test_a_question_about_kept_records_without_a_question_mark_is_not_a_write() 
         assert services.unbacked_claim(asked, "Logged it.", []), asked
 
 
-def test_a_blank_reply_after_tools_says_what_they_did() -> None:
-    from app.modules.companion.turn import Step
-
-    steps = [
-        Step(
-            call_id="a", name="read_photos", label="", ok=True, summary="Read 2 photos"
-        ),
-        Step(
-            call_id="b", name="save_food", label="", ok=False, summary="Couldn't finish"
-        ),
-    ]
-    assert services.done_so_far(steps) == "Done this turn: Read 2 photos."
-    assert services.done_so_far([]) == services.LOST_REPLY
-
-
-def test_a_blank_reply_gets_one_pass_to_say_something(
-    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    api = user(client, db, accounts=False)
-    api.assign("chat")
-    install(
-        monkeypatch,
-        say("", call("create_tasks", tasks=[{"title": "Buy eggs"}])),
-        say(""),
-        say("Added Buy eggs to your tasks."),
-    )
-    events = stream(api, client, "add buy eggs to my tasks")
-    assert (
-        events[-1]["result"]["messages"][1]["text"] == "Added Buy eggs to your tasks."
-    )
-
-
 TASK_LIST = (
     "So these are my tasks, list them out: refinement on the inventory "
     "management system for Jack, deploying the staging environment in AWS via "
