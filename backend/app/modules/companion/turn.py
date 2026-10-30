@@ -527,6 +527,10 @@ class TurnStream(capture.LoopHooks):
     def model_started(self, turn: int) -> None:
         self._turn = turn
         self.sink(StepStartedEvent(step_name=f"think:{turn}"))
+        # Once per model call, from the turn that knows one started: the app
+        # tells "thinking" from "still thinking" by it (the stream's pings
+        # only keep the connection open).
+        self.custom("thinking", {"turn": turn})
 
     def model_finished(self, turn: int, message: BaseMessage) -> None:
         # A model call's text is one message; the next call starts another.
@@ -623,14 +627,28 @@ class TurnStream(capture.LoopHooks):
         return {"t": "steps", "items": [s.public() for s in self.steps]}
 
 
+# A reply stream is never silent for longer than this: a model that thinks
+# for minutes sends nothing, and the phone (45 s) and the tunnel in front of
+# the API (100 s) both cut a silent response.
+HEARTBEAT_SECONDS = 15.0
+PING = ": ping\n\n"
+
+
 def stream_events(
-    work: Callable[[Sink], None], *, name: str = "companion-turn"
+    work: Callable[[Sink], None],
+    *,
+    name: str = "companion-turn",
+    heartbeat_s: float = HEARTBEAT_SECONDS,
+    on_heartbeat: Callable[[], None] | None = None,
 ) -> Iterator[str]:
     """Run ``work(sink)`` on a worker thread and yield its AG-UI events as
-    SSE as they come (``data: {...}`` frames, ``ag_ui`` encoding). The
-    generator waits for the worker before it ends, so the request's database
-    session outlives every use of it. An unexpected failure becomes a
-    ``RUN_ERROR`` with a fixed message, never the exception's text."""
+    SSE as they come (``data: {...}`` frames, ``ag_ui`` encoding). After
+    ``heartbeat_s`` with no event it yields an SSE comment (``: ping``) and
+    calls ``on_heartbeat``; once the client is gone it keeps calling
+    ``on_heartbeat`` (no ping) until the worker ends. The generator waits for
+    the worker before it ends, so the request's database session outlives
+    every use of it. An unexpected failure becomes a ``RUN_ERROR`` with a
+    fixed message, never the exception's text."""
     import logging
     import queue
     import threading
@@ -654,13 +672,29 @@ def stream_events(
         finally:
             q.put(None)
 
+    def beat() -> None:
+        if on_heartbeat is None:
+            return
+        try:
+            on_heartbeat()
+        except Exception as exc:  # noqa: BLE001 - a missed beat never ends the reply
+            log.warning("companion heartbeat failed: %s", type(exc).__name__)
+
     t = threading.Thread(target=run_it, name=name, daemon=True)
     t.start()
     try:
         while True:
-            item = q.get()
+            try:
+                item = q.get(timeout=heartbeat_s)
+            except queue.Empty:
+                beat()
+                yield PING
+                continue
             if item is None:
                 break
             yield enc.encode(item)
     finally:
-        t.join()
+        while t.is_alive():
+            t.join(timeout=heartbeat_s)
+            if t.is_alive():
+                beat()

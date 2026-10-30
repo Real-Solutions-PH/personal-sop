@@ -270,7 +270,8 @@ def test_a_long_answer_starts_streaming_before_it_ends() -> None:
     stream = TurnStream(ctx=None, thread_id="t", run_id="r", sink=events.append)  # type: ignore[arg-type]
     stream.model_started(1)
     stream.text("x" * (HOLD_CHARS - 1))
-    assert events[-1].type.value == "STEP_STARTED"  # nothing shown yet
+    # Nothing shown yet (the call's step and its "thinking" event only).
+    assert [e.type.value for e in events] == ["STEP_STARTED", "CUSTOM"]
     stream.text("yy")
     assert events[-1].type.value == "TEXT_MESSAGE_CONTENT"
     assert events[-1].delta == "x" * (HOLD_CHARS - 1) + "yy"

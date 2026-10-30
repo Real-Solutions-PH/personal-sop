@@ -10085,6 +10085,50 @@ export const MediaPublicSchema = {
                 }
             ],
             title: 'Url'
+        },
+        preview_url: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Preview Url'
+        },
+        lqip: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Lqip'
+        },
+        width: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Width'
+        },
+        height: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Height'
         }
     },
     type: 'object',
@@ -10167,6 +10211,29 @@ export const MediaWithUrlSchema = {
             format: 'date-time',
             title: 'Created At'
         },
+        preview_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Preview Id'
+        },
+        lqip: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Lqip'
+        },
         url: {
             anyOf: [
                 {
@@ -10177,6 +10244,17 @@ export const MediaWithUrlSchema = {
                 }
             ],
             title: 'Url'
+        },
+        preview_url: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Preview Url'
         }
     },
     type: 'object',
@@ -15130,6 +15208,42 @@ export const ReplaceExerciseSchema = {
     type: 'object',
     required: ['exercise_id'],
     title: 'ReplaceExercise'
+} as const;
+
+export const ReplyOutSchema = {
+    properties: {
+        status: {
+            type: 'string',
+            enum: ['running', 'done', 'failed'],
+            title: 'Status'
+        },
+        messages: {
+            items: {
+                '$ref': '#/components/schemas/app__modules__companion__schema__MessagePublic'
+            },
+            type: 'array',
+            title: 'Messages'
+        },
+        capture: {
+            anyOf: [
+                {
+                    additionalProperties: true,
+                    type: 'object'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Capture'
+        }
+    },
+    type: 'object',
+    required: ['status'],
+    title: 'ReplyOut',
+    description: `Where the reply to a question stands, for an app that lost its
+stream: \`\`done\`\` with the stored question and reply (or the capture a
+log became), \`\`running\`\` while the turn is still being written, or
+\`\`failed\`\` when it ended with nothing stored.`
 } as const;
 
 export const ReplyPublicSchema = {
@@ -20687,6 +20801,31 @@ export const UploadRequestSchema = {
                 }
             ],
             title: 'Duration Sec'
+        },
+        preview_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Preview Id'
+        },
+        lqip: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 2048,
+                    pattern: '^data:image/jpeg;base64,[A-Za-z0-9+/=]+$'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Lqip'
         }
     },
     type: 'object',

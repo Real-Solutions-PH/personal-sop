@@ -2336,6 +2336,10 @@ export type MediaPublic = {
     kind: 'image' | 'video';
     ratio: (number | null);
     url: (string | null);
+    preview_url?: (string | null);
+    lqip?: (string | null);
+    width?: (number | null);
+    height?: (number | null);
 };
 
 export type MediaWithUrl = {
@@ -2349,7 +2353,10 @@ export type MediaWithUrl = {
     state: 'pending' | 'ready' | 'rejected';
     ready_at: (string | null);
     created_at: string;
+    preview_id?: (string | null);
+    lqip?: (string | null);
     url?: (string | null);
+    preview_url?: (string | null);
 };
 
 export type kind12 = 'image' | 'video' | 'audio' | 'file';
@@ -3258,6 +3265,22 @@ export type ReplaceExercise = {
     exercise_id: string;
 };
 
+/**
+ * Where the reply to a question stands, for an app that lost its
+ * stream: ``done`` with the stored question and reply (or the capture a
+ * log became), ``running`` while the turn is still being written, or
+ * ``failed`` when it ended with nothing stored.
+ */
+export type ReplyOut = {
+    status: 'running' | 'done' | 'failed';
+    messages?: Array<app__modules__companion__schema__MessagePublic>;
+    capture?: ({
+    [key: string]: unknown;
+} | null);
+};
+
+export type status6 = 'running' | 'done' | 'failed';
+
 export type ReplyPublic = {
     id: string;
     capture_id: string;
@@ -3956,7 +3979,7 @@ export type SyncOpResult = {
     replayed?: boolean;
 };
 
-export type status6 = 'applied' | 'conflict' | 'rejected';
+export type status7 = 'applied' | 'conflict' | 'rejected';
 
 export type SyncPull = {
     changes: Array<SyncChange>;
@@ -4323,6 +4346,8 @@ export type UploadRequest = {
     width?: (number | null);
     height?: (number | null);
     duration_sec?: (number | null);
+    preview_id?: (string | null);
+    lqip?: (string | null);
 };
 
 /**
@@ -4919,6 +4944,12 @@ export type CompanionStopReplyData = {
 };
 
 export type CompanionStopReplyResponse = (void);
+
+export type CompanionGetReplyData = {
+    messageId: string;
+};
+
+export type CompanionGetReplyResponse = (ReplyOut);
 
 export type CompanionListMessagesData = {
     limit?: number;

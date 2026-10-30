@@ -52,6 +52,7 @@ import { confirm, Field, Sheet, Toggle } from "../ui"
 import { GroupFace, useChatTitle } from "./inbox"
 import { Avatar, Bounce, haptic, ProgressCard, VideoMedia } from "./kit"
 import { pickMedia } from "./media"
+import { RemoteImage } from "./remote-image"
 import {
   addMembers,
   type Chat,
@@ -474,11 +475,14 @@ function Row({
             >
               {m.postId && <SharedPost id={m.postId} />}
               {m.media && (
-                <Image
-                  source={{ uri: m.media.uri }}
-                  style={{ width: 200, height: 260, borderRadius: 18 }}
-                  accessibilityLabel="Photo"
-                />
+                <View style={{ borderRadius: 18, overflow: "hidden" }}>
+                  <RemoteImage
+                    media={m.media}
+                    width={200}
+                    height={260}
+                    accessibilityLabel="Photo"
+                  />
+                </View>
               )}
               {!!m.text &&
                 (/^\p{Extended_Pictographic}{1,3}$/u.test(m.text) ? (

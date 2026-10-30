@@ -171,7 +171,7 @@
       "get": {
         "tags": ["users"],
         "summary": "Export My Data",
-        "description": "Self-service data export (GDPR portability): the caller's own record and\nall their items. Gated by authentication only — it is your own data.",
+        "description": "Self-service data export (GDPR portability): the caller's own record and\nall their items. Gated by authentication only \u2014 it is your own data.",
         "operationId": "users-export_my_data",
         "responses": {
           "200": {
@@ -6398,7 +6398,7 @@
       "post": {
         "tags": ["fitness"],
         "summary": "Adjust Rest",
-        "description": "±15 s on the rest banner (FIT-08).",
+        "description": "\u00b115 s on the rest banner (FIT-08).",
         "operationId": "fitness-adjust_rest",
         "requestBody": {
           "content": {
@@ -15314,6 +15314,45 @@
         }
       }
     },
+    "/api/v1/companion/messages/{message_id}/reply": {
+      "get": {
+        "tags": ["companion"],
+        "summary": "Get Reply",
+        "description": "Where the reply to the question ``message_id`` stands, for an app\nwhose stream dropped: ``done`` with the stored messages once the reply is\nstored, ``running`` while its turn runs, else ``failed``. 404 when no\nsuch question of the caller's exists or runs.",
+        "operationId": "companion-get_reply",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "message_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Message Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ReplyOut" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
     "/api/v1/companion/messages": {
       "get": {
         "tags": ["companion"],
@@ -16545,7 +16584,7 @@
       "delete": {
         "tags": ["social"],
         "summary": "Delete Post",
-        "description": "Soft delete; ``POST …/restore`` undoes it for a short window.",
+        "description": "Soft delete; ``POST \u2026/restore`` undoes it for a short window.",
         "operationId": "social-delete_post",
         "security": [{ "HTTPBearer": [] }],
         "parameters": [
@@ -19812,7 +19851,7 @@
           "created_at"
         ],
         "title": "AuditLogPublic",
-        "description": "One audit row as returned over the API.\n\n``before``/``after`` are the snapshots captured at write time via\n``audit.snapshot``, which is an explicit non-secret allow-list — so they\ncarry no credentials or connection secrets (MCP/tool ``config`` is never\ncaptured) and are safe to expose to an ``audit:read`` holder."
+        "description": "One audit row as returned over the API.\n\n``before``/``after`` are the snapshots captured at write time via\n``audit.snapshot``, which is an explicit non-secret allow-list \u2014 so they\ncarry no credentials or connection secrets (MCP/tool ``config`` is never\ncaptured) and are safe to expose to an ``audit:read`` holder."
       },
       "AuditLogsPublic": {
         "properties": {
@@ -22789,7 +22828,7 @@
             "type": "string",
             "maxLength": 32,
             "title": "Icon",
-            "default": "✅"
+            "default": "\u2705"
           },
           "type": {
             "type": "string",
@@ -23198,7 +23237,7 @@
         "type": "object",
         "required": ["status"],
         "title": "HandleAvailability",
-        "description": "Sign-up's check, made before any account exists: the verdict only —\nnever the handle back, and nothing about the account holding it."
+        "description": "Sign-up's check, made before any account exists: the verdict only \u2014\nnever the handle back, and nothing about the account holding it."
       },
       "HandleCheck": {
         "properties": {
@@ -25436,6 +25475,22 @@
           "url": {
             "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Url"
+          },
+          "preview_url": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Preview Url"
+          },
+          "lqip": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Lqip"
+          },
+          "width": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Width"
+          },
+          "height": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Height"
           }
         },
         "type": "object",
@@ -25481,9 +25536,24 @@
             "format": "date-time",
             "title": "Created At"
           },
+          "preview_id": {
+            "anyOf": [
+              { "type": "string", "format": "uuid" },
+              { "type": "null" }
+            ],
+            "title": "Preview Id"
+          },
+          "lqip": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Lqip"
+          },
           "url": {
             "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Url"
+          },
+          "preview_url": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Preview Url"
           }
         },
         "type": "object",
@@ -28776,6 +28846,33 @@
         "type": "object",
         "required": ["exercise_id"],
         "title": "ReplaceExercise"
+      },
+      "ReplyOut": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["running", "done", "failed"],
+            "title": "Status"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/app__modules__companion__schema__MessagePublic"
+            },
+            "type": "array",
+            "title": "Messages"
+          },
+          "capture": {
+            "anyOf": [
+              { "additionalProperties": true, "type": "object" },
+              { "type": "null" }
+            ],
+            "title": "Capture"
+          }
+        },
+        "type": "object",
+        "required": ["status"],
+        "title": "ReplyOut",
+        "description": "Where the reply to a question stands, for an app that lost its\nstream: ``done`` with the stored question and reply (or the capture a\nlog became), ``running`` while the turn is still being written, or\n``failed`` when it ended with nothing stored."
       },
       "ReplyPublic": {
         "properties": {
@@ -32474,6 +32571,24 @@
               { "type": "null" }
             ],
             "title": "Duration Sec"
+          },
+          "preview_id": {
+            "anyOf": [
+              { "type": "string", "format": "uuid" },
+              { "type": "null" }
+            ],
+            "title": "Preview Id"
+          },
+          "lqip": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2048,
+                "pattern": "^data:image/jpeg;base64,[A-Za-z0-9+/=]+$"
+              },
+              { "type": "null" }
+            ],
+            "title": "Lqip"
           }
         },
         "type": "object",

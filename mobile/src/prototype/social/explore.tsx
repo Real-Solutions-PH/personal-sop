@@ -20,6 +20,7 @@ import { Empty } from "../ui"
 import { Avatar, Bounce, ProgressCard } from "./kit"
 import { TopBar } from "./post"
 import { FollowButton } from "./profile"
+import { RemoteImage } from "./remote-image"
 import { useMyScorecard } from "./sources"
 import {
   type Activity,
@@ -169,9 +170,11 @@ function Mosaic({ posts, width }: { posts: Post[]; width: number }) {
             style={{ width: w, height: h, backgroundColor: t.soft }}
           >
             {m?.kind === "image" ? (
-              <Image
-                source={{ uri: m.uri }}
-                style={{ width: "100%", height: "100%" }}
+              <RemoteImage
+                media={m}
+                width="100%"
+                height="100%"
+                variant="preview"
               />
             ) : p.progress ? (
               <ProgressCard

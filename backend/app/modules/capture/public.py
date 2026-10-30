@@ -166,6 +166,13 @@ def speak_text(ctx: Ctx, text: str) -> bytes:
     return audio
 
 
+def detail_for_client(ctx: Ctx, client_uuid: uuid.UUID) -> dict[str, Any] | None:
+    """The person's capture made for ``client_uuid``, as ``capture_detail``
+    shows it, or None when there is none."""
+    cap = owned_repo.find_one(ctx, Capture, col(Capture.client_uuid) == client_uuid)
+    return capture_detail(ctx, cap.id) if cap is not None else None
+
+
 def capture_detail(ctx: Ctx, capture_id: uuid.UUID) -> dict[str, Any]:
     from app.modules.capture.cards import require_capture
 
