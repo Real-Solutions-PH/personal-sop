@@ -579,7 +579,8 @@ describe("store edits become sync ops", () => {
     const set = we.sets[0]
     updateSet(w.id, we.id, set.id, { reps: 10, weight: 60 })
     let ops = step(e, seen)
-    expect(ops).toHaveLength(1)
+    // The first set's new weight carries to the other open sets.
+    expect(ops).toHaveLength(we.sets.length)
     expect(upsertOf(ops, set.id)).toEqual({ reps: 10, weight: 60 })
 
     jest.setSystemTime(new Date(T0.getTime() + 60_000))

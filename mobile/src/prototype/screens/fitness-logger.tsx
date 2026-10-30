@@ -131,7 +131,8 @@ export function WorkoutLogger() {
     if (A.finishWorkout(w.id, { unfinished: mode, endAt })) {
       setFinish(false)
       setResume(false)
-      replace("/fitness")
+      // Straight to the card: post it, save it, or skip.
+      replace(`/fitness/share/${w.id}?done=1`)
     }
   }
   const discard = () =>
@@ -528,22 +529,44 @@ export function WorkoutLogger() {
                 )
               })}
             </View>
-            <Tap
-              onPress={() => A.addSet(w.id, we.id)}
-              style={{
-                marginTop: 8,
-                height: 36,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Line style={{ gap: 4 }}>
-                <Plus size={16} color={t.muted} />
-                <Copy size={14} muted>
-                  Add set
-                </Copy>
-              </Line>
-            </Tap>
+            <Line style={{ marginTop: 8 }}>
+              {/* Swipe-to-delete is hidden; this says it out loud. */}
+              {we.sets.length > 0 && (
+                <Tap
+                  label={`Remove last set of ${ex?.name}`}
+                  onPress={() => deleteSet(we.id, we.sets.at(-1)!.id)}
+                  style={{
+                    flex: 1,
+                    height: 36,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Line style={{ gap: 4 }}>
+                    <Minus size={16} color={t.muted} />
+                    <Copy size={14} muted>
+                      Remove set
+                    </Copy>
+                  </Line>
+                </Tap>
+              )}
+              <Tap
+                onPress={() => A.addSet(w.id, we.id)}
+                style={{
+                  flex: 1,
+                  height: 36,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Line style={{ gap: 4 }}>
+                  <Plus size={16} color={t.muted} />
+                  <Copy size={14} muted>
+                    Add set
+                  </Copy>
+                </Line>
+              </Tap>
+            </Line>
             {goalSec ? (
               <View style={{ gap: 6, marginTop: 4 }}>
                 <Line style={{ justifyContent: "space-between" }}>

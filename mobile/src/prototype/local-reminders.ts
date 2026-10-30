@@ -16,6 +16,7 @@ import {
   routeLaunchNotification,
   showsBanner,
 } from "./notifications"
+import { REST_NOTICE_ID } from "./rest-alarm"
 
 type Notifications = typeof import("expo-notifications")
 
@@ -263,7 +264,8 @@ export function startReminders() {
       return {
         shouldShowBanner: show,
         shouldShowList: show,
-        shouldPlaySound: show,
+        // The rest alarm chimes in-app (rest-alarm.ts): no second sound.
+        shouldPlaySound: show && n.request.identifier !== REST_NOTICE_ID,
         shouldSetBadge: false,
       }
     },

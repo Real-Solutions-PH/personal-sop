@@ -1,3 +1,4 @@
+import { palette } from "@domain/design/tokens"
 import * as Haptics from "expo-haptics"
 import { LinearGradient } from "expo-linear-gradient"
 import { useVideoPlayer, VideoView } from "expo-video"
@@ -21,6 +22,7 @@ import {
   Image,
   Pressable,
   ScrollView,
+  StyleSheet,
   Text,
   View,
   type ViewStyle,
@@ -49,6 +51,7 @@ import {
   type Person,
   type Post,
   type Progress,
+  type ProgressStat,
   socialStore,
   type Trophy,
   usePerson,
@@ -448,7 +451,15 @@ export const kindIcon = (kind: string) =>
                   ? CircleCheck
                   : Sparkles
 
-/** Rendered progress attachment — the in-app form of a share card. */
+const INK = "#0b0c0b"
+/** ``#rrggbb`` at an opacity, for the always-dark card. */
+const tint = (hex: string, o: number) =>
+  `${hex.slice(0, 7)}${Math.round(o * 255)
+    .toString(16)
+    .padStart(2, "0")}`
+
+/** Rendered progress attachment — the in-app form of a share card: always
+ * dark like the share cards, the area's colour only as glow and accents. */
 export function ProgressCard({
   progress,
   width,
@@ -460,7 +471,6 @@ export function ProgressCard({
   height?: number
   compact?: boolean
 }) {
-  const t = useTheme()
   const h = height ?? width * 1.0
   if (progress.image)
     return (
@@ -471,69 +481,110 @@ export function ProgressCard({
         style={{ width, height: h, backgroundColor: "#000" }}
       />
     )
-  const accent = t[progress.accent]
+  // The dark palette's accents: bright enough on the dark card either way.
+  const accent = palette.dark[progress.accent]
   const Icon = kindIcon(progress.kind)
   const pad = compact ? 10 : Math.max(18, width * 0.07)
+  const stats = progress.stats.slice(0, compact ? 2 : 3)
+  // Numbers shrink to their column instead of cutting off ("3,343…"); a
+  // mono digit is ~0.6 em wide. (adjustsFontSizeToFit is native only.)
+  const statSize = compact ? 13 : Math.min(28, width * 0.07),
+    column =
+      (width - 2 * pad - (compact ? 6 : 10) * (stats.length - 1)) /
+      Math.max(1, stats.length),
+    sizeOf = (st: ProgressStat) => {
+      const chars = st.value.length + (st.unit ? st.unit.length * 0.6 + 0.5 : 0)
+      return Math.min(statSize, column / (chars * 0.62))
+    }
+  const checkIn =
+    progress.day && progress.of
+      ? Math.max(0, Math.min(1, progress.day / progress.of))
+      : null
   return (
     <LinearGradient
       accessibilityRole="image"
       accessibilityLabel={`${progress.kind}: ${progress.title}. ${progress.stats.map((s) => `${s.label} ${s.value}${s.unit ?? ""}`).join(", ")}`}
-      colors={[accent, t["share-vivid-to"]]}
+      colors={[tint(accent, 0.34), INK]}
+      locations={[0, 0.72]}
       start={{ x: 0, y: 0 }}
-      end={{ x: 0.9, y: 1 }}
+      end={{ x: 0.85, y: 1 }}
       style={{
         width,
         height: h,
         padding: pad,
         justifyContent: "space-between",
         overflow: "hidden",
+        backgroundColor: INK,
       }}
     >
       <View
+        pointerEvents="none"
         style={{
           position: "absolute",
-          right: -width * 0.15,
-          top: -width * 0.15,
-          width: width * 0.7,
-          height: width * 0.7,
-          borderRadius: width,
-          backgroundColor: "#ffffff12",
+          right: -width * 0.12,
+          bottom: -width * 0.1,
         }}
-      />
+      >
+        <Icon
+          size={width * 0.62}
+          color={tint(accent, 0.09)}
+          strokeWidth={1.25}
+        />
+      </View>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
         <View
           style={{
-            width: compact ? 22 : 32,
-            height: compact ? 22 : 32,
-            borderRadius: 10,
-            backgroundColor: "#ffffff26",
+            width: compact ? 22 : 30,
+            height: compact ? 22 : 30,
+            borderRadius: compact ? 7 : 10,
+            backgroundColor: tint(accent, 0.18),
+            borderWidth: 1,
+            borderColor: tint(accent, 0.35),
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <Icon size={compact ? 12 : 18} color="#fff" />
+          <Icon size={compact ? 12 : 16} color={accent} strokeWidth={2} />
         </View>
         <Text
           numberOfLines={1}
           style={{
-            color: "#ffffffcc",
-            fontFamily: fonts.semibold,
-            fontSize: compact ? 9 : 13,
-            letterSpacing: 1,
+            color: accent,
+            fontFamily: fonts.mono,
+            fontSize: compact ? 8.5 : 11,
+            letterSpacing: 1.2,
             textTransform: "uppercase",
             flex: 1,
           }}
         >
           {progress.kind}
         </Text>
+        {!compact && progress.day ? (
+          <Text
+            style={{
+              color: "#ffffffcc",
+              fontFamily: fonts.mono,
+              fontSize: 11,
+              paddingHorizontal: 8,
+              paddingVertical: 3,
+              borderRadius: 99,
+              borderWidth: 1,
+              borderColor: "#ffffff26",
+            }}
+          >
+            DAY {progress.day}
+            {progress.of ? `/${progress.of}` : ""}
+          </Text>
+        ) : null}
       </View>
       <View style={{ gap: compact ? 2 : 6 }}>
         {progress.subtitle && !compact && (
           <Text
+            numberOfLines={1}
             style={{
-              color: "#ffffffb3",
+              color: "#ffffff99",
               fontFamily: fonts.medium,
-              fontSize: 14,
+              fontSize: 13,
             }}
           >
             {progress.subtitle}
@@ -544,8 +595,9 @@ export function ProgressCard({
           style={{
             color: "#fff",
             fontFamily: fonts.display,
-            fontSize: compact ? 15 : Math.min(40, width * 0.1),
-            lineHeight: compact ? 18 : Math.min(44, width * 0.11),
+            fontSize: compact ? 15 : Math.min(38, width * 0.095),
+            lineHeight: compact ? 18 : Math.min(42, width * 0.105),
+            letterSpacing: compact ? -0.2 : -0.8,
           }}
         >
           {progress.title}
@@ -555,66 +607,103 @@ export function ProgressCard({
         <View style={{ marginHorizontal: -pad }}>
           <Sparkline
             values={progress.spark}
-            color="#ffffff"
-            height={Math.min(80, h * 0.2)}
+            color={accent}
+            area={false}
+            height={Math.min(72, h * 0.18)}
             label={`${progress.title} trend`}
           />
         </View>
       )}
-      <View style={{ flexDirection: "row", gap: compact ? 6 : 12 }}>
-        {progress.stats.slice(0, compact ? 2 : 3).map((s) => (
-          <View key={s.label} style={{ flex: 1 }}>
-            <Text
-              numberOfLines={1}
+      <View style={{ gap: compact ? 6 : 12 }}>
+        {checkIn !== null && (
+          <View
+            style={{
+              height: compact ? 3 : 4,
+              borderRadius: 2,
+              backgroundColor: "#ffffff1a",
+              overflow: "hidden",
+            }}
+          >
+            <View
               style={{
-                color: "#fff",
-                fontFamily: fonts.display,
-                fontSize: compact ? 14 : Math.min(32, width * 0.08),
+                width: `${checkIn * 100}%`,
+                height: "100%",
+                backgroundColor: accent,
               }}
-            >
-              {s.value}
-              {s.unit && (
-                <Text
-                  style={{
-                    fontSize: compact ? 9 : 14,
-                    fontFamily: fonts.medium,
-                    color: "#ffffffb3",
-                  }}
-                >
-                  {" "}
-                  {s.unit}
-                </Text>
-              )}
-            </Text>
-            <Text
-              numberOfLines={1}
-              style={{
-                color: "#ffffffb3",
-                fontFamily: fonts.medium,
-                fontSize: compact ? 8 : 12,
-              }}
-            >
-              {s.label}
-            </Text>
+            />
           </View>
-        ))}
-      </View>
-      {!compact && (
-        <Text
+        )}
+        <View
           style={{
-            fontFamily: fonts.medium,
-            fontSize: 10,
-            color: "#ffffff99",
-            letterSpacing: -0.3,
+            flexDirection: "row",
+            gap: compact ? 6 : 10,
+            paddingTop: compact ? 6 : 12,
+            borderTopWidth: StyleSheet.hairlineWidth,
+            borderColor: "#ffffff2e",
           }}
         >
-          unfurl
-        </Text>
-      )}
+          {stats.map((s) => (
+            <View key={s.label} style={{ flex: 1, minWidth: 0 }}>
+              <Text
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.55}
+                style={{
+                  color: "#fff",
+                  fontFamily: fonts.mono,
+                  fontSize: sizeOf(s),
+                  // One line height for all, so a shrunk number keeps its row.
+                  lineHeight: statSize * 1.2,
+                  letterSpacing: -0.5,
+                }}
+              >
+                {s.value}
+                {s.unit && (
+                  <Text
+                    style={{
+                      fontSize: Math.min(compact ? 8 : 12, sizeOf(s) * 0.6),
+                      fontFamily: fonts.medium,
+                      color: "#ffffff8c",
+                      letterSpacing: 0,
+                    }}
+                  >
+                    {" "}
+                    {s.unit}
+                  </Text>
+                )}
+              </Text>
+              <Text
+                numberOfLines={1}
+                style={{
+                  color: "#ffffff80",
+                  fontFamily: fonts.medium,
+                  fontSize: compact ? 7.5 : 10,
+                  letterSpacing: 0.6,
+                  textTransform: "uppercase",
+                  marginTop: 2,
+                }}
+              >
+                {s.label}
+              </Text>
+            </View>
+          ))}
+        </View>
+        {!compact && (
+          <Text
+            style={{
+              fontFamily: fonts.semibold,
+              fontSize: 11,
+              color: "#ffffff73",
+              letterSpacing: -0.2,
+            }}
+          >
+            unfurl
+          </Text>
+        )}
+      </View>
     </LinearGradient>
   )
 }
-
 /**
  * Paged media with dots, double-tap to like and a heart burst. Progress
  * attachments render as the last page.
