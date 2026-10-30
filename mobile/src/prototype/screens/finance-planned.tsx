@@ -3,11 +3,16 @@ import * as C from "@domain/finance/calc"
 import type { PlannedItem } from "@domain/finance/data"
 import { finStore } from "@domain/finance/store"
 import { dayKey } from "@domain/lib/day"
-import { currencySymbol } from "@domain/lib/money"
 import { useLocalSearchParams } from "expo-router"
-import { Pencil, Plus } from "lucide-react-native"
+import {
+  ArrowDownLeft,
+  ArrowLeftRight,
+  ArrowUpRight,
+  Pencil,
+  Plus,
+} from "lucide-react-native"
 import { useState } from "react"
-import { ScrollView, useWindowDimensions, View } from "react-native"
+import { ScrollView, Text, useWindowDimensions, View } from "react-native"
 import { toast } from "sonner-native"
 import {
   border,
@@ -20,19 +25,9 @@ import {
   Tap,
 } from "../native-kit"
 import { go } from "../navigation"
-import { radius, useTheme } from "../theme"
-import {
-  Button,
-  Choices,
-  DateField,
-  Empty,
-  Field,
-  Screen,
-  Sheet,
-  undo,
-} from "../ui"
-import { isDay } from "../validation"
-import { PlannedEditor, useMoney } from "./finance"
+import { fonts, radius, useTheme } from "../theme"
+import { Button, Empty, Screen, Sheet, undo } from "../ui"
+import { PlannedEditor, RecordEditor, useMoney } from "./finance"
 export function FinPill({
   children,
   tone = "muted",
@@ -60,7 +55,14 @@ export function FinPill({
 function PlannedIcon({ p }: { p: PlannedItem }) {
   const s = finStore.use((s) => s),
     t = useTheme(),
-    cat = s.categories.find((c) => c.id === p.categoryId)
+    cat = s.categories.find((c) => c.id === p.categoryId),
+    // No category (deleted, or never set): the direction, not a lone dot.
+    Fallback =
+      p.type === "transfer"
+        ? ArrowLeftRight
+        : p.type === "income"
+          ? ArrowDownLeft
+          : ArrowUpRight
   return (
     <View
       style={{
@@ -72,121 +74,140 @@ function PlannedIcon({ p }: { p: PlannedItem }) {
         justifyContent: "center",
       }}
     >
-      <Copy size={20}>{p.type === "transfer" ? "⇄" : (cat?.icon ?? "•")}</Copy>
+      {p.type !== "transfer" && cat?.icon ? (
+        <Copy size={20}>{cat.icon}</Copy>
+      ) : (
+        <Fallback size={18} color={t.muted} />
+      )}
     </View>
   )
+}
+/** What a scheduled payment touches, in words: "Maya · Bills", or only the
+ * parts that exist ("Maya" when its category is gone). */
+export function plannedWhere(
+  p: PlannedItem,
+  accounts: readonly { id: string; name: string }[],
+  categories: readonly { id: string; name: string }[],
+) {
+  const acct = (id?: string) => accounts.find((a) => a.id === id)?.name
+  if (p.type === "transfer")
+    return [acct(p.accountId) ?? "?", acct(p.toAccountId) ?? "?"].join(" → ")
+  return [
+    acct(p.accountId),
+    categories.find((c) => c.id === p.categoryId)?.name,
+  ]
+    .filter(Boolean)
+    .join(" · ")
 }
 export function DueSheet({
   id,
   day,
   onClose,
+  record = false,
 }: {
   id: string
   day: string
   onClose: () => void
+  /** Open straight on the transaction editor (Received now / Pay now). */
+  record?: boolean
 }) {
   const s = finStore.use((s) => s),
     t = useTheme(),
     p = s.planned.find((p) => p.id === id),
     money = useMoney(),
-    [amount, setAmount] = useState(String(p?.amount ?? "")),
-    [account, setAccount] = useState(
-      p?.accountId ?? s.settings.defaultAccountId,
-    ),
-    [date, setDate] = useState(dayKey())
+    // "due" shows the occurrence; "leaving" waits for its sheet to go (iOS
+    // refuses a second modal before then); "editor" is the transaction
+    // editor, which records nothing until Save.
+    [phase, setPhase] = useState<"due" | "leaving" | "editor">(
+      record ? "editor" : "due",
+    )
   if (!p) return null
+  const where = plannedWhere(p, s.accounts, s.categories)
   return (
-    <Sheet title={p.name} open onClose={onClose}>
-      <Copy size={14} muted>
-        Due {C.shortDate(p.snoozed[day] ?? day)} · expected{" "}
-        {p.estimated ? "≈ " : ""}
-        {money(p.amount)}
-      </Copy>
-      <Line
-        style={{
-          padding: 12,
-          backgroundColor: border(t.soft, 0.5),
-          borderRadius: 16,
-        }}
-      >
-        <PlannedIcon p={p} />
-        <View style={{ flex: 1 }}>
-          <Copy size={14} weight="medium">
-            {p.type === "transfer"
-              ? `${s.accounts.find((a) => a.id === p.accountId)?.name} → ${s.accounts.find((a) => a.id === p.toAccountId)?.name}`
-              : s.categories.find((c) => c.id === p.categoryId)?.name}
+    <>
+      {phase !== "editor" && (
+        <Sheet
+          title={p.name}
+          open={phase === "due"}
+          onClose={onClose}
+          onClosed={() => setPhase((v) => (v === "leaving" ? "editor" : v))}
+        >
+          <Copy size={14} muted>
+            Due {C.shortDate(p.snoozed[day] ?? day)} · expected{" "}
+            {p.estimated ? "≈ " : ""}
+            {money(p.amount)}
           </Copy>
-          <Copy size={12} muted>
-            {p.isInstallment ? "0% installment · " : ""}
-            {p.estimated
-              ? "Estimated amount — edit to the actual"
-              : "Fixed amount"}
-          </Copy>
-        </View>
-      </Line>
-      <Field
-        label={`Actual amount ${currencySymbol()}`}
-        value={amount}
-        onChangeText={setAmount}
-        keyboardType="decimal-pad"
-      />
-      {p.type !== "transfer" && (
-        <Choices
-          label="Account"
-          value={account}
-          onChange={setAccount}
-          options={s.accounts
-            .filter((a) => !a.archived && a.type !== "investment")
-            .map((a) => ({ value: a.id, label: a.name }))}
-        />
+          <Line
+            style={{
+              padding: 12,
+              backgroundColor: border(t.soft, 0.5),
+              borderRadius: 16,
+            }}
+          >
+            <PlannedIcon p={p} />
+            <View style={{ flex: 1 }}>
+              {!!where && (
+                <Copy size={14} weight="medium">
+                  {where}
+                </Copy>
+              )}
+              <Copy size={12} muted>
+                {p.isInstallment ? "0% installment · " : ""}
+                {p.estimated
+                  ? "Estimated amount — you set the actual next"
+                  : "Fixed amount — you can still change it next"}
+              </Copy>
+            </View>
+          </Line>
+          <Line>
+            {[
+              {
+                label: "Skip",
+                press: () => {
+                  A.skipOccurrence(id, day)
+                  undo(`Skipped ${p.name}`, () => A.unskipOccurrence(id, day))
+                  onClose()
+                },
+              },
+              {
+                label: "Snooze",
+                press: () => {
+                  const prev = p.snoozed
+                  A.snoozeOccurrence(id, day)
+                  undo(`Snoozed ${p.name} to tomorrow`, () =>
+                    A.updatePlanned(id, { snoozed: prev }),
+                  )
+                  onClose()
+                },
+              },
+              {
+                label: p.type === "income" ? "Received…" : "Paid…",
+                press: () => setPhase("leaving"),
+              },
+            ].map((a, i) => (
+              <View key={a.label} style={{ flex: 1 }}>
+                <Button tone={i === 2 ? "primary" : "quiet"} onPress={a.press}>
+                  {a.label}
+                </Button>
+              </View>
+            ))}
+          </Line>
+        </Sheet>
       )}
-      <DateField label="Date" value={date} onChangeText={setDate} />
-      <Line>
-        {[
-          {
-            label: "Skip",
-            press: () => {
-              A.skipOccurrence(id, day)
-              undo(`Skipped ${p.name}`, () => A.unskipOccurrence(id, day))
-              onClose()
-            },
-          },
-          {
-            label: "Snooze",
-            press: () => {
-              const prev = p.snoozed
-              A.snoozeOccurrence(id, day)
-              undo(`Snoozed ${p.name} to tomorrow`, () =>
-                A.updatePlanned(id, { snoozed: prev }),
-              )
-              onClose()
-            },
-          },
-          {
-            label: p.type === "income" ? "Received" : "Paid",
-            press: () => {
-              if (!(Number(amount) > 0) || !isDay(date)) {
-                toast.error("Enter an amount and a valid date")
-                return
-              }
-              const r = A.settleOccurrence(id, day, {
-                amount: Number(amount),
-                accountId: account,
-                date,
-              })
-              if (r) undo(`Paid ${p.name}`, () => A.deleteRecords([r.id]))
-              onClose()
-            },
-          },
-        ].map((a, i) => (
-          <View key={a.label} style={{ flex: 1 }}>
-            <Button tone={i === 2 ? "primary" : "quiet"} onPress={a.press}>
-              {a.label}
-            </Button>
-          </View>
-        ))}
-      </Line>
-    </Sheet>
+      <RecordEditor
+        open={phase === "editor"}
+        onClose={onClose}
+        settles={{ plannedId: id, day }}
+        prefill={{
+          type: p.type,
+          amount: p.amount,
+          accountId: p.accountId,
+          toAccountId: p.toAccountId,
+          categoryId: p.categoryId,
+          payee: p.type === "transfer" ? undefined : p.name,
+        }}
+      />
+    </>
   )
 }
 export function Planned({ id }: { id?: string }) {
@@ -201,7 +222,11 @@ export function Planned({ id }: { id?: string }) {
     narrow = useWindowDimensions().width < 380,
     [tab, setTab] = useState("recurring"),
     [edit, setEdit] = useState(!!params.amount),
-    [due, setDue] = useState<{ id: string; day: string } | null>(null),
+    [due, setDue] = useState<{
+      id: string
+      day: string
+      record?: boolean
+    } | null>(null),
     p = s.planned.find((p) => p.id === id),
     live = s.planned.filter((p) => !p.archived),
     today = dayKey(),
@@ -252,7 +277,7 @@ export function Planned({ id }: { id?: string }) {
             <Copy
               size={narrow ? 22 : 30}
               weight="displayMedium"
-              lines={1}
+              fit
               style={{ color: x.color ?? t.text }}
             >
               {x.value}
@@ -277,6 +302,26 @@ export function Planned({ id }: { id?: string }) {
   return (
     <Screen
       title={p?.name ?? "Scheduled"}
+      titleContent={
+        p ? (
+          // A long name ("Reimbursement from Real Solutions") wraps to a
+          // second line and then shrinks, instead of being cut off.
+          <Text
+            accessibilityRole="header"
+            numberOfLines={2}
+            adjustsFontSizeToFit
+            minimumFontScale={0.8}
+            style={{
+              fontFamily: fonts.displayMedium,
+              fontSize: 20,
+              lineHeight: 26,
+              color: t.text,
+            }}
+          >
+            {p.name}
+          </Text>
+        ) : undefined
+      }
       actions={
         <IconTap
           icon={p ? Pencil : Plus}
@@ -292,7 +337,7 @@ export function Planned({ id }: { id?: string }) {
           <Line style={{ paddingVertical: 8 }}>
             <PlannedIcon p={p} />
             <View style={{ flex: 1 }}>
-              <Copy size={30} weight="displayMedium">
+              <Copy size={30} weight="displayMedium" fit>
                 {signed(p)}
               </Copy>
               <Copy size={12} muted>
@@ -302,11 +347,9 @@ export function Planned({ id }: { id?: string }) {
             </View>
           </Line>
           <Line style={{ gap: 6, flexWrap: "wrap" }}>
-            <FinPill>
-              {p.type === "transfer"
-                ? `${s.accounts.find((a) => a.id === p.accountId)?.name} → ${s.accounts.find((a) => a.id === p.toAccountId)?.name}`
-                : `${s.accounts.find((a) => a.id === p.accountId)?.name} · ${s.categories.find((c) => c.id === p.categoryId)?.name}`}
-            </FinPill>
+            {!!plannedWhere(p, s.accounts, s.categories) && (
+              <FinPill>{plannedWhere(p, s.accounts, s.categories)}</FinPill>
+            )}
             <FinPill tone={p.autoLog ? "fin" : "muted"}>
               {p.autoLog ? "Auto-logs" : "Asks Paid / Skip"}
             </FinPill>
@@ -321,7 +364,9 @@ export function Planned({ id }: { id?: string }) {
               <View style={{ flex: 1 }}>
                 <Button
                   disabled={!next[0] || p.isWhatIf}
-                  onPress={() => setDue({ id: p.id, day: next[0].orig })}
+                  onPress={() =>
+                    setDue({ id: p.id, day: next[0].orig, record: true })
+                  }
                 >
                   {p.type === "income" ? "Received now" : "Pay now"}
                 </Button>
@@ -602,8 +647,9 @@ export function Planned({ id }: { id?: string }) {
                     </Line>
                     <Copy size={14} muted lines={1}>
                       {C.scheduleLabel(p)}
-                      {p.type !== "transfer"
-                        ? ` · ${s.categories.find((c) => c.id === p.categoryId)?.name ?? ""}`
+                      {p.type !== "transfer" &&
+                      s.categories.some((c) => c.id === p.categoryId)
+                        ? ` · ${s.categories.find((c) => c.id === p.categoryId)?.name}`
                         : ""}
                     </Copy>
                   </View>
@@ -639,7 +685,12 @@ export function Planned({ id }: { id?: string }) {
       )}
       {edit && <PlannedEditor id={id} open onClose={() => setEdit(false)} />}
       {due && (
-        <DueSheet id={due.id} day={due.day} onClose={() => setDue(null)} />
+        <DueSheet
+          id={due.id}
+          day={due.day}
+          record={due.record}
+          onClose={() => setDue(null)}
+        />
       )}
     </Screen>
   )

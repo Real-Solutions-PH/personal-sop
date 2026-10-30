@@ -7,6 +7,7 @@ import { Check } from "lucide-react-native"
 import { useState } from "react"
 import { View } from "react-native"
 import { toast } from "sonner-native"
+import { MoneyInput } from "../money-input"
 import { Copy, Line, Segmented, Tap } from "../native-kit"
 import { Switch } from "../switch"
 import { useTheme } from "../theme"
@@ -119,14 +120,13 @@ export function BudgetEditor({
               </Line>
             </Tap>
           )}
-          <Field
+          <MoneyInput
             label={`Monthly limit ${currencySymbol()}`}
             value={limit}
-            onChangeText={(v) => setLimit(v.replace(/[^\d.]/g, ""))}
-            keyboardType="decimal-pad"
+            onChange={setLimit}
           />
           {hint > 0 && (
-            <Tap onPress={() => setLimit(String(hint))}>
+            <Tap onPress={() => setLimit(String(Math.round(hint * 100) / 100))}>
               <Copy size={12} style={{ color: t.fin }}>
                 Your 3-month average is {money(hint)} — use it
               </Copy>

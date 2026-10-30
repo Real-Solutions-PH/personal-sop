@@ -92,6 +92,7 @@ import { refreshWeather } from "../weather"
 import { WeatherCard } from "../weather-card"
 import { CalendarCard } from "./calendar-card"
 import { RecordEditor, useMoney } from "./finance"
+import { DueSheet } from "./finance-planned"
 import { HabitLog } from "./habits"
 import { MoodCheckIn } from "./mood-check-in"
 import { NutritionDay } from "./nutrition-day"
@@ -1246,6 +1247,11 @@ function FinanceCard() {
     money = useMoney(),
     [projection, setProjection] = useState(true),
     [adding, setAdding] = useState(false),
+    // The occurrence being recorded: the editor opens prefilled and records
+    // nothing until Save.
+    [settling, setSettling] = useState<{ id: string; day: string } | null>(
+      null,
+    ),
     today = dayKey(),
     overall = s.budgets.find((b) => !b.archived && b.categoryIds === null),
     budget = overall ? N.budgetView(s, overall) : null,
@@ -1393,17 +1399,7 @@ function FinanceCard() {
                   <SmallButton
                     small
                     accent="fin"
-                    onPress={() => {
-                      if (o.item.estimated)
-                        return go(`/finance/planned/${o.item.id}`)
-                      const record = FA.settleOccurrence(o.item.id, o.orig, {
-                        amount: o.item.amount,
-                      })
-                      if (record)
-                        undo(`Paid ${o.item.name}`, () =>
-                          FA.deleteRecords([record.id]),
-                        )
-                    }}
+                    onPress={() => setSettling({ id: o.item.id, day: o.orig })}
                   >
                     {o.item.type === "income" ? "Got it" : "Paid"}
                   </SmallButton>
@@ -1501,6 +1497,14 @@ function FinanceCard() {
         </Part>
       </Group>
       <RecordEditor open={adding} onClose={() => setAdding(false)} />
+      {settling && (
+        <DueSheet
+          id={settling.id}
+          day={settling.day}
+          record
+          onClose={() => setSettling(null)}
+        />
+      )}
     </>
   )
 }

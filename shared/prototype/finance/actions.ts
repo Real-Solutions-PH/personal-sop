@@ -436,6 +436,15 @@ export function settleOccurrence(
     amount: number
     accountId?: string
     date?: string
+    /** The exact instant, when the person picked a time (wins over
+     * ``date``). */
+    at?: string
+    /** What they changed in the transaction editor before saving. */
+    toAccountId?: string
+    categoryId?: string
+    payee?: string
+    note?: string
+    receipt?: boolean
   },
 ): FinRecord | undefined {
   const p = finStore.get().planned.find((x) => x.id === plannedId)
@@ -450,16 +459,18 @@ export function settleOccurrence(
     `${d}T${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:00`,
   )
   if (now.getHours() < DAY_START_HOUR) at.setDate(at.getDate() + 1)
-  const iso = at.toISOString()
+  const iso = input.at ?? at.toISOString()
   return addRecord({
     // One record per occurrence, the id the server derives when it settles.
     id: derivedId("planned-record", p.id, day),
     type: p.type,
     amount: input.amount,
     accountId: input.accountId ?? p.accountId,
-    toAccountId: p.toAccountId,
-    categoryId: p.categoryId,
-    payee: p.name,
+    toAccountId: input.toAccountId ?? p.toAccountId,
+    categoryId: input.categoryId ?? p.categoryId,
+    payee: input.payee ?? p.name,
+    note: input.note,
+    receipt: input.receipt,
     plannedId: p.id,
     plannedOn: day,
     at: iso,

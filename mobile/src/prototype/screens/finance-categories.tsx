@@ -41,16 +41,53 @@ const EMOJI = [
   "👶",
   "🏷️",
 ]
-export function CategoryEditor({
-  id,
-  catKind = "expense",
-  parentId,
-  onClose,
-}: {
+type EditorProps = {
   id?: string
   catKind?: "expense" | "income"
   parentId?: string
   onClose: () => void
+  /** A category was added (not edited): its id. */
+  onAdded?: (id: string) => void
+  /** The kind is the caller's (a transaction's): no Expense / Income
+   * switch. */
+  lockKind?: boolean
+}
+/** The add / edit category sheet. */
+export function CategoryEditor(props: EditorProps) {
+  const s = finStore.use((s) => s),
+    ex = s.categories.find((c) => c.id === props.id),
+    [deleting, setDeleting] = useState<string | null>(null)
+  return (
+    <Sheet
+      title={
+        deleting
+          ? `Delete ${deleting}?`
+          : ex
+            ? "Edit category"
+            : props.parentId
+              ? "New sub-category"
+              : "New category"
+      }
+      open
+      onClose={props.onClose}
+    >
+      <CategoryForm {...props} onDeleting={setDeleting} />
+    </Sheet>
+  )
+}
+/** The category fields, for the sheet above and inline wherever a category
+ * is picked (the transaction editor's picker adds one without leaving). */
+export function CategoryForm({
+  id,
+  catKind = "expense",
+  parentId,
+  onClose,
+  onAdded,
+  onDeleting,
+  lockKind = false,
+}: EditorProps & {
+  /** The form switched to (name) or back from (null) the delete step. */
+  onDeleting?: (name: string | null) => void
 }) {
   const s = finStore.use((s) => s),
     t = useTheme(),
@@ -61,7 +98,11 @@ export function CategoryEditor({
     [parent, setParent] = useState(ex?.parentId ?? pre?.id ?? ""),
     [icon, setIcon] = useState(ex?.icon ?? "🏷️"),
     [disc, setDisc] = useState(ex?.discretionary ?? pre?.discretionary ?? true),
-    [deleting, setDeleting] = useState(false),
+    [deleting, setDeletingState] = useState(false),
+    setDeleting = (on: boolean) => {
+      setDeletingState(on)
+      onDeleting?.(on && ex ? ex.name : null)
+    },
     [to, setTo] = useState(""),
     uses = ex
       ? A.categoryUses(s, ex.id)
@@ -98,13 +139,7 @@ export function CategoryEditor({
     )
   }
   return (
-    <Sheet
-      title={
-        deleting ? `Delete ${ex?.name}?` : ex ? "Edit category" : "New category"
-      }
-      open
-      onClose={onClose}
-    >
+    <>
       {deleting ? (
         <>
           <Copy size={14} muted>
@@ -142,7 +177,7 @@ export function CategoryEditor({
             </Copy>
           )}
           <Field label="Name" value={name} onChangeText={setName} />
-          {!ex && !pre && (
+          {!ex && !pre && !lockKind && (
             <>
               <Copy size={12} muted>
                 Type
@@ -237,6 +272,18 @@ export function CategoryEditor({
                     toast.error("Give it a name")
                     return
                   }
+                  const twin = s.categories.find(
+                    (c) =>
+                      c.id !== id &&
+                      !c.archived &&
+                      c.kind === kind &&
+                      (c.parentId ?? "") === parent &&
+                      c.name.trim().toLowerCase() === name.trim().toLowerCase(),
+                  )
+                  if (twin) {
+                    toast.error(`You already have “${twin.name}” here`)
+                    return
+                  }
                   const input = {
                     name: name.trim(),
                     kind,
@@ -244,7 +291,8 @@ export function CategoryEditor({
                     icon,
                     discretionary: kind === "expense" && disc,
                   }
-                  ex ? A.updateCategory(ex.id, input) : A.addCategory(input)
+                  if (ex) A.updateCategory(ex.id, input)
+                  else onAdded?.(A.addCategory(input).id)
                   toast(ex ? "Category updated" : `“${name.trim()}” added`)
                   onClose()
                 }}
@@ -255,7 +303,7 @@ export function CategoryEditor({
           </Line>
         </>
       )}
-    </Sheet>
+    </>
   )
 }
 export function Categories() {
@@ -435,6 +483,24 @@ export function Categories() {
             </Line>
           ),
         )}
+        <Tap
+          label={`Add ${kind} category`}
+          onPress={() => setEdit({})}
+          style={{
+            height: 48,
+            paddingHorizontal: 12,
+            justifyContent: "center",
+            borderTopWidth: rows.length ? 1 : 0,
+            borderColor: border(t.line, 0.5),
+          }}
+        >
+          <Line style={{ gap: 8 }}>
+            <Plus size={16} color={t.text} />
+            <Copy size={14} weight="medium">
+              Add category
+            </Copy>
+          </Line>
+        </Tap>
       </Frame>
       {archived > 0 && (
         <Tap onPress={() => go("/finance/archived")}>

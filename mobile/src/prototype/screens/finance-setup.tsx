@@ -6,16 +6,25 @@ import { Check, Download } from "lucide-react-native"
 import { useState } from "react"
 import { TextInput, View } from "react-native"
 import { toast } from "sonner-native"
+import { MoneyInput } from "../money-input"
 import { Copy, Frame, Line, SectionHeading, Tap } from "../native-kit"
 import { go } from "../navigation"
 import { fonts, useTheme } from "../theme"
-import { Button, Field, Screen } from "../ui"
+import { Button, Screen } from "../ui"
+
+const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? "" : "s"}`
+const same = (a: string, b: string) =>
+  a.trim().toLowerCase() === b.trim().toLowerCase()
+
 export function FinanceSetup({
   onDone,
   embedded = false,
+  canSkip = true,
 }: {
   onDone?: () => void
   embedded?: boolean
+  /** First-run setup leaves no step unanswered: no Skip there. */
+  canSkip?: boolean
 } = {}) {
   const s = finStore.use((s) => s),
     t = useTheme(),
@@ -67,32 +76,44 @@ export function FinanceSetup({
           balance: "",
           limit: "",
         },
-      ].filter(
-        (r) =>
-          !s.accounts.some(
-            (a) => a.name.toLowerCase() === r.name.toLowerCase(),
-          ),
-      ),
+      ].map((r) => ({ ...r, suggested: r.name })),
     ),
     [salary, setSalary] = useState(""),
     [rent, setRent] = useState(""),
+    [tried, setTried] = useState(false),
     set = (key: string, patch: Partial<(typeof rows)[number]>) =>
-      setRows(rows.map((r) => (r.key === key ? { ...r, ...patch } : r)))
+      setRows(rows.map((r) => (r.key === key ? { ...r, ...patch } : r))),
+    live = s.accounts.filter((a) => !a.archived),
+    // Checked as it renders, not once at mount: an account that syncs in
+    // while the step is open drops its suggestion.
+    shown = rows.filter((r) => !live.some((a) => same(a.name, r.suggested))),
+    picked = shown.filter((r) => r.on),
+    // Where salary and rent land: the bank row, else the first other
+    // non-card account being added, else one the person already has.
+    landing =
+      picked.find((r) => r.key === "bank") ??
+      picked.find((r) => r.type !== "credit"),
+    existing = live.find((a) => a.type !== "credit"),
+    plans = Number(salary) > 0 || Number(rent) > 0,
+    homeless = plans && !landing && !existing,
+    dupe = (r: (typeof rows)[number]) =>
+      live.some((a) => same(a.name, r.name)) ||
+      picked.some((o) => o.key !== r.key && same(o.name, r.name))
   const finish = () => {
-    if (
-      rows.some(
-        (r) =>
-          r.on &&
-          (!r.name.trim() ||
-            !Number.isFinite(Number(r.balance)) ||
-            Number(r.balance) < 0),
-      )
-    ) {
-      toast.error("Check account names and balances")
+    setTried(true)
+    const unnamed = picked.find((r) => !r.name.trim()),
+      twin = picked.find(dupe)
+    if (unnamed) {
+      toast.error("Give every ticked account a name")
       return
     }
+    if (twin) {
+      toast.error(`You already have an account called “${twin.name.trim()}”`)
+      return
+    }
+    if (homeless) return
     const created: Record<string, string> = {}
-    for (const r of rows.filter((r) => r.on)) {
+    for (const r of picked) {
       created[r.key] = A.addAccount({
         name: r.name.trim(),
         type: r.type as AccountType,
@@ -103,14 +124,15 @@ export function FinanceSetup({
         inProjection: r.type !== "credit",
       }).id
     }
-    const bank = created.bank ?? s.accounts[0]?.id
-    if (Number(salary) > 0 && bank)
+    const home = landing ? created[landing.key] : existing?.id,
+      planned: string[] = []
+    if (Number(salary) > 0 && home) {
       A.addPlanned({
         name: "Salary",
         type: "income",
         amount: Number(salary),
         estimated: false,
-        accountId: bank,
+        accountId: home,
         categoryId: "salary",
         schedule: { kind: "semimonthly", days: [15, 30] },
         end: { kind: "never" },
@@ -118,13 +140,15 @@ export function FinanceSetup({
         isWhatIf: false,
         inProjection: true,
       })
-    if (Number(rent) > 0 && bank)
+      planned.push("salary")
+    }
+    if (Number(rent) > 0 && home) {
       A.addPlanned({
         name: "Rent",
         type: "expense",
         amount: Number(rent),
         estimated: false,
-        accountId: bank,
+        accountId: home,
         categoryId: "rent",
         schedule: { kind: "monthly", day: 5 },
         end: { kind: "never" },
@@ -132,8 +156,26 @@ export function FinanceSetup({
         isWhatIf: false,
         inProjection: true,
       })
-    if (created.gcash) A.updateSettings({ defaultAccountId: created.gcash })
-    toast(`${Object.keys(created).length} accounts added`)
+      planned.push("rent")
+    }
+    // A default account, so the first transaction has somewhere to go:
+    // GCash, else the one already set, else the first everyday account.
+    const firstSpend = picked.find((r) => r.type !== "credit"),
+      current = s.settings.defaultAccountId
+    const fallback =
+      current && live.some((a) => a.id === current)
+        ? undefined
+        : firstSpend
+          ? created[firstSpend.key]
+          : undefined
+    const def = created.gcash ?? fallback
+    if (def) A.updateSettings({ defaultAccountId: def })
+    const what = planned.join(" and ")
+    toast(
+      picked.length
+        ? `${plural(picked.length, "account")} added${what ? `, ${what} scheduled` : ""}`
+        : `${what[0].toUpperCase()}${what.slice(1)} scheduled`,
+    )
     if (onDone) onDone()
     else go("/finance")
   }
@@ -144,7 +186,7 @@ export function FinanceSetup({
         later.
       </Copy>
       <View style={{ gap: 8 }}>
-        {rows.map((r) => (
+        {shown.map((r) => (
           <Frame key={r.key} style={{ padding: 12, opacity: r.on ? 1 : 0.6 }}>
             <Line>
               <Tap
@@ -177,22 +219,29 @@ export function FinanceSetup({
                 onChangeText={(name) => set(r.key, { name })}
                 style={{
                   flex: 1,
+                  // Lets the balance box keep its width beside a long name.
+                  minWidth: 0,
+                  // A name that clashes with another account, once Add was
+                  // tapped.
+                  ...(tried && r.on && dupe(r)
+                    ? {
+                        borderBottomWidth: 1,
+                        borderColor: t.bad,
+                      }
+                    : {}),
                   fontSize: 16,
                   fontFamily: fonts.medium,
                   color: t.text,
                 }}
               />
-              <TextInput
-                accessibilityLabel={`${r.name} balance`}
+              <MoneyInput
+                bare
+                label={`${r.name} balance`}
                 placeholder={
                   r.type === "credit" ? `owed ${sym}` : `balance ${sym}`
                 }
-                placeholderTextColor={t.muted}
                 value={r.balance}
-                onChangeText={(v) =>
-                  set(r.key, { balance: v.replace(/[^\d.]/g, ""), on: true })
-                }
-                keyboardType="decimal-pad"
+                onChange={(balance) => set(r.key, { balance, on: true })}
                 style={{
                   width: 112,
                   height: 36,
@@ -209,77 +258,90 @@ export function FinanceSetup({
               />
             </Line>
             {r.type === "credit" && r.on && (
-              <Field
-                label=""
+              <MoneyInput
+                label="Credit limit"
+                hideLabel
                 placeholder={`Credit limit ${sym}`}
                 value={r.limit}
-                onChangeText={(v) =>
-                  set(r.key, { limit: v.replace(/[^\d.]/g, "") })
-                }
-                keyboardType="decimal-pad"
+                onChange={(limit) => set(r.key, { limit })}
               />
             )}
           </Frame>
         ))}
-        {!rows.length && (
-          <Copy size={14} muted style={{ textAlign: "center" }}>
-            All suggested accounts already exist.
-          </Copy>
-        )}
+        {/* Every suggestion exists already: the accounts themselves,
+            dimmed, rather than a line of text. */}
+        {!shown.length &&
+          live.slice(0, 5).map((a) => (
+            <Frame key={a.id} style={{ padding: 12, opacity: 0.32 }}>
+              <Line>
+                <Check size={16} color={t.muted} />
+                <Copy size={16} weight="medium" style={{ flex: 1 }}>
+                  {a.name}
+                </Copy>
+              </Line>
+            </Frame>
+          ))}
       </View>
       <View style={{ marginTop: -12 }}>
         <SectionHeading>Unlock the projection · optional</SectionHeading>
         <Frame style={{ padding: 16 }}>
-          <Field
+          <MoneyInput
             label={`Salary per payday ${sym} (15th & 30th)`}
-            placeholder="e.g. 27500"
+            placeholder="e.g. 27,500"
             value={salary}
-            onChangeText={(v) => setSalary(v.replace(/[^\d]/g, ""))}
-            keyboardType="decimal-pad"
+            onChange={setSalary}
           />
-          <Field
+          <MoneyInput
             label={`Rent ${sym} (5th of the month)`}
-            placeholder="e.g. 12000"
+            placeholder="e.g. 12,000"
             value={rent}
-            onChangeText={(v) => setRent(v.replace(/[^\d]/g, ""))}
-            keyboardType="decimal-pad"
+            onChange={setRent}
+            error={
+              tried && homeless
+                ? "Add an account for your salary and rent to land in"
+                : undefined
+            }
           />
         </Frame>
       </View>
-      <Frame style={{ padding: 16 }}>
-        <Line>
-          <Download size={20} color={t.muted} />
-          <View style={{ flex: 1 }}>
-            <Copy size={14}>Coming from Wallet (BudgetBaker)?</Copy>
-            <Copy size={12} muted>
-              Import your CSV export for instant history.
-            </Copy>
-          </View>
-          <Button
-            small
-            tone="quiet"
-            onPress={() =>
-              toast(
-                "Mock: the Wallet CSV runs through the statement-import pipeline",
-              )
-            }
-          >
-            Import
-          </Button>
-        </Line>
-      </Frame>
+      {!embedded && (
+        <Frame style={{ padding: 16 }}>
+          <Line>
+            <Download size={20} color={t.muted} />
+            <View style={{ flex: 1 }}>
+              <Copy size={14}>Coming from Wallet (BudgetBaker)?</Copy>
+              <Copy size={12} muted>
+                Import your CSV export for instant history.
+              </Copy>
+            </View>
+            <Button small tone="quiet" onPress={() => go("/finance/import")}>
+              Import
+            </Button>
+          </Line>
+        </Frame>
+      )}
       <Line style={{ gap: 8 }}>
-        <Button
-          tone="quiet"
-          onPress={() => (onDone ? onDone() : go("/finance"))}
-        >
-          Skip
-        </Button>
-        <View style={{ flex: 1 }}>
+        {canSkip && (
           <Button
-            disabled={!rows.some((r) => r.on)}
-            onPress={finish}
-          >{`Add ${rows.filter((r) => r.on).length} accounts`}</Button>
+            tone="quiet"
+            onPress={() => (onDone ? onDone() : go("/finance"))}
+          >
+            Skip
+          </Button>
+        )}
+        <View style={{ flex: 1 }}>
+          {!picked.length && live.length && !plans ? (
+            // Nothing new to add and accounts exist: the step is done.
+            <Button onPress={() => (onDone ? onDone() : go("/finance"))}>
+              Continue
+            </Button>
+          ) : (
+            <Button disabled={!picked.length && !plans} onPress={finish}>
+              {picked.length
+                ? `Add ${plural(picked.length, "account")}`
+                : "Schedule"}
+            </Button>
+          )}
         </View>
       </Line>
     </>

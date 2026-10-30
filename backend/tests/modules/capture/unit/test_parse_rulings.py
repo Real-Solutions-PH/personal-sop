@@ -42,8 +42,9 @@ def test_receipt_text_takes_the_total_line() -> None:
 
 
 def test_money_and_cost() -> None:
-    assert money(124_050) == "₱1,241"
-    assert money(124_049) == "₱1,240"
+    assert money(124_050) == "₱1,240.50"
+    assert money(124_049) == "₱1,240.49"
+    assert money(124_000) == "₱1,240"
     assert money(-500) == "₱-5"
 
 

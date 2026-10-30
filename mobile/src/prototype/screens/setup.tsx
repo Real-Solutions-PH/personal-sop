@@ -321,7 +321,11 @@ export function Setup() {
             <AccentContext.Provider value={modules[step].color}>
               <View style={{ flex: 1 }}>
                 {step === "finance" ? (
-                  <FinanceSetup embedded onDone={() => advance(step)} />
+                  <FinanceSetup
+                    embedded
+                    canSkip={!firstRun}
+                    onDone={() => advance(step)}
+                  />
                 ) : step === "habits" ? (
                   <HabitsStep onDone={() => advance(step)} />
                 ) : step === "fitness" ? (

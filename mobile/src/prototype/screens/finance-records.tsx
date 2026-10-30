@@ -16,6 +16,7 @@ import {
 import { useState } from "react"
 import { ScrollView, TextInput, View } from "react-native"
 import { toast } from "sonner-native"
+import { MoneyInput } from "../money-input"
 import {
   border,
   Copy,
@@ -33,7 +34,6 @@ import {
   confirm,
   DateField,
   Empty,
-  Field,
   Screen,
   Sheet,
   SwipeRow,
@@ -508,19 +508,17 @@ export function Records({ accountId }: { accountId?: string }) {
           ))}
           <Line>
             <View style={{ flex: 1 }}>
-              <Field
+              <MoneyInput
                 label="Min amount"
                 value={draft.min}
-                onChangeText={(min) => setDraft({ ...draft, min })}
-                keyboardType="decimal-pad"
+                onChange={(min) => setDraft({ ...draft, min })}
               />
             </View>
             <View style={{ flex: 1 }}>
-              <Field
+              <MoneyInput
                 label="Max amount"
                 value={draft.max}
-                onChangeText={(max) => setDraft({ ...draft, max })}
-                keyboardType="decimal-pad"
+                onChange={(max) => setDraft({ ...draft, max })}
               />
             </View>
           </Line>

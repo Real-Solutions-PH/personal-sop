@@ -20,7 +20,7 @@ import { ScrollView, View } from "react-native"
 import { toast } from "sonner-native"
 import { CurrencyRow } from "../currency-picker"
 import { exportCsv } from "../media"
-import { amountDraft, groupAmount } from "../money-input"
+import { MoneyInput } from "../money-input"
 import {
   Copy,
   Frame,
@@ -32,7 +32,7 @@ import {
 import { go } from "../navigation"
 import { Switch } from "../switch"
 import { useTheme } from "../theme"
-import { Button, confirm, Empty, Field, Screen, Sheet } from "../ui"
+import { Button, confirm, Empty, Screen, Sheet } from "../ui"
 import { FinChip } from "./finance-projection"
 export function FinanceDisclaimer({
   onClose,
@@ -263,12 +263,11 @@ export function FinanceSettings() {
             st.includeUnplanned,
             (includeUnplanned) => A.updateSettings({ includeUnplanned }),
           )}
-          <Field
+          <MoneyInput
             label={`Minimum balance ${cur.symbol}`}
-            value={groupAmount(floor)}
-            onChangeText={(v) => setFloor(amountDraft(v, cur.digits))}
+            value={floor}
+            onChange={setFloor}
             onBlur={() => A.updateSettings({ safetyFloor: Number(floor || 0) })}
-            keyboardType="decimal-pad"
           />
           <Copy size={11} muted>
             What-ifs warn when your balance would dip below this.

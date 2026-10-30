@@ -1503,6 +1503,7 @@ WRITE_TOOLS = frozenset(
         "create_account",
         "set_account_balance",
         "create_budget",
+        "create_category",
         "create_routine",
         "update_routine",
         "update_habit",

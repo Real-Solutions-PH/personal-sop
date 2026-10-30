@@ -422,6 +422,19 @@ def _execute_setup(
             prior={"how": how, "was_opening_minor": was},
             note=f"Opening balance {shown}" if how == "opening" else f"Already {shown}",
         )
+    if kind == "categoryCreate":
+        parent = _opt_uuid(p.get("parent_id"), "category")
+        cat = ports.finance.create_category(
+            ctx,
+            name=str(p["name"]),
+            kind="income" if p.get("category_kind") == "income" else "expense",
+            parent_id=parent,
+            icon=str(p.get("icon") or "🏷️"),
+            discretionary=bool(p.get("want")),
+            category_id=rid(0),
+        )
+        where = f" under {p['parent_name']}" if p.get("parent_name") else ""
+        return Result([str(cat.id)], note=f"Ready to pick{where}.")
     if kind == "budgetCreate":
         b = ports.finance.create_budget(
             ctx,
@@ -621,6 +634,10 @@ def revert(ctx: Ctx, card: RecordCard) -> None:
     elif kind == "budgetCreate":
         for r in refs:
             ports.finance.delete_budget(ctx, budget_id=r)
+    elif kind == "categoryCreate":
+        # Refused (409) once a record uses it, like any category delete.
+        for r in refs:
+            ports.finance.delete_category(ctx, category_id=r)
     elif kind == "routineCreate":
         # The routine first, then the habits this card made for its steps
         # (habits it reused stay).

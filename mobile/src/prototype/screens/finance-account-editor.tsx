@@ -6,24 +6,15 @@ import { useCurrency } from "@domain/lib/money"
 import { useState } from "react"
 import { View } from "react-native"
 import { toast } from "sonner-native"
+import { MoneyInput } from "../money-input"
 import { Copy, Line, Tap } from "../native-kit"
 import { Switch } from "../switch"
 import { useTheme } from "../theme"
 import { Button, confirm, DateField, Field, Sheet, undo } from "../ui"
 import { isDay } from "../validation"
+import { ACCOUNT_COLORS, accountColorKey } from "./finance-account-card"
 import { FinChip } from "./finance-projection"
 
-const COLORS = [
-  "green",
-  "blue",
-  "emerald",
-  "red",
-  "rose",
-  "violet",
-  "orange",
-  "cyan",
-  "slate",
-] as const
 export function AccountEditor({
   account,
   prefill,
@@ -51,10 +42,20 @@ export function AccountEditor({
     [goal, setGoal] = useState(seed?.goal ? String(seed.goal) : ""),
     [dated, setDated] = useState(Boolean(seed?.goalBy)),
     [goalBy, setGoalBy] = useState(seed?.goalBy ?? dayKey()),
-    [opening, setOpening] = useState(ex ? String(ex.opening) : ""),
+    // A card's balance owed is typed as a positive amount and stored negative.
+    [opening, setOpening] = useState(
+      ex
+        ? String(ex.type === "credit" ? Math.abs(ex.opening) : ex.opening)
+        : "",
+    ),
     [date, setDate] = useState(ex?.openingDate ?? dayKey()),
     [limit, setLimit] = useState(ex?.limit ? String(ex.limit) : ""),
-    [color, setColor] = useState(ex?.color ?? "var(--acct-blue)"),
+    // An account drawn in a colour nobody picked shows that colour picked.
+    [color, setColor] = useState(() => {
+      if (!ex) return "var(--acct-blue)"
+      const key = accountColorKey(ex)
+      return key.startsWith("#") ? key : `var(--${key})`
+    }),
     [nw, setNw] = useState(ex?.inNetWorth ?? true),
     [proj, setProj] = useState(ex?.inProjection ?? !seed?.maturesOn),
     [tried, setTried] = useState(false),
@@ -99,15 +100,15 @@ export function AccountEditor({
       </Line>
       <Line style={{ alignItems: "flex-start" }}>
         <View style={{ flex: 1 }}>
-          <Field
+          <MoneyInput
             label={
               type === "credit"
                 ? `Balance owed ${sym}`
                 : `Opening balance ${sym}`
             }
             value={opening}
-            onChangeText={setOpening}
-            keyboardType="decimal-pad"
+            onChange={setOpening}
+            signed={type !== "credit"}
           />
         </View>
         <View style={{ flex: 1 }}>
@@ -115,11 +116,10 @@ export function AccountEditor({
         </View>
       </Line>
       {type === "credit" && (
-        <Field
+        <MoneyInput
           label={`Credit limit ${sym}`}
           value={limit}
-          onChangeText={setLimit}
-          keyboardType="decimal-pad"
+          onChange={setLimit}
         />
       )}
       {type !== "credit" && (
@@ -135,12 +135,11 @@ export function AccountEditor({
               />
             </View>
             <View style={{ flex: 1 }}>
-              <Field
+              <MoneyInput
                 label={`Savings goal ${sym}`}
                 placeholder="Optional"
                 value={goal}
-                onChangeText={setGoal}
-                keyboardType="decimal-pad"
+                onChange={setGoal}
               />
             </View>
           </Line>
@@ -197,7 +196,7 @@ export function AccountEditor({
         Colour
       </Copy>
       <Line style={{ gap: 8, flexWrap: "wrap" }}>
-        {COLORS.map((c) => (
+        {ACCOUNT_COLORS.map((c) => (
           <Tap
             key={c}
             label={c}
@@ -328,11 +327,7 @@ export function AccountEditor({
                 goalBy:
                   savings && Number(goal) > 0 && dated ? goalBy : undefined,
               }
-              if (ex)
-                A.updateAccount(ex.id, {
-                  ...input,
-                  opening: Number(opening || 0),
-                })
+              if (ex) A.updateAccount(ex.id, input)
               else A.addAccount(input)
               toast(ex ? "Account updated" : `${name.trim()} added`)
               onClose()

@@ -64,6 +64,7 @@ GROUPS: dict[str, tuple[frozenset[str], re.Pattern[str]]] = {
                 "create_account",
                 "set_account_balance",
                 "create_budget",
+                "create_category",
                 "find_transactions",
                 "edit_transaction",
                 "list_scheduled",
@@ -77,7 +78,7 @@ GROUPS: dict[str, tuple[frozenset[str], re.Pattern[str]]] = {
             r"[₱$€]|\b(php|pesos?|usd|dollars?|paid|pay|payment|spent|spend|"
             r"bought|buy|cost|price|salary|income|earned|budget|accounts?|"
             r"gcash|maya|bank|bpi|bdo|transfer|bills?|balance|money|card|cash|"
-            r"loan|owe|fee|subscription|expenses?|savings?)\b",
+            r"loan|owe|fee|subscription|expenses?|savings?|categor(?:y|ies))\b",
             re.I,
         ),
     ),

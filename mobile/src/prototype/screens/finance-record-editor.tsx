@@ -5,16 +5,18 @@ import { convert, fxStore, refreshRate } from "@domain/finance/fx"
 import { finStore } from "@domain/finance/store"
 import { dayKey } from "@domain/lib/day"
 import { money, useCurrency } from "@domain/lib/money"
-import { Check, Paperclip } from "lucide-react-native"
+import { Paperclip } from "lucide-react-native"
 import { useEffect, useState } from "react"
 import { View } from "react-native"
 import { toast } from "sonner-native"
+import { MoneyInput } from "../money-input"
 import { Copy, Line, Segmented, Tap } from "../native-kit"
 import { Switch } from "../switch"
 import { fonts, useTheme } from "../theme"
 import { TimeInput } from "../time-input"
 import { Button, Choices, DateField, Field, Sheet, undo } from "../ui"
 import { isDay } from "../validation"
+import { CategoryPicker } from "./finance-category-picker"
 
 type Props = {
   record?: FinRecord
@@ -23,11 +25,14 @@ type Props = {
   onClose: () => void
   /** A new (not edited) record was saved. */
   onSaved?: (r: FinRecord) => void
+  /** Records a scheduled payment's occurrence: nothing is written until
+   * Save, and the record is linked to that date of the plan. */
+  settles?: { plannedId: string; day: string }
 }
 export function RecordEditor(props: Props) {
   return props.open ? <Editor {...props} /> : null
 }
-function Editor({ record, prefill, onClose, onSaved }: Props) {
+function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
   const s = finStore.use((s) => s),
     t = useTheme(),
     cur = useCurrency(),
@@ -62,12 +67,12 @@ function Editor({ record, prefill, onClose, onSaved }: Props) {
     [refund, setRefund] = useState(!!init.isRefund),
     [receipt, setReceipt] = useState(!!init.receipt),
     [picker, setPicker] = useState(false),
-    [query, setQuery] = useState(""),
     [tried, setTried] = useState(false)
   const accounts = s.accounts.filter((a) => !a.archived),
     catKind = type === "income" && !refund ? "income" : "expense",
-    cats = s.categories.filter((c) => !c.archived && c.kind === catKind),
+    _cats = s.categories.filter((c) => !c.archived && c.kind === catKind),
     chosen = s.categories.find((c) => c.id === category),
+    plan = settles && s.planned.find((p) => p.id === settles.plannedId),
     suggestion = C.suggestCategory(s, payee),
     foreign = type !== "transfer" && inCur !== cur.code,
     other = cur.code === "USD" ? "PHP" : "USD",
@@ -99,7 +104,7 @@ function Editor({ record, prefill, onClose, onSaved }: Props) {
     setTried(true)
     if (
       amountError ||
-      !account ||
+      !accounts.some((a) => a.id === account) ||
       !isDay(date) ||
       !/^([01]\d|2[0-3]):[0-5]\d$/.test(time) ||
       (type === "transfer" ? !to || to === account : !category)
@@ -122,6 +127,28 @@ function Editor({ record, prefill, onClose, onSaved }: Props) {
         origAmount: foreign ? typed : undefined,
         fxRate: foreign ? fx?.rate : undefined,
       }
+    if (settles) {
+      const r = A.settleOccurrence(settles.plannedId, settles.day, {
+        amount: n,
+        accountId: account,
+        date,
+        at,
+        toAccountId: type === "transfer" ? to : undefined,
+        categoryId: type === "transfer" ? undefined : category,
+        payee: payee || undefined,
+        note: note || undefined,
+        receipt,
+      })
+      if (r) {
+        onSaved?.(r)
+        undo(
+          `${type === "income" ? "Received" : "Paid"} ${money(n, cur)}`,
+          () => A.deleteRecords([r.id]),
+        )
+      }
+      onClose()
+      return
+    }
     if (record) {
       A.updateRecord(record.id, input)
       toast.success("Transaction updated")
@@ -159,54 +186,53 @@ function Editor({ record, prefill, onClose, onSaved }: Props) {
   return (
     <Sheet
       title={
-        picker ? "Category" : record ? "Edit transaction" : "New transaction"
+        picker
+          ? "Category"
+          : settles
+            ? type === "income"
+              ? "Record income received"
+              : type === "transfer"
+                ? "Record transfer"
+                : "Record payment"
+            : record
+              ? "Edit transaction"
+              : "New transaction"
       }
       open
       onClose={picker ? () => setPicker(false) : onClose}
     >
       {picker ? (
-        <>
-          <Field
-            label="Search categories"
-            value={query}
-            onChangeText={setQuery}
-          />
-          {cats
-            .filter((c) => c.name.toLowerCase().includes(query.toLowerCase()))
-            .map((c) => (
-              <Tap
-                key={c.id}
-                onPress={() => {
-                  setCategory(c.id)
-                  setPicker(false)
-                }}
-                style={{
-                  paddingVertical: 12,
-                  paddingLeft: c.parentId ? 24 : 0,
-                }}
-              >
-                <Line>
-                  <Copy size={20}>{c.icon}</Copy>
-                  <Copy style={{ flex: 1 }}>{c.name}</Copy>
-                  {category === c.id && <Check color={t.fin} size={20} />}
-                </Line>
-              </Tap>
-            ))}
-        </>
+        <CategoryPicker
+          kind={catKind}
+          value={category}
+          onPick={(id) => {
+            setCategory(id)
+            setPicker(false)
+          }}
+        />
       ) : (
         <>
-          <Segmented
-            value={type}
-            onChange={(v) => {
-              setType(v)
-              setCategory("")
-            }}
-            options={[
-              { value: "expense", label: "Expense" },
-              { value: "income", label: "Income" },
-              { value: "transfer", label: "Transfer" },
-            ]}
-          />
+          {plan && settles && (
+            <Copy size={12} muted>
+              Expected {plan.estimated ? "≈ " : ""}
+              {money(plan.amount, cur)} · due {C.shortDate(settles.day)}
+            </Copy>
+          )}
+          {/* A scheduled payment keeps its own kind. */}
+          {!settles && (
+            <Segmented
+              value={type}
+              onChange={(v) => {
+                setType(v)
+                setCategory("")
+              }}
+              options={[
+                { value: "expense", label: "Expense" },
+                { value: "income", label: "Income" },
+                { value: "transfer", label: "Transfer" },
+              ]}
+            />
+          )}
           {type !== "transfer" && (
             <Segmented
               value={inCur}
@@ -220,12 +246,11 @@ function Editor({ record, prefill, onClose, onSaved }: Props) {
               ]}
             />
           )}
-          <Field
+          <MoneyInput
             label={`Amount ${foreign ? inCur : cur.symbol}`}
             value={amount}
-            onChangeText={setAmount}
+            onChange={setAmount}
             placeholder="0"
-            keyboardType="decimal-pad"
             error={tried ? amountError : undefined}
             style={{
               height: 56,
@@ -251,7 +276,14 @@ function Editor({ record, prefill, onClose, onSaved }: Props) {
             value={account}
             onChange={setAccount}
             options={accountOptions}
+            wrap
           />
+          {/* Save said nothing when no account was picked. */}
+          {tried && !accounts.some((a) => a.id === account) && (
+            <Copy size={12} style={{ color: t.bad }}>
+              {accounts.length ? "Pick an account" : "Add an account first"}
+            </Copy>
+          )}
           {type === "transfer" ? (
             <>
               <Choices
@@ -259,20 +291,20 @@ function Editor({ record, prefill, onClose, onSaved }: Props) {
                 value={to}
                 onChange={setTo}
                 options={accountOptions.filter((a) => a.value !== account)}
+                wrap
               />
               {tried && (!to || to === account) && (
                 <Copy size={12} style={{ color: t.bad }}>
                   Pick a different destination account
                 </Copy>
               )}
-              {!record && (
+              {!record && !settles && (
                 <>
-                  <Field
+                  <MoneyInput
                     label={`Fee ${cur.symbol} (optional)`}
                     placeholder="e.g. 15"
                     value={fee}
-                    onChangeText={setFee}
-                    keyboardType="decimal-pad"
+                    onChange={setFee}
                   />
                   <Copy size={12} muted>
                     Logged as a separate Fees expense — the transfer itself
@@ -314,7 +346,7 @@ function Editor({ record, prefill, onClose, onSaved }: Props) {
                   Pick a category
                 </Copy>
               )}
-              {type === "income" && (
+              {type === "income" && !settles && (
                 <Line>
                   <View style={{ flex: 1 }}>
                     <Copy size={14}>This is a refund</Copy>
@@ -335,15 +367,16 @@ function Editor({ record, prefill, onClose, onSaved }: Props) {
               )}
             </>
           )}
-          <Line>
+          <Line style={{ alignItems: "flex-start" }}>
             <View style={{ flex: 1 }}>
               <DateField label="Date" value={date} onChangeText={setDate} />
             </View>
-            <View style={{ flex: 1, gap: 6 }}>
-              <Copy size={12} muted>
+            {/* The same label, gap and box as the Date field beside it. */}
+            <View style={{ flex: 1, gap: 6, marginVertical: 8 }}>
+              <Copy size={12} muted weight="medium">
                 Time
               </Copy>
-              <TimeInput label="Time" value={time} onChange={setTime} />
+              <TimeInput label="Time" value={time} onChange={setTime} field />
             </View>
           </Line>
           <Field
@@ -367,7 +400,7 @@ function Editor({ record, prefill, onClose, onSaved }: Props) {
             </Tap>
           )}
           <Line>
-            {record ? (
+            {settles ? null : record ? (
               <Button
                 tone="danger"
                 onPress={() => {
@@ -384,7 +417,9 @@ function Editor({ record, prefill, onClose, onSaved }: Props) {
               </Button>
             )}
             <View style={{ flex: 1 }}>
-              <Button onPress={() => save()}>Save</Button>
+              <Button onPress={() => save()}>
+                {settles ? (type === "income" ? "Received" : "Paid") : "Save"}
+              </Button>
             </View>
           </Line>
         </>

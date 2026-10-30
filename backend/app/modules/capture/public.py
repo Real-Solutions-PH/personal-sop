@@ -321,6 +321,7 @@ def card_label(ctx: Ctx, card: RecordCard) -> str:
         "habitCreate": "habit",
         "accountCreate": "account",
         "budgetCreate": "budget",
+        "categoryCreate": "category",
         "routineCreate": "routine",
         "templateCreate": "workout template",
         "listCreate": "list",

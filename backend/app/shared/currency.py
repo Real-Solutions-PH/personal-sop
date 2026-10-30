@@ -136,23 +136,18 @@ def strip_money_marks(text: str) -> str:
     return _MARK.sub("", text)
 
 
-def _whole(minor: int | float) -> int:
-    major = (Decimal(str(minor)) / 100).quantize(Decimal(1), rounding=ROUND_HALF_UP)
-    return int(major)
-
-
 def money(minor: int | float, cur: Currency = PHP) -> str:
-    """Whole units with thousands separators, rounded half-up: ``₱2,500``,
-    ``$-5`` (the sign after the symbol, as the prototype's ``peso`` wrote it;
-    ``Intl.NumberFormat("en", {maximumFractionDigits: 0})`` on the number)."""
-    v = _whole(minor)
+    """Grouped units, with the currency's decimals only when the amount has
+    them, rounded half-up once: ``₱2,500``, ``₱158.82``, ``₱1,708.64``,
+    ``₱2,500.40``, ``$-5`` (the sign after the symbol, as the prototype's
+    ``peso`` wrote it). The device's ``money()`` writes the same string for
+    the same amount, so Fern's text and the app agree to the cent."""
+    step = Decimal(1).scaleb(-cur.digits)
+    v = (Decimal(str(minor)) / 100).quantize(step, rounding=ROUND_HALF_UP)
     sign = "-" if v < 0 else ""
-    return f"{cur.prefix}{sign}{abs(v):,}"
-
-
-def money_floor(minor: int, cur: Currency = PHP) -> str:
-    """Whole units, truncated toward minus infinity (``minor // 100``)."""
-    return f"{cur.prefix}{minor // 100:,}"
+    whole, part = divmod(abs(v), 1)
+    cents = f".{int(part.scaleb(cur.digits)):0{cur.digits}d}" if part else ""
+    return f"{cur.prefix}{sign}{int(whole):,}{cents}"
 
 
 def money_round(minor: float, cur: Currency = PHP) -> str:

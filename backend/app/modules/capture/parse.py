@@ -350,7 +350,7 @@ DUE_OPTIONS = [
 # ---------------------------------------------------------------- readers
 
 _AMOUNT = re.compile(
-    r"(?:₱|php|p|\$)?\s?(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s?(k\b)?"
+    r"(?:₱|php|p|\$)?\s?(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)\s?(k\b)?"
     r"(?!\s?(?:min|mins|minutes|km|kg|kilos?|x\b|x\d|pcs?|pages?|glasses?|cups?"
     r"|reps?|sets?|am\b|pm\b|th\b|st\b|nd\b|rd\b|hours?|hrs?|steps?|servings?|%|:\d))",
     AI,
@@ -364,8 +364,14 @@ def _has_symbol(s: str, cur: Currency) -> bool:
 
 @dataclass(frozen=True)
 class Amount:
-    amount: int
+    # Major units to the cent, as written: 1,708.64 stays 1708.64 (whole
+    # amounts stay ints, so "₱500" still reads 500, not 500.0).
+    amount: int | float
     usd: bool
+
+    @property
+    def minor(self) -> int:
+        return js_round(self.amount * 100)
 
 
 def parse_amount(s: str) -> Amount | None:
@@ -378,7 +384,8 @@ def parse_amount(s: str) -> Amount | None:
             n *= 1000
         if s[m.end() : m.end() + 1] == "x":
             continue
-        return Amount(js_round(n), usd)
+        cents = js_round(n * 100)
+        return Amount(cents // 100 if cents % 100 == 0 else cents / 100, usd)
     return None
 
 
@@ -802,7 +809,7 @@ def expense_draft(world: World, seg: str, ctx: ParseCtx) -> RecordDraft | None:
         payload=_clean(
             {
                 "kind": "expense",
-                "amount_minor": amount * 100,
+                "amount_minor": js_round(amount * 100),
                 "category_id": _category(world, cat),
                 "account_id": _account(world, acct) or world.default_account,
                 "payee": payee
@@ -816,12 +823,12 @@ def expense_draft(world: World, seg: str, ctx: ParseCtx) -> RecordDraft | None:
     if usd:
         d.confirm = True
         d.warn = (
-            f"Foreign currency: ${a.amount} ≈ {money(amount * 100, world.currency)} at ₱{USD_RATE}/$ "
+            f"Foreign currency: ${a.amount} ≈ {money(js_round(amount * 100), world.currency)} at ₱{USD_RATE}/$ "
             "(FX rules are an open question in Finance)."
         )
     if d.payload.get("category_id") is None:
         d.ask = {
-            "question": f"What was {money(amount * 100, world.currency)} for?",
+            "question": f"What was {money(js_round(amount * 100), world.currency)} for?",
             "field": "category_id",
             "free": True,
             "options": list(world.recent_cats),
@@ -1004,7 +1011,7 @@ def income_draft(world: World, seg: str) -> RecordDraft | None:
         payload=_clean(
             {
                 "kind": "income",
-                "amount_minor": a.amount * 100,
+                "amount_minor": a.minor,
                 "category_id": _category(world, cat),
                 "account_id": acct,
                 "payee": "Employer" if cat == "salary" else None,
@@ -1013,7 +1020,7 @@ def income_draft(world: World, seg: str) -> RecordDraft | None:
         ask=None
         if acct
         else {
-            "question": f"Which account did the {money(a.amount * 100, world.currency)} land in?",
+            "question": f"Which account did the {money(a.minor, world.currency)} land in?",
             "field": "account_id",
             "options": list(world.account_options),
         },
@@ -1043,7 +1050,7 @@ def transfer_draft(world: World, seg: str) -> RecordDraft | None:
     ask: dict[str, Any] | None = None
     if not frm_id:
         ask = {
-            "question": f"Moved {money(a.amount * 100, world.currency)} from which account?",
+            "question": f"Moved {money(a.minor, world.currency)} from which account?",
             "field": "from",
             "options": [o for o in opts if o["value"] != to_id],
         }
@@ -1060,7 +1067,7 @@ def transfer_draft(world: World, seg: str) -> RecordDraft | None:
         payload=_clean(
             {
                 "kind": "transfer",
-                "amount_minor": a.amount * 100,
+                "amount_minor": a.minor,
                 "from": frm_id,
                 "to": to_id,
             }
@@ -1092,7 +1099,7 @@ def planned_draft(world: World, seg: str) -> RecordDraft | None:
             {
                 "kind": "planned",
                 "name": name,
-                "amount_minor": a.amount * 100,
+                "amount_minor": a.minor,
                 "day": int(dm.group(1)) if dm else world.today.day,
                 "account_id": _account(world, account_key_in(seg))
                 or world.default_account,
@@ -1339,7 +1346,7 @@ def parse_capture(world: World, text: str, ctx: ParseCtx) -> list[Draft]:
                             "op": "delete"
                             if _test(r"^(delete|remove|undo|cancel|scratch)", seg, AI)
                             else "edit",
-                            "amount_minor": a.amount * 100 if a else None,
+                            "amount_minor": a.minor if a else None,
                         }
                     ),
                 )
