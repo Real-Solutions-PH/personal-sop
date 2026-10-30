@@ -12,6 +12,7 @@ the rules parser would, :mod:`cards` tiers it, saves the auto-tier ones and
 logs every write, so an AI write is undoable the same way as a rules write.
 """
 
+import builtins
 import json
 import re
 import uuid
@@ -358,7 +359,9 @@ class TaskIn(BaseModel):
         | None
     ) = None
     remind: bool = False
-    tags: list[Annotated[str, Field(min_length=1, max_length=40)]] = Field(
+    # ``builtins.list``: the ``list`` field below shadows the builtin in this
+    # class body once annotations are evaluated lazily.
+    tags: builtins.list[Annotated[str, Field(min_length=1, max_length=40)]] = Field(
         default_factory=list,
         max_length=8,
         description="Labels the person gave (work, errand); otherwise omit.",
