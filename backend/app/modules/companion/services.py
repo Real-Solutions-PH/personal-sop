@@ -42,6 +42,7 @@ from app.modules.companion.schema import (
     Insight,
     MessagePublic,
     Metric,
+    ReplyOut,
     SeriesOut,
     TrackerIn,
 )
@@ -457,6 +458,34 @@ def _ask(
     ctx.commit()
     return AskOut(
         kind="reply", engine="rules", messages=[_pub(ctx, me), _pub(ctx, out)]
+    )
+
+
+def stored_reply(ctx: Ctx, message_id: uuid.UUID) -> ReplyOut | None:
+    """The finished reply to the question ``message_id``, as stored: the
+    question and Fern's reply, or the capture a log became. None while
+    nothing finished is stored."""
+    me = owned_repo.get(ctx, CompanionMessage, message_id, include_deleted=True)
+    reply = owned_repo.get(
+        ctx, CompanionMessage, derived_id("companion-reply", message_id, "sol")
+    )
+    if reply is not None:
+        msgs = ([_pub(ctx, me)] if me is not None and me.deleted_at is None else []) + [
+            _pub(ctx, reply)
+        ]
+        return ReplyOut(status="done", messages=msgs)
+    cap = capture.detail_for_client(
+        ctx, derived_id("companion-capture", message_id, "capture")
+    )
+    if cap is not None:
+        return ReplyOut(status="done", capture=cap)
+    return None
+
+
+def question_stored(ctx: Ctx, message_id: uuid.UUID) -> bool:
+    return (
+        owned_repo.get(ctx, CompanionMessage, message_id, include_deleted=True)
+        is not None
     )
 
 

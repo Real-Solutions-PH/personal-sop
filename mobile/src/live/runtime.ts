@@ -75,9 +75,13 @@ export function liveStats() {
   return active?.stats ?? null
 }
 
-// Events that mean "pull now": another device changed something, or the
-// server put a notice in the inbox.
-const PULL_EVENTS = new Set(["sync.changed", "dashboard.notification"])
+// Events that mean "pull now": another device changed something, the
+// server put a notice in the inbox, or Fern stored a reply.
+const PULL_EVENTS = new Set([
+  "sync.changed",
+  "dashboard.notification",
+  "companion.reply",
+])
 
 const OWNER_KEY = "sop-live:owner"
 

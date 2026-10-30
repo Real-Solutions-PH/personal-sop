@@ -15033,6 +15033,42 @@ export const ReplaceExerciseSchema = {
     title: 'ReplaceExercise'
 } as const;
 
+export const ReplyOutSchema = {
+    properties: {
+        status: {
+            type: 'string',
+            enum: ['running', 'done', 'failed'],
+            title: 'Status'
+        },
+        messages: {
+            items: {
+                '$ref': '#/components/schemas/app__modules__companion__schema__MessagePublic'
+            },
+            type: 'array',
+            title: 'Messages'
+        },
+        capture: {
+            anyOf: [
+                {
+                    additionalProperties: true,
+                    type: 'object'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Capture'
+        }
+    },
+    type: 'object',
+    required: ['status'],
+    title: 'ReplyOut',
+    description: `Where the reply to a question stands, for an app that lost its
+stream: \`\`done\`\` with the stored question and reply (or the capture a
+log became), \`\`running\`\` while the turn is still being written, or
+\`\`failed\`\` when it ended with nothing stored.`
+} as const;
+
 export const ReplyPublicSchema = {
     properties: {
         id: {
