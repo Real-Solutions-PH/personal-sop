@@ -25,6 +25,9 @@ export interface UploadInput {
   width?: number
   height?: number
   durationSec?: number
+  /** A photo's preview rendition (already uploaded) and inline placeholder. */
+  previewId?: string
+  lqip?: string
 }
 
 export interface UploadedMedia {
@@ -134,6 +137,8 @@ export async function uploadMedia(
     ...(input.durationSec !== undefined
       ? { duration_sec: input.durationSec }
       : {}),
+    ...(input.previewId ? { preview_id: input.previewId } : {}),
+    ...(input.lqip ? { lqip: input.lqip } : {}),
   })
   let put: Response
   try {

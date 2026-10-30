@@ -13,7 +13,7 @@ from app.modules.media.models import MediaObject
 from app.modules.media.schema import UploadRequest, UploadTicket
 from app.shared import owned_repo
 from app.shared.context import Ctx
-from app.shared.domain import invalid
+from app.shared.domain import invalid, not_found
 
 MB = 1024 * 1024
 
@@ -32,6 +32,15 @@ def request_upload(ctx: Ctx, data: UploadRequest) -> UploadTicket:
         raise invalid("media_type_not_allowed", "That file type is not supported")
     if data.size_bytes > size_cap(data.kind):
         raise invalid("media_too_large", "That file is too large")
+    if data.kind != "image" and (data.preview_id or data.lqip):
+        raise invalid("media_preview_invalid", "Only a photo has a preview")
+    if data.preview_id is not None:
+        # The caller's own, finished image; anyone else's reads as missing.
+        preview = owned_repo.get(ctx, MediaObject, data.preview_id)
+        if preview is None:
+            raise not_found("media")
+        if preview.state != "ready" or preview.kind != "image":
+            raise invalid("media_preview_invalid", "That preview cannot be used")
     media_id = data.id or uuid.uuid4()
     existing = owned_repo.get(ctx, MediaObject, media_id)
     if existing is not None and existing.state != "pending":
@@ -46,6 +55,8 @@ def request_upload(ctx: Ctx, data: UploadRequest) -> UploadTicket:
         "height": data.height,
         "duration_sec": data.duration_sec,
         "state": "pending",
+        "preview_id": data.preview_id,
+        "lqip": data.lqip,
     }
     if existing is None:
         owned_repo.insert(ctx, MediaObject, values, row_id=media_id)
@@ -91,8 +102,14 @@ def get_media(ctx: Ctx, media_id: uuid.UUID) -> MediaObject:
 
 def delete_media(ctx: Ctx, media_id: uuid.UUID) -> None:
     media = owned_repo.require(ctx, MediaObject, media_id, what="media")
-    owned_repo.soft_delete(ctx, media)
-    storage.delete(media.storage_key)
+    preview = (
+        owned_repo.get(ctx, MediaObject, media.preview_id) if media.preview_id else None
+    )
+    for m in (media, preview):
+        if m is None:
+            continue
+        owned_repo.soft_delete(ctx, m)
+        storage.delete(m.storage_key)
     ctx.commit()
 
 

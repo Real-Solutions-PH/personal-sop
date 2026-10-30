@@ -20,7 +20,6 @@ import { useEffect, useMemo, useState } from "react"
 import {
   ActivityIndicator,
   FlatList,
-  Image,
   Pressable,
   ScrollView,
   Text,
@@ -55,6 +54,7 @@ import {
   useRing,
 } from "./kit"
 import { TopBar } from "./post"
+import { RemoteImage } from "./remote-image"
 import {
   type GoalLine,
   useMyGoals,
@@ -410,9 +410,11 @@ function Tile({ post, size }: { post: Post; size: number }) {
       })}
     >
       {first?.kind === "image" ? (
-        <Image
-          source={{ uri: first.uri }}
-          style={{ width: "100%", height: "100%" }}
+        <RemoteImage
+          media={first}
+          width="100%"
+          height="100%"
+          variant="preview"
         />
       ) : post.progress ? (
         <ProgressCard

@@ -44,6 +44,7 @@ import { Sparkline } from "../chart"
 import { go } from "../navigation"
 import { type Accent, fonts, useTheme } from "../theme"
 import { Sheet } from "../ui"
+import { RemoteImage } from "./remote-image"
 import {
   CHEERS,
   type Cheer,
@@ -395,18 +396,34 @@ export function VideoMedia({
   style,
   showMute = true,
   loop = true,
+  onReady,
+  onError,
 }: {
   uri: string
   active: boolean
   style: ViewStyle
   showMute?: boolean
   loop?: boolean
+  /** The first frame can play (``readyToPlay``). */
+  onReady?: () => void
+  onError?: () => void
 }) {
   const [muted, setMuted] = useState(true)
   const player = useVideoPlayer(uri, (p) => {
     p.loop = loop
     p.muted = true
   })
+  const ready = useRef(onReady)
+  ready.current = onReady
+  const failed = useRef(onError)
+  failed.current = onError
+  useEffect(() => {
+    const sub = player.addListener("statusChange", ({ status }) => {
+      if (status === "readyToPlay") ready.current?.()
+      else if (status === "error") failed.current?.()
+    })
+    return () => sub.remove()
+  }, [player])
   useEffect(() => {
     try {
       if (active) player.play()
@@ -785,10 +802,11 @@ export function MediaCarousel({
         >
           {pair && (
             <BeforeAfter
-              before={media[0].uri}
-              after={media[1].uri}
+              before={media[0]}
+              after={media[1]}
               width={width}
               height={height}
+              active={active}
             />
           )}
           {shown.map((m, i) =>
@@ -800,18 +818,22 @@ export function MediaCarousel({
                 style={{ width, height, backgroundColor: "#000" }}
               />
             ) : (
-              <Image
+              <View
                 key={m.uri + i}
-                source={{ uri: m.uri }}
-                accessibilityLabel={`Photo ${i + 1 + (pair ? 1 : 0)} of ${pages}`}
-                // Tall share cards (9:16) letterbox instead of cropping.
-                resizeMode={m.ratio && m.ratio < 0.75 ? "contain" : "cover"}
                 style={{
-                  width,
-                  height,
                   backgroundColor: m.ratio && m.ratio < 0.75 ? "#000" : t.soft,
                 }}
-              />
+              >
+                <RemoteImage
+                  media={m}
+                  width={width}
+                  height={height}
+                  // Tall share cards (9:16) letterbox instead of cropping.
+                  fit={m.ratio && m.ratio < 0.75 ? "contain" : "cover"}
+                  active={active}
+                  accessibilityLabel={`Photo ${i + 1 + (pair ? 1 : 0)} of ${pages}`}
+                />
+              </View>
             ),
           )}
           {card && (
@@ -940,13 +962,15 @@ function BeforeAfter({
   after,
   width,
   height,
+  active,
 }: {
-  before: string
-  after: string
+  before: Media
+  after: Media
   width: number
   height: number
+  active: boolean
 }) {
-  const t = useTheme()
+  const _t = useTheme()
   const half = (width - 2) / 2
   const label = (text: string) => (
     <View
@@ -978,14 +1002,15 @@ function BeforeAfter({
       style={{ width, height, flexDirection: "row", gap: 2 }}
     >
       {[
-        { uri: before, text: "BEFORE" },
-        { uri: after, text: "NOW" },
+        { media: before, text: "BEFORE" },
+        { media: after, text: "NOW" },
       ].map((x) => (
         <View key={x.text} style={{ width: half, height }}>
-          <Image
-            source={{ uri: x.uri }}
-            resizeMode="cover"
-            style={{ width: half, height, backgroundColor: t.soft }}
+          <RemoteImage
+            media={x.media}
+            width={half}
+            height={height}
+            active={active}
           />
           {label(x.text)}
         </View>

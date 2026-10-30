@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends
 
 from app.modules.iam.deps import require_permission
 from app.modules.media import public, services
+from app.modules.media.models import MediaObject
 from app.modules.media.schema import MediaWithUrl, UploadRequest, UploadTicket
 from app.shared.context import CtxDep
 from app.shared.rate_limit import rate_limited
@@ -15,10 +16,13 @@ READ = [Depends(require_permission("media:read"))]
 WRITE = [rate_limited("media"), Depends(require_permission("media:write"))]
 
 
-def _out(media: object) -> MediaWithUrl:
+def _out(ctx: CtxDep, media: MediaObject) -> MediaWithUrl:
     out = MediaWithUrl.model_validate(media)
     if out.state == "ready":
-        out.url = public.download_url(media)  # type: ignore[arg-type]
+        out.url = public.download_url(media)
+    if media.preview_id:
+        preview = public.visible_media(ctx, [media.preview_id]).get(media.preview_id)
+        out.preview_url = preview.url if preview else None
     return out
 
 
@@ -29,12 +33,12 @@ def request_upload(ctx: CtxDep, body: UploadRequest) -> UploadTicket:
 
 @router.post("/{media_id}/complete", response_model=MediaWithUrl, dependencies=WRITE)
 def complete_upload(ctx: CtxDep, media_id: uuid.UUID) -> MediaWithUrl:
-    return _out(services.complete_upload(ctx, media_id))
+    return _out(ctx, services.complete_upload(ctx, media_id))
 
 
 @router.get("/{media_id}", response_model=MediaWithUrl, dependencies=READ)
 def read_media(ctx: CtxDep, media_id: uuid.UUID) -> MediaWithUrl:
-    return _out(services.get_media(ctx, media_id))
+    return _out(ctx, services.get_media(ctx, media_id))
 
 
 @router.delete("/{media_id}", dependencies=WRITE)

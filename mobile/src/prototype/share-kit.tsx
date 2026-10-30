@@ -63,8 +63,8 @@ import { copyText, pickPhoto } from "./media"
 import { Copy, Line, Segmented, Tap } from "./native-kit"
 import { go } from "./navigation"
 import { signed } from "./share-format"
-import { keep } from "./social/media"
-import { addStory, setPostDraft } from "./social/store"
+import { keep, prepareImage } from "./social/media"
+import { addStory, type Media, setPostDraft } from "./social/store"
 import { type Accent, fonts, useTheme } from "./theme"
 
 export type CardFormat = "9:16" | "4:5" | "1:1"
@@ -971,11 +971,32 @@ export function ShareComposer<K extends string>({
       return null
     }
   }
+  /** The card as a community photo: the PNG itself as the full image (no
+   * re-encoding of its gradients) plus a preview and a placeholder. A card
+   * that cannot be prepared is posted as it is. */
+  const asMedia = async (uri: string): Promise<Media> => {
+    const ratio = 1 / ratioOf(format)
+    try {
+      const p = await prepareImage(uri, { keepPng: true })
+      return {
+        kind: "image",
+        uri: p.full,
+        mime: p.fullMime,
+        previewUri: p.preview,
+        lqip: p.lqip,
+        width: p.width,
+        height: p.height,
+        ratio,
+      }
+    } catch {
+      return { kind: "image", uri, ratio }
+    }
+  }
   const toFeed = async () => {
     const uri = await capture()
     setPostDraft({
       caption,
-      media: uri ? [{ kind: "image", uri, ratio: 1 / ratioOf(format) }] : [],
+      media: uri ? [await asMedia(uri)] : [],
     })
     go(uri ? "/social/compose" : "/social/compose?progress=1")
   }
@@ -985,7 +1006,13 @@ export function ShareComposer<K extends string>({
       toast.error("Couldn't render this card. Try Post instead.")
       return
     }
-    addStory({ kind: "image", uri })
+    const m = await asMedia(uri)
+    addStory({
+      kind: "image",
+      uri: m.uri,
+      previewUri: m.previewUri,
+      lqip: m.lqip,
+    })
     toast.success("Added to your story", {
       action: { label: "View", onClick: () => go("/social/stories/me") },
     })

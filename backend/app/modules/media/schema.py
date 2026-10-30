@@ -15,6 +15,14 @@ class UploadRequest(BaseModel):
     width: int | None = Field(default=None, gt=0, le=20000)
     height: int | None = Field(default=None, gt=0, le=20000)
     duration_sec: float | None = Field(default=None, ge=0, le=36000)
+    # An image only: its preview rendition (already uploaded, the caller's)
+    # and its inline placeholder.
+    preview_id: uuid.UUID | None = None
+    lqip: str | None = Field(
+        default=None,
+        max_length=2048,
+        pattern=r"^data:image/jpeg;base64,[A-Za-z0-9+/=]+$",
+    )
 
 
 class UploadTicket(BaseModel):
@@ -40,7 +48,10 @@ class MediaPublic(BaseModel):
     state: Literal["pending", "ready", "rejected"]
     ready_at: datetime | None
     created_at: datetime
+    preview_id: uuid.UUID | None = None
+    lqip: str | None = None
 
 
 class MediaWithUrl(MediaPublic):
     url: str | None = None
+    preview_url: str | None = None

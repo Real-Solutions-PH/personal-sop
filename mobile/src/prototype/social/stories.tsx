@@ -3,7 +3,7 @@ import { Eye, Plus, Send, Trash2, X } from "lucide-react-native"
 import { useEffect, useMemo, useRef, useState } from "react"
 import type { TextInputInstance } from "react-native"
 import {
-  Image,
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -40,6 +40,7 @@ import {
   ProgressCard,
   VideoMedia,
 } from "./kit"
+import { RemoteImage } from "./remote-image"
 import {
   deleteStory,
   directChat,
@@ -47,6 +48,7 @@ import {
   loadStoriesLive,
   ME,
   markSeen,
+  refreshStory,
   type StoryItem,
   sendMessage,
   simulateReply,
@@ -58,6 +60,8 @@ import {
 } from "./store"
 
 const DURATION = { image: 5000, text: 6000, progress: 7000, video: 10000 }
+/** A slide whose media has not rendered by then counts as failed. */
+export const LOAD_TIMEOUT_MS = 15_000
 
 function Bar({
   state,
@@ -86,13 +90,18 @@ function Bar({
   )
 }
 
-/** A story slide, with its check-in (day N, what was done) laid over it. */
-function Slide(props: {
+type SlideProps = {
   item: StoryItem
   width: number
   height: number
   playing: boolean
-}) {
+  /** The slide's media has rendered: its timer may start. */
+  onReady: () => void
+  onError: () => void
+}
+
+/** A story slide, with its check-in (day N, what was done) laid over it. */
+function Slide(props: SlideProps) {
   const { item } = props
   const over = item.progress && item.kind !== "progress"
   return (
@@ -112,25 +121,38 @@ function SlideBody({
   width,
   height,
   playing,
-}: {
-  item: StoryItem
-  width: number
-  height: number
-  playing: boolean
-}) {
+  onReady,
+  onError,
+}: SlideProps) {
+  const media = item.kind === "image" || item.kind === "video"
+  // Text and progress slides have nothing to load.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: once per slide
+  useEffect(() => {
+    if (!media || !item.uri) onReady()
+  }, [item.id])
   if (item.kind === "progress" && isCheckIn(item.progress) && item.progress)
     return (
       <CheckInSlide progress={item.progress} width={width} height={height} />
     )
-  if (item.kind === "image" && item.uri)
+  if (item.kind === "image" && item.uri) {
+    // My own story plays from the file on this device; no cache key.
+    const local = item.uri.startsWith("file:")
     return (
-      <Image
-        source={{ uri: item.uri }}
-        resizeMode="cover"
-        style={{ width, height }}
+      <RemoteImage
+        media={{
+          id: local ? undefined : item.mediaId,
+          uri: item.uri,
+          previewUri: local ? undefined : item.previewUri,
+          lqip: item.lqip,
+        }}
+        width={width}
+        height={height}
         accessibilityLabel="Story photo"
+        onLoad={onReady}
+        onError={onError}
       />
     )
+  }
   if (item.kind === "video" && item.uri)
     return (
       <VideoMedia
@@ -139,6 +161,8 @@ function SlideBody({
         style={{ width, height }}
         showMute={false}
         loop={false}
+        onReady={onReady}
+        onError={onError}
       />
     )
   if (item.kind === "progress" && item.progress)
@@ -243,6 +267,15 @@ export function StoryViewer({ id }: { id: string }) {
   const person = usePerson(group?.id ?? "")
   const [paused, setPaused] = useState(false)
   const [typing, setTyping] = useState(false)
+  // Load state of the current slide: its timer waits until it has rendered.
+  const [readyId, setReadyId] = useState<string | null>(null)
+  const [failedId, setFailedId] = useState<string | null>(null)
+  /** Slides already re-read once for a fresh link. */
+  const refreshed = useRef(new Set<string>())
+  /** Bumped to load the current slide again. */
+  const [attempt, setAttempt] = useState(0)
+  const ready = !!item && readyId === item.id
+  const failed = !!item && failedId === item.id
   const [reply, setReply] = useState("")
   const progress = useSharedValue(0)
   const dx = useSharedValue(0)
@@ -268,8 +301,8 @@ export function StoryViewer({ id }: { id: string }) {
   const next = () => (ii + 1 < items.length ? setIi(ii + 1) : nextGroup())
   const prev = () => (ii > 0 ? setIi(ii - 1) : prevGroup())
 
-  // Start/resume the progress timer for the current slide.
-  const holding = paused || typing
+  // Start/resume the progress timer for the current slide, once it shows.
+  const holding = paused || typing || !ready || failed
   useEffect(() => {
     if (!item) return
     markSeen(item.id)
@@ -278,6 +311,52 @@ export function StoryViewer({ id }: { id: string }) {
   useEffect(() => {
     progress.value = 0
   }, [item?.id])
+  // Not rendered in time (no network, a dead link): say so rather than
+  // spin forever.
+  useEffect(() => {
+    if (!item || ready || failed) return
+    const id = setTimeout(() => setFailedId(item.id), LOAD_TIMEOUT_MS)
+    return () => clearTimeout(id)
+  }, [item, ready, failed])
+  const onReady = () => {
+    if (item) setReadyId(item.id)
+  }
+  const onError = () => {
+    if (!item) return
+    const id = item.id
+    // First failure: the link may have expired; read the story again once.
+    if (!refreshed.current.has(id)) {
+      refreshed.current.add(id)
+      void refreshStory(id).then((r) => {
+        if (r === "gone") next()
+        else if (r === "ok") setAttempt((a) => a + 1)
+        else setFailedId(id)
+      })
+      return
+    }
+    setFailedId(id)
+  }
+  const retry = () => {
+    setFailedId(null)
+    setAttempt((a) => a + 1)
+  }
+  // Opened with nothing to show (a link, a cached tray): load, then either
+  // play or say it is gone.
+  const [loading, setLoading] = useState(!group)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: on open only
+  useEffect(() => {
+    if (group) return
+    void loadStoriesLive().then(() => {
+      const found = storyGroups(socialStore.get()).some(
+        (g) => g.id === id && g.items.length,
+      )
+      setLoading(false)
+      if (!found) {
+        toast("This check-in is no longer available")
+        close()
+      }
+    })
+  }, [])
   // Keyed on the slide and pause state only; `next` is recreated each render
   // and would restart the timer.
   // biome-ignore lint/correctness/useExhaustiveDependencies: see above
@@ -309,7 +388,20 @@ export function StoryViewer({ id }: { id: string }) {
     borderRadius: dy.value > 0 ? 16 : 12,
   }))
   if (!group || !item) {
-    return <View style={{ flex: 1, backgroundColor: "#000" }} />
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: "#000",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {loading && (
+          <ActivityIndicator color="#fff" accessibilityLabel="Loading" />
+        )}
+      </View>
+    )
   }
   const mine = group.id === ME
   const tap = Gesture.Tap()
@@ -379,7 +471,87 @@ export function StoryViewer({ id }: { id: string }) {
             sheet,
           ]}
         >
-          <Slide item={item} width={width} height={height} playing={!holding} />
+          <Slide
+            key={`${item.id}:${attempt}`}
+            item={item}
+            width={width}
+            height={height}
+            playing={!holding}
+            onReady={onReady}
+            onError={onError}
+          />
+          {!ready && !failed && (
+            <View
+              pointerEvents="none"
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <ActivityIndicator
+                color="#fff"
+                accessibilityLabel="Loading check-in"
+              />
+            </View>
+          )}
+          {failed && (
+            <View
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 14,
+                backgroundColor: "#000a",
+              }}
+            >
+              <Text
+                style={{
+                  color: "#fff",
+                  fontFamily: fonts.semibold,
+                  fontSize: 16,
+                }}
+              >
+                Couldn't load this check-in
+              </Text>
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                {[
+                  { label: "Retry", run: retry },
+                  { label: "Skip", run: next },
+                ].map((b) => (
+                  <Pressable
+                    key={b.label}
+                    accessibilityRole="button"
+                    onPress={b.run}
+                    style={{
+                      minHeight: 40,
+                      paddingHorizontal: 18,
+                      borderRadius: 20,
+                      justifyContent: "center",
+                      backgroundColor: b.label === "Retry" ? "#fff" : "#fff3",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: b.label === "Retry" ? "#000" : "#fff",
+                        fontFamily: fonts.semibold,
+                      }}
+                    >
+                      {b.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          )}
           <LinearGradient
             colors={["#0009", "#0000"]}
             pointerEvents="none"

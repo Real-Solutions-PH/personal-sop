@@ -169,7 +169,14 @@ export function StoryNew() {
     if (mode === "checkin")
       addStory(
         media
-          ? { kind: media.kind, uri: media.uri, progress: check, audience }
+          ? {
+              kind: media.kind,
+              uri: media.uri,
+              previewUri: media.previewUri,
+              lqip: media.lqip,
+              progress: check,
+              audience,
+            }
           : { kind: "progress", progress: check, audience },
       )
     else if (mode === "text")
@@ -180,7 +187,13 @@ export function StoryNew() {
         audience,
       })
     else if (mode === "media" && media)
-      addStory({ kind: media.kind, uri: media.uri, audience })
+      addStory({
+        kind: media.kind,
+        uri: media.uri,
+        previewUri: media.previewUri,
+        lqip: media.lqip,
+        audience,
+      })
     else if (progress) addStory({ kind: "progress", progress, audience })
     haptic.done()
     toast.success(

@@ -1,6 +1,8 @@
 """Cross-module contract of the media module."""
 
 import uuid
+from collections.abc import Iterable
+from dataclasses import dataclass
 from typing import Literal
 
 from sqlmodel import col, select
@@ -55,6 +57,60 @@ def visible_download_url(ctx: Ctx, media_id: uuid.UUID) -> str:
     if media is None:
         raise not_found("media")
     return storage.presign_get(media.storage_key)
+
+
+@dataclass(frozen=True)
+class VisibleMedia:
+    """What a viewer needs to draw one photo: the full image's URL, its
+    preview's URL (None for uploads made before previews existed), the
+    inline placeholder and the stored size."""
+
+    url: str
+    preview_url: str | None
+    lqip: str | None
+    width: int | None
+    height: int | None
+
+
+def visible_media(
+    ctx: Ctx, media_ids: Iterable[uuid.UUID]
+) -> dict[uuid.UUID, VisibleMedia]:
+    """``visible_download_url`` for a whole page: one query for the media
+    and one for their previews, whatever the page holds. Visibility is checked
+    by the caller; an id outside the tenant, not ready or deleted is absent
+    from the result."""
+    wanted = set(media_ids)
+    if not wanted:
+        return {}
+
+    def ready(ids: set[uuid.UUID]) -> list[MediaObject]:
+        return list(
+            ctx.session.exec(
+                select(MediaObject).where(
+                    col(MediaObject.id).in_(ids),
+                    MediaObject.tenant_id == ctx.tenant_id,
+                    MediaObject.state == "ready",
+                    col(MediaObject.deleted_at).is_(None),
+                )
+            ).all()
+        )
+
+    rows = ready(wanted)
+    preview_ids = {m.preview_id for m in rows if m.preview_id}
+    previews = {
+        p.id: storage.presign_get(p.storage_key)
+        for p in (ready(preview_ids) if preview_ids else [])
+    }
+    return {
+        m.id: VisibleMedia(
+            url=storage.presign_get(m.storage_key),
+            preview_url=previews.get(m.preview_id) if m.preview_id else None,
+            lqip=m.lqip,
+            width=m.width,
+            height=m.height,
+        )
+        for m in rows
+    }
 
 
 def sniff_audio(head: bytes) -> str | None:

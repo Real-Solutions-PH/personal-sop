@@ -18,6 +18,14 @@ export type Media = {
   id?: string
   /** Live mode: when ``uri`` (a presigned URL) was taken from the server. */
   urlAt?: number
+  /** A photo's smaller rendition (long edge 640) and inline placeholder,
+   * and its full size; absent on photos uploaded before renditions. */
+  previewUri?: string
+  lqip?: string
+  width?: number
+  height?: number
+  /** The full image's type when it is not a JPEG (a share card's PNG). */
+  mime?: string
 }
 export type ProgressStat = { label: string; value: string; unit?: string }
 export type Progress = {
@@ -113,6 +121,11 @@ export type StoryItem = {
   /** Live mode: media already on the server (my post's photo shared to my
    * story), sent by id instead of uploaded again. */
   mediaId?: string
+  /** My own story shown from its local file: the server's URL for it. */
+  remoteUri?: string
+  /** A photo's preview rendition and inline placeholder. */
+  previewUri?: string
+  lqip?: string
   likes?: number
   /** Live mode, my own check-ins only: how many people opened it. */
   views?: number
@@ -920,6 +933,8 @@ export interface SocialRemote {
   loadSaved(): Promise<void>
   /** The check-in tray again (my own view and like counts move). */
   loadStories(): Promise<void>
+  /** Re-read one story (a fresh link); "gone" when it was deleted. */
+  refreshStory(id: string): Promise<"ok" | "gone">
   openPerson(id: string): Promise<void>
   openChat(id: string): Promise<void>
   /** Explore search: people, or posts by tag when it starts with #. */
@@ -1142,7 +1157,28 @@ export async function ensurePostLive(id: string): Promise<"ok" | "gone"> {
   }
 }
 export const loadSavedLive = () => load((r) => r.loadSaved())
-export const loadStoriesLive = () => load((r) => r.loadStories())
+/** When the check-in tray was last read (not persisted). */
+let storiesLoadedAt = 0
+export const loadStoriesLive = () => {
+  storiesLoadedAt = Date.now()
+  return load((r) => r.loadStories())
+}
+/** The tray again when the last read is older than ``ms`` (feed focus, app
+ * back in front): a story whose live event was missed still shows. */
+export const loadStoriesIfStale = (ms = 30_000) =>
+  Date.now() - storiesLoadedAt > ms ? loadStoriesLive() : Promise.resolve()
+/** A story slide that failed to load: re-read it for a fresh link. Prototype
+ * mode has nothing to refresh. */
+export async function refreshStory(
+  id: string,
+): Promise<"ok" | "gone" | "failed"> {
+  if (!liveMode) return "failed"
+  try {
+    return await (await connected()).refreshStory(id)
+  } catch {
+    return "failed"
+  }
+}
 export const openPersonLive = (id: string) => load((r) => r.openPerson(id))
 export const openChatLive = (id: string) => load((r) => r.openChat(id))
 export const searchLive = (q: string) => load((r) => r.search(q))

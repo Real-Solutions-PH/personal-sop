@@ -113,6 +113,12 @@ class MediaPublic(BaseModel):
     kind: Literal["image", "video"]
     ratio: float | None
     url: str | None
+    # A photo's smaller rendition and inline placeholder (none on uploads
+    # made before they existed), and its stored size.
+    preview_url: str | None = None
+    lqip: str | None = None
+    width: int | None = None
+    height: int | None = None
 
 
 class ProgressIn(BaseModel):
