@@ -26,7 +26,9 @@ import {
 } from "lucide-react-native"
 import { useState } from "react"
 import { TextInput, View } from "react-native"
+import Animated from "react-native-reanimated"
 import { toast } from "sonner-native"
+import { rowEnter, rowExit } from "../motion"
 import {
   Bar,
   border,
@@ -55,6 +57,91 @@ import {
 import { displayMass } from "../units"
 import { CreateExerciseRow, ExerciseEditor } from "./fitness"
 import { StartWorkoutSheet } from "./fitness-start"
+
+/** The rest countdown, pinned under the header so it never scrolls away.
+ * ``rest`` is the seconds left (negative once rest is over). */
+function RestBar({
+  rest,
+  durationSec,
+  defaultSec,
+}: {
+  rest: number
+  durationSec: number
+  defaultSec: number
+}) {
+  const t = useTheme(),
+    over = rest <= 0
+  return (
+    <Animated.View entering={rowEnter} exiting={rowExit}>
+      <Frame
+        style={{
+          padding: 10,
+          borderColor: over ? `${t.good}66` : `${t.fit}66`,
+          backgroundColor: over ? `${t.good}26` : t.card,
+        }}
+      >
+        <Line>
+          <Timer size={20} color={over ? t.good : t.fit} />
+          {/* The readout keeps its width; the buttons give way. */}
+          <View style={{ flex: 1, minWidth: 96 }}>
+            <Countdown size={22} style={{ textAlign: "left" }}>
+              {over ? `+${fmtDuration(-rest)}` : fmtDuration(rest)}
+            </Countdown>
+            <Line style={{ gap: 8, flexWrap: "wrap" }}>
+              <Copy size={12} muted style={{ flexShrink: 1 }}>
+                {over ? "Rest over — next set" : `Rest · ${durationSec}s`}
+              </Copy>
+              {!over && durationSec !== defaultSec && (
+                <Tap
+                  onPress={() => {
+                    A.updateSettings({ restSec: durationSec })
+                    toast.success(`Default rest set to ${durationSec}s`)
+                  }}
+                  style={{ marginLeft: "auto" }}
+                >
+                  <Copy size={12} style={{ color: t.fit }}>
+                    Make {durationSec}s my default
+                  </Copy>
+                </Tap>
+              )}
+            </Line>
+          </View>
+          {!over && (
+            <>
+              <ToolButton
+                icon={ClockArrowDown}
+                label="−15"
+                name="Rest 15 seconds less"
+                max={56}
+                onPress={() => A.adjustRest(-15)}
+              />
+              <ToolButton
+                icon={ClockArrowUp}
+                label="+15"
+                name="Rest 15 seconds more"
+                max={56}
+                onPress={() => A.adjustRest(15)}
+              />
+            </>
+          )}
+          <ToolButton
+            icon={over ? Check : SkipForward}
+            label={over ? "OK" : "Skip"}
+            name={over ? "Dismiss rest timer" : "Skip rest"}
+            max={56}
+            onPress={A.skipRest}
+          />
+        </Line>
+        {!over && (
+          <View style={{ marginTop: 8 }}>
+            <Bar value={rest / Math.max(1, durationSec)} color={t.fit} />
+          </View>
+        )}
+      </Frame>
+    </Animated.View>
+  )
+}
+
 export function WorkoutLogger() {
   const p = useLocalSearchParams<{ edit?: string; resume?: string }>(),
     s = fitStore.use((s) => s),
@@ -131,8 +218,8 @@ export function WorkoutLogger() {
     if (A.finishWorkout(w.id, { unfinished: mode, endAt })) {
       setFinish(false)
       setResume(false)
-      // Straight to the card: post it, save it, or skip.
-      replace(`/fitness/share/${w.id}?done=1`)
+      // The celebration summary, which leads with Share, Post and Done.
+      replace(`/fitness/workouts/${w.id}/summary`)
     }
   }
   const discard = () =>
@@ -172,6 +259,15 @@ export function WorkoutLogger() {
             else finishWorkout("remove")
           }}
         />
+      }
+      pinned={
+        !p.edit && s.rest ? (
+          <RestBar
+            rest={rest}
+            durationSec={s.rest.durationSec}
+            defaultSec={s.settings.restSec}
+          />
+        ) : null
       }
     >
       {rename && (
@@ -217,73 +313,6 @@ export function WorkoutLogger() {
             ))}
           </Line>
         </View>
-      )}
-      {!p.edit && s.rest && (
-        <Frame
-          style={{
-            padding: 12,
-            borderColor: rest <= 0 ? `${t.good}66` : `${t.fit}66`,
-            backgroundColor: rest <= 0 ? `${t.good}26` : t.card,
-          }}
-        >
-          <Line>
-            <Timer size={20} color={rest <= 0 ? t.good : t.fit} />
-            {/* The readout keeps its width; the buttons give way. */}
-            <View style={{ flex: 1, minWidth: 96 }}>
-              <Countdown size={24} style={{ textAlign: "left" }}>
-                {rest <= 0 ? `+${fmtDuration(-rest)}` : fmtDuration(rest)}
-              </Countdown>
-              <Copy size={12} muted>
-                {rest <= 0
-                  ? "Rest over — next set"
-                  : `Rest · ${s.rest.durationSec}s`}
-              </Copy>
-            </View>
-            {rest > 0 && (
-              <>
-                <ToolButton
-                  icon={ClockArrowDown}
-                  label="−15"
-                  name="Rest 15 seconds less"
-                  max={56}
-                  onPress={() => A.adjustRest(-15)}
-                />
-                <ToolButton
-                  icon={ClockArrowUp}
-                  label="+15"
-                  name="Rest 15 seconds more"
-                  max={56}
-                  onPress={() => A.adjustRest(15)}
-                />
-              </>
-            )}
-            <ToolButton
-              icon={rest <= 0 ? Check : SkipForward}
-              label={rest <= 0 ? "OK" : "Skip"}
-              name={rest <= 0 ? "Dismiss rest timer" : "Skip rest"}
-              max={56}
-              onPress={A.skipRest}
-            />
-          </Line>
-          {rest > 0 && (
-            <View style={{ marginTop: 8 }}>
-              <Bar
-                value={rest / Math.max(1, s.rest.durationSec)}
-                color={t.fit}
-              />
-            </View>
-          )}
-          {rest > 0 && s.rest.durationSec !== s.settings.restSec && (
-            <Tap
-              onPress={() => A.updateSettings({ restSec: s.rest!.durationSec })}
-              style={{ marginTop: 6 }}
-            >
-              <Copy size={12} style={{ color: t.fit }}>
-                Make {s.rest.durationSec}s my default
-              </Copy>
-            </Tap>
-          )}
-        </Frame>
       )}
       {!w.exercises.length && (
         <Empty

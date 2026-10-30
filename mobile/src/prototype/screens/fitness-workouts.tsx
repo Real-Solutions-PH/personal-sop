@@ -14,7 +14,10 @@ import {
 } from "lucide-react-native"
 import { useState } from "react"
 import { ScrollView, TextInput, View } from "react-native"
+import Animated, { FadeInDown } from "react-native-reanimated"
 import { toast } from "sonner-native"
+import { Celebration, useCelebrate } from "../celebration"
+import { useShown } from "../extras"
 import { Copy, Frame, IconTap, Line, SectionHeading, Tap } from "../native-kit"
 import { go, replace } from "../navigation"
 import { fonts, useTheme } from "../theme"
@@ -234,46 +237,50 @@ function Sets({ workout }: { workout: Workout }) {
     </View>
   )
 }
-function Records({ prs }: { prs: C.Pr[] }) {
+function Records({ prs, play = false }: { prs: C.Pr[]; play?: boolean }) {
   const s = fitStore.use((s) => s),
     t = useTheme()
   return (
     <View style={{ gap: 8 }}>
-      {prs.map((p) => (
-        <Tap
+      {prs.map((p, i) => (
+        <Animated.View
           key={`${p.exerciseId}-${p.kind}`}
-          onPress={() => go(`/fitness/exercises/${p.exerciseId}`)}
-          style={{
-            padding: 12,
-            borderRadius: 12,
-            backgroundColor: `${t.warn}1a`,
-          }}
+          entering={play ? FadeInDown.delay(120 * i) : undefined}
         >
-          <Line>
-            <Trophy size={20} color={t.warn} />
-            <View style={{ flex: 1 }}>
-              <Copy weight="medium" lines={1}>
-                {s.exercises.find((e) => e.id === p.exerciseId)?.name}
-              </Copy>
-              <Copy size={12} muted>
-                {C.prLabel[p.kind]} PR
-              </Copy>
-            </View>
-            <View style={{ alignItems: "flex-end" }}>
-              <Copy weight="semibold">
-                {p.kind === "volume"
-                  ? C.fmtVolume(p.value)
-                  : C.kg(Math.round(p.value * 10) / 10)}
-              </Copy>
-              <Copy size={12} style={{ color: t.good }}>
-                +
-                {p.kind === "volume"
-                  ? C.fmtVolume(p.value - p.prev)
-                  : C.kg(Math.round((p.value - p.prev) * 10) / 10)}
-              </Copy>
-            </View>
-          </Line>
-        </Tap>
+          <Tap
+            onPress={() => go(`/fitness/exercises/${p.exerciseId}`)}
+            style={{
+              padding: 12,
+              borderRadius: 12,
+              backgroundColor: `${t.warn}1a`,
+            }}
+          >
+            <Line>
+              <Trophy size={20} color={t.warn} />
+              <View style={{ flex: 1 }}>
+                <Copy weight="medium" lines={1}>
+                  {s.exercises.find((e) => e.id === p.exerciseId)?.name}
+                </Copy>
+                <Copy size={12} muted>
+                  {C.prLabel[p.kind]} PR
+                </Copy>
+              </View>
+              <View style={{ alignItems: "flex-end" }}>
+                <Copy weight="semibold">
+                  {p.kind === "volume"
+                    ? C.fmtVolume(p.value)
+                    : C.kg(Math.round(p.value * 10) / 10)}
+                </Copy>
+                <Copy size={12} style={{ color: t.good }}>
+                  +
+                  {p.kind === "volume"
+                    ? C.fmtVolume(p.value - p.prev)
+                    : C.kg(Math.round((p.value - p.prev) * 10) / 10)}
+                </Copy>
+              </View>
+            </Line>
+          </Tap>
+        </Animated.View>
       ))}
     </View>
   )
@@ -290,7 +297,10 @@ export function WorkoutDetail({
     w = s.workouts.find((w) => w.id === id),
     [menu, setMenu] = useState(false),
     [name, setName] = useState(w?.name ?? ""),
-    [notes, setNotes] = useState(w?.notes ?? "")
+    [notes, setNotes] = useState(w?.notes ?? ""),
+    social = useShown("social"),
+    // The summary alone plays and records it; the history page never does.
+    fresh = useCelebrate(id, summary)
   if (!w)
     return (
       <Screen title={summary ? "Summary" : "Workout"}>
@@ -312,6 +322,11 @@ export function WorkoutDetail({
     stalled = w.exercises
       .filter((e) => C.isStalled(C.exerciseHistory(s, e.exerciseId)))
       .map((e) => s.exercises.find((x) => x.id === e.exerciseId)?.name)
+  // Nothing to celebrate when every set was removed before finishing.
+  const play = summary && fresh && totals.done > 0,
+    shareUrl = `/fitness/share/${id}?template=${prs.length ? "pr" : "summary"}`
+  const save = () =>
+    A.updateWorkoutMeta(id, { name: name.trim() || w.name, notes })
   const repeat = () => {
     const result = A.startWorkout({ from: "repeat", workoutId: id })
     if (result.ok) go("/fitness/workout")
@@ -382,7 +397,70 @@ export function WorkoutDetail({
       }
     >
       {summary ? (
-        <View style={{ padding: 20, borderRadius: 24 }}>
+        <>
+          <Celebration
+            kind="workout"
+            title={`${w.name} complete`}
+            subtitle={`${C.relDay(w.startedAt)} · session ${week}/${s.settings.weeklyTarget} this week`}
+            stats={[
+              {
+                label: "Duration",
+                value: totals.durationSec,
+                format: (n) => C.fmtMin(n),
+              },
+              {
+                label: "Sets",
+                value: totals.done,
+                format: (n) => `${Math.round(n)}/${totals.planned}`,
+              },
+              {
+                label: "Volume",
+                value: totals.volume,
+                format: (n) => C.fmtVolume(n),
+              },
+            ]}
+            play={play}
+          />
+          {delta !== undefined && (
+            <Copy
+              size={12}
+              style={{
+                textAlign: "center",
+                marginTop: -12,
+                color: delta >= 0 ? t.good : t.muted,
+              }}
+            >
+              Volume {delta >= 0 ? "▲" : "▼"}
+              {Math.abs(delta)}% vs last
+            </Copy>
+          )}
+          <Line style={{ gap: 8 }}>
+            <View style={{ flex: 1 }}>
+              <Button icon={Share2} onPress={() => go(shareUrl)}>
+                Share
+              </Button>
+            </View>
+            {social && (
+              <View style={{ flex: 1 }}>
+                <Button tone="quiet" onPress={() => go(`${shareUrl}&post=1`)}>
+                  Post
+                </Button>
+              </View>
+            )}
+            <View style={{ flex: 1 }}>
+              <Button
+                tone="quiet"
+                onPress={() => {
+                  save()
+                  toast.success("Workout saved")
+                  replace("/fitness")
+                }}
+              >
+                Done
+              </Button>
+            </View>
+          </Line>
+          {heading("Name")}
           <TextInput
             accessibilityLabel="Workout name"
             value={name}
@@ -390,14 +468,19 @@ export function WorkoutDetail({
             onBlur={() =>
               A.updateWorkoutMeta(id, { name: name.trim() || w.name })
             }
-            style={{ fontFamily: fonts.semibold, fontSize: 24, color: t.text }}
+            style={{
+              minHeight: 44,
+              paddingHorizontal: 12,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: t.line,
+              backgroundColor: t.card,
+              fontFamily: fonts.medium,
+              fontSize: 16,
+              color: t.text,
+            }}
           />
-          <Copy size={14} muted>
-            {C.relDay(w.startedAt)} · session {week}/{s.settings.weeklyTarget}{" "}
-            this week
-          </Copy>
-          <View style={{ marginTop: 16 }}>{stats}</View>
-        </View>
+        </>
       ) : (
         <>
           <Copy size={14} muted>
@@ -421,7 +504,7 @@ export function WorkoutDetail({
               : "Personal records",
           )}
           {prs.length ? (
-            <Records prs={prs} />
+            <Records prs={prs} play={play} />
           ) : (
             <Frame style={{ padding: 16 }}>
               <Copy size={14} muted>
@@ -481,36 +564,24 @@ export function WorkoutDetail({
           </Frame>
         </>
       )}
-      <Line style={{ marginTop: 8, gap: 8 }}>
-        <View style={{ flex: 1 }}>
-          <Button
-            tone="quiet"
-            icon={Share2}
-            onPress={() => go(`/fitness/share/${id}`)}
-          >
-            Share
-          </Button>
-        </View>
-        <View style={{ flex: 1 }}>
-          <Button
-            icon={summary ? undefined : Repeat}
-            onPress={
-              summary
-                ? () => {
-                    A.updateWorkoutMeta(id, {
-                      name: name.trim() || w.name,
-                      notes,
-                    })
-                    toast.success("Workout saved")
-                    go("/fitness")
-                  }
-                : repeat
-            }
-          >
-            {summary ? "Save" : "Repeat"}
-          </Button>
-        </View>
-      </Line>
+      {!summary && (
+        <Line style={{ marginTop: 8, gap: 8 }}>
+          <View style={{ flex: 1 }}>
+            <Button
+              tone="quiet"
+              icon={Share2}
+              onPress={() => go(`/fitness/share/${id}`)}
+            >
+              Share
+            </Button>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Button icon={Repeat} onPress={repeat}>
+              Repeat
+            </Button>
+          </View>
+        </Line>
+      )}
       {summary && (
         <Tap
           onPress={() => {

@@ -150,6 +150,7 @@ export function FoodCard({
     <CardFrame
       width={width}
       look={look}
+      accent="nut"
       kicker={kind === "day" ? "Food day" : "Food week"}
       date={kind === "day" ? d.date : "Last 7 days"}
     >

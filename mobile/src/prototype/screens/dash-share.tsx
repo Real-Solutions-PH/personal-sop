@@ -732,6 +732,7 @@ export function Artwork({
     <CardFrame
       width={width}
       look={look}
+      accent={kind === "finance" ? "fin" : "life"}
       kicker={kicker}
       date={on.dates ? date : ""}
       mark={on.mark}
@@ -761,7 +762,7 @@ export function ShareCard() {
     [remember, setRemember] = useState(false),
     [currentLook, setCurrentLook] = useState<CardLook>({
       format: "9:16",
-      backdrop: "dark",
+      backdrop: "fern",
       photo: null,
     }),
     proceed = useRef<(() => Promise<void>) | null>(null),

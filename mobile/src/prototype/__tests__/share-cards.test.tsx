@@ -8,7 +8,14 @@ import { join } from "node:path"
 import { configureStorage, resetAll } from "@domain/lib/store"
 import { fireEvent, render } from "@testing-library/react-native"
 import type { ReactElement } from "react"
-import { Dimensions, ScrollView, StyleSheet, Text } from "react-native"
+import {
+  Dimensions,
+  PixelRatio,
+  ScrollView,
+  StyleSheet,
+  Text,
+} from "react-native"
+import { luminance } from "../color-picker"
 import { Artwork } from "../screens/dash-share"
 import { WorkoutCard } from "../screens/fitness-share"
 import {
@@ -29,6 +36,7 @@ import {
   cardInk,
   ShareComposer,
 } from "../share-kit"
+import { socialStore } from "../social/store"
 import * as F from "./share-fixtures"
 
 jest.mock("expo-router", () => ({
@@ -115,6 +123,8 @@ describe("card colours", () => {
     expect(alpha("#1f5a4380", 0.5)).toBe("#1f5a4340")
   })
   test.each<CardBackdrop>([
+    "fern",
+    "dusk",
     "dark",
     "light",
     "custom",
@@ -123,7 +133,8 @@ describe("card colours", () => {
   ])("every %s colour is well formed", (backdrop) => {
     for (const color of ["#f6f5f1", "#121513", "#3e63dd"]) {
       const c = cardInk({ format: "9:16", backdrop, photo: null, color })
-      const { area, dark, ...rest } = c
+      const { area, dark, gradient, ...rest } = c
+      for (const v of gradient?.stops ?? []) expect(v).toMatch(hex)
       for (const v of [...Object.values(rest), area("fin"), area("life")])
         expect(v).toMatch(hex)
     }
@@ -138,10 +149,64 @@ describe("card colours", () => {
     expect(cardInk(look("#f6f5f1")).dark).toBe(false)
     expect(cardInk(look("#1f5a43")).dark).toBe(true)
   })
+  test.each([
+    ["fern", 2],
+    ["dusk", 3],
+  ] as const)("the %s ground is a dark gradient of %i stops", (backdrop, n) => {
+    const c = cardInk({ format: "9:16", backdrop, photo: null })
+    expect(c.dark).toBe(true)
+    expect(c.gradient?.stops).toHaveLength(n)
+    for (const v of c.gradient?.stops ?? []) expect(v).toMatch(hex)
+    // The ground paints its first stop before the SVG does.
+    expect(c.bg).toBe(c.gradient?.stops[0])
+  })
+  test.each([
+    "fern",
+    "dusk",
+  ] as const)("words on %s reach 4.5:1 against every stop", (backdrop) => {
+    const c = cardInk({ format: "9:16", backdrop, photo: null })
+    for (const stop of c.gradient?.stops ?? []) {
+      expect(contrast(c.ink, stop)).toBeGreaterThanOrEqual(4.5)
+      expect(contrast(c.muted, stop)).toBeGreaterThanOrEqual(4.5)
+    }
+  })
+  test("no alpha suffix is glued onto a short hex in the share kit", () => {
+    const code = readFileSync(join(__dirname, "..", "share-kit.tsx"), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/.*$/gm, "")
+    expect(code).not.toMatch(/["'`]#[0-9a-f]{3}["'`]\s*\+/i)
+  })
 })
 
+/** ``hex`` (``#rrggbb`` or ``#rrggbbaa``) laid over the solid ``under``. */
+function over(hex: string, under: string): string {
+  const a = hex.length === 9 ? Number.parseInt(hex.slice(7), 16) / 255 : 1
+  return `#${[1, 3, 5]
+    .map((i) => {
+      const top = Number.parseInt(hex.slice(i, i + 2), 16),
+        bottom = Number.parseInt(under.slice(i, i + 2), 16)
+      return Math.round(top * a + bottom * (1 - a))
+        .toString(16)
+        .padStart(2, "0")
+    })
+    .join("")}`
+}
+/** WCAG contrast ratio of ``fg`` (alpha allowed) drawn on ``bg``. */
+function contrast(fg: string, bg: string): number {
+  const [a, b] = [luminance(over(fg, bg)), luminance(bg)]
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)
+}
+
 const FORMATS: CardFormat[] = ["9:16", "4:5", "1:1"]
-const BACKDROPS: CardBackdrop[] = ["dark", "light", "custom", "sticker"]
+const BACKDROPS: CardBackdrop[] = [
+  "fern",
+  "dusk",
+  "dark",
+  "light",
+  "custom",
+  "photo",
+  "sticker",
+]
 const on = {
   level: true,
   hexagon: true,
@@ -427,7 +492,7 @@ describe("streak maths", () => {
   })
 })
 
-test("share cards carry no gradient and no raw colour", () => {
+test("gradients only in share-kit's CardGround, and no raw colour", () => {
   const dir = join(__dirname, "..")
   for (const file of [
     "share-kit.tsx",
@@ -441,7 +506,8 @@ test("share cards carry no gradient and no raw colour", () => {
     const code = readFileSync(join(dir, file), "utf8")
       .replace(/\/\*[\s\S]*?\*\//g, "")
       .replace(/\/\/.*$/gm, "")
-    expect(code).not.toMatch(/LinearGradient|RadialGradient/)
+    expect(code).not.toMatch(/RadialGradient/)
+    if (file !== "share-kit.tsx") expect(code).not.toMatch(/LinearGradient/)
     expect(code).not.toMatch(/["'`]#[0-9a-fA-F]{3,8}["'`]/)
   }
 })
@@ -457,7 +523,8 @@ test("the composer can centre its last card", () => {
         key,
         label: key,
         render: (width: number) => {
-          card = width
+          // The first call is the preview; the hidden export copy follows.
+          card ||= width
           return null
         },
       }))}
@@ -535,4 +602,165 @@ test.each([
   // iOS view-shot sizes in points at the screen's scale (2× here), so
   // 540 × 960 points is the 1080 × 1920 pixel PNG.
   expect(opts).toMatchObject({ format: "png", width: 540, height: height / 2 })
+})
+
+const card = (width: number, look: CardLook) => (
+  <CardFrame width={width} look={look} kicker="Test">
+    <Text>body</Text>
+  </CardFrame>
+)
+
+test.each<CardBackdrop>([
+  "fern",
+  "dusk",
+  "dark",
+  "light",
+  "custom",
+  "photo",
+  "sticker",
+])("the watermark on %s", (backdrop) => {
+  const r = render(
+    card(300, { format: "9:16", backdrop, photo: "file:///p.jpg" }),
+  )
+  expect(r.queryAllByTestId("card-watermark")).toHaveLength(
+    backdrop === "sticker" ? 0 : 1,
+  )
+  expect(r.queryAllByTestId("card-ground")).toHaveLength(
+    backdrop === "fern" || backdrop === "dusk" ? 1 : 0,
+  )
+})
+
+test("the composer opens on the Fern ground", () => {
+  const looks: CardLook[] = []
+  render(
+    <ShareComposer
+      value="card"
+      onChange={() => {}}
+      caption=""
+      onLookChange={(l) => looks.push(l)}
+      items={[{ key: "card", label: "Card", render: card }]}
+    >
+      {null}
+    </ShareComposer>,
+  )
+  expect(looks[0]?.backdrop).toBe("fern")
+})
+
+describe.each([3, 2])("at %i× (iOS)", (ratio) => {
+  test.each([
+    ["9:16", 1920],
+    ["4:5", 1350],
+    ["1:1", 1080],
+  ] as const)("a %s card is captured from a copy laid out 1080 px wide", async (format, height) => {
+    const spy = jest.spyOn(PixelRatio, "get").mockReturnValue(ratio)
+    const { captureRef } = require("react-native-view-shot")
+    captureRef.mockClear()
+    const widths: number[] = []
+    const shareRef: { current: (() => Promise<void>) | null } = {
+      current: null,
+    }
+    const r = render(
+      <ShareComposer
+        value="card"
+        onChange={() => {}}
+        caption=""
+        shareRef={shareRef}
+        formats={[format]}
+        items={[
+          {
+            key: "card",
+            label: "Card",
+            render: (width: number, look: CardLook) => {
+              widths.push(width)
+              return card(width, look)
+            },
+          },
+        ]}
+      >
+        {null}
+      </ShareComposer>,
+    )
+    await shareRef.current?.()
+    const [node, opts] = captureRef.mock.calls[0]
+    const exported = r.getByTestId("card-export", {
+      includeHiddenElements: true,
+    })
+    // The captured node is the card inside the hidden export copy.
+    expect(
+      exported.findAll((n) => n.props.testID === "card-shot")[0]?.instance,
+    ).toBe(node)
+    expect(opts).toMatchObject({
+      format: "png",
+      width: 1080 / ratio,
+      height: height / ratio,
+    })
+    expect(StyleSheet.flatten(exported.props.style).width).toBe(1080 / ratio)
+    expect(widths).toContain(1080 / ratio)
+    // A screen reader never reaches the hidden copy.
+    let box = exported.parent
+    while (box && box.props.accessibilityElementsHidden === undefined)
+      box = box.parent
+    expect(box?.props.accessibilityElementsHidden).toBe(true)
+    expect(box?.props.importantForAccessibility).toBe("no-hide-descendants")
+    spy.mockRestore()
+  })
+})
+
+test("a failed capture shows the share error toast", async () => {
+  const { captureRef } = require("react-native-view-shot")
+  const { toast } = require("sonner-native")
+  captureRef.mockReset()
+  captureRef.mockRejectedValueOnce(new Error("no"))
+  toast.error.mockClear()
+  const shareRef: { current: (() => Promise<void>) | null } = { current: null }
+  render(
+    <ShareComposer
+      value="card"
+      onChange={() => {}}
+      caption=""
+      shareRef={shareRef}
+      items={[{ key: "card", label: "Card", render: card }]}
+    >
+      {null}
+    </ShareComposer>,
+  )
+  await shareRef.current?.()
+  expect(toast.error).toHaveBeenCalledWith(
+    "Could not share this image. You can still copy its caption.",
+  )
+})
+
+test("autoPost opens the feed composer once, after layout", async () => {
+  const { captureRef } = require("react-native-view-shot")
+  captureRef.mockReset()
+  captureRef.mockRejectedValue(new Error("not in tests"))
+  jest.spyOn(global, "requestAnimationFrame").mockImplementation((cb) => {
+    cb(0)
+    return 0
+  })
+  const { router } = require("expo-router")
+  router.push.mockClear()
+  const r = render(
+    <ShareComposer
+      value="card"
+      onChange={() => {}}
+      caption="Push A"
+      autoPost
+      items={[{ key: "card", label: "Card", render: card }]}
+    >
+      {null}
+    </ShareComposer>,
+  )
+  for (let i = 0; i < 2; i++)
+    fireEvent(
+      r.getByTestId("card-export", { includeHiddenElements: true }),
+      "layout",
+      {
+        nativeEvent: { layout: { width: 360, height: 640 } },
+      },
+    )
+  await new Promise((done) => setTimeout(done, 0))
+  expect(socialStore.get().drafts.post?.caption).toBe("Push A")
+  expect(router.push).toHaveBeenCalledTimes(1)
+  captureRef.mockReset()
 })
