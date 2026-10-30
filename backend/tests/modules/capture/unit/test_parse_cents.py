@@ -1,5 +1,5 @@
 """A typed amount is read to the cent: "1,708.64" read as 1,708 and "158.82"
-as 159 (the tester's inconsistent rounding)."""
+as 159, one cut short and one rounded up."""
 
 import pytest
 

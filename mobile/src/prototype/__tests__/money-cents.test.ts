@@ -3,7 +3,7 @@ import { currencyInfo, currencyStore, money } from "@domain/lib/money"
 afterEach(() => currencyStore.set({ code: "PHP" }))
 
 test("a balance with centavos shows them, never cut or rounded", () => {
-  // Reported: 158.82 read as 158, and 1,708.64 as 1,709.
+  // 158.82 once read as 158, and 1,708.64 as 1,709.
   expect(money(158.82)).toBe("₱158.82")
   expect(money(1708.64)).toBe("₱1,708.64")
   expect(money(-1708.64)).toBe("₱-1,708.64")
