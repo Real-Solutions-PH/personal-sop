@@ -43,6 +43,7 @@ from app.modules.capture.parse import (
     habit_create_draft,
     meal_label,
 )
+from app.modules.iam.deps import release_connection
 from app.shared.context import Ctx
 from app.shared.currency import money
 from app.shared.money import MAX_MINOR
@@ -139,6 +140,14 @@ def run_loop(
 
     def call_model(state: LoopState) -> dict[str, Any]:
         h.model_started(state["turns"] + 1)
+        # A model call can think for minutes. Any read before it left the
+        # session's connection checked out, idle in transaction, for all of
+        # that time, so a few overlapping replies starved the pool for every
+        # other request. Hand it back now; the next query checks one out.
+        # Not inside a batch or a savepoint: committing there would end the
+        # caller's all-or-nothing unit (capture interprets in a savepoint).
+        if not ctx.in_batch and not ctx.session.in_nested_transaction():
+            release_connection(ctx.session)
         acc: BaseMessage | None = None
         usages: list[dict[str, Any]] = []
         try:
