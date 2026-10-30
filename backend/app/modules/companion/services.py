@@ -1159,7 +1159,11 @@ never add words they didn't say (no "sandwich" for "chicken") and never add
 the rest of the meal to the query. Name `log_meal` items in their words too. Each estimated item
 carries `grams` (edible weight), an `assumption` naming the portion, sugar
 and sodium; price it at its real size (a chicken breast quarter is about
-150 g, 40 g protein). On `fix_these_items_then_call_again`, fix and retry. Then call `log_meal` in the same turn: the
+150 g, 40 g protein). On `fix_these_items_then_call_again`, nothing was
+saved: call again with every item, the named ones fixed. A meal returned with `saved_without` was saved: say it
+lacks those estimates. On `<meal>_already_logged_today_change_it_with_edit_meal`,
+change that meal with `edit_meal` (its `meal_id`) instead of logging a
+second one. Then call `log_meal` in the same turn: the
 searched item scaled to what they ate, and common foods (rice, eggs, bread)
 as their own items from standard values (1 cup cooked white rice is about
 205 kcal, 4 g protein, 45 g carbs). If the results have nothing for that
@@ -1178,7 +1182,14 @@ any food. When they send a nutrition label (a photo, or the numbers typed
 from one) or give a food's nutrition themselves, call `save_food` with the
 values exactly as given and what they are per (100 g, piece or serving,
 with the serving's grams when shown), then log what they ate if they did.
-A label photo is saved for you; don't save it twice. Before estimating a
+A label photo is saved for you; don't save it twice. When a label or the
+web gives only some numbers (calories alone, say), estimate the rest
+(protein, carbs, fat, saturated fat, sugar, sodium) from the closest similar
+food so they add up to the calories, say they are estimates, and save and
+log it with them; never save or log a food with calories alone. When they
+say a logged meal is missing numbers or ask to fix one, change it with
+`edit_meal` in that reply, estimating what is missing the same way, rather
+than only explaining. Before estimating a
 packaged or regular food, `find_foods` to use their own values; `log_meal`
 also swaps in library values for matching foods by itself, and its
 `from_library` says which, so say those are from their library.
@@ -1410,6 +1421,17 @@ _GIVES_DATA = re.compile(
     r"sets?|kcal|cal|pesos?|php)(?!\w)|[₱$]\s*\d",
     re.I,
 )
+# A message asking about records already kept, even without a question mark
+# ("check my meals for today why there are no sat fat records"): a reply
+# describing what was logged before is not a claim to have written now.
+# Narrow on purpose: a list ("my tasks: check the deploy, …") or numbers
+# given ("62.4 kg, scale isn't right") stay a record to make.
+_ASKS_ABOUT = re.compile(
+    r"^\s*(?:why|how|what|which|when|where|did|does|can|could)\b|"
+    r"\b(?:why|check (?:my|if|whether|what|why)|look at my|not showing|"
+    r"there (?:are|is) no|don'?t see|(?:is|are) missing)\b",
+    re.I,
+)
 _CLAIMS_A_WRITE = re.compile(
     r"\b(added|logged|saved|recorded|created|scheduled|marked|set up|"
     r"updated|changed|rearranged|reordered|renamed|edited|moved|deleted|removed|archived|"
@@ -1466,6 +1488,8 @@ NOT_RECORDED = (
     "I didn't manage to record that, so nothing was saved. Try asking again "
     "in other words, or add it from its tab."
 )
+NEEDS_WEIGHT = "Tell me roughly how much it was and I'll log it."
+FIX_AND_RETRY = "Tell me the right numbers and I'll log it."
 WRITE_TOOLS = frozenset(
     {
         "create_tasks",
@@ -1500,10 +1524,70 @@ WRITE_TOOLS = frozenset(
         "save_food",
         "track",
         "remember_fact",
+        "forget_fact",
         "confirm_pending",
         "discard_pending",
+        # Seen live 2026-10-29: two edit_meal saves were followed by "nothing
+        # was saved", because a meal edit was not counted as a write.
+        "edit_meal",
+        "copy_meal",
+        "edit_weigh_in",
+        "edit_workout",
+        "start_workout",
+        "create_exercise",
+        "edit_exercise",
+        "edit_workout_template",
+        "set_macro_target",
+        "fitness_settings",
+        "edit_food",
+        "start_focus",
+        "focus_control",
+        "stop_focus",
     }
 )
+# Every other tool: it only reads or shows. A test holds each tool to exactly
+# one of the two, so a new write can't be left out of WRITE_TOOLS.
+READ_TOOLS = frozenset(
+    {
+        "lookup",
+        "query_records",
+        "stats_overview",
+        "show_chart",
+        "show_insights",
+        "coach",
+        "plan_day",
+        "show_memories",
+        "recall_memories",
+        "reread_photos",
+        "suggest",
+        "read_photos",
+        "web_search",
+        "nutrition_status",
+        "focus_status",
+        "find_transactions",
+        "list_scheduled",
+        "find_fitness_logs",
+        "find_foods",
+    }
+)
+
+
+def not_recorded(steps: list[Any]) -> str:
+    """The reply that replaces a claim no write backs: why the write was
+    refused, from the turn's own failed steps, when one says."""
+    why = [
+        str(s.summary).removeprefix("Not saved: ")
+        for s in steps
+        if s.name in WRITE_TOOLS
+        and not s.ok
+        and str(s.summary).startswith("Not saved: ")
+    ]
+    if not why:
+        return NOT_RECORDED
+    return (
+        f"I couldn't save that, so nothing was recorded: {why[-1]}. "
+        f"{NEEDS_WEIGHT if 'portion weight' in why[-1] else FIX_AND_RETRY}"
+    )
 
 
 def unbacked_claim(asked: str, answer: str, steps: list[Any]) -> bool:
@@ -1524,7 +1608,12 @@ def unbacked_claim(asked: str, answer: str, steps: list[Any]) -> bool:
     )
     if _POINTS_AT_CONFIRM.search(answer) and not waiting and not wrote:
         return True
-    statement = "?" not in asked
+    about = (
+        bool(_ASKS_ABOUT.search(asked))
+        and ":" not in asked
+        and not _GIVES_DATA.search(asked)
+    )
+    statement = "?" not in asked and not about
     asks = bool(_ASKS_TO_WRITE.search(asked)) or (
         statement
         and (bool(_GIVES_DATA.search(asked)) or bool(_NAMES_RECORDS.search(asked)))
@@ -1826,7 +1915,7 @@ def _ask_ai(
         )
         answer = plain_text(reply)
         if unbacked_claim(text, answer, stream.steps):
-            answer = NOT_RECORDED
+            answer = not_recorded(stream.steps)
     if _ABOUT_NUTRITION.search(text) and not any(
         b["t"] == "nutrition" for b in run.blocks
     ):

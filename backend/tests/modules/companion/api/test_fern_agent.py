@@ -189,6 +189,30 @@ def test_a_write_waiting_on_a_question_asks_it_instead_of_an_ok(
     assert "waiting for your OK" not in step["summary"]
 
 
+def test_an_expense_with_an_unknown_category_is_sent_back_to_pick_one(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Seen live 2026-10-29: "pre-workout" matched no category, so the
+    expense asked what it was for though the person had just said. The
+    model is handed their categories and saves it on the retry."""
+    from app.modules.finance.models import FinRecord
+
+    api = user(client, db)
+    api.assign("chat")
+    install(
+        monkeypatch,
+        say("", call("log_expense", amount=240, category="pre-workout")),
+        say("", call("log_expense", amount=240, category="Food", note="pre-workout")),
+        say("Logged ₱240 for your pre-workout."),
+    )
+    events = stream(api, client, "spent 240 at 7-Eleven for my pre-workout")
+    first, second = events[-1]["result"]["messages"][1]["blocks"][0]["items"]
+    assert not first["ok"]
+    assert first["summary"] == "Couldn't finish: unknown category"
+    assert second["ok"] and second["state"] != "needs_input"
+    assert len(live(rows_of(api, FinRecord))) == 1
+
+
 def test_tool_calls_past_the_reply_cap_are_refused(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -436,6 +460,29 @@ def test_a_question_with_numbers_is_not_a_request_to_record() -> None:
     assert services.unbacked_claim(
         "62.4 kg and 20% body fat today", "Logged your weigh-in.", []
     )
+
+
+def test_a_question_about_kept_records_without_a_question_mark_is_not_a_write() -> None:
+    """Seen live 2026-10-30: both of these were answered with "nothing was
+    saved", hiding a reply that described meals logged earlier."""
+    for asked in (
+        "check my meals for today in why there are no records for sat fat sugar",
+        "there are no sugar and sat fat for the two meals that i have this day",
+        "what meals did i have today",
+    ):
+        assert not services.unbacked_claim(
+            asked, "Both meals were logged with calories only.", []
+        ), asked
+    # A list or numbers given stay a record to make, whatever words they hold.
+    for asked in (
+        "log my lunch: 1 cup rice",
+        "my tasks for today: check the staging deploy, email Jack",
+        "₱1500 dentist check-up",
+        "62.4 kg this morning, scale isn't calibrated",
+        "Do laundry and pay rent, those are my to-dos",
+        "What a day: 5 km in 32 mins",
+    ):
+        assert services.unbacked_claim(asked, "Logged it.", []), asked
 
 
 TASK_LIST = (
@@ -744,6 +791,65 @@ def test_set_balance_on_an_account_with_records_logs_an_adjustment(
     undo(api, step)
     assert balances(api)["BPI Savings"] == -30000
     assert api.get("/finance/records")["count"] == 1
+
+
+def test_set_balance_with_a_change_adds_to_what_the_account_holds(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Seen live 2026-10-29: "add 100 on my bdo account" set it to 100
+    instead of adding to the 1 it held."""
+    api = user(client, db)
+    api.assign("chat")
+    api.post(
+        "/finance/records",
+        {"type": "income", "amount_minor": 100, "account_id": api.bpi},  # type: ignore[attr-defined]
+    )
+    step = setup_step(
+        api,
+        client,
+        "add 100 to my bpi savings",
+        monkeypatch,
+        call("set_account_balance", account="bpi savings", change=100),
+    )
+    assert step["ok"] and step["state"] == "saved"
+    assert step["summary"] == "Balance: bpi savings · ₱101"
+    assert balances(api)["BPI Savings"] == 10100
+
+
+def test_a_balance_change_repeated_in_one_reply_is_added_once(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = user(client, db)
+    api.assign("chat")
+    install(
+        monkeypatch,
+        say(
+            "",
+            call("set_account_balance", account="gcash", change=100),
+            call("set_account_balance", account="gcash", change=100),
+        ),
+        say("Added ₱100 to GCash."),
+    )
+    events = stream(api, client, "add 100 to my gcash")
+    first, second = events[-1]["result"]["messages"][1]["blocks"][0]["items"]
+    assert first["ok"] and not second["ok"]
+    assert balances(api)["GCash"] == 10000
+
+
+def test_set_balance_refuses_both_a_balance_and_a_change(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = user(client, db)
+    api.assign("chat")
+    step = setup_step(
+        api,
+        client,
+        "add 100 to my gcash",
+        monkeypatch,
+        call("set_account_balance", account="gcash", balance=100, change=100),
+    )
+    assert not step["ok"]
+    assert balances(api)["GCash"] == 0
 
 
 def test_set_balance_names_the_accounts_when_none_matches(

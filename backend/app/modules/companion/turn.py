@@ -38,6 +38,7 @@ from ag_ui.core import (
 from langchain_core.messages import BaseMessage
 
 from app.modules.capture import public as capture
+from app.modules.fitness import public as fitness
 from app.shared.context import Ctx
 from app.shared.currency import CODES, currency, money
 
@@ -139,6 +140,25 @@ def _when(t: dict[str, Any]) -> str:
     return f" · {' '.join(parts)}" if parts else ""
 
 
+ALREADY_LOGGED = "_already_logged_today_change_it_with_edit_meal"
+
+
+def refused(res: dict[str, Any]) -> str:
+    """Why a write was refused, in words the person can act on. Seen live:
+    "Couldn't finish: fix these items then call again" named neither the
+    food nor what was wrong with it."""
+    error = str(res["error"])
+    items = res.get("items")
+    if error == "fix_these_items_then_call_again" and isinstance(items, list):
+        return f"Not saved: {fitness.nutrient_check.plain_items(items)}"
+    if error.endswith(ALREADY_LOGGED):
+        label = error.removesuffix(ALREADY_LOGGED)
+        return f"{label.capitalize()} is already logged today, so it wasn't added again"
+    if error == "not_saved" and res.get("why"):
+        return f"Not saved: {res['why']}"
+    return f"Couldn't finish: {error.replace('_', ' ')}"
+
+
 def outcome(ctx: Ctx, name: str, args: dict[str, Any], result: Any) -> tuple[bool, str]:
     """``(ok, sentence)`` for a finished tool call, from its arguments and
     result. A write that waits for the person says so."""
@@ -146,7 +166,7 @@ def outcome(ctx: Ctx, name: str, args: dict[str, Any], result: Any) -> tuple[boo
     if res.get("error") == "several_match":
         return False, "More than one matches; asking which"
     if res.get("error"):
-        return False, f"Couldn't finish: {str(res['error']).replace('_', ' ')}"
+        return False, refused(res)
     # A card with a question can't be confirmed until it's answered.
     wait = {
         "proposed": " (waiting for your OK)",
@@ -226,11 +246,13 @@ def outcome(ctx: Ctx, name: str, args: dict[str, Any], result: Any) -> tuple[boo
         amt = f" · {money(round(bal * 100), ctx.currency)}" if bal else ""
         return True, f"Added account: {args.get('name', '')}{amt}{wait}"
     if name == "set_account_balance":
-        bal = float(args.get("balance") or 0)
+        # A change ("add 100") is reported as the balance it came to.
+        minor = res.get("balance_minor")
+        if not isinstance(minor, int):
+            minor = round(float(args.get("balance") or 0) * 100)
         return (
             True,
-            f"Balance: {args.get('account', '')} · "
-            f"{money(round(bal * 100), ctx.currency)}{wait}",
+            f"Balance: {args.get('account', '')} · {money(minor, ctx.currency)}{wait}",
         )
     if name == "create_budget":
         amount = args.get("monthly_limit")

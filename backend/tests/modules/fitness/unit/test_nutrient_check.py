@@ -4,8 +4,11 @@ Expected values are worked by hand from the Atwater factors (4 kcal per g
 of protein and carbs, 9 per g of fat, 7 per g of alcohol)."""
 
 from app.modules.fitness.nutrient_check import (
+    PLAIN,
     estimate_problems,
     involves,
+    missing_details,
+    plain,
     value_problems,
 )
 
@@ -96,13 +99,6 @@ def test_estimate_needs_grams() -> None:
     assert codes(estimate_problems(no_grams)) == ["grams_missing"]
 
 
-def test_estimate_needs_sugar_and_sodium() -> None:
-    bare = {k: v for k, v in RICE.items() if k not in ("sugar", "sodium")}
-    [p] = estimate_problems(bare)
-    assert p["problem"] == "estimate_sugar_and_sodium"
-    assert p["missing"] == ["sugar", "sodium"]
-
-
 def test_energy_density_ceiling() -> None:
     # Pure fat is 900 kcal per 100 g; 200 kcal in 10 g is 2,000 per 100 g.
     oil = {
@@ -140,3 +136,25 @@ def test_each_problem_names_the_values_it_is_about() -> None:
         {"name": "x", "kcal": 400, "protein": 20, "carbs": 0, "fat": 19}
     )
     assert involves(p) == {"kcal", "protein", "carbs", "fat"}
+
+
+def test_missing_sugar_and_sodium_do_not_refuse_an_estimate() -> None:
+    # They count toward the daily limits, so they are flagged, but a meal
+    # without them is still worth saving: refusing it lost the whole lunch.
+    bare = {k: v for k, v in RICE.items() if k not in ("sugar", "sodium")}
+    assert estimate_problems(bare) == []
+    assert missing_details(bare) == ["sugar", "sodium"]
+    assert missing_details(RICE) == []
+
+
+def test_every_problem_reads_in_plain_words() -> None:
+    items = [
+        {k: v for k, v in RICE.items() if k != "grams"},
+        RICE | {"sugar": 60, "fiber": 60, "sat_fat": 5, "kcal": 900},
+        RICE | {"grams": 10, "kcal": 205},
+    ]
+    found = {p["problem"]: p for it in items for p in estimate_problems(it)}
+    assert set(found) == set(PLAIN)
+    for p in found.values():
+        words = plain(p)
+        assert words and "_" not in words, words

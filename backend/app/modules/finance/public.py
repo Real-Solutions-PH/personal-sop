@@ -560,6 +560,12 @@ def account_has_records(ctx: Ctx, *, account_id: uuid.UUID) -> bool:
     )
 
 
+def account_balance(ctx: Ctx, *, account_id: uuid.UUID) -> int:
+    """What an account holds today, in minor units, as its screen shows it."""
+    acc = services._account(ctx, account_id)
+    return calc.balance_of(repo.load_state(ctx), repo.acct_of(acc))
+
+
 def set_balance(
     ctx: Ctx,
     *,

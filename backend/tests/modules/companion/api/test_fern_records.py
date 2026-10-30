@@ -105,10 +105,8 @@ def test_log_meal_sends_an_unchecked_estimate_back(
     assert out["error"] == "fix_these_items_then_call_again"
     [item] = out["items"]
     assert item["item"] == "Chicken inasal pecho"
-    assert {p["problem"] for p in item["problems"]} == {
-        "grams_missing",
-        "estimate_sugar_and_sodium",
-    }
+    # Missing sugar alone is flagged on the saved meal, never refused.
+    assert {p["problem"] for p in item["problems"]} == {"grams_missing"}
     assert not [c for c in rows_of(api, RecordCard) if c.kind == "meal"]
 
 

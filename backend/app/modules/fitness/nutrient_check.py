@@ -7,8 +7,10 @@ it. These checks run on what the assistant sends; each problem names what
 is wrong and the numbers involved, so the next call can fix it.
 
 ``value_problems`` holds for any values (an edit, a label read). Estimates
-also owe their weight in grams and their sugar and sodium, which the daily
-limits are counted from.
+also owe their weight in grams. Sugar and sodium, which the daily limits are
+counted from, are asked for but never refused over (``missing_details``):
+seen live 2026-10-29, refusing a lunch for them lost the whole meal and its
+retries added the same food twice.
 """
 
 from collections.abc import Mapping
@@ -108,14 +110,39 @@ def estimate_problems(item: Mapping[str, Any]) -> list[Problem]:
                     "grams": grams,
                 }
             )
-    missing = [k for k in ("sugar", "sodium") if item.get(k) is None]
-    if missing:
-        out.append(
-            {
-                "problem": "estimate_sugar_and_sodium",
-                "missing": missing,
-                "fix": "estimate them too (0 when there is none); the daily "
-                "limits are counted from them",
-            }
-        )
     return out
+
+
+# Details an estimate should carry; a meal without them is saved and says so.
+DETAILS = ("sugar", "sodium")
+
+
+def missing_details(item: Mapping[str, Any]) -> list[str]:
+    return [k for k in DETAILS if item.get(k) is None]
+
+
+# Each problem as the person reads it, after the item's name.
+PLAIN = {
+    "grams_missing": "has no portion weight in grams",
+    "sugar_more_than_carbs": "has more sugar than carbs",
+    "fiber_more_than_carbs": "has more fiber than carbs",
+    "sat_fat_more_than_fat": "has more saturated fat than fat",
+    "kcal_does_not_match_macros": "has calories that don't add up from its "
+    "protein, carbs and fat",
+    "more_than_900_kcal_per_100g": "has more calories than its weight can hold",
+    "macros_heavier_than_the_food": "has macros weighing more than the food",
+}
+
+
+def plain(problem: Problem) -> str:
+    """A problem in plain words; an unknown one as itself, never dropped."""
+    code = str(problem["problem"])
+    return PLAIN.get(code, "has " + code.replace("_", " "))
+
+
+def plain_items(items: list[dict[str, Any]]) -> str:
+    """``[{"item", "problems"}]`` as one sentence: "Rice has …; Egg has …"."""
+    return "; ".join(
+        f"{it.get('item')} " + " and ".join(plain(p) for p in it.get("problems", []))
+        for it in items
+    )
