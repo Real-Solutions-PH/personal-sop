@@ -97,6 +97,41 @@ class LiveTransitionsTest {
     assertNull(LiveTransitions.apply(s, "finish", now))
   }
 
+  @Test fun finishingASetBringsTheNextSetsBestAndTheEndClearsIt() {
+    val w = workout()
+    w.put("best", "Best 62.5 kg × 8")
+    w.getJSONArray("next").getJSONObject(0).put("best", "Best 65 kg × 6")
+    val s = LiveTransitions.apply(w, "finishSet", now)!!
+    assertEquals("Best 65 kg × 6", s.getString("best"))
+    val end = LiveTransitions.apply(s, "finishSet", now)!!
+    assertEquals("All sets done", end.getString("step"))
+    assertFalse(end.has("best"))
+  }
+
+  @Test fun aNextRowWithoutBestClearsTheOldOne() {
+    val w = workout()
+    w.put("best", "Best 62.5 kg × 8")
+    assertFalse(LiveTransitions.apply(w, "finishSet", now)!!.has("best"))
+  }
+
+  @Test fun theNotificationShowsBestAndNextUp() {
+    val w = workout()
+    w.put("best", "Best 62.5 kg × 8")
+    assertEquals("Best 62.5 kg × 8 · Next: Bench press", LiveNotification.upNext(w))
+    w.remove("best")
+    assertEquals("Next: Bench press", LiveNotification.upNext(w))
+    w.put("next", JSONArray())
+    assertNull(LiveNotification.upNext(w))
+  }
+
+  @Test fun aRoutineKeepsFinishRoutineAndDropsSkip() {
+    val r = routine()
+    r.put("controls", JSONArray(listOf("done", "skip", "pause", "finish")))
+    assertEquals(listOf("done", "pause", "finish"), LiveNotification.buttons(r))
+    assertEquals("Finish routine", LiveNotification.label("finish", "routine"))
+    assertEquals("Finish", LiveNotification.label("finish", "workout"))
+  }
+
   @Test fun theInputIsNotChanged() {
     val r = routine()
     val before = r.toString()

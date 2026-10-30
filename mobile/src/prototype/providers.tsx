@@ -16,6 +16,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
 import { liveMode } from "@/live/config"
 import { reachable } from "./connectivity"
+import { connectHealthWorkouts } from "./health-workouts"
 import { sessionStore, startLiveSession } from "./session"
 import { prototypeStorage } from "./storage"
 import { AppToaster } from "./toaster"
@@ -75,6 +76,7 @@ export function PrototypeProviders({ children }: { children: ReactNode }) {
       ),
     [],
   )
+  useEffect(() => connectHealthWorkouts(), [])
   useEffect(() => {
     // Live mode: "online" means the app's own server answers, not that some
     // public site does. NetInfo's default probe (a Google URL) can fail on a

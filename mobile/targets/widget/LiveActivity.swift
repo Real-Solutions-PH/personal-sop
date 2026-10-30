@@ -16,6 +16,12 @@ extension LiveState {
     default: return "list.bullet.circle"
     }
   }
+  /** "Best 85 kg × 6 · Next: Incline Press": best first, so a cut-off
+   * drops the next-up part; nil when there is neither. */
+  var upNext: String? {
+    let parts = [best, next.first.map { "Next: \($0.label)" }].compactMap { $0 }
+    return parts.isEmpty ? nil : parts.joined(separator: " · ")
+  }
 }
 
 /** The clock that matters now: rest, then the step or timer goal counting
@@ -107,7 +113,8 @@ struct LiveButton: View {
     case "subRest": return ("−15s", "gobackward.15", false, "Rest 15 seconds less")
     case "addRest": return ("+15s", "goforward.15", false, "Rest 15 seconds more")
     case "finish":
-      return ("Finish", "flag.checkered", false, kind == "workout" ? "Finish workout" : "Finish timer")
+      let name = kind == "workout" ? "Finish workout" : kind == "routine" ? "Finish routine" : "Finish timer"
+      return ("Finish", "flag.checkered", false, name)
     default: return (action, "circle", false, action)
     }
   }
@@ -116,7 +123,7 @@ struct LiveButton: View {
 struct LiveLockScreen: View {
   var state: LiveState
   var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
+    VStack(alignment: .leading, spacing: 5) {
       HStack(spacing: 6) {
         Image(systemName: state.symbol).foregroundStyle(state.accent)
         Text("\(state.icon) \(state.title)").font(.system(size: 13, weight: .medium))
@@ -141,6 +148,10 @@ struct LiveLockScreen: View {
             .font(.system(size: 9, weight: .semibold)).tracking(0.8).foregroundStyle(Tone.muted)
         }
       }
+      if let upNext = state.upNext {
+        Text(upNext).font(.system(size: 12)).foregroundStyle(Tone.muted)
+          .lineLimit(1).truncationMode(.tail)
+      }
       LiveProgress(state: state)
       if #available(iOS 17.0, *) {
         HStack(spacing: 8) {
@@ -149,7 +160,7 @@ struct LiveLockScreen: View {
       }
     }
     .padding(.horizontal, 16)
-    .padding(.vertical, 12)
+    .padding(.vertical, 8)
   }
 }
 
@@ -178,6 +189,9 @@ struct UnfurlLiveActivity: Widget {
             VStack(alignment: .leading, spacing: 1) {
               Text(s.step).font(.system(size: 16, weight: .semibold)).lineLimit(1)
               Text(s.detail).font(.system(size: 12)).foregroundStyle(.secondary).lineLimit(1)
+              if let best = s.best {
+                Text(best).font(.system(size: 12)).foregroundStyle(.secondary).lineLimit(1)
+              }
             }
             LiveProgress(state: s)
             if #available(iOS 17.0, *) {

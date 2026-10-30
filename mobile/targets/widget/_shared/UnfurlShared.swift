@@ -98,6 +98,8 @@ struct LiveNext: Codable, Hashable {
   var label: String
   var detail: String
   var sec: Double?
+  /** Workout only: the exercise's previous best ("Best 85 kg × 6"). */
+  var best: String?
 }
 
 /** The running routine, workout or habit timer (LiveState in TS). Times are
@@ -109,6 +111,8 @@ struct LiveState: Codable, Hashable {
   var icon: String
   var step: String
   var detail: String
+  /** Workout only: the current exercise's previous best. */
+  var best: String?
   var key: String
   var index: Int
   var count: Int
@@ -143,6 +147,7 @@ struct LiveState: Codable, Hashable {
       let n = s.next.removeFirst()
       s.step = n.label
       s.detail = n.detail
+      s.best = n.best
       s.key = n.key
       s.index += 1
       s.paused = false
@@ -168,11 +173,13 @@ struct LiveState: Codable, Hashable {
       if s.next.isEmpty {
         s.step = "All sets done"
         s.detail = "Finish when you're ready"
+        s.best = nil
         s.key = ""
       } else {
         let n = s.next.removeFirst()
         s.step = n.label
         s.detail = n.detail
+        s.best = n.best
         s.key = n.key
       }
       if s.restSec > 0 { s.restEndsAt = now + s.restSec * 1000 }
