@@ -1,6 +1,12 @@
 import * as A from "@domain/finance/actions"
 import * as C from "@domain/finance/calc"
-import { type AheadPreset, dailyForecast } from "@domain/finance/forecast"
+import {
+  aheadRangeError,
+  type DateRange,
+  dayMonth,
+  forecast,
+  isDayKey,
+} from "@domain/finance/forecast"
 import { finStore } from "@domain/finance/store"
 import { dayKey } from "@domain/lib/day"
 import { currencySymbol } from "@domain/lib/money"
@@ -22,31 +28,12 @@ import {
   Segmented,
   Tap,
 } from "../native-kit"
-import { AheadPicker, useAhead } from "../range-picker"
 import { Switch } from "../switch"
 import { radius, useTheme } from "../theme"
-import { Button, Empty, Field, Screen } from "../ui"
+import { Button, DateField, Empty, Field, Screen } from "../ui"
 import { useMoney } from "./finance"
+import { OutlookRow } from "./finance-outlook"
 
-const HORIZON: Record<6 | 12 | 24, AheadPreset> = {
-  6: "6m",
-  12: "1y",
-  24: "2y",
-}
-const MONTHS: Partial<Record<AheadPreset, 6 | 12 | 24>> = {
-  "6m": 6,
-  "1y": 12,
-  "2y": 24,
-}
-/** Whole calendar months from month ``mk`` to the month of day ``k``. */
-const monthsTo = (mk: string, k: string) =>
-  (Number(k.slice(0, 4)) - Number(mk.slice(0, 4))) * 12 +
-  (Number(k.slice(5, 7)) - Number(mk.slice(5, 7)))
-/** At most 120 days, evenly spaced, keeping the last. */
-const thinDays = <T,>(xs: T[]) => {
-  const step = Math.ceil(xs.length / 120)
-  return xs.filter((_, i) => i % step === 0 || i === xs.length - 1)
-}
 const INSTALLMENT_TERMS = [3, 6, 12, 24]
 const MAX_TERM = 60
 export const clampTerm = (months: number) =>
@@ -90,6 +77,28 @@ export function FinChip({
     </Tap>
   )
 }
+/** The range a deep link asked for, when it is one a forecast can show. */
+export function rangeFromParams(p: { from?: string; to?: string }) {
+  if (!isDayKey(p.from) || !isDayKey(p.to)) return null
+  const r = { from: p.from, to: p.to }
+  return aheadRangeError(r) ? null : r
+}
+/** Quick picks for a forecast's end date; the start stays. */
+function quickEnds(s: { settings: { monthStartDay: number } }) {
+  const t = C.today()
+  const sd = s.settings.monthStartDay
+  return [
+    { label: "End of month", to: C.monthRange(C.monthOf(t, sd), sd)[1] },
+    { label: "Next 30 days", to: C.addDays(t, 30) },
+    { label: "Next 90 days", to: C.addDays(t, 90) },
+    { label: "End of year", to: `${t.slice(0, 4)}-12-31` },
+  ]
+}
+/** At most 120 evenly spaced points, keeping the last. */
+const thin = <T,>(xs: T[]) => {
+  const step = Math.ceil(xs.length / 120)
+  return xs.filter((_, i) => i % step === 0 || i === xs.length - 1)
+}
 export function Projection() {
   const s = finStore.use((s) => s),
     t = useTheme(),
@@ -111,13 +120,10 @@ export function Projection() {
     [assump, setAssump] = useState(false),
     // The minimum balance as typed ("2500." mid-entry), saved as it parses.
     [floorDraft, setFloorDraft] = useState<string>(),
-    ahead = useAhead(s, HORIZON[s.settings.horizon] ?? "1y"),
-    // A picked day: the months reach it, and the headline reads the
-    // day-by-day forecast on that day.
-    pickedDay = "to" in ahead.sel ? ahead.sel.to : null,
-    horizon = pickedDay
-      ? Math.min(60, Math.max(1, monthsTo(cur, pickedDay) + 1))
-      : s.settings.horizon,
+    // A picked From–To range: screen state and link params only, never a
+    // setting, so the saved horizon is untouched.
+    [range, setRange] = useState<DateRange | null>(() => rangeFromParams(p)),
+    horizon = s.settings.horizon,
     whatIf =
       whatOpen && Number(amount) > 0
         ? {
@@ -133,16 +139,25 @@ export function Projection() {
       excludedAccounts: excluded,
       whatIf,
     }),
-    daily = pickedDay
-      ? dailyForecast(s, pickedDay, { excludedAccounts: excluded, whatIf })
-      : null,
     bal = C.balances(s),
     floor = s.settings.safetyFloor,
     last = proj.months.at(-1),
     verdict =
       proj.low.value < 0 ? "no" : proj.low.value < floor ? "tight" : "ok",
     color = verdict === "ok" ? t.good : verdict === "tight" ? t.warn : t.bad,
-    drafts = s.planned.filter((p) => p.isWhatIf && !p.archived)
+    drafts = s.planned.filter((p) => p.isWhatIf && !p.archived),
+    f = range
+      ? forecast(s, range.from, range.to, {
+          includeUnplanned: s.settings.includeUnplanned,
+          excludedPlanned: s.settings.projExcludedPlanned,
+          excludedAccounts: excluded,
+        })
+      : null
+  const pick = (next: DateRange) => {
+    const bad = aheadRangeError(next)
+    if (bad) toast.error(bad)
+    else setRange(next)
+  }
   let expense = 0
   for (let i = 1; i <= 3; i++) {
     const [from, to] = C.monthRange(C.addMonths(cur, -i), 1)
@@ -242,83 +257,207 @@ export function Projection() {
     )
   return (
     <Screen title="Projection">
-      <AheadPicker
-        value={ahead.sel}
-        to={ahead.to}
-        presets={["6m", "1y", "2y"]}
+      <Segmented
+        value={range ? "custom" : String(horizon)}
         onChange={(v) => {
-          ahead.setSel(v)
-          const months = "preset" in v ? MONTHS[v.preset] : undefined
-          if (months) A.updateSettings({ horizon: months })
+          if (v === "custom") {
+            if (!range)
+              setRange({
+                from: C.today(),
+                to: C.monthRange(
+                  C.monthOf(C.today(), s.settings.monthStartDay),
+                  s.settings.monthStartDay,
+                )[1],
+              })
+            setWhat(false)
+            return
+          }
+          setRange(null)
+          A.updateSettings({ horizon: Number(v) as 6 | 12 | 24 })
         }}
+        options={[
+          ...[6, 12, 24].map((v) => ({ value: String(v), label: `${v} mo` })),
+          { value: "custom", label: "Custom" },
+        ]}
       />
-      <Frame
-        style={{ paddingHorizontal: 12, paddingTop: 16, paddingBottom: 8 }}
-      >
-        <Line
-          style={{
-            alignItems: "flex-start",
-            paddingHorizontal: 4,
-            justifyContent: "space-between",
-          }}
-        >
-          <View style={{ flex: 1 }}>
-            <Copy size={12} muted>
-              Available money{" "}
-              {pickedDay
-                ? `on ${C.dayLabel(pickedDay)}`
-                : `by ${last ? C.monthLabel(last.key, true) : ""}`}
-            </Copy>
-            <Copy size={30} weight="displayMedium">
-              {money(daily ? daily.end : (last?.end ?? proj.start))}
-            </Copy>
-            {whatIf && last && (
+      {range && f && (
+        <>
+          <Frame style={{ padding: 16, gap: 8 }}>
+            {chiprow(
+              quickEnds(s).map((q) => (
+                <FinChip
+                  key={q.label}
+                  label={q.label}
+                  active={range.to === q.to}
+                  onPress={() => pick({ ...range, to: q.to })}
+                />
+              )),
+            )}
+            <Line>
+              <View style={{ flex: 1 }}>
+                <DateField
+                  label="From"
+                  value={range.from}
+                  onChangeText={(from) =>
+                    isDayKey(from) && pick({ ...range, from })
+                  }
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <DateField
+                  label="To"
+                  value={range.to}
+                  onChangeText={(to) => isDayKey(to) && pick({ ...range, to })}
+                />
+              </View>
+            </Line>
+          </Frame>
+          <Frame
+            style={{ paddingHorizontal: 12, paddingTop: 16, paddingBottom: 8 }}
+          >
+            <View style={{ paddingHorizontal: 4, gap: 2 }}>
               <Copy size={12} muted>
-                vs {money(last.endBase)} without it
+                Available money on {dayMonth(range.to, true)}
               </Copy>
-            )}
-          </View>
-          <View style={{ alignItems: "flex-end" }}>
-            <Copy size={12} muted>
-              Avg left over
-            </Copy>
+              <Copy size={30} weight="displayMedium">
+                {money(f.atTo)}
+              </Copy>
+              {range.from !== C.today() && (
+                <Copy size={12} muted>
+                  {money(f.atFrom)} on {dayMonth(range.from)}
+                </Copy>
+              )}
+            </View>
+            <Line style={{ gap: 8, paddingHorizontal: 4, marginTop: 12 }}>
+              {[
+                { label: "Expected income", value: `+${money(f.income)}` },
+                { label: "Bills", value: `−${money(f.bills)}` },
+                { label: "Everyday", value: `−${money(f.everyday)}` },
+                {
+                  label: "Net",
+                  value: `${f.net >= 0 ? "+" : "−"}${money(Math.abs(f.net))}`,
+                  color: f.net >= 0 ? t.good : t.bad,
+                },
+              ].map((m) => (
+                <View key={m.label} style={{ flex: 1 }}>
+                  <Copy
+                    size={14}
+                    weight="semibold"
+                    lines={1}
+                    style={{ color: m.color ?? t.text }}
+                  >
+                    {m.value}
+                  </Copy>
+                  <Copy size={12} muted lines={2}>
+                    {m.label}
+                  </Copy>
+                </View>
+              ))}
+            </Line>
             <Copy
               size={12}
-              weight="semibold"
-              style={{ color: proj.avgSurplus >= 0 ? t.good : t.bad }}
+              weight="medium"
+              style={{
+                paddingHorizontal: 4,
+                marginTop: 8,
+                color:
+                  f.low.value < 0
+                    ? t.bad
+                    : f.low.value < floor
+                      ? t.warn
+                      : t.muted,
+              }}
             >
-              {proj.avgSurplus >= 0 ? "+" : ""}
-              {compact(proj.avgSurplus)}/mo
+              Lowest point {money(f.low.value)} · {C.shortDate(f.low.day)}
             </Copy>
-            <Copy size={12} muted style={{ marginTop: 4 }}>
-              Lowest point
-            </Copy>
-            <Copy
-              size={12}
-              weight="semibold"
-              style={{ color: proj.low.value < floor ? t.warn : t.text }}
-            >
-              {money(proj.low.value)} · {C.monthLabel(proj.low.key)}
-            </Copy>
-          </View>
-        </Line>
-        {daily ? (
-          <FinanceLineChart
-            height={190}
-            floor={floor}
-            zero={daily.low.value < 0}
-            labels={thinDays(daily.days).map((d, i, xs) =>
-              i === 0 ? "Now" : i === xs.length - 1 ? C.shortDate(d.day) : "",
-            )}
-            series={[
-              {
-                values: thinDays(daily.days).map((d) => d.balance),
-                color: verdict === "ok" || !whatIf ? t.fin : color,
-                area: true,
-              },
-            ]}
-          />
-        ) : (
+            {(() => {
+              const shown = thin(f.days.filter((x) => x.day >= range.from))
+              const every = Math.max(1, Math.round(shown.length / 5))
+              return shown.length > 1 ? (
+                <FinanceLineChart
+                  height={190}
+                  floor={floor}
+                  zero={f.low.value < 0}
+                  labels={shown.map((x, i) =>
+                    i % every === 0 || i === shown.length - 1
+                      ? C.shortDate(x.day)
+                      : "",
+                  )}
+                  series={[
+                    {
+                      values: shown.map((x) => x.balance),
+                      color: t.fin,
+                      area: true,
+                    },
+                  ]}
+                />
+              ) : (
+                <View style={{ opacity: 0.32 }}>
+                  <FinanceLineChart
+                    height={190}
+                    labels={["", ""]}
+                    series={[
+                      {
+                        values: [f.atTo, f.atTo],
+                        color: t.fin,
+                        area: true,
+                      },
+                    ]}
+                  />
+                </View>
+              )
+            })()}
+          </Frame>
+        </>
+      )}
+      {!range && (
+        <Frame
+          style={{ paddingHorizontal: 12, paddingTop: 16, paddingBottom: 8 }}
+        >
+          <Line
+            style={{
+              alignItems: "flex-start",
+              paddingHorizontal: 4,
+              justifyContent: "space-between",
+            }}
+          >
+            <View style={{ flex: 1 }}>
+              <Copy size={12} muted>
+                Available money by {last ? C.monthLabel(last.key, true) : ""}
+              </Copy>
+              <Copy size={30} weight="displayMedium">
+                {money(last?.end ?? proj.start)}
+              </Copy>
+              {whatIf && last && (
+                <Copy size={12} muted>
+                  vs {money(last.endBase)} without it
+                </Copy>
+              )}
+            </View>
+            <View style={{ alignItems: "flex-end" }}>
+              <Copy size={12} muted>
+                Avg left over
+              </Copy>
+              <Copy
+                size={12}
+                weight="semibold"
+                style={{ color: proj.avgSurplus >= 0 ? t.good : t.bad }}
+              >
+                {proj.avgSurplus >= 0 ? "+" : ""}
+                {compact(proj.avgSurplus)}/mo
+              </Copy>
+              <Copy size={12} muted style={{ marginTop: 4 }}>
+                Lowest point
+              </Copy>
+              <Copy
+                size={12}
+                weight="semibold"
+                style={{ color: proj.low.value < floor ? t.warn : t.text }}
+              >
+                {money(proj.low.value)} · {C.monthLabel(proj.low.key)}
+              </Copy>
+            </View>
+          </Line>
           <FinanceLineChart
             height={190}
             floor={floor}
@@ -340,50 +479,19 @@ export function Projection() {
                 : []),
             ]}
           />
-        )}
-        <Line style={{ gap: 16, paddingHorizontal: 4 }}>
-          <Copy size={11} muted>
-            ━ Baseline
-          </Copy>
-          {whatIf && (
+          <Line style={{ gap: 16, paddingHorizontal: 4 }}>
             <Copy size={11} muted>
-              ━ With {name || "purchase"}
+              ━ Baseline
             </Copy>
-          )}
-          <Copy size={11} muted>
-            ┄ Minimum balance
-          </Copy>
-        </Line>
-      </Frame>
-      {daily && pickedDay && (
-        <Frame style={{ padding: 16, gap: 12 }}>
-          <Copy size={14} weight="medium">
-            Between now and {C.dayLabel(pickedDay)}
-          </Copy>
-          <Line style={{ gap: 8, alignItems: "flex-start" }}>
-            {[
-              { label: "Coming in", value: `+${money(daily.comingIn)}` },
-              {
-                label: "Scheduled out",
-                value: `−${money(daily.scheduledOut)}`,
-              },
-              { label: "Everyday", value: `−${money(daily.everydayOut)}` },
-            ].map((m) => (
-              <View key={m.label} style={{ flex: 1 }}>
-                <Copy size={16} weight="semibold" lines={1}>
-                  {m.value}
-                </Copy>
-                <Copy size={12} muted>
-                  {m.label}
-                </Copy>
-              </View>
-            ))}
+            {whatIf && (
+              <Copy size={11} muted>
+                ━ With {name || "purchase"}
+              </Copy>
+            )}
+            <Copy size={11} muted>
+              ┄ Minimum balance
+            </Copy>
           </Line>
-          <Copy size={12} muted>
-            Lowest {money(daily.low.value)} on {C.dayLabel(daily.low.day)}.
-            Overdue bills count as due today; everyday spending is your 3-month
-            average, spread by day.
-          </Copy>
         </Frame>
       )}
       <Frame style={{ paddingHorizontal: 16, paddingVertical: 4 }}>
@@ -395,10 +503,16 @@ export function Projection() {
         )}
       </Frame>
       {!whatOpen ? (
-        <Button icon={Sparkles} onPress={() => setWhat(true)}>
+        <Button
+          icon={Sparkles}
+          onPress={() => {
+            setRange(null)
+            setWhat(true)
+          }}
+        >
           What if I buy…
         </Button>
-      ) : (
+      ) : range ? null : (
         <Frame style={{ padding: 16, borderColor: `${t.fin}66`, gap: 12 }}>
           <Line style={{ justifyContent: "space-between" }}>
             <Line style={{ gap: 8 }}>
@@ -659,79 +773,123 @@ export function Projection() {
           </Copy>
         </Frame>
       </Line>
-      <View style={{ marginTop: -12 }}>
-        <SectionHeading>Left over each month</SectionHeading>
-        <Frame>
-          <Line
-            style={{
-              gap: 0,
-              paddingVertical: 8,
-              borderBottomWidth: 1,
-              borderColor: border(t.line, 0.6),
-            }}
-          >
-            {["Month", "In", "Out", "Net", "Balance"].map((x, i) => (
-              <Copy
-                key={x}
-                size={12}
-                muted
-                weight="medium"
-                style={{
-                  flex: 1,
-                  paddingHorizontal: 8,
-                  textAlign: i ? "right" : "left",
-                }}
-              >
-                {x}
-              </Copy>
+      {range && f ? (
+        <View style={{ marginTop: -12 }}>
+          <SectionHeading>Scheduled in this range</SectionHeading>
+          <Frame style={{ paddingHorizontal: 16, paddingVertical: 4 }}>
+            {f.items.map((x) => (
+              <OutlookRow key={`${x.item.id}-${x.orig}`} x={x} />
             ))}
-          </Line>
-          {proj.months.map((m, i) => (
+            {!f.items.length && (
+              <View style={{ paddingVertical: 12 }}>
+                <View style={{ opacity: 0.32 }}>
+                  <Line>
+                    <View
+                      style={{
+                        height: 40,
+                        width: 40,
+                        borderRadius: 20,
+                        backgroundColor: t.soft,
+                      }}
+                    />
+                    <Copy style={{ flex: 1 }}>Rent</Copy>
+                    <Copy>−{money(0)}</Copy>
+                  </Line>
+                </View>
+                <Copy size={12} muted style={{ marginTop: 8 }}>
+                  Nothing scheduled in this range
+                </Copy>
+              </View>
+            )}
+            <Copy
+              size={12}
+              weight="medium"
+              style={{
+                paddingVertical: 12,
+                borderTopWidth: 1,
+                borderColor: border(t.line, 0.6),
+              }}
+            >
+              Expected expenses {dayMonth(range.from)}–{dayMonth(range.to)}:{" "}
+              {money(f.bills + f.everyday)}
+            </Copy>
+          </Frame>
+        </View>
+      ) : (
+        <View style={{ marginTop: -12 }}>
+          <SectionHeading>Left over each month</SectionHeading>
+          <Frame>
             <Line
-              key={m.key}
               style={{
                 gap: 0,
                 paddingVertical: 8,
                 borderBottomWidth: 1,
-                borderColor: border(t.line, 0.4),
-                backgroundColor: m.whatIf > 0 ? `${t.fin}0d` : undefined,
+                borderColor: border(t.line, 0.6),
               }}
             >
-              {[
-                `${C.monthLabel(m.key)}${i === 0 ? " (rest)" : ""}${m.whatIf > 0 ? " •" : ""}`,
-                compact(m.inflow),
-                compact(m.planned + m.unplanned + m.whatIf),
-                `${m.net >= 0 ? "+" : ""}${compact(m.net)}`,
-                compact(m.end),
-              ].map((v, j) => (
+              {["Month", "In", "Out", "Net", "Balance"].map((x, i) => (
                 <Copy
-                  key={`cell-${j}`}
+                  key={x}
                   size={12}
+                  muted
+                  weight="medium"
                   style={{
                     flex: 1,
                     paddingHorizontal: 8,
-                    textAlign: j ? "right" : "left",
-                    color:
-                      j === 1
-                        ? t.good
-                        : j === 3
-                          ? m.net < 0
-                            ? t.bad
-                            : t.good
-                          : j === 4 && m.end < floor
-                            ? m.end < 0
-                              ? t.bad
-                              : t.warn
-                            : t.text,
+                    textAlign: i ? "right" : "left",
                   }}
                 >
-                  {v}
+                  {x}
                 </Copy>
               ))}
             </Line>
-          ))}
-        </Frame>
-      </View>
+            {proj.months.map((m, i) => (
+              <Line
+                key={m.key}
+                style={{
+                  gap: 0,
+                  paddingVertical: 8,
+                  borderBottomWidth: 1,
+                  borderColor: border(t.line, 0.4),
+                  backgroundColor: m.whatIf > 0 ? `${t.fin}0d` : undefined,
+                }}
+              >
+                {[
+                  `${C.monthLabel(m.key)}${i === 0 ? " (rest)" : ""}${m.whatIf > 0 ? " •" : ""}`,
+                  compact(m.inflow),
+                  compact(m.planned + m.unplanned + m.whatIf),
+                  `${m.net >= 0 ? "+" : ""}${compact(m.net)}`,
+                  compact(m.end),
+                ].map((v, j) => (
+                  <Copy
+                    key={`cell-${j}`}
+                    size={12}
+                    style={{
+                      flex: 1,
+                      paddingHorizontal: 8,
+                      textAlign: j ? "right" : "left",
+                      color:
+                        j === 1
+                          ? t.good
+                          : j === 3
+                            ? m.net < 0
+                              ? t.bad
+                              : t.good
+                            : j === 4 && m.end < floor
+                              ? m.end < 0
+                                ? t.bad
+                                : t.warn
+                              : t.text,
+                    }}
+                  >
+                    {v}
+                  </Copy>
+                ))}
+              </Line>
+            ))}
+          </Frame>
+        </View>
+      )}
       <Tap onPress={() => setAssump(!assump)}>
         <Line style={{ justifyContent: "space-between", padding: 4 }}>
           <Copy size={12} weight="medium" muted style={{ letterSpacing: 1 }}>
