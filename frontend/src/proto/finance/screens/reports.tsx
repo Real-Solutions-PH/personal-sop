@@ -1,6 +1,6 @@
 "use client"
 import {
-  type Period,
+  type Period as AnyPeriod,
   reportData,
 } from "../../../../../shared/prototype/finance/reports"
 
@@ -34,6 +34,8 @@ import {
 import { useFin } from "../store"
 import { Donut, LineChart, PALETTE, PairBars, Pill, useDemoState } from "../ui"
 
+// The web reports offer the fixed periods only; custom ranges are mobile's.
+type Period = Exclude<AnyPeriod, object>
 function usePeriod(): [Period, (p: Period) => void] {
   const sp = useSearchParams()
   const router = useRouter()

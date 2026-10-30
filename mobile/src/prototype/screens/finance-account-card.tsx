@@ -44,6 +44,28 @@ export function shade(hex: string, amount: number) {
   return `#${ch(n >> 16)}${ch((n >> 8) & 255)}${ch(n & 255)}`
 }
 
+const luminance = (hex: string) => {
+  const n = Number.parseInt(hex.slice(1), 16)
+  const lin = (v: number) => {
+    const c = v / 255
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+  }
+  return (
+    0.2126 * lin(n >> 16) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255)
+  )
+}
+/** The least darkening (0–0.6, in steps of 0.02) at which white text reads
+ * at 4.5:1 on ``shade(hex, amount)``: dark colours (red, rose, violet) stay
+ * vivid, bright ones (emerald, orange) darken only as far as they must. */
+export function readableShade(hex: string) {
+  if (!/^#[0-9a-f]{6}$/i.test(hex)) return 0.3
+  for (let i = 0; i <= 30; i++) {
+    const amount = i / 50
+    if (1.05 / (luminance(shade(hex, amount)) + 0.05) >= 4.5) return amount
+  }
+  return 0.6
+}
+
 /** The account colours a person can pick (docs/brand: ``acct-*``). */
 export const ACCOUNT_COLORS = [
   "green",
@@ -56,8 +78,18 @@ export const ACCOUNT_COLORS = [
   "cyan",
   "slate",
 ] as const
-// For an account nobody picked a colour for: the brighter half, no grey.
-const DEFAULTS = ["blue", "emerald", "violet", "cyan", "green", "orange"]
+// For an account nobody picked a colour for, in the brand's order.
+const DEFAULTS = [
+  "blue",
+  "emerald",
+  "violet",
+  "orange",
+  "cyan",
+  "rose",
+  "green",
+  "red",
+  "slate",
+]
 
 /** The ``acct-*`` key an account is drawn in, or its own hex. An account
  * with no colour of its own ("fin", the server's default for accounts Fern
@@ -67,7 +99,9 @@ export function accountColorKey(a: Pick<Account, "id" | "color">): string {
   const picked = /^var\(--(acct-[a-z]+)\)$/.exec(a.color ?? "")?.[1]
   if (picked && ACCOUNT_COLORS.includes(picked.slice(5) as "green"))
     return picked
-  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(a.color ?? "")) return a.color
+  // Only full ``#rrggbb``: ``shade`` cannot darken ``#fff``, so a short hex
+  // would draw white text on white.
+  if (/^#[0-9a-f]{6}$/i.test(a.color ?? "")) return a.color
   let h = 0
   for (const ch of a.id) h = (h * 31 + ch.charCodeAt(0)) >>> 0
   return `acct-${DEFAULTS[h % DEFAULTS.length]}`
@@ -158,7 +192,7 @@ export function AccountCard({
           darkened so white text stays readable on the brighter ones. */}
       <View
         style={{
-          backgroundColor: shade(base, 0.3),
+          backgroundColor: shade(base, readableShade(base)),
           borderRadius: 18,
           padding: compact ? 12 : 16,
           minHeight: compact ? 112 : 0,

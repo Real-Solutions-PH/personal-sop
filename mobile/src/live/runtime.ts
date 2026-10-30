@@ -85,6 +85,10 @@ const PULL_EVENTS = new Set([
 
 const OWNER_KEY = "sop-live:owner"
 
+let owner: string | null = null
+/** The signed-in account sync runs for; null when it is stopped. */
+export const liveOwner = () => owner
+
 /** `isNew`: an account created just now, so its state is already known
  * (blank, not onboarded) without waiting for the first pull. */
 export function startLive(
@@ -93,6 +97,7 @@ export function startLive(
   isNew = false,
 ) {
   stopLive()
+  owner = userId
   if (storage.getItem(OWNER_KEY) !== userId) {
     // First run of this account on this device: no demo data, no other
     // account's leftovers, no stale cursor.
@@ -236,6 +241,7 @@ export function startLive(
 export function stopLive() {
   active?.stop()
   active = null
+  owner = null
   setFxSource(null)
 }
 

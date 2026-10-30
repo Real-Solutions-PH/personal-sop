@@ -1,4 +1,11 @@
-import { isDone, isTimed, isWorking, setSeconds } from "@domain/fitness/calc"
+import {
+  fmtSpan,
+  isDone,
+  isTimed,
+  isWorking,
+  previousBest,
+  setSeconds,
+} from "@domain/fitness/calc"
 import type { FitnessState, Workout } from "@domain/fitness/data"
 import { liveTimeline } from "@domain/focus/actions"
 import type { FocusState } from "@domain/focus/data"
@@ -7,6 +14,7 @@ import type { HabitsState, RoutineRun } from "@domain/habits/data"
 import * as H from "@domain/habits/logic"
 import { dayKey } from "@domain/lib/day"
 import { elapsedSec, type Live } from "@domain/lib/live"
+import { group } from "@/prototype/share-format"
 import { displayMass } from "@/prototype/units"
 import type { LiveNext, LiveState } from "./types"
 
@@ -86,7 +94,7 @@ function routineState(
       : {}),
     restSec: 0,
     next,
-    controls: ["done", "skip", paused ? "resume" : "pause"],
+    controls: ["done", "skip", paused ? "resume" : "pause", "finish"],
     href: live.href,
   }
 }
@@ -145,7 +153,7 @@ function setLabel(
     : isTimed(ex)
       ? `${Math.round(setSeconds(set) / 60)} min`
       : set.weight > 0
-        ? `${displayMass(set.weight, set.unit ?? s.settings.units)} ${set.unit ?? s.settings.units} × ${set.reps}`
+        ? `${group(displayMass(set.weight, set.unit ?? s.settings.units), 1)} ${set.unit ?? s.settings.units} × ${set.reps}`
         : `${set.reps} reps`
   const which =
     set?.kind === "warmup" ? "Warm-up" : `Set ${n} of ${working.length}`
@@ -154,6 +162,32 @@ function setLabel(
     detail: what ? `${which} · ${what}` : which,
   }
 }
+
+/** "Best 85 kg × 6" for the exercise of `weId`, from other finished
+ * workouts; undefined without history. */
+function bestLabel(
+  s: FitnessState,
+  w: Workout,
+  weId: string,
+  memo: Map<string, string | undefined>,
+): string | undefined {
+  const id = w.exercises.find((e) => e.id === weId)?.exerciseId
+  if (!id) return undefined
+  if (memo.has(id)) return memo.get(id)
+  const set = previousBest(s, id, w.id)
+  const unit = set?.unit ?? s.settings.units
+  const label = !set
+    ? undefined
+    : isTimed(s.exercises.find((e) => e.id === id))
+      ? `Best ${fmtSpan(setSeconds(set))}`
+      : set.weight > 0
+        ? `Best ${group(displayMass(set.weight, unit), 1)} ${unit} × ${set.reps}`
+        : `Best ${set.reps} reps`
+  memo.set(id, label)
+  return label
+}
+
+const withBest = (best: string | undefined) => (best ? { best } : {})
 
 function workoutState(
   s: FitnessState,
@@ -176,6 +210,7 @@ function workoutState(
     ? setLabel(s, w, cur.we, cur.set)
     : { label: "All sets done", detail: "Finish when you're ready" }
   const elapsed = Math.max(0, (now - ms(w.startedAt)) / 1000)
+  const memo = new Map<string, string | undefined>()
   return {
     kind: "workout",
     id: w.id,
@@ -183,6 +218,7 @@ function workoutState(
     icon: "🏋️",
     step: head.label,
     detail: head.detail,
+    ...withBest(cur && bestLabel(s, w, cur.we, memo)),
     key: cur ? `${cur.we}/${cur.set}` : "",
     index: doneSets,
     count: working.length,
@@ -194,6 +230,7 @@ function workoutState(
     next: pending.slice(1, NEXT_MAX + 1).map((p) => ({
       key: `${p.we}/${p.set}`,
       ...setLabel(s, w, p.we, p.set),
+      ...withBest(bestLabel(s, w, p.we, memo)),
     })),
     // Resting: the in-app rest controls (four fit the lock screen).
     controls: resting

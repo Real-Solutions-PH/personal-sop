@@ -41,6 +41,7 @@ object LiveTransitions {
           .put("key", n.optString("key"))
           .put("index", s.optInt("index") + 1)
           .put("paused", false)
+        promoteBest(s, n)
         s.remove("remainingSec")
         if (n.has("sec")) s.put("stepEndsAt", now + (n.optDouble("sec") * 1000).toLong()) else s.remove("stepEndsAt")
         swap(s, "resume", "pause")
@@ -66,8 +67,10 @@ object LiveTransitions {
         val n = takeNext(s)
         if (n == null) {
           s.put("step", "All sets done").put("detail", "Finish when you're ready").put("key", "")
+          s.remove("best")
         } else {
           s.put("step", n.optString("label")).put("detail", n.optString("detail")).put("key", n.optString("key"))
+          promoteBest(s, n)
         }
         val rest = s.optDouble("restSec", 0.0)
         if (rest > 0) s.put("restEndsAt", now + (rest * 1000).toLong())
@@ -83,6 +86,12 @@ object LiveTransitions {
       "finish" -> return null
     }
     return s
+  }
+
+  /** The next row's previous best becomes the current one's, or none. */
+  private fun promoteBest(s: JSONObject, n: JSONObject) {
+    val best = n.optString("best")
+    if (best.isNotEmpty()) s.put("best", best) else s.remove("best")
   }
 
   /** Resting: the in-app rest controls; otherwise the next set and finish. */

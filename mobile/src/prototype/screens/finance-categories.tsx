@@ -51,6 +51,8 @@ type EditorProps = {
   /** The kind is the caller's (a transaction's): no Expense / Income
    * switch. */
   lockKind?: boolean
+  /** A new category's name to start from (what the picker was searching). */
+  presetName?: string
 }
 /** The add / edit category sheet. */
 export function CategoryEditor(props: EditorProps) {
@@ -85,6 +87,7 @@ export function CategoryForm({
   onAdded,
   onDeleting,
   lockKind = false,
+  presetName,
 }: EditorProps & {
   /** The form switched to (name) or back from (null) the delete step. */
   onDeleting?: (name: string | null) => void
@@ -93,7 +96,7 @@ export function CategoryForm({
     t = useTheme(),
     ex = s.categories.find((c) => c.id === id),
     pre = s.categories.find((c) => c.id === parentId),
-    [name, setName] = useState(ex?.name ?? ""),
+    [name, setName] = useState(ex?.name ?? presetName ?? ""),
     [kind, setKind] = useState(ex?.kind ?? pre?.kind ?? catKind),
     [parent, setParent] = useState(ex?.parentId ?? pre?.id ?? ""),
     [icon, setIcon] = useState(ex?.icon ?? "🏷️"),
