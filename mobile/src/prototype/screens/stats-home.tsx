@@ -41,6 +41,14 @@ import { PatternsCard } from "./patterns-card"
 import { ScreenTimeCard } from "./screen-card"
 import { DayHero } from "./today"
 
+/**
+ * Dynamic Type ceiling for text in the side-by-side cells on this screen
+ * (tiles, stat cards, area bars). Past ~1.4× a single word no longer fits a
+ * third of a 375pt phone and iOS breaks it mid-word.
+ */
+const CELL_SCALE = 1.4
+/** Big stat numbers sit on fixed line heights; past this their glyphs clip. */
+const NUMBER_SCALE = 1.15
 function Delta({
   value,
   down = false,
@@ -53,6 +61,7 @@ function Delta({
   return (
     <Copy
       size={12}
+      maxScale={CELL_SCALE}
       style={{
         color: value === 0 ? t.muted : value > 0 !== down ? t.good : t.bad,
       }}
@@ -116,8 +125,11 @@ function LifeHero({
                 />
               </G>
             </Svg>
+            {/* The ring is drawn at a fixed size, so what sits inside it does
+                not grow with Dynamic Type. */}
             <CountUp
               value={ls.score}
+              maxScale={1}
               style={{
                 fontFamily: fonts.mono,
                 fontSize: 48,
@@ -129,18 +141,25 @@ function LifeHero({
             />
             <Copy
               size={10}
+              maxScale={1}
               style={{ color: t.muted, letterSpacing: 2, marginTop: 4 }}
             >
               LIFE SCORE
             </Copy>
           </Tap>
           <View style={{ flex: 1 }}>
-            <Copy size={10} style={{ color: t.muted, letterSpacing: 2 }}>
+            <Copy
+              size={10}
+              maxScale={CELL_SCALE}
+              style={{ color: t.muted, letterSpacing: 2 }}
+            >
               LEVEL
             </Copy>
             <Copy
               size={24}
               weight="display"
+              fit
+              maxScale={CELL_SCALE}
               style={{
                 color: t.text,
                 letterSpacing: -0.6,
@@ -166,21 +185,29 @@ function LifeHero({
                     }}
                   />
                 </View>
-                <Copy size={11} style={{ color: t.muted, marginTop: 4 }}>
+                <Copy
+                  size={11}
+                  maxScale={CELL_SCALE}
+                  style={{ color: t.muted, marginTop: 4 }}
+                >
                   {level.next.floor - (ls.score ?? 0)} to {level.next.name}
                 </Copy>
               </View>
             )}
-            <Line style={{ gap: 6, marginTop: 8 }}>
+            <Line style={{ gap: 6, marginTop: 8, flexWrap: "wrap" }}>
               <Delta value={ls.delta} />
-              <Copy size={12} style={{ color: t.muted }}>
+              <Copy size={12} maxScale={CELL_SCALE} style={{ color: t.muted }}>
                 vs prior {days}d
               </Copy>
             </Line>
             <Tap onPress={onWeights} style={{ marginTop: 8 }}>
               <Line style={{ gap: 4 }}>
                 <Info size={12} color={t.muted} />
-                <Copy size={11} style={{ color: t.muted }}>
+                <Copy
+                  size={11}
+                  maxScale={CELL_SCALE}
+                  style={{ color: t.muted }}
+                >
                   How it's weighted
                 </Copy>
               </Line>
@@ -229,10 +256,19 @@ function LifeHero({
                   justifyContent: "space-between",
                 }}
               >
-                <Copy size={10} style={{ color: t.muted }}>
+                <Copy
+                  maxScale={CELL_SCALE}
+                  size={10}
+                  style={{ color: t.muted }}
+                >
                   {AREA[k].label}
                 </Copy>
-                <Copy size={10} weight="semibold" style={{ color: t.text }}>
+                <Copy
+                  maxScale={CELL_SCALE}
+                  size={10}
+                  weight="semibold"
+                  style={{ color: t.text }}
+                >
                   {enabled[k] ? Math.round(ls.rates[k] * 100) : "off"}
                 </Copy>
               </Line>
@@ -256,12 +292,17 @@ function DailyForm({ days }: { days: number }) {
   return (
     <Frame style={{ padding: 16 }}>
       <Line
-        style={{ justifyContent: "space-between", gap: 4, marginBottom: 8 }}
+        style={{
+          justifyContent: "space-between",
+          gap: 4,
+          marginBottom: 8,
+          flexWrap: "wrap",
+        }}
       >
-        <Copy size={14} weight="semibold">
+        <Copy size={14} weight="semibold" maxScale={CELL_SCALE}>
           Daily form
         </Copy>
-        <Copy size={12} muted>
+        <Copy size={12} muted maxScale={CELL_SCALE}>
           habits + tasks done per day
         </Copy>
       </Line>
@@ -465,14 +506,17 @@ function Areas({ days }: { days: number }) {
                   opacity: f.off ? 0.4 : 1,
                 }}
               >
+                {/* Pinned 88pt-wide around a fixed-size chart, so these
+                    labels do not grow with Dynamic Type. */}
                 <Copy
                   size={20}
                   weight="display"
+                  maxScale={1}
                   style={{ color: f.off ? t.muted : t[AREA[f.module].accent] }}
                 >
                   {f.off ? "—" : Math.round(f.value * 100)}
                 </Copy>
-                <Copy size={11} muted>
+                <Copy size={11} muted maxScale={1}>
                   {f.label}
                   {!f.off && delta !== 0 && (
                     <Text style={{ color: delta > 0 ? t.good : t.bad }}>
@@ -486,11 +530,18 @@ function Areas({ days }: { days: number }) {
             )
           })}
         </View>
-        <Line style={{ justifyContent: "center", gap: 16, marginTop: 4 }}>
-          <Copy size={12} muted>
+        <Line
+          style={{
+            justifyContent: "center",
+            gap: 16,
+            marginTop: 4,
+            flexWrap: "wrap",
+          }}
+        >
+          <Copy size={12} muted maxScale={CELL_SCALE}>
             <Text style={{ color: t.life }}>━</Text> This {days}d
           </Copy>
-          <Copy size={12} muted>
+          <Copy size={12} muted maxScale={CELL_SCALE}>
             ┄ Previous {days}d
           </Copy>
         </Line>
@@ -560,6 +611,64 @@ function Areas({ days }: { days: number }) {
         ))}
       </Sheet>
     </>
+  )
+}
+/**
+ * Per-area miss counts. Six equal tiles in one row left ~40pt each on a 375pt
+ * phone, so labels like "Nutrition" broke mid-word and those tiles grew
+ * taller than the rest. Rows of at most three give each tile ~95pt; the
+ * label stays on one line and Dynamic Type is capped (CELL_SCALE) so the
+ * longest label still fits, and a short last row is padded so every tile keeps one width.
+ */
+export function MissTiles({
+  tiles,
+}: {
+  tiles: { key: (typeof MODULE_KEYS)[number]; count: number }[]
+}) {
+  const t = useTheme(),
+    rows: (typeof tiles)[] = []
+  for (let i = 0; i < tiles.length; i += 3) rows.push(tiles.slice(i, i + 3))
+  const cols = Math.min(3, tiles.length)
+  return (
+    <View style={{ gap: 8, marginTop: 8 }}>
+      {rows.map((row) => (
+        <View
+          key={row[0].key}
+          testID="miss-row"
+          style={{ flexDirection: "row", gap: 8 }}
+        >
+          {row.map(({ key, count: n }) => (
+            <View
+              key={key}
+              accessible
+              accessibilityLabel={`${AREA[key].label}: ${n} ${n === 1 ? "miss" : "misses"}`}
+              style={{
+                flex: 1,
+                paddingVertical: 8,
+                paddingHorizontal: 4,
+                borderRadius: 12,
+                backgroundColor: border(t.soft, 0.5),
+                alignItems: "center",
+              }}
+            >
+              <Copy
+                weight="semibold"
+                maxScale={CELL_SCALE}
+                style={{ color: t[AREA[key].accent] }}
+              >
+                {n}
+              </Copy>
+              <Copy size={10} muted lines={1} maxScale={CELL_SCALE}>
+                {AREA[key].label}
+              </Copy>
+            </View>
+          ))}
+          {Array.from({ length: cols - row.length }, (_, i) => (
+            <View key={i} testID="miss-spacer" style={{ flex: 1 }} />
+          ))}
+        </View>
+      ))}
+    </View>
   )
 }
 export function StatsHome() {
@@ -666,13 +775,19 @@ export function StatsHome() {
             </View>
             <Line style={{ gap: 8, marginTop: 12, alignItems: "stretch" }}>
               <Frame style={{ flex: 1, padding: 12 }}>
-                <Copy size={30} weight="display" style={{ lineHeight: 36 }}>
+                <Copy
+                  fit
+                  maxScale={NUMBER_SCALE}
+                  size={30}
+                  weight="display"
+                  style={{ lineHeight: 36 }}
+                >
                   {target.rate === null
                     ? "—"
                     : `${Math.round(target.rate * 100)}%`}
                 </Copy>
-                <Line style={{ gap: 6 }}>
-                  <Copy size={12} muted>
+                <Line style={{ gap: 6, flexWrap: "wrap" }}>
+                  <Copy maxScale={CELL_SCALE} size={12} muted>
                     On target
                   </Copy>
                   <Delta value={delta} />
@@ -681,22 +796,33 @@ export function StatsHome() {
               <Frame style={{ flex: 1, padding: 12 }}>
                 <Line style={{ gap: 2, height: 32 }}>
                   <Flame size={20} color={t.life} fill={t.life} />
-                  <Copy size={24} weight="display" style={{ color: t.life }}>
+                  <Copy
+                    maxScale={NUMBER_SCALE}
+                    size={24}
+                    weight="display"
+                    style={{ color: t.life }}
+                  >
                     {target.current}
                   </Copy>
                 </Line>
-                <Copy size={12} muted>
+                <Copy maxScale={CELL_SCALE} size={12} muted>
                   Streak · best {target.best}
                 </Copy>
               </Frame>
               <Frame style={{ flex: 1, padding: 12 }}>
-                <Copy size={30} weight="display" style={{ lineHeight: 36 }}>
+                <Copy
+                  fit
+                  maxScale={NUMBER_SCALE}
+                  size={30}
+                  weight="display"
+                  style={{ lineHeight: 36 }}
+                >
                   {target.onTarget}
                   <Text style={{ fontSize: 16, color: t.muted }}>
                     /{target.scored}
                   </Text>
                 </Copy>
-                <Copy size={12} muted>
+                <Copy maxScale={CELL_SCALE} size={12} muted>
                   On-target days
                 </Copy>
               </Frame>
@@ -775,38 +901,25 @@ export function StatsHome() {
             <Frame style={{ padding: 16 }}>
               <Tap onPress={() => go(`/stats/misses?range=${days}`)}>
                 <Line style={{ gap: 8 }}>
-                  <Copy size={30} weight="display">
+                  <Copy maxScale={CELL_SCALE} size={30} weight="display">
                     {count(cur)}
                   </Copy>
-                  <Copy size={14} muted style={{ flex: 1 }}>
+                  <Copy
+                    maxScale={CELL_SCALE}
+                    size={14}
+                    muted
+                    style={{ flex: 1 }}
+                  >
                     misses in {days}d
                   </Copy>
                   <Delta value={count(cur) - count(prev)} down />
                 </Line>
-                <Line style={{ gap: 8, marginTop: 8 }}>
-                  {MODULE_KEYS.filter((k) => enabled[k]).map((k) => (
-                    <View
-                      key={k}
-                      style={{
-                        flex: 1,
-                        padding: 8,
-                        borderRadius: 12,
-                        backgroundColor: border(t.soft, 0.5),
-                        alignItems: "center",
-                      }}
-                    >
-                      <Copy
-                        weight="semibold"
-                        style={{ color: t[AREA[k].accent] }}
-                      >
-                        {count(cur, k)}
-                      </Copy>
-                      <Copy size={10} muted>
-                        {AREA[k].label}
-                      </Copy>
-                    </View>
-                  ))}
-                </Line>
+                <MissTiles
+                  tiles={MODULE_KEYS.filter((k) => enabled[k]).map((k) => ({
+                    key: k,
+                    count: count(cur, k),
+                  }))}
+                />
               </Tap>
             </Frame>
             <SectionHeading
@@ -828,7 +941,12 @@ export function StatsHome() {
                   style={{ paddingVertical: 10 }}
                 >
                   <Line style={{ gap: 8, marginBottom: 6 }}>
-                    <Copy size={14} weight="medium" style={{ flex: 1 }}>
+                    <Copy
+                      maxScale={CELL_SCALE}
+                      size={14}
+                      weight="medium"
+                      style={{ flex: 1 }}
+                    >
                       {g.goal.label}
                       <Copy size={12} muted>
                         {" "}
@@ -836,6 +954,7 @@ export function StatsHome() {
                       </Copy>
                     </Copy>
                     <Copy
+                      maxScale={CELL_SCALE}
                       size={14}
                       weight="semibold"
                       style={{ color: g.hit ? t.good : t.text }}
@@ -876,7 +995,12 @@ export function StatsHome() {
                   <Tap onPress={() => go(item.href)}>
                     <Line style={{ gap: 8 }}>
                       <item.icon size={20} color={t.primary} />
-                      <Copy size={14} weight="medium" style={{ flex: 1 }}>
+                      <Copy
+                        maxScale={CELL_SCALE}
+                        size={14}
+                        weight="medium"
+                        style={{ flex: 1 }}
+                      >
                         {item.title}
                       </Copy>
                       <ChevronRight size={16} color={t.muted} />

@@ -5,7 +5,12 @@ import { habitsStore } from "@domain/habits/store"
 import { dayKey } from "@domain/lib/day"
 import { configureStorage, resetAll } from "@domain/lib/store"
 import { tasksStore } from "@domain/tasks/store"
-import { fireEvent, render, screen } from "@testing-library/react-native"
+import {
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react-native"
 import type { ReactNode } from "react"
 import { StyleSheet } from "react-native"
 import { SafeAreaProvider } from "react-native-safe-area-context"
@@ -160,6 +165,31 @@ test("Stats area selection exposes the selected area metrics", () => {
   expect(screen.getByText("Routines completed")).toBeTruthy()
   expect(screen.getByText("Runs finished")).toBeTruthy()
   view.unmount()
+})
+
+test("Stats miss tiles sit three to a row with one-line labels", () => {
+  const { MissTiles } = require("../screens/stats-home")
+  const keys = ["habits", "tasks", "fitness", "nutrition", "focus", "finance"]
+  const view = render(
+    <MissTiles tiles={keys.map((key, i) => ({ key, count: i }))} />,
+    { wrapper },
+  )
+  const rows = screen.getAllByTestId("miss-row")
+  expect(rows).toHaveLength(2)
+  for (const row of rows)
+    expect(within(row).getAllByLabelText(/: \d+ miss(es)?$/)).toHaveLength(3)
+  const label = screen.getByText("Nutrition")
+  expect(label.props.numberOfLines).toBe(1)
+  expect(label.props.maxFontSizeMultiplier).toBeLessThanOrEqual(1.6)
+  view.unmount()
+  // A short last row keeps the same tile width via spacers.
+  render(
+    <MissTiles tiles={keys.slice(0, 4).map((key) => ({ key, count: 1 }))} />,
+    { wrapper },
+  )
+  const [, last] = screen.getAllByTestId("miss-row")
+  expect(within(last).getAllByLabelText(/: 1 miss$/)).toHaveLength(1)
+  expect(within(last).getAllByTestId("miss-spacer")).toHaveLength(2)
 })
 
 test("a task added from a calendar day keeps that day, and an empty name is refused", () => {

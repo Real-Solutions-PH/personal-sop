@@ -25,6 +25,8 @@ export function Copy({
   weight = "body",
   style,
   lines,
+  maxScale,
+  fit,
 }: {
   children: ReactNode
   size?: number
@@ -32,11 +34,18 @@ export function Copy({
   weight?: "body" | "medium" | "semibold" | "display" | "displayMedium"
   style?: TextStyle
   lines?: number
+  /** Caps how far Dynamic Type grows this text, for labels in fixed-width cells. */
+  maxScale?: number
+  /** One line that shrinks to fit its box rather than wrap mid-word. */
+  fit?: boolean
 }) {
   const t = useTheme()
   return (
     <Text
-      numberOfLines={lines}
+      numberOfLines={fit ? (lines ?? 1) : lines}
+      adjustsFontSizeToFit={fit}
+      minimumFontScale={fit ? 0.5 : undefined}
+      maxFontSizeMultiplier={maxScale}
       style={{
         fontFamily: fonts[weight],
         fontVariant: ["tabular-nums"],
