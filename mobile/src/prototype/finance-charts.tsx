@@ -208,3 +208,187 @@ function Slice({
     />
   )
 }
+
+/** A key for charts with two or more series; dashed series show a dash. */
+export function ChartLegend({
+  items,
+}: {
+  items: { label: string; color: string; dashed?: boolean }[]
+}) {
+  return (
+    <Line style={{ gap: 16, flexWrap: "wrap" }}>
+      {items.map((x) => (
+        <Line key={x.label} style={{ gap: 6 }}>
+          <View style={{ flexDirection: "row", gap: 2 }}>
+            {(x.dashed ? [0, 1, 2] : [0]).map((i) => (
+              <View
+                key={i}
+                style={{
+                  width: x.dashed ? 4 : 14,
+                  height: 2,
+                  borderRadius: 1,
+                  backgroundColor: x.color,
+                }}
+              />
+            ))}
+          </View>
+          <Copy size={12} muted>
+            {x.label}
+          </Copy>
+        </Line>
+      ))}
+    </Line>
+  )
+}
+
+/** What has happened (solid) and what is still to come (outlined), on one
+ * scale, for each row: money in and money out for the month. */
+export function ExpectedBars({
+  rows,
+}: {
+  rows: {
+    label: string
+    done: number
+    ahead: number
+    color: string
+    value: string
+  }[]
+}) {
+  const t = useTheme(),
+    max = Math.max(1, ...rows.map((r) => r.done + r.ahead))
+  return (
+    <View style={{ gap: 10 }}>
+      {rows.map((r) => (
+        <View key={r.label} style={{ gap: 4 }}>
+          <Line style={{ justifyContent: "space-between" }}>
+            <Copy size={12} muted>
+              {r.label}
+            </Copy>
+            <Copy size={12} weight="medium">
+              {r.value}
+            </Copy>
+          </Line>
+          <View
+            style={{
+              height: 10,
+              borderRadius: 5,
+              backgroundColor: t.soft,
+              flexDirection: "row",
+              overflow: "hidden",
+            }}
+          >
+            <View
+              style={{
+                width: `${(r.done / max) * 100}%`,
+                backgroundColor: r.color,
+              }}
+            />
+            {r.ahead > 0 && (
+              <View
+                style={{
+                  width: `${(r.ahead / max) * 100}%`,
+                  borderWidth: 1,
+                  borderStyle: "dashed",
+                  borderColor: r.color,
+                  backgroundColor: `${r.color}26`,
+                  borderTopRightRadius: 5,
+                  borderBottomRightRadius: 5,
+                }}
+              />
+            )}
+          </View>
+        </View>
+      ))}
+    </View>
+  )
+}
+
+/** Each budget's share used, month by month: one column per month, a
+ * dashed line at 100%, the share printed under it, this month at full
+ * strength and earlier months tinted. */
+export function BudgetHistory({
+  rows,
+  monthLabel,
+  left,
+}: {
+  rows: {
+    id: string
+    name: string
+    hist: { key: string; pct: number; spent: number }[]
+  }[]
+  monthLabel: (key: string) => string
+  /** What is left this month, printed beside each budget's name. */
+  left: (id: string) => string
+}) {
+  const t = useTheme()
+  const H = 40
+  const CAP = 1.25
+  return (
+    <View style={{ gap: 16 }}>
+      {rows.map((r) => (
+        <View key={r.id} style={{ gap: 6 }}>
+          <Line style={{ justifyContent: "space-between" }}>
+            <Copy size={14} weight="medium" lines={1} style={{ flex: 1 }}>
+              {r.name}
+            </Copy>
+            <Copy size={12} muted>
+              {left(r.id)}
+            </Copy>
+          </Line>
+          <View>
+            <View
+              style={{
+                position: "absolute",
+                left: 0,
+                right: 0,
+                top: H - H / CAP,
+                borderTopWidth: 1,
+                borderStyle: "dashed",
+                borderColor: t.muted,
+              }}
+            />
+            <Line style={{ gap: 6, alignItems: "flex-end", height: H }}>
+              {r.hist.map((h, i) => {
+                const last = i === r.hist.length - 1
+                const over = h.pct > 1
+                const color = over ? t.bad : t.fin
+                return (
+                  <View
+                    key={h.key}
+                    style={{ flex: 1, height: H, justifyContent: "flex-end" }}
+                  >
+                    <GrowBar
+                      index={i}
+                      height={Math.max(2, (Math.min(h.pct, CAP) / CAP) * H)}
+                      style={{
+                        borderTopLeftRadius: 4,
+                        borderTopRightRadius: 4,
+                        backgroundColor: last ? color : `${color}66`,
+                      }}
+                    />
+                  </View>
+                )
+              })}
+            </Line>
+          </View>
+          <Line style={{ gap: 6 }}>
+            {r.hist.map((h) => (
+              <View key={h.key} style={{ flex: 1, alignItems: "center" }}>
+                <Copy
+                  size={12}
+                  weight="medium"
+                  style={{ color: h.pct > 1 ? t.bad : t.text }}
+                >
+                  {h.spent ? `${Math.round(h.pct * 100)}%` : "—"}
+                </Copy>
+                <Copy size={12} muted>
+                  {monthLabel(h.key)}
+                </Copy>
+              </View>
+            ))}
+          </Line>
+        </View>
+      ))}
+    </View>
+  )
+}

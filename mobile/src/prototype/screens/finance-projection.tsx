@@ -1,5 +1,6 @@
 import * as A from "@domain/finance/actions"
 import * as C from "@domain/finance/calc"
+import { type AheadPreset, dailyForecast } from "@domain/finance/forecast"
 import { finStore } from "@domain/finance/store"
 import { dayKey } from "@domain/lib/day"
 import { currencySymbol } from "@domain/lib/money"
@@ -20,11 +21,31 @@ import {
   Segmented,
   Tap,
 } from "../native-kit"
+import { AheadPicker, useAhead } from "../range-picker"
 import { Switch } from "../switch"
 import { radius, useTheme } from "../theme"
 import { Button, Empty, Field, Screen } from "../ui"
 import { useMoney } from "./finance"
 
+const HORIZON: Record<6 | 12 | 24, AheadPreset> = {
+  6: "6m",
+  12: "1y",
+  24: "2y",
+}
+const MONTHS: Partial<Record<AheadPreset, 6 | 12 | 24>> = {
+  "6m": 6,
+  "1y": 12,
+  "2y": 24,
+}
+/** Whole calendar months from month ``mk`` to the month of day ``k``. */
+const monthsTo = (mk: string, k: string) =>
+  (Number(k.slice(0, 4)) - Number(mk.slice(0, 4))) * 12 +
+  (Number(k.slice(5, 7)) - Number(mk.slice(5, 7)))
+/** At most 120 days, evenly spaced, keeping the last. */
+const thinDays = <T,>(xs: T[]) => {
+  const step = Math.ceil(xs.length / 120)
+  return xs.filter((_, i) => i % step === 0 || i === xs.length - 1)
+}
 const INSTALLMENT_TERMS = [3, 6, 12, 24]
 const MAX_TERM = 60
 export const clampTerm = (months: number) =>
@@ -87,7 +108,13 @@ export function Projection() {
     [picked, setAcct] = useState<string>(),
     [excluded, setExcluded] = useState<string[]>([]),
     [assump, setAssump] = useState(false),
-    horizon = s.settings.horizon,
+    ahead = useAhead(s, HORIZON[s.settings.horizon] ?? "1y"),
+    // A picked day: the months reach it, and the headline reads the
+    // day-by-day forecast on that day.
+    pickedDay = "to" in ahead.sel ? ahead.sel.to : null,
+    horizon = pickedDay
+      ? Math.min(60, Math.max(1, monthsTo(cur, pickedDay) + 1))
+      : s.settings.horizon,
     whatIf =
       whatOpen && Number(amount) > 0
         ? {
@@ -103,6 +130,9 @@ export function Projection() {
       excludedAccounts: excluded,
       whatIf,
     }),
+    daily = pickedDay
+      ? dailyForecast(s, pickedDay, { excludedAccounts: excluded, whatIf })
+      : null,
     bal = C.balances(s),
     floor = s.settings.safetyFloor,
     last = proj.months.at(-1),
@@ -209,15 +239,15 @@ export function Projection() {
     )
   return (
     <Screen title="Projection">
-      <Segmented
-        value={String(horizon)}
-        onChange={(v) =>
-          A.updateSettings({ horizon: Number(v) as 6 | 12 | 24 })
-        }
-        options={[6, 12, 24].map((v) => ({
-          value: String(v),
-          label: `${v} mo`,
-        }))}
+      <AheadPicker
+        value={ahead.sel}
+        to={ahead.to}
+        presets={["6m", "1y", "2y"]}
+        onChange={(v) => {
+          ahead.setSel(v)
+          const months = "preset" in v ? MONTHS[v.preset] : undefined
+          if (months) A.updateSettings({ horizon: months })
+        }}
       />
       <Frame
         style={{ paddingHorizontal: 12, paddingTop: 16, paddingBottom: 8 }}
@@ -231,10 +261,13 @@ export function Projection() {
         >
           <View style={{ flex: 1 }}>
             <Copy size={12} muted>
-              Available money by {last ? C.monthLabel(last.key, true) : ""}
+              Available money{" "}
+              {pickedDay
+                ? `on ${C.dayLabel(pickedDay)}`
+                : `by ${last ? C.monthLabel(last.key, true) : ""}`}
             </Copy>
             <Copy size={30} weight="displayMedium">
-              {money(last?.end ?? proj.start)}
+              {money(daily ? daily.end : (last?.end ?? proj.start))}
             </Copy>
             {whatIf && last && (
               <Copy size={12} muted>
@@ -266,27 +299,45 @@ export function Projection() {
             </Copy>
           </View>
         </Line>
-        <FinanceLineChart
-          height={190}
-          floor={floor}
-          labels={["Now", ...proj.months.map((m) => C.monthLabel(m.key))]}
-          series={[
-            {
-              values: [proj.start, ...proj.months.map((m) => m.endBase)],
-              color: whatIf ? t.muted : t.fin,
-              area: !whatIf,
-            },
-            ...(whatIf
-              ? [
-                  {
-                    values: [proj.start, ...proj.months.map((m) => m.end)],
-                    color: verdict === "ok" ? t.fin : color,
-                    area: true,
-                  },
-                ]
-              : []),
-          ]}
-        />
+        {daily ? (
+          <FinanceLineChart
+            height={190}
+            floor={floor}
+            zero={daily.low.value < 0}
+            labels={thinDays(daily.days).map((d, i, xs) =>
+              i === 0 ? "Now" : i === xs.length - 1 ? C.shortDate(d.day) : "",
+            )}
+            series={[
+              {
+                values: thinDays(daily.days).map((d) => d.balance),
+                color: verdict === "ok" || !whatIf ? t.fin : color,
+                area: true,
+              },
+            ]}
+          />
+        ) : (
+          <FinanceLineChart
+            height={190}
+            floor={floor}
+            labels={["Now", ...proj.months.map((m) => C.monthLabel(m.key))]}
+            series={[
+              {
+                values: [proj.start, ...proj.months.map((m) => m.endBase)],
+                color: whatIf ? t.muted : t.fin,
+                area: !whatIf,
+              },
+              ...(whatIf
+                ? [
+                    {
+                      values: [proj.start, ...proj.months.map((m) => m.end)],
+                      color: verdict === "ok" ? t.fin : color,
+                      area: true,
+                    },
+                  ]
+                : []),
+            ]}
+          />
+        )}
         <Line style={{ gap: 16, paddingHorizontal: 4 }}>
           <Copy size={11} muted>
             ━ Baseline
@@ -301,6 +352,37 @@ export function Projection() {
           </Copy>
         </Line>
       </Frame>
+      {daily && pickedDay && (
+        <Frame style={{ padding: 16, gap: 12 }}>
+          <Copy size={14} weight="medium">
+            Between now and {C.dayLabel(pickedDay)}
+          </Copy>
+          <Line style={{ gap: 8, alignItems: "flex-start" }}>
+            {[
+              { label: "Coming in", value: `+${money(daily.comingIn)}` },
+              {
+                label: "Scheduled out",
+                value: `−${money(daily.scheduledOut)}`,
+              },
+              { label: "Everyday", value: `−${money(daily.everydayOut)}` },
+            ].map((m) => (
+              <View key={m.label} style={{ flex: 1 }}>
+                <Copy size={16} weight="semibold" lines={1}>
+                  {m.value}
+                </Copy>
+                <Copy size={12} muted>
+                  {m.label}
+                </Copy>
+              </View>
+            ))}
+          </Line>
+          <Copy size={12} muted>
+            Lowest {money(daily.low.value)} on {C.dayLabel(daily.low.day)}.
+            Overdue bills count as due today; everyday spending is your 3-month
+            average, spread by day.
+          </Copy>
+        </Frame>
+      )}
       <Frame style={{ paddingHorizontal: 16, paddingVertical: 4 }}>
         {toggle(
           "Include average everyday spending",
