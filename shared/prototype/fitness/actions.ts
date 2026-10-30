@@ -674,7 +674,10 @@ export type MergeResult =
  * template slot moves to the target, the source is archived pointing at it,
  * and its name becomes one of the target's former names. One store write;
  * the server repeats it from the fitness.merge_exercises action. */
-export function mergeExercises(sourceId: string, targetId: string): MergeResult {
+export function mergeExercises(
+  sourceId: string,
+  targetId: string,
+): MergeResult {
   const s0 = fitStore.get(),
     source = s0.exercises.find((e) => e.id === sourceId),
     target = s0.exercises.find((e) => e.id === targetId)

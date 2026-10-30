@@ -87,8 +87,7 @@ export function duplicateCandidates(
     for (let j = i + 1; j < live.length; j++) {
       const a = live[i],
         b = live[j]
-      if (a.loadType !== b.loadType || hidden.has(pairKey(a.id, b.id)))
-        continue
+      if (a.loadType !== b.loadType || hidden.has(pairKey(a.id, b.id))) continue
       let reason: DupeReason | null = null
       if (normaliseName(a.name) === normaliseName(b.name)) reason = "same name"
       else if (
