@@ -11,9 +11,11 @@ import {
   monthRange,
   netWorthSeries,
   recDay,
+  shortDate,
   today,
 } from "./calc"
 import type { FinState } from "./data"
+import { type DateRange, expectedVsActual } from "./forecast"
 export type Period = "this" | "last" | "3m"
 export function periodRange(
   s: FinState,
@@ -51,7 +53,56 @@ export function periodRange(
   }
 }
 export function reportData(s: FinState, p: Period) {
-  const r = periodRange(s, p)
+  const sd = s.settings.monthStartDay
+  const mk = monthOf(today(), sd)
+  return {
+    ...build(
+      s,
+      periodRange(s, p),
+      [-3, -2, -1, 0].map((i) => addMonths(mk, i)),
+      [-2, -1, 0].map((i) => addMonths(mk, i)),
+    ),
+    nw: netWorthSeries(s, 90),
+  }
+}
+
+/**
+ * The same report over any window: the comparison is the window of the
+ * same length just before it, the month table and budget history cover the
+ * budget months the window touches (at least the last 3, at most 12 and 6),
+ * and net worth is drawn against what the repeating items alone predict.
+ */
+export function rangeReport(s: FinState, range: DateRange, label?: string) {
+  const sd = s.settings.monthStartDay
+  const len = diffDays(range.to, range.from) + 1
+  const r = {
+    from: range.from,
+    to: range.to > today() ? today() : range.to,
+    prevFrom: addDays(range.from, -len),
+    prevTo: addDays(range.from, -1),
+    label: label ?? `${shortDate(range.from)} – ${shortDate(range.to)}`,
+  }
+  const last = monthOf(r.to, sd)
+  const first = monthOf(r.from, sd)
+  const keys: string[] = []
+  for (
+    let k = last;
+    keys.length < 12 && (k >= first || keys.length < 3);
+    k = addMonths(k, -1)
+  )
+    keys.unshift(k)
+  return {
+    ...build(s, r, keys, keys.slice(-6)),
+    vs: expectedVsActual(s, r.from, r.to),
+  }
+}
+
+function build(
+  s: FinState,
+  r: ReturnType<typeof periodRange>,
+  monthKeys: string[],
+  budgetKeys: string[],
+) {
   const flow = flowIn(s, r.from, r.to)
   const prev = flowIn(s, r.prevFrom, r.prevTo)
   const cats = catMap(s)
@@ -88,17 +139,16 @@ export function reportData(s: FinState, p: Period) {
     daily.push(cum)
   }
   const sd = s.settings.monthStartDay
-  const mk = monthOf(today(), sd)
-  const months = [-3, -2, -1, 0].map((i) => {
-    const [f, t] = monthRange(addMonths(mk, i), sd)
+  const months = monthKeys.map((key) => {
+    const [f, t] = monthRange(key, sd)
     const fl = flowIn(s, f, t)
-    return { key: addMonths(mk, i), income: fl.income, spend: fl.spend }
+    return { key, income: fl.income, spend: fl.spend }
   })
   const budgets = s.budgets
     .filter((b) => !b.archived)
     .map((b) => ({
       b,
-      hist: [-2, -1, 0].map((i) => budgetView(s, b, addMonths(mk, i))),
+      hist: budgetKeys.map((key) => budgetView(s, b, key)),
     }))
   return {
     r,
@@ -112,6 +162,5 @@ export function reportData(s: FinState, p: Period) {
     weekdayAvg: weekday.map((v, i) => (weekdayN[i] ? v / weekdayN[i] : 0)),
     months,
     budgets,
-    nw: netWorthSeries(s, 90),
   }
 }

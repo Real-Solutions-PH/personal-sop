@@ -1,28 +1,25 @@
 import * as C from "@domain/finance/calc"
-import { type Period, reportData } from "@domain/finance/reports"
+import type { BackPreset } from "@domain/finance/forecast"
+import { rangeReport } from "@domain/finance/reports"
 import { finStore } from "@domain/finance/store"
-import { dayKey } from "@domain/lib/day"
 import { useLocalSearchParams } from "expo-router"
 import { ChevronRight, Share2 } from "lucide-react-native"
-import { type ReactNode, useState } from "react"
+import type { ReactNode } from "react"
 import { useWindowDimensions, View } from "react-native"
-import { FinanceLineChart, Sparkline } from "../chart"
-import { Donut, FIN_PALETTE, FinanceBars, PairBars } from "../finance-charts"
-import { SwipeSegments } from "../motion"
+import { FinanceLineChart } from "../chart"
 import {
-  border,
-  Copy,
-  Frame,
-  IconTap,
-  Line,
-  Segmented,
-  Tap,
-} from "../native-kit"
+  BudgetHistory,
+  ChartLegend,
+  Donut,
+  FIN_PALETTE,
+  FinanceBars,
+} from "../finance-charts"
+import { border, Copy, Frame, IconTap, Line, Tap } from "../native-kit"
 import { go } from "../navigation"
+import { BackPicker, useBack } from "../range-picker"
 import { useTheme } from "../theme"
 import { Button, Empty, Screen, shareText } from "../ui"
 import { useMoney } from "./finance"
-import { RecurringNet } from "./finance-monthly-net"
 import { FinPill } from "./finance-planned"
 import { StatsShell } from "./stats-shell"
 
@@ -34,11 +31,10 @@ const WD = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
     payees: "Top payees",
     weekday: "Day-of-week spend",
   },
-  PERIODS = [
-    { value: "this" as const, label: "This month" },
-    { value: "last" as const, label: "Last month" },
-    { value: "3m" as const, label: "3 months" },
-  ],
+  PRESETS: BackPreset[] = ["this", "last", "3m", "6m", "1y"],
+  // "Last 3 mo" reads "last 3 mo" mid-sentence; month names keep their case.
+  inline = (label: string) =>
+    label.startsWith("Last ") ? `l${label.slice(1)}` : label,
   delta = (a: number, b: number) => (b ? Math.round(((a - b) / b) * 100) : 0)
 export function Reports({
   kind,
@@ -51,14 +47,19 @@ export function Reports({
     t = useTheme(),
     money = useMoney(),
     narrow = useWindowDimensions().width < 380,
-    params = useLocalSearchParams<{ period?: Period }>(),
-    [p, setP] = useState<Period>(params.period ?? "this"),
-    d = reportData(s, p),
-    // This period's scheduled income and bills still to come (overdue
-    // too): the month as it is expected to end.
-    ahead = C.scheduledFlow(s, d.r.to),
+    params = useLocalSearchParams<{ period?: BackPreset }>(),
+    back = useBack(
+      s,
+      PRESETS.includes(params.period as BackPreset)
+        ? (params.period as BackPreset)
+        : "this",
+    ),
+    d = rangeReport(s, back.range, back.label),
     prevCats = d.prev.byCat,
-    q = `?period=${p}`,
+    preset = "preset" in back.sel ? back.sel.preset : null,
+    q = preset ? `?period=${preset}` : "",
+    topId = d.byCat[0]?.[0],
+    topCat = topId ? d.cats.get(topId) : undefined,
     recHref = (extra = "") =>
       `/finance/records?from=${d.r.from}&to=${d.r.to}${extra}`
   const stats = (
@@ -136,13 +137,8 @@ export function Reports({
         />
       }
     >
-      <Segmented value={p} onChange={setP} options={PERIODS} />
-      <SwipeSegments
-        value={p}
-        options={PERIODS.map((o) => o.value)}
-        onChange={setP}
-        gap={12}
-      >
+      <BackPicker value={back.sel} onChange={back.setSel} range={back.range} />
+      <View style={{ gap: 12 }}>
         {kind && (
           <Copy size={12} muted style={{ paddingHorizontal: 4 }}>
             {C.shortDate(d.r.from)} – {C.shortDate(d.r.to)} vs{" "}
@@ -151,56 +147,70 @@ export function Reports({
         )}
         {!kind ? (
           <>
-            {stats([
-              { label: "Income", value: money(d.flow.income) },
-              {
-                label: "Spent",
-                value: money(d.flow.spend),
-                delta: delta(d.flow.spend, d.prev.spend),
-                down: true,
-              },
-              {
-                label: "Savings rate",
-                value: C.pct(C.savingsRate(d.flow)),
-                color: t.fin,
-              },
-            ])}
-            {p === "this" && (ahead.income > 0 || ahead.spend > 0) && (
-              <Tap onPress={() => go("/finance/planned")}>
-                <Frame
-                  style={{
-                    padding: 12,
-                    gap: 4,
-                    borderColor: `${t.fin}4d`,
-                    backgroundColor: `${t.fin}0d`,
-                  }}
-                >
-                  <Copy size={12} style={{ color: t.fin }}>
-                    WITH WHAT'S SCHEDULED · BY{" "}
-                    {C.shortDate(d.r.to).toUpperCase()}
+            {card(
+              "Savings rate",
+              `/finance/reports/cashflow${q}`,
+              <Line style={{ gap: 16, alignItems: "flex-end" }}>
+                <View>
+                  <Copy
+                    size={30}
+                    weight="displayMedium"
+                    style={{
+                      color: C.savingsRate(d.flow) < 0 ? t.bad : t.text,
+                    }}
+                  >
+                    {C.pct(C.savingsRate(d.flow))}
                   </Copy>
-                  <Copy size={14}>
-                    Income {money(d.flow.income + ahead.income)} · Spent{" "}
-                    {money(d.flow.spend + ahead.spend)} · Savings rate{" "}
-                    {C.pct(
-                      C.savingsRate({
-                        ...d.flow,
-                        income: d.flow.income + ahead.income,
-                        spend: d.flow.spend + ahead.spend,
-                      }),
+                  <Copy size={12} muted>
+                    of income kept · {d.r.label}
+                  </Copy>
+                </View>
+                <View style={{ flex: 1, alignItems: "flex-end", gap: 2 }}>
+                  <Copy size={12} muted lines={1}>
+                    In {money(d.flow.income)}
+                  </Copy>
+                  <Copy size={12} muted lines={1}>
+                    Out {money(d.flow.spend)}
+                    {delta(d.flow.spend, d.prev.spend) !== 0 && (
+                      <Copy
+                        size={12}
+                        style={{
+                          color:
+                            delta(d.flow.spend, d.prev.spend) > 0
+                              ? t.bad
+                              : t.good,
+                        }}
+                      >
+                        {"  "}
+                        {delta(d.flow.spend, d.prev.spend) > 0 ? "▲" : "▼"}
+                        {Math.abs(delta(d.flow.spend, d.prev.spend))}%
+                      </Copy>
                     )}
                   </Copy>
-                </Frame>
-              </Tap>
+                </View>
+              </Line>,
             )}
             {card(
               "Spend by category",
               `/finance/reports/category${q}`,
               <Line style={{ gap: 16 }}>
                 <Donut values={d.byCat.map((x) => x[1])} size={112}>
-                  <Copy size={10} muted>
-                    top
-                  </Copy>
+                  <View
+                    accessible
+                    accessibilityLabel={
+                      topCat ? `Top: ${topCat.name}` : "No spending"
+                    }
+                  >
+                    <Copy size={28}>{topCat?.icon ?? "—"}</Copy>
+                  </View>
+                  {topId && d.flow.spend > 0 && (
+                    <Copy size={12} muted>
+                      {Math.round(
+                        ((d.byCat[0]?.[1] ?? 0) / d.flow.spend) * 100,
+                      )}
+                      %
+                    </Copy>
+                  )}
                 </Donut>
                 <View style={{ flex: 1, gap: 6 }}>
                   {d.byCat.slice(0, 5).map(([id, v], i) => (
@@ -225,101 +235,87 @@ export function Reports({
               </Line>,
             )}
             {card(
-              "Income vs expense",
-              `/finance/reports/cashflow${q}`,
-              <>
-                <PairBars
-                  pairs={d.months.map((m) => [m.income, m.spend])}
-                  labels={d.months.map((m) => C.monthLabel(m.key))}
-                />
-                <RecurringNet s={s} />
-              </>,
-            )}
-            {card(
-              "Cash flow trend",
-              `/finance/reports/cashflow${q}`,
-              <>
-                <Sparkline
-                  label="Cash flow trend"
-                  values={d.daily}
-                  color={t.fin}
-                  height={56}
-                />
-                <Copy size={12} muted style={{ marginTop: 4 }}>
-                  Running total over {d.r.label.toLowerCase()}
-                </Copy>
-              </>,
-            )}
-            {card(
-              "Net worth trend",
+              "Cash flow vs expected",
               `/finance/reports/networth${q}`,
-              <Sparkline
-                label="Net worth trend"
-                values={d.nw}
-                color={t.life}
-                height={56}
-              />,
+              <View style={{ gap: 6 }}>
+                <FinanceLineChart
+                  height={150}
+                  labels={d.vs.days.map((k, i) =>
+                    i === 0 || i === d.vs.days.length - 1 ? C.shortDate(k) : "",
+                  )}
+                  series={[
+                    { values: d.vs.expected, color: t.muted, dashed: true },
+                    { values: d.vs.actual, color: t.fin, area: true },
+                  ]}
+                />
+                <ChartLegend
+                  items={[
+                    { label: "Actual net worth", color: t.fin },
+                    {
+                      label: "Expected from what repeats",
+                      color: t.muted,
+                      dashed: true,
+                    },
+                  ]}
+                />
+                <Copy size={12} muted>
+                  {d.vs.days.length < 2
+                    ? "Not enough days in this window yet."
+                    : Math.abs(d.vs.gap) < 1
+                      ? "Right on what your repeating income and bills predict."
+                      : `${money(Math.abs(d.vs.gap))} ${d.vs.gap > 0 ? "above" : "below"} what your repeating income and bills predict by ${C.shortDate(d.vs.days.at(-1) ?? d.r.to)}.`}
+                </Copy>
+              </View>,
             )}
+            {d.budgets.length > 0 &&
+              card(
+                "Budget history",
+                "/finance/budgets",
+                <BudgetHistory
+                  rows={d.budgets.map(({ b, hist }) => ({
+                    id: b.id,
+                    name: b.name,
+                    hist: hist.map((h) => ({
+                      key: h.from,
+                      pct: h.pct,
+                      spent: h.spent,
+                    })),
+                  }))}
+                  monthLabel={(from) =>
+                    C.monthLabel(C.monthOf(from, s.settings.monthStartDay))
+                  }
+                  left={(id) => {
+                    const v = d.budgets.find((x) => x.b.id === id)?.hist.at(-1)
+                    if (!v) return ""
+                    return v.limit >= v.spent
+                      ? `${money(v.limit - v.spent)} left`
+                      : `${money(v.spent - v.limit)} over`
+                  }}
+                />,
+              )}
             {card(
               "Top payees",
               `/finance/reports/payees${q}`,
-              d.payees.slice(0, 4).map(([name, v]) => (
-                <Line
-                  key={name}
-                  style={{
-                    justifyContent: "space-between",
-                    paddingVertical: 4,
-                  }}
-                >
-                  <Copy size={14}>{name}</Copy>
-                  <Copy size={14}>{money(v)}</Copy>
-                </Line>
-              )),
-            )}
-            {card(
-              "Budget history",
-              "/finance/budgets",
-              <View style={{ gap: 8 }}>
-                {d.budgets.map(({ b, hist }) => (
-                  <Line key={b.id} style={{ gap: 8 }}>
-                    <Copy size={12} lines={1} style={{ width: 112 }}>
-                      {b.name}
+              d.payees.length ? (
+                d.payees.slice(0, 4).map(([name, v]) => (
+                  <Line
+                    key={name}
+                    style={{
+                      justifyContent: "space-between",
+                      paddingVertical: 4,
+                    }}
+                  >
+                    <Copy size={14} lines={1} style={{ flex: 1 }}>
+                      {name}
                     </Copy>
-                    {hist.map((h) => (
-                      <View
-                        key={h.from}
-                        style={{
-                          flex: 1,
-                          borderRadius: 6,
-                          paddingVertical: 4,
-                          backgroundColor:
-                            h.spent === 0
-                              ? t.soft
-                              : h.pct > 1
-                                ? `${t.bad}33`
-                                : `${t.good}26`,
-                        }}
-                      >
-                        <Copy
-                          size={12}
-                          style={{
-                            textAlign: "center",
-                            color:
-                              h.spent === 0
-                                ? t.text
-                                : h.pct > 1
-                                  ? t.bad
-                                  : t.good,
-                          }}
-                        >
-                          {C.monthLabel(h.from.slice(0, 7))}{" "}
-                          {h.spent ? `${Math.round(h.pct * 100)}%` : "—"}
-                        </Copy>
-                      </View>
-                    ))}
+                    <Copy size={14}>{money(v)}</Copy>
                   </Line>
-                ))}
-              </View>,
+                ))
+              ) : (
+                <Copy size={14} muted>
+                  No payees in this window.
+                </Copy>
+              ),
             )}
             {card(
               "Day-of-week spend",
@@ -329,7 +325,7 @@ export function Reports({
             <Button
               tone="quiet"
               href={`/finance/review?from=${d.r.from}&to=${d.r.to}`}
-            >{`Review ${d.r.label.toLowerCase()}`}</Button>
+            >{`Review ${inline(d.r.label)}`}</Button>
           </>
         ) : kind === "category" ? (
           <>
@@ -479,20 +475,48 @@ export function Reports({
         ) : kind === "networth" ? (
           <Frame style={{ paddingHorizontal: 8, paddingVertical: 16 }}>
             <FinanceLineChart
-              series={[{ values: d.nw, color: t.fin, area: true }]}
-              labels={Array.from({ length: 90 }, (_, i) =>
-                i % 15 === 0 ? C.shortDate(C.addDays(dayKey(), i - 89)) : "",
+              series={[
+                { values: d.vs.expected, color: t.muted, dashed: true },
+                { values: d.vs.actual, color: t.fin, area: true },
+              ]}
+              labels={d.vs.days.map((k, i) =>
+                i % Math.max(1, Math.round(d.vs.days.length / 5)) === 0
+                  ? C.shortDate(k)
+                  : "",
               )}
             />
             <View style={{ paddingHorizontal: 8, paddingBottom: 8, gap: 4 }}>
+              <ChartLegend
+                items={[
+                  { label: "Actual net worth", color: t.fin },
+                  {
+                    label: "Expected from what repeats",
+                    color: t.muted,
+                    dashed: true,
+                  },
+                ]}
+              />
               <Copy size={12} muted>
                 Assets minus credit card debt. Investments at their last manual
-                value.
+                value. The dashed line adds only your repeating income and
+                bills, on their days, to where you started.
               </Copy>
-              <FinPill tone={d.nw[89] >= d.nw[0] ? "good" : "bad"}>
-                {C.pct((d.nw[89] - d.nw[0]) / Math.abs(d.nw[0] || 1), 1)} in 90
-                days
-              </FinPill>
+              {(d.vs.actual.length ?? 0) > 1 && (
+                <FinPill
+                  tone={
+                    (d.vs.actual.at(-1) ?? 0) >= (d.vs.actual[0] ?? 0)
+                      ? "good"
+                      : "bad"
+                  }
+                >
+                  {C.pct(
+                    ((d.vs.actual.at(-1) ?? 0) - (d.vs.actual[0] ?? 0)) /
+                      Math.abs(d.vs.actual[0] || 1),
+                    1,
+                  )}{" "}
+                  over {inline(d.r.label)}
+                </FinPill>
+              )}
             </View>
           </Frame>
         ) : kind === "payees" ? (
@@ -543,7 +567,7 @@ export function Reports({
             </Copy>
           </Tap>
         )}
-      </SwipeSegments>
+      </View>
     </StatsShell>
   )
 }
