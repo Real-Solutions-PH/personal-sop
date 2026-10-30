@@ -134,10 +134,13 @@ export function FinanceBars({
   data,
   labels,
   height = 64,
+  highlight,
 }: {
   data: number[]
   labels: string[]
   height?: number
+  /** A bar drawn at full strength while the others are tinted. */
+  highlight?: number
 }) {
   const t = useTheme(),
     max = Math.max(1, ...data)
@@ -152,7 +155,10 @@ export function FinanceBars({
               style={{
                 borderTopLeftRadius: 6,
                 borderTopRightRadius: 6,
-                backgroundColor: t.fin,
+                backgroundColor:
+                  highlight === undefined || highlight === i
+                    ? t.fin
+                    : `${t.fin}66`,
               }}
             />
           </View>
@@ -303,92 +309,78 @@ export function ExpectedBars({
   )
 }
 
-/** Each budget's share used, month by month: one column per month, a
- * dashed line at 100%, the share printed under it, this month at full
- * strength and earlier months tinted. */
-export function BudgetHistory({
-  rows,
-  monthLabel,
-  left,
+/** One budget's share used over recent months: a column per month on a
+ * track that tops out at 150%, a dashed line at 100%, and the share and
+ * month under each column. Good up to 90%, warn above, bad over 100%; a
+ * month with nothing spent is a faint stub with a dash. */
+export function BudgetColumns({
+  hist,
+  height = 48,
 }: {
-  rows: {
-    id: string
-    name: string
-    hist: { key: string; pct: number; spent: number }[]
-  }[]
-  monthLabel: (key: string) => string
-  /** What is left this month, printed beside each budget's name. */
-  left: (id: string) => string
+  hist: { label: string; pct: number; spent: number }[]
+  height?: number
 }) {
   const t = useTheme()
-  const H = 40
-  const CAP = 1.25
+  const CAP = 1.5
   return (
-    <View style={{ gap: 16 }}>
-      {rows.map((r) => (
-        <View key={r.id} style={{ gap: 6 }}>
-          <Line style={{ justifyContent: "space-between" }}>
-            <Copy size={14} weight="medium" lines={1} style={{ flex: 1 }}>
-              {r.name}
+    <View style={{ flex: 1, gap: 4 }}>
+      <View style={{ height }}>
+        <View
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: height / CAP,
+            borderTopWidth: 1,
+            borderStyle: "dashed",
+            borderColor: t.muted,
+          }}
+        />
+        <Line style={{ gap: 6, alignItems: "flex-end", height }}>
+          {hist.map((h, i) => (
+            <View
+              key={h.label}
+              style={{ flex: 1, height, justifyContent: "flex-end" }}
+            >
+              <GrowBar
+                index={i}
+                height={
+                  h.spent
+                    ? Math.max(2, (Math.min(h.pct, CAP) / CAP) * height)
+                    : 4
+                }
+                style={{
+                  borderTopLeftRadius: 4,
+                  borderTopRightRadius: 4,
+                  backgroundColor: !h.spent
+                    ? t.soft
+                    : h.pct > 1
+                      ? t.bad
+                      : h.pct > 0.9
+                        ? t.warn
+                        : t.good,
+                }}
+              />
+            </View>
+          ))}
+        </Line>
+      </View>
+      <Line style={{ gap: 6 }}>
+        {hist.map((h) => (
+          <View key={h.label} style={{ flex: 1, alignItems: "center" }}>
+            <Copy
+              size={12}
+              weight="medium"
+              style={{ color: h.spent && h.pct > 1 ? t.bad : t.text }}
+            >
+              {h.spent ? `${Math.round(h.pct * 100)}%` : "—"}
             </Copy>
             <Copy size={12} muted>
-              {left(r.id)}
+              {h.label}
             </Copy>
-          </Line>
-          <View>
-            <View
-              style={{
-                position: "absolute",
-                left: 0,
-                right: 0,
-                top: H - H / CAP,
-                borderTopWidth: 1,
-                borderStyle: "dashed",
-                borderColor: t.muted,
-              }}
-            />
-            <Line style={{ gap: 6, alignItems: "flex-end", height: H }}>
-              {r.hist.map((h, i) => {
-                const last = i === r.hist.length - 1
-                const over = h.pct > 1
-                const color = over ? t.bad : t.fin
-                return (
-                  <View
-                    key={h.key}
-                    style={{ flex: 1, height: H, justifyContent: "flex-end" }}
-                  >
-                    <GrowBar
-                      index={i}
-                      height={Math.max(2, (Math.min(h.pct, CAP) / CAP) * H)}
-                      style={{
-                        borderTopLeftRadius: 4,
-                        borderTopRightRadius: 4,
-                        backgroundColor: last ? color : `${color}66`,
-                      }}
-                    />
-                  </View>
-                )
-              })}
-            </Line>
           </View>
-          <Line style={{ gap: 6 }}>
-            {r.hist.map((h) => (
-              <View key={h.key} style={{ flex: 1, alignItems: "center" }}>
-                <Copy
-                  size={12}
-                  weight="medium"
-                  style={{ color: h.pct > 1 ? t.bad : t.text }}
-                >
-                  {h.spent ? `${Math.round(h.pct * 100)}%` : "—"}
-                </Copy>
-                <Copy size={12} muted>
-                  {monthLabel(h.key)}
-                </Copy>
-              </View>
-            ))}
-          </Line>
-        </View>
-      ))}
+        ))}
+      </Line>
     </View>
   )
 }
