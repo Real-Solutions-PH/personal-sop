@@ -31,7 +31,7 @@ jest.mock("sonner-native", () => ({
 jest.mock("expo-audio", () => ({}))
 jest.mock("../media", () => ({ exportCsv: jest.fn(), pickPhoto: jest.fn() }))
 
-const { AccountCard, shade } =
+const { AccountCard, accountColorKey, readableShade, shade } =
   require("../screens/finance-account-card") as typeof import("../screens/finance-account-card")
 
 beforeEach(() => {
@@ -95,4 +95,67 @@ test("cash has no statement, so it is never flagged as unmatched", () => {
   )
   expect(screen.getByText("Kept up as you log")).toBeTruthy()
   expect(screen.queryByText("Not matched yet")).toBeNull()
+})
+
+// The brand's account colours (shared/prototype/design/tokens.ts).
+const TOKENS: Record<string, string> = {
+  blue: "#175dfc",
+  emerald: "#00bc7c",
+  violet: "#7f22fe",
+  orange: "#f54900",
+  cyan: "#0092b9",
+  rose: "#a50035",
+  green: "#00a63d",
+  red: "#c10003",
+  slate: "#62748e",
+}
+// WCAG contrast of white on ``hex``, computed here rather than borrowed.
+const whiteOn = (hex: string) => {
+  const n = Number.parseInt(hex.slice(1), 16)
+  const lin = (v: number) =>
+    v / 255 <= 0.03928 ? v / 255 / 12.92 : ((v / 255 + 0.055) / 1.055) ** 2.4
+  const l =
+    0.2126 * lin(n >> 16) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255)
+  return 1.05 / (l + 0.05)
+}
+
+test("every account colour is darkened just enough for white text", () => {
+  for (const [name, hex] of Object.entries(TOKENS)) {
+    const k = readableShade(hex)
+    expect([name, whiteOn(shade(hex, k)) >= 4.5]).toEqual([name, true])
+    // One step less would not be readable (the least darkening, not more).
+    if (k > 0) expect(whiteOn(shade(hex, k - 0.02))).toBeLessThan(4.5)
+  }
+  for (const name of ["red", "rose", "violet"])
+    expect(readableShade(TOKENS[name])).toBeLessThanOrEqual(0.1)
+})
+
+test("an account's colour: its token, its hex, else one from its id", () => {
+  const key = (color: string, id = "a1") => accountColorKey({ id, color })
+  expect(key("var(--acct-rose)")).toBe("acct-rose")
+  expect(key("#123abc")).toBe("#123abc")
+  // Unresolvable: the server default, nothing, an unknown token, a short hex.
+  for (const bad of ["fin", "", "var(--acct-pink)", "#fff"])
+    expect(key(bad)).toMatch(/^acct-[a-z]+$/)
+  // The same account always gets the same colour; many accounts spread out.
+  expect(key("fin", "x")).toBe(key("", "x"))
+  const spread = new Set(
+    Array.from({ length: 40 }, (_, i) => key("fin", `acct-${i}`)),
+  )
+  expect(spread.size).toBeGreaterThanOrEqual(6)
+  for (const k of spread) expect(Object.keys(TOKENS)).toContain(k.slice(5))
+})
+
+test("a card with no colour of its own is filled with a real hex", () => {
+  render(
+    <AccountCard
+      account={account({ name: "Legacy", type: "bank", color: "fin" })}
+      balance={100}
+      nudgeDays={14}
+    />,
+  )
+  const json = JSON.stringify(screen.toJSON())
+  const bg = [...json.matchAll(/"backgroundColor":"([^"]+)"/g)].map((m) => m[1])
+  expect(bg.length).toBeGreaterThan(0)
+  expect(bg[0]).toMatch(/^#[0-9a-f]{6}$/)
 })

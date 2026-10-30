@@ -138,12 +138,18 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
         payee: payee || undefined,
         note: note || undefined,
         receipt,
+        origCurrency: foreign ? inCur : undefined,
+        origAmount: foreign ? typed : undefined,
+        fxRate: foreign ? fx?.rate : undefined,
       })
-      if (r) {
-        onSaved?.(r)
-        undo(
-          `${type === "income" ? "Received" : "Paid"} ${money(n, cur)}`,
-          () => A.deleteRecords([r.id]),
+      if (!r) toast.error("That scheduled payment no longer exists")
+      else if (r.updated)
+        // Undo would delete a record that existed before this save.
+        toast.success(`Updated ${plan?.name ?? "payment"}`)
+      else {
+        onSaved?.(r.record)
+        undo(`Recorded ${plan?.name ?? "payment"}`, () =>
+          A.deleteRecords([r.record.id]),
         )
       }
       onClose()
@@ -189,11 +195,7 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
         picker
           ? "Category"
           : settles
-            ? type === "income"
-              ? "Record income received"
-              : type === "transfer"
-                ? "Record transfer"
-                : "Record payment"
+            ? `Record ${plan?.name ?? "payment"}`
             : record
               ? "Edit transaction"
               : "New transaction"

@@ -15,7 +15,7 @@ logs every write, so an AI write is undoable the same way as a rules write.
 import json
 import re
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from typing import Annotated, Any, Literal, TypedDict
@@ -452,6 +452,60 @@ class BudgetArgs(BaseModel):
         default_factory=list,
         max_length=30,
         description="Expense categories it covers, by name; empty covers all spending.",
+    )
+
+
+# The account colours in the brand's order (``acct-*``), as the app stores
+# them on the wire: the bare name.
+ACCOUNT_COLORS = (
+    "blue",
+    "emerald",
+    "violet",
+    "orange",
+    "cyan",
+    "rose",
+    "green",
+    "red",
+    "slate",
+)
+
+
+def _next_account_color(accounts: Sequence[Any]) -> str:
+    """The first account colour none of the live accounts uses, else the
+    next one round the palette, so a new account Fern adds is not drawn in
+    the server's colourless default."""
+    live = [a for a in accounts if not getattr(a, "archived", False)]
+    used = {
+        str(a.color or "").removeprefix("var(--acct-").removesuffix(")")
+        for a in live
+    }
+    return next(
+        (c for c in ACCOUNT_COLORS if c not in used),
+        ACCOUNT_COLORS[len(live) % len(ACCOUNT_COLORS)],
+    )
+
+
+def _one_emoji(s: str) -> bool:
+    """A single emoji (one grapheme: a base pictograph with any variation
+    selectors, skin tones, keycaps or zero-width joins), not text such as
+    ``tag``, which every picker would show as the word."""
+    s = s.strip()
+    if not s or (
+        "\u20e3" not in s and any(ch.isalnum() and ord(ch) < 0x2000 for ch in s)
+    ):
+        return False
+    joiners = {0x200D, 0xFE0F, 0xFE0E, 0x20E3}
+    bases = [
+        ch
+        for ch in s
+        if ord(ch) not in joiners
+        and not 0x1F3FB <= ord(ch) <= 0x1F3FF  # skin tones
+        and not 0xE0020 <= ord(ch) <= 0xE007F  # tag sequences (flags)
+    ]
+    flags = all(0x1F1E6 <= ord(ch) <= 0x1F1FF for ch in bases)
+    zwj = s.count("\u200d")
+    return bool(bases) and (
+        (flags and len(bases) == 2) or len(bases) == zwj + 1
     )
 
 
@@ -1385,6 +1439,7 @@ def capture_tools(run: Run) -> list[BaseTool]:
         payload = {
             "kind": "accountCreate",
             "name": a.name,
+            "color": _next_account_color(ports.finance.list_accounts(run.ctx)),
             "type": a.type,
             "opening_minor": _minor(a.opening_balance),
             "limit_minor": _minor(a.credit_limit) if a.credit_limit else None,
@@ -1479,6 +1534,13 @@ def capture_tools(run: Run) -> list[BaseTool]:
         parent = None
         if a.parent:
             parent = ports.finance.main_category(run.ctx, a.parent)
+            h = " ".join(a.parent.lower().split())
+            if parent is None and any(
+                c.parent_id is not None and " ".join(c.name.lower().split()) == h
+                for c in ports.finance.list_categories(run.ctx)
+            ):
+                # The named parent is itself a sub-category.
+                return {"error": "categories_nest_one_level"}
             if parent is None:
                 return {
                     "error": "no_main_category_with_that_name",
@@ -1510,7 +1572,9 @@ def capture_tools(run: Run) -> list[BaseTool]:
                     "category_kind": kind,
                     "parent_id": str(parent.id) if parent else None,
                     "parent_name": parent.name if parent else None,
-                    "icon": a.icon or (parent.icon if parent else "🏷️"),
+                    "icon": a.icon
+                    if a.icon and _one_emoji(a.icon)
+                    else (parent.icon if parent else "🏷️"),
                     # A new expense counts as a want (it breaks a no-spend
                     # day), as the app's own editor starts it; a
                     # sub-category follows its parent.

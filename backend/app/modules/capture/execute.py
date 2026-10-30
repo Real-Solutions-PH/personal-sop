@@ -391,6 +391,7 @@ def _execute_setup(
             opening_minor=opening,
             limit_minor=p.get("limit_minor"),
             account_id=rid(0),
+            color=str(p["color"]) if p.get("color") else None,
         )
         return Result(
             [str(acc.id)],

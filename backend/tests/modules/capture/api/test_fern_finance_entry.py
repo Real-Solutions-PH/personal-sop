@@ -167,3 +167,103 @@ def test_undo_takes_the_new_category_away(
     out = api.post(f"/capture/cards/{step['card_id']}/undo")
     assert out["state"] == "undone", out
     assert not _named(api, "Pets")
+
+
+def test_a_sub_category_cannot_be_a_parent(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = _fern(client, db)
+    turn(
+        api,
+        client,
+        monkeypatch,
+        "make Water a sub-category of bills",
+        act("create_category", name="Water", parent="Bills"),
+    )
+    _, model = turn(
+        api,
+        client,
+        monkeypatch,
+        "add Filtered under water",
+        act("create_category", name="Filtered", parent="water"),
+    )
+    assert tool_result(model)["error"] == "categories_nest_one_level"
+    assert not _named(api, "Filtered")
+
+
+def test_an_icon_that_is_not_one_emoji_becomes_the_tag_emoji(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = _fern(client, db)
+    turn(
+        api,
+        client,
+        monkeypatch,
+        "add a category for pets",
+        act("create_category", name="Pets", icon="dog"),
+    )
+    turn(
+        api,
+        client,
+        monkeypatch,
+        "add a category for travel",
+        act("create_category", name="Travel", icon="✈️🏖️"),
+    )
+    assert [c.icon for c in _named(api, "Pets")] == ["🏷️"]
+    assert [c.icon for c in _named(api, "Travel")] == ["🏷️"]
+
+
+def test_undo_is_refused_while_a_record_uses_the_category(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = _fern(client, db)
+    step, _ = turn(
+        api,
+        client,
+        monkeypatch,
+        "add a category for pets",
+        act("create_category", name="Pets"),
+    )
+    [cat] = _named(api, "Pets")
+    acct = api.account("GCash")
+    api.post(
+        "/finance/records",
+        {
+            "type": "expense",
+            "amount_minor": 50_000,
+            "account_id": acct,
+            "category_id": str(cat.id),
+        },
+    )
+    api.post(f"/capture/cards/{step['card_id']}/undo", status=409)
+    assert _named(api, "Pets")
+
+
+def test_another_users_categories_are_neither_duplicates_nor_parents(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    other = _fern(client, db)
+    other.post("/finance/categories", {"name": "Pets", "kind": "expense"})
+    other.post("/finance/categories", {"name": "Hobbies", "kind": "expense"})
+    api = _fern(client, db)
+    _, model = turn(
+        api,
+        client,
+        monkeypatch,
+        "add a category for pets",
+        act("create_category", name="Pets"),
+    )
+    assert "error" not in tool_result(model)
+    # Saved for this user (``_named`` reads only the caller's rows).
+    assert len(_named(api, "Pets")) == 1
+    _, model = turn(
+        api,
+        client,
+        monkeypatch,
+        "add Lego under hobbies",
+        act("create_category", name="Lego", parent="Hobbies"),
+    )
+    out = tool_result(model)
+    assert out["error"] == "no_main_category_with_that_name"
+    assert "Hobbies" not in out["main_categories"]
+    assert not _named(api, "Lego")

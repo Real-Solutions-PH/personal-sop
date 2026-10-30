@@ -136,7 +136,7 @@ test("Pay now records nothing until Save, then links the record to the date", ()
     />,
     { wrapper },
   )
-  expect(screen.getByText("Record payment")).toBeTruthy()
+  expect(screen.getByText(`Record ${p.name}`)).toBeTruthy()
   // Opening the editor wrote nothing.
   expect(finStore.get().records).toHaveLength(count)
   expect(screen.getByText(/^Expected ₱/)).toBeTruthy()
@@ -205,7 +205,7 @@ test("setup keeps the centavos of a salary and a balance", () => {
 test("an account with no colour of its own gets a steady brand colour", () => {
   const a = { id: "acct-1", color: "fin" }
   expect(accountColorKey(a)).toMatch(
-    /^acct-(blue|emerald|violet|cyan|green|orange)$/,
+    /^acct-(blue|emerald|violet|orange|cyan|rose|green|red|slate)$/,
   )
   expect(accountColorKey(a)).toBe(accountColorKey({ ...a }))
   expect(accountColorKey({ id: "x", color: "var(--acct-rose)" })).toBe(
@@ -226,22 +226,23 @@ test("an account card shows a balance's centavos", () => {
   expect(screen.getByText("₱1,708.64")).toBeTruthy()
 })
 
-test("a scheduled payment's chip names only what exists", () => {
-  const accounts = [{ id: "a", name: "Maya Black" }],
+test("a scheduled payment's chip names what is missing", () => {
+  const accounts = [
+      { id: "a", name: "Maya Black" },
+      { id: "old", name: "Old wallet", archived: true },
+    ],
     categories = [{ id: "bills", name: "Bills" }],
     base = finStore.get().planned[0]
-  expect(
-    plannedWhere(
-      { ...base, type: "expense", accountId: "a", categoryId: "gone" },
-      accounts,
-      categories,
-    ),
-  ).toBe("Maya Black")
-  expect(
-    plannedWhere(
-      { ...base, type: "expense", accountId: "a", categoryId: "bills" },
-      accounts,
-      categories,
-    ),
-  ).toBe("Maya Black · Bills")
+  const where = (extra: object) =>
+    plannedWhere({ ...base, ...extra }, accounts, categories)
+  expect(where({ type: "expense", accountId: "a", categoryId: "gone" })).toBe(
+    "Maya Black · No category",
+  )
+  expect(where({ type: "expense", accountId: "a", categoryId: "bills" })).toBe(
+    "Maya Black · Bills",
+  )
+  // An archived destination is as good as gone; never "?" or "undefined".
+  expect(where({ type: "transfer", accountId: "a", toAccountId: "old" })).toBe(
+    "Maya Black → No account",
+  )
 })
