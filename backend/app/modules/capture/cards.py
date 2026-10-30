@@ -62,6 +62,7 @@ TARGET_OF = {
     "routineUpdate": "habits",
     "habitUpdate": "habits",
     "budgetCreate": "finance",
+    "categoryCreate": "finance",
     "routineCreate": "habits",
     "templateCreate": "fitness",
     "listCreate": "tasks",

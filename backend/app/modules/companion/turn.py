@@ -255,6 +255,9 @@ def outcome(ctx: Ctx, name: str, args: dict[str, Any], result: Any) -> tuple[boo
             True,
             f"Balance: {args.get('account', '')} · {money(minor, ctx.currency)}{wait}",
         )
+    if name == "create_category":
+        under = f" under {args['parent']}" if args.get("parent") else ""
+        return True, f"Added category: {args.get('name', '')}{under}{wait}"
     if name == "create_budget":
         amount = args.get("monthly_limit")
         amt = money(round(float(amount) * 100), ctx.currency) if amount else ""

@@ -45,6 +45,7 @@ RECORD_KINDS = (
     "routineCreate",
     "templateCreate",
     "listCreate",
+    "categoryCreate",
 )
 RULE_KEYS = (
     "habit",

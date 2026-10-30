@@ -17,6 +17,7 @@ import { Copy, Segmented, Tap } from "../native-kit"
 import { useTheme } from "../theme"
 import { Button, Choices, DateField, Field, Sheet, Toggle, undo } from "../ui"
 import { isDay } from "../validation"
+import { CategoryPicker } from "./finance-category-picker"
 export function PlannedEditor(props: {
   id?: string
   prefill?: Partial<PlannedItem>
@@ -102,26 +103,14 @@ function Editor({
       onClose={picker ? () => setPicker(false) : onClose}
     >
       {picker ? (
-        s.categories
-          .filter(
-            (c) =>
-              !c.archived &&
-              c.kind === (type === "income" ? "income" : "expense"),
-          )
-          .map((c) => (
-            <Tap
-              key={c.id}
-              onPress={() => {
-                setCategory(c.id)
-                setPicker(false)
-              }}
-              style={{ paddingVertical: 12, paddingLeft: c.parentId ? 24 : 0 }}
-            >
-              <Copy>
-                {c.icon} {c.name}
-              </Copy>
-            </Tap>
-          ))
+        <CategoryPicker
+          kind={type === "income" ? "income" : "expense"}
+          value={category}
+          onPick={(id) => {
+            setCategory(id)
+            setPicker(false)
+          }}
+        />
       ) : (
         <>
           <Segmented

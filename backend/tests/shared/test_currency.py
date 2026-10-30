@@ -32,11 +32,18 @@ def test_every_supported_currency_fits_hundredths() -> None:
 
 
 def test_money_text() -> None:
-    assert money(124_050) == "₱1,241"
+    assert money(124_050) == "₱1,240.50"
+    assert money(124_000) == "₱1,240"
     assert money(-500) == "₱-5"
-    assert money(124_050, currency("USD")) == "$1,241"
+    assert money(124_050, currency("USD")) == "$1,240.50"
     assert money(100_000, currency("JPY")) == "¥1,000"
     assert money(250_000, currency("CHF")) == "CHF 2,500"
+    # Reported: 158.82 read as 158 and 1,708.64 as 1,709. Same strings as
+    # the device's money() for the same amounts.
+    assert money(15_882) == "₱158.82"
+    assert money(170_864) == "₱1,708.64"
+    assert money(-550) == "₱-5.50"
+    assert money(250_075, currency("JPY")) == "¥2,501"
     with pytest.raises(ValueError):
         currency("XXX")
 

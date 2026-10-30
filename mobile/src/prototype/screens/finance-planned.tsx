@@ -277,7 +277,7 @@ export function Planned({ id }: { id?: string }) {
             <Copy
               size={narrow ? 22 : 30}
               weight="displayMedium"
-              lines={1}
+              fit
               style={{ color: x.color ?? t.text }}
             >
               {x.value}
@@ -337,7 +337,7 @@ export function Planned({ id }: { id?: string }) {
           <Line style={{ paddingVertical: 8 }}>
             <PlannedIcon p={p} />
             <View style={{ flex: 1 }}>
-              <Copy size={30} weight="displayMedium">
+              <Copy size={30} weight="displayMedium" fit>
                 {signed(p)}
               </Copy>
               <Copy size={12} muted>

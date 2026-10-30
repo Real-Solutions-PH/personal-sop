@@ -26,3 +26,13 @@ test("a zero-decimal currency rounds once, to whole units", () => {
   expect(money(2500.4, jpy)).toBe("¥2,500")
   expect(money(2500.6, jpy)).toBe("¥2,501")
 })
+
+test("a typed sentence's amount keeps its cents (the device parser)", () => {
+  const { parseAmount } =
+    require("@domain/capture/parse") as typeof import("@domain/capture/parse")
+  expect(parseAmount("spent 1,708.64 at SM")?.amount).toBe(1708.64)
+  expect(parseAmount("coffee 158.82")?.amount).toBe(158.82)
+  expect(parseAmount("grab 1,708")?.amount).toBe(1708)
+  expect(parseAmount("laptop 2k")?.amount).toBe(2000)
+  expect(parseAmount("rent ₱12,000.50")?.amount).toBe(12000.5)
+})

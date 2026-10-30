@@ -1,4 +1,5 @@
-"""Fern adds a category or a sub-category the person asks for."""
+"""Fern adds a category or a sub-category, and files an income plan under
+an income category."""
 
 from typing import Any
 
@@ -6,9 +7,11 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
+from app.modules.capture.models import RecordCard
 from app.modules.companion import services
 from app.modules.finance.models import Category
-from tests.modules.companion.api.test_fern_agent import act, rows_of
+from tests.modules.capture.api.helpers import install, say
+from tests.modules.companion.api.test_fern_agent import act, rows_of, stream
 from tests.modules.companion.api.test_fern_fitness import fern, tool_result, turn
 
 
@@ -38,9 +41,9 @@ def test_a_new_main_category_is_saved_with_its_emoji(
         "add a category for my dog's expenses",
         act("create_category", name="Pets", icon="🐶"),
     )
-    out = tool_result(model)
-    assert out["created"] == "category" and out["parent"] is None, out
+    assert "error" not in tool_result(model)
     assert step["ok"], step
+    assert step["summary"] == "Added category: Pets"
     [cat] = _named(api, "Pets")
     assert (cat.kind, cat.parent_id, cat.icon) == ("expense", None, "🐶")
     # A new expense starts as a want, as the app's own editor starts it.
@@ -53,15 +56,15 @@ def test_a_sub_category_goes_under_the_named_main_one(
 ) -> None:
     api = _fern(client, db)
     bills = next(c for c in _categories(api) if c["name"] == "Bills")
-    _, model = turn(
+    step, model = turn(
         api,
         client,
         monkeypatch,
         "make Water a sub-category of bills",
         act("create_category", name="Water", parent="bills"),
     )
-    out = tool_result(model)
-    assert out["created"] == "sub-category" and out["parent"] == "Bills", out
+    assert "error" not in tool_result(model)
+    assert step["summary"] == "Added category: Water under bills"
     [cat] = _named(api, "Water")
     assert str(cat.parent_id) == bills["id"]
     assert cat.kind == "expense"
@@ -119,3 +122,48 @@ def test_a_category_that_exists_is_not_added_twice(
 
 def test_it_counts_as_a_write_for_fern() -> None:
     assert "create_category" in services.WRITE_TOOLS
+
+
+def test_an_income_plan_gets_its_income_category(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An income plan's category was looked up among expense categories, so
+    it saved with none and its detail read "<account> · undefined"."""
+    api = _fern(client, db)
+    salary = next(c for c in _categories(api) if c["name"] == "Salary")
+    install(
+        monkeypatch,
+        say(
+            "",
+            act(
+                "add_planned",
+                name="Reimbursement from Real Solutions",
+                amount=1708.64,
+                day_of_month=15,
+                type="income",
+                category="salary",
+            ),
+        ),
+        say("Planned."),
+    )
+    stream(api, client, "plan my reimbursement every 15th, salary")
+    [card] = [c for c in rows_of(api, RecordCard) if c.kind == "planned"]
+    assert card.payload["category_id"] == salary["id"]
+    assert card.payload["amount_minor"] == 170864
+
+
+def test_undo_takes_the_new_category_away(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = _fern(client, db)
+    step, _ = turn(
+        api,
+        client,
+        monkeypatch,
+        "add a category for pets",
+        act("create_category", name="Pets"),
+    )
+    assert _named(api, "Pets")
+    out = api.post(f"/capture/cards/{step['card_id']}/undo")
+    assert out["state"] == "undone", out
+    assert not _named(api, "Pets")

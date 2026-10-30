@@ -270,7 +270,7 @@ export function Accounts({ id }: { id?: string }) {
           ) : (
             <Line>
               <Frame style={{ padding: 16, flex: 1 }}>
-                <Copy size={30} weight="displayMedium">
+                <Copy size={30} weight="displayMedium" fit>
                   {money(inflow)}
                 </Copy>
                 <Copy size={12} muted>
@@ -278,7 +278,7 @@ export function Accounts({ id }: { id?: string }) {
                 </Copy>
               </Frame>
               <Frame style={{ padding: 16, flex: 1 }}>
-                <Copy size={30} weight="displayMedium">
+                <Copy size={30} weight="displayMedium" fit>
                   {money(outflow)}
                 </Copy>
                 <Copy size={12} muted>
@@ -475,7 +475,12 @@ export function Accounts({ id }: { id?: string }) {
           <Frame style={{ padding: 16 }}>
             <Line style={{ justifyContent: "space-between" }}>
               <View>
-                <Copy size={30} weight="displayMedium" style={{ color: t.fin }}>
+                <Copy
+                  size={30}
+                  weight="displayMedium"
+                  fit
+                  style={{ color: t.fin }}
+                >
                   {money(C.netWorth(s, bal))}
                 </Copy>
                 <Copy size={12} muted>

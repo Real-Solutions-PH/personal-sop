@@ -5,7 +5,7 @@ import { convert, fxStore, refreshRate } from "@domain/finance/fx"
 import { finStore } from "@domain/finance/store"
 import { dayKey } from "@domain/lib/day"
 import { money, useCurrency } from "@domain/lib/money"
-import { Check, Paperclip } from "lucide-react-native"
+import { Paperclip } from "lucide-react-native"
 import { useEffect, useState } from "react"
 import { View } from "react-native"
 import { toast } from "sonner-native"
@@ -16,7 +16,7 @@ import { fonts, useTheme } from "../theme"
 import { TimeInput } from "../time-input"
 import { Button, Choices, DateField, Field, Sheet, undo } from "../ui"
 import { isDay } from "../validation"
-import { CategoryForm } from "./finance-categories"
+import { CategoryPicker } from "./finance-category-picker"
 
 type Props = {
   record?: FinRecord
@@ -67,28 +67,12 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
     [refund, setRefund] = useState(!!init.isRefund),
     [receipt, setReceipt] = useState(!!init.receipt),
     [picker, setPicker] = useState(false),
-    // Adding a category from the picker: under which main one, if any.
-    [adding, setAdding] = useState<{ parentId?: string } | null>(null),
-    [query, setQuery] = useState(""),
     [tried, setTried] = useState(false)
   const accounts = s.accounts.filter((a) => !a.archived),
     catKind = type === "income" && !refund ? "income" : "expense",
-    cats = s.categories.filter((c) => !c.archived && c.kind === catKind),
-    tops = cats.filter(
-      (c) => !c.parentId || !cats.some((p) => p.id === c.parentId),
-    ),
-    q = query.trim().toLowerCase(),
-    // Each main category followed by its own sub-categories; a search
-    // matches either name and keeps a match's parent above it.
-    pickRows = tops.flatMap((top) => {
-      const kids = cats.filter((c) => c.parentId === top.id),
-        hit = (c: { name: string }) => c.name.toLowerCase().includes(q),
-        shown = q && !hit(top) ? kids.filter(hit) : kids
-      return !q || hit(top) || shown.length
-        ? [{ c: top, sub: false }, ...shown.map((c) => ({ c, sub: true }))]
-        : []
-    }),
+    _cats = s.categories.filter((c) => !c.archived && c.kind === catKind),
     chosen = s.categories.find((c) => c.id === category),
+    plan = settles && s.planned.find((p) => p.id === settles.plannedId),
     suggestion = C.suggestCategory(s, payee),
     foreign = type !== "transfer" && inCur !== cur.code,
     other = cur.code === "USD" ? "PHP" : "USD",
@@ -120,7 +104,7 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
     setTried(true)
     if (
       amountError ||
-      !account ||
+      !accounts.some((a) => a.id === account) ||
       !isDay(date) ||
       !/^([01]\d|2[0-3]):[0-5]\d$/.test(time) ||
       (type === "transfer" ? !to || to === account : !category)
@@ -202,131 +186,53 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
   return (
     <Sheet
       title={
-        adding
-          ? adding.parentId
-            ? "New sub-category"
-            : "New category"
-          : picker
-            ? "Category"
-            : settles
-              ? type === "income"
-                ? "Record income received"
-                : type === "transfer"
-                  ? "Record transfer"
-                  : "Record payment"
-              : record
-                ? "Edit transaction"
-                : "New transaction"
+        picker
+          ? "Category"
+          : settles
+            ? type === "income"
+              ? "Record income received"
+              : type === "transfer"
+                ? "Record transfer"
+                : "Record payment"
+            : record
+              ? "Edit transaction"
+              : "New transaction"
       }
       open
-      onClose={
-        adding
-          ? () => setAdding(null)
-          : picker
-            ? () => setPicker(false)
-            : onClose
-      }
+      onClose={picker ? () => setPicker(false) : onClose}
     >
-      {adding ? (
-        <CategoryForm
-          catKind={catKind}
-          parentId={adding.parentId}
-          lockKind
-          onAdded={(id) => {
+      {picker ? (
+        <CategoryPicker
+          kind={catKind}
+          value={category}
+          onPick={(id) => {
             setCategory(id)
             setPicker(false)
           }}
-          onClose={() => setAdding(null)}
         />
-      ) : picker ? (
-        <>
-          <Field
-            label="Search categories"
-            value={query}
-            onChangeText={setQuery}
-          />
-          {pickRows.map(({ c, sub }) => (
-            <Line key={c.id} style={{ gap: 0 }}>
-              {sub && (
-                // A sub-category hangs off its parent: an elbow in the
-                // gutter where the parent's icon sits.
-                <View
-                  style={{
-                    width: 28,
-                    alignSelf: "stretch",
-                    marginLeft: 10,
-                    borderLeftWidth: 1,
-                    borderColor: t.line,
-                  }}
-                />
-              )}
-              <Tap
-                label={
-                  sub
-                    ? `${c.name}, under ${cats.find((p) => p.id === c.parentId)?.name}`
-                    : c.name
-                }
-                onPress={() => {
-                  setCategory(c.id)
-                  setPicker(false)
-                }}
-                style={{ flex: 1, paddingVertical: sub ? 10 : 12 }}
-              >
-                <Line>
-                  <Copy size={sub ? 16 : 20}>{c.icon}</Copy>
-                  <Copy
-                    size={sub ? 14 : 16}
-                    weight={sub ? "body" : "medium"}
-                    style={{ flex: 1 }}
-                  >
-                    {c.name}
-                  </Copy>
-                  {category === c.id && <Check color={t.fin} size={20} />}
-                </Line>
-              </Tap>
-            </Line>
-          ))}
-          {!pickRows.length && (
-            <Copy size={14} muted style={{ paddingVertical: 8 }}>
-              No category matches “{query.trim()}”.
-            </Copy>
-          )}
-          <Line style={{ gap: 8, marginTop: 8 }}>
-            <View style={{ flex: 1 }}>
-              <Button tone="quiet" onPress={() => setAdding({})}>
-                New category
-              </Button>
-            </View>
-            {tops.length > 0 && (
-              <View style={{ flex: 1 }}>
-                <Button
-                  tone="quiet"
-                  onPress={() =>
-                    setAdding({
-                      parentId: (chosen?.parentId ?? chosen?.id) || tops[0].id,
-                    })
-                  }
-                >
-                  New sub-category
-                </Button>
-              </View>
-            )}
-          </Line>
-        </>
       ) : (
         <>
-          <Segmented
-            value={type}
-            onChange={(v) => {
-              setType(v)
-              setCategory("")
-            }}
-            options={[
-              { value: "expense", label: "Expense" },
-              { value: "income", label: "Income" },
-              { value: "transfer", label: "Transfer" },
-            ]}
-          />
+          {plan && settles && (
+            <Copy size={12} muted>
+              Expected {plan.estimated ? "≈ " : ""}
+              {money(plan.amount, cur)} · due {C.shortDate(settles.day)}
+            </Copy>
+          )}
+          {/* A scheduled payment keeps its own kind. */}
+          {!settles && (
+            <Segmented
+              value={type}
+              onChange={(v) => {
+                setType(v)
+                setCategory("")
+              }}
+              options={[
+                { value: "expense", label: "Expense" },
+                { value: "income", label: "Income" },
+                { value: "transfer", label: "Transfer" },
+              ]}
+            />
+          )}
           {type !== "transfer" && (
             <Segmented
               value={inCur}
@@ -372,6 +278,12 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
             options={accountOptions}
             wrap
           />
+          {/* Save said nothing when no account was picked. */}
+          {tried && !accounts.some((a) => a.id === account) && (
+            <Copy size={12} style={{ color: t.bad }}>
+              {accounts.length ? "Pick an account" : "Add an account first"}
+            </Copy>
+          )}
           {type === "transfer" ? (
             <>
               <Choices
@@ -434,7 +346,7 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
                   Pick a category
                 </Copy>
               )}
-              {type === "income" && (
+              {type === "income" && !settles && (
                 <Line>
                   <View style={{ flex: 1 }}>
                     <Copy size={14}>This is a refund</Copy>
@@ -505,7 +417,9 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
               </Button>
             )}
             <View style={{ flex: 1 }}>
-              <Button onPress={() => save()}>Save</Button>
+              <Button onPress={() => save()}>
+                {settles ? (type === "income" ? "Received" : "Paid") : "Save"}
+              </Button>
             </View>
           </Line>
         </>

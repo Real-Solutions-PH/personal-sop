@@ -1,8 +1,9 @@
 // Typing money and recording it: the shared money field, recording a
 // scheduled payment only on Save, the grouped category picker, the finance
 // setup amounts, and the account and scheduled-payment labels.
-import { derivedId } from "@domain/lib/ids"
+
 import { finStore } from "@domain/finance/store"
+import { derivedId } from "@domain/lib/ids"
 import { configureStorage, resetAll } from "@domain/lib/store"
 import { fireEvent, render, screen } from "@testing-library/react-native"
 import { type ReactNode, useState } from "react"
@@ -138,8 +139,9 @@ test("Pay now records nothing until Save, then links the record to the date", ()
   expect(screen.getByText("Record payment")).toBeTruthy()
   // Opening the editor wrote nothing.
   expect(finStore.get().records).toHaveLength(count)
+  expect(screen.getByText(/^Expected ₱/)).toBeTruthy()
   fireEvent.changeText(screen.getByLabelText("Amount ₱"), "1,708.64")
-  fireEvent.press(screen.getByText("Save"))
+  fireEvent.press(screen.getByText("Paid"))
   const r = finStore
     .get()
     .records.find((x) => x.id === derivedId("planned-record", p.id, day))
@@ -177,7 +179,6 @@ test("a sub-category added from the picker is chosen for the transaction", () =>
   render(<RecordEditor open onClose={() => {}} />, { wrapper })
   fireEvent.press(screen.getByLabelText("Choose category"))
   fireEvent.press(screen.getByText("New sub-category"))
-  expect(screen.getByText("New sub-category")).toBeTruthy()
   fireEvent.changeText(screen.getByLabelText("Name"), "Pet food")
   fireEvent.press(screen.getByText("Save"))
   const added = finStore.get().categories.find((c) => c.name === "Pet food")
@@ -203,7 +204,9 @@ test("setup keeps the centavos of a salary and a balance", () => {
 
 test("an account with no colour of its own gets a steady brand colour", () => {
   const a = { id: "acct-1", color: "fin" }
-  expect(accountColorKey(a)).toMatch(/^acct-(blue|emerald|violet|cyan|green|orange)$/)
+  expect(accountColorKey(a)).toMatch(
+    /^acct-(blue|emerald|violet|cyan|green|orange)$/,
+  )
   expect(accountColorKey(a)).toBe(accountColorKey({ ...a }))
   expect(accountColorKey({ id: "x", color: "var(--acct-rose)" })).toBe(
     "acct-rose",
@@ -212,7 +215,11 @@ test("an account with no colour of its own gets a steady brand colour", () => {
 })
 
 test("an account card shows a balance's centavos", () => {
-  const account = { ...finStore.get().accounts[0], name: "BPI", type: "bank" as const }
+  const account = {
+    ...finStore.get().accounts[0],
+    name: "BPI",
+    type: "bank" as const,
+  }
   render(<AccountCard account={account} balance={1708.64} nudgeDays={14} />, {
     wrapper,
   })

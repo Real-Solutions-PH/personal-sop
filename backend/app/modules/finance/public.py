@@ -417,11 +417,12 @@ def create_category(
     parent_id: uuid.UUID | None = None,
     icon: str = "🏷️",
     discretionary: bool = False,
+    category_id: uuid.UUID | None = None,
 ) -> Category:
     """A new category, or a sub-category under ``parent_id`` (one level
     deep, same kind), as the Categories screen's add does. Flushes only."""
     repo.settings_row(ctx)
-    cid = uuid.uuid4()
+    cid = category_id or uuid.uuid4()
     services._check_parent(ctx, cid, kind, parent_id)
     cat, _ = owned_repo.upsert(
         ctx,
@@ -437,6 +438,12 @@ def create_category(
         },
     )
     return cat
+
+
+def delete_category(ctx: Ctx, *, category_id: uuid.UUID) -> None:
+    """Undo of ``create_category`` from chat: refused once records use it.
+    Its sub-categories become main ones. Flushes only."""
+    services._delete_category(ctx, category_id, None)
 
 
 def expense_category_counts(ctx: Ctx, *, since: datetime) -> dict[uuid.UUID, int]:

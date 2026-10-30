@@ -151,7 +151,7 @@ export function parseAmount(s: string): {
     currentCurrency().code === "PHP" &&
     /\$\s?\d|\b\d+(\.\d+)?\s?(usd|dollars?)\b/i.test(s)
   const re =
-    /(?:₱|php|p|\$)?\s?(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s?(k\b)?(?!\s?(?:min|mins|minutes|km|kg|kilos?|x\b|x\d|pcs?|pages?|glasses?|cups?|reps?|sets?|am\b|pm\b|th\b|st\b|nd\b|rd\b|hours?|hrs?|steps?|servings?|%|:\d))/gi
+    /(?:₱|php|p|\$)?\s?(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)\s?(k\b)?(?!\s?(?:min|mins|minutes|km|kg|kilos?|x\b|x\d|pcs?|pages?|glasses?|cups?|reps?|sets?|am\b|pm\b|th\b|st\b|nd\b|rd\b|hours?|hrs?|steps?|servings?|%|:\d))/gi
   for (const m of s.matchAll(re)) {
     const raw = m[1].replace(/,/g, "")
     let n = Number(raw)
@@ -162,7 +162,8 @@ export function parseAmount(s: string): {
       (m.index ?? 0) + m[0].length + 1,
     )
     if (after === "x") continue
-    return { amount: Math.round(n), usd }
+    // To the cent, as written: 1,708.64 is 1708.64, never 1708 or 1709.
+    return { amount: Math.round(n * 100) / 100, usd }
   }
   return null
 }

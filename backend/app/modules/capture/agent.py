@@ -1233,7 +1233,9 @@ def capture_tools(run: Run) -> list[BaseTool]:
             "date": a.due_date.isoformat() if a.due_date else None,
             "day": None if a.due_date else a.day_of_month,
             "account_id": _account_id(run, a.account, default=True),
-            "category_id": _category_id(run, a.category, "expense"),
+            # An income plan looks among income categories; looking among
+            # expense ones saved every income plan with no category.
+            "category_id": _category_id(run, a.category, a.type),
         }
         d = RecordDraft(
             kind="planned",
@@ -1495,24 +1497,28 @@ def capture_tools(run: Run) -> list[BaseTool]:
             for c in ports.finance.list_categories(run.ctx)
         ):
             return {"error": "a_category_with_that_name_exists"}
-        cat = ports.finance.create_category(
-            run.ctx,
-            name=name,
-            kind=kind,
-            parent_id=parent.id if parent else None,
-            icon=a.icon or (parent.icon if parent else "🏷️"),
-            # A new expense counts as a want (it breaks a no-spend day), as
-            # the app's own editor starts it; a sub-category follows its
-            # parent.
-            discretionary=parent.discretionary if parent else kind == "expense",
+        d = RecordDraft(
+            kind="categoryCreate",
+            target="finance",
+            rule="structure",
+            payload={
+                k: v
+                for k, v in {
+                    "kind": "categoryCreate",
+                    "name": name,
+                    "category_kind": kind,
+                    "parent_id": str(parent.id) if parent else None,
+                    "parent_name": parent.name if parent else None,
+                    "icon": a.icon or (parent.icon if parent else "🏷️"),
+                    # A new expense counts as a want (it breaks a no-spend
+                    # day), as the app's own editor starts it; a
+                    # sub-category follows its parent.
+                    "want": parent.discretionary if parent else kind == "expense",
+                }.items()
+                if v is not None
+            },
         )
-        return {
-            "created": "sub-category" if parent else "category",
-            "id": str(cat.id),
-            "name": cat.name,
-            "kind": kind,
-            "parent": parent.name if parent else None,
-        }
+        return _card(run, d, setup=True)
 
     def create_routine(**kw: Any) -> dict[str, Any]:
         a = RoutineArgs(**kw)
