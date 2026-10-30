@@ -455,6 +455,22 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
   // Send
   // -------------------------------------------------------------------------
 
+  /** Fetch a capture this device lacks, once at a time per id. A capture
+   * that is gone (404) is not asked for again; any other failure clears the
+   * mark, so the next ask tries again. */
+  const ensuring = new Set<string>()
+  const gone = new Set<string>()
+  function ensure(id: string) {
+    if (find(id) || ensuring.has(id) || gone.has(id) || !deps.online()) return
+    ensuring.add(id)
+    void deps.http
+      .request<Row>("GET", `/capture/${id}`)
+      .then(detail, (error: unknown) => {
+        if (error instanceof ApiError && error.status === 404) gone.add(id)
+      })
+      .finally(() => ensuring.delete(id))
+  }
+
   async function refresh(id: string, code?: string) {
     try {
       detail(await deps.http.request<Row>("GET", `/capture/${id}`))
@@ -631,6 +647,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
 
   const backend: CaptureBackend = {
     send,
+    ensure,
     confirm(cardId) {
       if (onlyHere(cardId)) return runLocally(() => confirmCard(cardId))
       if (findCard(cardId)?.card.state !== "proposed") return
@@ -1106,6 +1123,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
               step.card_id = r.card_id
               step.state = String(r.state ?? "")
             }
+            if (typeof r.capture_id === "string") step.capture_id = r.capture_id
             if (Array.isArray(r.cards))
               step.cards = (r.cards as Row[]).map((c) => ({
                 card_id: String(c.card_id),

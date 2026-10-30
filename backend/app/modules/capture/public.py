@@ -360,16 +360,37 @@ def waiting_chat_cards(ctx: Ctx) -> list[RecordCard]:
     )
 
 
+def card_states(ctx: Ctx, ids: list[str]) -> dict[str, str]:
+    """The current state of each of the person's cards, by id, in one read.
+    An id that is not a card of theirs (or not an id) is absent."""
+    wanted: list[uuid.UUID] = []
+    for i in ids:
+        try:
+            wanted.append(uuid.UUID(str(i)))
+        except ValueError:
+            continue
+    if not wanted:
+        return {}
+    rows = owned_repo.list_rows(ctx, RecordCard, col(RecordCard.id).in_(wanted))
+    return {str(r.id): str(r.state) for r in rows}
+
+
 def settle_waiting(
-    ctx: Ctx, *, action: Literal["confirm", "discard"]
+    ctx: Ctx,
+    *,
+    action: Literal["confirm", "discard"],
+    keep_capture: uuid.UUID | None = None,
 ) -> dict[str, Any]:
     """Confirm or discard what recent chat turns left waiting (Fern's
     ``confirm_pending`` / ``discard_pending``). A card the module refuses
     stays waiting and is reported with the reason (an expense with no
-    account says so). Flushes only."""
+    account says so). Cards on ``keep_capture`` (the asking turn's own) are
+    left alone: they have their own Confirm and Discard. Flushes only."""
     done: list[str] = []
     refused: list[dict[str, str]] = []
     for card in waiting_chat_cards(ctx):
+        if keep_capture is not None and card.capture_id == keep_capture:
+            continue
         label = card_label(ctx, card)
         if action == "discard":
             C.discard_row(ctx, card)
