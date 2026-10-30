@@ -46,6 +46,8 @@ export type StepItem = {
   state?: string
   /** A call that wrote several cards (plain tasks and reminders apart). */
   cards?: { card_id: string; state: string; label: string }[]
+  /** The capture the cards sit on, fetched when it never arrived. */
+  capture_id?: string
 }
 
 // What a running step says before its result arrives; the finished step

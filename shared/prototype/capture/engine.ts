@@ -103,6 +103,9 @@ export interface CaptureBackend {
     payload: Payload,
     target: RecordCard["target"],
   ): RecordCard
+  /** Fetch a capture this device has not got (a step's card whose reply
+   * frame never arrived). */
+  ensure(captureId: string): void
 }
 let backend: CaptureBackend | null = null
 export function setCaptureBackend(b: CaptureBackend | null) {
@@ -546,6 +549,10 @@ function saveCard(
   } catch {
     return { ...card, warn: "Couldn't save — try again or edit." }
   }
+}
+/** Make sure a capture is on this device; on-device captures always are. */
+export function ensureCapture(captureId: string) {
+  backend?.ensure(captureId)
 }
 export function confirmCard(cardId: string) {
   if (backend) return backend.confirm(cardId)
