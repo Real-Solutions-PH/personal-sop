@@ -93,6 +93,8 @@ export interface LiveNext {
   detail: string
   /** Planned seconds of a routine step. */
   sec?: number
+  /** Workout only: the exercise's previous best ("Best 85 kg × 6"). */
+  best?: string
 }
 
 export type LiveControl =
@@ -116,6 +118,8 @@ export interface LiveState {
   /** The current step, exercise or habit. */
   step: string
   detail: string
+  /** Workout only: the current exercise's previous best, formatted. */
+  best?: string
   /** Routine: current step key ("2"); workout: current "weId/setId". */
   key: string
   /** Steps or working sets done, and how many there are. */

@@ -1,6 +1,8 @@
-// Apple Health, read-only: the day's steps, active energy, walking+running
-// distance, workout count and the night's sleep. Nothing here is synced; only
-// an eat-back the user taps (setBurnAdjustment) reaches the server.
+// Apple Health: reads activity and sleep (the day's steps, active energy,
+// walking+running distance, workout count and the night's sleep), and writes
+// workouts when the person opts in. Nothing here is synced; only an eat-back
+// the user taps (setBurnAdjustment) reaches the server.
+import type { WorkoutActivityType } from "@kingstinct/react-native-healthkit"
 import Constants from "expo-constants"
 import { Platform } from "react-native"
 
@@ -31,7 +33,14 @@ const STEPS = "HKQuantityTypeIdentifierStepCount",
   DISTANCE = "HKQuantityTypeIdentifierDistanceWalkingRunning",
   WORKOUT = "HKWorkoutTypeIdentifier",
   SLEEP = "HKCategoryTypeIdentifierSleepAnalysis",
-  READ = [STEPS, ENERGY, DISTANCE, WORKOUT, SLEEP] as const
+  READ = [STEPS, ENERGY, DISTANCE, WORKOUT, SLEEP] as const,
+  WRITE = [WORKOUT] as const
+// HKAuthorizationStatus.sharingAuthorized. Unlike reading, iOS does say
+// whether writing is allowed.
+const SHARING_AUTHORIZED = 2
+// WorkoutActivityType.traditionalStrengthTraining and .mixedCardio.
+const STRENGTH = 50 as WorkoutActivityType,
+  CARDIO = 73 as WorkoutActivityType
 
 // Expo Go ships without HealthKit (Apple grants it per app), so there the
 // card shows sample activity instead, to try the eat-back flow. Real builds
@@ -254,5 +263,81 @@ export async function readActivity(day: string): Promise<Activity | null> {
     }
   } catch {
     return null
+  }
+}
+
+/** Whether this device can offer saving workouts: a real build with Health
+ * (Expo Go has no HealthKit of its own, only sample reads). */
+export const canOfferWorkoutWrite = () => !expoGo() && healthAvailable()
+
+/** Whether Unfurl may write workouts now (false once revoked in Health). */
+export function canWriteWorkouts(): boolean {
+  if (!canOfferWorkoutWrite()) return false
+  try {
+    return (
+      (load() as HealthKit).authorizationStatusFor(WORKOUT) ===
+      SHARING_AUTHORIZED
+    )
+  } catch {
+    return false
+  }
+}
+
+/** Shows the Health sheet asking to write workouts (and read, as the
+ * Connect card does). True only when writing ended up allowed. */
+export async function connectWorkoutWrite(): Promise<boolean> {
+  if (!canOfferWorkoutWrite()) return false
+  try {
+    await (load() as HealthKit).requestAuthorization({
+      toShare: WRITE,
+      toRead: READ,
+    })
+  } catch {
+    return false
+  }
+  return canWriteWorkouts()
+}
+
+/** Writes one finished workout, duration only: no calories (Unfurl does
+ * not measure them, and the eat-back reads Health's active energy). The
+ * sync identifier makes Health itself refuse a second copy. Returns the
+ * Health sample's uuid, or null when the save failed. */
+export async function saveWorkout(input: {
+  id: string
+  name: string
+  start: Date
+  end: Date
+  cardio: boolean
+}): Promise<string | null> {
+  if (!canOfferWorkoutWrite()) return null
+  try {
+    const saved = await (load() as HealthKit).saveWorkoutSample(
+      input.cardio ? CARDIO : STRENGTH,
+      [],
+      input.start,
+      input.end,
+      undefined,
+      {
+        HKMetadataKeySyncIdentifier: `unfurl-workout-${input.id}`,
+        HKMetadataKeySyncVersion: 1,
+        HKMetadataKeyWorkoutBrandName: "Unfurl",
+        HKMetadataKeyExternalUUID: input.id,
+        UnfurlWorkoutName: input.name,
+      },
+    )
+    return saved.uuid
+  } catch {
+    return null
+  }
+}
+
+/** Removes a workout this app wrote. False when Health refused. */
+export async function deleteSavedWorkout(uuid: string): Promise<boolean> {
+  if (!canOfferWorkoutWrite()) return false
+  try {
+    await (load() as HealthKit).deleteObjects(WORKOUT, { uuid })
+    return true
+  } catch {
+    return false
   }
 }
