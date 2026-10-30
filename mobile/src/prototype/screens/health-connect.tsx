@@ -1,7 +1,13 @@
 // Connecting Apple Health: whether its sheet was answered, the Connect card
 // the activity and steps cards show until then, and Fitness settings' row,
 // with the switch that saves finished workouts to Health.
-import { useCallback, useEffect, useRef, useSyncExternalStore } from "react"
+import {
+  useCallback,
+  useEffect,
+  useReducer,
+  useRef,
+  useSyncExternalStore,
+} from "react"
 import { AppState, Linking, type ViewStyle } from "react-native"
 import { toast } from "sonner-native"
 import {
@@ -81,7 +87,15 @@ const openHealth = () =>
  * turning it off stops saving and leaves what was saved in Health. */
 function SaveWorkoutsRow({ onAnswered }: { onAnswered: () => Promise<void> }) {
   const enabled = healthWorkoutsStore.use((s) => s.enabled),
-    busy = useRef(false)
+    busy = useRef(false),
+    [, refresh] = useReducer((n: number) => n + 1, 0)
+  // Write permission can change in the Health app: read it again on return.
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") refresh()
+    })
+    return () => sub.remove()
+  }, [])
   const change = async (on: boolean) => {
     if (!on) {
       healthWorkoutsStore.set((s) => ({ ...s, enabled: false }))

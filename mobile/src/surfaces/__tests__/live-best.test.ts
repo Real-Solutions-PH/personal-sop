@@ -171,6 +171,22 @@ describe("previousBest", () => {
     expect(previousBest(s, "pushup", "now")).toMatchObject({ reps: 15 })
   })
 
+  it("bodyweight reps stay the most reps once a weigh-in exists", () => {
+    // With a body weight, sets are ranked by estimated max, which skips sets
+    // past 12 reps; the 15 must still win.
+    const s = state(
+      [
+        workout("a", 4, [
+          { exerciseId: "pushup", sets: [set(0, 10), set(0, 15)] },
+        ]),
+      ],
+      {
+        weighIns: [{ id: "wi", measuredAt: iso(5), weightKg: 70 }],
+      },
+    )
+    expect(previousBest(s, "pushup", "now")).toMatchObject({ reps: 15 })
+  })
+
   it("counts a workout logged from chat", () => {
     const s = state([
       workout("c", 2, [{ exerciseId: "bench", sets: [set(70, 5)] }], {
@@ -260,6 +276,33 @@ describe("the lock screen's best and next-up", () => {
     const l = live(s)
     expect(l?.best).toBe("Best 20 min")
     expect(l?.next[0].best).toBe("Best 15 reps")
+  })
+
+  it("a timed best under a minute reads in seconds", () => {
+    const s = state(
+      [
+        workout("a", 3, [
+          { exerciseId: "walk", sets: [set(0, 0, { durationSec: 20 })] },
+        ]),
+        active([
+          { exerciseId: "walk", sets: [open(0, 0, { durationSec: 30 })] },
+        ]),
+      ],
+      { activeId: "now" },
+    )
+    expect(live(s)?.best).toBe("Best 20 s")
+  })
+
+  it("the set detail groups thousands like the best does", () => {
+    const s = state(
+      [
+        active([
+          { exerciseId: "bench", sets: [open(462.66, 1, { unit: "lb" })] },
+        ]),
+      ],
+      { activeId: "now" },
+    )
+    expect(live(s)?.detail).toBe("Set 1 of 1 · 1,020 lb × 1")
   })
 
   it("a current warm-up still shows the exercise's best working set", () => {

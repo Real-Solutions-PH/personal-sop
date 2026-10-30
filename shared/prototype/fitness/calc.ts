@@ -193,7 +193,7 @@ export function exerciseHistory(
 /** The exercise's best working set in finished workouts other than
  * `excludeWorkoutId`: the top set by estimated 1-rep max (the "Est. 1-rep
  * max" record), the longest set of a timed exercise, or the most reps when
- * no set carried load. */
+ * no set carried added load. */
 export function previousBest(
   s: FitnessState,
   exerciseId: string,
@@ -210,9 +210,12 @@ export function previousBest(
     sets.reduce((a, b) => (score(b) > score(a) ? b : a))
   if (isTimed(s.exercises.find((e) => e.id === exerciseId)))
     return most(setSeconds)
+  // Bodyweight alone (push-ups): the most reps, even with a weigh-in that
+  // would rank the sets by estimated max (which ignores sets past 12 reps).
+  if (sets.every((x) => x.weight <= 0)) return most((x) => x.reps)
   let top = hist[0]
   for (const p of hist) if (p.stats.bestE1rm > top.stats.bestE1rm) top = p
-  return top.stats.bestE1rm > 0 ? top.stats.top : most((x) => x.reps)
+  return top.stats.top
 }
 export type PrKind = "e1rm" | "weight" | "volume"
 export interface Pr {

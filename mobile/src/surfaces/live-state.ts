@@ -1,4 +1,5 @@
 import {
+  fmtSpan,
   isDone,
   isTimed,
   isWorking,
@@ -152,7 +153,7 @@ function setLabel(
     : isTimed(ex)
       ? `${Math.round(setSeconds(set) / 60)} min`
       : set.weight > 0
-        ? `${displayMass(set.weight, set.unit ?? s.settings.units)} ${set.unit ?? s.settings.units} × ${set.reps}`
+        ? `${group(displayMass(set.weight, set.unit ?? s.settings.units), 1)} ${set.unit ?? s.settings.units} × ${set.reps}`
         : `${set.reps} reps`
   const which =
     set?.kind === "warmup" ? "Warm-up" : `Set ${n} of ${working.length}`
@@ -178,7 +179,7 @@ function bestLabel(
   const label = !set
     ? undefined
     : isTimed(s.exercises.find((e) => e.id === id))
-      ? `Best ${Math.round(setSeconds(set) / 60)} min`
+      ? `Best ${fmtSpan(setSeconds(set))}`
       : set.weight > 0
         ? `Best ${group(displayMass(set.weight, unit), 1)} ${unit} × ${set.reps}`
         : `Best ${set.reps} reps`

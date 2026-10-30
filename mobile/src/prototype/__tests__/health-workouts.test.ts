@@ -30,6 +30,7 @@ jest.mock("../health", () => ({
 
 import {
   connectHealthWorkouts,
+  forgetPresent,
   healthWorkoutsStore,
   RECONCILE_MS,
 } from "../health-workouts"
@@ -44,6 +45,7 @@ beforeEach(() => {
   })
   resetAll()
   jest.clearAllMocks()
+  forgetPresent()
   uuids = 0
   mockOwner = "A"
   mockCanWrite = true
@@ -182,34 +184,74 @@ test("a failed save toasts, records nothing, and the next launch retries it once
   expect(saved()[w.id]).toMatchObject({ seen: true })
 })
 
-test("the retry skips workouts older than a day, before the switch, or not finished here", async () => {
-  for (let i = 0; i < 3; i++) mockSave.mockResolvedValueOnce(null)
+test("a retry is attempted once, not at every launch", async () => {
+  for (let i = 0; i < 2; i++) mockSave.mockResolvedValueOnce(null)
   connect()
-  const old = finishOne()
-  const early = finishOne()
-  const other = finishOne()
+  finishOne()
   await settle()
   disconnect()
-  const at = (d: Date) => d.toISOString()
+  connect() // retry: fails again
+  await settle()
+  disconnect()
+  connect()
+  await settle()
+  expect(mockSave).toHaveBeenCalledTimes(2)
+})
+
+const relaunchWith = async (patch: (w: Workout) => Partial<Workout>) => {
+  disconnect()
+  forgetPresent()
   fitStore.set((s) => ({
     ...s,
-    workouts: s.workouts.map((x) =>
-      x.id === old.id
-        ? { ...x, endedAt: at(new Date(2026, 9, 29, 12, 0)) }
-        : x.id === early.id
-          ? { ...x, endedAt: at(new Date(2026, 9, 30, 11, 0)) }
-          : x,
-    ),
+    workouts: s.workouts.map((x) => ({ ...x, ...patch(x) })),
   }))
+  mockSave.mockClear()
+  connect()
+  await settle()
+}
+
+test("the retry skips a workout that ended more than a day ago", async () => {
+  healthWorkoutsStore.set((s) => ({
+    ...s,
+    enabledAt: new Date(2026, 9, 28).toISOString(),
+  }))
+  mockSave.mockResolvedValueOnce(null)
+  connect()
+  const old = finishOne()
+  await settle()
+  await relaunchWith((x) =>
+    x.id === old.id
+      ? { endedAt: new Date(2026, 9, 29, 12, 0).toISOString() }
+      : {},
+  )
+  expect(mockSave).not.toHaveBeenCalled()
+})
+
+test("the retry skips a workout that ended before the switch went on", async () => {
+  mockSave.mockResolvedValueOnce(null)
+  connect()
+  const early = finishOne()
+  await settle()
+  await relaunchWith((x) =>
+    x.id === early.id
+      ? { endedAt: new Date(2026, 9, 30, 11, 0).toISOString() }
+      : {},
+  )
+  expect(mockSave).not.toHaveBeenCalled()
+})
+
+test("the retry skips a workout that was not finished on this phone", async () => {
+  mockSave.mockResolvedValueOnce(null)
+  connect()
+  const other = finishOne()
+  await settle()
   healthWorkoutsStore.set((s) => ({
     ...s,
     finishedHere: {
       A: (s.finishedHere.A ?? []).filter((x) => x !== other.id),
     },
   }))
-  mockSave.mockClear()
-  connect()
-  await settle()
+  await relaunchWith(() => ({}))
   expect(mockSave).not.toHaveBeenCalled()
 })
 
@@ -314,4 +356,78 @@ test("a delete Health refuses is kept and tried again on the next pass", async (
   await pass()
   expect(mockDelete).toHaveBeenCalledTimes(2)
   expect(saved()[w.id]).toBeUndefined()
+})
+
+test("signing back in while the pull fails deletes nothing", async () => {
+  connect()
+  const a = finishOne()
+  await settle()
+  await pass()
+  const kept = fitStore.get().workouts
+  // Sign out (stores emptied), sign in offline: sync reports ready with
+  // nothing pulled.
+  syncReady.setState({ ready: false })
+  fitStore.set((s) => ({ ...s, workouts: [] }))
+  syncReady.setState({ ready: true })
+  await pass()
+  await pass()
+  expect(mockDelete).not.toHaveBeenCalled()
+  expect(saved()[a.id]).toBeDefined()
+  // The next pull brings the rows back; deleting it afterwards still works.
+  fitStore.set((s) => ({ ...s, workouts: kept }))
+  await pass()
+  FA.deleteWorkout(a.id)
+  await pass()
+  expect(mockDelete).toHaveBeenCalledTimes(1)
+})
+
+test("a relaunch onto a half-pulled store deletes nothing", async () => {
+  connect()
+  const a = finishOne()
+  await settle()
+  await pass()
+  // Next launch: the cursor says pulled, but the rows never all arrived.
+  disconnect()
+  forgetPresent()
+  fitStore.set((s) => ({
+    ...s,
+    workouts: s.workouts.filter((x) => x.id !== a.id),
+  }))
+  connect()
+  await pass()
+  expect(mockDelete).not.toHaveBeenCalled()
+  expect(saved()[a.id]).toBeDefined()
+})
+
+test("a workout deleted elsewhere while signed out keeps its Health sample", async () => {
+  connect()
+  const a = finishOne()
+  await settle()
+  await pass()
+  syncReady.setState({ ready: false })
+  fitStore.set((s) => ({ ...s, workouts: [] }))
+  // The pull succeeds, without the workout.
+  fitStore.set((s) => ({
+    ...s,
+    workouts: fitStore.get().workouts.filter((x) => x.id !== a.id),
+  }))
+  syncReady.setState({ ready: true })
+  await pass()
+  expect(mockDelete).not.toHaveBeenCalled()
+})
+
+test("with the switch off, deleting a workout leaves Health alone", async () => {
+  connect()
+  const a = finishOne()
+  await settle()
+  healthWorkoutsStore.set((s) => ({ ...s, enabled: false }))
+  FA.deleteWorkout(a.id)
+  await pass()
+  expect(mockDelete).not.toHaveBeenCalled()
+  expect(saved()[a.id]).toBeDefined()
+})
+
+test("the pass waits longer than the delete toast's undo window", () => {
+  // The undo toast stays 5 s (ui.tsx undo()).
+  expect(RECONCILE_MS).toBe(10_000)
 })

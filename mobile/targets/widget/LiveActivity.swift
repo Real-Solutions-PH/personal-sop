@@ -123,7 +123,7 @@ struct LiveButton: View {
 struct LiveLockScreen: View {
   var state: LiveState
   var body: some View {
-    VStack(alignment: .leading, spacing: 6) {
+    VStack(alignment: .leading, spacing: 5) {
       HStack(spacing: 6) {
         Image(systemName: state.symbol).foregroundStyle(state.accent)
         Text("\(state.icon) \(state.title)").font(.system(size: 13, weight: .medium))
@@ -160,7 +160,7 @@ struct LiveLockScreen: View {
       }
     }
     .padding(.horizontal, 16)
-    .padding(.vertical, 12)
+    .padding(.vertical, 8)
   }
 }
 

@@ -1,12 +1,13 @@
 // Fitness settings' Apple Health row: Connect before the Health sheet was
 // answered, a way into the Health app's sharing settings after.
 import {
+  act,
   fireEvent,
   render,
   screen,
   waitFor,
 } from "@testing-library/react-native"
-import { Linking } from "react-native"
+import { AppState, Linking } from "react-native"
 import { HealthSettings } from "../screens/health-connect"
 
 jest.mock("react-native-reanimated", () => ({
@@ -121,6 +122,23 @@ test("on but revoked in Health: says so", async () => {
   }))
   render(<HealthSettings />)
   expect(await screen.findByText(/^Not allowed in the Health app/)).toBeTruthy()
+})
+
+test("allowing write in the Health app clears the note on return", async () => {
+  mockAsked = true
+  healthWorkoutsStore.set((s) => ({ ...s, enabled: true }))
+  const listeners: ((s: string) => void)[] = []
+  jest.spyOn(AppState, "addEventListener").mockImplementation((_e, l) => {
+    listeners.push(l as (s: string) => void)
+    return { remove: () => {} } as never
+  })
+  render(<HealthSettings />)
+  expect(await screen.findByText(/^Not allowed in the Health app/)).toBeTruthy()
+  mockCanWrite = true
+  act(() => {
+    for (const l of listeners) l("active")
+  })
+  expect(await screen.findByText(/^Finished workouts appear/)).toBeTruthy()
 })
 
 test("Expo Go or no Health: no switch", async () => {

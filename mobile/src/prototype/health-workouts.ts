@@ -6,8 +6,10 @@
 // Only workouts finished on this phone after the switch went on are saved;
 // chat-logged ones (a placeholder time) and ones that arrive by sync are
 // not. A saved workout's Health sample is removed when the workout is
-// deleted here, and only once a reconcile pass has seen it present: absence
-// alone (a blank or half-pulled store) never deletes anything.
+// deleted here, and only when it was seen present in this app session since
+// the stores were last emptied: absence alone (a blank store after a sign-in
+// whose pull failed, or one a failed pull left half-filled) never deletes
+// anything.
 
 import { onWorkoutFinished } from "@domain/fitness/actions"
 import { isTimed } from "@domain/fitness/calc"
@@ -83,6 +85,22 @@ function report(message: string) {
   }
 }
 
+const deleting = new Set<string>()
+/** Saved workouts seen present in this app session, per account, since the
+ * stores were last emptied. In memory only: a relaunch or a wipe starts
+ * over, so a workout counts as deleted only once it has been seen in a store
+ * that was whole. Sync reporting ready does not prove the pull worked (it is
+ * also ready after a failed or offline one). */
+const present = new Map<string, Set<string>>()
+export function forgetPresent() {
+  present.clear()
+}
+function seenIn(who: string) {
+  const set = present.get(who) ?? new Set<string>()
+  present.set(who, set)
+  return set
+}
+
 const saving = new Set<string>()
 
 async function save(w: Workout) {
@@ -111,42 +129,49 @@ async function save(w: Workout) {
     // Present right now, so deleting it before the next pass still removes
     // the Health sample.
     setEntry(who, w.id, { uuid, seen: true })
+    seenIn(who).add(w.id)
     toast.success("Saved to Apple Health")
   } else toast.error("Couldn't save to Apple Health")
 }
 
-const deleting = new Set<string>()
-
 /** Marks saved workouts that are present as seen, and removes the Health
- * sample of one seen earlier that is gone now. Runs only once this
- * account's state is known on this phone. */
+ * sample of one seen in this session that is gone now. Runs only with the
+ * switch on, once this account's state is known on this phone. */
 export function reconcile() {
   const who = owner()
   if (!who || !syncReady.getState().ready) return
-  const mine = healthWorkoutsStore.get().saved[who]
+  const st = healthWorkoutsStore.get()
+  // Off: Health keeps what was saved, even if the workout goes here.
+  if (!st.enabled) return
+  const mine = st.saved[who]
   if (!mine) return
-  const present = new Set(
+  const here = new Set(
     fitStore
       .get()
       .workouts.filter((w) => w.status === "finished")
       .map((w) => w.id),
   )
+  const seenNow = seenIn(who)
   for (const [id, e] of Object.entries(mine)) {
-    if (present.has(id)) {
+    if (here.has(id)) {
+      seenNow.add(id)
       if (!e.seen) setEntry(who, id, { ...e, seen: true })
-    } else if (e.seen && !deleting.has(e.uuid)) {
+    } else if (e.seen && seenNow.has(id) && !deleting.has(e.uuid)) {
       deleting.add(e.uuid)
       void deleteSavedWorkout(e.uuid).then((ok) => {
         deleting.delete(e.uuid)
         // Kept when Health refused (a locked phone): the next pass retries.
-        if (ok) setEntry(who, id, null)
+        if (ok) {
+          setEntry(who, id, null)
+          seenNow.delete(id)
+        }
       })
     }
   }
 }
 
 /** One more try at workouts finished here in the last day whose save
- * failed. */
+ * failed; each is tried once (it leaves the list). */
 function retry(who: string) {
   const st = healthWorkoutsStore.get()
   if (!st.enabled || !st.enabledAt) return
@@ -160,8 +185,16 @@ function retry(who: string) {
       !st.saved[who]?.[w.id] &&
       new Date(w.endedAt).getTime() > since &&
       w.endedAt > st.enabledAt
-    )
+    ) {
+      healthWorkoutsStore.set((s) => ({
+        ...s,
+        finishedHere: {
+          ...s.finishedHere,
+          [who]: (s.finishedHere[who] ?? []).filter((x) => x !== w.id),
+        },
+      }))
       void save(w)
+    }
 }
 
 /** Mounted once while the app runs; returns the unsubscribe. */
@@ -187,8 +220,13 @@ export function connectHealthWorkouts(): () => void {
     timer = setTimeout(reconcile, RECONCILE_MS)
   }
   const retried = new Set<string>()
+  let lastOwner = owner()
   const opened = () => {
     const who = owner()
+    // A sign-in that empties the stores sets sync not-ready first; another
+    // account is another set of rows. Either way nothing was seen yet.
+    if (!syncReady.getState().ready || who !== lastOwner) forgetPresent()
+    lastOwner = who
     if (!who || !gateOpen()) return
     later()
     if (!retried.has(who)) {
