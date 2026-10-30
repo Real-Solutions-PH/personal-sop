@@ -476,8 +476,7 @@ def _next_account_color(accounts: Sequence[Any]) -> str:
     the server's colourless default."""
     live = [a for a in accounts if not getattr(a, "archived", False)]
     used = {
-        str(a.color or "").removeprefix("var(--acct-").removesuffix(")")
-        for a in live
+        str(a.color or "").removeprefix("var(--acct-").removesuffix(")") for a in live
     }
     return next(
         (c for c in ACCOUNT_COLORS if c not in used),
@@ -504,9 +503,7 @@ def _one_emoji(s: str) -> bool:
     ]
     flags = all(0x1F1E6 <= ord(ch) <= 0x1F1FF for ch in bases)
     zwj = s.count("\u200d")
-    return bool(bases) and (
-        (flags and len(bases) == 2) or len(bases) == zwj + 1
-    )
+    return bool(bases) and ((flags and len(bases) == 2) or len(bases) == zwj + 1)
 
 
 class CategoryArgs(BaseModel):
