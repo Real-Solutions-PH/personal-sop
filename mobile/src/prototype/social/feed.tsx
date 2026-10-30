@@ -382,10 +382,10 @@ export function CreateSheet({
       href: "/social/story-new",
     },
     {
-      label: "Progress post",
-      detail: "A photo and the streak, workout or goal it shows",
+      label: "Post",
+      detail: "Photos, videos or the progress you logged",
       Icon: ImageIcon,
-      href: "/social/compose?progress=1",
+      href: "/social/compose",
     },
     {
       label: "Note",
