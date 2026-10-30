@@ -3,13 +3,10 @@ import * as N from "@domain/finance/calc"
 import type { FinRecord } from "@domain/finance/data"
 import { finStore } from "@domain/finance/store"
 import { dayKey } from "@domain/lib/day"
-import { privacyStore, togglePrivacy } from "@domain/lib/privacy"
 import { useLocalSearchParams } from "expo-router"
 import {
   CalendarClock,
   ChartLine,
-  Eye,
-  EyeOff,
   FileUp,
   FolderTree,
   History,
@@ -35,6 +32,7 @@ import {
   Tap,
 } from "../native-kit"
 import { go } from "../navigation"
+import { PrivacyEye } from "../privacy-eye"
 import { useTheme } from "../theme"
 import { Screen } from "../ui"
 import { Ring } from "../visual"
@@ -178,7 +176,6 @@ export function FinanceHome({
     s = finStore.use((s) => s),
     money = useMoney(),
     narrow = useWindowDimensions().width < 380,
-    hidden = privacyStore.use((s) => s.hidden),
     [adding, setAdding] = useState(
       !!prefill || params.add === "expense" || params.add === "income",
     ),
@@ -234,13 +231,7 @@ export function FinanceHome({
       title="Finance"
       actions={
         <Line style={{ gap: 0 }}>
-          <IconTap
-            size={40}
-            icon={hidden ? EyeOff : Eye}
-            label={hidden ? "Show amounts" : "Hide amounts"}
-            color={t.text}
-            onPress={togglePrivacy}
-          />
+          <PrivacyEye />
           <IconTap
             size={40}
             icon={Settings}
