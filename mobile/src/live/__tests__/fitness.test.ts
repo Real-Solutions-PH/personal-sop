@@ -14,6 +14,7 @@ import {
   logMeal,
   logWeighIn,
   logWorkoutFromChat,
+  mergeExercises,
   moveExercise,
   removeExercise,
   setMacroTarget,
@@ -501,6 +502,28 @@ describe("store edits become sync ops", () => {
       "delete:template_item",
       "delete:template_item",
     ])
+  })
+
+  test("merge an exercise: the action alone, the slots stay put", () => {
+    const e = engine()
+    const seen = new Set<string>()
+    const { bench, tpl } = library()
+    const flat = upsertExercise({ name: "Flat bench" })
+    upsertTemplate({
+      ...tpl,
+      items: [...tpl.items, { exerciseId: flat.id, sets: 2 }],
+    })
+    step(e, seen)
+    expect(mergeExercises(flat.id, bench.id).ok).toBe(true)
+    const ops = step(e, seen)
+    // No hooks outside the live session: the repointed slot is still a
+    // field write here; the live runtime adopts it (exercise-merge-sync).
+    expect(names(ops)).toEqual([
+      "fitness.merge_exercises",
+      "upsert:template_item",
+    ])
+    expect(ops[0].data).toEqual({ source_id: flat.id, target_id: bench.id })
+    expect(upsertOf(ops, flat.id)).toBeUndefined()
   })
 
   test("weigh-ins: create, one-field edit, delete", () => {

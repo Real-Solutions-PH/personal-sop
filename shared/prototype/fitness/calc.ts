@@ -151,6 +151,30 @@ export interface HistPoint {
   we: WorkoutExercise
   stats: ExStats
 }
+/** Exercises still in use: drops rows merged into another one. */
+export const liveExercises = (s: Pick<FitnessState, "exercises">) =>
+  s.exercises.filter((e) => !e.mergedInto)
+/** Whether a search finds this exercise, by its name or a former one. */
+export function exerciseMatches(e: Exercise, query: string): boolean {
+  const q = query.trim().toLowerCase()
+  return (
+    e.name.toLowerCase().includes(q) ||
+    !!e.aliases?.some((a) => a.toLowerCase().includes(q))
+  )
+}
+/** The exercise a name refers to: a live one with that name, else one
+ * carrying it as a former name (both case-insensitive). */
+export function exerciseNamed(
+  s: Pick<FitnessState, "exercises">,
+  name: string,
+): Exercise | undefined {
+  const n = name.trim().toLowerCase(),
+    live = liveExercises(s)
+  return (
+    live.find((e) => e.name.toLowerCase() === n) ??
+    live.find((e) => e.aliases?.some((a) => a.toLowerCase() === n))
+  )
+}
 export function exerciseHistory(
   s: FitnessState,
   exerciseId: string,

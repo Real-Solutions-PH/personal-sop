@@ -4368,6 +4368,26 @@ export const ExerciseDetailSchema = {
             ],
             title: 'Track'
         },
+        aliases: {
+            items: {
+                type: 'string'
+            },
+            type: 'array',
+            title: 'Aliases',
+            default: []
+        },
+        merged_into_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Merged Into Id'
+        },
         last_done_at: {
             anyOf: [
                 {
@@ -4513,6 +4533,26 @@ export const ExercisePublicSchema = {
                 }
             ],
             title: 'Track'
+        },
+        aliases: {
+            items: {
+                type: 'string'
+            },
+            type: 'array',
+            title: 'Aliases',
+            default: []
+        },
+        merged_into_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Merged Into Id'
         }
     },
     type: 'object',
@@ -4661,6 +4701,26 @@ export const ExerciseWithStatsSchema = {
                 }
             ],
             title: 'Track'
+        },
+        aliases: {
+            items: {
+                type: 'string'
+            },
+            type: 'array',
+            title: 'Aliases',
+            default: []
+        },
+        merged_into_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Merged Into Id'
         },
         last_done_at: {
             anyOf: [
@@ -10208,6 +10268,19 @@ export const MemoryPublicSchema = {
     type: 'object',
     required: ['id', 'text', 'created_at', 'version'],
     title: 'MemoryPublic'
+} as const;
+
+export const MergeExerciseSchema = {
+    properties: {
+        target_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Target Id'
+        }
+    },
+    type: 'object',
+    required: ['target_id'],
+    title: 'MergeExercise'
 } as const;
 
 export const MessageSchema = {
