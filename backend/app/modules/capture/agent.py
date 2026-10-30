@@ -1391,7 +1391,7 @@ def capture_tools(run: Run) -> list[BaseTool]:
         if (a.balance is None) == (a.change is None):
             return {"error": "give_either_balance_or_change"}
         if a.change is not None and str(acc.id) in changed:
-            return {"error": "already_changed_this_reply"}
+            return {"error": "already_changed_this_reply_send_one_combined_change"}
         # Seen live 2026-10-29: "add 100 to my BDO" set it to 100 instead of
         # adding to the 1 it held.
         balance_minor = (
@@ -1411,9 +1411,10 @@ def capture_tools(run: Run) -> list[BaseTool]:
                 "balance_minor": balance_minor,
             },
         )
+        out = {**_card(run, d, setup=True), "balance_minor": balance_minor}
         if a.change is not None:
             changed.add(str(acc.id))
-        return {**_card(run, d, setup=True), "balance_minor": balance_minor}
+        return out
 
     def create_budget(**kw: Any) -> dict[str, Any]:
         a = BudgetArgs(**kw)

@@ -1427,6 +1427,7 @@ _GIVES_DATA = re.compile(
 # Narrow on purpose: a list ("my tasks: check the deploy, …") or numbers
 # given ("62.4 kg, scale isn't right") stay a record to make.
 _ASKS_ABOUT = re.compile(
+    r"^\s*(?:why|how|what|which|when|where|did|does|can|could)\b|"
     r"\b(?:why|check (?:my|if|whether|what|why)|look at my|not showing|"
     r"there (?:are|is) no|don'?t see|(?:is|are) missing)\b",
     re.I,

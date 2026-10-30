@@ -468,6 +468,7 @@ def test_a_question_about_kept_records_without_a_question_mark_is_not_a_write() 
     for asked in (
         "check my meals for today in why there are no records for sat fat sugar",
         "there are no sugar and sat fat for the two meals that i have this day",
+        "what meals did i have today",
     ):
         assert not services.unbacked_claim(
             asked, "Both meals were logged with calories only.", []
