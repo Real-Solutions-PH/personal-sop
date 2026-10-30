@@ -98,14 +98,17 @@ export function CountUp({
   value,
   style,
   suffix,
+  maxScale,
 }: {
   value: number | null
   style?: TextStyle
   suffix?: ReactNode
+  /** Caps Dynamic Type, for numbers drawn inside fixed geometry. */
+  maxScale?: number
 }) {
   const n = useCountUp(value ?? 0)
   return (
-    <Text style={style}>
+    <Text style={style} maxFontSizeMultiplier={maxScale}>
       {value === null ? "—" : Math.round(n)}
       {suffix}
     </Text>
