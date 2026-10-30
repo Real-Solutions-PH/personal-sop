@@ -5,6 +5,7 @@
 
 import type { AuthError as GoTrueError } from "@supabase/supabase-js"
 import { getSupabase } from "@/lib/supabase"
+import type { About } from "@/prototype/onboarding-draft"
 import { ApiError, createHttp, NetworkError, type TokenSource } from "./http"
 
 let sessionLost: (() => void) | null = null
@@ -227,12 +228,27 @@ export async function checkHandle(
 /** Claim the handle and name after the email code is accepted. A taken
  * handle is reported to the screen as a username error; anything else as a
  * retryable error. The Supabase session stays signed in either way. */
-export async function completeProfile(name: string, username: string) {
+export async function completeProfile(
+  name: string,
+  username: string,
+  about: About = {},
+) {
   try {
     await http.request("POST", "/profile/complete-signup", {
       name,
       handle: username,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      // Onboarding's "about you" answers; unanswered ones are left out.
+      ...(about.occupation ? { occupation: about.occupation } : {}),
+      ...(about.occupationDetail
+        ? { occupation_detail: about.occupationDetail }
+        : {}),
+      ...(about.referralSource
+        ? { referral_source: about.referralSource }
+        : {}),
+      ...(about.referralDetail
+        ? { referral_detail: about.referralDetail }
+        : {}),
     })
   } catch (error) {
     const code = (error as { code?: string }).code

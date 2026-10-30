@@ -144,6 +144,16 @@ def complete_signup(ctx: Ctx, data: CompleteSignup) -> UserProfile:
         profile.timezone = data.timezone
     if profile.since is None:
         profile.since = ctx.today
+    # Written once: a retried sign-up never overwrites an earlier answer.
+    for field in (
+        "occupation",
+        "occupation_detail",
+        "referral_source",
+        "referral_detail",
+    ):
+        value = getattr(data, field)
+        if value is not None and getattr(profile, field) is None:
+            setattr(profile, field, value)
     ctx.session.add(profile)
     _flush_unique(ctx)
     # The defaults exist from the moment the app can show finance: the
