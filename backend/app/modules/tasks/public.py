@@ -141,6 +141,27 @@ def find_list(ctx: Ctx, name: str) -> TaskList | None:
     return next((x for x in repo.lists(ctx) if x.name.lower() == n), None)
 
 
+def find_active_list(ctx: Ctx, name: str) -> TaskList | None:
+    """A non-archived list with this name (case-insensitive): where a new
+    task may be filed."""
+    n = name.strip().lower()
+    return next(
+        (x for x in repo.lists(ctx, include_archived=False) if x.name.lower() == n),
+        None,
+    )
+
+
+def active_list_names(ctx: Ctx, *, limit: int) -> list[str]:
+    """Names of the non-archived lists, in their sort order."""
+    return [x.name for x in repo.lists(ctx, include_archived=False)[:limit]]
+
+
+def ensure_default_lists(ctx: Ctx) -> None:
+    """Seed Work, Life and Groceries for a user who never had a list; a
+    deleted default never comes back."""
+    ops.ensure_default_lists(ctx)
+
+
 # ------------------------------------------------- edits from chat (Fern)
 
 

@@ -141,6 +141,9 @@ export function Tap({
   style,
   role = "button",
   selected,
+  onLongPress,
+  hint,
+  longPressLabel = "Actions",
 }: {
   children: ReactNode
   onPress: () => void
@@ -148,6 +151,11 @@ export function Tap({
   style?: ViewStyle
   role?: "button" | "radio"
   selected?: boolean
+  /** A second gesture on the same target, e.g. an actions sheet. Also
+   * offered to VoiceOver as a named action, so it never needs the gesture. */
+  onLongPress?: () => void
+  hint?: string
+  longPressLabel?: string
 }) {
   return (
     <Pressable
@@ -155,7 +163,20 @@ export function Tap({
       accessibilityRole={role}
       accessibilityState={selected === undefined ? undefined : { selected }}
       accessibilityLabel={label}
+      accessibilityHint={hint}
+      accessibilityActions={
+        onLongPress ? [{ name: "longpress", label: longPressLabel }] : undefined
+      }
+      onAccessibilityAction={
+        onLongPress
+          ? (e) => {
+              if (e.nativeEvent.actionName === "longpress") onLongPress()
+            }
+          : undefined
+      }
       onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={onLongPress ? 350 : undefined}
       hitSlop={4}
       style={({ pressed }) => [
         { opacity: pressed ? 0.65 : 1 },

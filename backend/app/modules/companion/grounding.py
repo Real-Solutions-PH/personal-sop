@@ -24,6 +24,7 @@ PLAN_ITEMS = 7  # the plan card's own limit (``PlanBlock`` in companion/blocks.t
 OVERDUE_IN_PLAN = 2
 DUE_IN_PLAN = 5
 OPEN_TASKS_SCANNED = 200
+TASK_LISTS_SHOWN = 20
 
 
 def _pct(rate: float | None) -> int | None:
@@ -136,6 +137,8 @@ def snapshot(ctx: Ctx) -> dict[str, Any]:
         "open_tasks_total" if open_total < OPEN_TASKS_SCANNED else "open_tasks_at_least"
     )
     out[key] = open_total
+    # What lists exist, so a task can be filed into one by name.
+    out["task_lists"] = tasks.active_list_names(ctx, limit=TASK_LISTS_SHOWN)
     # Today's food against the macro target, and the latest weigh-in, so
     # "what's my macro status?" is answered from the user's own data.
     out["nutrition_today"] = fitness.nutrition_today(ctx)

@@ -31,6 +31,7 @@ from app.modules.profile.schema import (
     PushDeviceIn,
     check_handle,
 )
+from app.modules.tasks import public as tasks_public
 from app.shared import owned_repo
 from app.shared.context import Ctx
 from app.shared.day import DayClock
@@ -161,6 +162,7 @@ def complete_signup(ctx: Ctx, data: CompleteSignup) -> UserProfile:
     # The defaults exist from the moment the app can show finance: the
     # device's first pull follows sign-up and must carry them.
     finance_public.seed_default_categories(ctx)
+    tasks_public.ensure_default_lists(ctx)
     ctx.commit()
     ctx.session.refresh(profile)
     return profile

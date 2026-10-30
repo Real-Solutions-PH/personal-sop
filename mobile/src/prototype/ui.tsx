@@ -369,12 +369,18 @@ export function Row({
   detail,
   href,
   onPress,
+  onLongPress,
+  longPressLabel = "Actions",
   right,
 }: {
   title: string
   detail?: string
   href?: string
   onPress?: () => void
+  /** A second gesture on the row, e.g. an actions sheet; also offered to
+   * VoiceOver as a named action. */
+  onLongPress?: () => void
+  longPressLabel?: string
   right?: ReactNode
 }) {
   const t = useTheme()
@@ -391,6 +397,21 @@ export function Row({
     >
       <Pressable
         accessibilityRole={href || onPress ? "button" : undefined}
+        accessibilityHint={onLongPress ? "Long press for actions" : undefined}
+        accessibilityActions={
+          onLongPress
+            ? [{ name: "longpress", label: longPressLabel }]
+            : undefined
+        }
+        onAccessibilityAction={
+          onLongPress
+            ? (e) => {
+                if (e.nativeEvent.actionName === "longpress") onLongPress()
+              }
+            : undefined
+        }
+        onLongPress={onLongPress}
+        delayLongPress={onLongPress ? 350 : undefined}
         onPress={() => (href ? go(href) : onPress?.())}
         disabled={!href && !onPress}
         cssInterop={false}

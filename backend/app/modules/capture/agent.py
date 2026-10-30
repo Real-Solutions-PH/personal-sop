@@ -354,6 +354,21 @@ class TaskIn(BaseModel):
         max_length=8,
         description="Labels the person gave (work, errand); otherwise omit.",
     )
+    list: (
+        Annotated[
+            str,
+            Field(
+                min_length=1,
+                max_length=60,
+                description=(
+                    "Name of one of the person's task lists, only when they "
+                    "named it or the task clearly belongs to exactly one "
+                    "list; otherwise omit."
+                ),
+            ),
+        ]
+        | None
+    ) = None
 
 
 class TasksArgs(BaseModel):
@@ -1251,17 +1266,24 @@ def capture_tools(run: Run) -> list[BaseTool]:
         # A date or time the person never gave is the model's invention.
         day = not run.said or names_day(run.said) or names_time(run.said)
         time = not run.said or names_time(run.said)
-        tasks = [
-            {
-                "title": t.title,
-                "list_id": None,
-                "due_date": t.due_date if day else None,
-                "due_time": t.due_time if time else None,
-                "remind": t.remind,
-                "tags": list(t.tags),
-            }
-            for t in a.tasks
-        ]
+        # A named list files the task there; a name with no live list leaves
+        # it in the Inbox and is reported back. Lists are never made here.
+        unknown: list[str] = []
+        tasks = []
+        for t in a.tasks:
+            lst = ports.tasks.find_active_list(run.ctx, t.list) if t.list else None
+            if t.list and lst is None and t.list not in unknown:
+                unknown.append(t.list)
+            tasks.append(
+                {
+                    "title": t.title,
+                    "list_id": str(lst.id) if lst else None,
+                    "due_date": t.due_date if day else None,
+                    "due_time": t.due_time if time else None,
+                    "remind": t.remind,
+                    "tags": list(t.tags),
+                }
+            )
         # Plain to-dos and reminders tier differently (a reminder waits for
         # the user's OK), so they become separate cards: one reminder in the
         # call must not hold the plain tasks back.
@@ -1285,7 +1307,10 @@ def capture_tools(run: Run) -> list[BaseTool]:
             for rule, group in groups
             if group
         ]
-        return made[0] if len(made) == 1 else {"cards": made}
+        out = made[0] if len(made) == 1 else {"cards": made}
+        if unknown:
+            out["unknown_lists"] = unknown
+        return out
 
     def complete_task(**kw: Any) -> dict[str, Any]:
         a = QueryArgs(**kw)

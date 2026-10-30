@@ -33,10 +33,26 @@ import {
   Sunrise,
   TriangleAlert,
 } from "lucide-react-native"
-import { useState } from "react"
+import { type ReactNode, useEffect, useState } from "react"
 import { View } from "react-native"
 import { ScrollView as GHScrollView } from "react-native-gesture-handler"
-import { SwipeSegments, SwipeStep } from "../motion"
+import Animated, {
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withSequence,
+  withSpring,
+  withTiming,
+  ZoomIn,
+} from "react-native-reanimated"
+import {
+  Burst,
+  feel,
+  MOTION,
+  SwipeSegments,
+  SwipeStep,
+  useDayMoment,
+} from "../motion"
 import {
   Copy,
   Frame,
@@ -53,9 +69,34 @@ import { useTheme } from "../theme"
 import { Button, confirm, Screen, Sheet, undo } from "../ui"
 import { Ring } from "../visual"
 import { useMoney } from "./finance"
+import { StarterLists } from "./task-lists"
 import { TaskStats } from "./task-stats"
 import { TaskRow } from "./tasks"
 
+/** Today's tasks cleared: the ring pulses once with a burst around it. */
+function ClearRing({ play, children }: { play: boolean; children: ReactNode }) {
+  const t = useTheme()
+  const reduced = useReducedMotion()
+  const scale = useSharedValue(1)
+  useEffect(() => {
+    if (!play) return
+    feel.success()
+    if (!reduced)
+      scale.value = withSequence(
+        withTiming(1.08, { duration: 160 }),
+        withSpring(1, MOTION.spring),
+      )
+  }, [play, reduced, scale])
+  const pulse = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }))
+  return (
+    <Animated.View testID={play ? "tasks-clear" : undefined} style={pulse}>
+      {children}
+      <Burst fire={play ? 1 : 0} color={t.tsk} size={52} />
+    </Animated.View>
+  )
+}
 export function TaskPlanPanel({
   statsInline = false,
 }: {
@@ -73,30 +114,42 @@ export function TaskPlanPanel({
     [done, setDone] = useState(false),
     [triage, setTriage] = useState(false)
   const count = d.due.length + d.doneDueToday.length + d.overdue.length
+  const clear = useDayMoment(
+    "sop:celebrated:tasks",
+    d.everHadTasks && count > 0 && d.due.length === 0,
+  )
   const row = (task: (typeof d.due)[number], showDay = true) => (
     <TaskRow key={task.id} task={task} compact showActions showDay={showDay} />
   )
   return (
     <View>
       <Line>
-        <Ring
-          size={52}
-          strokeWidth={5}
-          value={count ? d.doneDueToday.length / count : 1}
-          color={t.tsk}
-        >
-          <Copy size={12} weight="semibold">
-            {d.doneDueToday.length}/{count}
-          </Copy>
-        </Ring>
+        <ClearRing play={clear === "new"}>
+          <Ring
+            size={52}
+            strokeWidth={5}
+            value={count ? d.doneDueToday.length / count : 1}
+            color={t.tsk}
+          >
+            <Copy size={12} weight="semibold">
+              {d.doneDueToday.length}/{count}
+            </Copy>
+          </Ring>
+        </ClearRing>
         <View style={{ flex: 1 }}>
-          <Copy weight="semibold">
-            {!d.everHadTasks
-              ? "No tasks yet"
-              : d.due.length
-                ? `${d.due.length} left today`
-                : "Today's clear"}
-          </Copy>
+          {clear === "new" ? (
+            <Animated.View entering={ZoomIn.springify().damping(12)}>
+              <Copy weight="semibold">Today's clear</Copy>
+            </Animated.View>
+          ) : (
+            <Copy weight="semibold">
+              {!d.everHadTasks
+                ? "No tasks yet"
+                : d.due.length
+                  ? `${d.due.length} left today`
+                  : "Today's clear"}
+            </Copy>
+          )}
           <Line style={{ gap: 8 }}>
             {d.overdue.length > 0 && (
               <Tap onPress={() => setTriage(true)}>
@@ -168,7 +221,8 @@ export function TaskPlanPanel({
             Dump everything on your mind
           </Copy>
           <Copy size={14} muted>
-            One line per thought. Dates and lists get sorted for you.
+            One line per thought, or tell Fern. Pick a list or leave it in the
+            Inbox.
           </Copy>
           <SmallButton accent="tsk" onPress={() => go("/tasks/new")}>
             Add your first tasks
@@ -334,6 +388,7 @@ export function TaskPlanPanel({
           >
             Lists
           </SectionHeading>
+          {!s.lists.some((l) => !l.archivedAt) && <StarterLists />}
           {s.lists
             .filter((l) => !l.archivedAt)
             .sort((a, b) => a.sortOrder - b.sortOrder)

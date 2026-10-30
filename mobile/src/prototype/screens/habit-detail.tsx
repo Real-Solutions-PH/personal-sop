@@ -5,6 +5,7 @@ import * as L from "@domain/habits/logic"
 import { habitsStore } from "@domain/habits/store"
 import { dayKey, dayOffset } from "@domain/lib/day"
 import { useScreen } from "@domain/screen/store"
+import { useLocalSearchParams } from "expo-router"
 import {
   ChevronLeft,
   ChevronRight,
@@ -15,6 +16,7 @@ import {
 import { useState } from "react"
 import { View } from "react-native"
 import { FocusTimeCard } from "../focus-kit"
+import { Burst, feel, markCompletion } from "../motion"
 import { Copy, Frame, IconTap, Line, SectionHeading, Tap } from "../native-kit"
 import { go } from "../navigation"
 import { useTheme } from "../theme"
@@ -203,7 +205,10 @@ export function HabitDetail({ id }: { id: string }) {
     h = s.habits.find((h) => h.id === id),
     [logDay, setLogDay] = useState<string | null>(null),
     [more, setMore] = useState(false),
-    [pausing, setPausing] = useState(false),
+    // `?pause=1`: arrived from a row's actions sheet to pause this habit.
+    params = useLocalSearchParams<{ pause?: string }>(),
+    [marked, setMarked] = useState(0),
+    [pausing, setPausing] = useState(params.pause === "1"),
     [until, setUntil] = useState(dayOffset(7)),
     [reason, setReason] = useState("")
   if (!h)
@@ -324,21 +329,32 @@ export function HabitDetail({ id }: { id: string }) {
         ) : (
           <Line style={{ gap: 8 }}>
             <View style={{ flex: 1 }}>
+              <Burst fire={marked} color={t.hab} size={56} />
               <Button
                 tone={
                   h.type === "check" && log?.status === "done"
                     ? "quiet"
                     : "primary"
                 }
-                onPress={() =>
-                  h.type === "duration"
-                    ? go(`/habits/${id}/timer`)
-                    : h.type === "count"
-                      ? A.incrementCount(id)
-                      : log?.status === "done"
-                        ? A.clearLog(id)
-                        : A.checkHabit(id)
-                }
+                onPress={() => {
+                  if (h.type === "duration") return go(`/habits/${id}/timer`)
+                  if (h.type === "check" && log?.status === "done")
+                    return A.clearLog(id)
+                  if (h.type === "count") A.incrementCount(id)
+                  else A.checkHabit(id)
+                  const now = L.logIndex(habitsStore.get().logs).get(
+                    L.lk(id, today),
+                  )
+                  // Done, or a count that just reached its target.
+                  if (
+                    now?.status === "done" &&
+                    (h.type === "check" || L.progressOf(h, log) < 1)
+                  ) {
+                    feel.success()
+                    markCompletion()
+                    setMarked((n) => n + 1)
+                  }
+                }}
               >
                 {h.type === "duration"
                   ? "◉ Start timer"
