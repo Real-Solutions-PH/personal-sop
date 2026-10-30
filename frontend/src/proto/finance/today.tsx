@@ -13,6 +13,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useMemo, useState } from "react"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { Btn, Card, Money, TodayGroup } from "../ui/kit"
 import {
@@ -92,10 +93,12 @@ function DueRow({ o }: { o: Occurrence }) {
           if (p.estimated)
             return openSheet({ kind: "due", plannedId: p.id, day: o.orig })
           const r = settleOccurrence(p.id, o.orig, { amount: p.amount })
-          if (r)
+          // A record already there was replaced: nothing new to undo.
+          if (r?.updated) toast.success(`Updated ${p.name}`)
+          else if (r)
             undoToast(
               `${p.type === "income" ? "Received" : "Paid"} ${p.name}`,
-              () => deleteRecords([r.id]),
+              () => deleteRecords([r.record.id]),
             )
         }}
       >
