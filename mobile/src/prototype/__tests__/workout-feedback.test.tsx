@@ -140,7 +140,7 @@ it("Remove set is gone once no sets are left", () => {
   expect(screen.getByText("Add set")).toBeTruthy()
 })
 
-it("finishing a workout opens its share card", () => {
+it("finishing a workout opens its celebration summary", () => {
   const { w, we } = withBench()
   for (const x of setsOf(w.id, we.id)) {
     A.updateSet(w.id, we.id, x.id, { weight: 60, reps: 8 })
@@ -148,7 +148,9 @@ it("finishing a workout opens its share card", () => {
   }
   render(<WorkoutLogger />, { wrapper })
   fireEvent.press(screen.getByLabelText("Finish workout"))
-  expect(router.replace).toHaveBeenCalledWith(`/fitness/share/${w.id}?done=1`)
+  expect(router.replace).toHaveBeenCalledWith(
+    `/fitness/workouts/${w.id}/summary`,
+  )
   expect(fitStore.get().workouts.find((x) => x.id === w.id)?.status).toBe(
     "finished",
   )

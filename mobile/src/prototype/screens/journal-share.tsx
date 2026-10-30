@@ -82,6 +82,7 @@ export function JournalCard({
     <CardFrame
       width={width}
       look={look}
+      accent="life"
       kicker="Journal"
       date={kind === "month" ? "Last 30 days" : ""}
       foot="Counts only. What you wrote stays private."
