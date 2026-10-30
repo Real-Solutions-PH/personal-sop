@@ -4,15 +4,71 @@ import { finStore } from "@domain/finance/store"
 import { habitsStore } from "@domain/habits/store"
 import { useCurrency } from "@domain/lib/money"
 import { tasksStore } from "@domain/tasks/store"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { TextInput, View } from "react-native"
 import { toast } from "sonner-native"
+import { MoneyInput } from "../money-input"
 import { Copy, Line, Segmented, Tap } from "../native-kit"
 import { fonts, useTheme } from "../theme"
 import { TimeInput } from "../time-input"
 import { Button, Choices, DateField, Field, Sheet, Toggle } from "../ui"
 import { AreaPicker } from "./journal"
 import { MoodPicker } from "./mood-picker"
+
+/** The card's amount: typed with separators and decimals, kept exact. */
+function AmountField({
+  value,
+  onChange,
+}: {
+  value: number
+  onChange: (n: number) => void
+}) {
+  const t = useTheme(),
+    sym = useCurrency().symbol,
+    [draft, setDraft] = useState(value ? String(value) : "")
+  // A new card (another kind picked) resets the amount from outside.
+  useEffect(() => {
+    if ((Number(draft) || 0) !== value) setDraft(value ? String(value) : "")
+  }, [value, draft])
+  return (
+    <View style={{ gap: 6 }}>
+      <Copy size={12} muted>
+        Amount
+      </Copy>
+      <Line
+        style={{
+          height: 56,
+          borderWidth: 1,
+          borderColor: t.line,
+          borderRadius: 12,
+          paddingHorizontal: 12,
+          backgroundColor: t.bg,
+          gap: 8,
+        }}
+      >
+        <Copy size={20} muted weight="semibold">
+          {sym}
+        </Copy>
+        <MoneyInput
+          bare
+          label="Amount"
+          value={draft}
+          placeholder="0"
+          onChange={(v) => {
+            setDraft(v)
+            onChange(Number(v) || 0)
+          }}
+          style={{
+            flex: 1,
+            fontFamily: fonts.semibold,
+            fontSize: 24,
+            color: t.text,
+          }}
+        />
+      </Line>
+    </View>
+  )
+}
 export function NumberControl({
   label,
   value,
@@ -91,48 +147,12 @@ export function PayloadForm({
   const fin = finStore.use((s) => s),
     habits = habitsStore.use((s) => s.habits),
     lists = tasksStore.use((s) => s.lists),
-    t = useTheme(),
-    sym = useCurrency().symbol
+    t = useTheme()
   const accountOptions = fin.accounts
       .filter((a) => !a.archived)
       .map((a) => ({ value: a.id, label: a.name })),
     money = (value: number, onChange: (n: number) => void) => (
-      <View style={{ gap: 6 }}>
-        <Copy size={12} muted>
-          Amount
-        </Copy>
-        <Line
-          style={{
-            height: 56,
-            borderWidth: 1,
-            borderColor: t.line,
-            borderRadius: 12,
-            paddingHorizontal: 12,
-            backgroundColor: t.bg,
-            gap: 8,
-          }}
-        >
-          <Copy size={20} muted weight="semibold">
-            {sym}
-          </Copy>
-          <TextInput
-            accessibilityLabel="Amount"
-            value={value ? String(value) : ""}
-            placeholder="0"
-            placeholderTextColor={t.muted}
-            keyboardType="decimal-pad"
-            onChangeText={(v) =>
-              onChange(Number(v.replace(/[^\d.]/g, "")) || 0)
-            }
-            style={{
-              flex: 1,
-              fontFamily: fonts.semibold,
-              fontSize: 24,
-              color: t.text,
-            }}
-          />
-        </Line>
-      </View>
+      <AmountField value={value} onChange={onChange} />
     )
   switch (p.kind) {
     case "expense":

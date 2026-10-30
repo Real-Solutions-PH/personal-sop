@@ -455,6 +455,24 @@ class BudgetArgs(BaseModel):
     )
 
 
+class CategoryArgs(BaseModel):
+    name: Annotated[str, Field(min_length=1, max_length=60)]
+    kind: Literal["expense", "income"] = Field(
+        default="expense",
+        description="income for money coming in (a new kind of pay); "
+        "expense otherwise. A sub-category takes its parent's kind.",
+    )
+    parent: Annotated[str, Field(min_length=1, max_length=60)] | None = Field(
+        default=None,
+        description="The existing main category it goes under, by name, "
+        "when the user asked for a sub-category (e.g. 'Mobile plan' under "
+        "'Bills'). Leave out for a main category.",
+    )
+    icon: Annotated[str, Field(min_length=1, max_length=8)] | None = Field(
+        default=None, description="One emoji that fits it, e.g. 🐶 for Pets."
+    )
+
+
 class StepArgs(BaseModel):
     name: Annotated[str, Field(min_length=1, max_length=80)]
     minutes: Annotated[int, Field(ge=1, le=600)]
@@ -1452,6 +1470,50 @@ def capture_tools(run: Run) -> list[BaseTool]:
         )
         return _card(run, d, setup=True)
 
+    def create_category(**kw: Any) -> dict[str, Any]:
+        a = CategoryArgs(**kw)
+        name = " ".join(a.name.split())
+        parent = None
+        if a.parent:
+            parent = ports.finance.main_category(run.ctx, a.parent)
+            if parent is None:
+                return {
+                    "error": "no_main_category_with_that_name",
+                    "main_categories": [
+                        c.name
+                        for c in ports.finance.list_categories(run.ctx)
+                        if c.parent_id is None and not c.system
+                    ],
+                }
+        kind: Literal["expense", "income"] = (
+            "income" if (parent.kind if parent else a.kind) == "income" else "expense"
+        )
+        if any(
+            c.kind == kind
+            and c.parent_id == (parent.id if parent else None)
+            and c.name.lower() == name.lower()
+            for c in ports.finance.list_categories(run.ctx)
+        ):
+            return {"error": "a_category_with_that_name_exists"}
+        cat = ports.finance.create_category(
+            run.ctx,
+            name=name,
+            kind=kind,
+            parent_id=parent.id if parent else None,
+            icon=a.icon or (parent.icon if parent else "🏷️"),
+            # A new expense counts as a want (it breaks a no-spend day), as
+            # the app's own editor starts it; a sub-category follows its
+            # parent.
+            discretionary=parent.discretionary if parent else kind == "expense",
+        )
+        return {
+            "created": "sub-category" if parent else "category",
+            "id": str(cat.id),
+            "name": cat.name,
+            "kind": kind,
+            "parent": parent.name if parent else None,
+        }
+
     def create_routine(**kw: Any) -> dict[str, Any]:
         a = RoutineArgs(**kw)
         if any(
@@ -2260,6 +2322,13 @@ def capture_tools(run: Run) -> list[BaseTool]:
             create_budget,
             BudgetArgs,
             "Set a monthly spending budget, for some expense categories or all.",
+        ),
+        (
+            create_category,
+            CategoryArgs,
+            "Add a spending or income category the user asked for, or a "
+            "sub-category under one of their main categories. For one that "
+            "already exists, use it instead.",
         ),
         (
             update_routine,

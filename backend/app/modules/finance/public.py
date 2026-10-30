@@ -395,6 +395,50 @@ def list_categories(ctx: Ctx) -> list[Category]:
     )
 
 
+def main_category(ctx: Ctx, name: str) -> Category | None:
+    """A live main (top-level) category whose name matches ``name``,
+    ignoring case and spacing: where a new sub-category can go."""
+    h = " ".join(name.lower().split())
+    return next(
+        (
+            c
+            for c in list_categories(ctx)
+            if c.parent_id is None and " ".join(c.name.lower().split()) == h
+        ),
+        None,
+    )
+
+
+def create_category(
+    ctx: Ctx,
+    *,
+    name: str,
+    kind: Literal["expense", "income"],
+    parent_id: uuid.UUID | None = None,
+    icon: str = "🏷️",
+    discretionary: bool = False,
+) -> Category:
+    """A new category, or a sub-category under ``parent_id`` (one level
+    deep, same kind), as the Categories screen's add does. Flushes only."""
+    repo.settings_row(ctx)
+    cid = uuid.uuid4()
+    services._check_parent(ctx, cid, kind, parent_id)
+    cat, _ = owned_repo.upsert(
+        ctx,
+        Category,
+        cid,
+        {
+            "name": name,
+            "kind": kind,
+            "parent_id": parent_id,
+            "icon": icon,
+            "discretionary": discretionary,
+            "system": False,
+        },
+    )
+    return cat
+
+
 def expense_category_counts(ctx: Ctx, *, since: datetime) -> dict[uuid.UUID, int]:
     """How many categorised, non-adjustment expenses each category had after
     ``since``. Keys are in order of each category's first expense in the

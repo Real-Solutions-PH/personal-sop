@@ -3,7 +3,6 @@
 // outlined, so a glance tells "where money lives" from "what it adds up to".
 import * as C from "@domain/finance/calc"
 import type { Account, AccountType } from "@domain/finance/data"
-import { LinearGradient } from "expo-linear-gradient"
 import {
   Banknote,
   CreditCard,
@@ -45,10 +44,39 @@ export function shade(hex: string, amount: number) {
   return `#${ch(n >> 16)}${ch((n >> 8) & 255)}${ch(n & 255)}`
 }
 
+/** The account colours a person can pick (docs/brand: ``acct-*``). */
+export const ACCOUNT_COLORS = [
+  "green",
+  "blue",
+  "emerald",
+  "red",
+  "rose",
+  "violet",
+  "orange",
+  "cyan",
+  "slate",
+] as const
+// For an account nobody picked a colour for: the brighter half, no grey.
+const DEFAULTS = ["blue", "emerald", "violet", "cyan", "green", "orange"]
+
+/** The ``acct-*`` key an account is drawn in, or its own hex. An account
+ * with no colour of its own ("fin", the server's default for accounts Fern
+ * or another device added, which drew the card black) gets one from its id,
+ * so it keeps the same colour everywhere and two such accounts differ. */
+export function accountColorKey(a: Pick<Account, "id" | "color">): string {
+  const picked = /^var\(--(acct-[a-z]+)\)$/.exec(a.color ?? "")?.[1]
+  if (picked && ACCOUNT_COLORS.includes(picked.slice(5) as "green"))
+    return picked
+  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(a.color ?? "")) return a.color
+  let h = 0
+  for (const ch of a.id) h = (h * 31 + ch.charCodeAt(0)) >>> 0
+  return `acct-${DEFAULTS[h % DEFAULTS.length]}`
+}
+
 export function useAccountColor(a: Account) {
   const t = useTheme() as unknown as Record<string, string>
-  if (!a.color?.startsWith("var(")) return a.color || t["acct-slate"]
-  return t[a.color.slice(6, -1)] ?? t["acct-slate"]
+  const key = accountColorKey(a)
+  return key.startsWith("#") ? key : (t[key] ?? t["acct-blue"])
 }
 
 /** What the card says under the balance: how much of the limit is used, or
@@ -126,11 +154,11 @@ export function AccountCard({
       onPress={onPress ?? (() => go(`/finance/accounts/${a.id}`))}
       style={compact ? { width: 168 } : undefined}
     >
-      <LinearGradient
-        colors={[shade(base, 0.28), shade(base, 0.55)]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+      {/* One flat account colour (the brand keeps gradients for Fern),
+          darkened so white text stays readable on the brighter ones. */}
+      <View
         style={{
+          backgroundColor: shade(base, 0.3),
           borderRadius: 18,
           padding: compact ? 12 : 16,
           minHeight: compact ? 112 : 0,
@@ -244,7 +272,7 @@ export function AccountCard({
             </Copy>
           </View>
         )}
-      </LinearGradient>
+      </View>
     </Tap>
   )
 }

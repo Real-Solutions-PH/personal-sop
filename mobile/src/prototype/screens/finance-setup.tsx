@@ -6,10 +6,11 @@ import { Check, Download } from "lucide-react-native"
 import { useState } from "react"
 import { TextInput, View } from "react-native"
 import { toast } from "sonner-native"
+import { MoneyInput } from "../money-input"
 import { Copy, Frame, Line, SectionHeading, Tap } from "../native-kit"
 import { go } from "../navigation"
 import { fonts, useTheme } from "../theme"
-import { Button, Field, Screen } from "../ui"
+import { Button, Screen } from "../ui"
 export function FinanceSetup({
   onDone,
   embedded = false,
@@ -103,7 +104,9 @@ export function FinanceSetup({
         inProjection: r.type !== "credit",
       }).id
     }
-    const bank = created.bank ?? s.accounts[0]?.id
+    // Salary and rent land in the bank, else the first account just added
+    // (the store's own list does not hold those yet), else an older one.
+    const bank = created.bank ?? Object.values(created)[0] ?? s.accounts[0]?.id
     if (Number(salary) > 0 && bank)
       A.addPlanned({
         name: "Salary",
@@ -182,17 +185,14 @@ export function FinanceSetup({
                   color: t.text,
                 }}
               />
-              <TextInput
-                accessibilityLabel={`${r.name} balance`}
+              <MoneyInput
+                bare
+                label={`${r.name} balance`}
                 placeholder={
                   r.type === "credit" ? `owed ${sym}` : `balance ${sym}`
                 }
-                placeholderTextColor={t.muted}
                 value={r.balance}
-                onChangeText={(v) =>
-                  set(r.key, { balance: v.replace(/[^\d.]/g, ""), on: true })
-                }
-                keyboardType="decimal-pad"
+                onChange={(balance) => set(r.key, { balance, on: true })}
                 style={{
                   width: 112,
                   height: 36,
@@ -209,14 +209,12 @@ export function FinanceSetup({
               />
             </Line>
             {r.type === "credit" && r.on && (
-              <Field
-                label=""
+              <MoneyInput
+                label="Credit limit"
+                hideLabel
                 placeholder={`Credit limit ${sym}`}
                 value={r.limit}
-                onChangeText={(v) =>
-                  set(r.key, { limit: v.replace(/[^\d.]/g, "") })
-                }
-                keyboardType="decimal-pad"
+                onChange={(limit) => set(r.key, { limit })}
               />
             )}
           </Frame>
@@ -230,44 +228,36 @@ export function FinanceSetup({
       <View style={{ marginTop: -12 }}>
         <SectionHeading>Unlock the projection · optional</SectionHeading>
         <Frame style={{ padding: 16 }}>
-          <Field
+          <MoneyInput
             label={`Salary per payday ${sym} (15th & 30th)`}
-            placeholder="e.g. 27500"
+            placeholder="e.g. 27,500"
             value={salary}
-            onChangeText={(v) => setSalary(v.replace(/[^\d]/g, ""))}
-            keyboardType="decimal-pad"
+            onChange={setSalary}
           />
-          <Field
+          <MoneyInput
             label={`Rent ${sym} (5th of the month)`}
-            placeholder="e.g. 12000"
+            placeholder="e.g. 12,000"
             value={rent}
-            onChangeText={(v) => setRent(v.replace(/[^\d]/g, ""))}
-            keyboardType="decimal-pad"
+            onChange={setRent}
           />
         </Frame>
       </View>
-      <Frame style={{ padding: 16 }}>
-        <Line>
-          <Download size={20} color={t.muted} />
-          <View style={{ flex: 1 }}>
-            <Copy size={14}>Coming from Wallet (BudgetBaker)?</Copy>
-            <Copy size={12} muted>
-              Import your CSV export for instant history.
-            </Copy>
-          </View>
-          <Button
-            small
-            tone="quiet"
-            onPress={() =>
-              toast(
-                "Mock: the Wallet CSV runs through the statement-import pipeline",
-              )
-            }
-          >
-            Import
-          </Button>
-        </Line>
-      </Frame>
+      {!embedded && (
+        <Frame style={{ padding: 16 }}>
+          <Line>
+            <Download size={20} color={t.muted} />
+            <View style={{ flex: 1 }}>
+              <Copy size={14}>Coming from Wallet (BudgetBaker)?</Copy>
+              <Copy size={12} muted>
+                Import your CSV export for instant history.
+              </Copy>
+            </View>
+            <Button small tone="quiet" onPress={() => go("/finance/import")}>
+              Import
+            </Button>
+          </Line>
+        </Frame>
+      )}
       <Line style={{ gap: 8 }}>
         <Button
           tone="quiet"

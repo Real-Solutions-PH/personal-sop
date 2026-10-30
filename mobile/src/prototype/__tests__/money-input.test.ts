@@ -1,4 +1,14 @@
-import { amountDraft, groupAmount } from "../money-input"
+// The helpers live beside the field, whose module loads the UI kit.
+jest.mock("react-native-reanimated", () => ({
+  __esModule: true,
+  ...require("./reanimated-extras").extras,
+  default: require("react-native").Animated,
+}))
+jest.mock("react-native-gesture-handler/ReanimatedSwipeable", () => () => null)
+jest.mock("sonner-native", () => ({ toast: jest.fn() }))
+
+const { amountDraft, groupAmount } =
+  require("../money-input") as typeof import("../money-input")
 
 test("the minimum balance keeps its decimal point", () => {
   // Stripping every non-digit read 2,500.75 as 250,075.

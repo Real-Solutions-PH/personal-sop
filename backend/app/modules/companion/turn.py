@@ -68,6 +68,7 @@ RUNNING: dict[str, str] = {
     "update_habit": "Changing a habit",
     "set_account_balance": "Setting a balance",
     "create_budget": "Setting a budget",
+    "create_category": "Adding a category",
     "create_routine": "Creating a routine",
     "create_workout_template": "Creating a workout template",
     "create_task_list": "Creating a list",

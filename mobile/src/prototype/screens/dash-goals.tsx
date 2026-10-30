@@ -24,6 +24,7 @@ import {
 import { useState } from "react"
 import { ScrollView, TextInput, View } from "react-native"
 import { toast } from "sonner-native"
+import { MoneyInput } from "../money-input"
 import {
   Bar,
   border,
@@ -135,11 +136,11 @@ export function GoalEditor({
               TARGET
             </Copy>
             <Line style={{ gap: 8 }}>
-              <TextInput
-                accessibilityLabel="Target"
+              <MoneyInput
+                bare
+                label="Target"
                 value={target}
-                onChangeText={(v) => setTarget(v.replace(/[^0-9.]/g, ""))}
-                keyboardType="decimal-pad"
+                onChange={setTarget}
                 style={{
                   height: 48,
                   flex: 1,

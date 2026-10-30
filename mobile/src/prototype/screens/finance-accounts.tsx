@@ -22,6 +22,7 @@ import {
 import { useState } from "react"
 import { View } from "react-native"
 import { FinanceLineChart } from "../chart"
+import { MoneyInput } from "../money-input"
 import {
   Bar,
   Copy,
@@ -33,9 +34,9 @@ import {
 } from "../native-kit"
 import { go } from "../navigation"
 import { useTheme } from "../theme"
-import { Button, confirm, Empty, Field, Screen, Sheet, undo } from "../ui"
+import { Button, confirm, Empty, Screen, Sheet, undo } from "../ui"
 import { RecordEditor, useMoney } from "./finance"
-import { AccountCard } from "./finance-account-card"
+import { AccountCard, useAccountColor } from "./finance-account-card"
 import { AccountEditor } from "./finance-account-editor"
 import { FinanceRecord } from "./finance-home"
 import { FinPill } from "./finance-planned"
@@ -54,7 +55,7 @@ export function AccountIcon({
   account: Account
   size?: number
 }) {
-  const t = useTheme(),
+  const _t = useTheme(),
     Icon = {
       cash: Banknote,
       ewallet: Smartphone,
@@ -62,10 +63,7 @@ export function AccountIcon({
       credit: CreditCard,
       investment: TrendingUp,
     }[a.type],
-    key = a.color.replace(/var\(--|\)/g, ""),
-    color = a.color.startsWith("var(")
-      ? (((t as Record<string, unknown>)[key] as string) ?? t.fin)
-      : a.color
+    color = useAccountColor(a)
   return (
     <View
       style={{
@@ -300,7 +298,7 @@ export function Accounts({ id }: { id?: string }) {
                 name: a.manual ? "Update" : "Adjust",
                 icon: Scale,
                 action: () => {
-                  setActual(String(bal[a.id]))
+                  setActual(String(Math.round(bal[a.id] * 100) / 100))
                   setAdjust(true)
                 },
               },
@@ -447,11 +445,11 @@ export function Accounts({ id }: { id?: string }) {
             open={adjust}
             onClose={() => setAdjust(false)}
           >
-            <Field
+            <MoneyInput
               label={`Actual balance (${currentCurrency().code})`}
               value={actual}
-              onChangeText={setActual}
-              keyboardType="decimal-pad"
+              onChange={setActual}
+              signed
             />
             <Button
               disabled={!actual || !Number.isFinite(Number(actual))}

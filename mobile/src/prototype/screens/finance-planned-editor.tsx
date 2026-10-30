@@ -12,6 +12,7 @@ import { useLocalSearchParams } from "expo-router"
 import { useState } from "react"
 import { View } from "react-native"
 import { toast } from "sonner-native"
+import { MoneyInput } from "../money-input"
 import { Copy, Segmented, Tap } from "../native-kit"
 import { useTheme } from "../theme"
 import { Button, Choices, DateField, Field, Sheet, Toggle, undo } from "../ui"
@@ -136,11 +137,10 @@ function Editor({
             ]}
           />
           <Field label="Name" value={name} onChangeText={setName} />
-          <Field
+          <MoneyInput
             label={`Amount ${sym}`}
             value={amount}
-            onChangeText={setAmount}
-            keyboardType="decimal-pad"
+            onChange={setAmount}
           />
           <Toggle
             label="Amount varies (estimate)"

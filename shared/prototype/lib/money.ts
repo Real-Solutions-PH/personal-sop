@@ -124,10 +124,22 @@ const numberFmt = (min: number, max: number) => {
 /** The symbol readers see in labels: "Amount $", "$•••". */
 export const currencySymbol = (c: CurrencyInfo = currentCurrency()) => c.symbol
 
-/** Whole units with grouping: ``money(2500.4)`` = "₱2,500" (the prototype's
- * ``peso``). The sign follows the symbol ("₱-5"), as it always has. */
-export const money = (n: number, c: CurrencyInfo = currentCurrency()) =>
-  `${currencyPrefix(c)}${numberFmt(0, 0).format(n)}`
+/** Grouped, with the currency's decimals only when the amount has them:
+ * ``money(2500)`` = "₱2,500", ``money(158.82)`` = "₱158.82",
+ * ``money(2500.4)`` = "₱2,500.40". Rounding happens once, in whole minor
+ * units, so no amount is cut short or rounded to a different peso by the
+ * platform's Intl (158.82 read as 158 on one path and 1,708.64 as 1,709 on
+ * another). The sign follows the symbol ("₱-5"), as it always has. */
+export function money(n: number, c: CurrencyInfo = currentCurrency()): string {
+  const f = 10 ** c.digits
+  // toPrecision drops float noise first: 1.005 * 100 is 100.49999999999999.
+  const minor = Math.round(Number((Math.abs(n) * f).toPrecision(15)))
+  const whole = Math.floor(minor / f),
+    part = minor % f
+  const sign = n < 0 && minor > 0 ? "-" : ""
+  const cents = part ? `.${String(part).padStart(c.digits, "0")}` : ""
+  return `${currencyPrefix(c)}${sign}${numberFmt(0, 0).format(whole)}${cents}`
+}
 
 /** Up to the currency's own decimals: "$2,500.75", "¥2,501". */
 export const moneyExact = (n: number, c: CurrencyInfo = currentCurrency()) =>

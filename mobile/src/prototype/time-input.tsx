@@ -1,3 +1,4 @@
+import { Clock } from "lucide-react-native"
 import { useEffect, useState } from "react"
 import { Platform, TextInput, View } from "react-native"
 import { Copy, Tap } from "./native-kit"
@@ -16,10 +17,13 @@ export function TimeInput({
   value,
   onChange,
   label,
+  field = false,
 }: {
   value: string
   onChange: (value: string) => void
   label: string
+  /** Drawn as a form field (the Date field's box), to sit beside one. */
+  field?: boolean
 }) {
   const t = useTheme(),
     [draft, setDraft] = useState(value),
@@ -32,12 +36,24 @@ export function TimeInput({
           require("@react-native-community/datetimepicker") as typeof import("@react-native-community/datetimepicker")
         ).default
       : null
-  const style = {
-    backgroundColor: t.soft,
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-  }
+  const style = field
+    ? {
+        minHeight: 44,
+        backgroundColor: t.card,
+        borderWidth: 1,
+        borderColor: t.line,
+        borderRadius: 12,
+        paddingHorizontal: 12,
+        flexDirection: "row" as const,
+        alignItems: "center" as const,
+        justifyContent: "space-between" as const,
+      }
+    : {
+        backgroundColor: t.soft,
+        borderRadius: 8,
+        paddingHorizontal: 8,
+        paddingVertical: 6,
+      }
   if (Platform.OS === "web")
     return (
       <TextInput
@@ -54,7 +70,7 @@ export function TimeInput({
           fontFamily: fonts.body,
           fontSize: 14,
           color: t.text,
-          width: 70,
+          width: field ? undefined : 70,
         }}
       />
     )
@@ -69,6 +85,7 @@ export function TimeInput({
         style={style}
       >
         <Copy size={14}>{value}</Copy>
+        {field && <Clock size={16} color={t.muted} />}
       </Tap>
       {Picker && Platform.OS === "android" && open && (
         <Picker

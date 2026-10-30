@@ -11,8 +11,9 @@ import {
 
 afterEach(() => currencyStore.set({ code: "PHP" }))
 
-test("a PHP user's amounts read exactly as before", () => {
-  expect(money(2500.4)).toBe("₱2,500")
+test("a PHP user's amounts read as before, centavos shown when present", () => {
+  expect(money(2500)).toBe("₱2,500")
+  expect(money(2500.4)).toBe("₱2,500.40")
   expect(money(-5)).toBe("₱-5")
   expect(moneyExact(2500.75)).toBe("₱2,500.75")
   expect(moneyCompact(45000)).toBe("₱45k")
@@ -21,7 +22,7 @@ test("a PHP user's amounts read exactly as before", () => {
 
 test("the user's currency sets the symbol and the decimals", () => {
   setCurrency("USD")
-  expect(money(2500.4)).toBe("$2,500")
+  expect(money(2500)).toBe("$2,500")
   expect(moneyCompact(1_200_000)).toBe("$1.2M")
   const jpy = currencyInfo("JPY")
   expect(moneyExact(2500.75, jpy)).toBe("¥2,501")
