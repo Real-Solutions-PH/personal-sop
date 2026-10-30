@@ -1063,6 +1063,10 @@ export type CompleteSignup = {
     name: string;
     handle: string;
     timezone?: (string | null);
+    occupation?: ('student' | 'employed' | 'self_employed' | 'business_owner' | 'between_jobs' | 'other' | null);
+    occupation_detail?: (string | null);
+    referral_source?: ('friend' | 'tiktok' | 'instagram' | 'facebook' | 'youtube' | 'app_store' | 'search' | 'other' | null);
+    referral_detail?: (string | null);
 };
 
 export type Count = {
@@ -1267,6 +1271,8 @@ export type ExerciseDetail = {
     increment: number;
     archived: boolean;
     track?: ('speed' | 'weight' | null);
+    aliases?: Array<(string)>;
+    merged_into_id?: (string | null);
     last_done_at: (string | null);
     best_e1rm: (number | null);
     suggestion: SuggestionOut;
@@ -1297,6 +1303,8 @@ export type ExercisePublic = {
     increment: number;
     archived: boolean;
     track?: ('speed' | 'weight' | null);
+    aliases?: Array<(string)>;
+    merged_into_id?: (string | null);
 };
 
 export type ExercisesOut = {
@@ -1336,6 +1344,8 @@ export type ExerciseWithStats = {
     increment: number;
     archived: boolean;
     track?: ('speed' | 'weight' | null);
+    aliases?: Array<(string)>;
+    merged_into_id?: (string | null);
     last_done_at: (string | null);
     best_e1rm: (number | null);
     suggestion: SuggestionOut;
@@ -1541,6 +1551,7 @@ export type GoalProgressOut = {
     value: (string | null);
     pct: number;
     hit: boolean;
+    hidden?: boolean;
 };
 
 export type status = 'active' | 'archived';
@@ -2325,6 +2336,10 @@ export type MediaPublic = {
     kind: 'image' | 'video';
     ratio: (number | null);
     url: (string | null);
+    preview_url?: (string | null);
+    lqip?: (string | null);
+    width?: (number | null);
+    height?: (number | null);
 };
 
 export type MediaWithUrl = {
@@ -2338,7 +2353,10 @@ export type MediaWithUrl = {
     state: 'pending' | 'ready' | 'rejected';
     ready_at: (string | null);
     created_at: string;
+    preview_id?: (string | null);
+    lqip?: (string | null);
     url?: (string | null);
+    preview_url?: (string | null);
 };
 
 export type kind12 = 'image' | 'video' | 'audio' | 'file';
@@ -2370,6 +2388,10 @@ export type MemoryPublic = {
     created_at: string;
     version: number;
     deleted_at?: (string | null);
+};
+
+export type MergeExercise = {
+    target_id: string;
 };
 
 export type Message = {
@@ -2975,6 +2997,10 @@ export type ProfilePublic = {
     push_evening: (string | null);
     push_review: boolean;
     seen_trophies: Array<(string)>;
+    occupation?: ('student' | 'employed' | 'self_employed' | 'business_owner' | 'between_jobs' | 'other' | null);
+    occupation_detail?: (string | null);
+    referral_source?: ('friend' | 'tiktok' | 'instagram' | 'facebook' | 'youtube' | 'app_store' | 'search' | 'other' | null);
+    referral_detail?: (string | null);
     version: number;
     updated_at: string;
 };
@@ -3238,6 +3264,22 @@ export type ReorderIn = {
 export type ReplaceExercise = {
     exercise_id: string;
 };
+
+/**
+ * Where the reply to a question stands, for an app that lost its
+ * stream: ``done`` with the stored question and reply (or the capture a
+ * log became), ``running`` while the turn is still being written, or
+ * ``failed`` when it ended with nothing stored.
+ */
+export type ReplyOut = {
+    status: 'running' | 'done' | 'failed';
+    messages?: Array<app__modules__companion__schema__MessagePublic>;
+    capture?: ({
+    [key: string]: unknown;
+} | null);
+};
+
+export type status6 = 'running' | 'done' | 'failed';
 
 export type ReplyPublic = {
     id: string;
@@ -3937,7 +3979,7 @@ export type SyncOpResult = {
     replayed?: boolean;
 };
 
-export type status6 = 'applied' | 'conflict' | 'rejected';
+export type status7 = 'applied' | 'conflict' | 'rejected';
 
 export type SyncPull = {
     changes: Array<SyncChange>;
@@ -4304,6 +4346,8 @@ export type UploadRequest = {
     width?: (number | null);
     height?: (number | null);
     duration_sec?: (number | null);
+    preview_id?: (string | null);
+    lqip?: (string | null);
 };
 
 /**
@@ -4900,6 +4944,12 @@ export type CompanionStopReplyData = {
 };
 
 export type CompanionStopReplyResponse = (void);
+
+export type CompanionGetReplyData = {
+    messageId: string;
+};
+
+export type CompanionGetReplyResponse = (ReplyOut);
 
 export type CompanionListMessagesData = {
     limit?: number;
@@ -5810,6 +5860,13 @@ export type FitnessArchiveExerciseData = {
 };
 
 export type FitnessArchiveExerciseResponse = (ExercisePublic);
+
+export type FitnessMergeExerciseData = {
+    exerciseId: string;
+    requestBody: MergeExercise;
+};
+
+export type FitnessMergeExerciseResponse = (ExercisePublic);
 
 export type FitnessBodyWeightData = {
     days?: number;

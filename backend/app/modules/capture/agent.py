@@ -995,6 +995,7 @@ def _card(run: Run, d: RecordDraft, *, setup: bool = False) -> dict[str, Any]:
     engine.emit_card(run.ctx, run.emit, card)
     out: dict[str, Any] = {
         "card_id": str(card.id),
+        "capture_id": str(card.capture_id),
         "state": card.state,
         "tier": card.tier,
         "warn": card.warn,

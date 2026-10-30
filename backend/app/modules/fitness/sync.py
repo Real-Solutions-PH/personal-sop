@@ -67,6 +67,7 @@ def _upsert_exercise(ctx: Ctx, row_id: uuid.UUID, p: BaseModel) -> OwnedRow:
         raise invalid("invalid_rep_range", "The rep range ends before it starts")
     if "name" in data:
         data["name"] = data["name"].strip()
+    services._guard_merged(current, data.get("archived"))
     return _put(ctx, Exercise, row_id, data)
 
 
@@ -303,6 +304,16 @@ def _follow_up(ctx: Ctx, a: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+class MergeArgs(BaseModel):
+    source_id: uuid.UUID
+    target_id: uuid.UUID
+
+
+def _merge(ctx: Ctx, a: dict[str, Any]) -> dict[str, Any]:
+    target = services.merge_exercises(ctx=ctx, **a)
+    return {"exercise": _dump(S.ExercisePublic, target)}
+
+
 def register(r: Registry) -> None:
     entities: list[Entity] = [
         Entity(
@@ -430,6 +441,7 @@ def register(r: Registry) -> None:
         Action("fitness.rest.skip", _rest_skip, NoArgs),
         Action("fitness.confirm_meal", _confirm, MealArgs),
         Action("fitness.answer_follow_up", _follow_up, FollowUpArgs),
+        Action("fitness.merge_exercises", _merge, MergeArgs),
     ]
     for a in actions:
         r.action(a)

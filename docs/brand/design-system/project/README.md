@@ -35,6 +35,7 @@ Unfurl is the all-in-one life tracker you talk to. People log habits, tasks, tra
 - Ground and ink: `background` (paper), `card` (white / green-black), `foreground` (ink), `muted-foreground` (secondary text, units), `border` (hairlines), `input` (control outlines, 3:1), `muted` (tracks, the person's chat bubble).
 - Brand: `primary` (moss `#1f5a43`; `#8fcaa6` in dark). The one filled button, selected switches, links, the focus `ring`.
 - Fern: `moss`, `frond`, `sprout` and `mist` belong to Fern alone: the orb gradient, the glow and halo, and Fern's reply bubbles. Nothing else uses them, so Fern is always the most colourful thing on screen.
+- Share artwork: exported share cards are the one place outside Fern where a gradient is allowed (Fern and Dusk grounds), never in the interface or on the logo. See [ADR-0028](../../../adr/0028-share-card-gradients.md).
 - Data: `tsk`, `fit`, `fin`, `hab`, `life`, `nut` are the area colours and the chart palette, in that fixed order. They are vivid enough to read as data and validated as a set (colour-blind separation ≥ 8.9 ΔE, ≥ 3:1 on `card`, both themes). They fill charts, sparklines, heatmap cells, progress and dots. Never a button, a card background or text: labels and values stay in `foreground` or `muted-foreground`. Calm chrome, colourful data.
 - Status: `good`, `warn`, `bad`, always with a word or an icon.
 - Every text colour meets 4.5:1 on `background` and `card` in both themes. Area colours are not text colours.

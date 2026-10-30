@@ -455,10 +455,10 @@ def test_confirm_reports_what_still_cannot_be_saved_and_why(
 
 def test_a_question_with_numbers_is_not_a_request_to_record() -> None:
     assert not services.unbacked_claim(
-        "did I hit 60 kg this week?", "You logged 62 kg on Monday.", []
+        "did I hit 60 kg this week?", "You logged 62 kg on Monday.", [], waiting=False
     )
     assert services.unbacked_claim(
-        "62.4 kg and 20% body fat today", "Logged your weigh-in.", []
+        "62.4 kg and 20% body fat today", "Logged your weigh-in.", [], waiting=False
     )
 
 
@@ -471,7 +471,7 @@ def test_a_question_about_kept_records_without_a_question_mark_is_not_a_write() 
         "what meals did i have today",
     ):
         assert not services.unbacked_claim(
-            asked, "Both meals were logged with calories only.", []
+            asked, "Both meals were logged with calories only.", [], waiting=False
         ), asked
     # A list or numbers given stay a record to make, whatever words they hold.
     for asked in (
@@ -482,7 +482,7 @@ def test_a_question_about_kept_records_without_a_question_mark_is_not_a_write() 
         "Do laundry and pay rent, those are my to-dos",
         "What a day: 5 km in 32 mins",
     ):
-        assert services.unbacked_claim(asked, "Logged it.", []), asked
+        assert services.unbacked_claim(asked, "Logged it.", [], waiting=False), asked
 
 
 TASK_LIST = (

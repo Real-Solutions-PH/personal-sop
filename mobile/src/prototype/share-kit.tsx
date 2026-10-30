@@ -1,9 +1,11 @@
 import type { HostInstance, ScrollViewInstance } from "react-native"
-// Share cards (ADR-0019): one family of flat cards on a paper or ink ground,
-// the flat Unfurl lockup, Geist for words and Geist Mono for numbers. No
-// gradients: those belong to Fern's orb alone. Every size is a fraction of
-// the card's width (`q` = 1% of it), so a card reads the same at 180 pt in
-// the privacy check and at 1080 px in the exported PNG.
+// Share cards (ADR-0019, ADR-0028): one family of cards on a gradient, paper
+// or ink ground, with a faint fiddlehead watermark and the flat Unfurl
+// lockup, Geist for words and Geist Mono for numbers. Gradients are allowed
+// here, on the exported artwork's ground (`CardGround`), and nowhere in the
+// interface. Every size is a fraction of the card's width (`q` = 1% of it),
+// so a card reads the same at 180 pt in the privacy check and at 1080 px in
+// the exported PNG.
 
 import { palette } from "@domain/design/tokens"
 import * as Sharing from "expo-sharing"
@@ -28,6 +30,7 @@ import {
   type ReactNode,
   useContext,
   useEffect,
+  useId,
   useRef,
   useState,
 } from "react"
@@ -42,7 +45,15 @@ import {
   View,
   type ViewStyle,
 } from "react-native"
-import Svg, { Circle, Polygon, Polyline } from "react-native-svg"
+import Svg, {
+  Circle,
+  Defs,
+  LinearGradient,
+  Polygon,
+  Polyline,
+  Rect,
+  Stop,
+} from "react-native-svg"
 import { captureRef } from "react-native-view-shot"
 import { toast } from "sonner-native"
 import { ColorPicker, luminance } from "./color-picker"
@@ -52,12 +63,14 @@ import { copyText, pickPhoto } from "./media"
 import { Copy, Line, Segmented, Tap } from "./native-kit"
 import { go } from "./navigation"
 import { signed } from "./share-format"
-import { keep } from "./social/media"
-import { addStory, setPostDraft } from "./social/store"
+import { keep, prepareImage } from "./social/media"
+import { addStory, type Media, setPostDraft } from "./social/store"
 import { type Accent, fonts, useTheme } from "./theme"
 
 export type CardFormat = "9:16" | "4:5" | "1:1"
 const BACKDROPS = [
+  { key: "fern", label: "Fern" },
+  { key: "dusk", label: "Dusk" },
   { key: "dark", label: "Dark" },
   { key: "light", label: "Light" },
   { key: "custom", label: "Colour" },
@@ -103,17 +116,33 @@ export type CardInk = {
   good: string
   bad: string
   area: (a: Accent) => string
+  /** A gradient ground (share artwork only, ADR-0028): its stops from the
+   * top-left corner to the bottom-right. ``bg`` is the first stop. */
+  gradient?: { stops: string[] }
+}
+/** The stops of each gradient ground. Fern stops at moss: a lighter stop
+ * (``frond``) or a sprout glow drops ink and muted text below 4.5:1. */
+const GRADIENTS: Partial<Record<CardBackdrop, string[]>> = {
+  fern: [palette.dark.background, palette.light.moss],
+  dusk: [
+    palette.light["hero-from"],
+    palette.light["hero-via"],
+    palette.light["hero-to"],
+  ],
 }
 export function cardInk(look: CardLook): CardInk {
   const custom = look.backdrop === "custom" ? (look.color ?? null) : null
+  const stops = GRADIENTS[look.backdrop]
   const dark =
     look.backdrop === "light" ? false : custom ? luminance(custom) <= 0.4 : true
   const p: Tokens = palette[dark ? "dark" : "light"]
   const see = look.backdrop === "photo" || look.backdrop === "sticker"
-  const tinted = !!custom || see
+  const tinted = !!custom || see || !!stops
   return {
     dark,
+    ...(stops ? { gradient: { stops } } : {}),
     bg:
+      stops?.[0] ??
       custom ??
       (look.backdrop === "sticker" ? alpha(p.background, 0.72) : p.background),
     panel: tinted ? alpha(p.foreground, dark ? 0.1 : 0.07) : p.card,
@@ -121,7 +150,7 @@ export function cardInk(look: CardLook): CardInk {
     ink: p.foreground,
     muted: tinted ? alpha(p.foreground, 0.78) : p["muted-foreground"],
     track: alpha(p.foreground, dark ? 0.16 : 0.1),
-    mark: dark ? p.sprout : p.primary,
+    mark: stops ? palette.light.sprout : dark ? p.sprout : p.primary,
     good: p.good,
     bad: p.bad,
     area: (a) => p[a],
@@ -570,6 +599,55 @@ export function Dots({
   )
 }
 
+/** A gradient ground behind everything on the card, drawn in SVG so it
+ * renders alike on every platform and is captured at full resolution. */
+function CardGround() {
+  const { c } = useCard(),
+    id = `ground-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`
+  if (!c.gradient) return null
+  const stops = c.gradient.stops
+  return (
+    <Svg
+      testID="card-ground"
+      width="100%"
+      height="100%"
+      preserveAspectRatio="none"
+      style={{ position: "absolute", inset: 0 }}
+    >
+      <Defs>
+        <LinearGradient id={id} x1="0" y1="0" x2="1" y2="1">
+          {stops.map((color, i) => (
+            <Stop
+              key={`${color}-${i}`}
+              offset={stops.length > 1 ? i / (stops.length - 1) : 0}
+              stopColor={color}
+            />
+          ))}
+        </LinearGradient>
+      </Defs>
+      <Rect x="0" y="0" width="100%" height="100%" fill={`url(#${id})`} />
+    </Svg>
+  )
+}
+
+/** A large, faint fiddlehead bleeding off the bottom-right corner. */
+function Watermark() {
+  const { q, c } = useCard()
+  return (
+    <View
+      testID="card-watermark"
+      pointerEvents="none"
+      style={{ position: "absolute", right: -14 * q, bottom: -10 * q }}
+    >
+      <FernMark
+        size={70 * q}
+        color={alpha(c.ink, c.dark ? 0.06 : 0.05)}
+        weight={2.2}
+      />
+    </View>
+  )
+}
+
 /** The flat lockup: fiddlehead plus "unfurl" in Geist Medium, −3%. */
 export function Lockup({ size }: { size: number }) {
   const { q, c } = useCard()
@@ -643,13 +721,14 @@ export function CardFrame({
   date,
   foot,
   mark = true,
+  accent,
 }: {
   mark?: boolean
   date?: string
   foot?: ReactNode
   width: number
   look: CardLook
-  /** Kept for call sites; cards no longer tint their ground by area. */
+  /** The area the card is about: colours the accent bar over the kicker. */
   accent?: Accent
   kicker: string
   children: ReactNode
@@ -682,6 +761,7 @@ export function CardFrame({
             backgroundColor: c.bg,
           }}
         >
+          <CardGround />
           {look.backdrop === "photo" && look.photo && (
             <>
               <Image
@@ -697,8 +777,24 @@ export function CardFrame({
               />
             </>
           )}
-          <Line style={{ gap: 3 * q, justifyContent: "space-between" }}>
-            <View style={{ flexShrink: 1 }}>
+          {look.backdrop !== "sticker" && <Watermark />}
+          <Line
+            style={{
+              gap: 3 * q,
+              justifyContent: "space-between",
+              alignItems: "flex-end",
+            }}
+          >
+            <View style={{ flexShrink: 1, gap: 1.6 * q }}>
+              <View
+                testID="card-accent"
+                style={{
+                  width: 8 * q,
+                  height: 1.2 * q,
+                  borderRadius: 0.6 * q,
+                  backgroundColor: accent ? c.area(accent) : c.mark,
+                }}
+              />
               <Words size={3.6} weight="medium" lines={1}>
                 {kicker}
               </Words>
@@ -730,7 +826,7 @@ export function CardFrame({
                   foot
                 )}
               </View>
-              {mark && <Lockup size={4.2} />}
+              {mark && <Lockup size={4.8} />}
             </View>
           )}
         </View>
@@ -753,7 +849,8 @@ export function CardFrame({
 
 /** The PNG is 1080 pixels wide. iOS view-shot takes the size in points and
  * draws at the screen's scale, so 1080 there would come out 2160 or 3240
- * wide; Android takes pixels. */
+ * wide; Android takes pixels. Either way it equals the laid-out size of the
+ * hidden export copy, so nothing is resampled. */
 function exportSize(format: CardFormat) {
   const scale = Platform.OS === "ios" ? PixelRatio.get() : 1
   return {
@@ -777,6 +874,7 @@ export function ShareComposer<K extends string>({
   beforeShare,
   onLookChange,
   shareRef,
+  autoPost = false,
 }: {
   value: K
   onChange: (key: K) => void
@@ -793,11 +891,13 @@ export function ShareComposer<K extends string>({
   beforeShare?: (proceed: () => Promise<void>) => void
   onLookChange?: (look: CardLook) => void
   shareRef?: { current: (() => Promise<void>) | null }
+  /** Open the feed composer with this card once it has been laid out. */
+  autoPost?: boolean
 }) {
   const t = useTheme(),
     social = useShown("social")
   const [format, setFormat] = useState<CardFormat>("9:16"),
-    [backdrop, setBackdrop] = useState<CardBackdrop>("dark"),
+    [backdrop, setBackdrop] = useState<CardBackdrop>("fern"),
     [photo, setPhoto] = useState<string | null>(null),
     [color, setColor] = useState<string>(palette.light.primary)
   const screen = useWindowDimensions().width,
@@ -815,6 +915,12 @@ export function ShareComposer<K extends string>({
     refs = useRef<Record<string, HostInstance | null>>({}),
     shots = useRef<Record<string, HostInstance | null>>({}),
     target = (key: string) => shots.current[key] ?? refs.current[key],
+    // The selected card laid out at exactly 1080 px wide, off screen: the
+    // export is captured from it rather than scaled up from the preview.
+    exportShot = useRef<HostInstance | null>(null),
+    exportWidth = 1080 / PixelRatio.get(),
+    exportNode = () => exportShot.current ?? target(value),
+    posted = useRef(false),
     scroll = useRef<ScrollViewInstance>(null)
   useEffect(() => {
     if (!formats.includes(format)) setFormat(formats[0])
@@ -828,8 +934,9 @@ export function ShareComposer<K extends string>({
   }, [index, width])
   const doShare = async () => {
     try {
-      if (Platform.OS !== "web" && target(value)) {
-        const uri = await captureRef(target(value)!, {
+      const node = exportNode()
+      if (Platform.OS !== "web" && node) {
+        const uri = await captureRef(node, {
           format: "png",
           quality: 1,
           ...exportSize(format),
@@ -846,11 +953,14 @@ export function ShareComposer<K extends string>({
   }
   // Render the selected card to a PNG for the in-app feed/story.
   const capture = async () => {
-    const node = target(value)
+    const node = exportNode()
     if (!node) return null
     try {
       if (Platform.OS === "web")
-        return await captureRef(node, { format: "png", result: "data-uri" })
+        return await captureRef(target(value) ?? node, {
+          format: "png",
+          result: "data-uri",
+        })
       const uri = await captureRef(node, {
         format: "png",
         quality: 1,
@@ -861,11 +971,32 @@ export function ShareComposer<K extends string>({
       return null
     }
   }
+  /** The card as a community photo: the PNG itself as the full image (no
+   * re-encoding of its gradients) plus a preview and a placeholder. A card
+   * that cannot be prepared is posted as it is. */
+  const asMedia = async (uri: string): Promise<Media> => {
+    const ratio = 1 / ratioOf(format)
+    try {
+      const p = await prepareImage(uri, { keepPng: true })
+      return {
+        kind: "image",
+        uri: p.full,
+        mime: p.fullMime,
+        previewUri: p.preview,
+        lqip: p.lqip,
+        width: p.width,
+        height: p.height,
+        ratio,
+      }
+    } catch {
+      return { kind: "image", uri, ratio }
+    }
+  }
   const toFeed = async () => {
     const uri = await capture()
     setPostDraft({
       caption,
-      media: uri ? [{ kind: "image", uri, ratio: 1 / ratioOf(format) }] : [],
+      media: uri ? [await asMedia(uri)] : [],
     })
     go(uri ? "/social/compose" : "/social/compose?progress=1")
   }
@@ -875,7 +1006,13 @@ export function ShareComposer<K extends string>({
       toast.error("Couldn't render this card. Try Post instead.")
       return
     }
-    addStory({ kind: "image", uri })
+    const m = await asMedia(uri)
+    addStory({
+      kind: "image",
+      uri: m.uri,
+      previewUri: m.previewUri,
+      lqip: m.lqip,
+    })
     toast.success("Added to your story", {
       action: { label: "View", onClick: () => go("/social/stories/me") },
     })
@@ -885,14 +1022,16 @@ export function ShareComposer<K extends string>({
     onLookChange?.({ format, backdrop, photo, color })
   }, [format, backdrop, photo, color, onLookChange])
   const share = () => (beforeShare ? beforeShare(doShare) : doShare())
-  const swatch = (key: CardBackdrop) =>
-    key === "dark"
+  const swatch = (key: CardBackdrop): string | string[] =>
+    GRADIENTS[key] ??
+    (key === "dark"
       ? palette.dark.background
       : key === "light"
         ? palette.light.background
         : key === "custom"
           ? color
-          : t.soft
+          : t.soft)
+  const selected = items.find((i) => i.key === value)
   return (
     <View style={{ gap: 12, paddingTop: 4 }}>
       <View>
@@ -952,6 +1091,40 @@ export function ShareComposer<K extends string>({
             </Tap>
           ))}
         </ScrollView>
+        {selected && (
+          <View
+            pointerEvents="none"
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: 0,
+              height: 0,
+              overflow: "hidden",
+            }}
+          >
+            <View
+              testID="card-export"
+              collapsable={false}
+              style={{ width: exportWidth }}
+              onLayout={() => {
+                if (!autoPost || posted.current) return
+                posted.current = true
+                requestAnimationFrame(() => void toFeed())
+              }}
+            >
+              <CardShotContext.Provider
+                value={(v) => {
+                  exportShot.current = v
+                }}
+              >
+                {selected.render(exportWidth, look)}
+              </CardShotContext.Provider>
+            </View>
+          </View>
+        )}
         <Line style={{ justifyContent: "center", gap: 8, marginTop: 8 }}>
           <Copy size={14} weight="semibold">
             {items.find((x) => x.key === value)?.label}
@@ -1047,7 +1220,8 @@ export function ShareComposer<K extends string>({
                 borderRadius: 22,
                 alignItems: "center",
                 justifyContent: "center",
-                backgroundColor: swatch(b.key),
+                backgroundColor: [swatch(b.key)].flat()[0],
+                overflow: "hidden",
                 // Selected: a 2 pt ink outline, never colour alone.
                 borderWidth: backdrop === b.key ? 2 : 1,
                 borderStyle:
@@ -1057,6 +1231,9 @@ export function ShareComposer<K extends string>({
                 borderColor: backdrop === b.key ? t.text : t.input,
               }}
             >
+              {Array.isArray(swatch(b.key)) && (
+                <Swatch stops={[swatch(b.key)].flat()} />
+              )}
               {b.key === "photo" && (
                 <ImageIcon size={18} color={t.text} strokeWidth={1.75} />
               )}
@@ -1170,5 +1347,26 @@ export function ShareComposer<K extends string>({
       )}
       {children}
     </View>
+  )
+}
+
+/** A composer swatch for a gradient ground: a small round preview. */
+function Swatch({ stops }: { stops: string[] }) {
+  const id = `swatch-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`
+  return (
+    <Svg width={44} height={44} style={{ position: "absolute", inset: 0 }}>
+      <Defs>
+        <LinearGradient id={id} x1="0" y1="0" x2="1" y2="1">
+          {stops.map((color, i) => (
+            <Stop
+              key={`${color}-${i}`}
+              offset={i / Math.max(1, stops.length - 1)}
+              stopColor={color}
+            />
+          ))}
+        </LinearGradient>
+      </Defs>
+      <Circle cx={22} cy={22} r={22} fill={`url(#${id})`} />
+    </Svg>
   )
 }

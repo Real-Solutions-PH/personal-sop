@@ -39,6 +39,7 @@ function RootStack() {
       </Stack.Protected>
       <Stack.Protected guard={prototypeAuth}>
         <Stack.Screen name="welcome" />
+        <Stack.Screen name="get-started" />
         <Stack.Screen name="verify-email" />
       </Stack.Protected>
       <Stack.Protected guard={!prototypeMode}>

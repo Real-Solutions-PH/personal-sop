@@ -334,35 +334,40 @@ export function Compose() {
             )}
           </View>
         ) : (
-          <Animated.View
-            entering={FadeIn}
-            style={{
-              margin: 16,
-              height: 220,
-              borderRadius: 20,
-              borderWidth: 1.5,
-              borderStyle: "dashed",
-              borderColor: t.line,
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-            }}
-          >
-            <Images size={36} color={t.muted} />
-            <Text
-              style={{
-                color: t.text,
-                fontFamily: fonts.semibold,
-                fontSize: 16,
-              }}
+          <Animated.View entering={FadeIn} style={{ margin: 16 }}>
+            <Pressable
+              cssInterop={false}
+              accessibilityRole="button"
+              accessibilityLabel="Add photos or videos from your library"
+              onPress={() => void add(false)}
+              style={({ pressed }) => ({
+                height: 220,
+                borderRadius: 20,
+                borderWidth: 1.5,
+                borderStyle: "dashed",
+                borderColor: t.line,
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                opacity: pressed ? 0.7 : 1,
+              })}
             >
-              Add photos, videos or progress
-            </Text>
-            <Text
-              style={{ color: t.muted, fontFamily: fonts.body, fontSize: 13 }}
-            >
-              Up to 10 items. Swipe to preview.
-            </Text>
+              <Images size={36} color={t.muted} />
+              <Text
+                style={{
+                  color: t.text,
+                  fontFamily: fonts.semibold,
+                  fontSize: 16,
+                }}
+              >
+                Add photos, videos or progress
+              </Text>
+              <Text
+                style={{ color: t.muted, fontFamily: fonts.body, fontSize: 13 }}
+              >
+                Tap to add up to 10 photos or videos.
+              </Text>
+            </Pressable>
           </Animated.View>
         )}
         <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 16 }}>

@@ -9,6 +9,7 @@ from sqlmodel import Session, col, func, select
 
 from app.modules.finance import public as finance_public
 from app.modules.iam.tenants import services as tenant_service
+from app.modules.media import public as media_public
 from app.modules.profile import public
 from app.modules.profile.models import (
     MODULE_KEYS,
@@ -95,6 +96,13 @@ def _claim_handle(ctx: Ctx, profile: UserProfile, handle: str) -> None:
     profile.handle = handle
 
 
+def handle_claimable(ctx: Ctx, handle: str) -> bool:
+    """Whether the caller could take ``handle`` now (their own counts)."""
+    if handle == public.get_profile(ctx).handle:
+        return True
+    return handle not in RESERVED_HANDLES and not _handle_taken(ctx, handle)
+
+
 def _flush_unique(ctx: Ctx) -> None:
     """Flush, turning a lost uniqueness race on the handle into a 409."""
     try:
@@ -116,6 +124,10 @@ def update_profile(ctx: Ctx, data: ProfileUpdate) -> UserProfile:
     handle = values.pop("handle", None)
     if handle is not None:
         _claim_handle(ctx, profile, handle)
+    if values.get("photo_media_id") is not None:
+        # Only the caller's own, finished image: a profile photo is shown to
+        # the whole tenant, so someone else's upload must never become one.
+        media_public.require_ready(ctx, values["photo_media_id"], kinds=("image",))
     if "timezone" in values or "day_start_hour" in values:
         # Validate the combination before writing it.
         DayClock(
@@ -144,6 +156,16 @@ def complete_signup(ctx: Ctx, data: CompleteSignup) -> UserProfile:
         profile.timezone = data.timezone
     if profile.since is None:
         profile.since = ctx.today
+    # Written once: a retried sign-up never overwrites an earlier answer.
+    for field in (
+        "occupation",
+        "occupation_detail",
+        "referral_source",
+        "referral_detail",
+    ):
+        value = getattr(data, field)
+        if value is not None and getattr(profile, field) is None:
+            setattr(profile, field, value)
     ctx.session.add(profile)
     _flush_unique(ctx)
     # The defaults exist from the moment the app can show finance: the

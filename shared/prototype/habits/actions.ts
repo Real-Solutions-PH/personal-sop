@@ -1,4 +1,5 @@
 "use client"
+import { dashStore } from "../dash/store"
 import { dayKey } from "../lib/day"
 import { derivedId } from "../lib/ids"
 import { type Live, liveStore, startLive, stopLive } from "../lib/live"
@@ -20,10 +21,11 @@ const S = habitsStore
 const nowIso = () => new Date().toISOString()
 const findHabit = (id: string) => S.get().habits.find((h) => h.id === id)
 /** A habit driven by screen time completes itself: every manual action on
- * it is a no-op (the UI never offers one; the server answers 409). */
+ * it is a no-op (the UI never offers one; the server answers 409). While
+ * Screen time is switched off it is an ordinary check habit again. */
 const manual = (id: string) => {
   const h = findHabit(id)
-  return h && !h.rule ? h : undefined
+  return h && (!h.rule || !dashStore.get().enabled.screen) ? h : undefined
 }
 export interface LogInput {
   habitId: string

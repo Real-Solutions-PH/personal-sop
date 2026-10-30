@@ -22,6 +22,25 @@ MODULE_KEYS = (
 LIVE_KINDS = ("timer", "routine", "workout")
 PUSH_PERMISSIONS = ("default", "granted", "denied")
 APPEARANCE = ("system", "light", "dark")
+# Sign-up's "about you" answers, written once by complete-signup.
+OCCUPATIONS = (
+    "student",
+    "employed",
+    "self_employed",
+    "business_owner",
+    "between_jobs",
+    "other",
+)
+REFERRAL_SOURCES = (
+    "friend",
+    "tiktok",
+    "instagram",
+    "facebook",
+    "youtube",
+    "app_store",
+    "search",
+    "other",
+)
 
 
 class UserProfile(OwnedRow, table=True):
@@ -43,6 +62,10 @@ class UserProfile(OwnedRow, table=True):
             "push_permission", PUSH_PERMISSIONS, name="ck_user_profile_push_perm"
         ),
         enum_check("currency", CODES, name="ck_user_profile_currency"),
+        enum_check("occupation", OCCUPATIONS, name="ck_user_profile_occupation"),
+        enum_check(
+            "referral_source", REFERRAL_SOURCES, name="ck_user_profile_referral"
+        ),
     )
 
     name: str = Field(default="", max_length=80)
@@ -74,6 +97,10 @@ class UserProfile(OwnedRow, table=True):
         default_factory=list,
         sa_type=JSONB,
     )
+    occupation: str | None = Field(default=None, sa_type=String(16))  # type: ignore
+    occupation_detail: str | None = Field(default=None, max_length=80)
+    referral_source: str | None = Field(default=None, sa_type=String(16))  # type: ignore
+    referral_detail: str | None = Field(default=None, max_length=80)
 
 
 class ModulePref(OwnedRow, table=True):

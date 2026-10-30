@@ -41,6 +41,11 @@ export interface Mapper<S = unknown, L = unknown> {
   /** Written only through ``actions``: no field writes or deletes are sent
    * (the server registers the entity read-only and refuses them). */
   actionsOnly?: boolean
+  /** Action names whose refusal leaves the device ahead of the server in a
+   * way no later pull corrects (rows it changed optimistically and never
+   * pushed): a ``rejected`` result for one makes the engine pull everything
+   * again. */
+  resyncOnReject?: readonly string[]
 }
 
 export type AnyMapper = Mapper<any, any>

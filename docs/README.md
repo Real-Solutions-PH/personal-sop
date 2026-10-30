@@ -34,6 +34,7 @@ Context pack for human + AI programmers building this SaaS. Fill each template; 
 | [constitution.md](constitution.md) | Engineering Constitution — stack defaults and conventions | All |
 | [ia/](ia/README.md) | Information architecture — screens, flows, open questions per module | Design |
 | [adr/](adr/) | Architecture Decision Records — one file per decision | Tech lead |
+| [adr/0028-share-card-gradients.md](adr/0028-share-card-gradients.md) | Gradients allowed on share artwork only, amending the brand's flat rule (2026-10-30) | Design |
 | [runbook.md](runbook.md) | Deploy, rollback, backup/restore, common ops, incidents | DevOps |
 
 ### Feature specs and plans

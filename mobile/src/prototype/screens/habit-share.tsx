@@ -330,6 +330,7 @@ export function HabitCard({
     <CardFrame
       width={width}
       look={look}
+      accent="hab"
       kicker={kind === "milestone" ? "Habit milestone" : "Habits"}
     >
       {body}
@@ -343,6 +344,7 @@ export function HabitShare() {
       habit?: string
       routine?: string
       run?: string
+      post?: string
     }>(),
     state = habitsStore.use((s) => s),
     t = useTheme()
@@ -426,6 +428,7 @@ export function HabitShare() {
       <ShareComposer
         value={layout}
         onChange={setLayout}
+        autoPost={p.post === "1"}
         caption={`${caption} · Unfurl`}
         items={(
           [

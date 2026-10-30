@@ -1,15 +1,15 @@
+import type { ModuleKey } from "@domain/contract"
 import { AREA, MODULE_KEYS } from "@domain/dash/data"
 import { fmtGoal, useGoals, useLifeScore } from "@domain/dash/hooks"
 import {
   dashStore,
   resetWeights,
+  saveProfileEdits,
   setEnabled,
   setEveningStart,
-  setIdentities,
   setProfilePhoto,
   setTargetThreshold,
   setWeight,
-  updateProfile,
 } from "@domain/dash/store"
 import { privacyStore, togglePrivacy } from "@domain/lib/privacy"
 import { uid } from "@domain/lib/store"
@@ -34,11 +34,12 @@ import {
   Utensils,
   Wallet,
 } from "lucide-react-native"
-import { useState } from "react"
-import { ScrollView, TextInput, View } from "react-native"
+import { useEffect, useState } from "react"
+import { ScrollView, Text, TextInput, View } from "react-native"
 import { toast } from "sonner-native"
+import { liveMode } from "@/live/config"
 import { EXTRAS, type Extra, extrasStore, setShown } from "../extras"
-import { pickPhoto } from "../media"
+import { pickAvatar } from "../media"
 import {
   border,
   Copy,
@@ -50,9 +51,11 @@ import {
   Segmented,
   Tap,
 } from "../native-kit"
-import { go } from "../navigation"
+import { back, go } from "../navigation"
 import { ProfileAvatar } from "../profile-avatar"
 import { enableReminders } from "../reminders"
+import { enableScreenTime } from "../screen-sync"
+import { checkUsername, usernameError } from "../session"
 import { Switch } from "../switch"
 import { appearanceStore, fonts, useTheme } from "../theme"
 import { TimeInput } from "../time-input"
@@ -116,14 +119,69 @@ const modules = {
     ],
   },
 } as const
+type HandleCheck = "idle" | "checking" | "available" | "taken" | "unknown"
+/** Whether a new handle is free (debounced); the current one is not asked. */
+function useHandleCheck(handle: string, current: string): HandleCheck {
+  const [state, setState] = useState<HandleCheck>("idle")
+  useEffect(() => {
+    if (handle === current || usernameError(handle)) {
+      setState("idle")
+      return
+    }
+    let live = true
+    setState("checking")
+    const id = setTimeout(async () => {
+      const result = await checkUsername(handle)
+      if (live) setState(result)
+    }, 400)
+    return () => {
+      live = false
+      clearTimeout(id)
+    }
+  }, [handle, current])
+  return state
+}
+/** The photo sheet's change: shown at once, then saved on the server in
+ * live mode (which reports the outcome). */
+function changePhoto(next: string | undefined, previous: string | undefined) {
+  setProfilePhoto(next)
+  if (liveMode) {
+    const live =
+      require("@/live/profile-photo") as typeof import("@/live/profile-photo")
+    void live.syncProfilePhoto(next, { previous })
+  } else toast.success(next ? "Profile photo updated" : "Profile photo removed")
+}
+const bare = (handle: string) => handle.replace(/^@/, "")
 export function Profile() {
   const t = useTheme(),
     p = dashStore.use((s) => s.profile),
     goals = useGoals().filter((g) => g.goal.status === "active")
   const [name, setName] = useState(p.name),
-    [handle, setHandle] = useState(p.handle),
+    [handle, setHandle] = useState(bare(p.handle)),
     [ids, setIds] = useState(p.identities),
     [photo, setPhoto] = useState(false)
+  const current = bare(p.handle)
+  const availability = useHandleCheck(handle, current)
+  const handleError =
+    handle === current ? undefined : (usernameError(handle) ?? undefined)
+  const nameError = name.trim().length < 2 ? "Enter your name" : undefined
+  const blocked = !!handleError || availability === "taken"
+  const save = () => {
+    const next = {
+      name: nameError ? p.name : name.trim(),
+      handle: handle ? `@${handle}` : p.handle,
+      identities: ids.filter((i) => i.text.trim()).slice(0, 3),
+    }
+    const changed =
+      next.name !== p.name ||
+      next.handle !== p.handle ||
+      JSON.stringify(next.identities) !== JSON.stringify(p.identities)
+    // One store write (each one persists the whole dash store), and back to
+    // the Me screen this was opened from rather than a second one on top.
+    if (changed) saveProfileEdits(next)
+    toast.success("Profile saved")
+    back("/me")
+  }
   const input = {
     height: 48,
     borderRadius: 12,
@@ -164,18 +222,67 @@ export function Profile() {
           onChangeText={setName}
           style={input}
         />
+        {nameError && (
+          <Copy size={12} style={{ color: t.bad }}>
+            {nameError}
+          </Copy>
+        )}
       </View>
       <View style={{ gap: 4 }}>
         <Copy size={12} muted>
           Handle (off on share cards unless you turn it on)
         </Copy>
-        <TextInput
-          accessibilityLabel="Handle"
-          value={handle}
-          onChangeText={setHandle}
-          style={input}
-          autoCapitalize="none"
-        />
+        <View
+          style={{
+            ...input,
+            flexDirection: "row",
+            alignItems: "center",
+            paddingHorizontal: 0,
+          }}
+        >
+          <Text
+            style={{
+              paddingLeft: 12,
+              fontFamily: fonts.body,
+              fontSize: 14,
+              color: t.muted,
+            }}
+          >
+            @
+          </Text>
+          <TextInput
+            accessibilityLabel="Handle"
+            value={handle}
+            onChangeText={(v) => setHandle(v.toLowerCase().replace(/\s+/g, ""))}
+            style={{
+              flex: 1,
+              height: "100%",
+              paddingRight: 12,
+              fontFamily: fonts.body,
+              fontSize: 14,
+              color: t.text,
+            }}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+        </View>
+        {handleError ? (
+          <Copy size={12} style={{ color: t.bad }}>
+            {handleError}
+          </Copy>
+        ) : availability === "taken" ? (
+          <Copy size={12} style={{ color: t.bad }}>
+            @{handle} is already taken
+          </Copy>
+        ) : availability === "checking" ? (
+          <Copy size={12} muted>
+            Checking @{handle}…
+          </Copy>
+        ) : availability === "available" ? (
+          <Copy size={12} style={{ color: t.good }}>
+            @{handle} is available
+          </Copy>
+        ) : null}
       </View>
       <View>
         <SectionHeading>Identity statements · {ids.length}/3</SectionHeading>
@@ -262,19 +369,7 @@ export function Profile() {
         </View>
       </View>
       <View style={{ marginTop: 12 }}>
-        <Button
-          onPress={() => {
-            updateProfile({
-              name: name.trim() || p.name,
-              handle: handle.trim().startsWith("@")
-                ? handle.trim()
-                : `@${handle.trim()}`,
-            })
-            setIdentities(ids.filter((i) => i.text.trim()))
-            toast.success("Profile saved")
-            go("/me")
-          }}
-        >
+        <Button disabled={blocked} onPress={save}>
           Save
         </Button>
       </View>
@@ -291,8 +386,8 @@ export function Profile() {
       <Sheet open={photo} title="Profile photo" onClose={() => setPhoto(false)}>
         <Button
           onPress={() =>
-            void pickPhoto().then((uri) => {
-              if (uri) setProfilePhoto(uri)
+            void pickAvatar().then((uri) => {
+              if (uri) changePhoto(uri, p.photo)
               setPhoto(false)
             })
           }
@@ -303,7 +398,7 @@ export function Profile() {
           <Button
             tone="danger"
             onPress={() => {
-              setProfilePhoto(undefined)
+              changePhoto(undefined, p.photo)
               setPhoto(false)
             }}
           >
@@ -431,8 +526,13 @@ export function Settings() {
     shown = extrasStore.use((s) => s)
   const allOn =
     MODULE_KEYS.every((k) => s.enabled[k]) && EXTRAS.every((x) => shown[x.key])
+  // Screen time turns on only once iOS allows it.
+  const turnOn = (k: ModuleKey) =>
+    k === "screen" ? void enableScreenTime() : setEnabled(k, true)
   const setAll = (on: boolean) => {
-    for (const k of MODULE_KEYS) setEnabled(k, on)
+    for (const k of MODULE_KEYS)
+      if (!on) setEnabled(k, false)
+      else if (!s.enabled[k]) turnOn(k)
     for (const x of EXTRAS) setShown(x.key, on)
   }
   const extraIcon: Record<Extra, LucideIcon> = {
@@ -507,7 +607,7 @@ export function Settings() {
                     "Its cards, stats, share fields and misses hide. Your data is kept — turn it back on anytime.",
                     () => setEnabled(k, false),
                   )
-                : setEnabled(k, true)
+                : turnOn(k)
             return (
               <View
                 key={k}

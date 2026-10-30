@@ -36,6 +36,10 @@
 //     fitness.answer_follow_up with the option the device recorded in the
 //     rice item's assumption. The rescaled items still follow as field
 //     writes, with the same values the action computes;
+//   - an exercise merged into another: fitness.merge_exercises. The server
+//     moves the references, so the device adopts its own repoint instead of
+//     pushing it, and a refused merge pulls everything again
+//     (resyncOnReject) to undo the optimistic local merge;
 //   - the rest timer: fitness.rest.start / adjust / skip. rest_timer is
 //     written only by those actions (the server registers it read-only), so
 //     its mapper is actionsOnly: the one constant row it lists never becomes
@@ -151,7 +155,9 @@ export function exerciseMapper(): Mapper<S, Exercise> {
       rep_min: e.repMin,
       rep_max: e.repMax,
       increment: e.increment,
-      archived: e.archived ?? false,
+      // A merged row's archive belongs to fitness.merge_exercises: were it a
+      // field write, a refused merge would still archive it on the server.
+      ...(e.mergedInto ? {} : { archived: e.archived ?? false }),
       track: e.track ?? null,
     }),
     fromServer: (row) => ({
@@ -167,11 +173,27 @@ export function exerciseMapper(): Mapper<S, Exercise> {
       ...(row.track === "speed" || row.track === "weight"
         ? { track: row.track }
         : {}),
+      ...(Array.isArray(row.aliases) && row.aliases.length
+        ? { aliases: row.aliases.map(String) }
+        : {}),
+      ...(row.merged_into_id ? { mergedInto: str(row.merged_into_id) } : {}),
     }),
     merge: (s, ups, dels) =>
       ups.length || dels.length
         ? { ...s, exercises: mergeById(s.exercises, ups, dels, (e) => e.id) }
         : s,
+    // The merge itself: the server repoints the references (the device
+    // adopted its own repoint, see mergeExercises) and archives the source.
+    actions: (prev, next) =>
+      next?.mergedInto && !prev?.mergedInto
+        ? [
+            {
+              name: "fitness.merge_exercises",
+              data: { source_id: next.id, target_id: next.mergedInto },
+            },
+          ]
+        : [],
+    resyncOnReject: ["fitness.merge_exercises"],
   }
 }
 

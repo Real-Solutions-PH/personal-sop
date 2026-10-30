@@ -3433,6 +3433,54 @@ export const CompleteSignupSchema = {
                 }
             ],
             title: 'Timezone'
+        },
+        occupation: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['student', 'employed', 'self_employed', 'business_owner', 'between_jobs', 'other']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Occupation'
+        },
+        occupation_detail: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 80
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Occupation Detail'
+        },
+        referral_source: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['friend', 'tiktok', 'instagram', 'facebook', 'youtube', 'app_store', 'search', 'other']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Referral Source'
+        },
+        referral_detail: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 80
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Referral Detail'
         }
     },
     type: 'object',
@@ -4368,6 +4416,26 @@ export const ExerciseDetailSchema = {
             ],
             title: 'Track'
         },
+        aliases: {
+            items: {
+                type: 'string'
+            },
+            type: 'array',
+            title: 'Aliases',
+            default: []
+        },
+        merged_into_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Merged Into Id'
+        },
         last_done_at: {
             anyOf: [
                 {
@@ -4513,6 +4581,26 @@ export const ExercisePublicSchema = {
                 }
             ],
             title: 'Track'
+        },
+        aliases: {
+            items: {
+                type: 'string'
+            },
+            type: 'array',
+            title: 'Aliases',
+            default: []
+        },
+        merged_into_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Merged Into Id'
         }
     },
     type: 'object',
@@ -4661,6 +4749,26 @@ export const ExerciseWithStatsSchema = {
                 }
             ],
             title: 'Track'
+        },
+        aliases: {
+            items: {
+                type: 'string'
+            },
+            type: 'array',
+            title: 'Aliases',
+            default: []
+        },
+        merged_into_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Merged Into Id'
         },
         last_done_at: {
             anyOf: [
@@ -5728,6 +5836,11 @@ export const GoalProgressOutSchema = {
         hit: {
             type: 'boolean',
             title: 'Hit'
+        },
+        hidden: {
+            type: 'boolean',
+            title: 'Hidden',
+            default: false
         }
     },
     type: 'object',
@@ -9972,6 +10085,50 @@ export const MediaPublicSchema = {
                 }
             ],
             title: 'Url'
+        },
+        preview_url: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Preview Url'
+        },
+        lqip: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Lqip'
+        },
+        width: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Width'
+        },
+        height: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Height'
         }
     },
     type: 'object',
@@ -10054,6 +10211,29 @@ export const MediaWithUrlSchema = {
             format: 'date-time',
             title: 'Created At'
         },
+        preview_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Preview Id'
+        },
+        lqip: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Lqip'
+        },
         url: {
             anyOf: [
                 {
@@ -10064,6 +10244,17 @@ export const MediaWithUrlSchema = {
                 }
             ],
             title: 'Url'
+        },
+        preview_url: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Preview Url'
         }
     },
     type: 'object',
@@ -10208,6 +10399,19 @@ export const MemoryPublicSchema = {
     type: 'object',
     required: ['id', 'text', 'created_at', 'version'],
     title: 'MemoryPublic'
+} as const;
+
+export const MergeExerciseSchema = {
+    properties: {
+        target_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Target Id'
+        }
+    },
+    type: 'object',
+    required: ['target_id'],
+    title: 'MergeExercise'
 } as const;
 
 export const MessageSchema = {
@@ -13306,6 +13510,52 @@ export const ProfilePublicSchema = {
             type: 'array',
             title: 'Seen Trophies'
         },
+        occupation: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['student', 'employed', 'self_employed', 'business_owner', 'between_jobs', 'other']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Occupation'
+        },
+        occupation_detail: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Occupation Detail'
+        },
+        referral_source: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['friend', 'tiktok', 'instagram', 'facebook', 'youtube', 'app_store', 'search', 'other']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Referral Source'
+        },
+        referral_detail: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Referral Detail'
+        },
         version: {
             type: 'integer',
             title: 'Version'
@@ -14958,6 +15208,42 @@ export const ReplaceExerciseSchema = {
     type: 'object',
     required: ['exercise_id'],
     title: 'ReplaceExercise'
+} as const;
+
+export const ReplyOutSchema = {
+    properties: {
+        status: {
+            type: 'string',
+            enum: ['running', 'done', 'failed'],
+            title: 'Status'
+        },
+        messages: {
+            items: {
+                '$ref': '#/components/schemas/app__modules__companion__schema__MessagePublic'
+            },
+            type: 'array',
+            title: 'Messages'
+        },
+        capture: {
+            anyOf: [
+                {
+                    additionalProperties: true,
+                    type: 'object'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Capture'
+        }
+    },
+    type: 'object',
+    required: ['status'],
+    title: 'ReplyOut',
+    description: `Where the reply to a question stands, for an app that lost its
+stream: \`\`done\`\` with the stored question and reply (or the capture a
+log became), \`\`running\`\` while the turn is still being written, or
+\`\`failed\`\` when it ended with nothing stored.`
 } as const;
 
 export const ReplyPublicSchema = {
@@ -20515,6 +20801,31 @@ export const UploadRequestSchema = {
                 }
             ],
             title: 'Duration Sec'
+        },
+        preview_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Preview Id'
+        },
+        lqip: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 2048,
+                    pattern: '^data:image/jpeg;base64,[A-Za-z0-9+/=]+$'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Lqip'
         }
     },
     type: 'object',

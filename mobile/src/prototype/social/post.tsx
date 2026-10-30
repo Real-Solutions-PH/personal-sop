@@ -158,7 +158,16 @@ export function PostDetail({ id }: { id: string }) {
   useEffect(() => void openPostLive(id), [id])
   const [text, setText] = useState("")
   const [replyTo, setReplyTo] = useState<Comment | null>(null)
+  // The last cursor/selection the input reported, and a one-render controlled
+  // selection used to place the cursor after an inserted emoji.
+  const [sel, setSel] = useState<{ start: number; end: number } | null>(null)
+  const [place, setPlace] = useState<{ start: number; end: number }>()
   const input = useRef<TextInputInstance>(null)
+  // Release the controlled selection once it has been applied, or the cursor
+  // freezes while typing.
+  useEffect(() => {
+    if (place) setPlace(undefined)
+  }, [place])
   const list = useRef<FlatList<Comment>>(null)
   if (!post)
     return (
@@ -182,6 +191,19 @@ export function PostDetail({ id }: { id: string }) {
     setText("")
     setReplyTo(null)
     setTimeout(() => list.current?.scrollToEnd({ animated: true }), 80)
+  }
+  // A quick emoji goes into the box at the cursor (replacing any highlighted
+  // text); sending stays on Post and the keyboard's send key.
+  const insertEmoji = (e: string) => {
+    const start = Math.min(sel?.start ?? text.length, text.length)
+    const end = Math.min(sel?.end ?? text.length, text.length)
+    const next = text.slice(0, start) + e + text.slice(end)
+    const at = start + e.length
+    setText(next)
+    setSel({ start: at, end: at })
+    setPlace({ start: at, end: at })
+    input.current?.focus()
+    haptic.tap()
   }
   return (
     <KeyboardAvoidingView
@@ -275,8 +297,8 @@ export function PostDetail({ id }: { id: string }) {
               cssInterop={false}
               key={e}
               accessibilityRole="button"
-              accessibilityLabel={`Comment ${e}`}
-              onPress={() => submit(e)}
+              accessibilityLabel={`Add ${e} to your comment`}
+              onPress={() => insertEmoji(e)}
               hitSlop={4}
               style={({ pressed }) => ({
                 transform: [{ scale: pressed ? 1.3 : 1 }],
@@ -312,6 +334,8 @@ export function PostDetail({ id }: { id: string }) {
               ref={input}
               value={text}
               onChangeText={setText}
+              selection={place}
+              onSelectionChange={(ev) => setSel(ev.nativeEvent.selection)}
               placeholder={`Add a comment for ${author?.username ?? "them"}…`}
               placeholderTextColor={t.muted}
               accessibilityLabel="Add a comment"

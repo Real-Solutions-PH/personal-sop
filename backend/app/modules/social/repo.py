@@ -137,7 +137,7 @@ def briefs(ctx: Ctx, ids: Iterable[uuid.UUID]) -> dict[uuid.UUID, PersonBrief]:
         )
         .where(col(User.id).in_(wanted), User.tenant_id == ctx.tenant_id)
     ).all()
-    urls = _photo_urls(ctx, {p.photo_media_id for _, p, _ in rows if p})
+    urls = _photo_urls(ctx, {(p.photo_media_id, user.id) for user, p, _ in rows if p})
     out: dict[uuid.UUID, PersonBrief] = {}
     for user, prof, soc in rows:
         name = (prof.name if prof else "") or user.full_name or ""
@@ -148,27 +148,37 @@ def briefs(ctx: Ctx, ids: Iterable[uuid.UUID]) -> dict[uuid.UUID, PersonBrief]:
             handle=(prof.handle or None) if prof else None,
             accent=soc.accent if soc else "primary",  # type: ignore[arg-type]
             photo_media_id=photo,
-            photo_url=urls.get(photo) if photo else None,
+            photo_url=urls.get((photo, user.id)) if photo else None,
             verified=soc.verified if soc else False,
         )
     return out
 
 
-def _photo_urls(ctx: Ctx, ids: set[uuid.UUID | None]) -> dict[uuid.UUID, str]:
-    """Presigned GETs for profile photos, whoever owns them (a profile photo
-    is public inside the tenant), in one query."""
-    wanted = {i for i in ids if i}
+def _photo_urls(
+    ctx: Ctx, pairs: set[tuple[uuid.UUID | None, uuid.UUID]]
+) -> dict[tuple[uuid.UUID, uuid.UUID], str]:
+    """Presigned GETs for profile photos (a profile photo is public inside
+    the tenant), in one query, keyed by ``(photo_media_id, profile owner)``.
+
+    A photo is presigned only for the profile of the user who uploaded it: a
+    profile pointing at someone else's upload gets no URL, so it cannot be
+    used to show another person's image to the tenant."""
+    wanted = {(m, o) for m, o in pairs if m}
     if not wanted:
         return {}
     rows = ctx.session.exec(
         select(MediaObject).where(
-            col(MediaObject.id).in_(wanted),
+            col(MediaObject.id).in_({m for m, _ in wanted}),
             MediaObject.tenant_id == ctx.tenant_id,
             MediaObject.state == "ready",
             col(MediaObject.deleted_at).is_(None),
         )
     ).all()
-    return {m.id: media.download_url(m) for m in rows}
+    return {
+        (m.id, m.owner_id): media.download_url(m)
+        for m in rows
+        if (m.id, m.owner_id) in wanted
+    }
 
 
 def brief(ctx: Ctx, user_id: uuid.UUID) -> PersonBrief:

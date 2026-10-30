@@ -9,6 +9,7 @@
 // store's ME. A 1:1 chat the device opened may come back with the server's
 // existing chat id; the device keeps its own id and aliases the server's.
 
+import { AppState } from "react-native"
 import {
   type Activity,
   type Chat,
@@ -22,17 +23,20 @@ import {
   type Person,
   type Post,
   type Progress,
+  pendingIntent,
   type Scorecard,
   type SocialRemote,
   type SocialState,
   type StoryItem,
   socialStore,
   typingStore,
+  withCheer,
 } from "@/prototype/social/store"
 import type { Accent } from "@/prototype/theme"
 import { http as authHttp } from "./auth"
 import type { ServerEvent } from "./events"
 import { ApiError, type Http } from "./http"
+import { retryProfilePhoto } from "./profile-photo"
 import { createUploader, type Uploader } from "./social-media"
 
 // ---------------------------------------------------------------- wire shapes
@@ -62,6 +66,12 @@ interface WMedia {
   kind: "image" | "video"
   ratio: number | null
   url: string | null
+  /** A photo's smaller rendition and placeholder; absent on older uploads
+   * and older servers. */
+  preview_url?: string | null
+  lqip?: string | null
+  width?: number | null
+  height?: number | null
 }
 interface WPost {
   id: string
@@ -180,11 +190,28 @@ export interface SocialDeps {
   userId: string
   upload?: Uploader
   now?: () => number
+  /** Whether a local file is still on the device (the OS may purge it). */
+  fileExists?: (uri: string) => boolean
 }
+
+/** ``expo-file-system``'s check, false when it cannot tell. */
+function localFileExists(uri: string): boolean {
+  try {
+    const { File } =
+      require("expo-file-system") as typeof import("expo-file-system")
+    return new File(uri).exists
+  } catch {
+    return false
+  }
+}
+const isLocal = (uri?: string) => !!uri && uri.startsWith("file:")
 
 export const TYPING_EVERY_MS = 3000
 const TYPING_SHOWN_MS = 5000
 const PAGE = 20
+/** A presigned media URL is reused this long (they live 15 minutes), so a
+ * re-read of the same media does not download the image again. */
+export const MEDIA_URL_REUSE_MS = 10 * 60_000
 
 export type SocialLive = SocialRemote & {
   handleEvent(e: ServerEvent): void
@@ -220,6 +247,7 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
   const me = deps.userId
   const now = deps.now ?? Date.now
   const upload = deps.upload ?? createUploader(http)
+  const fileExists = deps.fileExists ?? localFileExists
   const set = socialStore.set
   const get = socialStore.get
 
@@ -242,6 +270,8 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
   const chatReady = new Map<string, Promise<unknown>>()
   // Posts and messages still being created: a refresh keeps them.
   const pending = new Set<string>()
+  /** Stories still being uploaded and posted: a tray read keeps them. */
+  const creatingStories = new Set<string>()
   /** Posts I deleted this session (until restored): stale reads skip them. */
   const deleted = new Set<string>()
   const deleting = new Map<string, Promise<unknown>>()
@@ -257,11 +287,52 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
   let foryouSkip = 0
   const lastTyping = new Map<string, number>()
 
+  // ------------------------------------------------------------ pending taps
+  // A read or a write response that lands while a toggle is still settling
+  // shows the pending value, not the server's older one.
+  function overlayPost(w: Post): Post {
+    let p = w
+    const c = pendingIntent<Cheer | null>(`cheer:${p.id}`)
+    if (c && (p.myCheer ?? (p.liked ? "keep_going" : null)) !== c.value)
+      p = withCheer(p, c.value ?? undefined)
+    const saved = pendingIntent<boolean>(`save:${p.id}`)
+    if (saved) p = { ...p, saved: saved.value }
+    return p
+  }
+  function overlayComment(postId: string, c: Comment): Comment {
+    const liked = pendingIntent<boolean>(`clike:${postId}:${c.id}`)
+    if (!liked || liked.value === c.liked) return c
+    return {
+      ...c,
+      liked: liked.value,
+      likes: Math.max(0, c.likes + (liked.value ? 1 : -1)),
+    }
+  }
+  function overlayPerson(w: Person): Person {
+    let p = w
+    const follow = pendingIntent<boolean>(`follow:${p.id}`)
+    if (follow && follow.value !== p.isFollowing)
+      p = {
+        ...p,
+        isFollowing: follow.value,
+        followers: Math.max(0, p.followers + (follow.value ? 1 : -1)),
+      }
+    const close = pendingIntent<boolean>(`close:${p.id}`)
+    if (close) p = { ...p, closeFriend: close.value || undefined }
+    return p
+  }
+
   // ------------------------------------------------------------ people
   function fromBrief(b: WBrief, prev?: Person): Person {
     // The server presigns the photo for every viewer (GET /media/{id} is
-    // owner-only). No photo: the avatar falls back to initials.
-    const url = b.photo_media_id ? (b.photo_url ?? prev?.photo) : undefined
+    // owner-only). No photo: the avatar falls back to initials. A null URL
+    // means the server will not show it; only an older server, which sends
+    // no URL at all, keeps the one already known.
+    const url = b.photo_media_id
+      ? b.photo_url === undefined
+        ? prev?.photo
+        : (b.photo_url ?? undefined)
+      : undefined
     return {
       bio: "",
       followers: 0,
@@ -310,9 +381,11 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
     for (const p of full) {
       if (p.id === me) continue
       put(
-        fromPublic(
-          p,
-          people.find((x) => x.id === p.id),
+        overlayPerson(
+          fromPublic(
+            p,
+            people.find((x) => x.id === p.id),
+          ),
         ),
       )
     }
@@ -328,14 +401,34 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
     const { before_after, ...rest } = w
     return { ...(rest as Progress), beforeAfter: before_after === true }
   }
-  const mapMedia = (m: WMedia, prev?: Media): Media => ({
-    id: m.media_id,
-    kind: m.kind,
-    uri: m.url ?? prev?.uri ?? "",
-    ratio: m.ratio ?? prev?.ratio,
-  })
-  function mapPost(w: WPost, prev?: Post): Post {
+  const mapMedia = (m: WMedia, prev?: Media): Media => {
+    // Every read presigns a fresh URL; adopting it would download the same
+    // image again, so the one already shown is kept while it is still valid.
+    const reuse =
+      prev?.id === m.media_id &&
+      !!prev.uri &&
+      prev.urlAt !== undefined &&
+      now() - prev.urlAt < MEDIA_URL_REUSE_MS
+    const same = prev?.id === m.media_id
     return {
+      id: m.media_id,
+      kind: m.kind,
+      uri: reuse ? prev.uri : (m.url ?? prev?.uri ?? ""),
+      urlAt: reuse ? prev.urlAt : m.url ? now() : prev?.urlAt,
+      ratio: m.ratio ?? prev?.ratio,
+      // The renditions are cached by media id, so a new URL for them is
+      // only taken when the old one would no longer load.
+      previewUri:
+        (reuse ? prev.previewUri : undefined) ??
+        m.preview_url ??
+        (same ? prev?.previewUri : undefined),
+      lqip: m.lqip ?? (same ? prev?.lqip : undefined),
+      width: m.width ?? (same ? prev?.width : undefined),
+      height: m.height ?? (same ? prev?.height : undefined),
+    }
+  }
+  function mapPost(w: WPost, prev?: Post): Post {
+    return overlayPost({
       id: w.id,
       by: pid(w.author.id),
       at: ms(w.created_at),
@@ -351,7 +444,7 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
       likedBy: w.liked_by.map((b) => pid(b.id)),
       comments: prev?.comments ?? [],
       commentCount: w.comments,
-    }
+    })
   }
   const mapComment = (w: WComment): Comment => ({
     id: w.id,
@@ -362,12 +455,23 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
     liked: w.liked,
     replyTo: w.reply_to_id ?? undefined,
   })
+  /** My own story keeps showing its local file (no download) while the file
+   * is on this device; the server's URL is kept beside it. */
+  const storyUri = (w: WStory, prev?: StoryItem) => {
+    const remote = w.media?.url ?? prev?.remoteUri ?? undefined
+    if (isLocal(prev?.uri) && prev?.uri && fileExists(prev.uri))
+      return { uri: prev.uri, remoteUri: remote }
+    return { uri: remote ?? (isLocal(prev?.uri) ? undefined : prev?.uri) }
+  }
   const mapStory = (w: WStory, prev?: StoryItem): StoryItem => ({
     id: w.id,
     by: pid(w.owner_id),
     at: ms(w.created_at),
     kind: w.kind,
-    uri: w.media?.url ?? prev?.uri,
+    ...storyUri(w, prev),
+    mediaId: w.media?.media_id ?? prev?.mediaId,
+    previewUri: w.media?.preview_url ?? prev?.previewUri,
+    lqip: w.media?.lqip ?? prev?.lqip,
     text: w.text ?? undefined,
     bg: w.bg ? [w.bg[0], w.bg[1]] : undefined,
     progress: progressOut(w.progress),
@@ -533,6 +637,7 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
           followers: w.followers,
           following: w.following,
           id: w.id,
+          photo: (w.photo_media_id && w.photo_url) || undefined,
         },
         showScores: w.show_scores ?? s.showScores,
       }))
@@ -560,11 +665,13 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
       set((s) => {
         const byId = new Map(s.stories.map((x) => [x.id, x]))
         const ids = new Set(items.map((w) => w.id))
-        // A story I posted while this read was in flight is not in it.
+        // A story I posted while this read was in flight, or one still
+        // uploading, is not in it.
         const mine = s.stories.filter(
           (x) =>
             !ids.has(x.id) &&
-            (storyWrittenAt.get(x.id) ?? Number.NEGATIVE_INFINITY) >= asked,
+            (creatingStories.has(x.id) ||
+              (storyWrittenAt.get(x.id) ?? Number.NEGATIVE_INFINITY) >= asked),
         )
         return {
           ...s,
@@ -729,7 +836,14 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
         comments.data.map((c) => c.author),
       ),
       posts: s.posts.map((p) =>
-        p.id === id ? { ...p, comments: comments.data.map(mapComment) } : p,
+        p.id === id
+          ? {
+              ...p,
+              comments: comments.data.map((c) =>
+                overlayComment(id, mapComment(c)),
+              ),
+            }
+          : p,
       ),
     }))
   }
@@ -786,9 +900,11 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
             ? {
                 ...s,
                 me: {
+                  ...s.me,
                   bio: p.bio,
                   followers: p.followers,
                   following: p.following,
+                  photo: (p.photo_media_id && p.photo_url) || undefined,
                 },
               }
             : { ...s, people: upsertPeople(s, [], [p]) },
@@ -902,9 +1018,51 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
   const commentPath = (postId: string, id: string) =>
     `/social/posts/${postId}/comments/${id}`
 
+  /** A cheer or save response: only the counters and my own marks move
+   * (media, caption and comments stay as they are), and a newer tap still
+   * settling wins over it. */
+  async function reactionWrite(method: string, path: string) {
+    const w = await http.request<WPost>(method, path)
+    if (deleted.has(w.id)) return
+    set((s) => ({
+      ...s,
+      people: upsertPeople(s, w.liked_by),
+      posts: s.posts.map((p) =>
+        p.id === w.id
+          ? overlayPost({
+              ...p,
+              likes: w.likes,
+              liked: w.liked,
+              cheers: w.cheers,
+              myCheer: w.my_cheer ?? undefined,
+              saved: w.saved,
+              likedBy: w.liked_by.map((b) => pid(b.id)),
+            })
+          : p,
+      ),
+    }))
+  }
+  /** A follow or close-friend response: only those fields move. */
   async function personWrite(method: string, path: string, body?: unknown) {
-    const p = await http.request<WPerson>(method, path, body)
-    set((s) => ({ ...s, people: upsertPeople(s, [], [p]) }))
+    const w = await http.request<WPerson>(method, path, body)
+    set((s) => {
+      if (!s.people.some((x) => x.id === w.id))
+        return { ...s, people: upsertPeople(s, [], [w]) }
+      return {
+        ...s,
+        people: s.people.map((x) =>
+          x.id === w.id
+            ? overlayPerson({
+                ...x,
+                followers: w.followers,
+                following: w.following,
+                isFollowing: w.is_following,
+                closeFriend: w.close_friend || undefined,
+              })
+            : x,
+        ),
+      }
+    })
   }
   async function chatWrite(method: string, path: string, body?: unknown) {
     mergeChat(await http.request<WChat>(method, path, body))
@@ -912,7 +1070,9 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
   const chatPath = (id: string, rest = "") => `/social/chats/${cid(id)}${rest}`
 
   async function postMessage(chatId: string, m: Message) {
-    const media_id = m.media ? await upload(m.media.uri, m.media.kind) : null
+    const media_id = m.media
+      ? await upload(m.media.uri, m.media.kind, m.media)
+      : null
     const w = await http.request<WMessage>(
       "POST",
       chatPath(chatId, "/messages"),
@@ -941,17 +1101,17 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
     loadExplore,
 
     likePost: (id, on, kind) =>
-      postWrite(
+      reactionWrite(
         onOff(on),
         `/social/posts/${id}/like${on && kind ? `?kind=${kind}` : ""}`,
       ),
-    savePost: (id, on) => postWrite(onOff(on), `/social/posts/${id}/save`),
+    savePost: (id, on) => reactionWrite(onOff(on), `/social/posts/${id}/save`),
     async createPost(post) {
       pending.add(post.id)
       try {
         const media = await Promise.all(
           post.media.map(async (m) => ({
-            media_id: await upload(m.uri, m.kind),
+            media_id: await upload(m.uri, m.kind, m),
             kind: m.kind,
             ratio: m.ratio ?? null,
           })),
@@ -1016,24 +1176,62 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
       http.request("DELETE", commentPath(postId, id)),
     async createStory(story) {
       storyWrittenAt.set(story.id, now())
-      const media_id =
-        story.kind === "image" || story.kind === "video"
-          ? (story.mediaId ??
-            (story.uri ? await upload(story.uri, story.kind) : null))
-          : null
-      const w = await http.request<WStory>("POST", "/social/stories", {
-        id: story.id,
-        kind: story.kind,
-        media_id,
-        text: story.text ?? null,
-        bg: story.bg ?? null,
-        progress: progressIn(story.progress),
-        audience: story.audience ?? "everyone",
-      })
-      set((s) => ({
-        ...s,
-        stories: s.stories.map((x) => (x.id === story.id ? mapStory(w, x) : x)),
-      }))
+      creatingStories.add(story.id)
+      try {
+        const media_id =
+          story.kind === "image" || story.kind === "video"
+            ? (story.mediaId ??
+              (story.uri
+                ? await upload(story.uri, story.kind, {
+                    previewUri: story.previewUri,
+                    lqip: story.lqip,
+                  })
+                : null))
+            : null
+        const w = await http.request<WStory>("POST", "/social/stories", {
+          id: story.id,
+          kind: story.kind,
+          media_id,
+          text: story.text ?? null,
+          bg: story.bg ?? null,
+          progress: progressIn(story.progress),
+          audience: story.audience ?? "everyone",
+        })
+        // A read that dropped it meanwhile must not lose the write.
+        set((s) => {
+          const local = s.stories.find((x) => x.id === story.id)
+          return {
+            ...s,
+            stories: local
+              ? s.stories.map((x) => (x.id === story.id ? mapStory(w, x) : x))
+              : [...s.stories, mapStory(w, story)],
+            seen: s.seen.includes(story.id) ? s.seen : [...s.seen, story.id],
+          }
+        })
+      } finally {
+        creatingStories.delete(story.id)
+      }
+    },
+    async refreshStory(id) {
+      try {
+        const w = await http.request<WStory>("GET", `/social/stories/${id}`)
+        set((s) => ({
+          ...s,
+          stories: s.stories.map((x) =>
+            x.id === id
+              ? // The shown copy failed: take the server's fresh URL.
+                mapStory(w, { ...x, uri: undefined, remoteUri: undefined })
+              : x,
+          ),
+        }))
+        return "ok"
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 404) {
+          set((s) => ({ ...s, stories: s.stories.filter((x) => x.id !== id) }))
+          return "gone"
+        }
+        throw e
+      }
     },
     deleteStory: (id) => http.request("DELETE", `/social/stories/${id}`),
     seen: (id) => http.request("PUT", `/social/stories/${id}/seen`),
@@ -1299,12 +1497,21 @@ export function startSocialLive(
 ) {
   const live = createSocialLive({ http: authHttp, userId })
   connectSocial(live)
+  void retryProfilePhoto()?.catch(() => {})
   const off = subscribe(live.handleEvent)
-  void live.refresh().catch(() => {
-    // offline or the server is down: the store keeps the cached snapshot
+  const load = () =>
+    void live.refresh().catch(() => {
+      // offline or the server is down: the store keeps the cached snapshot
+    })
+  load()
+  // Back from the background: events older than the replay window are gone,
+  // so reload what the inbox and feed show.
+  const appState = AppState.addEventListener("change", (s) => {
+    if (s === "active") load()
   })
   return () => {
     off()
+    appState.remove()
     connectSocial(null)
   }
 }

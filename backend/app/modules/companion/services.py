@@ -42,10 +42,11 @@ from app.modules.companion.schema import (
     Insight,
     MessagePublic,
     Metric,
+    ReplyOut,
     SeriesOut,
     TrackerIn,
 )
-from app.modules.companion.turn import NOTHING_WAITING, TurnStream
+from app.modules.companion.turn import NOTHING_WAITING, Step, TurnStream
 from app.modules.fitness import public as fitness
 from app.modules.focus import public as focus
 from app.modules.profile import public as profile
@@ -460,6 +461,34 @@ def _ask(
     )
 
 
+def stored_reply(ctx: Ctx, message_id: uuid.UUID) -> ReplyOut | None:
+    """The finished reply to the question ``message_id``, as stored: the
+    question and Fern's reply, or the capture a log became. None while
+    nothing finished is stored."""
+    me = owned_repo.get(ctx, CompanionMessage, message_id, include_deleted=True)
+    reply = owned_repo.get(
+        ctx, CompanionMessage, derived_id("companion-reply", message_id, "sol")
+    )
+    if reply is not None:
+        msgs = ([_pub(ctx, me)] if me is not None and me.deleted_at is None else []) + [
+            _pub(ctx, reply)
+        ]
+        return ReplyOut(status="done", messages=msgs)
+    cap = capture.detail_for_client(
+        ctx, derived_id("companion-capture", message_id, "capture")
+    )
+    if cap is not None:
+        return ReplyOut(status="done", capture=cap)
+    return None
+
+
+def question_stored(ctx: Ctx, message_id: uuid.UUID) -> bool:
+    return (
+        owned_repo.get(ctx, CompanionMessage, message_id, include_deleted=True)
+        is not None
+    )
+
+
 # ---------------------------------------------------------------- AI
 
 
@@ -613,6 +642,9 @@ class SolRun:
     # that keeps searching (an empty result invites another try) gets the
     # same answer back and is told to reply instead of looping to the step cap.
     recalled: list[dict[str, Any]] | None = None
+    # The capture this turn's own writes sit on, once one has written:
+    # confirming or discarding what waits never touches it.
+    turn_capture: Callable[[], uuid.UUID | None] = lambda: None
 
     def block(self, b: dict[str, Any]) -> dict[str, Any]:
         self.blocks.append(b)
@@ -945,11 +977,15 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
                 "instead": "ask whether to save what is waiting; they can say "
                 "confirm or tap Confirm",
             }
-        return capture.settle_waiting(ctx, action="confirm")
+        return capture.settle_waiting(
+            ctx, action="confirm", keep_capture=run.turn_capture()
+        )
 
     def discard_pending(**kw: Any) -> dict[str, Any]:
         NoArgs(**kw)
-        return capture.settle_waiting(ctx, action="discard")
+        return capture.settle_waiting(
+            ctx, action="discard", keep_capture=run.turn_capture()
+        )
 
     specs: list[tuple[Callable[..., Any], type[BaseModel], str]] = [
         (show_chart, ChartArgs, "Show a chart of one metric over a number of days."),
@@ -1142,7 +1178,8 @@ be told to register or add them; listing them back is not recording them.
   from earlier, call `confirm_pending`; when they say cancel or don't save
   it, call `discard_pending`. Never record those entries again. Report
   what `confirm_pending` could not save and why (an expense needs an
-  account first).
+  account first). Neither touches what this reply made: that has its own
+  Confirm and Discard on its step.
 - A write that returns an error did not happen; say so plainly.
 Show charts, insights, coaching, plans, trackers and memories with their
 tools instead of describing them; each returns what its card shows, so speak
@@ -1252,6 +1289,8 @@ ABOUT THEM (always respect; ids for forgetting):
 
 What you are tracking for them:
 {trackers}
+
+{earlier}
 {summary}"""
 
 _MD = [
@@ -1266,10 +1305,32 @@ _MD = [
 ]
 
 
+# The internal record of what a turn did, copied into a reply by a model
+# that saw the format: a whole line that opens with one, or a
+# "[Done this turn: …]" inside a line. A bracket of the person's own
+# ("[urgent]") is not one.
+_INTERNAL_LINE = re.compile(
+    r"^[ \t]*[\[(][ \t]*(?:done this turn|already done|what your earlier replies)\b"
+    r".*$",
+    re.I | re.M,
+)
+_INTERNAL_SPAN = re.compile(
+    r"\[[ \t]*(?:done this turn|already done)\b[^\]\n]*\]?", re.I
+)
+
+
+def strip_internal(text: str) -> str:
+    """``text`` without any internal note of what a turn did."""
+    text = _INTERNAL_SPAN.sub("", _INTERNAL_LINE.sub("", text))
+    text = re.sub(r"[ \t]+$", "", text, flags=re.M)
+    return re.sub(r"\n{3,}", "\n\n", text).strip()
+
+
 def plain_text(text: str) -> str:
     """The reply as plain text: the chat shows text as written, so markdown the
     model adds anyway (bold, headings, list markers) is removed, keeping the
-    words and the line breaks."""
+    words and the line breaks. An internal note goes too."""
+    text = strip_internal(text)
     for rx, sub in _MD:
         text = rx.sub(sub, text)
     return text.strip()
@@ -1442,12 +1503,15 @@ _CLAIMS_A_WRITE = re.compile(
     re.I,
 )
 # Pointing at a Confirm button: true only when this reply left a write
-# waiting, because Confirm buttons belong to this reply's own steps.
+# waiting, because Confirm buttons belong to this reply's own steps. Not
+# "proposed": a turn that wrote may say "moved it to the time you proposed".
 _POINTS_AT_CONFIRM = re.compile(
     r"tap confirm|confirm (?:it |them )?below|waiting for your (?:ok|confirmation)|"
-    r"needs? (?:your )?confirm|\bproposed\b",
+    r"needs? (?:your )?confirm|ready to confirm|just say [\"“']?confirm|"
+    r"say [\"“']?confirm[\"”']?",
     re.I,
 )
+NOTHING_TO_CONFIRM = "Nothing from this reply is waiting for your OK."
 NUDGE = (
     "Your reply says something was recorded or is waiting for confirmation, "
     "but no tool in this reply did that, so nothing was saved and there is "
@@ -1591,23 +1655,46 @@ def not_recorded(steps: list[Any]) -> str:
     )
 
 
-def unbacked_claim(asked: str, answer: str, steps: list[Any]) -> bool:
-    """The reply claims something the turn's tools did not do, while no
-    write tool of this turn succeeded: it points at a Confirm button with
-    nothing of this turn waiting, or it claims a write the user asked for.
-    The user's wording only gates the second case."""
-    waiting = any(
-        getattr(s, "state", None) in ("proposed", "needs_input")
-        or any(
-            c.get("state") in ("proposed", "needs_input")
-            for c in getattr(s, "cards", None) or []
-        )
-        for s in steps
-    )
-    wrote = any(
+WAITING_STATES = ("proposed", "needs_input")
+
+
+def _still_waiting(ctx: Ctx, steps: list[Step]) -> bool:
+    """Whether a card this turn made still waits for the person, read from
+    the cards as they are now (a card made and then dropped in the same
+    turn does not count), never from what a step reported."""
+    ids = [i for s in steps for i in s.card_ids()]
+    return any(st in WAITING_STATES for st in capture.card_states(ctx, ids).values())
+
+
+def _wrote(steps: list[Any]) -> bool:
+    return any(
         s.name in WRITE_TOOLS and s.ok and s.summary != NOTHING_WAITING for s in steps
     )
-    if _POINTS_AT_CONFIRM.search(answer) and not waiting and not wrote:
+
+
+def drop_confirm_talk(answer: str) -> str:
+    """``answer`` without the sentences that point at a Confirm, saying
+    instead that nothing from this reply waits."""
+    lines = []
+    for line in answer.split("\n"):
+        kept = [
+            s
+            for s in re.split(r"(?<=[.!?])\s+", line)
+            if not _POINTS_AT_CONFIRM.search(s)
+        ]
+        lines.append(" ".join(kept).strip())
+    text = re.sub(r"\n{3,}", "\n\n", "\n".join(lines)).strip()
+    return f"{text}\n\n{NOTHING_TO_CONFIRM}" if text else NOTHING_TO_CONFIRM
+
+
+def unbacked_claim(asked: str, answer: str, steps: list[Any], *, waiting: bool) -> bool:
+    """The reply claims something the turn's tools did not do: it points at
+    a Confirm button while nothing of this turn waits (``waiting``, from
+    the cards' state at the end of the turn), whatever else the turn
+    wrote; or, with no write of this turn succeeding, it claims a write the
+    user asked for. The user's wording only gates the second case."""
+    wrote = _wrote(steps)
+    if _POINTS_AT_CONFIRM.search(answer) and not waiting:
         return True
     about = (
         bool(_ASKS_ABOUT.search(asked))
@@ -1718,6 +1805,9 @@ def _window_rows(ctx: Ctx) -> list[CompanionMessage]:
 # Said in place of a reply that ended with no words and nothing done, so a
 # following "try again" points at the message before it.
 FAILED_REPLY = "(That reply failed before finishing; nothing from it was done.)"
+# Said in place of a reply that had no words but did something; what it
+# did is in the system prompt's record of earlier replies.
+ACTED_REPLY = "(That reply had no words; what it did is listed above.)"
 
 
 PHOTO_READ_CHARS = 4000
@@ -1732,29 +1822,111 @@ def _photo_read(m: CompanionMessage) -> str:
     return ""
 
 
-def _did(m: CompanionMessage) -> list[str]:
-    """What a reply did, from its steps block: the finished steps' sentences."""
+def _step_items(m: CompanionMessage) -> list[dict[str, Any]]:
     for b in m.blocks or []:
         if b.get("t") == "steps":
             items = b.get("items")
             if isinstance(items, list):
-                return [
-                    str(i["summary"])
-                    for i in items
-                    if isinstance(i, dict) and i.get("summary")
-                ]
+                return [i for i in items if isinstance(i, dict)]
     return []
 
 
-def _with_done(text: str, steps: list[Any]) -> str:
-    """A reply with what this turn's tools already did, for the corrective
-    pass (it sees the reply's words, not its tool calls)."""
-    did = [s.summary for s in steps if getattr(s, "ok", False) and s.summary]
-    return f"{text}\n[Done this turn: {'; '.join(did)}]".strip() if did else text
+def _item_card_ids(i: dict[str, Any]) -> list[str]:
+    ids = [str(i["card_id"])] if i.get("card_id") else []
+    return ids + [
+        str(c["card_id"])
+        for c in i.get("cards") or []
+        if isinstance(c, dict) and c.get("card_id")
+    ]
 
 
-def _history(ctx: Ctx) -> list[BaseMessage]:
-    rows = _window_rows(ctx)
+# What a step said about a card that waited, and what the card came to.
+_WAIT_NOTE = re.compile(r" \((?:\d+ )?waiting for your OK\)$")
+_QUESTION_NOTE = re.compile(r" \([^()]*\)$")
+_SINCE = {
+    "saved": "saved since",
+    "edited": "saved since",
+    "discarded": "dropped since",
+    "undone": "undone since",
+}
+
+
+def _did_now(m: CompanionMessage, states: dict[str, str]) -> list[str]:
+    """What a reply did, from its steps block, with each card that waited
+    then described as it is now ("(saved since)"), so a settled entry is
+    never presented as still waiting."""
+    out = []
+    for i in _step_items(m):
+        summary = str(i.get("summary") or "")
+        if not summary:
+            continue
+        now = [states.get(c) for c in _item_card_ids(i)]
+        known = [s for s in now if s]
+        if known and not any(s in WAITING_STATES for s in known):
+            asked = i.get("state") == "needs_input" or any(
+                isinstance(c, dict) and c.get("state") == "needs_input"
+                for c in i.get("cards") or []
+            )
+            note = _WAIT_NOTE.search(summary) or (
+                _QUESTION_NOTE.search(summary) if asked else None
+            )
+            if note:
+                since = ", ".join(dict.fromkeys(_SINCE.get(s, s) for s in known))
+                summary = f"{summary[: note.start()]} ({since})"
+        out.append(summary)
+    return out
+
+
+EARLIER = """WHAT YOUR EARLIER REPLIES TODAY DID (records, not words to repeat; never copy this format into a reply):
+{lines}
+WAITING FOR THEIR OK NOW: {waiting}"""
+EARLIER_ASKED_CHARS = 60
+
+
+def _earlier_actions(ctx: Ctx, rows: list[CompanionMessage]) -> str:
+    """The system prompt's record of what today's earlier replies did,
+    oldest first, and what waits for the person now. ``rows`` is the
+    history window, newest first."""
+    today = [m for m in reversed(rows) if ctx.clock.day_of(m.created_at) == ctx.today]
+    ids = [
+        c
+        for m in today
+        if m.role != "me"
+        for i in _step_items(m)
+        for c in _item_card_ids(i)
+    ]
+    states = capture.card_states(ctx, ids)
+    lines, asked = [], ""
+    for m in today:
+        if m.role == "me":
+            asked = (m.text or "")[:EARLIER_ASKED_CHARS]
+            continue
+        did = _did_now(m, states)
+        if did:
+            at = m.created_at.astimezone(ctx.clock.zone).strftime("%H:%M")
+            answering = f', answering "{asked}"' if asked else ""
+            lines.append(f"- {at}{answering}: {'; '.join(did)}")
+        asked = ""
+    waiting = [capture.card_label(ctx, c) for c in capture.waiting_chat_cards(ctx)]
+    return EARLIER.format(
+        lines="\n".join(lines) or "(none)",
+        waiting="; ".join(waiting) or "(nothing)",
+    )
+
+
+def _settle_step_states(ctx: Ctx, steps: list[Step]) -> None:
+    """Each step's card state as the turn left it: a card dropped later in
+    the same turn is stored as dropped, not as waiting."""
+    states = capture.card_states(ctx, [i for s in steps for i in s.card_ids()])
+    for s in steps:
+        if s.card_id and s.card_id in states:
+            s.state = states[s.card_id]
+        for c in s.cards:
+            if str(c.get("card_id")) in states:
+                c["state"] = states[str(c["card_id"])]
+
+
+def _history(ctx: Ctx, rows: list[CompanionMessage]) -> list[BaseMessage]:
     out: list[BaseMessage] = []
     for m in reversed(rows):
         # An earlier day's replies state that day's facts; sent along, the
@@ -1768,14 +1940,16 @@ def _history(ctx: Ctx) -> list[BaseMessage]:
                     HumanMessage(f"{(m.text or '')[:HISTORY_CHARS]}\n\n{read}".strip())
                 )
             continue
-        # A reply carries what it did as well as what it said: without its
-        # steps the model can't see a habit it already created, and re-asks
-        # or redoes the turn before (a meal confirmed twice).
-        did = _did(m)
-        text = (m.text or "")[:HISTORY_CHARS]
-        if did:
-            text = f"{text}\n[Done this turn: {'; '.join(did)}]".strip()
-        out.append(AIMessage(text or FAILED_REPLY))
+        # What a reply did goes in the system prompt (``_earlier_actions``),
+        # never in its text: a note there was copied into new replies. An
+        # older reply that already holds one is sent without it.
+        text = strip_internal(m.text or "")[:HISTORY_CHARS]
+        fallback = (
+            ACTED_REPLY
+            if any(i.get("summary") for i in _step_items(m))
+            else FAILED_REPLY
+        )
+        out.append(AIMessage(text or fallback))
     return out
 
 
@@ -1810,6 +1984,7 @@ def _ask_ai(
             memories="\n".join(f"- [{m.id}] ({m.kind}) {m.text}" for m in mems)
             or "(nothing yet)",
             summary=_summary_block(ctx),
+            earlier=_earlier_actions(ctx, rows),
             trackers=json.dumps(
                 [
                     {
@@ -1823,7 +1998,8 @@ def _ask_ai(
             ),
         )
 
-    history = _history(ctx)
+    rows = _window_rows(ctx)
+    history = _history(ctx, rows)
     me = _message(
         ctx,
         "me",
@@ -1858,6 +2034,7 @@ def _ask_ai(
         said="\n".join([*earlier[-3:], text]),
     )
     run.said = text
+    run.turn_capture = lambda: wrun.cap.id if wrun.cap is not None else None
     writes = [with_day_after(ctx, t) if t.name == "log_meal" else t for t in writes]
     run.judge = memory_judge(ctx, resolved)
     every = [*sol_tools(run), *writes]
@@ -1887,7 +2064,9 @@ def _ask_ai(
         hooks=stream,
     )
     answer = plain_text(reply)
-    unbacked = unbacked_claim(text, answer, stream.steps)
+    unbacked = unbacked_claim(
+        text, answer, stream.steps, waiting=_still_waiting(ctx, stream.steps)
+    )
     if stream.stopped():
         # Stopped for the person's next message: what was done stays, and
         # the reply says it stopped instead of being made to finish.
@@ -1897,6 +2076,14 @@ def _ask_ai(
         # One corrective pass: told plainly that nothing was saved, or that
         # part of the ask was only promised.
         nudge = (NUDGE if unbacked else FINISH_NUDGE).format(text=text)
+        # What is already done goes in the nudge, never as a note on the
+        # reply (a note there was copied into replies).
+        done = [s.summary for s in stream.steps if s.ok and s.summary]
+        if done:
+            nudge += (
+                "\n\nAlready done in this reply (do not redo, and do not quote "
+                "this list): " + "; ".join(done)
+            )
         stream.end_text()
         reply = capture.run_agent(
             ctx,
@@ -1904,7 +2091,7 @@ def _ask_ai(
             system=system,
             messages=[
                 *turn,
-                AIMessage(_with_done(reply, stream.steps)),
+                AIMessage(strip_internal(reply)),
                 HumanMessage(nudge),
             ],
             # The corrective pass may need a tool this turn's words missed.
@@ -1915,8 +2102,16 @@ def _ask_ai(
             hooks=stream,
         )
         answer = plain_text(reply)
-        if unbacked_claim(text, answer, stream.steps):
-            answer = not_recorded(stream.steps)
+        if unbacked_claim(
+            text, answer, stream.steps, waiting=_still_waiting(ctx, stream.steps)
+        ):
+            # A turn that did something real (a drop, a search) keeps it;
+            # only the talk of a Confirm that isn't there goes.
+            answer = (
+                drop_confirm_talk(answer)
+                if _wrote(stream.steps)
+                else not_recorded(stream.steps)
+            )
     if _ABOUT_NUTRITION.search(text) and not any(
         b["t"] == "nutrition" for b in run.blocks
     ):
@@ -1925,6 +2120,7 @@ def _ask_ai(
         # the tool that draws it.
         run.block({"t": "nutrition", "day": ctx.today.isoformat()})
     cap_id = capture.finish_chat_capture(ctx, wrun, reply=answer)
+    _settle_step_states(ctx, stream.steps)
     steps = stream.steps_block()
     blocks = ([steps] if steps else []) + list(run.blocks)
     out = _message(ctx, "sol", answer or None, blocks, sol_id)

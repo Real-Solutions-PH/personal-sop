@@ -148,6 +148,9 @@ class GoalProgressOut(BaseModel):
     value: str | None
     pct: float
     hit: bool
+    # True while the goal's module is switched off (Screen time): the goal
+    # surfaces leave it out; it is back, with its history, once on again.
+    hidden: bool = False
 
 
 class MetricDetailOut(BaseModel):
@@ -333,6 +336,7 @@ def goal_progress_out(g: L.GoalView) -> GoalProgressOut:
         value=g.entry.value if g.entry else None,
         pct=g.progress.pct,
         hit=g.progress.hit,
+        hidden=g.hidden,
     )
 
 

@@ -27,6 +27,84 @@ export async function pickPhoto(camera = false): Promise<string | null> {
     return null
   }
 }
+/** Side of a profile photo: the largest avatar drawn is 88 pt, 264 px at
+ * 3x, and the file stays around 50 KB. */
+export const AVATAR_EDGE = 512
+
+/** One photo for the profile, centre-cropped square at ``AVATAR_EDGE`` and
+ * kept in app storage; returns its file URI. */
+export async function pickAvatar(camera = false): Promise<string | null> {
+  try {
+    if (camera) {
+      const permission = await ImagePicker.requestCameraPermissionsAsync()
+      if (!permission.granted) {
+        toast.error("Camera access is denied. Choose a photo instead.")
+        return null
+      }
+    }
+    const result = camera
+      ? await ImagePicker.launchCameraAsync({ quality: 0.9 })
+      : await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ["images"],
+          quality: 0.9,
+        })
+    if (result.canceled) return null
+    const uri = result.assets[0].uri
+    const size = await ImageManipulator.manipulateAsync(uri, [])
+    const side = Math.min(size.width, size.height)
+    const square = await ImageManipulator.manipulateAsync(
+      uri,
+      [
+        {
+          crop: {
+            originX: Math.floor((size.width - side) / 2),
+            originY: Math.floor((size.height - side) / 2),
+            width: side,
+            height: side,
+          },
+        },
+        { resize: { width: AVATAR_EDGE, height: AVATAR_EDGE } },
+      ],
+      { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG },
+    )
+    return await keepAvatar(square.uri)
+  } catch {
+    toast.error("Could not open this image. Try another photo.")
+    return null
+  }
+}
+/** Copy the avatar out of the cache so it survives purges (web keeps the
+ * manipulator's URL). */
+async function keepAvatar(uri: string): Promise<string> {
+  if (Platform.OS === "web") return uri
+  try {
+    const { Directory, File, Paths } = await import("expo-file-system")
+    const dir = new Directory(Paths.document, "avatar")
+    if (!dir.exists) dir.create()
+    const out = new File(dir, `${Date.now()}.jpg`)
+    new File(uri).copy(out)
+    return out.uri
+  } catch {
+    return uri
+  }
+}
+/** A profile photo held as inline data (saved before photos were files),
+ * written to app storage; null when it could not be. */
+export async function keepAvatarBytes(
+  bytes: Uint8Array,
+): Promise<string | null> {
+  if (Platform.OS === "web") return null
+  try {
+    const { Directory, File, Paths } = await import("expo-file-system")
+    const dir = new Directory(Paths.document, "avatar")
+    if (!dir.exists) dir.create()
+    const out = new File(dir, `${Date.now()}.jpg`)
+    await out.write(bytes)
+    return out.uri
+  } catch {
+    return null
+  }
+}
 /** Long edge of a picked photo. Label digits and a kitchen scale's display
  * must stay legible for the photo reader: at 512 px wide they were not. */
 export const PHOTO_EDGE = 1600

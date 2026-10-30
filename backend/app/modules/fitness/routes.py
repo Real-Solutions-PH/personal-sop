@@ -445,6 +445,18 @@ def archive_exercise(
     )
 
 
+@router.post(
+    "/exercises/{exercise_id}/merge",
+    response_model=S.ExercisePublic,
+    dependencies=WRITE,
+)
+def merge_exercise(ctx: CtxDep, exercise_id: uuid.UUID, body: S.MergeExercise) -> Any:
+    """Merge this exercise into ``target_id``; returns the survivor."""
+    return services.merge_exercises(
+        ctx=ctx, source_id=exercise_id, target_id=body.target_id
+    )
+
+
 # --------------------------------------------------------------------------
 # Body
 # --------------------------------------------------------------------------

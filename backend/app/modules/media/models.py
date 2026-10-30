@@ -1,5 +1,6 @@
 """Uploaded media (photos, video, audio, statements) in object storage."""
 
+import uuid
 from datetime import datetime
 
 from sqlalchemy import BigInteger, CheckConstraint, String
@@ -31,3 +32,13 @@ class MediaObject(OwnedRow, table=True):
     duration_sec: float | None = None
     state: str = Field(default="pending", sa_type=String(8))  # type: ignore
     ready_at: datetime | None = Field(default=None, sa_type=tstz())  # type: ignore
+    # A photo's smaller rendition (an image object of the same owner, long
+    # edge 640) and a tiny inline placeholder (a JPEG data URI), both made on
+    # the phone before upload. Shown, in that order, until this one loads.
+    preview_id: uuid.UUID | None = Field(
+        default=None,
+        foreign_key="media_object.id",
+        ondelete="SET NULL",
+        nullable=True,
+    )
+    lqip: str | None = Field(default=None, max_length=2048)

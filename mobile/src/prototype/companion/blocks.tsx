@@ -1,10 +1,13 @@
 import {
   answerCard,
   confirmCard,
+  discardCard,
+  ensureCapture,
   findCard,
   undoCard,
 } from "@domain/capture/engine"
 import { captureStore } from "@domain/capture/store"
+import { toast } from "@domain/capture/toast"
 import * as D from "@domain/dash/hooks"
 import { dashStore } from "@domain/dash/store"
 import { catMap, flowIn, netWorthSeries, spendIn } from "@domain/finance/calc"
@@ -35,7 +38,7 @@ import {
   Wallet,
   X,
 } from "lucide-react-native"
-import { useMemo } from "react"
+import { useEffect, useMemo } from "react"
 import { ActivityIndicator, Pressable, Text, View } from "react-native"
 import Animated, { FadeInDown } from "react-native-reanimated"
 import { Trend } from "../chart"
@@ -1077,33 +1080,29 @@ function StepAsk({ id }: { id: string }) {
   )
 }
 
-/** The card behind a step's write, live from the capture store once the
- * reply's capture has arrived; until then, the state the step reported. */
-function StepCard({ id, state }: { id: string; state?: string }) {
+/** One of a step's card actions; a muted one is the secondary choice, and
+ * a disabled one is the real button dimmed while its card loads. */
+function StepButton({
+  label,
+  onPress,
+  muted,
+  disabled,
+}: {
+  label: string
+  onPress?: () => void
+  muted?: boolean
+  disabled?: boolean
+}) {
   const t = useTheme()
-  const live = captureStore.use(() => findCard(id)?.card.state)
-  const now = live ?? state
-  const action =
-    now === "proposed"
-      ? { label: "Confirm", run: () => confirmCard(id) }
-      : now === "saved" || now === "edited"
-        ? { label: "Undo", run: () => undoCard(id) }
-        : null
-  if (!action || !live) {
-    if (now === "undone" || now === "discarded")
-      return (
-        <Text style={{ color: t.muted, fontFamily: fonts.body, fontSize: 12 }}>
-          {now === "undone" ? "Undone" : "Discarded"}
-        </Text>
-      )
-    return null
-  }
+  const color = muted ? t.muted : t.primary
   return (
     <Pressable
       cssInterop={false}
       accessibilityRole="button"
-      accessibilityLabel={action.label}
-      onPress={action.run}
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: !!disabled }}
+      disabled={disabled}
+      onPress={onPress}
       hitSlop={8}
       style={({ pressed }) => ({
         paddingHorizontal: 10,
@@ -1111,17 +1110,70 @@ function StepCard({ id, state }: { id: string; state?: string }) {
         borderRadius: 14,
         justifyContent: "center",
         borderWidth: 1,
-        borderColor: `${t.primary}66`,
-        backgroundColor: pressed ? `${t.primary}26` : "transparent",
+        borderColor: `${color}66`,
+        backgroundColor: pressed ? `${color}26` : "transparent",
+        opacity: disabled ? 0.4 : 1,
       })}
     >
-      <Text
-        style={{ color: t.primary, fontFamily: fonts.medium, fontSize: 12 }}
-      >
-        {action.label}
+      <Text style={{ color, fontFamily: fonts.medium, fontSize: 12 }}>
+        {label}
       </Text>
     </Pressable>
   )
+}
+
+/** The card behind a step's write, live from the capture store once the
+ * reply's capture has arrived. A card still waiting whose capture never
+ * reached this device (the app was in the background when the reply
+ * finished, or it came by push) is fetched, its Confirm dimmed meanwhile.
+ * A step from before steps named their capture keeps the reported state. */
+function StepCard({
+  id,
+  state,
+  captureId,
+}: {
+  id: string
+  state?: string
+  captureId?: string
+}) {
+  const t = useTheme()
+  const live = captureStore.use(() => findCard(id)?.card.state)
+  const now = live ?? state
+  const loading =
+    !live && !!captureId && (now === "proposed" || now === "needs_input")
+  useEffect(() => {
+    if (loading && captureId) ensureCapture(captureId)
+  }, [loading, captureId])
+  if (loading) return <StepButton label="Confirm" disabled />
+  if (live === "proposed")
+    return (
+      <View style={{ flexDirection: "row", gap: 6 }}>
+        <StepButton
+          label="Discard"
+          muted
+          onPress={() => {
+            discardCard(id)
+            toast("Discarded")
+          }}
+        />
+        <StepButton
+          label="Confirm"
+          onPress={() => {
+            confirmCard(id)
+            toast.success("Saved")
+          }}
+        />
+      </View>
+    )
+  if (live === "saved" || live === "edited")
+    return <StepButton label="Undo" onPress={() => undoCard(id)} />
+  if (now === "undone" || now === "discarded")
+    return (
+      <Text style={{ color: t.muted, fontFamily: fonts.body, fontSize: 12 }}>
+        {now === "undone" ? "Undone" : "Discarded"}
+      </Text>
+    )
+  return null
 }
 
 /** What Fern did during a reply, one row per tool call (ADR-0015). */
@@ -1173,7 +1225,11 @@ function StepsBlock({ items }: { items: StepItem[] }) {
               {s.running ? `${s.label}…` : s.summary || s.label}
             </Text>
             {s.card_id && !s.running ? (
-              <StepCard id={s.card_id} state={s.state} />
+              <StepCard
+                id={s.card_id}
+                state={s.state}
+                captureId={s.capture_id}
+              />
             ) : null}
           </View>
           {s.card_id && !s.running ? <StepMeal id={s.card_id} /> : null}
@@ -1203,7 +1259,11 @@ function StepsBlock({ items }: { items: StepItem[] }) {
                   >
                     {c.label}
                   </Text>
-                  <StepCard id={c.card_id} state={c.state} />
+                  <StepCard
+                    id={c.card_id}
+                    state={c.state}
+                    captureId={s.capture_id}
+                  />
                 </View>
               ))}
         </View>

@@ -439,15 +439,27 @@ export const STARTER_SPLITS: Split[] = [
 ]
 
 /** The starter exercises a library is missing (matched by name, so nothing
- * the person has is doubled; exercises are archived, never deleted, so none
- * comes back), and the splits when it has no split at all (a split the
+ * the person has, or merged away, is doubled; exercises are archived, never
+ * deleted, so none comes back), and the splits when it has no split at all (a split the
  * person deleted never comes back). Pure: the demo seed and installStarter
  * (./actions) both use it. */
 export function starterRows(
   s: Pick<FitnessState, "exercises" | "templates">,
   owner: string,
 ): { exercises: Exercise[]; templates: WorkoutTemplate[] } {
-  const byName = new Map(s.exercises.map((e) => [e.name.toLowerCase(), e.id]))
+  // A name the person has, or once had before a merge, maps to the exercise
+  // that holds it now, so a merged starter is never added back.
+  const byId = new Map(s.exercises.map((e) => [e.id, e]))
+  const survivor = (e: Exercise) => {
+    let at = e
+    for (let hop = 0; hop < 5 && at.mergedInto; hop++)
+      at = byId.get(at.mergedInto) ?? at
+    return at.id
+  }
+  const byName = new Map<string, string>()
+  for (const e of s.exercises)
+    for (const n of [e.name, ...(e.aliases ?? [])])
+      if (!byName.has(n.toLowerCase())) byName.set(n.toLowerCase(), survivor(e))
   const idOf = new Map<string, string>()
   const exercises: Exercise[] = []
   for (const [

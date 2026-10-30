@@ -20,7 +20,6 @@ import { useEffect, useMemo, useState } from "react"
 import {
   ActivityIndicator,
   FlatList,
-  Image,
   Pressable,
   ScrollView,
   Text,
@@ -49,11 +48,13 @@ import {
   Avatar,
   Bounce,
   haptic,
+  NoteComposer,
   ProgressCard,
   TrophyChip,
   useRing,
 } from "./kit"
 import { TopBar } from "./post"
+import { RemoteImage } from "./remote-image"
 import {
   type GoalLine,
   useMyGoals,
@@ -409,9 +410,11 @@ function Tile({ post, size }: { post: Post; size: number }) {
       })}
     >
       {first?.kind === "image" ? (
-        <Image
-          source={{ uri: first.uri }}
-          style={{ width: "100%", height: "100%" }}
+        <RemoteImage
+          media={first}
+          width="100%"
+          height="100%"
+          variant="preview"
         />
       ) : post.progress ? (
         <ProgressCard
@@ -746,6 +749,7 @@ export function Profile({ id }: { id: string }) {
   const mine = id === ME
   const [tab, setTab] = useState<Tab>("posts")
   const [create, setCreate] = useState(false)
+  const [noteOpen, setNoteOpen] = useState(false)
   // The feed holds recent posts only; the saved tab needs the full list.
   useEffect(() => {
     if (tab === "saved") void loadSavedLive()
@@ -1169,7 +1173,12 @@ export function Profile({ id }: { id: string }) {
           )
         }
       />
-      <CreateSheet open={create} onClose={() => setCreate(false)} />
+      <CreateSheet
+        open={create}
+        onClose={() => setCreate(false)}
+        onNote={() => setNoteOpen(true)}
+      />
+      <NoteComposer open={noteOpen} onClose={() => setNoteOpen(false)} />
     </View>
   )
 }

@@ -486,6 +486,7 @@ export function Screen({
   root = false,
   eyebrow,
   footer,
+  pinned,
   prototypeLayout = true,
   scrollToEnd = false,
   onRefresh,
@@ -498,6 +499,8 @@ export function Screen({
   root?: boolean
   eyebrow?: string
   footer?: ReactNode
+  /** Stays under the header while the page scrolls beneath it. */
+  pinned?: ReactNode
   prototypeLayout?: boolean
   scrollToEnd?: boolean
   /** Enables pull-to-refresh; resolve when the refresh finishes. */
@@ -535,7 +538,7 @@ export function Screen({
           height: prototypeLayout && !eyebrow ? 56 : undefined,
           gap: prototypeLayout && !eyebrow ? 4 : 12,
           borderBottomWidth: StyleSheet.hairlineWidth,
-          borderColor: scrolled ? t.line : "transparent",
+          borderColor: scrolled && !pinned ? t.line : "transparent",
         }}
       >
         {!root && (
@@ -600,6 +603,21 @@ export function Screen({
         </View>
         {actions}
       </View>
+      {pinned != null && pinned !== false && (
+        <View
+          testID="screen-pinned"
+          style={{
+            paddingHorizontal: 16,
+            paddingBottom: 8,
+            backgroundColor: t.bg,
+            zIndex: 1,
+            borderBottomWidth: StyleSheet.hairlineWidth,
+            borderColor: scrolled ? t.line : "transparent",
+          }}
+        >
+          {pinned}
+        </View>
+      )}
       <ScrollView
         ref={scroller}
         scrollEnabled={!locked}

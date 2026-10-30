@@ -250,6 +250,7 @@ export function TaskCard({
     <CardFrame
       width={width}
       look={look}
+      accent="tsk"
       kicker="Tasks"
       date={`${L.fmtDate(s.from)} – ${L.fmtDate(s.to)}`}
       foot="Counts and rates only"
