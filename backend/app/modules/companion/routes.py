@@ -6,7 +6,7 @@ import logging
 import uuid
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response, StreamingResponse
 
 from app.modules.companion import gate, notify, services, turn
@@ -21,12 +21,14 @@ from app.modules.companion.schema import (
     MessagesPublic,
     Metric,
     RenameIn,
+    ReplyOut,
     SeriesOut,
     TrackerIn,
     TrackerPublic,
 )
 from app.modules.iam.deps import require_permission
 from app.shared.context import Ctx, CtxDep, make_ctx
+from app.shared.events import publish
 from app.shared.pagination import PaginationDep
 from app.shared.rate_limit import guarded, rate_limited
 from app.shared.schema import Message
@@ -106,6 +108,7 @@ def ask_stream(ctx: CtxDep, data: AskIn) -> StreamingResponse:
     ``RUN_FINISHED`` with the whole answer, or ``RUN_ERROR``. Validation
     happens before the stream opens."""
     run_id = str(data.id or uuid.uuid4())
+    thread = str(data.thread_id or "latest")
     user = ctx.user
 
     def work(sink: turn.Sink) -> None:
@@ -132,12 +135,16 @@ def ask_stream(ctx: CtxDep, data: AskIn) -> StreamingResponse:
         stream.started()
         # One reply at a time in a chat: a message sent while Fern is still
         # answering waits here ("queued"), then reads the finished reply.
+        # While it runs, an app that lost the stream reads "running".
         try:
-            with gate.turn_slot(
-                ctx.user_id,
-                str(data.thread_id or "latest"),
-                run_id,
-                on_wait=lambda ahead: stream.custom("queued", {"behind": ahead}),
+            with (
+                gate.running(ctx.user_id, run_id),
+                gate.turn_slot(
+                    ctx.user_id,
+                    thread,
+                    run_id,
+                    on_wait=lambda ahead: stream.custom("queued", {"behind": ahead}),
+                ),
             ):
                 out = services.ask(
                     ctx,
@@ -151,6 +158,19 @@ def ask_stream(ctx: CtxDep, data: AskIn) -> StreamingResponse:
             stream.failed("busy", "Still answering your last message. Try again.")
             return
         stream.finished(out.model_dump(mode="json"))
+        # Whether or not the phone still holds the stream: one in the app
+        # fetches the reply at once instead of at its next sync.
+        sol = next((m for m in out.messages if m.role == "sol"), None)
+        publish(
+            ctx.user_id,
+            "companion.reply",
+            {
+                "thread_id": str(data.thread_id) if data.thread_id else None,
+                # The question's id, which the app knows the reply by.
+                "message_id": run_id,
+                "reply_id": str(sol.id) if sol else None,
+            },
+        )
         # A person who left the app (the phone dropped this stream) hears
         # that the reply is ready; one still in the app sees it arrive.
         notify.reply_pushed(ctx, out)
@@ -174,7 +194,9 @@ def ask_stream(ctx: CtxDep, data: AskIn) -> StreamingResponse:
             log.warning("companion learn failed: %s", type(exc).__name__)
 
     return StreamingResponse(
-        turn.stream_events(work),
+        turn.stream_events(
+            work, on_heartbeat=lambda: gate.refresh_run(ctx.user_id, run_id, thread)
+        ),
         media_type="text/event-stream",
         headers=SSE_HEADERS,
     )
@@ -187,6 +209,22 @@ def stop_reply(ctx: CtxDep, message_id: uuid.UUID) -> Response:
     Stopping a reply that has ended does nothing."""
     gate.request_stop(ctx.user_id, str(message_id))
     return Response(status_code=204)
+
+
+@router.get("/messages/{message_id}/reply", response_model=ReplyOut, dependencies=READ)
+def get_reply(ctx: CtxDep, message_id: uuid.UUID) -> Any:
+    """Where the reply to the question ``message_id`` stands, for an app
+    whose stream dropped: ``done`` with the stored messages once the reply is
+    stored, ``running`` while its turn runs, else ``failed``. 404 when no
+    such question of the caller's exists or runs."""
+    done = services.stored_reply(ctx, message_id)
+    if done is not None:
+        return done
+    if gate.is_running(ctx.user_id, str(message_id)):
+        return ReplyOut(status="running")
+    if services.question_stored(ctx, message_id):
+        return ReplyOut(status="failed")
+    raise HTTPException(status_code=404, detail="Message not found")
 
 
 @router.get("/messages", response_model=MessagesPublic, dependencies=READ)

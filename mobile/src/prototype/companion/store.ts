@@ -94,7 +94,7 @@ export type Msg = {
   /** Device-only, on a question the server has not stored yet: being sent,
    * waiting for a connection (sent on reconnect), or failed (Retry). The
    * server's copy (same id) replaces it and clears this. */
-  status?: "sending" | "queued" | "failed"
+  status?: "sending" | "queued" | "failed" | "resuming"
   /** The question's capture hint, kept so a queued or retried ask sends it. */
   hint?: string
   /** The chat it belongs to; absent on messages from before chats. */
@@ -247,8 +247,11 @@ export const takeVoiceTurn = () => {
   return v
 }
 
-/** Transient "Fern is thinking" indicator; not persisted. */
-export const thinking = create<{ on: boolean }>(() => ({ on: false }))
+/** Transient "Fern is thinking" indicator; not persisted. ``long`` once a
+ * model call has gone a while with nothing to show ("still thinking…"). */
+export const thinking = create<{ on: boolean; long?: boolean }>(() => ({
+  on: false,
+}))
 /** The reply still being written: its orb keeps working until it ends. */
 export const answering = create<{ id: string | null }>(() => ({ id: null }))
 

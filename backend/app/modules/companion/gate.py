@@ -42,6 +42,11 @@ def _slot(user_id: uuid.UUID, thread: str) -> str:
     return f"fern:turn:{user_id}:{thread}"
 
 
+def _run(user_id: uuid.UUID, run_id: str) -> str:
+    # By run, not by chat: the app asks after a reply by its question's id.
+    return f"fern:run:{user_id}:{run_id}"
+
+
 def _stop(user_id: uuid.UUID, run_id: str) -> str:
     # Keyed by the person too: nobody can stop someone else's reply.
     return f"fern:stop:{user_id}:{run_id}"
@@ -91,3 +96,33 @@ def request_stop(user_id: uuid.UUID, run_id: str) -> None:
 
 def stop_requested(user_id: uuid.UUID, run_id: str) -> bool:
     return bool(_redis().exists(_stop(user_id, run_id)))
+
+
+@contextmanager
+def running(user_id: uuid.UUID, run_id: str) -> Iterator[None]:
+    """Mark ``run_id`` as running while its turn runs, so the app can ask
+    whether a reply it lost the stream of is still being written. The mark
+    expires ``SLOT_SECONDS`` after its last refresh (``refresh_run``), so one
+    left by a crashed task does not say "running" for long."""
+    r = _redis()
+    key = _run(user_id, run_id)
+    r.set(key, "1", ex=SLOT_SECONDS)
+    try:
+        yield
+    finally:
+        r.delete(key)
+
+
+def refresh_run(user_id: uuid.UUID, run_id: str, thread: str) -> None:
+    """Keep a long turn's marks alive: its run mark, and its chat's reply
+    slot while this run holds it (so a Retry during a long turn still waits
+    instead of starting a second reply)."""
+    r = _redis()
+    r.expire(_run(user_id, run_id), SLOT_SECONDS)
+    slot = _slot(user_id, thread)
+    if r.get(slot) == run_id:
+        r.expire(slot, SLOT_SECONDS)
+
+
+def is_running(user_id: uuid.UUID, run_id: str) -> bool:
+    return bool(_redis().exists(_run(user_id, run_id)))

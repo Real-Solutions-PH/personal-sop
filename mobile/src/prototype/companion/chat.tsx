@@ -591,6 +591,7 @@ function silenceChat() {
 
 export function CompanionChat() {
   const t = useTheme()
+  const long = thinking((x) => !!x.long)
   // Leaving the full chat page silences it, like closing the drawer.
   useEffect(() => () => silenceChat(), [])
   const name = companionStore.use((s) => s.name)
@@ -641,7 +642,9 @@ export function CompanionChat() {
               style={{ color: t.muted, fontFamily: fonts.body, fontSize: 12 }}
             >
               {on
-                ? "thinking…"
+                ? long
+                  ? "still thinking…"
+                  : "thinking…"
                 : armed
                   ? `Say “Hey ${name}” to talk`
                   : "Your life companion"}
@@ -767,6 +770,7 @@ const FAB_RISE = 12
  */
 export function CompanionDrawer({ bottom }: { bottom: number }) {
   const t = useTheme()
+  const long = thinking((x) => !!x.long)
   const safe = useSafeAreaInsets()
   const reduced = useReducedMotion()
   const { height: screen } = useWindowDimensions()
@@ -979,7 +983,9 @@ export function CompanionDrawer({ bottom }: { bottom: number }) {
                     }}
                   >
                     {on
-                      ? "thinking…"
+                      ? long
+                        ? "still thinking…"
+                        : "thinking…"
                       : armed
                         ? `Say “Hey ${name}” to talk`
                         : "Drag up for the full chat"}
