@@ -92,3 +92,7 @@ started by hand.
   Only `owner` in `mobile/app.json` changed: the project id, slug, `updates.url`,
   remote build number and environment variables moved with the project, so
   existing builds keep receiving updates.
+  The transfer does not carry iOS signing credentials, so the Apple account
+  holder runs `eas credentials -p ios` once on the new owner. The Apple team is
+  an individual membership: App Store Connect Admins have no Certificates,
+  Identifiers & Profiles access, so only the account holder can create them.
