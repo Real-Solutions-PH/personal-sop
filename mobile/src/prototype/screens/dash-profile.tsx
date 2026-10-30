@@ -55,6 +55,7 @@ import { back, go } from "../navigation"
 import { ProfileAvatar } from "../profile-avatar"
 import { enableReminders } from "../reminders"
 import { enableScreenTime } from "../screen-sync"
+import { screenTimeAvailable } from "../screen-time"
 import { checkUsername, usernameError } from "../session"
 import { Switch } from "../switch"
 import { appearanceStore, fonts, useTheme } from "../theme"
@@ -630,9 +631,14 @@ export function Settings() {
                   >
                     <I size={16} color={t[m.color]} />
                   </View>
-                  <Copy weight="medium" style={{ flex: 1 }}>
-                    {AREA[k].label}
-                  </Copy>
+                  <View style={{ flex: 1 }}>
+                    <Copy weight="medium">{AREA[k].label}</Copy>
+                    {k === "screen" && !screenTimeAvailable() && (
+                      <Copy size={12} muted>
+                        Not in this version of Unfurl yet
+                      </Copy>
+                    )}
+                  </View>
                   <Switch
                     compact
                     accent="primary"

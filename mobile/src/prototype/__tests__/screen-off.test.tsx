@@ -139,13 +139,87 @@ describe("turning Screen time on", () => {
     expect(toast).toHaveBeenCalledWith(sync.SCREEN_DENIED)
   })
 
-  test("a phone that can't read Screen Time keeps it off and says so", async () => {
+  test("a build without Screen Time keeps it off and says no phone setting fixes it", async () => {
     setEnabled("screen", false)
     native.screenTimeAvailable.mockReturnValue(false)
     await expect(sync.enableScreenTime()).resolves.toBe(false)
     expect(native.requestScreenTime).not.toHaveBeenCalled()
     expect(screenOn()).toBe(false)
-    expect(toast).toHaveBeenCalledWith(sync.SCREEN_UNAVAILABLE)
+    expect(toast).toHaveBeenCalledWith(
+      "This version of Unfurl doesn't include Screen Time, so there is nothing to turn on in your iPhone's Settings. It comes in an update.",
+    )
+  })
+
+  test("an iOS that can't answer keeps it off and names the iOS version", async () => {
+    setEnabled("screen", false)
+    native.requestScreenTime.mockResolvedValue("unavailable")
+    await expect(sync.enableScreenTime()).resolves.toBe(false)
+    expect(screenOn()).toBe(false)
+    expect(toast).toHaveBeenCalledWith(
+      "Unfurl couldn't reach Screen Time here. It needs iOS 16 or later.",
+    )
+  })
+})
+
+describe("screenTimeState", () => {
+  test.each([
+    // No native module wins over whatever status was read.
+    [false, null, "notInBuild"],
+    [false, "unavailable", "notInBuild"],
+    [false, "approved", "notInBuild"],
+    [true, null, "checking"],
+    [true, "approved", "connected"],
+    [true, "denied", "denied"],
+    [true, "notDetermined", "notAsked"],
+    [true, "unavailable", "unsupported"],
+  ] as const)("available=%s, auth=%s is %s", (available, auth, expected) => {
+    expect(sync.screenTimeState(available, auth)).toBe(expected)
+  })
+})
+
+describe("returning to the foreground", () => {
+  let onChange: (s: string) => void
+  let stop: () => void
+  beforeEach(() => {
+    const { AppState } = require("react-native")
+    jest.spyOn(AppState, "addEventListener").mockImplementation((...a) => {
+      onChange = a[1] as (s: string) => void
+      return { remove: () => {} }
+    })
+  })
+  afterEach(() => stop?.())
+
+  test("re-reads the permission while Screen time is off", async () => {
+    setEnabled("screen", false)
+    native.authorizationStatus.mockResolvedValue("denied")
+    stop = sync.startScreenSync()
+    await sync.refreshScreenStatus()
+    expect(sync.screenStatus.getState().auth).toBe("denied")
+
+    // Allowed in iOS Settings while away.
+    native.authorizationStatus.mockResolvedValue("approved")
+    onChange("active")
+    await jest.runAllTimersAsync()
+    expect(sync.screenStatus.getState().auth).toBe("approved")
+  })
+
+  test("re-reads it before the account's state is known", async () => {
+    syncReady.setState({ ready: false })
+    native.authorizationStatus.mockResolvedValue("notDetermined")
+    stop = sync.startScreenSync()
+    native.authorizationStatus.mockResolvedValue("approved")
+    onChange("active")
+    await jest.runAllTimersAsync()
+    expect(sync.screenStatus.getState().auth).toBe("approved")
+  })
+
+  test("leaving for the background reads nothing", async () => {
+    setEnabled("screen", false)
+    stop = sync.startScreenSync()
+    native.authorizationStatus.mockClear()
+    onChange("background")
+    await jest.runAllTimersAsync()
+    expect(native.authorizationStatus).not.toHaveBeenCalled()
   })
 })
 

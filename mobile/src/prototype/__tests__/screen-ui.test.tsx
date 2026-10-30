@@ -5,6 +5,7 @@
 // retry; the habit editor writes the rule; the foreground sync reconciles
 // the extension's events and reschedules only when the plan changed.
 
+import { dashStore, setEnabled } from "@domain/dash/store"
 import type { Habit, HabitLog } from "@domain/habits/data"
 import { habitsStore } from "@domain/habits/store"
 import { dayOffset } from "@domain/lib/day"
@@ -212,13 +213,42 @@ describe("the screen-time settings", () => {
     screenStore.set({ groups: [ALL, SOCIAL], days: [] })
     render(<ScreenSettings />, { wrapper })
     expect(
-      await screen.findByText("Screen Time isn't available here"),
+      await screen.findByText("Screen time isn't in this version yet"),
     ).toBeTruthy()
+    // Says it is the app, not the phone: nothing to turn on in Settings.
+    expect(
+      screen.getByText(/nothing to turn on in your iPhone's Settings/),
+    ).toBeTruthy()
+    expect(screen.queryByText(/Screen Time turned on/)).toBeNull()
     // The real list, dimmed underneath.
     expect(
       screen.getByText("Social", { includeHiddenElements: true }),
     ).toBeTruthy()
     expect(native.requestScreenTime).not.toHaveBeenCalled()
+  })
+
+  it("with the module but an iOS that can't answer names the iOS version", async () => {
+    native.screenTimeAvailable.mockReturnValue(true)
+    native.authorizationStatus.mockResolvedValue("unavailable")
+    render(<ScreenSettings />, { wrapper })
+    expect(
+      await screen.findByText("Screen Time isn't available on this iPhone"),
+    ).toBeTruthy()
+  })
+
+  it("connecting turns the section on once iOS approves", async () => {
+    native.screenTimeAvailable.mockReturnValue(true)
+    native.authorizationStatus.mockResolvedValue("notDetermined")
+    native.requestScreenTime.mockResolvedValue("approved")
+    setEnabled("screen", false)
+    render(<ScreenSettings />, { wrapper })
+    const connect = await screen.findByRole("button", {
+      name: "Connect Screen Time",
+    })
+    native.authorizationStatus.mockResolvedValue("approved")
+    await act(async () => fireEvent.press(connect))
+    expect(dashStore.get().enabled.screen).toBe(true)
+    expect(await screen.findByText(/^Connected/)).toBeTruthy()
   })
 
   it("with permission denied explains and retries", async () => {
@@ -231,6 +261,34 @@ describe("the screen-time settings", () => {
     expect(screen.getByText(/turned off/)).toBeTruthy()
     await act(async () => fireEvent.press(retry))
     expect(native.requestScreenTime).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe("Stats' Screen time card", () => {
+  const ScreenTimeCard = () =>
+    require("../screens/screen-card").ScreenTimeCard()
+
+  it("without the native module says it isn't in this version and offers to hide it", async () => {
+    screenStore.set({ groups: [ALL], days: [] })
+    setEnabled("screen", true)
+    render(<ScreenTimeCard />, { wrapper })
+    expect(
+      await screen.findByText("Screen time isn't in this version yet"),
+    ).toBeTruthy()
+    expect(screen.queryByText("Set up Screen time")).toBeNull()
+    await act(async () =>
+      fireEvent.press(screen.getByRole("button", { name: "Hide Screen time" })),
+    )
+    expect(dashStore.get().enabled.screen).toBe(false)
+  })
+
+  it("with the module and no minutes yet still offers set-up", async () => {
+    native.screenTimeAvailable.mockReturnValue(true)
+    native.authorizationStatus.mockResolvedValue("notDetermined")
+    screenStore.set({ groups: [ALL], days: [] })
+    render(<ScreenTimeCard />, { wrapper })
+    expect(await screen.findByText("Screen time isn't connected")).toBeTruthy()
+    expect(screen.getByText("Set up Screen time")).toBeTruthy()
   })
 })
 

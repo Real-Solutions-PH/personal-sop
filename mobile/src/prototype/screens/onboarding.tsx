@@ -60,6 +60,7 @@ import {
   startersOf,
 } from "../onboarding-draft"
 import { enableReminders } from "../reminders"
+import { screenTimeAvailable } from "../screen-time"
 import { fonts, useTheme } from "../theme"
 import { TimeInput } from "../time-input"
 import { AccountForm } from "./auth-sign-up"
@@ -540,7 +541,9 @@ export function Onboarding({ phase = "post" }: { phase?: "pre" | "post" }) {
                         <Copy weight="semibold">{AREA[k].label}</Copy>
                         {k === "screen" && (
                           <Copy size={12} muted>
-                            Needs Screen Time access
+                            {screenTimeAvailable()
+                              ? "Needs Screen Time access"
+                              : "Not in this version of Unfurl yet"}
                           </Copy>
                         )}
                       </View>
