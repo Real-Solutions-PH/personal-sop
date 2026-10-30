@@ -3433,6 +3433,54 @@ export const CompleteSignupSchema = {
                 }
             ],
             title: 'Timezone'
+        },
+        occupation: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['student', 'employed', 'self_employed', 'business_owner', 'between_jobs', 'other']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Occupation'
+        },
+        occupation_detail: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 80
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Occupation Detail'
+        },
+        referral_source: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['friend', 'tiktok', 'instagram', 'facebook', 'youtube', 'app_store', 'search', 'other']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Referral Source'
+        },
+        referral_detail: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 80
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Referral Detail'
         }
     },
     type: 'object',
@@ -4368,6 +4416,26 @@ export const ExerciseDetailSchema = {
             ],
             title: 'Track'
         },
+        aliases: {
+            items: {
+                type: 'string'
+            },
+            type: 'array',
+            title: 'Aliases',
+            default: []
+        },
+        merged_into_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Merged Into Id'
+        },
         last_done_at: {
             anyOf: [
                 {
@@ -4513,6 +4581,26 @@ export const ExercisePublicSchema = {
                 }
             ],
             title: 'Track'
+        },
+        aliases: {
+            items: {
+                type: 'string'
+            },
+            type: 'array',
+            title: 'Aliases',
+            default: []
+        },
+        merged_into_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Merged Into Id'
         }
     },
     type: 'object',
@@ -4661,6 +4749,26 @@ export const ExerciseWithStatsSchema = {
                 }
             ],
             title: 'Track'
+        },
+        aliases: {
+            items: {
+                type: 'string'
+            },
+            type: 'array',
+            title: 'Aliases',
+            default: []
+        },
+        merged_into_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Merged Into Id'
         },
         last_done_at: {
             anyOf: [
@@ -5728,6 +5836,11 @@ export const GoalProgressOutSchema = {
         hit: {
             type: 'boolean',
             title: 'Hit'
+        },
+        hidden: {
+            type: 'boolean',
+            title: 'Hidden',
+            default: false
         }
     },
     type: 'object',
@@ -10210,6 +10323,19 @@ export const MemoryPublicSchema = {
     title: 'MemoryPublic'
 } as const;
 
+export const MergeExerciseSchema = {
+    properties: {
+        target_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Target Id'
+        }
+    },
+    type: 'object',
+    required: ['target_id'],
+    title: 'MergeExercise'
+} as const;
+
 export const MessageSchema = {
     properties: {
         message: {
@@ -13305,6 +13431,52 @@ export const ProfilePublicSchema = {
             },
             type: 'array',
             title: 'Seen Trophies'
+        },
+        occupation: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['student', 'employed', 'self_employed', 'business_owner', 'between_jobs', 'other']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Occupation'
+        },
+        occupation_detail: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Occupation Detail'
+        },
+        referral_source: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['friend', 'tiktok', 'instagram', 'facebook', 'youtube', 'app_store', 'search', 'other']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Referral Source'
+        },
+        referral_detail: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Referral Detail'
         },
         version: {
             type: 'integer',

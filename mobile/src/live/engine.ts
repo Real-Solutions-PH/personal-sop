@@ -37,6 +37,8 @@ export interface EngineDeps {
   log?: (event: string, detail?: unknown) => void
   /** After every successful push + pull (server statistics refresh). */
   onSynced?: () => void
+  /** An op the server refused (name and code only, for the person's toast). */
+  onRejected?: (name: string, code: string | null | undefined) => void
   debounceMs?: number
   batch?: number
 }
@@ -161,6 +163,26 @@ export class SyncEngine {
     }
     this.deps.outbox.add([{ op_id: newId(), kind: "action", name, data }])
     void this.sync()
+  }
+
+  /** Take the current local value of these rows as what the server holds,
+   * without queuing ops: for rows a server action changes the same way (a
+   * merge's repointed references), so the local change stays optimistic and
+   * is never pushed as field writes of its own. */
+  adopt(entity: string, ids: string[]) {
+    const m = this.deps.mappers.find((x) => x.entity === entity)
+    if (!m || !ids.length) return
+    const state = m.store.get()
+    const snap = this.snapshot[m.entity]
+    this.previous[m.entity] ??= {}
+    const prev = this.previous[m.entity]
+    for (const id of ids) {
+      const local = this.find(m, state, id)
+      if (local === undefined || !snap[id]) continue
+      snap[id] = m.toServer(local, state)
+      prev[id] = local
+    }
+    this.persist()
   }
 
   /** Send every row this device holds to the server as new: for a server
@@ -319,12 +341,18 @@ export class SyncEngine {
     const at = new Map(ops.map((o, i) => [o.op_id, i]))
     const rows: Change[] = []
     const after = new Map<Change, SyncOp[]>()
+    const resync = new Set(
+      this.deps.mappers.flatMap((m) => m.resyncOnReject ?? []),
+    )
     for (const r of res.results) {
       const i = at.get(r.op_id)
       const op = i === undefined ? undefined : ops[i]
       if (r.status === "rejected") {
         this.rejected.push(r)
         this.deps.log?.("op_rejected", { name: op?.name, code: r.code })
+        if (op) this.deps.onRejected?.(op.name, r.code)
+        // The pull after this push then brings every server row back.
+        if (op?.kind === "action" && resync.has(op.name)) this.cursor = 0
       }
       if (r.row && op?.kind === "upsert" && op.id && i !== undefined) {
         const c: Change = {

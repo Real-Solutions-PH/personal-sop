@@ -1,6 +1,11 @@
 import type { ModuleKey } from "@domain/contract"
 import { AREA } from "@domain/dash/data"
-import { dashStore, setOnboarded, skipSetup } from "@domain/dash/store"
+import {
+  dashStore,
+  setEnabled,
+  setOnboarded,
+  skipSetup,
+} from "@domain/dash/store"
 import { finStore } from "@domain/finance/store"
 import {
   logWeighIn,
@@ -52,13 +57,8 @@ import {
   Tap,
 } from "../native-kit"
 import { back, go, replace } from "../navigation"
-import {
-  refreshScreenStatus,
-  screenStatus,
-  syncScreenTime,
-  useScreenSetUp,
-} from "../screen-sync"
-import { requestScreenTime, screenTimeAvailable } from "../screen-time"
+import { enableScreenTime, screenStatus, useScreenSetUp } from "../screen-sync"
+import { screenTimeAvailable } from "../screen-time"
 import { AccentContext, fonts, useTheme } from "../theme"
 import { Button } from "../ui"
 import { FinanceSetup } from "./finance-setup"
@@ -281,7 +281,8 @@ export function Setup() {
               {!firstRun && (
                 <Tap
                   onPress={() => {
-                    skipSetup(step)
+                    if (step === "screen") screenTimeOff()
+                    else skipSetup(step)
                     advance(step)
                   }}
                   style={{ padding: 8 }}
@@ -624,8 +625,15 @@ function FitnessStep({ onDone }: { onDone: () => void }) {
     </View>
   )
 }
+/** Leaving the Screen Time step without connecting counts as a no: the
+ * section turns off until it is switched back on in Settings. */
+function screenTimeOff() {
+  setEnabled("screen", false)
+  toast("Screen time is off. Turn it on anytime in Settings.")
+}
 /** The Screen Time permission, asked here because first-run setup can't
- * leave for the settings screen; groups and apps are picked there later. */
+ * leave for the settings screen; groups and apps are picked there later.
+ * A deny turns the section off, which also ends this step. */
 function ScreenStep({ onDone }: { onDone: () => void }) {
   const t = useTheme(),
     auth = screenStatus((s) => s.auth),
@@ -633,12 +641,8 @@ function ScreenStep({ onDone }: { onDone: () => void }) {
   const connect = async () => {
     setBusy(true)
     try {
-      const next = await requestScreenTime()
-      await refreshScreenStatus()
-      if (next === "approved") {
-        void syncScreenTime()
-        onDone()
-      }
+      await enableScreenTime()
+      onDone()
     } finally {
       setBusy(false)
     }
@@ -659,6 +663,16 @@ function ScreenStep({ onDone }: { onDone: () => void }) {
       <View style={{ marginTop: "auto", paddingTop: 24 }}>
         <Button onPress={() => void connect()} disabled={busy}>
           {auth === "denied" ? "Try again" : "Connect Screen Time"}
+        </Button>
+        <Button
+          tone="quiet"
+          disabled={busy}
+          onPress={() => {
+            screenTimeOff()
+            onDone()
+          }}
+        >
+          Not now
         </Button>
       </View>
     </View>

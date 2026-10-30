@@ -108,7 +108,14 @@ import { HabitActions } from "./habit-actions"
 import { HabitLog } from "./habits"
 import { MoodCheckIn } from "./mood-check-in"
 import { NutritionDay } from "./nutrition-day"
-import { AutoMark, RuleRing, RuleText, useRuleState } from "./screen-card"
+import {
+  AutoMark,
+  RuleRing,
+  RuleText,
+  ScreenOffMark,
+  useAutoRule,
+  useRuleState,
+} from "./screen-card"
 import { SleepPart } from "./sleep-card"
 import { TaskRow } from "./tasks"
 import {
@@ -300,7 +307,8 @@ function TodayPlan() {
   const taskOf = (i: CalendarItem) =>
     i.module === "tasks" && i.id.startsWith("task:") ? i.id.slice(5) : null
   const habitList = habitsStore.use((s) => s.habits),
-    auto = new Set(habitList.filter((h) => h.rule).map((h) => h.id))
+    screenOn = dashStore.use((s) => s.enabled.screen),
+    auto = new Set(habitList.filter((h) => h.rule && screenOn).map((h) => h.id))
   const doneable = (i: CalendarItem) => {
     const h = habitOf(i)
     return Boolean((h && !auto.has(h)) || taskOf(i))
@@ -435,7 +443,7 @@ function TodayPlan() {
   )
 }
 function TodayHabit({ habit }: { habit: Habit }) {
-  return habit.rule ? (
+  return useAutoRule(habit) ? (
     <RuleTodayHabit habit={habit} />
   ) : (
     <ManualTodayHabit habit={habit} />
@@ -600,6 +608,7 @@ function ManualTodayHabit({ habit }: { habit: Habit }) {
                     : ""}
                   {log?.status === "skipped" ? " · skipped" : ""}
                 </Copy>
+                {habit.rule && <ScreenOffMark />}
                 <StreakChip streak={streak} />
               </Line>
             </Tap>

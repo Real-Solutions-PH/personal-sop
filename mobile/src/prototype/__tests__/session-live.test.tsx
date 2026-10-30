@@ -12,7 +12,7 @@ import {
 } from "@testing-library/react-native"
 import type { ReactNode } from "react"
 import { SafeAreaProvider } from "react-native-safe-area-context"
-import { SignUp } from "../screens/auth-sign-up"
+import { AccountForm, SignUp } from "../screens/auth-sign-up"
 import {
   AuthError,
   checkUsername,
@@ -136,7 +136,7 @@ test("completeSignUp waits for the server before signing the person in", async (
   )
   const finishing = completeSignUp()
   await Promise.resolve()
-  expect(mockCompleteProfile).toHaveBeenCalledWith("New Person", "new.one")
+  expect(mockCompleteProfile).toHaveBeenCalledWith("New Person", "new.one", {})
   expect(sessionStore.get().signedIn).toBe(false)
   expect(dashStore.get().profile.handle).toBe("")
   accept()
@@ -168,7 +168,11 @@ test("a username taken meanwhile is surfaced, never left unclaimed", async () =>
   // The person picks another; that claim goes through.
   mockCompleteProfile.mockResolvedValueOnce(undefined)
   await chooseUsername("new.two")
-  expect(mockCompleteProfile).toHaveBeenLastCalledWith("New Person", "new.two")
+  expect(mockCompleteProfile).toHaveBeenLastCalledWith(
+    "New Person",
+    "new.two",
+    {},
+  )
   expect(sessionStore.get()).toMatchObject({
     signedIn: true,
     claim: null,
@@ -195,7 +199,7 @@ test("an account the server confirms at sign-up is signed straight in", async ()
   mockSignUp.mockResolvedValueOnce(true)
   mockCompleteProfile.mockResolvedValueOnce(undefined)
   await signUp({ ...verified, password: "long-enough-1" })
-  expect(mockCompleteProfile).toHaveBeenCalledWith("New Person", "new.one")
+  expect(mockCompleteProfile).toHaveBeenCalledWith("New Person", "new.one", {})
   expect(sessionStore.get()).toMatchObject({
     signedIn: true,
     pending: null,
@@ -221,7 +225,7 @@ describe("Sign up screen", () => {
 
   test("a check the server could not answer stays neutral", async () => {
     mockCheckHandle.mockResolvedValue("unknown")
-    render(<SignUp />, { wrapper })
+    render(<AccountForm onBack={() => {}} />, { wrapper })
     fireEvent.changeText(screen.getByLabelText("Username"), "fresh.name")
     await waitFor(() =>
       expect(mockCheckHandle).toHaveBeenCalledWith("fresh.name"),
@@ -234,7 +238,7 @@ describe("Sign up screen", () => {
 
   test("a handle the server says is held shows the taken message", async () => {
     mockCheckHandle.mockResolvedValue("taken")
-    render(<SignUp />, { wrapper })
+    render(<AccountForm onBack={() => {}} />, { wrapper })
     fireEvent.changeText(screen.getByLabelText("Username"), "held.name")
     expect(await screen.findByText("@held.name is already taken")).toBeTruthy()
   })
@@ -253,7 +257,12 @@ describe("Sign up screen", () => {
     mockCompleteProfile.mockResolvedValueOnce(undefined)
     fireEvent.press(screen.getByRole("button", { name: "Continue" }))
     await waitFor(() => expect(sessionStore.get().signedIn).toBe(true))
-    expect(mockCompleteProfile).toHaveBeenCalledWith("New Person", "new.two")
+    // No onboarding draft on this device: no about answers to send.
+    expect(mockCompleteProfile).toHaveBeenCalledWith(
+      "New Person",
+      "new.two",
+      {},
+    )
     expect(require("expo-router").router.replace).toHaveBeenCalledWith(
       "/onboarding",
     )

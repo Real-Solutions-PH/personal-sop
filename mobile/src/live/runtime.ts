@@ -4,7 +4,7 @@
 // restored. Everything here is silent: the UI only ever reads its stores.
 
 import { setFxSource } from "@domain/finance/fx"
-import { installStarter } from "@domain/fitness/actions"
+import { installStarter, setSyncHooks } from "@domain/fitness/actions"
 import { getConnectivity } from "@domain/lib/platform"
 import type { StorageAdapter } from "@domain/lib/store"
 import { fetch as expoFetch } from "expo/fetch"
@@ -143,8 +143,21 @@ export function startLive(
       // The server is reachable: voice entries saved offline get their words.
       void transcribePending()
     },
+    onRejected: (name) => {
+      // Loaded on use: the toaster pulls in the UI's animation runtime.
+      if (name === "fitness.merge_exercises")
+        void import("sonner-native").then(({ toast }) =>
+          toast.error("Couldn't merge — exercises changed on another device"),
+        )
+    },
   })
   syncing = engine
+  // A merge flushes pending edits, then keeps its repointed rows out of
+  // the diff (the server's merge action moves them).
+  setSyncHooks({
+    flush: () => engine.capture(),
+    adopt: (entity, ids) => engine.adopt(entity, ids),
+  })
   engine.start((m, onChange) => {
     let last = m.store.get()
     return m.store.subscribe(() => {
@@ -161,10 +174,14 @@ export function startLive(
   const page = typeof window !== "undefined" ? window : null
   page?.addEventListener?.("pagehide", onPageHide)
   // Open only while the app is in the foreground (see foregroundStream).
+  // Each foreground starts a fresh stream; resume from the last event seen so
+  // what arrived while the app was away replays instead of being lost.
+  let resumeId: string | null = null
   const stream = foregroundStream(() =>
     runEventStream({
       online: getConnectivity,
-      open: async (lastId, signal) => {
+      open: async (streamId, signal) => {
+        const lastId = streamId ?? resumeId
         const token = await tokens.current()
         const res = await expoFetch(`${API_URL}${API_PREFIX}/events/stream`, {
           headers: {
@@ -178,6 +195,7 @@ export function startLive(
         return res.ok ? (res.body as ReadableStream<Uint8Array>) : null
       },
       onEvent: (e) => {
+        if (e.id) resumeId = e.id
         if (PULL_EVENTS.has(e.type)) void engine.sync()
         for (const l of listeners) l(e)
       },
@@ -198,6 +216,7 @@ export function startLive(
     engine,
     stats,
     stop: () => {
+      setSyncHooks(null)
       engine.stop()
       stats.stop()
       appState.remove()

@@ -516,7 +516,9 @@ def today_bundle(ctx: Ctx) -> dict[str, Any]:
     misses = stats_public.misses(ctx, first=yesterday, last=yesterday)
     case = stats_public.trophy_case(ctx)
     goals = [
-        g for g in stats_public.goals_with_progress(ctx) if g.goal.status == "active"
+        g
+        for g in stats_public.goals_with_progress(ctx)
+        if g.goal.status == "active" and not g.hidden
     ]
     now_hm = ctx.now.astimezone(ctx.clock.zone).strftime("%H:%M")
     open_items = [i for i in items if not i.done]

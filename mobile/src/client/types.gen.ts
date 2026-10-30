@@ -1063,6 +1063,10 @@ export type CompleteSignup = {
     name: string;
     handle: string;
     timezone?: (string | null);
+    occupation?: ('student' | 'employed' | 'self_employed' | 'business_owner' | 'between_jobs' | 'other' | null);
+    occupation_detail?: (string | null);
+    referral_source?: ('friend' | 'tiktok' | 'instagram' | 'facebook' | 'youtube' | 'app_store' | 'search' | 'other' | null);
+    referral_detail?: (string | null);
 };
 
 export type Count = {
@@ -1267,6 +1271,8 @@ export type ExerciseDetail = {
     increment: number;
     archived: boolean;
     track?: ('speed' | 'weight' | null);
+    aliases?: Array<(string)>;
+    merged_into_id?: (string | null);
     last_done_at: (string | null);
     best_e1rm: (number | null);
     suggestion: SuggestionOut;
@@ -1297,6 +1303,8 @@ export type ExercisePublic = {
     increment: number;
     archived: boolean;
     track?: ('speed' | 'weight' | null);
+    aliases?: Array<(string)>;
+    merged_into_id?: (string | null);
 };
 
 export type ExercisesOut = {
@@ -1336,6 +1344,8 @@ export type ExerciseWithStats = {
     increment: number;
     archived: boolean;
     track?: ('speed' | 'weight' | null);
+    aliases?: Array<(string)>;
+    merged_into_id?: (string | null);
     last_done_at: (string | null);
     best_e1rm: (number | null);
     suggestion: SuggestionOut;
@@ -1541,6 +1551,7 @@ export type GoalProgressOut = {
     value: (string | null);
     pct: number;
     hit: boolean;
+    hidden?: boolean;
 };
 
 export type status = 'active' | 'archived';
@@ -2372,6 +2383,10 @@ export type MemoryPublic = {
     deleted_at?: (string | null);
 };
 
+export type MergeExercise = {
+    target_id: string;
+};
+
 export type Message = {
     message: string;
 };
@@ -2975,6 +2990,10 @@ export type ProfilePublic = {
     push_evening: (string | null);
     push_review: boolean;
     seen_trophies: Array<(string)>;
+    occupation?: ('student' | 'employed' | 'self_employed' | 'business_owner' | 'between_jobs' | 'other' | null);
+    occupation_detail?: (string | null);
+    referral_source?: ('friend' | 'tiktok' | 'instagram' | 'facebook' | 'youtube' | 'app_store' | 'search' | 'other' | null);
+    referral_detail?: (string | null);
     version: number;
     updated_at: string;
 };
@@ -5810,6 +5829,13 @@ export type FitnessArchiveExerciseData = {
 };
 
 export type FitnessArchiveExerciseResponse = (ExercisePublic);
+
+export type FitnessMergeExerciseData = {
+    exerciseId: string;
+    requestBody: MergeExercise;
+};
+
+export type FitnessMergeExerciseResponse = (ExercisePublic);
 
 export type FitnessBodyWeightData = {
     days?: number;

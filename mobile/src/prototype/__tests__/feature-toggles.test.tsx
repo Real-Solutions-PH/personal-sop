@@ -119,7 +119,11 @@ test("All features turns everything off after confirming, and back on", () => {
   expect(alert).toHaveBeenCalledTimes(1)
   expect(allOff()).toBe(true)
   fireEvent.press(screen.getByRole("switch", { name: "All features" }))
-  expect(MODULE_KEYS.every((k) => dashStore.get().enabled[k])).toBe(true)
+  // Screen time turns on only once iOS allows it (a phone without Screen
+  // Time here); everything else is back on at once.
+  expect(MODULE_KEYS.filter((k) => !dashStore.get().enabled[k])).toEqual([
+    "screen",
+  ])
   expect(EXTRAS.every((x) => extrasStore.get()[x.key])).toBe(true)
 })
 

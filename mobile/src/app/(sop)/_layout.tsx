@@ -1,4 +1,4 @@
-import { dashStore } from "@domain/dash/store"
+import { dashStore, setOnboarded } from "@domain/dash/store"
 import { captureUi, closeCapture, openCapture } from "@domain/lib/capture"
 import { liveStore } from "@domain/lib/live"
 import { useConnectivity } from "@domain/lib/platform"
@@ -34,9 +34,11 @@ import { startFocusLive } from "@/prototype/focus-live"
 import { startReminders } from "@/prototype/local-reminders"
 import { prototypeMode } from "@/prototype/mode"
 import { go, replace } from "@/prototype/navigation"
+import { applyDraft, getDraft } from "@/prototype/onboarding-draft"
 import { startRestAlarm } from "@/prototype/rest-alarm"
 import { startScreenSync } from "@/prototype/screen-sync"
 import { CaptureOverlay } from "@/prototype/screens/capture"
+import { sessionStore } from "@/prototype/session"
 import { stepTab, TAB_ROUTES, tabDirection } from "@/prototype/tab-swipe"
 import { AccentContext, fonts, useTheme } from "@/prototype/theme"
 import { TrophyWatcher } from "@/prototype/trophy-overlay"
@@ -189,8 +191,19 @@ export default function PrototypeLayout() {
   // first sync so a returning person is never sent here by blank stores.
   const onboarded = dashStore.use((s) => s.onboarded)
   const ready = syncReady((s) => s.ready)
-  const firstRun = ready && !onboarded
+  // An account that existed before this device signed in is never sent
+  // into onboarding: Today's setup card finishes what is missing.
+  const returning = sessionStore.use((s) => s.returning)
+  const firstRun = ready && !onboarded && !returning
   const inFirstRun = path.startsWith("/onboarding") || path.startsWith("/setup")
+  useEffect(() => {
+    if (ready && !onboarded && returning) setOnboarded(true)
+  }, [ready, onboarded, returning])
+  // A new account whose onboarding answers were never written (the app
+  // closed between sign-up and applying them) gets them now, once.
+  useEffect(() => {
+    if (firstRun && getDraft()) applyDraft()
+  }, [firstRun])
   useEffect(() => {
     if (firstRun && !inFirstRun) replace("/onboarding")
   }, [firstRun, inFirstRun])

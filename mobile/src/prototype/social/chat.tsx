@@ -16,6 +16,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import type { TextInputInstance } from "react-native"
 import {
   ActivityIndicator,
+  AppState,
   FlatList,
   Image,
   KeyboardAvoidingView,
@@ -916,6 +917,11 @@ export function ChatScreen({ id }: { id: string }) {
   useEffect(() => {
     setOpening(true)
     void openChatLive(id).finally(() => setOpening(false))
+    // Back from the background: pick up what arrived while away.
+    const sub = AppState.addEventListener("change", (s) => {
+      if (s === "active") void openChatLive(id)
+    })
+    return () => sub.remove()
   }, [id])
   const count = chat?.messages.length ?? 0
   // Mark read and drop the typing dots whenever a message lands. Keyed on the
@@ -1072,6 +1078,12 @@ export function ChatScreen({ id }: { id: string }) {
         }
         ListFooterComponent={
           <View style={{ alignItems: "center", gap: 6, paddingVertical: 24 }}>
+            {opening && (
+              <ActivityIndicator
+                accessibilityLabel="Loading messages"
+                style={{ marginBottom: 12 }}
+              />
+            )}
             <GroupFace chat={chat} size={88} />
             <Text
               style={{ color: t.text, fontFamily: fonts.display, fontSize: 22 }}
@@ -1104,7 +1116,10 @@ export function ChatScreen({ id }: { id: string }) {
           </View>
         }
         renderItem={({ item, index }) => (
-          <Animated.View entering={FadeInUp.duration(200)}>
+          // Only messages that land after the history loads animate in.
+          <Animated.View
+            entering={opening ? undefined : FadeInUp.duration(200)}
+          >
             <Row
               m={item}
               prev={data[index + 1]}

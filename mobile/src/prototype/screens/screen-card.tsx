@@ -4,6 +4,7 @@
 // the Screen time section on Stats. Every minute is a lower bound (the
 // highest threshold crossed), so it always reads "≥ N min".
 
+import { dashStore } from "@domain/dash/store"
 import type { Habit, HabitLog } from "@domain/habits/data"
 import { progressOf } from "@domain/habits/logic"
 import { DAY_START_HOUR, dayKey, dayOffset } from "@domain/lib/day"
@@ -104,6 +105,24 @@ export function RuleRing({
         progress={state ? progressOf(habit, log, state) : 0}
       />
     </View>
+  )
+}
+
+/** Whether screen time drives this habit right now: it has a rule and
+ * Screen time is switched on. Off, it is logged by hand like any habit. */
+export function useAutoRule(habit: Habit): boolean {
+  const on = dashStore.use((s) => s.enabled.screen)
+  return !!habit.rule && on
+}
+
+export const SCREEN_OFF_LABEL = "Screen Time off · log it yourself"
+
+/** Beside a rule habit's name while Screen time is off. */
+export function ScreenOffMark() {
+  return (
+    <Copy size={12} muted lines={1}>
+      {SCREEN_OFF_LABEL}
+    </Copy>
   )
 }
 

@@ -12,7 +12,12 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
+from langchain_core.messages import (
+    AIMessage,
+    BaseMessage,
+    HumanMessage,
+    SystemMessage,
+)
 from sqlmodel import Session
 
 from app.modules.companion import services
@@ -29,6 +34,12 @@ from tests.utils.mobile import ctx_for
 def tool(name: str, /, **args: Any) -> dict[str, Any]:
     # `call()` takes the tool as `name`, which these tools use as an argument.
     return {"name": name, "args": args, "id": f"call-{uuid.uuid4().hex[:8]}"}
+
+
+def earlier_section(messages: list[BaseMessage]) -> str:
+    system = next(m for m in messages if isinstance(m, SystemMessage))
+    text = str(system.content)
+    return text[text.index("WHAT YOUR EARLIER REPLIES TODAY DID") :]
 
 
 def ask(api: Api, client: TestClient, text: str) -> dict[str, Any]:
@@ -63,7 +74,10 @@ def test_history_carries_what_a_reply_did_and_marks_one_that_failed(
     ask(api, client, "try again")
 
     seen = words(model.seen[0])
-    assert ("fern", "[Done this turn: Created habit: Fix the bed]") in seen
+    # What a reply did is in the system prompt, never in a reply's text.
+    assert not any("[Done this turn" in w for _, w in seen)
+    assert ("fern", services.ACTED_REPLY) in seen
+    assert "Created habit: Fix the bed" in earlier_section(model.seen[0])
     # The empty reply with nothing done reads as a failure, so "try again"
     # points at the message before it, not at an older turn.
     i = seen.index(("me", "what's next today?"))
@@ -104,8 +118,13 @@ def test_a_promised_second_part_gets_done_in_a_corrective_pass(
     assert reply["text"] == "Fix the bed is a habit and the first step of your morning."
     # The corrective pass is told what is already done, so it doesn't redo it.
     nudge_call = model.seen[2]
-    assert "[Done this turn: Created habit: Fix the bed]" in str(nudge_call[-2].content)
-    assert str(nudge_call[-1].content).startswith("Your reply says you will still")
+    assert "[Done this turn" not in str(nudge_call[-2].content)
+    nudge = str(nudge_call[-1].content)
+    assert nudge.startswith("Your reply says you will still")
+    assert (
+        "Already done in this reply (do not redo, and do not quote this list): "
+        "Created habit: Fix the bed"
+    ) in nudge
 
 
 @pytest.mark.parametrize(

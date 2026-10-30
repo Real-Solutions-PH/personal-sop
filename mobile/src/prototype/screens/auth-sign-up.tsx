@@ -1,3 +1,4 @@
+import { Redirect } from "expo-router"
 import { AtSign, LockKeyhole, Mail, User } from "lucide-react-native"
 import { useEffect, useRef, useState } from "react"
 import type { TextInputInstance } from "react-native"
@@ -73,9 +74,15 @@ const statusOf = (availability: Availability) =>
         ? "bad"
         : "idle"
 
+/** `/signup`: only the username-taken-after-verify path. New accounts are
+ * made at the end of onboarding (`/get-started`). */
 export function SignUp() {
   const claim = sessionStore.use((s) => s.claim)
-  return claim ? <ChooseUsername refused={claim.username} /> : <NewAccount />
+  return claim ? (
+    <ChooseUsername refused={claim.username} />
+  ) : (
+    <Redirect href="/get-started" />
+  )
 }
 
 /** The account is verified but the server refused its username (claimed by
@@ -105,6 +112,7 @@ function ChooseUsername({ refused }: { refused: string }) {
     )
     if (ok) {
       haptic.success()
+      toast.success("Account created")
       replace("/onboarding")
     }
   }
@@ -164,7 +172,10 @@ function ChooseUsername({ refused }: { refused: string }) {
   )
 }
 
-function NewAccount() {
+/** Onboarding's account step: the new-account form. Submitting creates the
+ * account; the answers given in onboarding so far are written to it as soon
+ * as it exists (completeSignUp). */
+export function AccountForm({ onBack }: { onBack: () => void }) {
   const t = useTheme()
   const [name, setName] = useState("")
   const [username, setUsername] = useState("")
@@ -235,15 +246,18 @@ function NewAccount() {
     )
     if (ok) {
       haptic.success()
-      if (sessionStore.get().signedIn) replace("/onboarding")
-      else go("/verify-email")
+      if (sessionStore.get().signedIn) {
+        toast.success("Account created")
+        replace("/onboarding")
+      } else go("/verify-email")
     }
   }
   const onSocial = async (provider: "apple" | "google") => {
     setSocial(provider)
     try {
-      await continueWith(provider)
+      await continueWith(provider, { newAccount: true })
       haptic.success()
+      toast.success("Account created")
       replace("/onboarding")
     } catch {
       setSocial(null)
@@ -263,17 +277,18 @@ function NewAccount() {
 
   return (
     <AuthScreen
+      onBack={onBack}
       title="Create your account"
       subtitle={
         liveMode
-          ? "One minute to set up. Your data syncs to your account."
-          : "One minute to set up. Everything stays on this device."
+          ? "Last step. Your plan is saved to your account and syncs."
+          : "Last step. Your plan stays on this device."
       }
       footer={
         <SwitchPrompt
           question="Already have an account?"
           action="Sign in"
-          onPress={() => replace("/login")}
+          onPress={() => go("/login")}
         />
       }
     >
