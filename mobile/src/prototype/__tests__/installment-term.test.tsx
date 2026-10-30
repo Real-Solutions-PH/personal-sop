@@ -60,7 +60,8 @@ it("keeps a typed term between 2 and 60 months", () => {
 it("plans a typed number of months", () => {
   render(<Projection />, { wrapper })
   fireEvent.press(screen.getByText("0% installments"))
-  fireEvent.press(screen.getByText("Custom"))
+  // The last "Custom" is the term chip; the first is the range switch.
+  fireEvent.press(screen.getAllByText("Custom").slice(-1)[0])
   fireEvent.changeText(screen.getByLabelText("Months to pay"), "36")
   // 36,000 over 36 months.
   expect(screen.getByText(/1,000\/mo on/)).toBeTruthy()
@@ -69,7 +70,8 @@ it("plans a typed number of months", () => {
 it("plans 60 months when more are typed, and says so", () => {
   render(<Projection />, { wrapper })
   fireEvent.press(screen.getByText("0% installments"))
-  fireEvent.press(screen.getByText("Custom"))
+  // The last "Custom" is the term chip; the first is the range switch.
+  fireEvent.press(screen.getAllByText("Custom").slice(-1)[0])
   fireEvent.changeText(screen.getByLabelText("Months to pay"), "72")
   expect(screen.getByText(/600\/mo on/)).toBeTruthy()
   expect(screen.getByText(/up to 60 months/)).toBeTruthy()

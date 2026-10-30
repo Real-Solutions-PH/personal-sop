@@ -1,22 +1,16 @@
-// Date-driven reads for the Finance home, reports and projection: the money
-// on hand day by day up to a chosen date, the preset windows the range
-// pickers offer, and actual net worth against what the repeating items
-// alone would have made it.
+// Date-driven reads for Finance: the money on hand day by day over a picked
+// future range, net worth against what the repeating items alone predict,
+// and the limits a picked range must respect.
 import {
   addDays,
-  addMonths,
   avgUnplanned,
   diffDays,
-  lastDom,
-  monthOf,
-  monthRange,
   type Occurrence,
   occurrences,
   occurrencesIn,
   parseKey,
   recDay,
   today,
-  type WhatIf,
 } from "./calc"
 import { type FinState, type PlannedItem, signedFor } from "./data"
 
@@ -25,268 +19,268 @@ export interface DateRange {
   to: string
 }
 
-/** The same day ``n`` months on, kept inside the target month. */
-export function addMonthsToDay(k: string, n: number): string {
+const MON = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+]
+/** "1 Aug", or "1 Aug 2026" with the year. */
+export function dayMonth(k: string, year = false) {
   const d = parseKey(k)
-  const y = d.getFullYear()
-  const m0 = d.getMonth() + n
-  const ty = y + Math.floor(m0 / 12)
-  const tm = ((m0 % 12) + 12) % 12
-  const day = Math.min(d.getDate(), lastDom(ty, tm))
-  return `${ty}-${String(tm + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
+  return `${d.getDate()} ${MON[d.getMonth()]}${year ? ` ${d.getFullYear()}` : ""}`
+}
+/** "1 Aug – 30 Oct 2026". */
+export const rangeLabel = (r: DateRange) =>
+  `${dayMonth(r.from)} – ${dayMonth(r.to, true)}`
+
+const DAY_KEY = /^\d{4}-\d{2}-\d{2}$/
+/** A real calendar day written as YYYY-MM-DD. */
+export function isDayKey(k: unknown): k is string {
+  if (typeof k !== "string" || !DAY_KEY.test(k)) return false
+  const d = parseKey(k)
+  return (
+    !Number.isNaN(d.getTime()) &&
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}` ===
+      k
+  )
 }
 
-export type AheadPreset = "month" | "3m" | "6m" | "1y" | "2y"
-export const AHEAD_PRESETS: { value: AheadPreset; label: string }[] = [
-  { value: "month", label: "This month" },
-  { value: "3m", label: "3 mo" },
-  { value: "6m", label: "6 mo" },
-  { value: "1y", label: "1 yr" },
-  { value: "2y", label: "2 yr" },
-]
-/** The last day a forward-looking preset covers, from today. "This month"
- * runs to the end of the budget month. */
-export function aheadEnd(s: FinState, p: AheadPreset): string {
+/** Furthest a forecast looks ahead, in days from today. */
+export const MAX_AHEAD_DAYS = 730
+/** Longest look-back window a report takes. */
+export const MAX_REPORT_DAYS = 400
+
+/** Why a forecast range cannot be shown, or null when it can. */
+export function aheadRangeError(r: DateRange): string | null {
   const t = today()
-  if (p === "month")
-    return monthRange(
-      monthOf(t, s.settings.monthStartDay),
-      s.settings.monthStartDay,
-    )[1]
-  const n = { "3m": 3, "6m": 6, "1y": 12, "2y": 24 }[p]
-  return addMonthsToDay(t, n)
+  if (r.to < r.from) return "Pick an end date after the start date"
+  if (r.from < t) return "Pick a start date from today on"
+  if (r.to > addDays(t, MAX_AHEAD_DAYS)) return "Pick a date within 24 months"
+  return null
+}
+/** Why a report range cannot be shown, or null when it can. */
+export function backRangeError(r: DateRange): string | null {
+  if (r.to < r.from) return "Pick an end date after the start date"
+  if (r.to > today()) return "Pick an end date of today or earlier"
+  if (diffDays(r.to, r.from) + 1 > MAX_REPORT_DAYS)
+    return "Pick a range of up to 400 days"
+  return null
 }
 
-export type BackPreset = "this" | "last" | "3m" | "6m" | "1y"
-export const BACK_PRESETS: { value: BackPreset; label: string }[] = [
-  { value: "this", label: "This month" },
-  { value: "last", label: "Last month" },
-  { value: "3m", label: "3 mo" },
-  { value: "6m", label: "6 mo" },
-  { value: "1y", label: "1 yr" },
-]
-/** A look-back preset as dates. Month presets follow the budget month and
- * stop at today; "3 mo" and longer start on the first day of the budget
- * month that many months back. */
-export function backRange(s: FinState, p: BackPreset): DateRange {
-  const sd = s.settings.monthStartDay
-  const t = today()
-  const mk = monthOf(t, sd)
-  if (p === "last") {
-    const [from, to] = monthRange(addMonths(mk, -1), sd)
-    return { from, to }
-  }
-  const back = { this: 0, "3m": 2, "6m": 5, "1y": 11 }[p]
-  const [from] = monthRange(addMonths(mk, -back), sd)
-  return { from, to: t }
+/** What one scheduled item does to a set of accounts: income in, bills
+ * out, transfers only when they cross the edge of the set. */
+function effectOn(p: PlannedItem, ids: Set<string>): number {
+  if (p.type === "income") return ids.has(p.accountId) ? p.amount : 0
+  if (p.type === "expense") return ids.has(p.accountId) ? -p.amount : 0
+  const out = ids.has(p.accountId)
+  const into = !!p.toAccountId && ids.has(p.toAccountId)
+  if (out && !into) return -p.amount
+  if (!out && into) return p.amount
+  return 0
 }
 
-export interface DayForecast {
+export interface ForecastDay {
+  day: string
+  balance: number
+  income: number
+  bills: number
+  everyday: number
+}
+export interface Forecast {
+  from: string
+  to: string
   /** Money on hand today, in the accounts counted in the projection. */
   start: number
-  /** Expected money on hand at the end of each day, today first. */
-  days: { day: string; balance: number }[]
-  /** Scheduled items still to happen up to the date, overdue first. Items
-   * left out of the projection are listed but move nothing. */
-  items: Occurrence[]
-  comingIn: number
-  scheduledOut: number
-  /** Everyday spending spread by day, from tomorrow on: the 3-month
-   * average of what was not scheduled. Zero when that setting is off. */
-  everydayOut: number
-  end: number
+  /** Expected money on hand at the end of ``from``. */
+  atFrom: number
+  /** Expected money on hand at the end of ``to``. */
+  atTo: number
+  /** Scheduled income inside the range. */
+  income: number
+  /** Scheduled money out inside the range. */
+  bills: number
+  /** Everyday spending inside the range (0 when it is left out). */
+  everyday: number
+  net: number
+  /** Lowest balance inside the range. */
   low: { day: string; value: number }
+  /** One per day from today to ``to``. */
+  days: ForecastDay[]
+  /** Unpaid, unskipped occurrences inside the range. */
+  items: Occurrence[]
+  hasIncome: boolean
 }
 
 /**
- * Money on hand day by day from today to ``to``. Scheduled income and
- * bills land on their day (overdue ones today); what-if purchases land on
- * the 15th of their month, split evenly over their installments; everyday
- * spending, when included, comes off a little every day. Follows the
- * projection's settings unless overridden.
+ * Money on hand day by day from today to ``to``, and what happens inside
+ * ``from``–``to``. Follows ``project()``: the accounts and planned items
+ * counted in the projection, paid and skipped occurrences dropped, transfers
+ * counted only across the edge of the counted accounts. Overdue unpaid items
+ * land on today. Everyday spending, when included, is the 3-month average
+ * spread evenly by day from tomorrow on.
  */
-export function dailyForecast(
+export function forecast(
   s: FinState,
+  from: string,
   to: string,
   opts: {
-    includeUnplanned?: boolean
+    includeUnplanned: boolean
     excludedPlanned?: string[]
     excludedAccounts?: string[]
-    whatIf?: WhatIf | null
-  } = {},
-): DayForecast {
+  },
+): Forecast {
   const t = today()
-  const end = to < t ? t : to
-  const includeUnplanned = opts.includeUnplanned ?? s.settings.includeUnplanned
-  const excludedPlanned = opts.excludedPlanned ?? s.settings.projExcludedPlanned
   const excl = opts.excludedAccounts ?? []
-  const liquidIds = new Set(
+  const ids = new Set(
     s.accounts
       .filter((a) => a.inProjection && !a.archived && !excl.includes(a.id))
       .map((a) => a.id),
   )
   let start = 0
   for (const a of s.accounts) {
-    if (!liquidIds.has(a.id)) continue
+    if (!ids.has(a.id)) continue
     start += a.opening
     for (const r of s.records) start += signedFor(r, a.id)
   }
-  const items = occurrencesIn(s, addDays(t, -60), end).filter(
-    (o) => o.status !== "paid" && o.status !== "skipped",
+  const counted = (p: PlannedItem) =>
+    p.inProjection && !(opts.excludedPlanned ?? []).includes(p.id)
+  const all = occurrencesIn(s, addDays(t, -60), to).filter(
+    (o) => o.status !== "paid" && o.status !== "skipped" && counted(o.item),
   )
-  const moves = new Map<string, number>()
-  const move = (day: string, v: number) =>
-    moves.set(day, (moves.get(day) ?? 0) + v)
-  let comingIn = 0
-  let scheduledOut = 0
-  for (const o of items) {
-    const p = o.item
-    if (!p.inProjection || excludedPlanned.includes(p.id)) continue
-    const d = liquidEffect(p, liquidIds)
+  const moves = new Map<string, { income: number; bills: number }>()
+  let hasIncome = false
+  for (const o of all) {
+    const d = effectOn(o.item, ids)
     if (!d) continue
-    if (d > 0) comingIn += d
-    else scheduledOut -= d
-    move(o.day < t ? t : o.day, d)
+    if (d > 0 && o.item.type === "income") hasIncome = true
+    const day = o.day < t ? t : o.day
+    const m = moves.get(day) ?? { income: 0, bills: 0 }
+    if (d > 0) m.income += d
+    else m.bills -= d
+    moves.set(day, m)
   }
-  const w = opts.whatIf
-  if (w && w.amount > 0) {
-    const n = Math.max(1, w.installments)
-    for (let i = 0; i < n; i++) {
-      const day = `${addMonths(w.month, i)}-15`
-      if (day < t || day > end) continue
-      scheduledOut += w.amount / n
-      move(day, -w.amount / n)
-    }
-  }
-  const perDay = includeUnplanned ? (avgUnplanned(s) * 12) / 365 : 0
-  const days: DayForecast["days"] = []
+  const perDay = opts.includeUnplanned ? (avgUnplanned(s) * 12) / 365 : 0
+  const days: ForecastDay[] = []
   let run = start
-  let everydayOut = 0
-  let low = { day: t, value: start }
-  for (let k = t; k <= end; k = addDays(k, 1)) {
-    run += moves.get(k) ?? 0
-    if (k > t) {
-      run -= perDay
-      everydayOut += perDay
+  let atFrom = start
+  let income = 0
+  let bills = 0
+  let everyday = 0
+  let low: Forecast["low"] | null = null
+  for (let k = t; k <= to; k = addDays(k, 1)) {
+    const m = moves.get(k) ?? { income: 0, bills: 0 }
+    const e = k > t ? perDay : 0
+    run += m.income - m.bills - e
+    days.push({
+      day: k,
+      balance: run,
+      income: m.income,
+      bills: m.bills,
+      everyday: e,
+    })
+    if (k === from) atFrom = run
+    if (k >= from) {
+      income += m.income
+      bills += m.bills
+      everyday += e
+      if (!low || run < low.value) low = { day: k, value: run }
     }
-    days.push({ day: k, balance: run })
-    if (run < low.value) low = { day: k, value: run }
   }
   return {
+    from,
+    to,
     start,
+    atFrom,
+    atTo: run,
+    income,
+    bills,
+    everyday,
+    net: income - bills - everyday,
+    low: low ?? { day: from, value: run },
     days,
-    items,
-    comingIn,
-    scheduledOut,
-    everydayOut,
-    end: run,
-    low,
+    items: all.filter((o) => {
+      const day = o.day < t ? t : o.day
+      return day >= from && day <= to
+    }),
+    hasIncome,
   }
 }
 
-/** What one scheduled item does to the money on hand: income in, bills
- * out, transfers only when they cross the edge of the counted accounts. */
-function liquidEffect(p: PlannedItem, liquidIds: Set<string>): number {
-  if (p.type === "income") return liquidIds.has(p.accountId) ? p.amount : 0
-  if (p.type === "expense") return liquidIds.has(p.accountId) ? -p.amount : 0
-  const fromLiquid = liquidIds.has(p.accountId)
-  const toLiquid = !!p.toAccountId && liquidIds.has(p.toAccountId)
-  if (fromLiquid && !toLiquid) return -p.amount
-  if (!fromLiquid && toLiquid) return p.amount
-  return 0
-}
-
-export interface ExpectedVsActual {
+export interface ExpectedTrend {
+  /** Every day from ``from`` to ``to``. */
   days: string[]
-  /** Net worth at the end of each day, from the records. */
+  /** Net worth at the end of each day, up to today. */
   actual: number[]
-  /** Net worth had only the repeating items happened, on their days,
-   * from the same starting point. */
+  /** One per day: the starting net worth plus what repeats. */
   expected: number[]
-  /** Actual minus expected on the last day. */
-  gap: number
+  hasRecurring: boolean
+  /** Actual minus expected today, or null when today is outside the range. */
+  gapToday: number | null
 }
 
 /**
- * Net worth over ``from``–``to`` (stopping at today) against the line the
- * repeating income and bills alone draw from the same start. Each
- * repeating item counts on its scheduled day whether it was logged or not;
- * one-off items and what-ifs are left out.
+ * Net worth over ``from``–``to`` against the line the repeating income and
+ * bills alone draw from the same start. Each repeating occurrence counts on
+ * its day, logged or not; skipped ones count as nothing. One-off items and
+ * what-ifs are left out, so they show up as the gap between the lines.
  */
-export function expectedVsActual(
+export function expectedTrend(
   s: FinState,
   from: string,
   to: string,
-): ExpectedVsActual {
+): ExpectedTrend {
   const t = today()
-  const end = to > t ? t : to
-  const inc = s.accounts.filter((a) => a.inNetWorth && !a.archived)
-  const nwIds = new Set(inc.map((a) => a.id))
-  let base = inc.reduce((sum, a) => sum + a.opening, 0)
+  const nw = s.accounts.filter((a) => a.inNetWorth && !a.archived)
+  const ids = new Set(nw.map((a) => a.id))
+  let base = nw.reduce((sum, a) => sum + a.opening, 0)
   const byDay = new Map<string, number>()
   for (const r of s.records) {
     let d = 0
-    for (const a of inc) d += signedFor(r, a.id)
+    for (const a of nw) d += signedFor(r, a.id)
     if (!d) continue
     const k = recDay(r)
     if (k < from) base += d
     else byDay.set(k, (byDay.get(k) ?? 0) + d)
   }
-  const planned = new Map<string, number>()
-  for (const p of s.planned) {
-    if (p.archived || p.isWhatIf || p.schedule.kind === "once") continue
-    const d = liquidEffect(p, nwIds)
+  const recurring = s.planned.filter(
+    (p) => !p.archived && !p.isWhatIf && p.schedule.kind !== "once",
+  )
+  const delta = new Map<string, number>()
+  for (const p of recurring) {
+    const d = effectOn(p, ids)
     if (!d) continue
-    for (const k of occurrences(p, from, end))
-      planned.set(k, (planned.get(k) ?? 0) + d)
+    for (const k of occurrences(p, from, to))
+      if (!p.skipped.includes(k)) delta.set(k, (delta.get(k) ?? 0) + d)
   }
   const days: string[] = []
   const actual: number[] = []
   const expected: number[] = []
   let a = base
-  let e = base
-  for (let k = from; k <= end; k = addDays(k, 1)) {
-    a += byDay.get(k) ?? 0
-    e += planned.get(k) ?? 0
+  let gapToday: number | null = null
+  for (let k = from; k <= to; k = addDays(k, 1)) {
     days.push(k)
-    actual.push(a)
+    a += byDay.get(k) ?? 0
+    if (k <= t) actual.push(a)
+    // The first day starts from that day's actual net worth.
+    const prev = expected.length ? expected[expected.length - 1] : a
+    const e = prev + (delta.get(k) ?? 0)
     expected.push(e)
+    if (k === t) gapToday = a - e
   }
   return {
     days,
     actual,
     expected,
-    gap: actual.length ? a - e : 0,
+    hasRecurring: recurring.length > 0,
+    gapToday,
   }
-}
-
-/** Day count of a range, both ends included. */
-export const rangeDays = (r: DateRange) => diffDays(r.to, r.from) + 1
-
-/** Money on hand at the end of each day over ``from``–``to`` (stopping at
- * today), from the records, in the accounts counted in the projection. */
-export function liquidSeries(s: FinState, from: string, to: string): number[] {
-  const t = today()
-  const end = to > t ? t : to
-  const ids = s.accounts
-    .filter((a) => a.inProjection && !a.archived)
-    .map((a) => a.id)
-  let run = s.accounts
-    .filter((a) => ids.includes(a.id))
-    .reduce((sum, a) => sum + a.opening, 0)
-  const byDay = new Map<string, number>()
-  for (const r of s.records) {
-    let d = 0
-    for (const id of ids) d += signedFor(r, id)
-    if (!d) continue
-    const k = recDay(r)
-    if (k < from) run += d
-    else byDay.set(k, (byDay.get(k) ?? 0) + d)
-  }
-  const out: number[] = []
-  for (let k = from; k <= end; k = addDays(k, 1)) {
-    run += byDay.get(k) ?? 0
-    out.push(run)
-  }
-  return out
 }
