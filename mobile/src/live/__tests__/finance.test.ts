@@ -503,7 +503,7 @@ test("settling a planned occurrence: the settle action first, the record with th
   })
   captureWire(e, seen)
   const day = `${today().slice(0, 8)}05`
-  const rec = settleOccurrence(p.id, day, { amount: 15250.5 })
+  const rec = settleOccurrence(p.id, day, { amount: 15250.5 })?.record
   expect(rec?.id).toBe(derivedId("planned-record", p.id, day))
   const ops = captureWire(e, seen)
   expect(ops[0]).toMatchObject({
@@ -521,6 +521,77 @@ test("settling a planned occurrence: the settle action first, the record with th
   expect(up.id).toBe(rec?.id)
   expect(up.data).not.toHaveProperty("planned_id")
   expect(up.data).not.toHaveProperty("planned_on")
+})
+
+test("settling takes the editor's changes, and the exact instant over the day", () => {
+  const { acct } = setup()
+  const p = addPlanned({
+    name: "Rent",
+    type: "expense",
+    amount: 15000,
+    estimated: false,
+    accountId: acct.id,
+    categoryId: "rent",
+    schedule: { kind: "monthly", day: 5 },
+    end: { kind: "never" },
+    autoLog: false,
+    isWhatIf: false,
+    inProjection: true,
+  })
+  const day = `${today().slice(0, 8)}05`
+  const at = new Date(2026, 9, 3, 9, 41).toISOString()
+  const out = settleOccurrence(p.id, day, {
+    amount: 15100,
+    categoryId: "bills",
+    payee: "Landlord",
+    note: "October",
+    date: "2026-01-01",
+    at,
+  })
+  expect(out?.updated).toBe(false)
+  expect(out?.record).toMatchObject({
+    id: derivedId("planned-record", p.id, day),
+    amount: 15100,
+    categoryId: "bills",
+    payee: "Landlord",
+    note: "October",
+    at,
+    plannedId: p.id,
+    plannedOn: day,
+  })
+})
+
+test("settling the same occurrence twice replaces its record, never a second one", () => {
+  const { e, acct } = setup()
+  const p = addPlanned({
+    name: "Rent",
+    type: "expense",
+    amount: 15000,
+    estimated: false,
+    accountId: acct.id,
+    categoryId: "rent",
+    schedule: { kind: "monthly", day: 5 },
+    end: { kind: "never" },
+    autoLog: false,
+    isWhatIf: false,
+    inProjection: true,
+  })
+  captureWire(e, seen)
+  const day = `${today().slice(0, 8)}05`
+  const id = derivedId("planned-record", p.id, day)
+  expect(settleOccurrence(p.id, day, { amount: 15000 })?.updated).toBe(false)
+  captureWire(e, seen)
+  const again = settleOccurrence(p.id, day, { amount: 15400 })
+  expect(again?.updated).toBe(true)
+  const same = finStore.get().records.filter((r) => r.id === id)
+  expect(same).toHaveLength(1)
+  expect(same[0].amount).toBe(15400)
+  // The second save is an update of that row, not a second settle.
+  const ops = captureWire(e, seen)
+  expect(ops.some((o) => o.kind === "action")).toBe(false)
+  expect(upserts(ops, "fin_record").map((o) => o.id)).toEqual([id])
+  // A plan that is gone records nothing.
+  expect(settleOccurrence("no-such-plan", day, { amount: 1 })).toBeUndefined()
 })
 
 test("a transfer's fee is its own record, derived from the transfer, sent after it", () => {

@@ -739,6 +739,58 @@ def test_an_account_name_already_taken_is_refused(
     assert len(live(rows_of(api, Account))) == 3
 
 
+def _fern_account_color(
+    api: Api, client: TestClient, monkeypatch: pytest.MonkeyPatch, name: str
+) -> str:
+    from app.modules.finance.models import Account
+
+    setup_step(
+        api,
+        client,
+        f"add my {name} account",
+        monkeypatch,
+        act("create_account", name=name, type="ewallet"),
+    )
+    [acc] = [a for a in live(rows_of(api, Account)) if a.name == name]
+    return str(acc.color)
+
+
+def test_a_new_account_gets_the_first_colour_no_account_uses(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Another user's colours play no part in this user's choice.
+    other = user(client, db, accounts=False)
+    for name, color in (("Mine", "violet"), ("Also", "orange")):
+        other.post(
+            "/finance/accounts",
+            {"name": name, "type": "bank", "opening_minor": 0, "color": color},
+        )
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    for name, color in (("BPI", "blue"), ("Wallet", "emerald")):
+        api.post(
+            "/finance/accounts",
+            {"name": name, "type": "bank", "opening_minor": 0, "color": color},
+        )
+    assert _fern_account_color(api, client, monkeypatch, "GoTyme") == "violet"
+
+
+def test_with_every_colour_taken_the_count_picks_it(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.modules.capture.agent import ACCOUNT_COLORS
+
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    for i, color in enumerate((*ACCOUNT_COLORS, "blue")):
+        api.post(
+            "/finance/accounts",
+            {"name": f"A{i}", "type": "bank", "opening_minor": 0, "color": color},
+        )
+    # Ten accounts already: the eleventh lands on 10 % 9, the second colour.
+    assert _fern_account_color(api, client, monkeypatch, "GoTyme") == "emerald"
+
+
 def balances(api: Api) -> dict[str, int]:
     return {a["name"]: a["balance_minor"] for a in api.get("/finance/accounts")["data"]}
 

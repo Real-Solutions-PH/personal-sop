@@ -445,8 +445,11 @@ export function settleOccurrence(
     payee?: string
     note?: string
     receipt?: boolean
+    origCurrency?: string
+    origAmount?: number
+    fxRate?: number
   },
-): FinRecord | undefined {
+): { record: FinRecord; updated: boolean } | undefined {
   const p = finStore.get().planned.find((x) => x.id === plannedId)
   if (!p) return
   const d = input.date ?? today()
@@ -460,9 +463,10 @@ export function settleOccurrence(
   )
   if (now.getHours() < DAY_START_HOUR) at.setDate(at.getDate() + 1)
   const iso = input.at ?? at.toISOString()
-  return addRecord({
-    // One record per occurrence, the id the server derives when it settles.
-    id: derivedId("planned-record", p.id, day),
+  // One record per occurrence, the id the server derives when it settles.
+  const id = derivedId("planned-record", p.id, day)
+  const record: NewRecord = {
+    id,
     type: p.type,
     amount: input.amount,
     accountId: input.accountId ?? p.accountId,
@@ -471,11 +475,26 @@ export function settleOccurrence(
     payee: input.payee ?? p.name,
     note: input.note,
     receipt: input.receipt,
+    origCurrency: input.origCurrency,
+    origAmount: input.origAmount,
+    fxRate: input.fxRate,
     plannedId: p.id,
     plannedOn: day,
     at: iso,
     source: "planned",
-  })
+  }
+  // Saved again (a double tap, or a record another device already synced):
+  // replace it in place, never a second row with the same id.
+  const prev = finStore.get().records.find((r) => r.id === id)
+  if (!prev) return { record: addRecord(record), updated: false }
+  const next: FinRecord = { ...prev, ...record, id, status: "cleared", at: iso }
+  set((s) => ({
+    ...s,
+    records: s.records
+      .map((r) => (r.id === id ? next : r))
+      .sort((a, b) => a.at.localeCompare(b.at)),
+  }))
+  return { record: next, updated: true }
 }
 export function skipOccurrence(plannedId: string, day: string) {
   const p = finStore.get().planned.find((x) => x.id === plannedId)

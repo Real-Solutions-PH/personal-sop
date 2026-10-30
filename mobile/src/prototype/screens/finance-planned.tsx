@@ -4,13 +4,7 @@ import type { PlannedItem } from "@domain/finance/data"
 import { finStore } from "@domain/finance/store"
 import { dayKey } from "@domain/lib/day"
 import { useLocalSearchParams } from "expo-router"
-import {
-  ArrowDownLeft,
-  ArrowLeftRight,
-  ArrowUpRight,
-  Pencil,
-  Plus,
-} from "lucide-react-native"
+import { ArrowLeftRight, Pencil, Plus, Tag } from "lucide-react-native"
 import { useState } from "react"
 import { ScrollView, Text, useWindowDimensions, View } from "react-native"
 import { toast } from "sonner-native"
@@ -56,13 +50,9 @@ function PlannedIcon({ p }: { p: PlannedItem }) {
   const s = finStore.use((s) => s),
     t = useTheme(),
     cat = s.categories.find((c) => c.id === p.categoryId),
-    // No category (deleted, or never set): the direction, not a lone dot.
-    Fallback =
-      p.type === "transfer"
-        ? ArrowLeftRight
-        : p.type === "income"
-          ? ArrowDownLeft
-          : ArrowUpRight
+    // No category (deleted, or never set) reads as unset: a tag outline,
+    // not a lone dot. A transfer has no category; it shows its arrows.
+    Fallback = p.type === "transfer" ? ArrowLeftRight : Tag
   return (
     <View
       style={{
@@ -82,22 +72,20 @@ function PlannedIcon({ p }: { p: PlannedItem }) {
     </View>
   )
 }
-/** What a scheduled payment touches, in words: "Maya · Bills", or only the
- * parts that exist ("Maya" when its category is gone). */
+/** What a scheduled payment touches, in words: "Maya · Bills", with a part
+ * that is gone (deleted, archived, never set) named as missing: "Maya · No
+ * category", "Maya → No account". */
 export function plannedWhere(
   p: PlannedItem,
-  accounts: readonly { id: string; name: string }[],
+  accounts: readonly { id: string; name: string; archived?: boolean }[],
   categories: readonly { id: string; name: string }[],
 ) {
-  const acct = (id?: string) => accounts.find((a) => a.id === id)?.name
+  const acct = (id?: string) =>
+    accounts.find((a) => a.id === id && !a.archived)?.name ?? "No account"
   if (p.type === "transfer")
-    return [acct(p.accountId) ?? "?", acct(p.toAccountId) ?? "?"].join(" → ")
-  return [
-    acct(p.accountId),
-    categories.find((c) => c.id === p.categoryId)?.name,
-  ]
-    .filter(Boolean)
-    .join(" · ")
+    return `${acct(p.accountId)} → ${acct(p.toAccountId)}`
+  const cat = categories.find((c) => c.id === p.categoryId)?.name
+  return `${acct(p.accountId)} · ${cat ?? "No category"}`
 }
 export function DueSheet({
   id,
@@ -146,11 +134,9 @@ export function DueSheet({
           >
             <PlannedIcon p={p} />
             <View style={{ flex: 1 }}>
-              {!!where && (
-                <Copy size={14} weight="medium">
-                  {where}
-                </Copy>
-              )}
+              <Copy size={14} weight="medium">
+                {where}
+              </Copy>
               <Copy size={12} muted>
                 {p.isInstallment ? "0% installment · " : ""}
                 {p.estimated
@@ -181,7 +167,7 @@ export function DueSheet({
                 },
               },
               {
-                label: p.type === "income" ? "Received…" : "Paid…",
+                label: "Review & record",
                 press: () => setPhase("leaving"),
               },
             ].map((a, i) => (
@@ -347,9 +333,7 @@ export function Planned({ id }: { id?: string }) {
             </View>
           </Line>
           <Line style={{ gap: 6, flexWrap: "wrap" }}>
-            {!!plannedWhere(p, s.accounts, s.categories) && (
-              <FinPill>{plannedWhere(p, s.accounts, s.categories)}</FinPill>
-            )}
+            <FinPill>{plannedWhere(p, s.accounts, s.categories)}</FinPill>
             <FinPill tone={p.autoLog ? "fin" : "muted"}>
               {p.autoLog ? "Auto-logs" : "Asks Paid / Skip"}
             </FinPill>
@@ -646,11 +630,8 @@ export function Planned({ id }: { id?: string }) {
                       {p.autoLog && <FinPill tone="fin">auto</FinPill>}
                     </Line>
                     <Copy size={14} muted lines={1}>
-                      {C.scheduleLabel(p)}
-                      {p.type !== "transfer" &&
-                      s.categories.some((c) => c.id === p.categoryId)
-                        ? ` · ${s.categories.find((c) => c.id === p.categoryId)?.name}`
-                        : ""}
+                      {C.scheduleLabel(p)} ·{" "}
+                      {plannedWhere(p, s.accounts, s.categories)}
                     </Copy>
                   </View>
                   <View>

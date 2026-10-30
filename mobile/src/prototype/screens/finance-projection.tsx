@@ -17,6 +17,7 @@ import { useState } from "react"
 import { ScrollView, View } from "react-native"
 import { toast } from "sonner-native"
 import { FinanceLineChart } from "../chart"
+import { MoneyInput } from "../money-input"
 import {
   border,
   Copy,
@@ -117,6 +118,8 @@ export function Projection() {
     [picked, setAcct] = useState<string>(),
     [excluded, setExcluded] = useState<string[]>([]),
     [assump, setAssump] = useState(false),
+    // The minimum balance as typed ("2500." mid-entry), saved as it parses.
+    [floorDraft, setFloorDraft] = useState<string>(),
     // A picked From–To range: screen state and link params only, never a
     // setting, so the saved horizon is untouched.
     [range, setRange] = useState<DateRange | null>(() => rangeFromParams(p)),
@@ -943,14 +946,13 @@ export function Projection() {
                 )}
               </View>
             ))}
-          <Field
+          <MoneyInput
             label={`Minimum balance ${currencySymbol()}`}
-            value={String(floor)}
-            onChangeText={(v) => {
-              if (Number.isFinite(Number(v)) && Number(v) >= 0)
-                A.updateSettings({ safetyFloor: Number(v) })
+            value={floorDraft ?? (floor ? String(floor) : "")}
+            onChange={(v) => {
+              setFloorDraft(v)
+              A.updateSettings({ safetyFloor: Number(v) || 0 })
             }}
-            keyboardType="decimal-pad"
           />
           <Copy size={12} muted>
             Projection uses scheduled income and expenses, starting balances,
