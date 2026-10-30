@@ -3433,6 +3433,54 @@ export const CompleteSignupSchema = {
                 }
             ],
             title: 'Timezone'
+        },
+        occupation: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['student', 'employed', 'self_employed', 'business_owner', 'between_jobs', 'other']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Occupation'
+        },
+        occupation_detail: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 80
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Occupation Detail'
+        },
+        referral_source: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['friend', 'tiktok', 'instagram', 'facebook', 'youtube', 'app_store', 'search', 'other']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Referral Source'
+        },
+        referral_detail: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 80
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Referral Detail'
         }
     },
     type: 'object',
@@ -5788,6 +5836,11 @@ export const GoalProgressOutSchema = {
         hit: {
             type: 'boolean',
             title: 'Hit'
+        },
+        hidden: {
+            type: 'boolean',
+            title: 'Hidden',
+            default: false
         }
     },
     type: 'object',
@@ -13378,6 +13431,52 @@ export const ProfilePublicSchema = {
             },
             type: 'array',
             title: 'Seen Trophies'
+        },
+        occupation: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['student', 'employed', 'self_employed', 'business_owner', 'between_jobs', 'other']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Occupation'
+        },
+        occupation_detail: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Occupation Detail'
+        },
+        referral_source: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['friend', 'tiktok', 'instagram', 'facebook', 'youtube', 'app_store', 'search', 'other']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Referral Source'
+        },
+        referral_detail: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Referral Detail'
         },
         version: {
             type: 'integer',

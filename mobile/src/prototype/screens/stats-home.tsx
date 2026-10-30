@@ -81,6 +81,8 @@ function LifeHero({
   const t = useTheme(),
     ls = D.useLifeScore(days),
     enabled = D.useEnabled(),
+    // Screen time switched off is left out entirely; other areas show "off".
+    areas = MODULE_KEYS.filter((k) => k !== "screen" || enabled.screen),
     level = D.levelFor(ls.score),
     value = Math.max(0, Math.min(1, (ls.score ?? 0) / 100)),
     toNext =
@@ -220,14 +222,14 @@ function LifeHero({
             marginTop: 16,
             columnGap: 8,
             rowGap: 10,
-            flexWrap: MODULE_KEYS.length > 5 ? "wrap" : "nowrap",
+            flexWrap: areas.length > 5 ? "wrap" : "nowrap",
           }}
         >
-          {MODULE_KEYS.map((k) => (
+          {areas.map((k) => (
             <View
               key={k}
               style={{
-                ...(MODULE_KEYS.length > 5
+                ...(areas.length > 5
                   ? { width: "30%", flexGrow: 1 }
                   : { flex: 1 }),
                 opacity: enabled[k] ? 1 : 0.3,
@@ -384,7 +386,11 @@ function Areas({ days }: { days: number }) {
     screenRate = SCR.useAreaRate(days),
     empty = (f: { module: string; value: number }) =>
       f.module === "screen" && screenRate === null && f.value === 0,
-    facets = raw.map((f) => (empty(f) ? { ...f, off: true } : f)),
+    enabled = D.useEnabled(),
+    // Screen time switched off has no corner at all.
+    facets = raw
+      .filter((f) => f.module !== "screen" || enabled.screen)
+      .map((f) => (empty(f) ? { ...f, off: true } : f)),
     metrics = D.useAllMetrics(days),
     [sel, setSel] = useState<string | null>(null),
     [all, setAll] = useState(false),

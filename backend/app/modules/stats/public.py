@@ -1,6 +1,6 @@
 """Cross-module contract of the stats module (implemented by stats)."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date
 
 from app.modules.dashboard.outbox import install as _install_outbox
@@ -115,13 +115,21 @@ def series(ctx: Ctx, *, metric: str, days: int) -> list[tuple[date, float | None
 
 def goals_with_progress(ctx: Ctx) -> list["GoalView"]:
     """Every goal (active and archived) measured against its period's metric
-    book: the progress the goal screens and share cards show."""
+    book: the progress the goal screens and share cards show. A Screen time
+    goal comes back ``hidden`` while Screen time is switched off: hidden,
+    not archived, so turning it back on restores the goal and its history."""
     from app.modules.stats import logic as L
     from app.modules.stats import services
 
     s = services.settings(ctx)
     series_ = services.day_series(ctx, s, L.series_length(30))
-    return services.goal_views(ctx, services.books(ctx, s, series_))
+    views = services.goal_views(ctx, services.books(ctx, s, series_))
+    if s.enabled["screen"]:
+        return views
+    return [
+        replace(g, hidden=True) if g.goal.metric.startswith("screen:") else g
+        for g in views
+    ]
 
 
 def metric_value(ctx: Ctx, *, ref: str, period: str) -> float | None:

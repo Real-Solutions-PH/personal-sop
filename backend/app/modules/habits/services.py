@@ -23,6 +23,9 @@ Decisions recorded here (each overridable in one place):
   (:func:`_require_manual`). Its only logs are the phone's ``source="screen"``
   ones, synced under a derived id; such a log never overwrites a log the
   day already has from before the rule.
+- While the user's Screen time switch is off, a rule habit is an ordinary
+  habit: manual actions are accepted, and a ``source="screen"`` log is
+  refused with 409 ``screen_off``. No log is deleted either way.
 """
 
 import uuid
@@ -90,9 +93,15 @@ def require_routine(ctx: Ctx, routine_id: uuid.UUID) -> Routine:
     return owned_repo.require(ctx, Routine, routine_id, what="routine")
 
 
-def _require_manual(habit: Habit) -> None:
-    """A habit with a screen-time rule completes itself: no manual action."""
-    if habit.rule_kind is not None:
+def _screen_on(ctx: Ctx) -> bool:
+    """The caller's own Screen time switch."""
+    return profile.module_settings(ctx)["screen"].enabled
+
+
+def _require_manual(ctx: Ctx, habit: Habit) -> None:
+    """A habit with a screen-time rule completes itself: no manual action.
+    While the caller's Screen time is switched off it is an ordinary habit."""
+    if habit.rule_kind is not None and _screen_on(ctx):
         raise conflict(
             "habit_auto", "This habit completes itself from your screen time"
         )
@@ -191,7 +200,7 @@ def _log(
     log_id: uuid.UUID | None = None,
 ) -> HabitLog:
     """Create-or-edit the (habit, day) log (``logHabit``). Flushes only."""
-    _require_manual(habit)
+    _require_manual(ctx, habit)
     the_day = day or ctx.today
     if the_day > ctx.today:
         raise invalid("log_day_in_future", "You can't log a day that hasn't happened")
@@ -296,7 +305,7 @@ def skip_habit(
 
 def clear_log(ctx: Ctx, *, habit_id: uuid.UUID, day: date | None = None) -> HabitLog:
     """Undo the (habit, day) log. Returns the removed log for an undo toast."""
-    _require_manual(require_habit(ctx, habit_id))
+    _require_manual(ctx, require_habit(ctx, habit_id))
     the_day = day or ctx.today
     row = _find_log(ctx, habit_id, the_day)
     if row is None:
@@ -311,7 +320,7 @@ def _delete_log(ctx: Ctx, *, log_id: uuid.UUID) -> None:
     row = owned_repo.require(ctx, HabitLog, log_id, what="habit_log")
     habit = owned_repo.get(ctx, Habit, row.habit_id)
     if habit is not None:
-        _require_manual(habit)
+        _require_manual(ctx, habit)
     owned_repo.soft_delete(ctx, row)
     _dirty(ctx, row.day)
 
@@ -327,7 +336,7 @@ def _restore_log(ctx: Ctx, *, log_id: uuid.UUID) -> HabitLog:
     )
     habit = require_habit(ctx, row.habit_id)
     if row.source != "screen":
-        _require_manual(habit)
+        _require_manual(ctx, habit)
     owned_repo.restore(ctx, row)
     _dirty(ctx, row.day)
     return row
@@ -352,7 +361,7 @@ def set_day(
         if status is None:
             existing = _find_log(ctx, habit_id, day)
             if existing is not None:
-                _require_manual(habit)
+                _require_manual(ctx, habit)
                 owned_repo.soft_delete(ctx, existing)
             continue
         out.append(
@@ -382,9 +391,11 @@ def upsert_log_sync(ctx: Ctx, row_id: uuid.UUID, data: dict[str, Any]) -> HabitL
                 "screen_source_mismatch",
                 "Only a habit with a screen-time rule completes from screen time",
             )
+    elif source != "screen":
+        _require_manual(ctx, habit)
     else:
-        if source != "screen":
-            _require_manual(habit)
+        if not _screen_on(ctx):
+            raise conflict("screen_off", "Screen time is switched off for this account")
         # The reconciler only fills a day with no log: one that predates the
         # rule (a tap, say) stands, and the replay lands on it unchanged.
         current = existing if existing is not None else _find_log(ctx, habit_id, day)
@@ -828,7 +839,7 @@ def start_timer(ctx: Ctx, *, habit_id: uuid.UUID) -> HabitTimer:
     """Claim the Live bar for this habit's timer (409 ``live_session_busy``
     when something else holds it), then start or keep its timer."""
     habit = require_habit(ctx, habit_id)
-    _require_manual(habit)
+    _require_manual(ctx, habit)
     profile.start_live(
         ctx,
         kind="timer",

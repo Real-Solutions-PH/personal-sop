@@ -13,6 +13,19 @@ ModuleKey = Literal[
 ]
 Appearance = Literal["system", "light", "dark"]
 PushPermission = Literal["default", "granted", "denied"]
+Occupation = Literal[
+    "student", "employed", "self_employed", "business_owner", "between_jobs", "other"
+]
+ReferralSource = Literal[
+    "friend",
+    "tiktok",
+    "instagram",
+    "facebook",
+    "youtube",
+    "app_store",
+    "search",
+    "other",
+]
 
 HANDLE_RE = re.compile(r"^[a-z0-9._]{3,20}$")
 # Never assignable: product and staff-looking names.
@@ -56,6 +69,10 @@ class ProfilePublic(BaseModel):
     push_evening: str | None
     push_review: bool
     seen_trophies: list[str]
+    occupation: Occupation | None = None
+    occupation_detail: str | None = None
+    referral_source: ReferralSource | None = None
+    referral_detail: str | None = None
     version: int
     updated_at: datetime
 
@@ -109,12 +126,23 @@ class CompleteSignup(BaseModel):
     name: str = Field(min_length=2, max_length=80)
     handle: str
     timezone: str | None = None
+    # Onboarding's "about you" answers, all optional.
+    occupation: Occupation | None = None
+    occupation_detail: str | None = Field(default=None, max_length=80)
+    referral_source: ReferralSource | None = None
+    referral_detail: str | None = Field(default=None, max_length=80)
 
     @field_validator("handle")
     @classmethod
     def _handle(cls, v: str) -> str:
         check_handle(v)
         return v
+
+    @field_validator("occupation_detail", "referral_detail")
+    @classmethod
+    def _detail(cls, v: str | None) -> str | None:
+        """Trimmed; blank is no answer."""
+        return (v or "").strip() or None
 
 
 class HandleCheck(BaseModel):

@@ -1063,6 +1063,10 @@ export type CompleteSignup = {
     name: string;
     handle: string;
     timezone?: (string | null);
+    occupation?: ('student' | 'employed' | 'self_employed' | 'business_owner' | 'between_jobs' | 'other' | null);
+    occupation_detail?: (string | null);
+    referral_source?: ('friend' | 'tiktok' | 'instagram' | 'facebook' | 'youtube' | 'app_store' | 'search' | 'other' | null);
+    referral_detail?: (string | null);
 };
 
 export type Count = {
@@ -1547,6 +1551,7 @@ export type GoalProgressOut = {
     value: (string | null);
     pct: number;
     hit: boolean;
+    hidden?: boolean;
 };
 
 export type status = 'active' | 'archived';
@@ -2985,6 +2990,10 @@ export type ProfilePublic = {
     push_evening: (string | null);
     push_review: boolean;
     seen_trophies: Array<(string)>;
+    occupation?: ('student' | 'employed' | 'self_employed' | 'business_owner' | 'between_jobs' | 'other' | null);
+    occupation_detail?: (string | null);
+    referral_source?: ('friend' | 'tiktok' | 'instagram' | 'facebook' | 'youtube' | 'app_store' | 'search' | 'other' | null);
+    referral_detail?: (string | null);
     version: number;
     updated_at: string;
 };

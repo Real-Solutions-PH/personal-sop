@@ -541,7 +541,9 @@ export function Welcome() {
         }}
       >
         <Rise i={2}>
-          <AuthButton onPress={() => go("/signup")}>Create account</AuthButton>
+          <AuthButton onPress={() => go("/get-started")}>
+            Get started
+          </AuthButton>
         </Rise>
         <Rise i={3}>
           <AuthButton tone="secondary" onPress={() => go("/login")}>

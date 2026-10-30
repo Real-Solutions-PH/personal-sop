@@ -363,6 +363,9 @@ class GoalView:
     label: str
     entry: BookEntry | None
     progress: Progress
+    # A goal on a switched-off module's metric (Screen time): kept, but left
+    # off the goal surfaces until the module is back on.
+    hidden: bool = False
 
 
 def goal_views(
