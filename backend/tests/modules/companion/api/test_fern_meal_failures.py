@@ -249,3 +249,17 @@ def test_every_tool_is_either_a_write_or_a_read() -> None:
     writes, reads = services.WRITE_TOOLS, services.READ_TOOLS
     assert not writes & reads
     assert set(RUNNING) == writes | reads
+
+
+def test_the_missing_estimate_warning_fits_the_card_column() -> None:
+    """Many long names would overflow the card's 280-character warning and
+    fail the save, losing the meal."""
+    from app.modules.capture import ports
+
+    items = [
+        {**CHICKEN, "name": f"Grilled chicken inasal plate number {i}" * 3}
+        for i in range(30)
+    ]
+    warn = ports.meal_missing_details(items)
+    assert warn is not None and len(warn) <= ports.WARN_MAX
+    assert warn.endswith("and 27 more")

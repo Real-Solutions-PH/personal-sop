@@ -472,7 +472,16 @@ def test_a_question_about_kept_records_without_a_question_mark_is_not_a_write() 
         assert not services.unbacked_claim(
             asked, "Both meals were logged with calories only.", []
         ), asked
-    assert services.unbacked_claim("log my lunch: 1 cup rice", "Logged lunch.", [])
+    # A list or numbers given stay a record to make, whatever words they hold.
+    for asked in (
+        "log my lunch: 1 cup rice",
+        "my tasks for today: check the staging deploy, email Jack",
+        "₱1500 dentist check-up",
+        "62.4 kg this morning, scale isn't calibrated",
+        "Do laundry and pay rent, those are my to-dos",
+        "What a day: 5 km in 32 mins",
+    ):
+        assert services.unbacked_claim(asked, "Logged it.", []), asked
 
 
 def test_a_blank_reply_after_tools_says_what_they_did() -> None:
@@ -487,7 +496,7 @@ def test_a_blank_reply_after_tools_says_what_they_did() -> None:
         ),
     ]
     assert services.done_so_far(steps) == "Done this turn: Read 2 photos."
-    assert services.done_so_far([]) == services.NOT_RECORDED
+    assert services.done_so_far([]) == services.LOST_REPLY
 
 
 def test_a_blank_reply_gets_one_pass_to_say_something(
@@ -834,7 +843,28 @@ def test_set_balance_with_a_change_adds_to_what_the_account_holds(
         call("set_account_balance", account="bpi savings", change=100),
     )
     assert step["ok"] and step["state"] == "saved"
+    assert step["summary"] == "Balance: bpi savings · ₱101"
     assert balances(api)["BPI Savings"] == 10100
+
+
+def test_a_balance_change_repeated_in_one_reply_is_added_once(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = user(client, db)
+    api.assign("chat")
+    install(
+        monkeypatch,
+        say(
+            "",
+            call("set_account_balance", account="gcash", change=100),
+            call("set_account_balance", account="gcash", change=100),
+        ),
+        say("Added ₱100 to GCash."),
+    )
+    events = stream(api, client, "add 100 to my gcash")
+    first, second = events[-1]["result"]["messages"][1]["blocks"][0]["items"]
+    assert first["ok"] and not second["ok"]
+    assert balances(api)["GCash"] == 10000
 
 
 def test_set_balance_refuses_both_a_balance_and_a_change(

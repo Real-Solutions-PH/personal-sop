@@ -1159,9 +1159,8 @@ never add words they didn't say (no "sandwich" for "chicken") and never add
 the rest of the meal to the query. Name `log_meal` items in their words too. Each estimated item
 carries `grams` (edible weight), an `assumption` naming the portion, sugar
 and sodium; price it at its real size (a chicken breast quarter is about
-150 g, 40 g protein). On `fix_these_items_then_call_again`, fix and retry
-with only the items it names; what an earlier call saved stays saved, so
-never add it again. A meal returned with `saved_without` was saved: say it
+150 g, 40 g protein). On `fix_these_items_then_call_again`, nothing was
+saved: call again with every item, the named ones fixed. A meal returned with `saved_without` was saved: say it
 lacks those estimates. On `<meal>_already_logged_today_change_it_with_edit_meal`,
 change that meal with `edit_meal` (its `meal_id`) instead of logging a
 second one. Then call `log_meal` in the same turn: the
@@ -1425,10 +1424,11 @@ _GIVES_DATA = re.compile(
 # A message asking about records already kept, even without a question mark
 # ("check my meals for today why there are no sat fat records"): a reply
 # describing what was logged before is not a claim to have written now.
+# Narrow on purpose: a list ("my tasks: check the deploy, …") or numbers
+# given ("62.4 kg, scale isn't right") stay a record to make.
 _ASKS_ABOUT = re.compile(
-    r"^\s*(?:why|how|what|which|when|where|is|are|did|do|does|can|could)\b|"
-    r"\b(?:why|check|show me|look at|not showing|there (?:are|is) no|"
-    r"isn'?t|aren'?t|doesn'?t|don'?t see|missing)\b",
+    r"\b(?:why|check (?:my|if|whether|what|why)|look at my|not showing|"
+    r"there (?:are|is) no|don'?t see|(?:is|are) missing)\b",
     re.I,
 )
 _CLAIMS_A_WRITE = re.compile(
@@ -1488,6 +1488,7 @@ SAY_NUDGE = (
     'sentences: "{text}". Say what you did this turn and what is left, if '
     "anything. Do not repeat a tool that already ran."
 )
+LOST_REPLY = "Sorry, I lost my reply there. Could you ask me again?"
 NOT_RECORDED = (
     "I didn't manage to record that, so nothing was saved. Try asking again "
     "in other words, or add it from its tab."
@@ -1599,7 +1600,7 @@ def done_so_far(steps: list[Any]) -> str:
     did, so the bubble is never blank."""
     done = [str(s.summary) for s in steps if s.ok and s.summary]
     if not done:
-        return NOT_RECORDED
+        return LOST_REPLY
     return "Done this turn: " + "; ".join(done[-4:]) + "."
 
 
@@ -1621,7 +1622,12 @@ def unbacked_claim(asked: str, answer: str, steps: list[Any]) -> bool:
     )
     if _POINTS_AT_CONFIRM.search(answer) and not waiting and not wrote:
         return True
-    statement = "?" not in asked and not _ASKS_ABOUT.search(asked)
+    about = (
+        bool(_ASKS_ABOUT.search(asked))
+        and ":" not in asked
+        and not _GIVES_DATA.search(asked)
+    )
+    statement = "?" not in asked and not about
     asks = bool(_ASKS_TO_WRITE.search(asked)) or (
         statement
         and (bool(_GIVES_DATA.search(asked)) or bool(_NAMES_RECORDS.search(asked)))

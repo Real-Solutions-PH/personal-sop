@@ -841,9 +841,9 @@ def fitness_tools(run: "Run", *, manage: Manage, card: Card) -> list[BaseTool]:
                 + ", ".join(f"{k} {v}" for k, v in spec.items() if k != "id")
             )
         done = run_added.setdefault(str(m.id), set())
-        again = [it.name for it in a.add_items if it.name.casefold() in done]
+        again = [it.name for it in a.add_items if it.name.strip().casefold() in done]
         for it in a.add_items:
-            if it.name.casefold() in done:
+            if it.name.strip().casefold() in done:
                 continue
             found = ports.fitness.nutrient_check.estimate_problems(
                 it.model_dump(exclude_none=True)
@@ -878,7 +878,7 @@ def fitness_tools(run: "Run", *, manage: Manage, card: Card) -> list[BaseTool]:
             f"Changed {m.label} ({when}) · {'; '.join(said)}",
         )
         if "error" not in out:
-            done.update(i["name"].casefold() for i in ch.get("add_items", []))
+            done.update(i["name"].strip().casefold() for i in ch.get("add_items", []))
             missing = ports.meal_missing_details(ch.get("add_items", []))
             if missing:
                 out = out | {"saved_without": missing}

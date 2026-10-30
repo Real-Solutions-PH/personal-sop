@@ -1376,6 +1376,10 @@ def capture_tools(run: Run) -> list[BaseTool]:
         )
         return _card(run, d, setup=True)
 
+    # Accounts already changed by an amount this reply: a corrective pass
+    # repeating the call must not add the amount twice.
+    changed: set[str] = set()
+
     def set_account_balance(**kw: Any) -> dict[str, Any]:
         a = BalanceArgs(**kw)
         acc = ports.finance.find_account(run.ctx, a.account)
@@ -1386,6 +1390,8 @@ def capture_tools(run: Run) -> list[BaseTool]:
             }
         if (a.balance is None) == (a.change is None):
             return {"error": "give_either_balance_or_change"}
+        if a.change is not None and str(acc.id) in changed:
+            return {"error": "already_changed_this_reply"}
         # Seen live 2026-10-29: "add 100 to my BDO" set it to 100 instead of
         # adding to the 1 it held.
         balance_minor = (
@@ -1405,7 +1411,9 @@ def capture_tools(run: Run) -> list[BaseTool]:
                 "balance_minor": balance_minor,
             },
         )
-        return _card(run, d, setup=True)
+        if a.change is not None:
+            changed.add(str(acc.id))
+        return {**_card(run, d, setup=True), "balance_minor": balance_minor}
 
     def create_budget(**kw: Any) -> dict[str, Any]:
         a = BudgetArgs(**kw)

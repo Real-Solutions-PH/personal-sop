@@ -335,6 +335,9 @@ def meal_item_problems(ctx: Ctx, items: list[dict[str, Any]]) -> list[dict[str, 
     return out
 
 
+WARN_MAX = 280
+
+
 def meal_missing_details(items: list[dict[str, Any]]) -> str | None:
     """The card warning for items saved without sugar or sodium (they count
     toward the daily limits): "No sugar or sodium estimate for Rice"."""
@@ -342,14 +345,16 @@ def meal_missing_details(items: list[dict[str, Any]]) -> str | None:
     for it in items:
         missing = fitness.nutrient_check.missing_details(it)
         if missing:
-            gaps.setdefault(tuple(missing), []).append(str(it.get("name")))
-    return (
-        "; ".join(
-            f"No {' or '.join(m)} estimate for {', '.join(names)}"
-            for m, names in gaps.items()
-        )
-        or None
+            gaps.setdefault(tuple(missing), []).append(str(it.get("name"))[:40])
+
+    def names(ns: list[str]) -> str:
+        return ", ".join(ns[:3]) + (f" and {len(ns) - 3} more" if len(ns) > 3 else "")
+
+    text = "; ".join(
+        f"No {' or '.join(m)} estimate for {names(ns)}" for m, ns in gaps.items()
     )
+    # The card's warning column holds 280 characters.
+    return text[:WARN_MAX] or None
 
 
 def saved_meal_with(

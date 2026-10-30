@@ -246,11 +246,13 @@ def outcome(ctx: Ctx, name: str, args: dict[str, Any], result: Any) -> tuple[boo
         amt = f" · {money(round(bal * 100), ctx.currency)}" if bal else ""
         return True, f"Added account: {args.get('name', '')}{amt}{wait}"
     if name == "set_account_balance":
-        bal = float(args.get("balance") or 0)
+        # A change ("add 100") is reported as the balance it came to.
+        minor = res.get("balance_minor")
+        if not isinstance(minor, int):
+            minor = round(float(args.get("balance") or 0) * 100)
         return (
             True,
-            f"Balance: {args.get('account', '')} · "
-            f"{money(round(bal * 100), ctx.currency)}{wait}",
+            f"Balance: {args.get('account', '')} · {money(minor, ctx.currency)}{wait}",
         )
     if name == "create_budget":
         amount = args.get("monthly_limit")
