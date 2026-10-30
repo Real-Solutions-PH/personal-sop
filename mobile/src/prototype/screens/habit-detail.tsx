@@ -1,3 +1,4 @@
+import { dashStore } from "@domain/dash/store"
 import { startFocus } from "@domain/focus/actions"
 import * as A from "@domain/habits/actions"
 import type { Habit, HabitLog as LogRow } from "@domain/habits/data"
@@ -5,6 +6,7 @@ import * as L from "@domain/habits/logic"
 import { habitsStore } from "@domain/habits/store"
 import { dayKey, dayOffset } from "@domain/lib/day"
 import { useScreen } from "@domain/screen/store"
+import { useLocalSearchParams } from "expo-router"
 import {
   ChevronLeft,
   ChevronRight,
@@ -15,12 +17,19 @@ import {
 import { useState } from "react"
 import { View } from "react-native"
 import { FocusTimeCard } from "../focus-kit"
+import { Burst, feel, markCompletion } from "../motion"
 import { Copy, Frame, IconTap, Line, SectionHeading, Tap } from "../native-kit"
 import { go } from "../navigation"
 import { useTheme } from "../theme"
 import { Button, confirm, DateField, Empty, Field, Screen, Sheet } from "../ui"
 import { HabitLog } from "./habits"
-import { AutoMark, RuleRing, RuleText, useRuleState } from "./screen-card"
+import {
+  AutoMark,
+  RuleRing,
+  RuleText,
+  ScreenOffMark,
+  useRuleState,
+} from "./screen-card"
 
 function fmt(day: string) {
   return new Date(`${day}T12:00:00`).toLocaleDateString("en-US", {
@@ -203,15 +212,22 @@ export function HabitDetail({ id }: { id: string }) {
     h = s.habits.find((h) => h.id === id),
     [logDay, setLogDay] = useState<string | null>(null),
     [more, setMore] = useState(false),
-    [pausing, setPausing] = useState(false),
+    // `?pause=1`: arrived from a row's actions sheet to pause this habit.
+    params = useLocalSearchParams<{ pause?: string }>(),
+    [marked, setMarked] = useState(0),
+    [pausing, setPausing] = useState(params.pause === "1"),
     [until, setUntil] = useState(dayOffset(7)),
-    [reason, setReason] = useState("")
+    [reason, setReason] = useState(""),
+    screenOn = dashStore.use((s) => s.enabled.screen)
   if (!h)
     return (
       <Screen prototypeLayout title="Habit">
         <Empty title="Habit not found" />
       </Screen>
     )
+  // Screen time drives it only while Screen time is on; off, it is a
+  // habit logged by hand.
+  const auto = !!h.rule && screenOn
   const today = dayKey(),
     idx = L.logIndex(s.logs),
     a = L.habitStats(h, idx, dayOffset(-29), today, today),
@@ -297,11 +313,12 @@ export function HabitDetail({ id }: { id: string }) {
             <Copy size={14} muted>
               {L.scheduleLabel(h.schedule)}
             </Copy>
-            {!h.rule && (
+            {!auto && (
               <Copy size={14} muted>
                 Target · {L.targetLabel(h)}
               </Copy>
             )}
+            {h.rule && !auto && <ScreenOffMark />}
             {h.linkWorkout && (
               <Copy size={12} style={{ color: t.fit }}>
                 Auto-checks when a workout is logged
@@ -319,26 +336,37 @@ export function HabitDetail({ id }: { id: string }) {
               Resume
             </Button>
           </Frame>
-        ) : h.rule ? (
+        ) : auto ? (
           <RuleToday habit={h} log={log} />
         ) : (
           <Line style={{ gap: 8 }}>
             <View style={{ flex: 1 }}>
+              <Burst fire={marked} color={t.hab} size={56} />
               <Button
                 tone={
                   h.type === "check" && log?.status === "done"
                     ? "quiet"
                     : "primary"
                 }
-                onPress={() =>
-                  h.type === "duration"
-                    ? go(`/habits/${id}/timer`)
-                    : h.type === "count"
-                      ? A.incrementCount(id)
-                      : log?.status === "done"
-                        ? A.clearLog(id)
-                        : A.checkHabit(id)
-                }
+                onPress={() => {
+                  if (h.type === "duration") return go(`/habits/${id}/timer`)
+                  if (h.type === "check" && log?.status === "done")
+                    return A.clearLog(id)
+                  if (h.type === "count") A.incrementCount(id)
+                  else A.checkHabit(id)
+                  const now = L.logIndex(habitsStore.get().logs).get(
+                    L.lk(id, today),
+                  )
+                  // Done, or a count that just reached its target.
+                  if (
+                    now?.status === "done" &&
+                    (h.type === "check" || L.progressOf(h, log) < 1)
+                  ) {
+                    feel.success()
+                    markCompletion()
+                    setMarked((n) => n + 1)
+                  }
+                }}
               >
                 {h.type === "duration"
                   ? "◉ Start timer"
@@ -492,7 +520,7 @@ export function HabitDetail({ id }: { id: string }) {
             <Tap
               key={l.id}
               onPress={() => {
-                if (!h.rule) setLogDay(l.day)
+                if (!auto) setLogDay(l.day)
               }}
               style={{ paddingHorizontal: 12, paddingVertical: 10 }}
             >

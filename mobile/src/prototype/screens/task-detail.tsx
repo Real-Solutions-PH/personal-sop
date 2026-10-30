@@ -21,6 +21,7 @@ import { useEffect, useRef, useState } from "react"
 import { ScrollView, TextInput, View } from "react-native"
 import { toast } from "sonner-native"
 import { FocusTimeCard } from "../focus-kit"
+import { AnimatedCheck } from "../motion"
 import { border, Copy, Frame, IconTap, Line, Tap } from "../native-kit"
 import { go } from "../navigation"
 import { fonts, useTheme } from "../theme"
@@ -208,23 +209,16 @@ export function TaskDetail({ id }: { id: string }) {
   return (
     <Screen title="Task">
       <Line style={{ alignItems: "flex-start", gap: 12 }}>
-        <Tap
+        <AnimatedCheck
+          checked={done}
+          onToggle={tick}
           label={done ? "Mark not done" : "Complete"}
-          onPress={tick}
-          style={{
-            marginTop: 10,
-            width: 24,
-            height: 24,
-            borderRadius: shopping ? 6 : 12,
-            borderWidth: 2,
-            borderColor: done ? t.tsk : t.muted,
-            backgroundColor: done ? t.tsk : "transparent",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          {done && <Check size={16} color={t.bg} />}
-        </Tap>
+          color={t.tsk}
+          idle={t.muted}
+          size={28}
+          square={shopping}
+          checkColor={t.bg}
+        />
         <TextInput
           accessibilityLabel="Title"
           {...title}

@@ -41,6 +41,7 @@ import { CaptureOverlay } from "@/prototype/screens/capture"
 import { sessionStore } from "@/prototype/session"
 import { stepTab, TAB_ROUTES, tabDirection } from "@/prototype/tab-swipe"
 import { AccentContext, fonts, useTheme } from "@/prototype/theme"
+import { TrophyWatcher } from "@/prototype/trophy-overlay"
 import { wake } from "@/prototype/wake-word"
 import { WakeWordListener } from "@/prototype/wake-word-listener"
 import { SurfacesBridge } from "@/surfaces/bridge"
@@ -349,6 +350,7 @@ export default function PrototypeLayout() {
             <CaptureOverlay bottom={focus ? 0 : bar} />
             <WakeWordListener onChatPage={path === "/capture"} />
             <SurfacesBridge />
+            <TrophyWatcher hidden={focus} />
           </>
         )}
         {!focus && (

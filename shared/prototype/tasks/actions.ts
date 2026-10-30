@@ -128,6 +128,31 @@ export function createTasks(inputs: NewTask[]): Task[] {
   }))
   return made
 }
+/** The capture router's keys (work, job2, life, groceries) mapped onto the
+ * live lists by name, the server's rule: groceries falls back to the first
+ * shopping list. */
+export function listKeys(lists: TaskList[]): Record<string, string> {
+  const live = lists
+    .filter((l) => !l.archivedAt)
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+  const byName: Record<string, string> = {
+    work: "work",
+    "job 2": "job2",
+    job2: "job2",
+    life: "life",
+    groceries: "groceries",
+  }
+  const keys: Record<string, string> = {}
+  for (const l of live) {
+    const key = byName[l.name.toLowerCase().split(/\s+/).join(" ").trim()]
+    if (key && !keys[key]) keys[key] = l.id
+  }
+  if (!keys.groceries) {
+    const shop = live.find((l) => l.kind === "shopping")
+    if (shop) keys.groceries = shop.id
+  }
+  return keys
+}
 export function captureTasks(
   text: string,
   source: TaskSource = "capture-text",
@@ -135,15 +160,12 @@ export function captureTasks(
   tasks: Task[]
   followUp?: string
 } {
-  const lists = tasksStore
-    .get()
-    .lists.filter((l) => !l.archivedAt)
-    .map((l) => l.id)
-  const drafts: CaptureDraft[] = splitCapture(text, source, lists)
+  const keys = listKeys(tasksStore.get().lists)
+  const drafts: CaptureDraft[] = splitCapture(text, source, Object.keys(keys))
   const tasks = createTasks(
     drafts.map((d) => ({
       title: d.title,
-      listId: d.listId,
+      listId: d.listId ? (keys[d.listId] ?? null) : null,
       dueDate: d.dueDate,
       dueTime: d.dueTime,
       recurrence: d.recurrence,
@@ -398,6 +420,22 @@ export function createList(input: ListInput): TaskList {
   }
   set((s) => ({ ...s, lists: [...s.lists, l] }))
   return l
+}
+/** The lists a new account starts with, as the server seeds them. */
+export const STARTER_LISTS: ListInput[] = [
+  { name: "Work", kind: "standard", color: "tsk", icon: "briefcase" },
+  { name: "Life", kind: "standard", color: "hab", icon: "home" },
+  { name: "Groceries", kind: "shopping", color: "fit", icon: "cart" },
+]
+/** Work, Life and Groceries for an account without them; a name already
+ * taken (any case, archived too) is skipped. */
+export function addStarterLists(): TaskList[] {
+  const taken = new Set(
+    tasksStore.get().lists.map((l) => l.name.trim().toLowerCase()),
+  )
+  return STARTER_LISTS.filter((l) => !taken.has(l.name.toLowerCase())).map(
+    (l) => createList(l),
+  )
 }
 export function updateList(id: string, patch: Partial<ListInput>): void {
   set((s) => ({

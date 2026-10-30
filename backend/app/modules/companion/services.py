@@ -1131,7 +1131,10 @@ be told to register or add them; listing them back is not recording them.
   relative times into due_date (YYYY-MM-DD) and due_time (HH:MM, 24h) from
   Today. Give a due_date or due_time only when they name a day or a time;
   otherwise leave both out (never default to today or 23:59). Set remind
-  only when they ask to be reminded.
+  only when they ask to be reminded. Put a task in one of their
+  `task_lists` (`list`, its exact name) when they name the list or the task
+  plainly belongs to one; otherwise leave `list` out and it goes to the
+  Inbox.
 - Finishing a task: `complete_task`. Money: `log_expense`, `log_income`,
   `log_transfer`, `add_planned`. Bills and pay-later plans (often in photos):
   each bill with a due date is its own one-time `add_planned` with that

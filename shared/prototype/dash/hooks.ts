@@ -590,7 +590,7 @@ const STREAK_MILESTONES = [7, 30, 100, 365]
 const TROPHY_TYPES: TrophyType[] = ["pr", "streak", "best", "goal", "first"]
 const trophyType = (t: string): TrophyType =>
   TROPHY_TYPES.includes(t as TrophyType) ? (t as TrophyType) : "first"
-function trophyFrom(t: ServerAchievements["trophies"][number]): Trophy {
+export function trophyFrom(t: ServerAchievements["trophies"][number]): Trophy {
   const out: Trophy = {
     id: t.id,
     type: trophyType(t.type),

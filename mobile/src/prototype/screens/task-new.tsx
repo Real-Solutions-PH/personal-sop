@@ -11,9 +11,11 @@ import { go } from "../navigation"
 import { useTheme } from "../theme"
 import { Button, Choices, DateField, Field, Screen } from "../ui"
 import { isDay } from "../validation"
+import { ListEditor } from "./task-lists"
 
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/
 type Remind = "off" | "0" | "15" | "60" | "1440"
+const NEW_LIST = "__new"
 
 export function TaskNew({ listId, day }: { listId?: string; day?: string }) {
   const t = useTheme(),
@@ -26,7 +28,8 @@ export function TaskNew({ listId, day }: { listId?: string; day?: string }) {
     [date, setDate] = useState(day ?? ""),
     [time, setTime] = useState(""),
     [remind, setRemind] = useState<Remind>("off"),
-    [errors, setErrors] = useState<{ title?: string; when?: string }>({})
+    [errors, setErrors] = useState<{ title?: string; when?: string }>({}),
+    [making, setMaking] = useState(false)
 
   function save() {
     const name = title.replace(/\s+/g, " ").trim()
@@ -76,16 +79,21 @@ export function TaskNew({ listId, day }: { listId?: string; day?: string }) {
           onChangeText={setNotes}
           multiline
         />
-        {lists.length > 0 && (
-          <Choices
-            label="List"
-            value={list}
-            onChange={setList}
-            wrap
-            options={[
-              { value: "", label: "Inbox" },
-              ...lists.map((l) => ({ value: l.id, label: l.name })),
-            ]}
+        <Choices
+          label="List"
+          value={list}
+          onChange={(v) => (v === NEW_LIST ? setMaking(true) : setList(v))}
+          wrap
+          options={[
+            { value: "", label: "Inbox" },
+            ...lists.map((l) => ({ value: l.id, label: l.name })),
+            { value: NEW_LIST, label: "New list…" },
+          ]}
+        />
+        {making && (
+          <ListEditor
+            onClose={() => setMaking(false)}
+            onCreated={(l) => setList(l.id)}
           />
         )}
         <Line style={{ gap: 8, flexWrap: "wrap", marginTop: 6 }}>

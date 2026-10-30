@@ -1,4 +1,5 @@
 import * as A from "@domain/habits/actions"
+import type { Habit } from "@domain/habits/data"
 import * as L from "@domain/habits/logic"
 import { habitsStore } from "@domain/habits/store"
 import { dayKey, dayOffset } from "@domain/lib/day"
@@ -12,6 +13,7 @@ import {
 } from "lucide-react-native"
 import { useState } from "react"
 import { View } from "react-native"
+import { feel, StreakChip } from "../motion"
 import {
   Copy,
   Frame,
@@ -24,6 +26,7 @@ import {
 import { go } from "../navigation"
 import { useTheme } from "../theme"
 import { Button, Choices, confirm, Empty, Field, Screen, Sheet } from "../ui"
+import { HabitActions } from "./habit-actions"
 import { HabitRow } from "./habits"
 
 type Filters = {
@@ -48,6 +51,8 @@ export function HabitsList() {
     [draft, setDraft] = useState(defaults),
     [filterOpen, setFilterOpen] = useState(false),
     [reorder, setReorder] = useState(false),
+    [actionsFor, setActionsFor] = useState<Habit | null>(null),
+    [actionsOpen, setActionsOpen] = useState(false),
     today = dayKey(),
     idx = L.logIndex(s.logs),
     all = s.habits.filter((h) => h.status !== "archived"),
@@ -167,6 +172,13 @@ export function HabitsList() {
               <Line key={h.id} style={{ gap: 0 }}>
                 <Tap
                   onPress={() => go(`/habits/${h.id}`)}
+                  onLongPress={() => {
+                    feel.tap()
+                    setActionsFor(h)
+                    setActionsOpen(true)
+                  }}
+                  hint="Long press for actions"
+                  longPressLabel="Habit actions"
                   style={{
                     flex: 1,
                     padding: 10,
@@ -233,11 +245,7 @@ export function HabitsList() {
                         <Copy size={11} muted>
                           {Math.round(rate * 100)}%
                         </Copy>
-                        {streak > 0 && (
-                          <Copy size={12} style={{ color: t.warn }}>
-                            🔥 {streak}
-                          </Copy>
-                        )}
+                        <StreakChip streak={streak} />
                       </Line>
                     </View>
                     {!reorder && <ChevronRight size={16} color={t.muted} />}
@@ -369,6 +377,13 @@ export function HabitsList() {
           </View>
         </Line>
       </Sheet>
+      {actionsFor && (
+        <HabitActions
+          habit={actionsFor}
+          open={actionsOpen}
+          onClose={() => setActionsOpen(false)}
+        />
+      )}
     </Screen>
   )
 }

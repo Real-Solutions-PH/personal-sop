@@ -26,11 +26,13 @@ import { useRef, useState } from "react"
 import type { TextInputInstance } from "react-native"
 import { TextInput, View } from "react-native"
 import { toast } from "sonner-native"
+import { syncReady } from "@/live/ready"
 import {
   border,
   Copy,
   IconTap,
   Line,
+  LinkRow,
   SectionHeading,
   Segmented,
   Tap,
@@ -38,6 +40,7 @@ import {
 import { go } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import { Button, Empty, Screen, Sheet, Toggle, undo } from "../ui"
+import { LockedPreview } from "./locked-preview"
 import { TaskRow } from "./tasks"
 
 const icons = {
@@ -89,9 +92,12 @@ export function ListGlyph({
 export function ListEditor({
   list,
   onClose,
+  onCreated,
 }: {
   list?: TaskList
   onClose: () => void
+  /** A new list was made (not an edit): e.g. move a task into it. */
+  onCreated?: (list: TaskList) => void
 }) {
   const t = useTheme(),
     s = tasksStore.use((s) => s),
@@ -259,8 +265,9 @@ export function ListEditor({
                   icon,
                 }
                 if (list) A.updateList(list.id, input)
-                else A.createList(input)
-                toast.success(list ? "List saved" : `Created ${name.trim()}`)
+                else onCreated?.(A.createList(input))
+                if (list || !onCreated)
+                  toast.success(list ? "List saved" : `Created ${name.trim()}`)
                 onClose()
               }}
             >
@@ -270,6 +277,40 @@ export function ListEditor({
         </Line>
       )}
     </Sheet>
+  )
+}
+/** No lists yet: the three a new account starts with, dimmed, and one tap
+ * that makes them. Hidden until the first pull has landed so lists the
+ * server seeded are never made twice. */
+export function StarterLists() {
+  const ready = syncReady((s) => s.ready),
+    t = useTheme()
+  if (!ready) return null
+  return (
+    <LockedPreview
+      locked
+      icon={List}
+      color={t.tsk}
+      title="Sort tasks into lists"
+      detail="Everything goes to the Inbox until there are lists to file into."
+      action={{
+        label: "Add Work, Life and Groceries",
+        onPress: () => {
+          A.addStarterLists()
+          toast.success("Lists added")
+        },
+      }}
+    >
+      {A.STARTER_LISTS.map((l) => (
+        <LinkRow
+          key={l.name}
+          title={l.name}
+          detail={l.kind === "shopping" ? "Shopping list" : undefined}
+          icon={icons[l.icon]}
+          accent={l.color === "warn" ? "life" : l.color}
+        />
+      ))}
+    </LockedPreview>
   )
 }
 export function TaskLists() {
@@ -294,11 +335,7 @@ export function TaskLists() {
       }
     >
       {!active.length ? (
-        <Empty
-          title="No lists yet"
-          detail="Everything goes to Inbox until you make one. Buckets like Work, Life, Groceries help."
-          action={<Button onPress={() => setEditing("new")}>New list</Button>}
-        />
+        <StarterLists />
       ) : (
         <>
           <Copy size={12} muted style={{ paddingHorizontal: 4 }}>
