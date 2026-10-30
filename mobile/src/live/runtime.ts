@@ -161,10 +161,14 @@ export function startLive(
   const page = typeof window !== "undefined" ? window : null
   page?.addEventListener?.("pagehide", onPageHide)
   // Open only while the app is in the foreground (see foregroundStream).
+  // Each foreground starts a fresh stream; resume from the last event seen so
+  // what arrived while the app was away replays instead of being lost.
+  let resumeId: string | null = null
   const stream = foregroundStream(() =>
     runEventStream({
       online: getConnectivity,
-      open: async (lastId, signal) => {
+      open: async (streamId, signal) => {
+        const lastId = streamId ?? resumeId
         const token = await tokens.current()
         const res = await expoFetch(`${API_URL}${API_PREFIX}/events/stream`, {
           headers: {
@@ -178,6 +182,7 @@ export function startLive(
         return res.ok ? (res.body as ReadableStream<Uint8Array>) : null
       },
       onEvent: (e) => {
+        if (e.id) resumeId = e.id
         if (PULL_EVENTS.has(e.type)) void engine.sync()
         for (const l of listeners) l(e)
       },

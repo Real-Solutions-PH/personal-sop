@@ -9,6 +9,7 @@
 // store's ME. A 1:1 chat the device opened may come back with the server's
 // existing chat id; the device keeps its own id and aliases the server's.
 
+import { AppState } from "react-native"
 import {
   type Activity,
   type Chat,
@@ -1412,11 +1413,19 @@ export function startSocialLive(
   connectSocial(live)
   void retryProfilePhoto()?.catch(() => {})
   const off = subscribe(live.handleEvent)
-  void live.refresh().catch(() => {
-    // offline or the server is down: the store keeps the cached snapshot
+  const load = () =>
+    void live.refresh().catch(() => {
+      // offline or the server is down: the store keeps the cached snapshot
+    })
+  load()
+  // Back from the background: events older than the replay window are gone,
+  // so reload what the inbox and feed show.
+  const appState = AppState.addEventListener("change", (s) => {
+    if (s === "active") load()
   })
   return () => {
     off()
+    appState.remove()
     connectSocial(null)
   }
 }
