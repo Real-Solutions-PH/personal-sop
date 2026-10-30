@@ -66,6 +66,12 @@ interface WMedia {
   kind: "image" | "video"
   ratio: number | null
   url: string | null
+  /** A photo's smaller rendition and placeholder; absent on older uploads
+   * and older servers. */
+  preview_url?: string | null
+  lqip?: string | null
+  width?: number | null
+  height?: number | null
 }
 interface WPost {
   id: string
@@ -184,7 +190,21 @@ export interface SocialDeps {
   userId: string
   upload?: Uploader
   now?: () => number
+  /** Whether a local file is still on the device (the OS may purge it). */
+  fileExists?: (uri: string) => boolean
 }
+
+/** ``expo-file-system``'s check, false when it cannot tell. */
+function localFileExists(uri: string): boolean {
+  try {
+    const { File } =
+      require("expo-file-system") as typeof import("expo-file-system")
+    return new File(uri).exists
+  } catch {
+    return false
+  }
+}
+const isLocal = (uri?: string) => !!uri && uri.startsWith("file:")
 
 export const TYPING_EVERY_MS = 3000
 const TYPING_SHOWN_MS = 5000
@@ -227,6 +247,7 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
   const me = deps.userId
   const now = deps.now ?? Date.now
   const upload = deps.upload ?? createUploader(http)
+  const fileExists = deps.fileExists ?? localFileExists
   const set = socialStore.set
   const get = socialStore.get
 
@@ -249,6 +270,8 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
   const chatReady = new Map<string, Promise<unknown>>()
   // Posts and messages still being created: a refresh keeps them.
   const pending = new Set<string>()
+  /** Stories still being uploaded and posted: a tray read keeps them. */
+  const creatingStories = new Set<string>()
   /** Posts I deleted this session (until restored): stale reads skip them. */
   const deleted = new Set<string>()
   const deleting = new Map<string, Promise<unknown>>()
@@ -386,12 +409,22 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
       !!prev.uri &&
       prev.urlAt !== undefined &&
       now() - prev.urlAt < MEDIA_URL_REUSE_MS
+    const same = prev?.id === m.media_id
     return {
       id: m.media_id,
       kind: m.kind,
       uri: reuse ? prev.uri : (m.url ?? prev?.uri ?? ""),
       urlAt: reuse ? prev.urlAt : m.url ? now() : prev?.urlAt,
       ratio: m.ratio ?? prev?.ratio,
+      // The renditions are cached by media id, so a new URL for them is
+      // only taken when the old one would no longer load.
+      previewUri:
+        (reuse ? prev.previewUri : undefined) ??
+        m.preview_url ??
+        (same ? prev?.previewUri : undefined),
+      lqip: m.lqip ?? (same ? prev?.lqip : undefined),
+      width: m.width ?? (same ? prev?.width : undefined),
+      height: m.height ?? (same ? prev?.height : undefined),
     }
   }
   function mapPost(w: WPost, prev?: Post): Post {
@@ -422,12 +455,23 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
     liked: w.liked,
     replyTo: w.reply_to_id ?? undefined,
   })
+  /** My own story keeps showing its local file (no download) while the file
+   * is on this device; the server's URL is kept beside it. */
+  const storyUri = (w: WStory, prev?: StoryItem) => {
+    const remote = w.media?.url ?? prev?.remoteUri ?? undefined
+    if (isLocal(prev?.uri) && prev?.uri && fileExists(prev.uri))
+      return { uri: prev.uri, remoteUri: remote }
+    return { uri: remote ?? (isLocal(prev?.uri) ? undefined : prev?.uri) }
+  }
   const mapStory = (w: WStory, prev?: StoryItem): StoryItem => ({
     id: w.id,
     by: pid(w.owner_id),
     at: ms(w.created_at),
     kind: w.kind,
-    uri: w.media?.url ?? prev?.uri,
+    ...storyUri(w, prev),
+    mediaId: w.media?.media_id ?? prev?.mediaId,
+    previewUri: w.media?.preview_url ?? prev?.previewUri,
+    lqip: w.media?.lqip ?? prev?.lqip,
     text: w.text ?? undefined,
     bg: w.bg ? [w.bg[0], w.bg[1]] : undefined,
     progress: progressOut(w.progress),
@@ -621,11 +665,13 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
       set((s) => {
         const byId = new Map(s.stories.map((x) => [x.id, x]))
         const ids = new Set(items.map((w) => w.id))
-        // A story I posted while this read was in flight is not in it.
+        // A story I posted while this read was in flight, or one still
+        // uploading, is not in it.
         const mine = s.stories.filter(
           (x) =>
             !ids.has(x.id) &&
-            (storyWrittenAt.get(x.id) ?? Number.NEGATIVE_INFINITY) >= asked,
+            (creatingStories.has(x.id) ||
+              (storyWrittenAt.get(x.id) ?? Number.NEGATIVE_INFINITY) >= asked),
         )
         return {
           ...s,
@@ -1024,7 +1070,9 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
   const chatPath = (id: string, rest = "") => `/social/chats/${cid(id)}${rest}`
 
   async function postMessage(chatId: string, m: Message) {
-    const media_id = m.media ? await upload(m.media.uri, m.media.kind) : null
+    const media_id = m.media
+      ? await upload(m.media.uri, m.media.kind, m.media)
+      : null
     const w = await http.request<WMessage>(
       "POST",
       chatPath(chatId, "/messages"),
@@ -1063,7 +1111,7 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
       try {
         const media = await Promise.all(
           post.media.map(async (m) => ({
-            media_id: await upload(m.uri, m.kind),
+            media_id: await upload(m.uri, m.kind, m),
             kind: m.kind,
             ratio: m.ratio ?? null,
           })),
@@ -1128,24 +1176,62 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
       http.request("DELETE", commentPath(postId, id)),
     async createStory(story) {
       storyWrittenAt.set(story.id, now())
-      const media_id =
-        story.kind === "image" || story.kind === "video"
-          ? (story.mediaId ??
-            (story.uri ? await upload(story.uri, story.kind) : null))
-          : null
-      const w = await http.request<WStory>("POST", "/social/stories", {
-        id: story.id,
-        kind: story.kind,
-        media_id,
-        text: story.text ?? null,
-        bg: story.bg ?? null,
-        progress: progressIn(story.progress),
-        audience: story.audience ?? "everyone",
-      })
-      set((s) => ({
-        ...s,
-        stories: s.stories.map((x) => (x.id === story.id ? mapStory(w, x) : x)),
-      }))
+      creatingStories.add(story.id)
+      try {
+        const media_id =
+          story.kind === "image" || story.kind === "video"
+            ? (story.mediaId ??
+              (story.uri
+                ? await upload(story.uri, story.kind, {
+                    previewUri: story.previewUri,
+                    lqip: story.lqip,
+                  })
+                : null))
+            : null
+        const w = await http.request<WStory>("POST", "/social/stories", {
+          id: story.id,
+          kind: story.kind,
+          media_id,
+          text: story.text ?? null,
+          bg: story.bg ?? null,
+          progress: progressIn(story.progress),
+          audience: story.audience ?? "everyone",
+        })
+        // A read that dropped it meanwhile must not lose the write.
+        set((s) => {
+          const local = s.stories.find((x) => x.id === story.id)
+          return {
+            ...s,
+            stories: local
+              ? s.stories.map((x) => (x.id === story.id ? mapStory(w, x) : x))
+              : [...s.stories, mapStory(w, story)],
+            seen: s.seen.includes(story.id) ? s.seen : [...s.seen, story.id],
+          }
+        })
+      } finally {
+        creatingStories.delete(story.id)
+      }
+    },
+    async refreshStory(id) {
+      try {
+        const w = await http.request<WStory>("GET", `/social/stories/${id}`)
+        set((s) => ({
+          ...s,
+          stories: s.stories.map((x) =>
+            x.id === id
+              ? // The shown copy failed: take the server's fresh URL.
+                mapStory(w, { ...x, uri: undefined, remoteUri: undefined })
+              : x,
+          ),
+        }))
+        return "ok"
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 404) {
+          set((s) => ({ ...s, stories: s.stories.filter((x) => x.id !== id) }))
+          return "gone"
+        }
+        throw e
+      }
     },
     deleteStory: (id) => http.request("DELETE", `/social/stories/${id}`),
     seen: (id) => http.request("PUT", `/social/stories/${id}/seen`),

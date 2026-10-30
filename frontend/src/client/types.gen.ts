@@ -2336,6 +2336,10 @@ export type MediaPublic = {
     kind: 'image' | 'video';
     ratio: (number | null);
     url: (string | null);
+    preview_url?: (string | null);
+    lqip?: (string | null);
+    width?: (number | null);
+    height?: (number | null);
 };
 
 export type MediaWithUrl = {
@@ -2349,7 +2353,10 @@ export type MediaWithUrl = {
     state: 'pending' | 'ready' | 'rejected';
     ready_at: (string | null);
     created_at: string;
+    preview_id?: (string | null);
+    lqip?: (string | null);
     url?: (string | null);
+    preview_url?: (string | null);
 };
 
 export type kind12 = 'image' | 'video' | 'audio' | 'file';
@@ -4339,6 +4346,8 @@ export type UploadRequest = {
     width?: (number | null);
     height?: (number | null);
     duration_sec?: (number | null);
+    preview_id?: (string | null);
+    lqip?: (string | null);
 };
 
 /**

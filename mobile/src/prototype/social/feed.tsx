@@ -12,6 +12,7 @@ import {
 } from "lucide-react-native"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
+  AppState,
   FlatList,
   Image,
   type ListViewToken,
@@ -51,6 +52,7 @@ import {
 import { PostCard } from "./post-card"
 import {
   loadMoreFeed,
+  loadStoriesIfStale,
   ME,
   type Post,
   postingStore,
@@ -484,9 +486,18 @@ export function SocialFeed() {
   useFocusEffect(
     useCallback(() => {
       setFocused(true)
+      // A story whose live event was missed shows on the next visit.
+      void loadStoriesIfStale()
       return () => setFocused(false)
     }, []),
   )
+  // Back in front on Community: the same, at most every 30 s.
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (s) => {
+      if (s === "active") void loadStoriesIfStale()
+    })
+    return () => sub.remove()
+  }, [])
   const people = socialStore.use((s) => s.people)
   // Newest first on both tabs: cheers never lift a post above newer
   // progress, so nothing is ranked for reach.

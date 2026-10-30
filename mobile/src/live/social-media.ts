@@ -9,7 +9,20 @@ import { uploadMedia } from "./media"
 
 export type UploadKind = "image" | "video"
 
-export type Uploader = (uri: string, kind: UploadKind) => Promise<string>
+/** A photo's renditions made on the phone (see ``prepareImage``). */
+export type UploadExtra = {
+  previewUri?: string
+  lqip?: string
+  width?: number
+  height?: number
+  mime?: string
+}
+
+export type Uploader = (
+  uri: string,
+  kind: UploadKind,
+  extra?: UploadExtra,
+) => Promise<string>
 
 const MIME_BY_EXT: Record<string, string> = {
   jpg: "image/jpeg",
@@ -39,14 +52,40 @@ export function mimeFor(uri: string, kind: UploadKind): string {
  * shared twice at once (a post and its story) uploads once. */
 export function createUploader(http: Http, fetchImpl: Fetch = fetch): Uploader {
   const inFlight = new Map<string, Promise<string>>()
-  return (uri, kind) => {
+  const deps = { http, fetch: fetchImpl }
+  return (uri, kind, extra = {}) => {
     const key = `${kind}:${uri}`
     const running = inFlight.get(key)
     if (running) return running
-    const job = uploadMedia(
-      { kind, uri, mime: mimeFor(uri, kind) },
-      { http, fetch: fetchImpl },
-    ).then((m) => m.id)
+    // A photo with renditions: the preview first, then the full image that
+    // names it (the server only takes a preview that is already ready).
+    const preview =
+      kind === "image" && extra.previewUri
+        ? uploadMedia(
+            { kind, uri: extra.previewUri, mime: "image/jpeg" },
+            deps,
+          ).then((m) => m.id)
+        : Promise.resolve(undefined)
+    const job = preview
+      .then((previewId) =>
+        uploadMedia(
+          {
+            kind,
+            uri,
+            mime: extra.mime ?? mimeFor(uri, kind),
+            ...(kind === "image"
+              ? {
+                  previewId,
+                  lqip: previewId ? extra.lqip : undefined,
+                  width: extra.width,
+                  height: extra.height,
+                }
+              : {}),
+          },
+          deps,
+        ),
+      )
+      .then((m) => m.id)
     inFlight.set(key, job)
     // Settled either way: a later share of the same file starts fresh.
     void job.then(
