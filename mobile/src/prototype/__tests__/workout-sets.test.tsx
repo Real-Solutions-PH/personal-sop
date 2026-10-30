@@ -86,6 +86,23 @@ it("a deleted set comes back in its place on undo", () => {
   expect(setsOf(w.id, we.id)).toEqual(ids)
 })
 
+it("the first set's weight carries to open sets still on the old weight", () => {
+  const { w, we } = started()
+  const sets = () =>
+    fitStore
+      .get()
+      .workouts.find((x) => x.id === w.id)!
+      .exercises.find((e) => e.id === we.id)!.sets
+  const [a, b, c] = sets().filter((x) => x.kind !== "warmup")
+  A.updateSet(w.id, we.id, c.id, { weight: 99 }) // changed by hand: kept
+  A.updateSet(w.id, we.id, a.id, { weight: 60 })
+  const by = (id: string) => sets().find((x) => x.id === id)!.weight
+  expect([by(a.id), by(b.id), by(c.id)]).toEqual([60, 60, 99])
+  // Any other set edits only itself.
+  A.updateSet(w.id, we.id, b.id, { weight: 70 })
+  expect([by(a.id), by(c.id)]).toEqual([60, 99])
+})
+
 it("converts pounds and kilograms to a tenth", () => {
   expect(A.lbToKg(30)).toBe(13.608)
   expect(A.lbToKg(45)).toBe(20.412)

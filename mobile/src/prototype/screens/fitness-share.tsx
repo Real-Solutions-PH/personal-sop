@@ -2,10 +2,18 @@ import * as C from "@domain/fitness/calc"
 import { fitStore } from "@domain/fitness/store"
 import { dayKey } from "@domain/lib/day"
 import { useLocalSearchParams } from "expo-router"
-import { Trophy } from "lucide-react-native"
+import { Trophy, X } from "lucide-react-native"
 import { type ReactNode, useState } from "react"
 import { View } from "react-native"
-import { border, Copy, Frame, Line, SectionHeading } from "../native-kit"
+import {
+  border,
+  Copy,
+  Frame,
+  Line,
+  SectionHeading,
+  ToolButton,
+} from "../native-kit"
+import { replace } from "../navigation"
 import { fmt, group } from "../share-format"
 import {
   CardFrame,
@@ -269,7 +277,12 @@ export function WorkoutCard({
 export function FitnessShare({ id }: { id: string }) {
   const s = fitStore.use((s) => s),
     t = useTheme(),
-    p = useLocalSearchParams<{ template?: WorkoutLayout; exercise?: string }>(),
+    p = useLocalSearchParams<{
+      template?: WorkoutLayout
+      exercise?: string
+      // Just finished: the card is offered before going back to Fitness.
+      done?: string
+    }>(),
     w = s.workouts.find((w) => w.id === id),
     [layout, setLayout] = useState<WorkoutLayout>(p.template ?? "summary"),
     [flags, setFlags] = useState<WorkoutFlags>({
@@ -350,7 +363,18 @@ export function FitnessShare({ id }: { id: string }) {
     macros: C.dayTotals(s, day).totals,
   }
   return (
-    <Screen title="Share workout">
+    <Screen
+      title={p.done ? "Post your workout?" : "Share workout"}
+      actions={
+        p.done ? (
+          <ToolButton
+            icon={X}
+            label="Not now"
+            onPress={() => replace("/fitness")}
+          />
+        ) : undefined
+      }
+    >
       <ShareComposer
         value={layout}
         onChange={setLayout}

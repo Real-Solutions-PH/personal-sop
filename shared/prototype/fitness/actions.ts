@@ -253,10 +253,28 @@ export function updateSet(
   setId: string,
   patch: Partial<Omit<WorkoutSet, "id">>,
 ) {
-  patchExercise(workoutId, weId, (we) => ({
-    ...we,
-    sets: we.sets.map((x) => (x.id === setId ? { ...x, ...patch } : x)),
-  }))
+  patchExercise(workoutId, weId, (we) => {
+    const first = we.sets.find(isWorking)
+    // A new weight on the first working set carries to the open working
+    // sets still on its old weight; ones already changed keep theirs.
+    const weight = patch.weight
+    const carry =
+      first?.id === setId && weight !== undefined && weight !== first.weight
+    return {
+      ...we,
+      sets: we.sets.map((x) =>
+        x.id === setId
+          ? { ...x, ...patch }
+          : carry && isWorking(x) && !isDone(x) && x.weight === first.weight
+            ? {
+                ...x,
+                weight,
+                ...(patch.unit ? { unit: patch.unit } : {}),
+              }
+            : x,
+      ),
+    }
+  })
   syncLive(workoutId)
 }
 export function addSet(workoutId: string, weId: string): WorkoutSet {

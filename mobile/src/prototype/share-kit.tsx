@@ -8,6 +8,7 @@ import type { HostInstance, ScrollViewInstance } from "react-native"
 import { palette } from "@domain/design/tokens"
 import * as Sharing from "expo-sharing"
 import {
+  Camera,
   Copy as CopyIcon,
   Download,
   Ellipsis,
@@ -1115,9 +1116,27 @@ export function ShareComposer<K extends string>({
               <Copy size={12} muted>
                 {photo
                   ? "Your photo sits behind the card, dimmed so text stays readable."
-                  : "From your library. It sits behind the card, dimmed."}
+                  : "From your library or camera. It sits behind the card, dimmed."}
               </Copy>
             </View>
+            {Platform.OS !== "web" && (
+              <Tap
+                label="Take a photo"
+                onPress={() =>
+                  void pickPhoto(true).then((v) => v && setPhoto(v))
+                }
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: t.soft,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Camera size={20} color={t.text} strokeWidth={1.75} />
+              </Tap>
+            )}
             {photo && (
               <Tap label="Remove photo" onPress={() => setPhoto(null)}>
                 <Copy size={13} style={{ color: t.bad }}>

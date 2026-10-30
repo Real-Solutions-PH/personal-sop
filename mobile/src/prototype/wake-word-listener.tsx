@@ -5,6 +5,7 @@ import { captureUi, openCapture } from "@domain/lib/capture"
 import { useEffect, useRef, useState } from "react"
 import { AppState } from "react-native"
 import { speaking } from "@/live/speech"
+import { chime } from "./chime"
 import { companionStore } from "./companion/store"
 import { dictating } from "./live-dictation"
 import { feel } from "./motion"
@@ -13,21 +14,6 @@ import { createWakeListener, wake, wakePrefs } from "./wake-word"
 /** Lead time between the chime and dictation starting, so the chime is not
  * cut off when the recogniser takes the microphone. */
 const CHIME_MS = 300
-
-type Chime = { seekTo(s: number): Promise<void> | void; play(): void }
-let chimePlayer: Chime | null = null
-function chime() {
-  try {
-    const audio = require("expo-audio") as typeof import("expo-audio")
-    chimePlayer ??= audio.createAudioPlayer(
-      require("./sounds/wake.wav"),
-    ) as unknown as Chime
-    void Promise.resolve(chimePlayer.seekTo(0)).catch(() => {})
-    chimePlayer.play()
-  } catch {
-    // No audio module in this build: the haptic still answers.
-  }
-}
 
 /** Mount once inside the signed-in layout. ``onChatPage``: the full chat
  * page is showing, so a wake dictates there instead of opening the drawer. */
