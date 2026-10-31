@@ -765,7 +765,7 @@ test("a read in flight when I delete a message does not bring it back", async ()
   await settle()
   // It stays as a tombstone, with nothing of the message left.
   expect(socialStore.get().chats[0].messages).toEqual([
-    expect.objectContaining({ id: "m1", deleted: true, text: undefined }),
+    { id: "m1", by: ME, at: expect.any(Number), reactions: {}, deleted: true },
   ])
 })
 
@@ -835,7 +835,7 @@ test("a chat list read in flight when I delete does not bring the message back",
   await settle()
   // It stays as a tombstone, with nothing of the message left.
   expect(socialStore.get().chats[0].messages).toEqual([
-    expect.objectContaining({ id: "m1", deleted: true, text: undefined }),
+    { id: "m1", by: ME, at: expect.any(Number), reactions: {}, deleted: true },
   ])
 })
 
