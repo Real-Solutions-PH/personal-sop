@@ -130,7 +130,12 @@ test("150 g of a per-100 g food fills the item with 1.5× its numbers", async ()
   )
   // Saving goes through the meal's own save, unchanged.
   fireEvent.press(screen.getByText("Save meal · 248 kcal"))
-  const [meal] = fitStore.get().meals
+  const meal = fitStore
+    .get()
+    .meals.find((m) =>
+      m.items.some((i) => i.name === "Chicken breast, grilled"),
+    )
+  if (!meal) throw new Error("the meal was not saved")
   expect(meal.items).toHaveLength(1)
   expect(meal.items[0]).toMatchObject({
     name: "Chicken breast, grilled",

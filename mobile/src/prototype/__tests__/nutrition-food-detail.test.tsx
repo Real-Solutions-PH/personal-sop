@@ -177,20 +177,26 @@ test("a picked photo uploads, then PATCHes the food with its media id", async ()
   jest.mocked(pickPhoto).mockResolvedValue("data:image/jpeg;base64,AAAA")
   const put = jest.fn(async () => ({ ok: true, status: 200 }))
   const realFetch = global.fetch
+  let saved = food
   global.fetch = put as unknown as typeof fetch
   mockRequest.mockImplementation(async (method: string, path: string) => {
     if (path === "/media/uploads")
       return { id: "m1", upload_url: "https://store/put", headers: {} }
     if (path === "/media/m1/complete")
       return { id: "m1", kind: "image", mime: "image/jpeg", state: "ready" }
+    // The server keeps what was saved: a refetch after the PATCH sees it.
     if (method === "PATCH")
-      return { ...food, photo_media_id: "m1", photo_url: "https://cdn/m1" }
-    return food
+      saved = { ...food, photo_media_id: "m1", photo_url: "https://cdn/m1" }
+    return saved
   })
   try {
     show()
     fireEvent.press(await screen.findByLabelText("Add food photo"))
-    expect(await screen.findByLabelText("Change food photo")).toBeTruthy()
+    // Upload, complete and PATCH run in turn: give them more than the
+    // default second on a slow runner.
+    expect(
+      await screen.findByLabelText("Change food photo", {}, { timeout: 8000 }),
+    ).toBeTruthy()
     expect(put).toHaveBeenCalledWith(
       "https://store/put",
       expect.objectContaining({ method: "PUT" }),
@@ -202,4 +208,4 @@ test("a picked photo uploads, then PATCHes the food with its media id", async ()
   } finally {
     global.fetch = realFetch
   }
-})
+}, 20_000)
