@@ -79,6 +79,23 @@ class Settings(BaseSettings):
     POSTGRES_APP_USER: str = ""
     POSTGRES_APP_PASSWORD: str = ""
 
+    # Connection pools, per process (every uvicorn worker and the job worker
+    # holds its own). The app engine carries tenant requests and each Fern
+    # turn, which runs on its own thread with its own session for the whole
+    # reply, so it is the larger. The owner engine carries superuser
+    # requests, the event-stream sign-in check, the outbox and stats jobs.
+    # Every process at its maximum must fit under the database's
+    # max_connections; infra/lib/config.ts sums it per profile.
+    DB_POOL_SIZE: int = Field(default=10, ge=1)
+    DB_MAX_OVERFLOW: int = Field(default=10, ge=0)
+    DB_OWNER_POOL_SIZE: int = Field(default=3, ge=1)
+    DB_OWNER_MAX_OVERFLOW: int = Field(default=5, ge=0)
+    # Seconds a request waits for a free connection before failing.
+    DB_POOL_TIMEOUT: int = Field(default=30, ge=1)
+    # Job queue (Procrastinate) pool: one connection kept open, up to this
+    # many. The API only defers jobs; the worker also listens and runs one.
+    JOBS_DB_POOL_MAX: int = Field(default=4, ge=2)
+
     @computed_field  # type: ignore[prop-decorator]
     @property
     def app_user_configured(self) -> bool:
