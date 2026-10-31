@@ -39,7 +39,6 @@ import {
   ChevronRight,
   Dumbbell,
   Flame,
-  History,
   type LucideIcon,
   Moon,
   MoreHorizontal,
@@ -1324,12 +1323,6 @@ function FinanceCard() {
     due = N.occurrencesIn(s, N.addDays(today, -14), N.addDays(today, 1)).filter(
       (o) => o.status === "overdue" || o.status === "due",
     ),
-    stale = s.accounts.find(
-      (a) =>
-        !a.archived &&
-        (a.type === "ewallet" || a.type === "bank") &&
-        (N.lastReconciledDays(a) ?? 999) > s.settings.nudgeDays,
-    ),
     pending = s.records.filter((r) => r.status === "pending").length,
     lastMonth = N.addMonths(N.monthOf(today, s.settings.monthStartDay), -1),
     reviewReady =
@@ -1473,7 +1466,7 @@ function FinanceCard() {
               ))}
             </View>
           )}
-          {(alerts.length > 0 || reviewReady || stale || pending > 0) && (
+          {(alerts.length > 0 || reviewReady || pending > 0) && (
             <View
               style={{
                 borderTopWidth: 1,
@@ -1498,13 +1491,6 @@ function FinanceCard() {
                   `${N.monthLabel(lastMonth, true)} review ready`,
                   `/finance/review?period=${lastMonth}`,
                   t.life,
-                )}
-              {stale &&
-                info(
-                  History,
-                  `${stale.name} not matched with a statement for ${N.lastReconciledDays(stale) ?? "a while"} days`,
-                  `/finance/import?account=${stale.id}`,
-                  t.warn,
                 )}
               {pending > 0 &&
                 info(

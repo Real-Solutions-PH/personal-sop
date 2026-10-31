@@ -38,7 +38,6 @@ export function FinanceSetup({
           color: "green",
           on: true,
           balance: "",
-          limit: "",
         },
         {
           key: "gcash",
@@ -47,7 +46,6 @@ export function FinanceSetup({
           color: "blue",
           on: true,
           balance: "",
-          limit: "",
         },
         {
           key: "maya",
@@ -56,7 +54,6 @@ export function FinanceSetup({
           color: "emerald",
           on: true,
           balance: "",
-          limit: "",
         },
         {
           key: "bank",
@@ -65,16 +62,6 @@ export function FinanceSetup({
           color: "red",
           on: true,
           balance: "",
-          limit: "",
-        },
-        {
-          key: "cc",
-          name: "Credit card",
-          type: "credit",
-          color: "rose",
-          on: false,
-          balance: "",
-          limit: "",
         },
       ].map((r) => ({ ...r, suggested: r.name })),
     ),
@@ -89,10 +76,8 @@ export function FinanceSetup({
     shown = rows.filter((r) => !live.some((a) => same(a.name, r.suggested))),
     picked = shown.filter((r) => r.on),
     // Where salary and rent land: the bank row, else the first other
-    // non-card account being added, else one the person already has.
-    landing =
-      picked.find((r) => r.key === "bank") ??
-      picked.find((r) => r.type !== "credit"),
+    // account being added, else a non-card one the person already has.
+    landing = picked.find((r) => r.key === "bank") ?? picked[0],
     existing = live.find((a) => a.type !== "credit"),
     plans = Number(salary) > 0 || Number(rent) > 0,
     homeless = plans && !landing && !existing,
@@ -117,11 +102,10 @@ export function FinanceSetup({
       created[r.key] = A.addAccount({
         name: r.name.trim(),
         type: r.type as AccountType,
-        opening: (r.type === "credit" ? -1 : 1) * Number(r.balance || 0),
+        opening: Number(r.balance || 0),
         color: `var(--acct-${r.color})`,
-        limit: r.type === "credit" ? Number(r.limit || 0) : undefined,
         inNetWorth: true,
-        inProjection: r.type !== "credit",
+        inProjection: true,
       }).id
     }
     const home = landing ? created[landing.key] : existing?.id,
@@ -160,7 +144,7 @@ export function FinanceSetup({
     }
     // A default account, so the first transaction has somewhere to go:
     // GCash, else the one already set, else the first everyday account.
-    const firstSpend = picked.find((r) => r.type !== "credit"),
+    const firstSpend = picked[0],
       current = s.settings.defaultAccountId
     const fallback =
       current && live.some((a) => a.id === current)
@@ -237,9 +221,7 @@ export function FinanceSetup({
               <MoneyInput
                 bare
                 label={`${r.name} balance`}
-                placeholder={
-                  r.type === "credit" ? `owed ${sym}` : `balance ${sym}`
-                }
+                placeholder={`balance ${sym}`}
                 value={r.balance}
                 onChange={(balance) => set(r.key, { balance, on: true })}
                 style={{
@@ -257,15 +239,6 @@ export function FinanceSetup({
                 }}
               />
             </Line>
-            {r.type === "credit" && r.on && (
-              <MoneyInput
-                label="Credit limit"
-                hideLabel
-                placeholder={`Credit limit ${sym}`}
-                value={r.limit}
-                onChange={(limit) => set(r.key, { limit })}
-              />
-            )}
           </Frame>
         ))}
         {/* Every suggestion exists already: the accounts themselves,

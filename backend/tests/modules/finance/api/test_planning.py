@@ -263,7 +263,7 @@ def test_projection_reports_review_and_look_backs(
     f = _fin(client, db)
     cats = f.cats()
     a = f.account("BPI", type="bank", opening=10_000_000)
-    card = f.account("Card", type="credit", in_projection=False)
+    card = f.account("Card", type="ewallet", in_projection=False)
     f.expense(a, 50_000, cats["dining"], payee="Jollibee")
     f.post(
         "/planned",
