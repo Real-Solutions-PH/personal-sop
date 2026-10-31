@@ -380,7 +380,9 @@ describe("profiles", () => {
     expect(c[c.indexOf("--workers") + 1]).toBe("1")
     // One task, nothing to scale between.
     expect(
-      Object.keys(lean.findResources("AWS::ApplicationAutoScaling::ScalableTarget")),
+      Object.keys(
+        lean.findResources("AWS::ApplicationAutoScaling::ScalableTarget"),
+      ),
     ).toHaveLength(0)
   })
 
@@ -405,7 +407,11 @@ describe("profiles", () => {
   test("production: the API scales from 2 to 4 tasks on CPU", () => {
     production.hasResourceProperties(
       "AWS::ApplicationAutoScaling::ScalableTarget",
-      { MinCapacity: 2, MaxCapacity: 4, ScalableDimension: "ecs:service:DesiredCount" },
+      {
+        MinCapacity: 2,
+        MaxCapacity: 4,
+        ScalableDimension: "ecs:service:DesiredCount",
+      },
     )
     production.hasResourceProperties(
       "AWS::ApplicationAutoScaling::ScalingPolicy",
@@ -423,7 +429,12 @@ describe("profiles", () => {
 
   test("GoTrue's connection pool is capped (unset, it has no ceiling)", () => {
     expect(
-      Number(envValue(container("unfurl-gotrue", "gotrue"), "GOTRUE_DB_MAX_POOL_SIZE")),
+      Number(
+        envValue(
+          container("unfurl-gotrue", "gotrue"),
+          "GOTRUE_DB_MAX_POOL_SIZE",
+        ),
+      ),
     ).toBe(10)
   })
 

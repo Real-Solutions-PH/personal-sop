@@ -16,10 +16,12 @@ export const BACKEND_DEFAULTED: Record<string, string> = {
   DB_POOL_SIZE:
     "Default 10 (app engine, per process); config.ts's connectionBudget counts every pool at its maximum against the database's max_connections.",
   DB_MAX_OVERFLOW: "Default 10; counted in connectionBudget.",
-  DB_OWNER_POOL_SIZE: "Default 3 (owner engine, per process); counted in connectionBudget.",
+  DB_OWNER_POOL_SIZE:
+    "Default 3 (owner engine, per process); counted in connectionBudget.",
   DB_OWNER_MAX_OVERFLOW: "Default 5; counted in connectionBudget.",
   DB_POOL_TIMEOUT: "Default 30 s.",
-  JOBS_DB_POOL_MAX: "Default 4 (job queue, per process); counted in connectionBudget.",
+  JOBS_DB_POOL_MAX:
+    "Default 4 (job queue, per process); counted in connectionBudget.",
   MAX_IN_FLIGHT_REQUESTS:
     "Default 20, below the API's 40 threadpool threads, so a request holding a database connection always gets a thread to finish on.",
   RATE_LIMIT_PER_MINUTE:
