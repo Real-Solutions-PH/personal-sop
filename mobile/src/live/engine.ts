@@ -495,26 +495,27 @@ export class SyncEngine {
         const snap = this.snapshot[m.entity]
         const ups: unknown[] = []
         const dels: string[] = []
+        let echo = true
         for (const c of list) {
           if (c.deleted || !c.row) {
             dels.push(c.id)
+            echo = false
             continue
           }
           const local = m.fromServer(c.row, state)
           if (!local) continue
-          // The server's copy of what this device already shows (the echo
-          // of its own write): nothing to merge, so the screen is not
-          // re-rendered when a slow reply lands mid-typing.
           const id = m.id(local)
-          if (Object.hasOwn(shown, id) && same(shown[id], local)) {
-            snap[id] = m.toServer(local, state)
-            continue
-          }
+          if (!Object.hasOwn(shown, id) || !same(shown[id], local)) echo = false
           ups.push(local)
         }
         if (!ups.length && !dels.length) continue
+        // The mapper still merges an echo: it can keep bookkeeping beside
+        // the rows (a workout's highest exercise position).
         const next = m.merge(state, ups, dels)
-        m.store.set(next)
+        // The server's copy of what this device already shows (the echo of
+        // its own write) is not written back, so the screen is not
+        // re-rendered when a slow reply lands mid-typing.
+        if (!echo || !same(next, state)) m.store.set(next)
         for (const id of dels) delete snap[id]
         for (const l of ups) snap[m.id(l)] = m.toServer(l, next)
         this.previous[m.entity] = this.index(m, next)
