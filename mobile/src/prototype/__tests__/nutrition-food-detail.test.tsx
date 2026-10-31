@@ -177,7 +177,7 @@ test("a picked photo uploads, then PATCHes the food with its media id", async ()
   jest.mocked(pickPhoto).mockResolvedValue("data:image/jpeg;base64,AAAA")
   const put = jest.fn(async () => ({ ok: true, status: 200 }))
   const realFetch = global.fetch
-  let saved = food
+  let saved: object = food
   global.fetch = put as unknown as typeof fetch
   mockRequest.mockImplementation(async (method: string, path: string) => {
     if (path === "/media/uploads")
