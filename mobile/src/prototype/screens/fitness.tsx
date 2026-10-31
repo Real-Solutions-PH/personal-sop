@@ -1,8 +1,9 @@
 import * as A from "@domain/fitness/actions"
+import * as C from "@domain/fitness/calc"
 import type { Exercise } from "@domain/fitness/data"
 import { fitStore } from "@domain/fitness/store"
 import { Redirect, useLocalSearchParams } from "expo-router"
-import { Plus } from "lucide-react-native"
+import { Check, Plus } from "lucide-react-native"
 import { useState } from "react"
 import { View } from "react-native"
 import { toast } from "sonner-native"
@@ -24,24 +25,51 @@ export function FitnessHome() {
   return <FitnessTrain />
 }
 /** Under an exercise picker's results: make a new exercise, named from
- * the search when it found no exact match. */
+ * the search when it found no exact match. Exercises are one shared
+ * catalog, so a name that is already an exercise (or one of its former
+ * names, any case or spacing) is never created again: when the picker
+ * passes ``onExisting``, the row offers that exercise instead. */
 export function CreateExerciseRow({
   query,
   onPress,
+  onExisting,
 }: {
   query: string
   onPress: (name: string) => void
+  onExisting?: (e: Exercise) => void
 }) {
   const t = useTheme()
   const exercises = fitStore.use((s) => s.exercises)
-  const name = query.trim()
-  if (
-    name &&
-    exercises.some(
-      (e) => !e.archived && e.name.toLowerCase() === name.toLowerCase(),
+  const name = query.trim().replace(/\s+/g, " ")
+  const existing = name ? C.exerciseNamed({ exercises }, name) : undefined
+  // Already in the results above.
+  if (existing && !existing.archived) return null
+  if (existing && onExisting)
+    return (
+      <Tap
+        label={`Use exercise ${existing.name}`}
+        onPress={() => onExisting(existing)}
+        style={{ paddingVertical: 10 }}
+      >
+        <Line style={{ gap: 12 }}>
+          <View
+            style={{
+              width: 24,
+              height: 24,
+              borderRadius: 6,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: `${t.fit}26`,
+            }}
+          >
+            <Check size={16} color={t.fit} />
+          </View>
+          <Copy weight="medium" style={{ color: t.fit }}>
+            {`Use “${existing.name}”`}
+          </Copy>
+        </Line>
+      </Tap>
     )
-  )
-    return null
   return (
     <Tap
       label={name ? `Create exercise ${name}` : "New exercise"}

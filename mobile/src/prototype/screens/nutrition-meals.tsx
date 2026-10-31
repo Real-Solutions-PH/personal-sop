@@ -12,6 +12,7 @@ import { dayKey } from "@domain/lib/day"
 import { uid } from "@domain/lib/store"
 import { useLocalSearchParams } from "expo-router"
 import {
+  BookOpen,
   Camera,
   CloudOff,
   Copy as CopyIcon,
@@ -42,8 +43,11 @@ import { TimeInput } from "../time-input"
 import { Button, Empty, Screen, undo } from "../ui"
 import { isDay } from "../validation"
 import { MealThumb } from "./nutrition"
+import { LibraryPickSheet } from "./nutrition-food-pick"
 
 const keys = ["kcal", "protein", "carbs", "fat"] as const
+/** An item picked from the food library says so instead of "AI assumed". */
+const LIBRARY_NOTE = "From your food library: "
 const labels: MealLabel[] = ["breakfast", "lunch", "snack", "dinner"]
 export function Input(props: TextInputProps) {
   const t = useTheme()
@@ -218,7 +222,9 @@ function ItemRow({
           <MacroLine m={item} />
           {item.assumption && (
             <Copy size={11} muted style={{ fontStyle: "italic" }}>
-              AI assumed: {item.assumption}
+              {item.assumption.startsWith(LIBRARY_NOTE)
+                ? item.assumption
+                : `AI assumed: ${item.assumption}`}
             </Copy>
           )}
         </View>
@@ -595,6 +601,7 @@ export function ManualMeal() {
     [items, setItems] = useState<MealItem[]>([]),
     [custom, setCustom] = useState({ name: "", ...C.zero() }),
     [recipeName, setRecipeName] = useState(""),
+    [library, setLibrary] = useState(false),
     recipes = fitStore.use((s) => s.recipes),
     totals = C.sumMacros(items)
   const stamp = () => {
@@ -605,7 +612,10 @@ export function ManualMeal() {
     return new Date(`${day}T${time}:00`).toISOString()
   }
   const scale = (it: MealItem, qty: number) => {
-    const f = it.qty ? qty / it.qty : 1
+    const f = it.qty ? qty / it.qty : 1,
+      // The optional detail (a library food's fiber, sodium…) follows too.
+      more = (v: number | undefined) =>
+        v === undefined ? undefined : Math.round(v * f * 10) / 10
     return {
       ...it,
       qty,
@@ -613,6 +623,10 @@ export function ManualMeal() {
       protein: Math.round(it.protein * f),
       carbs: Math.round(it.carbs * f),
       fat: Math.round(it.fat * f),
+      ...(it.fiber !== undefined ? { fiber: more(it.fiber) } : {}),
+      ...(it.satFat !== undefined ? { satFat: more(it.satFat) } : {}),
+      ...(it.sugar !== undefined ? { sugar: more(it.sugar) } : {}),
+      ...(it.sodium !== undefined ? { sodium: more(it.sodium) } : {}),
     }
   }
   return (
@@ -759,6 +773,19 @@ export function ManualMeal() {
             ])
         }}
       />
+      <Button icon={BookOpen} tone="quiet" onPress={() => setLibrary(true)}>
+        Pick from library
+      </Button>
+      {library && (
+        <LibraryPickSheet
+          onClose={() => setLibrary(false)}
+          onAdd={(item, food) => {
+            setItems((now) => [...now, item])
+            setLibrary(false)
+            toast.success(`Added ${food.name} · ${Math.round(item.kcal)} kcal`)
+          }}
+        />
+      )}
       {!!recipes.length && (
         <Frame style={{ padding: 16, gap: 8 }}>
           <Copy size={14} weight="medium">

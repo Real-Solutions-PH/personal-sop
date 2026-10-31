@@ -140,11 +140,12 @@ def test_a_food_another_member_added_is_reused_not_copied(db: Session) -> None:
     other, _ = signed_in(db)
     with ctx_for(author) as ctx:
         mine, _ = L.save_food(ctx, L.FoodDraft(name="Japanese siomai", kcal=140))
+        mine_id = mine.id
         ctx.session.commit()
     with ctx_for(other) as ctx:
         for said in ("japanese siomai", "Japanese siomais", "japanese siomia"):
             got, new = L.save_food(ctx, L.FoodDraft(name=said, kcal=999))
-            assert (got.id, new, got.kcal) == (mine.id, False, 140)
+            assert (got.id, new, got.kcal) == (mine_id, False, 140)
         ctx.session.commit()
     assert foods_of(other.id) == []
 

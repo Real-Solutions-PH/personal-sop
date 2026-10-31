@@ -260,6 +260,14 @@ export function WorkoutLogger() {
     const removed = A.removeSet(w.id, weId, setId)
     if (removed) undo("Set deleted", () => A.restoreSet(w.id, weId, removed))
   }
+  /** "Create" named an exercise the catalog already has: use that one. */
+  const pickExisting = (e: Exercise) => {
+    if (picker === "add")
+      A.addExercises(w.id, [...picked.filter((x) => x !== e.id), e.id])
+    else if (picker) A.replaceExercise(w.id, picker, e.id)
+    setPicker(null)
+    toast.success(`${e.name} is already an exercise — added it`)
+  }
   return (
     <Screen
       title={p.edit ? `Edit · ${w.name}` : w.name}
@@ -714,7 +722,11 @@ export function WorkoutLogger() {
           ))}
         <CreateExerciseRow
           query={query}
+          onExisting={pickExisting}
           onPress={(name) => {
+            // The catalog is shared: a name it already has is that exercise.
+            const hit = name ? C.exerciseNamed(fitStore.get(), name) : undefined
+            if (hit) return pickExisting(hit)
             setHandoff({ name, mode: picker ?? "add" })
             setPicker(null)
           }}

@@ -245,7 +245,8 @@ def test_rules_guard_synced_writes(client: TestClient, db: Session) -> None:
     )
     got = [(r["status"], r["code"]) for r in res]
     assert got == [
-        ("rejected", "template_not_found"),
+        # Routines are shared: readable, but only their author adds slots.
+        ("rejected", "catalog_read_only"),
         ("rejected", "use_start_action"),
         ("applied", None),
         ("rejected", "use_finish_action"),

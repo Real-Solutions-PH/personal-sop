@@ -187,14 +187,15 @@ def test_chat_logging_finds_the_survivor(client: TestClient, db: Session) -> Non
     user, h = signed_in(db)
     target = exercise_ids(client, h)["Barbell Bench Press"]
     with ctx_for(user) as ctx:
-        minted = services.find_or_create_exercise(ctx, "Bench press")
+        # A name the catalog does not resolve to the bench press yet.
+        minted = services.find_or_create_exercise(ctx, "Flat bench")
         ctx.session.commit()
         source = str(minted.id)
     ok(_merge(client, h, source, target))
 
     with ctx_for(user) as ctx:
-        again = str(services.find_or_create_exercise(ctx, "bench press").id)
-        replay = str(services.find_or_create_exercise(ctx, "BENCH PRESS ").id)
+        again = str(services.find_or_create_exercise(ctx, "flat bench").id)
+        replay = str(services.find_or_create_exercise(ctx, "FLAT BENCH ").id)
         ctx.session.commit()
     assert again == target and replay == target
     gone = _row(source)
@@ -203,7 +204,7 @@ def test_chat_logging_finds_the_survivor(client: TestClient, db: Session) -> Non
         named = s.exec(
             select(Exercise).where(
                 Exercise.owner_id == user.id,
-                col(Exercise.name).ilike("bench press"),
+                col(Exercise.name).ilike("flat bench"),
                 col(Exercise.merged_into_id).is_(None),
             )
         ).all()

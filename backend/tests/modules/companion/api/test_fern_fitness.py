@@ -225,7 +225,7 @@ def test_creating_a_routine_by_an_existing_name_reuses_it(
         api,
         client,
         monkeypatch,
-        "make a push a routine",
+        "make a push a workout template",
         act(
             "create_workout_template",
             name="push a",

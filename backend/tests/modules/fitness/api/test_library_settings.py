@@ -326,8 +326,8 @@ def test_members_share_routines_and_exercises_but_edit_only_their_own(
             json={"source": "template", "template_id": t["id"]},
         )
     )
-    assert started["exercises"][0]["exercise_id"] == ex["id"]
-    ok(client.post(f"{API}/workouts/{started['id']}/discard", headers=h2))
+    assert started["workout"]["exercises"][0]["exercise_id"] == ex["id"]
+    ok(client.post(f"{API}/workouts/{started['workout']['id']}/discard", headers=h2))
     ok(
         client.post(
             f"{API}/templates",
