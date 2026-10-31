@@ -22,6 +22,11 @@ enum Tone {
   static let fin = Color("fin")
   static let life = Color("life")
   static let warn = Color("warn")
+  static let foc = Color("foc")
+  static let scr = Color("scr")
+  static let moss = Color("moss")
+  static let frond = Color("frond")
+  static let sprout = Color("sprout")
 }
 
 func deepLink(_ path: String) -> URL {
@@ -560,6 +565,12 @@ struct UnfurlWidgets: WidgetBundle {
     MacrosWidget()
     TasksWidget()
     MoneyWidget()
+    FernWidget()
+    AppsWidget()
     UnfurlLiveActivity()
+    if #available(iOS 18.0, *) {
+      AskFernControl()
+      DictateFernControl()
+    }
   }
 }

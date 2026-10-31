@@ -31,6 +31,7 @@ import {
 } from "react-native"
 import { toast } from "sonner-native"
 import { liveMode } from "@/live/config"
+import { fernLaunch } from "../companion/launch"
 import { Orb } from "../companion/orb"
 import { markVoiceTurn, thinking } from "../companion/store"
 import { composeDictation, useLiveDictation } from "../live-dictation"
@@ -151,6 +152,16 @@ export function ThreadComposer({
     if (Date.now() - woke.at > 5_000 || live.listening) return
     void dictate(woke.rest)
   }, [woke, wakeTarget])
+  // A widget's Fern button asked for the camera or the keyboard.
+  const launched = fernLaunch((s) => s.pending)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: on a new launch only
+  useEffect(() => {
+    if (!launched || !wakeTarget || !dictation) return
+    fernLaunch.setState({ pending: null })
+    if (launched.kind === "camera")
+      void pickPhoto(true).then((v) => v && addPhotos([v]))
+    else input.current?.focus()
+  }, [launched, wakeTarget])
   function transcribe(audio: string, durationSec: number) {
     const live = require("@/live/dictate") as typeof import("@/live/dictate")
     setSpoken(true)

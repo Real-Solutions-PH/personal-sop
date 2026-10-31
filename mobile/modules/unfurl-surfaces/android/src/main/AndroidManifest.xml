@@ -25,5 +25,13 @@
       <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
       <meta-data android:name="android.appwidget.provider" android:resource="@xml/unfurl_widget_money" />
     </receiver>
+    <receiver android:name="expo.modules.unfurlsurfaces.FernWidget" android:exported="false" android:label="Fern">
+      <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+      <meta-data android:name="android.appwidget.provider" android:resource="@xml/unfurl_widget_fern" />
+    </receiver>
+    <receiver android:name="expo.modules.unfurlsurfaces.AppsWidget" android:exported="false" android:label="Unfurl apps">
+      <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+      <meta-data android:name="android.appwidget.provider" android:resource="@xml/unfurl_widget_apps" />
+    </receiver>
   </application>
 </manifest>
