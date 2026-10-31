@@ -8,7 +8,7 @@ import { expectedTrend } from "@domain/finance/forecast"
 import { isCustom, type Period, type reportData } from "@domain/finance/reports"
 import { ChevronRight } from "lucide-react-native"
 import type { ReactNode } from "react"
-import { useWindowDimensions, View } from "react-native"
+import { View } from "react-native"
 import { FinanceLineChart } from "../chart"
 import {
   BudgetColumns,
@@ -74,7 +74,6 @@ export function SavingsRateCard({
 }: CardProps & { href?: string }) {
   const t = useTheme()
   const money = useMoney()
-  const narrow = useWindowDimensions().width < 380
   const items = [
     { label: "Income", value: money(d.flow.income) },
     {
@@ -82,38 +81,45 @@ export function SavingsRateCard({
       value: money(d.flow.spend),
       delta: delta(d.flow.spend, d.prev.spend),
     },
-    {
-      label: "Savings rate",
-      value: C.pct(C.savingsRate(d.flow)),
-      color: t.fin,
-    },
   ]
+  // Income and spent share a row, each shrinking to fit its half rather
+  // than cutting a figure short; the savings rate gets a row of its own.
   return (
     <Tap onPress={() => go(href)} label="Savings rate">
-      <Line style={{ gap: 8, alignItems: "stretch" }}>
-        {items.map((x) => (
-          <Frame key={x.label} style={{ padding: 12, flex: 1 }}>
-            <Copy
-              size={narrow ? 22 : 30}
-              weight="displayMedium"
-              lines={1}
-              style={{ color: x.color ?? t.text }}
-            >
-              {x.value}
+      <View style={{ gap: 8 }}>
+        <Line style={{ gap: 8, alignItems: "stretch" }}>
+          {items.map((x) => (
+            <Frame key={x.label} style={{ padding: 12, flex: 1 }}>
+              <Copy size={24} weight="displayMedium" fit>
+                {x.value}
+              </Copy>
+              <Copy size={12} muted>
+                {x.label}
+                {!!x.delta && (
+                  <Copy
+                    size={12}
+                    style={{ color: x.delta > 0 ? t.bad : t.good }}
+                  >
+                    {"  "}
+                    {x.delta > 0 ? "▲" : "▼"}
+                    {Math.abs(x.delta)}%
+                  </Copy>
+                )}
+              </Copy>
+            </Frame>
+          ))}
+        </Line>
+        <Frame style={{ padding: 12 }}>
+          <Line style={{ justifyContent: "space-between", gap: 12 }}>
+            <Copy size={14} muted style={{ flex: 1 }}>
+              Savings rate
             </Copy>
-            <Copy size={12} muted lines={1}>
-              {x.label}
-              {!!x.delta && (
-                <Copy size={12} style={{ color: x.delta > 0 ? t.bad : t.good }}>
-                  {"  "}
-                  {x.delta > 0 ? "▲" : "▼"}
-                  {Math.abs(x.delta)}%
-                </Copy>
-              )}
+            <Copy size={24} weight="displayMedium" style={{ color: t.fin }}>
+              {C.pct(C.savingsRate(d.flow))}
             </Copy>
-          </Frame>
-        ))}
-      </Line>
+          </Line>
+        </Frame>
+      </View>
     </Tap>
   )
 }
@@ -159,7 +165,7 @@ export function CategoryCard({ d, period }: CardProps) {
                   backgroundColor: t[FIN_PALETTE[i % 7]],
                 }}
               />
-              <Copy size={12} lines={1} style={{ flex: 1 }}>
+              <Copy size={12} style={{ flex: 1 }}>
                 {d.cats.get(id)?.icon} {d.cats.get(id)?.name ?? "Other"}
               </Copy>
               <Copy size={12} muted>
@@ -289,7 +295,7 @@ export function BudgetHistoryCard({ d, s }: CardProps & { s: FinState }) {
       <View style={{ gap: 16 }}>
         {rows.map(({ b, hist }) => (
           <Line key={b.id} style={{ gap: 12, alignItems: "flex-start" }}>
-            <Copy size={12} lines={1} style={{ width: 112, paddingTop: 2 }}>
+            <Copy size={12} style={{ width: 112, paddingTop: 2 }}>
               {b.name}
             </Copy>
             <BudgetColumns
@@ -329,8 +335,14 @@ export function TopPayeesCard({ d, period }: CardProps) {
       <View style={{ gap: 10 }}>
         {rows.map(([name, v]) => (
           <View key={name} style={{ gap: 4 }}>
-            <Line style={{ justifyContent: "space-between" }}>
-              <Copy size={14} lines={1} style={{ flex: 1 }}>
+            <Line
+              style={{
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                gap: 12,
+              }}
+            >
+              <Copy size={14} style={{ flex: 1 }}>
                 {name}
               </Copy>
               <Copy size={14}>{d.payees.length ? money(v) : ""}</Copy>

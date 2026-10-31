@@ -414,9 +414,7 @@ export function Accounts({ id }: { id?: string }) {
                   >
                     <Line>
                       <View style={{ flex: 1 }}>
-                        <Copy weight="medium" lines={1}>
-                          {i.fileName}
-                        </Copy>
+                        <Copy weight="medium">{i.fileName}</Copy>
                         <Copy size={12} muted>
                           {C.shortDate(i.from)} – {C.shortDate(i.to)}
                         </Copy>
@@ -473,8 +471,8 @@ export function Accounts({ id }: { id?: string }) {
       ) : (
         <>
           <Frame style={{ padding: 16 }}>
-            <Line style={{ justifyContent: "space-between" }}>
-              <View>
+            <Line style={{ justifyContent: "space-between", gap: 12 }}>
+              <View style={{ flex: 1 }}>
                 <Copy
                   size={30}
                   weight="displayMedium"

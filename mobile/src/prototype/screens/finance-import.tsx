@@ -234,7 +234,7 @@ function ImportStart() {
                 <FileText size={20} color={t.text} />
               </View>
               <View style={{ flex: 1 }}>
-                <Copy size={14} weight="medium" lines={1}>
+                <Copy size={14} weight="medium">
                   {picked.name}
                 </Copy>
                 <Copy size={12} muted>
@@ -275,7 +275,7 @@ function ImportStart() {
                     <Icon size={20} color={t.text} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Copy size={14} weight="medium" lines={1}>
+                    <Copy size={14} weight="medium">
                       {f.name}
                     </Copy>
                     <Copy size={12} muted>
@@ -427,7 +427,7 @@ function Parsing({ imp }: { imp: StatementImport }) {
         <Line>
           <FileText size={32} color={t.muted} />
           <View style={{ flex: 1 }}>
-            <Copy size={14} weight="medium" lines={1}>
+            <Copy size={14} weight="medium">
               {imp.fileName}
             </Copy>
             <Copy size={12} muted>
@@ -832,12 +832,7 @@ function Review({ imp }: { imp: StatementImport }) {
                   }}
                 >
                   <Line style={{ gap: 8 }}>
-                    <Copy
-                      size={14}
-                      weight="medium"
-                      lines={1}
-                      style={{ flex: 1 }}
-                    >
+                    <Copy size={14} weight="medium" style={{ flex: 1 }}>
                       {r.payee}
                     </Copy>
                     <Copy
@@ -849,7 +844,7 @@ function Review({ imp }: { imp: StatementImport }) {
                       {money(r.amount)}
                     </Copy>
                   </Line>
-                  <Copy size={10} muted lines={1} style={{ marginTop: 2 }}>
+                  <Copy size={10} muted style={{ marginTop: 2 }}>
                     {r.raw}
                   </Copy>
                   <Line style={{ gap: 6, flexWrap: "wrap", marginTop: 6 }}>
@@ -1393,7 +1388,7 @@ export function Imports() {
                 <Line>
                   <FileText size={32} color={t.fin} />
                   <View style={{ flex: 1 }}>
-                    <Copy size={14} weight="medium" lines={1}>
+                    <Copy size={14} weight="medium">
                       {i.fileName}
                     </Copy>
                     <Copy size={12} muted>

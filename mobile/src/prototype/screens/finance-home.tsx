@@ -106,8 +106,8 @@ export function FinanceRecord({
           </Copy>
         </View>
         <View style={{ flex: 1 }}>
-          <Line style={{ gap: 4 }}>
-            <Copy weight="medium" lines={1} style={{ flexShrink: 1 }}>
+          <Line style={{ gap: 4, flexWrap: "wrap" }}>
+            <Copy weight="medium">
               {record.payee ??
                 (record.type === "transfer"
                   ? `${account?.name} → ${s.accounts.find((a) => a.id === record.toAccountId)?.name}`
@@ -117,7 +117,7 @@ export function FinanceRecord({
               <FinPill tone="warn">review</FinPill>
             )}
           </Line>
-          <Copy size={12} muted lines={1}>
+          <Copy size={12} muted>
             {record.type === "transfer"
               ? `${account?.name ?? "?"} → ${s.accounts.find((a) => a.id === record.toAccountId)?.name ?? "?"}`
               : `${category?.name ?? "Uncategorised"} · ${account?.name ?? "?"}`}{" "}
@@ -258,7 +258,7 @@ export function FinanceHome({
                 <Copy
                   size={30}
                   weight="displayMedium"
-                  lines={1}
+                  fit
                   style={{ letterSpacing: -0.75 }}
                 >
                   {money(nw)}
@@ -300,7 +300,7 @@ export function FinanceHome({
                     <Copy size={12} muted>
                       {m.label}
                     </Copy>
-                    <Copy size={18} weight="semibold" lines={1}>
+                    <Copy size={18} weight="semibold" fit>
                       {m.value}
                     </Copy>
                   </View>

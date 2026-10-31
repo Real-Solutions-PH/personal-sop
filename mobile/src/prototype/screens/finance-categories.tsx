@@ -366,9 +366,7 @@ export function Categories() {
             <Copy size={18}>{c.icon}</Copy>
           </View>
           <View style={{ flex: 1 }}>
-            <Copy weight="medium" lines={1}>
-              {c.name}
-            </Copy>
+            <Copy weight="medium">{c.name}</Copy>
             <Copy size={12} muted>
               {count} transaction{count === 1 ? "" : "s"}
               {kids ? ` · ${kids} sub-categor${kids === 1 ? "y" : "ies"}` : ""}

@@ -66,7 +66,7 @@ export function FinanceOutlook() {
         ]}
       />
       <Frame style={{ padding: 16, marginTop: 12, gap: 16 }}>
-        <Line style={{ gap: 8, alignItems: "flex-start" }}>
+        <View style={{ gap: 8 }}>
           {[
             { label: "To pay", value: o.toPay, color: t.bad, sign: "−" },
             { label: "Coming in", value: o.comingIn, color: t.good, sign: "+" },
@@ -77,22 +77,24 @@ export function FinanceOutlook() {
               sign: "",
             },
           ].map((m) => (
-            <View key={m.label} style={{ flex: 1, gap: 2 }}>
-              <Copy
-                size={18}
-                weight="semibold"
-                lines={1}
-                style={{ color: m.color }}
-              >
+            <Line
+              key={m.label}
+              style={{
+                justifyContent: "space-between",
+                alignItems: "baseline",
+                gap: 12,
+              }}
+            >
+              <Copy size={14} muted style={{ flex: 1 }}>
+                {m.label}
+              </Copy>
+              <Copy size={18} weight="semibold" style={{ color: m.color }}>
                 {m.value && m.sign ? m.sign : ""}
                 {money(Math.abs(m.value))}
               </Copy>
-              <Copy size={12} muted lines={2}>
-                {m.label}
-              </Copy>
-            </View>
+            </Line>
           ))}
-        </Line>
+        </View>
         <View style={{ gap: 6 }}>
           <FinanceLineChart
             series={[
@@ -179,9 +181,7 @@ export function OutlookRow({ x }: { x: Occurrence }) {
           </Copy>
         </View>
         <View style={{ flex: 1 }}>
-          <Copy weight="medium" lines={1}>
-            {x.item.name}
-          </Copy>
+          <Copy weight="medium">{x.item.name}</Copy>
           <Line style={{ gap: 6 }}>
             <Copy size={12} muted>
               {N.dayLabel(x.day)}

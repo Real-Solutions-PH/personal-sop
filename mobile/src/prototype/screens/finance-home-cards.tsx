@@ -3,10 +3,8 @@
 // on hand to the month's end), and the savings projection.
 import * as N from "@domain/finance/calc"
 import type { FinState } from "@domain/finance/data"
-import { currencySymbol } from "@domain/lib/money"
-import { privacyStore } from "@domain/lib/privacy"
 import { PiggyBank } from "lucide-react-native"
-import { Text, useWindowDimensions, View } from "react-native"
+import { Text, View } from "react-native"
 import { FinanceLineChart, Sparkline } from "../chart"
 import { ChartLegend, ExpectedBars } from "../finance-charts"
 import { Bar, Copy, Frame, Line, SectionHeading, Tap } from "../native-kit"
@@ -21,40 +19,31 @@ const SHOWN = 3
 const signed = (money: (v: number) => string, v: number) =>
   `${v >= 0 ? "+" : "−"}${money(Math.abs(v))}`
 
-/** The overall budget's room left, and the three fullest category budgets. */
+/** The month's budget headline (the overall budget, or the category
+ * budgets added together when there is none) and the three fullest
+ * category budgets. Dimmed only when there is no budget at all. */
 export function BudgetsSection({ s }: { s: FinState }) {
   const t = useTheme()
   const money = useMoney()
-  const narrow = useWindowDimensions().width < 380
-  const sd = s.settings.monthStartDay
-  const mk = N.monthOf(N.today(), sd)
-  const flow = N.flowIn(s, ...N.monthRange(mk, sd))
-  const views = s.budgets
-    .filter((b) => !b.archived)
+  const sum = N.budgetSummary(s)
+  const top = s.budgets
+    .filter((b) => !b.archived && b.categoryIds !== null)
     .map((b) => N.budgetView(s, b))
-  const overall = views.find((v) => v.b.categoryIds === null)
-  const top = views
-    .filter((v) => v.b.categoryIds !== null)
     .sort((a, b) => b.pct - a.pct)
-    .slice(0, 3)
-  const left = overall ? overall.limit - overall.spent : 0
+    .slice(0, SHOWN)
+  const left = sum?.left ?? 0
+  const scope = !sum
+    ? "Set a monthly budget"
+    : sum.source === "overall"
+      ? `Left of ${money(sum.limit)} this month`
+      : `Left of ${money(sum.limit)} across ${sum.count} category ${sum.count === 1 ? "budget" : "budgets"}`
   const tiles = [
     {
-      label: "Left",
-      value: left < 0 ? `−${money(-left)}` : money(left),
-      color: left < 0 ? t.bad : t.text,
-    },
-    {
       label: "Safe / day",
-      value: money(overall?.safePerDay ?? 0),
+      value: money(sum?.safePerDay ?? 0),
       color: t.fin,
     },
-    { label: "Spent", value: money(flow.spend), color: t.text },
-    {
-      label: "Days left",
-      value: String(overall?.daysLeft ?? "—"),
-      color: t.text,
-    },
+    { label: "Spent", value: money(sum?.spent ?? 0), color: t.text },
   ]
   return (
     <View>
@@ -71,62 +60,77 @@ export function BudgetsSection({ s }: { s: FinState }) {
       </SectionHeading>
       <Frame style={{ padding: 16 }}>
         <Tap onPress={() => go("/finance/budgets")} label="Budgets">
-          <View style={{ opacity: overall ? 1 : 0.32 }}>
+          <View style={{ opacity: sum ? 1 : 0.32, gap: 16 }}>
             <Line style={{ gap: 16 }}>
               <Ring
-                value={overall ? Math.max(0, 1 - overall.pct) : 0}
+                value={sum ? Math.max(0, 1 - sum.pct) : 0}
                 size={84}
                 strokeWidth={9}
-                color={overall && overall.pct > overall.pace ? t.warn : t.fin}
+                color={sum && sum.pct > sum.pace ? t.warn : t.fin}
               >
                 <Copy size={18} weight="semibold">
-                  {overall
-                    ? `${Math.max(0, Math.round((1 - overall.pct) * 100))}%`
+                  {sum
+                    ? `${Math.max(0, Math.round((1 - sum.pct) * 100))}%`
                     : "—"}
                 </Copy>
                 <Copy size={12} muted>
                   left
                 </Copy>
               </Ring>
-              <View
-                style={{
-                  flex: 1,
-                  flexDirection: "row",
-                  flexWrap: "wrap",
-                  rowGap: 12,
-                }}
-              >
-                {tiles.map((m) => (
-                  <View key={m.label} style={{ width: "50%", paddingRight: 4 }}>
-                    <Copy
-                      size={narrow ? 20 : 24}
-                      weight="display"
-                      lines={1}
-                      style={{ color: m.color }}
-                    >
-                      {m.value}
-                    </Copy>
-                    <Copy size={12} muted lines={1}>
-                      {m.label}
-                    </Copy>
-                  </View>
-                ))}
+              <View style={{ flex: 1, gap: 2 }}>
+                <Copy
+                  size={28}
+                  weight="display"
+                  fit
+                  style={{ color: left < 0 ? t.bad : t.text }}
+                >
+                  {left < 0 ? `−${money(-left)}` : money(left)}
+                </Copy>
+                <Copy size={12} muted>
+                  {scope}
+                </Copy>
+                {sum && (
+                  <Copy size={12} muted>
+                    {sum.daysLeft === 0
+                      ? "Last day of the month"
+                      : sum.daysLeft === 1
+                        ? "1 day left"
+                        : `${sum.daysLeft} days left`}
+                  </Copy>
+                )}
               </View>
             </Line>
+            <Line style={{ gap: 12, alignItems: "flex-start" }}>
+              {tiles.map((m) => (
+                <View key={m.label} style={{ flex: 1 }}>
+                  <Copy
+                    size={20}
+                    weight="display"
+                    fit
+                    style={{ color: m.color }}
+                  >
+                    {m.value}
+                  </Copy>
+                  <Copy size={12} muted>
+                    {m.label}
+                  </Copy>
+                </View>
+              ))}
+            </Line>
           </View>
-          {!overall && (
-            <Copy size={12} muted style={{ marginTop: 8 }}>
-              Set a monthly budget
-            </Copy>
-          )}
           {top.length > 0 && (
             <View style={{ marginTop: 16, gap: 10 }}>
               {top.map((v) => (
                 <View key={v.b.id}>
                   <Line
-                    style={{ justifyContent: "space-between", marginBottom: 4 }}
+                    style={{
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
+                      gap: 8,
+                      marginBottom: 4,
+                    }}
                   >
-                    <Copy size={12} lines={1} style={{ flex: 1 }}>
+                    <Copy size={12} style={{ flex: 1 }}>
                       {v.b.name} ·{" "}
                       {v.limit >= v.spent
                         ? `${money(v.limit - v.spent)} left`
@@ -197,7 +201,7 @@ export function CashFlowSection({ s }: { s: FinState }) {
           <Copy
             size={30}
             weight="displayMedium"
-            lines={1}
+            fit
             style={{ color: expNet >= 0 ? t.good : t.bad }}
           >
             {signed(money, expNet)}
@@ -240,7 +244,7 @@ export function CashFlowSection({ s }: { s: FinState }) {
             borderColor: t.line,
           }}
         >
-          <Line style={{ gap: 8, alignItems: "flex-start" }}>
+          <View style={{ gap: 8 }}>
             {[
               { label: "To pay", value: o.toPay, color: t.bad, sign: "−" },
               {
@@ -256,22 +260,24 @@ export function CashFlowSection({ s }: { s: FinState }) {
                 sign: "",
               },
             ].map((m) => (
-              <View key={m.label} style={{ flex: 1, gap: 2 }}>
-                <Copy
-                  size={18}
-                  weight="semibold"
-                  lines={1}
-                  style={{ color: m.color }}
-                >
+              <Line
+                key={m.label}
+                style={{
+                  justifyContent: "space-between",
+                  alignItems: "baseline",
+                  gap: 12,
+                }}
+              >
+                <Copy size={14} muted style={{ flex: 1 }}>
+                  {m.label}
+                </Copy>
+                <Copy size={18} weight="semibold" style={{ color: m.color }}>
                   {m.value && m.sign ? m.sign : ""}
                   {money(Math.abs(m.value))}
                 </Copy>
-                <Copy size={12} muted lines={2}>
-                  {m.label}
-                </Copy>
-              </View>
+              </Line>
             ))}
-          </Line>
+          </View>
           {o.days.length > 1 && (
             <FinanceLineChart
               height={96}
@@ -326,7 +332,6 @@ export function CashFlowSection({ s }: { s: FinState }) {
 export function SavingsSection({ s }: { s: FinState }) {
   const t = useTheme()
   const money = useMoney()
-  const hidden = privacyStore.use((s) => s.hidden)
   const proj = N.project(s, {
     horizon: s.settings.horizon,
     includeUnplanned: s.settings.includeUnplanned,
@@ -345,39 +350,28 @@ export function SavingsSection({ s }: { s: FinState }) {
       <Tap onPress={() => go("/finance/projection")}>
         <Line style={{ gap: 8 }}>
           <PiggyBank size={16} color={t.fin} />
-          <Copy size={12} style={{ color: t.fin }}>
+          <Copy size={12} style={{ color: t.fin, flex: 1 }}>
             Savings projection
           </Copy>
+          {proj.hasIncome && (
+            <Copy size={14} weight="semibold" style={{ color: t.fin }}>
+              Plan a purchase →
+            </Copy>
+          )}
         </Line>
         {proj.hasIncome ? (
           <>
-            <Line
-              style={{
-                justifyContent: "space-between",
-                alignItems: "flex-end",
-                gap: 8,
-                marginTop: 4,
-              }}
-            >
-              <View>
-                <Copy size={24} weight="semibold">
-                  {money(last?.end ?? proj.start)}
-                </Copy>
-                <Copy size={12} muted>
-                  by {last ? N.monthLabel(last.key, true) : ""} ·{" "}
-                  <Text style={{ color: t.good }}>
-                    +
-                    {hidden
-                      ? `${currencySymbol()}•••`
-                      : N.compact(proj.avgSurplus)}
-                    /mo
-                  </Text>
-                </Copy>
-              </View>
-              <Copy size={14} weight="semibold" style={{ color: t.fin }}>
-                Plan a purchase →
+            <View style={{ marginTop: 4 }}>
+              <Copy size={24} weight="semibold" fit>
+                {money(last?.end ?? proj.start)}
               </Copy>
-            </Line>
+              <Copy size={12} muted>
+                by {last ? N.monthLabel(last.key, true) : ""} ·{" "}
+                <Text style={{ color: proj.avgSurplus >= 0 ? t.good : t.bad }}>
+                  {signed(money, proj.avgSurplus)} a month
+                </Text>
+              </Copy>
+            </View>
             <View style={{ marginTop: 8 }}>
               <Sparkline
                 values={[proj.start, ...proj.months.map((m) => m.end)]}
