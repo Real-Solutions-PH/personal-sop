@@ -106,8 +106,8 @@ export function FinanceRecord({
           </Copy>
         </View>
         <View style={{ flex: 1 }}>
-          <Line style={{ gap: 4 }}>
-            <Copy weight="medium" style={{ flexShrink: 1 }}>
+          <Line style={{ gap: 4, flexWrap: "wrap" }}>
+            <Copy weight="medium">
               {record.payee ??
                 (record.type === "transfer"
                   ? `${account?.name} → ${s.accounts.find((a) => a.id === record.toAccountId)?.name}`

@@ -624,10 +624,8 @@ export function Planned({ id }: { id?: string }) {
                 <Line style={{ paddingVertical: 8, paddingHorizontal: 4 }}>
                   <PlannedIcon p={p} />
                   <View style={{ flex: 1 }}>
-                    <Line style={{ gap: 6 }}>
-                      <Copy weight="medium" style={{ flexShrink: 1 }}>
-                        {p.name}
-                      </Copy>
+                    <Line style={{ gap: 6, flexWrap: "wrap" }}>
+                      <Copy weight="medium">{p.name}</Copy>
                       {p.isInstallment && <FinPill>installment</FinPill>}
                       {p.autoLog && <FinPill tone="fin">auto</FinPill>}
                     </Line>

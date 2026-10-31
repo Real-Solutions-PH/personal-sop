@@ -116,7 +116,8 @@ export function Budgets({ id }: { id?: string }) {
               {money(view.spent)} of {money(view.limit)}
             </Copy>
             <Copy size={12} muted>
-              {view.daysLeft} days left · {money(view.safePerDay)}/day
+              {view.daysLeft === 0 ? "Last day" : `${view.daysLeft} days left`}{" "}
+              · {money(view.safePerDay)}/day
             </Copy>
           </Line>
         </Tap>
@@ -162,11 +163,20 @@ export function Budgets({ id }: { id?: string }) {
                 </Copy>
               </Ring>
               <View style={{ flex: 1, gap: 2 }}>
-                <Copy size={30} weight="displayMedium" fit>
-                  {money(Math.max(0, v.limit - v.spent))}
+                <Copy
+                  size={30}
+                  weight="displayMedium"
+                  fit
+                  style={{ color: v.spent > v.limit ? t.bad : t.text }}
+                >
+                  {v.spent > v.limit
+                    ? `−${money(v.spent - v.limit)}`
+                    : money(v.limit - v.spent)}
                 </Copy>
                 <Copy size={12} muted>
-                  Left of {money(v.limit)}
+                  {v.spent > v.limit
+                    ? `Over the ${money(v.limit)} limit`
+                    : `Left of ${money(v.limit)}`}
                 </Copy>
                 <Copy size={12} muted>
                   {v.daysLeft === 0
@@ -291,19 +301,15 @@ export function Budgets({ id }: { id?: string }) {
       ) : views.length ? (
         <>
           <Frame style={{ padding: 16 }}>
-            <Line style={{ justifyContent: "space-between" }}>
-              <View>
-                <Copy size={30} weight="displayMedium" style={{ color: t.fin }}>
-                  {views.filter((v) => v.pct <= 1).length}/{views.length}
-                </Copy>
-                <Copy size={12} muted>
-                  {C.monthLabel(mk, true)} so far
-                </Copy>
-              </View>
-              <Copy size={12} muted style={{ textAlign: "right" }}>
-                budgets within limit{"\n"}Bar marker = where you should be today
-              </Copy>
-            </Line>
+            <Copy size={30} weight="displayMedium" style={{ color: t.fin }}>
+              {views.filter((v) => v.pct <= 1).length}/{views.length}
+            </Copy>
+            <Copy size={12} muted>
+              budgets within limit, {C.monthLabel(mk, true)} so far
+            </Copy>
+            <Copy size={12} muted style={{ marginTop: 4 }}>
+              Bar marker = where you should be today
+            </Copy>
           </Frame>
           <View style={{ marginTop: -12 }}>
             {views.some((v) => v.b.categoryIds === null) && (
