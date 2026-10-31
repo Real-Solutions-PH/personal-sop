@@ -11,6 +11,9 @@ export interface SyncOp {
   id?: string | null
   data?: Record<string, unknown>
   base_version?: number | null
+  /** When the person made the change (ISO): the server applies the op as
+   * of then, so a tick that waited out a slow link keeps its own time. */
+  at?: string
 }
 
 export interface Outbox {

@@ -24,6 +24,7 @@ There are two tensions with the ratified IA (`docs/ia/README.md`):
    - **Push.** `POST /sync/push` takes ordered ops: `upsert`, `delete`, or `action`, the last for domain actions that are not field writes, such as completing a task or settling a bill.
    - **Business rules on every write.** Each op runs through the same use cases REST uses, in its own SAVEPOINT.
    - **Replay safety.** `(owner, op_id)` receipts make replays return the first result.
+   - **Op time.** An op carries `at`, when the person made the change on the device, and is applied as of then (`ctx.now`, so also `ctx.today`): a set ticked on a slow or offline link keeps the time it was ticked, and the rest timer, workout start or routine step it starts matches what the phone already shows. `at` more than 5 minutes ahead of the server or more than 30 days behind falls back to the server's time (amended 2026-10-31).
 
 4. **Conflict policy.**
 
@@ -35,7 +36,7 @@ There are two tensions with the ratified IA (`docs/ia/README.md`):
    | A business rule refuses the op | `rejected` with the rule's code |
    | Derived fields (scores, balances, streaks) | The server is authoritative |
 
-5. **Mobile keeps its stores as the UI's source of truth.** An outbox of ops in the native SQLite store is pushed on reconnect, on foreground, or when another device nudges over the event stream (ADR-0013). Server-computed reads are cached and shown stale offline. A server row (pulled, or in a push reply) never undoes a change still in the outbox: it is rebased onto the queued ops first, so the fields a queued upsert writes keep the device's value, and a row a queued delete or action names is held back until the outbox no longer names it (amended 2026-10-24). The web client is unchanged.
+5. **Mobile keeps its stores as the UI's source of truth.** An outbox of ops in the native SQLite store is pushed on reconnect, on foreground, or when another device nudges over the event stream (ADR-0013). Server-computed reads are cached and shown stale offline. A server row (pulled, or in a push reply) never undoes a change still in the outbox: it is rebased onto the queued ops first, so the fields a queued upsert writes keep the device's value, and a row a queued delete or action names is held back until the outbox no longer names it (amended 2026-10-24). A server row equal to what the device already shows (the echo of its own write) is not merged at all, so a late reply never re-renders the screen (amended 2026-10-31). The web client is unchanged.
 
 6. **Money and days.**
    - Money is integer centavos everywhere.

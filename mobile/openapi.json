@@ -31175,6 +31175,13 @@
           "base_version": {
             "anyOf": [{ "type": "integer" }, { "type": "null" }],
             "title": "Base Version"
+          },
+          "at": {
+            "anyOf": [
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
+            ],
+            "title": "At"
           }
         },
         "type": "object",

@@ -73,18 +73,26 @@ class SlowServer implements Http {
 
   private action(op: SyncOp) {
     const d = op.data ?? {}
+    // As the real push: the op applies as of the device's ``at``, else as
+    // of when it arrived.
+    const when = op.at ?? new Date().toISOString()
     if (op.name === "fitness.start_workout")
       this.write("workout", String(d.workout_id), {
         name: "Workout",
         status: "in_progress",
-        started_at: T0.toISOString(),
+        started_at: when,
         source: "live",
       })
     if (op.name === "fitness.toggle_set") {
       const id = String(d.set_id)
       const done = this.rows.get(id)?.row.completed_at
-      this.write("workout_set", id, {
-        completed_at: done ? null : new Date().toISOString(),
+      this.write("workout_set", id, { completed_at: done ? null : when })
+    }
+    if (op.name === "fitness.rest.start") {
+      const sec = Number(d.sec)
+      this.write("rest_timer", "rest", {
+        duration_sec: sec,
+        ends_at: new Date(new Date(when).getTime() + sec * 1000).toISOString(),
       })
     }
     if (op.name === "tasks.complete")
@@ -342,6 +350,55 @@ describe("a set ticked on a slow link never unticks itself", () => {
     expect(server.rows.get(set.id)?.row.completed_at).toBeFalsy()
     expect(seen.values()).toEqual([false, true, false])
   })
+})
+
+test("on a slow link the elapsed time and the rest countdown never jump", async () => {
+  const server = new SlowServer()
+  liveEngine(server)
+  const bench = upsertExercise({ name: "Bench", muscle: "chest" })
+  const tpl = upsertTemplate({
+    name: "Push",
+    items: [{ exerciseId: bench.id, sets: 3 }],
+  })
+  await jest.advanceTimersByTimeAsync(2_000)
+  server.latency = LATENCY
+
+  const started = watch(() => active()?.startedAt)
+  const rest = watch(() => fitStore.get().rest?.endsAt)
+  const ticked = watch(() => active()?.exercises[0]?.sets[0]?.completedAt)
+  startWorkout({ from: "template", templateId: tpl.id })
+  await jest.advanceTimersByTimeAsync(5_000)
+  const w = active()
+  toggleSet(w.id, w.exercises[0].id, w.exercises[0].sets[0].id)
+  await jest.advanceTimersByTimeAsync(30_000)
+  for (const s of [started, rest, ticked]) s.off()
+
+  // Each shows once, at the tap, and the server's rows (applied seconds
+  // later) carry the same instants, so nothing moves when they land.
+  expect(started.values().filter(Boolean)).toHaveLength(1)
+  expect(rest.values().filter(Boolean)).toHaveLength(1)
+  expect(ticked.values().filter(Boolean)).toHaveLength(1)
+  expect(server.rows.get(w.id)?.row.started_at).toBe(w.startedAt)
+  expect(server.rows.get("rest")?.row.ends_at).toBe(fitStore.get().rest?.endsAt)
+})
+
+test("replies to this device's own writes never re-render the logger", async () => {
+  const server = new SlowServer()
+  const { e, w, we } = await workoutInProgress(server)
+  server.latency = LATENCY
+  let changes = 0
+  const off = fitStore.subscribe(() => void changes++)
+  updateSet(w.id, we.id, we.sets[0].id, { weight: 80 })
+  toggleSet(w.id, we.id, we.sets[0].id)
+  const taps = changes
+  await jest.advanceTimersByTimeAsync(30_000)
+  off()
+
+  expect(e.pending()).toBe(0)
+  expect(server.rows.get(we.sets[0].id)?.row.weight).toBe(80)
+  // Only the taps changed the store: the push replies and the pull that
+  // followed carried nothing the screen did not already show.
+  expect(changes).toBe(taps)
 })
 
 test("a finished workout never shows as in progress again while the finish is in flight", async () => {

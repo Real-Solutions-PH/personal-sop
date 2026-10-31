@@ -18707,6 +18707,18 @@ export const SyncOpSchema = {
                 }
             ],
             title: 'Base Version'
+        },
+        at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'At'
         }
     },
     type: 'object',
