@@ -369,7 +369,7 @@ export function ScoreCard({
               <Text
                 onPress={() => go("/stats/trophies")}
                 style={{
-                  color: t.tsk,
+                  color: t.primary,
                   fontFamily: fonts.semibold,
                   fontSize: 13,
                 }}
@@ -847,7 +847,9 @@ export function Profile({ id }: { id: string }) {
                   }}
                 >
                   {person.name}
-                  {person.verified && <Text style={{ color: t.tsk }}> ✓</Text>}
+                  {person.verified && (
+                    <Text style={{ color: t.primary }}> ✓</Text>
+                  )}
                 </Text>
                 <Text
                   numberOfLines={1}
@@ -1246,7 +1248,7 @@ export function FollowButton({
         gap: 6,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: on ? t.soft : t.tsk,
+        backgroundColor: on ? t.soft : t.primary,
         transform: [{ scale: pressed ? 0.96 : 1 }],
       })}
     >
@@ -1254,11 +1256,11 @@ export function FollowButton({
         (on ? (
           <UserCheck size={16} color={t.text} />
         ) : (
-          <UserPlus size={16} color="#fff" />
+          <UserPlus size={16} color={t.onPrimary} />
         ))}
       <Text
         style={{
-          color: on ? t.text : "#fff",
+          color: on ? t.text : t.onPrimary,
           fontFamily: fonts.semibold,
           fontSize: 14,
         }}

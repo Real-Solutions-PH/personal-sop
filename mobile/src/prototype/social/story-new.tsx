@@ -1,3 +1,4 @@
+import { palette } from "@domain/design/tokens"
 import { LinearGradient } from "expo-linear-gradient"
 import {
   Camera,
@@ -33,7 +34,6 @@ import {
   Avatar,
   CheckInOverlay,
   CheckInSlide,
-  CLOSE,
   dayLabel,
   haptic,
   ProgressCard,
@@ -119,7 +119,8 @@ function CheckInPicker({
 }
 
 const BACKGROUNDS: [string, string][] = [
-  ["#d62976", "#4f5bd5"],
+  // Fern first: the same ground as a Fern share card (ADR-0028).
+  [palette.dark.background, palette.light.moss],
   ["#7246cf", "#06070a"],
   ["#007567", "#0e1624"],
   ["#bd4d00", "#2b1401"],
@@ -496,8 +497,7 @@ export function StoryNew() {
             disabled={!ready}
             onPress={() => share("close")}
           >
-            <LinearGradient
-              colors={CLOSE}
+            <View
               style={{
                 flexDirection: "row",
                 alignItems: "center",
@@ -505,14 +505,17 @@ export function StoryNew() {
                 minHeight: 48,
                 paddingHorizontal: 14,
                 borderRadius: 24,
+                borderWidth: 1,
+                borderColor: t.life,
+                backgroundColor: "#ffffff1a",
               }}
             >
-              <Star size={16} color="#fff" fill="#fff" />
+              <Star size={16} color={t.life} />
               <Text style={{ color: "#fff", fontFamily: fonts.semibold }}>
                 Close friends
               </Text>
               <ChevronRight size={16} color="#fff" />
-            </LinearGradient>
+            </View>
           </Pressable>
         </View>
       </Pressable>
