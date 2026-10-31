@@ -3,11 +3,17 @@
 // time on its days. What's already done today is not reminded today. Local notifications need no push service or paid
 // Apple account, and fire offline. The plan is rebuilt whenever tasks or
 // habits change; iOS keeps at most 64 pending, so the soonest win.
+// Bills (planned expenses and transfers) get one reminder a day for the
+// week before they're due, until paid or skipped.
 
+import { addDays, type Occurrence, occurrencesIn } from "@domain/finance/calc"
+import { finStore } from "@domain/finance/store"
 import { fitStore } from "@domain/fitness/store"
 import type { Habit, HabitLog, Routine } from "@domain/habits/data"
 import { habitsStore } from "@domain/habits/store"
 import { dayKey, weekday } from "@domain/lib/day"
+import { money } from "@domain/lib/money"
+import { privacyStore } from "@domain/lib/privacy"
 import type { Task } from "@domain/tasks/data"
 import { tasksStore } from "@domain/tasks/store"
 import { Platform } from "react-native"
@@ -52,12 +58,20 @@ export interface MoreReminders {
   weighIn?: string | null
   logs?: readonly HabitLog[]
   weighedToday?: boolean
+  /** Bill occurrences from today on (``HORIZON_DAYS`` ahead), so a week's
+   * reminders are already set if the app isn't opened again before then. */
+  bills?: readonly Occurrence[]
+  /** Formats a bill's amount; omitted (hide amounts on) leaves it out. */
+  billAmount?: (n: number) => string
 }
 
 /** iOS allows 64 pending notifications; leave room for the system's own. */
 export const MAX_PENDING = 60
-const OURS = /^(task|habit|routine|weigh-in)/
+const OURS = /^(task|habit|routine|weigh-in|bill)/
 const HORIZON_DAYS = 30
+/** Days of reminders before a bill, the due day included. */
+export const BILL_DAYS = 7
+const BILL_TIME = { hour: 9, minute: 0 }
 
 const hm = (t: string) => {
   const [h, m] = t.split(":").map(Number)
@@ -147,10 +161,35 @@ export function planReminders(
       href: `/tasks/task/${t.id}`,
       at,
     }))
+  const billPlans: Planned[] = []
+  for (const o of more.bills ?? []) {
+    if (o.item.type === "income") continue
+    if (o.status === "paid" || o.status === "skipped") continue
+    const amount = more.billAmount ? ` · ${more.billAmount(o.item.amount)}` : ""
+    for (let n = 0; n < BILL_DAYS; n++) {
+      const day = addDays(o.day, -n)
+      const [by, bm, bd] = day.split("-").map(Number) as [
+        number,
+        number,
+        number,
+      ]
+      const at = new Date(by, bm - 1, bd, BILL_TIME.hour, BILL_TIME.minute)
+      if (at <= now) continue
+      billPlans.push({
+        id: `bill-${o.item.id}-${o.orig}-${n}`,
+        title: `💳 ${o.item.name}`,
+        body: `${n === 0 ? "Due today" : n === 1 ? "Due tomorrow" : `Due in ${n} days`}${amount}`,
+        href: `/finance/planned/${o.item.id}`,
+        at,
+      })
+    }
+  }
+  const time = (p: Planned) => ("at" in p ? p.at.getTime() : 0)
   // Recurring habit reminders first (few, and they repeat), then the
-  // soonest task reminders in the room left.
+  // soonest dated bill and task reminders in the room left.
   const habitsKept = habitPlans.slice(0, MAX_PENDING)
-  return [...habitsKept, ...taskPlans.slice(0, MAX_PENDING - habitsKept.length)]
+  const dated = [...billPlans, ...taskPlans].sort((a, b) => time(a) - time(b))
+  return [...habitsKept, ...dated.slice(0, MAX_PENDING - habitsKept.length)]
 }
 
 const load = () => require("expo-notifications") as Notifications
@@ -181,6 +220,12 @@ export async function syncReminders(
       weighedToday: fitStore
         .get()
         .weighIns.some((w) => dayKey(new Date(w.measuredAt)) === dayKey(now)),
+      bills: occurrencesIn(
+        finStore.get(),
+        dayKey(now),
+        addDays(dayKey(now), HORIZON_DAYS + BILL_DAYS),
+      ),
+      billAmount: privacyStore.get().hidden ? undefined : (n) => money(n),
     },
   )
   for (const p of plan)
@@ -282,5 +327,7 @@ export function startReminders() {
   tasksStore.subscribe(soon)
   habitsStore.subscribe(soon)
   fitStore.subscribe(soon)
+  finStore.subscribe(soon)
+  privacyStore.subscribe(soon)
   soon()
 }
