@@ -11,6 +11,7 @@ import { money } from "@domain/lib/money"
 import type { TasksState } from "@domain/tasks/data"
 import { byDue, fmtDay, isOverdue } from "@domain/tasks/logic"
 import {
+  type AppKey,
   SNAPSHOT_VERSION,
   type WidgetHabit,
   type WidgetSnapshot,
@@ -31,6 +32,10 @@ export interface SnapshotInput {
   ring: { done: number; due: number }
   lifeScore: number | null
   streak: number
+  /** Journal is shown (an "extra" the person can hide). */
+  journal: boolean
+  /** This build can read Screen Time (the native module is present). */
+  screenTime: boolean
   now?: Date
 }
 
@@ -158,6 +163,35 @@ const LIVE_KIND = {
   focus: "timer",
 } as const
 
+/** The in-app launcher's order (AppLauncher in src/prototype/app-launcher.tsx). */
+const APP_ORDER: AppKey[] = [
+  "habits",
+  "tasks",
+  "fitness",
+  "nutrition",
+  "focus",
+  "finance",
+  "screen",
+  "journal",
+]
+
+/** The apps the launcher shows: the enabled modules, and Journal unless it
+ * is hidden. Screen Time also needs a build that can read it, since the
+ * widget's tile would otherwise open a locked preview. */
+export function launcherApps(
+  enabled: Record<string, boolean | undefined>,
+  journal: boolean,
+  screenTime: boolean,
+): AppKey[] {
+  return APP_ORDER.filter((k) =>
+    k === "journal"
+      ? journal
+      : k === "screen"
+        ? screenTime && !!enabled[k]
+        : !!enabled[k],
+  )
+}
+
 /** The next moment the app's day turns over (4:00 local). */
 export function dayEndsAfter(now: Date): Date {
   const end = new Date(now)
@@ -199,6 +233,7 @@ export function buildSnapshot(input: SnapshotInput): WidgetSnapshot {
           href: input.live.href,
         }
       : null,
+    apps: launcherApps(dash.enabled, input.journal, input.screenTime),
   }
 }
 

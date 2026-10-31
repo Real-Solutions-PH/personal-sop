@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fern's orb: moss to sprout, bottom-left to top-right (docs/brand/fern.md). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+  <gradient android:angle="45" android:startColor="@color/unfurl_moss" android:endColor="@color/unfurl_sprout" />
+</shape>

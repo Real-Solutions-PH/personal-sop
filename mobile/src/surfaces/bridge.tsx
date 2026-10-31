@@ -10,6 +10,8 @@ import { privacyStore } from "@domain/lib/privacy"
 import { tasksStore } from "@domain/tasks/store"
 import { useEffect, useRef, useState } from "react"
 import { AppState, PermissionsAndroid, Platform } from "react-native"
+import { useShown } from "@/prototype/extras"
+import { screenTimeAvailable } from "@/prototype/screen-time"
 import { drainSurfaceActions } from "./actions"
 import { buildLiveState, liveKey } from "./live-state"
 import {
@@ -64,6 +66,7 @@ function Bridge() {
   const ring = D.useTodayRing()
   const lifeScore = D.useLifeScore(7).score
   const streak = D.useOnTarget(7).current
+  const journal = useShown("journal")
   const minute = useMinute()
   const day = dayKey(new Date(minute * 60_000))
 
@@ -119,6 +122,8 @@ function Bridge() {
       ring: { done: ring.done, due: ring.due },
       lifeScore,
       streak,
+      journal,
+      screenTime: screenTimeAvailable(),
     })
     const key = snapshotKey(snapshot)
     if (key === lastSnapshot.current) return
@@ -140,6 +145,7 @@ function Bridge() {
     ring.due,
     lifeScore,
     streak,
+    journal,
     day,
   ])
 

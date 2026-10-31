@@ -90,6 +90,9 @@ struct WidgetSnapshot: Codable {
   var tasks: Tasks
   var money: Money?
   var live: Live?
+  /** The apps the in-app launcher shows, in its order (keys such as
+   * "finance"); missing from snapshots written before the Apps widget. */
+  var apps: [String]?
 
   var dayEndsDate: Date? { UnfurlISO.date(dayEnds) }
 }
@@ -428,6 +431,27 @@ struct CheckHabitIntent: LiveActivityIntent {
     }
     WidgetCenter.shared.reloadAllTimelines()
     return .result()
+  }
+}
+
+/** The Ask Fern and Dictate to Fern controls. It opens the app on Fern's
+ * deep link (src/app/+native-intent.tsx); it lives here so the app target
+ * has it too, which a control that opens the app requires. */
+@available(iOS 18.0, *)
+struct OpenFernIntent: AppIntent {
+  static let title: LocalizedStringResource = "Open Fern"
+  static let isDiscoverable: Bool = false
+  static let openAppWhenRun: Bool = true
+
+  @Parameter(title: "Mode") var mode: String
+
+  init() {}
+  init(mode: String) {
+    self.mode = mode
+  }
+
+  func perform() async throws -> some IntentResult & OpensIntent {
+    .result(opensIntent: OpenURLIntent(URL(string: "personalsop:///fern?mode=\(mode)")!))
   }
 }
 

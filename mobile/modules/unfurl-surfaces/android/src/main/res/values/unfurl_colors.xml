@@ -14,4 +14,13 @@
   <color name="unfurl_fin">#0e8a62</color>
   <color name="unfurl_life">#a87800</color>
   <color name="unfurl_warn">#94600e</color>
+  <color name="unfurl_foc">#0a7d92</color>
+  <color name="unfurl_scr">#736a34</color>
+  <!-- Fern's greens: the orb and the Fern buttons only (docs/brand/fern.md).
+       fern_soft is frond at 14% on the card; Fern's mist is too close to the
+       dark card to show a button. -->
+  <color name="unfurl_moss">#1f5a43</color>
+  <color name="unfurl_frond">#3b8a5a</color>
+  <color name="unfurl_sprout">#a6d277</color>
+  <color name="unfurl_fern_soft">#e4efe8</color>
 </resources>
