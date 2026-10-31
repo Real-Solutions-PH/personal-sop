@@ -1,8 +1,8 @@
 // Settings → Screen time (spec 2026-10-29-screen-time-design, "Mobile
 // surfaces"): the permission, the groups of apps with their daily budgets,
-// and the All apps group. Without Screen Time on this phone (simulator,
-// Expo Go off iOS, a build made without it) the same screen shows dimmed
-// under one card that says why.
+// and the All apps group. Without Screen Time here (a build made without
+// it, which no phone setting can fix, or an iOS too old for it) the same
+// screen shows dimmed under one card that says which.
 
 import {
   addGroup,
@@ -14,22 +14,22 @@ import {
 import { DEFAULT_BUDGET_MIN, type ScreenGroup } from "@domain/screen/data"
 import { screenStore, useScreen } from "@domain/screen/store"
 import { Smartphone } from "lucide-react-native"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { View } from "react-native"
 import { toast } from "sonner-native"
 import { Stepper } from "../fitness-controls"
 import { Copy, Frame, Line } from "../native-kit"
 import { back } from "../navigation"
 import {
+  enableScreenTime,
   refreshScreenStatus,
+  SCREEN_NOT_IN_BUILD,
+  SCREEN_UNSUPPORTED,
   screenStatus,
   syncScreenTime,
+  useScreenTimeState,
 } from "../screen-sync"
-import {
-  pickApps,
-  requestScreenTime,
-  screenTimeAvailable,
-} from "../screen-time"
+import { pickApps } from "../screen-time"
 import { Switch } from "../switch"
 import { useTheme } from "../theme"
 import { Button, confirm, Field, Screen } from "../ui"
@@ -43,7 +43,7 @@ export function ScreenSettings() {
   const t = useTheme(),
     s = useScreen(),
     status = screenStatus(),
-    available = screenTimeAvailable(),
+    state = useScreenTimeState(),
     [name, setName] = useState(""),
     [busy, setBusy] = useState(false),
     live = s.groups
@@ -51,18 +51,20 @@ export function ScreenSettings() {
       .sort((a, b) => a.sortOrder - b.sortOrder),
     all = live.find((g) => g.kind === "all"),
     custom = live.filter((g) => g.kind === "custom"),
-    approved = status.auth === "approved"
-  useEffect(() => {
-    void refreshScreenStatus()
-  }, [])
+    approved = state === "connected",
+    locked =
+      state === "notInBuild"
+        ? SCREEN_NOT_IN_BUILD
+        : state === "unsupported"
+          ? SCREEN_UNSUPPORTED
+          : null
   // Any change to groups or budgets reaches the schedule.
   const changed = () => void syncScreenTime()
   const connect = async () => {
     setBusy(true)
     try {
-      await requestScreenTime()
-      await refreshScreenStatus()
-      changed()
+      // Turns the section on too once iOS approves, so the minutes start.
+      await enableScreenTime()
     } finally {
       setBusy(false)
     }
@@ -106,11 +108,12 @@ export function ScreenSettings() {
     setName("")
     changed()
   }
-  const statusLine =
-    status.auth === "approved"
-      ? "Connected. Minutes are counted on this iPhone."
-      : status.auth === "denied"
-        ? "Screen Time access is turned off for Unfurl."
+  const statusLine = approved
+    ? "Connected. Minutes are counted on this iPhone."
+    : state === "denied"
+      ? "Screen Time access is turned off for Unfurl."
+      : state === "checking"
+        ? "Checking Screen Time access…"
         : "Not connected yet."
   const body = (
     <View style={{ gap: 16 }}>
@@ -124,7 +127,7 @@ export function ScreenSettings() {
         <Copy size={14} muted>
           {statusLine}
         </Copy>
-        {status.auth === "denied" ? (
+        {state === "denied" ? (
           <>
             <Copy size={14} muted>
               Unfurl needs Screen Time access to count minutes and complete
@@ -136,7 +139,7 @@ export function ScreenSettings() {
             </Button>
           </>
         ) : (
-          !approved && (
+          state === "notAsked" && (
             <Button onPress={connect} disabled={busy}>
               Connect Screen Time
             </Button>
@@ -230,9 +233,9 @@ export function ScreenSettings() {
   return (
     <Screen prototypeLayout title="Screen time">
       <LockedPreview
-        locked={!available || status.auth === "unavailable"}
-        title="Screen Time isn't available here"
-        detail="This build can't read Screen Time. It needs the iPhone app with Screen Time turned on."
+        locked={!!locked}
+        title={locked?.title ?? ""}
+        detail={locked?.detail ?? ""}
         action={{ label: "Back", onPress: () => back() }}
         color={t.scr}
         icon={Smartphone}

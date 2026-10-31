@@ -4,7 +4,7 @@
 // the Screen time section on Stats. Every minute is a lower bound (the
 // highest threshold crossed), so it always reads "≥ N min".
 
-import { dashStore } from "@domain/dash/store"
+import { dashStore, setEnabled } from "@domain/dash/store"
 import type { Habit, HabitLog } from "@domain/habits/data"
 import { progressOf } from "@domain/habits/logic"
 import { DAY_START_HOUR, dayKey, dayOffset } from "@domain/lib/day"
@@ -22,6 +22,11 @@ import {
   LinkRow,
   SectionHeading,
 } from "../native-kit"
+import {
+  SCREEN_NOT_IN_BUILD,
+  SCREEN_UNSUPPORTED,
+  useScreenTimeState,
+} from "../screen-sync"
 import { fonts, useTheme } from "../theme"
 import { useNow } from "../ui"
 import { LockedPreview } from "./locked-preview"
@@ -203,15 +208,34 @@ export function ScreenTimeCard() {
     real = main ? week.map((d) => used(main.id, d)) : [],
     empty = !groups.length || real.every((v) => v === undefined),
     bars = empty ? SAMPLE_DAYS : real.map((v) => v ?? 0),
-    top = Math.max(60, ...bars)
+    top = Math.max(60, ...bars),
+    state = useScreenTimeState(),
+    // Nothing on this phone can connect it: say so, and offer the one thing
+    // that helps, hiding the section, rather than a setup that can't work.
+    cannot =
+      state === "notInBuild"
+        ? SCREEN_NOT_IN_BUILD
+        : state === "unsupported"
+          ? SCREEN_UNSUPPORTED
+          : null
   return (
     <>
       <SectionHeading>Screen time</SectionHeading>
       <LockedPreview
         locked={empty}
-        title="Screen time isn't connected"
-        detail="Connect Screen Time and pick the apps to count. Minutes show here from the day you connect."
-        action={{ label: "Set up Screen time", href: "/screen" }}
+        title={cannot?.title ?? "Screen time isn't connected"}
+        detail={
+          cannot?.detail ??
+          "Connect Screen Time and pick the apps to count. Minutes show here from the day you connect."
+        }
+        action={
+          cannot
+            ? {
+                label: "Hide Screen time",
+                onPress: () => setEnabled("screen", false),
+              }
+            : { label: "Set up Screen time", href: "/screen" }
+        }
         color={t.scr}
         icon={Smartphone}
       >

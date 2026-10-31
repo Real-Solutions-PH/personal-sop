@@ -110,10 +110,63 @@ export function monitoringPlan(
     }))
 }
 
+/** Where Screen Time stands on this phone, for the screens to word it:
+ * - notInBuild: this version of the app was built without the native
+ *   module (TestFlight and App Store builds until Apple grants the Family
+ *   Controls entitlement), so nothing in the phone's Settings can fix it;
+ * - unsupported: the module is there but iOS can't answer (older than 16);
+ * - checking: not read yet; notAsked, denied, connected: the permission. */
+export type ScreenTimeState =
+  | "notInBuild"
+  | "unsupported"
+  | "checking"
+  | "notAsked"
+  | "denied"
+  | "connected"
+
+export function screenTimeState(
+  available: boolean,
+  auth: ST.ScreenAuth | null,
+): ScreenTimeState {
+  if (!available) return "notInBuild"
+  switch (auth) {
+    case null:
+      return "checking"
+    case "approved":
+      return "connected"
+    case "denied":
+      return "denied"
+    case "notDetermined":
+      return "notAsked"
+    default:
+      return "unsupported"
+  }
+}
+
+/** The state, kept current: read on mount, and on every return to the
+ * foreground by startScreenSync. */
+export function useScreenTimeState(): ScreenTimeState {
+  const auth = screenStatus((s) => s.auth)
+  useEffect(() => {
+    void refreshScreenStatus()
+  }, [])
+  return screenTimeState(ST.screenTimeAvailable(), auth)
+}
+
+/** What a locked Screen time surface says when it can't be used here. */
+export const SCREEN_NOT_IN_BUILD = {
+  title: "Screen time isn't in this version yet",
+  detail:
+    "This version of Unfurl doesn't include Screen Time, so there is nothing to turn on in your iPhone's Settings. It comes in an update.",
+}
+export const SCREEN_UNSUPPORTED = {
+  title: "Screen Time isn't available on this iPhone",
+  detail: "Unfurl couldn't reach Screen Time here. It needs iOS 16 or later.",
+}
+
 export const SCREEN_DENIED =
   "Screen Time access is off for Unfurl. Turn it on in Settings › Screen Time to track it."
-export const SCREEN_UNAVAILABLE =
-  "This phone can't share Screen Time with Unfurl."
+export const SCREEN_UNAVAILABLE = SCREEN_UNSUPPORTED.detail
 const SCREEN_REVOKED =
   "Screen Time access was turned off, so screen time is hidden from your stats."
 
@@ -126,7 +179,13 @@ export async function enableScreenTime(): Promise<boolean> {
   await refreshScreenStatus()
   if (auth !== "approved") {
     setEnabled("screen", false)
-    toast(auth === "denied" ? SCREEN_DENIED : SCREEN_UNAVAILABLE)
+    toast(
+      !ST.screenTimeAvailable()
+        ? SCREEN_NOT_IN_BUILD.detail
+        : auth === "denied"
+          ? SCREEN_DENIED
+          : SCREEN_UNAVAILABLE,
+    )
     return false
   }
   await storage()?.setItem(APPROVED_KEY, String(Date.now()))
@@ -252,7 +311,13 @@ export function startScreenSync(): () => void {
     if (syncReady.getState().ready) void syncScreenTime()
   }
   const app = AppState.addEventListener("change", (s) => {
-    if (s === "active") kick()
+    if (s !== "active") return
+    // The permission can change in iOS Settings while Unfurl is away, and
+    // the screens read it from here even while Screen time is off (a sync
+    // only reads it while on).
+    if (!syncReady.getState().ready || !dashStore.get().enabled.screen)
+      void refreshScreenStatus()
+    kick()
   })
   const ready = syncReady.subscribe(kick)
   // Switching Screen time on or off starts or stops the schedule.
