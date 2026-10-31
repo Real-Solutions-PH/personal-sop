@@ -38,7 +38,7 @@ import { fonts, useTheme } from "../theme"
 import { Button, Field, Screen, Sheet } from "../ui"
 import { LockedPreview } from "./locked-preview"
 import { PatternsCard } from "./patterns-card"
-import { ScreenTimeCard } from "./screen-card"
+import { ScreenTimeCard, useScreenTimeShown } from "./screen-card"
 import { DayHero } from "./today"
 
 /**
@@ -81,8 +81,10 @@ function LifeHero({
   const t = useTheme(),
     ls = D.useLifeScore(days),
     enabled = D.useEnabled(),
-    // Screen time switched off is left out entirely; other areas show "off".
-    areas = MODULE_KEYS.filter((k) => k !== "screen" || enabled.screen),
+    screenOn = useScreenTimeShown(),
+    // Screen time off or not connected is left out entirely; other areas
+    // show "off".
+    areas = MODULE_KEYS.filter((k) => k !== "screen" || screenOn),
     level = D.levelFor(ls.score),
     value = Math.max(0, Math.min(1, (ls.score ?? 0) / 100)),
     toNext =
@@ -386,10 +388,10 @@ function Areas({ days }: { days: number }) {
     screenRate = SCR.useAreaRate(days),
     empty = (f: { module: string; value: number }) =>
       f.module === "screen" && screenRate === null && f.value === 0,
-    enabled = D.useEnabled(),
-    // Screen time switched off has no corner at all.
+    screenOn = useScreenTimeShown(),
+    // Screen time off or not connected has no corner at all.
     facets = raw
-      .filter((f) => f.module !== "screen" || enabled.screen)
+      .filter((f) => f.module !== "screen" || screenOn)
       .map((f) => (empty(f) ? { ...f, off: true } : f)),
     metrics = D.useAllMetrics(days),
     [sel, setSel] = useState<string | null>(null),
@@ -687,6 +689,7 @@ export function StatsHome() {
     trophies = D.useTrophies().slice(0, 3),
     notes = dashStore.use((s) => s.missNotes),
     enabled = D.useEnabled(),
+    screenOn = useScreenTimeShown(),
     cur = D.useAllMisses(dayOffset(-(days - 1)), dayKey()),
     prev = D.useAllMisses(dayOffset(-(days * 2 - 1)), dayOffset(-days)),
     goals = D.useGoals()
@@ -892,7 +895,7 @@ export function StatsHome() {
               </>
             )}
             <Areas days={days} />
-            {enabled.screen && <ScreenTimeCard />}
+            {screenOn && <ScreenTimeCard />}
             <SectionHeading
               action={
                 <Tap onPress={() => go("/stats/misses")}>
@@ -921,7 +924,9 @@ export function StatsHome() {
                   <Delta value={count(cur) - count(prev)} down />
                 </Line>
                 <MissTiles
-                  tiles={MODULE_KEYS.filter((k) => enabled[k]).map((k) => ({
+                  tiles={MODULE_KEYS.filter((k) =>
+                    k === "screen" ? screenOn : enabled[k],
+                  ).map((k) => ({
                     key: k,
                     count: count(cur, k),
                   }))}

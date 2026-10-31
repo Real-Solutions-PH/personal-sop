@@ -242,7 +242,7 @@ test("the Nutrition page holds the day, the stats and the links", () => {
   expect(screen.getByText("Food library")).toBeTruthy()
 })
 
-test("each macro is drawn against its own target line", () => {
+test("each macro's target is a line on the calories chart, not its own chart", () => {
   fitStore.set((s) => ({
     ...s,
     targets: [target],
@@ -252,8 +252,19 @@ test("each macro is drawn against its own target line", () => {
     ],
   }))
   render(<NutritionHome />, { wrapper })
-  expect(screen.getByText("MACROS BY DAY")).toBeTruthy()
-  // Protein is far under on one day: its row says so on its own scale.
+  // The separate per-macro charts are gone; one chart carries the targets.
+  expect(screen.queryByText("MACROS BY DAY")).toBeNull()
+  expect(screen.queryByLabelText(/by day: average/)).toBeNull()
+  expect(
+    screen.getByLabelText(
+      /^Calories by macro, last 14 days: .*; targets protein 140 g, carbs 220 g, fat 60 g$/,
+    ),
+  ).toBeTruthy()
+  // Stacked as the bars are: protein 560 kcal, then carbs to 1,440, then
+  // fat to 1,980 (2,000 kcal target, within 5%).
+  for (const key of ["protein", "carbs", "fat"])
+    expect(screen.getByTestId(`macro-target-${key}`)).toBeTruthy()
+  // Each macro's grams against its target sit under the chart.
   expect(screen.getByText("avg 105 / 140 g · hit on 1 of 2 days")).toBeTruthy()
   expect(
     screen.getByText("avg 200 / 220 g · within 10% on 2 of 2 days"),
@@ -261,12 +272,19 @@ test("each macro is drawn against its own target line", () => {
   expect(
     screen.getByText("avg 60 / 60 g · within 10% on 2 of 2 days"),
   ).toBeTruthy()
-  expect(
-    screen.getByLabelText("Protein by day: average 105 g, target 140 g"),
-  ).toBeTruthy()
   // What was eaten sits over the split the targets ask for.
   expect(screen.getByText("Eaten")).toBeTruthy()
   expect(screen.getByText("Target")).toBeTruthy()
+})
+
+test("macro targets that don't make the calorie target keep one calorie line", () => {
+  fitStore.set((s) => ({
+    ...s,
+    targets: [{ ...target, kcal: 2600 }],
+    meals: [meal("a", dayOffset(-1), 2000, 140)],
+  }))
+  render(<NutritionHome />, { wrapper })
+  expect(screen.queryByTestId("macro-target-protein")).toBeNull()
 })
 
 test("with nothing logged the stats show dimmed, under one card", () => {

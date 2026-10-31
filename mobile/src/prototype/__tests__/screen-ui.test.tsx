@@ -292,6 +292,29 @@ describe("Stats' Screen time card", () => {
   })
 })
 
+describe("whether Stats shows Screen time", () => {
+  const Probe = () => {
+    const { Text } = require("react-native")
+    const shown = require("../screens/screen-card").useScreenTimeShown()
+    return <Text>{shown ? "shown" : "hidden"}</Text>
+  }
+  const cases: [string, boolean, string, boolean, string][] = [
+    // label, module present, permission, switched on, expected
+    ["missing from this version", false, "unavailable", true, "hidden"],
+    ["never connected", true, "notDetermined", true, "hidden"],
+    ["refused", true, "denied", true, "hidden"],
+    ["switched off", true, "approved", false, "hidden"],
+    ["switched on and connected", true, "approved", true, "shown"],
+  ]
+  it.each(cases)("%s: %s", async (_, available, auth, on, expected) => {
+    native.screenTimeAvailable.mockReturnValue(available)
+    native.authorizationStatus.mockResolvedValue(auth)
+    setEnabled("screen", on)
+    render(<Probe />, { wrapper })
+    expect(await screen.findByText(expected)).toBeTruthy()
+  })
+})
+
 describe("the habit editor", () => {
   const HabitForm = (p: { id?: string }) =>
     require("../screens/habit-form").HabitForm(p)
