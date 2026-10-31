@@ -2,8 +2,8 @@
 // went (calories and protein against target, average intake, days logged),
 // where the calories came from day by day, the average split against the
 // split the targets ask for, each macro's grams a day against its target
-// (its line on the same chart), and the nutrient limits on average. Today is still open, so it is left out, as
-// the Life Score leaves it out.
+// (its line on the same chart), and the nutrient limits on average. Today
+// is still open, so it is left out, as the Life Score leaves it out.
 import * as C from "@domain/fitness/calc"
 import {
   dayDetail,
@@ -214,7 +214,7 @@ export function NutritionStats() {
             </Copy>
             <Copy size={12} muted>
               {target
-                ? `Each bar is a day. A line in a macro's colour is where its target stacks up to, ${n(target.kcal)} kcal in all`
+                ? `Each bar is a day. The coloured lines are each macro's target, stacked to ${n(target.kcal)} kcal`
                 : "Each bar is a day, split by where the calories came from"}
             </Copy>
           </View>

@@ -635,7 +635,7 @@ test.each<CardFormat>([
   "4:5",
   "1:1",
 ])("the gradient ground reaches every edge of a %s card", (format) => {
-  const r = render(card(300, { format, backdrop: "fern" }))
+  const r = render(card(300, { format, backdrop: "fern", photo: null }))
   const style = StyleSheet.flatten(r.getByTestId("card-ground").props.style)
   // Pinned to the four edges, never sized in percent: a percent size on
   // an absolute child of the padded card resolved against its content

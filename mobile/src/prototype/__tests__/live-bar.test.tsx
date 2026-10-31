@@ -9,6 +9,21 @@ import type { LiveState } from "@/surfaces/types"
 import { LiveBar, rowOf } from "../live-bar"
 import { go } from "../navigation"
 
+jest.mock("react-native-reanimated", () => ({
+  __esModule: true,
+  ...require("./reanimated-extras").extras,
+  default: require("react-native").Animated,
+  useSharedValue: (value: unknown) =>
+    require("react").useRef({ value }).current,
+  useAnimatedStyle: (get: () => unknown) => get(),
+  withSpring: (value: unknown) => value,
+  withTiming: (value: unknown) => value,
+  withSequence: (...values: unknown[]) => values[values.length - 1],
+  interpolate: (_: number, __: number[], output: number[]) => output[0],
+  interpolateColor: (_: number, __: number[], output: string[]) => output[0],
+  runOnJS: (fn: unknown) => fn,
+  useReducedMotion: () => true,
+}))
 jest.mock("../navigation", () => ({ go: jest.fn(), replace: jest.fn() }))
 jest.mock("@/surfaces/actions", () => ({ applySurfaceAction: jest.fn() }))
 jest.mock("expo-haptics", () => ({

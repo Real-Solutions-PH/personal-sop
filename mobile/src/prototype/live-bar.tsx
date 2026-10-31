@@ -94,12 +94,14 @@ function run(s: LiveState, focus: boolean, type: LiveControl) {
     else if (type === "skip") FO.skipBreak()
     return
   }
+  const at = Date.now()
   applySurfaceAction({
+    id: `bar-${at}`,
     type,
     kind: s.kind,
     target: s.id,
     key: s.key,
-    at: Date.now(),
+    at,
   })
 }
 

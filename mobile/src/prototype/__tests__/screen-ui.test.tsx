@@ -298,7 +298,7 @@ describe("whether Stats shows Screen time", () => {
     const shown = require("../screens/screen-card").useScreenTimeShown()
     return <Text>{shown ? "shown" : "hidden"}</Text>
   }
-  const cases: [string, boolean, string, boolean, string][] = [
+  const cases: [string, boolean, ST.ScreenAuth, boolean, string][] = [
     // label, module present, permission, switched on, expected
     ["missing from this version", false, "unavailable", true, "hidden"],
     ["never connected", true, "notDetermined", true, "hidden"],
