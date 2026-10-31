@@ -1010,6 +1010,8 @@ function send(
   call: (r: SocialRemote) => Promise<unknown>,
   undo: () => void,
   what: string,
+  /** The failure in the person's words, when one reason fits better. */
+  report?: (e: unknown) => string,
 ) {
   if (!liveMode) return
   const offline = () => {
@@ -1018,9 +1020,9 @@ function send(
   }
   if (!getConnectivity()) return offline()
   const run = (r: SocialRemote) =>
-    call(r).catch(() => {
+    call(r).catch((e: unknown) => {
       undo()
-      toast(`Couldn't ${what}. Please try again.`)
+      toast(report?.(e) ?? `Couldn't ${what}. Please try again.`)
     })
   if (remote) return void run(remote)
   // Online but startup is still restoring the session: wait for it, briefly.
@@ -1180,7 +1182,20 @@ export async function refreshStory(
   }
 }
 export const openPersonLive = (id: string) => load((r) => r.openPerson(id))
-export const openChatLive = (id: string) => load((r) => r.openChat(id))
+/** Open a chat's history. "gone" only when the server says the chat itself
+ * is not there (404); anything else that fails is "failed" and the cached
+ * chat stays. */
+export async function openChatLive(
+  id: string,
+): Promise<"ok" | "gone" | "failed"> {
+  if (!liveMode) return "ok"
+  try {
+    await (await connected()).openChat(id)
+    return "ok"
+  } catch (e) {
+    return gone(e) && !chatStarts.getState()[id] ? "gone" : "failed"
+  }
+}
 export const searchLive = (q: string) => load((r) => r.search(q))
 export const loadExploreLive = () => load((r) => r.loadExplore())
 /** The composer changed: tell the other members (throttled by the remote). */
@@ -1664,6 +1679,43 @@ export function markActivityRead() {
   nudge((r) => r.markActivityRead())
 }
 
+/** 1:1 chats whose start failed, by chat id (not persisted): the chat
+ * screen offers Retry instead of saying the chat is gone. */
+export const chatStarts = create<Record<string, { personId: string }>>(
+  () => ({}),
+)
+const startFailure = (e: unknown) => {
+  const status = (e as { status?: number })?.status
+  if (status === 404)
+    return "Couldn't start the chat: that account isn't available."
+  if (status === undefined || status >= 500 || status === 429)
+    return "Couldn't reach Unfurl to start the chat. Check your connection and try again."
+  return "Couldn't start the chat. Please try again."
+}
+function startDirect(id: string, personId: string) {
+  const chat: Chat = {
+    id,
+    members: [personId],
+    messages: [],
+    muted: false,
+    pinned: false,
+    readAt: Date.now(),
+  }
+  chatStarts.setState((m) => {
+    const { [id]: _, ...rest } = m
+    return rest
+  }, true)
+  set((s) => ({ ...s, chats: [chat, ...s.chats.filter((c) => c.id !== id)] }))
+  send(
+    (r) => r.openDirect(id, personId),
+    () => {
+      dropChat(id)
+      chatStarts.setState({ [id]: { personId } })
+    },
+    "start the chat",
+    startFailure,
+  )
+}
 /** Open (or create) the 1:1 chat with a person; returns its id. */
 export function directChat(personId: string) {
   const existing = socialStore
@@ -1672,21 +1724,14 @@ export function directChat(personId: string) {
       (c) => !c.name && c.members.length === 1 && c.members[0] === personId,
     )
   if (existing) return existing.id
-  const chat: Chat = {
-    id: mkId(),
-    members: [personId],
-    messages: [],
-    muted: false,
-    pinned: false,
-    readAt: Date.now(),
-  }
-  set((s) => ({ ...s, chats: [chat, ...s.chats] }))
-  send(
-    (r) => r.openDirect(chat.id, personId),
-    () => dropChat(chat.id),
-    "start the chat",
-  )
-  return chat.id
+  const id = mkId()
+  startDirect(id, personId)
+  return id
+}
+/** Try a failed 1:1 chat start again, under the same id. */
+export function retryDirectChat(id: string) {
+  const failed = chatStarts.getState()[id]
+  if (failed) startDirect(id, failed.personId)
 }
 export function createGroup(members: string[], name: string) {
   const chat: Chat = {

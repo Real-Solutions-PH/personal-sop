@@ -56,6 +56,7 @@ import { RemoteImage } from "./remote-image"
 import {
   addMembers,
   type Chat,
+  chatStarts,
   deleteChat,
   ensurePostLive,
   lastMineSeen,
@@ -67,6 +68,7 @@ import {
   openChatLive,
   reactTo,
   renameChat,
+  retryDirectChat,
   sendMessage,
   simulateReply,
   socialStore,
@@ -918,15 +920,22 @@ export function ChatScreen({ id }: { id: string }) {
   const typing = useTyping(id) ?? simulated
   const input = useRef<TextInputInstance>(null)
   const [opening, setOpening] = useState(true)
+  const [opened, setOpened] = useState<"ok" | "gone" | "failed">("ok")
+  const [attempt, setAttempt] = useState(0)
+  const startFailed = chatStarts((m) => !!m[id])
+  // biome-ignore lint/correctness/useExhaustiveDependencies: attempt re-opens
   useEffect(() => {
     setOpening(true)
-    void openChatLive(id).finally(() => setOpening(false))
+    void openChatLive(id).then((r) => {
+      setOpened(r)
+      setOpening(false)
+    })
     // Back from the background: pick up what arrived while away.
     const sub = AppState.addEventListener("change", (s) => {
       if (s === "active") void openChatLive(id)
     })
     return () => sub.remove()
-  }, [id])
+  }, [id, attempt])
   const count = chat?.messages.length ?? 0
   // Mark read and drop the typing dots whenever a message lands. Keyed on the
   // count: depending on `chat` would loop, since marking read changes it.
@@ -950,7 +959,33 @@ export function ChatScreen({ id }: { id: string }) {
           justifyContent: "center",
         }}
       >
-        {opening ? (
+        {startFailed || (!opening && opened === "failed") ? (
+          <View style={{ alignItems: "center", gap: 12 }}>
+            <Text style={{ color: t.muted }}>
+              {startFailed
+                ? "Couldn't start this chat."
+                : "Couldn't load this chat."}
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                if (startFailed) retryDirectChat(id)
+                setAttempt((a) => a + 1)
+              }}
+              style={{
+                paddingHorizontal: 18,
+                minHeight: 40,
+                borderRadius: 20,
+                justifyContent: "center",
+                backgroundColor: t.soft,
+              }}
+            >
+              <Text style={{ color: t.text, fontFamily: fonts.semibold }}>
+                Try again
+              </Text>
+            </Pressable>
+          </View>
+        ) : opening ? (
           <ActivityIndicator accessibilityLabel="Loading chat" />
         ) : (
           <Text style={{ color: t.muted }}>This chat no longer exists.</Text>
