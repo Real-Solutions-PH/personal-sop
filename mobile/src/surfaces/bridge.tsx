@@ -67,21 +67,34 @@ function Bridge() {
   const minute = useMinute()
   const day = dayKey(new Date(minute * 60_000))
 
-  // Taps made while the app was closed, then any made while it runs.
+  const lastSnapshot = useRef("")
+  const lastLive = useRef<string | null>(null)
+
+  // Taps made while the app was closed, then any made while it runs. Back
+  // in the foreground the activity is written again even when nothing
+  // changed: the person may have swiped it away, the system may have ended
+  // it, or Live Activities were just turned on in Settings.
   useEffect(() => {
     drainSurfaceActions()
     const off = onQueuedAction(() => drainSurfaceActions())
     const app = AppState.addEventListener("change", (s) => {
-      if (s === "active") drainSurfaceActions()
+      if (s !== "active") return
+      drainSurfaceActions()
+      const state = buildLiveState({
+        live: liveStore.get().live,
+        habits: habitsStore.get(),
+        fit: fitStore.get(),
+        focus: focusStore.get(),
+      })
+      if (!state) return
+      lastLive.current = liveKey(state)
+      writeLive(state)
     })
     return () => {
       off()
       app.remove()
     }
   }, [])
-
-  const lastSnapshot = useRef("")
-  const lastLive = useRef<string | null>(null)
   // The signed-in layout unmounts on sign-out. The refs reset too, so a
   // remount (or React's dev double-run) writes everything again.
   useEffect(

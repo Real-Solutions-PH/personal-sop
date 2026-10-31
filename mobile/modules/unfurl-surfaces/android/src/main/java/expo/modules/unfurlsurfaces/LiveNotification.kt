@@ -25,6 +25,15 @@ object LiveNotification {
     if (state == null) cancel(ctx) else post(ctx, state)
   }
 
+  /** Whether the ongoing notification can show: notifications on for the
+   * app and its channel not switched off. */
+  fun enabled(ctx: Context): Boolean {
+    if (!NotificationManagerCompat.from(ctx).areNotificationsEnabled()) return false
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return true
+    val channel = ctx.getSystemService(NotificationManager::class.java)?.getNotificationChannel(CHANNEL)
+    return channel == null || channel.importance != NotificationManager.IMPORTANCE_NONE
+  }
+
   fun cancel(ctx: Context) {
     NotificationManagerCompat.from(ctx).cancel(ID)
   }
