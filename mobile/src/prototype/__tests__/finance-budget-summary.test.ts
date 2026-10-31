@@ -103,6 +103,18 @@ function daysLeft() {
   )
 }
 
+test("a month already over has nothing safe to spend", () => {
+  const s = state([budget("Food", 1000, ["food"])], [])
+  const sd = s.settings.monthStartDay
+  const past = monthOf(
+    new Date(Date.now() - 62 * 86_400_000).toISOString().slice(0, 10),
+    sd,
+  )
+  const sum = budgetSummary(s, past)
+  expect(sum?.left).toBe(1000)
+  expect(sum?.safePerDay).toBe(0)
+})
+
 test("no live budget: no summary, so the card stays a dimmed preview", () => {
   expect(budgetSummary(state([], []))).toBeNull()
   const archived = budget("old", 5000, ["food"], { archived: true })
@@ -136,7 +148,9 @@ test("category budgets alone add up into the headline (Kai's three budgets)", ()
   expect(sum.pct).toBeCloseTo(4319 / 30000, 10)
   const d = daysLeft()
   expect(sum.daysLeft).toBe(d)
-  expect(sum.safePerDay).toBeCloseTo(d > 0 ? 25681 / (d + 1) : 0, 10)
+  // today is a day to spend in, so even on the month's last day (d = 0)
+  // what is left is today's rather than nothing
+  expect(sum.safePerDay).toBeCloseTo(25681 / (d + 1), 10)
 })
 
 test("an overspent category eats into the room the others leave", () => {

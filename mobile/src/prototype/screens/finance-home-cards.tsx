@@ -91,9 +91,11 @@ export function BudgetsSection({ s }: { s: FinState }) {
                 </Copy>
                 {sum && (
                   <Copy size={12} muted>
-                    {sum.daysLeft === 1
-                      ? "1 day left"
-                      : `${sum.daysLeft} days left`}
+                    {sum.daysLeft === 0
+                      ? "Last day of the month"
+                      : sum.daysLeft === 1
+                        ? "1 day left"
+                        : `${sum.daysLeft} days left`}
                   </Copy>
                 )}
               </View>

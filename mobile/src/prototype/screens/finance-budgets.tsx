@@ -169,7 +169,11 @@ export function Budgets({ id }: { id?: string }) {
                   Left of {money(v.limit)}
                 </Copy>
                 <Copy size={12} muted>
-                  {v.daysLeft === 1 ? "1 day left" : `${v.daysLeft} days left`}
+                  {v.daysLeft === 0
+                    ? "Last day of the month"
+                    : v.daysLeft === 1
+                      ? "1 day left"
+                      : `${v.daysLeft} days left`}
                 </Copy>
               </View>
             </Line>

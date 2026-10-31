@@ -297,7 +297,9 @@ export function budgetView(s: FinState, b: Budget, mk?: string): BudgetView {
     pct: b.limit ? spent / b.limit : 0,
     pace: elapsed / total,
     daysLeft,
-    safePerDay: daysLeft > 0 ? Math.max(0, left) / (daysLeft + 1) : 0,
+    // Today counts as a day to spend in: on the month's last day all that
+    // is left is today's. A month already over has nothing to spend.
+    safePerDay: t <= to ? Math.max(0, left) / (daysLeft + 1) : 0,
     from,
     to,
   }
@@ -330,7 +332,7 @@ export function budgetSummary(s: FinState, mk?: string): BudgetSummary | null {
   const limit = parts.reduce((a, v) => a + v.limit, 0)
   const spent = parts.reduce((a, v) => a + v.spent, 0)
   const left = limit - spent
-  const { pace, daysLeft } = parts[0]
+  const { pace, daysLeft, to } = parts[0]
   return {
     source: overall ? "overall" : "categories",
     count: parts.length,
@@ -340,7 +342,7 @@ export function budgetSummary(s: FinState, mk?: string): BudgetSummary | null {
     pct: limit ? spent / limit : 0,
     pace,
     daysLeft,
-    safePerDay: daysLeft > 0 ? Math.max(0, left) / (daysLeft + 1) : 0,
+    safePerDay: today() <= to ? Math.max(0, left) / (daysLeft + 1) : 0,
   }
 }
 export function avgSpend(s: FinState, ids: string[] | null, months = 3) {
