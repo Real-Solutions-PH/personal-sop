@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
@@ -16,6 +17,10 @@ class SyncOp(BaseModel):
     data: dict[str, Any] = Field(default_factory=dict)
     # The version the device last saw for this row (None: device-created).
     base_version: int | None = None
+    # When the person made this change on the device. The op is applied as
+    # of then (``ctx.now``), so an op that waited in a slow or offline
+    # outbox stamps the time it happened, not the time it arrived.
+    at: datetime | None = None
 
 
 class SyncPush(BaseModel):

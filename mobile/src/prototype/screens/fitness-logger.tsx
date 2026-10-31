@@ -4,7 +4,7 @@ import type { Exercise, WorkoutSet } from "@domain/fitness/data"
 import { fitStore } from "@domain/fitness/store"
 import { fmtDuration } from "@domain/lib/day"
 import { liveStore } from "@domain/lib/live"
-import { useLocalSearchParams } from "expo-router"
+import { router, useLocalSearchParams } from "expo-router"
 import {
   ArrowDown,
   ArrowUp,
@@ -24,7 +24,7 @@ import {
   Trash2,
   TrendingUp,
 } from "lucide-react-native"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { TextInput, View } from "react-native"
 import Animated from "react-native-reanimated"
 import { toast } from "sonner-native"
@@ -144,7 +144,12 @@ function RestBar({
 }
 
 export function WorkoutLogger() {
-  const p = useLocalSearchParams<{ edit?: string; resume?: string }>(),
+  const p = useLocalSearchParams<{
+      edit?: string
+      resume?: string
+      /** "1": just started empty, so open on the exercise picker. */
+      add?: string
+    }>(),
     s = fitStore.use((s) => s),
     t = useTheme(),
     now = useNow(),
@@ -180,6 +185,20 @@ export function WorkoutLogger() {
         (p.resume === "1" ||
           Date.now() - new Date(A.lastActivity(w)).getTime() > 3 * 3600000),
     )
+  const openPicker = (id = "add") => {
+    setPicked([])
+    setQuery("")
+    setPicker(id)
+  }
+  const emptyStart = p.add === "1" && !!w && !w.exercises.length
+  // Runs when the param arrives only: the picker opens once, not again
+  // after the person closes it.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: see above
+  useEffect(() => {
+    if (p.add !== "1") return
+    router.setParams({ add: undefined })
+    if (emptyStart) openPicker()
+  }, [p.add])
 
   if (!w)
     return (
@@ -195,7 +214,12 @@ export function WorkoutLogger() {
             Return to running activity
           </Button>
         )}
-        {start && <StartWorkoutSheet onClose={() => setStart(false)} />}
+        {start && (
+          <StartWorkoutSheet
+            onClose={() => setStart(false)}
+            onStarted={(empty) => empty && openPicker()}
+          />
+        )}
       </Screen>
     )
   // Each set shows its weight in its own unit (stored in kg either way);
@@ -235,11 +259,6 @@ export function WorkoutLogger() {
   const deleteSet = (weId: string, setId: string) => {
     const removed = A.removeSet(w.id, weId, setId)
     if (removed) undo("Set deleted", () => A.restoreSet(w.id, weId, removed))
-  }
-  const openPicker = (id = "add") => {
-    setPicked([])
-    setQuery("")
-    setPicker(id)
   }
   return (
     <Screen
@@ -320,6 +339,11 @@ export function WorkoutLogger() {
         <Empty
           title="No exercises yet"
           detail="Add your first exercise — recents are on top."
+          action={
+            <Button icon={Plus} onPress={() => openPicker()}>
+              Add exercises
+            </Button>
+          }
         />
       )}
       {w.exercises.map((we) => {
