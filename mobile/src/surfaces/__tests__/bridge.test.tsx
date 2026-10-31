@@ -7,6 +7,7 @@ import { dayKey } from "@domain/lib/day"
 import { liveStore } from "@domain/lib/live"
 import { configureStorage, resetAll } from "@domain/lib/store"
 import { act, render } from "@testing-library/react-native"
+import { AppState, type AppStateStatus } from "react-native"
 import type { LiveState, SurfaceAction, WidgetSnapshot } from "../types"
 
 const mockQueued: SurfaceAction[] = []
@@ -98,6 +99,37 @@ it("applies taps mockQueued while the app was closed as it starts", () => {
   expect(mockNative.drainActions).toHaveBeenCalled()
   expect(habitsStore.get().runs.find((x) => x.id === run.id)?.current).toBe(1)
   expect(lastLive()).toMatchObject({ key: "1", index: 1 })
+})
+
+it("writes the running activity again when the app comes back, unchanged or not", () => {
+  // Swiped away on the lock screen, ended by the system, or Live
+  // Activities just turned on in Settings: back in the foreground it shows.
+  // Swapped by hand: AppState.addEventListener is already a mock under
+  // jest-expo, and restoring a spy on it would wipe its implementation.
+  const original = AppState.addEventListener
+  let onChange: ((s: AppStateStatus) => void) | undefined
+  AppState.addEventListener = ((_t: string, h: typeof onChange) => {
+    onChange = h
+    return { remove: () => {} }
+  }) as unknown as typeof AppState.addEventListener
+  const view = render(<SurfacesBridge />)
+  act(() => onChange?.("active"))
+  expect(mockNative.writeLive).toHaveBeenCalledTimes(1) // the mount's null
+  const r = habitsStore
+    .get()
+    .routines.find((x) => x.status === "active" && x.steps.length > 0)
+  if (!r) throw new Error("no routine")
+  act(() => {
+    HA.startRoutine(r.id)
+  })
+  const writes = mockNative.writeLive.mock.calls.length
+  act(() => onChange?.("background"))
+  expect(mockNative.writeLive).toHaveBeenCalledTimes(writes)
+  act(() => onChange?.("active"))
+  expect(mockNative.writeLive).toHaveBeenCalledTimes(writes + 1)
+  expect(lastLive()).toMatchObject({ kind: "routine", key: "0" })
+  view.unmount()
+  AppState.addEventListener = original
 })
 
 it("clears the widgets and the activity on sign-out", () => {

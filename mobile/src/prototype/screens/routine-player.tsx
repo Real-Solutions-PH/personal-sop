@@ -15,6 +15,7 @@ import {
 import { useEffect, useRef, useState } from "react"
 import { Pressable, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { LiveNotice } from "@/surfaces/live-notice"
 import {
   Copy,
   Countdown,
@@ -138,6 +139,7 @@ export function RoutinePlayer({ id }: { id: string }) {
           </>
         )}
       </Line>
+      <LiveNotice active={!!running} accent="hab" />
       {!running ? (
         <View
           style={{

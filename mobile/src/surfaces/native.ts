@@ -16,6 +16,9 @@ interface UnfurlSurfacesModule {
   setLive(json: string | null): void
   /** Returns and clears the queued taps, as a JSON array. */
   drainActions(): string
+  /** Whether the activity can show: {"enabled": boolean, "error"?: string}.
+   * Missing from builds made before it existed. */
+  liveStatus?(): string
   addListener(event: "onAction", listener: () => void): Subscription
 }
 
@@ -43,6 +46,28 @@ export function drainActions(): SurfaceAction[] {
     return Array.isArray(parsed) ? parsed.filter(isAction) : []
   } catch {
     return []
+  }
+}
+/** Whether the lock-screen activity (iOS) or ongoing notification
+ * (Android) can show. Null when the build cannot tell, so nothing is
+ * claimed about it. */
+export interface LiveStatus {
+  enabled: boolean
+  /** "disabled", or the reason the last start failed. */
+  error?: string
+}
+export function liveStatus(): LiveStatus | null {
+  if (typeof native?.liveStatus !== "function") return null
+  try {
+    const v: unknown = JSON.parse(native.liveStatus())
+    if (typeof v !== "object" || v === null) return null
+    const o = v as Record<string, unknown>
+    if (typeof o.enabled !== "boolean") return null
+    return typeof o.error === "string"
+      ? { enabled: o.enabled, error: o.error }
+      : { enabled: o.enabled }
+  } catch {
+    return null
   }
 }
 /** Calls back when native code queued a tap while the app is running. */

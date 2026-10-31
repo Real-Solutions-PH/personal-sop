@@ -28,6 +28,7 @@ import { useState } from "react"
 import { TextInput, View } from "react-native"
 import Animated from "react-native-reanimated"
 import { toast } from "sonner-native"
+import { LiveNotice } from "@/surfaces/live-notice"
 import { rowEnter, rowExit } from "../motion"
 import {
   Bar,
@@ -270,6 +271,7 @@ export function WorkoutLogger() {
         ) : null
       }
     >
+      <LiveNotice active={!p.edit} accent="fit" inset={false} />
       {rename && (
         <Field
           label="Workout name"

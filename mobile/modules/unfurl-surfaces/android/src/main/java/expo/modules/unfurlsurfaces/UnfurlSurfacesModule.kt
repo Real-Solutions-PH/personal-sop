@@ -32,6 +32,10 @@ class UnfurlSurfacesModule : Module() {
       val ctx = appContext.reactContext ?: return@Function
       LiveNotification.show(ctx, json)
     }
+    Function("liveStatus") {
+      val ctx = appContext.reactContext ?: return@Function "{\"enabled\":false}"
+      "{\"enabled\":${LiveNotification.enabled(ctx)}}"
+    }
     Function("drainActions") {
       val ctx = appContext.reactContext ?: return@Function "[]"
       SurfaceStore.drain(ctx)

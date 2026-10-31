@@ -7,6 +7,7 @@ import { ChevronDown, Pause, Play, Square } from "lucide-react-native"
 import { useEffect, useState } from "react"
 import { View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { LiveNotice } from "@/surfaces/live-notice"
 import { Copy, Countdown, IconTap, Line, Tap } from "../native-kit"
 import { back, go } from "../navigation"
 import { useTheme } from "../theme"
@@ -77,6 +78,7 @@ export function HabitTimer({ id }: { id: string }) {
         </Copy>
         <View style={{ width: 40 }} />
       </Line>
+      <LiveNotice active={own} accent="hab" />
       {!own ? (
         <View
           style={{
