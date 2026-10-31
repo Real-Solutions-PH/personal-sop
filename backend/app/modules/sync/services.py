@@ -206,7 +206,7 @@ def max_version(ctx: Ctx) -> int:
     for entity in registry().entities.values():
         v = ctx.session.exec(
             select(func.max(entity.model.version)).where(
-                entity.model.owner_id == ctx.user_id
+                *owned_repo.scope(ctx, entity.model)
             )
         ).one()
         if v is not None and int(v) > best:
@@ -220,11 +220,7 @@ def pull(ctx: Ctx, cursor: int, limit: int) -> SyncPull:
         model = entity.model
         rows = ctx.session.exec(
             select(model)
-            .where(
-                model.owner_id == ctx.user_id,
-                model.tenant_id == ctx.tenant_id,
-                col(model.version) > cursor,
-            )
+            .where(*owned_repo.scope(ctx, model), col(model.version) > cursor)
             .order_by(col(model.version))
             .limit(limit + 1)
         ).all()

@@ -2,6 +2,7 @@
 
 import uuid
 from datetime import date, datetime
+from typing import ClassVar
 
 from sqlalchemy import CheckConstraint, Float, Index, String, UniqueConstraint, text
 from sqlmodel import Field
@@ -36,6 +37,7 @@ MEAL_STATUSES = ("pending_estimate", "estimated", "confirmed")
 
 class Exercise(OwnedRow, table=True):
     __tablename__ = "exercise"
+    shared_catalog: ClassVar[bool] = True  # app-wide (catalog.py)
     __table_args__ = (
         enum_check("equipment", EQUIPMENT, name="ck_exercise_equipment"),
         enum_check("muscle", MUSCLES, name="ck_exercise_muscle"),
@@ -75,6 +77,7 @@ class Exercise(OwnedRow, table=True):
 
 class WorkoutTemplate(OwnedRow, table=True):
     __tablename__ = "workout_template"
+    shared_catalog: ClassVar[bool] = True  # app-wide (catalog.py)
 
     name: str = Field(max_length=80)
     sort_order: int = 0
@@ -82,6 +85,7 @@ class WorkoutTemplate(OwnedRow, table=True):
 
 class TemplateItem(OwnedRow, table=True):
     __tablename__ = "template_item"
+    shared_catalog: ClassVar[bool] = True  # app-wide (catalog.py)
     __table_args__ = (
         UniqueConstraint("template_id", "position", name="uq_template_item_pos"),
         CheckConstraint("sets BETWEEN 1 AND 20", name="ck_template_item_sets"),
@@ -364,8 +368,9 @@ FOOD_SOURCES = ("label", "brand", "philfct", "usda", "recipe", "said", "import")
 
 
 class FoodItem(OwnedRow, table=True):
-    """The person's own food library: one food's nutrition, as read from a
-    label, said by them, or imported. Meal logging scales these values to the
+    """The shared food library: one food's nutrition, as read from a label,
+    said by a member, or imported. Every member reads it; its author (or an
+    admin) edits it. Meal logging scales these values to the
     amount eaten before it falls back to an estimate, so the same food gives
     the same numbers every time.
 
@@ -374,8 +379,16 @@ class FoodItem(OwnedRow, table=True):
     added sugar; sodium is in milligrams; every other amount is in grams."""
 
     __tablename__ = "food_item"
+    shared_catalog: ClassVar[bool] = True  # app-wide (catalog.py)
     __table_args__ = (
-        UniqueConstraint("owner_id", "key", name="uq_food_item_owner_key"),
+        # One live food per name in the shared library.
+        Index(
+            "uq_food_item_tenant_key_live",
+            "tenant_id",
+            "key",
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL"),
+        ),
         enum_check("basis", FOOD_BASES, name="ck_food_item_basis"),
         enum_check("source", FOOD_SOURCES, name="ck_food_item_source"),
         CheckConstraint(
@@ -418,6 +431,9 @@ class FoodItem(OwnedRow, table=True):
     # updates it instead of adding a second copy.
     external_ref: str | None = Field(default=None, max_length=200)
     notes: str | None = Field(default=None, max_length=500)
+    photo_media_id: uuid.UUID | None = Field(
+        default=None, foreign_key="media_object.id", ondelete="SET NULL"
+    )
     verified: bool = False
     use_count: int = 0
     last_used_at: datetime | None = Field(default=None, sa_type=tstz())  # type: ignore

@@ -109,24 +109,50 @@ def test_merge_refusals(client: TestClient, db: Session) -> None:
     err(_merge(client, h, bench, a), 422, "merge_cycle")
 
 
-def test_another_users_exercise_is_not_found(client: TestClient, db: Session) -> None:
+def test_only_the_author_merges_a_shared_exercise_away(
+    client: TestClient, db: Session
+) -> None:
     _, ha = signed_in(db)
     _, hb = signed_in(db)
-    theirs = exercise_ids(client, ha)["Barbell Bench Press"]
-    mine = exercise_ids(client, hb)["Overhead Press"]
-    mine_source = _create(client, hb, "Mine")
+    theirs = _create(client, ha, f"Theirs {uuid.uuid4().hex[:6]}")
+    mine_source = _create(client, hb, f"Mine {uuid.uuid4().hex[:6]}")
     before = _row(theirs)
 
-    err(_merge(client, hb, theirs, mine), 404, "exercise_not_found")
-    err(_merge(client, hb, mine_source, theirs), 404, "exercise_not_found")
-
+    # Merging someone else's exercise away is theirs (or an admin's) to do.
+    err(_merge(client, hb, theirs, mine_source), 403, "catalog_read_only")
     after = _row(theirs)
     assert (after.archived, after.merged_into_id, after.version) == (
         before.archived,
         before.merged_into_id,
         before.version,
     )
-    assert _row(mine_source).merged_into_id is None
+    # Folding my own duplicate into theirs is fine: theirs gains an alias.
+    ok(_merge(client, hb, mine_source, theirs))
+    assert _row(mine_source).merged_into_id == uuid.UUID(theirs)
+
+
+def test_a_merge_moves_every_members_history(client: TestClient, db: Session) -> None:
+    ua, ha = signed_in(db)
+    ub, _ = signed_in(db)
+    source = _create(client, ha, f"Pec deck v{uuid.uuid4().hex[:6]}")
+    target = _create(client, ha, f"Pec deck w{uuid.uuid4().hex[:6]}")
+    wa = finished_workout(
+        ua,
+        started_at=utcnow() - timedelta(days=2),
+        lifts=[(uuid.UUID(source), [(10, 40)])],
+    )
+    wb = finished_workout(
+        ub,
+        started_at=utcnow() - timedelta(days=1),
+        lifts=[(uuid.UUID(source), [(8, 45)])],
+    )
+    ok(_merge(client, ha, source, target))
+    with Session(engine) as s:
+        moved = s.exec(
+            select(WorkoutExercise).where(col(WorkoutExercise.workout_id).in_([wa, wb]))
+        ).all()
+    assert {str(we.exercise_id) for we in moved} == {target}
+    assert len(moved) == 2
 
 
 def test_sync_action_is_idempotent(client: TestClient, db: Session) -> None:

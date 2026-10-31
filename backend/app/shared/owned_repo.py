@@ -4,6 +4,10 @@ Ownership is a service invariant: every lookup filters on ``owner_id`` (and
 ``tenant_id``), so another user's id is a natural 404 with no existence leak.
 Row-level security is the second wall underneath.
 
+A ``shared_catalog`` table is read tenant-wide instead, and every write path
+here (upsert, soft delete, restore, :func:`require_writable`) refuses a row
+whose author is someone else unless the caller is an admin.
+
 Upserts are idempotent on the client-minted id, and a write that hits a
 natural-key unique constraint whose holder is a tombstone REVIVES that row
 instead of failing (e.g. re-logging a habit on a day whose log was undone).
@@ -18,7 +22,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import col, func, select
 
 from app.shared.context import Ctx
-from app.shared.domain import not_found
+from app.shared.domain import domain_error, not_found
 from app.shared.owned import OwnedRow
 
 M = TypeVar("M", bound=OwnedRow)
@@ -29,14 +33,35 @@ PROTECTED = frozenset(
 )
 
 
+def scope(ctx: Ctx, model: type[M]) -> list[ColumnElement[bool]]:
+    """Who sees a row: its owner, or the whole tenant for a shared catalog."""
+    tenant = model.tenant_id == ctx.tenant_id
+    if model.shared_catalog:
+        return [tenant]  # type: ignore[list-item]
+    return [model.owner_id == ctx.user_id, tenant]  # type: ignore[list-item]
+
+
+def can_write(ctx: Ctx, row: OwnedRow) -> bool:
+    """Whether the caller may change this row: always their own; another
+    member's shared catalog row only as an admin."""
+    return row.owner_id == ctx.user_id or (
+        type(row).shared_catalog and bool(ctx.user.is_superuser)
+    )
+
+
+def guard_write(ctx: Ctx, row: OwnedRow) -> None:
+    if not can_write(ctx, row):
+        raise domain_error(
+            403,
+            "catalog_read_only",
+            "Another member added this; only they or an admin can change it",
+        )
+
+
 def get(
     ctx: Ctx, model: type[M], row_id: uuid.UUID, *, include_deleted: bool = False
 ) -> M | None:
-    q = select(model).where(
-        model.id == row_id,
-        model.owner_id == ctx.user_id,
-        model.tenant_id == ctx.tenant_id,
-    )
+    q = select(model).where(model.id == row_id, *scope(ctx, model))
     if not include_deleted:
         q = q.where(col(model.deleted_at).is_(None))
     return ctx.session.exec(q).first()
@@ -56,6 +81,20 @@ def require(
     return row
 
 
+def require_writable(
+    ctx: Ctx,
+    model: type[M],
+    row_id: uuid.UUID,
+    *,
+    what: str,
+    include_deleted: bool = False,
+) -> M:
+    """``require``, refusing (403) a shared row the caller may not change."""
+    row = require(ctx, model, row_id, what=what, include_deleted=include_deleted)
+    guard_write(ctx, row)
+    return row
+
+
 def list_rows(
     ctx: Ctx,
     model: type[M],
@@ -65,9 +104,7 @@ def list_rows(
     limit: int | None = None,
     include_deleted: bool = False,
 ) -> list[M]:
-    q = select(model).where(
-        model.owner_id == ctx.user_id, model.tenant_id == ctx.tenant_id, *where
-    )
+    q = select(model).where(*scope(ctx, model), *where)
     if not include_deleted:
         q = q.where(col(model.deleted_at).is_(None))
     if order_by:
@@ -82,12 +119,7 @@ def count_rows(ctx: Ctx, model: type[M], *where: ColumnElement[bool]) -> int:
     q = (
         select(func.count())
         .select_from(model)
-        .where(
-            model.owner_id == ctx.user_id,
-            model.tenant_id == ctx.tenant_id,
-            col(model.deleted_at).is_(None),
-            *where,
-        )
+        .where(*scope(ctx, model), col(model.deleted_at).is_(None), *where)
     )
     return int(ctx.session.exec(q).one())
 
@@ -166,6 +198,7 @@ def upsert(
         # An id already used by someone else is invisible here; inserting it
         # raises an IntegrityError the route turns into a conflict.
         return insert(ctx, model, data, row_id=row_id), True
+    guard_write(ctx, row)
     apply(row, data)
     row.deleted_at = None
     ctx.session.add(row)
@@ -174,12 +207,14 @@ def upsert(
 
 
 def soft_delete(ctx: Ctx, row: OwnedRow) -> None:
+    guard_write(ctx, row)
     row.deleted_at = ctx.now
     ctx.session.add(row)
     ctx.session.flush()
 
 
 def restore(ctx: Ctx, row: OwnedRow) -> None:
+    guard_write(ctx, row)
     row.deleted_at = None
     ctx.session.add(row)
     ctx.session.flush()

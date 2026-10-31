@@ -12,8 +12,8 @@ from sqlmodel import col
 
 from app.modules.fitness import calc as C
 from app.modules.fitness import calc as calc
+from app.modules.fitness import catalog, repo, services
 from app.modules.fitness import foods as F
-from app.modules.fitness import repo, services
 from app.modules.fitness.models import (
     Exercise,
     FoodItem,
@@ -448,7 +448,13 @@ def create_template(
     template_id: uuid.UUID | None = None,
 ) -> tuple[WorkoutTemplate, list[str]]:
     """A workout template, creating any exercise it names that does not
-    exist yet. Returns the template and the names of the exercises made."""
+    exist yet. Returns the template and the names of the exercises made.
+
+    Routines are a shared catalog: a routine already called ``name`` (or a
+    close spelling of it) is returned as it is, and nothing is created."""
+    existing = find_template(ctx, name)
+    if existing is not None:
+        return existing, []
     made: list[str] = []
     slots: list[tuple[uuid.UUID, int]] = []
     for it in items:
@@ -471,11 +477,14 @@ def delete_template(ctx: Ctx, *, template_id: uuid.UUID) -> None:
 
 
 def find_template(ctx: Ctx, name: str) -> WorkoutTemplate | None:
-    n = name.strip().lower()
-    return next(
-        (t for t in owned_repo.list_rows(ctx, WorkoutTemplate) if t.name.lower() == n),
-        None,
+    """The catalog routine ``name`` means (same folded name, or one close
+    spelling), oldest first."""
+    rows = owned_repo.list_rows(
+        ctx,
+        WorkoutTemplate,
+        order_by=[col(WorkoutTemplate.created_at), col(WorkoutTemplate.id)],
     )
+    return catalog.resolve_routine(name, rows)
 
 
 # ------------------------------------------------- edits from chat (Fern)

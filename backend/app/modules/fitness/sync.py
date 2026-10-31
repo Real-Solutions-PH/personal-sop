@@ -38,7 +38,7 @@ from app.modules.fitness.models import (
 from app.modules.sync.registry import Action, Entity, Registry
 from app.shared import owned_repo
 from app.shared.context import Ctx
-from app.shared.domain import invalid
+from app.shared.domain import invalid, not_found
 from app.shared.owned import OwnedRow
 
 
@@ -61,6 +61,10 @@ def _put(
 def _upsert_exercise(ctx: Ctx, row_id: uuid.UUID, p: BaseModel) -> OwnedRow:
     data = _data(p)
     current = owned_repo.get(ctx, Exercise, row_id)
+    gone = owned_repo.get(ctx, Exercise, row_id, include_deleted=True)
+    if current is None and gone is not None and gone.merged_into_id is not None:
+        # Merged into another exercise: an edit never revives the duplicate.
+        raise invalid("exercise_merged", "That exercise was merged into another one")
     rmin = data.get("rep_min", current.rep_min if current else 8)
     rmax = data.get("rep_max", current.rep_max if current else 12)
     if rmax < rmin:
@@ -71,10 +75,29 @@ def _upsert_exercise(ctx: Ctx, row_id: uuid.UUID, p: BaseModel) -> OwnedRow:
     return _put(ctx, Exercise, row_id, data)
 
 
+def _exercise_ref(ctx: Ctx, data: dict[str, Any]) -> None:
+    """Point a reference at the exercise's survivor: a device that was
+    offline through a merge still sends the old id."""
+    if data.get("exercise_id") is None:
+        return
+    ex = owned_repo.require(
+        ctx, Exercise, data["exercise_id"], what="exercise", include_deleted=True
+    )
+    if ex.merged_into_id is not None:
+        ex = services.survivor_of(ctx, ex)
+    elif ex.deleted_at is not None:
+        raise not_found("exercise")
+    data["exercise_id"] = ex.id
+
+
 def _upsert_template_item(ctx: Ctx, row_id: uuid.UUID, p: BaseModel) -> OwnedRow:
     data = _data(p)
-    _parent(ctx, WorkoutTemplate, data.get("template_id"), "template")
-    _parent(ctx, Exercise, data.get("exercise_id"), "exercise")
+    if data.get("template_id") is not None:
+        # Routines are shared: only their author (or an admin) adds slots.
+        owned_repo.require_writable(
+            ctx, WorkoutTemplate, data["template_id"], what="template"
+        )
+    _exercise_ref(ctx, data)
     return _put(ctx, TemplateItem, row_id, data)
 
 
@@ -110,7 +133,7 @@ def _delete_workout(ctx: Ctx, row_id: uuid.UUID) -> None:
 def _upsert_workout_exercise(ctx: Ctx, row_id: uuid.UUID, p: BaseModel) -> OwnedRow:
     data = _data(p)
     _parent(ctx, Workout, data.get("workout_id"), "workout")
-    _parent(ctx, Exercise, data.get("exercise_id"), "exercise")
+    _exercise_ref(ctx, data)
     return _put(ctx, WorkoutExercise, row_id, data)
 
 

@@ -191,6 +191,52 @@ def test_create_a_timed_exercise_then_undo_removes_it(
     assert "Treadmill Walk" not in {e.name for e in live(rows_of(api, Exercise))}
 
 
+def test_creating_a_variant_of_an_existing_exercise_reuses_it(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = fern(client, db)
+    turn(
+        api,
+        client,
+        monkeypatch,
+        "add pec deck machine",
+        act("create_exercise", name="Pec deck machine", equipment="machine"),
+    )
+    before = len(rows_of(api, Exercise))
+    for said in ("Pec deck fly", "pec-deck", "Butterfly"):
+        _, model = turn(
+            api,
+            client,
+            monkeypatch,
+            f"add {said}",
+            act("create_exercise", name=said),
+        )
+        out = tool_result(model)
+        assert out["reused"] is True and out["exercise"]["name"] == "Pec deck machine"
+    assert len(rows_of(api, Exercise)) == before
+
+
+def test_creating_a_routine_by_an_existing_name_reuses_it(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = fern(client, db)
+    before = len(live(rows_of(api, WorkoutTemplate)))
+    _, model = turn(
+        api,
+        client,
+        monkeypatch,
+        "make a push a routine",
+        act(
+            "create_workout_template",
+            name="push a",
+            exercises=[{"exercise": "Bench press", "sets": 3}],
+        ),
+    )
+    out = tool_result(model)
+    assert out["reused"] is True and out["template"]["name"] == "Push A"
+    assert len(live(rows_of(api, WorkoutTemplate))) == before
+
+
 def test_archiving_an_exercise_waits_for_confirm_then_undo_brings_it_back(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:

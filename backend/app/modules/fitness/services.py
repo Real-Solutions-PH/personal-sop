@@ -16,11 +16,11 @@ from datetime import date, datetime, timedelta
 from typing import Any, Literal
 
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import col
+from sqlmodel import col, select
 
 from app.modules.fitness import calc as C
+from app.modules.fitness import catalog, repo
 from app.modules.fitness import foods as F
-from app.modules.fitness import repo
 from app.modules.fitness.models import (
     Exercise,
     FitnessSettings,
@@ -61,7 +61,8 @@ def _dirty_at(ctx: Ctx, at: datetime) -> None:
 # --------------------------------------------------------------------------
 
 # The prototype's exercise library and split (``data.ts`` EXERCISES /
-# TEMPLATES): a new user starts with them, as on the device.
+# TEMPLATES): the shared catalog starts with them. Each is added only when
+# the catalog has nothing by that name, so members share one copy.
 LIBRARY: tuple[tuple[str, str, str, str, str, int, int, float, bool], ...] = (
     ("bench", "Barbell Bench Press", "barbell", "chest", "weight", 6, 10, 2.5, False),
     ("incline-db", "Incline Dumbbell Press", "dumbbell", "chest", "weight", 8, 12, 2, False),
@@ -86,15 +87,38 @@ SPLIT: tuple[tuple[str, str, tuple[str, ...]], ...] = (
 
 
 def library_exercise_id(ctx: Ctx, key: str) -> uuid.UUID:
-    return derived_id("exercise", ctx.user_id, key)
+    """The id the catalog's seeded copy of a library exercise gets (one per
+    tenant, not per member)."""
+    return derived_id("exercise", ctx.tenant_id, key)
+
+
+def catalog_exercises(ctx: Ctx) -> list[Exercise]:
+    """Live, unmerged catalog exercises, oldest first (the order
+    ``catalog.resolve_exercise`` prefers when two share a name)."""
+    return [
+        e
+        for e in owned_repo.list_rows(
+            ctx, Exercise, order_by=[col(Exercise.created_at), col(Exercise.id)]
+        )
+        if e.merged_into_id is None
+    ]
 
 
 def _seed_library(ctx: Ctx) -> None:
+    rows = catalog_exercises(ctx)
+    ids: dict[str, uuid.UUID] = {}
     for key, name, equip, muscle, load, rmin, rmax, inc, archived in LIBRARY:
-        owned_repo.upsert(
+        found = catalog.resolve_exercise(name, rows)
+        if found is not None:
+            ids[key] = found.id
+            continue
+        row_id = library_exercise_id(ctx, key)
+        if owned_repo.get(ctx, Exercise, row_id, include_deleted=True) is not None:
+            continue  # seeded once and since removed or merged: stays so
+        ids[key] = row_id
+        owned_repo.insert(
             ctx,
             Exercise,
-            library_exercise_id(ctx, key),
             {
                 "name": name,
                 "equipment": equip,
@@ -105,28 +129,31 @@ def _seed_library(ctx: Ctx) -> None:
                 "increment": inc,
                 "archived": archived,
             },
+            row_id=row_id,
         )
+    routines = owned_repo.list_rows(ctx, WorkoutTemplate, include_deleted=True)
     for order, (key, name, keys) in enumerate(SPLIT):
+        if catalog.resolve_routine(name, routines) is not None:
+            continue
         _put_template(
             ctx,
-            derived_id("template", ctx.user_id, key),
+            derived_id("template", ctx.tenant_id, key),
             name,
-            [(library_exercise_id(ctx, k), DEFAULT_SETS) for k in keys],
+            [(ids[k], DEFAULT_SETS) for k in keys if k in ids],
             sort_order=order,
         )
 
 
 def ensure_settings(ctx: Ctx) -> FitnessSettings:
-    """The caller's settings row, created (with the seeded exercise library
-    and split) on first access. Flushes only."""
+    """The caller's settings row, created on first access (the shared
+    catalog gets the seeded library and split if it lacks them). Flushes
+    only."""
     row = repo.get_settings(ctx)
     if row is not None and row.deleted_at is None:
         return row
     if row is None:
-        never_used = owned_repo.find_one(ctx, Exercise, include_deleted=True) is None
         row = owned_repo.insert(ctx, FitnessSettings, {})
-        if never_used:
-            _seed_library(ctx)
+        _seed_library(ctx)
         return row
     owned_repo.restore(ctx, row)
     return row
@@ -551,8 +578,9 @@ def log_workout_from_chat(
 
 
 def find_or_create_exercise(ctx: Ctx, name: str) -> Exercise:
-    """A live exercise with this name or alias (case-insensitive), else a new
-    one with the default shape. The new id is derived from the name, so a
+    """The catalog exercise this name means (``catalog.resolve_exercise``:
+    same name or alias, its variants, or a close spelling), else a new one
+    with the default shape. The new id is derived from the name, so a
     replayed capture does not create it twice; when that id was since merged
     into another exercise, the survivor is returned instead."""
     clean = name.strip()
@@ -563,9 +591,9 @@ def find_or_create_exercise(ctx: Ctx, name: str) -> Exercise:
     if found is not None:
         return found
     row_id = derived_id("exercise", ctx.user_id, "name:" + clean.lower())
-    prior = owned_repo.get(ctx, Exercise, row_id)
+    prior = owned_repo.get(ctx, Exercise, row_id, include_deleted=True)
     if prior is not None and prior.merged_into_id is not None:
-        return _survivor(ctx, prior)
+        return survivor_of(ctx, prior)
     ex, _ = owned_repo.upsert(
         ctx,
         Exercise,
@@ -577,14 +605,14 @@ def find_or_create_exercise(ctx: Ctx, name: str) -> Exercise:
 
 
 def exercise_by_name(ctx: Ctx, name: str) -> Exercise | None:
-    """The live, unmerged exercise called ``name`` or carrying it as an alias
-    (case-insensitive); a name match wins over an alias match."""
+    """The live, unmerged catalog exercise ``name`` means: the exact name
+    (any case) first, then ``catalog.resolve_exercise``."""
     n = name.strip().lower()
-    rows = [e for e in owned_repo.list_rows(ctx, Exercise) if e.merged_into_id is None]
+    rows = catalog_exercises(ctx)
     by_name = next((e for e in rows if e.name.lower() == n), None)
     if by_name is not None:
         return by_name
-    return next((e for e in rows if n in (a.lower() for a in e.aliases)), None)
+    return catalog.resolve_exercise(name, rows)
 
 
 # --------------------------------------------------------------------------
@@ -970,6 +998,7 @@ def set_exercise_archived(
     *, ctx: Ctx, exercise_id: uuid.UUID, archived: bool
 ) -> Exercise:
     ex = _exercise(ctx, exercise_id)
+    owned_repo.guard_write(ctx, ex)
     _guard_merged(ex, archived)
     ex.archived = archived
     ctx.session.add(ex)
@@ -982,13 +1011,16 @@ MAX_ALIASES = 20
 MAX_MERGE_HOPS = 5
 
 
-def _survivor(ctx: Ctx, ex: Exercise) -> Exercise:
-    """Follow ``merged_into_id`` to the live row it ends at."""
+def survivor_of(ctx: Ctx, ex: Exercise) -> Exercise:
+    """Follow ``merged_into_id`` to the live row it ends at (through rows
+    the duplicate clean-up tombstoned)."""
     seen = {ex.id}
     for _ in range(MAX_MERGE_HOPS):
         if ex.merged_into_id is None:
             return ex
-        ex = _exercise(ctx, ex.merged_into_id)
+        ex = owned_repo.require(
+            ctx, Exercise, ex.merged_into_id, what="exercise", include_deleted=True
+        )
         if ex.id in seen:
             break
         seen.add(ex.id)
@@ -1020,9 +1052,10 @@ def merge_exercises(
     if source_id == target_id:
         raise invalid("merge_same_exercise", "Pick a different exercise to merge into")
     source = _exercise(ctx, source_id)
-    target = _survivor(ctx, _exercise(ctx, target_id))
+    owned_repo.guard_write(ctx, source)
+    target = survivor_of(ctx, _exercise(ctx, target_id))
     if source.merged_into_id is not None:
-        if _survivor(ctx, source).id == target.id:
+        if survivor_of(ctx, source).id == target.id:
             return target
         raise invalid("exercise_already_merged", "That exercise was already merged")
     if source.id == target.id:
@@ -1031,12 +1064,15 @@ def merge_exercises(
         raise invalid(
             "merge_load_type_mismatch", "Only exercises of the same type can merge"
         )
-    # Tombstoned references move too, so an undo never revives a split.
-    moved = owned_repo.list_rows(
-        ctx,
-        WorkoutExercise,
-        col(WorkoutExercise.exercise_id) == source.id,
-        include_deleted=True,
+    # The catalog is shared: every member's references move, tombstoned
+    # ones too, so an undo never revives a split.
+    moved = list(
+        ctx.session.exec(
+            select(WorkoutExercise).where(
+                WorkoutExercise.tenant_id == ctx.tenant_id,
+                WorkoutExercise.exercise_id == source.id,
+            )
+        ).all()
     )
     for we in moved:
         we.exercise_id = target.id
@@ -1059,7 +1095,12 @@ def merge_exercises(
     source.archived = True
     ctx.session.add_all([target, source])
     ctx.session.flush()
-    workout_ids = {we.workout_id for we in moved if we.deleted_at is None}
+    # Only the caller's own days are marked for the stats rollup.
+    workout_ids = {
+        we.workout_id
+        for we in moved
+        if we.deleted_at is None and we.owner_id == ctx.user_id
+    }
     if workout_ids:
         started = [
             w.started_at
@@ -1644,23 +1685,24 @@ def set_macro_target(
 # Resets
 # --------------------------------------------------------------------------
 
+# A member's own rows. Exercises and routines are the shared catalog: one
+# member starting over never removes what every member uses.
 _LOGS: tuple[type[Any], ...] = (
     WorkoutSet,
     WorkoutExercise,
     Workout,
-    TemplateItem,
-    WorkoutTemplate,
     MealItem,
     Meal,
     WeighIn,
     RestTimer,
 )
-_ALL: tuple[type[Any], ...] = (*_LOGS, Exercise, MacroTarget, FitnessSettings)
+_ALL: tuple[type[Any], ...] = (*_LOGS, MacroTarget, FitnessSettings)
 
 
 def _tombstone(ctx: Ctx, models: tuple[type[Any], ...]) -> int:
     n = 0
     for model in models:
+        assert not model.shared_catalog, model  # tenant-wide: never bulk-removed
         for row in owned_repo.list_rows(ctx, model):
             row.deleted_at = ctx.now
             ctx.session.add(row)
@@ -1674,16 +1716,18 @@ def _tombstone(ctx: Ctx, models: tuple[type[Any], ...]) -> int:
 
 
 def start_fresh(*, ctx: Ctx) -> int:
-    """Empty the logs for first-time setup: workouts, templates, meals,
-    weigh-ins and the rest timer go; exercises, targets and settings stay."""
+    """Empty the logs for first-time setup: workouts, meals, weigh-ins and
+    the rest timer go; the shared exercises and routines, targets and
+    settings stay."""
     n = _tombstone(ctx, _LOGS)
     ctx.commit()
     return n
 
 
 def reset_fitness(*, ctx: Ctx) -> int:
-    """Back to a new user's fitness: everything removed, then the default
-    exercise library, split and settings come back."""
+    """Back to a new user's fitness: the member's own rows removed and the
+    settings back to defaults. The shared exercises and routines stay (the
+    seeded library and split come back only if the catalog lacks them)."""
     n = _tombstone(ctx, _ALL)
     settings = repo.get_settings(ctx)
     if settings is not None:

@@ -1736,8 +1736,14 @@ def capture_tools(run: Run) -> list[BaseTool]:
 
     def create_workout_template(**kw: Any) -> dict[str, Any]:
         a = TemplateArgs(**kw)
-        if ports.fitness.find_template(run.ctx, a.name) is not None:
-            return {"error": "a_template_with_that_name_exists"}
+        # Routines are shared by every member: one by this name is reused.
+        same = ports.fitness.find_template(run.ctx, a.name)
+        if same is not None:
+            return {
+                "reused": True,
+                "template": ports.fitness.chat.template_public(run.ctx, same),
+                "note": "a routine by that name already exists; use it",
+            }
         d = RecordDraft(
             kind="templateCreate",
             target="fitness",
