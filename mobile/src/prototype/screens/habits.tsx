@@ -17,7 +17,7 @@ import {
 } from "react-native"
 import { toast } from "sonner-native"
 import { Trend } from "../chart"
-import { AnimatedCheck, feel, useSwipeComplete } from "../motion"
+import { AnimatedCheck, feel, TickRow, useSwipeComplete } from "../motion"
 import { Line } from "../native-kit"
 import { go } from "../navigation"
 import { fonts, useTheme } from "../theme"
@@ -211,38 +211,40 @@ function ManualHabitRow({ habit, day }: { habit: Habit; day: string }) {
   return (
     <>
       <SwipeRow onComplete={swipe.onComplete} onMore={() => setOpen(true)}>
-        <Row
-          title={`${habit.icon} ${habit.name}`}
-          detail={`${log?.status ?? L.scheduleLabel(habit.schedule)}${habit.target ? ` · ${L.targetLabel(habit)}` : ""}${habit.rule ? ` · ${SCREEN_OFF_LABEL}` : ""}`}
-          href={`/habits/${habit.id}`}
-          onLongPress={() => {
-            feel.tap()
-            setActions(true)
-          }}
-          longPressLabel="Habit actions"
-          right={
-            habit.type === "check" ? (
-              <AnimatedCheck
-                checked={log?.status === "done"}
-                onToggle={done}
-                label={`${log?.status === "done" ? "Clear" : "Check"} ${habit.name}`}
-                color={t.hab}
-                idle={`${t.muted}66`}
-                size={28}
-                checkColor={t.onPrimary}
-                celebrate={swipe.celebrate}
-              />
-            ) : (
-              <Button
-                small
-                tone={log?.status === "done" ? "primary" : "quiet"}
-                onPress={() => setOpen(true)}
-              >
-                {log?.status === "done" ? "✓" : "Log"}
-              </Button>
-            )
-          }
-        />
+        <TickRow>
+          <Row
+            title={`${habit.icon} ${habit.name}`}
+            detail={`${log?.status ?? L.scheduleLabel(habit.schedule)}${habit.target ? ` · ${L.targetLabel(habit)}` : ""}${habit.rule ? ` · ${SCREEN_OFF_LABEL}` : ""}`}
+            href={`/habits/${habit.id}`}
+            onLongPress={() => {
+              feel.tap()
+              setActions(true)
+            }}
+            longPressLabel="Habit actions"
+            right={
+              habit.type === "check" ? (
+                <AnimatedCheck
+                  checked={log?.status === "done"}
+                  onToggle={done}
+                  label={`${log?.status === "done" ? "Clear" : "Check"} ${habit.name}`}
+                  color={t.hab}
+                  idle={`${t.muted}66`}
+                  size={28}
+                  checkColor={t.onPrimary}
+                  celebrate={swipe.celebrate}
+                />
+              ) : (
+                <Button
+                  small
+                  tone={log?.status === "done" ? "primary" : "quiet"}
+                  onPress={() => setOpen(true)}
+                >
+                  {log?.status === "done" ? "✓" : "Log"}
+                </Button>
+              )
+            }
+          />
+        </TickRow>
       </SwipeRow>
       <HabitLog
         habit={habit}

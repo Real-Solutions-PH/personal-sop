@@ -149,7 +149,7 @@ describe("fitness · workouts (live)", { defaultCommandTimeout: 60000 }, () => {
         })
 
         // Complete the 60 × 8 set: completed_at on the server, rest starts.
-        cy.findAllByRole("button", { name: "Complete set" }).first().click()
+        cy.findAllByLabelText("Complete set").first().click()
         rows(
           `${SETS.replace("order by", "and s.weight = 60 and s.completed_at is not null order by")}`,
           [wid],
@@ -283,7 +283,7 @@ describe("fitness · workouts (live)", { defaultCommandTimeout: 60000 }, () => {
             }).click()
             cy.findByRole("textbox", { name: "Weight (kg)" }).clear().type("50")
             cy.findByRole("button", { name: "Save" }).click()
-            cy.findAllByRole("button", { name: "Complete set" }).first().click()
+            cy.findAllByLabelText("Complete set").first().click()
             cy.findByRole("button", { name: "Finish" }).click()
             cy.findByRole("button", {
               name: "Mark all done & finish",

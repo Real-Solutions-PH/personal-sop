@@ -21,6 +21,7 @@ import {
   feel,
   rowEnter,
   rowExit,
+  TickRow,
   useSwipeComplete,
 } from "../motion"
 import { Copy, Line, Tap } from "../native-kit"
@@ -139,7 +140,7 @@ export function TaskRow({
           onMore={() => setOpen(true)}
           background={surface}
         >
-          <View
+          <TickRow
             style={{
               flexDirection: "row",
               gap: compact ? 12 : 10,
@@ -315,7 +316,7 @@ export function TaskRow({
                 />
               )
             )}
-          </View>
+          </TickRow>
         </SwipeRow>
       </Animated.View>
       <Sheet
