@@ -42,6 +42,7 @@ from app.shared.owned import OwnedRow
 R = TypeVar("R", bound=OwnedRow)
 
 STATS_MODULE = "habits"  # any rollup module: the drain recomputes the whole day
+EVENING_START = "18:00"  # the profile default, for someone without a profile
 
 
 # ---------------------------------------------------------------- goals
@@ -158,9 +159,9 @@ def wrap_up_for(ctx: Ctx, day: date) -> WrapUp | None:
 
 
 def is_evening(ctx: Ctx) -> bool:
-    profile = profile_public.get_profile(ctx)
+    profile = profile_public.find_profile(ctx)
     try:
-        h, m = parse_hm(profile.evening_start)
+        h, m = parse_hm(profile.evening_start if profile else EVENING_START)
     except ValueError:
         h, m = 18, 0
     local = ctx.now.astimezone(ctx.clock.zone)

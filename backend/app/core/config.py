@@ -5,6 +5,7 @@ from pydantic import (
     AnyUrl,
     BeforeValidator,
     EmailStr,
+    Field,
     HttpUrl,
     PostgresDsn,
     SecretStr,
@@ -171,6 +172,12 @@ class Settings(BaseSettings):
     # Coarse outer guard on request body size (a per-worker memory-DoS
     # backstop). Must exceed the largest legitimate upload, e.g. OCR files.
     MAX_REQUEST_BODY_SIZE_MB: int = 25
+
+    # Requests admitted at once per worker, counted until their response
+    # starts. Must stay below the threadpool's 40 threads so a request that
+    # holds a database connection can always get the thread it needs to
+    # finish; see ``InFlightLimitMiddleware``. 0 = no limit.
+    MAX_IN_FLIGHT_REQUESTS: int = Field(default=20, ge=0, lt=40)
 
     # Rate limiting: per-tenant token bucket backed by Redis (already in
     # compose). Disabled by default; set a positive per-minute budget to turn

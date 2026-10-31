@@ -11,9 +11,10 @@ another use case (``public.py`` functions) never commit — the caller does.
 """
 
 import uuid
+from collections.abc import Callable, Hashable
 from dataclasses import dataclass, field
 from datetime import date, datetime
-from typing import Annotated
+from typing import Annotated, Any, TypeVar
 
 from fastapi import Depends
 from sqlmodel import Session, select
@@ -24,6 +25,8 @@ from app.shared.currency import PHP, Currency, currency
 from app.shared.day import DayClock
 from app.shared.owned import utcnow
 from app.shared.tenant_session import TenantScopedSessionDep
+
+T = TypeVar("T")
 
 
 @dataclass
@@ -38,6 +41,12 @@ class Ctx:
     # flush instead of committing, and the engine commits each op itself
     # (inside a SAVEPOINT) so one rejected op does not roll back the others.
     in_batch: bool = False
+    # Whole-history snapshots a read loads once and shares (``None`` = off).
+    # A stats read asks every module for the user's full state once per
+    # figure; without this one overview re-read the same history dozens of
+    # times. Only read-only requests turn it on (``ReadCtxDep``), and a
+    # commit drops what was kept.
+    snapshots: dict[Hashable, Any] | None = None
 
     @property
     def user_id(self) -> uuid.UUID:
@@ -57,6 +66,20 @@ class Ctx:
             self.session.flush()
         else:
             self.session.commit()
+        if self.snapshots:
+            self.snapshots.clear()
+
+    def snapshot(self, key: Hashable, load: Callable[[], T]) -> T:
+        """``load()``, kept for the rest of the request when snapshots are on.
+
+        Callers treat the result as read-only: later readers get the same
+        object."""
+        if self.snapshots is None:
+            return load()
+        if key not in self.snapshots:
+            self.snapshots[key] = load()
+        kept: T = self.snapshots[key]
+        return kept
 
     def owned(self) -> dict[str, uuid.UUID]:
         """The ownership columns for a new row."""
@@ -101,3 +124,14 @@ def get_ctx(session: TenantScopedSessionDep, current_user: CurrentUser) -> Ctx:
 
 
 CtxDep = Annotated[Ctx, Depends(get_ctx)]
+
+
+async def get_read_ctx(ctx: CtxDep) -> Ctx:
+    """The context of a read-only request, with snapshots on.
+
+    ``async`` on purpose: it does no I/O, so it costs no threadpool hop."""
+    ctx.snapshots = {}
+    return ctx
+
+
+ReadCtxDep = Annotated[Ctx, Depends(get_read_ctx)]

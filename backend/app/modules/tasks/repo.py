@@ -342,6 +342,13 @@ def load_state(ctx: Ctx, *, events_since: datetime | None = None) -> Loaded:
     tasks removed by capture undo are not. Only ``rescheduled`` events feed
     the statistics, so only those are loaded.
     """
+    return ctx.snapshot(
+        ("tasks", events_since),
+        lambda: _load_state(ctx, events_since=events_since),
+    )
+
+
+def _load_state(ctx: Ctx, *, events_since: datetime | None) -> Loaded:
     list_rows = lists(ctx)
     task_rows = list(
         ctx.session.exec(

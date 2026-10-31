@@ -213,6 +213,10 @@ def settings_s(st: FitnessSettings | None) -> C.SettingsS:
 
 def load_state(ctx: Ctx, *, meals: bool = True) -> C.FitState:
     """Every live fitness row of the caller, as a calculation snapshot."""
+    return ctx.snapshot(("fitness", meals), lambda: _load_state(ctx, meals=meals))
+
+
+def _load_state(ctx: Ctx, *, meals: bool) -> C.FitState:
     exercises = owned_repo.list_rows(ctx, Exercise, order_by=[col(Exercise.name)])
     templates = owned_repo.list_rows(
         ctx,

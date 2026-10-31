@@ -19,7 +19,7 @@ BIG_PURCHASE_MINOR = 500_000  # 5,000 in the user's currency
 
 
 def _state(ctx: Ctx) -> calc.State:
-    return repo.load_state(ctx)
+    return repo.read_state(ctx)
 
 
 class FinanceContributor:

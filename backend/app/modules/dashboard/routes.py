@@ -14,7 +14,7 @@ from app.modules.dashboard import services as svc
 from app.modules.iam.deps import require_permission
 from app.modules.stats import public as stats_public
 from app.modules.stats.schema import GoalProgressOut, RingOut, goal_progress_out
-from app.shared.context import CtxDep
+from app.shared.context import CtxDep, ReadCtxDep
 from app.shared.domain import not_found
 from app.shared.pagination import PaginationDep
 from app.shared.rate_limit import rate_limited
@@ -43,7 +43,7 @@ def _ring(r: stats_public.DayRing) -> RingOut:
 
 
 @router.get("/today", response_model=S.TodayBundle, dependencies=READ)
-def today(ctx: CtxDep) -> Any:
+def today(ctx: ReadCtxDep) -> Any:
     """The Today bundle: ring, Life Score, next up, card counts and the
     wrap-up state."""
     return svc.today_bundle(ctx)
@@ -63,7 +63,7 @@ def _goal_out(ctx: CtxDep, goal_id: uuid.UUID) -> GoalProgressOut:
 
 
 @router.get("/goals", response_model=S.GoalsOut, dependencies=READ)
-def list_goals(ctx: CtxDep, page: PaginationDep) -> Any:
+def list_goals(ctx: ReadCtxDep, page: PaginationDep) -> Any:
     """Every goal with its progress against the current metric value."""
     views = [goal_progress_out(g) for g in stats_public.goals_with_progress(ctx)]
     return S.GoalsOut(data=views[page.skip : page.skip + page.limit], count=len(views))
@@ -76,7 +76,7 @@ def create_goal(ctx: CtxDep, body: S.GoalCreate) -> Any:
 
 
 @router.get("/goals/{goal_id}", response_model=GoalProgressOut, dependencies=READ)
-def read_goal(ctx: CtxDep, goal_id: uuid.UUID) -> Any:
+def read_goal(ctx: ReadCtxDep, goal_id: uuid.UUID) -> Any:
     svc.require_goal(ctx, goal_id)
     return _goal_out(ctx, goal_id)
 
