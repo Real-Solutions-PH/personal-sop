@@ -15,6 +15,7 @@ import {
   type Chat,
   type Cheer,
   type Comment,
+  commentThread,
   connectSocial,
   ME,
   type Media,
@@ -29,6 +30,7 @@ import {
   type SocialState,
   type StoryItem,
   socialStore,
+  tombstone,
   typingStore,
   withCheer,
 } from "@/prototype/social/store"
@@ -143,6 +145,8 @@ interface WMessage {
   reply_to_id: string | null
   system: boolean
   reactions: Record<string, string>
+  /** A tombstone of a deleted message; absent from older servers. */
+  deleted?: boolean
 }
 interface WChat {
   id: string
@@ -283,8 +287,11 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
   /** Posts I deleted this session (until restored): stale reads skip them. */
   const deleted = new Set<string>()
   const deleting = new Map<string, Promise<unknown>>()
-  /** Messages I unsent this session: stale reads skip them. */
+  /** Messages I deleted this session (until restored): a stale read shows
+   * them as tombstones. */
   const unsent = new Set<string>()
+  const unsending = new Map<string, Promise<unknown>>()
+  const deletingComment = new Map<string, Promise<unknown>>()
   /** The last message send per chat; the next one waits for it. */
   const sending = new Map<string, Promise<unknown>>()
   // When I last wrote my note / each story (client clock): a list read that
@@ -495,7 +502,7 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
     at: ms(w.created_at),
     liked: w.liked,
   })
-  const mapMessage = (w: WMessage, prev?: Message): Message => ({
+  const mapLive = (w: WMessage, prev?: Message): Message => ({
     id: w.id,
     by: pid(w.sender_id),
     at: ms(w.at),
@@ -509,6 +516,11 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
     ),
     system: w.system || undefined,
   })
+  const mapMessage = (w: WMessage, prev?: Message): Message => {
+    const m = mapLive(w, prev)
+    return w.deleted || unsent.has(w.id) ? tombstone(m) : m
+  }
+
   const readMarks = (marks: WChat["read_by"]) =>
     Object.fromEntries(
       Object.entries(marks ?? {})
@@ -612,8 +624,9 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
     }
   }
   function mergeMessages(chatId: string, all: WMessage[]) {
-    // A read that was in flight when I unsent a message must not restore it.
-    const list = all.filter((w) => !unsent.has(w.id))
+    // A read that was in flight when I deleted a message shows it deleted
+    // (mapMessage), not back.
+    const list = all
     ensurePeople(list.map((w) => w.sender_id))
     set((s) => ({
       ...s,
@@ -853,6 +866,29 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
             }
           : p,
       ),
+    }))
+  }
+
+  /** Comments the server sent back (an undo): put them in the post. */
+  function mergeComments(postId: string, all: WComment[]) {
+    set((s) => ({
+      ...s,
+      people: upsertPeople(
+        s,
+        all.map((c) => c.author),
+      ),
+      posts: s.posts.map((p) => {
+        if (p.id !== postId) return p
+        const fresh = all.map((c) => overlayComment(postId, mapComment(c)))
+        const ids = new Set(fresh.map((c) => c.id))
+        return {
+          ...p,
+          comments: [
+            ...p.comments.filter((c) => !ids.has(c.id)),
+            ...fresh,
+          ].sort((a, b) => a.at - b.at),
+        }
+      }),
     }))
   }
 
@@ -1180,8 +1216,20 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
     },
     likeComment: (postId, id, on) =>
       http.request(onOff(on), `${commentPath(postId, id)}/like`),
-    deleteComment: (postId, id) =>
-      http.request("DELETE", commentPath(postId, id)),
+    deleteComment(postId, id) {
+      const done = http.request("DELETE", commentPath(postId, id))
+      deletingComment.set(id, done)
+      return done
+    },
+    async restoreComment(postId, id) {
+      await deletingComment.get(id)?.catch(() => {})
+      deletingComment.delete(id)
+      const back = await http.request<List<WComment>>(
+        "POST",
+        `${commentPath(postId, id)}/restore`,
+      )
+      mergeComments(postId, back.data)
+    },
     async createStory(story) {
       storyWrittenAt.set(story.id, now())
       creatingStories.add(story.id)
@@ -1332,12 +1380,26 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
           ),
     unsend(chatId, messageId) {
       unsent.add(messageId)
-      return http
+      const done = http
         .request("DELETE", chatPath(chatId, `/messages/${messageId}`))
         .catch((e) => {
           unsent.delete(messageId)
           throw e
         })
+      unsending.set(messageId, done)
+      return done
+    },
+    async restoreMessage(chatId, messageId) {
+      // Undo right after delete: the delete must land first, or it would
+      // land after the restore and win.
+      await unsending.get(messageId)?.catch(() => {})
+      unsending.delete(messageId)
+      unsent.delete(messageId)
+      const w = await http.request<WMessage>(
+        "POST",
+        chatPath(chatId, `/messages/${messageId}/restore`),
+      )
+      replaceMessage(chatId, w)
     },
     async markRead(chatId) {
       await chatReady.get(chatId)
@@ -1384,14 +1446,23 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
         ...s,
         chats: s.chats.map((c) =>
           c.id === chatId
-            ? { ...c, messages: c.messages.filter((m) => m.id !== messageId) }
+            ? {
+                ...c,
+                messages: c.messages.map((m) =>
+                  m.id === messageId ? tombstone(m) : m,
+                ),
+              }
             : c,
         ),
       }))
       return
     }
     const chat = get().chats.find((c) => c.id === chatId)
-    if (chat?.messages.some((m) => m.id === messageId)) return
+    if (
+      d.action !== "restored" &&
+      chat?.messages.some((m) => m.id === messageId)
+    )
+      return
     clearTyping(chatId)
     if (!chat) {
       quietly(
@@ -1487,6 +1558,25 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
             .request<WPost>("GET", `/social/posts/${id}`)
             .then((w) => mergePosts([w])),
         )
+        return
+      }
+      case "social.comment": {
+        const postId = str(d.post_id)
+        const post = get().posts.find((p) => p.id === postId)
+        // Only a post whose comments this device has loaded needs them again.
+        if (!post || (!post.comments.length && d.action !== "created")) return
+        if (d.action === "deleted") {
+          const gone = commentThread(post.comments, str(d.comment_id))
+          set((s) => ({
+            ...s,
+            posts: s.posts.map((p) =>
+              p.id === postId
+                ? { ...p, comments: p.comments.filter((c) => !gone.has(c.id)) }
+                : p,
+            ),
+          }))
+        }
+        quietly(openPost(postId))
         return
       }
       case "social.story": {

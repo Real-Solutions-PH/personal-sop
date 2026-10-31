@@ -2,7 +2,6 @@ import {
   BellOff,
   Camera,
   Check,
-  PenLine,
   Pin,
   PinOff,
   Search,
@@ -23,11 +22,17 @@ import Swipeable from "react-native-gesture-handler/ReanimatedSwipeable"
 import Animated, { FadeIn, FadeInDown, ZoomIn } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
-import { Measure } from "../native-kit"
 import { go, replace } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import { Sheet, undo } from "../ui"
-import { Avatar, Bounce, Bubble, haptic, LikeHeart, NoteComposer } from "./kit"
+import {
+  Avatar,
+  Bounce,
+  Bubble,
+  CheerSprout,
+  haptic,
+  NoteComposer,
+} from "./kit"
 import { TopBar } from "./post"
 import {
   type Chat,
@@ -47,7 +52,6 @@ import {
   toggleNoteLike,
   togglePin,
   unread,
-  useMe,
   usePerson,
 } from "./store"
 
@@ -88,22 +92,24 @@ export function useChatTitle(chat?: Chat) {
 
 function preview(chat: Chat, people: { id: string; name: string }[]) {
   const last = chat.messages[chat.messages.length - 1]
-  if (!last) return "Say hi 👋"
+  if (!last) return "Say hello"
   const who =
     last.by === ME
       ? "You: "
       : chat.name
         ? `${people.find((p) => p.id === last.by)?.name.split(" ")[0]}: `
         : ""
-  const body = last.postId
-    ? "Sent a post"
-    : last.storyReply
-      ? last.by === ME
-        ? `Replied to their story: ${last.text}`
-        : `Replied to your story: ${last.text}`
-      : last.media
-        ? "Sent a photo"
-        : (last.text ?? "")
+  const body = last.deleted
+    ? "Message deleted"
+    : last.postId
+      ? "Sent a post"
+      : last.storyReply
+        ? last.by === ME
+          ? `Replied to their story: ${last.text}`
+          : `Replied to your story: ${last.text}`
+        : last.media
+          ? "Sent a photo"
+          : (last.text ?? "")
   if (last.system)
     return systemLine(
       last,
@@ -158,7 +164,7 @@ function ChatRow({ chat }: { chat: Chat }) {
         action(
           chat.pinned ? "Unpin" : "Pin",
           chat.pinned ? PinOff : Pin,
-          t.tsk,
+          t.primary,
           () => togglePin(chat.id),
         )
       }
@@ -226,7 +232,7 @@ function ChatRow({ chat }: { chat: Chat }) {
               width: 9,
               height: 9,
               borderRadius: 5,
-              backgroundColor: t.tsk,
+              backgroundColor: t.primary,
             }}
           />
         ) : (
@@ -303,7 +309,7 @@ function NoteViewer({
               toggleNoteLike(note.by)
             }}
           >
-            <LikeHeart liked={!!fresh?.liked} size={26} />
+            <CheerSprout liked={!!fresh?.liked} size={26} />
           </Bounce>
         </View>
       </View>
@@ -314,7 +320,6 @@ function NoteViewer({
 export function Inbox() {
   const t = useTheme()
   const safe = useSafeAreaInsets()
-  const me = useMe()
   const chats = socialStore.use((s) => s.chats)
   const saved = socialStore.use((s) => s.notes)
   const notes = useMemo(() => liveNotes(saved), [saved])
@@ -340,7 +345,7 @@ export function Inbox() {
   return (
     <View style={{ flex: 1, backgroundColor: t.bg, paddingTop: safe.top }}>
       <TopBar
-        title={me.username}
+        title="Messages"
         right={
           <Bounce label="New message" onPress={() => go("/social/new-chat")}>
             <SquarePen size={23} color={t.text} />
@@ -385,26 +390,20 @@ export function Inbox() {
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{
-                  gap: 14,
+                  gap: 8,
                   paddingHorizontal: 12,
-                  paddingTop: 40,
+                  paddingTop: 4,
                   paddingBottom: 8,
                 }}
               >
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={
-                    myNote ? `Your note: ${myNote.text}` : "Leave a note"
-                  }
+                <NoteCard
+                  id={ME}
+                  label={myNote ? `Your note: ${myNote.text}` : "Leave a note"}
+                  name="Your note"
+                  text={myNote?.text}
+                  placeholder="Share where you're at"
                   onPress={() => setComposeNote(true)}
-                  style={{ alignItems: "center", width: 80, gap: 6 }}
-                >
-                  <View>
-                    <Bubble text={myNote?.text} mine />
-                    <Avatar id={ME} size={72} ring={false} />
-                  </View>
-                  <NoteLabel text={myNote ? "Your note" : "Leave a note"} />
-                </Pressable>
+                />
                 {notes
                   .filter((n) => n.by !== ME)
                   .map((n, i) => (
@@ -412,27 +411,13 @@ export function Inbox() {
                       key={n.by}
                       entering={FadeInDown.delay(i * 50)}
                     >
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel={`Note from ${people.find((p) => p.id === n.by)?.username ?? n.by}: ${n.text}`}
+                      <NoteCard
+                        id={n.by}
+                        label={`Note from ${people.find((p) => p.id === n.by)?.username ?? n.by}: ${n.text}`}
+                        name={people.find((p) => p.id === n.by)?.username ?? ""}
+                        text={n.text}
                         onPress={() => setViewNote(n)}
-                        style={{ alignItems: "center", width: 80, gap: 6 }}
-                      >
-                        <View>
-                          <Bubble text={n.text} />
-                          <Avatar id={n.by} size={72} ring={false} />
-                        </View>
-                        <Text
-                          numberOfLines={1}
-                          style={{
-                            color: t.muted,
-                            fontSize: 12,
-                            fontFamily: fonts.body,
-                          }}
-                        >
-                          {people.find((p) => p.id === n.by)?.username}
-                        </Text>
-                      </Pressable>
+                      />
                     </Animated.View>
                   ))}
               </ScrollView>
@@ -446,9 +431,14 @@ export function Inbox() {
               }}
             >
               <Text
-                style={{ color: t.text, fontFamily: fonts.bold, fontSize: 16 }}
+                accessibilityRole="header"
+                style={{
+                  color: t.text,
+                  fontFamily: fonts.semibold,
+                  fontSize: 16,
+                }}
               >
-                Messages
+                Chats
               </Text>
               <Text
                 style={{
@@ -539,7 +529,7 @@ export function NewChat() {
           >
             <Text
               style={{
-                color: picked.length ? t.tsk : t.muted,
+                color: picked.length ? t.primary : t.muted,
                 fontFamily: fonts.bold,
                 fontSize: 16,
               }}
@@ -572,12 +562,12 @@ export function NewChat() {
                 minHeight: 28,
                 borderRadius: 14,
                 justifyContent: "center",
-                backgroundColor: `${t.tsk}26`,
+                backgroundColor: `${t.primary}26`,
               }}
             >
               <Text
                 style={{
-                  color: t.tsk,
+                  color: t.primary,
                   fontFamily: fonts.semibold,
                   fontSize: 13,
                 }}
@@ -693,12 +683,12 @@ export function NewChat() {
                   borderRadius: 12,
                   borderWidth: on ? 0 : 1.5,
                   borderColor: t.muted,
-                  backgroundColor: on ? t.tsk : "transparent",
+                  backgroundColor: on ? t.primary : "transparent",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                {on && <Check size={14} color="#fff" strokeWidth={3} />}
+                {on && <Check size={14} color={t.onPrimary} strokeWidth={3} />}
               </View>
             </Pressable>
           )
@@ -711,20 +701,63 @@ export function NewChat() {
 // The label under your own note bubble. At a larger text size it would be
 // cut off in its 80pt column, so a pen stands in for it; the button keeps
 // the full name for screen readers.
-function NoteLabel({ text }: { text: string }) {
+
+/** A note as a small flat card: who, and the line they left (Unfurl's
+ * take on a status, in place of a thought bubble over the avatar). */
+function NoteCard({
+  id,
+  name,
+  text,
+  placeholder,
+  label,
+  onPress,
+}: {
+  id: string
+  name: string
+  text?: string
+  placeholder?: string
+  label: string
+  onPress: () => void
+}) {
   const t = useTheme()
-  const [need, setNeed] = useState(0)
-  const style = { color: t.muted, fontSize: 12, fontFamily: fonts.body }
   return (
-    <View style={{ width: 80, alignItems: "center", overflow: "hidden" }}>
-      {need === 0 ? null : need <= 80 ? (
-        <Text numberOfLines={1} style={style}>
-          {text}
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        width: 168,
+        minHeight: 72,
+        flexDirection: "row",
+        gap: 10,
+        padding: 12,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: t.line,
+        backgroundColor: t.card,
+        opacity: pressed ? 0.72 : 1,
+      })}
+    >
+      <Avatar id={id} size={36} />
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text
+          numberOfLines={1}
+          style={{ color: t.muted, fontSize: 12, fontFamily: fonts.medium }}
+        >
+          {name}
         </Text>
-      ) : (
-        <PenLine size={16} color={t.muted} />
-      )}
-      <Measure text={text} style={style} onWidth={setNeed} />
-    </View>
+        <Text
+          numberOfLines={2}
+          style={{
+            color: text ? t.text : t.muted,
+            fontSize: 13,
+            lineHeight: 17,
+            fontFamily: fonts.body,
+          }}
+        >
+          {text ?? placeholder}
+        </Text>
+      </View>
+    </Pressable>
   )
 }

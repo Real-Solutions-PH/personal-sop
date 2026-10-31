@@ -211,7 +211,7 @@ export function Compose() {
         >
           <Text
             style={{
-              color: canShare ? t.tsk : t.muted,
+              color: canShare ? t.primary : t.muted,
               fontFamily: fonts.bold,
               fontSize: 16,
             }}
@@ -326,7 +326,7 @@ export function Compose() {
                       width: 6,
                       height: 6,
                       borderRadius: 3,
-                      backgroundColor: i === page ? t.tsk : t.line,
+                      backgroundColor: i === page ? t.primary : t.line,
                     }}
                   />
                 ))}
@@ -498,7 +498,11 @@ export function Compose() {
               }}
             >
               <Text
-                style={{ color: t.tsk, fontFamily: fonts.medium, fontSize: 13 }}
+                style={{
+                  color: t.primary,
+                  fontFamily: fonts.medium,
+                  fontSize: 13,
+                }}
               >
                 {tag}
               </Text>

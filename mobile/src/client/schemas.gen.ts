@@ -23893,6 +23893,11 @@ export const app__modules__social__schema__MessagePublicSchema = {
             },
             type: 'object',
             title: 'Reactions'
+        },
+        deleted: {
+            type: 'boolean',
+            title: 'Deleted',
+            default: false
         }
     },
     type: 'object',
