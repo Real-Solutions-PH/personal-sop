@@ -29951,6 +29951,13 @@
             ],
             "title": "Nudge Days"
           },
+          "bill_reminder": {
+            "anyOf": [
+              { "type": "string", "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$" },
+              { "type": "null" }
+            ],
+            "title": "Bill Reminder"
+          },
           "proj_excluded_planned": {
             "anyOf": [
               {
@@ -33765,6 +33772,10 @@
           "ai_scope": { "type": "string", "title": "Ai Scope" },
           "disclaimer_ack": { "type": "boolean", "title": "Disclaimer Ack" },
           "nudge_days": { "type": "integer", "title": "Nudge Days" },
+          "bill_reminder": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Bill Reminder"
+          },
           "proj_excluded_planned": {
             "items": { "type": "string" },
             "type": "array",
@@ -33786,6 +33797,7 @@
           "ai_scope",
           "disclaimer_ack",
           "nudge_days",
+          "bill_reminder",
           "proj_excluded_planned",
           "setup_done",
           "version"

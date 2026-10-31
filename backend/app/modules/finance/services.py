@@ -1813,6 +1813,7 @@ def reset(ctx: Ctx) -> FinanceSettings:
         "ai_scope",
         "disclaimer_ack",
         "nudge_days",
+        "bill_reminder",
         "setup_done",
     ):
         setattr(st, key, getattr(defaults, key))

@@ -4,7 +4,8 @@
 // Apple account, and fire offline. The plan is rebuilt whenever tasks or
 // habits change; iOS keeps at most 64 pending, so the soonest win.
 // Bills (planned expenses and transfers) get one reminder a day for the
-// week before they're due, until paid or skipped.
+// week before they're due and each day they're overdue, until paid or
+// skipped.
 
 import { addDays, type Occurrence, occurrencesIn } from "@domain/finance/calc"
 import { finStore } from "@domain/finance/store"
@@ -58,9 +59,12 @@ export interface MoreReminders {
   weighIn?: string | null
   logs?: readonly HabitLog[]
   weighedToday?: boolean
-  /** Bill occurrences from today on (``HORIZON_DAYS`` ahead), so a week's
-   * reminders are already set if the app isn't opened again before then. */
+  /** Bill occurrences from ``BILL_OVERDUE_DAYS`` back to ``HORIZON_DAYS``
+   * ahead, so a week's reminders are already set if the app isn't opened
+   * again before then. */
   bills?: readonly Occurrence[]
+  /** HH:MM for bill reminders (Finance settings); empty = off. */
+  billReminder?: string | null
   /** Formats a bill's amount; omitted (hide amounts on) leaves it out. */
   billAmount?: (n: number) => string
 }
@@ -71,7 +75,20 @@ const OURS = /^(task|habit|routine|weigh-in|bill)/
 const HORIZON_DAYS = 30
 /** Days of reminders before a bill, the due day included. */
 export const BILL_DAYS = 7
-const BILL_TIME = { hour: 9, minute: 0 }
+/** Days an unpaid bill keeps being reminded after its due day; the same
+ * two weeks Today keeps an overdue bill on screen. */
+export const BILL_OVERDUE_DAYS = 14
+
+const billText = (k: number) =>
+  k < -1
+    ? `Due in ${-k} days`
+    : k === -1
+      ? "Due tomorrow"
+      : k === 0
+        ? "Due today"
+        : k === 1
+          ? "Overdue since yesterday"
+          : `Overdue by ${k} days`
 
 const hm = (t: string) => {
   const [h, m] = t.split(":").map(Number)
@@ -162,23 +179,24 @@ export function planReminders(
       at,
     }))
   const billPlans: Planned[] = []
+  const billTime = more.billReminder ? hm(more.billReminder) : null
   for (const o of more.bills ?? []) {
-    if (o.item.type === "income") continue
+    if (!billTime || o.item.type === "income") continue
     if (o.status === "paid" || o.status === "skipped") continue
     const amount = more.billAmount ? ` · ${more.billAmount(o.item.amount)}` : ""
-    for (let n = 0; n < BILL_DAYS; n++) {
-      const day = addDays(o.day, -n)
-      const [by, bm, bd] = day.split("-").map(Number) as [
+    // k: days from the due day, the week before through the overdue days.
+    for (let k = 1 - BILL_DAYS; k <= BILL_OVERDUE_DAYS; k++) {
+      const [by, bm, bd] = addDays(o.day, k).split("-").map(Number) as [
         number,
         number,
         number,
       ]
-      const at = new Date(by, bm - 1, bd, BILL_TIME.hour, BILL_TIME.minute)
+      const at = new Date(by, bm - 1, bd, billTime.hour, billTime.minute)
       if (at <= now) continue
       billPlans.push({
-        id: `bill-${o.item.id}-${o.orig}-${n}`,
+        id: `bill-${o.item.id}-${o.orig}-${k}`,
         title: `💳 ${o.item.name}`,
-        body: `${n === 0 ? "Due today" : n === 1 ? "Due tomorrow" : `Due in ${n} days`}${amount}`,
+        body: `${billText(k)}${amount}`,
         href: `/finance/planned/${o.item.id}`,
         at,
       })
@@ -222,9 +240,10 @@ export async function syncReminders(
         .weighIns.some((w) => dayKey(new Date(w.measuredAt)) === dayKey(now)),
       bills: occurrencesIn(
         finStore.get(),
-        dayKey(now),
+        addDays(dayKey(now), -BILL_OVERDUE_DAYS),
         addDays(dayKey(now), HORIZON_DAYS + BILL_DAYS),
       ),
+      billReminder: finStore.get().settings.billReminder,
       billAmount: privacyStore.get().hidden ? undefined : (n) => money(n),
     },
   )

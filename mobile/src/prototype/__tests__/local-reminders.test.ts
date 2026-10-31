@@ -12,6 +12,7 @@ import { configureStorage, resetAll } from "@domain/lib/store"
 import type { Task } from "@domain/tasks/data"
 import { tasksStore } from "@domain/tasks/store"
 import {
+  BILL_OVERDUE_DAYS,
   MAX_PENDING,
   planReminders,
   scheduleEatBackReminder,
@@ -372,28 +373,53 @@ describe("bill reminders", () => {
       status: "upcoming",
       ...extra,
     }) as Occurrence
-  const plan = (bills: Occurrence[], billAmount?: (n: number) => string) =>
-    planReminders([], [], NOW, { bills, billAmount }) as {
-      id: string
-      body: string
-      at: Date
-    }[]
+  const plan = (
+    bills: Occurrence[],
+    opts: { billReminder?: string; billAmount?: (n: number) => string } = {},
+  ) =>
+    planReminders([], [], NOW, {
+      bills,
+      billReminder: "09:00",
+      ...opts,
+    }) as { id: string; body: string; at: Date }[]
+  const days = (p: { at: Date; body: string }[]) =>
+    p.map((r) => [r.at.getDate(), r.at.getHours(), r.body])
 
-  test("one a day at 09:00 from today to the due day", () => {
-    const p = plan([bill()], (n) => `₱${n}`)
-    expect(p.map((r) => [r.at.getDate(), r.at.getHours(), r.body])).toEqual([
+  test("one a day at the set time from today to the due day, then overdue", () => {
+    const p = plan([bill()], { billAmount: (n) => `₱${n}` })
+    expect(days(p.slice(0, 6))).toEqual([
       [22, 9, "Due in 3 days · ₱5000"],
       [23, 9, "Due in 2 days · ₱5000"],
       [24, 9, "Due tomorrow · ₱5000"],
       [25, 9, "Due today · ₱5000"],
+      [26, 9, "Overdue since yesterday · ₱5000"],
+      [27, 9, "Overdue by 2 days · ₱5000"],
     ])
+    // Four before and on the due day, then two weeks overdue.
+    expect(p).toHaveLength(4 + BILL_OVERDUE_DAYS)
+    expect(p.at(-1)?.body).toBe("Overdue by 14 days · ₱5000")
   })
 
   test("a bill a week out starts six days before", () => {
     const p = plan([bill({ day: "2026-11-01", orig: "2026-11-01" })])
-    expect(p).toHaveLength(7)
+    expect(p).toHaveLength(7 + BILL_OVERDUE_DAYS)
     expect(p[0]?.at.getDate()).toBe(26)
     expect(p[0]?.body).toBe("Due in 6 days")
+  })
+
+  test("an overdue bill is reminded each day until two weeks past", () => {
+    const p = plan([bill({ day: "2026-10-20", orig: "2026-10-20" })])
+    expect(days(p.slice(0, 2))).toEqual([
+      [22, 9, "Overdue by 2 days"],
+      [23, 9, "Overdue by 3 days"],
+    ])
+    expect(p).toHaveLength(BILL_OVERDUE_DAYS - 1)
+  })
+
+  test("the reminder time comes from settings; empty turns them off", () => {
+    const p = plan([bill()], { billReminder: "19:30" })
+    expect([p[0]?.at.getHours(), p[0]?.at.getMinutes()]).toEqual([19, 30])
+    expect(plan([bill()], { billReminder: "" })).toEqual([])
   })
 
   test("paid, skipped and income are not reminded", () => {
@@ -450,10 +476,14 @@ describe("bill reminders", () => {
       SchedulableTriggerInputTypes: { DATE: "date", WEEKLY: "weekly" },
     } as unknown as typeof import("expo-notifications")
     await syncReminders(N, NOW)
-    // Due the 24th, today the 22nd: the 22nd, 23rd and 24th; and next
-    // month's week is already set too.
+    // Due the 24th, today the 22nd: the 22nd to the 24th, then two weeks
+    // overdue; and next month's are already set too.
     const ids = scheduled.filter((s) => s.startsWith("bill-nf-"))
-    expect(ids.filter((s) => s.includes("2026-10-24"))).toHaveLength(3)
-    expect(ids.filter((s) => s.includes("2026-11-24"))).toHaveLength(7)
+    expect(ids.filter((s) => s.includes("2026-10-24"))).toHaveLength(
+      3 + BILL_OVERDUE_DAYS,
+    )
+    expect(ids.filter((s) => s.includes("2026-11-24"))).toHaveLength(
+      7 + BILL_OVERDUE_DAYS,
+    )
   })
 })

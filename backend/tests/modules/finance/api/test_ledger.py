@@ -38,6 +38,18 @@ def test_settings_bootstrap_seeds_categories_with_derived_ids(
     assert not rows["food"]["system"]
 
 
+def test_bill_reminder_time_defaults_sets_and_turns_off(
+    client: TestClient, db: Session
+) -> None:
+    f = _fin(client, db)
+    assert f.get("/settings")["bill_reminder"] == "09:00"
+    assert f.patch("/settings", {"bill_reminder": "19:30"})["bill_reminder"] == "19:30"
+    assert f.patch("/settings", {"bill_reminder": None})["bill_reminder"] is None
+    f.patch("/settings", {"bill_reminder": "9am"}, status=422)
+    assert f.post("/start-fresh")["bill_reminder"] is None  # settings stay
+    assert f.post("/reset")["bill_reminder"] == "09:00"
+
+
 def test_balances_transfer_fee_and_credit_card_liability(
     client: TestClient, db: Session
 ) -> None:

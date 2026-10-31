@@ -17002,6 +17002,18 @@ export const SettingsFieldsSchema = {
             ],
             title: 'Nudge Days'
         },
+        bill_reminder: {
+            anyOf: [
+                {
+                    type: 'string',
+                    pattern: '^([01]\\d|2[0-3]):[0-5]\\d$'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Bill Reminder'
+        },
         proj_excluded_planned: {
             anyOf: [
                 {
@@ -22670,6 +22682,17 @@ export const app__modules__finance__schema__SettingsPublicSchema = {
             type: 'integer',
             title: 'Nudge Days'
         },
+        bill_reminder: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Bill Reminder'
+        },
         proj_excluded_planned: {
             items: {
                 type: 'string'
@@ -22687,7 +22710,7 @@ export const app__modules__finance__schema__SettingsPublicSchema = {
         }
     },
     type: 'object',
-    required: ['id', 'default_account_id', 'last_account_id', 'last_category_id', 'month_start_day', 'horizon', 'include_unplanned', 'safety_floor_minor', 'ai_scope', 'disclaimer_ack', 'nudge_days', 'proj_excluded_planned', 'setup_done', 'version'],
+    required: ['id', 'default_account_id', 'last_account_id', 'last_category_id', 'month_start_day', 'horizon', 'include_unplanned', 'safety_floor_minor', 'ai_scope', 'disclaimer_ack', 'nudge_days', 'bill_reminder', 'proj_excluded_planned', 'setup_done', 'version'],
     title: 'SettingsPublic'
 } as const;
 
