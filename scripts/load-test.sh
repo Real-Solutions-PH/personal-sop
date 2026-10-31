@@ -94,11 +94,16 @@ print("seeded")
 EOF'
 docker exec cap-pg psql -U postgres -d app -qc "ALTER ROLE app_user LOGIN PASSWORD 'loadtest-app'"
 
+# The production command (infra/lib/prod-stack.ts); API_CMD=fastapi runs
+# the one deployed before it, as a baseline.
+api_cmd=(uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers "$workers"
+  --proxy-headers --timeout-keep-alive 310 --timeout-worker-healthcheck 30)
+[ "${API_CMD:-}" = fastapi ] && api_cmd=(fastapi run --workers "$workers" --port 8000 app/main.py)
 apis=()
 for i in $(seq 1 "$tasks"); do
   docker run -d --name "cap-api-$i" --network "$net" --memory "$mem" \
     "${env[@]}" ${code[@]+"${code[@]}"} "$image" \
-    fastapi run --workers "$workers" --port 8000 app/main.py >/dev/null
+    "${api_cmd[@]}" >/dev/null
   apis+=("http://cap-api-$i:8000")
 done
 docker run -d --name cap-worker --network "$net" --cpus 0.5 --memory 1g \

@@ -91,11 +91,17 @@ def token(key: Any, issuer: str, user_id: uuid.UUID) -> str:
     )
 
 
-async def get(client: httpx.AsyncClient, path: str, res: Results, label: str) -> None:
+async def get(
+    client: httpx.AsyncClient,
+    path: str,
+    res: Results,
+    label: str,
+    timeout: float = 60,
+) -> None:
     start = time.perf_counter()
     error = None
     try:
-        r = await client.get(path, timeout=60)
+        r = await client.get(path, timeout=timeout)
         if r.status_code >= 400:
             error = f"HTTP {r.status_code}"
     except httpx.HTTPError as exc:
@@ -181,7 +187,7 @@ async def provision(args: argparse.Namespace, key: Any) -> None:
 
     async def one(i: int) -> None:
         async with gate, client(i, args, key) as c:
-            await get(c, "/social/me", warm, "warm-up")
+            await get(c, "/social/me", warm, "warm-up", timeout=300)
 
     await asyncio.gather(*(one(i) for i in range(args.users)))
     failed = [e for e in warm.errors.get("warm-up", []) if "15 s" not in e]

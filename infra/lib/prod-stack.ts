@@ -908,6 +908,11 @@ export class ProdStack extends Stack {
         "--proxy-headers",
         "--timeout-keep-alive",
         String(API_KEEP_ALIVE_SECONDS),
+        // Each worker must answer the supervisor's ping within this, or it is
+        // killed and restarted. The default 5 s can kill workers that are
+        // still importing when two start together on one busy vCPU.
+        "--timeout-worker-healthcheck",
+        "30",
       ],
       environment: backendEnv,
       secrets: backendSecrets,
