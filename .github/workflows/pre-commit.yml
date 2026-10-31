@@ -41,7 +41,7 @@ jobs:
       - name: Seed .env for CI (client-generation hook imports app settings)
         run: cp .env.example .env
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
       - name: Setup uv
@@ -71,7 +71,7 @@ jobs:
             git commit -m "🎨 Auto format and update with pre-commit"
             git push
           fi
-      - uses: pre-commit-ci/lite-action@v1.1.0
+      - uses: pre-commit-ci/lite-action@v1.2.0
         if: env.HAS_SECRETS == 'false'
         with:
           msg: 🎨 Auto format and update with pre-commit
