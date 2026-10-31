@@ -4,11 +4,11 @@
 // a saved food gives the same numbers every time.
 import { FOODS } from "@domain/fitness/data"
 import { openCapture } from "@domain/lib/capture"
-import { BadgeCheck, BookOpen, Camera } from "lucide-react-native"
-import { useCallback, useEffect, useState } from "react"
+import { BadgeCheck, BookOpen, Camera, CloudOff } from "lucide-react-native"
+import { useEffect, useState } from "react"
 import { View } from "react-native"
 import { liveMode } from "@/live/config"
-import { fetchFoods, type LibraryFood } from "@/live/nutrition-foods"
+import { type LibraryFood, useFoods } from "@/live/nutrition-foods"
 import { Copy, Frame, Line, SectionHeading } from "../native-kit"
 import { useTheme } from "../theme"
 import { Button, Field, Screen } from "../ui"
@@ -63,27 +63,26 @@ const SAMPLE: LibraryFood[] = [
 
 type Load =
   | { state: "loading" }
-  | { state: "error" }
+  | { state: "error"; retrying: boolean }
   | { state: "ready"; foods: LibraryFood[]; count: number }
 
 export function FoodLibrary() {
   const t = useTheme(),
     [q, setQ] = useState(""),
-    [load, setLoad] = useState<Load>(
-      liveMode ? { state: "loading" } : { state: "ready", foods: [], count: 0 },
-    )
-  const run = useCallback((text: string) => {
-    if (!liveMode) return
-    setLoad({ state: "loading" })
-    fetchFoods(text).then(
-      (r) => setLoad({ state: "ready", foods: r.data, count: r.count }),
-      () => setLoad({ state: "error" }),
-    )
-  }, [])
+    [search, setSearch] = useState(""),
+    foods = useFoods(search, liveMode)
+  // Typing waits for a pause before it searches; clearing is immediate.
   useEffect(() => {
-    const id = setTimeout(() => run(q), q ? 300 : 0)
+    const id = setTimeout(() => setSearch(q.trim()), q.trim() ? 300 : 0)
     return () => clearTimeout(id)
-  }, [q, run])
+  }, [q])
+  const load: Load = !liveMode
+    ? { state: "ready", foods: [], count: 0 }
+    : foods.data
+      ? { state: "ready", foods: foods.data.data, count: foods.data.count }
+      : foods.isError
+        ? { state: "error", retrying: foods.isFetching }
+        : { state: "loading" }
   const needle = q.trim().toLowerCase()
   const builtIn = FOODS.filter(
     (f) =>
@@ -140,13 +139,23 @@ export function FoodLibrary() {
           ))}
         </Frame>
       ) : load.state === "error" ? (
-        <Frame style={{ padding: 16 }}>
-          <Copy weight="medium">Couldn’t load your foods</Copy>
+        <Frame style={{ padding: 16, gap: 8 }}>
+          <Line style={{ gap: 10 }}>
+            <CloudOff size={18} color={t.bad} />
+            <Copy weight="medium" style={{ flex: 1 }}>
+              Couldn’t load your foods
+            </Copy>
+          </Line>
           <Copy size={14} muted>
-            Check the connection and try again. Your meals are unaffected.
+            The server didn’t answer. Your meals and saved foods are unaffected.
           </Copy>
-          <Button small tone="quiet" onPress={() => run(q)}>
-            Try again
+          <Button
+            small
+            tone="quiet"
+            disabled={load.retrying}
+            onPress={() => foods.refetch()}
+          >
+            {load.retrying ? "Trying again…" : "Try again"}
           </Button>
         </Frame>
       ) : (
