@@ -112,6 +112,23 @@ def settings_row(ctx: Ctx) -> FinanceSettings:
     return row
 
 
+def read_state(ctx: Ctx) -> calc.State:
+    """:func:`load_state` for a statistic, which never writes.
+
+    ``settings_row`` creates the settings and seeds the categories on first
+    touch, and a read never commits, so for someone who never opened Finance
+    every statistic inserted those rows again, held their locks until the
+    request ended, then rolled them back. The user's other requests queued in
+    the database behind those locks while holding pooled connections. Here
+    unsaved settings stand in: with no settings there are no records."""
+    return ctx.snapshot("finance.read", lambda: _read_state(ctx))
+
+
+def _read_state(ctx: Ctx) -> calc.State:
+    row = owned_repo.find_one(ctx, FinanceSettings)
+    return _load_state(ctx, row or FinanceSettings(**ctx.owned()))
+
+
 def category_by_slug(ctx: Ctx, slug: str) -> Category | None:
     return owned_repo.find_one(ctx, Category, col(Category.slug) == slug)
 
@@ -228,6 +245,13 @@ def load_state(ctx: Ctx, settings: FinanceSettings | None = None) -> calc.State:
     read is the user's full ledger; records come back ordered by timestamp
     (then id), the order the prototype's tie-breaks assume.
     """
+    if settings is not None:
+        # A caller holding its own settings row may have changed it.
+        return _load_state(ctx, settings)
+    return ctx.snapshot("finance", lambda: _load_state(ctx, None))
+
+
+def _load_state(ctx: Ctx, settings: FinanceSettings | None) -> calc.State:
     st = settings or settings_row(ctx)
     accounts = owned_repo.list_rows(
         ctx, Account, order_by=[col(Account.sort_order), col(Account.created_at)]

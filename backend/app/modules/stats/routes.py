@@ -11,7 +11,7 @@ from app.modules.stats import logic as L
 from app.modules.stats import schema as S
 from app.modules.stats import services
 from app.modules.stats.series import SERIES_METRICS, SeriesMetric, build
-from app.shared.context import CtxDep
+from app.shared.context import ReadCtxDep
 from app.shared.domain import invalid, not_found
 from app.shared.pagination import PaginationDep
 
@@ -46,7 +46,7 @@ def _span(
 
 
 @router.get("/overview", response_model=S.OverviewOut, dependencies=READ)
-def overview(ctx: CtxDep, range: Range = "7d") -> Any:
+def overview(ctx: ReadCtxDep, range: Range = "7d") -> Any:
     """The one overall statistic: Life Score, level, delta, on-target rate and
     streaks, today's ring, facets and headline metrics, computed live."""
     days = services.RANGES[range]
@@ -94,7 +94,7 @@ def overview(ctx: CtxDep, range: Range = "7d") -> Any:
 
 @router.get("/series", response_model=S.SeriesOut, dependencies=READ)
 def series(
-    ctx: CtxDep,
+    ctx: ReadCtxDep,
     metric: SeriesMetric,
     days: Annotated[int, Query(ge=1, le=365)] = 30,
 ) -> Any:
@@ -120,7 +120,7 @@ def series_metrics() -> Any:
 
 
 @router.get("/metrics/{ref}", response_model=S.MetricDetailOut, dependencies=READ)
-def metric_detail(ctx: CtxDep, ref: str) -> Any:
+def metric_detail(ctx: ReadCtxDep, ref: str) -> Any:
     """One metric (``life``, ``onTarget`` or ``<module>:<key>``) this week and
     this month, with the goals set on it."""
     d = services.metric_detail(ctx, ref)
@@ -136,7 +136,7 @@ def metric_detail(ctx: CtxDep, ref: str) -> Any:
 
 @router.get("/misses", response_model=S.MissesOut, dependencies=READ)
 def misses(
-    ctx: CtxDep,
+    ctx: ReadCtxDep,
     page: PaginationDep,
     from_: Annotated[date | None, Query(alias="from")] = None,
     to: date | None = None,
@@ -156,7 +156,7 @@ def misses(
 
 @router.get("/calendar", response_model=S.CalendarOut, dependencies=READ)
 def calendar(
-    ctx: CtxDep,
+    ctx: ReadCtxDep,
     page: PaginationDep,
     from_: Annotated[date | None, Query(alias="from")] = None,
     to: date | None = None,
@@ -170,7 +170,7 @@ def calendar(
 
 
 @router.get("/achievements", response_model=S.AchievementsOut, dependencies=READ)
-def achievements(ctx: CtxDep) -> Any:
+def achievements(ctx: ReadCtxDep) -> Any:
     """Trophy case: every achievement with progress, the earned trophies
     newest first, and which the user has already seen."""
     r = services.achievements(ctx)
@@ -195,7 +195,7 @@ def achievements(ctx: CtxDep) -> Any:
 
 
 @router.get("/today", response_model=S.TodayOut, dependencies=READ)
-def today(ctx: CtxDep) -> Any:
+def today(ctx: ReadCtxDep) -> Any:
     """Today's ring, the 7-day Life Score and the on-target streak."""
     s = services.settings(ctx)
     ring = services.today_ring(ctx, s)
@@ -213,7 +213,7 @@ def today(ctx: CtxDep) -> Any:
 
 
 @router.get("/facets", response_model=S.FacetsOut, dependencies=READ)
-def facets(ctx: CtxDep, range: Range = "7d") -> Any:
+def facets(ctx: ReadCtxDep, range: Range = "7d") -> Any:
     s = services.settings(ctx)
     return S.FacetsOut(
         range=range,

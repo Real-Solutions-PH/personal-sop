@@ -185,7 +185,7 @@ Every setting in `backend/app/core/config.py` is either set by the stack or list
 | `AI_CREDENTIALS_KEK` | Secret `unfurl/app`, generated |
 | `FORWARDED_ALLOW_IPS` | `*` (read by uvicorn, not config.py): only the tunnel can reach the API |
 
-**Left at the code default** (reasons in `backend-env.ts`): model names and base URLs, media size limits, event and weather timings, `DEFAULT_TENANT_SLUG`, `MAX_REQUEST_BODY_SIZE_MB`, the OCR settings (OCR is off), `MEDIA_PUBLIC_ENDPOINT` (S3's endpoint is already public), `MINIO_ROOT_USER`/`MINIO_ROOT_PASSWORD` (unused under IAM auth), `BACKEND_CORS_ORIGINS` (no browser client yet), and `RATE_LIMIT_PER_MINUTE`. That one stays 0: its bucket is per tenant and every user is in the one default tenant, so any budget would be global. The per-user and per-address guards above replace it.
+**Left at the code default** (reasons in `backend-env.ts`): model names and base URLs, media size limits, event and weather timings, `DEFAULT_TENANT_SLUG`, `MAX_REQUEST_BODY_SIZE_MB`, `MAX_IN_FLIGHT_REQUESTS`, the OCR settings (OCR is off), `MEDIA_PUBLIC_ENDPOINT` (S3's endpoint is already public), `MINIO_ROOT_USER`/`MINIO_ROOT_PASSWORD` (unused under IAM auth), `BACKEND_CORS_ORIGINS` (no browser client yet), and `RATE_LIMIT_PER_MINUTE`. That one stays 0: its bucket is per tenant and every user is in the one default tenant, so any budget would be global. The per-user and per-address guards above replace it.
 
 **Not fillable yet:**
 
