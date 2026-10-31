@@ -3961,6 +3961,7 @@ export type SyncOp = {
         [key: string]: unknown;
     };
     base_version?: (number | null);
+    at?: (string | null);
 };
 
 export type kind16 = 'upsert' | 'delete' | 'action';
