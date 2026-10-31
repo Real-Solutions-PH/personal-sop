@@ -14,13 +14,27 @@ import pytest
 from sqlmodel import Session
 
 from app.modules.iam.tenants.models import Tenant
+from app.modules.iam.users.models import User
+from tests.utils.user import create_auth_user
 
 
-@pytest.fixture(autouse=True)
-def own_tenant(db: Session, monkeypatch: pytest.MonkeyPatch) -> Iterator[uuid.UUID]:
+def fresh_tenant(db: Session) -> uuid.UUID:
     tag = uuid.uuid4().hex[:12]
     tenant = Tenant(name=f"test {tag}", slug=f"test-{tag}")
     db.add(tenant)
     db.commit()
-    monkeypatch.setattr("tests.utils.user.default_tenant_id", lambda _db: tenant.id)
-    yield tenant.id
+    return tenant.id
+
+
+def user_of_own_tenant(db: Session) -> User:
+    """A user alone in a fresh tenant, for a module-scoped fixture (which
+    is set up before the per-test ``own_tenant``)."""
+    user, _ = create_auth_user(db, tenant_id=fresh_tenant(db))
+    return user
+
+
+@pytest.fixture(autouse=True)
+def own_tenant(db: Session, monkeypatch: pytest.MonkeyPatch) -> Iterator[uuid.UUID]:
+    tenant_id = fresh_tenant(db)
+    monkeypatch.setattr("tests.utils.user.default_tenant_id", lambda _db: tenant_id)
+    yield tenant_id

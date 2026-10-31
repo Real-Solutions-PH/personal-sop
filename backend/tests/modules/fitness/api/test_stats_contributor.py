@@ -31,7 +31,8 @@ from app.modules.stats.contract import StatsContributor, Window
 from app.shared import owned_repo
 from app.shared.context import Ctx
 from tests.modules.fitness.unit.golden import load, tsr
-from tests.utils.mobile import ctx_for, signed_in
+from tests.utils.mobile import ctx_for
+from tests.utils.tenant import user_of_own_tenant
 
 SEED = load("fitness-seed")["data"]
 GOLD = load("fitness-calc")["data"]
@@ -198,7 +199,8 @@ def write_seed(ctx: Ctx, salt: str = "") -> None:
 
 @pytest.fixture(scope="module")
 def seeded(db: Session) -> Generator[User, None, None]:
-    user, _ = signed_in(db)
+    # Its own tenant: the seeded routines must be the only ones it sees.
+    user = user_of_own_tenant(db)
     with ctx_for(user, now=NOW) as ctx:
         write_seed(ctx)
     yield user

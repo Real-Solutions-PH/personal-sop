@@ -146,7 +146,15 @@ def test_push_and_pull_every_entity(client: TestClient, db: Session) -> None:
     names = {
         c["entity"]
         for c in pulled["changes"]
-        if c["entity"] not in ("daily_module_stat", "life_score_daily")
+        # Rollups are derived; the fitness catalog is shared by the tenant.
+        if c["entity"]
+        not in (
+            "daily_module_stat",
+            "life_score_daily",
+            "exercise",
+            "workout_template",
+            "template_item",
+        )
     }
     assert names == {
         "account",
