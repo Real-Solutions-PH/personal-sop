@@ -1,17 +1,50 @@
+from sqlalchemy import Engine
 from sqlmodel import Session, create_engine
 
 from app.core.config import settings
 
+
+def _engine(url: str, *, name: str, size: int, overflow: int) -> Engine:
+    return create_engine(
+        url,
+        pool_size=size,
+        max_overflow=overflow,
+        pool_timeout=settings.DB_POOL_TIMEOUT,
+        # A connection RDS or a restart closed under an idle pool is replaced
+        # on checkout instead of failing the request that drew it.
+        pool_pre_ping=True,
+        # Named in pg_stat_activity, so a connection count reads by pool.
+        connect_args={"application_name": f"unfurl-{name}"},
+    )
+
+
 # Owner engine: table owner, bypasses RLS. Migrations, prestart seeding, and
 # platform-operator (superuser) paths run here.
-engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
-
+#
 # App engine: connects as the non-owner ``app_user`` role so RLS policies are
 # enforced for tenant-scoped requests. Falls back to the owner engine when
-# ``POSTGRES_APP_USER`` is unset (local/dev), leaving RLS dormant.
+# ``POSTGRES_APP_USER`` is unset (local/dev), leaving RLS dormant; the one
+# shared pool then takes the app engine's (larger) size.
 if settings.app_user_configured:
-    app_engine = create_engine(str(settings.SQLALCHEMY_APP_DATABASE_URI))
+    engine = _engine(
+        str(settings.SQLALCHEMY_DATABASE_URI),
+        name="owner",
+        size=settings.DB_OWNER_POOL_SIZE,
+        overflow=settings.DB_OWNER_MAX_OVERFLOW,
+    )
+    app_engine = _engine(
+        str(settings.SQLALCHEMY_APP_DATABASE_URI),
+        name="app",
+        size=settings.DB_POOL_SIZE,
+        overflow=settings.DB_MAX_OVERFLOW,
+    )
 else:
+    engine = _engine(
+        str(settings.SQLALCHEMY_DATABASE_URI),
+        name="owner",
+        size=settings.DB_POOL_SIZE,
+        overflow=settings.DB_MAX_OVERFLOW,
+    )
     app_engine = engine
 
 
