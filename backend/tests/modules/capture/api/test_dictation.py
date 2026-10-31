@@ -146,7 +146,7 @@ def test_deepgram_is_told_the_persons_own_names(
     client: TestClient, db: Session, deepgram: list[Any]
 ) -> None:
     api = user(client, db, accounts=False)
-    api.account("Maya Black", type="credit")
+    api.account("Maya Black", type="ewallet")
     make_habit(client, api.h, name="Take isotretinoin")
     assert dictate(api, client, M4A, duration_sec=60).status_code == 200
     terms = deepgram[0][1]["keyterms"]

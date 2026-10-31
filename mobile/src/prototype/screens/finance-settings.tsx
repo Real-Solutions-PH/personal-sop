@@ -297,22 +297,6 @@ export function FinanceSettings() {
             t.fin,
           )}
         </Frame>
-        <SectionHeading>Statement matching</SectionHeading>
-        <Frame style={{ padding: 16, gap: 8 }}>
-          <Copy size={12} muted weight="medium" style={caps}>
-            Remind me when an account hasn't been matched with a statement for
-          </Copy>
-          {chips(
-            [14, 21, 30, 45].map((v) => (
-              <FinChip
-                key={v}
-                label={`${v} days`}
-                active={st.nudgeDays === v}
-                onPress={() => A.updateSettings({ nudgeDays: v })}
-              />
-            )),
-          )}
-        </Frame>
         <SectionHeading>Data</SectionHeading>
         <Frame style={{ paddingHorizontal: 12, paddingVertical: 4 }}>
           {row("Manage categories", FolderTree, () =>

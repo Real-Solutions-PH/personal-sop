@@ -435,18 +435,15 @@ class HabitCreateArgs(BaseModel):
 
 class AccountArgs(BaseModel):
     name: Annotated[str, Field(min_length=1, max_length=60)]
-    type: Literal["cash", "bank", "ewallet", "credit", "investment"] = Field(
-        description="ewallet for GCash, Maya and the like; credit for a credit card."
+    # Credit cards can no longer be added (the finance service refuses them).
+    type: Literal["cash", "bank", "ewallet", "investment"] = Field(
+        description="ewallet for GCash, Maya and the like."
     )
     opening_balance: Annotated[
         float, Field(ge=-MAX_MINOR / 100, le=MAX_MINOR / 100)
     ] = Field(
         default=0,
-        description="What is in it today, in the user's currency. For a "
-        "credit card, what is owed, as a negative number. 0 when not given.",
-    )
-    credit_limit: Amount | None = Field(
-        default=None, description="Credit cards only, when the user gave it."
+        description="What is in it today, in the user's currency. 0 when not given.",
     )
 
 
@@ -856,10 +853,12 @@ class ScheduledEditArgs(BaseModel):
 class AccountEditArgs(BaseModel):
     account: Annotated[str, Field(min_length=1, max_length=120)]
     new_name: Opt = None
-    type: Literal["cash", "bank", "ewallet", "credit", "investment"] | None = Field(
-        default=None, description="credit for a credit card; investment for savings."
+    type: Literal["cash", "bank", "ewallet", "investment"] | None = Field(
+        default=None, description="investment for savings."
     )
-    credit_limit: Amount | None = None
+    credit_limit: Amount | None = Field(
+        default=None, description="Only for a credit card the user already has."
+    )
 
 
 class BudgetEditArgs(BaseModel):
@@ -1468,15 +1467,12 @@ def capture_tools(run: Run) -> list[BaseTool]:
                 "error": "an_account_with_that_name_exists",
                 "instead": "set_account_balance, to set its balance",
             }
-        if a.credit_limit is not None and a.type != "credit":
-            return {"error": "only_a_credit_card_has_a_limit"}
         payload = {
             "kind": "accountCreate",
             "name": a.name,
             "color": _next_account_color(ports.finance.list_accounts(run.ctx)),
             "type": a.type,
             "opening_minor": _minor(a.opening_balance),
-            "limit_minor": _minor(a.credit_limit) if a.credit_limit else None,
         }
         d = RecordDraft(
             kind="accountCreate",
@@ -2192,7 +2188,8 @@ def capture_tools(run: Run) -> list[BaseTool]:
             changes["type"] = a.type
         if a.credit_limit is not None:
             changes["limit_minor"] = _minor(a.credit_limit)
-        if a.type and a.type != "credit" and acc.limit_minor is not None:
+        # Fern can't make a card, so any type it sets drops a card's limit.
+        if a.type and acc.limit_minor is not None:
             changes["limit_minor"] = None
         if not changes:
             return {"error": "nothing_to_change"}
@@ -2412,8 +2409,8 @@ def capture_tools(run: Run) -> list[BaseTool]:
         (
             create_account,
             AccountArgs,
-            "Add a money account (cash, bank, e-wallet, credit card, "
-            "investment) with its balance today.",
+            "Add a money account (cash, bank, e-wallet, investment) with its "
+            "balance today. Credit cards can't be added.",
         ),
         (
             set_account_balance,
@@ -2522,8 +2519,8 @@ def capture_tools(run: Run) -> list[BaseTool]:
         (
             edit_account,
             AccountEditArgs,
-            "Rename an account, change its type (e.g. to credit card) or its "
-            "credit limit.",
+            "Rename an account, change its type, or change the credit limit "
+            "of a credit card the user already has.",
         ),
         (edit_budget, BudgetEditArgs, "Change a budget's monthly limit or name."),
         (

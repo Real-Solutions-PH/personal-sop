@@ -160,6 +160,14 @@ test("the category donut shows the top category's icon, never the word top", () 
 })
 
 test("budgets show what is left, with a minus when over", () => {
+  // The demo month's spending grows with the date, so pin a limit it
+  // can't reach before checking the under-budget case.
+  finStore.set((x) => ({
+    ...x,
+    budgets: x.budgets.map((b) =>
+      b.categoryIds === null ? { ...b, limit: 100_000_000 } : b,
+    ),
+  }))
   const view = render(<FinanceHome />, { wrapper })
   expect(screen.getByText(/^Left of ₱[\d,.]+ this month$/)).toBeTruthy()
   expect(allText()).not.toMatch(/−₱[\d,.]+\nLeft of /)
