@@ -35,7 +35,7 @@ import {
 import type { Accent } from "@/prototype/theme"
 import { http as authHttp } from "./auth"
 import type { ServerEvent } from "./events"
-import { ApiError, type Http } from "./http"
+import { ApiError, type Http, NetworkError } from "./http"
 import { retryProfilePhoto } from "./profile-photo"
 import { createUploader, type Uploader } from "./social-media"
 
@@ -207,6 +207,14 @@ function localFileExists(uri: string): boolean {
 const isLocal = (uri?: string) => !!uri && uri.startsWith("file:")
 
 export const TYPING_EVERY_MS = 3000
+/** Waits before each retry of a 1:1 chat start that failed in transit. */
+export const START_CHAT_RETRY_MS = [1000, 3000]
+/** A failure worth retrying: no answer, a server fault or a rate limit. A 4xx
+ * is the server's verdict and is final. */
+export const isTransient = (e: unknown) =>
+  e instanceof NetworkError ||
+  (e instanceof ApiError &&
+    (e.status >= 500 || e.status === 408 || e.status === 429))
 const TYPING_SHOWN_MS = 5000
 const PAGE = 20
 /** A presigned media URL is reused this long (they live 15 minutes), so a
@@ -1260,11 +1268,23 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
       http.request("PATCH", "/social/me", { show_scores: on }),
     markActivityRead: () => http.request("POST", "/social/activity/read"),
     openDirect(chatId, personId) {
-      const ready = http
-        .request<WChat>("POST", "/social/chats/direct", {
-          user_id: personId,
-          id: chatId,
-        })
+      // The same id on every attempt: a start that landed but whose answer
+      // was lost comes back as the chat it created.
+      const start = async (): Promise<WChat> => {
+        for (let attempt = 0; ; attempt++) {
+          try {
+            return await http.request<WChat>("POST", "/social/chats/direct", {
+              user_id: personId,
+              id: chatId,
+            })
+          } catch (e) {
+            const wait = START_CHAT_RETRY_MS[attempt]
+            if (wait === undefined || !isTransient(e)) throw e
+            await new Promise((resolve) => setTimeout(resolve, wait))
+          }
+        }
+      }
+      const ready = start()
         .then((w) => {
           if (w.id !== chatId) {
             toServer.set(chatId, w.id)
@@ -1345,6 +1365,9 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
       const last = lastTyping.get(chatId)
       if (last !== undefined && t - last < TYPING_EVERY_MS) return
       lastTyping.set(chatId, t)
+      // A chat this device just opened does not exist on the server until its
+      // start lands (and may live there under another id).
+      await chatReady.get(chatId)
       await http.request("POST", chatPath(chatId, "/typing"))
     },
   }

@@ -81,6 +81,23 @@ def test_direct_chat_reuses_direct_key(
     )
 
 
+def test_direct_chat_start_replays_with_the_client_id(
+    client: TestClient, trio: Trio
+) -> None:
+    # The app retries a start whose answer was lost, under the same id, and
+    # sends typing to that id once the start has landed.
+    chat_id = str(uuid.uuid4())
+    body = {"user_id": str(trio.ben.id), "id": chat_id}
+    first = ok(client.post(f"{API}/chats/direct", headers=trio.ana.headers, json=body))
+    again = ok(client.post(f"{API}/chats/direct", headers=trio.ana.headers, json=body))
+    assert first["id"] == again["id"] == chat_id
+    for who in (trio.ana, trio.ben):
+        ok(client.post(f"{API}/chats/{chat_id}/typing", headers=who.headers), 204)
+    # A chat id that was never started is a 404 on the typing ping alone.
+    r = client.post(f"{API}/chats/{uuid.uuid4()}/typing", headers=trio.ana.headers)
+    assert r.status_code == 404 and code(r) == "chat_not_found"
+
+
 def test_chat_membership_gates(client: TestClient, trio: Trio) -> None:
     chat = _direct(client, trio.ana, trio.ben)
     m = _send(client, trio.ana, chat["id"])

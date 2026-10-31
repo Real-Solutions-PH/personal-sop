@@ -16,6 +16,7 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler"
 import Animated, {
   cancelAnimation,
   Easing,
+  ReduceMotion,
   runOnJS,
   type SharedValue,
   useAnimatedStyle,
@@ -367,9 +368,16 @@ export function StoryViewer({ id }: { id: string }) {
       return
     }
     const total = DURATION[item.kind]
+    // The bar is the slide's clock, not decoration: under the system's
+    // Reduce Motion setting Reanimated would finish it on the first frame,
+    // skip every slide and close the viewer as it opens.
     progress.value = withTiming(
       1,
-      { duration: total * (1 - progress.value), easing: Easing.linear },
+      {
+        duration: total * (1 - progress.value),
+        easing: Easing.linear,
+        reduceMotion: ReduceMotion.Never,
+      },
       (done) => {
         if (done) runOnJS(next)()
       },

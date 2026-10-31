@@ -35,8 +35,11 @@ jest.mock("react-native-gesture-handler", () => {
   }
 })
 // A timing animation that really takes its duration, so the slide timer can
-// be observed with fake timers; cancelling stops it.
+// be observed with fake timers; cancelling stops it. With the device's
+// Reduce Motion setting on, Reanimated finishes an animation on its first
+// frame unless its config opts out (``reduceMotion: "never"``).
 const mockTimers = new Set<ReturnType<typeof setTimeout>>()
+const mockMotion = { reduced: false }
 jest.mock("react-native-reanimated", () => ({
   __esModule: true,
   ...require("./reanimated-extras").extras,
@@ -46,16 +49,21 @@ jest.mock("react-native-reanimated", () => ({
   useAnimatedStyle: (get: () => unknown) => get(),
   withSpring: (value: unknown) => value,
   useReducedMotion: () => true,
+  ReduceMotion: { System: "system", Always: "always", Never: "never" },
   withTiming: (
     value: unknown,
-    cfg?: { duration?: number },
+    cfg?: { duration?: number; reduceMotion?: string },
     done?: (finished: boolean) => void,
   ) => {
     if (done) {
-      const id = setTimeout(() => {
-        mockTimers.delete(id)
-        done(true)
-      }, cfg?.duration ?? 0)
+      const instant = mockMotion.reduced && cfg?.reduceMotion !== "never"
+      const id = setTimeout(
+        () => {
+          mockTimers.delete(id)
+          done(true)
+        },
+        instant ? 0 : (cfg?.duration ?? 0),
+      )
       mockTimers.add(id)
     }
     return value
@@ -97,6 +105,7 @@ const loaded = () => act(() => base().props.onLoad())
 const failed = () => act(async () => base().props.onError())
 
 beforeEach(() => {
+  mockMotion.reduced = false
   jest.useFakeTimers()
   jest.clearAllMocks()
   socialStore.set((s) => ({
@@ -124,6 +133,19 @@ test("once loaded it plays its full 5 s, then moves on", () => {
   expect(screen.queryByLabelText("Loading check-in")).toBeNull()
   act(() => jest.advanceTimersByTime(4900))
   expect(shownUri()).toBe("s1.jpg")
+  act(() => jest.advanceTimersByTime(200))
+  expect(shownUri()).toBe("s2.jpg")
+})
+
+test("with Reduce Motion on, a slide still plays its full 5 s", () => {
+  // The bar is a clock, not decoration: skipping it ran through every slide
+  // and closed the viewer the moment it opened.
+  mockMotion.reduced = true
+  show()
+  loaded()
+  act(() => jest.advanceTimersByTime(4900))
+  expect(shownUri()).toBe("s1.jpg")
+  expect(mockBack).not.toHaveBeenCalled()
   act(() => jest.advanceTimersByTime(200))
   expect(shownUri()).toBe("s2.jpg")
 })
