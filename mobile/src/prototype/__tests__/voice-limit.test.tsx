@@ -4,6 +4,7 @@
 
 import { configureStorage, resetAll } from "@domain/lib/store"
 import { act, render, screen, waitFor } from "@testing-library/react-native"
+import { SafeAreaProvider } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
 import { CaptureVoice, VOICE_MAX_SEC } from "../screens/capture-voice"
 
@@ -76,13 +77,19 @@ beforeEach(() => {
   jest.clearAllMocks()
 })
 
+const metrics = {
+  frame: { x: 0, y: 0, width: 390, height: 844 },
+  insets: { top: 0, left: 0, right: 0, bottom: 0 },
+}
 const sheet = (onRecording: jest.Mock) => (
-  <CaptureVoice
-    hint="journal"
-    onClose={jest.fn()}
-    onDone={jest.fn()}
-    onRecording={onRecording}
-  />
+  <SafeAreaProvider initialMetrics={metrics}>
+    <CaptureVoice
+      hint="journal"
+      onClose={jest.fn()}
+      onDone={jest.fn()}
+      onRecording={onRecording}
+    />
+  </SafeAreaProvider>
 )
 
 test("the limit is the server's five minutes", () => {
