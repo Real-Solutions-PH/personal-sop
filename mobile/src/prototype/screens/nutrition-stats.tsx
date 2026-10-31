@@ -473,6 +473,9 @@ function MacroDays({
                         borderTopLeftRadius: 3,
                         borderTopRightRadius: 3,
                         backgroundColor: g ? color : t.line,
+                        // Softer than the target line, so the line stays
+                        // visible where a bar crosses it.
+                        opacity: g ? 0.55 : 1,
                       }}
                     />
                   )
@@ -486,7 +489,7 @@ function MacroDays({
                     left: 0,
                     right: 0,
                     bottom: (goal / top) * MINI,
-                    borderTopWidth: 1.5,
+                    borderTopWidth: 2,
                     borderStyle: "dashed",
                     borderColor: color,
                   }}
