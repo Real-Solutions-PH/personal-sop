@@ -494,6 +494,7 @@ export type app__modules__social__schema__MessagePublic = {
     reactions: {
         [key: string]: (string);
     };
+    deleted?: boolean;
 };
 
 export type app__modules__social__schema__MessagesPublic = {
@@ -6832,6 +6833,13 @@ export type SocialDeleteCommentData = {
 
 export type SocialDeleteCommentResponse = (void);
 
+export type SocialRestoreCommentData = {
+    commentId: string;
+    postId: string;
+};
+
+export type SocialRestoreCommentResponse = (CommentsPublic);
+
 export type SocialReadTrayResponse = (StoryTray);
 
 export type SocialCreateStoryData = {
@@ -6989,6 +6997,13 @@ export type SocialUnsendData = {
 };
 
 export type SocialUnsendResponse = (void);
+
+export type SocialRestoreMessageData = {
+    chatId: string;
+    messageId: string;
+};
+
+export type SocialRestoreMessageResponse = (app__modules__social__schema__MessagePublic);
 
 export type SocialReactData = {
     chatId: string;

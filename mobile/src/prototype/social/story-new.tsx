@@ -506,11 +506,11 @@ export function StoryNew() {
                 paddingHorizontal: 14,
                 borderRadius: 24,
                 borderWidth: 1,
-                borderColor: t.life,
+                borderColor: palette.dark.life,
                 backgroundColor: "#ffffff1a",
               }}
             >
-              <Star size={16} color={t.life} />
+              <Star size={16} color={palette.dark.life} />
               <Text style={{ color: "#fff", fontFamily: fonts.semibold }}>
                 Close friends
               </Text>
