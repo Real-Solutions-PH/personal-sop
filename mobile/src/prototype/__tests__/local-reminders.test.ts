@@ -13,7 +13,9 @@ import type { Task } from "@domain/tasks/data"
 import { tasksStore } from "@domain/tasks/store"
 import {
   BILL_OVERDUE_DAYS,
+  inQuiet,
   MAX_PENDING,
+  nagTimes,
   planReminders,
   scheduleEatBackReminder,
   syncReminders,
@@ -485,5 +487,102 @@ describe("bill reminders", () => {
     expect(ids.filter((s) => s.includes("2026-11-24"))).toHaveLength(
       7 + BILL_OVERDUE_DAYS,
     )
+  })
+})
+
+describe("keep reminding me", () => {
+  const quiet = { start: "22:00", end: "07:00" }
+  const local = (h: number, m = 0, d = 22) => new Date(2026, 9, d, h, m)
+  const nags = (p: ReturnType<typeof planReminders>) =>
+    p.filter((r) => r.id.includes("-nag-")) as { id: string; at: Date }[]
+
+  test("nagTimes: every interval after the due time, to the end of that day, outside quiet hours", () => {
+    const times = nagTimes(local(19), 60, local(8), quiet)
+    // 20:00 and 21:00; 22:00 and 23:00 fall in quiet hours.
+    expect(times).toEqual([local(20), local(21)])
+    expect(nagTimes(local(19), 90, local(20, 45))).toEqual([
+      local(22, 0),
+      local(23, 30),
+    ])
+    expect(nagTimes(local(19), 0, local(8))).toEqual([])
+  })
+
+  test("inQuiet: windows that wrap midnight, and an empty window", () => {
+    expect(inQuiet(local(23), quiet)).toBe(true)
+    expect(inQuiet(local(6, 59), quiet)).toBe(true)
+    expect(inQuiet(local(7), quiet)).toBe(false)
+    expect(inQuiet(local(13), { start: "12:00", end: "14:00" })).toBe(true)
+    expect(inQuiet(local(13), { start: "09:00", end: "09:00" })).toBe(false)
+  })
+
+  test("an overdue task repeats hourly for the rest of today; done or off, none", () => {
+    const now = local(10, 30)
+    const overdue = task("meds", local(9).toISOString(), { nagEveryMin: 60 })
+    const p = nags(planReminders([overdue], [], now, { quiet }))
+    expect(p.map((r) => r.at.getHours())).toEqual([
+      11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+    ])
+    expect(p[0]?.id).toBe("task-meds-nag-2026-10-22T1100")
+    expect(
+      nags(planReminders([{ ...overdue, status: "done" }], [], now, { quiet })),
+    ).toEqual([])
+    expect(
+      nags(
+        planReminders([{ ...overdue, nagEveryMin: null }], [], now, { quiet }),
+      ),
+    ).toEqual([])
+  })
+
+  test("a task with only a due day is overdue from the default reminder time", () => {
+    const t = task("call", null, {
+      dueTime: null,
+      nagEveryMin: 120,
+    })
+    const p = nags(
+      planReminders([t], [], local(8), { quiet, defaultRemindTime: "16:00" }),
+    )
+    expect(p.map((r) => r.at.getHours())).toEqual([18, 20])
+  })
+
+  test("a habit repeats after each timed slot it is due, skipping today once done", () => {
+    // Thursday 22 Oct; the slot runs Thu and Fri at 20:00.
+    const h = habit({
+      id: "pill",
+      schedule: [{ days: [4, 5], time: "20:00" }],
+      nagEveryMin: 60,
+      pauses: [],
+      type: "check",
+    })
+    const p = nags(planReminders([], [h], local(8), { quiet, logs: [] }))
+    expect(p.map((r) => [r.at.getDate(), r.at.getHours()])).toEqual([
+      [22, 21],
+      [23, 21],
+    ])
+    const done = nags(
+      planReminders([], [h], local(8), {
+        quiet,
+        logs: [
+          {
+            id: "l",
+            habitId: "pill",
+            day: "2026-10-22",
+            status: "done",
+            loggedAt: local(8).toISOString(),
+            source: "tap",
+          },
+        ],
+      }),
+    )
+    expect(done.map((r) => r.at.getDate())).toEqual([23])
+  })
+
+  test("a paused day gets no repeats", () => {
+    const h = habit({
+      id: "pill",
+      schedule: [{ days: [4], time: "20:00" }],
+      nagEveryMin: 60,
+      pauses: [{ from: "2026-10-22", to: "2026-10-22" }],
+    })
+    expect(nags(planReminders([], [h], local(8), { quiet }))).toEqual([])
   })
 })
