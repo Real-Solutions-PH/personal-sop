@@ -177,7 +177,7 @@ GROUPS: dict[str, tuple[frozenset[str], re.Pattern[str]]] = {
         ),
         re.compile(
             r"\b(edit|change|changed|update|move|moved|rename|fix|correct|wrong|"
-            r"mistake|delete|remove|archive|cancel|undo|redo|replace|push|note|switch|reassign|"
+            r"mistake|delete|remove|archive|cancel|undo|redo|replace|switch|reassign|"
             r"palitan|burahin|ilipat|instead|actually|should (?:be|have been)|"
             r"not \d[\d,.]*)\b",
             re.I,

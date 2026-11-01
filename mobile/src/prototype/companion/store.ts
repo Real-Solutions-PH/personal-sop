@@ -66,6 +66,11 @@ export type StepItem = {
 // What a running step says before its result arrives; the finished step
 // shows the server's own sentence (companion/turn.py RUNNING).
 const STEP_LABELS: Record<string, string> = {
+  portion_plan: "Working out portions",
+  compare_periods: "Comparing periods",
+  finance_status: "Checking your money",
+  find_tasks: "Finding the task",
+  redo_undone: "Saving it again",
   create_tasks: "Adding to your tasks",
   complete_task: "Marking a task done",
   log_expense: "Logging an expense",

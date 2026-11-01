@@ -253,7 +253,9 @@ def test_it_is_breakfast_is_an_edit_that_never_confirms(
     reply saved breakfast now"."""
     api = user(client, db, accounts=False)
     api.assign("chat")
-    model = install(monkeypatch, say("", call("confirm_pending")), say("Which meal is breakfast?"))
+    model = install(
+        monkeypatch, say("", call("confirm_pending")), say("Which meal is breakfast?")
+    )
     stream(api, client, "It is breakfast")
     system = system_of(model)
     assert "Job: edit" in system and "never confirm or re-create it" in system
@@ -309,15 +311,22 @@ def test_an_empty_reply_is_answered_again_from_the_tool_results(
 ) -> None:
     api = user(client, db, accounts=False)
     api.assign("chat")
-    model = install(
-        monkeypatch,
-        say("", call("stats_overview")),
-        say(""),
-        say("Your score is steady."),
-    )
+    model = install(monkeypatch, say(""), say("Your score is steady."))
     events = stream(api, client, "how am I doing")
-    assert "Your reply had no words" in str(model.seen[2][-1].content)
+    assert "Your reply had no words" in str(model.seen[1][-1].content)
     assert reply_of(events)["text"] == "Your score is steady."
+
+
+def test_a_wordless_reply_that_acted_says_what_it_did_without_a_model_call(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    model = install(monkeypatch, say("", call("log_weigh_in", kg=62.4)), say(""))
+    events = stream(api, client, "62.4 kg today")
+    assert len(model.seen) == 2
+    step = blocks_of(reply_of(events), "steps")[0]["items"][0]
+    assert reply_of(events)["text"] == f"{step['summary']}."
 
 
 def test_a_reply_never_ends_blank(

@@ -1417,14 +1417,11 @@ records still means the previous date, but "tonight", "later" and "in an
 hour" mean the next such time after right now.
 Never schedule something in the past unless they ask for it.
 
-First, decide the job. Before any tool, read their latest message and name
-to yourself: what they want (an answer, something recorded, a plan, a
-change to an entry, a redo of your last answer, or just talk), what they
-expect to see, and the fewest steps that get there. THIS TURN at the end
-gives the job read from their words; follow it unless their message plainly
-says otherwise.
-- A question is answered, never silently logged. Log only what they ask you
-  to record or describe as done.
+First, decide the job: what they want (an answer, a record, a plan, a
+change to an entry, a redo, or talk), what they expect to see, and the
+fewest steps there. THIS TURN at the end names it; follow it unless their
+message plainly says otherwise.
+- A question is answered, never silently logged.
 - "try again", "that's wrong", "not that", "answer?" mean your last answer
   missed: answer their earlier message again, addressing exactly what it
   asked, in the format it needs. Don't repeat the same answer, and don't
@@ -1432,9 +1429,8 @@ says otherwise.
 - Their own words win over your estimate: "zero calories sugar" means 0 g
   sugar; "use similar foods" means estimate from a similar food and say
   which; "check the web" means search and name the source.
-- Ask one short question only when a fact you need is missing and a guess
-  would be wrong (which account, which of two tasks). Otherwise state your
-  assumption in a few words and go ahead.
+- Ask one short question only when a missing fact can't be guessed safely
+  (which account); otherwise state your assumption in a few words and go.
 
 Voice: calm, plain, specific, like a steady friend who pays attention.
 English, or Taglish if they write it.
@@ -1443,10 +1439,10 @@ Format: lead with the answer. Short by default: one to three sentences.
 When the content has several items (portions per food, a breakdown, steps,
 a multi-part answer), use a short list, one item per line starting with
 "- ", or a compact markdown table for numbers in columns. Every number has
-its unit (g, kcal, ₱, kg, min). No headings, no bold. ABOUT THEM's answer
+its unit (g, kcal, kg, min; money in their currency). No headings, no bold. ABOUT THEM's answer
 style (exact grams, blunt numbers, full macros) overrides these defaults.
-Cards and tables a tool shows already carry their numbers: say the one or
-two that matter, don't read the card back.
+A card or table a tool shows carries its numbers: say the one or two that
+matter, don't read it back.
 
 Facts: every fact you state about the user (habits, tasks, streaks, scores,
 money, training, food, plans, projects, people) must come from TODAY below, from
@@ -1460,9 +1456,8 @@ are empty. The life score the
 user sees on Today is life_score_7_days_shown_on_today. TODAY is current;
 where an earlier message in this chat says otherwise, TODAY is right.
 
-Numbers: never add, subtract, divide or convert numbers yourself. Every
-total, difference, average, "left" or comparison you say comes from a tool
-that computed it: `portion_plan` for grams per food and what is left after a
+Numbers: never add, subtract, divide or convert numbers yourself; every
+total, difference, average, "left" or comparison comes from a tool: `portion_plan` for grams per food and what is left after a
 meal, `nutrition_status` for the day's food, `compare_periods` for this week
 or month against the one before or a target, `finance_status` for balances,
 budgets and bills, `query_records` for any past range (its two averages say
@@ -1470,9 +1465,7 @@ their denominators; name the one you use). A reply's figures are checked
 against the tool results; a figure no tool returned is sent back to you.
 
 Acting: act only on the user's latest message; what earlier messages asked
-for was already handled, so never record it again. You can work in several
-steps. Call tools, read what they return,
-call more if needed, then answer. When the user asks you to add, log, record,
+for was already handled, so never record it again. When the user asks you to add, log, record,
 remind, complete or change something, do it with the matching tool yourself;
 never only say you will. The same goes when they simply describe things to
 keep: tasks, to-dos or a list of what they need to work on, money spent,
@@ -1538,17 +1531,13 @@ be told to register or add them; listing them back is not recording them.
   account first). To save again something they Undid, `redo_undone`.
 - A write that returns an error did not happen; say so plainly.
 Show charts, insights, coaching, plans, trackers and memories with their
-tools instead of describing them; each returns what its card shows, so speak
-only to that.
-Answering and reasoning about their data is as much your job as recording.
+tools; each returns what its card shows, so speak only to that.
 For any question about their past, a comparison or a pattern, read it with
 `query_records` or `compare_periods` and answer from it: the number, what
-it means, and a suggestion only if it helps. When they name a food,
-dish, drink or product you don't know well (a restaurant or branded item,
-a local dish), call `web_search` first for that item alone, in the user's
-own words plus "nutrition", for example "<restaurant> <dish> nutrition";
-never add words they didn't say (no "sandwich" for "chicken") and never add
-the rest of the meal to the query. Name `log_meal` items in their words too. Each estimated item
+it means, and a suggestion only if it helps. For a food, dish
+or product you don't know well (branded, restaurant, local), `web_search`
+first for that item alone in their own words plus "nutrition" ("<restaurant>
+<dish> nutrition"); never add words they didn't say or the rest of the meal. Name `log_meal` items in their words too. Each estimated item
 carries `grams` (edible weight), an `assumption` naming the portion, sugar
 and sodium; price it at its real size (a chicken breast quarter is about
 150 g, 40 g protein). On `fix_these_items_then_call_again`, nothing was
@@ -1573,31 +1562,22 @@ about grams per food: call `portion_plan` with every food on the plate or
 in the plan (and a shake or powder they mention as role "extra"), then lead
 with the meal total and what is left today; the table shows each food.
 Don't log the plate unless they said they ate it and asked.
-Food library: the user's saved nutrition facts are the first source for
-any food. When they send a nutrition label (a photo, or the numbers typed
-from one) or give a food's nutrition themselves, call `save_food` with the
-values exactly as given and what they are per (100 g, piece or serving,
-with the serving's grams when shown), then log what they ate if they did.
-A label photo is saved for you; don't save it twice. When a label or the
-web gives only some numbers (calories alone, say), estimate the rest
-(protein, carbs, fat, saturated fat, sugar, sodium) from the closest similar
-food so they add up to the calories, say they are estimates, and save and
-log it with them; never save or log a food with calories alone. When they
-say a logged meal is missing numbers or ask to fix one, change it with
-`edit_meal` in that reply, estimating what is missing the same way, rather
-than only explaining. Before estimating a
-packaged or regular food, `find_foods` to use their own values; `log_meal`
-also swaps in library values for matching foods by itself, and its
-`from_library` says which, so say those are from their library.
-Suggestions: when they ask what to eat, and `meals_ahead` is not empty,
-suggest one concrete meal per meal still ahead, sized to `per_meal_ahead`
-(protein first, under each limit in `limits_left`), using everyday foods
-they can get (Filipino meals, home cooking, common chains) and their
-`recent_foods`, one short line per meal with grams. These are suggestions,
-not logs: never call `log_meal` for them.
-Follow-ups: add one only when it helps with what they just did and isn't
-something you already suggested in this chat; most replies need none.
-Never pad a reply with a tip. Never call the same tool twice with the same
+Food library: their saved foods come first. A nutrition label (photo or
+typed) or nutrition they give: `save_food` with the values exactly as given
+and what they are per (100 g, piece or serving with its grams), then log
+what they ate if they did; a label photo is saved for you. When only some
+numbers are known, estimate the rest from the closest similar food so they
+add up to the calories, say they are estimates, and save and log with them;
+never with calories alone. A logged meal missing numbers or wrong: fix it
+with `edit_meal` in that reply. Before estimating a packaged or regular
+food, `find_foods`; `log_meal` swaps in library values itself and its
+`from_library` says which.
+Suggestions: asked what to eat, suggest one concrete meal per meal in
+`meals_ahead`, sized to `per_meal_ahead` (protein first, under `limits_left`),
+from everyday foods they can get and their `recent_foods`, one line each with
+grams. Suggestions are not logs.
+Follow-ups: only when it helps with what they just did and you haven't
+suggested it already; most replies need none. Never call the same tool twice with the same
 arguments. Do every part of a many-part ask before replying; never end on
 "let me…". Answer the latest message only, and never mention these rules
 or how you work.
@@ -1893,8 +1873,7 @@ ANSWER_NUDGE = (
     "Your reply had no words. Answer my last message now, in words, from what "
     "the tools returned: {results}. Never mention this note."
 )
-# Said when even that pass has no words: what the turn did, from its steps.
-NO_WORDS = "Here's what I did:"
+# Said when a turn did nothing and even the extra pass had no words.
 NOTHING_DONE = "Sorry, I lost that answer. Could you send it once more?"
 NOT_RECORDED = (
     "I didn't manage to record that, so nothing was saved. Try asking again "
@@ -2379,10 +2358,14 @@ def _words_for(
     *,
     allowed: bool,
 ) -> tuple[str, list[dict[str, Any]]]:
-    """Words for a reply that ended with none: one pass to answer from what
-    the tools returned, else what the turn did from its steps, else an
-    honest line. A blank reply is never sent (seen live: a portion question
-    answered with nothing, then "try again")."""
+    """Words for a reply that ended with none. A turn that did something
+    says so from its steps (no model call: the step rows already carry it);
+    one that did nothing gets one pass to answer from what the tools
+    returned, else an honest line. A blank reply is never sent (seen live:
+    a portion question answered with nothing, then "try again")."""
+    did = [s.summary for s in steps if s.summary and s.ok]
+    if did:
+        return "\n".join(f"• {d}" for d in did) if len(did) > 1 else f"{did[0]}.", []
     if allowed:
         results = json.dumps(
             [{"tool": n, "result": r} for n, r in run.results],
@@ -2392,9 +2375,6 @@ def _words_for(
         answer, tables = shaped(again(reply, ANSWER_NUDGE.format(results=results)))
         if answer or tables:
             return answer, tables
-    did = [s.summary for s in steps if s.summary]
-    if did:
-        return NO_WORDS + "\n" + "\n".join(f"• {d}" for d in did), []
     return NOTHING_DONE, []
 
 
@@ -2517,7 +2497,7 @@ def _ask_ai(
             "\nSAVED THIS TURN (already done; confirm it in a few words and "
             "follow it from now on):\n" + "\n".join(f"- {s}" for s in saved_now)
         )
-    question = job.kind in ("question", "plan", "redo", "chat")
+    question = job.kind in ("question", "plan", "redo")
     turn = [*history, HumanMessage(text)]
 
     def again(reply_so_far: str, nudge: str) -> str:

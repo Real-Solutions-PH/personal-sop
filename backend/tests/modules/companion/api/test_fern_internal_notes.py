@@ -97,14 +97,17 @@ def test_strip_internal_removes_only_the_internal_note(
     assert services.strip_internal(text) == expected
 
 
-def test_a_reply_that_is_only_the_note_and_did_nothing_stores_no_text(
+def test_a_reply_that_is_only_the_note_and_did_nothing_is_answered_again(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """The note goes; a reply left with no words gets one pass to answer,
+    and is never stored blank."""
     api = user(client, db, accounts=False)
     api.assign("chat")
-    install(monkeypatch, say(NOTE))
+    model = install(monkeypatch, say(NOTE), say("Hi! What can I do for you?"))
     events = stream(api, client, "hello")
-    assert reply_of(events)["text"] is None
+    assert "Your reply had no words" in str(model.seen[1][-1].content)
+    assert reply_of(events)["text"] == "Hi! What can I do for you?"
 
 
 # ------------------------------------------------------------ streaming
@@ -262,7 +265,8 @@ def test_a_meal_waiting_from_this_reply_backs_tap_confirm(
     )
     events = stream(api, client, "log this matcha soft-serve")
     assert len(model.seen) == 2  # no corrective pass
-    assert reply_of(events)["text"] == answer
+    # The card shows Confirm, so how to confirm goes; the state stays.
+    assert reply_of(events)["text"] == ("The matcha soft-serve is waiting for your OK.")
 
 
 def test_a_write_with_nothing_waiting_may_say_proposed(

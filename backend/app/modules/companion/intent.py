@@ -123,7 +123,11 @@ def classify(text: str) -> Intent:
         )
     if _LOG.search(said):
         return Intent("log", "what was saved or waits, in a few words")
-    return Intent("chat" if len(words) <= 4 else "log", "a short, direct reply")
+    # A statement with no other mark ("lunch was steamed chicken") is most
+    # often something to keep.
+    return Intent(
+        "log", "what they describe recorded, or a short reply if nothing to keep"
+    )
 
 
 def turn_note(
@@ -131,8 +135,7 @@ def turn_note(
 ) -> str:
     """The system prompt's THIS TURN block."""
     lines = [
-        "THIS TURN (decided from their words; follow it unless their message "
-        "clearly says otherwise):",
+        "THIS TURN:",
         f"- Job: {intent.kind}. They expect: {intent.expects}.",
     ]
     if intent.kind == "redo" and previous_ask:
