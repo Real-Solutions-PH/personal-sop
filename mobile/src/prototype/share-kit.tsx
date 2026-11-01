@@ -606,27 +606,31 @@ function CardGround() {
     id = `ground-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`
   if (!c.gradient) return null
   const stops = c.gradient.stops
+  // The SVG sits in an unpadded box pinned to the card's edges. Given
+  // `100%` itself while absolute in the padded card, Yoga measured it
+  // against the content box, and the gradient stopped a padding short of
+  // the right and bottom edges, in the preview and the exported image.
   return (
-    <Svg
+    <View
       testID="card-ground"
-      width="100%"
-      height="100%"
-      preserveAspectRatio="none"
-      style={{ position: "absolute", inset: 0 }}
+      pointerEvents="none"
+      style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
     >
-      <Defs>
-        <LinearGradient id={id} x1="0" y1="0" x2="1" y2="1">
-          {stops.map((color, i) => (
-            <Stop
-              key={`${color}-${i}`}
-              offset={stops.length > 1 ? i / (stops.length - 1) : 0}
-              stopColor={color}
-            />
-          ))}
-        </LinearGradient>
-      </Defs>
-      <Rect x="0" y="0" width="100%" height="100%" fill={`url(#${id})`} />
-    </Svg>
+      <Svg width="100%" height="100%" preserveAspectRatio="none">
+        <Defs>
+          <LinearGradient id={id} x1="0" y1="0" x2="1" y2="1">
+            {stops.map((color, i) => (
+              <Stop
+                key={`${color}-${i}`}
+                offset={stops.length > 1 ? i / (stops.length - 1) : 0}
+                stopColor={color}
+              />
+            ))}
+          </LinearGradient>
+        </Defs>
+        <Rect x="0" y="0" width="100%" height="100%" fill={`url(#${id})`} />
+      </Svg>
+    </View>
   )
 }
 

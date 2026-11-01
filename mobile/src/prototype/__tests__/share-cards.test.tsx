@@ -630,6 +630,27 @@ test.each<CardBackdrop>([
   )
 })
 
+test.each<CardFormat>([
+  "9:16",
+  "4:5",
+  "1:1",
+])("the gradient ground reaches every edge of a %s card", (format) => {
+  const r = render(card(300, { format, backdrop: "fern", photo: null }))
+  const style = StyleSheet.flatten(r.getByTestId("card-ground").props.style)
+  // Pinned to the four edges, never sized in percent: a percent size on
+  // an absolute child of the padded card resolved against its content
+  // box, leaving an unpainted strip along the right and bottom.
+  expect(style).toMatchObject({
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  })
+  expect(style.width).toBeUndefined()
+  expect(style.height).toBeUndefined()
+})
+
 test("the composer opens on the Fern ground", () => {
   const looks: CardLook[] = []
   render(

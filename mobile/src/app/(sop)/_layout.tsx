@@ -1,6 +1,5 @@
 import { dashStore, setOnboarded } from "@domain/dash/store"
 import { captureUi, closeCapture, openCapture } from "@domain/lib/capture"
-import { liveStore } from "@domain/lib/live"
 import { useConnectivity } from "@domain/lib/platform"
 import * as Haptics from "expo-haptics"
 import { LinearGradient } from "expo-linear-gradient"
@@ -31,6 +30,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { syncReady } from "@/live/ready"
 import { FernMark, fernPalette } from "@/prototype/companion/brand"
 import { startFocusLive } from "@/prototype/focus-live"
+import { LiveBar } from "@/prototype/live-bar"
 import { startReminders } from "@/prototype/local-reminders"
 import { prototypeMode } from "@/prototype/mode"
 import { go, replace } from "@/prototype/navigation"
@@ -218,7 +218,6 @@ export default function PrototypeLayout() {
     path === "/capture"
   const reduced = useReducedMotion()
   const online = useConnectivity()
-  const live = liveStore.use((s) => s.live)
   const dir = tabDirection((s) => s.dir)
   const drawer = captureUi.use((s) => s.open)
   const hearing = wake((s) => s.armed)
@@ -318,18 +317,7 @@ export default function PrototypeLayout() {
             </Stack>
           </View>
         </GestureDetector>
-        {live && !focus && (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Return to ${live.label}`}
-            onPress={() => go(live.href)}
-            style={{ padding: 12, backgroundColor: t.soft }}
-          >
-            <Text style={{ color: t.primary, fontWeight: "700" }}>
-              {live.pausedAt ? "Paused" : "In progress"} · {live.label} →
-            </Text>
-          </Pressable>
-        )}
+        {!focus && <LiveBar path={path} />}
         {!online && (
           <Text
             accessibilityRole="alert"

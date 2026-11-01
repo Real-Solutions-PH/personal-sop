@@ -120,6 +120,16 @@ export function useAutoRule(habit: Habit): boolean {
   return !!habit.rule && on
 }
 
+/** Whether Stats shows Screen time at all: switched on, and connected on
+ * this phone. Switched off, missing from this version of the app, not
+ * available on this iPhone, refused or never connected, it has nothing
+ * to show, so its section, Life Score area and corner are left out. */
+export function useScreenTimeShown(): boolean {
+  const on = dashStore.use((s) => s.enabled.screen),
+    state = useScreenTimeState()
+  return on && state === "connected"
+}
+
 export const SCREEN_OFF_LABEL = "Screen Time off · log it yourself"
 
 /** Beside a rule habit's name while Screen time is off. */
