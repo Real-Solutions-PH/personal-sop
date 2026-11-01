@@ -227,6 +227,9 @@ function LiveBarRow({ row: r, divided }: { row: LiveRow; divided: boolean }) {
         }}
       >
         <Pressable
+          // The style is a function of the press state, which the CSS
+          // interop layer would otherwise drop, laying the row out as a column.
+          cssInterop={false}
           accessibilityRole="button"
           accessibilityLabel={`${state}: ${r.title}${r.step ? `, ${r.step}` : ""}, ${r.clockLabel ? `${r.clockLabel} ` : ""}${clockText(r)}${r.down ? " left" : ""}. Open`}
           onPress={() => go(r.href)}
