@@ -131,6 +131,11 @@ RUNNING: dict[str, str] = {
     "save_food": "Saving to your food library",
     "find_foods": "Checking your food library",
     "confirm_pending": "Saving what was waiting",
+    "portion_plan": "Working out portions",
+    "compare_periods": "Comparing periods",
+    "finance_status": "Checking your money",
+    "find_tasks": "Finding the task",
+    "redo_undone": "Saving it again",
     "discard_pending": "Dropping what was waiting",
 }
 
