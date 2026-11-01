@@ -216,6 +216,7 @@ export class SyncEngine {
     const at = new Date(this.editedAt ?? Date.now()).toISOString()
     this.editedAt = null
     const ops: SyncOp[] = []
+    const early = new Set<SyncOp>()
     for (const m of this.deps.mappers) {
       const state = m.store.get()
       const snap = this.snapshot[m.entity]
@@ -238,21 +239,26 @@ export class SyncEngine {
           gone.delete(u.id) &&
           !acted.has(u.id) &&
           Object.keys(u.data).length
-        )
-          ops.push({
+        ) {
+          const restore: SyncOp = {
             op_id: newId(),
             kind: "upsert",
             name: m.entity,
             id: u.id,
             data: { deleted_at: null },
-          })
-        ops.push({
+          }
+          ops.push(restore)
+          if (m.createsFirst) early.add(restore)
+        }
+        const op: SyncOp = {
           op_id: newId(),
           kind: "upsert",
           name: m.entity,
           id: u.id,
           data: u.data,
-        })
+        }
+        ops.push(op)
+        if (u.create && m.createsFirst) early.add(op)
         snap[u.id] = {
           ...(snap[u.id] ?? {}),
           ...m.toServer(this.find(m, state, u.id), state),
@@ -268,9 +274,9 @@ export class SyncEngine {
     }
     // Actions run first in the batch only within one capture: a create of a
     // row the action derives must not precede the action that derives it.
-    ops.sort(
-      (a, b) => Number(a.kind !== "action") - Number(b.kind !== "action"),
-    )
+    // Then the creates other rows point at (mapper.createsFirst).
+    const rank = (o: SyncOp) => (o.kind === "action" ? 0 : early.has(o) ? 1 : 2)
+    ops.sort((a, b) => rank(a) - rank(b))
     for (const op of ops) op.at = at
     this.deps.outbox.add(ops)
     this.persist()

@@ -767,6 +767,33 @@ test("deleting a category with its records moved: the moves reach the server bef
   })
 })
 
+test("a category and sub-category added with a transaction that uses them reach the server first", () => {
+  const { e, acct } = setup()
+  const pets = addCategory({
+    name: "Pets",
+    kind: "expense",
+    icon: "🐶",
+    discretionary: true,
+  })
+  const vet = addCategory({
+    name: "Vet",
+    kind: "expense",
+    parentId: pets.id,
+    icon: "💊",
+    discretionary: false,
+  })
+  const r = logExpense({ amount: 900, accountId: acct.id, categoryId: vet.id })
+  const ops = captureWire(e, seen)
+  // The server refuses a record whose category it has not seen yet
+  // (category_not_found), and a sub-category before its parent.
+  expect(ops.map((o) => [o.kind, o.name, o.id])).toEqual([
+    ["upsert", "category", pets.id],
+    ["upsert", "category", vet.id],
+    ["upsert", "fin_record", r.id],
+  ])
+  expect(ops[1].data).toMatchObject({ parent_id: pets.id, name: "Vet" })
+})
+
 test("re-saving a look-back keeps its id and sends the change only", () => {
   const e = synced()
   saveLookBack("2026-09", "first", {
