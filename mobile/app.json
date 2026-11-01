@@ -95,16 +95,19 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Allow Unfurl to use your location to show local weather and the forecast for planning outdoor work.",
-          "locationAlwaysAndWhenInUsePermission": false,
+          "locationWhenInUsePermission": "Allow Unfurl to use your location to record the route of a run or walk you start, and to show local weather.",
+          "locationAlwaysAndWhenInUsePermission": "Allow Unfurl to keep recording the route of a run or walk you started while the screen is locked. Unfurl only tracks you during a session you start.",
           "locationAlwaysPermission": false,
-          "motionUsagePermission": "Unfurl doesn't use your phone's motion data. This message is required because the location library used for local weather includes optional motion support."
+          "motionUsagePermission": "Unfurl doesn't use your phone's motion data. This message is required because the location library includes optional motion support.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
         }
       ],
       [
         "@kingstinct/react-native-healthkit",
         {
-          "NSHealthShareUsageDescription": "Unfurl reads your steps, active calories, distance, workouts and sleep to show your daily activity and sleep and, if you choose, add the calories you burned to that day's budget.",
+          "NSHealthShareUsageDescription": "Unfurl reads your steps, active calories, distance, workouts, sleep and heart rate to show your daily activity and sleep, the steps and heart rate of a workout, run or walk, and, if you choose, add the calories you burned to that day's budget.",
           "NSHealthUpdateUsageDescription": "Unfurl saves the workouts you finish to Apple Health, with their start and end time, when you turn this on in Fitness settings.",
           "background": false
         }
@@ -119,6 +122,7 @@
       "expo-asset",
       "expo-font",
       "expo-video",
+      "expo-maps",
       [
         "expo-splash-screen",
         {

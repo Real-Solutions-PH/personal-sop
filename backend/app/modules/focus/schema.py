@@ -40,6 +40,8 @@ class SessionSyncIn(BaseModel):
     item_kind: ItemKind | None = None
     item_id: uuid.UUID | None = None
     item_title: str | None = Field(default=None, max_length=160)
+    source: Literal["timer", "manual"] | None = None
+    label: str | None = Field(default=None, max_length=80)
 
 
 class SegmentSyncIn(BaseModel):
@@ -84,6 +86,8 @@ class SessionPublic(BaseModel):
     item_kind: ItemKind | None
     item_id: uuid.UUID | None
     item_title: str | None
+    source: str = "timer"
+    label: str | None = None
     day: date | None
     focus_sec: int
     sets_completed: int

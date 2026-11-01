@@ -3,17 +3,24 @@
 
 import * as C from "@domain/focus/calc"
 import * as L from "@domain/focus/logic"
+import * as P from "@domain/focus/past"
 import { useFocusState } from "@domain/focus/store"
 import { dayKey } from "@domain/lib/day"
-import { ChevronLeft, ChevronRight, Play } from "lucide-react-native"
+import {
+  ChevronLeft,
+  ChevronRight,
+  History,
+  Pencil,
+  Play,
+} from "lucide-react-native"
 import { useMemo, useState } from "react"
 import { View } from "react-native"
 import { clockOf, FocusTimeline } from "../focus-kit"
 import { SwipeStep } from "../motion"
-import { Copy, Frame, IconTap, Line } from "../native-kit"
-import { go } from "../navigation"
+import { Copy, Frame, IconTap, Line, Tap } from "../native-kit"
 import { fonts, useTheme } from "../theme"
 import { Screen, useNow } from "../ui"
+import { PastSessionSheet } from "./focus-past"
 import { LockedPreview } from "./locked-preview"
 
 const longDay = (d: string) =>
@@ -29,13 +36,24 @@ export function FocusDay({ day: initial }: { day?: string }) {
     now = useNow(),
     today = dayKey(new Date(now)),
     [day, setDay] = useState(initial ?? today),
+    // null: closed; "": a new block; an id: that logged session.
+    [logging, setLogging] = useState<string | null>(null),
+    manual = useMemo(
+      () =>
+        new Map(
+          s.sessions
+            .filter((x) => x.source === "manual")
+            .map((x) => [x.id, x.label]),
+        ),
+      [s.sessions],
+    ),
     blocks = useMemo(() => C.dayBlocks(s, day, now), [s, day, now]),
     sec = useMemo(
       () => C.rangeStats(s, day, day, now).byDay[day] ?? 0,
       [s, day, now],
     ),
     items = useMemo(
-      () => C.itemTotals(C.rangeStats(s, day, day, now).spans),
+      () => C.itemTotals(P.withLabels(s, C.rangeStats(s, day, day, now).spans)),
       [s, day, now],
     ),
     goal = C.goalSec(s),
@@ -46,7 +64,17 @@ export function FocusDay({ day: initial }: { day?: string }) {
     if (next <= today) setDay(next)
   }
   return (
-    <Screen title="Focus timeline">
+    <Screen
+      title="Focus timeline"
+      actions={
+        <IconTap
+          size={40}
+          icon={History}
+          label="Log a past session"
+          onPress={() => setLogging("")}
+        />
+      }
+    >
       <Line style={{ marginBottom: 12 }}>
         <IconTap
           size={40}
@@ -88,7 +116,10 @@ export function FocusDay({ day: initial }: { day?: string }) {
             locked={!blocks.length}
             title={day === today ? "No focus yet today" : "No focus this day"}
             detail="Each session shows here as blocks: focus in colour, breaks lighter, pauses hatched."
-            action={{ label: "Start focusing", onPress: () => go("/focus") }}
+            action={{
+              label: "Log a session you forgot to time",
+              onPress: () => setLogging(""),
+            }}
             color={t.foc}
             icon={Play}
           >
@@ -103,7 +134,11 @@ export function FocusDay({ day: initial }: { day?: string }) {
             <Frame style={{ padding: 16, gap: 8 }}>
               <Copy weight="semibold">Blocks</Copy>
               {blocks.map((b) => (
-                <Line key={`${b.segmentId}-${b.start}`} style={{ gap: 10 }}>
+                <BlockRow
+                  key={`${b.segmentId}-${b.start}`}
+                  logged={manual.has(b.sessionId)}
+                  onEdit={() => setLogging(b.sessionId)}
+                >
                   <View
                     style={{
                       width: 10,
@@ -129,13 +164,13 @@ export function FocusDay({ day: initial }: { day?: string }) {
                     style={{ flex: 1 }}
                   >
                     {b.kind === "focus"
-                      ? (b.item?.title ?? "Focus")
+                      ? (b.item?.title ?? manual.get(b.sessionId) ?? "Focus")
                       : b.kind === "pause"
                         ? `Paused ${L.fmtHm((b.end - b.start) / 1000)}`
                         : "Break"}
                     {b.abandoned ? " · discarded" : ""}
                   </Copy>
-                </Line>
+                </BlockRow>
               ))}
             </Frame>
           )}
@@ -156,7 +191,40 @@ export function FocusDay({ day: initial }: { day?: string }) {
           )}
         </View>
       </SwipeStep>
+      <PastSessionSheet
+        open={logging !== null}
+        onClose={() => setLogging(null)}
+        day={day}
+        {...(logging ? { editId: logging } : {})}
+      />
     </Screen>
+  )
+}
+
+/** A block's row; a logged session's opens its editor, with a pencil to
+ * say so (no tag: the label needs the width). */
+function BlockRow({
+  logged,
+  onEdit,
+  children,
+}: {
+  logged: boolean
+  onEdit: () => void
+  children: React.ReactNode
+}) {
+  const t = useTheme()
+  if (!logged) return <Line style={{ gap: 10 }}>{children}</Line>
+  return (
+    <Tap
+      onPress={onEdit}
+      label="Edit logged session"
+      style={{ minHeight: 32, justifyContent: "center" }}
+    >
+      <Line style={{ gap: 10 }}>
+        {children}
+        <Pencil size={14} color={t.muted} />
+      </Line>
+    </Tap>
   )
 }
 

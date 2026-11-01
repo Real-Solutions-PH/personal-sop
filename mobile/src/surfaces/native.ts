@@ -136,6 +136,7 @@ export function isAction(v: unknown): v is SurfaceAction {
     (a.kind === undefined ||
       a.kind === "routine" ||
       a.kind === "workout" ||
-      a.kind === "timer")
+      a.kind === "timer" ||
+      a.kind === "run")
   )
 }

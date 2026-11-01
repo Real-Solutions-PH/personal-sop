@@ -1,12 +1,15 @@
 // The bar above the tab bar while something runs: a workout, a routine, a
-// habit timer or a focus session. Each row is what the lock screen's Live
+// habit timer, a run or walk, or a focus session. Each row is what the lock screen's Live
 // Activity shows, read from the same builder (surfaces/live-state): what
 // it is, the step or set now, a live clock, how far through it is, and the
 // one action that moves it on. A tap anywhere else on the row opens it.
 //
-// A focus session can run beside a workout, routine or timer (those hold
-// the one Live slot; focus keeps its own store), so the bar lists both.
+// A run or walk and a focus session can run beside a workout, routine or
+// timer (those hold the one Live slot; runs and focus keep their own
+// stores), so the bar lists each on its own row: the slot's first, then
+// the run, then focus.
 
+import * as RL from "@domain/fitness/run-live"
 import { fitStore } from "@domain/fitness/store"
 import * as FO from "@domain/focus/actions"
 import { focusStore } from "@domain/focus/store"
@@ -16,8 +19,10 @@ import { elapsedSec, type Live, liveStore } from "@domain/lib/live"
 import * as Haptics from "expo-haptics"
 import type { LucideIcon } from "lucide-react-native"
 import {
+  Activity,
   Check,
   Dumbbell,
+  Footprints,
   ListChecks,
   Pause,
   Play,
@@ -27,7 +32,7 @@ import {
 } from "lucide-react-native"
 import { Pressable, Text, View } from "react-native"
 import { applySurfaceAction } from "@/surfaces/actions"
-import { buildLiveState } from "@/surfaces/live-state"
+import { buildLiveState, runState } from "@/surfaces/live-state"
 import type { LiveControl, LiveState } from "@/surfaces/types"
 import { focusLive } from "./focus-live"
 import { border, IconTap } from "./native-kit"
@@ -56,10 +61,12 @@ export interface LiveRow {
 }
 
 const KIND: Record<
-  "workout" | "routine" | "timer" | "focus",
+  "workout" | "routine" | "timer" | "focus" | "run" | "walk",
   { accent: Accent; icon: LucideIcon }
 > = {
   workout: { accent: "fit", icon: Dumbbell },
+  run: { accent: "fit", icon: Activity },
+  walk: { accent: "fit", icon: Footprints },
   routine: { accent: "hab", icon: ListChecks },
   timer: { accent: "hab", icon: Target },
   focus: { accent: "foc", icon: Timer },
@@ -86,6 +93,11 @@ function primaryControl(s: LiveState): LiveControl | undefined {
 
 function run(s: LiveState, focus: boolean, type: LiveControl) {
   void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {})
+  if (s.kind === "run") {
+    if (type === "pause") RL.pauseRun()
+    else if (type === "resume") RL.resumeRun()
+    return
+  }
   if (focus) {
     // A focus session beside a workout isn't the Live slot's, so it is
     // driven directly rather than through the slot's action routing.
@@ -121,7 +133,11 @@ export function rowOf(s: LiveState, focus: boolean, now: number): LiveRow {
           : (now - s.startedAt) / 1000
   const control = primaryControl(s)
   const act = control && ACTION[control]
-  const kind = focus ? KIND.focus : KIND[s.kind]
+  const kind = focus
+    ? KIND.focus
+    : s.kind === "run"
+      ? KIND[s.icon === "🚶" ? "walk" : "run"]
+      : KIND[s.kind]
   return {
     key: `${focus ? "focus" : s.kind}-${s.id}`,
     href: s.href,
@@ -163,12 +179,14 @@ export function useLiveRows(now: number): LiveRow[] {
   const live = liveStore.use((s) => s.live),
     habits = habitsStore.use((s) => s),
     fit = fitStore.use((s) => s),
-    focus = focusStore.use((s) => s)
+    focus = focusStore.use((s) => s),
+    run = RL.runLiveStore.use((s) => s.active)
   const rows: LiveRow[] = []
   if (live) {
     const s = buildLiveState({ live, habits, fit, focus, now })
     rows.push(s ? rowOf(s, live.kind === "focus", now) : bareRow(live, now))
   }
+  if (run) rows.push(rowOf(runState(run, now), false, now))
   if (live?.kind !== "focus") {
     const f = focusLive(focus, now)
     const s = f && buildLiveState({ live: f, habits, fit, focus, now })

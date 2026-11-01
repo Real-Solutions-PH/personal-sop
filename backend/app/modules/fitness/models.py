@@ -119,6 +119,13 @@ class Workout(OwnedRow, table=True):
         ),
         enum_check("status", WORKOUT_STATUSES, name="ck_workout_status"),
         enum_check("source", ("live", "chat"), name="ck_workout_source"),
+        CheckConstraint(
+            "kcal IS NULL OR (kcal >= 0 AND kcal <= 20000)", name="ck_workout_kcal"
+        ),
+        CheckConstraint(
+            "steps IS NULL OR (steps >= 0 AND steps <= 300000)",
+            name="ck_workout_steps",
+        ),
     )
 
     name: str = Field(max_length=80)
@@ -132,6 +139,11 @@ class Workout(OwnedRow, table=True):
     source: str = Field(default="live", sa_type=String(5))  # type: ignore
     # Cardio logged with a chat workout: {activity, km?, min?}.
     cardio: dict[str, object] | None = Field(default=None, sa_type=JSONB)
+    # Estimated active kcal (resting excluded) and steps taken, written by
+    # the device after finishing; the server estimates kcal on finish when
+    # it is still unset (``calc.estimate_workout_kcal``).
+    kcal: float | None = Field(default=None, sa_type=Float)
+    steps: int | None = None
 
 
 class WorkoutExercise(OwnedRow, table=True):
@@ -205,6 +217,67 @@ class WeighIn(OwnedRow, table=True):
     weight_kg: float = Field(sa_type=Float)
     body_fat_pct: float | None = Field(default=None, sa_type=Float)
     note: str | None = Field(default=None, max_length=280)
+
+
+RUN_KINDS = ("run", "walk")
+
+
+class RunSession(OwnedRow, table=True):
+    """A run or walk recorded on the phone. Only finished sessions reach the
+    server (the one in progress lives on the device), so there is no status.
+
+    ``route`` is a list of ``[lat, lng, alt_or_null, t_sec]`` points, t_sec
+    being seconds since ``started_at``; ``splits`` is a list of
+    ``{km, sec, elev_m}``."""
+
+    __tablename__ = "run_session"
+    __table_args__ = (
+        enum_check("kind", RUN_KINDS, name="ck_run_session_kind"),
+        CheckConstraint("ended_at >= started_at", name="ck_run_session_end"),
+        CheckConstraint("moving_sec >= 0", name="ck_run_session_moving"),
+        CheckConstraint(
+            "distance_m >= 0 AND distance_m <= 1000000", name="ck_run_session_distance"
+        ),
+        CheckConstraint(
+            "elevation_gain_m IS NULL OR elevation_gain_m >= 0",
+            name="ck_run_session_elevation",
+        ),
+        CheckConstraint(
+            "steps IS NULL OR (steps >= 0 AND steps <= 300000)",
+            name="ck_run_session_steps",
+        ),
+        CheckConstraint(
+            "(avg_hr IS NULL OR avg_hr BETWEEN 20 AND 250)"
+            " AND (max_hr IS NULL OR max_hr BETWEEN 20 AND 250)",
+            name="ck_run_session_hr",
+        ),
+        CheckConstraint(
+            "kcal IS NULL OR (kcal >= 0 AND kcal <= 20000)", name="ck_run_session_kcal"
+        ),
+    )
+
+    kind: str = Field(sa_type=String(4))  # type: ignore
+    name: str = Field(max_length=80)
+    started_at: datetime = Field(sa_type=tstz(), index=True)  # type: ignore
+    ended_at: datetime = Field(sa_type=tstz())  # type: ignore
+    moving_sec: int = 0
+    distance_m: float = Field(default=0, sa_type=Float)
+    elevation_gain_m: float | None = Field(default=None, sa_type=Float)
+    steps: int | None = None
+    avg_hr: int | None = None
+    max_hr: int | None = None
+    kcal: float | None = Field(default=None, sa_type=Float)
+    route: list[list[float | None]] = Field(
+        default_factory=list,
+        sa_type=JSONB,
+        sa_column_kwargs={"server_default": text("'[]'::jsonb")},
+    )
+    splits: list[dict[str, object]] = Field(
+        default_factory=list,
+        sa_type=JSONB,
+        sa_column_kwargs={"server_default": text("'[]'::jsonb")},
+    )
+    notes: str | None = Field(default=None, max_length=2000)
 
 
 class MacroTarget(OwnedRow, table=True):

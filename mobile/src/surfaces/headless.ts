@@ -1,3 +1,4 @@
+import { runLiveStore } from "@domain/fitness/run-live"
 import { fitStore } from "@domain/fitness/store"
 import { focusStore } from "@domain/focus/store"
 import { habitsStore } from "@domain/habits/store"
@@ -6,7 +7,7 @@ import { configureStorage, flushStores } from "@domain/lib/store"
 import { AppRegistry, Platform } from "react-native"
 import { prototypeStorage } from "@/prototype/storage"
 import { drainSurfaceActions } from "./actions"
-import { buildLiveState } from "./live-state"
+import { buildAllLive } from "./live-state"
 import { writeLive } from "./native"
 
 // Android: a tap on the ongoing notification or a widget while the app is
@@ -22,11 +23,12 @@ export async function surfacesHeadlessTask(): Promise<void> {
   if (!drainSurfaceActions()) return
   flushStores()
   writeLive(
-    buildLiveState({
+    buildAllLive({
       live: liveStore.get().live,
       habits: habitsStore.get(),
       fit: fitStore.get(),
       focus: focusStore.get(),
+      run: runLiveStore.get().active,
     }),
   )
 }

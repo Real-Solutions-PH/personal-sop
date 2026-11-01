@@ -26,6 +26,8 @@ MODES = ("pomodoro", "stopwatch")
 END_REASONS = ("completed", "abandoned")
 SEGMENT_KINDS = ("focus", "break", "pause")
 ITEM_KINDS = ("task", "habit")
+# "manual": logged afterwards because the timer was never started.
+SOURCES = ("timer", "manual")
 
 
 class FocusSession(OwnedRow, table=True):
@@ -54,6 +56,7 @@ class FocusSession(OwnedRow, table=True):
         CheckConstraint(
             "focus_sec >= 0 AND sets_completed >= 0", name="ck_focus_session_totals"
         ),
+        enum_check("source", SOURCES, name="ck_focus_session_source"),
         Index("ix_focus_session_owner_day", "owner_id", "day"),
     )
 
@@ -73,6 +76,13 @@ class FocusSession(OwnedRow, table=True):
     item_kind: str | None = Field(default=None, sa_type=String(5))  # type: ignore
     item_id: uuid.UUID | None = None
     item_title: str | None = Field(default=None, max_length=160)
+    source: str = Field(
+        default="timer",
+        sa_type=String(6),  # type: ignore
+        sa_column_kwargs={"server_default": "timer"},
+    )
+    # A logged session's own words for what it was ("Reading").
+    label: str | None = Field(default=None, max_length=80)
     # Server-derived from the segments.
     day: date | None = Field(default=None)
     focus_sec: int = Field(default=0, sa_type=Integer)

@@ -19,6 +19,7 @@ from app.modules.fitness.models import (
     FoodItem,
     Meal,
     MealItem,
+    RunSession,
     WeighIn,
     Workout,
     WorkoutExercise,
@@ -629,6 +630,37 @@ def workout_facts(ctx: Ctx, first: date, last: date) -> list[dict[str, Any]]:
                     row[name] = float(v)
             out.append(row)
     return sorted(out, key=lambda r: str(r["day"]))
+
+
+def recent_run_sessions(
+    ctx: Ctx, *, since: datetime, limit: int = 20
+) -> list[dict[str, Any]]:
+    """Run and walk sessions started at or after ``since``, newest first,
+    without the route (it is long and the agent reads the splits)."""
+    rows = owned_repo.list_rows(
+        ctx,
+        RunSession,
+        col(RunSession.started_at) >= since,
+        order_by=[col(RunSession.started_at).desc()],
+        limit=limit,
+    )
+    return [
+        {
+            "kind": r.kind,
+            "name": r.name,
+            "started_at": r.started_at.isoformat(),
+            "ended_at": r.ended_at.isoformat(),
+            "moving_sec": r.moving_sec,
+            "distance_m": r.distance_m,
+            "elevation_gain_m": r.elevation_gain_m,
+            "steps": r.steps,
+            "avg_hr": r.avg_hr,
+            "max_hr": r.max_hr,
+            "kcal": r.kcal,
+            "splits": r.splits,
+        }
+        for r in rows
+    ]
 
 
 def weigh_in_facts(ctx: Ctx, first: date, last: date) -> list[dict[str, Any]]:

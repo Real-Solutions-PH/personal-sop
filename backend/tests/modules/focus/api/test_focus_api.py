@@ -396,3 +396,79 @@ def test_achievements_and_the_life_score(world: World) -> None:
         assert o.life.rates["focus"] == 0.5
         facet = next(f for f in o.facets if f.key == "focus")
         assert facet.value == 0.5 and facet.href == "/focus/stats"
+
+
+# ---------------------------------------------------------------- logged
+
+
+def test_a_logged_session_counts_like_a_timed_one(
+    client: TestClient, world: World
+) -> None:
+    """Logged the day before DAY, 14:00-14:50 as one focus block: 50 min."""
+    sid = uuid.uuid4()
+    start = T0 - timedelta(days=1) + 5 * 60 * M
+    res = push(
+        client,
+        world.h,
+        op(
+            "upsert",
+            "focus_session",
+            sid,
+            mode="stopwatch",
+            started_at=start,
+            ended_at=start + 50 * M,
+            end_reason="completed",
+            source="manual",
+            label="Reading",
+        ),  # fmt: skip
+        op(
+            "upsert",
+            "focus_segment",
+            uuid.uuid4(),
+            session_id=str(sid),
+            kind="focus",
+            started_at=start,
+            ended_at=start + 50 * M,
+            set_index=0,
+        ),  # fmt: skip
+    )
+    assert [r["status"] for r in res] == ["applied", "applied"], res
+    row = {c["id"]: c for c in pull(client, world.h)}[str(sid)]["row"]
+    assert row["source"] == "manual"
+    assert row["label"] == "Reading"
+    assert row["focus_sec"] == 50 * 60
+    assert row["day"] == (DAY - timedelta(days=1)).isoformat()
+    # A timed session reads as the timer's.
+    assert {c["id"]: c for c in pull(client, world.h)}[str(world.session)]["row"][
+        "source"
+    ] == "timer"
+
+
+def test_a_logged_session_is_over_and_in_the_past(
+    client: TestClient, world: World
+) -> None:
+    future = datetime.now(timezone.utc) + timedelta(hours=2)
+    past = datetime.now(timezone.utc) - timedelta(hours=2)
+    res = push(
+        client,
+        world.h,
+        op(
+            "upsert",
+            "focus_session",
+            uuid.uuid4(),
+            mode="stopwatch",
+            started_at=past,
+            ended_at=future,
+            source="manual",
+        ),  # fmt: skip
+        op(
+            "upsert",
+            "focus_session",
+            uuid.uuid4(),
+            mode="stopwatch",
+            started_at=past,
+            source="manual",
+        ),  # fmt: skip
+    )
+    assert [r["status"] for r in res] == ["rejected", "rejected"], res
+    assert [r["code"] for r in res] == ["focus_logged_future", "focus_logged_open"]

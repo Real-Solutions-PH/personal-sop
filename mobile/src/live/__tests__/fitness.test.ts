@@ -573,6 +573,8 @@ describe("store edits become sync ops", () => {
       ended_at: null,
       notes: null,
       source: "live",
+      kcal: null,
+      steps: null,
     })
     expect(
       w.exercises.map((x) => (upsertOf(ops, x.id) as Payload).position),
@@ -645,7 +647,11 @@ describe("store edits become sync ops", () => {
       name: "fitness.finish_workout",
       data: { workout_id: w.id, unfinished: "done", end_at: end },
     })
-    expect(upsertOf(ops, w.id)).toEqual({ ended_at: end })
+    // The finish stamps the calorie estimate (its value: runs.test.ts).
+    expect(upsertOf(ops, w.id)).toEqual({
+      ended_at: end,
+      kcal: expect.any(Number),
+    })
     // The workout is no longer live: completed_at is now a plain field.
     const second = w.exercises[1].sets[0]
     expect(upsertOf(ops, second.id)).toEqual({ completed_at: end })

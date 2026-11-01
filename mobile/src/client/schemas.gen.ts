@@ -17289,6 +17289,22 @@ export const SessionDetailSchema = {
             ],
             title: 'Item Title'
         },
+        source: {
+            type: 'string',
+            title: 'Source',
+            default: 'timer'
+        },
+        label: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Label'
+        },
         day: {
             anyOf: [
                 {
@@ -17439,6 +17455,22 @@ export const SessionPublicSchema = {
                 }
             ],
             title: 'Item Title'
+        },
+        source: {
+            type: 'string',
+            title: 'Source',
+            default: 'timer'
+        },
+        label: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Label'
         },
         day: {
             anyOf: [
@@ -22475,6 +22507,28 @@ export const WorkoutOutSchema = {
             ],
             title: 'Cardio'
         },
+        kcal: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Kcal'
+        },
+        steps: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Steps'
+        },
         exercises: {
             items: {
                 '$ref': '#/components/schemas/WorkoutExerciseOut'
@@ -22629,6 +22683,28 @@ export const WorkoutPublicSchema = {
                 }
             ],
             title: 'Cardio'
+        },
+        kcal: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Kcal'
+        },
+        steps: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Steps'
         }
     },
     type: 'object',
@@ -22715,6 +22791,28 @@ export const WorkoutSummarySchema = {
                 }
             ],
             title: 'Cardio'
+        },
+        kcal: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Kcal'
+        },
+        steps: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Steps'
         },
         exercise_count: {
             type: 'integer',

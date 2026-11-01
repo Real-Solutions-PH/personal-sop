@@ -1,5 +1,6 @@
-// The running routine, workout or habit timer on the lock screen and in the
-// Dynamic Island. Clocks are SwiftUI timer texts, so they count without the
+// The running routine, workout, habit timer or run on the lock screen and
+// in the Dynamic Island, with any other session running beside it as one
+// line each underneath. Clocks are SwiftUI timer texts, so they count without the
 // app pushing updates; buttons run LiveControlIntent (UnfurlShared.swift).
 
 import ActivityKit
@@ -7,15 +8,19 @@ import AppIntents
 import SwiftUI
 import WidgetKit
 
-extension LiveState {
-  var accent: Color { kind == "workout" ? Tone.fit : Tone.hab }
-  var symbol: String {
-    switch kind {
-    case "workout": return "figure.strengthtraining.traditional"
-    case "timer": return "timer"
-    default: return "list.bullet.circle"
-    }
+func liveAccent(_ kind: String) -> Color { kind == "workout" || kind == "run" ? Tone.fit : Tone.hab }
+func liveSymbol(_ kind: String, icon: String) -> String {
+  switch kind {
+  case "workout": return "figure.strengthtraining.traditional"
+  case "timer": return "timer"
+  case "run": return icon == "🚶" ? "figure.walk" : "figure.run"
+  default: return "list.bullet.circle"
   }
+}
+
+extension LiveState {
+  var accent: Color { liveAccent(kind) }
+  var symbol: String { liveSymbol(kind, icon: icon) }
   /** "Best 85 kg × 6 · Next: Incline Press": best first, so a cut-off
    * drops the next-up part; nil when there is neither. */
   var upNext: String? {
@@ -49,6 +54,7 @@ struct LiveClock: View {
   var label: String {
     if state.resting { return "Rest" }
     if state.paused { return "Paused" }
+    if state.kind == "run" { return "Moving" }
     return state.stepEnd != nil ? "Left" : "Elapsed"
   }
 
@@ -106,8 +112,8 @@ struct LiveButton: View {
     switch action {
     case "done": return ("Done", "checkmark", true, "Step done")
     case "skip": return ("Skip", "forward.end", false, "Skip step")
-    case "pause": return ("Pause", "pause.fill", false, kind == "routine" ? "Pause routine" : "Pause timer")
-    case "resume": return ("Resume", "play.fill", false, kind == "routine" ? "Resume routine" : "Resume timer")
+    case "pause": return ("Pause", "pause.fill", false, kind == "routine" ? "Pause routine" : kind == "run" ? "Pause session" : "Pause timer")
+    case "resume": return ("Resume", "play.fill", false, kind == "routine" ? "Resume routine" : kind == "run" ? "Resume session" : "Resume timer")
     case "finishSet": return ("Set done", "checkmark", true, "Complete set")
     case "skipRest": return ("Skip rest", "forward.end", false, "Skip rest")
     case "subRest": return ("−15s", "gobackward.15", false, "Rest 15 seconds less")
@@ -129,7 +135,7 @@ struct LiveLockScreen: View {
         Text("\(state.icon) \(state.title)").font(.system(size: 13, weight: .medium))
           .foregroundStyle(Tone.muted).lineLimit(1)
         Spacer()
-        if state.kind != "timer" {
+        if state.kind != "timer" && state.kind != "run" {
           Text(state.startDate, style: .timer)
             .font(.system(size: 12).monospacedDigit()).foregroundStyle(Tone.muted)
             .multilineTextAlignment(.trailing).frame(maxWidth: 70, alignment: .trailing)
@@ -158,9 +164,45 @@ struct LiveLockScreen: View {
           ForEach(state.controls.prefix(4), id: \.self) { LiveButton(action: $0, state: state) }
         }
       }
+      ForEach((state.others ?? []).prefix(2), id: \.self) { OtherRow(other: $0) }
     }
     .padding(.horizontal, 16)
     .padding(.vertical, 8)
+  }
+}
+
+/** A session running beside the main one: its symbol, what it is and
+ * where it stands, and its own clock. Tapping the activity opens the main
+ * one; this row says the other is still going. */
+struct OtherRow: View {
+  var other: LiveOther
+  var body: some View {
+    HStack(spacing: 8) {
+      Image(systemName: liveSymbol(other.kind, icon: other.icon))
+        .font(.system(size: 13)).foregroundStyle(liveAccent(other.kind))
+        .frame(width: 18)
+      Text(other.title).font(.system(size: 13, weight: .semibold)).foregroundStyle(Tone.text).lineLimit(1)
+      Text(other.paused ? "Paused" : other.line).font(.system(size: 12)).foregroundStyle(Tone.muted)
+        .lineLimit(1).truncationMode(.tail)
+      Spacer(minLength: 6)
+      Group {
+        if let rest = other.restEnd, rest > Date() {
+          Text(timerInterval: Date()...rest, countsDown: true)
+        } else if other.paused {
+          Text(LiveClock.format(other.remainingSec ?? other.elapsedSec))
+        } else if let end = other.stepEnd {
+          Text(timerInterval: min(Date(), end)...end, countsDown: true)
+        } else {
+          Text(other.startDate, style: .timer)
+        }
+      }
+      .font(.system(size: 13, weight: .medium).monospacedDigit())
+      .foregroundStyle(Tone.text)
+      .multilineTextAlignment(.trailing)
+      .frame(maxWidth: 64, alignment: .trailing)
+    }
+    .padding(.top, 2)
+    .overlay(alignment: .top) { Rectangle().fill(Tone.soft).frame(height: 1).offset(y: -3) }
   }
 }
 
@@ -197,6 +239,12 @@ struct UnfurlLiveActivity: Widget {
             if #available(iOS 17.0, *) {
               HStack(spacing: 8) {
                 ForEach(s.controls.prefix(3), id: \.self) { LiveButton(action: $0, state: s) }
+              }
+            }
+            ForEach((s.others ?? []).prefix(2), id: \.self) { o in
+              HStack(spacing: 6) {
+                Image(systemName: liveSymbol(o.kind, icon: o.icon)).font(.system(size: 11)).foregroundStyle(liveAccent(o.kind))
+                Text("\(o.title) · \(o.paused ? "Paused" : o.line)").font(.system(size: 12)).foregroundStyle(.secondary).lineLimit(1)
               }
             }
           }

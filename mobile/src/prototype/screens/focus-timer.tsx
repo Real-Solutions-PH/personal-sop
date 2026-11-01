@@ -22,6 +22,7 @@ import {
   ChevronDown,
   ChevronRight,
   Coffee,
+  History,
   Pause,
   Play,
   Settings2,
@@ -32,7 +33,6 @@ import {
 import { useEffect, useMemo, useState } from "react"
 import { ScrollView, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { toast } from "sonner-native"
 import {
   FocusTimeline,
   ItemPicker,
@@ -43,6 +43,7 @@ import { Copy, Frame, IconTap, Line, Segmented, Tap } from "../native-kit"
 import { back, go } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import { Button, confirm, Sheet, useNow } from "../ui"
+import { PastSessionSheet } from "./focus-past"
 
 type PresetChoice = PresetKey | "custom"
 
@@ -56,7 +57,8 @@ export function FocusTimer() {
     [preset, setPreset] = useState<PresetChoice>(s.settings.preset),
     [pick, setPick] = useState(false),
     [next, setNext] = useState<FocusItem | null>(null),
-    [ending, setEnding] = useState(false)
+    [ending, setEnding] = useState(false),
+    [logging, setLogging] = useState(false)
   // Write down a set that ended on screen, so it syncs as it happens.
   // biome-ignore lint/correctness/useExhaustiveDependencies: now is the clock tick
   useEffect(() => A.tickFocus(), [now])
@@ -310,7 +312,6 @@ export function FocusTimer() {
                 label="Add 5 minutes"
                 onPress={() => {
                   A.extendFocus(300)
-                  toast("5 minutes added")
                 }}
                 style={round(56, t.soft)}
               >
@@ -370,6 +371,12 @@ export function FocusTimer() {
             onPress={() => go(`/focus/day?day=${today}`)}
           />
           <NavRow
+            icon={History}
+            label="Log a past session"
+            detail="Forgot the timer? Add the block afterwards"
+            onPress={() => setLogging(true)}
+          />
+          <NavRow
             icon={ChartColumn}
             label="Focus stats"
             detail="Hours, goal streak, time by item"
@@ -397,7 +404,6 @@ export function FocusTimer() {
         onPick={(i) => {
           if (session) {
             A.switchFocusItem(i)
-            toast(i ? `Now on ${i.title}` : "Now on nothing in particular")
           } else setNext(i)
         }}
       />
@@ -419,11 +425,6 @@ export function FocusTimer() {
           onPress={() => {
             A.stopFocus()
             setEnding(false)
-            toast("Session saved", {
-              description: tl
-                ? `${L.fmtHm(L.focusSec(tl, Date.now()))} of focus`
-                : undefined,
-            })
           }}
         >
           End and keep it
@@ -436,14 +437,12 @@ export function FocusTimer() {
           onPress={() => {
             A.stopFocus(true)
             setEnding(false)
-            toast("Session discarded", {
-              description: "It won't count toward your focus time.",
-            })
           }}
         >
           Discard session
         </Button>
       </Sheet>
+      <PastSessionSheet open={logging} onClose={() => setLogging(false)} />
     </View>
   )
 }

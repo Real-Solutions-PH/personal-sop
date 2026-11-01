@@ -265,6 +265,10 @@ def workout_public(ctx: Ctx, w: Workout) -> dict[str, Any]:
         out["notes"] = w.notes
     if w.cardio:
         out["cardio"] = w.cardio
+    if w.kcal is not None:
+        out["kcal"] = w.kcal
+    if w.steps is not None:
+        out["steps"] = w.steps
     return out
 
 

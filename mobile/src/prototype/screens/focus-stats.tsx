@@ -3,6 +3,7 @@
 
 import * as C from "@domain/focus/calc"
 import * as L from "@domain/focus/logic"
+import * as P from "@domain/focus/past"
 import { useFocusState } from "@domain/focus/store"
 import { dayKey } from "@domain/lib/day"
 import { Flame, Play } from "lucide-react-native"
@@ -34,7 +35,7 @@ export function FocusStats() {
     ),
     goal = C.goalSec(s),
     streak = useMemo(() => C.streaks(s, 400, now), [s, now]),
-    items = useMemo(() => C.itemTotals(r.spans), [r]),
+    items = useMemo(() => C.itemTotals(P.withLabels(s, r.spans)), [s, r]),
     total = Object.values(r.byDay).reduce((a, b) => a + b, 0),
     prevTotal = Object.values(prev.byDay).reduce((a, b) => a + b, 0),
     due = C.dueDays(s, first, today, today),
@@ -114,6 +115,8 @@ export function FocusStats() {
               label={x.item?.title ?? "Nothing in particular"}
               onPress={() =>
                 x.item &&
+                // A logged session's label is not a task or habit to open.
+                !x.item.id.startsWith("label:") &&
                 go(
                   x.item.kind === "task"
                     ? `/tasks/task/${x.item.id}`

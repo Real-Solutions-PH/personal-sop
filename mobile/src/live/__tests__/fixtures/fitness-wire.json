@@ -447,7 +447,9 @@
       "started_at": "2026-10-19T04:00:00.000Z",
       "ended_at": null,
       "notes": null,
-      "source": "live"
+      "source": "live",
+      "kcal": null,
+      "steps": null
     }
   },
   {
@@ -678,7 +680,9 @@
       "started_at": "2026-10-19T04:00:00.000Z",
       "ended_at": null,
       "notes": null,
-      "source": "live"
+      "source": "live",
+      "kcal": null,
+      "steps": null
     }
   },
   {
@@ -984,7 +988,9 @@
       "started_at": "2026-10-19T04:00:00.000Z",
       "ended_at": null,
       "notes": null,
-      "source": "live"
+      "source": "live",
+      "kcal": null,
+      "steps": null
     }
   },
   {
@@ -1151,7 +1157,8 @@
     "name": "workout",
     "create": false,
     "data": {
-      "ended_at": "2026-10-19T04:00:00.000Z"
+      "ended_at": "2026-10-19T04:00:00.000Z",
+      "kcal": 131
     }
   },
   {
@@ -1316,7 +1323,9 @@
       "started_at": "2026-10-19T04:00:00.000Z",
       "ended_at": null,
       "notes": null,
-      "source": "live"
+      "source": "live",
+      "kcal": null,
+      "steps": null
     }
   },
   {
@@ -1483,7 +1492,8 @@
     "name": "workout",
     "create": false,
     "data": {
-      "ended_at": "2026-10-19T04:00:00.000Z"
+      "ended_at": "2026-10-19T04:00:00.000Z",
+      "kcal": 0
     }
   },
   {
@@ -1603,7 +1613,9 @@
       "started_at": "2026-10-19T04:00:00.000Z",
       "ended_at": null,
       "notes": null,
-      "source": "live"
+      "source": "live",
+      "kcal": null,
+      "steps": null
     }
   },
   {
@@ -1843,7 +1855,9 @@
       "started_at": "2026-10-19T04:00:00.000Z",
       "ended_at": null,
       "notes": null,
-      "source": "live"
+      "source": "live",
+      "kcal": null,
+      "steps": null
     }
   },
   {
@@ -2202,7 +2216,9 @@
       "started_at": "2026-10-19T04:00:00.000Z",
       "ended_at": "2026-10-19T04:00:00.000Z",
       "notes": null,
-      "source": "chat"
+      "source": "chat",
+      "kcal": 12,
+      "steps": null
     }
   },
   {

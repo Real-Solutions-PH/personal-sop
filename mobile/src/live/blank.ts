@@ -6,6 +6,7 @@
 import { captureStore } from "@domain/capture/store"
 import { dashStore } from "@domain/dash/store"
 import { finStore } from "@domain/finance/store"
+import { runLiveStore } from "@domain/fitness/run-live"
 import { fitStore } from "@domain/fitness/store"
 import { focusStore } from "@domain/focus/store"
 import { habitsStore } from "@domain/habits/store"
@@ -38,6 +39,7 @@ export function clearToBlank() {
     templates: [],
     schedule: Array(7).fill(null),
     workouts: [],
+    runs: [],
     weighIns: [],
     targets: [],
     adjustments: [],
@@ -53,6 +55,8 @@ export function clearToBlank() {
       goalWeight: undefined,
     },
   }))
+  // A run in progress belongs to the account that started it.
+  runLiveStore.set({ active: null })
   finStore.set((s) => ({
     ...s,
     accounts: [],

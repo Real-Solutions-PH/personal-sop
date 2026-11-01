@@ -189,7 +189,7 @@ describe("workout summary", () => {
       `/fitness/share/${id}?template=pr&post=1`,
     )
     fireEvent.press(screen.getByText("Done"))
-    expect(toast.success).toHaveBeenCalledWith("Workout saved")
+    expect(toast.success).not.toHaveBeenCalled()
     expect(router.replace).toHaveBeenCalledWith("/fitness")
   })
 

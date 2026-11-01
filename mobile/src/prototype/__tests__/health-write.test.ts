@@ -48,6 +48,7 @@ const READ = [
   "HKQuantityTypeIdentifierDistanceWalkingRunning",
   "HKWorkoutTypeIdentifier",
   "HKCategoryTypeIdentifierSleepAnalysis",
+  "HKQuantityTypeIdentifierHeartRate",
 ]
 const input = {
   id: "w-1",

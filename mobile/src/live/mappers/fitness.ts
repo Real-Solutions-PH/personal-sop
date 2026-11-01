@@ -1,7 +1,7 @@
 // Fitness mappers: the prototype fitness store against the server's
 // exercise, workout_template, template_item, workout, workout_exercise,
 // workout_set, weigh_in, macro_target, target_adjustment, meal, meal_item,
-// fitness_settings and rest_timer entities. Weights are kilograms on both sides (`units` is a
+// fitness_settings, rest_timer and run_session entities. Weights are kilograms on both sides (`units` is a
 // display setting only).
 //
 // Nested arrays become child rows:
@@ -57,6 +57,10 @@ import type {
   Meal,
   MealItem,
   RestTimer,
+  RunKind,
+  RunPoint,
+  RunSession,
+  RunSplit,
   TargetAdjustment,
   WeighIn,
   Workout,
@@ -377,6 +381,8 @@ export function workoutMapper(
       status: w.status,
       notes: w.notes ?? null,
       source: w.source ?? "live",
+      kcal: w.kcal ?? null,
+      steps: w.steps ?? null,
     }),
     fromServer: (row, s) => {
       const status = row.status as Workout["status"]
@@ -396,6 +402,8 @@ export function workoutMapper(
         exercises: cur?.exercises ?? [],
         clientId: cur?.clientId ?? id,
         source: row.source === "chat" ? "chat" : "live",
+        ...(row.kcal != null ? { kcal: Number(row.kcal) } : {}),
+        ...(row.steps != null ? { steps: Number(row.steps) } : {}),
         ...(row.cardio
           ? { cardio: row.cardio as Record<string, unknown> }
           : {}),
@@ -755,6 +763,82 @@ export function weighInMapper(): Mapper<S, WeighIn> {
             ...s,
             weighIns: mergeById(s.weighIns, ups, dels, (w) => w.id).sort(
               byTime((w) => w.measuredAt),
+            ),
+          }
+        : s,
+  }
+}
+
+// ---------------------------------------------------------------- runs and walks
+
+// Only finished sessions are listed: the one in progress stays on the
+// device (run-live) until it is finished, then syncs as one create with
+// its whole route. Afterwards only the name and notes change.
+const RUN_KINDS: readonly RunKind[] = ["run", "walk"]
+const num = (v: unknown) => Number(v)
+const optNum = (v: unknown) => (v == null ? undefined : Number(v))
+
+export function runMapper(): Mapper<S, RunSession> {
+  return {
+    entity: "run_session",
+    store: fitStore,
+    list: (s) => s.runs ?? [],
+    id: (r) => r.id,
+    toServer: (r) => ({
+      kind: r.kind,
+      name: r.name,
+      started_at: r.startedAt,
+      ended_at: r.endedAt,
+      moving_sec: Math.round(r.movingSec),
+      distance_m: r.distanceM,
+      elevation_gain_m: r.elevationGainM ?? null,
+      steps: r.steps ?? null,
+      avg_hr: r.avgHr ?? null,
+      max_hr: r.maxHr ?? null,
+      kcal: r.kcal ?? null,
+      route: r.route,
+      splits: r.splits.map((x) => ({ km: x.km, sec: x.sec, elev_m: x.elevM })),
+      notes: r.notes ?? null,
+    }),
+    fromServer: (row) => {
+      const kind = row.kind as RunKind
+      if (!RUN_KINDS.includes(kind)) return null
+      const opt = (k: string, v: unknown) => {
+        const n = optNum(v)
+        return n === undefined ? {} : { [k]: n }
+      }
+      return {
+        id: str(row.id),
+        kind,
+        name: str(row.name),
+        startedAt: instant(row.started_at),
+        endedAt: instant(row.ended_at),
+        movingSec: num(row.moving_sec),
+        distanceM: num(row.distance_m),
+        ...opt("elevationGainM", row.elevation_gain_m),
+        ...opt("steps", row.steps),
+        ...opt("avgHr", row.avg_hr),
+        ...opt("maxHr", row.max_hr),
+        ...opt("kcal", row.kcal),
+        route: Array.isArray(row.route) ? (row.route as RunPoint[]) : [],
+        splits: Array.isArray(row.splits)
+          ? (row.splits as Record<string, unknown>[]).map(
+              (x): RunSplit => ({
+                km: num(x.km),
+                sec: num(x.sec),
+                elevM: x.elev_m == null ? null : num(x.elev_m),
+              }),
+            )
+          : [],
+        ...(row.notes != null ? { notes: str(row.notes) } : {}),
+      }
+    },
+    merge: (s, ups, dels) =>
+      ups.length || dels.length
+        ? {
+            ...s,
+            runs: mergeById(s.runs ?? [], ups, dels, (r) => r.id).sort(
+              byTime((r) => r.startedAt),
             ),
           }
         : s,
@@ -1172,6 +1256,7 @@ export const fitnessMappers = (userId: string) => {
     workoutExerciseMapper(exercises, sets),
     workoutSetMapper(sets),
     weighInMapper(),
+    runMapper(),
     macroTargetMapper(),
     targetAdjustmentMapper(),
     mealMapper(mealItems),

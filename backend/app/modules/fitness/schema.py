@@ -3,7 +3,7 @@ kilograms: ``units`` in the settings is a display preference only."""
 
 import uuid
 from datetime import date, datetime
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -35,6 +35,7 @@ GoalDirection = Literal["cut", "maintain", "bulk"]
 Sex = Literal["male", "female"]
 ActivityLevel = Literal["sedentary", "light", "moderate", "active", "very_active"]
 PlanGoal = Literal["lose", "maintain", "recomp", "build"]
+RunKind = Literal["run", "walk"]
 
 Macro = Field(ge=0, le=100000)
 OptMacro = Field(default=None, ge=0, le=100000)
@@ -89,6 +90,8 @@ class WorkoutPublic(_Row):
     notes: str | None
     source: str
     cardio: dict[str, object] | None = None
+    kcal: float | None = None
+    steps: int | None = None
 
 
 class WorkoutExercisePublic(_Row):
@@ -120,6 +123,40 @@ class WeighInPublic(_Row):
     weight_kg: float
     body_fat_pct: float | None
     note: str | None
+
+
+# A route point: [lat, lng, altitude in metres or null, seconds since the
+# session started]. Strict numbers: a string or a bool is refused, not cast.
+Lat = Annotated[float, Field(strict=True, ge=-90, le=90, allow_inf_nan=False)]
+Lng = Annotated[float, Field(strict=True, ge=-180, le=180, allow_inf_nan=False)]
+Alt = Annotated[float, Field(strict=True, allow_inf_nan=False)] | None
+TSec = Annotated[float, Field(strict=True, ge=0, allow_inf_nan=False)]
+RoutePoint = tuple[Lat, Lng, Alt, TSec]
+MAX_ROUTE_POINTS = 5000
+MAX_SPLITS = 1000
+
+
+class RunSplitPublic(BaseModel):
+    km: int
+    sec: float
+    elev_m: float | None = None
+
+
+class RunSessionPublic(_Row):
+    kind: str
+    name: str
+    started_at: datetime
+    ended_at: datetime
+    moving_sec: int
+    distance_m: float
+    elevation_gain_m: float | None
+    steps: int | None
+    avg_hr: int | None
+    max_hr: int | None
+    kcal: float | None
+    route: list[tuple[float, float, float | None, float]] = []
+    splits: list[RunSplitPublic] = []
+    notes: str | None
 
 
 class MacroTargetPublic(_Row):
@@ -224,6 +261,9 @@ class WorkoutIn(BaseModel):
     status: Literal["in_progress", "finished"] | None = None
     notes: str | None = Field(default=None, max_length=2000)
     source: Literal["live", "chat"] | None = None
+    # Estimated active kcal and steps, written by the device after finishing.
+    kcal: float | None = Field(default=None, ge=0, le=20000)
+    steps: int | None = Field(default=None, ge=0, le=300000)
 
 
 class WorkoutExerciseIn(BaseModel):
@@ -250,6 +290,32 @@ class WeighInIn(BaseModel):
     weight_kg: float | None = Field(default=None, gt=0, lt=500)
     body_fat_pct: float | None = Field(default=None, gt=0, lt=100)
     note: str | None = Field(default=None, max_length=280)
+
+
+class RunSplit(BaseModel):
+    """One whole kilometre of a session: its number (from 1), how long it
+    took and the elevation gained over it."""
+
+    km: int = Field(strict=True, ge=1)
+    sec: float = Field(strict=True, ge=0, allow_inf_nan=False)
+    elev_m: float | None = Field(default=None, strict=True, allow_inf_nan=False)
+
+
+class RunSessionIn(BaseModel):
+    kind: RunKind | None = None
+    name: str | None = Field(default=None, min_length=1, max_length=80)
+    started_at: datetime | None = None
+    ended_at: datetime | None = None
+    moving_sec: int | None = Field(default=None, ge=0)
+    distance_m: float | None = Field(default=None, ge=0, le=1_000_000)
+    elevation_gain_m: float | None = Field(default=None, ge=0)
+    steps: int | None = Field(default=None, ge=0, le=300000)
+    avg_hr: int | None = Field(default=None, ge=20, le=250)
+    max_hr: int | None = Field(default=None, ge=20, le=250)
+    kcal: float | None = Field(default=None, ge=0, le=20000)
+    route: list[RoutePoint] | None = Field(default=None, max_length=MAX_ROUTE_POINTS)
+    splits: list[RunSplit] | None = Field(default=None, max_length=MAX_SPLITS)
+    notes: str | None = Field(default=None, max_length=2000)
 
 
 class MacroTargetIn(BaseModel):
