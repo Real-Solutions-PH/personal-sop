@@ -403,10 +403,12 @@ def _note_prefix(rest: str) -> str:
     return rest[1:].lstrip(" ").lower()
 
 
-# Text held back at the start of each model call before it streams: longer
-# than the plan DeepSeek says before a tool call (one sentence), short
-# enough that an answer starts showing within a moment.
-HOLD_CHARS = 240
+# Text held back at the start of each model call before it streams: about
+# one short sentence, the plan DeepSeek says before a tool call ("Let me
+# log that for you."). Was 240: an answer shorter than that showed nothing
+# until its call ended. Narration longer than the hold that turns out to
+# precede a tool call is still taken back (``text.discard``).
+HOLD_CHARS = 80
 
 
 @dataclass

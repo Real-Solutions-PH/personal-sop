@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 from datetime import date as Date
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError, model_validator
 from sqlmodel import col
 
 from app.modules.ai_providers import public as ai
@@ -62,8 +62,89 @@ ANSWERABLE_HINTS = (
 
 # ---------------------------------------------------------------- vision JSON
 
+_NUMBER = re.compile(r"-?\d+(?:\.\d+)?")
 
-class ItemOut(BaseModel):
+
+class Lenient(BaseModel):
+    """A vision answer taken the way real models write it. Seen live
+    (2026-10-31): a Supplement Facts photo sent from Log a meal had
+    ``"protein": null`` (the label lists none) and a 260-character
+    assumption, the strict schema refused the whole answer, and the
+    capture said it couldn't read the photo. So before validating: a null
+    where the field has a default takes the default, text and lists past
+    their limit are cut, a number written as text ("10 kcal", "<1") is
+    read, and a list entry that still fails is dropped rather than failing
+    the rest. A required value that is missing still fails."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _tolerate(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        out: dict[str, Any] = {}
+        for key, v in data.items():
+            f = cls.model_fields.get(key)
+            if f is None:
+                continue
+            nullable = f.default is None and not f.is_required()
+            if v is None:
+                if nullable or f.is_required():
+                    out[key] = v
+                continue
+            limit = next((getattr(m, "max_length", None) for m in f.metadata), None)
+            ann = f.annotation
+            if isinstance(v, str) and ann in (float, int, float | None, int | None):
+                if v.strip().startswith("<"):
+                    v = 0.5
+                else:
+                    m = _NUMBER.search(v.replace(",", ""))
+                    if m is None:
+                        if nullable:
+                            out[key] = None
+                        continue
+                    v = float(m.group(0))
+            if key == "confidence" and isinstance(v, int | float) and v > 1:
+                v = min(1.0, v / 100)  # "80" meant 80%
+            if isinstance(v, dict) and nullable:
+                v = cls._nested(key, v)
+            if isinstance(v, str) and limit:
+                v = v[:limit]
+            if isinstance(v, list):
+                v = cls._entries(key, v)
+                if limit:
+                    v = v[:limit]
+            out[key] = v
+        return out
+
+    @classmethod
+    def _nested(cls, key: str, value: dict[str, Any]) -> Any:
+        """An optional nested model that fails is left out, not fatal."""
+        args = getattr(cls.model_fields[key].annotation, "__args__", ())
+        for inner in args:
+            if isinstance(inner, type) and issubclass(inner, Lenient):
+                try:
+                    return inner.model_validate(value)
+                except ValidationError:
+                    return None
+        return value
+
+    @classmethod
+    def _entries(cls, key: str, values: list[Any]) -> list[Any]:
+        """Entries of a list of lenient models, without the ones that fail."""
+        args = getattr(cls.model_fields[key].annotation, "__args__", ())
+        inner = args[0] if args else None
+        if not (isinstance(inner, type) and issubclass(inner, Lenient)):
+            return values
+        kept: list[Any] = []
+        for v in values:
+            try:
+                kept.append(inner.model_validate(v))
+            except ValidationError:
+                continue
+        return kept
+
+
+class ItemOut(Lenient):
     name: str = Field(min_length=1, max_length=120)
     qty: float = Field(default=1, ge=0, le=10000)
     unit: str = Field(default="serving", max_length=24)
@@ -78,18 +159,18 @@ class ItemOut(BaseModel):
     sodium: float | None = Field(default=None, ge=0, le=100000)
 
 
-class FollowOut(BaseModel):
+class FollowOut(Lenient):
     question: str = Field(max_length=200)
     options: list[str] = Field(default_factory=list, max_length=6)
 
 
-class MealOut(BaseModel):
+class MealOut(Lenient):
     items: list[ItemOut] = Field(default_factory=list, max_length=30)
     confidence: float = Field(default=0.5, ge=0, le=1)
     follow_up: FollowOut | None = None
 
 
-class ReceiptOut(BaseModel):
+class ReceiptOut(Lenient):
     merchant: str | None = Field(default=None, max_length=120)
     total: float = Field(gt=0, le=MAX_MINOR / 100)
     date: Date | None = None
@@ -97,7 +178,7 @@ class ReceiptOut(BaseModel):
     confidence: float = Field(default=0.8, ge=0, le=1)
 
 
-class LabelOut(BaseModel):
+class LabelOut(Lenient):
     name: str = Field(min_length=1, max_length=120)
     serving: str = Field(default="1 serving", max_length=60)
     serving_grams: float | None = Field(default=None, gt=0, le=5000)
@@ -112,7 +193,7 @@ class LabelOut(BaseModel):
     servings: float | None = Field(default=None, gt=0, le=100)
 
 
-class RowOut(BaseModel):
+class RowOut(Lenient):
     date: Date
     time: str = Field(default="00:00", pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
     description: str = Field(min_length=1, max_length=500)
@@ -121,21 +202,21 @@ class RowOut(BaseModel):
     ref: str = Field(default="", max_length=80)
 
 
-class StatementOut(BaseModel):
+class StatementOut(Lenient):
     rows: list[RowOut] = Field(default_factory=list, max_length=5000)
 
 
-class SetOut(BaseModel):
+class SetOut(Lenient):
     reps: int = Field(ge=0, le=1000)
     weight: float = Field(default=0, ge=0, le=2000)
 
 
-class ExOut(BaseModel):
+class ExOut(Lenient):
     name: str = Field(min_length=1, max_length=80)
     sets: list[SetOut] = Field(default_factory=list, max_length=50)
 
 
-class BoardOut(BaseModel):
+class BoardOut(Lenient):
     """A whiteboard is a to-do list or a gym board."""
 
     tasks: list[str] = Field(default_factory=list, max_length=50)
@@ -701,7 +782,15 @@ def _by_vision(
     if hint == "meal":
         m = _vision(ctx, env, "meal", caption, MealOut)
         if not m.items:
-            return [unreadable(caption)]
+            # A pack's label (a supplement, a snack) sent from Log a meal is
+            # no plate to itemise: read it as the label it is before giving
+            # up, so the numbers printed on it are what gets logged.
+            try:
+                lb = _vision(ctx, env, "label", caption, LabelOut)
+            except seams.SeamError:
+                return [unreadable(caption)]
+            save_label_food(ctx, lb)
+            return [_label_draft(lb)]
         items, used = ports.library_items(
             ctx,
             honour_grams([i.model_dump(exclude_none=True) for i in m.items], caption),

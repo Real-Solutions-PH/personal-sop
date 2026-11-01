@@ -385,6 +385,25 @@ def list_accounts(ctx: Ctx) -> list[Account]:
     return owned_repo.list_rows(ctx, Account, order_by=[col(Account.sort_order)])
 
 
+def frequent_payees(ctx: Ctx, *, limit: int = 30, days: int = 120) -> list[str]:
+    """The payees the person paid most often lately (shops, cafés, people),
+    most frequent first: words speech to text should expect."""
+    since = ctx.now - timedelta(days=days)
+    rows = ctx.session.exec(
+        select(FinRecord.payee, func.count())
+        .where(
+            *owned_repo.scope(ctx, FinRecord),
+            col(FinRecord.deleted_at).is_(None),
+            col(FinRecord.payee).is_not(None),
+            col(FinRecord.at) >= since,
+        )
+        .group_by(FinRecord.payee)
+        .order_by(func.count().desc())
+        .limit(limit)
+    ).all()
+    return [str(p) for p, _ in rows if p]
+
+
 def list_categories(ctx: Ctx) -> list[Category]:
     """The non-archived categories (both kinds) in the user's order."""
     return owned_repo.list_rows(

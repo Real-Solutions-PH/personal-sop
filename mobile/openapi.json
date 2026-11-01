@@ -15396,6 +15396,150 @@
         }
       }
     },
+    "/api/v1/companion/messages/{message_id}/feedback": {
+      "put": {
+        "tags": ["companion"],
+        "summary": "Rate Reply",
+        "description": "Thumbs up or down on one Fern reply (``rating: null`` clears it). A\nthumbs-down may carry a reason chip and a short note; Fern learns from\nit after its next reply (``feedback.digest``).",
+        "operationId": "companion-rate_reply",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "message_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Message Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/FeedbackIn" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    { "$ref": "#/components/schemas/FeedbackPublic" },
+                    { "type": "null" }
+                  ],
+                  "title": "Response Companion-Rate Reply"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
+    "/api/v1/companion/fern-rules": {
+      "get": {
+        "tags": ["companion"],
+        "summary": "List Rules",
+        "description": "Every rule learned for all of Fern, most supported first (admins).\nRules hold no personal data; only approved ones, or ones past the\nautomatic threshold, shape answers.",
+        "operationId": "companion-list_rules",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": ["proposed", "approved", "rejected"],
+                  "type": "string"
+                },
+                { "type": "null" }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/FernRulePublic" },
+                  "title": "Response Companion-List Rules"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
+    "/api/v1/companion/fern-rules/{rule_id}": {
+      "patch": {
+        "tags": ["companion"],
+        "summary": "Decide Rule",
+        "description": "Approve, reject or re-open a shared rule, optionally rewording it.",
+        "operationId": "companion-decide_rule",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "rule_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "Rule Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/FernRuleDecision" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/FernRulePublic" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
     "/api/v1/companion/messages/{message_id}/events": {
       "get": {
         "tags": ["companion"],
@@ -22345,6 +22489,131 @@
         "type": "object",
         "required": ["range", "data"],
         "title": "FacetsOut"
+      },
+      "FeedbackIn": {
+        "properties": {
+          "rating": {
+            "anyOf": [
+              { "type": "string", "enum": ["up", "down"] },
+              { "type": "null" }
+            ],
+            "title": "Rating"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["wrong", "too_long", "missed", "slow", "other"]
+              },
+              { "type": "null" }
+            ],
+            "title": "Reason"
+          },
+          "note": {
+            "anyOf": [
+              { "type": "string", "maxLength": 280 },
+              { "type": "null" }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": ["rating"],
+        "title": "FeedbackIn",
+        "description": "A thumb on a Fern reply; ``rating: null`` takes it back. ``reason``\nand ``note`` are kept only with a thumbs-down."
+      },
+      "FeedbackPublic": {
+        "properties": {
+          "message_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Message Id"
+          },
+          "rating": {
+            "type": "string",
+            "enum": ["up", "down"],
+            "title": "Rating"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["wrong", "too_long", "missed", "slow", "other"]
+              },
+              { "type": "null" }
+            ],
+            "title": "Reason"
+          },
+          "note": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": ["message_id", "rating", "reason", "note"],
+        "title": "FeedbackPublic"
+      },
+      "FernRuleDecision": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["proposed", "approved", "rejected"],
+            "title": "Status"
+          },
+          "text": {
+            "anyOf": [
+              { "type": "string", "maxLength": 200, "minLength": 10 },
+              { "type": "null" }
+            ],
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": ["status"],
+        "title": "FernRuleDecision"
+      },
+      "FernRulePublic": {
+        "properties": {
+          "id": { "type": "string", "format": "uuid", "title": "Id" },
+          "text": { "type": "string", "title": "Text" },
+          "status": {
+            "type": "string",
+            "enum": ["proposed", "approved", "rejected"],
+            "title": "Status"
+          },
+          "evidence": { "type": "integer", "title": "Evidence" },
+          "users": { "type": "integer", "title": "Users" },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "decided_at": {
+            "anyOf": [
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
+            ],
+            "title": "Decided At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "text",
+          "status",
+          "evidence",
+          "users",
+          "created_at",
+          "updated_at",
+          "decided_at"
+        ],
+        "title": "FernRulePublic",
+        "description": "A rule learned for every Fern: its text and how much stands behind\nit (signals, distinct people). Holds no personal data."
       },
       "FinishIn": {
         "properties": {

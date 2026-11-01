@@ -1407,6 +1407,47 @@ export type FacetsOut = {
 };
 
 /**
+ * A thumb on a Fern reply; ``rating: null`` takes it back. ``reason``
+ * and ``note`` are kept only with a thumbs-down.
+ */
+export type FeedbackIn = {
+    rating: ('up' | 'down' | null);
+    reason?: ('wrong' | 'too_long' | 'missed' | 'slow' | 'other' | null);
+    note?: (string | null);
+};
+
+export type FeedbackPublic = {
+    message_id: string;
+    rating: 'up' | 'down';
+    reason: ('wrong' | 'too_long' | 'missed' | 'slow' | 'other' | null);
+    note: (string | null);
+};
+
+export type rating = 'up' | 'down';
+
+export type FernRuleDecision = {
+    status: 'proposed' | 'approved' | 'rejected';
+    text?: (string | null);
+};
+
+export type status = 'proposed' | 'approved' | 'rejected';
+
+/**
+ * A rule learned for every Fern: its text and how much stands behind
+ * it (signals, distinct people). Holds no personal data.
+ */
+export type FernRulePublic = {
+    id: string;
+    text: string;
+    status: 'proposed' | 'approved' | 'rejected';
+    evidence: number;
+    users: number;
+    created_at: string;
+    updated_at: string;
+    decided_at: (string | null);
+};
+
+/**
  * Measured minutes (editable on the finish sheet); omitted = the server's
  * own measurement of the running timer.
  */
@@ -1581,7 +1622,7 @@ export type GoalProgressOut = {
     hidden?: boolean;
 };
 
-export type status = 'active' | 'archived';
+export type status2 = 'active' | 'archived';
 
 export type GoalPublic = {
     id: string;
@@ -1747,7 +1788,7 @@ export type HandleAvailability = {
     status: 'available' | 'taken' | 'invalid';
 };
 
-export type status2 = 'available' | 'taken' | 'invalid';
+export type status3 = 'available' | 'taken' | 'invalid';
 
 export type HandleCheck = {
     handle: string;
@@ -2615,7 +2656,7 @@ export type OccurrenceOut = {
     record_id: (string | null);
 };
 
-export type status3 = 'paid' | 'skipped' | 'due' | 'upcoming' | 'overdue';
+export type status4 = 'paid' | 'skipped' | 'due' | 'upcoming' | 'overdue';
 
 export type OccurrenceRef = {
     planned_id: string;
@@ -2704,7 +2745,7 @@ export type OverdueTask = {
     days_late: number;
 };
 
-export type status4 = 'open' | 'done' | 'deleted';
+export type status5 = 'open' | 'done' | 'deleted';
 
 export type parse_state = 'parsed' | 'pending';
 
@@ -2815,7 +2856,7 @@ export type PhaseOut = {
     item: (ItemRef | null);
 };
 
-export type status5 = 'running' | 'paused' | 'waiting' | 'ended';
+export type status6 = 'running' | 'paused' | 'waiting' | 'ended';
 
 export type kind14 = 'focus' | 'break';
 
@@ -3306,7 +3347,7 @@ export type ReplyOut = {
 } | null);
 };
 
-export type status6 = 'running' | 'done' | 'failed';
+export type status7 = 'running' | 'done' | 'failed';
 
 export type ReplyPublic = {
     id: string;
@@ -4008,7 +4049,7 @@ export type SyncOpResult = {
     replayed?: boolean;
 };
 
-export type status7 = 'applied' | 'conflict' | 'rejected';
+export type status8 = 'applied' | 'conflict' | 'rejected';
 
 export type SyncPull = {
     changes: Array<SyncChange>;
@@ -4968,6 +5009,26 @@ export type CompanionAskStreamData = {
 };
 
 export type CompanionAskStreamResponse = (unknown);
+
+export type CompanionRateReplyData = {
+    messageId: string;
+    requestBody: FeedbackIn;
+};
+
+export type CompanionRateReplyResponse = ((FeedbackPublic | null));
+
+export type CompanionListRulesData = {
+    status?: ('proposed' | 'approved' | 'rejected' | null);
+};
+
+export type CompanionListRulesResponse = (Array<FernRulePublic>);
+
+export type CompanionDecideRuleData = {
+    requestBody: FernRuleDecision;
+    ruleId: string;
+};
+
+export type CompanionDecideRuleResponse = (FernRulePublic);
 
 export type CompanionReplyEventsData = {
     lastEventId?: (string | null);

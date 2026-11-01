@@ -263,9 +263,12 @@ class Settings(BaseSettings):
     # each label number is decided by majority, so one misread digit never
     # becomes a logged value (measured on real labels: 96% agreed and right,
     # the rest flagged unclear, none agreed and wrong). The first listed is
-    # also the one whose plate and text description is used.
+    # also the one whose plate and text description is used. Order is cost:
+    # the first reads every photo, the second joins for labels, and the
+    # third (the dearest, Kimi K3 at $3/$15 per M tokens) is asked only when
+    # the first two disagree on a label number (capture.public._read_photos).
     NEBIUS_VISION_READERS: str = (
-        "Qwen/Qwen3.8-27B,moonshotai/Kimi-K3,openbmb/MiniCPM-V-4_5"
+        "Qwen/Qwen3.8-27B,openbmb/MiniCPM-V-4_5,moonshotai/Kimi-K3"
     )
     # How long a photo read waits for its readers; a slow one is left out.
     VISION_READ_DEADLINE_SECONDS: float = 30.0
@@ -309,7 +312,14 @@ class Settings(BaseSettings):
     # When a user has no provider of their own, fall back to the server's
     # DEFAULT_LLM_PROVIDER keys. Off: such users get the deterministic engine.
     AI_SERVER_FALLBACK: bool = False
+    # Keys the hash that counts distinct people behind a shared Fern rule
+    # (companion.feedback); the credentials KEK is used when unset.
+    FERN_RULE_VOTER_SALT: SecretStr | None = None
     AI_REQUEST_TIMEOUT_SECONDS: float = 60.0
+    # Let reasoning models think before answering (ai_providers.speed_options).
+    # Off: Fern's replies took one to three minutes with DeepSeek thinking
+    # before each of a turn's two to four calls.
+    AI_THINKING: bool = False
 
     # Mobile API — media uploads (presigned MinIO URLs).
     MEDIA_BUCKET: str = "media"
