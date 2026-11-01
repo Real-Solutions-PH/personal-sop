@@ -31,7 +31,7 @@ import {
 } from "react-native"
 import { toast } from "sonner-native"
 import { liveMode } from "@/live/config"
-import { fernLaunch } from "../companion/launch"
+import { fernLaunch, talkLaunch } from "../companion/launch"
 import { Orb } from "../companion/orb"
 import { markVoiceTurn, thinking } from "../companion/store"
 import { composeDictation, useLiveDictation } from "../live-dictation"
@@ -66,6 +66,10 @@ export function AiAvatar({ size = 24 }: { size?: number }) {
   const on = thinking((s) => s.on)
   return <Orb size={size} active={on} />
 }
+/** Talk to Fern: this long without new words ends the dictation, and the
+ * message sends this long after it ends. */
+const TALK_PAUSE_MS = 1_800
+const TALK_SEND_MS = 1_200
 /** The composer box: one line, up to about six. */
 const INPUT_MIN = 44
 const INPUT_MAX = 140
@@ -111,6 +115,8 @@ export function ThreadComposer({
     focused = useRef(false),
     refocus = useRef(false),
     input = useRef<TextInputInstance>(null),
+    // Started by Talk to Fern: sends by itself when the person stops.
+    talking = useRef(false),
     online = useOnline()
   useEffect(() => {
     if (text || !grown.current) return
@@ -134,6 +140,23 @@ export function ThreadComposer({
   const live = useLiveDictation(setText, () =>
     toast.error("Dictation stopped. Try again, or type your message."),
   )
+  function send() {
+    if (onText) {
+      if (spoken) markVoiceTurn()
+      onText(text.trim(), hint, photos.length ? photos : undefined)
+      setText("")
+      setPhotos([])
+      setSpoken(false)
+      return
+    }
+    const id = A.sendCapture({
+      text: text.trim(),
+      source: "text",
+      hint,
+    })
+    setText("")
+    onSent?.(id)
+  }
   async function dictate(said = "") {
     // Live words in the box when the phone can recognise speech
     // (ADR-0016); otherwise record and transcribe on the server.
@@ -149,9 +172,34 @@ export function ThreadComposer({
   useEffect(() => {
     if (!woke || !wakeTarget || !dictation) return
     wake.setState({ pending: null })
+    const talk = talkLaunch.getState().at
+    talkLaunch.setState({ at: null })
     if (Date.now() - woke.at > 5_000 || live.listening) return
+    talking.current = talk !== null && Date.now() - talk < 10_000
     void dictate(woke.rest)
   }, [woke, wakeTarget])
+  // Talk to Fern (a Shortcut or Back Tap): a pause in speech stops the
+  // dictation, and what was said sends by itself once the server's second
+  // pass at the words has had a moment. Saying nothing sends nothing.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: on new words only
+  useEffect(() => {
+    if (!talking.current || !live.listening || !text.trim()) return
+    const id = setTimeout(live.stop, TALK_PAUSE_MS)
+    return () => clearTimeout(id)
+  }, [text, live.listening])
+  // biome-ignore lint/correctness/useExhaustiveDependencies: when dictation ends
+  useEffect(() => {
+    if (!talking.current || live.listening) return
+    if (!text.trim()) {
+      talking.current = false
+      return
+    }
+    const id = setTimeout(() => {
+      talking.current = false
+      send()
+    }, TALK_SEND_MS)
+    return () => clearTimeout(id)
+  }, [text, live.listening])
   // A widget's Fern button asked for the camera or the keyboard.
   const launched = fernLaunch((s) => s.pending)
   // biome-ignore lint/correctness/useExhaustiveDependencies: on a new launch only
@@ -394,23 +442,7 @@ export function ThreadComposer({
             label="Send"
             color={t.onPrimary}
             background={t.primary}
-            onPress={() => {
-              if (onText) {
-                if (spoken) markVoiceTurn()
-                onText(text.trim(), hint, photos.length ? photos : undefined)
-                setText("")
-                setPhotos([])
-                setSpoken(false)
-                return
-              }
-              const id = A.sendCapture({
-                text: text.trim(),
-                source: "text",
-                hint,
-              })
-              setText("")
-              onSent?.(id)
-            }}
+            onPress={send}
           />
         )}
       </Line>
