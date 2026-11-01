@@ -4,7 +4,7 @@ NULL = off. When set, the phone repeats an overdue reminder every this
 many minutes for the rest of that day.
 
 Revision ID: 948e28489067
-Revises: c5e1d0a7b391
+Revises: da6a0c041e3e
 Create Date: 2026-11-01 20:46:51.235806
 
 """
@@ -14,7 +14,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "948e28489067"
-down_revision = "c5e1d0a7b391"
+down_revision = "da6a0c041e3e"
 branch_labels = None
 depends_on = None
 

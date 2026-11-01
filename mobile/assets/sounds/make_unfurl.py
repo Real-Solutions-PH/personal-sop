@@ -18,7 +18,11 @@ RATE = 44_100
 LENGTH = 1.5  # seconds
 PEAK = 0.5  # -6 dBFS
 # (start s, frequency Hz, loudness, decay s)
-NOTES = [(0.00, 587.33, 1.0, 0.35), (0.14, 880.00, 0.9, 0.40), (0.28, 1174.66, 0.8, 0.55)]
+NOTES = [
+    (0.00, 587.33, 1.0, 0.35),
+    (0.14, 880.00, 0.9, 0.40),
+    (0.28, 1174.66, 0.8, 0.55),
+]
 PARTIALS = [(1, 1.0), (2, 0.18), (3, 0.06)]
 ATTACK = 0.008
 
@@ -32,8 +36,12 @@ def sample(t: float) -> float:
         env = min(1.0, u / ATTACK) * math.exp(-u / decay)
         for mult, amp in PARTIALS:
             # Higher partials fade faster, as a struck bar's do.
-            v += loud * amp * env * math.exp(-u * mult / 2) * math.sin(
-                2 * math.pi * freq * mult * u
+            v += (
+                loud
+                * amp
+                * env
+                * math.exp(-u * mult / 2)
+                * math.sin(2 * math.pi * freq * mult * u)
             )
     return v
 
