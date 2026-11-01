@@ -7,6 +7,7 @@ import { derivedId } from "@domain/lib/ids"
 import { configureStorage, resetAll } from "@domain/lib/store"
 import { fireEvent, render, screen } from "@testing-library/react-native"
 import { type ReactNode, useState } from "react"
+import { Text } from "react-native"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 
 jest.mock("expo-router", () => ({
@@ -54,6 +55,7 @@ jest.mock("../media", () => ({ exportCsv: jest.fn(), pickPhoto: jest.fn() }))
 
 const { MoneyInput } =
   require("../money-input") as typeof import("../money-input")
+const { Sheet } = require("../ui") as typeof import("../ui")
 const { RecordEditor } =
   require("../screens/finance") as typeof import("../screens/finance")
 const { FinanceSetup } =
@@ -186,6 +188,39 @@ test("a sub-category added from the picker is chosen for the transaction", () =>
   expect(added?.kind).toBe("expense")
   // Back on the transaction, with the new sub-category picked.
   expect(screen.getByText(`${added?.icon} Pet food`)).toBeTruthy()
+})
+
+test("the transaction sheet still closes after choosing a category", () => {
+  const onClose = jest.fn()
+  render(<RecordEditor open onClose={onClose} />, { wrapper })
+  fireEvent.press(screen.getByLabelText("Choose category"))
+  // Back is the step back; close closes the whole sheet from the picker.
+  fireEvent.press(screen.getByLabelText("Back to transaction"))
+  expect(onClose).not.toHaveBeenCalled()
+  fireEvent.press(screen.getByLabelText("Choose category"))
+  fireEvent.press(screen.getByLabelText("Close"))
+  expect(onClose).toHaveBeenCalledTimes(1)
+})
+
+test("a sheet whose close stepped back inside it can still be closed", () => {
+  const closed = jest.fn()
+  function Stepped() {
+    const [step, setStep] = useState(true)
+    return (
+      <Sheet
+        title={step ? "Step" : "Main"}
+        open
+        onClose={() => (step ? setStep(false) : closed())}
+      >
+        <Text>{step ? "step body" : "main body"}</Text>
+      </Sheet>
+    )
+  }
+  render(<Stepped />, { wrapper })
+  fireEvent.press(screen.getByLabelText("Close"))
+  expect(screen.getByText("main body")).toBeTruthy()
+  fireEvent.press(screen.getByLabelText("Close"))
+  expect(closed).toHaveBeenCalledTimes(1)
 })
 
 test("setup keeps the centavos of a salary and a balance", () => {

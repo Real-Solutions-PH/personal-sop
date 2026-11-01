@@ -7,11 +7,13 @@ import { module as SCR } from "@domain/screen"
 import { useLocalSearchParams } from "expo-router"
 import {
   CalendarRange,
+  Check,
   ChevronRight,
   Flame,
   Info,
   ListFilter,
   Share2,
+  Sparkles,
   Target,
   Trophy,
 } from "lucide-react-native"
@@ -36,10 +38,10 @@ import { go } from "../navigation"
 import { ProfileAvatar } from "../profile-avatar"
 import { fonts, useTheme } from "../theme"
 import { Button, Field, Screen, Sheet } from "../ui"
+import { Ring } from "../visual"
 import { LockedPreview } from "./locked-preview"
 import { PatternsCard } from "./patterns-card"
 import { ScreenTimeCard, useScreenTimeShown } from "./screen-card"
-import { DayHero } from "./today"
 
 /**
  * Dynamic Type ceiling for text in the side-by-side cells on this screen
@@ -679,6 +681,176 @@ export function MissTiles({
     </View>
   )
 }
+/**
+ * Today next to the range, per area: what is done now (today's bar against
+ * the on-target line, done of due) beside how the area has gone over the
+ * chosen range (its rate and the change on the range before). Replaces the
+ * separate today card, so "now" and "overall" read on one row each.
+ */
+function NowAndRange({ days, locked }: { days: number; locked: boolean }) {
+  const t = useTheme(),
+    s = dashStore.use((s) => s),
+    ring = D.useTodayRing(),
+    ls = D.useLifeScore(days),
+    streak = D.useOnTarget(7),
+    screenOn = useScreenTimeShown()
+  const pct = ring.due ? ring.done / ring.due : 1,
+    need = Math.max(0, Math.ceil(ring.due * s.targetThreshold) - ring.done),
+    hit = ring.due > 0 && !need,
+    headline = !ring.due
+      ? "Free day"
+      : ring.done >= ring.due
+        ? "Day complete"
+        : !need
+          ? "Target hit"
+          : `${need} to target`,
+    areas = MODULE_KEYS.filter((k) =>
+      k === "screen" ? screenOn && s.enabled[k] : s.enabled[k],
+    ),
+    range = days === 365 ? "1y" : `${days}d`
+  return (
+    <Frame style={{ borderRadius: 24, marginTop: 12 }}>
+      <Tap
+        label={`Today: ${headline}, ${ring.done} of ${ring.due} done`}
+        onPress={() => go("/today")}
+        style={{ padding: 16 }}
+      >
+        <Line style={{ gap: 16 }}>
+          <Ring
+            size={72}
+            strokeWidth={8}
+            value={pct}
+            target={s.targetThreshold}
+            color={pct >= s.targetThreshold ? t.life : t.primary}
+          >
+            <Copy
+              size={20}
+              weight="semibold"
+              maxScale={NUMBER_SCALE}
+              style={{ fontFamily: fonts.mono }}
+            >
+              {Math.round(pct * 100)}
+              <Text style={{ fontSize: 12, color: t.muted }}>%</Text>
+            </Copy>
+          </Ring>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Line style={{ gap: 4 }}>
+              {hit && <Check size={18} color={t.life} />}
+              <Copy weight="display" size={20} style={{ lineHeight: 26 }}>
+                {headline}
+              </Copy>
+            </Line>
+            <Copy size={13} muted>
+              {!ring.due
+                ? "Nothing due today"
+                : `${ring.done} of ${ring.due} done today · target ${Math.round(s.targetThreshold * 100)}%`}
+            </Copy>
+            <Line style={{ gap: 12, marginTop: 4 }}>
+              <Line style={{ gap: 4 }}>
+                <Flame size={14} color={t.life} fill={t.life} />
+                <Copy size={13} weight="semibold" style={{ color: t.life }}>
+                  {streak.current}
+                  <Text style={{ fontFamily: fonts.body, color: t.muted }}>
+                    {" "}
+                    day streak
+                  </Text>
+                </Copy>
+              </Line>
+              <Line style={{ gap: 4 }}>
+                <Sparkles size={14} color={t.life} />
+                <Copy size={13} weight="semibold">
+                  {locked ? "—" : (ls.score ?? "—")}
+                  <Text style={{ fontFamily: fonts.body, color: t.muted }}>
+                    {" "}
+                    score {range}
+                  </Text>
+                </Copy>
+              </Line>
+            </Line>
+          </View>
+        </Line>
+      </Tap>
+      <Line
+        style={{
+          paddingHorizontal: 16,
+          paddingTop: 8,
+          paddingBottom: 4,
+          borderTopWidth: 1,
+          borderColor: border(t.line, 0.6),
+        }}
+      >
+        <View style={{ width: 84 }} />
+        <Copy size={12} muted maxScale={CELL_SCALE} style={{ flex: 1 }}>
+          Today
+        </Copy>
+        <Copy
+          size={12}
+          muted
+          maxScale={CELL_SCALE}
+          style={{ width: 76, textAlign: "right" }}
+        >
+          {range}
+        </Copy>
+        <View style={{ width: 16 }} />
+      </Line>
+      {areas.map((k) => {
+        const per = ring.per[k],
+          rate = Math.round(clamp(ls.rates[k]) * 100),
+          delta = rate - Math.round(clamp(ls.prevRates[k]) * 100),
+          color = t[AREA[k].accent]
+        return (
+          <Tap
+            key={k}
+            label={`${AREA[k].label}: today ${per.due ? `${Math.min(per.done, per.due)} of ${per.due}` : "nothing due"}; ${range} ${locked ? "not scored yet" : `${rate}%`}`}
+            onPress={() => go(`/${k}`)}
+            style={{ paddingHorizontal: 16, paddingVertical: 8, minHeight: 44 }}
+          >
+            <Line>
+              <Copy
+                size={14}
+                weight="medium"
+                maxScale={CELL_SCALE}
+                style={{ width: 84 }}
+              >
+                {AREA[k].label}
+              </Copy>
+              <Line style={{ flex: 1, gap: 8 }}>
+                <View style={{ flex: 1, opacity: per.due ? 1 : 0.35 }}>
+                  <Bar
+                    value={per.due ? per.done / per.due : 0}
+                    target={s.targetThreshold}
+                    color={color}
+                  />
+                </View>
+                <Copy
+                  size={13}
+                  muted
+                  maxScale={CELL_SCALE}
+                  style={{ minWidth: 28, textAlign: "right" }}
+                >
+                  {per.due ? `${Math.min(per.done, per.due)}/${per.due}` : "—"}
+                </Copy>
+              </Line>
+              <Line style={{ width: 76, gap: 4, justifyContent: "flex-end" }}>
+                <Copy
+                  size={15}
+                  weight="semibold"
+                  maxScale={CELL_SCALE}
+                  style={{ color: locked ? t.muted : color }}
+                >
+                  {locked ? "—" : `${rate}%`}
+                </Copy>
+                {!locked && delta !== 0 && <Delta value={delta} />}
+              </Line>
+              <ChevronRight size={16} color={t.muted} />
+            </Line>
+          </Tap>
+        )
+      })}
+    </Frame>
+  )
+}
+const clamp = (v: number) => Math.max(0, Math.min(1, v || 0))
 export function StatsHome() {
   const t = useTheme(),
     p = dashStore.use((s) => s.profile),
@@ -751,11 +923,17 @@ export function StatsHome() {
             </Line>
           </View>
         </Line>
-        {/* Today's progress across every area, moved here from Today, whose
-            top now shows the day's plan. */}
         <View style={{ marginTop: 16 }}>
-          <DayHero />
+          <Segmented
+            value={range}
+            onChange={setRange}
+            options={["7d", "30d", "90d", "1y"].map((value) => ({
+              value,
+              label: value,
+            }))}
+          />
         </View>
+        <NowAndRange days={days} locked={locked} />
         <PatternsCard />
         <LockedPreview
           locked={locked}
@@ -764,16 +942,6 @@ export function StatsHome() {
           detail="Your score, streaks and trends below unlock after 3 days of logging."
           action={{ label: "Log today", href: "/today" }}
         >
-          <View style={{ marginTop: 16 }}>
-            <Segmented
-              value={range}
-              onChange={setRange}
-              options={["7d", "30d", "90d", "1y"].map((value) => ({
-                value,
-                label: value,
-              }))}
-            />
-          </View>
           <SwipeSegments
             value={range}
             options={["7d", "30d", "90d", "1y"]}

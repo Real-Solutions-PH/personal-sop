@@ -174,6 +174,22 @@ test("Stats area selection exposes the selected area metrics", () => {
   view.unmount()
 })
 
+test("Stats shows each area's today next to its range, and follows the range", () => {
+  const { StatsHome } = require("../screens/stats-home")
+  const view = render(<StatsHome />, { wrapper })
+  // One row per area: today's done of due (or nothing due) and the range.
+  const habits = screen.getByRole("button", {
+    name: /^Habits: today (\d+ of \d+|nothing due); 7d (\d+%|not scored yet)$/,
+  })
+  expect(habits).toBeTruthy()
+  expect(screen.queryByText("TODAY")).toBeNull()
+  fireEvent.press(screen.getByText("30d"))
+  expect(
+    screen.getByRole("button", { name: /^Habits: today .*; 30d / }),
+  ).toBeTruthy()
+  view.unmount()
+})
+
 test("Stats miss tiles sit three to a row with one-line labels", () => {
   const { MissTiles } = require("../screens/stats-home")
   const keys = ["habits", "tasks", "fitness", "nutrition", "focus", "finance"]
