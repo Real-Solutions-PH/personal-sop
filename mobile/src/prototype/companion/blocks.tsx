@@ -24,6 +24,7 @@ import {
   Brain,
   CalendarClock,
   Check,
+  ChevronDown,
   ChevronRight,
   CircleAlert,
   Dumbbell,
@@ -38,7 +39,7 @@ import {
   Wallet,
   X,
 } from "lucide-react-native"
-import { useEffect, useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { ActivityIndicator, Pressable, Text, View } from "react-native"
 import Animated, { FadeInDown } from "react-native-reanimated"
 import { Trend } from "../chart"
@@ -1272,6 +1273,80 @@ function StepsBlock({ items }: { items: StepItem[] }) {
   )
 }
 
+/** The model's thinking, as it writes it: one line with the latest of it
+ * while it runs, all of it on a tap. Muted and apart from the answer, so it
+ * never reads as the reply. */
+function ThinkingBlock({ text, done }: { text: string; done?: boolean }) {
+  const t = useTheme()
+  const [open, setOpen] = useState(false)
+  const latest =
+    text
+      .trim()
+      .split(/\n+/)
+      .filter((l) => l.trim())
+      .at(-1)
+      ?.replace(/[*#`_]/g, "")
+      .trim() ?? ""
+  const label = done ? "Thought it through" : "Thinking"
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ expanded: open }}
+      accessibilityLabel={
+        open ? `${label}. Hide thinking` : `${label}. Show thinking`
+      }
+      onPress={() => setOpen((o) => !o)}
+      style={{
+        borderLeftWidth: 2,
+        borderLeftColor: t.line,
+        paddingLeft: 10,
+        paddingVertical: 2,
+        gap: 4,
+      }}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+        <Brain size={14} color={t.muted} />
+        <Text
+          style={{ color: t.muted, fontFamily: fonts.semibold, fontSize: 12 }}
+        >
+          {done ? label : `${label}…`}
+        </Text>
+        {open ? (
+          <ChevronDown size={14} color={t.muted} />
+        ) : (
+          <ChevronRight size={14} color={t.muted} />
+        )}
+      </View>
+      {open ? (
+        <Text
+          style={{
+            color: t.muted,
+            fontFamily: fonts.body,
+            fontSize: 13,
+            lineHeight: 19,
+          }}
+        >
+          {text.trim()}
+        </Text>
+      ) : (
+        !done &&
+        !!latest && (
+          <Text
+            numberOfLines={2}
+            style={{
+              color: t.muted,
+              fontFamily: fonts.body,
+              fontSize: 13,
+              lineHeight: 18,
+            }}
+          >
+            {latest}
+          </Text>
+        )
+      )}
+    </Pressable>
+  )
+}
 export function BlockView({ block }: { block: Block }) {
   const t = useTheme()
   switch (block.t) {
@@ -1304,6 +1379,8 @@ export function BlockView({ block }: { block: Block }) {
       return <Chips prompts={block.prompts} />
     case "steps":
       return <StepsBlock items={block.items} />
+    case "thinking":
+      return <ThinkingBlock text={block.text} done={block.done} />
     case "nutrition":
       return <NutritionBlock day={block.day} />
     case "photos":

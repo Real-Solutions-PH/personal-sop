@@ -2,6 +2,7 @@
 // token; a 401 refreshes the session once and retries, so a request never
 // fails just because the hour-long token expired while the app slept.
 
+import { noteServerContact } from "@/prototype/connectivity"
 import { API_PREFIX, API_URL } from "./config"
 
 export class ApiError extends Error {
@@ -89,14 +90,17 @@ export function createHttp(
   async function send(path: string, init: RequestInit, token: string | null) {
     const headers = new Headers(init.headers)
     if (token) headers.set("Authorization", `Bearer ${token}`)
+    let res: Response
     try {
-      return await fetchImpl(`${API_URL}${API_PREFIX}${path}`, {
+      res = await fetchImpl(`${API_URL}${API_PREFIX}${path}`, {
         ...init,
         headers,
       })
     } catch (error) {
       throw new NetworkError(String(error))
     }
+    noteServerContact()
+    return res
   }
 
   async function open(path: string, init: RequestInit) {

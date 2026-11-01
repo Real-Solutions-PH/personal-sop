@@ -55,6 +55,7 @@ import {
   answering,
   type Block,
   COMPANION_NAME,
+  type CompanionState,
   companionStore,
   type Msg,
   replying,
@@ -68,6 +69,7 @@ import {
   threadForSend,
   touchThread,
 } from "@/prototype/companion/store"
+import { noteServerContact } from "@/prototype/connectivity"
 import { http, tokens } from "./auth"
 import { API_PREFIX, API_URL } from "./config"
 import { createSseParser, type ServerEvent } from "./events"
@@ -112,6 +114,9 @@ export interface LiveCaptureDeps {
   http: Http
   /** POST a JSON body and return the raw (SSE) response, authenticated. */
   post(path: string, body: unknown): Promise<Response>
+  /** GET an SSE stream (a reply being written), authenticated. Without it a
+   * dropped reply is only read back once stored. */
+  get?(path: string): Promise<Response>
   /** Unauthenticated fetch: the presigned PUT and local file reads. */
   fetch: Fetch
   /** Copy a cache file (recording, picked file) somewhere durable. */
@@ -201,6 +206,7 @@ async function readSse(
       throw error
     }
     if (chunk.done) break
+    noteServerContact()
     feed(decoder.decode(chunk.value, { stream: true }))
   }
   feed(`${decoder.decode()}\n\n`)
@@ -1055,42 +1061,44 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
     touchThread(threadId, { role: "me", text })
   }
 
-  async function runAsk(
-    text: string,
-    hint: string | undefined,
-    photos: string[] = [],
-    meId = newId(),
-  ) {
-    // A queued or retried question keeps the chat it was asked in.
-    const threadId =
-      companionStore.get().messages.find((m) => m.id === meId)?.threadId ??
-      threadForSend()
-    putAsk(meId, text, hint, photos, "sending", threadId)
-    replying.setState({ id: meId })
-    // Set once the server has stored the question: from then on a failure
-    // must not offer a Retry (it would ask twice).
-    let echoed = false
-    // Set once the stream is open: a drop after that is read back.
-    let opened = false
-    const fail = () => {
-      if (echoed) return
-      markAsk(meId, deps.online() ? "failed" : "queued")
+  const setInFlight = (v: CompanionState["inFlight"]) =>
+    companionStore.set((s) => ({ ...s, inFlight: v }))
+
+  /** One reply as its AG-UI events arrive, live or replayed: the reply
+   * message it builds in the store, and whether the question was stored
+   * and the turn has ended. ``reset`` forgets what it built, before a
+   * replay from the first event. */
+  function replyView(meId: string, threadId: string) {
+    const v = {
+      // Set once the server has stored the question: from then on a failure
+      // must not offer a Retry (it would ask twice).
+      echoed: false,
+      // RUN_FINISHED or RUN_ERROR seen.
+      ended: false,
+      failed: false,
     }
     const solId = derivedId("companion-reply", meId, "sol")
     const readAloud = takeVoiceTurn()
-    let solAt = 0
+    // Shown right after its question, whatever was typed since: questions
+    // queued behind this reply come after it.
+    const askAt = () =>
+      companionStore.get().messages.find((m) => m.id === meId)?.at ?? Date.now()
     let solText = ""
     // The reply's text, one piece per model step. A step that turned out to
     // be the model planning a tool call is dropped ("text.discard"), so only
     // the answer stays, still streaming as it is written.
-    const segments: { id: string; text: string }[] = []
+    let segments: { id: string; text: string }[] = []
     const joinSegments = () =>
       segments
         .map((x) => x.text.trim())
         .filter(Boolean)
         .join("\n\n")
     let blocks: Block[] = []
-    const steps: StepItem[] = []
+    let steps: StepItem[] = []
+    // The model's thinking, every model call's in turn; ``thinkingNow``
+    // while a call is still thinking.
+    let thought = ""
+    let thinkingNow = false
     let open: string | undefined
     // "still thinking…" once a model call has shown nothing for a while.
     let longTimer: ReturnType<typeof setTimeout> | undefined
@@ -1109,27 +1117,37 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
     const sol = () => {
       thinking.setState({ on: false })
       answering.setState({ id: solId })
-      solAt ||= Date.now()
-      const all: Block[] = steps.length
-        ? [{ t: "steps", items: steps.map((x) => ({ ...x })) }, ...blocks]
-        : blocks
+      const all: Block[] = [
+        ...(thought.trim()
+          ? [{ t: "thinking" as const, text: thought, done: !thinkingNow }]
+          : []),
+        ...(steps.length
+          ? [{ t: "steps" as const, items: steps.map((x) => ({ ...x })) }]
+          : []),
+        ...blocks,
+      ]
       putMessages([
         {
           id: solId,
           role: "sol",
-          at: solAt,
+          at: askAt() + 1,
           ...(solText ? { text: solText } : {}),
           ...(all.length ? { blocks: all } : {}),
           threadId,
         },
       ])
     }
+    const stopThinking = () => {
+      if (!thinkingNow) return
+      thinkingNow = false
+      sol()
+    }
     // CUSTOM events: the stored question, cards and blocks from Fern's
     // tools, and the router's own capture when no model answers.
     const custom = (name: string, d: Row) => {
       switch (name) {
         case "message":
-          if (String(d.id) === meId) echoed = true
+          if (String(d.id) === meId) v.echoed = true
           return putMessages([messageFromServer(d)])
         case "thinking":
           return thinkingStarted()
@@ -1161,167 +1179,318 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
           return open ? captureFrame(name, d, open) : undefined
       }
     }
-    thinking.setState({ on: true })
-    let mediaIds: string[] = []
-    try {
-      mediaIds = await Promise.all(
-        photos.map(
-          async (uri, i) =>
-            (
-              await uploadMedia(
-                {
-                  kind: "image",
-                  uri,
-                  id: derivedId("ask-media", meId, String(i)),
-                },
-                deps,
-              )
-            ).id,
+    const onEvent = (e: ServerEvent) => {
+      const d = (e.data ?? {}) as Row
+      switch (d.type) {
+        case "CUSTOM":
+          return custom(String(d.name), (d.value ?? {}) as Row)
+        case "REASONING_MESSAGE_START":
+          calm()
+          if (thought.trim()) thought += "\n\n"
+          thinkingNow = true
+          return sol()
+        case "REASONING_MESSAGE_CONTENT":
+          calm()
+          thinkingNow = true
+          thought += String(d.delta ?? "")
+          return sol()
+        case "REASONING_MESSAGE_END":
+        case "REASONING_END":
+          return stopThinking()
+        case "TEXT_MESSAGE_START":
+          segments.push({ id: String(d.messageId ?? ""), text: "" })
+          return
+        case "TEXT_MESSAGE_CONTENT": {
+          calm()
+          thinkingNow = false
+          const seg =
+            segments.find((x) => x.id === String(d.messageId ?? "")) ??
+            segments.at(-1)
+          if (seg) seg.text += String(d.delta ?? "")
+          else segments.push({ id: "", text: String(d.delta ?? "") })
+          solText = joinSegments()
+          return sol()
+        }
+        case "TOOL_CALL_START": {
+          calm()
+          thinkingNow = false
+          const tool = String(d.toolCallName ?? "")
+          steps.push({
+            id: String(d.toolCallId),
+            tool,
+            label: stepLabel(tool),
+            running: true,
+          })
+          return sol()
+        }
+        case "TOOL_CALL_RESULT": {
+          const step = steps.find((x) => x.id === String(d.toolCallId))
+          if (!step) return
+          let r: Row = {}
+          try {
+            r = JSON.parse(String(d.content ?? "{}")) as Row
+          } catch {
+            // a non-JSON result keeps the running label
+          }
+          step.running = false
+          step.ok = r.ok !== false
+          if (typeof r.summary === "string") step.summary = r.summary
+          if (typeof r.card_id === "string") {
+            step.card_id = r.card_id
+            step.state = String(r.state ?? "")
+          }
+          if (typeof r.capture_id === "string") step.capture_id = r.capture_id
+          if (Array.isArray(r.cards))
+            step.cards = (r.cards as Row[]).map((c) => ({
+              card_id: String(c.card_id),
+              state: String(c.state ?? ""),
+              label: String(c.label ?? ""),
+            }))
+          return sol()
+        }
+        case "RUN_FINISHED": {
+          v.ended = true
+          const out = (d.result ?? {}) as Row
+          const msgs = ((out.messages ?? []) as Row[]).map(messageFromServer)
+          if (msgs.some((m) => m.id === meId)) v.echoed = true
+          putMessages(msgs)
+          // Read as a log (the router's capture): the capture shows in
+          // the thread, not the question.
+          if (!v.echoed) {
+            v.echoed = true
+            dropAsk(meId)
+          }
+          if (out.capture && typeof out.capture === "object")
+            detail(out.capture as Row)
+          // A dictated message hears its answer, like voice chat.
+          const reply = msgs.find((m) => m.role === "sol" && m.text)
+          if (readAloud && reply)
+            void toggleSpeech(reply.id, { http: deps.http }).catch(() => {})
+          return
+        }
+        case "RUN_ERROR":
+          v.ended = true
+          v.failed = true
+          stopThinking()
+          return
+        default:
+          return
+      }
+    }
+    const reset = () => {
+      solText = ""
+      segments = []
+      blocks = []
+      steps = []
+      thought = ""
+      thinkingNow = false
+      open = undefined
+    }
+    return Object.assign(v, { onEvent, reset, calm })
+  }
+
+  /** Follow a reply the server is still writing (or wrote within the hour)
+   * from its first event: a stream that dropped, or a chat the person comes
+   * back to. Fern is shown at work while it opens; the replay then rebuilds
+   * the reply as it stands and goes on live. Retries while it cannot reach
+   * the server. ``gone`` when the server no longer keeps that reply's
+   * events (it is then read with ``resume``). */
+  async function follow(
+    meId: string,
+    view: ReturnType<typeof replyView>,
+  ): Promise<"ended" | "gone" | "lost"> {
+    if (!deps.get) return "gone"
+    const started = Date.now()
+    for (let step = 0; ; step++) {
+      if (deps.online()) {
+        thinking.setState({ on: true })
+        try {
+          const res = await deps.get(`/companion/messages/${meId}/events`)
+          if (res.status === 404) return "gone"
+          if (res.ok) {
+            view.reset()
+            await readSse(res, view.onEvent)
+            // The stream ends when the turn does.
+            if (view.ended) return "ended"
+            return "gone"
+          }
+        } catch {
+          // dropped again (or never opened): try once more below
+        } finally {
+          view.calm()
+        }
+      }
+      if (Date.now() - started >= RESUME_CAP_MS) return "lost"
+      await new Promise((r) =>
+        setTimeout(
+          r,
+          step < RESUME_STEPS_MS.length
+            ? RESUME_STEPS_MS[step]
+            : RESUME_EVERY_MS,
         ),
       )
-    } catch {
-      thinking.setState({ on: false })
-      fail()
-      toast("Couldn't upload the photos. Tap Retry to send them again.")
+    }
+  }
+
+  /** After the live stream dropped (or on coming back to the app): follow
+   * the reply again, else read it back, else offer a Retry. */
+  async function recover(
+    meId: string,
+    view: ReturnType<typeof replyView>,
+  ): Promise<void> {
+    const how = await follow(meId, view)
+    if (how === "ended") {
+      if (view.failed) {
+        if (!view.echoed) markAsk(meId, "failed")
+        toast(`${companionName()} couldn't finish that reply.`)
+      }
       return
     }
+    if (how === "lost") {
+      if (!view.echoed) markAsk(meId, "failed")
+      toast(`${companionName()} is taking too long. Tap Retry to ask again.`)
+      return
+    }
+    if (!view.echoed) markAsk(meId, "resuming")
+    thinking.setState({ on: true })
+    await resume(meId)
+  }
+
+  /** Busy with one reply: the composer queues what is typed meanwhile, and
+   * the queue goes when it ends. */
+  async function busyWith(
+    meId: string,
+    threadId: string,
+    run: () => Promise<void>,
+  ) {
+    setInFlight({ id: meId, threadId })
+    replying.setState({ id: meId })
     try {
-      const res = await deps.post("/companion/ask/stream", {
-        text: text.slice(0, 4000),
-        id: meId,
-        ...(hint ? { hint: hint.slice(0, 20) } : {}),
-        ...(mediaIds.length ? { media_ids: mediaIds } : {}),
-        thread_id: threadId,
-      })
-      if (!res.ok) {
-        fail()
-        toast(
-          `${companionName()} couldn't answer that. Tap Retry to ask again.`,
-        )
-        return
-      }
-      opened = true
-      await readSse(res, (e) => {
-        const d = (e.data ?? {}) as Row
-        switch (d.type) {
-          case "CUSTOM":
-            return custom(String(d.name), (d.value ?? {}) as Row)
-          case "TEXT_MESSAGE_START":
-            segments.push({ id: String(d.messageId ?? ""), text: "" })
-            return
-          case "TEXT_MESSAGE_CONTENT": {
-            calm()
-            const seg =
-              segments.find((x) => x.id === String(d.messageId ?? "")) ??
-              segments.at(-1)
-            if (seg) seg.text += String(d.delta ?? "")
-            else segments.push({ id: "", text: String(d.delta ?? "") })
-            solText = joinSegments()
-            return sol()
-          }
-          case "TOOL_CALL_START": {
-            calm()
-            const tool = String(d.toolCallName ?? "")
-            steps.push({
-              id: String(d.toolCallId),
-              tool,
-              label: stepLabel(tool),
-              running: true,
-            })
-            return sol()
-          }
-          case "TOOL_CALL_RESULT": {
-            const step = steps.find((x) => x.id === String(d.toolCallId))
-            if (!step) return
-            let r: Row = {}
-            try {
-              r = JSON.parse(String(d.content ?? "{}")) as Row
-            } catch {
-              // a non-JSON result keeps the running label
-            }
-            step.running = false
-            step.ok = r.ok !== false
-            if (typeof r.summary === "string") step.summary = r.summary
-            if (typeof r.card_id === "string") {
-              step.card_id = r.card_id
-              step.state = String(r.state ?? "")
-            }
-            if (typeof r.capture_id === "string") step.capture_id = r.capture_id
-            if (Array.isArray(r.cards))
-              step.cards = (r.cards as Row[]).map((c) => ({
-                card_id: String(c.card_id),
-                state: String(c.state ?? ""),
-                label: String(c.label ?? ""),
-              }))
-            return sol()
-          }
-          case "RUN_FINISHED": {
-            const out = (d.result ?? {}) as Row
-            const msgs = ((out.messages ?? []) as Row[]).map(messageFromServer)
-            if (msgs.some((m) => m.id === meId)) echoed = true
-            putMessages(msgs)
-            // Read as a log (the router's capture): the capture shows in
-            // the thread, not the question.
-            if (!echoed) {
-              echoed = true
-              dropAsk(meId)
-            }
-            if (out.capture && typeof out.capture === "object")
-              detail(out.capture as Row)
-            // A dictated message hears its answer, like voice chat.
-            const reply = msgs.find((m) => m.role === "sol" && m.text)
-            if (readAloud && reply)
-              void toggleSpeech(reply.id, { http: deps.http }).catch(() => {})
-            return
-          }
-          case "RUN_ERROR":
-            fail()
-            toast(`${companionName()} couldn't finish that reply.`)
-            return
-          default:
-            return
-        }
-      })
-    } catch (_error) {
-      if (deps.online() && opened) {
-        // Online, so not a lost connection: the server is most likely still
-        // writing the reply (or has stored it). It goes on on its own, so
-        // keep showing Fern at work and read the reply back.
-        calm()
-        if (!echoed) markAsk(meId, "resuming")
-        thinking.setState({ on: true })
-        await resume(meId)
-      } else if (echoed) {
-        // The server has the question and finishes the reply on its own
-        // (the app left the chat, or the connection dropped); the whole
-        // reply replaces this partial one on the next sync.
-        thinking.setState({ on: false })
-      } else {
-        fail()
-        toast(
-          deps.online()
-            ? `${companionName()} couldn't answer that. Tap Retry to ask again.`
-            : OFFLINE,
-        )
-      }
+      await run()
     } finally {
-      calm()
-      // A stream that ended without RUN_FINISHED or an error frame.
-      if (
-        !echoed &&
-        companionStore
-          .get()
-          .messages.some((m) => m.id === meId && m.status === "sending")
-      )
-        fail()
       thinking.setState({ on: false })
       answering.setState({ id: null })
       replying.setState({ id: null })
+      if (companionStore.get().inFlight?.id === meId) setInFlight(null)
       deps.kick()
       void refreshSpend()
       // Questions sent while this reply was written go next, oldest first.
       if (deps.online()) void flushAsks()
     }
+  }
+
+  async function runAsk(
+    text: string,
+    hint: string | undefined,
+    photos: string[] = [],
+    meId = newId(),
+  ) {
+    const before = companionStore.get().messages.find((m) => m.id === meId)
+    // A queued or retried question keeps the chat it was asked in.
+    const threadId = before?.threadId ?? threadForSend()
+    // A question that waited behind a reply goes after it.
+    if (before && before.status === "queued")
+      companionStore.set((s) => ({
+        ...s,
+        messages: s.messages.map((m) =>
+          m.id === meId ? { ...m, at: Math.max(m.at, Date.now()) } : m,
+        ),
+      }))
+    putAsk(meId, text, hint, photos, "sending", threadId)
+    const view = replyView(meId, threadId)
+    // Set once the stream is open: a drop after that is followed again.
+    let opened = false
+    const fail = () => {
+      if (view.echoed) return
+      markAsk(meId, deps.online() ? "failed" : "queued")
+    }
+    await busyWith(meId, threadId, async () => {
+      thinking.setState({ on: true })
+      let mediaIds: string[] = []
+      try {
+        mediaIds = await Promise.all(
+          photos.map(
+            async (uri, i) =>
+              (
+                await uploadMedia(
+                  {
+                    kind: "image",
+                    uri,
+                    id: derivedId("ask-media", meId, String(i)),
+                  },
+                  deps,
+                )
+              ).id,
+          ),
+        )
+      } catch {
+        fail()
+        toast("Couldn't upload the photos. Tap Retry to send them again.")
+        return
+      }
+      try {
+        const res = await deps.post("/companion/ask/stream", {
+          text: text.slice(0, 4000),
+          id: meId,
+          ...(hint ? { hint: hint.slice(0, 20) } : {}),
+          ...(mediaIds.length ? { media_ids: mediaIds } : {}),
+          thread_id: threadId,
+        })
+        if (!res.ok) {
+          fail()
+          toast(
+            `${companionName()} couldn't answer that. Tap Retry to ask again.`,
+          )
+          return
+        }
+        opened = true
+        await readSse(res, view.onEvent)
+        if (!view.ended) throw new NetworkError("stream ended early")
+        if (view.failed) {
+          fail()
+          toast(`${companionName()} couldn't finish that reply.`)
+        }
+      } catch (_error) {
+        view.calm()
+        if (view.echoed || (opened && deps.online())) {
+          // The server runs the reply on its own whatever happened to this
+          // stream: follow it again (the app was in the background, the
+          // network blinked, a proxy cut the line).
+          await recover(meId, view)
+        } else {
+          fail()
+          toast(
+            deps.online()
+              ? `${companionName()} couldn't answer that. Tap Retry to ask again.`
+              : OFFLINE,
+          )
+        }
+      } finally {
+        view.calm()
+        // A stream that ended without RUN_FINISHED or an error frame.
+        if (
+          !view.echoed &&
+          companionStore
+            .get()
+            .messages.some((m) => m.id === meId && m.status === "sending")
+        )
+          fail()
+      }
+    })
+  }
+
+  /** Coming back to the app with a reply still being written when it last
+   * ran: show Fern at work, replay the reply so far, then follow it live. */
+  function rejoin(meId: string, threadId: string) {
+    const view = replyView(meId, threadId)
+    if (companionStore.get().messages.some((m) => m.id === meId && m.status))
+      markAsk(meId, "resuming")
+    void busyWith(meId, threadId, async () => {
+      await recover(meId, view)
+      // The question was stored with the reply; a local copy left waiting
+      // is the server's now.
+      if (view.ended && !view.failed) dropAsk(meId)
+    })
   }
 
   const ask: AskBackend = (text, hint, routedToCapture, photos) => {
@@ -1391,18 +1560,25 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
     void runAsk(m.text ?? "", m.hint, photosOf(m), id)
   }
 
+  // A reply still being written when the app last stopped (closed, or
+  // killed): follow it again, from its first event.
+  const was = companionStore.get().inFlight
+  if (was) rejoin(was.id, was.threadId)
   // A reply that was being read back when the app last stopped: read it
   // once more; it fails (Retry) only if the server says it is not running.
   for (const m of companionStore.get().messages)
-    if (m.role === "me" && m.status === "resuming") void resume(m.id)
+    if (m.role === "me" && m.status === "resuming" && m.id !== was?.id)
+      void resume(m.id)
   // A question still "sending" when the app last stopped may or may not
   // have reached the server: offer a Retry (a pull replaces it if it did).
   companionStore.set((s) =>
-    s.messages.some((m) => m.status === "sending")
+    s.messages.some((m) => m.status === "sending" && m.id !== was?.id)
       ? {
           ...s,
           messages: s.messages.map((m) =>
-            m.status === "sending" ? { ...m, status: "failed" } : m,
+            m.status === "sending" && m.id !== was?.id
+              ? { ...m, status: "failed" }
+              : m,
           ),
         }
       : s,
@@ -1415,19 +1591,25 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
 // Live wiring
 // ---------------------------------------------------------------------------
 
-async function postStream(path: string, body: unknown): Promise<Response> {
+async function openStream(
+  method: "GET" | "POST",
+  path: string,
+  body?: unknown,
+): Promise<Response> {
   // Times out waiting for the stream to open; readSse watches the gaps.
   const send = (token: string | null) =>
     timed(REQUEST_TIMEOUT_MS, async (signal) => {
       try {
         return (await expoFetch(`${API_URL}${API_PREFIX}${path}`, {
-          method: "POST",
+          method,
           headers: {
             Authorization: `Bearer ${token ?? ""}`,
             Accept: "text/event-stream",
-            "Content-Type": "application/json",
+            ...(body === undefined
+              ? {}
+              : { "Content-Type": "application/json" }),
           },
-          body: JSON.stringify(body),
+          ...(body === undefined ? {} : { body: JSON.stringify(body) }),
           signal,
         })) as unknown as Response
       } catch (error) {
@@ -1441,6 +1623,9 @@ async function postStream(path: string, body: unknown): Promise<Response> {
   }
   return res
 }
+const postStream = (path: string, body: unknown) =>
+  openStream("POST", path, body)
+const getStream = (path: string) => openStream("GET", path)
 
 const anyFetch: Fetch = (url, init) =>
   url.startsWith("http")
@@ -1468,6 +1653,7 @@ export function captureMappers(userId: string) {
   installLiveCapture({
     http,
     post: postStream,
+    get: getStream,
     fetch: anyFetch,
     keep: keepFile,
     release: releaseFile,
