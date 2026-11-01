@@ -50,6 +50,7 @@ import Animated, {
 } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
+import { screenShown } from "./boot/first-screen"
 import { back, go } from "./navigation"
 import { Switch } from "./switch"
 import { fonts, useTheme } from "./theme"
@@ -549,6 +550,7 @@ export function Screen({
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={{ flex: 1, backgroundColor: t.bg, paddingTop: safe.top }}
+      onLayout={screenShown}
     >
       <View
         style={{
@@ -698,6 +700,7 @@ export function ListScreen<T>({
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={{ flex: 1, backgroundColor: t.bg, paddingTop: safe.top }}
+      onLayout={screenShown}
     >
       <View
         style={{
