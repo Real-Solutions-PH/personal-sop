@@ -9,7 +9,7 @@ from sqlmodel import Session
 
 from app.shared.ids import derived_id
 from app.shared.money import MAX_MINOR
-from tests.modules.finance.api.helpers import API, Fin
+from tests.modules.finance.api.helpers import API, Fin, legacy_card
 from tests.utils.mobile import signed_in
 
 
@@ -44,7 +44,7 @@ def test_balances_transfer_fee_and_credit_card_liability(
     f = _fin(client, db)
     cats = f.cats()
     gcash = f.account("GCash", opening=100_000)
-    card = f.account("BPI Card", type="credit", opening=0, limit_minor=8_000_000)
+    card = legacy_card(f, db, "BPI Card", limit_minor=8_000_000)
     f.expense(gcash, 18_000, cats["dining"])
     f.expense(card, 250_000, cats["shopping"])
     f.income(gcash, 900_000, cats["salary"])
@@ -83,6 +83,34 @@ def test_balances_transfer_fee_and_credit_card_liability(
     back = f.post("/records/restore", {"ids": [transfer["id"]]})["ids"]
     assert set(back) == {transfer["id"], fee["id"]}
     assert f.balances() == bal
+
+
+def test_credit_cards_cannot_be_added_but_an_older_one_still_counts(
+    client: TestClient, db: Session
+) -> None:
+    f = _fin(client, db)
+    cats = f.cats()
+    assert (
+        f.post("/accounts", {"name": "Card", "type": "credit"}, status=422)["code"]
+        == "credit_retired"
+    )
+    bank = f.account("BPI", type="bank", opening=500_000)
+    f.patch(f"/accounts/{bank}", {"type": "credit"}, status=422)
+    # A card from before keeps working: it can be renamed and its limit
+    # changed, it stays a card, and what it owes comes off net worth.
+    card = legacy_card(f, db, "Old card", limit_minor=1_000_000)
+    f.expense(card, 120_000, cats["shopping"])
+    edited = f.patch(
+        f"/accounts/{card}", {"name": "Maya Black", "limit_minor": 2_000_000}
+    )
+    assert (edited["type"], edited["limit_minor"]) == ("credit", 2_000_000)
+    accounts = f.get("/accounts")
+    assert f.balances()[card] == -120_000
+    assert accounts["net_worth_minor"] == 500_000 - 120_000
+    home = f.get("/home")
+    assert home["net_worth_minor"] == 500_000 - 120_000
+    # Nothing asks to be matched with a statement any more.
+    assert home["stale_accounts"] == []
 
 
 def test_record_rules_and_money_bounds(client: TestClient, db: Session) -> None:

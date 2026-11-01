@@ -456,7 +456,7 @@ function ActivityRow({ a, isNew }: { a: Activity; isNew: boolean }) {
         gap: 12,
         paddingHorizontal: 16,
         paddingVertical: 10,
-        backgroundColor: isNew ? `${t.tsk}10` : t.bg,
+        backgroundColor: isNew ? `${t.primary}10` : t.bg,
       }}
     >
       <Pressable

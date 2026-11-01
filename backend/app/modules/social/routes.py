@@ -297,8 +297,19 @@ def unlike_comment(ctx: CtxDep, post_id: uuid.UUID, comment_id: uuid.UUID) -> An
     dependencies=WRITE,
 )
 def delete_comment(ctx: CtxDep, post_id: uuid.UUID, comment_id: uuid.UUID) -> None:
-    """By the comment's author or the post's owner."""
+    """By the comment's author only; its replies go with it."""
     services.delete_comment(ctx, post_id=post_id, comment_id=comment_id)
+
+
+@router.post(
+    "/posts/{post_id}/comments/{comment_id}/restore",
+    response_model=CommentsPublic,
+    dependencies=WRITE,
+)
+def restore_comment(ctx: CtxDep, post_id: uuid.UUID, comment_id: uuid.UUID) -> Any:
+    """Undo a comment delete for a short window; returns the comment and the
+    replies that came back with it."""
+    return services.restore_comment(ctx, post_id=post_id, comment_id=comment_id)
 
 
 # ================================================================ stories, notes
@@ -465,8 +476,18 @@ def send_message(ctx: CtxDep, chat_id: uuid.UUID, body: MessageCreate) -> Any:
     dependencies=WRITE,
 )
 def unsend(ctx: CtxDep, chat_id: uuid.UUID, message_id: uuid.UUID) -> None:
-    """Unsend (sender only)."""
+    """Delete my message (sender only); the thread shows a tombstone."""
     services.unsend(ctx, chat_id=chat_id, message_id=message_id)
+
+
+@router.post(
+    "/chats/{chat_id}/messages/{message_id}/restore",
+    response_model=MessagePublic,
+    dependencies=WRITE,
+)
+def restore_message(ctx: CtxDep, chat_id: uuid.UUID, message_id: uuid.UUID) -> Any:
+    """Undo a message delete for a short window."""
+    return services.restore_message(ctx, chat_id=chat_id, message_id=message_id)
 
 
 @router.put(

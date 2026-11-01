@@ -128,8 +128,12 @@ export interface TaskSize {
 }
 
 export interface Sizing {
-  /** `workers` is uvicorn's process count; each holds about 250 MB. */
-  api: TaskSize & { workers: number }
+  /**
+   * `workers` is uvicorn's process count; each holds about 250 MB and uses
+   * at most one vCPU. `maxCount` above `count` turns on CPU autoscaling
+   * between the two.
+   */
+  api: TaskSize & { workers: number; maxCount: number }
   worker: TaskSize
   gotrue: TaskSize
   /** cloudflared connectors for the tunnel (each keeps 4 connections open). */
@@ -155,13 +159,17 @@ export interface Sizing {
  * about 180 MB and the seed at about 135 MB. So the API runs one worker; a
  * sync route still serves concurrent requests from uvicorn's thread pool.
  *
- * `production` is the size planned for launch: two API (two workers each),
- * two GoTrue and two tunnel tasks, so one can fail or be replaced without
- * downtime, and a larger database.
+ * `production` serves 100 people using the app at the same moment
+ * (load-tested 2026-10-31 with scripts/load-test.sh: every one opening the
+ * app and talking to Fern together). Two API tasks of 1 vCPU / 2 GB with two
+ * uvicorn workers each, scaling out to four on CPU; two GoTrue and two
+ * tunnel tasks, so one can fail or be replaced without downtime; a
+ * db.t4g.medium, whose ~400 connections hold every pool at four API tasks
+ * (see `connectionBudget`).
  */
 export const PROFILES: Record<ProfileName, Sizing> = {
   lean: {
-    api: { cpu: 256, memoryMiB: 512, count: 1, workers: 1 },
+    api: { cpu: 256, memoryMiB: 512, count: 1, workers: 1, maxCount: 1 },
     worker: { cpu: 256, memoryMiB: 512, count: 1 },
     gotrue: { cpu: 256, memoryMiB: 512, count: 1 },
     tunnel: { cpu: 256, memoryMiB: 512, count: 1 },
@@ -169,11 +177,11 @@ export const PROFILES: Record<ProfileName, Sizing> = {
     cache: "cache.t4g.micro",
   },
   production: {
-    api: { cpu: 512, memoryMiB: 1024, count: 2, workers: 2 },
+    api: { cpu: 1024, memoryMiB: 2048, count: 2, workers: 2, maxCount: 4 },
     worker: { cpu: 512, memoryMiB: 1024, count: 1 },
     gotrue: { cpu: 256, memoryMiB: 512, count: 2 },
     tunnel: { cpu: 256, memoryMiB: 512, count: 2 },
-    database: "t4g.small",
+    database: "t4g.medium",
     cache: "cache.t4g.micro",
   },
 }
@@ -230,7 +238,68 @@ export function applySizingOverrides(base: Sizing, overrides: unknown): Sizing {
     }
   }
   if (out.api.workers < 1) throw new Error("api.workers must be at least 1")
+  if (out.api.maxCount < out.api.count)
+    throw new Error("api.maxCount must be at least api.count")
+  const budget = connectionBudget(out)
+  const limit = maxConnections(out.database)
+  if (budget.total > limit) {
+    throw new Error(
+      `${budget.total} database connections at full scale-out exceed db.${out.database}'s ~${limit}; raise the database class or lower api.maxCount`,
+    )
+  }
   return out
+}
+
+/**
+ * The most connections one backend process opens, from the pool defaults in
+ * backend/app/core/config.py: the app engine (DB_POOL_SIZE 10 +
+ * DB_MAX_OVERFLOW 10), the owner engine (DB_OWNER_POOL_SIZE 3 +
+ * DB_OWNER_MAX_OVERFLOW 5) and the job queue (JOBS_DB_POOL_MAX 4).
+ */
+export const BACKEND_PROCESS_CONNECTIONS = 10 + 10 + 3 + 5 + 4
+/** GoTrue's pool per task (GOTRUE_DB_MAX_POOL_SIZE; unset, it is unbounded). */
+export const GOTRUE_POOL_SIZE = 10
+/** Superuser-reserved slots, RDS's own monitoring, one-off containers. */
+const RESERVED_CONNECTIONS = 10
+
+/** Every pool at its maximum with the API scaled all the way out. */
+export function connectionBudget(s: Sizing) {
+  const api = s.api.maxCount * s.api.workers * BACKEND_PROCESS_CONNECTIONS
+  const worker = s.worker.count * BACKEND_PROCESS_CONNECTIONS
+  const gotrue = s.gotrue.count * GOTRUE_POOL_SIZE
+  return {
+    api,
+    worker,
+    gotrue,
+    total: api + worker + gotrue + RESERVED_CONNECTIONS,
+  }
+}
+
+/** Memory (GiB) of the RDS classes a profile may name. */
+const DB_MEMORY_GIB: Record<string, number> = {
+  "t4g.micro": 1,
+  "t4g.small": 2,
+  "t4g.medium": 4,
+  "t4g.large": 8,
+  "t4g.xlarge": 16,
+  "m7g.large": 8,
+  "m7g.xlarge": 16,
+  "r7g.large": 16,
+}
+
+/**
+ * RDS PostgreSQL's default max_connections, LEAST(DBInstanceClassMemory /
+ * 9531392, 5000), where DBInstanceClassMemory is the class's memory less
+ * what the OS keeps (taken as 10%, so the estimate errs low).
+ */
+export function maxConnections(databaseClass: string): number {
+  const gib = DB_MEMORY_GIB[databaseClass]
+  if (gib === undefined) {
+    throw new Error(
+      `database: add db.${databaseClass}'s memory to DB_MEMORY_GIB (infra/lib/config.ts)`,
+    )
+  }
+  return Math.min(Math.floor((gib * 0.9 * 1024 ** 3) / 9531392), 5000)
 }
 
 /** Name prefix for every resource and secret. */

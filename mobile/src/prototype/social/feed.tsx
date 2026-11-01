@@ -4,11 +4,11 @@ import {
   ChevronLeft,
   CircleCheck,
   Image as ImageIcon,
+  MessageCircle,
   MessageSquareQuote,
   Plus,
-  PlusSquare,
   Search,
-  Send,
+  Sprout,
 } from "lucide-react-native"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
@@ -75,14 +75,16 @@ export function Badge({ count }: { count: number }) {
         height: 18,
         paddingHorizontal: 4,
         borderRadius: 9,
-        backgroundColor: "#ff3040",
+        backgroundColor: t.primary,
         borderWidth: 2,
         borderColor: t.bg,
         alignItems: "center",
         justifyContent: "center",
       }}
     >
-      <Text style={{ color: "#fff", fontSize: 10, fontFamily: fonts.bold }}>
+      <Text
+        style={{ color: t.onPrimary, fontSize: 10, fontFamily: fonts.mono }}
+      >
         {count > 9 ? "9+" : count}
       </Text>
     </View>
@@ -154,7 +156,7 @@ function PostingBanner() {
         </Text>
         {done && <CircleCheck size={20} color={t.good} />}
       </View>
-      <Animated.View style={[{ height: 2, backgroundColor: t.tsk }, bar]} />
+      <Animated.View style={[{ height: 2, backgroundColor: t.primary }, bar]} />
     </Animated.View>
   )
 }
@@ -238,7 +240,7 @@ function CheckInTray() {
               justifyContent: "center",
             }}
           >
-            <Plus size={14} color="#fff" strokeWidth={3} />
+            <Plus size={14} color={t.onPrimary} strokeWidth={3} />
           </Pressable>
         </View>
         {caption(mine ? "You" : "Check in", myDay, true)}
@@ -606,22 +608,24 @@ export function SocialFeed() {
           }
           style={{ flex: 1, paddingLeft: 6 }}
         >
-          <Text
-            accessibilityRole="header"
-            numberOfLines={1}
-            style={{
-              fontFamily: fonts.display,
-              fontSize: 24,
-              color: t.text,
-              fontStyle: "italic",
-              letterSpacing: -0.5,
-            }}
-          >
-            Community
-          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <Sprout size={20} color={t.primary} strokeWidth={2} />
+            <Text
+              accessibilityRole="header"
+              numberOfLines={1}
+              style={{
+                fontFamily: fonts.semibold,
+                fontSize: 20,
+                color: t.text,
+                letterSpacing: -0.4,
+              }}
+            >
+              Community
+            </Text>
+          </View>
         </Pressable>
         <Bounce label="Create" onPress={() => setCreate(true)}>
-          <PlusSquare size={23} color={t.text} />
+          <Plus size={22} color={t.text} />
         </Bounce>
         <Bounce label="Find people" onPress={() => go("/social/explore")}>
           <Search size={22} color={t.text} />
@@ -640,7 +644,7 @@ export function SocialFeed() {
                 width: 8,
                 height: 8,
                 borderRadius: 4,
-                backgroundColor: "#ff3040",
+                backgroundColor: t.primary,
               }}
             />
           )}
@@ -649,7 +653,7 @@ export function SocialFeed() {
           label={`Messages${dmCount ? `, ${dmCount} unread` : ""}`}
           onPress={() => go("/social/inbox")}
         >
-          <Send size={22} color={t.text} />
+          <MessageCircle size={22} color={t.text} />
           <Badge count={dmCount} />
         </Bounce>
       </View>
@@ -804,7 +808,9 @@ export function SocialFeed() {
                     backgroundColor: t.primary,
                   }}
                 >
-                  <Text style={{ color: "#fff", fontFamily: fonts.semibold }}>
+                  <Text
+                    style={{ color: t.onPrimary, fontFamily: fonts.semibold }}
+                  >
                     Check in for today
                   </Text>
                 </Pressable>

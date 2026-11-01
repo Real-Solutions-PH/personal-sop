@@ -19,6 +19,7 @@ import {
   buildSnapshot,
   dayEndsAfter,
   dayHeadline,
+  launcherApps,
   type SnapshotInput,
   snapshotKey,
 } from "../snapshot"
@@ -49,6 +50,8 @@ const input = (over: Partial<SnapshotInput> = {}): SnapshotInput => ({
   ring: { done: 3, due: 8 },
   lifeScore: 72,
   streak: 4,
+  journal: true,
+  screenTime: false,
   ...over,
 })
 
@@ -300,4 +303,35 @@ describe("lock-screen state", () => {
     expect(s?.controls).toEqual(["finishSet", "finish"])
     expect(liveKey(s)).toBe(liveKey(live(Date.now() + 9000)))
   })
+})
+
+it("the Apps widget lists what the in-app launcher shows, in its order", () => {
+  const all = {
+    habits: true,
+    tasks: true,
+    fitness: true,
+    nutrition: true,
+    focus: true,
+    finance: true,
+    screen: true,
+  }
+  expect(launcherApps(all, true, true)).toEqual([
+    "habits",
+    "tasks",
+    "fitness",
+    "nutrition",
+    "focus",
+    "finance",
+    "screen",
+    "journal",
+  ])
+  // Screen Time needs a build that can read it; Journal can be hidden.
+  expect(launcherApps(all, false, false)).not.toContain("screen")
+  expect(launcherApps(all, false, false)).not.toContain("journal")
+  expect(launcherApps({ ...all, finance: false }, true, false)).not.toContain(
+    "finance",
+  )
+  expect(
+    buildSnapshot(input({ journal: false, screenTime: false })).apps,
+  ).not.toContain("journal")
 })

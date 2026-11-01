@@ -61,7 +61,6 @@ test("a credit card says what is owed and how much of the limit is used", () => 
     <AccountCard
       account={account({ name: "Maya Black", type: "credit", limit: 50000 })}
       balance={-20000}
-      nudgeDays={14}
     />,
   )
   expect(screen.getByText("Maya Black")).toBeTruthy()
@@ -70,31 +69,29 @@ test("a credit card says what is owed and how much of the limit is used", () => 
   expect(screen.getByText("40% of limit used")).toBeTruthy()
 })
 
-test("an everyday account shows what is available and when it was matched", () => {
+test("an everyday account shows what is available, never a statement nudge", () => {
   render(
     <AccountCard
       account={account({ name: "GCash", type: "ewallet" })}
       balance={2500}
-      nudgeDays={14}
     />,
   )
   expect(screen.getByText("available")).toBeTruthy()
-  expect(screen.getByText("Not matched yet")).toBeTruthy()
+  expect(screen.getByText("Kept up as you log")).toBeTruthy()
+  expect(screen.queryByText(/match/i)).toBeNull()
   expect(
-    screen.getByLabelText(/GCash, E-wallet, ₱2,500\. Not matched yet/),
+    screen.getByLabelText(/GCash, E-wallet, ₱2,500\. Kept up as you log/),
   ).toBeTruthy()
 })
 
-test("cash has no statement, so it is never flagged as unmatched", () => {
+test("cash is kept up as you log", () => {
   render(
     <AccountCard
       account={account({ name: "Wallet", type: "cash" })}
       balance={800}
-      nudgeDays={14}
     />,
   )
   expect(screen.getByText("Kept up as you log")).toBeTruthy()
-  expect(screen.queryByText("Not matched yet")).toBeNull()
 })
 
 // The brand's account colours (shared/prototype/design/tokens.ts).
@@ -151,7 +148,6 @@ test("a card with no colour of its own is filled with a real hex", () => {
     <AccountCard
       account={account({ name: "Legacy", type: "bank", color: "fin" })}
       balance={100}
-      nudgeDays={14}
     />,
   )
   const json = JSON.stringify(screen.toJSON())

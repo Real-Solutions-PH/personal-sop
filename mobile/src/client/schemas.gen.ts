@@ -18707,6 +18707,18 @@ export const SyncOpSchema = {
                 }
             ],
             title: 'Base Version'
+        },
+        at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'At'
         }
     },
     type: 'object',
@@ -23881,6 +23893,11 @@ export const app__modules__social__schema__MessagePublicSchema = {
             },
             type: 'object',
             title: 'Reactions'
+        },
+        deleted: {
+            type: 'boolean',
+            title: 'Deleted',
+            default: false
         }
     },
     type: 'object',

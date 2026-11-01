@@ -66,6 +66,7 @@ import { AskStatus } from "./ask-status"
 import { BlockView, Chips, TrackerCard } from "./blocks"
 import { ask } from "./brain"
 import { ChatsSheet } from "./chats"
+import { launchFern } from "./launch"
 import { Orb } from "./orb"
 import {
   answering,
@@ -611,6 +612,8 @@ export function CompanionChat() {
     q?: string
     hint?: string
     thread?: string
+    launch?: string
+    at?: string
   }>()
   const on = useWorking()
   const onPage = usePathname() === "/capture"
@@ -619,6 +622,11 @@ export function CompanionChat() {
   useEffect(() => {
     if (params.thread) openChat(params.thread)
   }, [params.thread])
+  // Opened from a widget's Fern button: start dictating, the camera or the
+  // keyboard (companion/launch.ts).
+  useEffect(() => {
+    launchFern(params.launch, params.at)
+  }, [params.launch, params.at])
   // While this page is on screen, Fern's reply to its chat shows no banner.
   useEffect(() => {
     chatPage.setState({ on: onPage })

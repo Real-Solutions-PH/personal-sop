@@ -695,12 +695,33 @@ def explore(ctx: Ctx) -> ExplorePublic:
 # ================================================================ comments
 
 
-def _comment_of(ctx: Ctx, post_id: uuid.UUID, comment_id: uuid.UUID) -> Comment:
-    """A live comment that belongs to ``post_id`` (parent/child assertion)."""
-    c = repo.in_tenant(ctx, Comment, comment_id)
+def _comment_of(
+    ctx: Ctx,
+    post_id: uuid.UUID,
+    comment_id: uuid.UUID,
+    *,
+    include_deleted: bool = False,
+) -> Comment:
+    """A comment that belongs to ``post_id`` (parent/child assertion); live
+    only unless ``include_deleted``."""
+    c = ctx.session.get(Comment, comment_id) if include_deleted else None
+    if c is None or c.tenant_id != ctx.tenant_id:
+        c = repo.in_tenant(ctx, Comment, comment_id)
     if c is None or c.post_id != post_id:
         raise not_found("comment")
     return c
+
+
+def _comment_event(ctx: Ctx, post: Post, comment: Comment, action: str) -> None:
+    """Tell whoever may have the post open: the author's followers, the
+    author, and the commenter's other devices."""
+    targets = repo.follower_ids(ctx, post.owner_id) + [post.owner_id, ctx.user_id]
+    notify.event(
+        ctx,
+        list(dict.fromkeys(targets)),
+        "social.comment",
+        {"post_id": str(post.id), "comment_id": str(comment.id), "action": action},
+    )
 
 
 def list_comments(
@@ -771,6 +792,7 @@ def add_comment(ctx: Ctx, *, post_id: uuid.UUID, body: CommentCreate) -> Comment
     _mention(
         ctx, mentions, key=f"comment:{comment.id}", post_id=post.id, text=comment.text
     )
+    _comment_event(ctx, post, comment, "created")
     notify.commit(ctx)
     return views.comments(ctx, [comment])[0]
 
@@ -789,7 +811,7 @@ def like_comment(
                 kind="like",
                 key=key,
                 post_id=post_id,
-                text="liked your comment",
+                text="cheered your comment",
             )
         else:
             notify.retract(ctx, recipient=c.owner_id, kind="like", key=key)
@@ -797,7 +819,8 @@ def like_comment(
     return views.comments(ctx, [c])[0]
 
 
-def _retract_comment_activity(ctx: Ctx, post: Post, comment: Comment) -> None:
+def _comment_activity(ctx: Ctx, post: Post, comment: Comment) -> list[Activity]:
+    """The comment and mention notifications ``comment`` caused."""
     direct, mentions = _comment_recipients(ctx, post, comment)
     ids = [
         notify.activity_id(u, "comment", f"comment:{comment.id}", comment.owner_id)
@@ -806,41 +829,85 @@ def _retract_comment_activity(ctx: Ctx, post: Post, comment: Comment) -> None:
         notify.activity_id(u, "mention", f"comment:{comment.id}", comment.owner_id)
         for u in mentions
     ]
-    for row_id in ids:
-        row = ctx.session.get(Activity, row_id)
-        if row is not None and row.deleted_at is None:
-            row.deleted_at = ctx.now
-            ctx.session.add(row)
+    rows = [ctx.session.get(Activity, row_id) for row_id in ids]
+    return [r for r in rows if r is not None]
 
 
-def delete_comment(ctx: Ctx, *, post_id: uuid.UUID, comment_id: uuid.UUID) -> None:
-    """The comment's author or the post's owner may delete it; its replies go
-    with it."""
-    post = repo.visible_post(ctx, post_id)
-    c = _comment_of(ctx, post_id, comment_id)
-    if ctx.user_id not in (c.owner_id, post.owner_id):
-        raise forbidden(
-            "comment_forbidden", "Only the author or the post owner can delete this"
-        )
-    doomed = [c]
-    frontier = [c.id]
+def _comment_thread(
+    ctx: Ctx, root: Comment, deleted_at: datetime | None
+) -> list[Comment]:
+    """``root`` and every reply under it whose ``deleted_at`` is
+    ``deleted_at`` (``None``: the live ones)."""
+    out = [root]
+    frontier = [root.id]
+    stamp = (
+        col(Comment.deleted_at).is_(None)
+        if deleted_at is None
+        else col(Comment.deleted_at) == deleted_at
+    )
     while frontier:
         replies = list(
             ctx.session.exec(
-                select(Comment).where(
-                    col(Comment.reply_to_id).in_(frontier),
-                    col(Comment.deleted_at).is_(None),
-                )
+                select(Comment).where(col(Comment.reply_to_id).in_(frontier), stamp)
             ).all()
         )
-        doomed += replies
+        out += replies
         frontier = [r.id for r in replies]
-    for row in doomed:
-        _retract_comment_activity(ctx, post, row)
+    return out
+
+
+def delete_comment(ctx: Ctx, *, post_id: uuid.UUID, comment_id: uuid.UUID) -> None:
+    """Only the comment's author may delete it; its replies go with it, and
+    ``POST …/restore`` brings them all back for a short window."""
+    post = repo.visible_post(ctx, post_id)
+    c = _comment_of(ctx, post_id, comment_id)
+    if c.owner_id != ctx.user_id:
+        raise forbidden("comment_forbidden", "Only the author can delete this comment")
+    for row in _comment_thread(ctx, c, None):
+        for a in _comment_activity(ctx, post, row):
+            if a.deleted_at is None:
+                a.deleted_at = ctx.now
+                ctx.session.add(a)
         row.deleted_at = ctx.now
         ctx.session.add(row)
     ctx.session.flush()
+    _comment_event(ctx, post, c, "deleted")
     notify.commit(ctx)
+
+
+def restore_comment(
+    ctx: Ctx, *, post_id: uuid.UUID, comment_id: uuid.UUID
+) -> CommentsPublic:
+    """Undo a delete inside :data:`logic.UNDO_WINDOW`: the comment, the
+    replies that went with it and their notifications. Returns them."""
+    post = repo.visible_post(ctx, post_id)
+    c = _comment_of(ctx, post_id, comment_id, include_deleted=True)
+    if c.owner_id != ctx.user_id:
+        raise forbidden("comment_forbidden", "Only the author can restore this comment")
+    if c.deleted_at is None:
+        rows = [c]
+    else:
+        if ctx.now - c.deleted_at > logic.UNDO_WINDOW:
+            raise conflict("undo_expired", "This comment can no longer be restored")
+        if c.reply_to_id is not None:
+            # A reply whose parent has gone since has nothing to hang from.
+            parent = repo.in_tenant(ctx, Comment, c.reply_to_id)
+            if parent is None:
+                raise conflict("undo_expired", "This comment can no longer be restored")
+        stamp = c.deleted_at
+        rows = _comment_thread(ctx, c, stamp)
+        for row in rows:
+            for a in _comment_activity(ctx, post, row):
+                if a.deleted_at == stamp:
+                    a.deleted_at = None
+                    ctx.session.add(a)
+            row.deleted_at = None
+            ctx.session.add(row)
+        ctx.session.flush()
+        _comment_event(ctx, post, c, "restored")
+    notify.commit(ctx)
+    rows.sort(key=lambda r: (r.created_at, str(r.id)))
+    return CommentsPublic(data=views.comments(ctx, rows), count=len(rows))
 
 
 # ================================================================ stories
@@ -950,7 +1017,7 @@ def like_story(ctx: Ctx, *, story_id: uuid.UUID, on: bool) -> StoryPublic:
                 recipient=story.owner_id,
                 kind="story",
                 key=str(story.id),
-                text="liked your story",
+                text="cheered your check-in",
             )
         else:
             notify.retract(
@@ -1069,7 +1136,7 @@ def like_note(ctx: Ctx, *, note_id: uuid.UUID, on: bool) -> NotePublic:
                 recipient=note.owner_id,
                 kind="like",
                 key=key,
-                text="liked your note",
+                text="cheered your note",
             )
         else:
             notify.retract(ctx, recipient=note.owner_id, kind="like", key=key)
@@ -1392,7 +1459,8 @@ def list_messages(
 ) -> MessagesPublic:
     """Newest first; ``next_cursor`` pages back in time."""
     repo.member_chat(ctx, chat_id)
-    where = (col(ChatMessage.chat_id) == chat_id, col(ChatMessage.deleted_at).is_(None))
+    # Deleted messages stay in the thread as tombstones (see ``views``).
+    where = (col(ChatMessage.chat_id) == chat_id,)
     count = ctx.session.exec(
         select(func.count()).select_from(ChatMessage).where(*where)
     ).one()
@@ -1429,9 +1497,18 @@ def _msg_event(msg: ChatMessage) -> dict[str, Any]:
     }
 
 
-def _message_of(ctx: Ctx, chat_id: uuid.UUID, message_id: uuid.UUID) -> ChatMessage:
-    """A live message that belongs to ``chat_id`` (parent/child assertion)."""
-    msg = repo.in_tenant(ctx, ChatMessage, message_id)
+def _message_of(
+    ctx: Ctx,
+    chat_id: uuid.UUID,
+    message_id: uuid.UUID,
+    *,
+    include_deleted: bool = False,
+) -> ChatMessage:
+    """A message that belongs to ``chat_id`` (parent/child assertion); live
+    only unless ``include_deleted``."""
+    msg = ctx.session.get(ChatMessage, message_id) if include_deleted else None
+    if msg is None or msg.tenant_id != ctx.tenant_id:
+        msg = repo.in_tenant(ctx, ChatMessage, message_id)
     if msg is None or msg.chat_id != chat_id:
         raise not_found("message")
     return msg
@@ -1546,16 +1623,41 @@ def react(
 
 
 def unsend(ctx: Ctx, *, chat_id: uuid.UUID, message_id: uuid.UUID) -> None:
-    """Only the sender may unsend; it is a soft delete everyone stops seeing."""
+    """Delete my message: only the sender may. It is a soft delete; the
+    thread keeps a "Message deleted" tombstone in its place, and ``POST
+    …/restore`` undoes it for a short window. Repeating it is harmless."""
     repo.member_chat(ctx, chat_id)
-    msg = _message_of(ctx, chat_id, message_id)
+    msg = _message_of(ctx, chat_id, message_id, include_deleted=True)
     if msg.owner_id != ctx.user_id or msg.system:
-        raise forbidden("not_sender", "Only the sender can unsend this message")
-    owned_repo.soft_delete(ctx, msg)
-    _chat_event(
-        ctx, chat_id, "chat.message", {"message_id": str(msg.id), "action": "unsent"}
-    )
+        raise forbidden("not_sender", "Only the sender can delete this message")
+    if msg.deleted_at is None:
+        owned_repo.soft_delete(ctx, msg)
+        _chat_event(
+            ctx,
+            chat_id,
+            "chat.message",
+            {"message_id": str(msg.id), "action": "unsent"},
+        )
     notify.commit(ctx)
+
+
+def restore_message(
+    ctx: Ctx, *, chat_id: uuid.UUID, message_id: uuid.UUID
+) -> MessagePublic:
+    """Undo a delete inside :data:`logic.UNDO_WINDOW` (sender only)."""
+    repo.member_chat(ctx, chat_id)
+    msg = _message_of(ctx, chat_id, message_id, include_deleted=True)
+    if msg.owner_id != ctx.user_id or msg.system:
+        raise forbidden("not_sender", "Only the sender can restore this message")
+    if msg.deleted_at is not None:
+        if ctx.now - msg.deleted_at > logic.UNDO_WINDOW:
+            raise conflict("undo_expired", "This message can no longer be restored")
+        owned_repo.restore(ctx, msg)
+        _chat_event(
+            ctx, chat_id, "chat.message", {**_msg_event(msg), "action": "restored"}
+        )
+    notify.commit(ctx)
+    return views.messages(ctx, [msg])[0]
 
 
 def mark_read(ctx: Ctx, *, chat_id: uuid.UUID) -> ChatPublic:

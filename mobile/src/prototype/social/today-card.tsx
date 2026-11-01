@@ -1,4 +1,4 @@
-import { ChevronRight, Send, Users } from "lucide-react-native"
+import { ChevronRight, MessageCircle, Users } from "lucide-react-native"
 import { useMemo } from "react"
 import { Pressable, Text, View } from "react-native"
 import { Copy, Group, Line, Part, Tap } from "../native-kit"
@@ -33,7 +33,7 @@ export function CommunityCard() {
             onPress={() => go("/social/inbox")}
           >
             <Line style={{ gap: 8 }}>
-              <Send size={16} color="#ff3040" />
+              <MessageCircle size={16} color={t.primary} />
               <Copy size={14} style={{ flex: 1 }}>
                 {dms} unread {dms === 1 ? "chat" : "chats"}
               </Copy>
@@ -130,12 +130,14 @@ export function CommunityButton() {
             height: 16,
             paddingHorizontal: 4,
             borderRadius: 8,
-            backgroundColor: "#ff3040",
+            backgroundColor: t.primary,
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <Text style={{ color: "#fff", fontFamily: fonts.bold, fontSize: 10 }}>
+          <Text
+            style={{ color: t.onPrimary, fontFamily: fonts.mono, fontSize: 10 }}
+          >
             {dms}
           </Text>
         </View>

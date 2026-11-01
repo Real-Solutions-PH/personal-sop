@@ -188,7 +188,6 @@ export function Accounts({ id }: { id?: string }) {
           0,
         )
       : 0,
-    days = a ? C.lastReconciledDays(a) : null,
     imports = a ? s.imports.filter((i) => i.accountId === a.id) : []
   return (
     <Screen
@@ -235,7 +234,6 @@ export function Accounts({ id }: { id?: string }) {
           <AccountCard
             account={a}
             balance={bal[a.id]}
-            nudgeDays={s.settings.nudgeDays}
             onPress={() => setEdit(true)}
           />
           <Frame
@@ -263,9 +261,6 @@ export function Accounts({ id }: { id?: string }) {
                 </Copy>
               </Line>
               <Bar value={Math.abs(bal[a.id]) / a.limit} color={t.fin} />
-              <Copy size={12} style={{ color: t.good }}>
-                Paid in full 3 cycles in a row
-              </Copy>
             </Frame>
           ) : (
             <Line>
@@ -340,35 +335,6 @@ export function Accounts({ id }: { id?: string }) {
               </Tap>
             ))}
           </Line>
-          {!a.manual && (
-            <Frame style={{ padding: 16 }}>
-              <Line style={{ justifyContent: "space-between", gap: 8 }}>
-                <View style={{ flex: 1 }}>
-                  <Copy size={14}>Last matched with statement</Copy>
-                  <Copy
-                    size={12}
-                    style={{
-                      color:
-                        days !== null && days > s.settings.nudgeDays
-                          ? t.warn
-                          : t.muted,
-                    }}
-                  >
-                    {a.lastReconciled
-                      ? `${C.shortDate(a.lastReconciled)} · ${days} days ago`
-                      : "Never"}
-                  </Copy>
-                </View>
-                <Button
-                  small
-                  tone="quiet"
-                  href={`/finance/import?account=${a.id}`}
-                >
-                  Match with statement
-                </Button>
-              </Line>
-            </Frame>
-          )}
           <View style={{ marginTop: -12 }}>
             <SectionHeading
               action={
@@ -453,7 +419,6 @@ export function Accounts({ id }: { id?: string }) {
               disabled={!actual || !Number.isFinite(Number(actual))}
               onPress={() => {
                 A.adjustBalance(a.id, Number(actual))
-                A.updateAccount(a.id, { lastReconciled: dayKey() })
                 setAdjust(false)
               }}
             >
@@ -529,12 +494,7 @@ export function Accounts({ id }: { id?: string }) {
                   </SectionHeading>
                   <View style={{ gap: 10 }}>
                     {group.map((a) => (
-                      <AccountCard
-                        key={a.id}
-                        account={a}
-                        balance={bal[a.id]}
-                        nudgeDays={s.settings.nudgeDays}
-                      />
+                      <AccountCard key={a.id} account={a} balance={bal[a.id]} />
                     ))}
                   </View>
                 </View>

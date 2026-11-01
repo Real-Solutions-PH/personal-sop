@@ -5,4 +5,6 @@
   <string name="unfurl_widget_macros_desc">Calories and protein left for today.</string>
   <string name="unfurl_widget_tasks_desc">Overdue and upcoming tasks.</string>
   <string name="unfurl_widget_money_desc">What you can spend today and what\'s left of your budget.</string>
+  <string name="unfurl_widget_fern_desc">Chat with Fern, dictate, or send a photo in one tap.</string>
+  <string name="unfurl_widget_apps_desc">Open Habits, Tasks, Finance, Journal and the rest in one tap.</string>
 </resources>

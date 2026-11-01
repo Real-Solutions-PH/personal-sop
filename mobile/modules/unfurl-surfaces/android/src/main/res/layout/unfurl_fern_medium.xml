@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fern quick actions, wide: the logo opens the app; chat, photo, dictate. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/unfurl_root" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="horizontal" android:gravity="center_vertical" android:padding="12dp" android:background="@drawable/unfurl_widget_bg">
+<LinearLayout android:id="@+id/fern_app" android:layout_width="wrap_content" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center" android:paddingStart="4dp" android:paddingEnd="14dp" android:contentDescription="Open Unfurl">
+  <FrameLayout android:layout_width="60dp" android:layout_height="60dp">
+    <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/unfurl_fern_orb" android:importantForAccessibility="no" />
+    <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/unfurl_fern_mark" android:scaleType="fitCenter" android:importantForAccessibility="no" />
+  </FrameLayout>
+  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="Unfurl" android:textSize="13sp" android:textStyle="bold" android:textColor="@color/unfurl_text" />
+</LinearLayout>
+<LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical">
+<LinearLayout android:id="@+id/fern_chat" android:layout_width="match_parent" android:layout_height="56dp" android:orientation="horizontal" android:gravity="center_vertical" android:paddingStart="8dp" android:paddingEnd="12dp" android:background="@drawable/unfurl_fern_pill" android:contentDescription="Chat with Fern">
+  <FrameLayout android:layout_width="40dp" android:layout_height="40dp">
+    <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/unfurl_fern_orb" android:importantForAccessibility="no" />
+    <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/unfurl_fern_mark" android:scaleType="fitCenter" android:importantForAccessibility="no" />
+  </FrameLayout>
+  <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:text="Chat with Fern" android:textSize="16sp" android:textStyle="bold" android:textColor="@color/unfurl_text" android:maxLines="1" android:ellipsize="end" />
+</LinearLayout>
+<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:orientation="horizontal">
+  <LinearLayout android:id="@+id/fern_camera" android:layout_width="0dp" android:layout_weight="1" android:layout_height="46dp" android:orientation="horizontal" android:gravity="center" android:background="@drawable/unfurl_fern_pill" android:contentDescription="Photo for Fern">
+    <ImageView android:layout_width="18dp" android:layout_height="18dp" android:src="@drawable/unfurl_fern_camera" android:importantForAccessibility="no" />
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:text="Photo" android:textSize="14sp" android:textColor="@color/unfurl_text" android:maxLines="1" />
+  </LinearLayout>
+  <TextView android:layout_width="10dp" android:layout_height="1dp" />
+  <LinearLayout android:id="@+id/fern_mic" android:layout_width="0dp" android:layout_weight="1" android:layout_height="46dp" android:orientation="horizontal" android:gravity="center" android:background="@drawable/unfurl_fern_pill" android:contentDescription="Dictate to Fern">
+    <ImageView android:layout_width="18dp" android:layout_height="18dp" android:src="@drawable/unfurl_fern_mic" android:importantForAccessibility="no" />
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:text="Dictate" android:textSize="14sp" android:textColor="@color/unfurl_text" android:maxLines="1" />
+  </LinearLayout>
+</LinearLayout>
+</LinearLayout>
+</LinearLayout>

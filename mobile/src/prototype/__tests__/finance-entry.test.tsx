@@ -220,7 +220,7 @@ test("an account card shows a balance's centavos", () => {
     name: "BPI",
     type: "bank" as const,
   }
-  render(<AccountCard account={account} balance={1708.64} nudgeDays={14} />, {
+  render(<AccountCard account={account} balance={1708.64} />, {
     wrapper,
   })
   expect(screen.getByText("₱1,708.64")).toBeTruthy()

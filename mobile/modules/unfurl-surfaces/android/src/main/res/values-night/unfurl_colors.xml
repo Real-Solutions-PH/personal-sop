@@ -14,4 +14,10 @@
   <color name="unfurl_fin">#25a877</color>
   <color name="unfurl_life">#b8871a</color>
   <color name="unfurl_warn">#e3b562</color>
+  <color name="unfurl_foc">#3cb0c4</color>
+  <color name="unfurl_scr">#b2a862</color>
+  <color name="unfurl_moss">#2c7a5a</color>
+  <color name="unfurl_frond">#6bbf8a</color>
+  <color name="unfurl_sprout">#b7e08a</color>
+  <color name="unfurl_fern_soft">#253529</color>
 </resources>
