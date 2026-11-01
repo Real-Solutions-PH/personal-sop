@@ -5620,6 +5620,17 @@ export const FoodOutSchema = {
             ],
             title: 'Sodium'
         },
+        notes: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Notes'
+        },
         source: {
             type: 'string',
             title: 'Source'
@@ -5643,14 +5654,243 @@ export const FoodOutSchema = {
                 }
             ],
             title: 'Last Used At'
+        },
+        photo_media_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Photo Media Id'
+        },
+        photo_url: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Photo Url'
+        },
+        can_edit: {
+            type: 'boolean',
+            title: 'Can Edit',
+            default: false
         }
     },
     type: 'object',
     required: ['id', 'name', 'aliases', 'basis', 'unit_grams', 'state', 'kcal', 'protein', 'carbs', 'fat', 'fiber', 'sat_fat', 'sugar', 'sodium', 'source', 'verified', 'use_count', 'last_used_at'],
     title: 'FoodOut',
-    description: `One food of the person's library. Amounts are per \`\`basis\`\` (per
-100 g, per piece or per serving); sodium is in milligrams, every other
-amount in grams.`
+    description: `One food of the shared library. Amounts are per \`\`basis\`\` (per 100 g,
+per piece or per serving); sodium is in milligrams, every other amount in
+grams. \`\`can_edit\`\`: the caller is its author or an admin.`
+} as const;
+
+export const FoodPatchSchema = {
+    properties: {
+        name: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 160,
+                    minLength: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Name'
+        },
+        aliases: {
+            anyOf: [
+                {
+                    items: {
+                        type: 'string'
+                    },
+                    type: 'array',
+                    maxItems: 30
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Aliases'
+        },
+        basis: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['100g', 'piece', 'serving']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Basis'
+        },
+        unit_grams: {
+            anyOf: [
+                {
+                    type: 'number',
+                    maximum: 100000,
+                    exclusiveMinimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Unit Grams'
+        },
+        state: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['raw', 'cooked', 'as_sold']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'State'
+        },
+        kcal: {
+            anyOf: [
+                {
+                    type: 'number',
+                    maximum: 100000,
+                    minimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Kcal'
+        },
+        protein: {
+            anyOf: [
+                {
+                    type: 'number',
+                    maximum: 100000,
+                    minimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Protein'
+        },
+        carbs: {
+            anyOf: [
+                {
+                    type: 'number',
+                    maximum: 100000,
+                    minimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Carbs'
+        },
+        fat: {
+            anyOf: [
+                {
+                    type: 'number',
+                    maximum: 100000,
+                    minimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Fat'
+        },
+        fiber: {
+            anyOf: [
+                {
+                    type: 'number',
+                    maximum: 100000,
+                    minimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Fiber'
+        },
+        sat_fat: {
+            anyOf: [
+                {
+                    type: 'number',
+                    maximum: 100000,
+                    minimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Sat Fat'
+        },
+        sugar: {
+            anyOf: [
+                {
+                    type: 'number',
+                    maximum: 100000,
+                    minimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Sugar'
+        },
+        sodium: {
+            anyOf: [
+                {
+                    type: 'number',
+                    maximum: 100000,
+                    minimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Sodium'
+        },
+        notes: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 500
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Notes'
+        },
+        photo_media_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Photo Media Id'
+        }
+    },
+    type: 'object',
+    title: 'FoodPatch',
+    description: 'What a member may change on a food (every field optional).'
 } as const;
 
 export const FoodsOutSchema = {

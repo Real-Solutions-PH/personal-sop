@@ -1014,13 +1014,13 @@ def test_create_workout_template_makes_missing_exercises_and_undo_removes_it(
     step = setup_step(
         api,
         client,
-        "set up a push day: bench press 4 sets of 6, cable fly 3 sets",
+        "set up a push day: landmine press 4 sets of 6, cable fly 3 sets",
         monkeypatch,
         act(
             "create_workout_template",
             name="Push day",
             exercises=[
-                {"exercise": "Bench Press", "sets": 4, "reps": 6},
+                {"exercise": "Landmine Press", "sets": 4, "reps": 6},
                 {"exercise": "Cable Fly", "sets": 3},
             ],
         ),
@@ -1035,7 +1035,7 @@ def test_create_workout_template_makes_missing_exercises_and_undo_removes_it(
         key=lambda i: i.position,
     )
     assert [(exercises[i.exercise_id].name, i.sets) for i in items] == [
-        ("Bench Press", 4),
+        ("Landmine Press", 4),
         ("Cable Fly", 3),
     ]
     bench = exercises[items[0].exercise_id]
@@ -1045,7 +1045,7 @@ def test_create_workout_template_makes_missing_exercises_and_undo_removes_it(
     assert [x for x in live(rows_of(api, WorkoutTemplate)) if x.id == t.id] == []
     assert [i for i in live(rows_of(api, TemplateItem)) if i.template_id == t.id] == []
     # Exercises it added stay in the library.
-    assert "Bench Press" in {e.name for e in live(rows_of(api, Exercise))}
+    assert "Landmine Press" in {e.name for e in live(rows_of(api, Exercise))}
 
 
 def test_create_budget_covers_the_named_categories_and_undo_removes_it(

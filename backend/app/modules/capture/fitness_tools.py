@@ -497,15 +497,15 @@ def fitness_tools(run: "Run", *, manage: Manage, card: Card) -> list[BaseTool]:
 
     def create_exercise(**kw: Any) -> dict[str, Any]:
         a = ExerciseCreateArgs(**kw)
-        same = [
-            e
-            for e in fx.exercises_like(ctx, a.name)
-            if e.name.lower() == a.name.strip().lower()
-        ]
-        if same:
+        # The exercise catalog is shared by every member: a name that means
+        # an exercise already there (a variant, alias or close spelling) is
+        # that exercise, never a second copy.
+        same = fx.exercise_named(ctx, a.name)
+        if same is not None:
             return {
-                "error": "an_exercise_with_that_name_exists",
-                "exercise": same[0].name,
+                "reused": True,
+                "exercise": fx.exercise_public(same),
+                "note": "already in the exercise list; use this one",
             }
         ch = {"name": a.name.strip()} | _exercise_changes(a)
         if ch.get("rep_min") and not ch.get("rep_max"):

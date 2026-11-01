@@ -132,6 +132,12 @@ def exercises_like(ctx: Ctx, name: str) -> list[Exercise]:
     return list({e.id: e for e in found}.values())
 
 
+def exercise_named(ctx: Ctx, name: str) -> Exercise | None:
+    """The catalog exercise a new exercise's name already means, if any."""
+    services.ensure_settings(ctx)
+    return services.exercise_by_name(ctx, name)
+
+
 def templates_like(ctx: Ctx, name: str) -> list[WorkoutTemplate]:
     services.ensure_settings(ctx)
     rows = owned_repo.list_rows(ctx, WorkoutTemplate)

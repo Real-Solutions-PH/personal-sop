@@ -20,11 +20,13 @@ from tests.modules.fitness.api.test_stats_contributor import (
     write_seed,
 )
 from tests.utils.mobile import ctx_for, signed_in
+from tests.utils.tenant import user_of_own_tenant
 
 
 @pytest.fixture(scope="module")
 def seeded(db: Session) -> Generator[User, None, None]:
-    user, _ = signed_in(db)
+    # Its own tenant: the seeded routines must be the only ones it sees.
+    user = user_of_own_tenant(db)
     with ctx_for(user, now=NOW) as ctx:
         write_seed(ctx, salt="nutrition:")
     yield user

@@ -1,65 +1,23 @@
-// The food library: the foods Fern has saved for this person (read from a
-// label, or what they said), most used first, then the built-in foods the
-// estimator knows. Meal logging checks the library before it estimates, so
-// a saved food gives the same numbers every time.
+// The food library: the foods Fern has saved (read from a label, or what
+// someone said), shared by every member and most used first, then the
+// built-in foods the estimator knows. Meal logging checks the library
+// before it estimates, so a saved food gives the same numbers every time.
+// A saved food opens its own page (its photo, and every number).
 import { FOODS } from "@domain/fitness/data"
 import { openCapture } from "@domain/lib/capture"
-import { BadgeCheck, BookOpen, Camera, CloudOff } from "lucide-react-native"
+import { BadgeCheck, Camera, ChevronRight, CloudOff } from "lucide-react-native"
 import { useEffect, useState } from "react"
 import { View } from "react-native"
 import { liveMode } from "@/live/config"
 import { type LibraryFood, useFoods } from "@/live/nutrition-foods"
-import { Copy, Frame, Line, SectionHeading } from "../native-kit"
+import { Copy, Frame, Line, SectionHeading, Tap } from "../native-kit"
+import { go } from "../navigation"
 import { useTheme } from "../theme"
 import { Button, Field, Screen } from "../ui"
 import { LockedPreview } from "./locked-preview"
+import { BASIS_LABEL, FoodThumb, SAMPLE_FOODS } from "./nutrition-food-detail"
 
 const n = (v: number) => Math.round(v).toLocaleString("en-US")
-const BASIS: Record<string, string> = {
-  "100g": "per 100 g",
-  piece: "per piece",
-  serving: "per serving",
-}
-const SAMPLE: LibraryFood[] = [
-  {
-    id: "sample-1",
-    name: "Chicken breast, grilled",
-    aliases: [],
-    basis: "100g",
-    unit_grams: null,
-    kcal: 165,
-    protein: 31,
-    carbs: 0,
-    fat: 3.6,
-    fiber: 0,
-    sat_fat: 1,
-    sugar: 0,
-    sodium: 74,
-    source: "label",
-    verified: true,
-    use_count: 12,
-    last_used_at: null,
-  },
-  {
-    id: "sample-2",
-    name: "Greek yogurt, plain",
-    aliases: [],
-    basis: "serving",
-    unit_grams: 170,
-    kcal: 100,
-    protein: 17,
-    carbs: 6,
-    fat: 0.7,
-    fiber: 0,
-    sat_fat: 0.2,
-    sugar: 0,
-    sodium: 61,
-    source: "label",
-    verified: false,
-    use_count: 4,
-    last_used_at: null,
-  },
-]
 
 type Load =
   | { state: "loading" }
@@ -177,7 +135,7 @@ export function FoodLibrary() {
           icon={Camera}
         >
           <Frame style={{ padding: 4 }}>
-            {(load.foods.length ? load.foods : SAMPLE).map((f, i) => (
+            {(load.foods.length ? load.foods : SAMPLE_FOODS).map((f, i) => (
               <FoodRow key={f.id} food={f} first={i === 0} />
             ))}
           </Frame>
@@ -238,48 +196,59 @@ export function FoodLibrary() {
 function FoodRow({ food: f, first }: { food: LibraryFood; first: boolean }) {
   const t = useTheme()
   return (
-    <View
+    <Tap
+      label={`Open ${f.name}`}
+      onPress={() => go(`/nutrition/foods/${encodeURIComponent(f.id)}`)}
       style={{
         paddingHorizontal: 12,
         paddingVertical: 10,
         borderTopWidth: first ? 0 : 1,
         borderColor: t.line,
-        gap: 2,
       }}
     >
-      <Line style={{ justifyContent: "space-between", gap: 8 }}>
-        <Line style={{ gap: 6, flex: 1 }}>
-          <BookOpen size={14} color={t.nut} />
-          <Copy size={14} weight="medium" lines={1} style={{ flexShrink: 1 }}>
-            {f.name}
+      <Line style={{ gap: 10 }}>
+        <FoodThumb food={f} />
+        <View style={{ flex: 1, gap: 2 }}>
+          <Line style={{ justifyContent: "space-between", gap: 8 }}>
+            <Line style={{ gap: 6, flex: 1 }}>
+              <Copy
+                size={14}
+                weight="medium"
+                lines={1}
+                style={{ flexShrink: 1 }}
+              >
+                {f.name}
+              </Copy>
+              {f.verified && (
+                <BadgeCheck
+                  size={14}
+                  color={t.good}
+                  accessibilityLabel="Read from a label"
+                />
+              )}
+            </Line>
+            <Copy size={14} weight="semibold">
+              {n(f.kcal)}
+              <Copy size={12} muted>
+                {" "}
+                kcal
+              </Copy>
+            </Copy>
+          </Line>
+          <Copy size={12} muted lines={1}>
+            {BASIS_LABEL[f.basis] ?? f.basis}
+            {f.unit_grams ? ` (${n(f.unit_grams)} g)` : ""} · P {n(f.protein)} g
+            · C {n(f.carbs)} g · F {n(f.fat)} g
+            {f.sodium !== null ? ` · Na ${n(f.sodium)} mg` : ""}
           </Copy>
-          {f.verified && (
-            <BadgeCheck
-              size={14}
-              color={t.good}
-              accessibilityLabel="Read from a label"
-            />
+          {f.use_count > 0 && (
+            <Copy size={11} muted>
+              Logged {n(f.use_count)} time{f.use_count === 1 ? "" : "s"}
+            </Copy>
           )}
-        </Line>
-        <Copy size={14} weight="semibold">
-          {n(f.kcal)}
-          <Copy size={12} muted>
-            {" "}
-            kcal
-          </Copy>
-        </Copy>
+        </View>
+        <ChevronRight size={16} color={t.muted} />
       </Line>
-      <Copy size={12} muted lines={1}>
-        {BASIS[f.basis] ?? f.basis}
-        {f.unit_grams ? ` (${n(f.unit_grams)} g)` : ""} · P {n(f.protein)} g · C{" "}
-        {n(f.carbs)} g · F {n(f.fat)} g
-        {f.sodium !== null ? ` · Na ${n(f.sodium)} mg` : ""}
-      </Copy>
-      {f.use_count > 0 && (
-        <Copy size={11} muted>
-          Logged {n(f.use_count)} time{f.use_count === 1 ? "" : "s"}
-        </Copy>
-      )}
-    </View>
+    </Tap>
   )
 }

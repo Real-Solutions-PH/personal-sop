@@ -1,5 +1,6 @@
-"""The person's own food library (``FoodItem``): saving a food's nutrition,
-finding it again by name, and scaling it to the amount eaten.
+"""The shared food library (``FoodItem``): saving a food's nutrition,
+finding it again by name, and scaling it to the amount eaten. Every member
+reads every food; its author or an admin edits it (``catalog.py``).
 
 Meal logging checks the library first, so a food read once from its label
 gives the same numbers every time; only foods it has never seen fall back to
@@ -7,6 +8,7 @@ an estimate. Matching is by folded name or alias, then by every word of the
 food's name appearing in what was said ("2 eggs" finds "Egg, whole,
 hard-boiled" only through an alias, never by guesswork on one word)."""
 
+import difflib
 import re
 import uuid
 from dataclasses import dataclass, field
@@ -15,8 +17,10 @@ from typing import Any
 from sqlmodel import col
 
 from app.modules.fitness.models import FoodItem
+from app.modules.media import public as media_public
 from app.shared import owned_repo
 from app.shared.context import Ctx
+from app.shared.domain import conflict
 
 NUTRIENTS = ("kcal", "protein", "carbs", "fat", "fiber", "sat_fat", "sugar", "sodium")
 # Units that count pieces or servings rather than weigh.
@@ -81,20 +85,56 @@ class FoodDraft:
 
 
 def _live(ctx: Ctx) -> list[FoodItem]:
-    return owned_repo.list_rows(ctx, FoodItem)
+    return owned_repo.list_rows(
+        ctx, FoodItem, order_by=[col(FoodItem.created_at), col(FoodItem.id)]
+    )
+
+
+def _plain(name: str) -> str:
+    """A food name with plurals folded ("eggs" is "egg")."""
+    return " ".join(
+        w[:-1] if len(w) > 3 and w.endswith("s") and not w.endswith("ss") else w
+        for w in fold(name).split()
+    )
+
+
+def same_food(name: str, rows: list[FoodItem]) -> FoodItem | None:
+    """The library food a new food called ``name`` already is: the same
+    name or alias, the same words but for plurals, or one food whose name is
+    a close spelling of it ("japanese siomai" for "Japanese siomai")."""
+    key = fold(name)
+    for r in rows:
+        if r.key == key or key in (r.aliases or []):
+            return r
+    plain = _plain(name)
+    for r in rows:
+        if plain in {_plain(n) for n in [r.key, *(r.aliases or [])]}:
+            return r
+    close = {
+        r.id: r
+        for r in rows
+        for n in [r.key, *(r.aliases or [])]
+        if difflib.SequenceMatcher(None, plain, _plain(n)).ratio() >= 0.92
+    }
+    return next(iter(close.values())) if len(close) == 1 else None
 
 
 def save_food(ctx: Ctx, d: FoodDraft) -> tuple[FoodItem, bool]:
-    """Add a food, or update the one with the same name (or the same import
-    source). Returns the row and whether it was new. Flushes only."""
+    """Add a food, or update the one it already is (``same_food``, or the
+    same import source). Returns the row and whether it was new. A food
+    another member added is reused as it is: only its author or an admin
+    changes its numbers. Flushes only."""
     key = fold(d.name)
     if not key:
         raise ValueError("a food needs a name")
     rows = _live(ctx)
-    row = next(
+    by_ref = next(
         (r for r in rows if d.external_ref and r.external_ref == d.external_ref),
         None,
-    ) or next((r for r in rows if r.key == key), None)
+    )
+    row = by_ref or same_food(d.name, rows)
+    if row is not None and not owned_repo.can_write(ctx, row):
+        return row, False
     aliases = sorted({fold(a) for a in d.aliases if fold(a) and fold(a) != key})
     values: dict[str, Any] = {
         "name": d.name.strip()[:160],
@@ -118,8 +158,12 @@ def save_food(ctx: Ctx, d: FoodDraft) -> tuple[FoodItem, bool]:
     }
     if row is None:
         return owned_repo.insert(ctx, FoodItem, values | {"aliases": aliases}), True
-    # Keep aliases learned earlier; the new values replace the old ones.
-    merged = sorted(set(row.aliases or []) | set(aliases))
+    # Keep the name it is known by (the said one becomes an alias) and the
+    # aliases learned earlier; the new values replace the old ones.
+    if by_ref is None and row.key != key:
+        values["name"], values["key"] = row.name, row.key
+        aliases.append(key)
+    merged = sorted(set(row.aliases or []) | set(aliases) - {row.key})
     for k, v in values.items():
         setattr(row, k, v)
     row.aliases = merged
@@ -294,20 +338,35 @@ def food_public(f: FoodItem) -> dict[str, Any]:
 
 
 # What a person can change on a saved food.
-EDITABLE = ("name", "basis", "unit_grams", "state", "aliases", *NUTRIENTS)
+EDITABLE = (
+    "name",
+    "basis",
+    "unit_grams",
+    "state",
+    "aliases",
+    "notes",
+    "photo_media_id",
+    *NUTRIENTS,
+)
 
 
 def update_food(ctx: Ctx, food_id: uuid.UUID, changes: dict[str, Any]) -> FoodItem:
-    """Change a saved food's name, basis, aliases or numbers; a new name
-    becomes its new key. Flushes only."""
-    row = owned_repo.require(ctx, FoodItem, food_id, what="food")
+    """Change a saved food's name, basis, aliases, notes, photo or numbers;
+    a new name becomes its new key. Only its author or an admin may (403
+    ``catalog_read_only``); a name another live food has is refused (409
+    ``food_name_taken``). Flushes only."""
+    row = owned_repo.require_writable(ctx, FoodItem, food_id, what="food")
     data = {k: v for k, v in changes.items() if k in EDITABLE}
     if "name" in data:
         key = fold(str(data["name"]))
         if not key:
             raise ValueError("a food needs a name")
+        if any(r.key == key and r.id != row.id for r in _live(ctx)):
+            raise conflict("food_name_taken", "Another food already has that name")
         data["name"] = str(data["name"]).strip()[:160]
         data["key"] = key[:160]
+    if data.get("photo_media_id") is not None:
+        media_public.require_ready(ctx, data["photo_media_id"])
     if "aliases" in data:
         data["aliases"] = sorted({fold(a) for a in data["aliases"] if fold(a)})
     owned_repo.apply(row, data)
@@ -317,7 +376,9 @@ def update_food(ctx: Ctx, food_id: uuid.UUID, changes: dict[str, Any]) -> FoodIt
 
 
 def delete_food(ctx: Ctx, food_id: uuid.UUID) -> None:
-    owned_repo.soft_delete(ctx, owned_repo.require(ctx, FoodItem, food_id, what="food"))
+    owned_repo.soft_delete(
+        ctx, owned_repo.require_writable(ctx, FoodItem, food_id, what="food")
+    )
 
 
 def restore_food(ctx: Ctx, food_id: uuid.UUID) -> None:

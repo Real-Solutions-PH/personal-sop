@@ -278,6 +278,9 @@ def outcome(ctx: Ctx, name: str, args: dict[str, Any], result: Any) -> tuple[boo
             f"Created routine: {args.get('name', '')} · {len(steps)} steps, "
             f"{mins} min{wait}",
         )
+    if name in ("create_workout_template", "create_exercise") and res.get("reused"):
+        found = res.get("template") or res.get("exercise") or {}
+        return True, f"Already in the list: {found.get('name', '')}"
     if name == "create_workout_template":
         n = len(args.get("exercises") or [])
         return (

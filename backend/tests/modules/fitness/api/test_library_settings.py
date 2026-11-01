@@ -250,10 +250,12 @@ def test_overview_and_stats(client: TestClient, db: Session) -> None:
     assert client.get(f"{API}/stats?days=0", headers=h).status_code == 422
 
 
-def test_start_fresh_keeps_library_and_reset_restores_defaults(
+def test_start_fresh_and_reset_keep_the_shared_catalog(
     client: TestClient, db: Session
 ) -> None:
     user, h = signed_in(db)
+    templates_before = ok(client.get(f"{API}/templates", headers=h))["count"]
+    exercises_before = ok(client.get(f"{API}/exercises", headers=h))["count"]
     ids = exercise_ids(client, h)
     finished_workout(
         user,
@@ -272,51 +274,100 @@ def test_start_fresh_keeps_library_and_reset_restores_defaults(
     fresh = ok(client.post(f"{API}/start-fresh", headers=h))
     assert fresh["removed"] > 0
     assert ok(client.get(f"{API}/workouts", headers=h))["count"] == 0
-    assert ok(client.get(f"{API}/templates", headers=h))["count"] == 0
+    # Routines and exercises are every member's: starting over keeps them.
+    assert ok(client.get(f"{API}/templates", headers=h))["count"] == templates_before
     assert ok(client.get(f"{API}/weigh-ins", headers=h))["count"] == 0
     assert ok(client.get(f"{API}/targets", headers=h))["current"] is not None
-    assert ok(client.get(f"{API}/exercises", headers=h))["count"] == 13
+    assert ok(client.get(f"{API}/exercises", headers=h))["count"] == exercises_before
     with ctx_for(user) as ctx:
         assert profile_public.get_live(ctx) is None
     ok(client.patch(f"{API}/settings", headers=h, json={"weekly_target": 2}))
-    ok(client.post(f"{API}/exercises", headers=h, json={"name": "Custom"}))
+    custom = f"Custom {uuid.uuid4().hex[:6]}"
+    ok(client.post(f"{API}/exercises", headers=h, json={"name": custom}))
     ok(client.post(f"{API}/reset", headers=h))
     assert ok(client.get(f"{API}/settings", headers=h))["weekly_target"] == 4
     assert ok(client.get(f"{API}/targets", headers=h))["current"] is None
-    assert ok(client.get(f"{API}/exercises?q=custom", headers=h))["count"] == 0
-    assert ok(client.get(f"{API}/exercises", headers=h))["count"] == 13
-    assert [
-        t["name"] for t in ok(client.get(f"{API}/templates", headers=h))["data"]
-    ] == ["Push A", "Pull A", "Legs A"]
-    assert len(ok(client.get(f"{API}/templates", headers=h))["data"][0]["items"]) == 5
+    assert ok(client.get(f"{API}/exercises?q={custom}", headers=h))["count"] == 1
+    names = [t["name"] for t in ok(client.get(f"{API}/templates", headers=h))["data"]]
+    assert {"Push A", "Pull A", "Legs A"} <= set(names)
 
 
-def test_another_user_cannot_use_my_templates_or_exercises(
+def test_members_share_routines_and_exercises_but_edit_only_their_own(
     client: TestClient, db: Session
 ) -> None:
     _, h1 = signed_in(db)
     _, h2 = signed_in(db)
-    t = ok(client.get(f"{API}/templates", headers=h1))["data"][0]
-    ex = exercise_ids(client, h1)["Back Squat"]
-    err(client.get(f"{API}/templates/{t['id']}", headers=h2), 404, "template_not_found")
-    err(client.get(f"{API}/exercises/{ex}", headers=h2), 404, "exercise_not_found")
-    err(
+    ex = ok(
+        client.post(
+            f"{API}/exercises",
+            headers=h1,
+            json={"name": f"Sled push {uuid.uuid4().hex[:6]}"},
+        )
+    )
+    t = ok(
+        client.post(
+            f"{API}/templates",
+            headers=h1,
+            json={
+                "name": f"Sled day {uuid.uuid4().hex[:6]}",
+                "items": [{"exercise_id": ex["id"]}],
+            },
+        )
+    )
+    # The second member reads and uses both...
+    assert ok(client.get(f"{API}/templates/{t['id']}", headers=h2))["name"] == t["name"]
+    assert (
+        ok(client.get(f"{API}/exercises/{ex['id']}", headers=h2))["name"] == ex["name"]
+    )
+    started = ok(
         client.post(
             f"{API}/workouts/start",
             headers=h2,
             json={"source": "template", "template_id": t["id"]},
-        ),
-        404,
-        "template_not_found",
+        )
     )
-    err(
+    assert started["workout"]["exercises"][0]["exercise_id"] == ex["id"]
+    ok(client.post(f"{API}/workouts/{started['workout']['id']}/discard", headers=h2))
+    ok(
         client.post(
             f"{API}/templates",
             headers=h2,
-            json={"name": "x", "items": [{"exercise_id": ex}]},
+            json={
+                "name": f"Mine {uuid.uuid4().hex[:6]}",
+                "items": [{"exercise_id": ex["id"]}],
+            },
+        )
+    )
+    # ...but cannot change, archive or delete what the first one added.
+    body = {"name": "Renamed", "equipment": "barbell", "muscle": "chest"}
+    err(
+        client.put(f"{API}/exercises/{ex['id']}", headers=h2, json=body),
+        403,
+        "catalog_read_only",
+    )
+    err(
+        client.post(
+            f"{API}/exercises/{ex['id']}/archive", headers=h2, json={"archived": True}
         ),
-        404,
-        "exercise_not_found",
+        403,
+        "catalog_read_only",
+    )
+    err(
+        client.put(
+            f"{API}/templates/{t['id']}",
+            headers=h2,
+            json={"name": "Renamed", "items": [{"exercise_id": ex["id"]}]},
+        ),
+        403,
+        "catalog_read_only",
+    )
+    err(
+        client.delete(f"{API}/templates/{t['id']}", headers=h2),
+        403,
+        "catalog_read_only",
+    )
+    assert (
+        ok(client.get(f"{API}/exercises/{ex['id']}", headers=h1))["name"] == ex["name"]
     )
 
 

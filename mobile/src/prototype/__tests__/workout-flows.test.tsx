@@ -230,6 +230,61 @@ describe("workout logger", () => {
     expect(screen.getByText("Zercher Squat")).toBeTruthy()
   })
 
+  // Exercises are one shared catalog: the picker lists live exercises only,
+  // and "Create" never makes a second exercise with a name already taken.
+  const addCatalog = (...rows: object[]) =>
+    fitStore.set((s) => ({
+      ...s,
+      exercises: [
+        ...s.exercises,
+        ...rows.map((r) => ({
+          equipment: "barbell" as const,
+          muscle: "quads" as const,
+          loadType: "weight" as const,
+          repMin: 5,
+          repMax: 8,
+          increment: 2.5,
+          ...r,
+        })),
+      ] as typeof s.exercises,
+    }))
+
+  it("lists no merged exercise, and a former name finds the live one", () => {
+    addCatalog(
+      { id: "front", name: "Front Squat", aliases: ["Goblet Front Squat"] },
+      { id: "gfs", name: "Goblet Front Squat", mergedInto: "front" },
+    )
+    startEmpty()
+    render(<WorkoutLogger />, { wrapper })
+    fireEvent.press(screen.getByText("Add exercise"))
+    fireEvent.changeText(
+      screen.getByLabelText("Search exercises"),
+      "goblet front squat",
+    )
+    expect(screen.getByText("Front Squat")).toBeTruthy()
+    expect(screen.queryByText("Goblet Front Squat")).toBeNull()
+    expect(screen.queryByText(/Create “/)).toBeNull()
+  })
+
+  it("a name the catalog already has selects that exercise, not a copy", () => {
+    addCatalog({ id: "zs", name: "Zercher Squat", archived: true })
+    const w = startEmpty()
+    const before = fitStore.get().exercises.length
+    render(<WorkoutLogger />, { wrapper })
+    fireEvent.press(screen.getByText("Add exercise"))
+    fireEvent.changeText(
+      screen.getByLabelText("Search exercises"),
+      "  zercher   SQUAT ",
+    )
+    expect(screen.queryByText(/Create “/)).toBeNull()
+    fireEvent.press(screen.getByLabelText("Use exercise Zercher Squat"))
+    act(() => jest.advanceTimersByTime(400))
+    // No editor, no new exercise: the existing one joined the workout.
+    expect(screen.queryByLabelText("Exercise name")).toBeNull()
+    expect(fitStore.get().exercises).toHaveLength(before)
+    expect(workout(w.id)?.exercises.map((e) => e.exerciseId)).toEqual(["zs"])
+  })
+
   it("shows every set in its own unit", () => {
     const w = startEmpty()
     const ex = fitStore.get().exercises.find((e) => e.id === "bench")

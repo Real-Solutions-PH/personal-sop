@@ -1482,9 +1482,9 @@ export type FollowUpAnswerIn = {
 };
 
 /**
- * One food of the person's library. Amounts are per ``basis`` (per
- * 100 g, per piece or per serving); sodium is in milligrams, every other
- * amount in grams.
+ * One food of the shared library. Amounts are per ``basis`` (per 100 g,
+ * per piece or per serving); sodium is in milligrams, every other amount in
+ * grams. ``can_edit``: the caller is its author or an admin.
  */
 export type FoodOut = {
     id: string;
@@ -1501,10 +1501,35 @@ export type FoodOut = {
     sat_fat: (number | null);
     sugar: (number | null);
     sodium: (number | null);
+    notes?: (string | null);
     source: string;
     verified: boolean;
     use_count: number;
     last_used_at: (string | null);
+    photo_media_id?: (string | null);
+    photo_url?: (string | null);
+    can_edit?: boolean;
+};
+
+/**
+ * What a member may change on a food (every field optional).
+ */
+export type FoodPatch = {
+    name?: (string | null);
+    aliases?: (Array<(string)> | null);
+    basis?: ('100g' | 'piece' | 'serving' | null);
+    unit_grams?: (number | null);
+    state?: ('raw' | 'cooked' | 'as_sold' | null);
+    kcal?: (number | null);
+    protein?: (number | null);
+    carbs?: (number | null);
+    fat?: (number | null);
+    fiber?: (number | null);
+    sat_fat?: (number | null);
+    sugar?: (number | null);
+    sodium?: (number | null);
+    notes?: (string | null);
+    photo_media_id?: (string | null);
 };
 
 export type FoodsOut = {
@@ -6502,6 +6527,25 @@ export type NutritionListFoodsData = {
 };
 
 export type NutritionListFoodsResponse = (FoodsOut);
+
+export type NutritionReadFoodData = {
+    foodId: string;
+};
+
+export type NutritionReadFoodResponse = (FoodOut);
+
+export type NutritionUpdateFoodData = {
+    foodId: string;
+    requestBody: FoodPatch;
+};
+
+export type NutritionUpdateFoodResponse = (FoodOut);
+
+export type NutritionCountFoodUseData = {
+    foodId: string;
+};
+
+export type NutritionCountFoodUseResponse = (void);
 
 export type PermissionsReadPermissionsData = {
     limit?: number;

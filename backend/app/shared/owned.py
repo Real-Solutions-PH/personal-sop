@@ -15,10 +15,15 @@ Every domain table in the mobile API inherits :class:`OwnedRow`:
   it; ``0`` is only the pre-trigger placeholder.
 - ``deleted_at`` is the tombstone: sync pulls ship deleted rows so other
   devices drop them, and undo restores by clearing it.
+
+A table that sets ``shared_catalog = True`` is app-wide instead: every member
+of the tenant reads its rows, ``owner_id`` is the row's author, and only the
+author or an admin writes it (see :mod:`app.shared.owned_repo`).
 """
 
 import uuid
 from datetime import datetime, timezone
+from typing import ClassVar
 
 from sqlalchemy import BigInteger, CheckConstraint, DateTime
 from sqlalchemy.dialects.postgresql import JSONB
@@ -30,6 +35,9 @@ def utcnow() -> datetime:
 
 
 class OwnedRow(SQLModel):
+    # True: readable by the whole tenant, writable by its author or an admin.
+    shared_catalog: ClassVar[bool] = False
+
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     owner_id: uuid.UUID = Field(
         foreign_key="user.id", nullable=False, ondelete="CASCADE", index=True
