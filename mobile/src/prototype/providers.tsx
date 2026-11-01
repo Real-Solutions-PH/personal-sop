@@ -15,7 +15,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
 import { liveMode } from "@/live/config"
-import { BootScreen } from "./boot/boot-screen"
+import { BootGate } from "./boot/boot-screen"
 import { contactGraceEnds, reachable } from "./connectivity"
 import { connectHealthWorkouts } from "./health-workouts"
 import { sessionStore, startLiveSession } from "./session"
@@ -151,10 +151,12 @@ export function PrototypeProviders({ children }: { children: ReactNode }) {
               </Pressable>
             </View>
           )}
-          {ready && (fontsLoaded || fontError) && children}
-          <BootScreen
-            ready={!!error || (ready && (fontsLoaded || !!fontError))}
-          />
+          <BootGate
+            ready={ready && !!(fontsLoaded || fontError)}
+            failed={!!error}
+          >
+            {children}
+          </BootGate>
           <AppToaster />
         </QueryClientProvider>
       </SafeAreaProvider>
