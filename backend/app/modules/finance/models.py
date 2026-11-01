@@ -392,5 +392,7 @@ class FinanceSettings(OwnedRow, table=True):
     ai_scope: str = Field(default="aggregates", sa_type=String(10))  # type: ignore
     disclaimer_ack: bool = False
     nudge_days: int = 7
+    # HH:MM in the user's clock for bill reminders, or null for off.
+    bill_reminder: str | None = Field(default="09:00", max_length=5)
     proj_excluded_planned: list[str] = Field(default_factory=list, sa_type=JSONB)
     setup_done: bool = False
