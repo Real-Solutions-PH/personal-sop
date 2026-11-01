@@ -174,13 +174,14 @@ test("each of a step's cards gets the same treatment", () => {
   expect(mockConfirm).toHaveBeenCalledWith("c-mom")
 })
 
-test("an undone card offers Redo, which saves it again and says so", () => {
+test("an undone card offers Redo, which saves it again without a toast", () => {
   arrive([{ id: "card-m", state: "undone" }])
   render(<BlockView block={{ t: "steps", items: [meal] }} />)
   expect(screen.getByText("Undone")).toBeTruthy()
   fireEvent.press(screen.getByRole("button", { name: "Redo" }))
   expect(mockRedo).toHaveBeenCalledWith("card-m")
-  expect(mockToast.success).toHaveBeenCalledWith("Saved again")
+  expect(mockToast.success).not.toHaveBeenCalled()
+  expect(mockToast).not.toHaveBeenCalled()
 })
 
 test("a table Fern sent shows every food, its grams, the totals and the source", () => {

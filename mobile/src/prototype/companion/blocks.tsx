@@ -1176,13 +1176,9 @@ function StepCard({
         <Text style={{ color: t.muted, fontFamily: fonts.body, fontSize: 12 }}>
           Undone
         </Text>
-        <StepButton
-          label="Redo"
-          onPress={() => {
-            redoCard(id)
-            toast.success("Saved again")
-          }}
-        />
+        {/* No toast: only a toast with Undo is shown, and the row turning
+            back to Undo is the feedback. */}
+        <StepButton label="Redo" onPress={() => redoCard(id)} />
       </View>
     )
   if (now === "undone" || now === "discarded")
