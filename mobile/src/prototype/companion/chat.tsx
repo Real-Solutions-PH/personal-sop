@@ -155,6 +155,9 @@ export function SolMessage({ m, name }: { m: Msg; name: string }) {
   // Until the reply ends its orb keeps working, as the design's thinking
   // state: quick breath, brighter glow, the frond swaying.
   const writing = answering((s) => s.id === m.id)
+  // The model's thinking comes before what it answered, as it happened.
+  const thought = m.blocks?.filter((b) => b.t === "thinking") ?? []
+  const rest = m.blocks?.filter((b) => b.t !== "thinking") ?? []
   return (
     <Animated.View
       entering={FadeInDown.springify().damping(18)}
@@ -169,6 +172,9 @@ export function SolMessage({ m, name }: { m: Msg; name: string }) {
         >
           {name}
         </Text>
+        {thought.map((b, i) => (
+          <BlockView key={`thought-${i}`} block={b} />
+        ))}
         {!!text && (
           <Text
             style={{
@@ -181,7 +187,7 @@ export function SolMessage({ m, name }: { m: Msg; name: string }) {
             {text}
           </Text>
         )}
-        {m.blocks?.map((b, i) => (
+        {rest.map((b, i) => (
           <BlockView key={i} block={b} />
         ))}
         {writing && !text && !m.blocks?.length && (
