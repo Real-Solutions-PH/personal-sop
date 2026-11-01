@@ -25,7 +25,11 @@ jest.mock("react-native-reanimated", () => ({
   useReducedMotion: () => true,
 }))
 jest.mock("sonner-native", () => ({
-  toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn() }),
+  toast: Object.assign(jest.fn(), {
+    success: jest.fn(),
+    error: jest.fn(),
+    warning: jest.fn(),
+  }),
 }))
 jest.mock("../navigation", () => ({ go: jest.fn(), replace: jest.fn() }))
 jest.mock("@/surfaces/actions", () => ({ applySurfaceAction: jest.fn() }))

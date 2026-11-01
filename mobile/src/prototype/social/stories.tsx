@@ -357,7 +357,7 @@ export function StoryViewer({ id }: { id: string }) {
       )
       setLoading(false)
       if (!found) {
-        toast("This check-in is no longer available")
+        toast.error("This check-in is no longer available")
         close()
       }
     })
@@ -463,7 +463,6 @@ export function StoryViewer({ id }: { id: string }) {
     sendMessage(chat, { text: v, storyReply: item.id })
     simulateReply(chat, 3000)
     haptic.done()
-    toast.success(`Sent to ${person?.username}`)
     setReply("")
     setTyping(false)
     input.current?.blur()

@@ -212,7 +212,6 @@ export function Setup() {
     allDone = (firstRun || steps.length > 0) && !pending.length
   const finishOnboarding = () => {
     setOnboarded(true)
-    toast.success("You're set", { description: "Day 1 starts now" })
     replace("/today")
   }
   const advance = (k: ModuleKey) =>
@@ -499,7 +498,6 @@ function HabitsStep({ onDone }: { onDone: () => void }) {
           onPress={() => {
             for (const n of picked)
               createHabit(HABIT_PICKS.find((h) => h.name === n) ?? { name: n })
-            toast(`${picked.length} habit${picked.length > 1 ? "s" : ""} added`)
             onDone()
           }}
         >
@@ -615,7 +613,6 @@ function FitnessStep({ onDone }: { onDone: () => void }) {
                 items: ids.map((exerciseId) => ({ exerciseId, sets: 3 })),
               })
             updateSettings({ goalDirection: goal, weeklyTarget: perWeek })
-            toast("Training baseline saved")
             onDone()
           }}
         >
@@ -629,7 +626,7 @@ function FitnessStep({ onDone }: { onDone: () => void }) {
  * section turns off until it is switched back on in Settings. */
 function screenTimeOff() {
   setEnabled("screen", false)
-  toast("Screen time is off. Turn it on anytime in Settings.")
+  toast.warning("Screen time is off. Turn it on anytime in Settings.")
 }
 /** The Screen Time permission, asked here because first-run setup can't
  * leave for the settings screen; groups and apps are picked there later.
@@ -727,7 +724,6 @@ function FocusStep({ onDone }: { onDone: () => void }) {
               longBreakMin: lb,
               setsBeforeLong: n,
             })
-            toast("Focus goal saved")
             onDone()
           }}
         >
@@ -817,7 +813,6 @@ export function NutritionStep({ onDone }: { onDone: () => void }) {
           onPress={() => {
             const { kcal, protein, carbs, fat, fiberG } = plan
             setMacroTarget({ kcal, protein, carbs, fat, fiberGoal: fiberG })
-            toast("Daily targets saved")
             onDone()
           }}
         >
@@ -860,8 +855,7 @@ function TasksStep({ onDone }: { onDone: () => void }) {
         <Button
           disabled={!text.trim()}
           onPress={() => {
-            const { tasks } = captureTasks(text, "manual")
-            toast(`${tasks.length} task${tasks.length > 1 ? "s" : ""} added`)
+            captureTasks(text, "manual")
             onDone()
           }}
         >

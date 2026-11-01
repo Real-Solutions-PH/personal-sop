@@ -5,7 +5,6 @@ import * as L from "@domain/tasks/logic"
 import { tasksStore } from "@domain/tasks/store"
 import { useMemo, useState } from "react"
 import { View } from "react-native"
-import { toast } from "sonner-native"
 import { Copy, Line } from "../native-kit"
 import { go } from "../navigation"
 import { useTheme } from "../theme"
@@ -56,7 +55,6 @@ export function TaskNew({ listId, day }: { listId?: string; day?: string }) {
       remindAt,
       source: "manual",
     })
-    toast.success("Task added")
     go(list ? `/tasks/list/${list}` : "/tasks")
   }
 

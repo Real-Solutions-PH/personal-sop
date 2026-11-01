@@ -34,7 +34,6 @@ export default function RecoverPasswordScreen() {
         redirectTo,
       })
       if (error) throw error
-      toast.success("Recovery email sent")
       router.replace("/login")
     } catch (err) {
       toast.error(handleError(err))

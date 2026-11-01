@@ -342,7 +342,6 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
           label: "Undo",
           onClick: () => {
             for (const r of saved) backend.undo(r.id, true)
-            toast("Undone")
           },
         },
       },
@@ -538,7 +537,9 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
       // processQueue's upload) sends it when the connection is back.
       streamingCaptures.delete(id)
       patchCapture(id, (c) => ({ ...c, status: "queued" }))
-      toast("Connection lost — it's queued and will send when you're back")
+      toast.warning(
+        "Connection lost — it's queued and will send when you're back",
+      )
     } finally {
       deps.kick()
       void refreshSpend()
@@ -595,7 +596,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
     // while the capture waits for a connection: keep a durable copy.
     if (deps.keep && (cap.audioUri || cap.fileUri)) void keepMedia(id)
     if (online) void runSend(id)
-    else toast("Queued — will process when you're back online")
+    else toast.warning("Queued — will process when you're back online")
     return id
   }
 
@@ -611,7 +612,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
     failure = "Couldn't update that. Try again.",
   ): Promise<T | undefined> {
     if (!deps.online()) {
-      toast(OFFLINE)
+      toast.error(OFFLINE)
       return undefined
     }
     try {
@@ -620,7 +621,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
       deps.kick()
       return res
     } catch (error) {
-      toast(error instanceof NetworkError ? OFFLINE : failure)
+      toast.error(error instanceof NetworkError ? OFFLINE : failure)
       return undefined
     }
   }
@@ -811,7 +812,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
     },
     retry(id) {
       if (find(id)?.status === "queued") {
-        if (!deps.online()) toast("Still offline — it stays queued")
+        if (!deps.online()) toast.warning("Still offline — it stays queued")
         else backend.processQueue()
         return
       }
@@ -825,11 +826,11 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
             startedAt: nowIso(),
           }))
           if (!deps.online())
-            toast("Offline — it'll be read again when you're back")
+            toast.warning("Offline — it'll be read again when you're back")
         },
         () => {
           if (!deps.online()) {
-            toast("Still offline — it stays queued")
+            toast.warning("Still offline — it stays queued")
             return
           }
           void call<Row>("POST", `/capture/${id}/retry`, undefined, detail)
@@ -895,19 +896,19 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
             detail(d)
             deps.kick()
             const saved = ((d.cards ?? []) as Row[])[0]
-            toast.success(`Saved · ${text}`, {
-              duration: 5000,
-              action: saved
-                ? {
-                    label: "Undo",
-                    onClick: () => backend.undo(String(saved.id), true),
-                  }
-                : undefined,
-            })
+            // Only with Undo: nothing to take back, no toast.
+            if (saved)
+              toast.success(`Saved · ${text}`, {
+                duration: 5000,
+                action: {
+                  label: "Undo",
+                  onClick: () => backend.undo(String(saved.id), true),
+                },
+              })
           },
           (error: unknown) => {
             if (error instanceof NetworkError) here()
-            else toast("Couldn't save that. Try again.")
+            else toast.error("Couldn't save that. Try again.")
           },
         )
       return card
@@ -963,7 +964,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
           companionStore.get().messages.some((m) => m.id === meId && m.status)
         )
           markAsk(meId, "failed")
-        toast(text)
+        toast.error(text)
       }
       const failed = gaveUp(
         `${companionName()} couldn't finish that reply. Tap Retry to ask again.`,
@@ -1342,13 +1343,15 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
     if (how === "ended") {
       if (view.failed) {
         if (!view.echoed) markAsk(meId, "failed")
-        toast(`${companionName()} couldn't finish that reply.`)
+        toast.error(`${companionName()} couldn't finish that reply.`)
       }
       return
     }
     if (how === "lost") {
       if (!view.echoed) markAsk(meId, "failed")
-      toast(`${companionName()} is taking too long. Tap Retry to ask again.`)
+      toast.error(
+        `${companionName()} is taking too long. Tap Retry to ask again.`,
+      )
       return
     }
     if (!view.echoed) markAsk(meId, "resuming")
@@ -1425,7 +1428,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
         )
       } catch {
         fail()
-        toast("Couldn't upload the photos. Tap Retry to send them again.")
+        toast.error("Couldn't upload the photos. Tap Retry to send them again.")
         return
       }
       try {
@@ -1438,7 +1441,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
         })
         if (!res.ok) {
           fail()
-          toast(
+          toast.error(
             `${companionName()} couldn't answer that. Tap Retry to ask again.`,
           )
           return
@@ -1448,7 +1451,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
         if (!view.ended) throw new NetworkError("stream ended early")
         if (view.failed) {
           fail()
-          toast(`${companionName()} couldn't finish that reply.`)
+          toast.error(`${companionName()} couldn't finish that reply.`)
         }
       } catch (_error) {
         view.calm()
@@ -1459,7 +1462,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
           await recover(meId, view)
         } else {
           fail()
-          toast(
+          toast.error(
             deps.online()
               ? `${companionName()} couldn't answer that. Tap Retry to ask again.`
               : OFFLINE,
@@ -1507,7 +1510,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
       else if (routedToCapture) send({ text, source: "text", hint })
       else {
         putAsk(newId(), text, hint, [], "queued", threadForSend())
-        toast(`${companionName()} will answer when you're back online.`)
+        toast.warning(`${companionName()} will answer when you're back online.`)
       }
       return
     }
@@ -1554,7 +1557,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
     if (m?.role !== "me" || m.status !== "failed") return
     if (!deps.online()) {
       markAsk(id, "queued")
-      toast(`${companionName()} will answer when you're back online.`)
+      toast.warning(`${companionName()} will answer when you're back online.`)
       return
     }
     void runAsk(m.text ?? "", m.hint, photosOf(m), id)

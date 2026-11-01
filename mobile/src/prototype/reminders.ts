@@ -40,7 +40,6 @@ export async function enableReminders(
       p = await N.requestPermissionsAsync()
     if (p.status === "granted") {
       setPush({ permission: "granted" })
-      toast.success("Reminders are on")
       const local =
         require("./local-reminders") as typeof import("./local-reminders")
       void local.syncReminders(N).catch(() => {})
@@ -49,9 +48,9 @@ export async function enableReminders(
     const status = p.status === "denied" ? "denied" : "default"
     setPush({ permission: status })
     if (!p.canAskAgain) {
-      toast("Turn on notifications for Unfurl in Settings")
+      toast.warning("Turn on notifications for Unfurl in Settings")
       await openSettings()
-    } else toast("Reminders stay off. You can turn them on any time.")
+    } else toast.warning("Reminders stay off. You can turn them on any time.")
     return status
   } catch {
     toast.error("Couldn't change notification settings. Try again.")

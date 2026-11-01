@@ -36,7 +36,6 @@ import {
 } from "lucide-react-native"
 import { useEffect, useState } from "react"
 import { Platform, ScrollView, Text, TextInput, View } from "react-native"
-import { toast } from "sonner-native"
 import { liveMode } from "@/live/config"
 import { EXTRAS, type Extra, extrasStore, setShown } from "../extras"
 import { pickAvatar } from "../media"
@@ -143,14 +142,14 @@ function useHandleCheck(handle: string, current: string): HandleCheck {
   return state
 }
 /** The photo sheet's change: shown at once, then saved on the server in
- * live mode (which reports the outcome). */
+ * live mode (which reports a failure). */
 function changePhoto(next: string | undefined, previous: string | undefined) {
   setProfilePhoto(next)
   if (liveMode) {
     const live =
       require("@/live/profile-photo") as typeof import("@/live/profile-photo")
     void live.syncProfilePhoto(next, { previous })
-  } else toast.success(next ? "Profile photo updated" : "Profile photo removed")
+  }
 }
 const bare = (handle: string) => handle.replace(/^@/, "")
 export function Profile() {
@@ -180,7 +179,6 @@ export function Profile() {
     // One store write (each one persists the whole dash store), and back to
     // the Me screen this was opened from rather than a second one on top.
     if (changed) saveProfileEdits(next)
-    toast.success("Profile saved")
     back("/me")
   }
   const input = {
@@ -759,11 +757,6 @@ export function Settings() {
           {row("Morning digest", "", <Copy size={14}>{s.push.morning}</Copy>)}
           {row("Evening wrap-up", "", <Copy size={14}>{s.push.evening}</Copy>)}
           {row("Weekly review", "", <Copy size={14}>{s.push.review}</Copy>)}
-          {row("Send a test push", "", chev, () =>
-            toast("Test push", {
-              description: "This is what a reminder looks like.",
-            }),
-          )}
         </Frame>
         <SectionHeading>Appearance</SectionHeading>
         <Frame style={{ padding: 8, gap: 8 }}>
@@ -846,10 +839,9 @@ export function Settings() {
             />,
             togglePrivacy,
           )}
-          {row("Reset share-card defaults", "", chev, () => {
-            dashStore.set((s) => ({ ...s, share: {} }))
-            toast("Share defaults reset")
-          })}
+          {row("Reset share-card defaults", "", chev, () =>
+            dashStore.set((s) => ({ ...s, share: {} })),
+          )}
           <Copy size={12} muted style={{ paddingVertical: 12 }}>
             Money amounts are never allowed on share cards. The privacy check
             before sharing can't be turned off.

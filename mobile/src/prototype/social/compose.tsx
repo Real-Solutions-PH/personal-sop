@@ -14,7 +14,6 @@ import {
 } from "react-native"
 import Animated, { FadeIn, FadeOut, ZoomIn } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { toast } from "sonner-native"
 import { back, replace } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import { confirm, Toggle } from "../ui"
@@ -163,8 +162,7 @@ export function Compose() {
             },
       )
     haptic.done()
-    // The feed's Posting… banner confirms the post; only note the story.
-    if (toStory) toast.success("Also added to your story")
+    // The feed's Posting… banner confirms the post.
     replace("/social")
   }
   const previewW = width - 32

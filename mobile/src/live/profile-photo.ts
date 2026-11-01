@@ -41,10 +41,10 @@ export type PhotoResult = "ok" | "pending" | "failed" | "stale"
 
 /** Save ``uri`` (or, undefined, the removal) as my profile photo on the
  * server. ``previous`` is the local photo to put back when the upload is
- * refused; ``quiet`` skips the success toast (a retry nobody tapped). */
+ * refused. Success shows no toast: the photo itself changes. */
 export async function syncProfilePhoto(
   uri: string | undefined,
-  opts: { previous?: string; quiet?: boolean; deps?: Partial<PhotoDeps> } = {},
+  opts: { previous?: string; deps?: Partial<PhotoDeps> } = {},
 ): Promise<PhotoResult> {
   const n = ++seq
   const d = { ...defaults(), ...opts.deps }
@@ -53,7 +53,7 @@ export async function syncProfilePhoto(
   let mediaId = was && was.uri === target ? was.mediaId : undefined
   const later = (): PhotoResult => {
     setProfilePhotoPending({ uri: target, mediaId })
-    toast(PHOTO_OFFLINE)
+    toast.warning(PHOTO_OFFLINE)
     return "pending"
   }
   if (!getConnectivity()) return later()
@@ -82,13 +82,11 @@ export async function syncProfilePhoto(
       const file = await d.keep(dataUriToBytes(uri).bytes)
       if (file && dashStore.get().profile.photo === uri) setProfilePhoto(file)
     }
-    if (!opts.quiet)
-      toast.success(uri ? "Profile photo updated" : "Profile photo removed")
     return "ok"
   } catch (error) {
     if (n !== seq) return "stale"
     if (error instanceof NetworkError) return later()
-    toast(PHOTO_FAILED)
+    toast.error(PHOTO_FAILED)
     if (mediaId) return "pending"
     setProfilePhotoPending(undefined)
     setProfilePhoto(opts.previous)
@@ -103,11 +101,8 @@ export function retryProfilePhoto(
 ): Promise<PhotoResult> | undefined {
   const s = dashStore.get()
   if (s.profilePhotoPending)
-    return syncProfilePhoto(s.profilePhotoPending.uri ?? undefined, {
-      quiet: true,
-      deps,
-    })
+    return syncProfilePhoto(s.profilePhotoPending.uri ?? undefined, { deps })
   if (s.profile.photo?.startsWith("data:"))
-    return syncProfilePhoto(s.profile.photo, { quiet: true, deps })
+    return syncProfilePhoto(s.profile.photo, { deps })
   return undefined
 }

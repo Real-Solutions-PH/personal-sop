@@ -423,10 +423,7 @@ export function TaskDetail({ id }: { id: string }) {
               small
               tone="quiet"
               icon={AlarmClock}
-              onPress={() => {
-                A.snoozeTask(id, x.m)
-                toast.success(`Snoozed ${x.label}`)
-              }}
+              onPress={() => A.snoozeTask(id, x.m)}
             >
               {x.label}
             </Button>
@@ -476,7 +473,6 @@ export function TaskDetail({ id }: { id: string }) {
               onPress={() => {
                 A.updateTask(id, { estimateMin: m })
                 setEstimating(false)
-                toast(`Estimate set to ${fmtHm(m * 60)}`)
               }}
               style={{
                 paddingHorizontal: 16,

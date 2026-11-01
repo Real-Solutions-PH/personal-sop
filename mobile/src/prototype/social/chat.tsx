@@ -46,7 +46,6 @@ import Animated, {
   ZoomIn,
 } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { toast } from "sonner-native"
 import { liveMode } from "@/live/config"
 import { back, go } from "../navigation"
 import { fonts, useTheme } from "../theme"
@@ -711,10 +710,7 @@ function ActionMenu({
                   {
                     label: "Copy",
                     Icon: Copy,
-                    run: () =>
-                      void Clipboard.setStringAsync(m.text ?? "").then(() =>
-                        toast.success("Copied"),
-                      ),
+                    run: () => void Clipboard.setStringAsync(m.text ?? ""),
                   },
                 ]
               : []),

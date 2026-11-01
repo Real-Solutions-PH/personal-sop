@@ -8,7 +8,6 @@ import {
   undoCard,
 } from "@domain/capture/engine"
 import { captureStore } from "@domain/capture/store"
-import { toast } from "@domain/capture/toast"
 import * as D from "@domain/dash/hooks"
 import { dashStore } from "@domain/dash/store"
 import { catMap, flowIn, netWorthSeries, spendIn } from "@domain/finance/calc"
@@ -1150,21 +1149,8 @@ function StepCard({
   if (live === "proposed")
     return (
       <View style={{ flexDirection: "row", gap: 6 }}>
-        <StepButton
-          label="Discard"
-          muted
-          onPress={() => {
-            discardCard(id)
-            toast("Discarded")
-          }}
-        />
-        <StepButton
-          label="Confirm"
-          onPress={() => {
-            confirmCard(id)
-            toast.success("Saved")
-          }}
-        />
+        <StepButton label="Discard" muted onPress={() => discardCard(id)} />
+        <StepButton label="Confirm" onPress={() => confirmCard(id)} />
       </View>
     )
   if (live === "saved" || live === "edited")

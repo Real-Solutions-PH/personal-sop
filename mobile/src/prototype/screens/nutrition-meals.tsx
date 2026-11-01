@@ -579,7 +579,6 @@ export function MealDetail({ id }: { id: string }) {
                 disabled={!meal.items.length}
                 onPress={() => {
                   A.confirmMeal(id)
-                  toast.success("Meal confirmed")
                   replace(back)
                 }}
               >{`Confirm · ${Math.round(totals.kcal)} kcal`}</Button>
@@ -779,10 +778,9 @@ export function ManualMeal() {
       {library && (
         <LibraryPickSheet
           onClose={() => setLibrary(false)}
-          onAdd={(item, food) => {
+          onAdd={(item) => {
             setItems((now) => [...now, item])
             setLibrary(false)
-            toast.success(`Added ${food.name} · ${Math.round(item.kcal)} kcal`)
           }}
         />
       )}
@@ -941,12 +939,11 @@ export function ManualMeal() {
               tone="quiet"
               disabled={!recipeName.trim()}
               onPress={() => {
-                const r = A.saveRecipe(
+                A.saveRecipe(
                   recipeName,
                   items.map(({ id: _id, ...rest }) => rest),
                 )
                 setRecipeName("")
-                toast.success(`Saved ${r.name}`)
               }}
             >
               Save recipe

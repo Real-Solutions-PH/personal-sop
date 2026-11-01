@@ -32,7 +32,6 @@ import {
 } from "lucide-react-native"
 import { useState } from "react"
 import { TextInput, View } from "react-native"
-import { toast } from "sonner-native"
 import { useShown } from "../extras"
 import {
   border,
@@ -393,10 +392,7 @@ export function WrapUp() {
                           icon={ArrowRight}
                           label={`Move ${i.title} to tomorrow`}
                           background={t.soft}
-                          onPress={() => {
-                            rescheduleBy(r.id, 1)
-                            toast("Moved to tomorrow")
-                          }}
+                          onPress={() => rescheduleBy(r.id, 1)}
                         />
                       )}
                       {!auto && (
@@ -507,14 +503,6 @@ export function WrapUp() {
                       day: today,
                       source: "wrapup",
                     })
-                  toast.success(
-                    onTarget ? "Day sealed — on target ✓" : "Day sealed",
-                    {
-                      description: text.trim()
-                        ? "Reflection saved to your journal."
-                        : "See you tomorrow.",
-                    },
-                  )
                   go("/today")
                 }}
               >

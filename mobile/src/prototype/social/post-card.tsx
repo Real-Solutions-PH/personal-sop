@@ -14,7 +14,6 @@ import {
 import { memo, useMemo, useState } from "react"
 import { Pressable, Share, Text, TextInput, View } from "react-native"
 import Animated, { FadeIn } from "react-native-reanimated"
-import { toast } from "sonner-native"
 import { copyText } from "../media"
 import { go } from "../navigation"
 import { fonts, useTheme } from "../theme"
@@ -255,7 +254,6 @@ export function SendSheet({
                         bg: [palette.dark.background, palette.light.moss],
                       },
               )
-              toast.success("Added to your story")
               onClose()
             },
           },
@@ -353,7 +351,7 @@ function PostMenu({
             label: "Report",
             Icon: Ellipsis,
             danger: true,
-            run: () => toast("Thanks — we'll review this post."),
+            run: () => {},
           },
         ]),
   ]

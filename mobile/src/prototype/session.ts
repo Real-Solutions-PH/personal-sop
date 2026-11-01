@@ -50,7 +50,7 @@ export function sessionEnded() {
   }))
   ;(
     require("@domain/capture/toast") as typeof import("@domain/capture/toast")
-  ).toast("Your session ended. Sign in again to keep syncing.")
+  ).toast.warning("Your session ended. Sign in again to keep syncing.")
 }
 
 // Simulated account session for the UX prototype. Nothing leaves the device:

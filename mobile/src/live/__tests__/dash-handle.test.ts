@@ -11,7 +11,10 @@ import {
 const mockToasts: string[] = []
 jest.mock("@domain/lib/platform", () => ({
   ...jest.requireActual("@domain/lib/platform"),
-  toast: (m: string) => void mockToasts.push(m),
+  toast: Object.assign((m: string) => void mockToasts.push(m), {
+    error: (m: string) => void mockToasts.push(m),
+    warning: (m: string) => void mockToasts.push(m),
+  }),
 }))
 jest.mock("../auth", () => ({ http: {} }))
 

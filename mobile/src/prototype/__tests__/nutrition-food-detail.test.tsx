@@ -23,7 +23,11 @@ jest.mock("react-native-reanimated", () => ({
   useReducedMotion: () => true,
 }))
 jest.mock("sonner-native", () => ({
-  toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn() }),
+  toast: Object.assign(jest.fn(), {
+    success: jest.fn(),
+    error: jest.fn(),
+    warning: jest.fn(),
+  }),
 }))
 jest.mock("expo-router", () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn() },
@@ -137,7 +141,7 @@ test("Save sends only the changed fields and reports it", async () => {
     protein: 18,
     fiber: 2,
   })
-  expect(toast.success).toHaveBeenCalledWith("Saved Skyr, vanilla")
+  expect(toast.success).not.toHaveBeenCalled()
 })
 
 test("nothing changed: Save stays off", async () => {
@@ -204,7 +208,7 @@ test("a picked photo uploads, then PATCHes the food with its media id", async ()
     expect(mockRequest).toHaveBeenCalledWith("PATCH", "/nutrition/foods/f1", {
       photo_media_id: "m1",
     })
-    expect(toast.success).toHaveBeenCalledWith("Photo updated")
+    expect(toast.success).not.toHaveBeenCalled()
   } finally {
     global.fetch = realFetch
   }

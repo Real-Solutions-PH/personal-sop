@@ -15,7 +15,6 @@ import {
 } from "lucide-react-native"
 import { useState } from "react"
 import { ScrollView, TextInput, View } from "react-native"
-import { toast } from "sonner-native"
 import { MoneyInput } from "../money-input"
 import {
   border,
@@ -531,13 +530,7 @@ export function Records({ accountId }: { accountId?: string }) {
             <Button tone="quiet" onPress={() => setDraft(blank)}>
               Reset
             </Button>
-            <Button
-              tone="quiet"
-              onPress={() => {
-                viewStore.set(draft)
-                toast("Saved as your default view")
-              }}
-            >
+            <Button tone="quiet" onPress={() => viewStore.set(draft)}>
               Save default
             </Button>
             <View style={{ flex: 1 }}>
@@ -761,11 +754,6 @@ export function RecordDetail({ id }: { id: string }) {
                 <Copy size={14} weight="medium">
                   Receipt
                 </Copy>
-                <Tap onPress={() => toast("Opening receipt image (mock)")}>
-                  <Copy size={12} style={{ color: t.fin }}>
-                    View image
-                  </Copy>
-                </Tap>
               </View>
             </Line>
           )}

@@ -133,11 +133,10 @@ const journalAudio = () =>
 /** Live: keep the recording as an entry now, its words come later. */
 async function saveRecording(uri: string, seconds: number, online: boolean) {
   await journalAudio().saveVoiceEntry(uri, seconds)
-  toast.success(
-    online
-      ? "Journal entry saved. Transcribing…"
-      : "Journal entry saved. It'll be transcribed when you're back online.",
-  )
+  if (!online)
+    toast.warning(
+      "Journal entry saved. It'll be transcribed when you're back online.",
+    )
   void journalAudio().transcribePending()
 }
 

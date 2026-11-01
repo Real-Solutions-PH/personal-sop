@@ -66,7 +66,11 @@ jest.mock("react-native-gesture-handler", () => {
   }
 })
 jest.mock("sonner-native", () => ({
-  toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn() }),
+  toast: Object.assign(jest.fn(), {
+    success: jest.fn(),
+    error: jest.fn(),
+    warning: jest.fn(),
+  }),
 }))
 
 const native = ST as jest.Mocked<typeof ST>
@@ -136,7 +140,7 @@ describe("turning Screen time on", () => {
     native.requestScreenTime.mockResolvedValue("denied")
     await expect(sync.enableScreenTime()).resolves.toBe(false)
     expect(screenOn()).toBe(false)
-    expect(toast).toHaveBeenCalledWith(sync.SCREEN_DENIED)
+    expect(toast.warning).toHaveBeenCalledWith(sync.SCREEN_DENIED)
   })
 
   test("a build without Screen Time keeps it off and says no phone setting fixes it", async () => {
@@ -145,7 +149,7 @@ describe("turning Screen time on", () => {
     await expect(sync.enableScreenTime()).resolves.toBe(false)
     expect(native.requestScreenTime).not.toHaveBeenCalled()
     expect(screenOn()).toBe(false)
-    expect(toast).toHaveBeenCalledWith(
+    expect(toast.warning).toHaveBeenCalledWith(
       "This version of Unfurl doesn't include Screen Time, so there is nothing to turn on in your iPhone's Settings. It comes in an update.",
     )
   })
@@ -155,7 +159,7 @@ describe("turning Screen time on", () => {
     native.requestScreenTime.mockResolvedValue("unavailable")
     await expect(sync.enableScreenTime()).resolves.toBe(false)
     expect(screenOn()).toBe(false)
-    expect(toast).toHaveBeenCalledWith(
+    expect(toast.warning).toHaveBeenCalledWith(
       "Unfurl couldn't reach Screen Time here. It needs iOS 16 or later.",
     )
   })
@@ -236,7 +240,7 @@ describe("the foreground check", () => {
     expect(native.stopMonitoring).toHaveBeenCalledTimes(1)
     expect(await AsyncStorage.getItem(sync.PLAN_KEY)).toBeNull()
     await sync.syncScreenTime()
-    expect(jest.mocked(toast).mock.calls).toEqual([
+    expect(jest.mocked(toast.warning).mock.calls).toEqual([
       [
         "Screen Time access was turned off, so screen time is hidden from your stats.",
       ],

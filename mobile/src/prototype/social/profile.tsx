@@ -34,7 +34,6 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { toast } from "sonner-native"
 import { liveMode } from "@/live/config"
 import { copyText } from "../media"
 import { go } from "../navigation"
@@ -938,11 +937,6 @@ export function Profile({ id }: { id: string }) {
                     onPress={() => {
                       haptic.tap()
                       toggleCloseFriend(id)
-                      toast.success(
-                        person.closeFriend
-                          ? "Removed from close friends"
-                          : "Added to close friends",
-                      )
                     }}
                     style={{
                       width: 40,
@@ -1237,7 +1231,6 @@ export function FollowButton({
       onPress={() => {
         haptic.tap()
         toggleFollow(person.id)
-        if (!on) toast.success(`Following ${person.username}`)
       }}
       style={({ pressed }) => ({
         flex: small ? undefined : 1,

@@ -278,10 +278,7 @@ export function AccountEditor({
                     undo(`${ex.name} archived`, () =>
                       A.updateAccount(ex.id, { archived: false }),
                     )
-                  } else {
-                    A.deleteAccount(ex.id)
-                    toast(`${ex.name} deleted`)
-                  }
+                  } else A.deleteAccount(ex.id)
                   onClose()
                 },
               )
@@ -335,7 +332,6 @@ export function AccountEditor({
               }
               if (ex) A.updateAccount(ex.id, input)
               else A.addAccount(input)
-              toast(ex ? "Account updated" : `${name.trim()} added`)
               onClose()
             }}
           >

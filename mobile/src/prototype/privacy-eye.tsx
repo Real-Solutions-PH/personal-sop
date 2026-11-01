@@ -2,7 +2,6 @@
 // they look the same and all flip the same saved setting.
 import { privacyStore, togglePrivacy } from "@domain/lib/privacy"
 import { Eye, EyeOff } from "lucide-react-native"
-import { toast } from "sonner-native"
 import { IconTap } from "./native-kit"
 import { useTheme } from "./theme"
 
@@ -17,11 +16,6 @@ export function PrivacyEye() {
       color={hidden ? t.primary : t.muted}
       onPress={() => {
         togglePrivacy()
-        toast(
-          privacyStore.get().hidden
-            ? "Amounts hidden everywhere"
-            : "Amounts shown everywhere",
-        )
       }}
     />
   )

@@ -208,7 +208,7 @@ function ReplyActions({ id, text }: { id: string; text: string }) {
     const sp = require("@/live/speech") as typeof import("@/live/speech")
     const { http } = require("@/live/auth") as typeof import("@/live/auth")
     sp.toggleSpeech(id, { http }).catch((e: unknown) =>
-      toast(
+      toast.error(
         e instanceof sp.SpeechError && e.code === "unavailable"
           ? "Read aloud isn't set up on the server yet."
           : "Couldn't read that aloud. Try again.",

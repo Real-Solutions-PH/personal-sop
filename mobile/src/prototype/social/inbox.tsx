@@ -21,7 +21,6 @@ import {
 import Swipeable from "react-native-gesture-handler/ReanimatedSwipeable"
 import Animated, { FadeIn, FadeInDown, ZoomIn } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { toast } from "sonner-native"
 import { go, replace } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import { Sheet, undo } from "../ui"
@@ -262,7 +261,6 @@ function NoteViewer({
       text: `Replied to your note "${note.text}": ${reply.trim()}`,
     })
     simulateReply(chat)
-    toast.success(`Sent to ${person.username}`)
     setReply("")
     onClose()
   }
@@ -446,7 +444,6 @@ export function Inbox() {
                   fontFamily: fonts.semibold,
                   fontSize: 14,
                 }}
-                onPress={() => toast("No message requests")}
               >
                 Requests
               </Text>

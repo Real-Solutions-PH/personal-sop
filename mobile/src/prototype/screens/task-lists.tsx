@@ -25,7 +25,6 @@ import {
 import { useRef, useState } from "react"
 import type { TextInputInstance } from "react-native"
 import { TextInput, View } from "react-native"
-import { toast } from "sonner-native"
 import { syncReady } from "@/live/ready"
 import {
   border,
@@ -201,7 +200,6 @@ export function ListEditor({
                 tone="quiet"
                 onPress={() => {
                   A.deleteList(list.id, "inbox")
-                  toast.success("Open tasks moved to Inbox")
                   onClose()
                 }}
               >
@@ -213,7 +211,6 @@ export function ListEditor({
                 tone="danger"
                 onPress={() => {
                   A.deleteList(list.id, "delete")
-                  toast.success(`Deleted ${list.name} and its tasks`)
                   onClose()
                 }}
               >
@@ -230,9 +227,6 @@ export function ListEditor({
                 tone="quiet"
                 onPress={() => {
                   A.setListArchived(list.id, !list.archivedAt)
-                  toast.success(
-                    list.archivedAt ? "Unarchived" : `Archived ${list.name}`,
-                  )
                   onClose()
                 }}
               >
@@ -266,8 +260,6 @@ export function ListEditor({
                 }
                 if (list) A.updateList(list.id, input)
                 else onCreated?.(A.createList(input))
-                if (list || !onCreated)
-                  toast.success(list ? "List saved" : `Created ${name.trim()}`)
                 onClose()
               }}
             >
@@ -295,10 +287,7 @@ export function StarterLists() {
       detail="Everything goes to the Inbox until there are lists to file into."
       action={{
         label: "Add Work, Life and Groceries",
-        onPress: () => {
-          A.addStarterLists()
-          toast.success("Lists added")
-        },
+        onPress: () => A.addStarterLists(),
       }}
     >
       {A.STARTER_LISTS.map((l) => (

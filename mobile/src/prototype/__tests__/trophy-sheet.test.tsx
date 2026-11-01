@@ -51,7 +51,11 @@ jest.mock("react-native-gesture-handler", () => {
   }
 })
 jest.mock("sonner-native", () => ({
-  toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn() }),
+  toast: Object.assign(jest.fn(), {
+    success: jest.fn(),
+    error: jest.fn(),
+    warning: jest.fn(),
+  }),
 }))
 jest.mock("expo-linear-gradient", () => ({
   LinearGradient: require("react-native").View,

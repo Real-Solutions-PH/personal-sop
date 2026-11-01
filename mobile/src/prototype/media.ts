@@ -148,7 +148,6 @@ export async function pickPhotos(limit = 10): Promise<string[]> {
 export async function copyText(text: string) {
   try {
     await Clipboard.setStringAsync(text)
-    toast.success("Copied")
   } catch {
     toast.error("Could not copy")
   }

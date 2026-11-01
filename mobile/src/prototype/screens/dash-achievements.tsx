@@ -14,7 +14,6 @@ import { useFocusEffect, useLocalSearchParams, usePathname } from "expo-router"
 import { Award, Lock, Trophy } from "lucide-react-native"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { ScrollView, View } from "react-native"
-import { toast } from "sonner-native"
 import {
   Bar,
   border,
@@ -184,10 +183,9 @@ export function Misses() {
                     </Line>
                     <Line style={{ paddingLeft: 16, marginTop: 6, gap: 6 }}>
                       {m.id.startsWith("task-overdue:") &&
-                        chip("→ Today", false, () => {
-                          rescheduleBy(m.id.slice(13), 0)
-                          toast("Moved to today")
-                        })}
+                        chip("→ Today", false, () =>
+                          rescheduleBy(m.id.slice(13), 0),
+                        )}
                       {chip(notes[m.id] ? "Edit note" : "Note", false, () => {
                         setText(notes[m.id] ?? "")
                         setNoting(m)

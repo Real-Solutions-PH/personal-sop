@@ -98,7 +98,6 @@ export function Templates({ id }: { id?: string }) {
       name: name.trim() || "Untitled",
       items,
     })
-    toast.success("Template saved")
     return result
   }
   if (!id)

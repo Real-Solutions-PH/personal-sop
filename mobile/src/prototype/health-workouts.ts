@@ -130,7 +130,6 @@ async function save(w: Workout) {
     // the Health sample.
     setEntry(who, w.id, { uuid, seen: true })
     seenIn(who).add(w.id)
-    toast.success("Saved to Apple Health")
   } else toast.error("Couldn't save to Apple Health")
 }
 

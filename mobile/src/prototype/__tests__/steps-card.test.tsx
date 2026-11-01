@@ -30,7 +30,11 @@ jest.mock("expo-router", () => ({
   usePathname: () => "/",
 }))
 jest.mock("sonner-native", () => ({
-  toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn() }),
+  toast: Object.assign(jest.fn(), {
+    success: jest.fn(),
+    error: jest.fn(),
+    warning: jest.fn(),
+  }),
 }))
 jest.mock("react-native-gesture-handler", () => {
   const chain: object = new Proxy({}, { get: () => () => chain })

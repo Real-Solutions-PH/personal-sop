@@ -4,7 +4,6 @@ import {
   type DateRange,
   dayMonth,
   isDayKey,
-  rangeLabel,
 } from "@domain/finance/forecast"
 import { isCustom, type Period, reportData } from "@domain/finance/reports"
 import { finStore } from "@domain/finance/store"
@@ -142,7 +141,6 @@ function CustomRangeSheet({
             return
           }
           onApply(draft)
-          toast(`Showing ${rangeLabel(draft)}`)
         }}
       >
         Apply

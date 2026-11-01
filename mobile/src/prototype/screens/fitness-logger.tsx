@@ -94,10 +94,7 @@ function RestBar({
               </Copy>
               {!over && durationSec !== defaultSec && (
                 <Tap
-                  onPress={() => {
-                    A.updateSettings({ restSec: durationSec })
-                    toast.success(`Default rest set to ${durationSec}s`)
-                  }}
+                  onPress={() => A.updateSettings({ restSec: durationSec })}
                   style={{ marginLeft: "auto" }}
                 >
                   <Copy size={12} style={{ color: t.fit }}>
@@ -266,7 +263,6 @@ export function WorkoutLogger() {
       A.addExercises(w.id, [...picked.filter((x) => x !== e.id), e.id])
     else if (picker) A.replaceExercise(w.id, picker, e.id)
     setPicker(null)
-    toast.success(`${e.name} is already an exercise — added it`)
   }
   return (
     <Screen
@@ -280,10 +276,8 @@ export function WorkoutLogger() {
           name={p.edit ? "Done editing" : "Finish workout"}
           max={96}
           onPress={() => {
-            if (p.edit) {
-              toast.success("Workout updated — PRs recomputed")
-              replace(`/fitness/workouts/${w.id}`)
-            } else if (unfinished) setFinish(true)
+            if (p.edit) replace(`/fitness/workouts/${w.id}`)
+            else if (unfinished) setFinish(true)
             else finishWorkout("remove")
           }}
         />
@@ -830,7 +824,6 @@ export function WorkoutLogger() {
           onSaved={(e) => {
             if (creating.mode === "add") A.addExercises(w.id, [...picked, e.id])
             else A.replaceExercise(w.id, creating.mode, e.id)
-            toast.success(`${e.name} added`)
           }}
         />
       )}

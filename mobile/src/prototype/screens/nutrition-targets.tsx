@@ -361,7 +361,6 @@ export function MacroTargets() {
                 limits.fiberGoal === FIBER_GOAL ? undefined : limits.fiberGoal,
             }
             setMacroTarget({ ...t, ...own })
-            toast.success("Targets saved — effective today")
             replace("/nutrition")
           }}
         >

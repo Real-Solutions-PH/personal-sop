@@ -35,7 +35,11 @@ jest.mock("@domain/capture/toast", () => ({
   },
 }))
 jest.mock("sonner-native", () => ({
-  toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn() }),
+  toast: Object.assign(jest.fn(), {
+    success: jest.fn(),
+    error: jest.fn(),
+    warning: jest.fn(),
+  }),
 }))
 jest.mock("expo-router", () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn() },
@@ -121,21 +125,21 @@ test("a waiting card not on the device shows a dimmed Confirm and is fetched onc
   expect(mockEnsure).toHaveBeenCalledWith("cap-m")
 })
 
-test("once the card arrives Confirm works and says it saved", () => {
+test("once the card arrives Confirm works, with no toast", () => {
   render(<BlockView block={{ t: "steps", items: [meal] }} />)
   arrive([{ id: "card-m", state: "proposed" }])
   expect(confirm().props.accessibilityState).toMatchObject({ disabled: false })
   fireEvent.press(confirm())
   expect(mockConfirm).toHaveBeenCalledWith("card-m")
-  expect(mockToast.success).toHaveBeenCalledWith("Saved")
+  expect(mockToast.success).not.toHaveBeenCalled()
 })
 
-test("Discard drops the card, says so, and the step reads Discarded", () => {
+test("Discard drops the card and the step reads Discarded, with no toast", () => {
   arrive([{ id: "card-m", state: "proposed" }])
   render(<BlockView block={{ t: "steps", items: [meal] }} />)
   fireEvent.press(screen.getByRole("button", { name: "Discard" }))
   expect(mockDiscard).toHaveBeenCalledWith("card-m")
-  expect(mockToast).toHaveBeenCalledWith("Discarded")
+  expect(mockToast).not.toHaveBeenCalled()
   expect(screen.getByText("Discarded")).toBeTruthy()
   expect(screen.queryByRole("button", { name: "Confirm" })).toBeNull()
 })

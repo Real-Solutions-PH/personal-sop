@@ -77,7 +77,11 @@ jest.mock("react-native-gesture-handler", () => {
   }
 })
 jest.mock("sonner-native", () => ({
-  toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn() }),
+  toast: Object.assign(jest.fn(), {
+    success: jest.fn(),
+    error: jest.fn(),
+    warning: jest.fn(),
+  }),
 }))
 jest.mock("../media", () => ({ exportCsv: jest.fn(), pickPhoto: jest.fn() }))
 
@@ -293,8 +297,10 @@ test("live: start → wrong account → use detected → review → apply commit
     fireEvent.press(screen.getAllByText("BDO").at(-1) as never)
   })
   await waitFor(() =>
-    expect(toast).toHaveBeenCalledWith("Imported — 2 added, 0 updated"),
+    expect(calls.some((c) => c.path.endsWith("/commit"))).toBe(true),
   )
+  // The committed rows show on screen: no success toast.
+  expect(toast).not.toHaveBeenCalledWith("Imported — 2 added, 0 updated")
   const commit = calls.find((c) => c.path.endsWith("/commit"))
   expect(commit?.body).toEqual({ transfer_account_id: BDO })
   // The records came from the server: pulled, never created on the device.

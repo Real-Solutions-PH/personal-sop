@@ -94,7 +94,7 @@ export function CaptureVoice({
     if (finishing.current) return
     finishing.current = true
     if (atLimit)
-      toast(
+      toast.warning(
         `Stopped at the ${Math.round(maxSec / 60)}-minute limit. Your recording is kept.`,
       )
     try {

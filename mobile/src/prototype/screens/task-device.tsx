@@ -196,12 +196,8 @@ export function TaskReminders() {
   const test = async () => {
     A.updateNotif({ testSentAt: new Date().toISOString() })
     const sent = await sendTestReminder().catch(() => false)
-    if (sent)
-      toast.success("Test reminder on its way", {
-        description: "It arrives in a few seconds.",
-      })
-    else {
-      toast("Notifications are off for Unfurl")
+    if (!sent) {
+      toast.warning("Notifications are off for Unfurl")
       void enableReminders()
     }
   }
@@ -374,12 +370,7 @@ export function TaskReminders() {
               </Line>,
             )}
           </View>
-          <Button
-            onPress={() => {
-              A.updateNotif({ installed: true })
-              toast("Opened from Home Screen (simulated)")
-            }}
-          >
+          <Button onPress={() => A.updateNotif({ installed: true })}>
             I've added it
           </Button>
           <Button
@@ -618,7 +609,6 @@ export function TaskNotifications() {
               onPress={() => {
                 action === "Done" ? A.completeTask(id) : A.snoozeTask(id, 60)
                 setGone([...gone, id])
-                toast(action === "Done" ? "Done" : "Snoozed 1h")
               }}
               style={{ flex: 1, padding: 8, alignItems: "center" }}
             >

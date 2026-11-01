@@ -52,7 +52,11 @@ jest.mock("react-native-gesture-handler/ReanimatedSwipeable", () => {
   return ({ children }: { children: ReactNode }) => <View>{children}</View>
 })
 jest.mock("sonner-native", () => ({
-  toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn() }),
+  toast: Object.assign(jest.fn(), {
+    success: jest.fn(),
+    error: jest.fn(),
+    warning: jest.fn(),
+  }),
 }))
 jest.mock("expo-audio", () => ({}))
 jest.mock("../media", () => ({
@@ -125,7 +129,7 @@ it("the merge sheet lists same-type exercises; confirming lands on the survivor"
   act(() => (buttons as AlertButton[])[1].onPress?.())
 
   expect(fitStore.get().templates[0].items[0].exerciseId).toBe("b")
-  expect(toast.success).toHaveBeenCalledWith("Merged into Barbell Bench Press")
+  expect(toast.success).not.toHaveBeenCalled()
   expect(router.replace).toHaveBeenCalledWith("/fitness/exercises/b")
 })
 
@@ -135,7 +139,7 @@ it("the list suggests the pair, and Not duplicates hides it", () => {
   expect(screen.getByText("Possible duplicates")).toBeTruthy()
   expect(screen.getByText("Bench press → Barbell Bench Press")).toBeTruthy()
   fireEvent.press(screen.getByText("Not duplicates"))
-  expect(toast).toHaveBeenCalledWith("Hidden")
+  expect(toast).not.toHaveBeenCalled()
   expect(dupesStore.get().dismissed).toEqual(["a|b"])
   expect(screen.queryByText("Possible duplicates")).toBeNull()
 })

@@ -45,7 +45,11 @@ jest.mock("react-native-gesture-handler/ReanimatedSwipeable", () => {
   return ({ children }: { children: ReactNode }) => <View>{children}</View>
 })
 jest.mock("sonner-native", () => ({
-  toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn() }),
+  toast: Object.assign(jest.fn(), {
+    success: jest.fn(),
+    error: jest.fn(),
+    warning: jest.fn(),
+  }),
 }))
 jest.mock("expo-audio", () => ({}))
 jest.mock("../media", () => ({ exportCsv: jest.fn(), pickPhoto: jest.fn() }))
@@ -114,9 +118,8 @@ test("salary lands in Cash when the bank is left out", () => {
   expect(s.planned.find((p) => p.name === "Rent")?.amount).toBe(12000.75)
   // The default account is Cash, so the first transaction can be saved.
   expect(s.settings.defaultAccountId).toBe(cash?.id)
-  expect(toast).toHaveBeenCalledWith(
-    "1 account added, salary and rent scheduled",
-  )
+  // The new accounts and plan show on screen: no success toast.
+  expect(toast).not.toHaveBeenCalled()
 })
 
 test("setup no longer offers a credit card", () => {
@@ -187,5 +190,5 @@ test("a salary alone is scheduled into an existing account, not dropped", () => 
   const s = finStore.get(),
     bdo = s.accounts.find((a) => a.name === "BDO")
   expect(s.planned.find((p) => p.name === "Salary")?.accountId).toBe(bdo?.id)
-  expect(toast).toHaveBeenCalledWith("Salary scheduled")
+  expect(toast).not.toHaveBeenCalled()
 })

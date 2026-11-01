@@ -360,10 +360,7 @@ export function FinanceSettings() {
           {row(
             "Reset demo data",
             RotateCcw,
-            () => {
-              A.resetFinance()
-              toast("Finance demo data restored")
-            },
+            () => A.resetFinance(),
             "90 days of sample history",
           )}
           {row("Start fresh (first-run setup)", Sparkles, () =>
@@ -464,9 +461,7 @@ export function FinanceArchived() {
                             `Delete ${x.name} permanently?`,
                             "This can't be undone. It's blocked if transactions still reference it.",
                             () => {
-                              if (x.remove())
-                                toast(`${x.name} deleted permanently`)
-                              else
+                              if (!x.remove())
                                 toast.error(
                                   `${x.name} still has transactions — it can only stay archived`,
                                 )

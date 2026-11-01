@@ -286,8 +286,7 @@ function Editor({
             <Button
               tone="danger"
               onPress={() => {
-                if (A.deletePlanned(p.id)) toast.success(`${p.name} deleted`)
-                else {
+                if (!A.deletePlanned(p.id)) {
                   A.updatePlanned(p.id, { archived: true })
                   undo(`${p.name} archived (it has history)`, () =>
                     A.updatePlanned(p.id, { archived: false }),

@@ -47,7 +47,11 @@ jest.mock("react-native-gesture-handler", () => {
   }
 })
 jest.mock("sonner-native", () => ({
-  toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn() }),
+  toast: Object.assign(jest.fn(), {
+    success: jest.fn(),
+    error: jest.fn(),
+    warning: jest.fn(),
+  }),
 }))
 jest.mock("expo-audio", () => ({}))
 // The native date picker as a text box: typing a day picks it.
@@ -217,7 +221,7 @@ test("Reports keeps its periods and the income vs expense card", () => {
   expect(screen.getByText("Income vs expense")).toBeTruthy()
 })
 
-test("a custom report range applies with a toast and travels in card links", () => {
+test("a custom report range applies without a toast and travels in card links", () => {
   const { router } = require("expo-router")
   render(<Reports />, { wrapper })
   fireEvent.press(screen.getByText("Custom"))
@@ -225,7 +229,7 @@ test("a custom report range applies with a toast and travels in card links", () 
   pickDay("From", addDays(t, -9))
   pickDay("To", t)
   fireEvent.press(screen.getByRole("button", { name: "Apply" }))
-  expect(toast).toHaveBeenCalledWith(expect.stringMatching(/^Showing /))
+  expect(toast).not.toHaveBeenCalledWith(expect.stringMatching(/^Showing /))
   fireEvent.press(screen.getByRole("button", { name: "Spend by category" }))
   expect(router.push).toHaveBeenCalledWith(
     `/finance/reports/category?from=${addDays(t, -9)}&to=${t}`,

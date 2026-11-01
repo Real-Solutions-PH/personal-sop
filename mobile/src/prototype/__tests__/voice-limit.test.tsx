@@ -32,7 +32,11 @@ jest.mock("react-native-gesture-handler", () => {
   }
 })
 jest.mock("sonner-native", () => ({
-  toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn() }),
+  toast: Object.assign(jest.fn(), {
+    success: jest.fn(),
+    error: jest.fn(),
+    warning: jest.fn(),
+  }),
 }))
 jest.mock("@/live/config", () => ({
   ...jest.requireActual("@/live/config"),
@@ -119,7 +123,7 @@ test("at the limit it stops by itself and keeps the recording", async () => {
     expect(onRecording).toHaveBeenCalledWith("file:///voice.m4a", 300),
   )
   expect(mockRec.recorder.stop).toHaveBeenCalled()
-  expect(toast).toHaveBeenCalledWith(
+  expect(toast.warning).toHaveBeenCalledWith(
     "Stopped at the 5-minute limit. Your recording is kept.",
   )
 })
