@@ -4,22 +4,30 @@
 // with the groups and rules. Everything resolves: a missing native module,
 // denied permission or a failing call leaves the stores as they were.
 
+import { dashStore, setEnabled } from "@domain/dash/store"
 import type { Habit } from "@domain/habits/data"
 import { habitsStore } from "@domain/habits/store"
-import { DAY_START_HOUR } from "@domain/lib/day"
+import { DAY_START_HOUR, dayKey } from "@domain/lib/day"
 import { newId } from "@domain/lib/ids"
 import { applyReconcile } from "@domain/screen/actions"
 import type { ScreenGroup } from "@domain/screen/data"
-import { reconcile, rungsFor } from "@domain/screen/logic"
+import { dayOf, reconcile, rungsFor } from "@domain/screen/logic"
 import { screenStore } from "@domain/screen/store"
 import { useEffect } from "react"
 import { AppState } from "react-native"
+import { toast } from "sonner-native"
 import { create } from "zustand"
 import { syncReady } from "@/live/ready"
 import * as ST from "./screen-time"
 
 /** The last plan handed to startMonitoring, as JSON. */
 export const PLAN_KEY = "screen.plan"
+/** When this phone first answered "approved", as epoch ms: the 14-day
+ * no-data check counts from here, so a fresh connection is not switched
+ * off before its first day of minutes arrives. */
+export const APPROVED_KEY = "screen.approvedAt"
+/** Screen time stays on while a screen day row this recent exists. */
+export const DATA_WINDOW_DAYS = 14
 type Storage =
   typeof import("@react-native-async-storage/async-storage").default
 /** Loaded on first use: a build without the native module throws on import,
@@ -102,11 +110,149 @@ export function monitoringPlan(
     }))
 }
 
+/** Where Screen Time stands on this phone, for the screens to word it:
+ * - notInBuild: this version of the app was built without the native
+ *   module (TestFlight and App Store builds until Apple grants the Family
+ *   Controls entitlement), so nothing in the phone's Settings can fix it;
+ * - unsupported: the module is there but iOS can't answer (older than 16);
+ * - checking: not read yet; notAsked, denied, connected: the permission. */
+export type ScreenTimeState =
+  | "notInBuild"
+  | "unsupported"
+  | "checking"
+  | "notAsked"
+  | "denied"
+  | "connected"
+
+export function screenTimeState(
+  available: boolean,
+  auth: ST.ScreenAuth | null,
+): ScreenTimeState {
+  if (!available) return "notInBuild"
+  switch (auth) {
+    case null:
+      return "checking"
+    case "approved":
+      return "connected"
+    case "denied":
+      return "denied"
+    case "notDetermined":
+      return "notAsked"
+    default:
+      return "unsupported"
+  }
+}
+
+/** The state, kept current: read on mount, and on every return to the
+ * foreground by startScreenSync. */
+export function useScreenTimeState(): ScreenTimeState {
+  const auth = screenStatus((s) => s.auth)
+  useEffect(() => {
+    void refreshScreenStatus()
+  }, [])
+  return screenTimeState(ST.screenTimeAvailable(), auth)
+}
+
+/** What a locked Screen time surface says when it can't be used here. */
+export const SCREEN_NOT_IN_BUILD = {
+  title: "Screen time isn't in this version yet",
+  detail:
+    "This version of Unfurl doesn't include Screen Time, so there is nothing to turn on in your iPhone's Settings. It comes in an update.",
+}
+export const SCREEN_UNSUPPORTED = {
+  title: "Screen Time isn't available on this iPhone",
+  detail: "Unfurl couldn't reach Screen Time here. It needs iOS 16 or later.",
+}
+
+export const SCREEN_DENIED =
+  "Screen Time access is off for Unfurl. Turn it on in Settings › Screen Time to track it."
+export const SCREEN_UNAVAILABLE = SCREEN_UNSUPPORTED.detail
+const SCREEN_REVOKED =
+  "Screen Time access was turned off, so screen time is hidden from your stats."
+
+/** Switches Screen time on, asking iOS first: it turns on only when the
+ * permission is approved; otherwise it stays off and says why. */
+export async function enableScreenTime(): Promise<boolean> {
+  const auth = ST.screenTimeAvailable()
+    ? await ST.requestScreenTime()
+    : "unavailable"
+  await refreshScreenStatus()
+  if (auth !== "approved") {
+    setEnabled("screen", false)
+    toast(
+      !ST.screenTimeAvailable()
+        ? SCREEN_NOT_IN_BUILD.detail
+        : auth === "denied"
+          ? SCREEN_DENIED
+          : SCREEN_UNAVAILABLE,
+    )
+    return false
+  }
+  await storage()?.setItem(APPROVED_KEY, String(Date.now()))
+  setEnabled("screen", true)
+  void syncScreenTime()
+  return true
+}
+
+/** Whether a screen day row exists within the last DATA_WINDOW_DAYS app
+ * days. */
+function recentData(nowMs: number): boolean {
+  const today = new Date(`${dayOf(nowMs, dayStartHour())}T12:00:00`)
+  today.setDate(today.getDate() - (DATA_WINDOW_DAYS - 1))
+  const from = dayKey(today)
+  return screenStore.get().days.some((d) => d.day >= from)
+}
+
+/** Keeps the switch in step with the permission once the account's state
+ * is known: an explicit deny turns it off (with one toast, since the next
+ * run sees it off); a phone that can't read Screen Time, or one approved
+ * for 14 days, with no minutes in 14 days turns it off silently. An
+ * undetermined permission never turns it off. True = still on. */
+async function keepOn(auth: ST.ScreenAuth | null): Promise<boolean> {
+  if (!syncReady.getState().ready || auth === null) return true
+  if (auth === "notDetermined") return true
+  if (auth === "denied") {
+    setEnabled("screen", false)
+    toast(SCREEN_REVOKED)
+    return false
+  }
+  const nowMs = Date.now()
+  if (recentData(nowMs)) return true
+  if (auth === "approved") {
+    const store = storage()
+    const since = Number(await store?.getItem(APPROVED_KEY))
+    if (!since) {
+      await store?.setItem(APPROVED_KEY, String(nowMs))
+      return true
+    }
+    if (nowMs - since < DATA_WINDOW_DAYS * 86_400_000) return true
+  }
+  setEnabled("screen", false)
+  return false
+}
+
+/** Screen time is off: stop the daily schedule once and forget its plan,
+ * so turning it back on schedules again. */
+async function stopIfMonitoring(): Promise<void> {
+  const store = storage()
+  if (store && (await store.getItem(PLAN_KEY)) === null) return
+  await ST.stopMonitoring()
+  await store?.removeItem(PLAN_KEY)
+}
+
 async function run(): Promise<void> {
-  if (!ST.screenTimeAvailable()) return
+  if (!dashStore.get().enabled.screen) return stopIfMonitoring()
+  if (!ST.screenTimeAvailable()) {
+    screenStatus.setState({ auth: "unavailable", picked: {} })
+    if (!(await keepOn("unavailable"))) await stopIfMonitoring()
+    return
+  }
   await refreshScreenStatus()
   const { auth, picked } = screenStatus.getState()
-  if (auth !== "approved") return
+  if (auth !== "approved") {
+    if (!(await keepOn(auth))) await stopIfMonitoring()
+    return
+  }
   const events = await ST.readEvents()
   const h = habitsStore.get()
   applyReconcile(
@@ -120,6 +266,7 @@ async function run(): Promise<void> {
       newId,
     }),
   )
+  if (!(await keepOn(auth))) return stopIfMonitoring()
   const plan = monitoringPlan(
     screenStore.get().groups,
     habitsStore.get().habits,
@@ -164,12 +311,27 @@ export function startScreenSync(): () => void {
     if (syncReady.getState().ready) void syncScreenTime()
   }
   const app = AppState.addEventListener("change", (s) => {
-    if (s === "active") kick()
+    if (s !== "active") return
+    // The permission can change in iOS Settings while Unfurl is away, and
+    // the screens read it from here even while Screen time is off (a sync
+    // only reads it while on).
+    if (!syncReady.getState().ready || !dashStore.get().enabled.screen)
+      void refreshScreenStatus()
+    kick()
   })
   const ready = syncReady.subscribe(kick)
+  // Switching Screen time on or off starts or stops the schedule.
+  let on = dashStore.get().enabled.screen
+  const sw = dashStore.subscribe(() => {
+    const next = dashStore.get().enabled.screen
+    if (next === on) return
+    on = next
+    kick()
+  })
   kick()
   return () => {
     app.remove()
     ready()
+    sw()
   }
 }

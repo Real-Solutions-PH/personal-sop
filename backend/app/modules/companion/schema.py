@@ -83,6 +83,17 @@ class AskOut(BaseModel):
     capture: dict[str, Any] | None = None
 
 
+class ReplyOut(BaseModel):
+    """Where the reply to a question stands, for an app that lost its
+    stream: ``done`` with the stored question and reply (or the capture a
+    log became), ``running`` while the turn is still being written, or
+    ``failed`` when it ended with nothing stored."""
+
+    status: Literal["running", "done", "failed"]
+    messages: list[MessagePublic] = Field(default_factory=list)
+    capture: dict[str, Any] | None = None
+
+
 class TrackerIn(BaseModel):
     label: Annotated[str, Field(min_length=1, max_length=80)] | None = None
     goal: Annotated[float, Field(gt=0, le=1e12)] | None = None

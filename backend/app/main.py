@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
@@ -76,6 +77,62 @@ class SecurityHeadersMiddleware:
             await send(message)
 
         await self.app(scope, receive, send_with_headers)
+
+
+_HEALTH_PATH = f"{settings.API_V1_STR}/utils/health-check/"
+
+
+class InFlightLimitMiddleware:
+    """Admit at most ``MAX_IN_FLIGHT_REQUESTS`` requests at once, counted
+    until their response starts; the rest wait here holding nothing.
+
+    Sync routes run on anyio's threadpool of 40 threads. A request whose
+    endpoint has run still holds its pooled connection while it waits for a
+    thread to serialise the response (its session closes after that). With
+    more requests in flight than threads, every thread could be taken by a
+    request waiting for a connection while every connection was held by a
+    request waiting for a thread, and nothing moved until the pool's 30 s
+    timeout failed them all. Keeping the requests that can still need a
+    thread below the thread count leaves one free for a request that holds a
+    connection. A started response (an event stream, Fern's reply) no longer
+    counts, and the health check is never held back.
+    """
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+        self._slots: tuple[asyncio.AbstractEventLoop, asyncio.Semaphore] | None = None
+
+    def _semaphore(self, limit: int) -> asyncio.Semaphore:
+        # One per event loop: the test client runs each app on its own loop.
+        loop = asyncio.get_running_loop()
+        if self._slots is None or self._slots[0] is not loop:
+            self._slots = (loop, asyncio.Semaphore(limit))
+        return self._slots[1]
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        limit = settings.MAX_IN_FLIGHT_REQUESTS
+        if scope["type"] != "http" or not limit or scope.get("path") == _HEALTH_PATH:
+            await self.app(scope, receive, send)
+            return
+        slots = self._semaphore(limit)
+        await slots.acquire()
+        held = True
+
+        def release() -> None:
+            nonlocal held
+            if held:
+                held = False
+                slots.release()
+
+        async def send_releasing(message: Message) -> None:
+            if message["type"] == "http.response.start":
+                release()
+            await send(message)
+
+        try:
+            await self.app(scope, receive, send_releasing)
+        finally:
+            release()
 
 
 class BodySizeLimitMiddleware:
@@ -190,7 +247,9 @@ app = FastAPI(
 
 register_exception_handlers(app)
 # Added inner-first: SecurityHeaders wraps BodySizeLimit so even a 413 carries
-# the security headers.
+# the security headers. The in-flight limit sits innermost, next to the
+# routes, so a slot is released by the route's own response start.
+app.add_middleware(InFlightLimitMiddleware)
 app.add_middleware(BodySizeLimitMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 

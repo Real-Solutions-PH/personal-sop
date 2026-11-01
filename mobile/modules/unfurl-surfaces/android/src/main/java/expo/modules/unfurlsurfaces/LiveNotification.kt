@@ -25,6 +25,15 @@ object LiveNotification {
     if (state == null) cancel(ctx) else post(ctx, state)
   }
 
+  /** Whether the ongoing notification can show: notifications on for the
+   * app and its channel not switched off. */
+  fun enabled(ctx: Context): Boolean {
+    if (!NotificationManagerCompat.from(ctx).areNotificationsEnabled()) return false
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return true
+    val channel = ctx.getSystemService(NotificationManager::class.java)?.getNotificationChannel(CHANNEL)
+    return channel == null || channel.importance != NotificationManager.IMPORTANCE_NONE
+  }
+
   fun cancel(ctx: Context) {
     NotificationManagerCompat.from(ctx).cancel(ID)
   }
@@ -65,12 +74,23 @@ object LiveNotification {
     "finish" to "Finish",
   )
 
-  /** At most three buttons fit; while resting, "Finish" gives way. */
+  fun label(type: String, kind: String): String =
+    if (type == "finish" && kind == "routine") "Finish routine" else labels[type] ?: type
+
+  /** At most three buttons fit. While resting, "Finish" gives way; in a
+   * routine, "Skip" does, so the routine can still be finished. */
   fun buttons(state: JSONObject): List<String> {
     val a = state.optJSONArray("controls") ?: return emptyList()
     val list = MutableList(a.length()) { a.getString(it) }
-    if (list.size > 3) list.remove("finish")
+    if (list.size > 3) list.remove(if (state.optString("kind") == "routine") "skip" else "finish")
     return list.take(3)
+  }
+
+  /** "Best 85 kg × 6 · Next: Incline Press", or null with neither. */
+  fun upNext(s: JSONObject): String? {
+    val next = s.optJSONArray("next")?.optJSONObject(0)?.optString("label").orEmpty()
+    val parts = listOf(s.optString("best"), if (next.isEmpty()) "" else "Next: $next").filter { it.isNotEmpty() }
+    return if (parts.isEmpty()) null else parts.joinToString(" · ")
   }
 
   fun post(ctx: Context, s: JSONObject) {
@@ -106,12 +126,13 @@ object LiveNotification {
       !paused -> b.setUsesChronometer(true).setWhen(s.optLong("startedAt")).setShowWhen(true)
       else -> b.setShowWhen(false)
     }
+    upNext(s)?.let { b.setStyle(NotificationCompat.BigTextStyle().bigText("${s.optString("detail")}\n$it")) }
     val count = s.optInt("count")
     if (count > 0) b.setProgress(count, s.optInt("index"), false)
     val id = s.optString("id")
     val key = s.optString("key")
     buttons(s).forEachIndexed { i, type ->
-      b.addAction(0, labels[type] ?: type, actionIntent(ctx, type, kind, id, key, 10 + i))
+      b.addAction(0, label(type, kind), actionIntent(ctx, type, kind, id, key, 10 + i))
     }
     try {
       if (NotificationManagerCompat.from(ctx).areNotificationsEnabled())

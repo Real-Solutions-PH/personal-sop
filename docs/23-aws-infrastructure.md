@@ -24,19 +24,23 @@ Nothing in AWS listens on the internet. There is no load balancer, and no securi
 
 The API host is single-label under the zone on purpose: Cloudflare's free Universal SSL certificate covers `*.realsolutionsph.com` but not deeper names.
 
-## Sizing: `lean` (up to 5 users) and `production`
+## Sizing: `lean` (up to 5 users) and `production` (100 at once)
 
-`unfurl:profile` in `infra/cdk.json` picks the size. **`lean` is the default: up to 5 users**, the smallest setup that serves them comfortably. `production` is the size planned for launch.
+`unfurl:profile` in `infra/cdk.json` picks the size. **`production` is what `cdk.json` deploys (since 2026-10-31): 100 people using the app at the same moment.** `lean` is the smallest setup, for up to 5 users.
 
-| | **`lean` (default, up to 5 users)** | `production` |
+| | `lean` (up to 5 users) | **`production` (default, 100 at once)** |
 |---|---|---|
-| API tasks | 1 × 0.25 vCPU / 0.5 GB, **1 uvicorn worker** | 2 × 0.5 vCPU / 1 GB, 2 workers each |
+| API tasks | 1 × 0.25 vCPU / 0.5 GB, 1 uvicorn worker | **2 × 1 vCPU / 2 GB, 2 workers each; scales to 4 tasks at 60 % CPU** |
 | Worker (and migrations) | 1 × 0.25 vCPU / 0.5 GB | 1 × 0.5 vCPU / 1 GB |
 | GoTrue tasks | 1 × 0.25 vCPU / 0.5 GB | 2 × 0.25 vCPU / 0.5 GB |
 | Tunnel (`cloudflared`) tasks | 1 × 0.25 vCPU / 0.5 GB | 2 × 0.25 vCPU / 0.5 GB |
-| RDS | `db.t4g.micro` (1 GB) | `db.t4g.small` (2 GB) |
+| RDS | `db.t4g.micro` (1 GB, ~100 connections) | `db.t4g.medium` (4 GB, ~400 connections) |
 | Cache | `cache.t4g.micro` (the smallest Valkey node) | `cache.t4g.micro` |
-| Estimated cost | **≈ USD 92–100 / month** | **≈ USD 180–190 / month** |
+| Estimated cost | ≈ USD 92–100 / month | **≈ USD 255 / month at 2 API tasks, ≈ 335 at 4** |
+
+**Database connections are budgeted, not hoped for.** Each backend process (every uvicorn worker, and the job worker) opens at most 32: the app engine's pool 10 + 10 overflow, the owner engine's 3 + 5, the job queue's 4 (`DB_*` and `JOBS_DB_POOL_MAX` in `backend/app/core/config.py`). GoTrue is capped at 10 per task (`GOTRUE_DB_MAX_POOL_SIZE`; unset, it has no ceiling). `connectionBudget` in `infra/lib/config.ts` adds every pool at its maximum with the API scaled all the way out, and `cdk synth` refuses a size whose total exceeds the database class's default `max_connections` (`production`: 4 × 2 × 32 + 32 + 20 + 10 spare = 318 of ~405). Connections are named in `pg_stat_activity` (`unfurl-app`, `unfurl-owner`, `unfurl-jobs`). RDS Proxy is not used: the budget fits without it, and it would add about the cost of a second small database.
+
+**Long Fern replies.** There is no load balancer, so there is no ALB idle timeout to set. The path is Cloudflare's edge (a proxied response may stay silent for 100 s; Fern's stream and the event stream send a heartbeat every 25 s), the tunnel (keeps idle connections to the API 300 s, `scripts/cloudflare.ts`), then uvicorn, which keeps them 310 s so the tunnel never sends a request down a connection the API has just closed.
 
 All tasks run on Graviton (arm64). In `lean`, every task is at Fargate's smallest size.
 
@@ -55,10 +59,10 @@ One uvicorn worker still serves concurrent requests: sync routes run in its thre
 **Scaling is configuration, not a rebuild.** Either switch the whole profile (`"unfurl:profile": "production"`) or override single values in `infra/cdk.json`, then deploy:
 
 ```json
-"unfurl:sizingOverrides": { "api": { "count": 2, "cpu": 512, "memoryMiB": 1024, "workers": 2 }, "database": "t4g.small" }
+"unfurl:sizingOverrides": { "api": { "count": 3, "maxCount": 6 }, "database": "t4g.large" }
 ```
 
-Overridable: `api`, `worker`, `gotrue` and `tunnel` (`count`, `cpu`, `memoryMiB`, and `workers` for the API), `database` and `cache`. A typo, an unknown key or a CPU and memory pair Fargate doesn't offer fails `cdk synth`, never deploys a default. A database class change is an RDS modification with a short restart; everything else rolls tasks with no downtime.
+Overridable: `api`, `worker`, `gotrue` and `tunnel` (`count`, `cpu`, `memoryMiB`, and `workers` and `maxCount` for the API), `database` and `cache`. A typo, an unknown key, a CPU and memory pair Fargate doesn't offer, or pools that would overrun the database's connections fails `cdk synth`, never deploys a default. A database class change is an RDS modification with a short restart; everything else rolls tasks with no downtime.
 
 What `lean` gives up: with one task per service, a crashed task means a minute or two of outage while ECS replaces it. A deploy still has no downtime, because ECS starts the new task before it stops the old one. With one `cloudflared` connector, a connector restart drops the tunnel for the seconds it takes to reconnect.
 
@@ -185,7 +189,7 @@ Every setting in `backend/app/core/config.py` is either set by the stack or list
 | `AI_CREDENTIALS_KEK` | Secret `unfurl/app`, generated |
 | `FORWARDED_ALLOW_IPS` | `*` (read by uvicorn, not config.py): only the tunnel can reach the API |
 
-**Left at the code default** (reasons in `backend-env.ts`): model names and base URLs, media size limits, event and weather timings, `DEFAULT_TENANT_SLUG`, `MAX_REQUEST_BODY_SIZE_MB`, the OCR settings (OCR is off), `MEDIA_PUBLIC_ENDPOINT` (S3's endpoint is already public), `MINIO_ROOT_USER`/`MINIO_ROOT_PASSWORD` (unused under IAM auth), `BACKEND_CORS_ORIGINS` (no browser client yet), and `RATE_LIMIT_PER_MINUTE`. That one stays 0: its bucket is per tenant and every user is in the one default tenant, so any budget would be global. The per-user and per-address guards above replace it.
+**Left at the code default** (reasons in `backend-env.ts`): model names and base URLs, media size limits, event and weather timings, `DEFAULT_TENANT_SLUG`, `MAX_REQUEST_BODY_SIZE_MB`, `MAX_IN_FLIGHT_REQUESTS`, the OCR settings (OCR is off), `MEDIA_PUBLIC_ENDPOINT` (S3's endpoint is already public), `MINIO_ROOT_USER`/`MINIO_ROOT_PASSWORD` (unused under IAM auth), `BACKEND_CORS_ORIGINS` (no browser client yet), and `RATE_LIMIT_PER_MINUTE`. That one stays 0: its bucket is per tenant and every user is in the one default tenant, so any budget would be global. The per-user and per-address guards above replace it.
 
 **Not fillable yet:**
 
@@ -212,20 +216,20 @@ Every setting in `backend/app/core/config.py` is either set by the stack or list
 
 On-demand prices for `ap-southeast-1`, 730 hours a month, low traffic. These rates were read from the AWS Pricing API: Fargate **Graviton** at $0.04045 per vCPU-hour and $0.00442 per GB-hour (2026-10-24; x86 is $0.05056 and $0.00553), RDS `db.t4g.micro` $0.025/h and `db.t4g.small` $0.051/h, ElastiCache $0.0192/h, public IPv4 $0.005/h, and Cloud Map $0.10 per registered instance plus $0.50 for its private hosted zone. Storage and the small items use AWS's published list prices. This is an estimate, not a bill. Cloudflare costs nothing (Free plan, one tunnel, one rate rule).
 
-| Item | **`lean` (up to 5 users)** | `production` |
+| Item | `lean` (up to 5 users) | **`production` (100 at once)** |
 |---|---|---|
-| Fargate: API | 1 × (0.25 vCPU, 0.5 GB): 9 | 2 × (0.5 vCPU, 1 GB): 36 |
+| Fargate: API | 1 × (0.25 vCPU, 0.5 GB): 9 | 2 × (1 vCPU, 2 GB): 72 (144 at 4 tasks) |
 | Fargate: worker | 0.25 vCPU, 0.5 GB: 9 | 0.5 vCPU, 1 GB: 18 |
 | Fargate: GoTrue | 1 × (0.25 vCPU, 0.5 GB): 9 | 2 ×: 18 |
 | Fargate: tunnel (`cloudflared`) | 1 × (0.25 vCPU, 0.5 GB): 9 | 2 ×: 18 |
-| Public IPv4, one per task | 4 × $3.65: 15 | 7 × $3.65: 26 |
-| RDS (single-AZ, 20 GB gp3) | `db.t4g.micro`: 21 | `db.t4g.small`: 40 |
+| Public IPv4, one per task | 4 × $3.65: 15 | 7 × $3.65: 26 (33 at 4 API tasks) |
+| RDS (single-AZ, 20 GB gp3) | `db.t4g.micro`: 21 | `db.t4g.medium` ($0.102/h): 77 |
 | ElastiCache Valkey `cache.t4g.micro` | 14 | 14 |
 | Cloud Map (private DNS) | 1 | 1 |
 | Secrets Manager (8 secrets) | 3 | 3 |
 | CloudWatch (8 alarms, logs) | 2–4 | 3–6 |
 | S3, SES, ECR, SNS, Lambda | < 3 | < 5 |
-| **Total (USD / month)** | **≈ 92–100** | **≈ 180–190** |
+| **Total (USD / month)** | **≈ 92–100** | **≈ 255 (≈ 335 scaled out to 4 API tasks)** |
 
 In `lean`, the four tasks together are 36; the fixed floor is the database (21), the per-task IPv4 addresses (15) and the cache (14).
 

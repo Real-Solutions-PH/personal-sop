@@ -12,10 +12,11 @@ the rules parser would, :mod:`cards` tiers it, saves the auto-tier ones and
 logs every write, so an AI write is undoable the same way as a rules write.
 """
 
+import builtins
 import json
 import re
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from typing import Annotated, Any, Literal, TypedDict
@@ -43,6 +44,7 @@ from app.modules.capture.parse import (
     habit_create_draft,
     meal_label,
 )
+from app.modules.iam.deps import release_connection
 from app.shared.context import Ctx
 from app.shared.currency import money
 from app.shared.money import MAX_MINOR
@@ -139,6 +141,14 @@ def run_loop(
 
     def call_model(state: LoopState) -> dict[str, Any]:
         h.model_started(state["turns"] + 1)
+        # A model call can think for minutes. Any read before it left the
+        # session's connection checked out, idle in transaction, for all of
+        # that time, so a few overlapping replies starved the pool for every
+        # other request. Hand it back now; the next query checks one out.
+        # Not inside a batch or a savepoint: committing there would end the
+        # caller's all-or-nothing unit (capture interprets in a savepoint).
+        if not ctx.in_batch and not ctx.session.in_nested_transaction():
+            release_connection(ctx.session)
         acc: BaseMessage | None = None
         usages: list[dict[str, Any]] = []
         try:
@@ -349,11 +359,28 @@ class TaskIn(BaseModel):
         | None
     ) = None
     remind: bool = False
-    tags: list[Annotated[str, Field(min_length=1, max_length=40)]] = Field(
+    # ``builtins.list``: the ``list`` field below shadows the builtin in this
+    # class body once annotations are evaluated lazily.
+    tags: builtins.list[Annotated[str, Field(min_length=1, max_length=40)]] = Field(
         default_factory=list,
         max_length=8,
         description="Labels the person gave (work, errand); otherwise omit.",
     )
+    list: (
+        Annotated[
+            str,
+            Field(
+                min_length=1,
+                max_length=60,
+                description=(
+                    "Name of one of the person's task lists, only when they "
+                    "named it or the task clearly belongs to exactly one "
+                    "list; otherwise omit."
+                ),
+            ),
+        ]
+        | None
+    ) = None
 
 
 class TasksArgs(BaseModel):
@@ -408,18 +435,15 @@ class HabitCreateArgs(BaseModel):
 
 class AccountArgs(BaseModel):
     name: Annotated[str, Field(min_length=1, max_length=60)]
-    type: Literal["cash", "bank", "ewallet", "credit", "investment"] = Field(
-        description="ewallet for GCash, Maya and the like; credit for a credit card."
+    # Credit cards can no longer be added (the finance service refuses them).
+    type: Literal["cash", "bank", "ewallet", "investment"] = Field(
+        description="ewallet for GCash, Maya and the like."
     )
     opening_balance: Annotated[
         float, Field(ge=-MAX_MINOR / 100, le=MAX_MINOR / 100)
     ] = Field(
         default=0,
-        description="What is in it today, in the user's currency. For a "
-        "credit card, what is owed, as a negative number. 0 when not given.",
-    )
-    credit_limit: Amount | None = Field(
-        default=None, description="Credit cards only, when the user gave it."
+        description="What is in it today, in the user's currency. 0 when not given.",
     )
 
 
@@ -453,6 +477,57 @@ class BudgetArgs(BaseModel):
         max_length=30,
         description="Expense categories it covers, by name; empty covers all spending.",
     )
+
+
+# The account colours in the brand's order (``acct-*``), as the app stores
+# them on the wire: the bare name.
+ACCOUNT_COLORS = (
+    "blue",
+    "emerald",
+    "violet",
+    "orange",
+    "cyan",
+    "rose",
+    "green",
+    "red",
+    "slate",
+)
+
+
+def _next_account_color(accounts: Sequence[Any]) -> str:
+    """The first account colour none of the live accounts uses, else the
+    next one round the palette, so a new account Fern adds is not drawn in
+    the server's colourless default."""
+    live = [a for a in accounts if not getattr(a, "archived", False)]
+    used = {
+        str(a.color or "").removeprefix("var(--acct-").removesuffix(")") for a in live
+    }
+    return next(
+        (c for c in ACCOUNT_COLORS if c not in used),
+        ACCOUNT_COLORS[len(live) % len(ACCOUNT_COLORS)],
+    )
+
+
+def _one_emoji(s: str) -> bool:
+    """A single emoji (one grapheme: a base pictograph with any variation
+    selectors, skin tones, keycaps or zero-width joins), not text such as
+    ``tag``, which every picker would show as the word."""
+    s = s.strip()
+    if not s or (
+        "\u20e3" not in s and any(ch.isalnum() and ord(ch) < 0x2000 for ch in s)
+    ):
+        return False
+    joiners = {0x200D, 0xFE0F, 0xFE0E, 0x20E3}
+    bases = [
+        ch
+        for ch in s
+        if ord(ch) not in joiners
+        and not 0x1F3FB <= ord(ch) <= 0x1F3FF  # skin tones
+        and not 0xE0020 <= ord(ch) <= 0xE007F  # tag sequences (flags)
+    ]
+    flags = all(0x1F1E6 <= ord(ch) <= 0x1F1FF for ch in bases)
+    zwj = s.count("\u200d")
+    return bool(bases) and ((flags and len(bases) == 2) or len(bases) == zwj + 1)
 
 
 class CategoryArgs(BaseModel):
@@ -778,10 +853,12 @@ class ScheduledEditArgs(BaseModel):
 class AccountEditArgs(BaseModel):
     account: Annotated[str, Field(min_length=1, max_length=120)]
     new_name: Opt = None
-    type: Literal["cash", "bank", "ewallet", "credit", "investment"] | None = Field(
-        default=None, description="credit for a credit card; investment for savings."
+    type: Literal["cash", "bank", "ewallet", "investment"] | None = Field(
+        default=None, description="investment for savings."
     )
-    credit_limit: Amount | None = None
+    credit_limit: Amount | None = Field(
+        default=None, description="Only for a credit card the user already has."
+    )
 
 
 class BudgetEditArgs(BaseModel):
@@ -995,6 +1072,7 @@ def _card(run: Run, d: RecordDraft, *, setup: bool = False) -> dict[str, Any]:
     engine.emit_card(run.ctx, run.emit, card)
     out: dict[str, Any] = {
         "card_id": str(card.id),
+        "capture_id": str(card.capture_id),
         "state": card.state,
         "tier": card.tier,
         "warn": card.warn,
@@ -1251,17 +1329,24 @@ def capture_tools(run: Run) -> list[BaseTool]:
         # A date or time the person never gave is the model's invention.
         day = not run.said or names_day(run.said) or names_time(run.said)
         time = not run.said or names_time(run.said)
-        tasks = [
-            {
-                "title": t.title,
-                "list_id": None,
-                "due_date": t.due_date if day else None,
-                "due_time": t.due_time if time else None,
-                "remind": t.remind,
-                "tags": list(t.tags),
-            }
-            for t in a.tasks
-        ]
+        # A named list files the task there; a name with no live list leaves
+        # it in the Inbox and is reported back. Lists are never made here.
+        unknown: list[str] = []
+        tasks = []
+        for t in a.tasks:
+            lst = ports.tasks.find_active_list(run.ctx, t.list) if t.list else None
+            if t.list and lst is None and t.list not in unknown:
+                unknown.append(t.list)
+            tasks.append(
+                {
+                    "title": t.title,
+                    "list_id": str(lst.id) if lst else None,
+                    "due_date": t.due_date if day else None,
+                    "due_time": t.due_time if time else None,
+                    "remind": t.remind,
+                    "tags": list(t.tags),
+                }
+            )
         # Plain to-dos and reminders tier differently (a reminder waits for
         # the user's OK), so they become separate cards: one reminder in the
         # call must not hold the plain tasks back.
@@ -1285,7 +1370,10 @@ def capture_tools(run: Run) -> list[BaseTool]:
             for rule, group in groups
             if group
         ]
-        return made[0] if len(made) == 1 else {"cards": made}
+        out = made[0] if len(made) == 1 else {"cards": made}
+        if unknown:
+            out["unknown_lists"] = unknown
+        return out
 
     def complete_task(**kw: Any) -> dict[str, Any]:
         a = QueryArgs(**kw)
@@ -1379,14 +1467,12 @@ def capture_tools(run: Run) -> list[BaseTool]:
                 "error": "an_account_with_that_name_exists",
                 "instead": "set_account_balance, to set its balance",
             }
-        if a.credit_limit is not None and a.type != "credit":
-            return {"error": "only_a_credit_card_has_a_limit"}
         payload = {
             "kind": "accountCreate",
             "name": a.name,
+            "color": _next_account_color(ports.finance.list_accounts(run.ctx)),
             "type": a.type,
             "opening_minor": _minor(a.opening_balance),
-            "limit_minor": _minor(a.credit_limit) if a.credit_limit else None,
         }
         d = RecordDraft(
             kind="accountCreate",
@@ -1478,6 +1564,13 @@ def capture_tools(run: Run) -> list[BaseTool]:
         parent = None
         if a.parent:
             parent = ports.finance.main_category(run.ctx, a.parent)
+            h = " ".join(a.parent.lower().split())
+            if parent is None and any(
+                c.parent_id is not None and " ".join(c.name.lower().split()) == h
+                for c in ports.finance.list_categories(run.ctx)
+            ):
+                # The named parent is itself a sub-category.
+                return {"error": "categories_nest_one_level"}
             if parent is None:
                 return {
                     "error": "no_main_category_with_that_name",
@@ -1509,7 +1602,9 @@ def capture_tools(run: Run) -> list[BaseTool]:
                     "category_kind": kind,
                     "parent_id": str(parent.id) if parent else None,
                     "parent_name": parent.name if parent else None,
-                    "icon": a.icon or (parent.icon if parent else "🏷️"),
+                    "icon": a.icon
+                    if a.icon and _one_emoji(a.icon)
+                    else (parent.icon if parent else "🏷️"),
                     # A new expense counts as a want (it breaks a no-spend
                     # day), as the app's own editor starts it; a
                     # sub-category follows its parent.
@@ -2093,7 +2188,8 @@ def capture_tools(run: Run) -> list[BaseTool]:
             changes["type"] = a.type
         if a.credit_limit is not None:
             changes["limit_minor"] = _minor(a.credit_limit)
-        if a.type and a.type != "credit" and acc.limit_minor is not None:
+        # Fern can't make a card, so any type it sets drops a card's limit.
+        if a.type and acc.limit_minor is not None:
             changes["limit_minor"] = None
         if not changes:
             return {"error": "nothing_to_change"}
@@ -2313,8 +2409,8 @@ def capture_tools(run: Run) -> list[BaseTool]:
         (
             create_account,
             AccountArgs,
-            "Add a money account (cash, bank, e-wallet, credit card, "
-            "investment) with its balance today.",
+            "Add a money account (cash, bank, e-wallet, investment) with its "
+            "balance today. Credit cards can't be added.",
         ),
         (
             set_account_balance,
@@ -2423,8 +2519,8 @@ def capture_tools(run: Run) -> list[BaseTool]:
         (
             edit_account,
             AccountEditArgs,
-            "Rename an account, change its type (e.g. to credit card) or its "
-            "credit limit.",
+            "Rename an account, change its type, or change the credit limit "
+            "of a credit card the user already has.",
         ),
         (edit_budget, BudgetEditArgs, "Change a budget's monthly limit or name."),
         (

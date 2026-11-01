@@ -34,7 +34,7 @@ abstract class UnfurlWidget : AppWidgetProvider() {
 object UnfurlWidgets {
   private val providers = listOf(
     TodayWidget::class.java, HabitsWidget::class.java, MacrosWidget::class.java,
-    TasksWidget::class.java, MoneyWidget::class.java,
+    TasksWidget::class.java, MoneyWidget::class.java, AppsWidget::class.java,
   )
 
   fun updateAll(ctx: Context) {
@@ -222,5 +222,76 @@ class MoneyWidget : UnfurlWidget() {
     v.setTextViewText(R.id.money_days, "${m.optDouble("daysLeft").roundToInt()}d")
     v.setProgressBar(R.id.money_bar, 100, (m.optDouble("pct") * 100).roundToInt(), false)
     return UnfurlWidgets.frame(ctx, v, off, "/finance")
+  }
+}
+
+/** Fern's quick actions: chat, the camera and dictation, each a deep link the
+ * app resolves (src/surfaces/links.ts). Nothing on it depends on the
+ * snapshot, so it is never dimmed. */
+class FernWidget : UnfurlWidget() {
+  override fun views(ctx: Context, snap: JSONObject, dimmed: Boolean): RemoteViews {
+    fun fill(layout: Int, wide: Boolean): RemoteViews {
+      val v = RemoteViews(ctx.packageName, layout)
+      v.setOnClickPendingIntent(R.id.fern_chat, LiveNotification.openIntent(ctx, "/fern?mode=chat", 400))
+      v.setOnClickPendingIntent(R.id.fern_camera, LiveNotification.openIntent(ctx, "/fern?mode=camera", 401))
+      v.setOnClickPendingIntent(R.id.fern_mic, LiveNotification.openIntent(ctx, "/fern?mode=dictate", 402))
+      if (wide) v.setOnClickPendingIntent(R.id.fern_app, LiveNotification.openIntent(ctx, "/today", 403))
+      return UnfurlWidgets.frame(ctx, v, false, "/today")
+    }
+    return UnfurlWidgets.responsive(fill(R.layout.unfurl_fern_small, false), fill(R.layout.unfurl_fern_medium, true))
+  }
+}
+
+/** A tile for each app the in-app launcher shows (the snapshot's ``apps``),
+ * four to a row. */
+class AppsWidget : UnfurlWidget() {
+  private class App(val label: String, val icon: Int, val color: Int)
+
+  private val apps = mapOf(
+    "habits" to App("Habits", R.drawable.unfurl_app_habits, R.color.unfurl_hab),
+    "tasks" to App("Tasks", R.drawable.unfurl_app_tasks, R.color.unfurl_tsk),
+    "fitness" to App("Fitness", R.drawable.unfurl_app_fitness, R.color.unfurl_fit),
+    "nutrition" to App("Nutrition", R.drawable.unfurl_app_nutrition, R.color.unfurl_nut),
+    "focus" to App("Focus", R.drawable.unfurl_app_focus, R.color.unfurl_foc),
+    "finance" to App("Finance", R.drawable.unfurl_app_finance, R.color.unfurl_fin),
+    "screen" to App("Screen time", R.drawable.unfurl_app_screen, R.color.unfurl_scr),
+    "journal" to App("Journal", R.drawable.unfurl_app_journal, R.color.unfurl_life),
+  )
+  /** Before the app has written which apps are on: all but Screen Time. */
+  private val fallback = listOf("habits", "tasks", "fitness", "nutrition", "focus", "finance", "journal")
+  private val tiles = intArrayOf(
+    R.id.app_tile_0, R.id.app_tile_1, R.id.app_tile_2, R.id.app_tile_3,
+    R.id.app_tile_4, R.id.app_tile_5, R.id.app_tile_6, R.id.app_tile_7,
+  )
+  private val bgs = intArrayOf(
+    R.id.app_bg_0, R.id.app_bg_1, R.id.app_bg_2, R.id.app_bg_3,
+    R.id.app_bg_4, R.id.app_bg_5, R.id.app_bg_6, R.id.app_bg_7,
+  )
+  private val icons = intArrayOf(
+    R.id.app_icon_0, R.id.app_icon_1, R.id.app_icon_2, R.id.app_icon_3,
+    R.id.app_icon_4, R.id.app_icon_5, R.id.app_icon_6, R.id.app_icon_7,
+  )
+  private val labels = intArrayOf(
+    R.id.app_label_0, R.id.app_label_1, R.id.app_label_2, R.id.app_label_3,
+    R.id.app_label_4, R.id.app_label_5, R.id.app_label_6, R.id.app_label_7,
+  )
+
+  override fun views(ctx: Context, snap: JSONObject, dimmed: Boolean): RemoteViews {
+    val v = RemoteViews(ctx.packageName, R.layout.unfurl_apps)
+    val list = snap.optJSONArray("apps")
+    val keys = if (list == null) fallback else (0 until list.length()).map { list.optString(it) }.filter { it in apps }
+    for (i in tiles.indices) {
+      val key = keys.getOrNull(i)
+      val app = key?.let { apps[it] }
+      v.setViewVisibility(tiles[i], if (app != null) View.VISIBLE else View.INVISIBLE)
+      if (app == null) continue
+      v.setInt(bgs[i], "setColorFilter", ctx.getColor(app.color))
+      v.setImageViewResource(icons[i], app.icon)
+      v.setTextViewText(labels[i], app.label)
+      v.setContentDescription(tiles[i], app.label)
+      v.setOnClickPendingIntent(tiles[i], LiveNotification.openIntent(ctx, "/feature/$key", 500 + i))
+    }
+    v.setViewVisibility(R.id.app_row_1, if (keys.size > 4) View.VISIBLE else View.GONE)
+    return UnfurlWidgets.frame(ctx, v, false, "/today")
   }
 }

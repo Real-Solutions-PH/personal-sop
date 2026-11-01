@@ -44,6 +44,28 @@ export function shade(hex: string, amount: number) {
   return `#${ch(n >> 16)}${ch((n >> 8) & 255)}${ch(n & 255)}`
 }
 
+const luminance = (hex: string) => {
+  const n = Number.parseInt(hex.slice(1), 16)
+  const lin = (v: number) => {
+    const c = v / 255
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+  }
+  return (
+    0.2126 * lin(n >> 16) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255)
+  )
+}
+/** The least darkening (0–0.6, in steps of 0.02) at which white text reads
+ * at 4.5:1 on ``shade(hex, amount)``: dark colours (red, rose, violet) stay
+ * vivid, bright ones (emerald, orange) darken only as far as they must. */
+export function readableShade(hex: string) {
+  if (!/^#[0-9a-f]{6}$/i.test(hex)) return 0.3
+  for (let i = 0; i <= 30; i++) {
+    const amount = i / 50
+    if (1.05 / (luminance(shade(hex, amount)) + 0.05) >= 4.5) return amount
+  }
+  return 0.6
+}
+
 /** The account colours a person can pick (docs/brand: ``acct-*``). */
 export const ACCOUNT_COLORS = [
   "green",
@@ -56,8 +78,18 @@ export const ACCOUNT_COLORS = [
   "cyan",
   "slate",
 ] as const
-// For an account nobody picked a colour for: the brighter half, no grey.
-const DEFAULTS = ["blue", "emerald", "violet", "cyan", "green", "orange"]
+// For an account nobody picked a colour for, in the brand's order.
+const DEFAULTS = [
+  "blue",
+  "emerald",
+  "violet",
+  "orange",
+  "cyan",
+  "rose",
+  "green",
+  "red",
+  "slate",
+]
 
 /** The ``acct-*`` key an account is drawn in, or its own hex. An account
  * with no colour of its own ("fin", the server's default for accounts Fern
@@ -67,7 +99,9 @@ export function accountColorKey(a: Pick<Account, "id" | "color">): string {
   const picked = /^var\(--(acct-[a-z]+)\)$/.exec(a.color ?? "")?.[1]
   if (picked && ACCOUNT_COLORS.includes(picked.slice(5) as "green"))
     return picked
-  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(a.color ?? "")) return a.color
+  // Only full ``#rrggbb``: ``shade`` cannot darken ``#fff``, so a short hex
+  // would draw white text on white.
+  if (/^#[0-9a-f]{6}$/i.test(a.color ?? "")) return a.color
   let h = 0
   for (const ch of a.id) h = (h * 31 + ch.charCodeAt(0)) >>> 0
   return `acct-${DEFAULTS[h % DEFAULTS.length]}`
@@ -79,12 +113,11 @@ export function useAccountColor(a: Account) {
   return key.startsWith("#") ? key : (t[key] ?? t["acct-blue"])
 }
 
-/** What the card says under the balance: how much of the limit is used, or
- * how fresh the balance is. */
+/** What the card says under the balance: how much of the limit is used, a
+ * deposit's maturity, the goal, or how the balance is kept. */
 function footnote(
   a: Account,
   balance: number,
-  nudgeDays: number,
 ): {
   text: string
   stale: boolean
@@ -101,42 +134,26 @@ function footnote(
       stale: days <= 0,
     }
   }
-  const note = freshness(a, nudgeDays)
-  // A stale balance outranks the goal: the goal % is only as good as it.
-  if (a.goal && !note.stale)
+  if (a.goal)
     return {
       text: `${Math.round((Math.max(0, balance) / a.goal) * 100)}% of goal`,
       stale: false,
     }
-  return note
-}
-
-function freshness(
-  a: Account,
-  nudgeDays: number,
-): { text: string; stale: boolean } {
-  if (a.manual) return { text: "Value you set", stale: false }
-  // Only banks and e-wallets have statements to match against.
-  if (a.type !== "bank" && a.type !== "ewallet")
-    return { text: "Kept up as you log", stale: false }
-  const days = C.lastReconciledDays(a)
-  if (days === null) return { text: "Not matched yet", stale: true }
+  // Balances are kept by logging; no account needs matching to a statement.
   return {
-    text: `Matched ${days === 0 ? "today" : `${days}d ago`}`,
-    stale: days > nudgeDays,
+    text: a.manual ? "Value you set" : "Kept up as you log",
+    stale: false,
   }
 }
 
 export function AccountCard({
   account: a,
   balance,
-  nudgeDays,
   compact = false,
   onPress,
 }: {
   account: Account
   balance: number
-  nudgeDays: number
   /** The small card in the Finance home row; full width otherwise. */
   compact?: boolean
   onPress?: () => void
@@ -145,7 +162,7 @@ export function AccountCard({
   const base = useAccountColor(a)
   const Icon = ICONS[a.type]
   const owed = a.type === "credit"
-  const note = footnote(a, balance, nudgeDays)
+  const note = footnote(a, balance)
   const used = owed && a.limit ? Math.min(1, Math.abs(balance) / a.limit) : null
   const label = `${a.name}, ${KIND[a.type]}, ${owed ? "owed " : balance < 0 ? "minus " : ""}${money(Math.abs(balance))}. ${note.text}`
   return (
@@ -158,7 +175,7 @@ export function AccountCard({
           darkened so white text stays readable on the brighter ones. */}
       <View
         style={{
-          backgroundColor: shade(base, 0.3),
+          backgroundColor: shade(base, readableShade(base)),
           borderRadius: 18,
           padding: compact ? 12 : 16,
           minHeight: compact ? 112 : 0,
@@ -197,7 +214,6 @@ export function AccountCard({
             <Copy
               size={compact ? 12 : 14}
               weight="semibold"
-              lines={1}
               style={{ color: "white" }}
             >
               {a.name}
@@ -215,7 +231,7 @@ export function AccountCard({
           <Copy
             size={compact ? 18 : 24}
             weight="semibold"
-            lines={1}
+            fit
             style={{ color: "white", letterSpacing: -0.4 }}
           >
             {!owed && balance < 0 ? "−" : ""}
@@ -243,11 +259,7 @@ export function AccountCard({
                 }}
               />
             </View>
-            <Copy
-              size={10}
-              lines={1}
-              style={{ color: "rgba(255,255,255,0.85)" }}
-            >
+            <Copy size={10} style={{ color: "rgba(255,255,255,0.85)" }}>
               {note.text}
             </Copy>
           </View>
@@ -263,11 +275,7 @@ export function AccountCard({
                 }}
               />
             )}
-            <Copy
-              size={10}
-              lines={1}
-              style={{ color: "rgba(255,255,255,0.85)" }}
-            >
+            <Copy size={10} style={{ color: "rgba(255,255,255,0.85)" }}>
               {note.text}
             </Copy>
           </View>

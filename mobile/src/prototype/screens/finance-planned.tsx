@@ -4,15 +4,9 @@ import type { PlannedItem } from "@domain/finance/data"
 import { finStore } from "@domain/finance/store"
 import { dayKey } from "@domain/lib/day"
 import { useLocalSearchParams } from "expo-router"
-import {
-  ArrowDownLeft,
-  ArrowLeftRight,
-  ArrowUpRight,
-  Pencil,
-  Plus,
-} from "lucide-react-native"
+import { ArrowLeftRight, Pencil, Plus, Tag } from "lucide-react-native"
 import { useState } from "react"
-import { ScrollView, Text, useWindowDimensions, View } from "react-native"
+import { ScrollView, Text, View } from "react-native"
 import { toast } from "sonner-native"
 import {
   border,
@@ -56,13 +50,9 @@ function PlannedIcon({ p }: { p: PlannedItem }) {
   const s = finStore.use((s) => s),
     t = useTheme(),
     cat = s.categories.find((c) => c.id === p.categoryId),
-    // No category (deleted, or never set): the direction, not a lone dot.
-    Fallback =
-      p.type === "transfer"
-        ? ArrowLeftRight
-        : p.type === "income"
-          ? ArrowDownLeft
-          : ArrowUpRight
+    // No category (deleted, or never set) reads as unset: a tag outline,
+    // not a lone dot. A transfer has no category; it shows its arrows.
+    Fallback = p.type === "transfer" ? ArrowLeftRight : Tag
   return (
     <View
       style={{
@@ -82,22 +72,20 @@ function PlannedIcon({ p }: { p: PlannedItem }) {
     </View>
   )
 }
-/** What a scheduled payment touches, in words: "Maya · Bills", or only the
- * parts that exist ("Maya" when its category is gone). */
+/** What a scheduled payment touches, in words: "Maya · Bills", with a part
+ * that is gone (deleted, archived, never set) named as missing: "Maya · No
+ * category", "Maya → No account". */
 export function plannedWhere(
   p: PlannedItem,
-  accounts: readonly { id: string; name: string }[],
+  accounts: readonly { id: string; name: string; archived?: boolean }[],
   categories: readonly { id: string; name: string }[],
 ) {
-  const acct = (id?: string) => accounts.find((a) => a.id === id)?.name
+  const acct = (id?: string) =>
+    accounts.find((a) => a.id === id && !a.archived)?.name ?? "No account"
   if (p.type === "transfer")
-    return [acct(p.accountId) ?? "?", acct(p.toAccountId) ?? "?"].join(" → ")
-  return [
-    acct(p.accountId),
-    categories.find((c) => c.id === p.categoryId)?.name,
-  ]
-    .filter(Boolean)
-    .join(" · ")
+    return `${acct(p.accountId)} → ${acct(p.toAccountId)}`
+  const cat = categories.find((c) => c.id === p.categoryId)?.name
+  return `${acct(p.accountId)} · ${cat ?? "No category"}`
 }
 export function DueSheet({
   id,
@@ -146,11 +134,9 @@ export function DueSheet({
           >
             <PlannedIcon p={p} />
             <View style={{ flex: 1 }}>
-              {!!where && (
-                <Copy size={14} weight="medium">
-                  {where}
-                </Copy>
-              )}
+              <Copy size={14} weight="medium">
+                {where}
+              </Copy>
               <Copy size={12} muted>
                 {p.isInstallment ? "0% installment · " : ""}
                 {p.estimated
@@ -181,7 +167,7 @@ export function DueSheet({
                 },
               },
               {
-                label: p.type === "income" ? "Received…" : "Paid…",
+                label: "Review & record",
                 press: () => setPhase("leaving"),
               },
             ].map((a, i) => (
@@ -219,7 +205,6 @@ export function Planned({ id }: { id?: string }) {
   const s = finStore.use((s) => s),
     t = useTheme(),
     money = useMoney(),
-    narrow = useWindowDimensions().width < 380,
     [tab, setTab] = useState("recurring"),
     [edit, setEdit] = useState(!!params.amount),
     [due, setDue] = useState<{
@@ -270,24 +255,32 @@ export function Planned({ id }: { id?: string }) {
             p.amount
         : 0
   const stats = (items: { label: string; value: string; color?: string }[]) => (
-    <Frame style={{ padding: 16 }}>
-      <Line style={{ gap: 8, alignItems: "flex-start" }}>
-        {items.map((x) => (
-          <View key={x.label} style={{ flex: 1 }}>
-            <Copy
-              size={narrow ? 22 : 30}
-              weight="displayMedium"
-              fit
-              style={{ color: x.color ?? t.text }}
-            >
-              {x.value}
-            </Copy>
-            <Copy size={12} muted>
-              {x.label}
-            </Copy>
-          </View>
-        ))}
-      </Line>
+    // One row per figure, so every amount has the card's full width.
+    <Frame style={{ paddingHorizontal: 16, paddingVertical: 4 }}>
+      {items.map((x, i) => (
+        <Line
+          key={x.label}
+          style={{
+            justifyContent: "space-between",
+            alignItems: "baseline",
+            gap: 12,
+            paddingVertical: 10,
+            borderTopWidth: i ? 1 : 0,
+            borderColor: border(t.line, 0.6),
+          }}
+        >
+          <Copy size={14} muted style={{ flex: 1 }}>
+            {x.label}
+          </Copy>
+          <Copy
+            size={20}
+            weight="displayMedium"
+            style={{ color: x.color ?? t.text }}
+          >
+            {x.value}
+          </Copy>
+        </Line>
+      ))}
     </Frame>
   )
   if (id && !p)
@@ -347,9 +340,7 @@ export function Planned({ id }: { id?: string }) {
             </View>
           </Line>
           <Line style={{ gap: 6, flexWrap: "wrap" }}>
-            {!!plannedWhere(p, s.accounts, s.categories) && (
-              <FinPill>{plannedWhere(p, s.accounts, s.categories)}</FinPill>
-            )}
+            <FinPill>{plannedWhere(p, s.accounts, s.categories)}</FinPill>
             <FinPill tone={p.autoLog ? "fin" : "muted"}>
               {p.autoLog ? "Auto-logs" : "Asks Paid / Skip"}
             </FinPill>
@@ -604,12 +595,7 @@ export function Planned({ id }: { id?: string }) {
                     <Copy size={11} muted>
                       {C.dayLabel(o.day)}
                     </Copy>
-                    <Copy
-                      size={14}
-                      weight="medium"
-                      lines={1}
-                      style={{ marginTop: 4 }}
-                    >
+                    <Copy size={14} weight="medium" style={{ marginTop: 4 }}>
                       {o.item.name}
                     </Copy>
                     <Copy size={14}>{signed(o.item)}</Copy>
@@ -638,19 +624,14 @@ export function Planned({ id }: { id?: string }) {
                 <Line style={{ paddingVertical: 8, paddingHorizontal: 4 }}>
                   <PlannedIcon p={p} />
                   <View style={{ flex: 1 }}>
-                    <Line style={{ gap: 6 }}>
-                      <Copy weight="medium" lines={1} style={{ flexShrink: 1 }}>
-                        {p.name}
-                      </Copy>
+                    <Line style={{ gap: 6, flexWrap: "wrap" }}>
+                      <Copy weight="medium">{p.name}</Copy>
                       {p.isInstallment && <FinPill>installment</FinPill>}
                       {p.autoLog && <FinPill tone="fin">auto</FinPill>}
                     </Line>
-                    <Copy size={14} muted lines={1}>
-                      {C.scheduleLabel(p)}
-                      {p.type !== "transfer" &&
-                      s.categories.some((c) => c.id === p.categoryId)
-                        ? ` · ${s.categories.find((c) => c.id === p.categoryId)?.name}`
-                        : ""}
+                    <Copy size={14} muted>
+                      {C.scheduleLabel(p)} ·{" "}
+                      {plannedWhere(p, s.accounts, s.categories)}
                     </Copy>
                   </View>
                   <View>

@@ -1,6 +1,7 @@
 import { dashStore, updateProfile } from "@domain/dash/store"
 import { createStore } from "@domain/lib/store"
 import { liveMode } from "@/live/config"
+import { aboutOf, applyDraft, discardDraft, getDraft } from "./onboarding-draft"
 
 // Live mode backs these same actions with Supabase + the API server
 // (src/live). Loaded lazily so prototype mode never initialises Supabase.
@@ -67,6 +68,9 @@ export type Session = {
   claim: User | null
   /** Address a password-reset link was sent to. */
   resetEmail: string
+  /** Signed in to an account that existed before this device: never sent
+   * into onboarding (Today's setup card finishes what is missing). */
+  returning: boolean
 }
 
 const signedOut = (): Session => ({
@@ -76,6 +80,7 @@ const signedOut = (): Session => ({
   pending: null,
   claim: null,
   resetEmail: "",
+  returning: false,
 })
 export const sessionStore = createStore<Session>("auth-session", signedOut)
 // "Reset demo data" calls resetAll() for every store; that restores sample
@@ -190,26 +195,38 @@ export async function signIn({
     if (password === "wrong")
       throw new AuthError("Incorrect email or password", "password")
   }
+  // An existing account's data wins over answers given before it.
+  discardDraft()
   sessionStore.set((s) => ({
     ...s,
     signedIn: true,
     pending: null,
     claim: null,
+    returning: true,
     user: { name: nameFromEmail(address), username: "", email: address },
     rememberedEmail: remember ? address : "",
   }))
 }
-export async function continueWith(provider: "apple" | "google") {
+/** Apple or Google. From onboarding's account step (`newAccount`) the
+ * answers given so far are written to the account; from sign in, the
+ * account is an existing one and the draft is discarded. */
+export async function continueWith(
+  provider: "apple" | "google",
+  { newAccount = false } = {},
+) {
   if (liveMode)
     throw new AuthError(
       `${provider === "apple" ? "Apple" : "Google"} sign-in isn't available yet. Use your email instead.`,
     )
   await wait()
+  if (newAccount) applyDraft()
+  else discardDraft()
   sessionStore.set((s) => ({
     ...s,
     signedIn: true,
     pending: null,
     claim: null,
+    returning: !newAccount,
     user: {
       name: dashStore.get().profile.name,
       username: dashStore.get().profile.handle.replace(/^@/, ""),
@@ -278,8 +295,11 @@ export async function completeSignUp() {
   const user = pending ?? claim
   if (!user) return
   if (liveMode) {
+    const about = aboutOf(getDraft())
     try {
-      await viaLive(() => live().completeProfile(user.name, user.username))
+      await viaLive(() =>
+        live().completeProfile(user.name, user.username, about ?? {}),
+      )
     } catch (error) {
       if (error instanceof AuthError && error.field === "username")
         sessionStore.set((s) => ({ ...s, pending: null, claim: user }))
@@ -294,12 +314,17 @@ export async function completeSignUp() {
     ).syncReady.setState({ ready: true })
   }
   updateProfile({ name: user.name, handle: `@${user.username}` })
+  // Onboarding's answers so far become the new account's. The sync engine
+  // starts from an empty snapshot for a new account, so its first capture
+  // pushes them as creates.
+  applyDraft()
   sessionStore.set((s) => ({
     ...s,
     signedIn: true,
     user,
     pending: null,
     claim: null,
+    returning: false,
   }))
   if (liveMode) void startLiveSession(true)
 }

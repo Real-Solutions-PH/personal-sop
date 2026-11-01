@@ -99,7 +99,7 @@ import {
 import { messageFromServer, withMessages } from "./mappers/companion"
 import { categoryIds, fromMinor } from "./mappers/finance"
 import { type UploadInput, uploadMedia } from "./media"
-import { queueAction, syncNow } from "./runtime"
+import { onServerEvent, queueAction, syncNow } from "./runtime"
 import { toggleSpeech } from "./speech"
 
 /** The companion as the user named it (toasts speak in its name). */
@@ -128,6 +128,9 @@ export interface LiveCaptureDeps {
   /** Calls back whenever connectivity changes; returns the unsubscribe.
    * Queued questions are sent when the device comes back online. */
   watch?(onChange: () => void): () => void
+  /** The server's live events (``companion.reply`` ends a resume at once);
+   * returns the unsubscribe. */
+  listen?(onEvent: (e: ServerEvent) => void): () => void
 }
 
 const OFFLINE = "You're offline — try again when you're connected"
@@ -163,10 +166,17 @@ function putCapture(next: Capture) {
 // SSE
 // ---------------------------------------------------------------------------
 
-/** A reply stream that sends nothing for this long has stalled (the
- * capture and ask streams carry no heartbeat; a model step that takes this
- * long is not expected). */
-export const STREAM_GAP_MS = 60_000
+/** A reply stream that sends nothing for this long has stalled. The server
+ * pings every 15 s while Fern thinks, so this allows two lost pings. */
+export const STREAM_GAP_MS = 45_000
+/** A model call with nothing to show for this long reads "still thinking…". */
+export const THINKING_LONG_MS = 10_000
+/** A reply whose stream dropped is read back after these waits, then every
+ * RESUME_EVERY_MS while the server says it is still being written. */
+const RESUME_STEPS_MS = [2_000, 4_000, 8_000]
+const RESUME_EVERY_MS = 10_000
+/** Reads that fail (or answer nothing) for this long give the reply up. */
+export const RESUME_CAP_MS = 300_000
 
 async function readSse(
   res: Response,
@@ -455,6 +465,22 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
   // Send
   // -------------------------------------------------------------------------
 
+  /** Fetch a capture this device lacks, once at a time per id. A capture
+   * that is gone (404) is not asked for again; any other failure clears the
+   * mark, so the next ask tries again. */
+  const ensuring = new Set<string>()
+  const gone = new Set<string>()
+  function ensure(id: string) {
+    if (find(id) || ensuring.has(id) || gone.has(id) || !deps.online()) return
+    ensuring.add(id)
+    void deps.http
+      .request<Row>("GET", `/capture/${id}`)
+      .then(detail, (error: unknown) => {
+        if (error instanceof ApiError && error.status === 404) gone.add(id)
+      })
+      .finally(() => ensuring.delete(id))
+  }
+
   async function refresh(id: string, code?: string) {
     try {
       detail(await deps.http.request<Row>("GET", `/capture/${id}`))
@@ -631,6 +657,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
 
   const backend: CaptureBackend = {
     send,
+    ensure,
     confirm(cardId) {
       if (onlyHere(cardId)) return runLocally(() => confirmCard(cardId))
       if (findCard(cardId)?.card.state !== "proposed") return
@@ -903,6 +930,98 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
       ...s,
       messages: s.messages.filter((m) => !(m.id === id && m.status)),
     }))
+  /** A reply whose stream dropped while the device was online: read back
+   * from the server until it is stored (or the turn is known to have
+   * failed), at most one read loop per question. */
+  const resuming = new Map<string, Promise<void>>()
+  function resume(meId: string): Promise<void> {
+    const running = resuming.get(meId)
+    if (running) return running
+    const done = new Promise<void>((settle) => {
+      let step = 0
+      let lastRead = Date.now()
+      let timer: ReturnType<typeof setTimeout> | undefined
+      let reading = false
+      let over = false
+      const finish = (then: () => void) => {
+        if (over) return
+        over = true
+        clearTimeout(timer)
+        off()
+        resuming.delete(meId)
+        then()
+        settle()
+      }
+      const gaveUp = (text: string) => () => {
+        if (
+          companionStore.get().messages.some((m) => m.id === meId && m.status)
+        )
+          markAsk(meId, "failed")
+        toast(text)
+      }
+      const failed = gaveUp(
+        `${companionName()} couldn't finish that reply. Tap Retry to ask again.`,
+      )
+      const later = () => {
+        if (over) return
+        clearTimeout(timer)
+        timer = setTimeout(
+          read,
+          step < RESUME_STEPS_MS.length
+            ? RESUME_STEPS_MS[step++]
+            : RESUME_EVERY_MS,
+        )
+      }
+      async function read() {
+        if (over || reading) return
+        reading = true
+        try {
+          const r = await deps.http.request<Row>(
+            "GET",
+            `/companion/messages/${meId}/reply`,
+          )
+          if (r.status === "done") {
+            lastRead = Date.now()
+            return finish(() => {
+              const msgs = ((r.messages ?? []) as Row[]).map(messageFromServer)
+              putMessages(msgs)
+              if (r.capture && typeof r.capture === "object")
+                detail(r.capture as Row)
+              // Read as a log: the capture shows in the thread instead.
+              if (!msgs.some((m) => m.id === meId)) dropAsk(meId)
+            })
+          }
+          if (r.status === "failed") return finish(failed)
+          if (r.status === "running") lastRead = Date.now()
+        } catch (error) {
+          if (
+            error instanceof ApiError &&
+            (error.status === 404 || error.status === 401)
+          )
+            return finish(failed)
+        } finally {
+          reading = false
+        }
+        if (Date.now() - lastRead >= RESUME_CAP_MS)
+          return finish(
+            gaveUp(
+              `${companionName()} is taking too long. Tap Retry to ask again.`,
+            ),
+          )
+        later()
+      }
+      const off =
+        deps.listen?.((e) => {
+          const d = (e.data ?? {}) as Row
+          if (e.type === "companion.reply" && String(d.message_id) === meId)
+            void read()
+        }) ?? (() => {})
+      later()
+    })
+    resuming.set(meId, done)
+    return done
+  }
+
   const photosOf = (m: Msg) => {
     const b = m.blocks?.find((x) => x.t === "photos")
     return b?.t === "photos"
@@ -951,6 +1070,8 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
     // Set once the server has stored the question: from then on a failure
     // must not offer a Retry (it would ask twice).
     let echoed = false
+    // Set once the stream is open: a drop after that is read back.
+    let opened = false
     const fail = () => {
       if (echoed) return
       markAsk(meId, deps.online() ? "failed" : "queued")
@@ -971,6 +1092,20 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
     let blocks: Block[] = []
     const steps: StepItem[] = []
     let open: string | undefined
+    // "still thinking…" once a model call has shown nothing for a while.
+    let longTimer: ReturnType<typeof setTimeout> | undefined
+    const calm = () => {
+      clearTimeout(longTimer)
+      longTimer = undefined
+      if (thinking.getState().long) thinking.setState({ long: false })
+    }
+    const thinkingStarted = () => {
+      calm()
+      longTimer = setTimeout(
+        () => thinking.setState({ long: true }),
+        THINKING_LONG_MS,
+      )
+    }
     const sol = () => {
       thinking.setState({ on: false })
       answering.setState({ id: solId })
@@ -996,6 +1131,8 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
         case "message":
           if (String(d.id) === meId) echoed = true
           return putMessages([messageFromServer(d)])
+        case "thinking":
+          return thinkingStarted()
         case "block":
           blocks = [...blocks, d as unknown as Block]
           return sol()
@@ -1063,6 +1200,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
         )
         return
       }
+      opened = true
       await readSse(res, (e) => {
         const d = (e.data ?? {}) as Row
         switch (d.type) {
@@ -1072,6 +1210,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
             segments.push({ id: String(d.messageId ?? ""), text: "" })
             return
           case "TEXT_MESSAGE_CONTENT": {
+            calm()
             const seg =
               segments.find((x) => x.id === String(d.messageId ?? "")) ??
               segments.at(-1)
@@ -1081,6 +1220,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
             return sol()
           }
           case "TOOL_CALL_START": {
+            calm()
             const tool = String(d.toolCallName ?? "")
             steps.push({
               id: String(d.toolCallId),
@@ -1106,6 +1246,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
               step.card_id = r.card_id
               step.state = String(r.state ?? "")
             }
+            if (typeof r.capture_id === "string") step.capture_id = r.capture_id
             if (Array.isArray(r.cards))
               step.cards = (r.cards as Row[]).map((c) => ({
                 card_id: String(c.card_id),
@@ -1141,8 +1282,16 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
             return
         }
       })
-    } catch (error) {
-      if (echoed) {
+    } catch (_error) {
+      if (deps.online() && opened) {
+        // Online, so not a lost connection: the server is most likely still
+        // writing the reply (or has stored it). It goes on on its own, so
+        // keep showing Fern at work and read the reply back.
+        calm()
+        if (!echoed) markAsk(meId, "resuming")
+        thinking.setState({ on: true })
+        await resume(meId)
+      } else if (echoed) {
         // The server has the question and finishes the reply on its own
         // (the app left the chat, or the connection dropped); the whole
         // reply replaces this partial one on the next sync.
@@ -1150,12 +1299,13 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
       } else {
         fail()
         toast(
-          error instanceof NetworkError || error instanceof ApiError
-            ? OFFLINE
-            : `${companionName()} couldn't finish that reply.`,
+          deps.online()
+            ? `${companionName()} couldn't answer that. Tap Retry to ask again.`
+            : OFFLINE,
         )
       }
     } finally {
+      calm()
       // A stream that ended without RUN_FINISHED or an error frame.
       if (
         !echoed &&
@@ -1241,6 +1391,10 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
     void runAsk(m.text ?? "", m.hint, photosOf(m), id)
   }
 
+  // A reply that was being read back when the app last stopped: read it
+  // once more; it fails (Retry) only if the server says it is not running.
+  for (const m of companionStore.get().messages)
+    if (m.role === "me" && m.status === "resuming") void resume(m.id)
   // A question still "sending" when the app last stopped may or may not
   // have reached the server: offer a Retry (a pull replaces it if it did).
   companionStore.set((s) =>
@@ -1322,6 +1476,7 @@ export function captureMappers(userId: string) {
     kick: syncNow,
     cats: categoryIds(userId),
     watch: onConnectivityChange,
+    listen: onServerEvent,
   })
   return captureSyncMappers(userId)
 }

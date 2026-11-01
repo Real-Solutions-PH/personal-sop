@@ -255,23 +255,19 @@ export function FinanceLineChart({
   floor,
   height = 170,
   zero = false,
-  marker,
 }: {
-  /** ``offset`` starts a series that many points in, so a forecast can
-   * carry on from where the actual line stops. */
+  /** A series shorter than the longest one stops early on the same x
+   * scale, so an actual line can end at today under a full-month plan. */
   series: {
     values: number[]
     color: string
     dashed?: boolean
     area?: boolean
-    offset?: number
   }[]
   labels: string[]
   floor?: number
   height?: number
   zero?: boolean
-  /** A point to mark with a thin vertical line, such as today. */
-  marker?: number
 }) {
   const t = useTheme(),
     hidden = privacyStore.use((s) => s.hidden),
@@ -288,11 +284,7 @@ export function FinanceLineChart({
   const span = max - min
   min -= span * 0.08
   max += span * 0.08
-  const n = Math.max(
-      2,
-      labels.length,
-      ...series.map((s) => (s.offset ?? 0) + s.values.length),
-    ),
+  const n = Math.max(2, labels.length, ...series.map((s) => s.values.length)),
     x = (i: number) => 40 + (i / (n - 1)) * 292,
     y = (v: number) => 10 + (1 - (v - min) / (max - min)) * (height - 30),
     ticks = [
@@ -375,31 +367,19 @@ export function FinanceLineChart({
               </SvgText>
             </G>
           )}
-          {marker !== undefined && (
-            <Line
-              x1={x(marker)}
-              x2={x(marker)}
-              y1={10}
-              y2={height - 20}
-              stroke={t.muted}
-              strokeWidth={1}
-              strokeDasharray="2 3"
-            />
-          )}
           {series.map((s, i) => {
             if (s.values.length < 2) return null
-            const o = s.offset ?? 0
             const d = s.values
               .map(
                 (v, i) =>
-                  `${i ? "L" : "M"}${x(i + o).toFixed(1)},${y(v).toFixed(1)}`,
+                  `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`,
               )
               .join(" ")
             return (
               <G key={i}>
                 {s.area && (
                   <Path
-                    d={`${d} L${x(o + s.values.length - 1)},${height - 20} L${x(o)},${height - 20} Z`}
+                    d={`${d} L${x(s.values.length - 1)},${height - 20} L${x(0)},${height - 20} Z`}
                     fill={s.color}
                     opacity={0.1}
                   />
@@ -414,7 +394,7 @@ export function FinanceLineChart({
                 />
                 {!s.dashed && (
                   <Circle
-                    cx={x(o + s.values.length - 1)}
+                    cx={x(s.values.length - 1)}
                     cy={y(s.values.at(-1)!)}
                     r={3}
                     fill={s.color}

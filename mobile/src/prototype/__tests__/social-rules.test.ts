@@ -8,9 +8,11 @@ import {
   type Message,
   postLink,
   profileLink,
+  sendMessage,
   socialStore,
   storyGroups,
   systemLine,
+  unsend,
 } from "../social/store"
 
 beforeEach(() => socialStore.reset())
@@ -41,13 +43,15 @@ test("a note older than 24 hours is not shown", () => {
 
 test("activity reads what really happened: a liked comment or note is not a cheer", () => {
   expect(activityText("like", "proud")).toBe(
-    "cheered your progress: 👏 Proud of you.",
+    "cheered your progress: Proud of you.",
   )
   expect(activityText("like", undefined)).toBe("cheered your progress.")
-  expect(activityText("like", "liked your comment")).toBe("liked your comment.")
-  expect(activityText("like", "liked your note")).toBe("liked your note.")
+  expect(activityText("like", "cheered your comment")).toBe(
+    "cheered your comment.",
+  )
+  expect(activityText("like", "cheered your note")).toBe("cheered your note.")
   expect(activityText("comment", "nice")).toBe("commented: nice")
-  expect(activityText("story", undefined)).toBe("liked your story.")
+  expect(activityText("story", undefined)).toBe("cheered your check-in.")
 })
 
 test("deleting a comment drops it, its replies and the comment count", () => {
@@ -68,6 +72,51 @@ test("deleting a comment drops it, its replies and the comment count", () => {
   // Both were counted when added, so both come off.
   expect(before?.commentCount).toBe(post.comments.length + 2)
   expect(after?.commentCount).toBe(post.comments.length)
+})
+
+test("Undo puts a deleted comment and its replies back, counted again", () => {
+  const post = socialStore.get().posts[0]
+  socialStore.set((s) => ({
+    ...s,
+    posts: s.posts.map((p) =>
+      p.id === post.id ? { ...p, commentCount: p.comments.length } : p,
+    ),
+  }))
+  const parent = addComment(post.id, "first")
+  const child = addComment(post.id, "reply", parent.id)
+  const before = socialStore.get().posts.find((p) => p.id === post.id)
+  const restore = deleteComment(post.id, parent.id)
+  restore()
+  const after = socialStore.get().posts.find((p) => p.id === post.id)
+  expect(after?.comments.map((c) => c.id)).toEqual(
+    before?.comments.map((c) => c.id),
+  )
+  expect(after?.comments.some((c) => c.id === child.id)).toBe(true)
+  expect(after?.commentCount).toBe(before?.commentCount)
+})
+
+test("deleting a message leaves a tombstone; Undo brings the message back", () => {
+  const chat = socialStore.get().chats[0]
+  const m = sendMessage(chat.id, { text: "oops" })
+  const restore = unsend(chat.id, m.id)
+  const tomb = socialStore
+    .get()
+    .chats.find((c) => c.id === chat.id)
+    ?.messages.find((x) => x.id === m.id)
+  expect(tomb).toEqual({
+    id: m.id,
+    by: ME,
+    at: m.at,
+    reactions: {},
+    deleted: true,
+  })
+  restore()
+  const back = socialStore
+    .get()
+    .chats.find((c) => c.id === chat.id)
+    ?.messages.find((x) => x.id === m.id)
+  expect(back?.text).toBe("oops")
+  expect(back?.deleted).toBeUndefined()
 })
 
 test("a server group line names who did it", () => {

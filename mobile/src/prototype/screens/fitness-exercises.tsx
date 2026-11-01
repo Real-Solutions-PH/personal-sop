@@ -1,12 +1,20 @@
 import * as A from "@domain/fitness/actions"
 import * as C from "@domain/fitness/calc"
 import type { Exercise } from "@domain/fitness/data"
+import {
+  type DupePair,
+  dismissDuplicate,
+  dupesStore,
+  duplicateCandidates,
+} from "@domain/fitness/dupes"
 import { fitStore } from "@domain/fitness/store"
 import { dayKey, dayOffset } from "@domain/lib/day"
 import {
   Archive,
   ChevronRight,
+  Copy as CopyIcon,
   Dumbbell,
+  Merge,
   Pencil,
   Plus,
   Search,
@@ -17,6 +25,7 @@ import {
 } from "lucide-react-native"
 import { useState } from "react"
 import { TextInput, View } from "react-native"
+import { toast } from "sonner-native"
 import { FitnessTrend } from "../chart"
 import {
   border,
@@ -28,9 +37,9 @@ import {
   Segmented,
   Tap,
 } from "../native-kit"
-import { go } from "../navigation"
+import { go, replace } from "../navigation"
 import { fonts, useTheme } from "../theme"
-import { Button, Empty, Screen, undo } from "../ui"
+import { Button, confirm, Empty, Field, Screen, Sheet, undo } from "../ui"
 import { CreateExerciseRow, ExerciseEditor } from "./fitness"
 
 const MUSCLES = [
@@ -53,6 +62,40 @@ const spec = (e: Exercise) =>
   e.loadType === "time"
     ? `timed${e.track === "speed" ? " · speed" : e.track === "weight" ? " · added weight" : ""}`
     : `${e.repMin}–${e.repMax} reps · +${e.increment} kg`
+const LOAD_LABEL: Record<Exercise["loadType"], string> = {
+  weight: "weighted",
+  bodyweight: "bodyweight",
+  reps: "reps-only",
+  time: "timed",
+}
+const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? "" : "s"}`
+/** Ask, then fold ``source`` into ``target``; lands on the survivor. */
+function confirmMerge(source: Exercise, target: Exercise) {
+  const s = fitStore.get(),
+    sessions = s.workouts.reduce(
+      (n, w) =>
+        n + w.exercises.filter((e) => e.exerciseId === source.id).length,
+      0,
+    ),
+    slots = s.templates.reduce(
+      (n, t) => n + t.items.filter((i) => i.exerciseId === source.id).length,
+      0,
+    )
+  confirm(
+    `Merge into ${target.name}?`,
+    `${plural(sessions, "session")} and ${plural(slots, "template slot")} move to ${target.name}. “${source.name}” becomes a search name for it. This can't be undone.`,
+    () => {
+      const r = A.mergeExercises(source.id, target.id)
+      if (!r.ok) {
+        toast.error(r.reason)
+        return
+      }
+      toast.success(`Merged into ${r.target.name}`)
+      replace(`/fitness/exercises/${r.target.id}`)
+    },
+    "Merge",
+  )
+}
 export function Exercises({ id }: { id?: string }) {
   const s = fitStore.use((s) => s),
     t = useTheme(),
@@ -62,7 +105,14 @@ export function Exercises({ id }: { id?: string }) {
     // A new exercise's name, from the search when it found nothing.
     [newName, setNewName] = useState(""),
     [range, setRange] = useState("12w"),
-    [metric, setMetric] = useState("e1rm")
+    [metric, setMetric] = useState("e1rm"),
+    [merging, setMerging] = useState(false),
+    // Picked in the sheet; confirmed once the sheet is gone (iOS shows no
+    // alert over a sheet that is still leaving).
+    [mergeTarget, setMergeTarget] = useState<Exercise | null>(null),
+    [mergeQuery, setMergeQuery] = useState(""),
+    [allDupes, setAllDupes] = useState(false),
+    dismissed = dupesStore.use((d) => d.dismissed)
   const ex = s.exercises.find((e) => e.id === id),
     hist = ex ? C.exerciseHistory(s, ex.id) : [],
     from =
@@ -88,7 +138,12 @@ export function Exercises({ id }: { id?: string }) {
     ),
     first = series[0],
     last = series.at(-1),
-    change = first && last ? last - first : undefined
+    change = first && last ? last - first : undefined,
+    live = C.liveExercises(s),
+    dupes: DupePair[] = id ? [] : duplicateCandidates(s, dismissed),
+    targets = ex
+      ? live.filter((e) => e.id !== ex.id && !e.archived)
+      : ([] as Exercise[])
   const pill = (label: string, color: string = t.muted) => (
     <View
       style={{
@@ -180,14 +235,69 @@ export function Exercises({ id }: { id?: string }) {
               </Copy>
             </Line>
           </Tap>
+          {dupes.length > 0 && (
+            <Frame style={{ padding: 16, gap: 12 }}>
+              <Line style={{ gap: 8 }}>
+                <CopyIcon size={16} color={t.fit} />
+                <Copy weight="medium">Possible duplicates</Copy>
+              </Line>
+              {(allDupes ? dupes : dupes.slice(0, 3)).map((d) => (
+                <View
+                  key={`${d.merge.id}|${d.keep.id}`}
+                  style={{
+                    gap: 8,
+                    paddingTop: 12,
+                    borderTopWidth: 1,
+                    borderColor: border(t.line, 0.6),
+                  }}
+                >
+                  <View>
+                    <Copy size={14} weight="medium">
+                      {d.merge.name} → {d.keep.name}
+                    </Copy>
+                    <Copy size={12} muted>
+                      {d.reason === "same name"
+                        ? "Same name"
+                        : "One name holds the other"}
+                    </Copy>
+                  </View>
+                  <Line style={{ gap: 8 }}>
+                    <Button small onPress={() => confirmMerge(d.merge, d.keep)}>
+                      Review
+                    </Button>
+                    <Button
+                      small
+                      tone="quiet"
+                      onPress={() => {
+                        dismissDuplicate(d.merge.id, d.keep.id)
+                        toast("Hidden")
+                      }}
+                    >
+                      Not duplicates
+                    </Button>
+                  </Line>
+                </View>
+              ))}
+              {dupes.length > 3 && !allDupes && (
+                <Tap
+                  onPress={() => setAllDupes(true)}
+                  style={{ alignSelf: "flex-start", paddingVertical: 4 }}
+                >
+                  <Copy size={14} weight="medium" style={{ color: t.fit }}>
+                    See all ({dupes.length})
+                  </Copy>
+                </Tap>
+              )}
+            </Frame>
+          )}
           {MUSCLES.map((m) => ({
             m,
-            list: s.exercises
+            list: live
               .filter(
                 (e) =>
                   (archived || !e.archived) &&
                   e.muscle === m &&
-                  e.name.toLowerCase().includes(query.trim().toLowerCase()),
+                  C.exerciseMatches(e, query),
               )
               .sort((a, b) => a.name.localeCompare(b.name)),
           }))
@@ -231,10 +341,8 @@ export function Exercises({ id }: { id?: string }) {
                 ))}
               </View>
             ))}
-          {!s.exercises.some(
-            (e) =>
-              (archived || !e.archived) &&
-              e.name.toLowerCase().includes(query.trim().toLowerCase()),
+          {!live.some(
+            (e) => (archived || !e.archived) && C.exerciseMatches(e, query),
           ) && (
             <Empty
               title={`No exercise matches “${query}”`}
@@ -254,6 +362,11 @@ export function Exercises({ id }: { id?: string }) {
           <Copy size={14} muted style={{ textTransform: "capitalize" }}>
             {ex.muscle} · {ex.equipment} · {spec(ex)}
           </Copy>
+          {!!ex.aliases?.length && (
+            <Copy size={14} muted style={{ marginTop: -8 }}>
+              Also called: {ex.aliases.join(", ")}
+            </Copy>
+          )}
           {!hist.length ? (
             <Empty
               title="No sets logged yet"
@@ -498,6 +611,22 @@ export function Exercises({ id }: { id?: string }) {
               </Frame>
             </>
           )}
+          {!ex.mergedInto && (
+            <Tap
+              onPress={() => {
+                setMergeQuery("")
+                setMerging(true)
+              }}
+              style={{ paddingTop: 16, alignItems: "center" }}
+            >
+              <Line style={{ gap: 8 }}>
+                <Merge size={16} color={t.muted} />
+                <Copy size={14} muted>
+                  Merge into another exercise
+                </Copy>
+              </Line>
+            </Tap>
+          )}
           <Tap
             onPress={() => {
               A.setExerciseArchived(ex.id, !ex.archived)
@@ -515,6 +644,79 @@ export function Exercises({ id }: { id?: string }) {
             </Line>
           </Tap>
         </>
+      )}
+      {ex && (
+        <Sheet
+          title="Merge into…"
+          open={merging}
+          onClose={() => setMerging(false)}
+          onClosed={() => {
+            if (mergeTarget) confirmMerge(ex, mergeTarget)
+            setMergeTarget(null)
+          }}
+        >
+          <Field
+            label="Search exercises"
+            value={mergeQuery}
+            onChangeText={setMergeQuery}
+          />
+          {!targets.some((e) => e.loadType === ex.loadType) && (
+            <Copy size={14} muted style={{ paddingVertical: 8 }}>
+              No other {LOAD_LABEL[ex.loadType]} exercises
+            </Copy>
+          )}
+          {targets
+            .filter((e) => C.exerciseMatches(e, mergeQuery))
+            .sort(
+              (a, b) =>
+                Number(a.loadType !== ex.loadType) -
+                  Number(b.loadType !== ex.loadType) ||
+                a.name.localeCompare(b.name),
+            )
+            .map((e) => {
+              const same = e.loadType === ex.loadType
+              const row = (
+                <Line key={e.id} style={{ opacity: same ? 1 : 0.45 }}>
+                  <View style={{ flex: 1 }}>
+                    <Copy weight="medium">{e.name}</Copy>
+                    <Copy
+                      size={14}
+                      muted
+                      style={{ textTransform: "capitalize" }}
+                    >
+                      {e.muscle} · {e.equipment}
+                    </Copy>
+                  </View>
+                  {same ? (
+                    <ChevronRight size={16} color={t.muted} />
+                  ) : (
+                    pill("Different type")
+                  )}
+                </Line>
+              )
+              return same ? (
+                <Tap
+                  key={e.id}
+                  label={`Merge into ${e.name}`}
+                  onPress={() => {
+                    setMergeTarget(e)
+                    setMerging(false)
+                  }}
+                  style={{ paddingVertical: 12 }}
+                >
+                  {row}
+                </Tap>
+              ) : (
+                <View
+                  key={e.id}
+                  accessibilityState={{ disabled: true }}
+                  style={{ paddingVertical: 12 }}
+                >
+                  {row}
+                </View>
+              )
+            })}
+        </Sheet>
       )}
       {edit && (
         <ExerciseEditor

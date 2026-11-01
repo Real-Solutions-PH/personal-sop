@@ -171,7 +171,7 @@
       "get": {
         "tags": ["users"],
         "summary": "Export My Data",
-        "description": "Self-service data export (GDPR portability): the caller's own record and\nall their items. Gated by authentication only — it is your own data.",
+        "description": "Self-service data export (GDPR portability): the caller's own record and\nall their items. Gated by authentication only \u2014 it is your own data.",
         "operationId": "users-export_my_data",
         "responses": {
           "200": {
@@ -6398,7 +6398,7 @@
       "post": {
         "tags": ["fitness"],
         "summary": "Adjust Rest",
-        "description": "±15 s on the rest banner (FIT-08).",
+        "description": "\u00b115 s on the rest banner (FIT-08).",
         "operationId": "fitness-adjust_rest",
         "requestBody": {
           "content": {
@@ -6943,6 +6943,53 @@
           "content": {
             "application/json": {
               "schema": { "$ref": "#/components/schemas/ArchiveExercise" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ExercisePublic" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
+    "/api/v1/fitness/exercises/{exercise_id}/merge": {
+      "post": {
+        "tags": ["fitness"],
+        "summary": "Merge Exercise",
+        "description": "Merge this exercise into ``target_id``; returns the survivor.",
+        "operationId": "fitness-merge_exercise",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "exercise_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Exercise Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/MergeExercise" }
             }
           }
         },
@@ -15267,6 +15314,45 @@
         }
       }
     },
+    "/api/v1/companion/messages/{message_id}/reply": {
+      "get": {
+        "tags": ["companion"],
+        "summary": "Get Reply",
+        "description": "Where the reply to the question ``message_id`` stands, for an app\nwhose stream dropped: ``done`` with the stored messages once the reply is\nstored, ``running`` while its turn runs, else ``failed``. 404 when no\nsuch question of the caller's exists or runs.",
+        "operationId": "companion-get_reply",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "message_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Message Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ReplyOut" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
     "/api/v1/companion/messages": {
       "get": {
         "tags": ["companion"],
@@ -16498,7 +16584,7 @@
       "delete": {
         "tags": ["social"],
         "summary": "Delete Post",
-        "description": "Soft delete; ``POST …/restore`` undoes it for a short window.",
+        "description": "Soft delete; ``POST \u2026/restore`` undoes it for a short window.",
         "operationId": "social-delete_post",
         "security": [{ "HTTPBearer": [] }],
         "parameters": [
@@ -16892,7 +16978,7 @@
       "delete": {
         "tags": ["social"],
         "summary": "Delete Comment",
-        "description": "By the comment's author or the post's owner.",
+        "description": "By the comment's author only; its replies go with it.",
         "operationId": "social-delete_comment",
         "security": [{ "HTTPBearer": [] }],
         "parameters": [
@@ -16915,6 +17001,51 @@
         ],
         "responses": {
           "204": { "description": "Successful Response" },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
+    "/api/v1/social/posts/{post_id}/comments/{comment_id}/restore": {
+      "post": {
+        "tags": ["social"],
+        "summary": "Restore Comment",
+        "description": "Undo a comment delete for a short window; returns the comment and the\nreplies that came back with it.",
+        "operationId": "social-restore_comment",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "post_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "Post Id" }
+          },
+          {
+            "name": "comment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Comment Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CommentsPublic" }
+              }
+            }
+          },
           "4XX": {
             "content": {
               "application/json": {
@@ -17849,7 +17980,7 @@
       "delete": {
         "tags": ["social"],
         "summary": "Unsend",
-        "description": "Unsend (sender only).",
+        "description": "Delete my message (sender only); the thread shows a tombstone.",
         "operationId": "social-unsend",
         "security": [{ "HTTPBearer": [] }],
         "parameters": [
@@ -17872,6 +18003,53 @@
         ],
         "responses": {
           "204": { "description": "Successful Response" },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
+    "/api/v1/social/chats/{chat_id}/messages/{message_id}/restore": {
+      "post": {
+        "tags": ["social"],
+        "summary": "Restore Message",
+        "description": "Undo a message delete for a short window.",
+        "operationId": "social-restore_message",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "chat_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "Chat Id" }
+          },
+          {
+            "name": "message_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Message Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__modules__social__schema__MessagePublic"
+                }
+              }
+            }
+          },
           "4XX": {
             "content": {
               "application/json": {
@@ -19765,7 +19943,7 @@
           "created_at"
         ],
         "title": "AuditLogPublic",
-        "description": "One audit row as returned over the API.\n\n``before``/``after`` are the snapshots captured at write time via\n``audit.snapshot``, which is an explicit non-secret allow-list — so they\ncarry no credentials or connection secrets (MCP/tool ``config`` is never\ncaptured) and are safe to expose to an ``audit:read`` holder."
+        "description": "One audit row as returned over the API.\n\n``before``/``after`` are the snapshots captured at write time via\n``audit.snapshot``, which is an explicit non-secret allow-list \u2014 so they\ncarry no credentials or connection secrets (MCP/tool ``config`` is never\ncaptured) and are safe to expose to an ``audit:read`` holder."
       },
       "AuditLogsPublic": {
         "properties": {
@@ -20868,6 +21046,56 @@
           "timezone": {
             "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Timezone"
+          },
+          "occupation": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "student",
+                  "employed",
+                  "self_employed",
+                  "business_owner",
+                  "between_jobs",
+                  "other"
+                ]
+              },
+              { "type": "null" }
+            ],
+            "title": "Occupation"
+          },
+          "occupation_detail": {
+            "anyOf": [
+              { "type": "string", "maxLength": 80 },
+              { "type": "null" }
+            ],
+            "title": "Occupation Detail"
+          },
+          "referral_source": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "friend",
+                  "tiktok",
+                  "instagram",
+                  "facebook",
+                  "youtube",
+                  "app_store",
+                  "search",
+                  "other"
+                ]
+              },
+              { "type": "null" }
+            ],
+            "title": "Referral Source"
+          },
+          "referral_detail": {
+            "anyOf": [
+              { "type": "string", "maxLength": 80 },
+              { "type": "null" }
+            ],
+            "title": "Referral Detail"
           }
         },
         "type": "object",
@@ -21478,6 +21706,19 @@
             ],
             "title": "Track"
           },
+          "aliases": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "Aliases",
+            "default": []
+          },
+          "merged_into_id": {
+            "anyOf": [
+              { "type": "string", "format": "uuid" },
+              { "type": "null" }
+            ],
+            "title": "Merged Into Id"
+          },
           "last_done_at": {
             "anyOf": [
               { "type": "string", "format": "date-time" },
@@ -21575,6 +21816,19 @@
               { "type": "null" }
             ],
             "title": "Track"
+          },
+          "aliases": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "Aliases",
+            "default": []
+          },
+          "merged_into_id": {
+            "anyOf": [
+              { "type": "string", "format": "uuid" },
+              { "type": "null" }
+            ],
+            "title": "Merged Into Id"
           }
         },
         "type": "object",
@@ -21700,6 +21954,19 @@
               { "type": "null" }
             ],
             "title": "Track"
+          },
+          "aliases": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "Aliases",
+            "default": []
+          },
+          "merged_into_id": {
+            "anyOf": [
+              { "type": "string", "format": "uuid" },
+              { "type": "null" }
+            ],
+            "title": "Merged Into Id"
           },
           "last_done_at": {
             "anyOf": [
@@ -22390,7 +22657,8 @@
             "title": "Value"
           },
           "pct": { "type": "number", "title": "Pct" },
-          "hit": { "type": "boolean", "title": "Hit" }
+          "hit": { "type": "boolean", "title": "Hit" },
+          "hidden": { "type": "boolean", "title": "Hidden", "default": false }
         },
         "type": "object",
         "required": [
@@ -22652,7 +22920,7 @@
             "type": "string",
             "maxLength": 32,
             "title": "Icon",
-            "default": "✅"
+            "default": "\u2705"
           },
           "type": {
             "type": "string",
@@ -23061,7 +23329,7 @@
         "type": "object",
         "required": ["status"],
         "title": "HandleAvailability",
-        "description": "Sign-up's check, made before any account exists: the verdict only —\nnever the handle back, and nothing about the account holding it."
+        "description": "Sign-up's check, made before any account exists: the verdict only \u2014\nnever the handle back, and nothing about the account holding it."
       },
       "HandleCheck": {
         "properties": {
@@ -25299,6 +25567,22 @@
           "url": {
             "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Url"
+          },
+          "preview_url": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Preview Url"
+          },
+          "lqip": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Lqip"
+          },
+          "width": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Width"
+          },
+          "height": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Height"
           }
         },
         "type": "object",
@@ -25344,9 +25628,24 @@
             "format": "date-time",
             "title": "Created At"
           },
+          "preview_id": {
+            "anyOf": [
+              { "type": "string", "format": "uuid" },
+              { "type": "null" }
+            ],
+            "title": "Preview Id"
+          },
+          "lqip": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Lqip"
+          },
           "url": {
             "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Url"
+          },
+          "preview_url": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Preview Url"
           }
         },
         "type": "object",
@@ -25451,6 +25750,18 @@
         "type": "object",
         "required": ["id", "text", "created_at", "version"],
         "title": "MemoryPublic"
+      },
+      "MergeExercise": {
+        "properties": {
+          "target_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Target Id"
+          }
+        },
+        "type": "object",
+        "required": ["target_id"],
+        "title": "MergeExercise"
       },
       "Message": {
         "properties": { "message": { "type": "string", "title": "Message" } },
@@ -27469,6 +27780,50 @@
             "type": "array",
             "title": "Seen Trophies"
           },
+          "occupation": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "student",
+                  "employed",
+                  "self_employed",
+                  "business_owner",
+                  "between_jobs",
+                  "other"
+                ]
+              },
+              { "type": "null" }
+            ],
+            "title": "Occupation"
+          },
+          "occupation_detail": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Occupation Detail"
+          },
+          "referral_source": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "friend",
+                  "tiktok",
+                  "instagram",
+                  "facebook",
+                  "youtube",
+                  "app_store",
+                  "search",
+                  "other"
+                ]
+              },
+              { "type": "null" }
+            ],
+            "title": "Referral Source"
+          },
+          "referral_detail": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Referral Detail"
+          },
           "version": { "type": "integer", "title": "Version" },
           "updated_at": {
             "type": "string",
@@ -28583,6 +28938,33 @@
         "type": "object",
         "required": ["exercise_id"],
         "title": "ReplaceExercise"
+      },
+      "ReplyOut": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["running", "done", "failed"],
+            "title": "Status"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/app__modules__companion__schema__MessagePublic"
+            },
+            "type": "array",
+            "title": "Messages"
+          },
+          "capture": {
+            "anyOf": [
+              { "additionalProperties": true, "type": "object" },
+              { "type": "null" }
+            ],
+            "title": "Capture"
+          }
+        },
+        "type": "object",
+        "required": ["status"],
+        "title": "ReplyOut",
+        "description": "Where the reply to a question stands, for an app that lost its\nstream: ``done`` with the stored question and reply (or the capture a\nlog became), ``running`` while the turn is still being written, or\n``failed`` when it ended with nothing stored."
       },
       "ReplyPublic": {
         "properties": {
@@ -30892,6 +31274,13 @@
           "base_version": {
             "anyOf": [{ "type": "integer" }, { "type": "null" }],
             "title": "Base Version"
+          },
+          "at": {
+            "anyOf": [
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
+            ],
+            "title": "At"
           }
         },
         "type": "object",
@@ -32288,6 +32677,24 @@
               { "type": "null" }
             ],
             "title": "Duration Sec"
+          },
+          "preview_id": {
+            "anyOf": [
+              { "type": "string", "format": "uuid" },
+              { "type": "null" }
+            ],
+            "title": "Preview Id"
+          },
+          "lqip": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2048,
+                "pattern": "^data:image/jpeg;base64,[A-Za-z0-9+/=]+$"
+              },
+              { "type": "null" }
+            ],
+            "title": "Lqip"
           }
         },
         "type": "object",
@@ -34372,7 +34779,8 @@
             "additionalProperties": { "type": "string" },
             "type": "object",
             "title": "Reactions"
-          }
+          },
+          "deleted": { "type": "boolean", "title": "Deleted", "default": false }
         },
         "type": "object",
         "required": [

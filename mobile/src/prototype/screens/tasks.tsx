@@ -7,14 +7,23 @@ import { useLocalSearchParams } from "expo-router"
 import {
   AlarmClock,
   CalendarClock,
+  Check,
   Ellipsis,
+  Plus,
   Repeat,
 } from "lucide-react-native"
 import { useState } from "react"
 import { Pressable, Text, View } from "react-native"
 import Animated from "react-native-reanimated"
 import { toast } from "sonner-native"
-import { AnimatedCheck, feel, rowEnter, rowExit } from "../motion"
+import {
+  AnimatedCheck,
+  feel,
+  rowEnter,
+  rowExit,
+  useSwipeComplete,
+} from "../motion"
+import { Copy, Line, Tap } from "../native-kit"
 import { back, go } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import {
@@ -30,7 +39,7 @@ import {
   undo,
 } from "../ui"
 import { IconButton, Ring } from "../visual"
-import { ListEditor as NativeListEditor } from "./task-lists"
+import { ListGlyph, ListEditor as NativeListEditor } from "./task-lists"
 
 /** A task's tags as small neutral pills, under its title in the lists. */
 export function TagChips({ tags }: { tags?: string[] }) {
@@ -77,7 +86,31 @@ export function TaskRow({
 }) {
   const t = useTheme()
   const list = tasksStore.use((s) => s.lists.find((l) => l.id === task.listId))
+  const allLists = tasksStore.use((s) => s.lists)
   const [open, setOpen] = useState(false)
+  // The actions sheet swaps to a list chooser; "New list…" opens the editor.
+  const [moving, setMoving] = useState(false)
+  const [making, setMaking] = useState(false)
+  const close = () => {
+    setOpen(false)
+    setMoving(false)
+  }
+  const move = (listId: string | null) => {
+    const prev = task.listId
+    const target = listId
+      ? tasksStore.get().lists.find((l) => l.id === listId && !l.archivedAt)
+      : null
+    close()
+    if (listId && !target) {
+      toast.error("That list is gone")
+      return
+    }
+    if (listId === prev) return
+    A.updateTask(task.id, { listId })
+    undo(`Moved to ${target?.name ?? "Inbox"}`, () =>
+      A.updateTask(task.id, { listId: prev }),
+    )
+  }
   // An empty meta line would sit under the title and pull it above the
   // checkbox's centre, so it only renders when it has something to say.
   const hasMeta =
@@ -95,13 +128,14 @@ export function TaskRow({
       done ? A.completeTask(task.id) : A.uncompleteTask(task.id),
     )
   }
+  const swipe = useSwipeComplete(task.status === "done", toggle)
   return (
     <>
       {/* No layout transition: rows move between sections whose
           containers do not animate, which left gaps on iOS. */}
       <Animated.View entering={rowEnter} exiting={rowExit}>
         <SwipeRow
-          onComplete={toggle}
+          onComplete={swipe.onComplete}
           onMore={() => setOpen(true)}
           background={surface}
         >
@@ -123,6 +157,7 @@ export function TaskRow({
               idle={`${t.muted}66`}
               square={list?.kind === "shopping"}
               checkColor={t.dark ? t.bg : "#fff"}
+              celebrate={swipe.celebrate}
             />
             <Pressable
               accessibilityRole="button"
@@ -283,64 +318,141 @@ export function TaskRow({
           </View>
         </SwipeRow>
       </Animated.View>
-      <Sheet title="Task actions" open={open} onClose={() => setOpen(false)}>
-        <Actions>
-          <Button
-            onPress={() => {
-              toggle()
-              setOpen(false)
-            }}
-          >
-            {task.status === "done" ? "Reopen" : "Complete"}
-          </Button>
-          <Button
-            tone="quiet"
-            onPress={() => {
-              A.snoozeTask(task.id)
-              setOpen(false)
-            }}
-          >
-            Snooze 1 hour
-          </Button>
-          <Button
-            tone="quiet"
-            onPress={() => {
-              A.rescheduleBy(task.id, 1)
-              setOpen(false)
-            }}
-          >
-            Tomorrow
-          </Button>
-          <Button
-            tone="quiet"
-            onPress={() => {
-              A.updateTask(task.id, { starred: !task.starred })
-              setOpen(false)
-            }}
-          >
-            {task.starred ? "Unstar" : "Star"}
-          </Button>
-          <Button
-            tone="quiet"
-            onPress={() => {
-              A.duplicateTask(task.id)
-              setOpen(false)
-            }}
-          >
-            Duplicate
-          </Button>
-          <Button
-            tone="danger"
-            onPress={() => {
-              A.deleteTask(task.id)
-              undo("Task deleted", () => A.restoreTask(task.id))
-              setOpen(false)
-            }}
-          >
-            Delete
-          </Button>
-        </Actions>
+      <Sheet
+        title={moving ? "Move to list" : "Task actions"}
+        open={open}
+        onClose={close}
+        onBack={moving ? () => setMoving(false) : undefined}
+      >
+        {moving ? (
+          <View>
+            {[
+              null,
+              ...allLists
+                .filter((l) => !l.archivedAt)
+                .sort((a, b) => a.sortOrder - b.sortOrder),
+            ].map((l) => {
+              const current = (l?.id ?? null) === (task.listId ?? null)
+              return (
+                <Tap
+                  key={l?.id ?? "inbox"}
+                  role="radio"
+                  selected={current}
+                  label={l?.name ?? "Inbox"}
+                  onPress={() => move(l?.id ?? null)}
+                  style={{ paddingVertical: 10, paddingHorizontal: 4 }}
+                >
+                  <Line>
+                    <ListGlyph list={l ?? "inbox"} small />
+                    <Copy weight="medium" style={{ flex: 1 }}>
+                      {l?.name ?? "Inbox"}
+                    </Copy>
+                    {current && <Check size={18} color={t.tsk} />}
+                  </Line>
+                </Tap>
+              )
+            })}
+            <Tap
+              label="New list…"
+              onPress={() => {
+                close()
+                setMaking(true)
+              }}
+              style={{ paddingVertical: 10, paddingHorizontal: 4 }}
+            >
+              <Line>
+                <View
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 8,
+                    backgroundColor: t.soft,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Plus size={16} color={t.tsk} />
+                </View>
+                <Copy weight="medium" style={{ flex: 1, color: t.tsk }}>
+                  New list…
+                </Copy>
+              </Line>
+            </Tap>
+          </View>
+        ) : (
+          <Actions>
+            <Button
+              onPress={() => {
+                toggle()
+                setOpen(false)
+              }}
+            >
+              {task.status === "done" ? "Reopen" : "Complete"}
+            </Button>
+            <Button
+              tone="quiet"
+              onPress={() => {
+                A.snoozeTask(task.id)
+                setOpen(false)
+              }}
+            >
+              Snooze 1 hour
+            </Button>
+            <Button
+              tone="quiet"
+              onPress={() => {
+                A.rescheduleBy(task.id, 1)
+                setOpen(false)
+              }}
+            >
+              Tomorrow
+            </Button>
+            <Button tone="quiet" onPress={() => setMoving(true)}>
+              Move to list…
+            </Button>
+            <Button
+              tone="quiet"
+              onPress={() => {
+                A.updateTask(task.id, { starred: !task.starred })
+                setOpen(false)
+              }}
+            >
+              {task.starred ? "Unstar" : "Star"}
+            </Button>
+            <Button
+              tone="quiet"
+              onPress={() => {
+                A.duplicateTask(task.id)
+                setOpen(false)
+              }}
+            >
+              Duplicate
+            </Button>
+            <Button
+              tone="danger"
+              onPress={() => {
+                A.deleteTask(task.id)
+                undo("Task deleted", () => A.restoreTask(task.id))
+                setOpen(false)
+              }}
+            >
+              Delete
+            </Button>
+          </Actions>
+        )}
       </Sheet>
+      {making && (
+        <NativeListEditor
+          onClose={() => setMaking(false)}
+          onCreated={(l) => {
+            const prev = task.listId
+            A.updateTask(task.id, { listId: l.id })
+            undo(`Moved to ${l.name}`, () =>
+              A.updateTask(task.id, { listId: prev }),
+            )
+          }}
+        />
+      )}
     </>
   )
 }

@@ -151,6 +151,30 @@ export interface HistPoint {
   we: WorkoutExercise
   stats: ExStats
 }
+/** Exercises still in use: drops rows merged into another one. */
+export const liveExercises = (s: Pick<FitnessState, "exercises">) =>
+  s.exercises.filter((e) => !e.mergedInto)
+/** Whether a search finds this exercise, by its name or a former one. */
+export function exerciseMatches(e: Exercise, query: string): boolean {
+  const q = query.trim().toLowerCase()
+  return (
+    e.name.toLowerCase().includes(q) ||
+    !!e.aliases?.some((a) => a.toLowerCase().includes(q))
+  )
+}
+/** The exercise a name refers to: a live one with that name, else one
+ * carrying it as a former name (both case-insensitive). */
+export function exerciseNamed(
+  s: Pick<FitnessState, "exercises">,
+  name: string,
+): Exercise | undefined {
+  const n = name.trim().toLowerCase(),
+    live = liveExercises(s)
+  return (
+    live.find((e) => e.name.toLowerCase() === n) ??
+    live.find((e) => e.aliases?.some((a) => a.toLowerCase() === n))
+  )
+}
 export function exerciseHistory(
   s: FitnessState,
   exerciseId: string,
@@ -165,6 +189,33 @@ export function exerciseHistory(
         if (stats.doneSets) out.push({ workout: w, we, stats })
       }
   return out
+}
+/** The exercise's best working set in finished workouts other than
+ * `excludeWorkoutId`: the top set by estimated 1-rep max (the "Est. 1-rep
+ * max" record), the longest set of a timed exercise, or the most reps when
+ * no set carried added load. */
+export function previousBest(
+  s: FitnessState,
+  exerciseId: string,
+  excludeWorkoutId: string,
+): WorkoutSet | undefined {
+  const hist = exerciseHistory(s, exerciseId).filter(
+    (p) => p.workout.id !== excludeWorkoutId,
+  )
+  if (!hist.length) return undefined
+  const sets = hist.flatMap((p) =>
+    p.we.sets.filter((x) => isDone(x) && isWorking(x)),
+  )
+  const most = (score: (x: WorkoutSet) => number) =>
+    sets.reduce((a, b) => (score(b) > score(a) ? b : a))
+  if (isTimed(s.exercises.find((e) => e.id === exerciseId)))
+    return most(setSeconds)
+  // Bodyweight alone (push-ups): the most reps, even with a weigh-in that
+  // would rank the sets by estimated max (which ignores sets past 12 reps).
+  if (sets.every((x) => x.weight <= 0)) return most((x) => x.reps)
+  let top = hist[0]
+  for (const p of hist) if (p.stats.bestE1rm > top.stats.bestE1rm) top = p
+  return top.stats.top
 }
 export type PrKind = "e1rm" | "weight" | "volume"
 export interface Pr {

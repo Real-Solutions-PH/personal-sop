@@ -17,7 +17,7 @@ import {
 } from "react-native"
 import { toast } from "sonner-native"
 import { Trend } from "../chart"
-import { AnimatedCheck } from "../motion"
+import { AnimatedCheck, feel, useSwipeComplete } from "../motion"
 import { Line } from "../native-kit"
 import { go } from "../navigation"
 import { fonts, useTheme } from "../theme"
@@ -40,7 +40,15 @@ import {
   undo,
 } from "../ui"
 import { IconButton, Metric, Ring, Section } from "../visual"
-import { AutoMark, RuleRing, RuleText, useRuleState } from "./screen-card"
+import { HabitActions } from "./habit-actions"
+import {
+  AutoMark,
+  RuleRing,
+  RuleText,
+  SCREEN_OFF_LABEL,
+  useAutoRule,
+  useRuleState,
+} from "./screen-card"
 
 export function Schedule({
   value,
@@ -131,7 +139,7 @@ export function HabitRow({
   habit: Habit
   day?: string
 }) {
-  return habit.rule ? (
+  return useAutoRule(habit) ? (
     <RuleHabitRow habit={habit} day={day} />
   ) : (
     <ManualHabitRow habit={habit} day={day} />
@@ -142,26 +150,40 @@ function RuleHabitRow({ habit, day }: { habit: Habit; day: string }) {
   const log = habitsStore.use((s) =>
       s.logs.find((l) => l.habitId === habit.id && l.day === day),
     ),
-    state = useRuleState(habit, day)
+    state = useRuleState(habit, day),
+    [actions, setActions] = useState(false)
   return (
-    <Row
-      title={`${habit.icon} ${habit.name}`}
-      detail={L.scheduleLabel(habit.schedule)}
-      href={`/habits/${habit.id}`}
-      right={
-        <Line style={{ gap: 8 }}>
-          <View style={{ alignItems: "flex-end", gap: 2 }}>
-            <RuleText
-              state={state}
-              maxMin={habit.rule?.maxMin ?? 0}
-              done={log?.status === "done"}
-            />
-            <AutoMark />
-          </View>
-          <RuleRing habit={habit} log={log} state={state} size={28} />
-        </Line>
-      }
-    />
+    <>
+      <Row
+        title={`${habit.icon} ${habit.name}`}
+        detail={L.scheduleLabel(habit.schedule)}
+        href={`/habits/${habit.id}`}
+        onLongPress={() => {
+          feel.tap()
+          setActions(true)
+        }}
+        longPressLabel="Habit actions"
+        right={
+          <Line style={{ gap: 8 }}>
+            <View style={{ alignItems: "flex-end", gap: 2 }}>
+              <RuleText
+                state={state}
+                maxMin={habit.rule?.maxMin ?? 0}
+                done={log?.status === "done"}
+              />
+              <AutoMark />
+            </View>
+            <RuleRing habit={habit} log={log} state={state} size={28} />
+          </Line>
+        }
+      />
+      <HabitActions
+        habit={habit}
+        day={day}
+        open={actions}
+        onClose={() => setActions(false)}
+      />
+    </>
   )
 }
 function ManualHabitRow({ habit, day }: { habit: Habit; day: string }) {
@@ -169,6 +191,7 @@ function ManualHabitRow({ habit, day }: { habit: Habit; day: string }) {
   const logs = habitsStore.use((s) => s.logs)
   const log = logs.find((l) => l.habitId === habit.id && l.day === day)
   const [open, setOpen] = useState(false)
+  const [actions, setActions] = useState(false)
   const done = () => {
     const old = log
     if (log?.status === "done") {
@@ -184,13 +207,19 @@ function ManualHabitRow({ habit, day }: { habit: Habit; day: string }) {
       })
     }
   }
+  const swipe = useSwipeComplete(log?.status === "done", done)
   return (
     <>
-      <SwipeRow onComplete={done} onMore={() => setOpen(true)}>
+      <SwipeRow onComplete={swipe.onComplete} onMore={() => setOpen(true)}>
         <Row
           title={`${habit.icon} ${habit.name}`}
-          detail={`${log?.status ?? L.scheduleLabel(habit.schedule)}${habit.target ? ` · ${L.targetLabel(habit)}` : ""}`}
+          detail={`${log?.status ?? L.scheduleLabel(habit.schedule)}${habit.target ? ` · ${L.targetLabel(habit)}` : ""}${habit.rule ? ` · ${SCREEN_OFF_LABEL}` : ""}`}
           href={`/habits/${habit.id}`}
+          onLongPress={() => {
+            feel.tap()
+            setActions(true)
+          }}
+          longPressLabel="Habit actions"
           right={
             habit.type === "check" ? (
               <AnimatedCheck
@@ -201,6 +230,7 @@ function ManualHabitRow({ habit, day }: { habit: Habit; day: string }) {
                 idle={`${t.muted}66`}
                 size={28}
                 checkColor={t.onPrimary}
+                celebrate={swipe.celebrate}
               />
             ) : (
               <Button
@@ -219,6 +249,12 @@ function ManualHabitRow({ habit, day }: { habit: Habit; day: string }) {
         day={day}
         open={open}
         onClose={() => setOpen(false)}
+      />
+      <HabitActions
+        habit={habit}
+        day={day}
+        open={actions}
+        onClose={() => setActions(false)}
       />
     </>
   )
@@ -243,8 +279,19 @@ export function HabitLog({
   const [value, setValue] = useState(String(old?.value ?? habit.target ?? ""))
   const [note, setNote] = useState(old?.note ?? "")
   const [date, setDate] = useState(day)
+  // Edit opens once the sheet has left; iOS drops a push made while it leaves.
+  const [editNext, setEditNext] = useState(false)
   return (
-    <Sheet title={`Log ${habit.name}`} open={open} onClose={onClose}>
+    <Sheet
+      title={`Log ${habit.name}`}
+      open={open}
+      onClose={onClose}
+      onClosed={() => {
+        if (!editNext) return
+        setEditNext(false)
+        go(`/habits/${habit.id}/edit`)
+      }}
+    >
       <Choices
         value={status}
         onChange={setStatus}
@@ -314,6 +361,15 @@ export function HabitLog({
             Open timer
           </Button>
         )}
+        <Button
+          tone="quiet"
+          onPress={() => {
+            setEditNext(true)
+            onClose()
+          }}
+        >
+          Edit habit
+        </Button>
       </Actions>
     </Sheet>
   )

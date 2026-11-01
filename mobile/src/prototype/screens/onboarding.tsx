@@ -1,21 +1,13 @@
+import type { ModuleKey } from "@domain/contract"
 import { AREA, MODULE_KEYS } from "@domain/dash/data"
 import {
-  STEPS as ALL_STEPS,
   IDENTITIES,
   PACES,
   PASS_THROUGH,
   type Pace,
   STARTERS,
-  type Step,
 } from "@domain/dash/onboarding"
-import {
-  dashStore,
-  saveGoal,
-  setEnabled,
-  setIdentities,
-  setPush,
-} from "@domain/dash/store"
-import { uid } from "@domain/lib/store"
+import { dashStore, setPush } from "@domain/dash/store"
 import { LinearGradient } from "expo-linear-gradient"
 import { useLocalSearchParams } from "expo-router"
 import {
@@ -38,22 +30,60 @@ import {
   Sun,
   Target,
   Timer,
+  UserRound,
   Utensils,
   Wallet,
   Zap,
 } from "lucide-react-native"
 import { useEffect, useRef, useState } from "react"
-import { Pressable, ScrollView, TextInput, View } from "react-native"
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  TextInput,
+  View,
+} from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { toast } from "sonner-native"
 import { border, Copy, Frame, IconTap, Line, Tap } from "../native-kit"
-import { go, replace } from "../navigation"
+import { back, go, replace } from "../navigation"
+import {
+  DETAIL_MAX,
+  draftStore,
+  editDraft,
+  ensureDraft,
+  type MobileStep,
+  newDraft,
+  OCCUPATIONS,
+  REFERRAL_DETAIL,
+  REFERRALS,
+  startersOf,
+} from "../onboarding-draft"
 import { enableReminders } from "../reminders"
+import { screenTimeAvailable } from "../screen-time"
 import { fonts, useTheme } from "../theme"
 import { TimeInput } from "../time-input"
+import { AccountForm } from "./auth-sign-up"
 
-// "Install" is the web's add-to-home-screen step; the app is installed.
-const STEPS: readonly Step[] = ALL_STEPS.filter((x) => x !== "install")
+// Before the account exists (`/get-started`) every answer goes into the
+// onboarding draft, and the last step creates the account. After it
+// (`/onboarding`) only the notification ask and the send-off are left; the
+// web's "install" step and the welcome step (the Welcome slides introduce
+// the app) are not shown on the phone.
+const PRE_ACCOUNT: readonly MobileStep[] = [
+  "identity",
+  "about",
+  "modules",
+  "targets",
+  "when",
+  "building",
+  "pledge",
+  "account",
+]
+const POST_ACCOUNT: readonly MobileStep[] = ["notifications", "done"]
+// Steps a person can skip from the header.
+const SKIPPABLE: readonly MobileStep[] = ["about"]
+const PASSING: readonly MobileStep[] = PASS_THROUGH
 
 const modules = {
   habits: { icon: Repeat2, color: "hab" },
@@ -64,26 +94,56 @@ const modules = {
   screen: { icon: Smartphone, color: "scr" },
   finance: { icon: Wallet, color: "fin" },
 } as const
-export function Onboarding() {
-  const t = useTheme(),
+export function Onboarding({ phase = "post" }: { phase?: "pre" | "post" }) {
+  const pre = phase === "pre",
+    STEPS = pre ? PRE_ACCOUNT : POST_ACCOUNT,
+    t = useTheme(),
     safe = useSafeAreaInsets(),
-    params = useLocalSearchParams<{ step?: Step }>(),
-    [step, setStep] = useState<Step>(
-      STEPS.includes(params.step as Step) ? params.step! : "welcome",
-    ),
+    params = useLocalSearchParams<{ step?: MobileStep }>(),
     s = dashStore.use((s) => s),
-    [picked, setPicked] = useState<string[]>([]),
-    [pace, setPace] = useState<Pace | null>("gentle"),
-    [targets, setTargets] = useState<Record<string, number | null>>({
-      ...PACES.gentle.targets,
-    }),
+    // Pre-account answers live in the draft (and survive a restart); after
+    // sign-up they are the account's.
+    d = draftStore.use((s) => s.draft) ?? newDraft(),
+    [postStep, setPostStep] = useState<MobileStep>(
+      !pre && POST_ACCOUNT.includes(params.step as MobileStep)
+        ? params.step!
+        : "notifications",
+    ),
+    step = pre
+      ? PRE_ACCOUNT.includes(d.step)
+        ? d.step
+        : "identity"
+      : postStep,
+    setStep = (x: MobileStep) =>
+      pre ? editDraft({ step: x }) : setPostStep(x),
+    picked = d.identities,
+    setPicked = (f: (p: string[]) => string[]) =>
+      editDraft({ identities: f(ensureDraft().identities) }),
+    enabled = d.enabled,
+    pace = d.pace,
+    setPace = (p: Pace | null) => editDraft({ pace: p }),
+    targets = d.targets,
+    setTargets = (
+      f: (
+        old: Record<ModuleKey, number | null>,
+      ) => Record<ModuleKey, number | null>,
+    ) => editDraft({ targets: f(ensureDraft().targets) }),
+    push = pre ? { morning: d.pushMorning, evening: d.pushEvening } : s.push,
+    setTime = (key: "morning" | "evening", v: string) =>
+      pre
+        ? editDraft(key === "morning" ? { pushMorning: v } : { pushEvening: v })
+        : setPush({ [key]: v }),
     [building, setBuilding] = useState(0),
     [holding, setHolding] = useState(false),
     timer = useRef<ReturnType<typeof setTimeout> | null>(null),
     index = STEPS.indexOf(step),
-    bar = STEPS.filter((x) => !PASS_THROUGH.includes(x)),
-    active = MODULE_KEYS.filter((k) => s.enabled[k] && targets[k] !== null),
+    bar = STEPS.filter((x) => !PASSING.includes(x)),
+    active = startersOf(d),
     next = () => setStep(STEPS[Math.min(STEPS.length - 1, index + 1)])
+  // Start (or resume) the draft as soon as onboarding opens.
+  useEffect(() => {
+    if (pre) ensureDraft()
+  }, [pre])
   useEffect(() => {
     if (step !== "building") return
     setBuilding(0)
@@ -93,7 +153,8 @@ export function Onboarding() {
       setBuilding(n)
       if (n > 4) {
         clearInterval(id)
-        setStep("pledge")
+        // "building" is a pre-account step: the step lives in the draft.
+        editDraft({ step: "pledge" })
       }
     }, 650)
     return () => clearInterval(id)
@@ -104,10 +165,11 @@ export function Onboarding() {
     },
     [],
   )
-  // Onboarding is the first run only; "Run setup again" is /setup.
+  // Onboarding is the first run only; "Run setup again" is /setup. Before
+  // sign-up the dash store holds the demo seed, so this is post-account only.
   useEffect(() => {
-    if (s.onboarded) replace("/today")
-  }, [s.onboarded])
+    if (!pre && s.onboarded) replace("/today")
+  }, [pre, s.onboarded])
   const button = (
     label: string,
     press: () => void,
@@ -151,34 +213,24 @@ export function Onboarding() {
       </View>
     )
   }
-  const finish = () => {
-    let n = 0
-    for (const k of active) {
-      const starter = STARTERS[k]
-      if (
-        s.goals.some(
-          (g) => g.metric === starter.metric && g.status === "active",
-        )
-      )
-        continue
-      saveGoal({ ...starter, target: targets[k]!, via: "onboarding" })
-      n++
-    }
-    if (picked.length)
-      setIdentities(picked.map((text) => ({ id: uid(), text })))
-    if (n)
-      toast.success(`${n} starter goal${n > 1 ? "s" : ""} added`, {
-        description: "Next, set up your workspace",
-      })
-    // Setup is the last part of onboarding; it marks onboarding finished.
-    go("/setup")
-  }
-  const configs = {
+  // The answers were written to the account at sign-up (applyDraft). Setup
+  // is the last part of onboarding; it marks onboarding finished.
+  const finish = () => go("/setup")
+  const configs: Record<
+      MobileStep,
+      { icon: typeof Compass; title: string; body: string }
+    > = {
       welcome: {
         icon: Compass,
         title: "Your life, one dashboard",
         body: "Habits, tasks, training, food and money — logged in seconds, scored honestly, shareable without leaking a cent.",
       },
+      about: {
+        icon: UserRound,
+        title: "A little about you",
+        body: "Two quick questions so Unfurl fits your days. Both are optional.",
+      },
+      account: { icon: UserRound, title: "Create your account", body: "" },
       identity: {
         icon: Fingerprint,
         title: "Who are you becoming?",
@@ -223,8 +275,18 @@ export function Onboarding() {
     },
     c = configs[step],
     I = c.icon
+  const goBack = () => {
+    let i = index - 1
+    while (i > 0 && PASSING.includes(STEPS[i])) i--
+    setStep(STEPS[i])
+  }
+  // The account form is its own screen, keyboard handling included.
+  if (step === "account") return <AccountForm onBack={goBack} />
   return (
-    <View style={{ flex: 1, backgroundColor: t.bg, paddingTop: safe.top }}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={{ flex: 1, backgroundColor: t.bg, paddingTop: safe.top }}
+    >
       <View style={{ paddingHorizontal: 20 }}>
         <Line style={{ height: 56, gap: 12 }}>
           {index > 0 ? (
@@ -233,11 +295,15 @@ export function Onboarding() {
               icon={ArrowLeft}
               label="Back"
               color={t.text}
-              onPress={() => {
-                let i = index - 1
-                while (i > 0 && PASS_THROUGH.includes(STEPS[i])) i--
-                setStep(STEPS[i])
-              }}
+              onPress={goBack}
+            />
+          ) : pre ? (
+            <IconTap
+              size={44}
+              icon={ArrowLeft}
+              label="Back"
+              color={t.text}
+              onPress={() => back("/welcome")}
             />
           ) : (
             <View style={{ width: 44 }} />
@@ -256,6 +322,38 @@ export function Onboarding() {
               />
             ))}
           </Line>
+          {pre && SKIPPABLE.includes(step) && (
+            // Skipping "about you" leaves both answers unanswered.
+            <Tap
+              onPress={() => {
+                editDraft({
+                  occupation: null,
+                  occupationDetail: "",
+                  referralSource: null,
+                  referralDetail: "",
+                })
+                next()
+              }}
+              style={{ padding: 8 }}
+            >
+              <Copy size={14} muted>
+                Skip
+              </Copy>
+            </Tap>
+          )}
+          {/* Anyone with an account already leaves here; the draft stays
+              until a sign-in succeeds, so Back returns to this step. */}
+          {pre && (
+            <Tap
+              label="I already have an account"
+              onPress={() => go("/login")}
+              style={{ padding: 8 }}
+            >
+              <Copy size={14} style={{ color: t.primary }}>
+                Sign in
+              </Copy>
+            </Tap>
+          )}
         </Line>
       </View>
       <ScrollView
@@ -376,39 +474,90 @@ export function Onboarding() {
               )}
             </>
           )}
+          {step === "about" && (
+            <>
+              <View style={{ gap: 8, marginBottom: 16 }}>
+                <Copy size={14} weight="semibold">
+                  What do you do?
+                </Copy>
+                <Chips
+                  options={OCCUPATIONS}
+                  value={d.occupation}
+                  onChange={(v) => editDraft({ occupation: v })}
+                />
+                <DetailInput
+                  label="Field of study or line of work"
+                  value={d.occupationDetail}
+                  onChange={(v) => editDraft({ occupationDetail: v })}
+                />
+                <Copy size={14} weight="semibold" style={{ marginTop: 12 }}>
+                  How did you hear about Unfurl?
+                </Copy>
+                <Chips
+                  options={REFERRALS}
+                  value={d.referralSource}
+                  onChange={(v) => editDraft({ referralSource: v })}
+                />
+                {d.referralSource &&
+                  REFERRAL_DETAIL.includes(d.referralSource) && (
+                    <DetailInput
+                      label={
+                        d.referralSource === "friend"
+                          ? "Who told you? (optional)"
+                          : "Where? (optional)"
+                      }
+                      value={d.referralDetail}
+                      onChange={(v) => editDraft({ referralDetail: v })}
+                    />
+                  )}
+              </View>
+              {button("Continue", next)}
+            </>
+          )}
           {step === "modules" && (
             <>
               <View style={{ gap: 8, marginBottom: 16 }}>
+                {/* Choices only: Screen time's iOS permission is asked for
+                    in setup, once the account exists. */}
                 {MODULE_KEYS.map((k) => (
                   <Tap
                     key={k}
-                    onPress={() => setEnabled(k, !s.enabled[k])}
+                    onPress={() =>
+                      editDraft({ enabled: { ...enabled, [k]: !enabled[k] } })
+                    }
                     style={{
                       padding: 16,
                       borderRadius: 16,
                       borderWidth: 1,
-                      borderColor: s.enabled[k] ? t.primary : t.line,
-                      backgroundColor: s.enabled[k]
+                      borderColor: enabled[k] ? t.primary : t.line,
+                      backgroundColor: enabled[k]
                         ? border(t.primary, 0.1)
                         : t.card,
                     }}
                   >
                     <Line style={{ gap: 12 }}>
                       {areaIcon(k, 40)}
-                      <Copy weight="semibold" style={{ flex: 1 }}>
-                        {AREA[k].label}
-                      </Copy>
+                      <View style={{ flex: 1 }}>
+                        <Copy weight="semibold">{AREA[k].label}</Copy>
+                        {k === "screen" && (
+                          <Copy size={12} muted>
+                            {screenTimeAvailable()
+                              ? "Needs Screen Time access"
+                              : "Not in this version of Unfurl yet"}
+                          </Copy>
+                        )}
+                      </View>
                       <View
                         style={{
                           width: 24,
                           height: 24,
                           borderRadius: 12,
-                          backgroundColor: s.enabled[k] ? t.primary : t.soft,
+                          backgroundColor: enabled[k] ? t.primary : t.soft,
                           alignItems: "center",
                           justifyContent: "center",
                         }}
                       >
-                        {s.enabled[k] && <Check size={16} color={t.bg} />}
+                        {enabled[k] && <Check size={16} color={t.bg} />}
                       </View>
                     </Line>
                   </Tap>
@@ -436,7 +585,7 @@ export function Onboarding() {
                 "Next",
                 next,
                 false,
-                !Object.values(s.enabled).some(Boolean),
+                !Object.values(enabled).some(Boolean),
               )}
             </>
           )}
@@ -448,13 +597,14 @@ export function Onboarding() {
                     key={p}
                     onPress={() => {
                       setPace(p)
-                      setTargets((old) =>
-                        Object.fromEntries(
-                          MODULE_KEYS.map((k) => [
-                            k,
-                            old[k] === null ? null : PACES[p].targets[k],
-                          ]),
-                        ),
+                      setTargets(
+                        (old) =>
+                          Object.fromEntries(
+                            MODULE_KEYS.map((k) => [
+                              k,
+                              old[k] === null ? null : PACES[p].targets[k],
+                            ]),
+                          ) as Record<ModuleKey, number | null>,
                       )
                     }}
                     style={{
@@ -500,7 +650,7 @@ export function Onboarding() {
                 ))}
               </Line>
               <View style={{ gap: 8, marginBottom: 16 }}>
-                {MODULE_KEYS.filter((k) => s.enabled[k]).map((k) => (
+                {MODULE_KEYS.filter((k) => enabled[k]).map((k) => (
                   <Frame
                     key={k}
                     style={{
@@ -584,8 +734,8 @@ export function Onboarding() {
                     </Copy>
                     <TimeInput
                       label={x.label}
-                      value={s.push[x.key]}
-                      onChange={(v) => setPush({ [x.key]: v })}
+                      value={push[x.key]}
+                      onChange={(v) => setTime(x.key, v)}
                     />
                   </Line>
                 ))}
@@ -595,8 +745,8 @@ export function Onboarding() {
                 muted
                 style={{ textAlign: "center", marginBottom: 16 }}
               >
-                “Every day at {s.push.morning} I'll plan, and at{" "}
-                {s.push.evening} I'll close the day.”
+                “Every day at {push.morning} I'll plan, and at {push.evening}{" "}
+                I'll close the day.”
               </Copy>
               {button("Lock these in", next)}
             </>
@@ -606,7 +756,7 @@ export function Onboarding() {
               {[
                 "Weighting your Life Score",
                 `Setting ${active.length || "your"} starter target${active.length === 1 ? "" : "s"}`,
-                `Scheduling check-ins at ${s.push.morning} & ${s.push.evening}`,
+                `Scheduling check-ins at ${push.morning} & ${push.evening}`,
                 "Preparing your first week",
               ].map((line, i) => (
                 <Line
@@ -650,7 +800,7 @@ export function Onboarding() {
                   </Line>
                 ))}
                 <Copy size={14} muted>
-                  Check in at {s.push.morning} & {s.push.evening}
+                  Check in at {push.morning} & {push.evening}
                 </Copy>
               </Frame>
               <Pressable
@@ -695,12 +845,12 @@ export function Onboarding() {
                   {
                     icon: Sun,
                     label: "Morning",
-                    sub: `What's due today · ${s.push.morning}`,
+                    sub: `What's due today · ${push.morning}`,
                   },
                   {
                     icon: Moon,
                     label: "Evening",
-                    sub: `Wrap up the day · ${s.push.evening}`,
+                    sub: `Wrap up the day · ${push.evening}`,
                   },
                   {
                     icon: BarChart3,
@@ -729,7 +879,7 @@ export function Onboarding() {
               {button(
                 s.push.permission === "granted"
                   ? "Notifications on ✓ — continue"
-                  : `Remind me at ${s.push.morning} & ${s.push.evening}`,
+                  : `Remind me at ${push.morning} & ${push.evening}`,
                 () => {
                   // The system asks; whatever the answer, onboarding goes on.
                   void enableReminders().finally(next)
@@ -773,6 +923,85 @@ export function Onboarding() {
           )}
         </View>
       </ScrollView>
+    </KeyboardAvoidingView>
+  )
+}
+
+/** One answer from a short list, as wrapping pills; tapping the picked one
+ * clears it. */
+function Chips<T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: readonly { value: T; label: string }[]
+  value: T | null
+  onChange: (v: T | null) => void
+}) {
+  const t = useTheme()
+  return (
+    <View
+      accessibilityRole="radiogroup"
+      style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}
+    >
+      {options.map((o) => {
+        const on = value === o.value
+        return (
+          <Tap
+            key={o.value}
+            label={o.label}
+            role="radio"
+            selected={on}
+            onPress={() => onChange(on ? null : o.value)}
+            style={{
+              paddingHorizontal: 14,
+              minHeight: 40,
+              justifyContent: "center",
+              borderRadius: 20,
+              borderWidth: 1,
+              borderColor: on ? t.primary : t.line,
+              backgroundColor: on ? border(t.primary, 0.1) : t.card,
+            }}
+          >
+            <Copy size={14} weight={on ? "semibold" : "medium"}>
+              {o.label}
+            </Copy>
+          </Tap>
+        )
+      })}
     </View>
+  )
+}
+function DetailInput({
+  label,
+  value,
+  onChange,
+}: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+}) {
+  const t = useTheme()
+  return (
+    <TextInput
+      accessibilityLabel={label}
+      placeholder={label}
+      placeholderTextColor={t.muted}
+      value={value}
+      onChangeText={onChange}
+      maxLength={DETAIL_MAX}
+      returnKeyType="done"
+      style={{
+        height: 48,
+        paddingHorizontal: 14,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: t.line,
+        backgroundColor: t.card,
+        fontFamily: fonts.body,
+        fontSize: 15,
+        color: t.text,
+      }}
+    />
   )
 }

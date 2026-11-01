@@ -119,20 +119,10 @@ test("salary lands in Cash when the bank is left out", () => {
   )
 })
 
-test("rent with only a credit card is refused, not dropped", () => {
+test("setup no longer offers a credit card", () => {
   render(<FinanceSetup embedded onDone={() => {}} />, { wrapper })
-  for (const n of ["Cash", "GCash", "Maya", "BPI Savings", "Credit card"])
-    include(n)
-  fireEvent.changeText(
-    screen.getByLabelText("Rent ₱ (5th of the month)"),
-    "12000",
-  )
-  fireEvent.press(screen.getByText("Add 1 account"))
-  expect(
-    screen.getByText("Add an account for your salary and rent to land in"),
-  ).toBeTruthy()
-  expect(finStore.get().accounts).toHaveLength(0)
-  expect(finStore.get().planned).toHaveLength(0)
+  expect(screen.queryByLabelText("Include Credit card")).toBeNull()
+  expect(screen.queryByLabelText("Credit limit")).toBeNull()
 })
 
 test("a name that is already an account is refused, naming it", () => {
@@ -168,12 +158,6 @@ test("an account that syncs in while the step is open drops its row", () => {
     })
   })
   expect(screen.queryByLabelText("Include Maya")).toBeNull()
-})
-
-test("the credit limit field is labelled", () => {
-  render(<FinanceSetup embedded onDone={() => {}} />, { wrapper })
-  include("Credit card")
-  expect(screen.getByLabelText("Credit limit")).toBeTruthy()
 })
 
 test("saving a transaction with no account says so", () => {

@@ -4,7 +4,7 @@
 at in the week before it's due, or NULL for off. Existing rows get 09:00.
 
 Revision ID: b7e3d9a41c52
-Revises: c4f2a8e61d07
+Revises: a9e3c51d7b42
 Create Date: 2026-10-31 12:00:00.000000
 
 """
@@ -14,7 +14,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "b7e3d9a41c52"
-down_revision = "c4f2a8e61d07"
+down_revision = "a9e3c51d7b42"
 branch_labels = None
 depends_on = None
 

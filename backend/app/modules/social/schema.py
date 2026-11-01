@@ -113,6 +113,12 @@ class MediaPublic(BaseModel):
     kind: Literal["image", "video"]
     ratio: float | None
     url: str | None
+    # A photo's smaller rendition and inline placeholder (none on uploads
+    # made before they existed), and its stored size.
+    preview_url: str | None = None
+    lqip: str | None = None
+    width: int | None = None
+    height: int | None = None
 
 
 class ProgressIn(BaseModel):
@@ -328,6 +334,9 @@ class MessagePublic(BaseModel):
     system: bool
     # member id -> emoji
     reactions: dict[str, str]
+    # A deleted message stays in the thread as a "Message deleted" tombstone:
+    # its content, attachments and reactions are dropped.
+    deleted: bool = False
 
 
 class MessagesPublic(BaseModel):

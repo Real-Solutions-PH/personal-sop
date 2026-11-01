@@ -37,6 +37,8 @@ export interface EngineDeps {
   log?: (event: string, detail?: unknown) => void
   /** After every successful push + pull (server statistics refresh). */
   onSynced?: () => void
+  /** An op the server refused (name and code only, for the person's toast). */
+  onRejected?: (name: string, code: string | null | undefined) => void
   debounceMs?: number
   batch?: number
 }
@@ -78,6 +80,8 @@ export class SyncEngine {
   /** Server rows held back while an op of this device's still speaks for
    * them, keyed entity:id: shown once the outbox no longer names the row. */
   private deferred: Record<string, Change> = {}
+  /** When the latest local edit not yet captured was made (epoch ms). */
+  private editedAt: number | null = null
   readonly rejected: OpResult[] = []
 
   constructor(private deps: EngineDeps) {
@@ -130,6 +134,7 @@ export class SyncEngine {
   /** Coalesce a burst of edits into one diff. */
   schedule() {
     if (this.applying) return
+    this.editedAt = Date.now()
     if (this.timer) clearTimeout(this.timer)
     this.timer = setTimeout(() => {
       this.timer = null
@@ -159,8 +164,36 @@ export class SyncEngine {
       this.timer = null
       this.capture()
     }
-    this.deps.outbox.add([{ op_id: newId(), kind: "action", name, data }])
+    this.deps.outbox.add([
+      {
+        op_id: newId(),
+        kind: "action",
+        name,
+        data,
+        at: new Date().toISOString(),
+      },
+    ])
     void this.sync()
+  }
+
+  /** Take the current local value of these rows as what the server holds,
+   * without queuing ops: for rows a server action changes the same way (a
+   * merge's repointed references), so the local change stays optimistic and
+   * is never pushed as field writes of its own. */
+  adopt(entity: string, ids: string[]) {
+    const m = this.deps.mappers.find((x) => x.entity === entity)
+    if (!m || !ids.length) return
+    const state = m.store.get()
+    const snap = this.snapshot[m.entity]
+    this.previous[m.entity] ??= {}
+    const prev = this.previous[m.entity]
+    for (const id of ids) {
+      const local = this.find(m, state, id)
+      if (local === undefined || !snap[id]) continue
+      snap[id] = m.toServer(local, state)
+      prev[id] = local
+    }
+    this.persist()
   }
 
   /** Send every row this device holds to the server as new: for a server
@@ -175,8 +208,13 @@ export class SyncEngine {
     return ops.length
   }
 
-  /** Diff every mapper into the outbox (synchronous; testable). */
+  /** Diff every mapper into the outbox (synchronous; testable). Every op
+   * carries the time of the edit it stands for (the last one inside the
+   * debounce window), so the server applies it as of then however long it
+   * waits in the outbox. */
   capture() {
+    const at = new Date(this.editedAt ?? Date.now()).toISOString()
+    this.editedAt = null
     const ops: SyncOp[] = []
     for (const m of this.deps.mappers) {
       const state = m.store.get()
@@ -233,6 +271,7 @@ export class SyncEngine {
     ops.sort(
       (a, b) => Number(a.kind !== "action") - Number(b.kind !== "action"),
     )
+    for (const op of ops) op.at = at
     this.deps.outbox.add(ops)
     this.persist()
     return ops
@@ -319,12 +358,18 @@ export class SyncEngine {
     const at = new Map(ops.map((o, i) => [o.op_id, i]))
     const rows: Change[] = []
     const after = new Map<Change, SyncOp[]>()
+    const resync = new Set(
+      this.deps.mappers.flatMap((m) => m.resyncOnReject ?? []),
+    )
     for (const r of res.results) {
       const i = at.get(r.op_id)
       const op = i === undefined ? undefined : ops[i]
       if (r.status === "rejected") {
         this.rejected.push(r)
         this.deps.log?.("op_rejected", { name: op?.name, code: r.code })
+        if (op) this.deps.onRejected?.(op.name, r.code)
+        // The pull after this push then brings every server row back.
+        if (op?.kind === "action" && resync.has(op.name)) this.cursor = 0
       }
       if (r.row && op?.kind === "upsert" && op.id && i !== undefined) {
         const c: Change = {
@@ -446,19 +491,31 @@ export class SyncEngine {
         const list = byEntity.get(m.entity)
         if (!list) continue
         const state = m.store.get()
+        const shown = this.index(m, state)
+        const snap = this.snapshot[m.entity]
         const ups: unknown[] = []
         const dels: string[] = []
+        let echo = true
         for (const c of list) {
           if (c.deleted || !c.row) {
             dels.push(c.id)
+            echo = false
             continue
           }
           const local = m.fromServer(c.row, state)
-          if (local) ups.push(local)
+          if (!local) continue
+          const id = m.id(local)
+          if (!Object.hasOwn(shown, id) || !same(shown[id], local)) echo = false
+          ups.push(local)
         }
+        if (!ups.length && !dels.length) continue
+        // The mapper still merges an echo: it can keep bookkeeping beside
+        // the rows (a workout's highest exercise position).
         const next = m.merge(state, ups, dels)
-        m.store.set(next)
-        const snap = this.snapshot[m.entity]
+        // The server's copy of what this device already shows (the echo of
+        // its own write) is not written back, so the screen is not
+        // re-rendered when a slow reply lands mid-typing.
+        if (!echo || !same(next, state)) m.store.set(next)
         for (const id of dels) delete snap[id]
         for (const l of ups) snap[m.id(l)] = m.toServer(l, next)
         this.previous[m.entity] = this.index(m, next)
@@ -480,6 +537,23 @@ export class SyncEngine {
     return !this.timer && this.deps.outbox.size() === 0
   }
 }
+
+/** Equal as rows: same fields and values, key order and fields left
+ * undefined aside. */
+function same(a: unknown, b: unknown): boolean {
+  return canonical(a) === canonical(b)
+}
+
+const canonical = (v: unknown) =>
+  JSON.stringify(v, (_k, x: unknown) =>
+    x && typeof x === "object" && !Array.isArray(x)
+      ? Object.fromEntries(
+          Object.entries(x)
+            .filter(([, y]) => y !== undefined)
+            .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
+        )
+      : x,
+  )
 
 /** ``c`` as it will be once ``ops`` reach the server, or null while one of
  * them makes the server's row meaningless to show (a delete, an action on

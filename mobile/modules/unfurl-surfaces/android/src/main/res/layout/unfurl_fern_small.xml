@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fern quick actions, small: chat, then the camera and dictation. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/unfurl_root" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center" android:padding="12dp" android:background="@drawable/unfurl_widget_bg">
+<LinearLayout android:id="@+id/fern_chat" android:layout_width="match_parent" android:layout_height="56dp" android:orientation="horizontal" android:gravity="center_vertical" android:paddingStart="8dp" android:paddingEnd="12dp" android:background="@drawable/unfurl_fern_pill" android:contentDescription="Chat with Fern">
+  <FrameLayout android:layout_width="40dp" android:layout_height="40dp">
+    <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/unfurl_fern_orb" android:importantForAccessibility="no" />
+    <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/unfurl_fern_mark" android:scaleType="fitCenter" android:importantForAccessibility="no" />
+  </FrameLayout>
+  <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:text="Chat" android:textSize="16sp" android:textStyle="bold" android:textColor="@color/unfurl_text" android:maxLines="1" android:ellipsize="end" />
+</LinearLayout>
+<LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:layout_marginTop="10dp" android:orientation="horizontal" android:gravity="center">
+  <ImageView android:id="@+id/fern_camera" android:layout_width="56dp" android:layout_height="56dp" android:padding="16dp" android:src="@drawable/unfurl_fern_camera" android:background="@drawable/unfurl_fern_round" android:contentDescription="Photo for Fern" />
+  <TextView android:layout_width="12dp" android:layout_height="1dp" />
+  <ImageView android:id="@+id/fern_mic" android:layout_width="56dp" android:layout_height="56dp" android:padding="16dp" android:src="@drawable/unfurl_fern_mic" android:background="@drawable/unfurl_fern_round" android:contentDescription="Dictate to Fern" />
+</LinearLayout>
+</LinearLayout>

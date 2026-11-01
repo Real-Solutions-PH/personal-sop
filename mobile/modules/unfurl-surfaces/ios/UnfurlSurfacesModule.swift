@@ -33,14 +33,17 @@ public class UnfurlSurfacesModule: Module {
       Self.send("setLive:", json.map { $0 as NSString })
     }
     Function("drainActions") { () -> String in
-      Self.drain()
+      Self.string("drainActions", fallback: "[]")
+    }
+    Function("liveStatus") { () -> String in
+      Self.string("liveStatus", fallback: #"{"enabled":false,"error":"no bridge"}"#)
     }
   }
 
   // Called through typed function pointers rather than `perform`, whose
   // untyped return reads garbage for a void method (and crashed the app).
   private typealias Send = @convention(c) (AnyObject, Selector, NSString?) -> Void
-  private typealias Drain = @convention(c) (AnyObject, Selector) -> Unmanaged<NSString>?
+  private typealias Get = @convention(c) (AnyObject, Selector) -> Unmanaged<NSString>?
 
   /** The bridge's class method `name`, if the app target has it. */
   private static func method(_ name: String) -> (AnyObject, Selector, IMP)? {
@@ -55,9 +58,10 @@ public class UnfurlSurfacesModule: Module {
     unsafeBitCast(imp, to: Send.self)(cls, sel, arg)
   }
 
-  private static func drain() -> String {
-    guard let (cls, sel, imp) = method("drainActions") else { return "[]" }
-    return (unsafeBitCast(imp, to: Drain.self)(cls, sel)?.takeUnretainedValue() as String?) ?? "[]"
+  /** A bridge class method that takes nothing and returns a string. */
+  private static func string(_ name: String, fallback: String) -> String {
+    guard let (cls, sel, imp) = method(name) else { return fallback }
+    return (unsafeBitCast(imp, to: Get.self)(cls, sel)?.takeUnretainedValue() as String?) ?? fallback
   }
 
   private func startObserving() {

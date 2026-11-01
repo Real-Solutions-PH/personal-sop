@@ -10,6 +10,8 @@ import { privacyStore } from "@domain/lib/privacy"
 import { tasksStore } from "@domain/tasks/store"
 import { useEffect, useRef, useState } from "react"
 import { AppState, PermissionsAndroid, Platform } from "react-native"
+import { useShown } from "@/prototype/extras"
+import { screenTimeAvailable } from "@/prototype/screen-time"
 import { drainSurfaceActions } from "./actions"
 import { buildLiveState, liveKey } from "./live-state"
 import {
@@ -64,24 +66,38 @@ function Bridge() {
   const ring = D.useTodayRing()
   const lifeScore = D.useLifeScore(7).score
   const streak = D.useOnTarget(7).current
+  const journal = useShown("journal")
   const minute = useMinute()
   const day = dayKey(new Date(minute * 60_000))
 
-  // Taps made while the app was closed, then any made while it runs.
+  const lastSnapshot = useRef("")
+  const lastLive = useRef<string | null>(null)
+
+  // Taps made while the app was closed, then any made while it runs. Back
+  // in the foreground the activity is written again even when nothing
+  // changed: the person may have swiped it away, the system may have ended
+  // it, or Live Activities were just turned on in Settings.
   useEffect(() => {
     drainSurfaceActions()
     const off = onQueuedAction(() => drainSurfaceActions())
     const app = AppState.addEventListener("change", (s) => {
-      if (s === "active") drainSurfaceActions()
+      if (s !== "active") return
+      drainSurfaceActions()
+      const state = buildLiveState({
+        live: liveStore.get().live,
+        habits: habitsStore.get(),
+        fit: fitStore.get(),
+        focus: focusStore.get(),
+      })
+      if (!state) return
+      lastLive.current = liveKey(state)
+      writeLive(state)
     })
     return () => {
       off()
       app.remove()
     }
   }, [])
-
-  const lastSnapshot = useRef("")
-  const lastLive = useRef<string | null>(null)
   // The signed-in layout unmounts on sign-out. The refs reset too, so a
   // remount (or React's dev double-run) writes everything again.
   useEffect(
@@ -106,6 +122,8 @@ function Bridge() {
       ring: { done: ring.done, due: ring.due },
       lifeScore,
       streak,
+      journal,
+      screenTime: screenTimeAvailable(),
     })
     const key = snapshotKey(snapshot)
     if (key === lastSnapshot.current) return
@@ -127,6 +145,7 @@ function Bridge() {
     ring.due,
     lifeScore,
     streak,
+    journal,
     day,
   ])
 

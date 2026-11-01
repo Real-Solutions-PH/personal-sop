@@ -4,8 +4,10 @@ import uuid
 from typing import Any
 
 from fastapi.testclient import TestClient
+from sqlmodel import Session
 
 from app.core.config import settings
+from app.modules.finance.models import Account
 
 API = f"{settings.API_V1_STR}/finance"
 SYNC = f"{settings.API_V1_STR}/sync"
@@ -92,6 +94,22 @@ class Fin:
         assert r.status_code == 200, r.text
         out: dict[str, Any] = r.json()
         return out
+
+
+def legacy_card(
+    f: Fin, db: Session, name: str, limit_minor: int | None = None, **extra: Any
+) -> str:
+    """A credit card made before they were retired: the API refuses to make
+    one, so it is made as a bank account and turned into a card in the
+    database, as such a row sits in a real user's data."""
+    aid = f.account(name, type="bank", **extra)
+    acc = db.get(Account, uuid.UUID(aid))
+    assert acc is not None
+    acc.type = "credit"
+    acc.limit_minor = limit_minor
+    db.add(acc)
+    db.commit()
+    return aid
 
 
 def op(

@@ -20,7 +20,6 @@ import { useEffect, useMemo, useState } from "react"
 import {
   ActivityIndicator,
   FlatList,
-  Image,
   Pressable,
   ScrollView,
   Text,
@@ -55,6 +54,7 @@ import {
   useRing,
 } from "./kit"
 import { TopBar } from "./post"
+import { RemoteImage } from "./remote-image"
 import {
   type GoalLine,
   useMyGoals,
@@ -369,7 +369,7 @@ export function ScoreCard({
               <Text
                 onPress={() => go("/stats/trophies")}
                 style={{
-                  color: t.tsk,
+                  color: t.primary,
                   fontFamily: fonts.semibold,
                   fontSize: 13,
                 }}
@@ -410,9 +410,11 @@ function Tile({ post, size }: { post: Post; size: number }) {
       })}
     >
       {first?.kind === "image" ? (
-        <Image
-          source={{ uri: first.uri }}
-          style={{ width: "100%", height: "100%" }}
+        <RemoteImage
+          media={first}
+          width="100%"
+          height="100%"
+          variant="preview"
         />
       ) : post.progress ? (
         <ProgressCard
@@ -845,7 +847,9 @@ export function Profile({ id }: { id: string }) {
                   }}
                 >
                   {person.name}
-                  {person.verified && <Text style={{ color: t.tsk }}> ✓</Text>}
+                  {person.verified && (
+                    <Text style={{ color: t.primary }}> ✓</Text>
+                  )}
                 </Text>
                 <Text
                   numberOfLines={1}
@@ -1244,7 +1248,7 @@ export function FollowButton({
         gap: 6,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: on ? t.soft : t.tsk,
+        backgroundColor: on ? t.soft : t.primary,
         transform: [{ scale: pressed ? 0.96 : 1 }],
       })}
     >
@@ -1252,11 +1256,11 @@ export function FollowButton({
         (on ? (
           <UserCheck size={16} color={t.text} />
         ) : (
-          <UserPlus size={16} color="#fff" />
+          <UserPlus size={16} color={t.onPrimary} />
         ))}
       <Text
         style={{
-          color: on ? t.text : "#fff",
+          color: on ? t.text : t.onPrimary,
           fontFamily: fonts.semibold,
           fontSize: 14,
         }}

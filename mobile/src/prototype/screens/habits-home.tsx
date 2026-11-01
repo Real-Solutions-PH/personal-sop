@@ -1,4 +1,4 @@
-import type { Routine } from "@domain/habits/data"
+import type { Habit, Routine } from "@domain/habits/data"
 import * as H from "@domain/habits/logic"
 import { habitsStore } from "@domain/habits/store"
 import { dayKey, dayOffset } from "@domain/lib/day"
@@ -17,7 +17,7 @@ import {
 import { useState } from "react"
 import { ScrollView, Text, View } from "react-native"
 import { Sparkline } from "../chart"
-import { GrowBar, SwipeSegments } from "../motion"
+import { feel, GrowBar, SwipeSegments } from "../motion"
 import {
   Bar,
   border,
@@ -33,6 +33,7 @@ import { go } from "../navigation"
 import { fonts, radius, useTheme } from "../theme"
 import { Screen } from "../ui"
 import { Ring } from "../visual"
+import { HabitActions } from "./habit-actions"
 import { LockedPreview } from "./locked-preview"
 
 const fmtDay = (day: string) =>
@@ -257,6 +258,8 @@ export function HabitsHome() {
     state = habitsStore.use((s) => s),
     [period, setPeriod] = useState("30"),
     [sort, setSort] = useState("rate"),
+    [actionsFor, setActionsFor] = useState<Habit | null>(null),
+    [actionsOpen, setActionsOpen] = useState(false),
     days = Number(period),
     today = dayKey(),
     idx = H.logIndex(state.logs),
@@ -481,6 +484,13 @@ export function HabitsHome() {
                   <Tap
                     key={`${b.h.id}-${b.day}`}
                     onPress={() => go(`/habits/${b.h.id}`)}
+                    onLongPress={() => {
+                      feel.tap()
+                      setActionsFor(b.h)
+                      setActionsOpen(true)
+                    }}
+                    hint="Long press for actions"
+                    longPressLabel="Habit actions"
                   >
                     <Line style={{ gap: 8 }}>
                       <Copy size={14}>{b.h.icon}</Copy>
@@ -610,6 +620,13 @@ export function HabitsHome() {
                 <Tap
                   key={h.id}
                   onPress={() => go(`/habits/${h.id}`)}
+                  onLongPress={() => {
+                    feel.tap()
+                    setActionsFor(h)
+                    setActionsOpen(true)
+                  }}
+                  hint="Long press for actions"
+                  longPressLabel="Habit actions"
                   style={{ paddingHorizontal: 8, paddingVertical: 10 }}
                 >
                   <Line>
@@ -730,6 +747,13 @@ export function HabitsHome() {
           </SwipeSegments>
         </LockedPreview>
       </View>
+      {actionsFor && (
+        <HabitActions
+          habit={actionsFor}
+          open={actionsOpen}
+          onClose={() => setActionsOpen(false)}
+        />
+      )}
     </Screen>
   )
 }

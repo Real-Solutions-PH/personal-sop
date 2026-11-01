@@ -33,6 +33,7 @@ import type { Construct } from "constructs"
 import { CLIENT_IP_HEADER, RATE_LIMITS } from "./cloudflare"
 import {
   BACKEND_REPOSITORY,
+  GOTRUE_POOL_SIZE,
   IMAGES,
   internalUrl,
   LOOKS_LIKE_ARN_SUFFIX,
@@ -57,6 +58,8 @@ export interface ProdStackProps extends StackProps {
 
 /** Ports inside the tasks. */
 const API_PORT = SERVICE_PORTS.api
+/** Above the tunnel's 300 s keepAliveTimeout to the origin. */
+const API_KEEP_ALIVE_SECONDS = 310
 const GOTRUE_PORT = 9999
 const AUTH_PROXY_PORT = SERVICE_PORTS.auth
 
@@ -697,6 +700,9 @@ export class ProdStack extends Stack {
       API_EXTERNAL_URL: publicUrl,
       GOTRUE_DB_DRIVER: "postgres",
       GOTRUE_DB_NAMESPACE: "auth",
+      // Unset, GoTrue's pool has no ceiling; config.ts counts it per task in
+      // the database's connection budget.
+      GOTRUE_DB_MAX_POOL_SIZE: String(GOTRUE_POOL_SIZE),
       DB_HOST: db.dbInstanceEndpointAddress,
       DB_PORT: db.dbInstanceEndpointPort,
       GOTRUE_SITE_URL: config.siteUrl,
@@ -884,14 +890,29 @@ export class ProdStack extends Stack {
     const apiTask = backendTask("Api", sizing.api.cpu, sizing.api.memoryMiB)
     apiTask.addContainer("api", {
       image: backendImage,
+      // uvicorn itself rather than `fastapi run`, which cannot set the
+      // keep-alive: cloudflared keeps idle connections to the API for 300 s
+      // (scripts/cloudflare.ts), so the API must keep them longer, or the
+      // tunnel can send a request down a connection uvicorn has just closed
+      // (its default is 5 s). Proxy headers are trusted per
+      // FORWARDED_ALLOW_IPS, as before.
       command: [
-        "fastapi",
-        "run",
-        "--workers",
-        String(sizing.api.workers),
+        "uvicorn",
+        "app.main:app",
+        "--host",
+        "0.0.0.0",
         "--port",
         String(API_PORT),
-        "app/main.py",
+        "--workers",
+        String(sizing.api.workers),
+        "--proxy-headers",
+        "--timeout-keep-alive",
+        String(API_KEEP_ALIVE_SECONDS),
+        // Each worker must answer the supervisor's ping within this, or it is
+        // killed and restarted. The default 5 s can kill workers that are
+        // still importing when two start together on one busy vCPU.
+        "--timeout-worker-healthcheck",
+        "30",
       ],
       environment: backendEnv,
       secrets: backendSecrets,
@@ -922,6 +943,21 @@ export class ProdStack extends Stack {
       cloudMapOptions: discovery("api"),
     })
     apiService.node.addDependency(workerService)
+    if (sizing.api.maxCount > sizing.api.count) {
+      // Each uvicorn worker uses at most one vCPU, so CPU is what runs out
+      // first (measured: memory stays near half). Out fast, in slowly: an
+      // app-open burst is over in seconds, a busy evening lasts hours.
+      apiService
+        .autoScaleTaskCount({
+          minCapacity: sizing.api.count,
+          maxCapacity: sizing.api.maxCount,
+        })
+        .scaleOnCpuUtilization("ApiCpu", {
+          targetUtilizationPercent: 60,
+          scaleOutCooldown: Duration.seconds(60),
+          scaleInCooldown: Duration.minutes(10),
+        })
+    }
 
     // ----------------------------------------------------------- tunnel service
     // One cloudflared service for the whole tunnel, not a sidecar per task:

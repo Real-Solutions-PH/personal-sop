@@ -11,12 +11,12 @@ import {
   monthRange,
   netWorthSeries,
   recDay,
-  shortDate,
   today,
 } from "./calc"
 import type { FinState } from "./data"
-import { type DateRange, expectedVsActual } from "./forecast"
-export type Period = "this" | "last" | "3m"
+import { type DateRange, rangeLabel } from "./forecast"
+export type Period = "this" | "last" | "3m" | DateRange
+export const isCustom = (p: Period): p is DateRange => typeof p === "object"
 export function periodRange(
   s: FinState,
   p: Period,
@@ -27,6 +27,17 @@ export function periodRange(
   prevTo: string
   label: string
 } {
+  if (isCustom(p)) {
+    // The comparison is the same number of days just before ``from``.
+    const len = diffDays(p.to, p.from) + 1
+    return {
+      from: p.from,
+      to: p.to,
+      prevFrom: addDays(p.from, -len),
+      prevTo: addDays(p.from, -1),
+      label: rangeLabel(p),
+    }
+  }
   const sd = s.settings.monthStartDay
   const mk = monthOf(today(), sd)
   if (p === "3m") {
@@ -52,48 +63,44 @@ export function periodRange(
     label: monthLabel(m, true),
   }
 }
+/**
+ * Every report card over a period. A custom range compares with the same
+ * number of days before it; its month table covers the budget months the
+ * range touches (up to 13), its budget history the 3 budget months ending
+ * with the one holding ``to``, and its net worth line the range itself.
+ */
 export function reportData(s: FinState, p: Period) {
   const sd = s.settings.monthStartDay
+  const r = periodRange(s, p)
+  if (isCustom(p)) {
+    const last = monthOf(r.to, sd)
+    const months: string[] = []
+    for (
+      let k = monthOf(r.from, sd);
+      k <= last && months.length < 13;
+      k = addMonths(k, 1)
+    )
+      months.push(k)
+    const nw = netWorthSeries(s, diffDays(today(), r.from) + 1)
+    return {
+      ...build(
+        s,
+        r,
+        months,
+        [-2, -1, 0].map((i) => addMonths(last, i)),
+      ),
+      nw: nw.slice(0, diffDays(r.to, r.from) + 1),
+    }
+  }
   const mk = monthOf(today(), sd)
   return {
     ...build(
       s,
-      periodRange(s, p),
+      r,
       [-3, -2, -1, 0].map((i) => addMonths(mk, i)),
       [-2, -1, 0].map((i) => addMonths(mk, i)),
     ),
     nw: netWorthSeries(s, 90),
-  }
-}
-
-/**
- * The same report over any window: the comparison is the window of the
- * same length just before it, the month table and budget history cover the
- * budget months the window touches (at least the last 3, at most 12 and 6),
- * and net worth is drawn against what the repeating items alone predict.
- */
-export function rangeReport(s: FinState, range: DateRange, label?: string) {
-  const sd = s.settings.monthStartDay
-  const len = diffDays(range.to, range.from) + 1
-  const r = {
-    from: range.from,
-    to: range.to > today() ? today() : range.to,
-    prevFrom: addDays(range.from, -len),
-    prevTo: addDays(range.from, -1),
-    label: label ?? `${shortDate(range.from)} – ${shortDate(range.to)}`,
-  }
-  const last = monthOf(r.to, sd)
-  const first = monthOf(r.from, sd)
-  const keys: string[] = []
-  for (
-    let k = last;
-    keys.length < 12 && (k >= first || keys.length < 3);
-    k = addMonths(k, -1)
-  )
-    keys.unshift(k)
-  return {
-    ...build(s, r, keys, keys.slice(-6)),
-    vs: expectedVsActual(s, r.from, r.to),
   }
 }
 

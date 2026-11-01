@@ -1,3 +1,4 @@
+import type { ModuleKey } from "@domain/contract"
 import { AREA, MODULE_KEYS } from "@domain/dash/data"
 import { fmtGoal, useGoals, useLifeScore } from "@domain/dash/hooks"
 import {
@@ -53,6 +54,8 @@ import {
 import { back, go } from "../navigation"
 import { ProfileAvatar } from "../profile-avatar"
 import { enableReminders } from "../reminders"
+import { enableScreenTime } from "../screen-sync"
+import { screenTimeAvailable } from "../screen-time"
 import { checkUsername, usernameError } from "../session"
 import { Switch } from "../switch"
 import { appearanceStore, fonts, useTheme } from "../theme"
@@ -524,8 +527,13 @@ export function Settings() {
     shown = extrasStore.use((s) => s)
   const allOn =
     MODULE_KEYS.every((k) => s.enabled[k]) && EXTRAS.every((x) => shown[x.key])
+  // Screen time turns on only once iOS allows it.
+  const turnOn = (k: ModuleKey) =>
+    k === "screen" ? void enableScreenTime() : setEnabled(k, true)
   const setAll = (on: boolean) => {
-    for (const k of MODULE_KEYS) setEnabled(k, on)
+    for (const k of MODULE_KEYS)
+      if (!on) setEnabled(k, false)
+      else if (!s.enabled[k]) turnOn(k)
     for (const x of EXTRAS) setShown(x.key, on)
   }
   const extraIcon: Record<Extra, LucideIcon> = {
@@ -600,7 +608,7 @@ export function Settings() {
                     "Its cards, stats, share fields and misses hide. Your data is kept — turn it back on anytime.",
                     () => setEnabled(k, false),
                   )
-                : setEnabled(k, true)
+                : turnOn(k)
             return (
               <View
                 key={k}
@@ -623,9 +631,14 @@ export function Settings() {
                   >
                     <I size={16} color={t[m.color]} />
                   </View>
-                  <Copy weight="medium" style={{ flex: 1 }}>
-                    {AREA[k].label}
-                  </Copy>
+                  <View style={{ flex: 1 }}>
+                    <Copy weight="medium">{AREA[k].label}</Copy>
+                    {k === "screen" && !screenTimeAvailable() && (
+                      <Copy size={12} muted>
+                        Not in this version of Unfurl yet
+                      </Copy>
+                    )}
+                  </View>
                   <Switch
                     compact
                     accent="primary"

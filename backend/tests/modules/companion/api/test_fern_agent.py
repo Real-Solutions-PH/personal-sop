@@ -455,10 +455,10 @@ def test_confirm_reports_what_still_cannot_be_saved_and_why(
 
 def test_a_question_with_numbers_is_not_a_request_to_record() -> None:
     assert not services.unbacked_claim(
-        "did I hit 60 kg this week?", "You logged 62 kg on Monday.", []
+        "did I hit 60 kg this week?", "You logged 62 kg on Monday.", [], waiting=False
     )
     assert services.unbacked_claim(
-        "62.4 kg and 20% body fat today", "Logged your weigh-in.", []
+        "62.4 kg and 20% body fat today", "Logged your weigh-in.", [], waiting=False
     )
 
 
@@ -471,7 +471,7 @@ def test_a_question_about_kept_records_without_a_question_mark_is_not_a_write() 
         "what meals did i have today",
     ):
         assert not services.unbacked_claim(
-            asked, "Both meals were logged with calories only.", []
+            asked, "Both meals were logged with calories only.", [], waiting=False
         ), asked
     # A list or numbers given stay a record to make, whatever words they hold.
     for asked in (
@@ -482,7 +482,7 @@ def test_a_question_about_kept_records_without_a_question_mark_is_not_a_write() 
         "Do laundry and pay rent, those are my to-dos",
         "What a day: 5 km in 32 mins",
     ):
-        assert services.unbacked_claim(asked, "Logged it.", []), asked
+        assert services.unbacked_claim(asked, "Logged it.", [], waiting=False), asked
 
 
 TASK_LIST = (
@@ -737,6 +737,58 @@ def test_an_account_name_already_taken_is_refused(
     assert not step["ok"]
     assert step["summary"] == "Couldn't finish: an account with that name exists"
     assert len(live(rows_of(api, Account))) == 3
+
+
+def _fern_account_color(
+    api: Api, client: TestClient, monkeypatch: pytest.MonkeyPatch, name: str
+) -> str:
+    from app.modules.finance.models import Account
+
+    setup_step(
+        api,
+        client,
+        f"add my {name} account",
+        monkeypatch,
+        act("create_account", name=name, type="ewallet"),
+    )
+    [acc] = [a for a in live(rows_of(api, Account)) if a.name == name]
+    return str(acc.color)
+
+
+def test_a_new_account_gets_the_first_colour_no_account_uses(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Another user's colours play no part in this user's choice.
+    other = user(client, db, accounts=False)
+    for name, color in (("Mine", "violet"), ("Also", "orange")):
+        other.post(
+            "/finance/accounts",
+            {"name": name, "type": "bank", "opening_minor": 0, "color": color},
+        )
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    for name, color in (("BPI", "blue"), ("Wallet", "emerald")):
+        api.post(
+            "/finance/accounts",
+            {"name": name, "type": "bank", "opening_minor": 0, "color": color},
+        )
+    assert _fern_account_color(api, client, monkeypatch, "GoTyme") == "violet"
+
+
+def test_with_every_colour_taken_the_count_picks_it(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.modules.capture.agent import ACCOUNT_COLORS
+
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    for i, color in enumerate((*ACCOUNT_COLORS, "blue")):
+        api.post(
+            "/finance/accounts",
+            {"name": f"A{i}", "type": "bank", "opening_minor": 0, "color": color},
+        )
+    # Ten accounts already: the eleventh lands on 10 % 9, the second colour.
+    assert _fern_account_color(api, client, monkeypatch, "GoTyme") == "emerald"
 
 
 def balances(api: Api) -> dict[str, int]:

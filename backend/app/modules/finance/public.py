@@ -570,9 +570,11 @@ def create_account(
     opening_minor: int = 0,
     limit_minor: int | None = None,
     account_id: uuid.UUID | None = None,
+    color: str | None = None,
 ) -> Account:
     """A new account opening today (the first one becomes the default), as
-    the Accounts screen's add does."""
+    the Accounts screen's add does. ``color`` is a bare account colour token
+    ("blue"), the form the app stores; left out, the server default."""
     return services._add_account(
         ctx,
         data=S.AccountCreate(
@@ -581,6 +583,7 @@ def create_account(
             type=type,
             opening_minor=opening_minor,
             limit_minor=limit_minor,
+            color=color,
         ),
     )
 

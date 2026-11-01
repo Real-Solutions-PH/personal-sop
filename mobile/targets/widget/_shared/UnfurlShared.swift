@@ -8,6 +8,7 @@
 import ActivityKit
 import AppIntents
 import Foundation
+import os
 import Security
 import UserNotifications
 import WidgetKit
@@ -89,6 +90,9 @@ struct WidgetSnapshot: Codable {
   var tasks: Tasks
   var money: Money?
   var live: Live?
+  /** The apps the in-app launcher shows, in its order (keys such as
+   * "finance"); missing from snapshots written before the Apps widget. */
+  var apps: [String]?
 
   var dayEndsDate: Date? { UnfurlISO.date(dayEnds) }
 }
@@ -98,6 +102,8 @@ struct LiveNext: Codable, Hashable {
   var label: String
   var detail: String
   var sec: Double?
+  /** Workout only: the exercise's previous best ("Best 85 kg × 6"). */
+  var best: String?
 }
 
 /** The running routine, workout or habit timer (LiveState in TS). Times are
@@ -109,6 +115,8 @@ struct LiveState: Codable, Hashable {
   var icon: String
   var step: String
   var detail: String
+  /** Workout only: the current exercise's previous best. */
+  var best: String?
   var key: String
   var index: Int
   var count: Int
@@ -143,6 +151,7 @@ struct LiveState: Codable, Hashable {
       let n = s.next.removeFirst()
       s.step = n.label
       s.detail = n.detail
+      s.best = n.best
       s.key = n.key
       s.index += 1
       s.paused = false
@@ -168,11 +177,13 @@ struct LiveState: Codable, Hashable {
       if s.next.isEmpty {
         s.step = "All sets done"
         s.detail = "Finish when you're ready"
+        s.best = nil
         s.key = ""
       } else {
         let n = s.next.removeFirst()
         s.step = n.label
         s.detail = n.detail
+        s.best = n.best
         s.key = n.key
       }
       if s.restSec > 0 { s.restEndsAt = now + s.restSec * 1000 }
@@ -219,8 +230,10 @@ enum UnfurlISO {
 
 /** A keychain item both processes can read: the app's free (personal) Apple
  * team cannot sign an App Group, but it can sign a keychain access group
- * under its own team prefix. Without the Info.plist key (a build without the
- * entitlement) it falls back to UserDefaults, which only the app sees. */
+ * under its own team prefix. Without the Info.plist key, or when the keychain
+ * refuses (a build signed without the entitlement, errSecMissingEntitlement),
+ * it falls back to UserDefaults, which only this process sees. That still
+ * carries the Live Activity's taps: its intents run in the app's process. */
 enum SharedStore {
   private static let service = "unfurl.surfaces"
   static var group: String? {
@@ -242,7 +255,8 @@ enum SharedStore {
     q[kSecReturnData as String] = true
     q[kSecMatchLimit as String] = kSecMatchLimitOne
     var out: AnyObject?
-    return SecItemCopyMatching(q as CFDictionary, &out) == errSecSuccess ? out as? Data : nil
+    if SecItemCopyMatching(q as CFDictionary, &out) == errSecSuccess, let data = out as? Data { return data }
+    return UserDefaults.standard.data(forKey: "\(service).\(key)")
   }
   static func write(_ key: String, _ data: Data) {
     guard group != nil else {
@@ -253,11 +267,16 @@ enum SharedStore {
       kSecValueData as String: data,
       kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
     ]
-    let status = SecItemUpdate(query(key) as CFDictionary, attrs as CFDictionary)
+    var status = SecItemUpdate(query(key) as CFDictionary, attrs as CFDictionary)
     if status == errSecItemNotFound {
       var add = query(key)
       add.merge(attrs) { $1 }
-      SecItemAdd(add as CFDictionary, nil)
+      status = SecItemAdd(add as CFDictionary, nil)
+    }
+    if status == errSecSuccess {
+      UserDefaults.standard.removeObject(forKey: "\(service).\(key)")
+    } else {
+      UserDefaults.standard.set(data, forKey: "\(service).\(key)")
     }
   }
 
@@ -267,6 +286,7 @@ enum SharedStore {
       return
     }
     SecItemDelete(query(key) as CFDictionary)
+    UserDefaults.standard.removeObject(forKey: "\(service).\(key)")
   }
 
   static func snapshot() -> WidgetSnapshot? {
@@ -414,6 +434,27 @@ struct CheckHabitIntent: LiveActivityIntent {
   }
 }
 
+/** The Ask Fern and Dictate to Fern controls. It opens the app on Fern's
+ * deep link (src/app/+native-intent.tsx); it lives here so the app target
+ * has it too, which a control that opens the app requires. */
+@available(iOS 18.0, *)
+struct OpenFernIntent: AppIntent {
+  static let title: LocalizedStringResource = "Open Fern"
+  static let isDiscoverable: Bool = false
+  static let openAppWhenRun: Bool = true
+
+  @Parameter(title: "Mode") var mode: String
+
+  init() {}
+  init(mode: String) {
+    self.mode = mode
+  }
+
+  func perform() async throws -> some IntentResult & OpensIntent {
+    .result(opensIntent: OpenURLIntent(URL(string: "personalsop:///fern?mode=\(mode)")!))
+  }
+}
+
 // MARK: - App side
 
 /** What the app's Expo module (modules/unfurl-surfaces) calls, found by name
@@ -438,10 +479,34 @@ public final class UnfurlSurfacesBridge: NSObject {
     guard #available(iOS 16.2, *) else { return }
     Task { await LiveActivities.show(state) }
   }
+
+  /** Whether the activity can show, as JSON: {"enabled": Bool, "error"?:
+   * String}. The app reads it to tell the person when Live Activities are
+   * off for Unfurl, which otherwise fails without a sign. */
+  @objc public static func liveStatus() -> NSString {
+    guard #available(iOS 16.2, *) else { return #"{"enabled":false,"error":"unsupported"}"# }
+    return LiveActivities.status() as NSString
+  }
 }
 
 @available(iOS 16.2, *)
 enum LiveActivities {
+  private static let log = Logger(subsystem: "com.schadenkai.personal-sop", category: "live-activity")
+  private static let lock = NSLock()
+  private static var failure: String?
+  /** Why the last start failed; cleared by the next start that works. */
+  private static var lastError: String? {
+    get { lock.lock(); defer { lock.unlock() }; return failure }
+    set { lock.lock(); failure = newValue; lock.unlock() }
+  }
+
+  static func status() -> String {
+    var out: [String: Any] = ["enabled": ActivityAuthorizationInfo().areActivitiesEnabled]
+    if let lastError { out["error"] = lastError }
+    let data = (try? JSONSerialization.data(withJSONObject: out)) ?? Data("{}".utf8)
+    return String(data: data, encoding: .utf8) ?? "{}"
+  }
+
   static func show(_ state: LiveState?) async {
     let running = Activity<UnfurlActivityAttributes>.activities
     guard let state else {
@@ -457,10 +522,21 @@ enum LiveActivities {
         await a.end(nil, dismissalPolicy: .immediate)
       }
     }
-    guard !updated, ActivityAuthorizationInfo().areActivitiesEnabled else { return }
-    _ = try? Activity.request(
-      attributes: UnfurlActivityAttributes(kind: state.kind, id: state.id),
-      content: ActivityContent(state: state, staleDate: nil),
-      pushType: nil)
+    guard !updated else { return }
+    guard ActivityAuthorizationInfo().areActivitiesEnabled else {
+      lastError = "disabled"
+      log.notice("Live Activities are off for this app; \(state.kind, privacy: .public) not shown")
+      return
+    }
+    do {
+      _ = try Activity.request(
+        attributes: UnfurlActivityAttributes(kind: state.kind, id: state.id),
+        content: ActivityContent(state: state, staleDate: nil),
+        pushType: nil)
+      lastError = nil
+    } catch {
+      lastError = String(describing: error)
+      log.error("Activity.request failed for \(state.kind, privacy: .public): \(String(describing: error), privacy: .public)")
+    }
   }
 }

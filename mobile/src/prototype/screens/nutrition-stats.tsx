@@ -1,7 +1,8 @@
 // The Nutrition page's statistics: how the last 7, 14 or 30 closed days
 // went (calories and protein against target, average intake, days logged),
-// where the calories came from day by day, the average split, and the
-// nutrient limits on average. Today is still open, so it is left out, as
+// where the calories came from day by day, the average split against the
+// split the targets ask for, each macro's grams a day against its target,
+// and the nutrient limits on average. Today is still open, so it is left out, as
 // the Life Score leaves it out.
 import * as C from "@domain/fitness/calc"
 import {
@@ -77,7 +78,11 @@ export function NutritionStats() {
         MACROS.reduce((a, m) => a + d.totals[m.key] * m.kcal, 0),
       ),
     ),
-    every = range === "7" ? 1 : range === "14" ? 2 : 5
+    every = range === "7" ? 1 : range === "14" ? 2 : 5,
+    fiberGoal = target ? fiberGoalFor(target) : 0,
+    targetTotal = target
+      ? MACROS.reduce((a, m) => a + target[m.key] * m.kcal, 0)
+      : 0
   const tiles = [
     {
       label: "Calories on target",
@@ -104,7 +109,12 @@ export function NutritionStats() {
       label: "Days logged",
       value: String(logged),
       unit: `/ ${days}`,
-      detail: fiber === null ? "Meals on the day" : `Fibre ${n(fiber)} g a day`,
+      detail:
+        fiber === null
+          ? "Meals on the day"
+          : fiberGoal
+            ? `Fibre ${n(fiber)} of ${n(fiberGoal)} g a day`
+            : `Fibre ${n(fiber)} g a day`,
     },
   ]
   return (
@@ -281,40 +291,27 @@ export function NutritionStats() {
               </Line>
             ))}
           </Line>
-          <View
-            accessible
-            accessibilityLabel={`Average split: ${split.map((m) => `${m.label} ${splitTotal ? pct(m.kcal / splitTotal) : "none"}`).join(", ")}`}
-            style={{
-              flexDirection: "row",
-              height: 10,
-              borderRadius: 5,
-              overflow: "hidden",
-              backgroundColor: t.soft,
-            }}
-          >
-            {split.map((m) => (
-              <View
-                key={m.key}
-                style={{ flex: m.kcal, backgroundColor: t[m.accent] }}
-              />
-            ))}
-          </View>
-          {target && (
-            <Copy size={12} muted>
-              Your targets split{" "}
-              {MACROS.map((m) => {
-                const total = MACROS.reduce(
-                  (a, x) => a + target[x.key] * x.kcal,
-                  0,
-                )
-                return `${m.label.toLowerCase()} ${total ? pct((target[m.key] * m.kcal) / total) : "—"}`
-              }).join(", ")}
-              {fiberGoalFor(target)
-                ? `; fibre ${n(fiberGoalFor(target))} g`
-                : ""}
-            </Copy>
+          {/* What was eaten over the range, over the split the targets ask
+              for: two full-width bars, so each share reads against its own
+              target without adding segments up. */}
+          <SplitBar
+            label="Eaten"
+            parts={split.map((m) => ({
+              ...m,
+              share: splitTotal ? m.kcal / splitTotal : 0,
+            }))}
+          />
+          {target && targetTotal > 0 && (
+            <SplitBar
+              label="Target"
+              parts={MACROS.map((m) => ({
+                ...m,
+                share: (target[m.key] * m.kcal) / targetTotal,
+              }))}
+            />
           )}
         </Frame>
+        <MacroDays days={cur.days} target={target} every={every} />
         {/* The daily average over the range picked above. */}
         <Frame style={{ padding: 16 }}>
           <LimitList
@@ -353,5 +350,167 @@ export function NutritionStats() {
         />
       </Frame>
     </StatsShell>
+  )
+}
+
+type Macro = (typeof MACROS)[number]
+
+function SplitBar({
+  label,
+  parts,
+}: {
+  label: string
+  parts: (Pick<Macro, "key" | "label" | "accent"> & { share: number })[]
+}) {
+  const t = useTheme()
+  const any = parts.some((p) => p.share > 0)
+  return (
+    <Line style={{ gap: 8 }}>
+      <Copy size={11} muted style={{ width: 44 }}>
+        {label}
+      </Copy>
+      <View
+        accessible
+        accessibilityLabel={`${label} split: ${parts.map((p) => `${p.label} ${any ? pct(p.share) : "none"}`).join(", ")}`}
+        style={{
+          flex: 1,
+          flexDirection: "row",
+          height: 10,
+          borderRadius: 5,
+          overflow: "hidden",
+          backgroundColor: t.soft,
+        }}
+      >
+        {parts.map((p) => (
+          <View
+            key={p.key}
+            style={{ flex: p.share, backgroundColor: t[p.accent] }}
+          />
+        ))}
+      </View>
+    </Line>
+  )
+}
+
+const MINI = 44
+
+/** Each macro on its own scale, grams a day, with its target as a dashed
+ * line in the macro's colour. Separate rows, so one macro far off its
+ * target neither squashes nor shifts the others. */
+function MacroDays({
+  days,
+  target,
+  every,
+}: {
+  days: { day: string; meals: number; totals: Record<Macro["key"], number> }[]
+  target: Record<Macro["key"], number> | null | undefined
+  every: number
+}) {
+  const t = useTheme()
+  const gap = days.length > 14 ? 2 : 4
+  return (
+    <Frame style={{ padding: 16, gap: 14 }}>
+      <View style={{ gap: 2 }}>
+        <Copy size={12} muted style={{ letterSpacing: 1 }}>
+          MACROS BY DAY
+        </Copy>
+        <Copy size={12} muted>
+          {target
+            ? "Grams a day; the dashed line is the target"
+            : "Grams a day"}
+        </Copy>
+      </View>
+      {MACROS.map((m) => {
+        const goal = target?.[m.key] ?? 0
+        const eaten = days.filter((d) => d.meals > 0)
+        const avg = eaten.length
+          ? eaten.reduce((a, d) => a + d.totals[m.key], 0) / eaten.length
+          : null
+        const top = Math.max(
+          1,
+          goal * 1.25,
+          ...days.map((d) => d.totals[m.key]),
+        )
+        // Protein counts as hit at 90% or more, as the hit-rate tile does;
+        // carbs and fat count when within 10% either way.
+        const hit = goal
+          ? eaten.filter((d) =>
+              m.key === "protein"
+                ? d.totals[m.key] >= goal * 0.9
+                : Math.abs(d.totals[m.key] - goal) <= goal * 0.1,
+            ).length
+          : 0
+        const color = t[m.accent]
+        return (
+          <View key={m.key} style={{ gap: 6 }}>
+            <Line style={{ justifyContent: "space-between", gap: 8 }}>
+              <Copy size={14} weight="medium">
+                {m.label}
+              </Copy>
+              <Copy size={12} muted>
+                avg {avg === null ? "—" : n(avg)}
+                {goal ? ` / ${n(goal)}` : ""} g
+                {goal && eaten.length
+                  ? ` · ${m.key === "protein" ? "hit" : "within 10%"} on ${n(hit)} of ${n(eaten.length)} days`
+                  : ""}
+              </Copy>
+            </Line>
+            <View
+              accessible
+              accessibilityRole="image"
+              accessibilityLabel={`${m.label} by day: average ${avg === null ? "not logged" : `${n(avg)} g`}${goal ? `, target ${n(goal)} g` : ""}`}
+              style={{ height: MINI, justifyContent: "flex-end" }}
+            >
+              <Line style={{ alignItems: "flex-end", gap }}>
+                {days.map((d) => {
+                  const g = d.totals[m.key]
+                  return (
+                    <View
+                      key={d.day}
+                      style={{
+                        flex: 1,
+                        height: g ? Math.max(3, (g / top) * MINI) : 3,
+                        borderTopLeftRadius: 3,
+                        borderTopRightRadius: 3,
+                        backgroundColor: g ? color : t.line,
+                        // Softer than the target line, so the line stays
+                        // visible where a bar crosses it.
+                        opacity: g ? 0.55 : 1,
+                      }}
+                    />
+                  )
+                })}
+              </Line>
+              {goal > 0 && (
+                <View
+                  pointerEvents="none"
+                  style={{
+                    position: "absolute",
+                    left: 0,
+                    right: 0,
+                    bottom: (goal / top) * MINI,
+                    borderTopWidth: 2,
+                    borderStyle: "dashed",
+                    borderColor: color,
+                  }}
+                />
+              )}
+            </View>
+          </View>
+        )
+      })}
+      <Line style={{ gap, marginTop: -8 }}>
+        {days.map((d, i) => (
+          <Copy
+            key={d.day}
+            size={10}
+            muted
+            style={{ flex: 1, textAlign: "center" }}
+          >
+            {(days.length - 1 - i) % every ? "" : Number(d.day.slice(8))}
+          </Copy>
+        ))}
+      </Line>
+    </Frame>
   )
 }

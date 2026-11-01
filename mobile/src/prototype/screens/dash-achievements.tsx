@@ -10,9 +10,9 @@ import { dashStore, markTrophiesSeen, noteMiss } from "@domain/dash/store"
 import { dayKey, dayOffset } from "@domain/lib/day"
 import { rescheduleBy } from "@domain/tasks/actions"
 import { LinearGradient } from "expo-linear-gradient"
-import { useLocalSearchParams } from "expo-router"
+import { useFocusEffect, useLocalSearchParams, usePathname } from "expo-router"
 import { Award, Lock, Trophy } from "lucide-react-native"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { ScrollView, View } from "react-native"
 import { toast } from "sonner-native"
 import {
@@ -270,7 +270,18 @@ export function Trophies() {
         ),
     ),
     [open, setOpen] = useState(p.open ?? ""),
-    selected = trophies.find((x) => x.id === open)
+    selected = trophies.find((x) => x.id === open),
+    path = usePathname(),
+    // What a sheet button does once the sheet has left: a screen pushed
+    // while its modal is still up lands underneath it.
+    after = useRef<string | null>(null)
+  // Leaving the Trophy case by any route closes the sheet with it.
+  useFocusEffect(useCallback(() => () => setOpen(""), []))
+  const leave = (href: string, id: string) => {
+    markTrophiesSeen([id])
+    after.current = href.split("?")[0] === path ? null : href
+    setOpen("")
+  }
   useEffect(() => {
     const unseen = trophies.filter(
       (x) => !dashStore.get().seenTrophies.includes(x.id),
@@ -416,6 +427,11 @@ export function Trophies() {
         title="Achievement unlocked"
         open={!!selected}
         onClose={() => setOpen("")}
+        onClosed={() => {
+          const href = after.current
+          after.current = null
+          if (href) go(href)
+        }}
       >
         {selected && (
           <View style={{ alignItems: "center" }}>
@@ -448,13 +464,21 @@ export function Trophies() {
             </Copy>
             <Line style={{ marginTop: 20, gap: 8 }}>
               <View style={{ flex: 1 }}>
-                <Button tone="quiet" href={selected.href}>
+                <Button
+                  tone="quiet"
+                  onPress={() => leave(selected.href, selected.id)}
+                >
                   View metric ›
                 </Button>
               </View>
               <View style={{ flex: 1 }}>
                 <Button
-                  href={`/stats/share?t=${selected.shareRef ?? "profile"}`}
+                  onPress={() =>
+                    leave(
+                      `/stats/share?t=${selected.shareRef ?? "profile"}`,
+                      selected.id,
+                    )
+                  }
                 >
                   Share
                 </Button>

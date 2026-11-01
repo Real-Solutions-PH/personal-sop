@@ -77,7 +77,7 @@ export function SignIn() {
         <SwitchPrompt
           question="New to Unfurl?"
           action="Create account"
-          onPress={() => replace("/signup")}
+          onPress={() => replace("/get-started")}
         />
       }
     >

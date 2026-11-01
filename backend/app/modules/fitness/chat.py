@@ -127,8 +127,9 @@ def best_matches(query: str, names: list[tuple[Any, str]]) -> list[Any]:
 def exercises_like(ctx: Ctx, name: str) -> list[Exercise]:
     """Library exercises (archived ones too) a name refers to."""
     services.ensure_settings(ctx)  # a first visit seeds the library
-    rows = owned_repo.list_rows(ctx, Exercise)
-    return best_matches(name, [(e, e.name) for e in rows])
+    rows = [e for e in owned_repo.list_rows(ctx, Exercise) if e.merged_into_id is None]
+    found = best_matches(name, [(e, n) for e in rows for n in (e.name, *e.aliases)])
+    return list({e.id: e for e in found}.values())
 
 
 def templates_like(ctx: Ctx, name: str) -> list[WorkoutTemplate]:

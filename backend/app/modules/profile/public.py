@@ -40,6 +40,13 @@ def get_profile(ctx: Ctx) -> UserProfile:
     return row
 
 
+def find_profile(ctx: Ctx) -> UserProfile | None:
+    """The caller's profile, read only, for a read path: ``get_profile``'s
+    first-access insert is never committed by a read, so it held the row's
+    lock for the whole request and was rolled back, every time."""
+    return owned_repo.find_one(ctx, UserProfile, include_deleted=True)
+
+
 def module_settings(ctx: Ctx) -> dict[str, ModuleSetting]:
     """Enabled flag + Life Score weight for all four modules (defaults
     ``DEFAULT_WEIGHTS``, all enabled, when the user never changed them)."""

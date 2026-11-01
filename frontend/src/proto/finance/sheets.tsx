@@ -307,9 +307,12 @@ function QuickAdd({
               accountId: acct,
             })
             onOpenChange(false)
-            if (r)
+            // Already recorded: replaced in place, and undo would delete a
+            // record that existed before this save.
+            if (r?.updated) toast.success(`Updated ${plannedHit.item.name}`)
+            else if (r)
               undoToast(`Paid ${plannedHit.item.name}`, () =>
-                deleteRecords([r.id]),
+                deleteRecords([r.record.id]),
               )
           }}
           className="mb-2 flex w-full items-center gap-2 rounded-xl bg-fin/10 px-3 py-2 text-left text-fin text-sm"
@@ -779,10 +782,11 @@ function DueConfirm({
                 date,
               })
               onOpenChange(false)
-              if (r)
+              if (r?.updated) toast.success(`Updated ${p.name}`)
+              else if (r)
                 undoToast(
-                  `${p.type === "income" ? "Received" : "Paid"} ${p.name} · ${amt(r.amount)}`,
-                  () => deleteRecords([r.id]),
+                  `${p.type === "income" ? "Received" : "Paid"} ${p.name} · ${amt(r.record.amount)}`,
+                  () => deleteRecords([r.record.id]),
                 )
             }}
           >

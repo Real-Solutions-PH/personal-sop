@@ -50,15 +50,28 @@ export function CategoryPicker({
     t = useTheme(),
     [query, setQuery] = useState(""),
     // Adding a category here: under which main one, if any.
-    [adding, setAdding] = useState<{ parentId?: string } | null>(null),
+    [adding, setAdding] = useState<{ parentId?: string; name?: string } | null>(
+      null,
+    ),
     { tops, rows: pickRows } = pickerRows(s, kind, query),
     chosen = s.categories.find((c) => c.id === value),
-    category = value
+    category = value,
+    q = query.trim(),
+    parentOf = (id?: string) => s.categories.find((p) => p.id === id)?.name,
+    // None of this kind yet: the other kind's rows, dimmed, show what the
+    // list will look like (never a bare "no categories" line).
+    preview = tops.length
+      ? []
+      : pickerRows(s, kind === "expense" ? "income" : "expense").rows.slice(
+          0,
+          4,
+        )
   if (adding)
     return (
       <CategoryForm
         catKind={kind}
         parentId={adding.parentId}
+        presetName={adding.name}
         lockKind
         onAdded={onPick}
         onClose={() => setAdding(null)}
@@ -100,39 +113,63 @@ export function CategoryPicker({
                 weight={sub ? "body" : "medium"}
                 style={{ flex: 1 }}
               >
-                {c.name}
+                {/* Searching, a sub-category names its parent. */}
+                {q && sub ? `${parentOf(c.parentId)} › ${c.name}` : c.name}
               </Copy>
               {category === c.id && <Check color={t.fin} size={20} />}
             </Line>
           </Tap>
         </Line>
       ))}
-      {!pickRows.length && (
-        <Copy size={14} muted style={{ paddingVertical: 8 }}>
-          No category matches “{query.trim()}”.
-        </Copy>
-      )}
-      <Line style={{ gap: 8, marginTop: 8 }}>
-        <View style={{ flex: 1 }}>
-          <Button tone="quiet" onPress={() => setAdding({})}>
-            New category
-          </Button>
+      {preview.map(({ c, sub }) => (
+        <View
+          key={c.id}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={{
+            opacity: 0.35,
+            paddingVertical: 12,
+            paddingLeft: sub ? 38 : 0,
+          }}
+          testID="category-preview"
+        >
+          <Line>
+            <Copy size={sub ? 16 : 20}>{c.icon}</Copy>
+            <Copy size={sub ? 14 : 16} style={{ flex: 1 }}>
+              {c.name}
+            </Copy>
+          </Line>
         </View>
-        {tops.length > 0 && (
+      ))}
+      {q ? (
+        // Searching: add what was typed, as a new category's name.
+        <Button tone="quiet" onPress={() => setAdding({ name: q })}>
+          {`+ Add “${q}”`}
+        </Button>
+      ) : null}
+      {!q && (
+        <Line style={{ gap: 8, marginTop: 8 }}>
           <View style={{ flex: 1 }}>
-            <Button
-              tone="quiet"
-              onPress={() =>
-                setAdding({
-                  parentId: (chosen?.parentId ?? chosen?.id) || tops[0].id,
-                })
-              }
-            >
-              New sub-category
+            <Button tone="quiet" onPress={() => setAdding({})}>
+              New category
             </Button>
           </View>
-        )}
-      </Line>
+          {tops.length > 0 && (
+            <View style={{ flex: 1 }}>
+              <Button
+                tone="quiet"
+                onPress={() =>
+                  setAdding({
+                    parentId: (chosen?.parentId ?? chosen?.id) || tops[0].id,
+                  })
+                }
+              >
+                New sub-category
+              </Button>
+            </View>
+          )}
+        </Line>
+      )}
     </>
   )
 }

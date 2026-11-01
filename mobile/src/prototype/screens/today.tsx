@@ -39,10 +39,10 @@ import {
   ChevronRight,
   Dumbbell,
   Flame,
-  History,
   type LucideIcon,
   Moon,
   MoreHorizontal,
+  PartyPopper,
   Pencil,
   PiggyBank,
   Play,
@@ -61,12 +61,24 @@ import {
 } from "lucide-react-native"
 import { useEffect, useState } from "react"
 import { Platform, Text, View } from "react-native"
-import Animated from "react-native-reanimated"
+import Animated, { FadeInDown } from "react-native-reanimated"
 import { toast } from "sonner-native"
 import { AppLauncher } from "../app-launcher"
 import { Sparkline } from "../chart"
 import { extrasStore } from "../extras"
-import { AnimatedCheck, CountUp, feel, rowEnter, rowExit } from "../motion"
+import {
+  AnimatedCheck,
+  CountUp,
+  feel,
+  MOTION,
+  markCompletion,
+  rowEnter,
+  rowExit,
+  Shimmer,
+  StreakChip,
+  useDayMoment,
+  useSwipeComplete,
+} from "../motion"
 import {
   Bar,
   border,
@@ -91,10 +103,18 @@ import { WeatherCard } from "../weather-card"
 import { CalendarCard } from "./calendar-card"
 import { RecordEditor, useMoney } from "./finance"
 import { DueSheet } from "./finance-planned"
+import { HabitActions } from "./habit-actions"
 import { HabitLog } from "./habits"
 import { MoodCheckIn } from "./mood-check-in"
 import { NutritionDay } from "./nutrition-day"
-import { AutoMark, RuleRing, RuleText, useRuleState } from "./screen-card"
+import {
+  AutoMark,
+  RuleRing,
+  RuleText,
+  ScreenOffMark,
+  useAutoRule,
+  useRuleState,
+} from "./screen-card"
 import { SleepPart } from "./sleep-card"
 import { TaskRow } from "./tasks"
 import {
@@ -286,7 +306,8 @@ function TodayPlan() {
   const taskOf = (i: CalendarItem) =>
     i.module === "tasks" && i.id.startsWith("task:") ? i.id.slice(5) : null
   const habitList = habitsStore.use((s) => s.habits),
-    auto = new Set(habitList.filter((h) => h.rule).map((h) => h.id))
+    screenOn = dashStore.use((s) => s.enabled.screen),
+    auto = new Set(habitList.filter((h) => h.rule && screenOn).map((h) => h.id))
   const doneable = (i: CalendarItem) => {
     const h = habitOf(i)
     return Boolean((h && !auto.has(h)) || taskOf(i))
@@ -421,7 +442,7 @@ function TodayPlan() {
   )
 }
 function TodayHabit({ habit }: { habit: Habit }) {
-  return habit.rule ? (
+  return useAutoRule(habit) ? (
     <RuleTodayHabit habit={habit} />
   ) : (
     <ManualTodayHabit habit={habit} />
@@ -437,70 +458,74 @@ function RuleTodayHabit({ habit }: { habit: Habit }) {
     log = idx.get(H.lk(habit.id, today)),
     streak = H.streaks(habit, idx, today).current,
     done = log?.status === "done",
-    state = useRuleState(habit, today)
+    state = useRuleState(habit, today),
+    [actions, setActions] = useState(false)
   return (
-    <Animated.View entering={rowEnter} exiting={rowExit}>
-      <Line style={{ gap: 8, paddingVertical: 4 }}>
-        <View
-          style={{
-            minWidth: 44,
-            minHeight: 44,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <RuleRing habit={habit} log={log} state={state} size={37} ring={3} />
-        </View>
-        <Tap
-          onPress={() => go(`/habits/${habit.id}`)}
-          style={{ flex: 1, paddingVertical: 6 }}
-        >
-          <Copy
-            weight="medium"
-            lines={1}
-            style={
-              done ? { color: t.muted, textDecorationLine: "line-through" } : {}
-            }
+    <>
+      <Animated.View entering={rowEnter} exiting={rowExit}>
+        <Line style={{ gap: 8, paddingVertical: 4 }}>
+          <View
+            style={{
+              minWidth: 44,
+              minHeight: 44,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
           >
-            {habit.icon} {habit.name}
-          </Copy>
-          <Line style={{ gap: 6 }}>
-            <RuleText
+            <RuleRing
+              habit={habit}
+              log={log}
               state={state}
-              maxMin={habit.rule?.maxMin ?? 0}
-              done={done}
+              size={37}
+              ring={3}
             />
-            <AutoMark />
-            {streak > 0 && (
-              <Line
-                style={{
-                  gap: 2,
-                  borderRadius: 12,
-                  backgroundColor: `${t.warn}26`,
-                  paddingHorizontal: 6,
-                  paddingVertical: 1,
-                }}
-              >
-                <Flame size={12} color={t.warn} />
-                <Copy
-                  size={11}
-                  weight="semibold"
-                  style={{ color: t.warn, lineHeight: 14 }}
-                >
-                  {streak}
-                </Copy>
-              </Line>
-            )}
-          </Line>
-        </Tap>
-      </Line>
-    </Animated.View>
+          </View>
+          <Tap
+            onPress={() => go(`/habits/${habit.id}`)}
+            onLongPress={() => {
+              feel.tap()
+              setActions(true)
+            }}
+            hint="Long press for actions"
+            longPressLabel="Habit actions"
+            style={{ flex: 1, paddingVertical: 6 }}
+          >
+            <Copy
+              weight="medium"
+              lines={1}
+              style={
+                done
+                  ? { color: t.muted, textDecorationLine: "line-through" }
+                  : {}
+              }
+            >
+              {habit.icon} {habit.name}
+            </Copy>
+            <Line style={{ gap: 6 }}>
+              <RuleText
+                state={state}
+                maxMin={habit.rule?.maxMin ?? 0}
+                done={done}
+              />
+              <AutoMark />
+              <StreakChip streak={streak} />
+            </Line>
+          </Tap>
+        </Line>
+      </Animated.View>
+      <HabitActions
+        habit={habit}
+        open={actions}
+        onClose={() => setActions(false)}
+      />
+    </>
   )
 }
 function ManualTodayHabit({ habit }: { habit: Habit }) {
   const t = useTheme(),
     logs = habitsStore.use((s) => s.logs),
     [sheet, setSheet] = useState(false),
+    [actions, setActions] = useState(false),
     today = dayKey(),
     idx = H.logIndex(logs),
     log = idx.get(H.lk(habit.id, today)),
@@ -514,6 +539,21 @@ function ManualTodayHabit({ habit }: { habit: Habit }) {
       if (log) HA.restoreLog(log)
     })
   }
+  const swipe = useSwipeComplete(done, toggle)
+  // A count that reaches its target by a step is a completion too.
+  const [stepped, setStepped] = useState(0)
+  const step = () => {
+    HA.incrementCount(habit.id)
+    const next = H.logIndex(habitsStore.get().logs).get(H.lk(habit.id, today))
+    if (H.progressOf(habit, next) >= 1) {
+      markCompletion()
+      setStepped((n) => n + 1)
+    }
+    undo(`Updated ${habit.name}`, () => {
+      HA.clearLog(habit.id, today)
+      if (log) HA.restoreLog(log)
+    })
+  }
   return (
     <>
       {/* Fades in and out only: a layout transition here, with the group
@@ -521,7 +561,7 @@ function ManualTodayHabit({ habit }: { habit: Habit }) {
           iOS while (or after) it moved to Done. */}
       <Animated.View entering={rowEnter} exiting={rowExit}>
         <SwipeRow
-          onComplete={toggle}
+          onComplete={swipe.onComplete}
           onMore={() => setSheet(true)}
           background={t.card}
         >
@@ -536,9 +576,16 @@ function ManualTodayHabit({ habit }: { habit: Habit }) {
               ring={3}
               checkColor={t.onPrimary}
               progress={H.progressOf(habit, log)}
+              celebrate={swipe.celebrate + stepped}
             />
             <Tap
               onPress={() => go(`/habits/${habit.id}`)}
+              onLongPress={() => {
+                feel.tap()
+                setActions(true)
+              }}
+              hint="Long press for actions"
+              longPressLabel="Habit actions"
               style={{ flex: 1, paddingVertical: 6 }}
             >
               <Copy
@@ -560,38 +607,14 @@ function ManualTodayHabit({ habit }: { habit: Habit }) {
                     : ""}
                   {log?.status === "skipped" ? " · skipped" : ""}
                 </Copy>
-                {streak > 0 && (
-                  <Line
-                    style={{
-                      gap: 2,
-                      borderRadius: 12,
-                      backgroundColor: `${t.warn}26`,
-                      paddingHorizontal: 6,
-                      paddingVertical: 1,
-                    }}
-                  >
-                    <Flame size={12} color={t.warn} />
-                    <Copy
-                      size={11}
-                      weight="semibold"
-                      style={{ color: t.warn, lineHeight: 14 }}
-                    >
-                      {streak}
-                    </Copy>
-                  </Line>
-                )}
+                {habit.rule && <ScreenOffMark />}
+                <StreakChip streak={streak} />
               </Line>
             </Tap>
             {habit.type === "count" && !done && (
               <Tap
                 label={`Add ${habit.step ?? 1} ${habit.unit ?? ""}`}
-                onPress={() => {
-                  HA.incrementCount(habit.id)
-                  undo(`Updated ${habit.name}`, () => {
-                    HA.clearLog(habit.id, today)
-                    if (log) HA.restoreLog(log)
-                  })
-                }}
+                onPress={step}
                 style={{
                   minWidth: 36,
                   height: 36,
@@ -629,6 +652,12 @@ function ManualTodayHabit({ habit }: { habit: Habit }) {
         open={sheet}
         onClose={() => setSheet(false)}
       />
+      <HabitActions
+        habit={habit}
+        day={today}
+        open={actions}
+        onClose={() => setActions(false)}
+      />
     </>
   )
 }
@@ -642,6 +671,39 @@ function useMinuteNow() {
   return now
 }
 
+/** Every habit done today: slides in once with a shimmer and a double
+ * haptic, then stays put for the rest of the day while it holds. */
+function AllHabitsDone({ play }: { play: boolean }) {
+  const t = useTheme()
+  useEffect(() => {
+    if (!play) return
+    feel.success()
+    const id = setTimeout(feel.impact, 120)
+    return () => clearTimeout(id)
+  }, [play])
+  return (
+    <Animated.View
+      entering={play ? FadeInDown.duration(MOTION.base) : undefined}
+      accessibilityRole="text"
+      accessibilityLiveRegion="polite"
+      style={{
+        marginHorizontal: 16,
+        marginTop: 4,
+        borderRadius: 14,
+        overflow: "hidden",
+        backgroundColor: border(t.hab, 0.15),
+      }}
+    >
+      <Line style={{ gap: 8, paddingHorizontal: 12, paddingVertical: 10 }}>
+        <PartyPopper size={18} color={t.hab} />
+        <Copy weight="semibold" style={{ color: t.hab, flex: 1 }}>
+          All habits done today
+        </Copy>
+      </Line>
+      {play && <Shimmer />}
+    </Animated.View>
+  )
+}
 export function HabitsCard() {
   const now = useMinuteNow()
   const t = useTheme(),
@@ -659,6 +721,10 @@ export function HabitsCard() {
       (h) => idx.get(H.lk(h.id, today))?.status === "skipped",
     ).length,
     count = due.length - skipped
+  const allDone = useDayMoment(
+    "sop:celebrated:habits",
+    count > 0 && done >= count,
+  )
   const minute = H.businessMinute(new Date(now))
   const dueToday = s.routines.filter(
     (r) =>
@@ -683,6 +749,7 @@ export function HabitsCard() {
     .sort((a, b) => (a.w?.[0] ?? 0) - (b.w?.[0] ?? 0))[0]?.r
   return (
     <Group title="Habits" icon={Target} accent="hab" href="/habits">
+      {allDone && <AllHabitsDone play={allDone === "new"} />}
       <HabitsStats />
       {routines.map((r) => {
         const run = [...s.runs]
@@ -1256,12 +1323,6 @@ function FinanceCard() {
     due = N.occurrencesIn(s, N.addDays(today, -14), N.addDays(today, 1)).filter(
       (o) => o.status === "overdue" || o.status === "due",
     ),
-    stale = s.accounts.find(
-      (a) =>
-        !a.archived &&
-        (a.type === "ewallet" || a.type === "bank") &&
-        (N.lastReconciledDays(a) ?? 999) > s.settings.nudgeDays,
-    ),
     pending = s.records.filter((r) => r.status === "pending").length,
     lastMonth = N.addMonths(N.monthOf(today, s.settings.monthStartDay), -1),
     reviewReady =
@@ -1405,7 +1466,7 @@ function FinanceCard() {
               ))}
             </View>
           )}
-          {(alerts.length > 0 || reviewReady || stale || pending > 0) && (
+          {(alerts.length > 0 || reviewReady || pending > 0) && (
             <View
               style={{
                 borderTopWidth: 1,
@@ -1430,13 +1491,6 @@ function FinanceCard() {
                   `${N.monthLabel(lastMonth, true)} review ready`,
                   `/finance/review?period=${lastMonth}`,
                   t.life,
-                )}
-              {stale &&
-                info(
-                  History,
-                  `${stale.name} not matched with a statement for ${N.lastReconciledDays(stale) ?? "a while"} days`,
-                  `/finance/import?account=${stale.id}`,
-                  t.warn,
                 )}
               {pending > 0 &&
                 info(

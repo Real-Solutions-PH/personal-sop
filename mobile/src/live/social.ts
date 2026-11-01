@@ -15,6 +15,7 @@ import {
   type Chat,
   type Cheer,
   type Comment,
+  commentThread,
   connectSocial,
   ME,
   type Media,
@@ -29,13 +30,14 @@ import {
   type SocialState,
   type StoryItem,
   socialStore,
+  tombstone,
   typingStore,
   withCheer,
 } from "@/prototype/social/store"
 import type { Accent } from "@/prototype/theme"
 import { http as authHttp } from "./auth"
 import type { ServerEvent } from "./events"
-import { ApiError, type Http } from "./http"
+import { ApiError, type Http, NetworkError } from "./http"
 import { retryProfilePhoto } from "./profile-photo"
 import { createUploader, type Uploader } from "./social-media"
 
@@ -66,6 +68,12 @@ interface WMedia {
   kind: "image" | "video"
   ratio: number | null
   url: string | null
+  /** A photo's smaller rendition and placeholder; absent on older uploads
+   * and older servers. */
+  preview_url?: string | null
+  lqip?: string | null
+  width?: number | null
+  height?: number | null
 }
 interface WPost {
   id: string
@@ -137,6 +145,8 @@ interface WMessage {
   reply_to_id: string | null
   system: boolean
   reactions: Record<string, string>
+  /** A tombstone of a deleted message; absent from older servers. */
+  deleted?: boolean
 }
 interface WChat {
   id: string
@@ -184,9 +194,31 @@ export interface SocialDeps {
   userId: string
   upload?: Uploader
   now?: () => number
+  /** Whether a local file is still on the device (the OS may purge it). */
+  fileExists?: (uri: string) => boolean
 }
 
+/** ``expo-file-system``'s check, false when it cannot tell. */
+function localFileExists(uri: string): boolean {
+  try {
+    const { File } =
+      require("expo-file-system") as typeof import("expo-file-system")
+    return new File(uri).exists
+  } catch {
+    return false
+  }
+}
+const isLocal = (uri?: string) => !!uri && uri.startsWith("file:")
+
 export const TYPING_EVERY_MS = 3000
+/** Waits before each retry of a 1:1 chat start that failed in transit. */
+export const START_CHAT_RETRY_MS = [1000, 3000]
+/** A failure worth retrying: no answer, a server fault or a rate limit. A 4xx
+ * is the server's verdict and is final. */
+export const isTransient = (e: unknown) =>
+  e instanceof NetworkError ||
+  (e instanceof ApiError &&
+    (e.status >= 500 || e.status === 408 || e.status === 429))
 const TYPING_SHOWN_MS = 5000
 const PAGE = 20
 /** A presigned media URL is reused this long (they live 15 minutes), so a
@@ -227,6 +259,7 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
   const me = deps.userId
   const now = deps.now ?? Date.now
   const upload = deps.upload ?? createUploader(http)
+  const fileExists = deps.fileExists ?? localFileExists
   const set = socialStore.set
   const get = socialStore.get
 
@@ -249,11 +282,16 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
   const chatReady = new Map<string, Promise<unknown>>()
   // Posts and messages still being created: a refresh keeps them.
   const pending = new Set<string>()
+  /** Stories still being uploaded and posted: a tray read keeps them. */
+  const creatingStories = new Set<string>()
   /** Posts I deleted this session (until restored): stale reads skip them. */
   const deleted = new Set<string>()
   const deleting = new Map<string, Promise<unknown>>()
-  /** Messages I unsent this session: stale reads skip them. */
+  /** Messages I deleted this session (until restored): a stale read shows
+   * them as tombstones. */
   const unsent = new Set<string>()
+  const unsending = new Map<string, Promise<unknown>>()
+  const deletingComment = new Map<string, Promise<unknown>>()
   /** The last message send per chat; the next one waits for it. */
   const sending = new Map<string, Promise<unknown>>()
   // When I last wrote my note / each story (client clock): a list read that
@@ -386,12 +424,22 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
       !!prev.uri &&
       prev.urlAt !== undefined &&
       now() - prev.urlAt < MEDIA_URL_REUSE_MS
+    const same = prev?.id === m.media_id
     return {
       id: m.media_id,
       kind: m.kind,
       uri: reuse ? prev.uri : (m.url ?? prev?.uri ?? ""),
       urlAt: reuse ? prev.urlAt : m.url ? now() : prev?.urlAt,
       ratio: m.ratio ?? prev?.ratio,
+      // The renditions are cached by media id, so a new URL for them is
+      // only taken when the old one would no longer load.
+      previewUri:
+        (reuse ? prev.previewUri : undefined) ??
+        m.preview_url ??
+        (same ? prev?.previewUri : undefined),
+      lqip: m.lqip ?? (same ? prev?.lqip : undefined),
+      width: m.width ?? (same ? prev?.width : undefined),
+      height: m.height ?? (same ? prev?.height : undefined),
     }
   }
   function mapPost(w: WPost, prev?: Post): Post {
@@ -422,12 +470,23 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
     liked: w.liked,
     replyTo: w.reply_to_id ?? undefined,
   })
+  /** My own story keeps showing its local file (no download) while the file
+   * is on this device; the server's URL is kept beside it. */
+  const storyUri = (w: WStory, prev?: StoryItem) => {
+    const remote = w.media?.url ?? prev?.remoteUri ?? undefined
+    if (isLocal(prev?.uri) && prev?.uri && fileExists(prev.uri))
+      return { uri: prev.uri, remoteUri: remote }
+    return { uri: remote ?? (isLocal(prev?.uri) ? undefined : prev?.uri) }
+  }
   const mapStory = (w: WStory, prev?: StoryItem): StoryItem => ({
     id: w.id,
     by: pid(w.owner_id),
     at: ms(w.created_at),
     kind: w.kind,
-    uri: w.media?.url ?? prev?.uri,
+    ...storyUri(w, prev),
+    mediaId: w.media?.media_id ?? prev?.mediaId,
+    previewUri: w.media?.preview_url ?? prev?.previewUri,
+    lqip: w.media?.lqip ?? prev?.lqip,
     text: w.text ?? undefined,
     bg: w.bg ? [w.bg[0], w.bg[1]] : undefined,
     progress: progressOut(w.progress),
@@ -443,7 +502,7 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
     at: ms(w.created_at),
     liked: w.liked,
   })
-  const mapMessage = (w: WMessage, prev?: Message): Message => ({
+  const mapLive = (w: WMessage, prev?: Message): Message => ({
     id: w.id,
     by: pid(w.sender_id),
     at: ms(w.at),
@@ -457,6 +516,11 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
     ),
     system: w.system || undefined,
   })
+  const mapMessage = (w: WMessage, prev?: Message): Message => {
+    const m = mapLive(w, prev)
+    return w.deleted || unsent.has(w.id) ? tombstone(m) : m
+  }
+
   const readMarks = (marks: WChat["read_by"]) =>
     Object.fromEntries(
       Object.entries(marks ?? {})
@@ -560,8 +624,9 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
     }
   }
   function mergeMessages(chatId: string, all: WMessage[]) {
-    // A read that was in flight when I unsent a message must not restore it.
-    const list = all.filter((w) => !unsent.has(w.id))
+    // A read that was in flight when I deleted a message shows it deleted
+    // (mapMessage), not back.
+    const list = all
     ensurePeople(list.map((w) => w.sender_id))
     set((s) => ({
       ...s,
@@ -621,11 +686,13 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
       set((s) => {
         const byId = new Map(s.stories.map((x) => [x.id, x]))
         const ids = new Set(items.map((w) => w.id))
-        // A story I posted while this read was in flight is not in it.
+        // A story I posted while this read was in flight, or one still
+        // uploading, is not in it.
         const mine = s.stories.filter(
           (x) =>
             !ids.has(x.id) &&
-            (storyWrittenAt.get(x.id) ?? Number.NEGATIVE_INFINITY) >= asked,
+            (creatingStories.has(x.id) ||
+              (storyWrittenAt.get(x.id) ?? Number.NEGATIVE_INFINITY) >= asked),
         )
         return {
           ...s,
@@ -799,6 +866,29 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
             }
           : p,
       ),
+    }))
+  }
+
+  /** Comments the server sent back (an undo): put them in the post. */
+  function mergeComments(postId: string, all: WComment[]) {
+    set((s) => ({
+      ...s,
+      people: upsertPeople(
+        s,
+        all.map((c) => c.author),
+      ),
+      posts: s.posts.map((p) => {
+        if (p.id !== postId) return p
+        const fresh = all.map((c) => overlayComment(postId, mapComment(c)))
+        const ids = new Set(fresh.map((c) => c.id))
+        return {
+          ...p,
+          comments: [
+            ...p.comments.filter((c) => !ids.has(c.id)),
+            ...fresh,
+          ].sort((a, b) => a.at - b.at),
+        }
+      }),
     }))
   }
 
@@ -1024,7 +1114,9 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
   const chatPath = (id: string, rest = "") => `/social/chats/${cid(id)}${rest}`
 
   async function postMessage(chatId: string, m: Message) {
-    const media_id = m.media ? await upload(m.media.uri, m.media.kind) : null
+    const media_id = m.media
+      ? await upload(m.media.uri, m.media.kind, m.media)
+      : null
     const w = await http.request<WMessage>(
       "POST",
       chatPath(chatId, "/messages"),
@@ -1063,7 +1155,7 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
       try {
         const media = await Promise.all(
           post.media.map(async (m) => ({
-            media_id: await upload(m.uri, m.kind),
+            media_id: await upload(m.uri, m.kind, m),
             kind: m.kind,
             ratio: m.ratio ?? null,
           })),
@@ -1124,28 +1216,78 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
     },
     likeComment: (postId, id, on) =>
       http.request(onOff(on), `${commentPath(postId, id)}/like`),
-    deleteComment: (postId, id) =>
-      http.request("DELETE", commentPath(postId, id)),
+    deleteComment(postId, id) {
+      const done = http.request("DELETE", commentPath(postId, id))
+      deletingComment.set(id, done)
+      return done
+    },
+    async restoreComment(postId, id) {
+      await deletingComment.get(id)?.catch(() => {})
+      deletingComment.delete(id)
+      const back = await http.request<List<WComment>>(
+        "POST",
+        `${commentPath(postId, id)}/restore`,
+      )
+      mergeComments(postId, back.data)
+    },
     async createStory(story) {
       storyWrittenAt.set(story.id, now())
-      const media_id =
-        story.kind === "image" || story.kind === "video"
-          ? (story.mediaId ??
-            (story.uri ? await upload(story.uri, story.kind) : null))
-          : null
-      const w = await http.request<WStory>("POST", "/social/stories", {
-        id: story.id,
-        kind: story.kind,
-        media_id,
-        text: story.text ?? null,
-        bg: story.bg ?? null,
-        progress: progressIn(story.progress),
-        audience: story.audience ?? "everyone",
-      })
-      set((s) => ({
-        ...s,
-        stories: s.stories.map((x) => (x.id === story.id ? mapStory(w, x) : x)),
-      }))
+      creatingStories.add(story.id)
+      try {
+        const media_id =
+          story.kind === "image" || story.kind === "video"
+            ? (story.mediaId ??
+              (story.uri
+                ? await upload(story.uri, story.kind, {
+                    previewUri: story.previewUri,
+                    lqip: story.lqip,
+                  })
+                : null))
+            : null
+        const w = await http.request<WStory>("POST", "/social/stories", {
+          id: story.id,
+          kind: story.kind,
+          media_id,
+          text: story.text ?? null,
+          bg: story.bg ?? null,
+          progress: progressIn(story.progress),
+          audience: story.audience ?? "everyone",
+        })
+        // A read that dropped it meanwhile must not lose the write.
+        set((s) => {
+          const local = s.stories.find((x) => x.id === story.id)
+          return {
+            ...s,
+            stories: local
+              ? s.stories.map((x) => (x.id === story.id ? mapStory(w, x) : x))
+              : [...s.stories, mapStory(w, story)],
+            seen: s.seen.includes(story.id) ? s.seen : [...s.seen, story.id],
+          }
+        })
+      } finally {
+        creatingStories.delete(story.id)
+      }
+    },
+    async refreshStory(id) {
+      try {
+        const w = await http.request<WStory>("GET", `/social/stories/${id}`)
+        set((s) => ({
+          ...s,
+          stories: s.stories.map((x) =>
+            x.id === id
+              ? // The shown copy failed: take the server's fresh URL.
+                mapStory(w, { ...x, uri: undefined, remoteUri: undefined })
+              : x,
+          ),
+        }))
+        return "ok"
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 404) {
+          set((s) => ({ ...s, stories: s.stories.filter((x) => x.id !== id) }))
+          return "gone"
+        }
+        throw e
+      }
     },
     deleteStory: (id) => http.request("DELETE", `/social/stories/${id}`),
     seen: (id) => http.request("PUT", `/social/stories/${id}/seen`),
@@ -1174,11 +1316,23 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
       http.request("PATCH", "/social/me", { show_scores: on }),
     markActivityRead: () => http.request("POST", "/social/activity/read"),
     openDirect(chatId, personId) {
-      const ready = http
-        .request<WChat>("POST", "/social/chats/direct", {
-          user_id: personId,
-          id: chatId,
-        })
+      // The same id on every attempt: a start that landed but whose answer
+      // was lost comes back as the chat it created.
+      const start = async (): Promise<WChat> => {
+        for (let attempt = 0; ; attempt++) {
+          try {
+            return await http.request<WChat>("POST", "/social/chats/direct", {
+              user_id: personId,
+              id: chatId,
+            })
+          } catch (e) {
+            const wait = START_CHAT_RETRY_MS[attempt]
+            if (wait === undefined || !isTransient(e)) throw e
+            await new Promise((resolve) => setTimeout(resolve, wait))
+          }
+        }
+      }
+      const ready = start()
         .then((w) => {
           if (w.id !== chatId) {
             toServer.set(chatId, w.id)
@@ -1226,12 +1380,26 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
           ),
     unsend(chatId, messageId) {
       unsent.add(messageId)
-      return http
+      const done = http
         .request("DELETE", chatPath(chatId, `/messages/${messageId}`))
         .catch((e) => {
           unsent.delete(messageId)
           throw e
         })
+      unsending.set(messageId, done)
+      return done
+    },
+    async restoreMessage(chatId, messageId) {
+      // Undo right after delete: the delete must land first, or it would
+      // land after the restore and win.
+      await unsending.get(messageId)?.catch(() => {})
+      unsending.delete(messageId)
+      unsent.delete(messageId)
+      const w = await http.request<WMessage>(
+        "POST",
+        chatPath(chatId, `/messages/${messageId}/restore`),
+      )
+      replaceMessage(chatId, w)
     },
     async markRead(chatId) {
       await chatReady.get(chatId)
@@ -1259,6 +1427,9 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
       const last = lastTyping.get(chatId)
       if (last !== undefined && t - last < TYPING_EVERY_MS) return
       lastTyping.set(chatId, t)
+      // A chat this device just opened does not exist on the server until its
+      // start lands (and may live there under another id).
+      await chatReady.get(chatId)
       await http.request("POST", chatPath(chatId, "/typing"))
     },
   }
@@ -1275,14 +1446,23 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
         ...s,
         chats: s.chats.map((c) =>
           c.id === chatId
-            ? { ...c, messages: c.messages.filter((m) => m.id !== messageId) }
+            ? {
+                ...c,
+                messages: c.messages.map((m) =>
+                  m.id === messageId ? tombstone(m) : m,
+                ),
+              }
             : c,
         ),
       }))
       return
     }
     const chat = get().chats.find((c) => c.id === chatId)
-    if (chat?.messages.some((m) => m.id === messageId)) return
+    if (
+      d.action !== "restored" &&
+      chat?.messages.some((m) => m.id === messageId)
+    )
+      return
     clearTyping(chatId)
     if (!chat) {
       quietly(
@@ -1378,6 +1558,25 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
             .request<WPost>("GET", `/social/posts/${id}`)
             .then((w) => mergePosts([w])),
         )
+        return
+      }
+      case "social.comment": {
+        const postId = str(d.post_id)
+        const post = get().posts.find((p) => p.id === postId)
+        // Only a post whose comments this device has loaded needs them again.
+        if (!post || (!post.comments.length && d.action !== "created")) return
+        if (d.action === "deleted") {
+          const gone = commentThread(post.comments, str(d.comment_id))
+          set((s) => ({
+            ...s,
+            posts: s.posts.map((p) =>
+              p.id === postId
+                ? { ...p, comments: p.comments.filter((c) => !gone.has(c.id)) }
+                : p,
+            ),
+          }))
+        }
+        quietly(openPost(postId))
         return
       }
       case "social.story": {

@@ -6,7 +6,6 @@ import uuid
 from collections import defaultdict
 from collections.abc import Sequence
 
-from fastapi import HTTPException
 from sqlmodel import col, func, select
 
 from app.modules.media import public as media
@@ -39,24 +38,24 @@ LIKED_BY_CARD = 3
 LIKED_BY_DETAIL = 50
 
 
-def media_url(ctx: Ctx, media_id: uuid.UUID) -> str | None:
-    """A presigned GET for media the caller may see (visibility is already
-    checked by the caller). None when the object is gone or not ready, so one
-    missing photo never fails a whole feed page."""
-    try:
-        return media.visible_download_url(ctx, media_id)
-    except HTTPException:
-        return None
-
-
 def _media(
-    ctx: Ctx, media_id: uuid.UUID, kind: str, ratio: float | None
+    found: dict[uuid.UUID, media.VisibleMedia],
+    media_id: uuid.UUID,
+    kind: str,
+    ratio: float | None,
 ) -> MediaPublic:
+    """One item from a page's ``media.visible_media``. A missing object
+    (gone or not ready) has no URL, so one photo never fails a whole page."""
+    m = found.get(media_id)
     return MediaPublic(
         media_id=media_id,
         kind=kind,  # type: ignore[arg-type]
         ratio=ratio,
-        url=media_url(ctx, media_id),
+        url=m.url if m else None,
+        preview_url=m.preview_url if m else None,
+        lqip=m.lqip if m else None,
+        width=m.width if m else None,
+        height=m.height if m else None,
     )
 
 
@@ -126,9 +125,10 @@ def posts(
         .where(col(PostMedia.post_id).in_(ids), col(PostMedia.deleted_at).is_(None))
         .order_by(col(PostMedia.post_id), col(PostMedia.position))
     ).all()
+    found = media.visible_media(ctx, [m.media_id for m in media_rows])
     by_post: dict[uuid.UUID, list[MediaPublic]] = defaultdict(list)
     for m in media_rows:
-        by_post[m.post_id].append(_media(ctx, m.media_id, m.kind, m.ratio))
+        by_post[m.post_id].append(_media(found, m.media_id, m.kind, m.ratio))
     # Most recent likers first, ``liked_by_limit`` per post.
     ranked = (
         select(
@@ -257,6 +257,7 @@ def stories(ctx: Ctx, rows: Sequence[Story]) -> list[StoryPublic]:
     if own:
         counts = _story_counts(ctx, StoryLike, own)
         views = _story_counts(ctx, StorySeen, own)
+    found = media.visible_media(ctx, [s.media_id for s in rows if s.media_id])
     out: list[StoryPublic] = []
     for s in rows:
         mine = s.owner_id == ctx.user_id
@@ -269,7 +270,10 @@ def stories(ctx: Ctx, rows: Sequence[Story]) -> list[StoryPublic]:
                 kind=s.kind,  # type: ignore[arg-type]
                 media=(
                     _media(
-                        ctx, s.media_id, "video" if s.kind == "video" else "image", None
+                        found,
+                        s.media_id,
+                        "video" if s.kind == "video" else "image",
+                        None,
                     )
                     if s.media_id
                     else None
@@ -302,14 +306,30 @@ def messages(ctx: Ctx, rows: Sequence[ChatMessage]) -> list[MessagePublic]:
         )
     ).all():
         reactions[mid][str(uid)] = emoji
+    found = media.visible_media(ctx, [m.media_id for m in rows if m.media_id])
     return [
         MessagePublic(
             id=m.id,
             chat_id=m.chat_id,
             sender_id=m.owner_id,
             at=m.at,
+            text=None,
+            media=None,
+            post_id=None,
+            story_id=None,
+            reply_to_id=None,
+            system=m.system,
+            reactions={},
+            deleted=True,
+        )
+        if m.deleted_at is not None
+        else MessagePublic(
+            id=m.id,
+            chat_id=m.chat_id,
+            sender_id=m.owner_id,
+            at=m.at,
             text=m.text,
-            media=_media(ctx, m.media_id, "image", None) if m.media_id else None,
+            media=_media(found, m.media_id, "image", None) if m.media_id else None,
             post_id=m.post_id,
             story_id=m.story_id,
             reply_to_id=m.reply_to_id,

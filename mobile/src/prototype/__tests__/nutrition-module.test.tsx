@@ -11,6 +11,7 @@ import { dayKey, dayOffset } from "@domain/lib/day"
 import { configureStorage, createStore, resetAll } from "@domain/lib/store"
 import { modules } from "@domain/modules"
 import { module as NUT } from "@domain/nutrition"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import {
   fireEvent,
   render,
@@ -241,6 +242,33 @@ test("the Nutrition page holds the day, the stats and the links", () => {
   expect(screen.getByText("Food library")).toBeTruthy()
 })
 
+test("each macro is drawn against its own target line", () => {
+  fitStore.set((s) => ({
+    ...s,
+    targets: [target],
+    meals: [
+      meal("a", dayOffset(-1), 2000, 70),
+      meal("b", dayOffset(-2), 2000, 140),
+    ],
+  }))
+  render(<NutritionHome />, { wrapper })
+  expect(screen.getByText("MACROS BY DAY")).toBeTruthy()
+  // Protein is far under on one day: its row says so on its own scale.
+  expect(screen.getByText("avg 105 / 140 g · hit on 1 of 2 days")).toBeTruthy()
+  expect(
+    screen.getByText("avg 200 / 220 g · within 10% on 2 of 2 days"),
+  ).toBeTruthy()
+  expect(
+    screen.getByText("avg 60 / 60 g · within 10% on 2 of 2 days"),
+  ).toBeTruthy()
+  expect(
+    screen.getByLabelText("Protein by day: average 105 g, target 140 g"),
+  ).toBeTruthy()
+  // What was eaten sits over the split the targets ask for.
+  expect(screen.getByText("Eaten")).toBeTruthy()
+  expect(screen.getByText("Target")).toBeTruthy()
+})
+
 test("with nothing logged the stats show dimmed, under one card", () => {
   fitStore.set((s) => ({ ...s, targets: [target], meals: [] }))
   render(<NutritionHome />, { wrapper })
@@ -291,7 +319,18 @@ test("a meal saved as a recipe logs again as one serving", () => {
 })
 
 test("the food library lists the built-in foods offline", () => {
-  render(<FoodLibrary />, { wrapper })
+  // The app's providers hold a QueryClient; the library's query is off
+  // outside live mode, so this never fetches.
+  render(
+    <QueryClientProvider
+      client={
+        new QueryClient({ defaultOptions: { queries: { gcTime: Infinity } } })
+      }
+    >
+      <FoodLibrary />
+    </QueryClientProvider>,
+    { wrapper },
+  )
   expect(screen.getByText("Food library")).toBeTruthy()
   expect(screen.getByText("BUILT-IN FOODS")).toBeTruthy()
   expect(screen.getByText("Garlic rice (sinangag)")).toBeTruthy()

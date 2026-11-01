@@ -1,6 +1,7 @@
 import * as Clipboard from "expo-clipboard"
 import { LinearGradient } from "expo-linear-gradient"
 import {
+  Ban,
   BellOff,
   Camera,
   ChevronLeft,
@@ -8,6 +9,7 @@ import {
   Image as ImageIcon,
   Info,
   Reply,
+  Sprout,
   Trash2,
   UserPlus,
   X,
@@ -48,13 +50,15 @@ import { toast } from "sonner-native"
 import { liveMode } from "@/live/config"
 import { back, go } from "../navigation"
 import { fonts, useTheme } from "../theme"
-import { confirm, Field, Sheet, Toggle } from "../ui"
+import { confirm, Field, Sheet, Toggle, undo } from "../ui"
 import { GroupFace, useChatTitle } from "./inbox"
 import { Avatar, Bounce, haptic, ProgressCard, VideoMedia } from "./kit"
 import { pickMedia } from "./media"
+import { RemoteImage } from "./remote-image"
 import {
   addMembers,
   type Chat,
+  chatStarts,
   deleteChat,
   ensurePostLive,
   lastMineSeen,
@@ -66,6 +70,7 @@ import {
   openChatLive,
   reactTo,
   renameChat,
+  retryDirectChat,
   sendMessage,
   simulateReply,
   socialStore,
@@ -77,7 +82,6 @@ import {
   useTyping,
 } from "./store"
 
-const MINE: readonly [string, string] = ["#7a3cf0", "#3d5afe"]
 const REACTIONS = ["❤️", "😂", "😮", "😢", "🔥", "👍"]
 
 function TypingDots() {
@@ -312,7 +316,7 @@ function Row({
   const gap = prev && m.at - prev.at > 60 * 60_000
   const x = useSharedValue(0)
   const armed = useSharedValue(0)
-  // Swipe a message toward the middle to reply, like Instagram.
+  // Swipe a message toward the middle to reply.
   const pan = Gesture.Pan()
     .activeOffsetX(mine ? [-12, 9999] : [-9999, 12])
     .failOffsetY([-10, 10])
@@ -357,6 +361,42 @@ function Row({
       >
         {systemLine(m, sender?.name.split(" ")[0] ?? "")}
       </Text>
+    )
+  if (m.deleted)
+    return (
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: mine ? "flex-end" : "flex-start",
+          paddingHorizontal: 12,
+          paddingLeft: mine ? 12 : 46,
+          marginTop: firstOfRun ? 8 : 2,
+        }}
+      >
+        <View
+          accessibilityLabel={
+            mine ? "You deleted a message" : "This message was deleted"
+          }
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 6,
+            paddingHorizontal: 14,
+            paddingVertical: 8,
+            borderRadius: radius,
+            borderWidth: 1,
+            borderStyle: "dashed",
+            borderColor: t.line,
+          }}
+        >
+          <Ban size={14} color={t.muted} />
+          <Text
+            style={{ color: t.muted, fontSize: 14, fontFamily: fonts.body }}
+          >
+            {mine ? "You deleted this message" : "Message deleted"}
+          </Text>
+        </View>
+      </View>
     )
   return (
     <View>
@@ -458,7 +498,9 @@ function Row({
                     fontFamily: fonts.body,
                   }}
                 >
-                  {replied.text ?? (replied.postId ? "Post" : "Photo")}
+                  {replied.deleted
+                    ? "Message deleted"
+                    : (replied.text ?? (replied.postId ? "Post" : "Photo"))}
                 </Text>
               </View>
             )}
@@ -474,31 +516,32 @@ function Row({
             >
               {m.postId && <SharedPost id={m.postId} />}
               {m.media && (
-                <Image
-                  source={{ uri: m.media.uri }}
-                  style={{ width: 200, height: 260, borderRadius: 18 }}
-                  accessibilityLabel="Photo"
-                />
+                <View style={{ borderRadius: 18, overflow: "hidden" }}>
+                  <RemoteImage
+                    media={m.media}
+                    width={200}
+                    height={260}
+                    accessibilityLabel="Photo"
+                  />
+                </View>
               )}
               {!!m.text &&
                 (/^\p{Extended_Pictographic}{1,3}$/u.test(m.text) ? (
                   <Text style={{ fontSize: 40 }}>{m.text}</Text>
                 ) : mine ? (
-                  <LinearGradient
-                    colors={MINE}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
+                  <View
                     style={{
                       paddingHorizontal: 14,
                       paddingVertical: 9,
                       borderRadius: radius,
                       borderTopRightRadius: firstOfRun ? radius : tight,
                       borderBottomRightRadius: lastOfRun ? radius : tight,
+                      backgroundColor: t.primary,
                     }}
                   >
                     <Text
                       style={{
-                        color: "#fff",
+                        color: t.onPrimary,
                         fontSize: 15,
                         lineHeight: 20,
                         fontFamily: fonts.body,
@@ -506,7 +549,7 @@ function Row({
                     >
                       {m.text}
                     </Text>
-                  </LinearGradient>
+                  </View>
                 ) : (
                   <View
                     style={{
@@ -637,12 +680,12 @@ function ActionMenu({
               maxWidth: "80%",
               padding: 12,
               borderRadius: 18,
-              backgroundColor: mine ? MINE[1] : t.soft,
+              backgroundColor: mine ? t.primary : t.soft,
             }}
           >
             <Text
               style={{
-                color: mine ? "#fff" : t.text,
+                color: mine ? t.onPrimary : t.text,
                 fontFamily: fonts.body,
                 fontSize: 15,
               }}
@@ -678,10 +721,19 @@ function ActionMenu({
             ...(mine
               ? [
                   {
-                    label: "Unsend",
+                    label: "Delete",
                     Icon: Trash2,
                     danger: true,
-                    run: () => unsend(chatId, m.id),
+                    run: () =>
+                      confirm(
+                        "Delete message?",
+                        "Everyone in the chat will see that a message was deleted.",
+                        () => {
+                          const restore = unsend(chatId, m.id)
+                          undo("Message deleted", restore)
+                        },
+                        "Delete",
+                      ),
                   },
                 ]
               : []),
@@ -865,7 +917,9 @@ function ChatInfo({
                   >
                     {p.name}
                   </Text>
-                  <Text style={{ color: t.tsk, fontFamily: fonts.semibold }}>
+                  <Text
+                    style={{ color: t.primary, fontFamily: fonts.semibold }}
+                  >
                     Add
                   </Text>
                 </Pressable>
@@ -914,15 +968,22 @@ export function ChatScreen({ id }: { id: string }) {
   const typing = useTyping(id) ?? simulated
   const input = useRef<TextInputInstance>(null)
   const [opening, setOpening] = useState(true)
+  const [opened, setOpened] = useState<"ok" | "gone" | "failed">("ok")
+  const [attempt, setAttempt] = useState(0)
+  const startFailed = chatStarts((m) => !!m[id])
+  // biome-ignore lint/correctness/useExhaustiveDependencies: attempt re-opens
   useEffect(() => {
     setOpening(true)
-    void openChatLive(id).finally(() => setOpening(false))
+    void openChatLive(id).then((r) => {
+      setOpened(r)
+      setOpening(false)
+    })
     // Back from the background: pick up what arrived while away.
     const sub = AppState.addEventListener("change", (s) => {
       if (s === "active") void openChatLive(id)
     })
     return () => sub.remove()
-  }, [id])
+  }, [id, attempt])
   const count = chat?.messages.length ?? 0
   // Mark read and drop the typing dots whenever a message lands. Keyed on the
   // count: depending on `chat` would loop, since marking read changes it.
@@ -946,7 +1007,33 @@ export function ChatScreen({ id }: { id: string }) {
           justifyContent: "center",
         }}
       >
-        {opening ? (
+        {startFailed || (!opening && opened === "failed") ? (
+          <View style={{ alignItems: "center", gap: 12 }}>
+            <Text style={{ color: t.muted }}>
+              {startFailed
+                ? "Couldn't start this chat."
+                : "Couldn't load this chat."}
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                if (startFailed) retryDirectChat(id)
+                setAttempt((a) => a + 1)
+              }}
+              style={{
+                paddingHorizontal: 18,
+                minHeight: 40,
+                borderRadius: 20,
+                justifyContent: "center",
+                backgroundColor: t.soft,
+              }}
+            >
+              <Text style={{ color: t.text, fontFamily: fonts.semibold }}>
+                Try again
+              </Text>
+            </Pressable>
+          </View>
+        ) : opening ? (
           <ActivityIndicator accessibilityLabel="Loading chat" />
         ) : (
           <Text style={{ color: t.muted }}>This chat no longer exists.</Text>
@@ -1170,7 +1257,9 @@ export function ChatScreen({ id }: { id: string }) {
               numberOfLines={1}
               style={{ color: t.muted, fontFamily: fonts.body, fontSize: 13 }}
             >
-              {replyTo.text ?? "Attachment"}
+              {replyTo.deleted
+                ? "Message deleted"
+                : (replyTo.text ?? "Attachment")}
             </Text>
           </View>
           <Bounce label="Cancel reply" onPress={() => setReplyTo(null)}>
@@ -1198,12 +1287,12 @@ export function ChatScreen({ id }: { id: string }) {
             width: 40,
             height: 40,
             borderRadius: 20,
-            backgroundColor: t.tsk,
+            backgroundColor: t.card,
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <Camera size={20} color="#fff" />
+          <Camera size={20} color={t.text} />
         </Pressable>
         <TextInput
           ref={input}
@@ -1238,7 +1327,11 @@ export function ChatScreen({ id }: { id: string }) {
               }}
             >
               <Text
-                style={{ color: t.tsk, fontFamily: fonts.bold, fontSize: 15 }}
+                style={{
+                  color: t.primary,
+                  fontFamily: fonts.semibold,
+                  fontSize: 15,
+                }}
               >
                 Send
               </Text>
@@ -1249,8 +1342,8 @@ export function ChatScreen({ id }: { id: string }) {
             <Bounce label="Choose photo" onPress={() => void sendPhoto()}>
               <ImageIcon size={22} color={t.text} />
             </Bounce>
-            <Bounce label="Send heart" onPress={() => send({ text: "❤️" })}>
-              <Text style={{ fontSize: 22 }}>❤️</Text>
+            <Bounce label="Send a cheer" onPress={() => send({ text: "🌱" })}>
+              <Sprout size={22} color={t.primary} />
             </Bounce>
           </View>
         )}

@@ -297,9 +297,52 @@ export function budgetView(s: FinState, b: Budget, mk?: string): BudgetView {
     pct: b.limit ? spent / b.limit : 0,
     pace: elapsed / total,
     daysLeft,
-    safePerDay: daysLeft > 0 ? Math.max(0, left) / (daysLeft + 1) : 0,
+    // Today counts as a day to spend in: on the month's last day all that
+    // is left is today's. A month already over has nothing to spend.
+    safePerDay: t <= to ? Math.max(0, left) / (daysLeft + 1) : 0,
     from,
     to,
+  }
+}
+/** The month's budget headline. An overall budget (no categories) is the
+ * headline as it is. Without one, the live category budgets stand in as if
+ * they together were one overall budget: their limits and their spend are
+ * summed, so the figures add up to the rows listed under them, and an
+ * overspent category eats into the room the others leave. Null when there
+ * is no live budget at all. */
+export interface BudgetSummary {
+  source: "overall" | "categories"
+  /** How many budgets the figures cover. */
+  count: number
+  limit: number
+  spent: number
+  left: number
+  pct: number
+  pace: number
+  daysLeft: number
+  safePerDay: number
+}
+export function budgetSummary(s: FinState, mk?: string): BudgetSummary | null {
+  const views = s.budgets
+    .filter((b) => !b.archived)
+    .map((b) => budgetView(s, b, mk))
+  const overall = views.find((v) => v.b.categoryIds === null)
+  const parts = overall ? [overall] : views
+  if (!parts.length) return null
+  const limit = parts.reduce((a, v) => a + v.limit, 0)
+  const spent = parts.reduce((a, v) => a + v.spent, 0)
+  const left = limit - spent
+  const { pace, daysLeft, to } = parts[0]
+  return {
+    source: overall ? "overall" : "categories",
+    count: parts.length,
+    limit,
+    spent,
+    left,
+    pct: limit ? spent / limit : 0,
+    pace,
+    daysLeft,
+    safePerDay: today() <= to ? Math.max(0, left) / (daysLeft + 1) : 0,
   }
 }
 export function avgSpend(s: FinState, ids: string[] | null, months = 3) {

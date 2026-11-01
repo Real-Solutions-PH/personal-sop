@@ -31,6 +31,7 @@ from app.modules.profile.schema import (
     PushDeviceIn,
     check_handle,
 )
+from app.modules.tasks import public as tasks_public
 from app.shared import owned_repo
 from app.shared.context import Ctx
 from app.shared.day import DayClock
@@ -156,11 +157,22 @@ def complete_signup(ctx: Ctx, data: CompleteSignup) -> UserProfile:
         profile.timezone = data.timezone
     if profile.since is None:
         profile.since = ctx.today
+    # Written once: a retried sign-up never overwrites an earlier answer.
+    for field in (
+        "occupation",
+        "occupation_detail",
+        "referral_source",
+        "referral_detail",
+    ):
+        value = getattr(data, field)
+        if value is not None and getattr(profile, field) is None:
+            setattr(profile, field, value)
     ctx.session.add(profile)
     _flush_unique(ctx)
     # The defaults exist from the moment the app can show finance: the
     # device's first pull follows sign-up and must carry them.
     finance_public.seed_default_categories(ctx)
+    tasks_public.ensure_default_lists(ctx)
     ctx.commit()
     ctx.session.refresh(profile)
     return profile

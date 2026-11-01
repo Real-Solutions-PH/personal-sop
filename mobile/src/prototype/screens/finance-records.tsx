@@ -735,11 +735,7 @@ export function RecordDetail({ id }: { id: string }) {
             <Copy size={14} muted>
               {x.label}
             </Copy>
-            <Copy
-              size={14}
-              lines={1}
-              style={{ flexShrink: 1, textAlign: "right" }}
-            >
+            <Copy size={14} style={{ flexShrink: 1, textAlign: "right" }}>
               {x.value}
             </Copy>
           </Line>

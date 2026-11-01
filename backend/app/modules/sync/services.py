@@ -11,11 +11,17 @@ first result verbatim. Policy:
   (``data == {"deleted_at": None}``).
 - delete of an already-deleted or unknown row: ``applied`` (idempotent).
 - a domain rule refusing the op: ``rejected`` with the rule's error code.
+- an op carrying ``at`` (when the person made the change) is applied as of
+  that instant: ``ctx.now`` (and so ``ctx.today``) is the device's time, so a
+  set ticked offline keeps the time it was ticked and a rest timer started
+  on a slow link ends when the phone shows it ending. ``at`` is clamped to
+  ``[server now - MAX_OP_AGE, server now + MAX_CLOCK_AHEAD]``.
 
 Pull: every registered entity's rows past ``cursor`` (tombstones included),
 merged by ``version``, at most ``limit`` with ``truncated`` set when more wait.
 """
 
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from fastapi import HTTPException
@@ -36,6 +42,25 @@ from app.modules.sync.schema import (
 from app.shared import owned_repo
 from app.shared.context import Ctx
 from app.shared.owned import OwnedRow
+
+# An outbox can wait out a long trip offline; older than this, the device's
+# clock is the likelier fault and the server's time is used.
+MAX_OP_AGE = timedelta(days=30)
+# A phone clock running ahead: honoured up to this much, so the device's own
+# rest countdown and elapsed time match what comes back on the next pull.
+MAX_CLOCK_AHEAD = timedelta(minutes=5)
+
+
+def op_time(at: datetime | None, server_now: datetime) -> datetime:
+    """The instant an op is applied as of: the device's ``at`` when it is
+    plausible, else the server's time."""
+    if at is None:
+        return server_now
+    if at.tzinfo is None:
+        at = at.replace(tzinfo=UTC)
+    if at > server_now + MAX_CLOCK_AHEAD or at < server_now - MAX_OP_AGE:
+        return server_now
+    return at
 
 
 def serialize(entity: Entity, row: OwnedRow) -> dict[str, Any]:
@@ -115,8 +140,10 @@ def _apply(ctx: Ctx, op: SyncOp) -> SyncOpResult:
 
 def push(ctx: Ctx, ops: list[SyncOp]) -> SyncPushResult:
     ctx.in_batch = True
+    server_now = ctx.now
     results: list[SyncOpResult] = []
     for op in ops:
+        ctx.now = op_time(op.at, server_now)
         receipt = ctx.session.get(SyncOpReceipt, (ctx.user_id, op.op_id))
         if receipt is not None:
             stored = SyncOpResult.model_validate(receipt.result)
@@ -167,6 +194,7 @@ def push(ctx: Ctx, ops: list[SyncOp]) -> SyncPushResult:
         )
         ctx.session.commit()
         results.append(result)
+    ctx.now = server_now
     ctx.in_batch = False
     return SyncPushResult(results=results, cursor=max_version(ctx))
 

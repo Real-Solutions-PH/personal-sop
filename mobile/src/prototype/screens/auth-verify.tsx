@@ -59,6 +59,7 @@ export function VerifyEmail() {
       async () => {
         try {
           await completeSignUp()
+          toast.success("Account created")
           // Not gated on `alive`: signing in removes this route from the
           // stack (unmounting the screen) in the same tick.
           replace("/onboarding")
@@ -83,7 +84,7 @@ export function VerifyEmail() {
     }
   }, [verified, finishTry])
 
-  if (!pending && !verified) return <Redirect href="/signup" />
+  if (!pending && !verified) return <Redirect href="/get-started" />
   if (verified)
     return (
       <AuthScreen
@@ -122,7 +123,7 @@ export function VerifyEmail() {
         </>
       }
       footer={
-        <TextLink onPress={() => back("/signup")}>
+        <TextLink onPress={() => back("/get-started")}>
           Wrong email? Edit details
         </TextLink>
       }

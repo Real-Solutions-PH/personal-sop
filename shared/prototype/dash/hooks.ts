@@ -528,24 +528,29 @@ const FIXED_LABEL: Record<string, string> = {
   life: "Life Score",
   onTarget: "On-target rate",
 }
+/** Goals with their progress. Screen time goals are left out while Screen
+ * time is switched off (kept, and back when it is on again). */
 export function useGoals() {
   const goals = dashStore.use((s) => s.goals)
+  const screenOn = dashStore.use((s) => s.enabled.screen)
   const b = useMetricBook()
   const all = useAllMetrics(30)
   return useMemo(
     () =>
-      goals.map((g) => {
-        const entry = (g.period === "week" ? b.week : b.month).get(g.metric)
-        const [mod, key] = g.metric.split(":") as [ModuleKey, string?]
-        const label =
-          entry?.label ??
-          FIXED_LABEL[g.metric] ??
-          (key ? all[mod]?.find((m) => m.key === key)?.label : undefined) ??
-          g.label
-        const goal = label === g.label ? g : { ...g, label }
-        return { goal, entry, ...goalProgress(g, entry?.n ?? null) }
-      }),
-    [goals, b, all],
+      goals
+        .filter((g) => screenOn || !g.metric.startsWith("screen:"))
+        .map((g) => {
+          const entry = (g.period === "week" ? b.week : b.month).get(g.metric)
+          const [mod, key] = g.metric.split(":") as [ModuleKey, string?]
+          const label =
+            entry?.label ??
+            FIXED_LABEL[g.metric] ??
+            (key ? all[mod]?.find((m) => m.key === key)?.label : undefined) ??
+            g.label
+          const goal = label === g.label ? g : { ...g, label }
+          return { goal, entry, ...goalProgress(g, entry?.n ?? null) }
+        }),
+    [goals, screenOn, b, all],
   )
 }
 export const fmtGoal = (g: Goal) =>
@@ -585,7 +590,7 @@ const STREAK_MILESTONES = [7, 30, 100, 365]
 const TROPHY_TYPES: TrophyType[] = ["pr", "streak", "best", "goal", "first"]
 const trophyType = (t: string): TrophyType =>
   TROPHY_TYPES.includes(t as TrophyType) ? (t as TrophyType) : "first"
-function trophyFrom(t: ServerAchievements["trophies"][number]): Trophy {
+export function trophyFrom(t: ServerAchievements["trophies"][number]): Trophy {
   const out: Trophy = {
     id: t.id,
     type: trophyType(t.type),

@@ -122,6 +122,26 @@ describe("routine", () => {
     expect(state()).toBeNull()
   })
 
+  it("finish on the lock screen leaves the routine as the player's own finish does", () => {
+    const run = startARoutine()
+    expect(state()?.controls).toContain("finish")
+    HA.stepDone(run)
+    // Seen on step one, applied after the app moved on: dropped.
+    expect(
+      applySurfaceAction(
+        tap({ type: "finish", kind: "routine", target: run.id, key: "0" }),
+      ),
+    ).toBe("stale")
+    expect(liveStore.get().live?.kind).toBe("routine")
+    expect(
+      applySurfaceAction(
+        tap({ type: "finish", kind: "routine", target: run.id, key: "1" }),
+      ),
+    ).toBe("applied")
+    expect(liveStore.get().live).toBeNull()
+    expect(state()).toBeNull()
+  })
+
   it("a run that is no longer in progress ignores taps", () => {
     const run = startARoutine()
     HA.resetRoutine(run.routineId)

@@ -348,6 +348,9 @@ class Step:
     state: str | None = None
     # A call that wrote several cards (plain tasks and reminders apart).
     cards: list[dict[str, Any]] = field(default_factory=list)
+    # The capture the cards sit on, so the app can fetch it when the
+    # finished reply's capture never reached it.
+    capture_id: str | None = None
 
     def public(self) -> dict[str, Any]:
         out: dict[str, Any] = {
@@ -362,7 +365,26 @@ class Step:
             out["state"] = self.state
         if self.cards:
             out["cards"] = self.cards
+        if self.capture_id and (self.card_id or self.cards):
+            out["capture_id"] = self.capture_id
         return out
+
+    def card_ids(self) -> list[str]:
+        ids = [self.card_id] if self.card_id else []
+        return ids + [str(c["card_id"]) for c in self.cards if c.get("card_id")]
+
+
+# The internal record of what a turn did, which a model copying the
+# history's format may write into its reply: never shown (see
+# ``services.strip_internal`` for the stored reply).
+INTERNAL_NOTES = ("done this turn", "already done", "what your earlier replies")
+_OPENERS = {"[": "]", "(": ")"}
+
+
+def _note_prefix(rest: str) -> str:
+    """``rest`` (from an opener on) without the opener and its spaces,
+    lower-cased: what decides whether it is an internal note."""
+    return rest[1:].lstrip(" ").lower()
 
 
 # Text held back at the start of each model call before it streams: longer
@@ -387,6 +409,9 @@ class TurnStream(capture.LoopHooks):
     # nutrition…") in the answer channel before a tool call, and only the
     # tool call that follows shows it was not the answer.
     _held: str = ""
+    # Text from a "[" or "(" that may open an internal note, held until the
+    # next characters rule it out or the note ends (at most one line).
+    _screened: str = ""
     _turn: int = 0
     _args: dict[str, dict[str, Any]] = field(default_factory=dict)
     # Repeat calls of a once-a-turn tool: run, but shown nowhere.
@@ -422,6 +447,47 @@ class TurnStream(capture.LoopHooks):
     def text(self, delta: str) -> None:
         if not delta:
             return
+        self._show(self._screen(delta))
+
+    def _screen(self, delta: str) -> str:
+        """``delta`` without any internal note, holding back what might
+        still turn out to be one."""
+        buf, out = self._screened + delta, ""
+        self._screened = ""
+        while buf:
+            at = min((i for i in (buf.find(o) for o in _OPENERS) if i >= 0), default=-1)
+            if at < 0:
+                return out + buf
+            out, rest = out + buf[:at], buf[at:]
+            inner = _note_prefix(rest)
+            if any(inner.startswith(n) for n in INTERNAL_NOTES):
+                close = _OPENERS[rest[0]]
+                end = min(
+                    (i for i in (rest.find(close), rest.find("\n")) if i >= 0),
+                    default=-1,
+                )
+                if end < 0:
+                    self._screened = rest
+                    return out
+                # The note goes; a line break after it stays.
+                buf = rest[end + 1 :] if rest[end] == close else rest[end:]
+                continue
+            if "\n" not in inner and any(n.startswith(inner) for n in INTERNAL_NOTES):
+                self._screened = rest
+                return out
+            out, buf = out + rest[0], rest[1:]
+        return out
+
+    def _screen_end(self) -> str:
+        """What is still held when the text ends: a note goes, anything
+        else is released."""
+        rest, self._screened = self._screened, ""
+        inner = _note_prefix(rest)
+        return "" if any(inner.startswith(n) for n in INTERNAL_NOTES) else rest
+
+    def _show(self, delta: str) -> None:
+        if not delta:
+            return
         if self._text_id is None:
             self._held += delta
             if len(self._held.strip()) < HOLD_CHARS:
@@ -440,6 +506,7 @@ class TurnStream(capture.LoopHooks):
             self.sink(TextMessageContentEvent(message_id=self._text_id, delta=held))
 
     def end_text(self) -> None:
+        self._show(self._screen_end())
         if self._text_id is None:
             self._release()
         if self._text_id is not None:
@@ -460,6 +527,10 @@ class TurnStream(capture.LoopHooks):
     def model_started(self, turn: int) -> None:
         self._turn = turn
         self.sink(StepStartedEvent(step_name=f"think:{turn}"))
+        # Once per model call, from the turn that knows one started: the app
+        # tells "thinking" from "still thinking" by it (the stream's pings
+        # only keep the connection open).
+        self.custom("thinking", {"turn": turn})
 
     def model_finished(self, turn: int, message: BaseMessage) -> None:
         # A model call's text is one message; the next call starts another.
@@ -468,7 +539,7 @@ class TurnStream(capture.LoopHooks):
         # only the answer stays (it still streams as it is written).
         planning = bool(getattr(message, "tool_calls", None))
         if planning:
-            self._held = ""  # held back, so never shown
+            self._held = self._screened = ""  # held back, so never shown
         said = self._text_id
         self.end_text()
         if said is not None and planning:
@@ -509,15 +580,23 @@ class TurnStream(capture.LoopHooks):
                 step.card_id = str(result["card_id"])
                 step.state = str(result.get("state") or "")
             if isinstance(result, dict) and isinstance(result.get("cards"), list):
+                made = [
+                    c
+                    for c in result["cards"]
+                    if isinstance(c, dict) and c.get("card_id")
+                ]
                 step.cards = [
                     {
                         "card_id": str(c.get("card_id")),
                         "state": str(c.get("state") or ""),
                         "label": ", ".join(c.get("titles") or []),
                     }
-                    for c in result["cards"]
-                    if isinstance(c, dict) and c.get("card_id")
+                    for c in made
                 ]
+                if made and made[0].get("capture_id"):
+                    step.capture_id = str(made[0]["capture_id"])
+            if isinstance(result, dict) and result.get("capture_id"):
+                step.capture_id = str(result["capture_id"])
         self.sink(
             ToolCallResultEvent(
                 message_id=str(uuid.uuid4()),
@@ -548,14 +627,28 @@ class TurnStream(capture.LoopHooks):
         return {"t": "steps", "items": [s.public() for s in self.steps]}
 
 
+# A reply stream is never silent for longer than this: a model that thinks
+# for minutes sends nothing, and the phone (45 s) and the tunnel in front of
+# the API (100 s) both cut a silent response.
+HEARTBEAT_SECONDS = 15.0
+PING = ": ping\n\n"
+
+
 def stream_events(
-    work: Callable[[Sink], None], *, name: str = "companion-turn"
+    work: Callable[[Sink], None],
+    *,
+    name: str = "companion-turn",
+    heartbeat_s: float = HEARTBEAT_SECONDS,
+    on_heartbeat: Callable[[], None] | None = None,
 ) -> Iterator[str]:
     """Run ``work(sink)`` on a worker thread and yield its AG-UI events as
-    SSE as they come (``data: {...}`` frames, ``ag_ui`` encoding). The
-    generator waits for the worker before it ends, so the request's database
-    session outlives every use of it. An unexpected failure becomes a
-    ``RUN_ERROR`` with a fixed message, never the exception's text."""
+    SSE as they come (``data: {...}`` frames, ``ag_ui`` encoding). After
+    ``heartbeat_s`` with no event it yields an SSE comment (``: ping``) and
+    calls ``on_heartbeat``; once the client is gone it keeps calling
+    ``on_heartbeat`` (no ping) until the worker ends. The generator waits for
+    the worker before it ends, so the request's database session outlives
+    every use of it. An unexpected failure becomes a ``RUN_ERROR`` with a
+    fixed message, never the exception's text."""
     import logging
     import queue
     import threading
@@ -579,13 +672,29 @@ def stream_events(
         finally:
             q.put(None)
 
+    def beat() -> None:
+        if on_heartbeat is None:
+            return
+        try:
+            on_heartbeat()
+        except Exception as exc:  # noqa: BLE001 - a missed beat never ends the reply
+            log.warning("companion heartbeat failed: %s", type(exc).__name__)
+
     t = threading.Thread(target=run_it, name=name, daemon=True)
     t.start()
     try:
         while True:
-            item = q.get()
+            try:
+                item = q.get(timeout=heartbeat_s)
+            except queue.Empty:
+                beat()
+                yield PING
+                continue
             if item is None:
                 break
             yield enc.encode(item)
     finally:
-        t.join()
+        while t.is_alive():
+            t.join(timeout=heartbeat_s)
+            if t.is_alive():
+                beat()

@@ -18,6 +18,14 @@ export type Media = {
   id?: string
   /** Live mode: when ``uri`` (a presigned URL) was taken from the server. */
   urlAt?: number
+  /** A photo's smaller rendition (long edge 640) and inline placeholder,
+   * and its full size; absent on photos uploaded before renditions. */
+  previewUri?: string
+  lqip?: string
+  width?: number
+  height?: number
+  /** The full image's type when it is not a JPEG (a share card's PNG). */
+  mime?: string
 }
 export type ProgressStat = { label: string; value: string; unit?: string }
 export type Progress = {
@@ -37,10 +45,10 @@ export type Progress = {
 }
 /** Encouragement in place of a like: one per person per post. */
 export type Cheer = "keep_going" | "proud" | "inspired"
-export const CHEERS: { kind: Cheer; emoji: string; label: string }[] = [
-  { kind: "keep_going", emoji: "🔥", label: "Keep going" },
-  { kind: "proud", emoji: "👏", label: "Proud of you" },
-  { kind: "inspired", emoji: "💡", label: "Inspired" },
+export const CHEERS: { kind: Cheer; label: string }[] = [
+  { kind: "keep_going", label: "Keep going" },
+  { kind: "proud", label: "Proud of you" },
+  { kind: "inspired", label: "Inspired" },
 ]
 export type Area = "habits" | "tasks" | "fitness" | "finance"
 export type Trophy = {
@@ -113,6 +121,11 @@ export type StoryItem = {
   /** Live mode: media already on the server (my post's photo shared to my
    * story), sent by id instead of uploaded again. */
   mediaId?: string
+  /** My own story shown from its local file: the server's URL for it. */
+  remoteUri?: string
+  /** A photo's preview rendition and inline placeholder. */
+  previewUri?: string
+  lqip?: string
   likes?: number
   /** Live mode, my own check-ins only: how many people opened it. */
   views?: number
@@ -137,6 +150,9 @@ export type Message = {
   replyTo?: string
   reactions: Record<string, string>
   system?: boolean
+  /** Deleted by its sender: the thread shows a "Message deleted" tombstone
+   * in its place, with nothing of the message left. */
+  deleted?: boolean
 }
 export type Chat = {
   id: string
@@ -920,6 +936,8 @@ export interface SocialRemote {
   loadSaved(): Promise<void>
   /** The check-in tray again (my own view and like counts move). */
   loadStories(): Promise<void>
+  /** Re-read one story (a fresh link); "gone" when it was deleted. */
+  refreshStory(id: string): Promise<"ok" | "gone">
   openPerson(id: string): Promise<void>
   openChat(id: string): Promise<void>
   /** Explore search: people, or posts by tag when it starts with #. */
@@ -934,6 +952,7 @@ export interface SocialRemote {
   addComment(postId: string, comment: Comment): Promise<unknown>
   likeComment(postId: string, id: string, on: boolean): Promise<unknown>
   deleteComment(postId: string, id: string): Promise<unknown>
+  restoreComment(postId: string, id: string): Promise<unknown>
   createStory(story: StoryItem): Promise<unknown>
   deleteStory(id: string): Promise<unknown>
   seen(id: string): Promise<unknown>
@@ -954,6 +973,7 @@ export interface SocialRemote {
     emoji: string | null,
   ): Promise<unknown>
   unsend(chatId: string, messageId: string): Promise<unknown>
+  restoreMessage(chatId: string, messageId: string): Promise<unknown>
   markRead(chatId: string): Promise<unknown>
   chatSettings(
     chatId: string,
@@ -995,6 +1015,8 @@ function send(
   call: (r: SocialRemote) => Promise<unknown>,
   undo: () => void,
   what: string,
+  /** The failure in the person's words, when one reason fits better. */
+  report?: (e: unknown) => string,
 ) {
   if (!liveMode) return
   const offline = () => {
@@ -1003,9 +1025,9 @@ function send(
   }
   if (!getConnectivity()) return offline()
   const run = (r: SocialRemote) =>
-    call(r).catch(() => {
+    call(r).catch((e: unknown) => {
       undo()
-      toast(`Couldn't ${what}. Please try again.`)
+      toast(report?.(e) ?? `Couldn't ${what}. Please try again.`)
     })
   if (remote) return void run(remote)
   // Online but startup is still restoring the session: wait for it, briefly.
@@ -1142,9 +1164,43 @@ export async function ensurePostLive(id: string): Promise<"ok" | "gone"> {
   }
 }
 export const loadSavedLive = () => load((r) => r.loadSaved())
-export const loadStoriesLive = () => load((r) => r.loadStories())
+/** When the check-in tray was last read (not persisted). */
+let storiesLoadedAt = 0
+export const loadStoriesLive = () => {
+  storiesLoadedAt = Date.now()
+  return load((r) => r.loadStories())
+}
+/** The tray again when the last read is older than ``ms`` (feed focus, app
+ * back in front): a story whose live event was missed still shows. */
+export const loadStoriesIfStale = (ms = 30_000) =>
+  Date.now() - storiesLoadedAt > ms ? loadStoriesLive() : Promise.resolve()
+/** A story slide that failed to load: re-read it for a fresh link. Prototype
+ * mode has nothing to refresh. */
+export async function refreshStory(
+  id: string,
+): Promise<"ok" | "gone" | "failed"> {
+  if (!liveMode) return "failed"
+  try {
+    return await (await connected()).refreshStory(id)
+  } catch {
+    return "failed"
+  }
+}
 export const openPersonLive = (id: string) => load((r) => r.openPerson(id))
-export const openChatLive = (id: string) => load((r) => r.openChat(id))
+/** Open a chat's history. "gone" only when the server says the chat itself
+ * is not there (404); anything else that fails is "failed" and the cached
+ * chat stays. */
+export async function openChatLive(
+  id: string,
+): Promise<"ok" | "gone" | "failed"> {
+  if (!liveMode) return "ok"
+  try {
+    await (await connected()).openChat(id)
+    return "ok"
+  } catch (e) {
+    return gone(e) && !chatStarts.getState()[id] ? "gone" : "failed"
+  }
+}
 export const searchLive = (q: string) => load((r) => r.search(q))
 export const loadExploreLive = () => load((r) => r.loadExplore())
 /** The composer changed: tell the other members (throttled by the remote). */
@@ -1327,7 +1383,7 @@ export function toggleCommentLike(postId: string, commentId: string) {
     )
 }
 /** A comment and every reply under it (the server deletes them together). */
-function thread(comments: Comment[], id: string): Set<string> {
+export function commentThread(comments: Comment[], id: string): Set<string> {
   const out = new Set([id])
   let grew = true
   while (grew) {
@@ -1340,10 +1396,16 @@ function thread(comments: Comment[], id: string): Set<string> {
   }
   return out
 }
+/** Delete my comment (and the replies under it). Returns the undo. */
 export function deleteComment(postId: string, commentId: string) {
   const prev = postOf(postId)
+  const removed = prev
+    ? prev.comments.filter((c) =>
+        commentThread(prev.comments, commentId).has(c.id),
+      )
+    : []
   mapPost(postId, (p) => {
-    const gone = thread(p.comments, commentId)
+    const gone = commentThread(p.comments, commentId)
     return {
       ...p,
       comments: p.comments.filter((c) => !gone.has(c.id)),
@@ -1359,6 +1421,29 @@ export function deleteComment(postId: string, commentId: string) {
       () => putPost(prev),
       "delete the comment",
     )
+  return () => {
+    mapPost(postId, (p) => {
+      const ids = new Set(p.comments.map((c) => c.id))
+      const back = removed.filter((c) => !ids.has(c.id))
+      return {
+        ...p,
+        comments: [...p.comments, ...back].sort((a, b) => a.at - b.at),
+        commentCount:
+          p.commentCount === undefined
+            ? undefined
+            : p.commentCount + back.length,
+      }
+    })
+    send(
+      (r) => r.restoreComment(postId, commentId),
+      () =>
+        mapPost(postId, (p) => {
+          const gone = commentThread(p.comments, commentId)
+          return { ...p, comments: p.comments.filter((c) => !gone.has(c.id)) }
+        }),
+      "restore the comment",
+    )
+  }
 }
 export function createPost(
   p: Pick<Post, "caption" | "media"> &
@@ -1628,6 +1713,43 @@ export function markActivityRead() {
   nudge((r) => r.markActivityRead())
 }
 
+/** 1:1 chats whose start failed, by chat id (not persisted): the chat
+ * screen offers Retry instead of saying the chat is gone. */
+export const chatStarts = create<Record<string, { personId: string }>>(
+  () => ({}),
+)
+const startFailure = (e: unknown) => {
+  const status = (e as { status?: number })?.status
+  if (status === 404)
+    return "Couldn't start the chat: that account isn't available."
+  if (status === undefined || status >= 500 || status === 429)
+    return "Couldn't reach Unfurl to start the chat. Check your connection and try again."
+  return "Couldn't start the chat. Please try again."
+}
+function startDirect(id: string, personId: string) {
+  const chat: Chat = {
+    id,
+    members: [personId],
+    messages: [],
+    muted: false,
+    pinned: false,
+    readAt: Date.now(),
+  }
+  chatStarts.setState((m) => {
+    const { [id]: _, ...rest } = m
+    return rest
+  }, true)
+  set((s) => ({ ...s, chats: [chat, ...s.chats.filter((c) => c.id !== id)] }))
+  send(
+    (r) => r.openDirect(id, personId),
+    () => {
+      dropChat(id)
+      chatStarts.setState({ [id]: { personId } })
+    },
+    "start the chat",
+    startFailure,
+  )
+}
 /** Open (or create) the 1:1 chat with a person; returns its id. */
 export function directChat(personId: string) {
   const existing = socialStore
@@ -1636,21 +1758,14 @@ export function directChat(personId: string) {
       (c) => !c.name && c.members.length === 1 && c.members[0] === personId,
     )
   if (existing) return existing.id
-  const chat: Chat = {
-    id: mkId(),
-    members: [personId],
-    messages: [],
-    muted: false,
-    pinned: false,
-    readAt: Date.now(),
-  }
-  set((s) => ({ ...s, chats: [chat, ...s.chats] }))
-  send(
-    (r) => r.openDirect(chat.id, personId),
-    () => dropChat(chat.id),
-    "start the chat",
-  )
-  return chat.id
+  const id = mkId()
+  startDirect(id, personId)
+  return id
+}
+/** Try a failed 1:1 chat start again, under the same id. */
+export function retryDirectChat(id: string) {
+  const failed = chatStarts.getState()[id]
+  if (failed) startDirect(id, failed.personId)
 }
 export function createGroup(members: string[], name: string) {
   const chat: Chat = {
@@ -1770,18 +1885,43 @@ export function reactTo(chatId: string, messageId: string, emoji: string) {
       mine ?? null,
     )
 }
+/** A deleted message as the thread keeps it: who and when, nothing else. */
+export function tombstone(m: Message): Message {
+  return { id: m.id, by: m.by, at: m.at, reactions: {}, deleted: true }
+}
+/** Delete my message: it becomes a tombstone for everyone in the chat.
+ * Returns the undo. */
 export function unsend(chatId: string, messageId: string) {
   const prev = chatOf(chatId)
+  const original = prev?.messages.find((m) => m.id === messageId)
   mapChat(chatId, (c) => ({
     ...c,
-    messages: c.messages.filter((m) => m.id !== messageId),
+    messages: c.messages.map((m) => (m.id === messageId ? tombstone(m) : m)),
   }))
   if (prev)
     send(
       (r) => r.unsend(chatId, messageId),
       () => putChat(prev),
-      "unsend the message",
+      "delete the message",
     )
+  return () => {
+    if (!original) return
+    mapChat(chatId, (c) => ({
+      ...c,
+      messages: c.messages.map((m) => (m.id === messageId ? original : m)),
+    }))
+    send(
+      (r) => r.restoreMessage(chatId, messageId),
+      () =>
+        mapChat(chatId, (c) => ({
+          ...c,
+          messages: c.messages.map((m) =>
+            m.id === messageId ? tombstone(m) : m,
+          ),
+        })),
+      "restore the message",
+    )
+  }
 }
 export function markChatRead(chatId: string) {
   mapChat(chatId, (c) =>
@@ -1953,13 +2093,13 @@ export const postingStore = create<{
 export function activityText(kind: Activity["kind"], text?: string): string {
   if (kind === "like") {
     const c = CHEERS.find((x) => x.kind === text)
-    if (c) return `cheered your progress: ${c.emoji} ${c.label}.`
+    if (c) return `cheered your progress: ${c.label}.`
     return text ? `${text}.` : "cheered your progress."
   }
   if (kind === "comment") return `commented: ${text ?? ""}`
   if (kind === "mention") return `mentioned you: ${text ?? ""}`
   if (kind === "follow") return "started following you."
-  return "liked your story."
+  return "cheered your check-in."
 }
 
 /** A group's system line. The server stores what happened ("left the

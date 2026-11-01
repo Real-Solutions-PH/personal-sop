@@ -137,7 +137,7 @@ def build(ctx: Ctx, metric: str, n: int) -> Series:
         from app.modules.finance import calc as F
         from app.modules.finance import repo as finance_repo
 
-        fin = finance_repo.load_state(ctx)
+        fin = finance_repo.read_state(ctx)
         if metric == "spend":
             vals = [float(max(0, F.spend_in(fin, k, k, None))) for k in keys]
             return _bars(

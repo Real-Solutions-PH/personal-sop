@@ -148,6 +148,10 @@ def load_world(ctx: Ctx, *, since: date | None = None) -> World:
     """Load the user's habits, logs (from ``since`` when given), routines and
     runs. One habit's history is bounded by the user's own data, which is the
     unit every screen computes over."""
+    return ctx.snapshot(("habits", since), lambda: _load_world(ctx, since=since))
+
+
+def _load_world(ctx: Ctx, *, since: date | None) -> World:
     habits = owned_repo.list_rows(
         ctx, Habit, order_by=(col(Habit.sort_order), col(Habit.created_at))
     )
