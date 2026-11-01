@@ -53,7 +53,9 @@ export function seedRuns(
       kind,
       name: defaultRunName(kind, new Date(startedAt)),
       startedAt,
-      endedAt: new Date(new Date(startedAt).getTime() + sec * 1000).toISOString(),
+      endedAt: new Date(
+        new Date(startedAt).getTime() + sec * 1000,
+      ).toISOString(),
       movingSec: sec,
       distanceM: Math.round(sum.distanceM),
       ...(sum.elevationGainM !== null

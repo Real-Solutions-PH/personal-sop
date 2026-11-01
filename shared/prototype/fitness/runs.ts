@@ -205,7 +205,7 @@ export function footVo2(mPerMin: number, grade = 0): number {
     : 0.2 * mPerMin + 0.9 * mPerMin * g
 }
 const kcalOf = (vo2: number, kg: number, minutes: number) =>
-  (vo2 * kg * minutes) / 1000 * 5
+  ((vo2 * kg * minutes) / 1000) * 5
 
 /** Active kcal of a GPS track, segment by segment. */
 export function runKcal(
@@ -249,10 +249,9 @@ const CHAT_MIN_PER_SET = 2.5
 /** Active kcal of a workout (see the method at the top of this file). */
 export function workoutKcal(
   s: Pick<FitnessState, "weighIns">,
-  w: Pick<
-    Workout,
-    "startedAt" | "endedAt" | "exercises" | "source"
-  > & { cardio?: { km?: number; min?: number } | null },
+  w: Pick<Workout, "startedAt" | "endedAt" | "exercises" | "source"> & {
+    cardio?: { km?: number; min?: number } | null
+  },
 ): number {
   const kg = weightAt(s, w.startedAt).kg
   let kcal = 0,
@@ -277,8 +276,7 @@ export function workoutKcal(
   }
   if (!anyDone) return 0
   const sessionMin = w.endedAt
-    ? (new Date(w.endedAt).getTime() - new Date(w.startedAt).getTime()) /
-      60_000
+    ? (new Date(w.endedAt).getTime() - new Date(w.startedAt).getTime()) / 60_000
     : 0
   const rest = Math.min(
     STRENGTH_CAP_MIN,

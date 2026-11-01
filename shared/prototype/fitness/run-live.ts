@@ -111,7 +111,8 @@ export function addFixes(fixes: Fix[]) {
       const t = sec(r, f.at)
       const p: RunPoint = [f.lat, f.lng, f.alt, Math.round(t * 10) / 10]
       if (!acceptFix(points.at(-1), p, f.accuracy, r.kind)) continue
-      points = points === r.points ? [...points, p] : (points.push(p), points)
+      if (points === r.points) points = [...points, p]
+      else points.push(p)
     }
     return points === r.points && accuracy === r.accuracy
       ? r

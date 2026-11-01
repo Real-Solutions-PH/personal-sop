@@ -58,7 +58,10 @@ export interface PastErrors {
 }
 
 const hm = (t: number) =>
-  new Date(t).toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit" })
+  new Date(t).toLocaleTimeString("en-PH", {
+    hour: "numeric",
+    minute: "2-digit",
+  })
 
 /** What stops the block being saved; empty when it can be. */
 export function pastErrors(
@@ -169,7 +172,7 @@ export function pastRows(
 /** The form's values for a logged session (to edit it). */
 export function pastInputOf(s: FocusState, id: string): PastInput | null {
   const x = s.sessions.find((y) => y.id === id)
-  if (!x || x.source !== "manual" || !x.endedAt) return null
+  if (x?.source !== "manual" || !x.endedAt) return null
   const start = new Date(x.startedAt).getTime()
   if (x.mode === "pomodoro")
     return {

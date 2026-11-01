@@ -111,7 +111,6 @@ function Peers({ children }: { children: React.ReactNode[] }) {
     <Line style={{ gap: 0, alignItems: "stretch" }}>
       {children.map((c, i) => (
         <View
-          // biome-ignore lint/suspicious/noArrayIndexKey: fixed order
           key={i}
           style={{
             flex: 1,
