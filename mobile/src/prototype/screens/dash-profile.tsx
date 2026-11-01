@@ -35,7 +35,7 @@ import {
   Wallet,
 } from "lucide-react-native"
 import { useEffect, useState } from "react"
-import { ScrollView, Text, TextInput, View } from "react-native"
+import { Platform, ScrollView, Text, TextInput, View } from "react-native"
 import { toast } from "sonner-native"
 import { liveMode } from "@/live/config"
 import { EXTRAS, type Extra, extrasStore, setShown } from "../extras"
@@ -723,6 +723,20 @@ export function Settings() {
             </Copy>
           </Line>
         </Frame>
+        {Platform.OS === "ios" && (
+          <>
+            <SectionHeading>Shortcuts</SectionHeading>
+            <Frame style={{ paddingHorizontal: 8, paddingVertical: 4 }}>
+              <LinkRow
+                title="Shortcuts & Back Tap"
+                detail="Tap the back of your phone to talk to Fern"
+                icon={Smartphone}
+                accent="primary"
+                href="/me/settings/shortcuts"
+              />
+            </Frame>
+          </>
+        )}
         <SectionHeading>Life Score weights</SectionHeading>
         <Frame style={{ padding: 16 }}>
           <WeightsEditor />

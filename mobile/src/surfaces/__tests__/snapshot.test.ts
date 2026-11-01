@@ -335,3 +335,26 @@ it("the Apps widget lists what the in-app launcher shows, in its order", () => {
     buildSnapshot(input({ journal: false, screenTime: false })).apps,
   ).not.toContain("journal")
 })
+
+it("Shortcuts list every check habit due today, medicine first, done marked", () => {
+  const meds = HA.createHabit({ name: "Vitamin D", icon: "☀️" })
+  const pill = HA.createHabit({ name: "Evening walk", icon: "💊" })
+  const count = HA.createHabit({ name: "Water", type: "count", target: 8 })
+  const habits = buildSnapshot(input()).shortcuts.habits
+  const firstPlain = habits.findIndex((h) => !h.meds)
+  const ids = habits.map((h) => h.id)
+  expect(ids).toContain(meds.id)
+  expect(ids).toContain(pill.id)
+  // Counts and timers open the app instead.
+  expect(ids).not.toContain(count.id)
+  for (const id of [meds.id, pill.id])
+    expect(firstPlain === -1 || ids.indexOf(id) < firstPlain).toBe(true)
+  HA.checkHabit(meds.id)
+  const after = buildSnapshot(input()).shortcuts.habits
+  expect(after.find((h) => h.id === meds.id)?.done).toBe(true)
+})
+
+it("a Shortcut sees no habits when Habits is switched off", () => {
+  dashStore.set((s) => ({ ...s, enabled: { ...s.enabled, habits: false } }))
+  expect(buildSnapshot(input()).shortcuts.habits).toEqual([])
+})

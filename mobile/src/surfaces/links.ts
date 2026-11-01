@@ -4,10 +4,13 @@ import type { AppKey } from "./types"
 // routes (src/app/+native-intent.tsx). Widgets name a feature or a Fern mode
 // rather than a route, so a route can move without rebuilding them:
 //
-//   personalsop:///fern?mode=chat|dictate|camera  → Fern's chat
+//   personalsop:///fern?mode=chat|dictate|talk|camera  → Fern's chat
+//
+// ``talk`` (Shortcuts and Back Tap) dictates like ``dictate`` and sends the
+// message by itself when the person stops talking.
 //   personalsop:///feature/<key>                  → that app's home
 
-export type FernMode = "chat" | "dictate" | "camera"
+export type FernMode = "chat" | "dictate" | "talk" | "camera"
 
 const FEATURE_ROUTES: Record<AppKey | "today", string> = {
   today: "/today",
@@ -21,7 +24,7 @@ const FEATURE_ROUTES: Record<AppKey | "today", string> = {
   journal: "/journal",
 }
 
-const FERN_MODES: FernMode[] = ["chat", "dictate", "camera"]
+const FERN_MODES: FernMode[] = ["chat", "dictate", "talk", "camera"]
 
 /** The route for a widget link, or null when the link is not one (the
  * caller then leaves it alone). ``now`` stamps a Fern link so opening the

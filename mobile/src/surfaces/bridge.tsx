@@ -8,6 +8,7 @@ import { dayKey } from "@domain/lib/day"
 import { liveStore } from "@domain/lib/live"
 import { privacyStore } from "@domain/lib/privacy"
 import { tasksStore } from "@domain/tasks/store"
+import { router } from "expo-router"
 import { useEffect, useRef, useState } from "react"
 import { AppState, PermissionsAndroid, Platform } from "react-native"
 import { useShown } from "@/prototype/extras"
@@ -21,6 +22,7 @@ import {
   writeLive,
   writeSnapshot,
 } from "./native"
+import { runShortcutRequests } from "./requests"
 import { buildSnapshot, snapshotKey } from "./snapshot"
 
 // Keeps the home-screen widgets and the lock-screen activity in step with
@@ -73,16 +75,24 @@ function Bridge() {
   const lastSnapshot = useRef("")
   const lastLive = useRef<string | null>(null)
 
-  // Taps made while the app was closed, then any made while it runs. Back
-  // in the foreground the activity is written again even when nothing
-  // changed: the person may have swiped it away, the system may have ended
-  // it, or Live Activities were just turned on in Settings.
+  // Taps made while the app was closed, then any made while it runs, and
+  // what Shortcuts, Siri or Back Tap asked for (requests.ts). Back in the
+  // foreground the activity is written again even when nothing changed: the
+  // person may have swiped it away, the system may have ended it, or Live
+  // Activities were just turned on in Settings.
   useEffect(() => {
+    const requests = () =>
+      void runShortcutRequests({ navigate: (to) => router.push(to as never) })
     drainSurfaceActions()
-    const off = onQueuedAction(() => drainSurfaceActions())
+    requests()
+    const off = onQueuedAction(() => {
+      drainSurfaceActions()
+      requests()
+    })
     const app = AppState.addEventListener("change", (s) => {
       if (s !== "active") return
       drainSurfaceActions()
+      requests()
       const state = buildLiveState({
         live: liveStore.get().live,
         habits: habitsStore.get(),

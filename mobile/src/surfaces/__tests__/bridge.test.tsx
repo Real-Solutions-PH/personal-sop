@@ -18,6 +18,8 @@ const mockNative = {
   clearSurfaces: jest.fn(),
   onQueuedAction: jest.fn(() => () => {}),
   drainActions: jest.fn(() => mockQueued.splice(0)),
+  drainRequests: jest.fn(() => []),
+  replyRequest: jest.fn(),
 }
 jest.mock("../native", () => mockNative)
 

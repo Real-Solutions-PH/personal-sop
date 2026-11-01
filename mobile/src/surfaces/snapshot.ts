@@ -12,6 +12,7 @@ import type { TasksState } from "@domain/tasks/data"
 import { byDue, fmtDay, isOverdue } from "@domain/tasks/logic"
 import {
   type AppKey,
+  type ShortcutHabit,
   SNAPSHOT_VERSION,
   type WidgetHabit,
   type WidgetSnapshot,
@@ -85,6 +86,46 @@ function habitsPart(s: HabitsState, now: Date): WidgetSnapshot["habits"] {
       checkable: h.type === "check" && !h.rule,
     }))
   return { done, total: open.length, items }
+}
+
+/** Medicine and the like, by name or icon ("Vitamin D", "Gamot", 💊). */
+const MEDS =
+  /\b(meds?|medicines?|medication|pills?|tablets?|capsules?|vitamins?|multivitamins?|supplements?|gamot|insulin|inhaler|omega|iron|zinc|calcium|magnesium|antibiotics?|maintenance)\b|💊|🩹|💉/i
+
+export const isMeds = (h: { name: string; icon: string }) =>
+  MEDS.test(h.name) || MEDS.test(h.icon)
+
+/** Every check habit due today that a Shortcut can tick (no counts, timers
+ * or screen-time rules), medicine first, then by time. */
+function shortcutHabits(s: HabitsState, now: Date): ShortcutHabit[] {
+  const today = dayKey(now)
+  const idx = H.logIndex(s.logs)
+  return H.sortedHabits(
+    s.habits.filter(
+      (h) =>
+        h.status !== "archived" &&
+        h.type === "check" &&
+        !h.rule &&
+        H.isDue(h, today),
+    ),
+  )
+    .filter((h) => idx.get(H.lk(h.id, today))?.status !== "skipped")
+    .map((h) => ({
+      h,
+      meds: isMeds(h),
+      time: H.slotFor(h.schedule, today)?.time ?? "99:99",
+    }))
+    .sort(
+      (a, b) =>
+        Number(b.meds) - Number(a.meds) || H.toMin(a.time) - H.toMin(b.time),
+    )
+    .map(({ h, meds }) => ({
+      id: h.id,
+      name: h.name,
+      icon: h.icon,
+      meds,
+      done: idx.get(H.lk(h.id, today))?.status === "done",
+    }))
 }
 
 function tasksPart(s: TasksState, now: Date): WidgetSnapshot["tasks"] {
@@ -234,6 +275,9 @@ export function buildSnapshot(input: SnapshotInput): WidgetSnapshot {
         }
       : null,
     apps: launcherApps(dash.enabled, input.journal, input.screenTime),
+    shortcuts: {
+      habits: dash.enabled.habits ? shortcutHabits(input.habits, now) : [],
+    },
   }
 }
 

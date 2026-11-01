@@ -10,6 +10,10 @@ it("Fern links open the chat with the action to start", () => {
     "/fern?mode=dictate",
   ])
     expect(widgetRoute(url, 5)).toBe("/capture?launch=dictate&at=5")
+  // Shortcuts and Back Tap: dictate and send on stop.
+  expect(widgetRoute("personalsop:///fern?mode=talk", 5)).toBe(
+    "/capture?launch=talk&at=5",
+  )
   expect(widgetRoute("personalsop:///fern?mode=camera", 5)).toBe(
     "/capture?launch=camera&at=5",
   )
