@@ -4,6 +4,7 @@ import {
   discardCard,
   ensureCapture,
   findCard,
+  redoCard,
   undoCard,
 } from "@domain/capture/engine"
 import { captureStore } from "@domain/capture/store"
@@ -1168,6 +1169,22 @@ function StepCard({
     )
   if (live === "saved" || live === "edited")
     return <StepButton label="Undo" onPress={() => undoCard(id)} />
+  if (live === "undone")
+    // An entry undone by mistake can be saved again from where it was undone.
+    return (
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <Text style={{ color: t.muted, fontFamily: fonts.body, fontSize: 12 }}>
+          Undone
+        </Text>
+        <StepButton
+          label="Redo"
+          onPress={() => {
+            redoCard(id)
+            toast.success("Saved again")
+          }}
+        />
+      </View>
+    )
   if (now === "undone" || now === "discarded")
     return (
       <Text style={{ color: t.muted, fontFamily: fonts.body, fontSize: 12 }}>
@@ -1347,6 +1364,140 @@ function ThinkingBlock({ text, done }: { text: string; done?: boolean }) {
     </Pressable>
   )
 }
+/** A table Fern sent (portions per food, a breakdown). Up to three columns
+ * read as one line per row. Wider tables keep one shape on every row at
+ * any width: the first column (what the row is, never cut) with the second
+ * (the figure acted on, e.g. grams) on line one, the rest in equal columns
+ * under it, headed once. Total rows follow a hairline; a negative total
+ * ("left today after" past the target) is red. */
+function TableBlock({ block }: { block: Extract<Block, { t: "table" }> }) {
+  const t = useTheme()
+  const cols = block.columns
+  const wide = cols.length > 3
+  const rest = wide ? cols.slice(2) : cols.slice(1)
+  const num = {
+    fontFamily: fonts.medium,
+    fontSize: 13,
+    fontVariant: ["tabular-nums" as const],
+  }
+  const row = (cells: string[], total: boolean, key: string) => {
+    const over = (v: string) => total && /^[-−]/.test(v.trim())
+    const label = cols.map((c, i) => `${c} ${cells[i] ?? ""}`).join(", ")
+    const lead = (
+      <Text
+        style={{
+          flex: 1,
+          color: t.text,
+          fontFamily: total ? fonts.semibold : fonts.medium,
+          fontSize: 14,
+          lineHeight: 19,
+        }}
+      >
+        {cells[0]}
+      </Text>
+    )
+    const cell = (v: string, i: number) => (
+      <Text
+        key={i}
+        style={{
+          ...num,
+          flex: wide ? 1 : undefined,
+          minWidth: wide ? undefined : 44,
+          textAlign: "right",
+          color: over(v) ? t.bad : total ? t.text : t.muted,
+        }}
+      >
+        {v}
+      </Text>
+    )
+    return (
+      <View
+        key={key}
+        accessible
+        accessibilityLabel={label}
+        style={{ gap: 2, paddingVertical: 4 }}
+      >
+        {wide ? (
+          <>
+            <View
+              style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}
+            >
+              {lead}
+              {!!cells[1] && (
+                <Text style={{ ...num, fontSize: 14, color: t.text }}>
+                  {cells[1]}
+                </Text>
+              )}
+            </View>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              {rest.map((_, i) => cell(cells[i + 2] ?? "", i))}
+            </View>
+          </>
+        ) : (
+          <View
+            style={{ flexDirection: "row", alignItems: "flex-start", gap: 16 }}
+          >
+            {lead}
+            {rest.map((_, i) => cell(cells[i + 1] ?? "", i))}
+          </View>
+        )}
+      </View>
+    )
+  }
+  return (
+    <Panel accent={block.title === "Portions" ? t.nut : undefined}>
+      {!!block.title && (
+        <Text
+          style={{ color: t.muted, fontFamily: fonts.medium, fontSize: 12 }}
+        >
+          {block.title.toUpperCase()}
+        </Text>
+      )}
+      <View>
+        <View
+          style={{
+            flexDirection: "row",
+            gap: wide ? 8 : 16,
+            paddingBottom: 4,
+            borderBottomWidth: 1,
+            borderBottomColor: t.line,
+          }}
+        >
+          {!wide && <View style={{ flex: 1 }} />}
+          {rest.map((c) => (
+            <Text
+              key={c}
+              style={{
+                flex: wide ? 1 : undefined,
+                minWidth: wide ? undefined : 44,
+                textAlign: "right",
+                color: t.muted,
+                fontFamily: fonts.body,
+                fontSize: 11,
+              }}
+            >
+              {c}
+            </Text>
+          ))}
+        </View>
+        {block.rows.map((r, i) => row(r, false, `r${i}`))}
+        {!!block.foot?.length && (
+          <View
+            style={{ borderTopWidth: 1, borderTopColor: t.line, marginTop: 2 }}
+          >
+            {block.foot.map((r, i) => row(r, true, `f${i}`))}
+          </View>
+        )}
+      </View>
+      {!!block.note && (
+        <Text style={{ color: t.muted, fontFamily: fonts.body, fontSize: 11 }}>
+          {block.note}
+        </Text>
+      )}
+    </Panel>
+  )
+}
+
 export function BlockView({ block }: { block: Block }) {
   const t = useTheme()
   switch (block.t) {
@@ -1383,6 +1534,8 @@ export function BlockView({ block }: { block: Block }) {
       return <ThinkingBlock text={block.text} done={block.done} />
     case "nutrition":
       return <NutritionBlock day={block.day} />
+    case "table":
+      return <TableBlock block={block} />
     case "photos":
       // Drawn with the person's own message (chat.tsx MyMessage).
       return null

@@ -34,6 +34,16 @@ export type Block =
   /** Photos sent with a message: media ids, and links when known (local
    * while sending, signed by the server when read). */
   | { t: "photos"; media?: string[]; urls?: (string | null)[] }
+  /** Numbers in columns, from a tool (portions per food) or a table the
+   * reply wrote: header, rows, optional total rows and a source note. */
+  | {
+      t: "table"
+      title?: string
+      columns: string[]
+      rows: string[][]
+      foot?: string[][]
+      note?: string
+    }
 
 /** One thing Fern did during a reply: a tool call, running or finished
  * (ADR-0015). A write carries its card, so the row can offer Undo or
