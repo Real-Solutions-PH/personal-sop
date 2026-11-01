@@ -851,3 +851,108 @@ def nutrition_area_rate(
     (``nutrition/index.ts`` ``useAreaRate``)."""
     a = adherence(s, days, today, offset)
     return (a.calorie + a.protein) / 2 if a.logged else None
+
+
+# --------------------------------------------------------------------------
+# Estimated active kcal of a workout
+# --------------------------------------------------------------------------
+
+DEFAULT_WEIGHT_KG = 70.0
+WALK_RUN_KMH = 8.0
+STRENGTH_MAX_MIN = 180.0
+CHAT_MIN_PER_SET = 2.5
+VIGOROUS_DENSITY = 3.0
+MET_MODERATE = 3.5
+MET_VIGOROUS = 5.0
+
+
+@dataclass(frozen=True)
+class BurnSetS:
+    """What the burn estimate reads of one set."""
+
+    kind: str
+    completed: bool
+    duration_sec: int | None = None
+    speed_kmh: float | None = None
+
+
+def _weight_for(weigh_ins: Iterable[tuple[datetime, float]], at: datetime) -> float:
+    rows = sorted(weigh_ins, key=lambda r: r[0])
+    before = [kg for when, kg in rows if when <= at]
+    if before:
+        return before[-1]
+    return rows[-1][1] if rows else DEFAULT_WEIGHT_KG
+
+
+def _walk_run_kcal(speed_kmh: float, minutes: float, weight_kg: float) -> float:
+    """ACSM net VO2 (resting excluded), 5 kcal per litre of oxygen."""
+    v = speed_kmh * 1000 / 60  # m/min
+    vo2 = (0.1 if speed_kmh < WALK_RUN_KMH else 0.2) * v  # ml/kg/min
+    return vo2 * weight_kg * minutes / 1000 * 5
+
+
+def estimate_workout_kcal(
+    *,
+    started_at: datetime,
+    ended_at: datetime,
+    source: str,
+    sets: Iterable[BurnSetS],
+    cardio: dict[str, object] | None,
+    weigh_ins: Iterable[tuple[datetime, float]],
+) -> int:
+    """Estimated ACTIVE kcal of a workout (resting excluded, like Apple's
+    Active Energy). The mobile app runs the identical algorithm.
+
+    - weight_kg: the latest weigh-in measured at or before ``started_at``;
+      else the latest at all; else 70.0.
+    - Timed sets with a speed (completed, ``duration_sec`` and ``speed_kmh``
+      set): ACSM net VO2 in ml/kg/min, v = speed_kmh * 1000 / 60 m/min;
+      walking (speed < 8 km/h) 0.1 * v, running 0.2 * v;
+      kcal = vo2 * weight_kg * minutes / 1000 * 5.
+    - Strength remainder: remainder_min = clamp(session_min -
+      timed_speed_minutes, 0, 180). For source "chat" (placeholder times)
+      remainder_min = working_sets * 2.5 instead (cap 180), and cardio
+      ``{km, min}`` with both present adds the walking/running equation at
+      speed = km / (min / 60).
+    - Working sets: completed, kind != "warmup", no ``duration_sec``.
+      density = working_sets / max(remainder_min, 1) * 10; MET 5.0 when
+      density >= 3, else 3.5 (Compendium of Physical Activities 2024:
+      resistance training 3.5 moderate / 5.0 vigorous);
+      kcal += (MET - 1) * weight_kg * remainder_min / 60.
+    - No completed set of any kind and no cardio: 0.
+    - Rounded half up to a whole kcal.
+    """
+    done = [s for s in sets if s.completed]
+    km = (cardio or {}).get("km") if source == "chat" else None
+    mins = (cardio or {}).get("min") if source == "chat" else None
+    has_cardio = (
+        isinstance(km, (int, float))
+        and isinstance(mins, (int, float))
+        and not isinstance(km, bool)
+        and not isinstance(mins, bool)
+        and km >= 0
+        and mins > 0
+    )
+    if not done and not has_cardio:
+        return 0
+    weight_kg = _weight_for(weigh_ins, started_at)
+    kcal = 0.0
+    timed_min = 0.0
+    for s in done:
+        if s.duration_sec is not None and s.speed_kmh is not None:
+            minutes = s.duration_sec / 60
+            timed_min += minutes
+            kcal += _walk_run_kcal(s.speed_kmh, minutes, weight_kg)
+    working = sum(1 for s in done if s.kind != "warmup" and s.duration_sec is None)
+    if source == "chat":
+        remainder = min(working * CHAT_MIN_PER_SET, STRENGTH_MAX_MIN)
+        if has_cardio:
+            assert isinstance(km, (int, float)) and isinstance(mins, (int, float))
+            kcal += _walk_run_kcal(km / (mins / 60), mins, weight_kg)
+    else:
+        session_min = (ended_at - started_at).total_seconds() / 60
+        remainder = min(max(session_min - timed_min, 0.0), STRENGTH_MAX_MIN)
+    density = working / max(remainder, 1) * 10
+    met = MET_VIGOROUS if density >= VIGOROUS_DENSITY else MET_MODERATE
+    kcal += (met - 1) * weight_kg * remainder / 60
+    return int(kcal + 0.5) if kcal >= 0 else -int(-kcal + 0.5)

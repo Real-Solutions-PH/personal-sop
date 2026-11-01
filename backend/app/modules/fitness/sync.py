@@ -9,6 +9,7 @@ upserts below wherever a rule applies:
 - a workout is started and finished only by its actions (they claim and
   release the Live bar); an upsert may create a finished backfill or edit
   one, never flip the status;
+- a run session cannot end before it starts;
 - days a write touches are marked dirty for the stats rollup.
 """
 
@@ -27,6 +28,7 @@ from app.modules.fitness.models import (
     Meal,
     MealItem,
     RestTimer,
+    RunSession,
     TargetAdjustment,
     TemplateItem,
     WeighIn,
@@ -155,6 +157,31 @@ def _upsert_weigh_in(ctx: Ctx, row_id: uuid.UUID, p: BaseModel) -> OwnedRow:
     if before is not None:
         services._dirty_at(ctx, before.measured_at)
     services._dirty_at(ctx, row.measured_at)
+    return row
+
+
+def _upsert_run_session(ctx: Ctx, row_id: uuid.UUID, p: BaseModel) -> OwnedRow:
+    assert isinstance(p, S.RunSessionIn)
+    data = _data(p)
+    for key in ("route", "splits"):
+        if key in data and data[key] is None:
+            data[key] = []
+    if p.splits is not None:
+        # Every split carries all three keys (elev_m null when unknown).
+        data["splits"] = [s.model_dump() for s in p.splits]
+    current = owned_repo.get(ctx, RunSession, row_id, include_deleted=True)
+    # Checked on the merged row before writing: the table's CHECK would
+    # otherwise turn it into an anonymous integrity conflict.
+    start = data.get("started_at", current.started_at if current else None)
+    end = data.get("ended_at", current.ended_at if current else None)
+    if start is not None and end is not None and end < start:
+        raise invalid("end_before_start", "A session cannot end before it started")
+    # The row object is updated in place, so keep the day it leaves now.
+    was = current.started_at if current is not None else None
+    row = owned_repo.upsert(ctx, RunSession, row_id, data)[0]
+    if was is not None:
+        services._dirty_at(ctx, was)
+    services._dirty_at(ctx, row.started_at)
     return row
 
 
@@ -394,6 +421,14 @@ def register(r: Registry) -> None:
             S.WeighInPublic,
             upsert=_upsert_weigh_in,
             create_required=("measured_at", "weight_kg"),
+        ),
+        Entity(
+            "run_session",
+            RunSession,
+            S.RunSessionIn,
+            S.RunSessionPublic,
+            upsert=_upsert_run_session,
+            create_required=("kind", "started_at", "ended_at"),
         ),
         Entity(
             "macro_target",

@@ -426,8 +426,46 @@ def _insert_active(
         ) from None
 
 
+def _estimate_kcal(ctx: Ctx, w: Workout) -> None:
+    """Fill a finished workout's active kcal when the device sent none."""
+    if w.kcal is not None or w.ended_at is None:
+        return
+    wes = repo.workout_exercises(ctx, w.id)
+    sets = [s for ss in repo.sets_of(ctx, [we.id for we in wes]).values() for s in ss]
+    # The weigh-in that applied at the start, and the latest of all.
+    weighs = owned_repo.list_rows(
+        ctx,
+        WeighIn,
+        col(WeighIn.measured_at) <= w.started_at,
+        order_by=[col(WeighIn.measured_at).desc()],
+        limit=1,
+    )
+    latest = repo.latest_weigh_in(ctx)
+    if latest is not None:
+        weighs.append(latest)
+    w.kcal = C.estimate_workout_kcal(
+        started_at=w.started_at,
+        ended_at=w.ended_at,
+        source=w.source,
+        sets=[
+            C.BurnSetS(
+                kind=s.kind,
+                completed=s.completed_at is not None,
+                duration_sec=s.duration_sec,
+                speed_kmh=s.speed_kmh,
+            )
+            for s in sets
+        ],
+        cardio=w.cardio,
+        weigh_ins=[(r.measured_at, r.weight_kg) for r in weighs],
+    )
+    ctx.session.add(w)
+    ctx.session.flush()
+
+
 def _finish_tail(ctx: Ctx, w: Workout) -> None:
     """What every finished workout does, live or logged from chat."""
+    _estimate_kcal(ctx, w)
     profile_public.end_live(ctx, kind="workout", ref_id=w.id)
     day = ctx.clock.day_of(w.started_at)
     _dirty(ctx, day)

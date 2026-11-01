@@ -259,6 +259,27 @@ def _check_range(data: dict[str, Any], existing: Any) -> None:
         raise invalid("focus_range_invalid", "A span can't end before it starts")
 
 
+# A phone's clock may run a little ahead of the server's.
+CLOCK_SKEW = timedelta(minutes=5)
+
+
+def _check_logged(ctx: Ctx, data: dict[str, Any], existing: Any) -> None:
+    """A session logged afterwards is over and in the past: it has an end,
+    and neither end reaches past now."""
+    source = data.get("source") or getattr(existing, "source", "timer")
+    if source != "manual":
+        return
+    start = data.get("started_at") or getattr(existing, "started_at", None)
+    end = (
+        data["ended_at"] if "ended_at" in data else getattr(existing, "ended_at", None)
+    )
+    if end is None:
+        raise invalid("focus_logged_open", "A logged session needs an end time")
+    limit = ctx.now + CLOCK_SKEW
+    if end > limit or (start is not None and start > limit):
+        raise invalid("focus_logged_future", "A logged session can't be in the future")
+
+
 def upsert_session_sync(
     ctx: Ctx, row_id: uuid.UUID, payload: SessionSyncIn
 ) -> FocusSession:
@@ -266,6 +287,7 @@ def upsert_session_sync(
     existing = owned_repo.get(ctx, FocusSession, row_id, include_deleted=True)
     _check_item(data, existing)
     _check_range(data, existing)
+    _check_logged(ctx, data, existing)
     if existing is None and data.get("mode") is None:
         data.pop("mode", None)
     row, _ = owned_repo.upsert(ctx, FocusSession, row_id, data)
