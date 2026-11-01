@@ -37,7 +37,7 @@ import {
   undo,
 } from "../ui"
 import { isDay } from "../validation"
-import { KeepReminding, nagLabel } from "./keep-reminding"
+import { KeepReminding } from "./keep-reminding"
 
 const SOURCE: Record<Task["source"], string> = {
   manual: "Added manually",
@@ -404,14 +404,9 @@ export function TaskDetail({ id }: { id: string }) {
               ? undefined
               : "Add a date first: repeats start once the task is overdue."
           }
-          onChange={(min) => {
-            A.updateTask(id, { nagEveryMin: min })
-            toast.success(
-              min
-                ? `Reminding every ${nagLabel(min)} once overdue`
-                : "Back to one reminder",
-            )
-          }}
+          // The switch and its line say what changed: no toast (only
+          // toasts that carry Undo are shown).
+          onChange={(min) => A.updateTask(id, { nagEveryMin: min })}
         />
       </Frame>
       {task.remindAt && task.status === "open" && (
