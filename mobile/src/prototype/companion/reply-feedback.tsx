@@ -55,8 +55,10 @@ function setLocal(
   })
 }
 
-/** Saves a rating (or clears it with null), shows the outcome, and offers
- * Undo, which puts back what was there before. */
+/** Saves a rating (or clears it with null). The filled thumb (and, after a
+ * thumbs-down, the reason chips) is the feedback; tapping the thumb again
+ * takes the rating back, so no toast: only a failure is told, and the row
+ * goes back to what it showed before. */
 async function rate(id: string, body: FeedbackBody) {
   const before = replyFeedback.get().ratings[id] ?? null
   setLocal(
@@ -68,28 +70,7 @@ async function rate(id: string, body: FeedbackBody) {
   if (!(await send(id, body))) {
     setLocal(id, before)
     toast.error("Couldn't send that. Check your connection and try again.")
-    return
   }
-  if (!body.rating) return
-  toast(
-    body.rating === "up"
-      ? "Thanks — glad that helped."
-      : "Thanks — Fern will learn from this.",
-    {
-      action: {
-        label: "Undo",
-        onClick: () => {
-          setLocal(id, before)
-          void send(
-            id,
-            before
-              ? { rating: before.rating, reason: before.reason ?? null }
-              : { rating: null },
-          )
-        },
-      },
-    },
-  )
 }
 
 // The chosen thumb is filled as well as coloured, so the choice still
