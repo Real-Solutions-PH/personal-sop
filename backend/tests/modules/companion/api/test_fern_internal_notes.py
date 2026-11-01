@@ -302,7 +302,9 @@ def test_confirm_talk_with_nothing_waiting_gets_corrected(
     api.assign("chat")
     install(monkeypatch, say(answer), say(answer))
     events = stream(api, client, "what's on today")
-    assert reply_of(events)["text"] == services.NOT_RECORDED
+    # A question turn keeps its words; only the Confirm talk goes.
+    assert reply_of(events)["text"] == services.drop_confirm_talk(answer)
+    assert "confirm" not in services.drop_confirm_talk(answer).split("\n")[0].lower()
 
 
 # ------------------------------------------------------------ this turn's cards

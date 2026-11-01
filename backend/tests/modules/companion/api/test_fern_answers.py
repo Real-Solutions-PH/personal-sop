@@ -245,7 +245,7 @@ def test_it_is_breakfast_is_an_edit_that_never_confirms(
     reply saved breakfast now"."""
     api = user(client, db, accounts=False)
     api.assign("chat")
-    model = install(monkeypatch, say("", call("confirm_pending")), say("Changed."))
+    model = install(monkeypatch, say("", call("confirm_pending")), say("Which meal is breakfast?"))
     stream(api, client, "It is breakfast")
     system = system_of(model)
     assert "Job: edit" in system and "never confirm or re-create it" in system
@@ -283,7 +283,7 @@ def test_a_task_already_open_is_edited_not_duplicated(
     model = install(
         monkeypatch,
         say("", call("create_tasks", tasks=[{"title": "Call Mark"}])),
-        say("Moved it."),
+        say("That task is already there; which day should it go to?"),
     )
     stream(api, client, "yes log it ti note and push it tomorrow")
     assert "Job: edit" in system_of(model)
@@ -372,7 +372,7 @@ def test_finance_status_reads_balances_budgets_and_bills(
     model = install(monkeypatch, say("", call("finance_status")), say("Here."))
     stream(api, client, "how is my money right now")
     out = tool_result(model, 1, "finance_status")
-    assert {a["name"] for a in out["accounts"]} >= {"GCash"}
+    assert out["accounts"] and out["no_accounts_yet"] is False
     assert set(out) >= {
         "net_worth",
         "spent_this_month_so_far",

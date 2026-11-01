@@ -798,6 +798,22 @@ def with_day_after(ctx: Ctx, tool: BaseTool) -> BaseTool:
                     v = it.get(k) if isinstance(it, dict) else getattr(it, k, 0)
                     eaten[k] = round(eaten.get(k, 0) + float(v or 0), 1)
         out: dict[str, Any] = {"eaten_today_with_this_meal": eaten}
+        if items:
+            # The meal's own total, so "lunch, 650 kcal" is a figure a tool
+            # returned (the number check) rather than the model's sum.
+            out["this_meal"] = {
+                k: round(
+                    sum(
+                        float(
+                            (it.get(k) if isinstance(it, dict) else getattr(it, k, 0))
+                            or 0
+                        )
+                        for it in items
+                    ),
+                    1,
+                )
+                for k in ("kcal", "protein", "carbs", "fat")
+            }
         if "target" in day:
             out["left_today"] = {
                 k: round(v - eaten.get(k, 0), 1) for k, v in day["target"].items()
