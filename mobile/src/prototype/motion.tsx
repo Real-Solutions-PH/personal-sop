@@ -3,7 +3,15 @@ import * as Haptics from "expo-haptics"
 import { LinearGradient } from "expo-linear-gradient"
 import { usePathname } from "expo-router"
 import { Check, Flame } from "lucide-react-native"
-import { type ReactNode, useEffect, useRef, useState } from "react"
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react"
 import {
   Pressable,
   Text,
@@ -17,6 +25,7 @@ import Animated, {
   FadeIn,
   FadeOut,
   LinearTransition,
+  ReduceMotion,
   runOnJS,
   type SharedValue,
   SlideInLeft,
@@ -47,12 +56,12 @@ export const MOTION = {
   base: 240,
   /** Score rings and count-ups. */
   reveal: 900,
-  /** How long a check stays visible in place before the row moves. */
-  commit: 360,
+  /** How long a check stays in place, celebrating, before the row moves. */
+  commit: 520,
   /** A habit's progress ring stepping to its next value (1 of 2 → 2 of 2). */
   progress: 420,
   /** A completion's particles flying out from the check. */
-  burst: 520,
+  burst: 620,
   spring: { damping: 18, stiffness: 240, mass: 0.9 },
 }
 
@@ -204,11 +213,21 @@ export function ArcCircle({
   )
 }
 
-const PARTICLES = 8
+// Reanimated 4 jumps every animation to its end on frame 1 while iOS Reduce
+// Motion is on, unless told otherwise. A completion's feedback must still be
+// seen, so these always run; under Reduce Motion they only fade, never move.
+const never = ReduceMotion.Never
+const fade = (to: number, duration: number) =>
+  withTiming(to, { duration, easing: easeOut, reduceMotion: never })
+const spring = (to: number, config: { damping: number; stiffness: number }) =>
+  withSpring(to, { ...config, reduceMotion: never })
+
+const PARTICLES = 12
 /**
- * A completion's reward: a ripple ring and eight particles radiating from
- * the centre of its parent each time `fire` goes up. Drawn on the UI thread,
- * never touchable, gone after the burst; nothing under Reduce Motion.
+ * A completion's reward, centred on its parent each time `fire` goes up: a
+ * soft flash, a ripple ring and twelve particles spraying out in a wide oval
+ * (so they stay inside a list row). Never touchable, gone after the burst.
+ * Under Reduce Motion it is a halo that fades in and out where it stands.
  */
 export function Burst({
   fire,
@@ -227,25 +246,36 @@ export function Burst({
   useEffect(() => {
     if (fire === seen.current) return
     seen.current = fire
-    if (reduced || fire <= 0) return
-    // ±8° of jitter so no two bursts look stamped.
+    if (fire <= 0) return
+    // ±10° of jitter so no two bursts look stamped.
     setAngles(
       Array.from(
         { length: PARTICLES },
-        (_, i) => ((i * 45 + (Math.random() * 16 - 8)) * Math.PI) / 180,
+        (_, i) =>
+          ((i * (360 / PARTICLES) + (Math.random() * 20 - 10)) * Math.PI) / 180,
       ),
     )
     setLive(true)
     t.value = 0
-    t.value = withTiming(1, { duration: MOTION.burst, easing: easeOut })
+    t.value = fade(1, MOTION.burst)
     const id = setTimeout(() => setLive(false), MOTION.burst + 80)
     return () => clearTimeout(id)
-  }, [fire, reduced, t])
+  }, [fire, t])
   const ring = useAnimatedStyle(() => {
-    const k = Math.min(1, (t.value * MOTION.burst) / 420)
-    return { opacity: 0.5 * (1 - k), transform: [{ scale: 1 + 0.9 * k }] }
+    const k = Math.min(1, t.value * 1.25)
+    return reduced
+      ? { opacity: 0.8 * Math.sin(Math.PI * t.value) }
+      : { opacity: 0.8 * (1 - k), transform: [{ scale: 1 + 1.2 * k }] }
   })
-  if (reduced || !live) return null
+  const flash = useAnimatedStyle(() =>
+    reduced
+      ? { opacity: 0.45 * Math.sin(Math.PI * t.value) }
+      : {
+          opacity: 0.45 * (1 - t.value),
+          transform: [{ scale: 0.7 + 1.1 * t.value }],
+        },
+  )
+  if (!live) return null
   return (
     <View
       testID="burst"
@@ -264,54 +294,75 @@ export function Burst({
         style={[
           {
             position: "absolute",
+            width: size * 1.3,
+            height: size * 1.3,
+            borderRadius: size,
+            backgroundColor: color,
+          },
+          flash,
+        ]}
+      />
+      <Animated.View
+        style={[
+          {
+            position: "absolute",
             width: size,
             height: size,
             borderRadius: size / 2,
-            borderWidth: 2,
+            borderWidth: 3,
             borderColor: color,
           },
           ring,
         ]}
       />
-      {angles.map((a, i) => (
-        <Particle
-          key={i}
-          t={t}
-          angle={a}
-          distance={size * 0.95}
-          color={i % 2 ? alpha(color, 0.6) : color}
-        />
-      ))}
+      {!reduced &&
+        angles.map((a, i) => (
+          <Particle
+            key={i}
+            t={t}
+            angle={a}
+            dx={size * 1.45}
+            dy={size * 0.8}
+            dot={i % 3 ? 5 : 7}
+            color={i % 2 ? alpha(color, 0.6) : color}
+          />
+        ))}
     </View>
   )
 }
 function Particle({
   t,
   angle,
-  distance,
+  dx,
+  dy,
+  dot,
   color,
 }: {
   t: SharedValue<number>
   angle: number
-  distance: number
+  dx: number
+  dy: number
+  dot: number
   color: string
 }) {
   const style = useAnimatedStyle(() => ({
-    opacity: 1 - t.value,
+    // Full strength for the first half of the flight, then out.
+    opacity: Math.min(1, 2 - 2 * t.value),
     transform: [
-      { translateX: Math.cos(angle) * distance * t.value },
-      { translateY: Math.sin(angle) * distance * t.value },
-      { scale: 1 - 0.6 * t.value },
+      { translateX: Math.cos(angle) * dx * t.value },
+      { translateY: Math.sin(angle) * dy * t.value },
+      { scale: 1 - 0.5 * t.value },
     ],
   }))
   return (
     <Animated.View
+      testID="burst-particle"
       style={[
         {
           position: "absolute",
-          width: 4,
-          height: 4,
-          borderRadius: 2,
+          width: dot,
+          height: dot,
+          borderRadius: dot / 2,
           backgroundColor: color,
         },
         style,
@@ -461,12 +512,10 @@ export function StreakChip({ streak }: { streak: number }) {
  * (`celebrate`), and the change commits after the same beat as a tap. A
  * swipe that reopens commits at once. */
 export function useSwipeComplete(done: boolean, toggle: () => void) {
-  const reduced = useReducedMotion()
   const [celebrate, setCelebrate] = useState(0)
   const onComplete = () => {
     if (done) return toggle()
     markCompletion(true)
-    if (reduced) return toggle()
     setCelebrate((n) => n + 1)
     // Not cleared on unmount: the action must still happen.
     setTimeout(toggle, MOTION.commit)
@@ -474,10 +523,93 @@ export function useSwipeComplete(done: boolean, toggle: () => void) {
   return { celebrate, onComplete }
 }
 
+const RowFlash = createContext<((color: string) => void) | null>(null)
 /**
- * A completion check that answers instantly — pop, fill and haptic — then
- * commits after a short beat so the user sees the result before the row
- * moves or re-sorts.
+ * A checkable row. When an `AnimatedCheck` inside it completes, the whole row
+ * flashes its colour and a band of light sweeps across it (only the flash
+ * under Reduce Motion).
+ */
+export function TickRow({
+  children,
+  style,
+}: {
+  children: ReactNode
+  style?: ViewStyle
+}) {
+  const reduced = useReducedMotion()
+  const [color, setColor] = useState<string | null>(null)
+  const [width, setWidth] = useState(0)
+  const glow = useSharedValue(0)
+  const sweep = useSharedValue(0)
+  const flash = useCallback(
+    (c: string) => {
+      setColor(c)
+      glow.value = withSequence(never, fade(1, 120), fade(0, 560))
+      sweep.value = 0
+      if (!reduced) sweep.value = fade(1, 620)
+    },
+    [reduced, glow, sweep],
+  )
+  const tint = useAnimatedStyle(() => ({ opacity: glow.value }))
+  const band = useAnimatedStyle(() => ({
+    transform: [{ translateX: -160 + (width + 320) * sweep.value }],
+  }))
+  return (
+    <RowFlash.Provider value={flash}>
+      <View
+        style={style}
+        onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+      >
+        {color && (
+          <Animated.View
+            testID="row-flash"
+            pointerEvents="none"
+            style={[
+              {
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                borderRadius: 12,
+                overflow: "hidden",
+                backgroundColor: alpha(color, 0.16),
+              },
+              tint,
+            ]}
+          >
+            {!reduced && width > 0 && (
+              <Animated.View
+                style={[
+                  { position: "absolute", top: 0, bottom: 0, width: 160 },
+                  band,
+                ]}
+              >
+                <LinearGradient
+                  colors={["transparent", alpha(color, 0.35), "transparent"]}
+                  start={{ x: 0, y: 0.5 }}
+                  end={{ x: 1, y: 0.5 }}
+                  style={{ flex: 1 }}
+                />
+              </Animated.View>
+            )}
+          </Animated.View>
+        )}
+        {children}
+      </View>
+    </RowFlash.Provider>
+  )
+}
+
+/**
+ * The one completion check for every tickable thing (habits, tasks, sets).
+ * Checking answers instantly: a success haptic, the check pops past full
+ * size, its colour sweeps out from the centre, the tick springs in, a burst
+ * flies out and its `TickRow` flashes. The change commits after a short beat
+ * (`beat`) so all of that is seen before the row moves or re-sorts.
+ * Unchecking is quieter: a light tap, a small dip, the fill draining away.
+ * Under Reduce Motion nothing scales or travels, but the fill, tick, halo
+ * and row flash still fade in, so a tick is never silent.
  */
 export function AnimatedCheck({
   checked,
@@ -492,6 +624,7 @@ export function AnimatedCheck({
   progress = 0,
   burst = true,
   celebrate = 0,
+  beat = MOTION.commit,
 }: {
   checked: boolean
   onToggle: () => void
@@ -510,8 +643,12 @@ export function AnimatedCheck({
   /** Goes up when something else completed it (a swipe, a count reaching
    * its target): plays the pop, fill and burst without toggling. */
   celebrate?: number
+  /** How long after the press the toggle commits; 0 for rows that stay put
+   * (a workout set), so the change is immediate and the animation plays on. */
+  beat?: number
 }) {
   const reduced = useReducedMotion()
+  const flashRow = useContext(RowFlash)
   const [shown, setShown] = useState(checked)
   const [fire, setFire] = useState(0)
   const pending = useRef(false)
@@ -519,12 +656,31 @@ export function AnimatedCheck({
     if (!pending.current) setShown(checked)
   }, [checked])
   const scale = useSharedValue(1)
-  const pop = () => {
+  const fill = useSharedValue(checked ? 1 : 0)
+  const tick = useSharedValue(checked ? 1 : 0)
+  const was = useRef(shown)
+  useEffect(() => {
+    if (shown === was.current) return
+    was.current = shown
+    if (shown) {
+      fill.value = fade(1, 200)
+      tick.value = reduced
+        ? fade(1, 200)
+        : withDelay(90, spring(1, { damping: 10, stiffness: 340 }), never)
+    } else {
+      fill.value = fade(0, 220)
+      tick.value = fade(0, 140)
+    }
+  }, [shown, reduced, fill, tick])
+  const cheer = () => {
     if (!reduced)
       scale.value = withSequence(
-        withTiming(0.82, { duration: 90 }),
-        withSpring(1, { damping: 9, stiffness: 300 }),
+        never,
+        fade(0.78, 80),
+        spring(1, { damping: 6, stiffness: 300 }),
       )
+    if (burst) setFire((n) => n + 1)
+    flashRow?.(color)
   }
   const celebrated = useRef(celebrate)
   // Runs when the trigger goes up only.
@@ -538,22 +694,25 @@ export function AnimatedCheck({
     setShown(true)
     // A swipe already buzzed; one haptic per completion.
     if (!swipedRecently()) feel.success()
-    pop()
-    if (burst) setFire((n) => n + 1)
+    cheer()
   }, [celebrate])
-  const tick = useSharedValue(checked ? 1 : 0)
-  useEffect(() => {
-    tick.value = reduced
-      ? shown
-        ? 1
-        : 0
-      : withSpring(shown ? 1 : 0, { damping: 14, stiffness: 320 })
-  }, [shown, reduced, tick])
   const box = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }))
-  const mark = useAnimatedStyle(() => ({
-    opacity: tick.value,
-    transform: [{ scale: 0.4 + tick.value * 0.6 }],
-  }))
+  const sweep = useAnimatedStyle(() =>
+    reduced
+      ? { opacity: fill.value }
+      : { opacity: fill.value, transform: [{ scale: fill.value }] },
+  )
+  const mark = useAnimatedStyle(() =>
+    reduced
+      ? { opacity: tick.value }
+      : {
+          opacity: Math.min(1, tick.value),
+          transform: [
+            { scale: 0.3 + tick.value * 0.7 },
+            { rotate: `${(1 - tick.value) * -25}deg` },
+          ],
+        },
+  )
   const press = () => {
     if (pending.current) return
     const next = !shown
@@ -562,18 +721,26 @@ export function AnimatedCheck({
     if (next) {
       feel.success()
       markCompletion()
-      if (burst) setFire((n) => n + 1)
-    } else feel.tap()
-    pop()
+      cheer()
+    } else {
+      feel.tap()
+      if (!reduced)
+        scale.value = withSequence(
+          never,
+          fade(0.9, 90),
+          spring(1, { damping: 14, stiffness: 260 }),
+        )
+    }
     const commit = () => {
       pending.current = false
       onToggle()
     }
-    // Reduced motion commits at once. Otherwise the timer is deliberately not
-    // cleared on unmount: the action must still happen.
-    if (reduced) commit()
-    else setTimeout(commit, MOTION.commit)
+    // The timer is deliberately not cleared on unmount: the action must
+    // still happen.
+    if (beat <= 0) commit()
+    else setTimeout(commit, beat)
   }
+  const radius = square ? size / 4 : size / 2
   return (
     <Pressable
       accessibilityRole="checkbox"
@@ -588,21 +755,36 @@ export function AnimatedCheck({
         justifyContent: "center",
       }}
     >
+      <Burst fire={fire} color={color} size={size} />
       <Animated.View
         style={[
           {
             width: size,
             height: size,
-            borderRadius: square ? size / 4 : size / 2,
+            borderRadius: radius,
             borderWidth: ring,
             borderColor: shown ? color : idle,
-            backgroundColor: shown ? color : "transparent",
             alignItems: "center",
             justifyContent: "center",
           },
           box,
         ]}
       >
+        <Animated.View
+          testID="check-fill"
+          style={[
+            {
+              position: "absolute",
+              top: -ring,
+              left: -ring,
+              width: size,
+              height: size,
+              borderRadius: radius,
+              backgroundColor: color,
+            },
+            sweep,
+          ]}
+        />
         {!square && !shown && progress > 0 && (
           <Svg
             width={size}
@@ -631,8 +813,44 @@ export function AnimatedCheck({
           />
         </Animated.View>
       </Animated.View>
-      <Burst fire={fire} color={color} size={size} />
     </Pressable>
+  )
+}
+
+/** A button or card that cheers when `fire` goes up: it pops (just the
+ * burst's halo under Reduce Motion) with a burst drawn over it. */
+export function Cheer({
+  fire,
+  color,
+  size = 56,
+  children,
+  style,
+}: {
+  fire: number
+  color: string
+  size?: number
+  children: ReactNode
+  style?: ViewStyle
+}) {
+  const reduced = useReducedMotion()
+  const scale = useSharedValue(1)
+  const seen = useRef(fire)
+  useEffect(() => {
+    if (fire === seen.current) return
+    seen.current = fire
+    if (fire > 0 && !reduced)
+      scale.value = withSequence(
+        never,
+        fade(0.94, 80),
+        spring(1, { damping: 7, stiffness: 280 }),
+      )
+  }, [fire, reduced, scale])
+  const pop = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }))
+  return (
+    <Animated.View style={[style, pop]}>
+      {children}
+      <Burst fire={fire} color={color} size={size} />
+    </Animated.View>
   )
 }
 

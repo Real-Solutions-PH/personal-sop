@@ -256,6 +256,8 @@ test("a plain tap still opens details and the check still checks", () => {
   expect(push).toHaveBeenCalledWith(`/habits/${h.id}`)
   expect(screen.queryByText("Edit habit")).toBeNull()
   fireEvent.press(screen.getByRole("checkbox", { name: "Complete Walk" }))
+  // Commits after the check's celebration beat.
+  settle()
   expect(
     habitsStore.get().logs.find((l) => l.habitId === h.id && l.day === dayKey())
       ?.status,

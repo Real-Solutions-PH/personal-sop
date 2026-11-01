@@ -76,6 +76,7 @@ import {
   rowExit,
   Shimmer,
   StreakChip,
+  TickRow,
   useDayMoment,
   useSwipeComplete,
 } from "../motion"
@@ -315,7 +316,6 @@ function TodayPlan() {
   const markDone = (i: CalendarItem) => {
     const h = habitOf(i)
     const k = taskOf(i)
-    feel.success()
     if (h) HA.checkHabit(h, today)
     if (k) completeTask(k)
     toast.success(`Done: ${i.title}`)
@@ -358,73 +358,75 @@ function TodayPlan() {
           const isNext = i.id === nextId
           const past = Boolean(i.time && i.time < hm)
           return (
-            <Line
-              key={i.id}
-              style={{
-                minHeight: 44,
-                justifyContent: "center",
-                borderRadius: 12,
-              }}
-            >
-              <Tap
-                onPress={() => go(i.href)}
-                label={`${i.time ?? "Anytime"}, ${i.title}`}
-                style={{ flex: 1, minHeight: 44, justifyContent: "center" }}
+            <TickRow key={i.id}>
+              <Line
+                style={{
+                  minHeight: 44,
+                  justifyContent: "center",
+                  borderRadius: 12,
+                }}
               >
-                <Line style={{ gap: 12 }}>
-                  <Copy
-                    size={13}
-                    muted={!isNext}
-                    weight={isNext ? "semibold" : undefined}
-                    style={{
-                      width: 48,
-                      fontVariant: ["tabular-nums"],
-                      color: isNext
-                        ? accent(i.module)
-                        : past
-                          ? t.bad
-                          : undefined,
-                    }}
-                  >
-                    {i.time ?? "Any"}
-                  </Copy>
-                  <View
-                    style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: 4,
-                      backgroundColor: accent(i.module),
-                    }}
-                  />
-                  <Copy
-                    weight={isNext ? "semibold" : "medium"}
-                    lines={1}
-                    style={{ flex: 1 }}
-                  >
-                    {i.title}
-                  </Copy>
-                  {isNext && (
+                <Tap
+                  onPress={() => go(i.href)}
+                  label={`${i.time ?? "Anytime"}, ${i.title}`}
+                  style={{ flex: 1, minHeight: 44, justifyContent: "center" }}
+                >
+                  <Line style={{ gap: 12 }}>
                     <Copy
-                      size={11}
-                      weight="semibold"
-                      style={{ color: accent(i.module) }}
+                      size={13}
+                      muted={!isNext}
+                      weight={isNext ? "semibold" : undefined}
+                      style={{
+                        width: 48,
+                        fontVariant: ["tabular-nums"],
+                        color: isNext
+                          ? accent(i.module)
+                          : past
+                            ? t.bad
+                            : undefined,
+                      }}
                     >
-                      {i.time && i.time < hm ? "NOW" : "NEXT"}
+                      {i.time ?? "Any"}
                     </Copy>
-                  )}
-                </Line>
-              </Tap>
-              {doneable(i) && (
-                <IconTap
-                  size={36}
-                  icon={Check}
-                  label={`Mark ${i.title.replace(/^\p{Extended_Pictographic}\s*/u, "")} done`}
-                  background={`${t.good}1f`}
-                  color={t.good}
-                  onPress={() => markDone(i)}
-                />
-              )}
-            </Line>
+                    <View
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: 4,
+                        backgroundColor: accent(i.module),
+                      }}
+                    />
+                    <Copy
+                      weight={isNext ? "semibold" : "medium"}
+                      lines={1}
+                      style={{ flex: 1 }}
+                    >
+                      {i.title}
+                    </Copy>
+                    {isNext && (
+                      <Copy
+                        size={11}
+                        weight="semibold"
+                        style={{ color: accent(i.module) }}
+                      >
+                        {i.time && i.time < hm ? "NOW" : "NEXT"}
+                      </Copy>
+                    )}
+                  </Line>
+                </Tap>
+                {doneable(i) && (
+                  <AnimatedCheck
+                    checked={false}
+                    onToggle={() => markDone(i)}
+                    label={`Mark ${i.title.replace(/^\p{Extended_Pictographic}\s*/u, "")} done`}
+                    color={accent(i.module)}
+                    idle={border(t.muted, 0.3)}
+                    size={28}
+                    checkColor={t.onPrimary}
+                  />
+                )}
+              </Line>
+            </TickRow>
           )
         })
       )}
@@ -565,85 +567,87 @@ function ManualTodayHabit({ habit }: { habit: Habit }) {
           onMore={() => setSheet(true)}
           background={t.card}
         >
-          <Line style={{ gap: 8, paddingVertical: 4 }}>
-            <AnimatedCheck
-              checked={done}
-              onToggle={toggle}
-              label={`${done ? "Reopen" : "Complete"} ${habit.name}`}
-              color={t.hab}
-              idle={border(t.muted, 0.3)}
-              size={37}
-              ring={3}
-              checkColor={t.onPrimary}
-              progress={H.progressOf(habit, log)}
-              celebrate={swipe.celebrate + stepped}
-            />
-            <Tap
-              onPress={() => go(`/habits/${habit.id}`)}
-              onLongPress={() => {
-                feel.tap()
-                setActions(true)
-              }}
-              hint="Long press for actions"
-              longPressLabel="Habit actions"
-              style={{ flex: 1, paddingVertical: 6 }}
-            >
-              <Copy
-                weight="medium"
-                lines={1}
-                style={
-                  done
-                    ? { color: t.muted, textDecorationLine: "line-through" }
-                    : {}
-                }
-              >
-                {habit.icon} {habit.name}
-              </Copy>
-              <Line style={{ gap: 6 }}>
-                <Copy size={12} muted>
-                  {H.fmtTime(H.slotFor(habit.schedule, today)?.time)}
-                  {log?.value !== undefined
-                    ? ` · ${H.valueLabel(habit, log.value)}`
-                    : ""}
-                  {log?.status === "skipped" ? " · skipped" : ""}
-                </Copy>
-                {habit.rule && <ScreenOffMark />}
-                <StreakChip streak={streak} />
-              </Line>
-            </Tap>
-            {habit.type === "count" && !done && (
-              <Tap
-                label={`Add ${habit.step ?? 1} ${habit.unit ?? ""}`}
-                onPress={step}
-                style={{
-                  minWidth: 36,
-                  height: 36,
-                  borderRadius: 18,
-                  backgroundColor: `${t.hab}26`,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Copy size={12} weight="semibold" style={{ color: t.hab }}>
-                  +{habit.step ?? 1}
-                </Copy>
-              </Tap>
-            )}
-            {habit.type === "duration" && !done && (
-              <IconTap
-                icon={Play}
-                label={`Start ${habit.name} timer`}
+          <TickRow>
+            <Line style={{ gap: 8, paddingVertical: 4 }}>
+              <AnimatedCheck
+                checked={done}
+                onToggle={toggle}
+                label={`${done ? "Reopen" : "Complete"} ${habit.name}`}
                 color={t.hab}
-                background={`${t.hab}26`}
-                onPress={() => go(HA.timerHref(habit.id))}
+                idle={border(t.muted, 0.3)}
+                size={37}
+                ring={3}
+                checkColor={t.onPrimary}
+                progress={H.progressOf(habit, log)}
+                celebrate={swipe.celebrate + stepped}
               />
-            )}
-            <IconTap
-              icon={MoreHorizontal}
-              label={`More options for ${habit.name}`}
-              onPress={() => setSheet(true)}
-            />
-          </Line>
+              <Tap
+                onPress={() => go(`/habits/${habit.id}`)}
+                onLongPress={() => {
+                  feel.tap()
+                  setActions(true)
+                }}
+                hint="Long press for actions"
+                longPressLabel="Habit actions"
+                style={{ flex: 1, paddingVertical: 6 }}
+              >
+                <Copy
+                  weight="medium"
+                  lines={1}
+                  style={
+                    done
+                      ? { color: t.muted, textDecorationLine: "line-through" }
+                      : {}
+                  }
+                >
+                  {habit.icon} {habit.name}
+                </Copy>
+                <Line style={{ gap: 6 }}>
+                  <Copy size={12} muted>
+                    {H.fmtTime(H.slotFor(habit.schedule, today)?.time)}
+                    {log?.value !== undefined
+                      ? ` · ${H.valueLabel(habit, log.value)}`
+                      : ""}
+                    {log?.status === "skipped" ? " · skipped" : ""}
+                  </Copy>
+                  {habit.rule && <ScreenOffMark />}
+                  <StreakChip streak={streak} />
+                </Line>
+              </Tap>
+              {habit.type === "count" && !done && (
+                <Tap
+                  label={`Add ${habit.step ?? 1} ${habit.unit ?? ""}`}
+                  onPress={step}
+                  style={{
+                    minWidth: 36,
+                    height: 36,
+                    borderRadius: 18,
+                    backgroundColor: `${t.hab}26`,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Copy size={12} weight="semibold" style={{ color: t.hab }}>
+                    +{habit.step ?? 1}
+                  </Copy>
+                </Tap>
+              )}
+              {habit.type === "duration" && !done && (
+                <IconTap
+                  icon={Play}
+                  label={`Start ${habit.name} timer`}
+                  color={t.hab}
+                  background={`${t.hab}26`}
+                  onPress={() => go(HA.timerHref(habit.id))}
+                />
+              )}
+              <IconTap
+                icon={MoreHorizontal}
+                label={`More options for ${habit.name}`}
+                onPress={() => setSheet(true)}
+              />
+            </Line>
+          </TickRow>
         </SwipeRow>
       </Animated.View>
       <HabitLog
