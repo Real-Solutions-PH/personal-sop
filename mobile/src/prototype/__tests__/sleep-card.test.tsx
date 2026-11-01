@@ -64,11 +64,15 @@ const fromWeek = async (days: readonly string[]) =>
     return i < 0 ? null : (week[i] ?? null)
   })
 beforeEach(() => {
+  // Mid-month, so a week and the month so far both have days behind them;
+  // on the 1st the month holds only today and the month cases cannot pass.
+  jest.useFakeTimers({ advanceTimers: true, now: new Date(2026, 9, 15, 12) })
   mockAsked = async () => true
   mockReadSleep.mockReset()
   mockReadSleep.mockImplementation(fromWeek)
   jest.mocked(router.push).mockClear()
 })
+afterEach(() => jest.useRealTimers())
 
 test("hours and minutes", () => {
   expect(hm(425)).toBe("7h 05m")

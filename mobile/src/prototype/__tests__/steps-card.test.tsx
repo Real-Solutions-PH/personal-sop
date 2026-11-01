@@ -82,6 +82,9 @@ const fromWeek = async (days: readonly string[]) =>
     return i < 0 ? null : day(week[i] ?? 0)
   })
 beforeEach(() => {
+  // Mid-month, so a week and the month so far both have days behind them;
+  // on the 1st the month holds only today and the month cases cannot pass.
+  jest.useFakeTimers({ advanceTimers: true, now: new Date(2026, 9, 15, 12) })
   mockAvailable = true
   mockAsked = async () => true
   mockConnect.mockClear()
