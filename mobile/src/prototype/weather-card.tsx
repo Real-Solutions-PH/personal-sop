@@ -43,7 +43,7 @@ export async function askLocation(once = false) {
   const r = await pending
   if (!r.ok) {
     const city = weatherStore.get().city.name
-    toast(
+    toast.warning(
       r.reason === "denied"
         ? `Location access is off — showing ${city}. Search for your city instead.`
         : `Couldn't get your location — showing ${city}.`,

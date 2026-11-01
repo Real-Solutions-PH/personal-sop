@@ -5,7 +5,6 @@ import { tasksStore } from "@domain/tasks/store"
 import { RotateCcw, Search, X } from "lucide-react-native"
 import { useState } from "react"
 import { ScrollView, TextInput, View } from "react-native"
-import { toast } from "sonner-native"
 import {
   border,
   Copy,
@@ -301,10 +300,9 @@ export function TaskCompleted() {
         quiet
         small
         icon={isDeleted ? RotateCcw : undefined}
-        onPress={() => {
+        onPress={() =>
           isDeleted ? A.restoreTask(task.id) : A.uncompleteTask(task.id)
-          toast(isDeleted ? "Restored" : "Reopened")
-        }}
+        }
       >
         {isDeleted ? "Restore" : "Reopen"}
       </SmallButton>

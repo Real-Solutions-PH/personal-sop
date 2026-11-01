@@ -5,7 +5,6 @@ import * as L from "@domain/habits/logic"
 import { habitsStore } from "@domain/habits/store"
 import { dayKey } from "@domain/lib/day"
 import { useEffect, useRef, useState } from "react"
-import { toast } from "sonner-native"
 import { go } from "../navigation"
 import { Button, confirm, Sheet, undo } from "../ui"
 import { HabitLog } from "./habits"
@@ -69,10 +68,8 @@ export function HabitActions({
           tone="quiet"
           onPress={() =>
             close(() => {
-              if (paused) {
-                A.resumeHabit(h.id)
-                toast.success("Resumed")
-              } else go(`/habits/${h.id}?pause=1`)
+              if (paused) A.resumeHabit(h.id)
+              else go(`/habits/${h.id}?pause=1`)
             })
           }
         >

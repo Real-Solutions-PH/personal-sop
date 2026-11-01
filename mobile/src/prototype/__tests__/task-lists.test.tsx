@@ -50,7 +50,11 @@ jest.mock("react-native-gesture-handler/ReanimatedSwipeable", () => {
   return ({ children }: { children: ReactNode }) => <View>{children}</View>
 })
 jest.mock("sonner-native", () => ({
-  toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn() }),
+  toast: Object.assign(jest.fn(), {
+    success: jest.fn(),
+    error: jest.fn(),
+    warning: jest.fn(),
+  }),
 }))
 const metrics = {
   frame: { x: 0, y: 0, width: 390, height: 844 },
@@ -88,7 +92,7 @@ test("no lists: a dimmed preview of the three and one button that adds them", ()
   fireEvent.press(screen.getByText("Add Work, Life and Groceries"))
   expect(names()).toEqual(["Work", "Life", "Groceries"])
   expect(tasksStore.get().lists[2].kind).toBe("shopping")
-  expect(toast.success).toHaveBeenCalledWith("Lists added")
+  expect(toast.success).not.toHaveBeenCalled()
 })
 
 test("the starter button waits for the first pull", () => {

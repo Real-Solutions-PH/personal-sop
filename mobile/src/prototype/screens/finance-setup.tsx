@@ -108,8 +108,7 @@ export function FinanceSetup({
         inProjection: true,
       }).id
     }
-    const home = landing ? created[landing.key] : existing?.id,
-      planned: string[] = []
+    const home = landing ? created[landing.key] : existing?.id
     if (Number(salary) > 0 && home) {
       A.addPlanned({
         name: "Salary",
@@ -124,7 +123,6 @@ export function FinanceSetup({
         isWhatIf: false,
         inProjection: true,
       })
-      planned.push("salary")
     }
     if (Number(rent) > 0 && home) {
       A.addPlanned({
@@ -140,7 +138,6 @@ export function FinanceSetup({
         isWhatIf: false,
         inProjection: true,
       })
-      planned.push("rent")
     }
     // A default account, so the first transaction has somewhere to go:
     // GCash, else the one already set, else the first everyday account.
@@ -154,12 +151,6 @@ export function FinanceSetup({
           : undefined
     const def = created.gcash ?? fallback
     if (def) A.updateSettings({ defaultAccountId: def })
-    const what = planned.join(" and ")
-    toast(
-      picked.length
-        ? `${plural(picked.length, "account")} added${what ? `, ${what} scheduled` : ""}`
-        : `${what[0].toUpperCase()}${what.slice(1)} scheduled`,
-    )
     if (onDone) onDone()
     else go("/finance")
   }

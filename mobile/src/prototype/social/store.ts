@@ -1021,13 +1021,13 @@ function send(
   if (!liveMode) return
   const offline = () => {
     undo()
-    toast(`You're offline. Couldn't ${what}.`)
+    toast.error(`You're offline. Couldn't ${what}.`)
   }
   if (!getConnectivity()) return offline()
   const run = (r: SocialRemote) =>
     call(r).catch((e: unknown) => {
       undo()
-      toast(report?.(e) ?? `Couldn't ${what}. Please try again.`)
+      toast.error(report?.(e) ?? `Couldn't ${what}. Please try again.`)
     })
   if (remote) return void run(remote)
   // Online but startup is still restoring the session: wait for it, briefly.
@@ -1087,7 +1087,7 @@ function intent<T>(
     if (intents.get(key) !== e) return
     intents.delete(key)
     e.revert(e.confirmed)
-    toast(
+    toast.error(
       offline
         ? `You're offline. Couldn't ${e.what}.`
         : `Couldn't ${e.what}. Please try again.`,
@@ -1144,7 +1144,7 @@ function load(call: (r: SocialRemote) => Promise<unknown>, report?: string) {
     .then(
       () => {},
       () => {
-        if (report) toast(report)
+        if (report) toast.error(report)
       },
     )
 }

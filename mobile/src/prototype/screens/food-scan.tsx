@@ -6,7 +6,6 @@ import { dayKey } from "@domain/lib/day"
 import { ScanBarcode } from "lucide-react-native"
 import { type ReactNode, useRef, useState } from "react"
 import { View } from "react-native"
-import { toast } from "sonner-native"
 import { itemFor, lookupBarcode, type Product } from "../food-barcode"
 import { Copy, Frame, Line } from "../native-kit"
 import { back, go } from "../navigation"
@@ -181,7 +180,6 @@ function Found({
           eatenAt: new Date(`${day}T12:00:00`).toISOString(),
         }),
     })
-    toast.success(`Logged ${item.name}`)
     back("/nutrition")
   }
   return (

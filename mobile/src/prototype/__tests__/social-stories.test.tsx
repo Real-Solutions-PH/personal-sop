@@ -21,7 +21,11 @@ jest.mock("expo-router", () => ({
   usePathname: () => "/social/stories/ana",
 }))
 jest.mock("sonner-native", () => ({
-  toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn() }),
+  toast: Object.assign(jest.fn(), {
+    success: jest.fn(),
+    error: jest.fn(),
+    warning: jest.fn(),
+  }),
 }))
 jest.mock("expo-image", () => {
   const { View } = require("react-native")
@@ -186,12 +190,14 @@ test("a slide not loaded within 15 s shows the error", () => {
   expect(screen.getByText("Couldn't load this check-in")).toBeTruthy()
 })
 
-test("a person with no live check-ins: spinner, then a toast and close", async () => {
+test("a person with no live check-ins: spinner, then an error toast and close", async () => {
   socialStore.set((s) => ({ ...s, stories: [] }))
   show("ana")
   expect(screen.getByLabelText("Loading")).toBeTruthy()
   await act(async () => {})
   expect(loadStoriesLive).toHaveBeenCalled()
-  expect(toast).toHaveBeenCalledWith("This check-in is no longer available")
+  expect(toast.error).toHaveBeenCalledWith(
+    "This check-in is no longer available",
+  )
   expect(mockBack).toHaveBeenCalled()
 })

@@ -269,7 +269,6 @@ export function CapturePhoto({
                   : caption,
             })
             onClose()
-            if (photos.length > 1) toast.success(`Sent ${photos.length} photos`)
             onSent?.(id)
           }}
         >
@@ -307,11 +306,6 @@ export async function attachFiles(onSent?: (id: string) => void) {
       text: `Attached ${file.name}`,
       hint: account?.id,
     }),
-  )
-  toast.success(
-    ids.length > 1
-      ? `Sent ${ids.length} files`
-      : `Sent ${picked.assets[0].name}`,
   )
   onSent?.(ids[ids.length - 1])
 }

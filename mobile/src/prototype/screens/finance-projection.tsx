@@ -210,11 +210,6 @@ export function Projection() {
       isInstallment: mode === "inst",
       inProjection: !draft,
     })
-    toast(
-      draft
-        ? `Saved “${name}” as a what-if draft`
-        : `“${name}” added to your plan`,
-    )
     setWhat(false)
   }
   const chiprow = (items: React.ReactNode) => (

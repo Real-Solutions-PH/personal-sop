@@ -112,7 +112,6 @@ function ChooseUsername({ refused }: { refused: string }) {
     )
     if (ok) {
       haptic.success()
-      toast.success("Account created")
       replace("/onboarding")
     }
   }
@@ -246,10 +245,8 @@ export function AccountForm({ onBack }: { onBack: () => void }) {
     )
     if (ok) {
       haptic.success()
-      if (sessionStore.get().signedIn) {
-        toast.success("Account created")
-        replace("/onboarding")
-      } else go("/verify-email")
+      if (sessionStore.get().signedIn) replace("/onboarding")
+      else go("/verify-email")
     }
   }
   const onSocial = async (provider: "apple" | "google") => {
@@ -257,7 +254,6 @@ export function AccountForm({ onBack }: { onBack: () => void }) {
     try {
       await continueWith(provider, { newAccount: true })
       haptic.success()
-      toast.success("Account created")
       replace("/onboarding")
     } catch {
       setSocial(null)
@@ -423,30 +419,7 @@ export function AccountForm({ onBack }: { onBack: () => void }) {
                 color: t.text,
               }}
             >
-              I agree to the{" "}
-              <Text
-                accessibilityRole="link"
-                onPress={() =>
-                  toast("Terms of Service", {
-                    description: "Placeholder in the prototype.",
-                  })
-                }
-                style={{ fontFamily: fonts.medium, color: t.primary }}
-              >
-                Terms of Service
-              </Text>{" "}
-              and{" "}
-              <Text
-                accessibilityRole="link"
-                onPress={() =>
-                  toast("Privacy Policy", {
-                    description: "Placeholder in the prototype.",
-                  })
-                }
-                style={{ fontFamily: fonts.medium, color: t.primary }}
-              >
-                Privacy Policy
-              </Text>
+              I agree to the Terms of Service and Privacy Policy
             </Text>
           </Checkbox>
           {show("terms") && (

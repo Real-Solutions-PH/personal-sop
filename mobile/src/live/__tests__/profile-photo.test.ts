@@ -20,7 +20,7 @@ jest.mock("@domain/lib/platform", () => {
   return {
     ...actual,
     getConnectivity: () => mockOnline,
-    toast: Object.assign(say, { success: say }),
+    toast: Object.assign(say, { success: say, error: say, warning: say }),
   }
 })
 
@@ -92,7 +92,8 @@ test("a new photo is uploaded, then PATCHed with its media id", async () => {
   ])
   expect(patches(calls)).toEqual([{ photo_media_id: "media-1" }])
   expect(pending()).toBeUndefined()
-  expect(mockToasts).toEqual(["Profile photo updated"])
+  // The photo itself changes: no success toast.
+  expect(mockToasts).toEqual([])
 })
 
 test("removing the photo sends null", async () => {
@@ -104,7 +105,7 @@ test("removing the photo sends null", async () => {
   expect(await syncProfilePhoto(undefined, { deps })).toBe("ok")
   expect(patches(calls)).toEqual([{ photo_media_id: null }])
   expect(socialStore.get().me?.photo).toBeUndefined()
-  expect(mockToasts).toEqual(["Profile photo removed"])
+  expect(mockToasts).toEqual([])
 })
 
 test("a failed PATCH keeps the local photo and the uploaded id pending", async () => {
@@ -180,7 +181,7 @@ test("the retry on connect reuses the media id already uploaded", async () => {
   expect(await retryProfilePhoto(deps)).toBe("ok")
   expect(calls.map((c) => `${c.method} ${c.path}`)).toEqual(["PATCH /profile"])
   expect(patches(calls)).toEqual([{ photo_media_id: "media-9" }])
-  // A retry nobody tapped says nothing on success.
+  // Success says nothing.
   expect(mockToasts).toEqual([])
 })
 

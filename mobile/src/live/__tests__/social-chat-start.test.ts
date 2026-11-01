@@ -23,7 +23,10 @@ const mockToasts: string[] = []
 jest.mock("@domain/lib/platform", () => ({
   ...jest.requireActual("@domain/lib/platform"),
   getConnectivity: () => true,
-  toast: (m: string) => void mockToasts.push(m),
+  toast: Object.assign((m: string) => void mockToasts.push(m), {
+    error: (m: string) => void mockToasts.push(m),
+    warning: (m: string) => void mockToasts.push(m),
+  }),
 }))
 
 const MEID = "11111111-1111-4111-8111-111111111111"

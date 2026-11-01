@@ -53,7 +53,11 @@ jest.mock("react-native-gesture-handler/ReanimatedSwipeable", () => {
   return ({ children }: { children: ReactNode }) => <View>{children}</View>
 })
 jest.mock("sonner-native", () => ({
-  toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn() }),
+  toast: Object.assign(jest.fn(), {
+    success: jest.fn(),
+    error: jest.fn(),
+    warning: jest.fn(),
+  }),
 }))
 const metrics = {
   frame: { x: 0, y: 0, width: 390, height: 844 },
@@ -227,7 +231,7 @@ test("Archive confirms, archives with an undo toast, and Undo restores", () => {
   )
 })
 
-test("a paused habit offers Resume now, which resumes with a toast", () => {
+test("a paused habit offers Resume now, which resumes without a toast", () => {
   const h = walk()
   A.pauseHabit(h.id)
   render(<HabitsList />, { wrapper })
@@ -237,7 +241,7 @@ test("a paused habit offers Resume now, which resumes with a toast", () => {
   expect(habitsStore.get().habits.find((x) => x.id === h.id)?.status).toBe(
     "active",
   )
-  expect(toast.success).toHaveBeenCalledWith("Resumed")
+  expect(toast.success).not.toHaveBeenCalled()
 })
 
 test("Pause… opens the habit's page with its pause sheet", () => {
@@ -264,7 +268,7 @@ test("a plain tap still opens details and the check still checks", () => {
   ).toBe("done")
 })
 
-test("saving an edit toasts Habit saved; an invalid save does not", () => {
+test("saving an edit saves the habit without a toast; an invalid save does not save", () => {
   const h = walk()
   render(<HabitForm id={h.id} />, { wrapper })
   fireEvent.changeText(screen.getByLabelText("Name"), "")
@@ -272,7 +276,7 @@ test("saving an edit toasts Habit saved; an invalid save does not", () => {
   expect(toast.success).not.toHaveBeenCalled()
   fireEvent.changeText(screen.getByLabelText("Name"), "Long walk")
   fireEvent.press(screen.getByText("Save changes"))
-  expect(toast.success).toHaveBeenCalledWith("Habit saved")
+  expect(toast.success).not.toHaveBeenCalled()
   expect(habitsStore.get().habits.find((x) => x.id === h.id)?.name).toBe(
     "Long walk",
   )

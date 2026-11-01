@@ -133,7 +133,6 @@ export function ForgotPassword() {
                 setResending(false)
                 restart()
                 haptic.success()
-                toast.success("Reset link sent again")
               }}
             >
               {resending ? "Sending…" : "Resend link"}

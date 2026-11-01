@@ -4,7 +4,6 @@
 import { Check, Pencil, Plus, Trash2 } from "lucide-react-native"
 import { useState } from "react"
 import { TextInput, View } from "react-native"
-import { toast } from "sonner-native"
 import { Copy, IconTap, Line, Tap } from "../native-kit"
 import { fonts, useTheme } from "../theme"
 import { Button, confirm, Sheet } from "../ui"
@@ -134,7 +133,6 @@ export function ChatsSheet({
                         "Its messages go too. What Fern remembers about you stays.",
                         () => {
                           deleteChat(c.id)
-                          toast("Chat deleted")
                         },
                         "Delete",
                       )

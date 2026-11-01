@@ -6,7 +6,9 @@ jest.mock("@/live/runtime", () => ({
   stopLive: mockStopLive,
   engine: () => null,
 }))
-jest.mock("@domain/capture/toast", () => ({ toast: mockToast }))
+jest.mock("@domain/capture/toast", () => ({
+  toast: Object.assign(jest.fn(), { warning: mockToast }),
+}))
 const mockKeys = new Map<string, string>()
 jest.mock("../storage", () => ({
   prototypeStorage: () => ({

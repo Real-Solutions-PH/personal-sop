@@ -1,5 +1,4 @@
 import { palette } from "@domain/design/tokens"
-import { toast } from "@domain/lib/platform"
 import * as Haptics from "expo-haptics"
 import { LinearGradient } from "expo-linear-gradient"
 import { useVideoPlayer, VideoView } from "expo-video"
@@ -1606,7 +1605,6 @@ export function NoteComposer({
             onPress={() => {
               setNote(text.trim())
               haptic.done()
-              toast.success("Note shared")
               onClose()
             }}
             style={{

@@ -11,7 +11,6 @@ import {
 } from "lucide-react-native"
 import { useState } from "react"
 import { View } from "react-native"
-import { toast } from "sonner-native"
 import { liveMode } from "@/live/config"
 import {
   Copy,
@@ -246,10 +245,7 @@ export function FitnessSettings() {
           it is never replaced by samples from here. */}
       {!liveMode && (
         <Tap
-          onPress={() => {
-            A.resetFitness()
-            toast.success("Fitness demo data restored")
-          }}
+          onPress={() => A.resetFitness()}
           style={{ paddingVertical: 16, alignItems: "center" }}
         >
           <Line style={{ gap: 8 }}>

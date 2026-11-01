@@ -53,14 +53,20 @@ export function PrototypeProviders({ children }: { children: ReactNode }) {
           ),
         ),
       )
-      configureNotifications((message, options) =>
-        toast(message, {
+      configureNotifications((message, options) => {
+        const show =
+          options?.tone === "error"
+            ? toast.error
+            : options?.tone === "warning"
+              ? toast.warning
+              : toast
+        return show(message, {
           duration: options?.duration,
           action: options?.action
             ? { label: options.action.label, onClick: options.action.onClick }
             : undefined,
-        }),
-      )
+        })
+      })
       flushStores()
       setReady(true)
     } catch {
@@ -68,15 +74,7 @@ export function PrototypeProviders({ children }: { children: ReactNode }) {
     }
   }, [])
   useEffect(initialize, [initialize])
-  useEffect(
-    () =>
-      connectWorkoutHabits((count) =>
-        toast.success(
-          `${count} workout habit${count === 1 ? "" : "s"} checked`,
-        ),
-      ),
-    [],
-  )
+  useEffect(() => connectWorkoutHabits(), [])
   useEffect(() => connectHealthWorkouts(), [])
   useEffect(() => {
     // Live mode: "online" means the app's own server answers, not that some

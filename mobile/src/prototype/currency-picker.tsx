@@ -9,7 +9,6 @@ import {
 import { Check, ChevronRight, Coins } from "lucide-react-native"
 import { useState } from "react"
 import { View } from "react-native"
-import { toast } from "sonner-native"
 import { Copy, Line, Tap } from "./native-kit"
 import { useTheme } from "./theme"
 import { Sheet } from "./ui"
@@ -24,9 +23,6 @@ export function CurrencyRow() {
     setOpen(false)
     if (c.code === cur.code) return
     setCurrency(c.code)
-    toast.success(`Amounts now show in ${c.code}`, {
-      description: "Existing amounts keep their numbers; nothing is converted.",
-    })
   }
   return (
     <>

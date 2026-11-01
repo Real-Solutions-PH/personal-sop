@@ -337,10 +337,7 @@ function FoodBody({ food }: { food: LibraryFood }) {
     valid = Object.keys(errs).length === 0
   const save = () =>
     edits.save.mutate(body, {
-      onSuccess: (f) => {
-        setOutcome({ ok: true, text: "Saved" })
-        toast.success(`Saved ${f.name}`)
-      },
+      onSuccess: () => setOutcome({ ok: true, text: "Saved" }),
       onError: (e) => {
         const text = foodEditError(e)
         setOutcome({ ok: false, text })
@@ -352,10 +349,7 @@ function FoodBody({ food }: { food: LibraryFood }) {
     if (!uri) return
     setLocalPhoto(uri)
     edits.photo.mutate(uri, {
-      onSuccess: () => {
-        setLocalPhoto(undefined)
-        toast.success("Photo updated")
-      },
+      onSuccess: () => setLocalPhoto(undefined),
       onError: (e) => {
         setLocalPhoto(undefined)
         const text = foodEditError(e)

@@ -1,7 +1,11 @@
 // Toasts as mobile snackbars: at the bottom above the tab bar (where the
 // thumb is, clear of the header), one compact row with the action ("Undo")
-// as a text button on the right. A confirmation shows no icon: the change
-// itself is on screen; errors and warnings keep theirs.
+// as a text button on the right.
+//
+// The rule: a toast either carries Undo or reports an error (or a warning
+// for a degraded outcome, like "offline, saved for later"). No success or
+// info toasts: the screen changing is the confirmation. A toast with an
+// action shows no icon; errors and warnings keep theirs.
 import { Toaster } from "sonner-native"
 import { fonts, useTheme } from "./theme"
 

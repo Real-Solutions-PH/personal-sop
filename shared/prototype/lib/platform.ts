@@ -44,6 +44,9 @@ export interface ToastOptions {
     label: string
     onClick: () => void
   }
+  /** A failure ("error") or a degraded outcome ("warning"); unset for a
+   * plain toast. */
+  tone?: "error" | "warning"
 }
 type Notify = (message: string, options?: ToastOptions) => unknown
 let notify: Notify = () => {}
@@ -55,5 +58,9 @@ export const toast = Object.assign(
   {
     success: (message: string, options?: ToastOptions) =>
       notify(message, options),
+    error: (message: string, options?: ToastOptions) =>
+      notify(message, { ...options, tone: "error" }),
+    warning: (message: string, options?: ToastOptions) =>
+      notify(message, { ...options, tone: "warning" }),
   },
 )

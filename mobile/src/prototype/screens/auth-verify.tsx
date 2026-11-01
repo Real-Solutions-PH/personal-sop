@@ -3,7 +3,6 @@ import { BadgeCheck, MailCheck } from "lucide-react-native"
 import { useEffect, useRef, useState } from "react"
 import type { TextInputInstance } from "react-native"
 import { ActivityIndicator, Text } from "react-native"
-import { toast } from "sonner-native"
 import {
   AuthButton,
   AuthScreen,
@@ -59,7 +58,6 @@ export function VerifyEmail() {
       async () => {
         try {
           await completeSignUp()
-          toast.success("Account created")
           // Not gated on `alive`: signing in removes this route from the
           // stack (unmounting the screen) in the same tick.
           replace("/onboarding")
@@ -200,9 +198,6 @@ export function VerifyEmail() {
               setCode("")
               submit.clear()
               haptic.success()
-              toast.success("New code sent", {
-                description: `Check ${maskEmail(pending?.email ?? "")}`,
-              })
               input.current?.focus()
             }}
           >

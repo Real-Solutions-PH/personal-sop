@@ -45,7 +45,11 @@ jest.mock("@domain/lib/platform", () => ({
   toast: Object.assign(jest.fn(), { success: jest.fn() }),
 }))
 jest.mock("sonner-native", () => ({
-  toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn() }),
+  toast: Object.assign(jest.fn(), {
+    success: jest.fn(),
+    error: jest.fn(),
+    warning: jest.fn(),
+  }),
 }))
 jest.mock("react-native-reanimated", () => ({
   __esModule: true,
@@ -112,12 +116,12 @@ test("closing the Create sheet without choosing Note opens nothing", async () =>
   expect(onNote).not.toHaveBeenCalled()
 })
 
-test("sharing from the note sheet says so and navigates nowhere", () => {
+test("sharing from the note sheet closes it, with no toast, and navigates nowhere", () => {
   const onClose = jest.fn()
   show(<NoteComposer open onClose={onClose} />)
   fireEvent.changeText(screen.getByLabelText("Note text"), "leg day")
   fireEvent.press(screen.getByText("Share"))
-  expect(toast.success).toHaveBeenCalledWith("Note shared")
+  expect(toast.success).not.toHaveBeenCalled()
   expect(onClose).toHaveBeenCalled()
   expect(mockPush).not.toHaveBeenCalled()
   expect(socialStore.get().notes[0]).toMatchObject({ text: "leg day" })

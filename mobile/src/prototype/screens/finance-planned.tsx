@@ -7,7 +7,6 @@ import { useLocalSearchParams } from "expo-router"
 import { ArrowLeftRight, Pencil, Plus, Tag } from "lucide-react-native"
 import { useState } from "react"
 import { ScrollView, Text, View } from "react-native"
-import { toast } from "sonner-native"
 import {
   border,
   Copy,
@@ -388,7 +387,6 @@ export function Planned({ id }: { id?: string }) {
                         isWhatIf: false,
                         inProjection: true,
                       })
-                      toast(`${p.name} is now part of your plan`)
                     } else {
                       const end = p.end
                       A.updatePlanned(p.id, {

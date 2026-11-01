@@ -32,7 +32,11 @@ jest.mock("expo-router", () => ({
 // A busy machine needs more than 5 s for the first render.
 jest.setTimeout(60_000)
 jest.mock("sonner-native", () => ({
-  toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn() }),
+  toast: Object.assign(jest.fn(), {
+    success: jest.fn(),
+    error: jest.fn(),
+    warning: jest.fn(),
+  }),
 }))
 jest.mock("react-native-gesture-handler", () => {
   const chain: object = new Proxy({}, { get: () => () => chain })
@@ -98,7 +102,7 @@ test("Save persists the dash store once and goes back to Me", () => {
   expect(dashStore.get().profile.name).toBe("Kai Noah")
   expect(mockRouter.back).toHaveBeenCalledTimes(1)
   expect(mockRouter.push).not.toHaveBeenCalled()
-  expect(toast.success).toHaveBeenCalledWith("Profile saved")
+  expect(toast.success).not.toHaveBeenCalled()
 })
 
 test("the one write carries the photo file, never image data, and no photo work", () => {

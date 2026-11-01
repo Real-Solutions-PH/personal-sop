@@ -102,9 +102,6 @@ export function useAuth() {
         router.replace("/(app)")
         return
       }
-      toast.success(
-        "Account created. Check your email to confirm, then log in.",
-      )
       router.replace("/login")
     },
     onError: (err) => toast.error(handleError(err)),

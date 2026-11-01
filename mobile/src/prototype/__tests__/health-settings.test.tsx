@@ -30,7 +30,11 @@ jest.mock("expo-router", () => ({
   usePathname: () => "/",
 }))
 jest.mock("sonner-native", () => ({
-  toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn() }),
+  toast: Object.assign(jest.fn(), {
+    success: jest.fn(),
+    error: jest.fn(),
+    warning: jest.fn(),
+  }),
 }))
 let mockAvailable = true
 let mockAsked = false
@@ -85,20 +89,15 @@ test("the save-workouts switch is off by default and asks Health when turned on"
   const sw = await screen.findByRole("switch", { name: SWITCH })
   expect(sw.props.accessibilityState?.checked).toBe(false)
   fireEvent.press(sw)
-  await waitFor(() =>
-    expect(toast.success).toHaveBeenCalledWith(
-      "Workouts will be saved to Apple Health",
-    ),
-  )
+  await waitFor(() => expect(healthWorkoutsStore.get().enabled).toBe(true))
+  // The switch turning on is the confirmation: no success toast.
+  expect(toast.success).not.toHaveBeenCalled()
   expect(mockConnectWrite).toHaveBeenCalledTimes(1)
-  expect(healthWorkoutsStore.get().enabled).toBe(true)
   expect(healthWorkoutsStore.get().enabledAt).toEqual(expect.any(String))
   // Off again: stops saving, keeps what Health has.
   fireEvent.press(screen.getByRole("switch", { name: SWITCH }))
   expect(healthWorkoutsStore.get().enabled).toBe(false)
-  expect(toast.success).toHaveBeenCalledWith(
-    "Workouts won't be saved to Apple Health",
-  )
+  expect(toast.success).not.toHaveBeenCalled()
 })
 
 test("denied: the switch stays off and points to the Health app", async () => {

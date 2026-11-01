@@ -244,7 +244,9 @@ export function profileFromServer(
       !toldRefused.has(refused)
     ) {
       toldRefused.add(refused)
-      toast(`@${refused} is taken, so your username was kept as @${handle}`)
+      toast.warning(
+        `@${refused} is taken, so your username was kept as @${handle}`,
+      )
     }
   }
   return {

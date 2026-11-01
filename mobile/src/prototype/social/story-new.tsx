@@ -26,7 +26,6 @@ import {
 } from "react-native"
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { toast } from "sonner-native"
 import { back, replace } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import { ProgressPicker } from "./compose"
@@ -197,15 +196,6 @@ export function StoryNew() {
       })
     else if (progress) addStory({ kind: "progress", progress, audience })
     haptic.done()
-    toast.success(
-      mode === "checkin"
-        ? audience === "close"
-          ? "Checked in with close friends"
-          : "Checked in"
-        : audience === "close"
-          ? "Shared with close friends"
-          : "Added to your check-ins",
-    )
     replace("/social")
   }
   return (

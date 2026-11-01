@@ -49,7 +49,11 @@ jest.mock("react-native-gesture-handler/ReanimatedSwipeable", () => {
   return ({ children }: { children: ReactNode }) => <View>{children}</View>
 })
 jest.mock("sonner-native", () => ({
-  toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn() }),
+  toast: Object.assign(jest.fn(), {
+    success: jest.fn(),
+    error: jest.fn(),
+    warning: jest.fn(),
+  }),
 }))
 jest.mock("expo-audio", () => ({}))
 jest.mock("../media", () => ({
@@ -197,7 +201,7 @@ describe("pinned rest timer", () => {
     render(<WorkoutLogger />, { wrapper })
     fireEvent.press(screen.getByText("Make 150s my default"))
     expect(fitStore.get().settings.restSec).toBe(150)
-    expect(toast.success).toHaveBeenCalledWith("Default rest set to 150s")
+    expect(toast.success).not.toHaveBeenCalled()
   })
 })
 
@@ -231,8 +235,6 @@ describe("finishing a workout", () => {
     render(<WorkoutLogger />, { wrapper })
     fireEvent.press(screen.getByLabelText("Done editing"))
     expect(router.replace).toHaveBeenCalledWith(`/fitness/workouts/${w.id}`)
-    expect(toast.success).toHaveBeenCalledWith(
-      "Workout updated — PRs recomputed",
-    )
+    expect(toast.success).not.toHaveBeenCalled()
   })
 })

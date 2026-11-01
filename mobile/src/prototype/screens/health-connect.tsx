@@ -99,7 +99,6 @@ function SaveWorkoutsRow({ onAnswered }: { onAnswered: () => Promise<void> }) {
   const change = async (on: boolean) => {
     if (!on) {
       healthWorkoutsStore.set((s) => ({ ...s, enabled: false }))
-      toast.success("Workouts won't be saved to Apple Health")
       return
     }
     if (busy.current) return
@@ -113,7 +112,6 @@ function SaveWorkoutsRow({ onAnswered }: { onAnswered: () => Promise<void> }) {
         enabled: true,
         enabledAt: new Date().toISOString(),
       }))
-      toast.success("Workouts will be saved to Apple Health")
     } else
       toast.error(
         "Allow Unfurl to write Workouts in the Health app: Sharing → Apps → Unfurl",

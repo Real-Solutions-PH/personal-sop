@@ -318,7 +318,6 @@ function TodayPlan() {
     const k = taskOf(i)
     if (h) HA.checkHabit(h, today)
     if (k) completeTask(k)
-    toast.success(`Done: ${i.title}`)
   }
   const accent = (m: string) =>
     m === "habits"

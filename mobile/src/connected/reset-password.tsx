@@ -54,7 +54,6 @@ export default function ResetPasswordScreen() {
         password: new_password,
       })
       if (error) throw error
-      toast.success("Password reset. Please log in.")
       router.replace("/login")
     } catch (err) {
       toast.error(handleError(err))

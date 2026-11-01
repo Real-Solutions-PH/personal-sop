@@ -8,7 +8,6 @@ import { useLocalSearchParams } from "expo-router"
 import { BellOff, ChevronLeft, ChevronRight } from "lucide-react-native"
 import { useState } from "react"
 import { TextInput, View } from "react-native"
-import { toast } from "sonner-native"
 import { liveMode } from "@/live/config"
 import {
   border,
@@ -143,21 +142,10 @@ export function HabitSettings() {
           <>
             <SectionHeading>Prototype</SectionHeading>
             <Frame style={{ padding: 16, gap: 8 }}>
-              <Button
-                tone="danger"
-                onPress={() => {
-                  habitsStore.reset()
-                  toast("Habits data reset to the demo seed")
-                }}
-              >
+              <Button tone="danger" onPress={() => habitsStore.reset()}>
                 Reset habits demo data
               </Button>
-              <Tap
-                onPress={() => {
-                  resetAll()
-                  toast("All sections reset")
-                }}
-              >
+              <Tap onPress={() => resetAll()}>
                 <Copy size={12} muted style={{ textAlign: "center" }}>
                   Reset every section
                 </Copy>

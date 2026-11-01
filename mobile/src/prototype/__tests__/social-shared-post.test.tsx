@@ -4,7 +4,11 @@ import { SharedPost } from "../social/chat"
 import { socialStore } from "../social/store"
 
 jest.mock("sonner-native", () => ({
-  toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn() }),
+  toast: Object.assign(jest.fn(), {
+    success: jest.fn(),
+    error: jest.fn(),
+    warning: jest.fn(),
+  }),
 }))
 jest.mock("react-native-reanimated", () => ({
   __esModule: true,

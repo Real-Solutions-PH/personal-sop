@@ -430,7 +430,7 @@ export function CaptureQueue() {
                 disabled={!online}
                 onPress={() => {
                   const n = A.processQueue()
-                  toast(n ? `Processing ${n}…` : "Still offline")
+                  if (!n) toast.warning("Still offline")
                 }}
               >
                 Retry all
@@ -526,7 +526,6 @@ export function CaptureDetail({ id }: { id: string }) {
           label="Delete capture"
           onPress={() => {
             A.deleteCapture(cap.id)
-            toast("Capture deleted — its entries stay where they were saved")
             go("/capture/history")
           }}
         />

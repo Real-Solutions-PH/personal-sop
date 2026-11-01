@@ -185,7 +185,6 @@ export function BudgetEditor({
                   tone="quiet"
                   onPress={() => {
                     A.deleteBudget(ex.id)
-                    toast(`${ex.name} deleted`)
                     onClose()
                   }}
                 >
@@ -220,7 +219,6 @@ export function BudgetEditor({
                     rollover,
                   }
                   ex ? A.updateBudget(ex.id, input) : A.addBudget(input)
-                  toast(ex ? "Budget updated" : `Budget “${input.name}” set`)
                   onClose()
                 }}
               >

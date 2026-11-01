@@ -12,7 +12,11 @@ let mockOwner: string | null = "A"
 jest.mock("@/live/config", () => ({ liveMode: true }))
 jest.mock("@/live/runtime", () => ({ liveOwner: () => mockOwner }))
 jest.mock("sonner-native", () => ({
-  toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn() }),
+  toast: Object.assign(jest.fn(), {
+    success: jest.fn(),
+    error: jest.fn(),
+    warning: jest.fn(),
+  }),
 }))
 jest.mock("@sentry/react-native", () => ({ captureMessage: jest.fn() }))
 let mockCanWrite = true
@@ -102,7 +106,8 @@ test("a finish with the switch on saves once and records the sample", async () =
     cardio: false,
   })
   expect(saved()[w.id]).toEqual({ uuid: "hk-1", seen: true })
-  expect(toast.success).toHaveBeenCalledWith("Saved to Apple Health")
+  // The workout is saved quietly: no success toast.
+  expect(toast.success).not.toHaveBeenCalled()
   // The listener firing again (a second finish of the same workout).
   FA.finishWorkout(w.id, { unfinished: "done" })
   await settle()

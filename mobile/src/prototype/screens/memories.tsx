@@ -4,7 +4,6 @@
 import { Brain, Pin, Plus } from "lucide-react-native"
 import { useState } from "react"
 import { View } from "react-native"
-import { toast } from "sonner-native"
 import {
   ALWAYS_ON_KINDS,
   isKind,
@@ -99,11 +98,6 @@ export function Memories() {
   ).length
   const toggle = (m: Memory, alwaysOn: boolean) => {
     editMemory(m.id, { alwaysOn })
-    toast.success(
-      alwaysOn
-        ? `${name} keeps this in every conversation`
-        : `${name} brings this up when it's relevant`,
-    )
   }
   return (
     <Screen
@@ -281,13 +275,8 @@ function MemoryEditor({
       return
     }
     const fields = { text: body, kind, tags: parseTags(tags), alwaysOn }
-    if (memory) {
-      editMemory(memory.id, fields)
-      toast.success("Memory updated")
-    } else {
-      remember(body, { ...fields, source: "app" })
-      toast.success(`${name} will remember that`)
-    }
+    if (memory) editMemory(memory.id, fields)
+    else remember(body, { ...fields, source: "app" })
     onClose()
   }
   const remove = () => {

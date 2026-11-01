@@ -28,7 +28,6 @@ import {
 } from "lucide-react-native"
 import { useState } from "react"
 import { TextInput, View } from "react-native"
-import { toast } from "sonner-native"
 import {
   border,
   Copy,
@@ -528,9 +527,6 @@ function Review({ id }: { id: string }) {
                       p.kind === "week" ? "weekly-review" : "monthly-review",
                     ],
                   })
-                toast.success("Review done", {
-                  description: "Archived. See you next week.",
-                })
                 go("/stats/reviews")
               }}
             >

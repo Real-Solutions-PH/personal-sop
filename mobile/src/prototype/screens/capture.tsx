@@ -16,7 +16,6 @@ import {
 } from "lucide-react-native"
 import { useEffect, useState } from "react"
 import { AppState, TextInput, View } from "react-native"
-import { toast } from "sonner-native"
 import { border, Copy, Frame, IconTap, Line, Tap } from "../native-kit"
 import { go } from "../navigation"
 import { fonts, useTheme } from "../theme"
@@ -555,10 +554,9 @@ export function Reply({
             onPress={() => {
               if (action.href) go(action.href)
               else if (action.do === "retry") A.retryCapture(capture.id)
-              else if (action.do === "journal") {
+              else if (action.do === "journal")
                 A.addJournalEntry({ body: capture.text })
-                toast.success("Saved to journal")
-              } else if (action.prompt) A.sendCapture({ text: action.prompt })
+              else if (action.prompt) A.sendCapture({ text: action.prompt })
               else go("/tasks/new")
             }}
           >

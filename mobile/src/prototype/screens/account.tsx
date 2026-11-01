@@ -43,8 +43,7 @@ export function Account() {
   const exportMine = async () => {
     const day = new Date().toISOString().slice(0, 10)
     const ok = await exportJson(`personal-sop-${day}.json`, exportData())
-    if (ok) toast.success("Your data is ready to save or share")
-    else toast.error("Export failed. Please try again.")
+    if (!ok) toast.error("Export failed. Please try again.")
   }
   return (
     <Screen title="Account & security">
@@ -91,10 +90,7 @@ export function Account() {
               "Every phone and browser signed in to this account is signed out, including this one. Edits not yet synced on this device are lost.",
               () => {
                 signOutEverywhere().then(
-                  () => {
-                    replace("/welcome")
-                    toast.success("Signed out on every device")
-                  },
+                  () => replace("/welcome"),
                   (e: unknown) =>
                     toast.error(
                       e instanceof AuthError
@@ -193,11 +189,6 @@ function EmailSheet({
     try {
       await changeEmail(email)
       onClose()
-      toast.success(
-        liveMode
-          ? `Check ${email.trim()} and open the link to confirm the change`
-          : "Email updated",
-      )
     } catch (e) {
       report(e, (_, message) => setError(message))
     } finally {
@@ -249,7 +240,6 @@ function PasswordSheet({ onClose }: { onClose: () => void }) {
     try {
       await changePassword(current, next)
       onClose()
-      toast.success("Password changed")
     } catch (e) {
       report(e, (_, message) =>
         // GoTrue says "password" for both: a wrong current password is the
@@ -312,7 +302,6 @@ function DeleteSheet({ onClose }: { onClose: () => void }) {
       await deleteAccount(password)
       onClose()
       replace("/welcome")
-      toast.success("Your account was deleted")
     } catch (e) {
       report(e, (_, message) => setError(message))
     } finally {

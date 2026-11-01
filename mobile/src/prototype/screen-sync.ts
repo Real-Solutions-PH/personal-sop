@@ -179,7 +179,7 @@ export async function enableScreenTime(): Promise<boolean> {
   await refreshScreenStatus()
   if (auth !== "approved") {
     setEnabled("screen", false)
-    toast(
+    toast.warning(
       !ST.screenTimeAvailable()
         ? SCREEN_NOT_IN_BUILD.detail
         : auth === "denied"
@@ -213,7 +213,7 @@ async function keepOn(auth: ST.ScreenAuth | null): Promise<boolean> {
   if (auth === "notDetermined") return true
   if (auth === "denied") {
     setEnabled("screen", false)
-    toast(SCREEN_REVOKED)
+    toast.warning(SCREEN_REVOKED)
     return false
   }
   const nowMs = Date.now()

@@ -176,7 +176,6 @@ export function GoalEditor({
                     () => {
                       deleteGoal(goal.id)
                       onClose()
-                      toast("Goal deleted")
                     },
                   )
                 }
@@ -192,7 +191,7 @@ export function GoalEditor({
                 disabled={!valid}
                 onPress={() => {
                   if (!entry || !valid) return
-                  const g = saveGoal({
+                  saveGoal({
                     id: goal?.id,
                     metric: ref,
                     label: entry.label,
@@ -201,9 +200,6 @@ export function GoalEditor({
                     comparator: cmp,
                     period,
                     via: goal?.via ?? "manual",
-                  })
-                  toast.success(goal ? "Goal updated" : "Goal set", {
-                    description: `${g.label} ${fmtGoal(g)}`,
                   })
                   onClose()
                 }}

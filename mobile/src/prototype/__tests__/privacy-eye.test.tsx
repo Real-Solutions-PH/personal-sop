@@ -46,7 +46,11 @@ jest.mock("react-native-gesture-handler/ReanimatedSwipeable", () => {
   return ({ children }: { children: ReactNode }) => <View>{children}</View>
 })
 jest.mock("sonner-native", () => ({
-  toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn() }),
+  toast: Object.assign(jest.fn(), {
+    success: jest.fn(),
+    error: jest.fn(),
+    warning: jest.fn(),
+  }),
 }))
 jest.mock("expo-audio", () => ({}))
 jest.mock("../media", () => ({ exportCsv: jest.fn(), pickPhoto: jest.fn() }))
@@ -82,7 +86,8 @@ test("hiding amounts on Finance is the same switch as the eye on Today", () => {
   expect(screen.queryAllByText("••••")).toHaveLength(0)
   fireEvent.press(screen.getByRole("button", { name: "Hide amounts" }))
   expect(privacyStore.get().hidden).toBe(true)
-  expect(toast).toHaveBeenCalledWith("Amounts hidden everywhere")
+  // The amounts turning to dots is the confirmation: no toast.
+  expect(toast).not.toHaveBeenCalled()
   expect(screen.queryAllByText("••••").length).toBeGreaterThan(0)
   fin.unmount()
 
@@ -90,7 +95,7 @@ test("hiding amounts on Finance is the same switch as the eye on Today", () => {
   // showing amounts from it shows them on Finance again.
   const eye = render(<PrivacyEye />, { wrapper })
   fireEvent.press(screen.getByRole("button", { name: "Show amounts" }))
-  expect(toast).toHaveBeenCalledWith("Amounts shown everywhere")
+  expect(toast).not.toHaveBeenCalled()
   eye.unmount()
   render(<FinanceHome />, { wrapper })
   expect(screen.queryAllByText("••••")).toHaveLength(0)

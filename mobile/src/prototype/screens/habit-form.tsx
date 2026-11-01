@@ -128,7 +128,6 @@ export function HabitForm({
     if (routine) {
       if (r) {
         A.updateRoutine(r.id, common)
-        toast.success("Routine saved")
         back()
       } else {
         const created = A.createRoutine(common)
@@ -165,7 +164,6 @@ export function HabitForm({
     if (auto || h?.rule) void syncScreenTime()
     if (h) {
       A.updateHabit(h.id, data)
-      toast.success("Habit saved")
       back()
       return
     }
@@ -181,7 +179,6 @@ export function HabitForm({
       ])
       go(`/habits/routines/${parent.id}`)
     } else go(`/habits/${created.id}`)
-    toast.success("Habit added")
   }
   return (
     <Screen

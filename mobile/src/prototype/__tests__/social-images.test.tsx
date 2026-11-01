@@ -4,7 +4,11 @@ import { prepareImage } from "../social/media"
 import { RemoteImage } from "../social/remote-image"
 
 jest.mock("sonner-native", () => ({
-  toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn() }),
+  toast: Object.assign(jest.fn(), {
+    success: jest.fn(),
+    error: jest.fn(),
+    warning: jest.fn(),
+  }),
 }))
 jest.mock("expo-image", () => {
   const { View } = require("react-native")

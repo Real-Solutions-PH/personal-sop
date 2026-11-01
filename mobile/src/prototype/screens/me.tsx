@@ -360,7 +360,6 @@ export function Me() {
                       require("@/live/runtime") as typeof import("@/live/runtime")
                     const n = live.reuploadAll()
                     if (n === null) toast.error("Not signed in to the server")
-                    else toast.success(`Sending ${n} items to the server…`)
                   },
                 )
               }
@@ -453,7 +452,6 @@ export function Me() {
                     "Every section goes back to its sample data. Anything you logged in this walkthrough is gone.",
                     () => {
                       resetAll()
-                      toast.success("Demo data reset")
                       go("/today")
                     },
                   )

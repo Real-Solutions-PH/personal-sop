@@ -17,7 +17,6 @@ import {
 } from "lucide-react-native"
 import { useEffect, useState } from "react"
 import { ScrollView, View } from "react-native"
-import { toast } from "sonner-native"
 import {
   Bar,
   Copy,
@@ -570,7 +569,6 @@ export function FinanceReview() {
                   income: d.flow.income,
                   spend: d.flow.spend,
                 })
-                toast("Review saved")
               }}
             >
               {saved ? "Update review" : "Save review"}

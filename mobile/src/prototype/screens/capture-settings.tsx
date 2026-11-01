@@ -415,7 +415,6 @@ function Settings() {
                 "Messages and cards disappear from the thread and history. Everything they saved stays in Habits, Tasks, Fitness, Finance and your journal.",
                 () => {
                   clearThread()
-                  toast("Thread cleared")
                 },
               )
             }
@@ -666,13 +665,13 @@ function WakeWordSetting() {
   const available = canListenForWake()
   const toggle = async (next: boolean) => {
     if (!next) return wakePrefs.set({ enabled: false })
-    if (!available) return toast("This build can't listen for a wake phrase.")
+    if (!available)
+      return toast.error("This build can't listen for a wake phrase.")
     if (!(await allowWakeListening()))
       return toast.error(
         "Allow the microphone and speech recognition in Settings to use this.",
       )
     wakePrefs.set({ enabled: true })
-    toast(`Listening for “Hey ${name}” while the app is open`)
   }
   return (
     <>

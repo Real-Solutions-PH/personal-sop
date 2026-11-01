@@ -90,7 +90,6 @@ function confirmMerge(source: Exercise, target: Exercise) {
         toast.error(r.reason)
         return
       }
-      toast.success(`Merged into ${r.target.name}`)
       replace(`/fitness/exercises/${r.target.id}`)
     },
     "Merge",
@@ -268,10 +267,7 @@ export function Exercises({ id }: { id?: string }) {
                     <Button
                       small
                       tone="quiet"
-                      onPress={() => {
-                        dismissDuplicate(d.merge.id, d.keep.id)
-                        toast("Hidden")
-                      }}
+                      onPress={() => dismissDuplicate(d.merge.id, d.keep.id)}
                     >
                       Not duplicates
                     </Button>

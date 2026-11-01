@@ -21,7 +21,6 @@ import {
 } from "lucide-react-native"
 import { useContext, useRef, useState } from "react"
 import { PanResponder, Pressable, View } from "react-native"
-import { toast } from "sonner-native"
 import { Celebration, useCelebrate } from "../celebration"
 import { useShown } from "../extras"
 import {
@@ -265,10 +264,7 @@ export function RoutineDetail({ id }: { id: string }) {
               confirm(
                 "Start over?",
                 `Today's run ends at step ${run.current + 1} of ${run.steps.length}, and the next start begins at step 1. Steps you've done stay logged.`,
-                () => {
-                  A.resetRoutine(id)
-                  toast("Routine reset")
-                },
+                () => A.resetRoutine(id),
                 "Start over",
               )
             }

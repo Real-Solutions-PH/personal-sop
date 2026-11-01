@@ -64,9 +64,9 @@ function editRows(importId: string, ids: string[], patch: Partial<ImportRow>) {
   if (!liveMode) return A.patchRows(importId, ids, patch)
   void liveImport()
     .patchRows(importId, ids, patch)
-    .catch((e) => toast(failureText(e)))
+    .catch((e) => toast.error(failureText(e)))
 }
-const liveError = (e: unknown) => void toast(failureText(e))
+const liveError = (e: unknown) => void toast.error(failureText(e))
 // The server keeps an import's before-images; live mode counts them.
 const changedCount = (i: StatementImport) =>
   liveMode && i.counts ? i.counts.matched + i.counts.updated : i.changed.length
@@ -161,7 +161,9 @@ function ImportStart() {
       if (!asset) return
       const source = detectCsv(await pickedText(asset))
       if (!source) {
-        toast("Couldn't find date, description and amount columns in that file")
+        toast.error(
+          "Couldn't find date, description and amount columns in that file",
+        )
         return
       }
       setFileKey(null)
@@ -520,12 +522,6 @@ function Failed({ imp }: { imp: StatementImport }) {
             >
               Choose another file
             </Button>
-            <Button
-              tone="quiet"
-              onPress={() => toast("Thanks — file format reported (mock)")}
-            >
-              Report this format
-            </Button>
           </View>
         }
       />
@@ -604,7 +600,6 @@ function Review({ imp }: { imp: StatementImport }) {
       counts.matched /
       Math.max(1, counts.matched + counts.new + counts.probable),
     report = (res: { gap: number; created: number; updated: number }) => {
-      toast(`Imported — ${res.created} added, ${res.updated} updated`)
       if (Math.abs(res.gap) >= 1 && acct)
         confirm(
           "Balance adjustment",
@@ -631,13 +626,7 @@ function Review({ imp }: { imp: StatementImport }) {
       footer={
         <Frame style={{ margin: 16, padding: 8 }}>
           <Line style={{ gap: 8 }}>
-            <Button
-              tone="quiet"
-              onPress={() => {
-                toast("Draft saved — resume from Import history")
-                go("/finance/imports")
-              }}
-            >
+            <Button tone="quiet" onPress={() => go("/finance/imports")}>
               Save draft
             </Button>
             <View style={{ flex: 1 }}>
@@ -736,7 +725,6 @@ function Review({ imp }: { imp: StatementImport }) {
                   rows.filter((r) => r.state === "new").map((r) => r.id),
                   { decision: "accept" },
                 )
-                toast("All new rows accepted")
               }}
             >
               Accept all new
@@ -965,7 +953,6 @@ function Review({ imp }: { imp: StatementImport }) {
                     categoryId: c.id,
                     decision: "accept",
                   })
-                  toast(`Category set on ${sel.length} rows`)
                   setSel([])
                   setPicker(false)
                 }}
@@ -1031,9 +1018,8 @@ function RowFix({
     r = imp.rows.find((r) => r.id === rowId),
     rec = s.records.find((x) => x.id === r?.matchId)
   if (!r) return null
-  const set = (patch: Partial<ImportRow>, message: string) => {
+  const set = (patch: Partial<ImportRow>) => {
       editRows(imp.id, [r.id], patch)
-      toast(message)
       onClose()
     },
     claimed = new Set(imp.rows.map((x) => x.matchId).filter(Boolean)),
@@ -1127,44 +1113,24 @@ function RowFix({
       <View style={{ gap: 8 }}>
         {r.state === "probable" && (
           <>
-            <Button
-              tone="quiet"
-              onPress={() =>
-                set({ decision: "keep" }, "Keeping your transaction")
-              }
-            >
+            <Button tone="quiet" onPress={() => set({ decision: "keep" })}>
               Keep mine
             </Button>
-            <Button
-              onPress={() =>
-                set({ decision: "take" }, "Taking the statement values")
-              }
-            >
+            <Button onPress={() => set({ decision: "take" })}>
               Take statement
             </Button>
-            <Button
-              tone="quiet"
-              onPress={() =>
-                set(
-                  { decision: "merge" },
-                  "Merged: statement amount, your date & category",
-                )
-              }
-            >
+            <Button tone="quiet" onPress={() => set({ decision: "merge" })}>
               Merge
             </Button>
             <Button
               tone="quiet"
               onPress={() =>
-                set(
-                  {
-                    state: "new",
-                    matchId: undefined,
-                    decision: "accept",
-                    categoryId: rec?.categoryId,
-                  },
-                  "Will be added as a separate transaction",
-                )
+                set({
+                  state: "new",
+                  matchId: undefined,
+                  decision: "accept",
+                  categoryId: rec?.categoryId,
+                })
               }
             >
               Create new
@@ -1172,14 +1138,7 @@ function RowFix({
           </>
         )}
         {["new", "duplicate", "pending"].includes(r.state) && (
-          <Button
-            onPress={() =>
-              set(
-                { decision: "accept" },
-                r.state === "new" ? "Will be added" : "Will be imported anyway",
-              )
-            }
-          >
+          <Button onPress={() => set({ decision: "accept" })}>
             {r.state === "new" ? "Add as new" : "Import anyway"}
           </Button>
         )}
@@ -1187,19 +1146,13 @@ function RowFix({
           <Button
             tone="quiet"
             onPress={() =>
-              set(
-                { state: "new", matchId: undefined, decision: "accept" },
-                "Unmatched — will be added as new",
-              )
+              set({ state: "new", matchId: undefined, decision: "accept" })
             }
           >
             Not the same
           </Button>
         )}
-        <Button
-          tone="quiet"
-          onPress={() => set({ decision: "ignore" }, "Row ignored")}
-        >
+        <Button tone="quiet" onPress={() => set({ decision: "ignore" })}>
           Ignore
         </Button>
       </View>
@@ -1210,17 +1163,14 @@ function RowFix({
             <Tap
               key={c.id}
               onPress={() =>
-                set(
-                  {
-                    state:
-                      c.amount === r.amount && C.recDay(c) === r.date
-                        ? "matched"
-                        : "probable",
-                    matchId: c.id,
-                    decision: c.amount === r.amount ? "accept" : "take",
-                  },
-                  "Re-matched",
-                )
+                set({
+                  state:
+                    c.amount === r.amount && C.recDay(c) === r.date
+                      ? "matched"
+                      : "probable",
+                  matchId: c.id,
+                  decision: c.amount === r.amount ? "accept" : "take",
+                })
               }
             >
               <Line style={{ paddingVertical: 12 }}>
@@ -1293,14 +1243,8 @@ function Done({ imp }: { imp: StatementImport }) {
               "Undo this import?",
               `Reverts only what it did: removes ${imp.createdIds.length} added transactions and restores ${changedCount(imp)} edited ones.`,
               () => {
-                if (liveMode)
-                  void liveImport()
-                    .undo(imp.id)
-                    .then(() => toast("Import undone"), liveError)
-                else {
-                  A.undoImport(imp.id)
-                  toast("Import undone")
-                }
+                if (liveMode) void liveImport().undo(imp.id).catch(liveError)
+                else A.undoImport(imp.id)
               },
             )
           }
@@ -1433,13 +1377,8 @@ export function Imports() {
                             `Removes ${i.createdIds.length} transactions it added and restores ${changedCount(i)} it edited. Nothing else changes.`,
                             () => {
                               if (liveMode)
-                                void liveImport()
-                                  .undo(i.id)
-                                  .then(() => toast("Import undone"), liveError)
-                              else {
-                                A.undoImport(i.id)
-                                toast("Import undone")
-                              }
+                                void liveImport().undo(i.id).catch(liveError)
+                              else A.undoImport(i.id)
                             },
                           )
                         }
@@ -1453,16 +1392,8 @@ export function Imports() {
                       tone="quiet"
                       onPress={() => {
                         if (liveMode)
-                          void liveImport()
-                            .discardFile(i.id)
-                            .then(
-                              () => toast("Statement file deleted"),
-                              liveError,
-                            )
-                        else {
-                          A.patchImport(i.id, { fileKept: false })
-                          toast("Statement file deleted")
-                        }
+                          void liveImport().discardFile(i.id).catch(liveError)
+                        else A.patchImport(i.id, { fileKept: false })
                       }}
                     >
                       Delete file

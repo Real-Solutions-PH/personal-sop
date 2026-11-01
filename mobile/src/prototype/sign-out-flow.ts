@@ -1,4 +1,3 @@
-import { toast } from "sonner-native"
 import { liveMode } from "@/live/config"
 import { replace } from "./navigation"
 import { signOut } from "./session"
@@ -23,7 +22,6 @@ async function attempt(discard: boolean) {
   const result = await signOut({ discard })
   if (result.ok) {
     replace("/welcome")
-    toast.success("Signed out")
     return
   }
   confirm(

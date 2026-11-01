@@ -679,13 +679,7 @@ export function Tasks({
             </Button>
           </Actions>
           {filter === "overdue" && (
-            <Button
-              tone="quiet"
-              onPress={() => {
-                const count = A.moveAllOverdueToToday()
-                toast.success(`${count} tasks moved to today`)
-              }}
-            >
+            <Button tone="quiet" onPress={() => A.moveAllOverdueToToday()}>
               Move overdue to today
             </Button>
           )}

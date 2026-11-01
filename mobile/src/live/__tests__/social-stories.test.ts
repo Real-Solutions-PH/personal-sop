@@ -20,7 +20,7 @@ jest.mock("../auth", () => ({ http: {} }))
 jest.mock("@domain/lib/platform", () => ({
   ...jest.requireActual("@domain/lib/platform"),
   getConnectivity: () => true,
-  toast: () => {},
+  toast: Object.assign(() => {}, { error: () => {}, warning: () => {} }),
 }))
 
 const MEID = "11111111-1111-4111-8111-111111111111"

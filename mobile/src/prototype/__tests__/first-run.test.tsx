@@ -62,7 +62,11 @@ jest.mock("react-native-gesture-handler", () => {
   }
 })
 jest.mock("sonner-native", () => ({
-  toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn() }),
+  toast: Object.assign(jest.fn(), {
+    success: jest.fn(),
+    error: jest.fn(),
+    warning: jest.fn(),
+  }),
 }))
 jest.mock("../screens/capture", () => ({ CaptureOverlay: () => null }))
 jest.mock("../wake-word-listener", () => ({ WakeWordListener: () => null }))
@@ -304,7 +308,7 @@ describe("setup's Screen time step", () => {
       )
     })
     expect(dashStore.get().enabled.screen).toBe(false)
-    expect(toast).toHaveBeenCalledWith(
+    expect(toast.warning).toHaveBeenCalledWith(
       "Screen Time access is off for Unfurl. Turn it on in Settings › Screen Time to track it.",
     )
   })
@@ -314,7 +318,7 @@ describe("setup's Screen time step", () => {
     fireEvent.press(screen.getByText("Not now"))
     expect(requestScreenTime).not.toHaveBeenCalled()
     expect(dashStore.get().enabled.screen).toBe(false)
-    expect(toast).toHaveBeenCalledWith(
+    expect(toast.warning).toHaveBeenCalledWith(
       "Screen time is off. Turn it on anytime in Settings.",
     )
   })
