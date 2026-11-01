@@ -33,9 +33,10 @@ import { startFocusLive } from "@/prototype/focus-live"
 import { LiveBar } from "@/prototype/live-bar"
 import { startReminders } from "@/prototype/local-reminders"
 import { prototypeMode } from "@/prototype/mode"
-import { go, replace } from "@/prototype/navigation"
+import { replace } from "@/prototype/navigation"
 import { applyDraft, getDraft } from "@/prototype/onboarding-draft"
 import { startRestAlarm } from "@/prototype/rest-alarm"
+import { startRunTracker } from "@/prototype/run-tracker"
 import { startScreenSync } from "@/prototype/screen-sync"
 import { CaptureOverlay } from "@/prototype/screens/capture"
 import { sessionStore } from "@/prototype/session"
@@ -226,6 +227,7 @@ export default function PrototypeLayout() {
   useEffect(() => startReminders(), [])
   // The focus timer's Live bar entry, end-of-set notice and catch-up.
   useEffect(() => startFocusLive(), [])
+  useEffect(() => startRunTracker(), [])
   useEffect(() => startRestAlarm(), [])
   // Screen time: reconcile the monitor's events on every foreground.
   useEffect(() => startScreenSync(), [])

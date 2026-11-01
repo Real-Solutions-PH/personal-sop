@@ -31,6 +31,7 @@ import { go } from "../navigation"
 import { fonts, radius, useTheme } from "../theme"
 import { Screen } from "../ui"
 import { Body } from "./fitness-body"
+import { RunCard } from "./fitness-runs"
 import { StartWorkoutSheet } from "./fitness-start"
 import { FitnessStats } from "./fitness-stats"
 import { SleepCard } from "./sleep-card"
@@ -272,6 +273,7 @@ export function FitnessTrain() {
             </>
           )}
         </Frame>
+        <RunCard />
         <Tap onPress={() => go("/fitness/routine")}>
           <Frame style={{ padding: 16, marginTop: 12 }}>
             <Line style={{ justifyContent: "space-between" }}>

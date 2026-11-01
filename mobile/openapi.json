@@ -30315,6 +30315,11 @@
             "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Item Title"
           },
+          "source": { "type": "string", "title": "Source", "default": "timer" },
+          "label": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Label"
+          },
           "day": {
             "anyOf": [
               { "type": "string", "format": "date" },
@@ -30421,6 +30426,11 @@
           "item_title": {
             "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Item Title"
+          },
+          "source": { "type": "string", "title": "Source", "default": "timer" },
+          "label": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Label"
           },
           "day": {
             "anyOf": [
@@ -33776,6 +33786,14 @@
             ],
             "title": "Cardio"
           },
+          "kcal": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Kcal"
+          },
+          "steps": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Steps"
+          },
           "exercises": {
             "items": { "$ref": "#/components/schemas/WorkoutExerciseOut" },
             "type": "array",
@@ -33881,6 +33899,14 @@
               { "type": "null" }
             ],
             "title": "Cardio"
+          },
+          "kcal": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Kcal"
+          },
+          "steps": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Steps"
           }
         },
         "type": "object",
@@ -33939,6 +33965,14 @@
               { "type": "null" }
             ],
             "title": "Cardio"
+          },
+          "kcal": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Kcal"
+          },
+          "steps": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Steps"
           },
           "exercise_count": { "type": "integer", "title": "Exercise Count" },
           "totals": { "$ref": "#/components/schemas/TotalsOut" },

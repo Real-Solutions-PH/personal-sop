@@ -106,8 +106,29 @@ struct LiveNext: Codable, Hashable {
   var best: String?
 }
 
-/** The running routine, workout or habit timer (LiveState in TS). Times are
- * epoch milliseconds. */
+/** Another session running at the same time, drawn as one line under the
+ * main one (LiveOther in TS). */
+struct LiveOther: Codable, Hashable {
+  var kind: String
+  var id: String
+  var title: String
+  var icon: String
+  var line: String
+  var paused: Bool
+  var startedAt: Double
+  var elapsedSec: Double
+  var stepEndsAt: Double?
+  var remainingSec: Double?
+  var restEndsAt: Double?
+  var href: String
+
+  var startDate: Date { Date(timeIntervalSince1970: startedAt / 1000) }
+  var stepEnd: Date? { stepEndsAt.map { Date(timeIntervalSince1970: $0 / 1000) } }
+  var restEnd: Date? { restEndsAt.map { Date(timeIntervalSince1970: $0 / 1000) } }
+}
+
+/** The running routine, workout, habit timer or run (LiveState in TS).
+ * Times are epoch milliseconds. */
 struct LiveState: Codable, Hashable {
   var kind: String
   var id: String
@@ -130,6 +151,8 @@ struct LiveState: Codable, Hashable {
   var next: [LiveNext]
   var controls: [String]
   var href: String
+  /** The other sessions running beside this one; absent when none. */
+  var others: [LiveOther]?
 
   var startDate: Date { Date(timeIntervalSince1970: startedAt / 1000) }
   var stepEnd: Date? { stepEndsAt.map { Date(timeIntervalSince1970: $0 / 1000) } }
@@ -170,7 +193,9 @@ struct LiveState: Codable, Hashable {
       s.paused = false
       if let rem = s.remainingSec { s.stepEndsAt = now + rem * 1000 }
       s.remainingSec = nil
-      if s.kind == "timer" { s.startedAt = now - s.elapsedSec * 1000 }
+      // A timer's and a run's clock is time not paused: it resumes from
+      // where it stopped.
+      if s.kind == "timer" || s.kind == "run" { s.startedAt = now - s.elapsedSec * 1000 }
       swap("resume", "pause")
     case "finishSet":
       s.index = min(s.count, s.index + 1)

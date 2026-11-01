@@ -7,6 +7,9 @@ import {
   setSeconds,
 } from "@domain/fitness/calc"
 import type { FitnessState, Workout } from "@domain/fitness/data"
+import type { ActiveRun } from "@domain/fitness/run-live"
+import * as RL from "@domain/fitness/run-live"
+import * as RN from "@domain/fitness/runs"
 import { liveTimeline } from "@domain/focus/actions"
 import type { FocusState } from "@domain/focus/data"
 import * as FL from "@domain/focus/logic"
@@ -14,9 +17,10 @@ import type { HabitsState, RoutineRun } from "@domain/habits/data"
 import * as H from "@domain/habits/logic"
 import { dayKey } from "@domain/lib/day"
 import { elapsedSec, type Live } from "@domain/lib/live"
+import { focusLive } from "@/prototype/focus-live"
 import { group } from "@/prototype/share-format"
 import { displayMass } from "@/prototype/units"
-import type { LiveNext, LiveState } from "./types"
+import type { LiveNext, LiveOther, LiveState } from "./types"
 
 // The running routine, workout or habit timer as the lock screen shows it.
 // Built from the same stores the in-app player reads; null when nothing runs.
@@ -315,3 +319,82 @@ export function buildLiveState(input: {
  * (elapsed seconds) do not need a push, the native timers count. */
 export const liveKey = (s: LiveState | null) =>
   s ? JSON.stringify({ ...s, elapsedSec: undefined }) : ""
+
+/** A run or walk. Its clock is moving time: while it runs, startedAt is
+ * where a timer reading moving time would read zero (the start plus every
+ * pause), so it is the same on every render and the native timer counts
+ * it. Distance is to 10 m and pace to 5 s, so the lock screen is pushed
+ * about every 10 m, not on every fix. */
+export function runState(r: ActiveRun, now: number): LiveState {
+  const paused = RL.isPaused(r)
+  const moving = RL.movingSec(r, now)
+  const sum = RN.summarize(r.points, r.pauses)
+  const five = (p: number | null) => (p === null ? null : Math.round(p / 5) * 5)
+  const pace = paused
+    ? null
+    : five(RN.currentPace(r.points, r.pauses, 30, RL.sessionSec(r, now)))
+  const avg = five(RN.paceSecPerKm(moving, sum.distanceM))
+  return {
+    kind: "run",
+    id: r.id,
+    title: RN.kindLabel(r.kind),
+    icon: r.kind === "run" ? "🏃" : "🚶",
+    step: `${RN.fmtKm(sum.distanceM)} km`,
+    detail: paused
+      ? `avg ${RN.fmtPace(avg)} /km`
+      : `${RN.fmtPace(pace)} /km now · avg ${RN.fmtPace(avg)}`,
+    key: "",
+    index: 0,
+    count: 0,
+    paused,
+    startedAt: paused
+      ? new Date(r.startedAt).getTime()
+      : Math.round(now - moving * 1000),
+    elapsedSec: Math.round(moving),
+    restSec: 0,
+    next: [],
+    controls: [paused ? "resume" : "pause"],
+    href: "/fitness/run",
+  }
+}
+
+const other = (s: LiveState): LiveOther => ({
+  kind: s.kind,
+  id: s.id,
+  title: s.title,
+  icon: s.icon,
+  line: [s.step, s.detail].filter(Boolean).join(" · "),
+  paused: s.paused,
+  startedAt: s.startedAt,
+  elapsedSec: s.elapsedSec,
+  ...(s.stepEndsAt !== undefined ? { stepEndsAt: s.stepEndsAt } : {}),
+  ...(s.remainingSec !== undefined ? { remainingSec: s.remainingSec } : {}),
+  ...(s.restEndsAt !== undefined ? { restEndsAt: s.restEndsAt } : {}),
+  href: s.href,
+})
+
+/** Everything running, as the one Live Activity shows it: the Live slot's
+ * session (a workout, routine or timer) first, else the run, else focus;
+ * the rest as `others`. Null when nothing runs. */
+export function buildAllLive(input: {
+  live: Live | null
+  habits: HabitsState
+  fit: FitnessState
+  focus: FocusState
+  run: ActiveRun | null
+  now?: number
+}): LiveState | null {
+  const now = input.now ?? Date.now()
+  const states: LiveState[] = []
+  const slot = buildLiveState({ ...input, now })
+  if (slot) states.push(slot)
+  if (input.run) states.push(runState(input.run, now))
+  if (input.live?.kind !== "focus") {
+    const f = focusLive(input.focus, now)
+    const s = f && buildLiveState({ ...input, live: f, now })
+    if (s) states.push(s)
+  }
+  const [main, ...rest] = states
+  if (!main) return null
+  return rest.length ? { ...main, others: rest.map(other) } : main
+}

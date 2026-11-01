@@ -76,6 +76,11 @@ export function sessionMapper(): Mapper<FocusState, FocusSession> {
       started_at: x.startedAt,
       ended_at: x.endedAt ?? null,
       end_reason: x.endReason ?? null,
+      // Only a logged session carries these, so timed sessions synced
+      // before they existed are not rewritten.
+      ...(x.source === "manual"
+        ? { source: "manual", label: x.label ?? null }
+        : {}),
       ...itemOut(x.item),
     }),
     fromServer: (row) => {
@@ -100,6 +105,8 @@ export function sessionMapper(): Mapper<FocusState, FocusSession> {
         out.endReason = row.end_reason
       const item = itemIn(row)
       if (item) out.item = item
+      if (row.source === "manual") out.source = "manual"
+      if (row.label != null && row.label !== "") out.label = String(row.label)
       if (row.day) out.day = String(row.day)
       return out
     },

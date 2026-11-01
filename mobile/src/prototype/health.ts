@@ -1,5 +1,6 @@
 // Apple Health: reads activity and sleep (the day's steps, active energy,
-// walking+running distance, workout count and the night's sleep), and writes
+// walking+running distance, workout count and the night's sleep, and the
+// steps and heart rate inside one workout, run or walk), and writes
 // workouts when the person opts in. Nothing here is synced; only an eat-back
 // the user taps (setBurnAdjustment) reaches the server.
 import type { WorkoutActivityType } from "@kingstinct/react-native-healthkit"
@@ -33,7 +34,8 @@ const STEPS = "HKQuantityTypeIdentifierStepCount",
   DISTANCE = "HKQuantityTypeIdentifierDistanceWalkingRunning",
   WORKOUT = "HKWorkoutTypeIdentifier",
   SLEEP = "HKCategoryTypeIdentifierSleepAnalysis",
-  READ = [STEPS, ENERGY, DISTANCE, WORKOUT, SLEEP] as const,
+  HEART = "HKQuantityTypeIdentifierHeartRate",
+  READ = [STEPS, ENERGY, DISTANCE, WORKOUT, SLEEP, HEART] as const,
   WRITE = [WORKOUT] as const
 // HKAuthorizationStatus.sharingAuthorized. Unlike reading, iOS does say
 // whether writing is allowed.
@@ -340,4 +342,56 @@ export async function deleteSavedWorkout(uuid: string): Promise<boolean> {
   } catch {
     return false
   }
+}
+
+export interface WindowReading {
+  /** Steps counted between start and end; null when Health can't say. */
+  steps: number | null
+  /** Beats per minute over the window (an Apple Watch records them);
+   * null without samples. */
+  hr: { avg: number; max: number; last: number } | null
+}
+
+/** Steps and heart rate between `start` and `end`: a workout's or a run's
+ * own window. Expo Go answers with a plausible sample. */
+export async function readWindow(
+  start: Date,
+  end: Date,
+): Promise<WindowReading> {
+  const min = Math.max(0, (end.getTime() - start.getTime()) / 60_000)
+  if (expoGo())
+    return {
+      steps: Math.round(min * 95),
+      hr: min > 1 ? { avg: 138, max: 162, last: 141 } : null,
+    }
+  if (!healthAvailable()) return { steps: null, hr: null }
+  const hk = load() as HealthKit
+  const filter = { date: { startDate: start, endDate: end } }
+  const [steps, hr] = await Promise.all([
+    hk
+      .queryStatisticsForQuantity(STEPS, ["cumulativeSum"], {
+        filter,
+        unit: "count",
+      })
+      .then((r) => Math.round(r.sumQuantity?.quantity ?? 0))
+      .catch(() => null),
+    hk
+      .queryQuantitySamples(HEART, {
+        filter,
+        unit: "count/min",
+        limit: 0,
+        ascending: true,
+      })
+      .then((rows) => {
+        const bpm = rows.map((r) => r.quantity).filter((v) => v > 0)
+        if (!bpm.length) return null
+        return {
+          avg: Math.round(bpm.reduce((a, b) => a + b, 0) / bpm.length),
+          max: Math.round(Math.max(...bpm)),
+          last: Math.round(bpm.at(-1) as number),
+        }
+      })
+      .catch(() => null),
+  ])
+  return { steps, hr }
 }

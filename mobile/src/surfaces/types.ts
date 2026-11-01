@@ -96,7 +96,7 @@ export type AppKey =
   | "screen"
   | "journal"
 
-export type LiveKind = "routine" | "workout" | "timer"
+export type LiveKind = "routine" | "workout" | "timer" | "run"
 
 /** One upcoming step or set, so a lock-screen tap can move on before the
  * app has run. */
@@ -152,6 +152,28 @@ export interface LiveState {
   restSec: number
   next: LiveNext[]
   controls: LiveControl[]
+  href: string
+  /** The other sessions running at the same time (a run beside a workout,
+   * a focus session beside both), drawn as one line each under this one.
+   * Absent when this is the only one. */
+  others?: LiveOther[]
+}
+
+/** Another running session, as one line under the main one: what it is,
+ * where it stands and its clock (same clock fields as LiveState). */
+export interface LiveOther {
+  kind: LiveKind
+  id: string
+  title: string
+  icon: string
+  /** "3.42 km · 5:31 /km", "Set 2 of 4", "Bench press · set 3". */
+  line: string
+  paused: boolean
+  startedAt: number
+  elapsedSec: number
+  stepEndsAt?: number
+  remainingSec?: number
+  restEndsAt?: number
   href: string
 }
 

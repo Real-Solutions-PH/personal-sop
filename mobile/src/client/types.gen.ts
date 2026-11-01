@@ -3625,6 +3625,8 @@ export type SessionDetail = {
     item_kind: ('task' | 'habit' | null);
     item_id: (string | null);
     item_title: (string | null);
+    source?: string;
+    label?: (string | null);
     day: (string | null);
     focus_sec: number;
     sets_completed: number;
@@ -3649,6 +3651,8 @@ export type SessionPublic = {
     item_kind: ('task' | 'habit' | null);
     item_id: (string | null);
     item_title: (string | null);
+    source?: string;
+    label?: (string | null);
     day: (string | null);
     focus_sec: number;
     sets_completed: number;
@@ -4628,6 +4632,8 @@ export type WorkoutOut = {
     cardio?: ({
     [key: string]: unknown;
 } | null);
+    kcal?: (number | null);
+    steps?: (number | null);
     exercises: Array<WorkoutExerciseOut>;
     totals: TotalsOut;
     prs: Array<PrOut>;
@@ -4655,6 +4661,8 @@ export type WorkoutPublic = {
     cardio?: ({
     [key: string]: unknown;
 } | null);
+    kcal?: (number | null);
+    steps?: (number | null);
 };
 
 export type WorkoutsOut = {
@@ -4676,6 +4684,8 @@ export type WorkoutSummary = {
     cardio?: ({
     [key: string]: unknown;
 } | null);
+    kcal?: (number | null);
+    steps?: (number | null);
     exercise_count: number;
     totals: TotalsOut;
     pr_count: number;

@@ -132,6 +132,7 @@ test("connect asks to read only, never to write", async () => {
       "HKQuantityTypeIdentifierDistanceWalkingRunning",
       "HKWorkoutTypeIdentifier",
       "HKCategoryTypeIdentifierSleepAnalysis",
+      "HKQuantityTypeIdentifierHeartRate",
     ],
   })
 })

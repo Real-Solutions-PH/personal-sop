@@ -1,6 +1,7 @@
 import * as D from "@domain/dash/hooks"
 import { dashStore } from "@domain/dash/store"
 import { finStore } from "@domain/finance/store"
+import { runLiveStore } from "@domain/fitness/run-live"
 import { fitStore } from "@domain/fitness/store"
 import { focusStore } from "@domain/focus/store"
 import { habitsStore } from "@domain/habits/store"
@@ -13,7 +14,7 @@ import { AppState, PermissionsAndroid, Platform } from "react-native"
 import { useShown } from "@/prototype/extras"
 import { screenTimeAvailable } from "@/prototype/screen-time"
 import { drainSurfaceActions } from "./actions"
-import { buildLiveState, liveKey } from "./live-state"
+import { buildAllLive, liveKey } from "./live-state"
 import {
   clearSurfaces,
   onQueuedAction,
@@ -62,6 +63,7 @@ function Bridge() {
   const enabled = dashStore.use((s) => s.enabled)
   const live = liveStore.use((s) => s.live)
   const focus = focusStore.use((s) => s)
+  const run = runLiveStore.use((s) => s.active)
   const privacy = privacyStore.use((s) => s.hidden)
   const ring = D.useTodayRing()
   const lifeScore = D.useLifeScore(7).score
@@ -83,11 +85,12 @@ function Bridge() {
     const app = AppState.addEventListener("change", (s) => {
       if (s !== "active") return
       drainSurfaceActions()
-      const state = buildLiveState({
+      const state = buildAllLive({
         live: liveStore.get().live,
         habits: habitsStore.get(),
         fit: fitStore.get(),
         focus: focusStore.get(),
+        run: runLiveStore.get().active,
       })
       if (!state) return
       lastLive.current = liveKey(state)
@@ -150,13 +153,13 @@ function Bridge() {
   ])
 
   useEffect(() => {
-    const state = buildLiveState({ live, habits, fit, focus })
+    const state = buildAllLive({ live, habits, fit, focus, run })
     const key = liveKey(state)
     if (key === lastLive.current) return
     if (state && !lastLive.current) void askNotifications()
     lastLive.current = key
     writeLive(state)
-  }, [live, habits, fit, focus])
+  }, [live, habits, fit, focus, run])
 
   return null
 }

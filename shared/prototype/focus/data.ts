@@ -30,6 +30,11 @@ export interface FocusSession {
   endReason?: EndReason
   /** What is being worked on now; each new segment copies it. */
   item?: FocusItem
+  /** "manual": logged afterwards (forgot to start the timer), so it can be
+   * edited as a whole; absent: run with the timer. */
+  source?: "timer" | "manual"
+  /** A logged session's own words for what it was ("Reading"). */
+  label?: string
   /** Derived (the server recomputes them): business day, focus seconds,
    * finished Pomodoros. */
   day?: string

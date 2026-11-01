@@ -36,6 +36,7 @@ import {
   type WorkoutSet,
   type WorkoutTemplate,
 } from "./data"
+import { workoutKcal } from "./runs"
 import { starterRows } from "./starter"
 import { fitStore } from "./store"
 
@@ -465,6 +466,7 @@ export function finishWorkout(
       }))
       .filter((e) => e.sets.length),
   }))
+  patchWorkout(id, (w) => ({ ...w, kcal: workoutKcal(fitStore.get(), w) }))
   fitStore.set((s) => ({
     ...s,
     activeId: s.activeId === id ? null : s.activeId,
@@ -474,6 +476,12 @@ export function finishWorkout(
   const w = fitStore.get().workouts.find((x) => x.id === id)
   if (w) for (const cb of finishedListeners) cb(w)
   return w
+}
+/** Steps Apple Health counted during a finished workout. */
+export function updateWorkoutHealth(id: string, h: { steps: number }) {
+  const w = fitStore.get().workouts.find((x) => x.id === id)
+  if (!w || w.steps === h.steps) return
+  patchWorkout(id, (x) => ({ ...x, steps: h.steps }))
 }
 export function discardWorkout(id: string) {
   fitStore.set((s) => ({
@@ -535,6 +543,7 @@ export function logWorkoutFromChat(input: {
     clientId: uid(),
     source: "chat",
   }
+  w.kcal = workoutKcal(fitStore.get(), w)
   fitStore.set((s) => ({ ...s, workouts: [...s.workouts, w] }))
   for (const cb of finishedListeners) cb(w)
   return w

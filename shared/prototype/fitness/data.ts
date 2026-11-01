@@ -1,6 +1,7 @@
 import { at, dayKey } from "../lib/day"
 import { newId } from "../lib/ids"
 import type { ActivityLevel, PlanGoal, Sex } from "./plan"
+import { seedRuns } from "./run-seed"
 import { starterRows } from "./starter"
 export type Equipment =
   | "barbell"
@@ -88,6 +89,43 @@ export interface Workout {
   exercises: WorkoutExercise[]
   clientId: string
   source?: "live" | "chat"
+  /** Estimated active kcal (./runs workoutKcal), set when it finishes. */
+  kcal?: number
+  /** Steps Apple Health counted between its start and end. */
+  steps?: number
+}
+export type RunKind = "run" | "walk"
+/** One GPS fix: latitude, longitude, altitude in metres (null when the
+ * fix has none) and seconds since the session started. */
+export type RunPoint = [number, number, number | null, number]
+export interface RunSplit {
+  /** The kilometre it closes (1 = the first). */
+  km: number
+  /** Moving seconds that kilometre took. */
+  sec: number
+  /** Net climb over it, metres; null without altitude. */
+  elevM: number | null
+}
+/** A finished run or walk recorded on this phone. The one in progress
+ * lives in ./run-live until it is finished. */
+export interface RunSession {
+  id: string
+  kind: RunKind
+  name: string
+  startedAt: string
+  endedAt: string
+  /** Seconds not paused. */
+  movingSec: number
+  distanceM: number
+  elevationGainM?: number
+  steps?: number
+  avgHr?: number
+  maxHr?: number
+  /** Estimated active kcal (./runs runKcal). */
+  kcal?: number
+  route: RunPoint[]
+  splits: RunSplit[]
+  notes?: string
 }
 export interface RestTimer {
   endsAt: string
@@ -183,6 +221,9 @@ export interface FitnessState {
   /** The repeating weekly training plan; see WeekSchedule. */
   schedule: WeekSchedule
   workouts: Workout[]
+  /** Finished runs and walks, oldest first. Absent in state saved before
+   * runs existed: read through runsOf(). */
+  runs?: RunSession[]
   weighIns: WeighIn[]
   targets: MacroTarget[]
   adjustments: TargetAdjustment[]
@@ -1016,6 +1057,7 @@ export function seed(): FitnessState {
     // A demo week: Push, Pull, rest, Legs, Push, rest, rest.
     schedule: ["push-a", "pull-a", null, "legs-a", "push-a", null, null],
     workouts: seedWorkouts(rnd),
+    runs: seedRuns(mulberry32(11), at),
     weighIns: seedWeighIns(rnd),
     targets: [
       {

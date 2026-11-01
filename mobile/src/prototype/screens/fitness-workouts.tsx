@@ -1,12 +1,16 @@
 import * as A from "@domain/fitness/actions"
 import * as C from "@domain/fitness/calc"
 import type { Workout } from "@domain/fitness/data"
+import * as RN from "@domain/fitness/runs"
 import { fitStore } from "@domain/fitness/store"
 import { dayKey } from "@domain/lib/day"
 import {
   ChevronRight,
   Dumbbell,
   Ellipsis,
+  Flame,
+  Footprints,
+  Info,
   Repeat,
   Search,
   Share2,
@@ -18,7 +22,15 @@ import Animated, { FadeInDown } from "react-native-reanimated"
 import { toast } from "sonner-native"
 import { Celebration, useCelebrate } from "../celebration"
 import { useShown } from "../extras"
-import { Copy, Frame, IconTap, Line, SectionHeading, Tap } from "../native-kit"
+import {
+  border,
+  Copy,
+  Frame,
+  IconTap,
+  Line,
+  SectionHeading,
+  Tap,
+} from "../native-kit"
 import { go, replace } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import { Button, confirm, Empty, Screen, Sheet, undo } from "../ui"
@@ -285,6 +297,80 @@ function Records({ prs, play = false }: { prs: C.Pr[]; play?: boolean }) {
     </View>
   )
 }
+/** Active calories (estimated here) and the steps Apple Health counted
+ * during the workout, with how the estimate was made one tap away. */
+function Burn({ w }: { w: Workout }) {
+  const t = useTheme(),
+    s = fitStore.use((s) => s),
+    [open, setOpen] = useState(false)
+  const kcal = w.kcal ?? RN.workoutKcal(s, w),
+    weight = RN.weightAt(s, w.startedAt)
+  const figure = (icon: typeof Flame, value: string, label: string) => {
+    const Icon = icon
+    return (
+      <View style={{ flex: 1 }}>
+        <Line style={{ gap: 6 }}>
+          <Icon size={18} color={t.fit} />
+          <Copy size={24} weight="displayMedium">
+            {value}
+          </Copy>
+        </Line>
+        <Copy size={12} muted>
+          {label}
+        </Copy>
+      </View>
+    )
+  }
+  return (
+    <Frame style={{ padding: 16, gap: 8 }}>
+      <Line style={{ gap: 0, alignItems: "stretch" }}>
+        {figure(
+          Flame,
+          `${kcal.toLocaleString("en-US")} kcal`,
+          "Active calories, estimated",
+        )}
+        <View
+          style={{
+            flex: 1,
+            paddingLeft: 12,
+            marginLeft: 12,
+            borderLeftWidth: 1,
+            borderColor: border(t.line, 0.6),
+          }}
+        >
+          {figure(
+            Footprints,
+            w.steps != null ? w.steps.toLocaleString("en-US") : "–",
+            w.steps != null ? "Steps during it" : "Steps · from Apple Health",
+          )}
+        </View>
+      </Line>
+      <Tap
+        onPress={() => setOpen((v) => !v)}
+        style={{ alignSelf: "flex-start" }}
+      >
+        <Line style={{ gap: 6, minHeight: 32 }}>
+          <Info size={14} color={t["chart-1"]} />
+          <Copy size={12} style={{ color: t["chart-1"] }}>
+            How calories are estimated
+          </Copy>
+        </Line>
+      </Tap>
+      {open && (
+        <Copy size={12} muted>
+          Lifting time at 3.5 METs, or 5 when you averaged 3+ working sets every
+          10 minutes; timed walking or running sets from their speed (ACSM
+          equations). Resting calories are left out, as in Apple Health's Active
+          Energy. At {weight.kg} kg
+          {weight.assumed
+            ? " (no weigh-in yet, so 70 kg is assumed)."
+            : " from your latest weigh-in."}
+        </Copy>
+      )}
+    </Frame>
+  )
+}
+
 export function WorkoutDetail({
   id,
   summary = false,
@@ -434,6 +520,7 @@ export function WorkoutDetail({
               {Math.abs(delta)}% vs last
             </Copy>
           )}
+          {totals.done > 0 && <Burn w={w} />}
           <Line style={{ gap: 8 }}>
             <View style={{ flex: 1 }}>
               <Button icon={Share2} onPress={() => go(shareUrl)}>
@@ -452,7 +539,6 @@ export function WorkoutDetail({
                 tone="quiet"
                 onPress={() => {
                   save()
-                  toast.success("Workout saved")
                   replace("/fitness")
                 }}
               >
@@ -494,6 +580,7 @@ export function WorkoutDetail({
             {w.source === "chat" ? " · logged from chat" : ""}
           </Copy>
           <Frame style={{ padding: 16 }}>{stats}</Frame>
+          {w.status === "finished" && totals.done > 0 && <Burn w={w} />}
         </>
       )}
       {(prs.length > 0 || summary) && (

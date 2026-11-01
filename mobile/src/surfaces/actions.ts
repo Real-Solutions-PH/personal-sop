@@ -1,5 +1,6 @@
 import * as FA from "@domain/fitness/actions"
 import { isDone } from "@domain/fitness/calc"
+import * as RL from "@domain/fitness/run-live"
 import { fitStore } from "@domain/fitness/store"
 import * as FO from "@domain/focus/actions"
 import * as FL from "@domain/focus/logic"
@@ -113,6 +114,22 @@ function workoutAction(a: SurfaceAction): ApplyResult {
   }
 }
 
+/** A run or walk: pause and resume (finishing has a summary to confirm,
+ * so it is done in the app). */
+function runAction(a: SurfaceAction): ApplyResult {
+  const r = RL.runLiveStore.get().active
+  if (!r || r.id !== a.target) return "stale"
+  const paused = RL.isPaused(r)
+  if (a.type === "pause") {
+    if (paused) return "stale"
+    RL.pauseRun(a.at)
+  } else if (a.type === "resume") {
+    if (!paused) return "stale"
+    RL.resumeRun(a.at)
+  } else return "unknown"
+  return "applied"
+}
+
 function checkHabitAction(a: SurfaceAction): ApplyResult {
   const day = a.key ?? dayKey(new Date(a.at))
   if (HA.alreadyLogged(a.target, day)) return "stale"
@@ -124,6 +141,7 @@ export function applySurfaceAction(a: SurfaceAction): ApplyResult {
   if (a.kind === "routine") return routineAction(a)
   if (a.kind === "timer") return timerAction(a)
   if (a.kind === "workout") return workoutAction(a)
+  if (a.kind === "run") return runAction(a)
   return "unknown"
 }
 
