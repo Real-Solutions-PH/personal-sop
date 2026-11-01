@@ -892,6 +892,7 @@
       "ai_scope": "aggregates",
       "disclaimer_ack": false,
       "nudge_days": 21,
+      "bill_reminder": "09:00",
       "proj_excluded_planned": []
     }
   },
@@ -1027,6 +1028,7 @@
       "ai_scope": "aggregates",
       "disclaimer_ack": false,
       "nudge_days": 21,
+      "bill_reminder": "09:00",
       "proj_excluded_planned": []
     }
   },
