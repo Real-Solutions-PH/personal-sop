@@ -10,8 +10,8 @@ Signals (``FernFeedback``), each tied to the Fern reply it is about:
 - **correction** / **frustration**: read from the person's next message in
   the same chat (``classify``; words only, no model call): "that's wrong",
   "try again", "I said…", "mali", or shouting and swearing.
-- **undo**: a card the reply proposed or logged that the person then
-  discarded or undid (``record_undos``).
+- **undo**: a card the reply logged that the person then undid
+  (``record_undos``).
 
 Learning, after the reply has streamed (``digest``, from the route):
 
@@ -250,12 +250,14 @@ def _card_ids(m: CompanionMessage) -> list[str]:
     return out
 
 
-UNDONE_STATES = ("discarded", "undone")
+# Only a card the person undid. "discarded" is also what Fern itself does
+# to the older version of a meal it corrected, or to a card a later reply
+# replaced, so it says nothing about what the person thought.
+UNDONE_STATES = ("undone",)
 
 
 def record_undos(ctx: Ctx, me_id: uuid.UUID) -> int:
-    """Replies whose cards the person later discarded or undid get an undo
-    signal. Looks at the last few replies of the question ``me_id``'s chat;
+    """Replies whose cards the person later undid get an undo signal. Looks at the last few replies of the question ``me_id``'s chat;
     returns how many new signals were recorded."""
     me = owned_repo.get(ctx, CompanionMessage, me_id)
     if me is None:
