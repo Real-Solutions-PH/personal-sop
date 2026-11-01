@@ -38,6 +38,14 @@ public class UnfurlSurfacesModule: Module {
     Function("liveStatus") { () -> String in
       Self.string("liveStatus", fallback: #"{"enabled":false,"error":"no bridge"}"#)
     }
+    // Shortcuts, Siri and Back Tap (UnfurlRequestsBridge in
+    // targets/widget/_shared/ShortcutRequests.swift).
+    Function("drainRequests") { () -> String in
+      Self.string("drainRequests", fallback: "[]", bridge: "UnfurlRequestsBridge")
+    }
+    Function("reply") { (id: String, json: String) in
+      Self.send("reply:", "\(id)\n\(json)" as NSString, bridge: "UnfurlRequestsBridge")
+    }
   }
 
   // Called through typed function pointers rather than `perform`, whose
@@ -46,21 +54,21 @@ public class UnfurlSurfacesModule: Module {
   private typealias Get = @convention(c) (AnyObject, Selector) -> Unmanaged<NSString>?
 
   /** The bridge's class method `name`, if the app target has it. */
-  private static func method(_ name: String) -> (AnyObject, Selector, IMP)? {
-    guard let cls = NSClassFromString("UnfurlSurfacesBridge") else { return nil }
+  private static func method(_ name: String, bridge: String) -> (AnyObject, Selector, IMP)? {
+    guard let cls = NSClassFromString(bridge) else { return nil }
     let sel = NSSelectorFromString(name)
     guard let m = class_getClassMethod(cls, sel) else { return nil }
     return (cls as AnyObject, sel, method_getImplementation(m))
   }
 
-  private static func send(_ name: String, _ arg: NSString?) {
-    guard let (cls, sel, imp) = method(name) else { return }
+  private static func send(_ name: String, _ arg: NSString?, bridge: String = "UnfurlSurfacesBridge") {
+    guard let (cls, sel, imp) = method(name, bridge: bridge) else { return }
     unsafeBitCast(imp, to: Send.self)(cls, sel, arg)
   }
 
   /** A bridge class method that takes nothing and returns a string. */
-  private static func string(_ name: String, fallback: String) -> String {
-    guard let (cls, sel, imp) = method(name) else { return fallback }
+  private static func string(_ name: String, fallback: String, bridge: String = "UnfurlSurfacesBridge") -> String {
+    guard let (cls, sel, imp) = method(name, bridge: bridge) else { return fallback }
     return (unsafeBitCast(imp, to: Get.self)(cls, sel)?.takeUnretainedValue() as String?) ?? fallback
   }
 

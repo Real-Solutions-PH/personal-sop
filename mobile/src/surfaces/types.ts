@@ -83,6 +83,18 @@ export interface WidgetSnapshot {
   /** The apps the Apps widget opens: the ones the in-app launcher shows, in
    * its order. Screen Time only where this build can read it. */
   apps: AppKey[]
+  /** What only the Shortcuts read (plugins/app-intents/UnfurlAppIntents.swift):
+   * today's checkable habits for "Mark a habit done", medicine first. */
+  shortcuts: { habits: ShortcutHabit[] }
+}
+
+export interface ShortcutHabit {
+  id: string
+  name: string
+  icon: string
+  /** Medicine, vitamins, supplements: listed first. */
+  meds: boolean
+  done: boolean
 }
 
 /** An app the Apps widget opens, through ``personalsop:///feature/<key>``. */

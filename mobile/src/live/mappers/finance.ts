@@ -20,6 +20,8 @@
 // category deleted with its records moved elsewhere (deleteCategoryMoving)
 // reaches the server after the record, planned and budget edits that empty
 // it; the server's plain category delete then has nothing left to refuse.
+// A category's CREATE is the exception (``createsFirst``): it goes ahead of
+// the rows that use it, or the server refuses them (category_not_found).
 //
 // Statement imports are REST-only (server-driven): no mapper.
 
@@ -227,6 +229,9 @@ export function categoryMapper(cats: Cats): Mapper<FinState, Category> {
     },
     // Built-in categories are the server's to mark.
     actionFields: ["system"],
+    // A transaction, budget or scheduled payment made with a category added
+    // in the same capture needs the category on the server first.
+    createsFirst: true,
   }
 }
 

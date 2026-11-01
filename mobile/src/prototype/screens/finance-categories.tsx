@@ -296,7 +296,6 @@ export function CategoryForm({
                   }
                   if (ex) A.updateCategory(ex.id, input)
                   else onAdded?.(A.addCategory(input).id)
-                  toast(ex ? "Category updated" : `“${name.trim()}” added`)
                   onClose()
                 }}
               >
@@ -376,12 +375,10 @@ export function Categories() {
       </Tap>
       {kind === "expense" && (
         <Tap
-          onPress={() => {
+          label={`${c.name}: ${c.discretionary ? "want" : "need"}. Switch to ${c.discretionary ? "need" : "want"}`}
+          onPress={() =>
             A.updateCategory(c.id, { discretionary: !c.discretionary })
-            toast(
-              `${c.name}: now a ${c.discretionary ? "need — won't break no-spend days" : "want"}`,
-            )
-          }}
+          }
           style={{
             borderRadius: 20,
             paddingHorizontal: 10,

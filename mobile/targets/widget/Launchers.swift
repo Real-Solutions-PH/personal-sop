@@ -340,3 +340,16 @@ struct DictateFernControl: ControlWidget {
     .description("Open Fern and start talking.")
   }
 }
+
+@available(iOS 18.0, *)
+struct SnapFernControl: ControlWidget {
+  var body: some ControlWidgetConfiguration {
+    StaticControlConfiguration(kind: "com.schadenkai.personal-sop.snap-fern") {
+      ControlWidgetButton(action: OpenFernIntent(mode: "camera")) {
+        Label("Snap and log", systemImage: "camera.fill")
+      }
+    }
+    .displayName("Snap and log")
+    .description("Open the camera for Fern: a meal, a receipt or a label.")
+  }
+}

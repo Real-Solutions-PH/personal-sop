@@ -31,9 +31,10 @@ import {
 } from "react-native"
 import { toast } from "sonner-native"
 import { liveMode } from "@/live/config"
-import { fernLaunch } from "../companion/launch"
+import { fernLaunch, talkLaunch } from "../companion/launch"
 import { Orb } from "../companion/orb"
 import { markVoiceTurn, thinking } from "../companion/store"
+import { useTalkAutoSend } from "../companion/talk"
 import { composeDictation, useLiveDictation } from "../live-dictation"
 import { pickPhoto, pickPhotos } from "../media"
 import { border, Copy, Frame, IconTap, Line, Tap } from "../native-kit"
@@ -134,6 +135,30 @@ export function ThreadComposer({
   const live = useLiveDictation(setText, () =>
     toast.error("Dictation stopped. Try again, or type your message."),
   )
+  // Talk to Fern sends by itself when the person stops (companion/talk.ts).
+  const armTalk = useTalkAutoSend({
+    text,
+    listening: live.listening,
+    stop: live.stop,
+    send,
+  })
+  function send() {
+    if (onText) {
+      if (spoken) markVoiceTurn()
+      onText(text.trim(), hint, photos.length ? photos : undefined)
+      setText("")
+      setPhotos([])
+      setSpoken(false)
+      return
+    }
+    const id = A.sendCapture({
+      text: text.trim(),
+      source: "text",
+      hint,
+    })
+    setText("")
+    onSent?.(id)
+  }
   async function dictate(said = "") {
     // Live words in the box when the phone can recognise speech
     // (ADR-0016); otherwise record and transcribe on the server.
@@ -149,7 +174,11 @@ export function ThreadComposer({
   useEffect(() => {
     if (!woke || !wakeTarget || !dictation) return
     wake.setState({ pending: null })
-    if (Date.now() - woke.at > 5_000 || live.listening) return
+    if (Date.now() - woke.at > 5_000 || live.listening) {
+      talkLaunch.setState({ at: null })
+      return
+    }
+    armTalk()
     void dictate(woke.rest)
   }, [woke, wakeTarget])
   // A widget's Fern button asked for the camera or the keyboard.
@@ -394,23 +423,7 @@ export function ThreadComposer({
             label="Send"
             color={t.onPrimary}
             background={t.primary}
-            onPress={() => {
-              if (onText) {
-                if (spoken) markVoiceTurn()
-                onText(text.trim(), hint, photos.length ? photos : undefined)
-                setText("")
-                setPhotos([])
-                setSpoken(false)
-                return
-              }
-              const id = A.sendCapture({
-                text: text.trim(),
-                source: "text",
-                hint,
-              })
-              setText("")
-              onSent?.(id)
-            }}
+            onPress={send}
           />
         )}
       </Line>

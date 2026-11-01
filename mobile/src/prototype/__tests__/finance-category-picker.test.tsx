@@ -113,7 +113,8 @@ test("adding from a search starts the form with the typed name and picks it", ()
   const gym = finStore.get().categories.find((c) => c.name === "Gym")
   expect(gym?.kind).toBe("expense")
   expect(screen.getByTestId("picked").props.children).toBe("Gym")
-  expect(toastMock).toHaveBeenCalledWith("“Gym” added")
+  // No toast: the picked category is the feedback (toasts carry an Undo).
+  expect(toastMock).not.toHaveBeenCalled()
 })
 
 test("a sub-category whose parent is archived is listed as a main one", () => {

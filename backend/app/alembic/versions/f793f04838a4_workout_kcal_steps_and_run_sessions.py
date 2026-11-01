@@ -8,7 +8,7 @@ and a logged one may carry its own ``label``; every existing session was
 run by the timer, which the server default fills in.
 
 Revision ID: f793f04838a4
-Revises: c5e1d0a7b391
+Revises: da6a0c041e3e
 Create Date: 2026-11-01
 
 """
@@ -18,7 +18,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision = "f793f04838a4"
-down_revision = "c5e1d0a7b391"
+down_revision = "da6a0c041e3e"
 branch_labels = None
 depends_on = None
 

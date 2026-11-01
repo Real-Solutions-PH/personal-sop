@@ -97,7 +97,73 @@ def _chat_openai() -> "type[ChatOpenAI]":
                 gen.message.additional_kwargs["reasoning_content"] = think
             return gen
 
+        # A provider that refuses the thinking switch (an unknown
+        # ``chat_template_kwargs``) is asked again without it, once, and
+        # never sent it again for that model (``_REFUSED``).
+        def _plain(self) -> "ReasoningChatOpenAI":
+            _REFUSED.add((str(self.openai_api_base), self.model_name))
+            return self.model_copy(update={"extra_body": None})
+
+        def _generate(self, *args: Any, **kwargs: Any) -> Any:
+            import openai
+
+            try:
+                return super()._generate(*args, **kwargs)
+            except openai.BadRequestError:
+                if not self.extra_body:
+                    raise
+                return self._plain()._generate(*args, **kwargs)
+
+        def _stream(self, *args: Any, **kwargs: Any) -> Any:
+            import openai
+
+            it = super()._stream(*args, **kwargs)
+            try:
+                first = next(it)
+            except StopIteration:
+                return
+            except openai.BadRequestError:
+                if not self.extra_body:
+                    raise
+                yield from self._plain()._stream(*args, **kwargs)
+                return
+            yield first
+            yield from it
+
     return ReasoningChatOpenAI
+
+
+# (base_url, model) pairs whose provider refused the thinking switch.
+_REFUSED: set[tuple[str, str]] = set()
+
+
+def speed_options(resolved: ResolvedModel) -> dict[str, Any]:
+    """Request options that make a model answer sooner, where its family
+    has a known switch: thinking off (``AI_THINKING`` false), through the
+    chat template, which vLLM and SGLang servers (Nebius Token Factory
+    among them) pass to the model. DeepSeek's hybrid models take
+    ``thinking``, Qwen3's ``enable_thinking``.
+
+    Why (2026-10-31): replies took one to three minutes; each turn makes
+    two to four calls and DeepSeek thought before every one of them. A
+    vision model that "reasoned until it ran out of room" also left labels
+    unread. A provider that refuses the switch is retried without it
+    (``ReasoningChatOpenAI._plain``), so the worst case is one 400 per
+    model per process. Empty when nothing applies."""
+    if settings.AI_THINKING or (resolved.base_url, resolved.model) in _REFUSED:
+        return {}
+    name = resolved.model.casefold()
+    if "deepseek" in name:
+        return {
+            "thinking": False,
+            "extra_body": {"chat_template_kwargs": {"thinking": False}},
+        }
+    if "qwen3" in name and "embedding" not in name:
+        return {
+            "thinking": False,
+            "extra_body": {"chat_template_kwargs": {"enable_thinking": False}},
+        }
+    return {}
 
 
 def _openai_compatible(resolved: ResolvedModel) -> BaseChatModel:
@@ -108,6 +174,7 @@ def _openai_compatible(resolved: ResolvedModel) -> BaseChatModel:
         timeout=settings.AI_REQUEST_TIMEOUT_SECONDS,
         max_retries=1,
         stream_usage=True,
+        extra_body=speed_options(resolved).get("extra_body"),
     )
 
 

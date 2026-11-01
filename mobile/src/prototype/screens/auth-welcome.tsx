@@ -25,6 +25,7 @@ import {
   SocialButtons,
   Wordmark,
 } from "../auth-kit"
+import { screenShown } from "../boot/first-screen"
 import { fernPalette } from "../companion/brand"
 import { Orb } from "../companion/orb"
 import { companionStore } from "../companion/store"
@@ -429,6 +430,7 @@ export function Welcome() {
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: t.bg }}
+      onLayout={screenShown}
       contentContainerStyle={{
         flexGrow: 1,
         paddingTop: safe.top + space.md,

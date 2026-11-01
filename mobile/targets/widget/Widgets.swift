@@ -571,6 +571,7 @@ struct UnfurlWidgets: WidgetBundle {
     if #available(iOS 18.0, *) {
       AskFernControl()
       DictateFernControl()
+      SnapFernControl()
     }
   }
 }

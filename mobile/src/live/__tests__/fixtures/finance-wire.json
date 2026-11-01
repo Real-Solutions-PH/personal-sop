@@ -1,49 +1,5 @@
 [
   {
-    "entity": "account",
-    "create": true,
-    "data": {
-      "name": "GCash",
-      "type": "ewallet",
-      "opening_minor": 150050,
-      "opening_date": "2026-10-19",
-      "limit_minor": null,
-      "color": "#1e88e5",
-      "in_net_worth": true,
-      "in_projection": true,
-      "archived": false,
-      "manual": false,
-      "sort_order": 0,
-      "last_reconciled": null,
-      "rate_bp": null,
-      "matures_on": null,
-      "goal_minor": null,
-      "goal_by": null
-    }
-  },
-  {
-    "entity": "account",
-    "create": true,
-    "data": {
-      "name": "BPI",
-      "type": "bank",
-      "opening_minor": 2000000,
-      "opening_date": "2026-10-19",
-      "limit_minor": null,
-      "color": "#c62828",
-      "in_net_worth": true,
-      "in_projection": true,
-      "archived": false,
-      "manual": false,
-      "sort_order": 1,
-      "last_reconciled": null,
-      "rate_bp": null,
-      "matures_on": null,
-      "goal_minor": null,
-      "goal_by": null
-    }
-  },
-  {
     "entity": "category",
     "create": true,
     "data": {
@@ -353,6 +309,50 @@
       "discretionary": false,
       "archived": false,
       "sort_order": 23
+    }
+  },
+  {
+    "entity": "account",
+    "create": true,
+    "data": {
+      "name": "GCash",
+      "type": "ewallet",
+      "opening_minor": 150050,
+      "opening_date": "2026-10-19",
+      "limit_minor": null,
+      "color": "#1e88e5",
+      "in_net_worth": true,
+      "in_projection": true,
+      "archived": false,
+      "manual": false,
+      "sort_order": 0,
+      "last_reconciled": null,
+      "rate_bp": null,
+      "matures_on": null,
+      "goal_minor": null,
+      "goal_by": null
+    }
+  },
+  {
+    "entity": "account",
+    "create": true,
+    "data": {
+      "name": "BPI",
+      "type": "bank",
+      "opening_minor": 2000000,
+      "opening_date": "2026-10-19",
+      "limit_minor": null,
+      "color": "#c62828",
+      "in_net_worth": true,
+      "in_projection": true,
+      "archived": false,
+      "manual": false,
+      "sort_order": 1,
+      "last_reconciled": null,
+      "rate_bp": null,
+      "matures_on": null,
+      "goal_minor": null,
+      "goal_by": null
     }
   },
   {
@@ -1267,6 +1267,19 @@
     }
   },
   {
+    "entity": "category",
+    "create": true,
+    "data": {
+      "name": "Snacks",
+      "kind": "expense",
+      "parent_id": null,
+      "icon": "🍪",
+      "discretionary": true,
+      "archived": false,
+      "sort_order": 24
+    }
+  },
+  {
     "entity": "fin_record",
     "create": true,
     "data": {
@@ -1287,23 +1300,72 @@
     }
   },
   {
+    "entity": "fin_record",
+    "create": false,
+    "data": {
+      "category_id": "00000000-0000-4000-8000-000000000001"
+    }
+  },
+  {
+    "entity": "finance_settings",
+    "create": false,
+    "data": {
+      "default_account_id": "00000000-0000-4000-8000-00000000001d",
+      "month_start_day": 1,
+      "horizon": 12,
+      "include_unplanned": true,
+      "safety_floor_minor": 3000000,
+      "ai_scope": "aggregates",
+      "disclaimer_ack": false,
+      "nudge_days": 21,
+      "bill_reminder": "09:00",
+      "proj_excluded_planned": []
+    }
+  },
+  {
     "entity": "category",
     "create": true,
     "data": {
-      "name": "Snacks",
+      "name": "Pets",
       "kind": "expense",
       "parent_id": null,
-      "icon": "🍪",
+      "icon": "🐶",
       "discretionary": true,
       "archived": false,
       "sort_order": 24
     }
   },
   {
-    "entity": "fin_record",
-    "create": false,
+    "entity": "category",
+    "create": true,
     "data": {
-      "category_id": "00000000-0000-4000-8000-000000000001"
+      "name": "Vet",
+      "kind": "expense",
+      "parent_id": "00000000-0000-4000-8000-00000000001e",
+      "icon": "💊",
+      "discretionary": false,
+      "archived": false,
+      "sort_order": 25
+    }
+  },
+  {
+    "entity": "fin_record",
+    "create": true,
+    "data": {
+      "type": "expense",
+      "amount_minor": 90000,
+      "account_id": "00000000-0000-4000-8000-00000000001d",
+      "to_account_id": null,
+      "category_id": "00000000-0000-4000-8000-00000000001f",
+      "at": "2026-10-19T04:00:00.000Z",
+      "payee": null,
+      "note": null,
+      "source": "chat",
+      "is_refund": false,
+      "status": "cleared",
+      "orig_currency": null,
+      "orig_amount_minor": null,
+      "fx_rate": null
     }
   },
   {
@@ -1337,7 +1399,7 @@
     "entity": "advisor_message",
     "create": true,
     "data": {
-      "thread_id": "00000000-0000-4000-8000-00000000001d",
+      "thread_id": "00000000-0000-4000-8000-000000000020",
       "role": "user",
       "text": "₱24,999 phone?",
       "answer": null,
@@ -1348,7 +1410,7 @@
     "entity": "advisor_message",
     "create": true,
     "data": {
-      "thread_id": "00000000-0000-4000-8000-00000000001d",
+      "thread_id": "00000000-0000-4000-8000-000000000020",
       "role": "ai",
       "text": "Pick a scope",
       "answer": {
@@ -1361,7 +1423,7 @@
     "entity": "finance_settings",
     "create": false,
     "data": {
-      "default_account_id": "00000000-0000-4000-8000-00000000001e",
+      "default_account_id": "00000000-0000-4000-8000-000000000021",
       "month_start_day": 1,
       "horizon": 12,
       "include_unplanned": true,
@@ -1379,7 +1441,7 @@
     "data": {
       "type": "expense",
       "amount_minor": 1000,
-      "account_id": "00000000-0000-4000-8000-00000000001e",
+      "account_id": "00000000-0000-4000-8000-000000000021",
       "to_account_id": null,
       "category_id": "00000000-0000-4000-8000-000000000011",
       "at": "2026-10-19T04:00:00.000Z",
@@ -1405,7 +1467,7 @@
     "entity": "finance_settings",
     "create": false,
     "data": {
-      "default_account_id": "00000000-0000-4000-8000-00000000001f",
+      "default_account_id": "00000000-0000-4000-8000-000000000022",
       "month_start_day": 1,
       "horizon": 12,
       "include_unplanned": true,

@@ -10,6 +10,7 @@ import type { StepItem } from "../companion/store"
 const mockConfirm = jest.fn()
 const mockEnsure = jest.fn()
 const mockDiscard = jest.fn()
+const mockRedo = jest.fn()
 const mockToast = Object.assign(jest.fn(), {
   success: jest.fn(),
   error: jest.fn(),
@@ -20,6 +21,7 @@ jest.mock("@domain/capture/engine", () => {
     ...actual,
     confirmCard: (...a: unknown[]) => mockConfirm(...a),
     ensureCapture: (...a: unknown[]) => mockEnsure(...a),
+    redoCard: (...a: unknown[]) => mockRedo(...a),
     discardCard: (id: string) => {
       mockDiscard(id)
       actual.discardCard(id)
@@ -66,6 +68,7 @@ beforeEach(() => {
   mockConfirm.mockReset()
   mockEnsure.mockReset()
   mockDiscard.mockReset()
+  mockRedo.mockReset()
   mockToast.mockReset()
   mockToast.success.mockReset()
 })
@@ -169,4 +172,50 @@ test("each of a step's cards gets the same treatment", () => {
   ])
   fireEvent.press(screen.getAllByRole("button", { name: "Confirm" })[1])
   expect(mockConfirm).toHaveBeenCalledWith("c-mom")
+})
+
+test("an undone card offers Redo, which saves it again without a toast", () => {
+  arrive([{ id: "card-m", state: "undone" }])
+  render(<BlockView block={{ t: "steps", items: [meal] }} />)
+  expect(screen.getByText("Undone")).toBeTruthy()
+  fireEvent.press(screen.getByRole("button", { name: "Redo" }))
+  expect(mockRedo).toHaveBeenCalledWith("card-m")
+  expect(mockToast.success).not.toHaveBeenCalled()
+  expect(mockToast).not.toHaveBeenCalled()
+})
+
+test("a table Fern sent shows every food, its grams, the totals and the source", () => {
+  render(
+    <BlockView
+      block={{
+        t: "table",
+        title: "Portions",
+        columns: ["Food", "Amount", "kcal", "Protein g", "Carbs g", "Fat g"],
+        rows: [["Fried tilapia", "150 g", "270", "36", "3", "13"]],
+        foot: [
+          ["Meal total", "", "270", "36", "3", "13"],
+          ["Left today after", "", "1,730", "-4", "217", "47"],
+        ],
+        note: "Fried tilapia: standard values",
+      }}
+    />,
+  )
+  for (const text of [
+    "PORTIONS",
+    "Fried tilapia",
+    "150 g",
+    "Protein g",
+    "Meal total",
+    "Left today after",
+    "1,730",
+    "-4",
+    "Fried tilapia: standard values",
+  ])
+    expect(screen.getByText(text)).toBeTruthy()
+  // Each row reads as one sentence to a screen reader.
+  expect(
+    screen.getByLabelText(
+      "Food Fried tilapia, Amount 150 g, kcal 270, Protein g 36, Carbs g 3, Fat g 13",
+    ),
+  ).toBeTruthy()
 })

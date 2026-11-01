@@ -80,7 +80,7 @@ def test_a_reply_finished_while_the_app_is_away_is_pushed_with_a_preview(
     install(
         monkeypatch,
         say(
-            "**Good news:** you're under budget this week by ₱1,200. "
+            "**Good news:** you're under budget this week, well clear. "
             "Keep the same lunch plan and you'll close the month well ahead "
             "of where you were in September, with room for the Cebu trip."
         ),

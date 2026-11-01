@@ -132,6 +132,7 @@
       ],
       "@bacons/apple-targets",
       "./plugins/free-apple-team",
+      "./plugins/app-intents",
       "./plugins/android-release"
     ],
     "experiments": {

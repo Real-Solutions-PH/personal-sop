@@ -19,6 +19,11 @@ interface UnfurlSurfacesModule {
   /** Whether the activity can show: {"enabled": boolean, "error"?: string}.
    * Missing from builds made before it existed. */
   liveStatus?(): string
+  /** Returns and clears what Shortcuts, Siri or Back Tap asked for, as a
+   * JSON array. Missing from builds made before App Shortcuts. */
+  drainRequests?(): string
+  /** Answers one of those requests; the waiting intent reads it. */
+  reply?(id: string, json: string): void
   addListener(event: "onAction", listener: () => void): Subscription
 }
 
@@ -70,6 +75,36 @@ export function liveStatus(): LiveStatus | null {
     return null
   }
 }
+/** One thing a Shortcut, Siri or Back Tap asked the app for
+ * (ShortcutRequests in targets/widget/_shared/ShortcutRequests.swift). */
+export interface ShortcutRequest {
+  id: string
+  type: string
+  at: number
+  [field: string]: unknown
+}
+export function drainRequests(): ShortcutRequest[] {
+  if (typeof native?.drainRequests !== "function") return []
+  try {
+    const parsed: unknown = JSON.parse(native.drainRequests() || "[]")
+    return Array.isArray(parsed) ? parsed.filter(isRequest) : []
+  } catch {
+    return []
+  }
+}
+export function replyRequest(id: string, reply: Record<string, unknown>) {
+  native?.reply?.(id, JSON.stringify(reply))
+}
+function isRequest(v: unknown): v is ShortcutRequest {
+  if (typeof v !== "object" || v === null) return false
+  const r = v as Record<string, unknown>
+  return (
+    typeof r.id === "string" &&
+    typeof r.type === "string" &&
+    typeof r.at === "number"
+  )
+}
+
 /** Calls back when native code queued a tap while the app is running. */
 export function onQueuedAction(listener: () => void): () => void {
   const sub = native?.addListener("onAction", listener)
