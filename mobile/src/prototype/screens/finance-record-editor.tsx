@@ -143,10 +143,9 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
         fxRate: foreign ? fx?.rate : undefined,
       })
       if (!r) toast.error("That scheduled payment no longer exists")
-      else if (r.updated)
-        // Undo would delete a record that existed before this save.
-        toast.success(`Updated ${plan?.name ?? "payment"}`)
-      else {
+      // An update has no undo (it would delete a record that existed
+      // before this save), so it says nothing: the list shows it.
+      else if (!r.updated) {
         onSaved?.(r.record)
         undo(`Recorded ${plan?.name ?? "payment"}`, () =>
           A.deleteRecords([r.record.id]),
@@ -157,7 +156,6 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
     }
     if (record) {
       A.updateRecord(record.id, input)
-      toast.success("Transaction updated")
       onClose()
       return
     }
@@ -201,7 +199,11 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
               : "New transaction"
       }
       open
-      onClose={picker ? () => setPicker(false) : onClose}
+      // Choosing a category is a step: back returns to the transaction,
+      // close (X, backdrop, drag) closes the whole sheet.
+      onBack={picker ? () => setPicker(false) : undefined}
+      backLabel="Back to transaction"
+      onClose={onClose}
     >
       {picker ? (
         <CategoryPicker

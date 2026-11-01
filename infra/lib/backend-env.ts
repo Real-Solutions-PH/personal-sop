@@ -48,6 +48,8 @@ export const BACKEND_DEFAULTED: Record<string, string> = {
   OCR_ALLOWED_MIME_TYPES: "OCR is off.",
   AI_CREDENTIALS_KEK_VERSION: "1 until the first key rotation.",
   AI_REQUEST_TIMEOUT_SECONDS: "Code default.",
+  AI_THINKING: "Code default (off: replies took minutes with thinking on).",
+  FERN_RULE_VOTER_SALT: "Falls back to the credentials KEK.",
   MEDIA_MAX_IMAGE_MB: "Code default.",
   MEDIA_MAX_VIDEO_MB: "Code default.",
   MEDIA_MAX_AUDIO_MB: "Code default.",

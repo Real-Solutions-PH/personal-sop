@@ -61,6 +61,8 @@ const { wakeCommand, createWakeListener, wake } =
   require("../wake-word") as typeof import("../wake-word")
 const { dictating } =
   require("../live-dictation") as typeof import("../live-dictation")
+const { launchFern, talkLaunch } =
+  require("../companion/launch") as typeof import("../companion/launch")
 const { ThreadComposer } =
   require("../screens/capture-thread") as typeof import("../screens/capture-thread")
 
@@ -261,5 +263,55 @@ describe("the composer", () => {
       wake.setState({ pending: { at: Date.now() - 10_000, rest: "" } })
     })
     expect(mockModule.start).not.toHaveBeenCalled()
+  })
+
+  describe("Talk to Fern (Shortcuts and Back Tap)", () => {
+    test("a pause stops dictating and the message sends by itself", async () => {
+      const onText = jest.fn()
+      render(<ThreadComposer onText={onText} hints={false} wakeTarget />)
+      await act(async () => {
+        launchFern("talk", "t1")
+      })
+      expect(mockModule.start).toHaveBeenCalled()
+      expect(talkLaunch.getState().at).toBeNull()
+      await act(async () => said("how much did I spend today"))
+      await act(async () => jest.advanceTimersByTime(1_799))
+      expect(mockModule.stop).not.toHaveBeenCalled()
+      await act(async () => jest.advanceTimersByTime(1))
+      expect(mockModule.stop).toHaveBeenCalled()
+      await act(async () => fire("end", null))
+      expect(onText).not.toHaveBeenCalled()
+      await act(async () => jest.advanceTimersByTime(1_200))
+      expect(onText).toHaveBeenCalledWith(
+        "how much did I spend today",
+        undefined,
+        undefined,
+      )
+    })
+
+    test("saying nothing sends nothing", async () => {
+      const onText = jest.fn()
+      render(<ThreadComposer onText={onText} hints={false} wakeTarget />)
+      await act(async () => {
+        launchFern("talk", "t2")
+      })
+      await act(async () => fire("end", null))
+      await act(async () => jest.advanceTimersByTime(5_000))
+      expect(onText).not.toHaveBeenCalled()
+    })
+
+    test("plain dictation still waits for Send", async () => {
+      const onText = jest.fn()
+      render(<ThreadComposer onText={onText} hints={false} wakeTarget />)
+      await act(async () => {
+        launchFern("dictate", "t3")
+      })
+      await act(async () => said("log lunch"))
+      await act(async () => jest.advanceTimersByTime(5_000))
+      expect(mockModule.stop).not.toHaveBeenCalled()
+      await act(async () => fire("end", null))
+      await act(async () => jest.advanceTimersByTime(5_000))
+      expect(onText).not.toHaveBeenCalled()
+    })
   })
 })

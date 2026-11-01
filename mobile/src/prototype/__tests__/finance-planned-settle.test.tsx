@@ -160,7 +160,7 @@ test("closing the editor without saving records nothing", () => {
   expect(toastMock).not.toHaveBeenCalled()
 })
 
-test("saving the same date twice keeps one record and says it was updated", () => {
+test("saving the same date twice keeps one record and updates it quietly", () => {
   const p = plan()
   editor(p).unmount()
   editor(p)
@@ -170,7 +170,8 @@ test("saving the same date twice keeps one record and says it was updated", () =
   editor(p)
   fireEvent.changeText(screen.getByLabelText("Amount ₱"), "28,000")
   fireEvent.press(screen.getByText("Received"))
-  expect(toastMock.success).toHaveBeenCalledWith("Updated Salary")
+  // An update has no Undo, so no toast: the record itself is the feedback.
+  expect(toastMock.success).not.toHaveBeenCalled()
   const rows = recordsOf(p)
   expect(rows).toHaveLength(1)
   expect(rows[0].amount).toBe(28000)

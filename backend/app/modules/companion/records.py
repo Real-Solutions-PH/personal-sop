@@ -79,6 +79,12 @@ AREAS: dict[str, Area] = {
 # are averaged per record and never summed.
 LEVELS = {"kg", "body_fat_pct", "top_kg"}
 
+AVERAGES_NOTE = (
+    "average_per_logged_day divides by the days that had a value (how much "
+    "on a day you logged); average_per_calendar_day divides by every day in "
+    "the range. Say which one you use."
+)
+
 
 def _day(row: dict[str, Any]) -> date:
     return date.fromisoformat(str(row["day"]))
@@ -131,7 +137,7 @@ def _stats(rows: Sequence[dict[str, Any]], metrics: Sequence[str]) -> dict[str, 
             per_day[m] = _r(total[m] / n)
     out: dict[str, Any] = {"sum": total}
     if per_day:
-        out["average_per_day"] = per_day
+        out["average_per_logged_day"] = per_day
         out["days_with_value"] = days_with_value
     if levels:
         out["per_record"] = levels
@@ -161,16 +167,24 @@ def summarize(
         ]
     # Metrics that only add up within one group stay out of the whole.
     whole = _stats(rows, [m for m in metrics if m not in per_group_only])
+    span = (last - first).days + 1
     out: dict[str, Any] = {
         "first_day": first.isoformat(),
         "last_day": last.isoformat(),
-        "days_in_range": (last - first).days + 1,
+        "days_in_range": span,
         "days_with_records": len({r["day"] for r in rows}),
         "records_matched": len(rows),
         "total": whole["sum"],
+        # Two averages that answer different questions; the model mixed
+        # them up when one was named "per day" and the other "per calendar
+        # day" (seen 2026-10-31), so each name says its denominator.
         # Each metric's total over the days that had a known value for it
         # (``days_with_value``), never over days it was missing.
-        "average_per_day_with_records": whole.get("average_per_day"),
+        "average_per_logged_day": whole.get("average_per_logged_day"),
+        # The same total over every day in the range, logged or not.
+        "average_per_calendar_day": {m: _r(v / span) for m, v in whole["sum"].items()}
+        or None,
+        "which_average": AVERAGES_NOTE,
     }
     for k in ("days_with_value", "per_record", "unknown"):
         if k in whole:
@@ -221,7 +235,7 @@ def summarize(
 
 
 # Parts of an answer that hold counts per metric, not amounts.
-_COUNTS = {"unknown", "days_with_value"}
+_COUNTS = {"unknown", "days_with_value", "pct_change"}
 
 
 def _money(value: Any, ctx: Ctx, *, amounts: bool = True) -> Any:
@@ -274,4 +288,102 @@ def query(
         per_group_only=list(a.only_by),
     )
     answer: dict[str, Any] = _money(out | {"area": area}, ctx)
+    return answer
+
+
+# ---------------------------------------------------------------- compare
+
+
+def periods(today: date, period: str, days: int) -> tuple[date, date, date, date]:
+    """This period (up to today) and the one before it: the week from
+    Monday, the month from the 1st, or the last ``days`` days."""
+    if period == "week":
+        first = today - timedelta(days=today.weekday())
+        return first, today, first - timedelta(days=7), first - timedelta(days=1)
+    if period == "month":
+        first = today.replace(day=1)
+        prev_last = first - timedelta(days=1)
+        return first, today, prev_last.replace(day=1), prev_last
+    first = today - timedelta(days=days - 1)
+    return first, today, first - timedelta(days=days), first - timedelta(days=1)
+
+
+def _pct(now: float, before: float) -> float | None:
+    return _r((now - before) / abs(before) * 100) if before else None
+
+
+def compare_summaries(this: dict[str, Any], prev: dict[str, Any]) -> dict[str, Any]:
+    """Each metric this period against the one before, all worked out here.
+    Amounts compare per calendar day, so a week four days old is fair to a
+    whole one; levels (weight) compare their average per record."""
+    this_avg = dict(this.get("average_per_calendar_day") or {})
+    prev_avg = dict(prev.get("average_per_calendar_day") or {})
+    for k, v in (this.get("per_record") or {}).items():
+        this_avg[k] = v["average"]
+    for k, v in (prev.get("per_record") or {}).items():
+        prev_avg[k] = v["average"]
+    keys = [k for k in this_avg if k in prev_avg]
+    return {
+        "this_period": {k: this_avg[k] for k in this_avg},
+        "previous_period": {k: prev_avg[k] for k in prev_avg},
+        "delta": {k: _r(this_avg[k] - prev_avg[k]) for k in keys},
+        "pct_change": {k: _pct(this_avg[k], prev_avg[k]) for k in keys},
+        "compared_as": "average per calendar day for amounts; average per "
+        "record for levels",
+    }
+
+
+def compare(
+    ctx: Ctx,
+    *,
+    area: str,
+    period: str,
+    days: int,
+    contains: str | None,
+) -> dict[str, Any]:
+    """``compare_periods``: this week, month or N days against the one
+    before, and for meals against the daily target."""
+    a = AREAS.get(area)
+    if a is None:
+        return {"error": "unknown_area", "areas": sorted(AREAS)}
+    first, last, pfirst, plast = periods(ctx.today, period, days)
+    metrics = [m for m in a.metrics if m not in a.only_by]
+
+    def one(lo: date, hi: date) -> dict[str, Any]:
+        return summarize(
+            a.rows(ctx, lo, hi),
+            metrics=metrics,
+            group_by="none",
+            first=lo,
+            last=hi,
+            contains=contains,
+            search=a.fields,
+            limit=0,
+        )
+
+    this, prev = one(first, last), one(pfirst, plast)
+    out: dict[str, Any] = {
+        "area": area,
+        "this": {"first_day": first.isoformat(), "last_day": last.isoformat(),
+                 "days": this["days_in_range"], "days_with_records": this["days_with_records"],
+                 "total": this["total"]},
+        "previous": {"first_day": pfirst.isoformat(), "last_day": plast.isoformat(),
+                     "days": prev["days_in_range"], "days_with_records": prev["days_with_records"],
+                     "total": prev["total"]},
+    } | compare_summaries(this, prev)  # fmt: skip
+    if area == "meals":
+        target = fitness.nutrition_today(ctx).get("target") or {}
+        logged = this.get("average_per_logged_day") or {}
+        vs = {
+            k: {
+                "average_per_logged_day": logged[k],
+                "daily_target": target[k],
+                "delta": _r(logged[k] - float(target[k])),
+            }
+            for k in ("kcal", "protein", "carbs", "fat")
+            if k in logged and k in target
+        }
+        if vs:
+            out["this_period_vs_daily_target"] = vs
+    answer: dict[str, Any] = _money(out, ctx)
     return answer

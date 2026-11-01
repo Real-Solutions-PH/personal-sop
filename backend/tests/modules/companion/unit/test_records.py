@@ -39,7 +39,7 @@ def test_by_day_sums_each_day_and_names_the_denominator() -> None:
     ]
     assert out["total"] == {"kcal": 900, "protein": 68}
     # 900 / 2 days with records; 68 / 2.
-    assert out["average_per_day_with_records"] == {"kcal": 450, "protein": 34}
+    assert out["average_per_logged_day"] == {"kcal": 450, "protein": 34}
 
 
 def test_by_field_counts_days_and_averages_per_group() -> None:
@@ -51,7 +51,7 @@ def test_by_field_counts_days_and_averages_per_group() -> None:
         {"kcal": 410, "protein": 8},
     )
     # 410 over the 2 days rice was eaten.
-    assert rice["average_per_day"] == {"kcal": 205, "protein": 4}
+    assert rice["average_per_logged_day"] == {"kcal": 205, "protein": 4}
     # Largest first by the first metric, so "what did most of my calories
     # come from" reads off the top.
     assert [g["key"] for g in out["groups"]] == ["Rice", "Chicken inasal", "Beef"]
@@ -128,7 +128,7 @@ def test_nothing_recorded() -> None:
     assert out["days_with_records"] == 0
     assert out["groups"] == []
     assert out["total"] == {"kcal": 0, "protein": 0}
-    assert out["average_per_day_with_records"] is None
+    assert out["average_per_logged_day"] is None
 
 
 def test_contains_reads_only_the_searchable_fields() -> None:
@@ -168,7 +168,7 @@ def test_each_metric_averages_over_the_days_it_was_known() -> None:
     out = summarize(
         rows, metrics=("kcal", "sugar"), group_by="none", first=FIRST, last=LAST
     )
-    assert out["average_per_day_with_records"] == {"kcal": 500, "sugar": 50}
+    assert out["average_per_logged_day"] == {"kcal": 500, "sugar": 50}
     assert out["days_with_value"] == {"kcal": 2, "sugar": 1}
     assert out["unknown"] == {"sugar": 1}
 
@@ -188,7 +188,7 @@ def test_a_metric_a_row_lacks_is_not_unknown() -> None:
         last=LAST,
     )
     assert "unknown" not in out
-    assert out["average_per_day_with_records"] == {
+    assert out["average_per_logged_day"] == {
         "spent_minor": 100000,
         "received_minor": 5000000,
     }
@@ -266,4 +266,4 @@ def test_a_group_names_the_days_its_average_divides_by() -> None:
     [rice] = out["groups"]
     assert rice["days"] == 2
     assert rice["days_with_value"] == {"sugar": 1}
-    assert rice["average_per_day"] == {"sugar": 6}
+    assert rice["average_per_logged_day"] == {"sugar": 6}

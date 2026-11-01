@@ -28,6 +28,8 @@ CORE = frozenset(
         "stats_overview",
         "confirm_pending",
         "discard_pending",
+        "redo_undone",
+        "compare_periods",
         "edit_last",
         "delete_last",
     }
@@ -72,6 +74,7 @@ GROUPS: dict[str, tuple[frozenset[str], re.Pattern[str]]] = {
                 "edit_account",
                 "edit_budget",
                 "remove_item",
+                "finance_status",
             }
         ),
         re.compile(
@@ -89,6 +92,7 @@ GROUPS: dict[str, tuple[frozenset[str], re.Pattern[str]]] = {
                 "complete_task",
                 "create_task_list",
                 "edit_task",
+                "find_tasks",
                 "remove_item",
             }
         ),
@@ -130,11 +134,12 @@ GROUPS: dict[str, tuple[frozenset[str], re.Pattern[str]]] = {
                 "save_food",
                 "find_foods",
                 "reread_photos",
+                "portion_plan",
                 *FITNESS_MANAGE,
             }
         ),
         re.compile(
-            r"\b(label|photos?|pictures?|image|re-?read|re-?check|nutrition facts?|serving size|per serving|per 100 ?g|"
+            r"\b(portion(?:s|ing)?|grams?|servings?|label|photos?|pictures?|image|re-?read|re-?check|nutrition facts?|serving size|per serving|per 100 ?g|"
             r"ate|eat|eaten|eating|meals?|breakfast|lunch|dinner|snacks?|"
             r"food|kcal|calories?|protein|carbs?|fats?|fiber|sugar|sodium|"
             r"macros?|nutrition|workouts?|gym|run|ran|walk(ed)?|bike|swim|"
@@ -162,6 +167,7 @@ GROUPS: dict[str, tuple[frozenset[str], re.Pattern[str]]] = {
                 "edit_account",
                 "edit_budget",
                 "edit_task",
+                "find_tasks",
                 "update_habit",
                 "update_routine",
                 "find_fitness_logs",
@@ -171,7 +177,7 @@ GROUPS: dict[str, tuple[frozenset[str], re.Pattern[str]]] = {
         ),
         re.compile(
             r"\b(edit|change|changed|update|move|moved|rename|fix|correct|wrong|"
-            r"mistake|delete|remove|archive|cancel|undo|replace|switch|reassign|"
+            r"mistake|delete|remove|archive|cancel|undo|redo|replace|switch|reassign|"
             r"palitan|burahin|ilipat|instead|actually|should (?:be|have been)|"
             r"not \d[\d,.]*)\b",
             re.I,

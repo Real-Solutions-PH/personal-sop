@@ -340,7 +340,9 @@ def test_recall_runs_once_a_turn(
     )
     reply = parse_agui(r.text)[-1]["result"]["messages"][1]
     steps = reply["blocks"][0]["items"]
-    assert searches == ["morning routine"]
+    # The turn's own recall of the message (memory.context_block), then the
+    # model's one search; its repeats are answered from the first.
+    assert searches == ["what's in my morning routine?", "morning routine"]
     assert [s["summary"] for s in steps] == ["Recalled 0 things about you"]
     assert "morning routine" in reply["text"]
 
@@ -363,8 +365,9 @@ def test_older_conversation_is_folded_into_a_summary(
             headers=api.h,
             json={"text": f"message number {i} about the trip to Cebu"},
         )
-    # Those six messages were yesterday's: the next turn folds them into the
-    # summary first (one call), then answers with the summary in context.
+    # Those six messages were yesterday's: after the next reply (never
+    # before it) they are folded into the summary, one call, and the turn
+    # after that has the summary in context.
     with ctx_for(api.user) as ctx:  # type: ignore[attr-defined]
         for m in owned_repo.list_rows(ctx, CompanionMessage):
             m.created_at -= timedelta(days=1)
@@ -372,14 +375,17 @@ def test_older_conversation_is_folded_into_a_summary(
         ctx.session.commit()
     model = install(
         monkeypatch,
-        say("They are planning a trip to Cebu to see Ana."),
         say("Sure."),
+        say("They are planning a trip to Cebu to see Ana."),
+        say("Have fun."),
     )
     client.post(
         "/api/v1/companion/ask/stream", headers=api.h, json={"text": "ok thanks"}
     )
-    assert "NEW MESSAGES" in str(model.seen[0][-1].content)
-    answer_system = model.seen[1][0].content
+    assert "NEW MESSAGES" not in str(model.seen[0][-1].content)
+    assert "NEW MESSAGES" in str(model.seen[1][-1].content)
+    client.post("/api/v1/companion/ask/stream", headers=api.h, json={"text": "see you"})
+    answer_system = model.seen[2][0].content
     assert "EARLIER CONVERSATION" in answer_system
     assert "planning a trip to Cebu" in answer_system
     with ctx_for(api.user) as ctx:  # type: ignore[attr-defined]

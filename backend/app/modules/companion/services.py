@@ -27,7 +27,20 @@ from sqlmodel import col
 
 from app.modules.ai_providers import public as ai
 from app.modules.capture import public as capture
-from app.modules.companion import brain, grounding, memory, records, routing, web
+from app.modules.companion import (
+    brain,
+    grounding,
+    intent,
+    memory,
+    money_status,
+    numbers,
+    portions,
+    records,
+    redo,
+    reply_format,
+    routing,
+    web,
+)
 from app.modules.companion.defaults import COMPANION_NAME
 from app.modules.companion.models import (
     MEMORY_KINDS,
@@ -51,6 +64,7 @@ from app.modules.fitness import public as fitness
 from app.modules.focus import public as focus
 from app.modules.profile import public as profile
 from app.modules.stats import public as stats
+from app.modules.tasks import public as tasks
 from app.shared import owned_repo
 from app.shared.context import Ctx
 from app.shared.ids import derived_id
@@ -61,13 +75,23 @@ Emit = Callable[[str, dict[str, Any]], None]
 # MAX_STEPS model calls and MAX_TOOL_CALLS tool calls (enough to look
 # something up, write several records and answer); tool results are cut in
 # capture's loop (``agent.MAX_TOOL_RESULT_CHARS``).
-HISTORY = 6
-HISTORY_CHARS = 600
+# The turn sends the chat's last HISTORY messages word for word: today's,
+# and the person's own from the HISTORY_DAYS before (dated; earlier-day
+# replies stay out, see ``_history``). Was 6 messages of 600 characters,
+# today only: Fern forgot what was said an hour or a day before.
+HISTORY = 12
+HISTORY_CHARS = 1000
+HISTORY_DAYS = 2
 MAX_STEPS = 6
-# The reply's last line when the person sent another message and asked
-# for it at once ("Send now").
-STOPPED = "Stopped here to get to your next message."
+# The reply when the person sent another message and asked for it at once
+# ("Send now") before this one had any words. A reply that has words ends
+# as it is: the old closing line ("Stopped here to get to your next
+# message.") read as a rule leaking into the chat (Kai, 2026-11-01).
+STOPPED = "(Paused for your next message.)"
 MAX_TOOL_CALLS = 20
+# Corrective passes a reply may get after its first (a claim no write backs,
+# figures no tool returned, no words at all): each is a full model run.
+MAX_FIX_PASSES = 2
 
 
 def _noop(event: str, data: dict[str, Any]) -> None:
@@ -497,6 +521,71 @@ class ChartArgs(BaseModel):
     days: Annotated[int, Field(ge=7, le=365)] = 30
 
 
+# Chart metrics whose daily values are amounts (money spent, workouts
+# done); every other one is a level or a rate and is averaged, never summed.
+SUMMABLE_METRICS = frozenset({"spend", "workouts"})
+
+
+class PortionFoodIn(BaseModel):
+    name: Annotated[str, Field(min_length=1, max_length=80)] = Field(
+        description="The food in the person's words (fried tilapia, rice)."
+    )
+    kcal_per_100g: Annotated[float, Field(ge=0, le=950)] | None = None
+    protein_per_100g: Annotated[float, Field(ge=0, le=100)] | None = None
+    carbs_per_100g: Annotated[float, Field(ge=0, le=100)] | None = None
+    fat_per_100g: Annotated[float, Field(ge=0, le=100)] | None = None
+    from_person: bool = Field(
+        default=False, description="True when the values came from the person."
+    )
+    grams: Annotated[float, Field(gt=0, le=2000)] | None = Field(
+        default=None, description="Only when they said how much they eat of it."
+    )
+    role: Literal["protein", "carb", "side", "extra"] | None = Field(
+        default=None,
+        description="extra: a shake or powder added by the scoop only if "
+        "protein falls short. Leave out to let the planner decide.",
+    )
+    serving_grams: Annotated[float, Field(gt=0, le=500)] | None = Field(
+        default=None, description="One scoop or serving, for an extra."
+    )
+
+
+class PortionPlanArgs(BaseModel):
+    foods: list[PortionFoodIn] = Field(min_length=1, max_length=8)
+    kcal: Annotated[float, Field(gt=0, le=6000)] | None = Field(
+        default=None, description="Only when they named a calorie target."
+    )
+    protein: Annotated[float, Field(gt=0, le=400)] | None = Field(
+        default=None, description="Only when they named a protein target."
+    )
+    whole_day: bool = Field(
+        default=False,
+        description="True when this meal should cover everything left today "
+        "(their last meal, or they say so).",
+    )
+
+
+class CompareArgs(BaseModel):
+    area: Literal["meals", "workouts", "weight", "money", "habits", "tasks", "focus"]
+    period: Literal["week", "month", "days"] = "week"
+    days: Annotated[int, Field(ge=1, le=183)] = Field(
+        default=7, description="With period 'days': the last N days vs the N before."
+    )
+    contains: Annotated[str, Field(min_length=1, max_length=60)] | None = None
+
+
+class FindTasksArgs(BaseModel):
+    query: Annotated[str, Field(min_length=1, max_length=120)] = Field(
+        description="Words from the task's title or notes."
+    )
+
+
+class RedoArgs(BaseModel):
+    what: Annotated[str, Field(max_length=120)] | None = Field(
+        default=None, description="Words naming the entry, when they said."
+    )
+
+
 class CoachArgs(BaseModel):
     mood: Literal["low"] | None = None
 
@@ -645,6 +734,8 @@ class SolRun:
     # The capture this turn's own writes sit on, once one has written:
     # confirming or discarding what waits never touches it.
     turn_capture: Callable[[], uuid.UUID | None] = lambda: None
+    # Every tool result of the turn, in order, for the number check.
+    results: list[tuple[str, Any]] = field(default_factory=list)
 
     def block(self, b: dict[str, Any]) -> dict[str, Any]:
         self.blocks.append(b)
@@ -712,6 +803,22 @@ def with_day_after(ctx: Ctx, tool: BaseTool) -> BaseTool:
                     v = it.get(k) if isinstance(it, dict) else getattr(it, k, 0)
                     eaten[k] = round(eaten.get(k, 0) + float(v or 0), 1)
         out: dict[str, Any] = {"eaten_today_with_this_meal": eaten}
+        if items:
+            # The meal's own total, so "lunch, 650 kcal" is a figure a tool
+            # returned (the number check) rather than the model's sum.
+            out["this_meal"] = {
+                k: round(
+                    sum(
+                        float(
+                            (it.get(k) if isinstance(it, dict) else getattr(it, k, 0))
+                            or 0
+                        )
+                        for it in items
+                    ),
+                    1,
+                )
+                for k in ("kcal", "protein", "carbs", "fat")
+            }
         if "target" in day:
             out["left_today"] = {
                 k: round(v - eaten.get(k, 0), 1) for k, v in day["target"].items()
@@ -750,6 +857,92 @@ def with_day_after(ctx: Ctx, tool: BaseTool) -> BaseTool:
     )
 
 
+def recording(run: SolRun, tool: BaseTool) -> BaseTool:
+    """``tool`` that also keeps its result on the run, so the reply's
+    numbers can be checked against what the tools returned."""
+    inner = tool.func  # type: ignore[attr-defined]
+
+    def call(**kw: Any) -> Any:
+        res = inner(**kw)
+        run.results.append((tool.name, res))
+        return res
+
+    return StructuredTool.from_function(
+        func=call,
+        name=tool.name,
+        description=tool.description,
+        args_schema=tool.args_schema,
+    )
+
+
+def without_duplicate_tasks(ctx: Ctx, tool: BaseTool) -> BaseTool:
+    """``create_tasks`` that refuses a task already open under the same
+    title. Seen live: "yes log it to note and push it tomorrow" made a
+    second copy of the task instead of editing the first."""
+    inner = tool.func  # type: ignore[attr-defined]
+
+    def create_tasks(**kw: Any) -> Any:
+        dupes = []
+        for t in kw.get("tasks") or []:
+            title = str(t.get("title") if isinstance(t, dict) else t.title).strip()
+            for hit in tasks.find_open_tasks(ctx, title, limit=5):
+                if hit.title.strip().casefold() == title.casefold():
+                    dupes.append(
+                        {
+                            "title": hit.title,
+                            "due_date": hit.due_date.isoformat()
+                            if hit.due_date
+                            else None,
+                        }
+                    )
+                    break
+        if dupes:
+            return {
+                "error": "already_open",
+                "existing": dupes,
+                "instead": "change the existing task with edit_task (notes, "
+                "due_date); call create_tasks again only for tasks that are new",
+            }
+        return inner(**kw)
+
+    return StructuredTool.from_function(
+        func=create_tasks,
+        name=tool.name,
+        description=tool.description,
+        args_schema=tool.args_schema,
+    )
+
+
+def _library_food(
+    ctx: Ctx, name: str
+) -> tuple[str, dict[str, float], float | None] | None:
+    """A food from the person's library whose words match ``name`` either
+    way, with its values per 100 g (a per-piece food needs its weight)."""
+    want = set(re.findall(r"[a-z]+", name.lower()))
+    for f in fitness.food_library.search_foods(ctx, name, limit=5):
+        have = set(re.findall(r"[a-z]+", f.name.lower()))
+        if not have or not (have <= want or want <= have):
+            continue
+        if f.basis == "100g":
+            scale = 1.0
+        elif f.unit_grams:
+            scale = 100 / f.unit_grams
+        else:
+            continue
+        per100 = {k: float(getattr(f, k) or 0) * scale for k in portions.MACROS}
+        return f.name, per100, f.unit_grams if f.basis != "100g" else None
+    return None
+
+
+# Asking to bring back what they undid: "redo", "save it again", "undo the
+# undo", "re-confirm". A plain "confirm" passes too (said_confirm).
+_REDO_WORDS = re.compile(
+    r"\b(redo|re-?confirm|re-?save|save (?:it|that|them) again|undo (?:the|my) "
+    r"undo|bring (?:it|that) back|restore|put (?:it|that) back|ibalik)\b",
+    re.I,
+)
+
+
 def sol_tools(run: SolRun) -> list[BaseTool]:
     ctx = run.ctx
 
@@ -758,15 +951,29 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
     def show_chart(**kw: Any) -> dict[str, Any]:
         a = ChartArgs(**kw)
         shown = run.block({"t": "chart", "metric": a.metric, "days": a.days})
-        vals = [v for _, v in stats.series(ctx, metric=a.metric, days=a.days)]
+        try:
+            vals = [v for _, v in stats.series(ctx, metric=a.metric, days=a.days)]
+        except ValueError:
+            # spendCats is slices, not days: the card draws it, no numbers.
+            return {**shown, "days": a.days}
         logged = [v for v in vals if v is not None]
-        return {
+        out: dict[str, Any] = {
             **shown,
             "days": a.days,
             "days_with_data": len(logged),
             "latest": logged[-1] if logged else None,
-            "total": round(sum(logged), 2) if logged else None,
         }
+        if logged:
+            out |= {
+                "average": round(sum(logged) / len(logged), 2),
+                "min": min(logged),
+                "max": max(logged),
+            }
+            # Only amounts add up: a month of weights or scores has no total
+            # (it was returned for every metric, and said as "your total").
+            if a.metric in SUMMABLE_METRICS:
+                out["total"] = round(sum(logged), 2)
+        return out
 
     def show_insights(**kw: Any) -> dict[str, Any]:
         NoArgs(**kw)
@@ -802,7 +1009,9 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
             tags=a.tags,
             importance=a.importance,
             always_on=a.always_on,
-            source="said",
+            # "said" only when the person asked for it to be kept; Fern
+            # saving on its own (mid-reply, or in `learn`) is "inferred".
+            source="said" if _ASKS_TO_REMEMBER.search(run.said or "") else "inferred",
             judge=run.judge,
         )
         out: dict[str, Any] = {
@@ -987,6 +1196,83 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
             ctx, action="discard", keep_capture=run.turn_capture()
         )
 
+    def portion_plan(**kw: Any) -> dict[str, Any]:
+        a = PortionPlanArgs(**kw)
+        foods, unknown = portions.resolve(
+            [f.model_dump(exclude_none=True) for f in a.foods],
+            lambda name: _library_food(ctx, name),
+        )
+        if unknown:
+            return {
+                "error": "need_values_per_100g",
+                "foods": unknown,
+                "instead": "call again with kcal_per_100g and protein_per_100g "
+                "(carbs, fat too) estimated for these foods",
+            }
+        day = fitness.nutrition_today(ctx)
+        left = day.get("left")
+        if a.kcal is None and a.protein is None and not left:
+            return {
+                "error": "no_macro_target",
+                "instead": "ask their calorie and protein target for this meal",
+            }
+        share = 1 if a.whole_day else max(1, len(day.get("meals_ahead") or []))
+        budget = {
+            "kcal": a.kcal
+            if a.kcal is not None
+            else max(0.0, float((left or {}).get("kcal", 0))) / share,
+            "protein": a.protein
+            if a.protein is not None
+            else max(0.0, float((left or {}).get("protein", 0))) / share,
+        }
+        out = portions.result(
+            portions.plan(foods, budget),
+            budget=budget,
+            left_before={k: float(v) for k, v in left.items()} if left else None,
+        )
+        if share > 1:
+            out["budget_is"] = f"what is left today shared by {share} meals ahead"
+        run.block(portions.table(out))
+        return {
+            **out,
+            "shown": "table",
+            "note": "a plan, not a log; the table shows every number, so lead "
+            "with the totals and what is left in one or two lines",
+        }
+
+    def compare_periods(**kw: Any) -> dict[str, Any]:
+        a = CompareArgs(**kw)
+        return records.compare(
+            ctx, area=a.area, period=a.period, days=a.days, contains=a.contains
+        )
+
+    def finance_status(**kw: Any) -> dict[str, Any]:
+        NoArgs(**kw)
+        return money_status.status(ctx)
+
+    def find_tasks(**kw: Any) -> dict[str, Any]:
+        a = FindTasksArgs(**kw)
+        hits = tasks.find_open_tasks(ctx, a.query, limit=8)
+        return {
+            "tasks": [
+                {
+                    "title": t.title,
+                    "due_date": t.due_date.isoformat() if t.due_date else None,
+                    "notes": t.notes or None,
+                }
+                for t in hits
+            ]
+        }
+
+    def redo_undone(**kw: Any) -> dict[str, Any]:
+        a = RedoArgs(**kw)
+        if not (said_confirm(run.said) or _REDO_WORDS.search(run.said)):
+            return {
+                "error": "they_did_not_ask",
+                "instead": "ask whether to save the undone entry again",
+            }
+        return redo.redo_undone(ctx, what=a.what)
+
     specs: list[tuple[Callable[..., Any], type[BaseModel], str]] = [
         (show_chart, ChartArgs, "Show a chart of one metric over a number of days."),
         (show_insights, NoArgs, "Show the patterns card from the user's records."),
@@ -1084,6 +1370,44 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
             "Drop every entry from recent chat turns that is waiting for the "
             "user's OK, when they say cancel, no, don't save it.",
         ),
+        (
+            portion_plan,
+            PortionPlanArgs,
+            "Work out how many grams of each food to eat (a plate, a meal "
+            "they plan) to fit what is left today: returns grams, kcal, "
+            "protein, carbs and fat per food, the meal total and what is left "
+            "after, all computed, and shows them as a table. Use it for any "
+            "portion or 'how much should I eat' question. Give values per "
+            "100 g for foods you estimate; the library and standard values "
+            "fill the rest.",
+        ),
+        (
+            compare_periods,
+            CompareArgs,
+            "Compare this week, this month or the last N days with the period "
+            "before, in one area: per-day averages, the change and the "
+            "percent change, computed; for meals also against the daily "
+            "target.",
+        ),
+        (
+            finance_status,
+            NoArgs,
+            "Where their money stands now: each account's balance, net worth, "
+            "spent this month so far, every budget (spent, left, safe per "
+            "day, on pace or not) and bills overdue or due in the next 7 days.",
+        ),
+        (
+            find_tasks,
+            FindTasksArgs,
+            "Find open tasks by words in their title or notes, with due date "
+            "and notes: before changing a task, or to answer about one.",
+        ),
+        (
+            redo_undone,
+            RedoArgs,
+            "Save again an entry they Undid (redo it), when they ask to "
+            "confirm, restore or redo something they undid.",
+        ),
     ]
     return [
         StructuredTool.from_function(
@@ -1100,11 +1424,32 @@ records still means the previous date, but "tonight", "later" and "in an
 hour" mean the next such time after right now.
 Never schedule something in the past unless they ask for it.
 
-Voice: calm, plain, specific, like a steady friend who pays attention. One idea
-per message, at most three short sentences in one paragraph. English, or Taglish if they write it.
+First, decide the job: what they want (an answer, a record, a plan, a
+change to an entry, a redo, or talk), what they expect to see, and the
+fewest steps there. THIS TURN at the end names it; follow it unless their
+message plainly says otherwise.
+- A question is answered, never silently logged.
+- "try again", "that's wrong", "not that", "answer?" mean your last answer
+  missed: answer their earlier message again, addressing exactly what it
+  asked, in the format it needs. Don't repeat the same answer, and don't
+  re-read a photo unless they ask.
+- Their own words win over your estimate: "zero calories sugar" means 0 g
+  sugar; "use similar foods" means estimate from a similar food and say
+  which; "check the web" means search and name the source.
+- Ask one short question only when a missing fact can't be guessed safely
+  (which account); otherwise state your assumption in a few words and go.
 
-Format: plain text only. No markdown: no asterisks, no headings, no bullet or
-numbered lists, no tables. The cards you show carry any list.
+Voice: calm, plain, specific, like a steady friend who pays attention.
+English, or Taglish if they write it.
+
+Format: lead with the answer. Short by default: one to three sentences.
+When the content has several items (portions per food, a breakdown, steps,
+a multi-part answer), use a short list, one item per line starting with
+"- ", or a compact markdown table for numbers in columns. Every number has
+its unit (g, kcal, kg, min; money in their currency). No headings, no bold. ABOUT THEM's answer
+style (exact grams, blunt numbers, full macros) overrides these defaults.
+A card or table a tool shows carries its numbers: say the one or two that
+matter, don't read it back.
 
 Facts: every fact you state about the user (habits, tasks, streaks, scores,
 money, training, food, plans, projects, people) must come from TODAY below, from
@@ -1118,10 +1463,16 @@ are empty. The life score the
 user sees on Today is life_score_7_days_shown_on_today. TODAY is current;
 where an earlier message in this chat says otherwise, TODAY is right.
 
+Numbers: never add, subtract, divide or convert numbers yourself; every
+total, difference, average, "left" or comparison comes from a tool: `portion_plan` for grams per food and what is left after a
+meal, `nutrition_status` for the day's food, `compare_periods` for this week
+or month against the one before or a target, `finance_status` for balances,
+budgets and bills, `query_records` for any past range (its two averages say
+their denominators; name the one you use). A reply's figures are checked
+against the tool results; a figure no tool returned is sent back to you.
+
 Acting: act only on the user's latest message; what earlier messages asked
-for was already handled, so never record it again. You can work in several
-steps. Call tools, read what they return,
-call more if needed, then answer. When the user asks you to add, log, record,
+for was already handled, so never record it again. When the user asks you to add, log, record,
 remind, complete or change something, do it with the matching tool yourself;
 never only say you will. The same goes when they simply describe things to
 keep: tasks, to-dos or a list of what they need to work on, money spent,
@@ -1134,7 +1485,9 @@ be told to register or add them; listing them back is not recording them.
   only when they ask to be reminded. Put a task in one of their
   `task_lists` (`list`, its exact name) when they name the list or the task
   plainly belongs to one; otherwise leave `list` out and it goes to the
-  Inbox.
+  Inbox. "it", "that" or a task already named means a task that exists:
+  noting it, pushing it to another day or renaming it is `edit_task`
+  (`find_tasks` first when unsure), never a new task.
 - Finishing a task: `complete_task`. Money: `log_expense`, `log_income`,
   `log_transfer`, `add_planned`. Bills and pay-later plans (often in photos):
   each bill with a due date is its own one-time `add_planned` with that
@@ -1161,42 +1514,37 @@ be told to register or add them; listing them back is not recording them.
   step, so say what was created.
 - Changing or removing what they already have is yours too, in every
   module; never say you can't. Find it first (`find_transactions`,
-  `list_scheduled`, `find_fitness_logs`), then call the matching edit tool;
-  to move every scheduled item off an account give `from_account`. Deleting
-  or archiving anything: `remove_item`. On `several_match`, ask which one.
-  With workout_in_progress in TODAY, sets they did go to `edit_workout`,
-  not `log_workout`. Edits save at once with Undo; removals wait for their
-  Confirm.
+  `list_scheduled`, `find_fitness_logs`, `find_tasks`), then call the
+  matching edit tool; to move every scheduled item off an account give
+  `from_account`. Deleting or archiving anything: `remove_item`. On
+  `several_match`, ask which one. A correction ("it is breakfast", "make
+  it 2 cups") changes that entry with its edit tool (`edit_meal` for a
+  meal); it never confirms, saves or re-logs it. With workout_in_progress
+  in TODAY, sets they did go to `edit_workout`, not `log_workout`. Edits
+  save at once with Undo; removals wait for their Confirm.
 - One message can hold several things to record: make every call.
 - Only a tool result saves anything. Never say something was logged,
   saved, added or is waiting unless a tool in this reply returned it; if no
   tool ran, nothing was saved.
-- A write that returns state "proposed" or "needs_input" waits for the
-  user's OK: say it is waiting and that they can tap Confirm on it or just
-  say "confirm". Mention Confirm only for a write from this reply, never for
-  one from an earlier message. Never say it is done, and never tell them to
-  "check the app" (they are in it). Name what was saved and what waits,
-  separately.
+- Saved or waiting comes from the records, never from your earlier words:
+  this reply's tool results, and WAITING FOR THEIR OK NOW below. A write
+  that returns state "proposed" or "needs_input" waits; say so in a few
+  words ("waiting for your OK"). Its card already has the Confirm button,
+  so never explain how to confirm. Never call it done.
 - When they say confirm, yes, save it or go ahead about entries waiting
   from earlier, call `confirm_pending`; when they say cancel or don't save
   it, call `discard_pending`. Never record those entries again. Report
   what `confirm_pending` could not save and why (an expense needs an
-  account first). Neither touches what this reply made: that has its own
-  Confirm and Discard on its step.
+  account first). To save again something they Undid, `redo_undone`.
 - A write that returns an error did not happen; say so plainly.
 Show charts, insights, coaching, plans, trackers and memories with their
-tools instead of describing them; each returns what its card shows, so speak
-only to that.
-Answering and reasoning about their data is as much your job as recording.
+tools; each returns what its card shows, so speak only to that.
 For any question about their past, a comparison or a pattern, read it with
-`query_records` (grouped the way the question needs; one call per period to
-compare) and answer from it: the number, what it means, one suggestion,
-with the range and days behind any average. When they name a food,
-dish, drink or product you don't know well (a restaurant or branded item,
-a local dish), call `web_search` first for that item alone, in the user's
-own words plus "nutrition", for example "<restaurant> <dish> nutrition";
-never add words they didn't say (no "sandwich" for "chicken") and never add
-the rest of the meal to the query. Name `log_meal` items in their words too. Each estimated item
+`query_records` or `compare_periods` and answer from it: the number, what
+it means, and a suggestion only if it helps. For a food, dish
+or product you don't know well (branded, restaurant, local), `web_search`
+first for that item alone in their own words plus "nutrition" ("<restaurant>
+<dish> nutrition"); never add words they didn't say or the rest of the meal. Name `log_meal` items in their words too. Each estimated item
 carries `grams` (edible weight), an `assumption` naming the portion, sugar
 and sodium; price it at its real size (a chicken breast quarter is about
 150 g, 40 g protein). On `fix_these_items_then_call_again`, nothing was
@@ -1207,63 +1555,39 @@ second one. Then call `log_meal` in the same turn: the
 searched item scaled to what they ate, and common foods (rice, eggs, bread)
 as their own items from standard values (1 cup cooked white rice is about
 205 kcal, 4 g protein, 45 g carbs). If the results have nothing for that
-exact item, use the closest match and say which. Mention the source in a few
-words. Never present a web number as
+exact item, use the closest match and say which. Name the source (site
+name) when a number came from the web. Never present a web number as
 the user's own data.
 Focus time and the focus timer: `focus_status`, `start_focus`, `focus_control`, `stop_focus`.
 For macros, calories, nutrition or "what's left today", always call
 `nutrition_status`, even though TODAY below has the numbers: the call is what
-shows the person their nutrition card, which has every number. Then answer in
-one or two sentences with what matters most (calories and protein left, and
-any limit they are near or over), however earlier replies were worded. Don't
-list every macro. After `log_meal`, report the day from its `day_after_this_meal`.
-Food library: the user's saved nutrition facts are the first source for
-any food. When they send a nutrition label (a photo, or the numbers typed
-from one) or give a food's nutrition themselves, call `save_food` with the
-values exactly as given and what they are per (100 g, piece or serving,
-with the serving's grams when shown), then log what they ate if they did.
-A label photo is saved for you; don't save it twice. When a label or the
-web gives only some numbers (calories alone, say), estimate the rest
-(protein, carbs, fat, saturated fat, sugar, sodium) from the closest similar
-food so they add up to the calories, say they are estimates, and save and
-log it with them; never save or log a food with calories alone. When they
-say a logged meal is missing numbers or ask to fix one, change it with
-`edit_meal` in that reply, estimating what is missing the same way, rather
-than only explaining. Before estimating a
-packaged or regular food, `find_foods` to use their own values; `log_meal`
-also swaps in library values for matching foods by itself, and its
-`from_library` says which, so say those are from their library.
-Planning the rest of the day: after a meal is logged, and whenever they ask
-what to eat, if `meals_ahead` is not empty suggest one concrete meal for each
-meal still ahead (name it: lunch, dinner), each sized to `per_meal_ahead`:
-protein first, calories close to it, and under its share of every limit in
-`limits_left` (saturated fat, sugar, sodium); say which limit is tight if
-one is. Use everyday foods they can actually get (Filipino meals, home
-cooking, common chains), favour foods from `recent_foods`, and give each
-food in grams or cups with rough kcal and protein, as one short line per
-meal. These are suggestions, not logs: never call `log_meal` for them. If
-they have already gone over a limit, say so once and keep the rest of the
-day well under it.
-A follow-up after every write: whenever this reply recorded something
-(money, a weigh-in, a workout, a habit, a task, a meal), end with one short
-line of insight or recommendation for that area, after the line saying
-what was saved. Money: how the category or budget stands this month, or
-what is safe to spend before payday. Weigh-in: the trend against last
-week, never one day's number. Workout: what to aim for next session
-(a little more weight or reps where they hit their sets) or what to train
-next. Habit: the streak, or the next habit due today. Task: what is next or
-overdue today. Meal: the plan for the meals ahead, as above. Use only
-numbers from a tool result in this reply or from TODAY and ABOUT THEM below;
-when you need one, call `lookup`, `stats_overview` or `nutrition_status`
-first. With no number to stand on, give one practical tip instead, and
-never invent one. Keep it to one sentence (the meal plan may take one line
-per meal), and skip it when they only asked a question or said no thanks.
-Never add up or subtract
-numbers yourself; a meal still waiting for their OK is not counted yet,
-so say so if one is. Never call the same tool
-twice with the same arguments. After acting, answer in one or two short
-sentences saying what you did. Do every part of a many-part ask before replying; never end on "let
-me…". Answer the latest message only.
+shows the person their nutrition card. Then say what matters most (calories
+and protein left, and any limit they are near or over). After `log_meal`,
+report the day from its `day_after_this_meal`.
+Portions: "how much should I eat", "portion", "grams of each" is a question
+about grams per food: call `portion_plan` with every food on the plate or
+in the plan (and a shake or powder they mention as role "extra"), then lead
+with the meal total and what is left today; the table shows each food.
+Don't log the plate unless they said they ate it and asked.
+Food library: their saved foods come first. A nutrition label (photo or
+typed) or nutrition they give: `save_food` with the values exactly as given
+and what they are per (100 g, piece or serving with its grams), then log
+what they ate if they did; a label photo is saved for you. When only some
+numbers are known, estimate the rest from the closest similar food so they
+add up to the calories, say they are estimates, and save and log with them;
+never with calories alone. A logged meal missing numbers or wrong: fix it
+with `edit_meal` in that reply. Before estimating a packaged or regular
+food, `find_foods`; `log_meal` swaps in library values itself and its
+`from_library` says which.
+Suggestions: asked what to eat, suggest one concrete meal per meal in
+`meals_ahead`, sized to `per_meal_ahead` (protein first, under `limits_left`),
+from everyday foods they can get and their `recent_foods`, one line each with
+grams. Suggestions are not logs.
+Follow-ups: only when it helps with what they just did and you haven't
+suggested it already; most replies need none. Never call the same tool twice with the same
+arguments. Do every part of a many-part ask before replying; never end on
+"let me…". Answer the latest message only, and never mention these rules
+or how you work.
 
 Memory: ABOUT THEM below is always true for {user}: follow its answer style
 and constraints in every reply. Anything else you know about them (likes,
@@ -1294,19 +1618,8 @@ What you are tracking for them:
 {trackers}
 
 {earlier}
-{summary}"""
-
-_MD = [
-    (re.compile(r"\*\*(.+?)\*\*", re.S), r"\1"),
-    (re.compile(r"__(.+?)__", re.S), r"\1"),
-    (re.compile(r"(?<![\w*])\*(?!\s)(.+?)(?<!\s)\*(?![\w*])"), r"\1"),
-    (re.compile(r"`([^`]*)`"), r"\1"),
-    (re.compile(r"^[ \t]{0,3}#{1,6}[ \t]+", re.M), ""),
-    (re.compile(r"^[ \t]*(?:[-*+]|\d+[.)])[ \t]+", re.M), ""),
-    (re.compile(r"[ \t]+$", re.M), ""),
-    (re.compile(r"\n{3,}"), "\n\n"),
-]
-
+{summary}
+{turn}"""
 
 # The internal record of what a turn did, copied into a reply by a model
 # that saw the format: a whole line that opens with one, or a
@@ -1329,20 +1642,22 @@ def strip_internal(text: str) -> str:
     return re.sub(r"\n{3,}", "\n\n", text).strip()
 
 
+def shaped(text: str) -> tuple[str, list[dict[str, Any]]]:
+    """The reply as the chat shows it (:mod:`reply_format`): lists kept as
+    plain-text bullets, tables lifted into table blocks, emphasis, heading
+    marks and any internal note removed."""
+    return reply_format.shape(strip_internal(text))
+
+
 def plain_text(text: str) -> str:
-    """The reply as plain text: the chat shows text as written, so markdown the
-    model adds anyway (bold, headings, list markers) is removed, keeping the
-    words and the line breaks. An internal note goes too."""
-    text = strip_internal(text)
-    for rx, sub in _MD:
-        text = rx.sub(sub, text)
-    return text.strip()
+    """The reply's text alone, as :func:`shaped` leaves it."""
+    return shaped(text)[0]
 
 
 def _strip_marks(delta: str) -> str:
     """A streamed piece without emphasis marks; the stored reply goes through
-    :func:`plain_text` and replaces the streamed one."""
-    return delta.replace("*", "").replace("`", "")
+    :func:`shaped` and replaces the streamed one."""
+    return reply_format.stream_piece(delta)
 
 
 # A write the user asked for, a reply that says it happened, and no write
@@ -1392,11 +1707,20 @@ def _remember_first(
 
 
 # Learning without being asked: after a reply, the person's message is read
-# once more for lasting facts about them. Only a message that speaks about
-# them is read, so most turns cost nothing extra.
+# once more for lasting facts and preferences. Only a message that speaks
+# about them, states a habit, or pushes back on the reply is read, so most
+# turns cost nothing extra.
 _ABOUT_ME = re.compile(
     r"\b(i|i'?m|im|i'?ve|i'?d|my|me|mine|myself|we|our|ako|ko|akin|aking|"
     r"namin|kami)\b",
+    re.I,
+)
+# A standing habit or wish said in passing ("I always use zero-cal sugar",
+# "just give me the portion"): worth keeping even inside a log.
+_STANDING = re.compile(
+    r"\b(always|usually|never|every ?time|from now on|prefer|instead of|"
+    r"just (give|tell|show)|give me|don'?t (give|tell|show|ask|add)|stop|"
+    r"lagi|palagi|parati|ayoko|huwag)\b",
     re.I,
 )
 LEARN = """Read the person's message and keep what will still be true and
@@ -1407,21 +1731,45 @@ lasting likes and dislikes, routines, and how they want answers. One call
 per separate fact, as a short third-person statement with its kind; set
 always_on only for a hard constraint (an allergy, a medical rule).
 
+A lasting habit or preference said while logging something IS worth
+keeping, as the habit, not the log: "I had a De-Stresso latte, I always use
+zero-cal sugar there" keeps "Uses zero-calorie sugar in drinks at
+De-Stresso" (kind preference), not the latte.
+
+When the message pushes back on the assistant's reply (shown as REPLY IT
+ANSWERS), keep the lasting wish behind it as a response_style memory,
+stated plainly and positively: "JUST GIVE ME THE PORTION" after a long
+answer keeps "Wants portions given directly (grams per food) without
+preamble". A one-off fix to one entry is not a lasting wish.
+
 Do NOT keep: what they did or ate today, a purchase or a log entry, a
-question, a request or command, a feeling of the moment, or anything about
-the assistant. Most messages hold nothing lasting: then call nothing."""
+question, a one-time request, a feeling of the moment, or anything about
+the assistant itself. Most messages hold nothing lasting: then call
+nothing."""
 
 
-def learn(ctx: Ctx, text: str, *, already: bool) -> list[str]:
-    """Save lasting facts the message holds that nobody asked to keep; runs
-    after the reply has streamed. ``already``: this turn saved a memory
-    (asked for, or by the reply itself), so the message isn't read again."""
-    if (
-        already
-        or len(text) < 12
-        or text.rstrip().endswith("?")
-        or not _ABOUT_ME.search(text)
-    ):
+def learn(
+    ctx: Ctx,
+    text: str,
+    *,
+    already: bool,
+    wrote: bool = False,
+    follows: str | None = None,
+    pushback: bool = False,
+) -> list[str]:
+    """Save lasting facts and preferences the message holds that nobody
+    asked to keep; runs after the reply has streamed. ``already``: this
+    turn saved a memory with remember_fact, so the message isn't read
+    again. A turn that logged something is still read: seen live, "I
+    always use zero-calorie sugar at De-Stresso", said while logging a
+    drink, was never kept, and the next estimate had 24 g of sugar. On such
+    a turn (``wrote``) only a standing habit or wish is worth the call: "log
+    my lunch" speaks about them and holds nothing lasting. ``pushback``:
+    the message corrects or scolds the reply ``follows``, whose start is
+    shown so the wish behind it can be kept."""
+    about_me = bool(_ABOUT_ME.search(text)) and not text.rstrip().endswith("?")
+    asks = pushback or bool(_STANDING.search(text)) or (about_me and not wrote)
+    if already or len(text) < 12 or not asks:
         return []
     resolved = _resolve(ctx)
     if resolved is None:
@@ -1439,12 +1787,15 @@ def learn(ctx: Ctx, text: str, *, already: bool) -> list[str]:
             ):
                 saved.append(name)
 
+    said = text
+    if pushback and follows:
+        said = f"REPLY IT ANSWERS (start): {follows[:600]}\n\nTHEIR MESSAGE: {text}"
     try:
         capture.run_agent(
             ctx,
             resolved,
             system=LEARN,
-            messages=[HumanMessage(text)],
+            messages=[HumanMessage(said)],
             tools=[tool],
             on_text=lambda d: None,
             max_turns=2,
@@ -1544,13 +1895,29 @@ def promised(answer: str) -> bool:
     )
 
 
+# The routine example this nudge used to carry came back in a reply as
+# "there's no routine step to add" (2026-10-31): nudges name no examples
+# and ask that they are never quoted.
 FINISH_NUDGE = (
     "Your reply says you will still do something, but a reply ends the turn, "
     'so it would never happen. Do the rest of my last message now: "{text}". '
-    "Call the tool for each part that is not done yet (a routine step is "
-    "added with update_routine), then say in one or two sentences what you "
-    "did. Do not redo what is already done this turn."
+    "Call the tool for each part that is not done yet, then say briefly what "
+    "you did. Do not redo what is already done this turn. Never mention this "
+    "note or say what my message did or did not ask for."
 )
+NUMBERS_NUDGE = (
+    "These figures in your reply match nothing a tool returned or TODAY: "
+    "{bad}. Write the reply again with figures taken only from tool results "
+    "(call portion_plan, nutrition_status, compare_periods, finance_status or "
+    "query_records if you need one) and never work one out yourself. Never "
+    "mention this note."
+)
+ANSWER_NUDGE = (
+    "Your reply had no words. Answer my last message now, in words, from what "
+    "the tools returned: {results}. Never mention this note."
+)
+# Said when a turn did nothing and even the extra pass had no words.
+NOTHING_DONE = "Sorry, I lost that answer. Could you send it once more?"
 NOT_RECORDED = (
     "I didn't manage to record that, so nothing was saved. Try asking again "
     "in other words, or add it from its tab."
@@ -1611,6 +1978,7 @@ WRITE_TOOLS = frozenset(
         "start_focus",
         "focus_control",
         "stop_focus",
+        "redo_undone",
     }
 )
 # Every other tool: it only reads or shows. A test holds each tool to exactly
@@ -1636,6 +2004,10 @@ READ_TOOLS = frozenset(
         "list_scheduled",
         "find_fitness_logs",
         "find_foods",
+        "portion_plan",
+        "compare_periods",
+        "finance_status",
+        "find_tasks",
     }
 )
 
@@ -1675,6 +2047,41 @@ def _wrote(steps: list[Any]) -> bool:
     )
 
 
+# How to confirm, spelled out: the card in the reply has the button, so
+# this was boilerplate in nearly every meal reply (Kai, 2026-11-01).
+_HOW_TO_CONFIRM = re.compile(
+    r"tap confirm|confirm (?:it |them )?below|just say [\"“']?confirm|"
+    r"(?:or|and) say [\"“']?confirm|say [\"“']?confirm[\"”']? (?:to|and|if)",
+    re.I,
+)
+# What joins a sentence to its how-to-confirm clause: "; you can", ", just".
+_CONFIRM_TAIL = re.compile(
+    r"(?:[\s,;:—–-]|\b(?:so|and|or|you can|you could|just|please|then|to save it)\b)*$",
+    re.I,
+)
+
+
+def drop_confirm_how(answer: str) -> str:
+    """``answer`` without the clauses that explain how to confirm a card
+    this reply left waiting; a sentence that was only that goes whole."""
+    lines = []
+    for line in answer.split("\n"):
+        kept = []
+        for sentence in re.split(r"(?<=[.!?])\s+", line):
+            m = _HOW_TO_CONFIRM.search(sentence)
+            if m is None:
+                kept.append(sentence)
+                continue
+            # "It's waiting for your OK; tap Confirm or just say confirm."
+            # keeps "It's waiting for your OK."
+            head = _CONFIRM_TAIL.sub("", sentence[: m.start()])
+            if len(head.split()) >= 3:
+                kept.append(head + ".")
+        lines.append(" ".join(kept).strip())
+    text = re.sub(r"\n{3,}", "\n\n", "\n".join(lines)).strip()
+    return text or answer
+
+
 def drop_confirm_talk(answer: str) -> str:
     """``answer`` without the sentences that point at a Confirm, saying
     instead that nothing from this reply waits."""
@@ -1690,15 +2097,27 @@ def drop_confirm_talk(answer: str) -> str:
     return f"{text}\n\n{NOTHING_TO_CONFIRM}" if text else NOTHING_TO_CONFIRM
 
 
-def unbacked_claim(asked: str, answer: str, steps: list[Any], *, waiting: bool) -> bool:
+def unbacked_claim(
+    asked: str,
+    answer: str,
+    steps: list[Any],
+    *,
+    waiting: bool,
+    question: bool = False,
+) -> bool:
     """The reply claims something the turn's tools did not do: it points at
     a Confirm button while nothing of this turn waits (``waiting``, from
     the cards' state at the end of the turn), whatever else the turn
     wrote; or, with no write of this turn succeeding, it claims a write the
-    user asked for. The user's wording only gates the second case."""
+    user asked for. The user's wording only gates the second case, and a
+    ``question`` turn (the intent step read it as a question, plan or redo)
+    never makes it: "what should my portions be" answered with "the tilapia
+    is logged" was replaced by "I didn't manage to record that"."""
     wrote = _wrote(steps)
     if _POINTS_AT_CONFIRM.search(answer) and not waiting:
         return True
+    if question:
+        return False
     about = (
         bool(_ASKS_ABOUT.search(asked))
         and ":" not in asked
@@ -1722,10 +2141,13 @@ SUMMARY_MSG_CHARS = 400
 SUMMARY_MAX_MSGS = 40
 SUMMARISE = """You keep a running summary of a person's conversation with
 their life assistant. Merge the OLD SUMMARY with the NEW MESSAGES into one
-summary of at most 150 words: ongoing threads, decisions, promises,
-questions still open, how the conversation has gone. Leave out numbers that
-change daily (totals, balances, macros) and anything the assistant only
-looked up. Plain text, no lists."""
+summary of at most 200 words: ongoing threads, decisions, promises,
+questions still open, preferences and corrections they gave (how they want
+answers, what was wrong), how the conversation has gone. Keep the numbers
+that were decided or stated as lasting (a target, a budget, a usual
+portion, a dose); leave out numbers that change daily (today's totals,
+balances, macros left) and anything the assistant only looked up. Plain
+text, no lists."""
 
 
 def _summary_row(ctx: Ctx) -> Companion | CompanionThread:
@@ -1793,6 +2215,20 @@ def refresh_summary(ctx: Ctx, resolved: ai.ResolvedModel) -> None:
     row.summary_through = older[-1].created_at
     ctx.session.add(row)
     ctx.session.flush()
+
+
+def summarise_later(ctx: Ctx, thread_id: uuid.UUID | None) -> None:
+    """``refresh_summary`` for the chat ``thread_id``, after the reply is
+    out (the route calls it), so folding older messages never delays one."""
+    resolved = _resolve(ctx)
+    if resolved is None:
+        return
+    token = _THREAD.set(thread_for(ctx, thread_id))
+    try:
+        refresh_summary(ctx, resolved)
+    finally:
+        _THREAD.reset(token)
+    ctx.commit()
 
 
 def _window_rows(ctx: Ctx) -> list[CompanionMessage]:
@@ -1932,15 +2368,23 @@ def _settle_step_states(ctx: Ctx, steps: list[Step]) -> None:
 def _history(ctx: Ctx, rows: list[CompanionMessage]) -> list[BaseMessage]:
     out: list[BaseMessage] = []
     for m in reversed(rows):
+        day = ctx.clock.day_of(m.created_at)
         # An earlier day's replies state that day's facts; sent along, the
         # model repeats them over TODAY's (yesterday's "1 of 2 done", today).
-        if ctx.clock.day_of(m.created_at) != ctx.today:
+        # The person's own words from the days before still carry what
+        # they asked and decided, so they go, dated.
+        if day != ctx.today and (
+            m.role != "me" or (ctx.today - day).days > HISTORY_DAYS
+        ):
             continue
         if m.role == "me":
             read = _photo_read(m)
             if m.text or read:
+                when = "" if day == ctx.today else f"[said {day.isoformat()}] "
                 out.append(
-                    HumanMessage(f"{(m.text or '')[:HISTORY_CHARS]}\n\n{read}".strip())
+                    HumanMessage(
+                        f"{when}{(m.text or '')[:HISTORY_CHARS]}\n\n{read}".strip()
+                    )
                 )
             continue
         # What a reply did goes in the system prompt (``_earlier_actions``),
@@ -1956,6 +2400,52 @@ def _history(ctx: Ctx, rows: list[CompanionMessage]) -> list[BaseMessage]:
     return out
 
 
+def _last_exchange(history: list[BaseMessage]) -> tuple[str, str]:
+    """The person's message before this one and Fern's reply to it, for a
+    redo ("try again") and for not repeating the last suggestion."""
+    asked = answered = ""
+    for m in reversed(history):
+        if isinstance(m, AIMessage) and not answered and not asked:
+            answered = str(m.content)
+        elif isinstance(m, HumanMessage):
+            asked = str(m.content)
+            break
+    if answered in (FAILED_REPLY, ACTED_REPLY):
+        answered = ""
+    return asked, answered
+
+
+RESULTS_CHARS = 3000
+
+
+def _words_for(
+    again: Callable[[str, str], str],
+    reply: str,
+    run: SolRun,
+    steps: list[Step],
+    *,
+    allowed: bool,
+) -> tuple[str, list[dict[str, Any]]]:
+    """Words for a reply that ended with none. A turn that did something
+    says so from its steps (no model call: the step rows already carry it);
+    one that did nothing gets one pass to answer from what the tools
+    returned, else an honest line. A blank reply is never sent (seen live:
+    a portion question answered with nothing, then "try again")."""
+    did = [s.summary for s in steps if s.summary and s.ok]
+    if did:
+        return "\n".join(f"• {d}" for d in did) if len(did) > 1 else f"{did[0]}.", []
+    if allowed:
+        results = json.dumps(
+            [{"tool": n, "result": r} for n, r in run.results],
+            ensure_ascii=False,
+            default=str,
+        )[:RESULTS_CHARS]
+        answer, tables = shaped(again(reply, ANSWER_NUDGE.format(results=results)))
+        if answer or tables:
+            return answer, tables
+    return NOTHING_DONE, []
+
+
 def _ask_ai(
     ctx: Ctx,
     resolved: ai.ResolvedModel,
@@ -1968,24 +2458,30 @@ def _ask_ai(
     *,
     photos: list[uuid.UUID] | None = None,
 ) -> AskOut:
-    refresh_summary(ctx, resolved)
-    # Memories kept while no embedding model answered, or from before the
-    # memory layer, are embedded as they are next needed.
-    memory.backfill(ctx, limit=20)
+    # The summary and memory embeddings are kept up to date after the reply
+    # (``summarise_later``, ``memory.backfill`` from the route): run here,
+    # they put a model call and an embedding call before the first word.
     first = brain.first_name(user_name)
+    # What the reply's figures may come from besides this turn's tools:
+    # TODAY and ABOUT THEM as the model saw them (the number check).
+    grounds: list[Any] = []
 
-    def make_system() -> str:
+    def make_system(turn_note: str) -> str:
         # Built after any memory this message asked for is saved, so the
         # reply already follows it.
-        mems = memory.always_on(ctx)
+        # Always-on memories, those relevant to this message (recalled
+        # without a tool call) and the rules learned from feedback.
+        mems = memory.context_block(ctx, text)
+        facts = grounding.snapshot(ctx)
+        grounds[:] = [facts, mems]
         return SYSTEM.format(sol=sol_name, user=first) + CONTEXT.format(
             today=ctx.today.isoformat(),
             now=ctx.now.astimezone(ctx.clock.zone).strftime("%A %Y-%m-%d %H:%M"),
             day_start=f"{ctx.clock.start_hour:02d}:00",
             currency=ctx.currency.phrase,
-            today_facts=json.dumps(grounding.snapshot(ctx), ensure_ascii=False),
-            memories="\n".join(f"- [{m.id}] ({m.kind}) {m.text}" for m in mems)
-            or "(nothing yet)",
+            today_facts=json.dumps(facts, ensure_ascii=False),
+            memories=mems,
+            turn=turn_note,
             summary=_summary_block(ctx),
             earlier=_earlier_actions(ctx, rows),
             trackers=json.dumps(
@@ -2038,9 +2534,16 @@ def _ask_ai(
     )
     run.said = text
     run.turn_capture = lambda: wrun.cap.id if wrun.cap is not None else None
-    writes = [with_day_after(ctx, t) if t.name == "log_meal" else t for t in writes]
+    writes = [
+        with_day_after(ctx, t)
+        if t.name == "log_meal"
+        else without_duplicate_tasks(ctx, t)
+        if t.name == "create_tasks"
+        else t
+        for t in writes
+    ]
     run.judge = memory_judge(ctx, resolved)
-    every = [*sol_tools(run), *writes]
+    every = [recording(run, t) for t in [*sol_tools(run), *writes]]
     offered = routing.pick(text, earlier, photos=bool(photos))
     tools = every if offered is None else [t for t in every if t.name in offered]
     saved_now = (
@@ -2048,13 +2551,49 @@ def _ask_ai(
         if _ASKS_TO_REMEMBER.search(text)
         else []
     )
-    system = make_system()
+    # The job, decided before the model runs (intent.py), and the last
+    # exchange it may have to redo.
+    job = intent.classify(text)
+    asked_before, answered_before = _last_exchange(history)
+    system = make_system(
+        intent.turn_note(
+            job, previous_ask=asked_before, previous_answer=answered_before
+        )
+    )
     if saved_now:
         system += (
             "\nSAVED THIS TURN (already done; confirm it in a few words and "
             "follow it from now on):\n" + "\n".join(f"- {s}" for s in saved_now)
         )
+    question = job.kind in ("question", "plan", "redo")
     turn = [*history, HumanMessage(text)]
+
+    def again(reply_so_far: str, nudge: str) -> str:
+        """One corrective pass: the reply so far and a note, with every
+        tool (the pass may need one this turn's words missed)."""
+        done = [s.summary for s in stream.steps if s.ok and s.summary]
+        if done:
+            nudge += (
+                "\n\nAlready done in this reply (do not redo, and do not quote "
+                "this list): " + "; ".join(done)
+            )
+        stream.end_text()
+        return capture.run_agent(
+            ctx,
+            resolved,
+            system=system,
+            messages=[
+                *turn,
+                AIMessage(strip_internal(reply_so_far)),
+                HumanMessage(nudge),
+            ],
+            tools=every,
+            on_text=lambda d: stream.text(_strip_marks(d)),
+            max_turns=MAX_STEPS,
+            max_tool_calls=MAX_TOOL_CALLS,
+            hooks=stream,
+        )
+
     reply = capture.run_agent(
         ctx,
         resolved,
@@ -2066,55 +2605,75 @@ def _ask_ai(
         max_tool_calls=MAX_TOOL_CALLS,
         hooks=stream,
     )
-    answer = plain_text(reply)
+    answer, tables = shaped(reply)
     unbacked = unbacked_claim(
-        text, answer, stream.steps, waiting=_still_waiting(ctx, stream.steps)
+        text,
+        answer,
+        stream.steps,
+        waiting=_still_waiting(ctx, stream.steps),
+        question=question,
     )
+    passes = 0
     if stream.stopped():
         # Stopped for the person's next message: what was done stays, and
-        # the reply says it stopped instead of being made to finish.
+        # the reply ends as it is instead of being made to finish.
         stream.end_text()
-        answer = f"{answer}\n\n{STOPPED}" if answer.strip() else STOPPED
-    elif unbacked or promised(answer):
+        answer = answer or STOPPED
+    elif unbacked or (promised(answer) and not question):
         # One corrective pass: told plainly that nothing was saved, or that
-        # part of the ask was only promised.
-        nudge = (NUDGE if unbacked else FINISH_NUDGE).format(text=text)
-        # What is already done goes in the nudge, never as a note on the
-        # reply (a note there was copied into replies).
-        done = [s.summary for s in stream.steps if s.ok and s.summary]
-        if done:
-            nudge += (
-                "\n\nAlready done in this reply (do not redo, and do not quote "
-                "this list): " + "; ".join(done)
-            )
-        stream.end_text()
-        reply = capture.run_agent(
-            ctx,
-            resolved,
-            system=system,
-            messages=[
-                *turn,
-                AIMessage(strip_internal(reply)),
-                HumanMessage(nudge),
-            ],
-            # The corrective pass may need a tool this turn's words missed.
-            tools=every,
-            on_text=lambda d: stream.text(_strip_marks(d)),
-            max_turns=MAX_STEPS,
-            max_tool_calls=MAX_TOOL_CALLS,
-            hooks=stream,
-        )
-        answer = plain_text(reply)
+        # part of the ask was only promised. What is already done goes in
+        # the nudge, never as a note on the reply (a note there was copied
+        # into replies).
+        passes += 1
+        reply = again(reply, (NUDGE if unbacked else FINISH_NUDGE).format(text=text))
+        answer, tables = shaped(reply)
         if unbacked_claim(
-            text, answer, stream.steps, waiting=_still_waiting(ctx, stream.steps)
+            text,
+            answer,
+            stream.steps,
+            waiting=_still_waiting(ctx, stream.steps),
+            question=question,
         ):
             # A turn that did something real (a drop, a search) keeps it;
-            # only the talk of a Confirm that isn't there goes.
+            # only the talk of a Confirm that isn't there goes. The canned
+            # "nothing was saved" is only for a turn that asked for a write.
             answer = (
                 drop_confirm_talk(answer)
-                if _wrote(stream.steps)
+                if _wrote(stream.steps) or question
                 else not_recorded(stream.steps)
             )
+    if not stream.stopped():
+
+        def backed_by() -> list[Any]:
+            # Read fresh: a fix pass may have called more tools.
+            return [
+                *(r for _, r in run.results),
+                *grounds,
+                text,
+                *earlier,
+                *(s.summary for s in stream.steps if s.summary),
+            ]
+
+        bad = numbers.unmatched(answer, backed_by())
+        if bad and passes < MAX_FIX_PASSES:
+            # Figures nothing backs: one pass to answer from the tools; what
+            # still doesn't trace after it goes, sentence by sentence.
+            passes += 1
+            reply = again(
+                reply, NUMBERS_NUDGE.format(bad=", ".join(map(numbers.fmt, bad)))
+            )
+            answer, tables = shaped(reply)
+            answer = numbers.drop_sentences_with(
+                answer, numbers.unmatched(answer, backed_by())
+            )
+        if not answer.strip() and not tables and not run.blocks:
+            answer, tables = _words_for(
+                again, reply, run, stream.steps, allowed=passes < MAX_FIX_PASSES
+            )
+    if _still_waiting(ctx, stream.steps):
+        # The card shows Confirm; the reply needn't explain it.
+        answer = drop_confirm_how(answer)
+    run.blocks.extend(tables)
     if _ABOUT_NUTRITION.search(text) and not any(
         b["t"] == "nutrition" for b in run.blocks
     ):

@@ -79,7 +79,7 @@ def test_an_empty_day_is_stated_as_empty_and_the_plan_tool_says_so(
     assert facts["currency"] == "PHP (₱)"
     assert facts["on_target_streak_days"] == 0
     assert facts["habits_due_today"] == [] and facts["tasks_due_today_count"] == 0
-    assert "Never invent" in system and "No markdown" in system
+    assert "Never invent" in system and "First, decide the job" in system
     plan = tool_results(model, 1)["plan_day"]
     assert plan == {"shown": "plan", "items": [], "nothing_pending": True}
 
@@ -134,11 +134,13 @@ def test_fitness_items_due_are_named_so_a_day_without_habits_is_not_empty(
     )
 
 
-def test_an_earlier_days_chat_is_not_sent_to_the_model(
+def test_an_earlier_days_replies_are_not_sent_to_the_model(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Yesterday's reply states yesterday's facts; sent along, the model
-    repeated it over today's. Only the current day's messages go out."""
+    repeated it over today's. An earlier day's replies stay out; the
+    person's own words from the two days before go, dated, so what they
+    asked and decided is not forgotten."""
     from datetime import timedelta
 
     from app.modules.companion.models import CompanionMessage
@@ -159,7 +161,7 @@ def test_an_earlier_days_chat_is_not_sent_to_the_model(
     model = install(monkeypatch, say("Fine."))
     ask(api, "How am I doing today?")
     sent = " ".join(str(m.content) for m in model.seen[0][1:])
-    assert "How was yesterday?" not in sent
+    assert "] How was yesterday?" in sent and "[said " in sent
     assert "You did 1 of 2 yesterday." not in sent
     assert "First question today" in sent and "Earlier today." in sent
 
@@ -167,7 +169,7 @@ def test_an_earlier_days_chat_is_not_sent_to_the_model(
 # ---------------------------------------------------------------- plain text
 
 
-def test_markdown_in_a_reply_is_stored_as_plain_text(
+def test_markdown_in_a_reply_keeps_its_lists_as_plain_text(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     api = user(client, db, accounts=False)
@@ -177,8 +179,9 @@ def test_markdown_in_a_reply_is_stored_as_plain_text(
         say("## Today\n\n- **Morning**: stretch\n- *Evening*: `journal`\n\n\n1. Rest"),
     )
     out = ask(api, "how should today go")
+    # Lists stay (the person may want them); marks the chat can't draw go.
     assert out["messages"][1]["text"] == (
-        "Today\n\nMorning: stretch\nEvening: journal\n\nRest"
+        "Today\n\n• Morning: stretch\n• Evening: journal\n\n1. Rest"
     )
 
 
@@ -189,7 +192,7 @@ def test_markdown_in_a_reply_is_stored_as_plain_text(
         ("5 * 3 = 15", "5 * 3 = 15"),  # a lone star is not emphasis
         ("snake_case_word", "snake_case_word"),
         ("  # Heading\ntext", "Heading\ntext"),
-        ("1) one\n2. two\n+ three", "one\ntwo\nthree"),
+        ("1) one\n2. two\n+ three", "1. one\n2. two\n• three"),
     ],
 )
 def test_plain_text(raw: str, plain: str) -> None:
@@ -237,9 +240,9 @@ def test_steps_are_capped_and_each_call_input_stays_bounded(
     refused = [m for m in tools if "too_many_calls_in_one_turn" in str(m.content)]
     assert len(tools) == 24 and len(refused) == 8
     sizes = [sum(len(str(m.content)) for m in sent) for sent in model.seen]
-    # system + 6 x 600 history + 24 short tool results: far below the 48k
-    # characters the old 12 x 4000 history alone would send
-    assert max(sizes) < 18_000, sizes
+    # system + 12 x 1000 history + 24 short tool results: still far below
+    # the 48k characters the old 12 x 4000 history alone would send
+    assert max(sizes) < 26_000, sizes
     assert [u.input_tokens for u in usage_rows(api)] == [120] * services.MAX_STEPS
 
 

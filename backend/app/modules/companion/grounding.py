@@ -10,6 +10,7 @@ Every section is best effort: a module that cannot answer leaves its key out,
 and the prompt tells the model that a missing fact is unknown, not zero.
 """
 
+import time
 from typing import Any
 
 from app.modules.fitness import public as fitness
@@ -31,13 +32,33 @@ def _pct(rate: float | None) -> int | None:
     return None if rate is None else round(rate * 100)
 
 
+# The Life Score part of the snapshot (two ``stats.overview`` reads, the
+# heaviest part of every turn's context) is kept this long per person and
+# business day. It moves with whole days of records, not within minutes;
+# today's ring, which a log changes at once, is always read fresh.
+SCORES_SECONDS = 300
+_scores: dict[tuple[Any, ...], tuple[float, dict[str, Any]]] = {}
+
+
 def scores(ctx: Ctx) -> dict[str, Any]:
     """Life Score, on-target streak and today's ring (``stats.overview``)."""
+    key = (ctx.user_id, ctx.today)
+    hit = _scores.get(key)
+    if hit is not None and time.monotonic() - hit[0] < SCORES_SECONDS:
+        return {**hit[1], "today_ring_by_area": _ring(ctx)}
     try:
         o = stats.overview(ctx, days=30)
     except NotImplementedError:
         return {}
     week = stats.overview(ctx, days=7)
+    out = _overview(o, week)
+    if len(_scores) > 5000:
+        _scores.clear()
+    _scores[key] = (time.monotonic(), out)
+    return {**out, "today_ring_by_area": _ring(ctx)}
+
+
+def _overview(o: Any, week: Any) -> dict[str, Any]:
     return {
         # Today shows the 7-day score; the Stats screen defaults to 30 days.
         "life_score_7_days_shown_on_today": week.life_score,
@@ -45,10 +66,9 @@ def scores(ctx: Ctx) -> dict[str, Any]:
         "life_score_change_vs_previous_30_days": o.delta,
         "on_target_streak_days": o.streak,
         "best_streak_days": o.best_streak,
-        # Today's ring counts every area's items (a habit, a task, a planned
-        # workout or meal target), so it goes out split by area: a bare
-        # "2 due" reads as two tasks.
-        "today_ring_by_area": _ring(ctx),
+        # Today's ring (added by ``scores``) counts every area's items (a
+        # habit, a task, a planned workout or meal target), so it goes out
+        # split by area: a bare "2 due" reads as two tasks.
         "area_rates_30_days_pct": {
             a.module: _pct(a.rate) for a in o.areas if a.enabled and a.rate is not None
         },

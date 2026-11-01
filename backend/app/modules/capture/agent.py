@@ -121,6 +121,53 @@ def _tool_content(result: Any) -> str:
     return text[:MAX_TOOL_RESULT_CHARS] + " …[cut: result too long]"
 
 
+# Schema keys a model does not need to call a tool well: the server
+# validates every argument with the tool's own pydantic model anyway (a bad
+# value comes back as ``invalid_arguments``). Measured on a Fern meal turn
+# (2026-11-01): 39 schemas were 9,128 of the call's 12,629 input tokens.
+_SCHEMA_NOISE = frozenset(
+    {
+        "title",
+        "maxLength",
+        "minLength",
+        "maxItems",
+        "minItems",
+        "maximum",
+        "minimum",
+        "exclusiveMaximum",
+        "exclusiveMinimum",
+        "pattern",
+        "format",
+    }
+)
+
+
+def _slim(node: Any) -> Any:
+    """A JSON schema without ``_SCHEMA_NOISE``, with ``X | None`` written as
+    plain ``X`` (an optional argument is simply left out) and no null
+    defaults. Enums, types, required fields and descriptions stay."""
+    if isinstance(node, list):
+        return [_slim(n) for n in node]
+    if not isinstance(node, dict):
+        return node
+    opts = node.get("anyOf")
+    if isinstance(opts, list) and len(opts) == 2 and {"type": "null"} in opts:
+        (only,) = [o for o in opts if o != {"type": "null"}]
+        node = {**only, **{k: v for k, v in node.items() if k != "anyOf"}}
+    return {
+        k: _slim(v)
+        for k, v in node.items()
+        if k not in _SCHEMA_NOISE and not (k == "default" and v is None)
+    }
+
+
+def slim_tools(tools: list[BaseTool]) -> list[dict[str, Any]]:
+    """The tools as the OpenAI tool schemas sent to the model, slimmed."""
+    from langchain_core.utils.function_calling import convert_to_openai_tool
+
+    return [_slim(convert_to_openai_tool(t)) for t in tools]
+
+
 def run_loop(
     ctx: Ctx,
     resolved: ai.ResolvedModel,
@@ -141,7 +188,7 @@ def run_loop(
     call and tool call as it starts and ends."""
     h = hooks or LoopHooks()
     model = ai.build_chat_model(resolved)
-    bound = model.bind_tools(tools) if tools else model
+    bound = model.bind_tools(slim_tools(tools)) if tools else model
     by_name = {t.name: t for t in tools}
 
     def call_model(state: LoopState) -> dict[str, Any]:

@@ -211,3 +211,49 @@ class MemorySync(BaseModel):
     ) = None
     importance: Annotated[int, Field(ge=1, le=5)] | None = None
     always_on: bool | None = None
+
+
+# ---------------------------------------------------------------- feedback
+
+FeedbackRating = Literal["up", "down"]
+FeedbackReason = Literal["wrong", "too_long", "missed", "slow", "other"]
+RuleStatus = Literal["proposed", "approved", "rejected"]
+
+
+class FeedbackIn(BaseModel):
+    """A thumb on a Fern reply; ``rating: null`` takes it back. ``reason``
+    and ``note`` are kept only with a thumbs-down."""
+
+    rating: FeedbackRating | None
+    reason: FeedbackReason | None = None
+    note: Annotated[str, Field(max_length=280)] | None = None
+
+
+class FeedbackPublic(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    message_id: uuid.UUID
+    rating: FeedbackRating
+    reason: FeedbackReason | None
+    note: str | None
+
+
+class FernRulePublic(BaseModel):
+    """A rule learned for every Fern: its text and how much stands behind
+    it (signals, distinct people). Holds no personal data."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    text: str
+    status: RuleStatus
+    evidence: int
+    users: int
+    created_at: datetime
+    updated_at: datetime
+    decided_at: datetime | None
+
+
+class FernRuleDecision(BaseModel):
+    status: RuleStatus
+    text: Annotated[str, Field(min_length=10, max_length=200)] | None = None
