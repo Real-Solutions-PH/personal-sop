@@ -1,5 +1,11 @@
 import { createStore } from "@domain/lib/store"
-import { Send, ThumbsDown, ThumbsUp } from "lucide-react-native"
+import {
+  type LucideIcon,
+  type LucideProps,
+  Send,
+  ThumbsDown,
+  ThumbsUp,
+} from "lucide-react-native"
 import { useState } from "react"
 import { Pressable, Text, TextInput, View } from "react-native"
 import Animated, { FadeIn } from "react-native-reanimated"
@@ -86,6 +92,15 @@ async function rate(id: string, body: FeedbackBody) {
   )
 }
 
+// The chosen thumb is filled as well as coloured, so the choice still
+// reads without colour.
+const filled = (Icon: LucideIcon) =>
+  ((props: LucideProps) => (
+    <Icon {...props} fill={props.color} />
+  )) as unknown as LucideIcon
+const UpFilled = filled(ThumbsUp)
+const DownFilled = filled(ThumbsDown)
+
 /** 👍 and 👎 for the reply's action row. */
 export function ThumbButtons({ id }: { id: string }) {
   const t = useTheme()
@@ -94,14 +109,14 @@ export function ThumbButtons({ id }: { id: string }) {
     <>
       <IconTap
         size={36}
-        icon={ThumbsUp}
+        icon={mine === "up" ? UpFilled : ThumbsUp}
         label={mine === "up" ? "Remove good reply rating" : "Good reply"}
         color={mine === "up" ? t.primary : t.muted}
         onPress={() => void rate(id, { rating: mine === "up" ? null : "up" })}
       />
       <IconTap
         size={36}
-        icon={ThumbsDown}
+        icon={mine === "down" ? DownFilled : ThumbsDown}
         label={mine === "down" ? "Remove bad reply rating" : "Bad reply"}
         color={mine === "down" ? t.primary : t.muted}
         onPress={() =>
