@@ -50,6 +50,7 @@ import Animated, {
 } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
+import { screenShown } from "./boot/first-screen"
 import { back, go } from "./navigation"
 import { Switch } from "./switch"
 import { fonts, useTheme } from "./theme"
@@ -549,6 +550,7 @@ export function Screen({
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={{ flex: 1, backgroundColor: t.bg, paddingTop: safe.top }}
+      onLayout={screenShown}
     >
       <View
         style={{
@@ -698,6 +700,7 @@ export function ListScreen<T>({
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={{ flex: 1, backgroundColor: t.bg, paddingTop: safe.top }}
+      onLayout={screenShown}
     >
       <View
         style={{
@@ -841,11 +844,23 @@ export function Sheet({
     return () => clearTimeout(id)
   }, [mounted, gone])
   useEffect(() => gone, [gone])
+  // Each dismiss request; the effect below sees whether the owner closed.
+  const [asked, setAsked] = useState(0)
   const dismiss = () => {
     if (closing.current) return
     closing.current = true
     onClose()
+    setAsked((n) => n + 1)
   }
+  // The owner kept the sheet open (its onClose stepped back inside it, or
+  // refused): take dismissals again and settle a dragged sheet back up.
+  // Without this the close button, backdrop and drag stay dead for good.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: per request only
+  useEffect(() => {
+    if (!asked || !open || !closing.current) return
+    closing.current = false
+    y.value = reduced ? 0 : withSpring(0, { damping: 22, stiffness: 260 })
+  }, [asked])
   // Drag the grabber/header down to dismiss, like a native sheet.
   const drag = Gesture.Pan()
     .onUpdate((e) => {

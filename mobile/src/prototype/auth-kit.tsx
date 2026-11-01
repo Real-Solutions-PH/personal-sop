@@ -44,6 +44,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import Svg, { Path } from "react-native-svg"
 import { liveMode } from "@/live/config"
+import { screenShown } from "./boot/first-screen"
 import { FernMark } from "./companion/brand"
 import { back } from "./navigation"
 import { passwordStrength } from "./session"
@@ -186,6 +187,7 @@ export function AuthScreen({
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={{ flex: 1, backgroundColor: t.bg }}
+      onLayout={screenShown}
     >
       <View
         style={{

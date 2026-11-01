@@ -68,7 +68,8 @@ def test_history_carries_what_a_reply_did_and_marks_one_that_failed(
         say(""),
     )
     ask(api, client, "add fixing the bed as a habit")
-    install(monkeypatch, say(""))
+    # Nothing done and no words, even after the extra pass.
+    install(monkeypatch, say(""), say(""))
     ask(api, client, "what's next today?")
     model = install(monkeypatch, say("Sure."))
     ask(api, client, "try again")
@@ -76,12 +77,13 @@ def test_history_carries_what_a_reply_did_and_marks_one_that_failed(
     seen = words(model.seen[0])
     # What a reply did is in the system prompt, never in a reply's text.
     assert not any("[Done this turn" in w for _, w in seen)
-    assert ("fern", services.ACTED_REPLY) in seen
+    # A reply that acted without words says what it did, from its steps.
+    assert ("fern", "Created habit: Fix the bed.") in seen
     assert "Created habit: Fix the bed" in earlier_section(model.seen[0])
-    # The empty reply with nothing done reads as a failure, so "try again"
-    # points at the message before it, not at an older turn.
+    # A reply with nothing done and no words is never blank: it asks for
+    # the message again, so "try again" points at the message before it.
     i = seen.index(("me", "what's next today?"))
-    assert seen[i + 1] == ("fern", services.FAILED_REPLY)
+    assert seen[i + 1] == ("fern", services.NOTHING_DONE)
 
 
 def test_a_promised_second_part_gets_done_in_a_corrective_pass(
@@ -240,8 +242,9 @@ def test_narration_before_a_tool_call_is_never_shown(
     install(
         monkeypatch,
         say("I'll check your nutrition status first.", tool("nutrition_status")),
-        say("You have 39 g of protein left."),
+        say("You have 140 g of protein left."),
     )
+    api.put("/fitness/targets", {"kcal": 2000, "protein": 140, "carbs": 220, "fat": 60})
     r = client.post(
         "/api/v1/companion/ask/stream",
         headers=api.h,
@@ -252,10 +255,10 @@ def test_narration_before_a_tool_call_is_never_shown(
         e["delta"] for e in events if e.get("type") == "TEXT_MESSAGE_CONTENT"
     )
     assert "nutrition status" not in shown
-    assert shown == "You have 39 g of protein left."
+    assert shown == "You have 140 g of protein left."
     assert not [e for e in events if e.get("name") == "text.discard"]
     reply = events[-1]["result"]["messages"][1]
-    assert reply["text"] == "You have 39 g of protein left."
+    assert reply["text"] == "You have 140 g of protein left."
 
 
 def test_a_long_answer_starts_streaming_before_it_ends() -> None:

@@ -38,6 +38,7 @@ import { Button, Empty, Screen, undo } from "../ui"
 import { Ring } from "../visual"
 import { ActivityCard } from "./activity-card"
 import { LimitList } from "./nutrient-limits"
+import { MealBreakdown } from "./nutrition-meal-breakdown"
 import { NutritionTrend } from "./nutrition-trend"
 import { StatsShell } from "./stats-shell"
 /** Ring sizes for the width the rings get: the full size on a wide card,
@@ -417,6 +418,7 @@ export function Nutrition({
           </View>
         )}
       </Frame>
+      <MealBreakdown meals={meals} />
       <Button icon={Plus} onPress={() => go(`/nutrition/new?day=${day}`)}>
         Log a meal
       </Button>

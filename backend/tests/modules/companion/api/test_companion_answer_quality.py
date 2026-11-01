@@ -79,7 +79,7 @@ def test_an_empty_day_is_stated_as_empty_and_the_plan_tool_says_so(
     assert facts["currency"] == "PHP (₱)"
     assert facts["on_target_streak_days"] == 0
     assert facts["habits_due_today"] == [] and facts["tasks_due_today_count"] == 0
-    assert "Never invent" in system and "No markdown" in system
+    assert "Never invent" in system and "First, decide the job" in system
     plan = tool_results(model, 1)["plan_day"]
     assert plan == {"shown": "plan", "items": [], "nothing_pending": True}
 
@@ -169,7 +169,7 @@ def test_an_earlier_days_replies_are_not_sent_to_the_model(
 # ---------------------------------------------------------------- plain text
 
 
-def test_markdown_in_a_reply_is_stored_as_plain_text(
+def test_markdown_in_a_reply_keeps_its_lists_as_plain_text(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     api = user(client, db, accounts=False)
@@ -179,8 +179,9 @@ def test_markdown_in_a_reply_is_stored_as_plain_text(
         say("## Today\n\n- **Morning**: stretch\n- *Evening*: `journal`\n\n\n1. Rest"),
     )
     out = ask(api, "how should today go")
+    # Lists stay (the person may want them); marks the chat can't draw go.
     assert out["messages"][1]["text"] == (
-        "Today\n\nMorning: stretch\nEvening: journal\n\nRest"
+        "Today\n\n• Morning: stretch\n• Evening: journal\n\n1. Rest"
     )
 
 
@@ -191,7 +192,7 @@ def test_markdown_in_a_reply_is_stored_as_plain_text(
         ("5 * 3 = 15", "5 * 3 = 15"),  # a lone star is not emphasis
         ("snake_case_word", "snake_case_word"),
         ("  # Heading\ntext", "Heading\ntext"),
-        ("1) one\n2. two\n+ three", "one\ntwo\nthree"),
+        ("1) one\n2. two\n+ three", "1. one\n2. two\n• three"),
     ],
 )
 def test_plain_text(raw: str, plain: str) -> None:

@@ -2,8 +2,8 @@
 // animates the fiddlehead while storage and fonts load, then fades away to
 // reveal the app, which has already rendered underneath.
 import * as SplashScreen from "expo-splash-screen"
-import { useEffect, useRef, useState } from "react"
-import { StyleSheet } from "react-native"
+import { type ReactNode, useEffect, useRef, useState } from "react"
+import { StyleSheet, View } from "react-native"
 import Animated, {
   runOnJS,
   useAnimatedStyle,
@@ -11,12 +11,64 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated"
+import { onScreenShown } from "./first-screen"
 import { useSplashColors } from "./geometry"
 import { type Stage, TIMING, UnfurlMark } from "./unfurl-mark"
 
 // Keep the native splash up until the boot screen has drawn its first frame
 // over it; otherwise iOS shows a blank frame between the two.
 SplashScreen.preventAutoHideAsync().catch(() => {})
+
+/** Longest wait for the first screen after the app has laid out. */
+export const SCREEN_WAIT = 1500
+
+/**
+ * The app under the boot screen. The boot screen leaves only once the app's
+ * first frame has been laid out, not merely once storage and fonts are in:
+ * expo-router renders the app in a transition, so it can land well after
+ * "ready", and a boot screen that left on "ready" alone uncovered a blank
+ * white root view for seconds (seen under Reduce Motion, where there is no
+ * intro to cover the gap). ``failed`` lets the storage error show at once.
+ */
+export function BootGate({
+  ready,
+  failed = false,
+  children,
+}: {
+  ready: boolean
+  failed?: boolean
+  children: ReactNode
+}) {
+  const [laidOut, setLaidOut] = useState(false)
+  const [painted, setPainted] = useState(false)
+  // The app's container lays out a beat before the first screen in its
+  // native stack draws: wait for that screen (it reports itself), or give
+  // up waiting after SCREEN_WAIT so a screen that never reports cannot keep
+  // the boot screen up.
+  useEffect(() => {
+    if (!laidOut) return
+    const off = onScreenShown(() => setPainted(true))
+    const t = setTimeout(() => setPainted(true), SCREEN_WAIT)
+    return () => {
+      off()
+      clearTimeout(t)
+    }
+  }, [laidOut])
+  return (
+    <>
+      {ready && (
+        <View
+          testID="app-root"
+          style={{ flex: 1 }}
+          onLayout={() => setLaidOut(true)}
+        >
+          {children}
+        </View>
+      )}
+      <BootScreen ready={failed || (ready && painted)} />
+    </>
+  )
+}
 
 export function BootScreen({ ready }: { ready: boolean }) {
   const colors = useSplashColors()
@@ -39,9 +91,9 @@ export function BootScreen({ ready }: { ready: boolean }) {
   }, [reduced, stage])
   useEffect(() => {
     if (!ready || stage === "exit") return
-    // Under Reduce Motion nothing moves: the splash frame simply goes.
+    // Under Reduce Motion nothing moves: the still mark fades to the app.
     if (reduced) {
-      setGone(true)
+      setStage("exit")
       return
     }
     if (stage !== "loop") return
