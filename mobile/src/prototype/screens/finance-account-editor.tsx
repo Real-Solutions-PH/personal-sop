@@ -33,7 +33,9 @@ export function AccountEditor({
     t = useTheme(),
     sym = useCurrency().symbol,
     [name, setName] = useState(seed?.name ?? ""),
-    [type, setType] = useState<Account["type"]>(seed?.type ?? "ewallet"),
+    [type, setType] = useState<Account["type"]>(
+      !ex && seed?.type === "credit" ? "ewallet" : (seed?.type ?? "ewallet"),
+    ),
     [rate, setRate] = useState(
       seed?.rate !== undefined ? String(seed.rate) : "",
     ),
@@ -86,7 +88,11 @@ export function AccountEditor({
             { v: "cash", label: "Cash" },
             { v: "bank", label: "Bank" },
             { v: "ewallet", label: "E-wallet" },
-            { v: "credit", label: "Credit card" },
+            // Credit cards can't be added any more; a card made before that
+            // keeps its type (and its owed balance and limit) when edited.
+            ...(ex?.type === "credit"
+              ? [{ v: "credit", label: "Credit card" } as const]
+              : []),
             { v: "investment", label: "Investment" },
           ] as const
         ).map((o) => (

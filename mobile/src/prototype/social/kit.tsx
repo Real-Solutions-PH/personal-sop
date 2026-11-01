@@ -9,9 +9,10 @@ import {
   CircleCheck,
   Dumbbell,
   Flame,
-  Heart,
+  Lightbulb,
   Medal,
   Sparkles,
+  Sprout,
   Target,
   Trophy as TrophyIcon,
   User,
@@ -40,6 +41,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated"
+import Svg, { Circle } from "react-native-svg"
 import { Sparkline } from "../chart"
 import { go } from "../navigation"
 import { type Accent, fonts, useTheme } from "../theme"
@@ -64,10 +66,12 @@ import {
   usePerson,
 } from "./store"
 
-type Stops = readonly [string, string, ...string[]]
-export const IG: Stops = ["#feda75", "#fa7e1e", "#d62976", "#962fbf", "#4f5bd5"]
-const IG_RING: Stops = ["#4f5bd5", "#962fbf", "#d62976", "#fa7e1e", "#feda75"]
-export const CLOSE: Stops = ["#3ed15f", "#1aa34a"]
+/** The icon of each cheer: outline icons, never emoji (the brand rule). */
+export const CHEER_ICON: Record<Cheer, typeof Sprout> = {
+  keep_going: Sprout,
+  proud: Award,
+  inspired: Lightbulb,
+}
 
 export const haptic = {
   tap: () =>
@@ -95,6 +99,65 @@ export function useRing(id: string) {
       ? ("close" as const)
       : ("unseen" as const)
   })
+}
+
+/** Which of a person's check-ins I have seen, in order (true = seen). */
+function useRingSegments(id: string): string {
+  // A string, so the selector's result compares by value.
+  return socialStore.use((s) =>
+    s.stories
+      .filter((x) => x.by === id)
+      .slice(0, MAX_SEGMENTS)
+      .map((x) => (id !== ME && s.seen.includes(x.id) ? "1" : "0"))
+      .join(""),
+  )
+}
+const MAX_SEGMENTS = 8
+
+/** Unfurl's check-in ring: one arc per check-in, like a progress ring
+ * filling up, in the brand colour while unseen and a hairline once seen.
+ * Close-friends check-ins draw in the life colour. */
+function CheckInRing({
+  id,
+  size,
+  state,
+}: {
+  id: string
+  size: number
+  state: "seen" | "unseen" | "close"
+}) {
+  const t = useTheme()
+  const segments = useRingSegments(id)
+  const n = Math.max(1, segments.length)
+  const stroke = size >= 56 ? 3 : 2.25
+  const box = size + 10
+  const r = (box - stroke) / 2
+  const c = 2 * Math.PI * r
+  const gap = n > 1 ? Math.min(6, c / n / 4) : 0
+  const live = state === "close" ? t.life : t.primary
+  return (
+    <Svg
+      width={box}
+      height={box}
+      style={{ position: "absolute", top: 0, left: 0 }}
+      pointerEvents="none"
+    >
+      {Array.from({ length: n }, (_, i) => (
+        <Circle
+          key={i}
+          cx={box / 2}
+          cy={box / 2}
+          r={r}
+          fill="none"
+          stroke={segments[i] === "1" || state === "seen" ? t.line : live}
+          strokeWidth={stroke}
+          strokeLinecap={n > 1 ? "round" : "butt"}
+          strokeDasharray={`${c / n - gap} ${c - c / n + gap}`}
+          strokeDashoffset={-((c / n) * i) + c / 4 - gap / 2}
+        />
+      ))}
+    </Svg>
+  )
 }
 
 const initials = (name: string) =>
@@ -144,7 +207,7 @@ export function Face({ person, size }: { person: Person; size: number }) {
   )
 }
 
-/** Avatar with optional Instagram-style story ring. */
+/** Avatar with an optional check-in ring (see CheckInRing). */
 export function Avatar({
   id,
   size = 36,
@@ -180,30 +243,18 @@ export function Avatar({
       </View>
     )
   const show = ring && state
-  const pad = size >= 56 ? 3 : 2
   const body = show ? (
-    <LinearGradient
-      colors={
-        state === "seen"
-          ? [t.line, t.line]
-          : state === "close"
-            ? CLOSE
-            : IG_RING
-      }
-      start={{ x: 0, y: 1 }}
-      end={{ x: 1, y: 0 }}
+    <View
       style={{
-        width: size + pad * 2 + 4,
-        height: size + pad * 2 + 4,
-        borderRadius: size,
+        width: size + 10,
+        height: size + 10,
         alignItems: "center",
         justifyContent: "center",
       }}
     >
-      <View style={{ padding: pad, borderRadius: size, backgroundColor: t.bg }}>
-        <Face person={person} size={size} />
-      </View>
-    </LinearGradient>
+      <CheckInRing id={id} size={size} state={state} />
+      <Face person={person} size={size} />
+    </View>
   ) : (
     <Face person={person} size={size} />
   )
@@ -257,7 +308,7 @@ export function Name({
       style={{ fontFamily: fonts.semibold, fontSize: size, color: t.text }}
     >
       {p?.username ?? "unknown"}
-      {p?.verified && <Text style={{ color: t.tsk }}> ✓</Text>}
+      {p?.verified && <Text style={{ color: t.primary }}> ✓</Text>}
     </Text>
   )
 }
@@ -306,8 +357,9 @@ export function Bounce({
   )
 }
 
-/** Heart that pops when it becomes liked. */
-export function LikeHeart({
+/** The cheer mark (a sprout, Unfurl's own "like"): it grows when it turns
+ * on. */
+export function CheerSprout({
   liked,
   size = 24,
   color,
@@ -320,7 +372,7 @@ export function LikeHeart({
   const reduced = useReducedMotion()
   const scale = useSharedValue(1)
   const was = useRef(liked)
-  // Pop only when the heart turns on, never on mount.
+  // Grow only when the cheer turns on, never on mount.
   useEffect(() => {
     if (liked && !was.current && !reduced)
       scale.value = withSequence(
@@ -332,18 +384,17 @@ export function LikeHeart({
   const anim = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }))
   return (
     <Animated.View style={anim}>
-      <Heart
+      <Sprout
         size={size}
-        color={liked ? "#ff3040" : (color ?? t.text)}
-        fill={liked ? "#ff3040" : "none"}
-        strokeWidth={liked ? 0 : 1.9}
+        color={liked ? t.primary : (color ?? t.text)}
+        strokeWidth={liked ? 2.25 : 1.75}
       />
     </Animated.View>
   )
 }
 
-/** Big heart that bursts over media after a double-tap. */
-export function useHeartBurst() {
+/** A sprout that grows over media after a double-tap cheer. */
+export function useCheerBurst() {
   const reduced = useReducedMotion()
   const scale = useSharedValue(0)
   const opacity = useSharedValue(0)
@@ -383,7 +434,18 @@ export function useHeartBurst() {
       }}
     >
       <Animated.View style={style}>
-        <Heart size={96} color="#fff" fill="#fff" strokeWidth={0} />
+        <View
+          style={{
+            width: 112,
+            height: 112,
+            borderRadius: 56,
+            backgroundColor: "#121513b3",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Sprout size={64} color="#8fcaa6" strokeWidth={2} />
+        </View>
       </Animated.View>
     </View>
   )
@@ -762,7 +824,7 @@ export function MediaCarousel({
 }) {
   const t = useTheme()
   const [page, setPage] = useState(0)
-  const burst = useHeartBurst()
+  const burst = useCheerBurst()
   // Photos lead; the stat strip under them carries the numbers, so the
   // rendered card is a page only when there is no photo to show.
   const pair =
@@ -867,22 +929,26 @@ export function MediaCarousel({
           <View
             style={{
               position: "absolute",
-              bottom: -18,
-              left: 0,
-              right: 0,
+              bottom: 10,
+              alignSelf: "center",
               flexDirection: "row",
               justifyContent: "center",
               gap: 4,
+              paddingHorizontal: 8,
+              paddingVertical: 5,
+              borderRadius: 999,
+              backgroundColor: "#121513b3",
             }}
           >
             {Array.from({ length: pages }, (_, i) => (
               <View
                 key={i}
                 style={{
-                  width: 6,
+                  width: i === page ? 14 : 6,
                   height: 6,
                   borderRadius: 3,
-                  backgroundColor: i === page ? t.tsk : t.line,
+                  backgroundColor:
+                    i === page ? palette.dark.primary : "#ffffff66",
                 }}
               />
             ))}
@@ -1068,20 +1134,19 @@ export function DayBadge({
         paddingHorizontal: 10,
         paddingVertical: 5,
         borderRadius: 999,
-        backgroundColor: "#000000a6",
+        backgroundColor: "#121513cc",
         ...style,
       }}
     >
-      <Flame size={13} color="#ffb547" fill="#ffb547" />
+      <Sprout size={14} color={palette.dark.primary} strokeWidth={2} />
       <Text
         style={{
           color: "#fff",
-          fontFamily: fonts.bold,
+          fontFamily: fonts.medium,
           fontSize: 12,
-          letterSpacing: 0.6,
         }}
       >
-        {label.toUpperCase()}
+        {label}
       </Text>
     </View>
   )
@@ -1224,6 +1289,7 @@ export function CheerBar({ post }: { post: Post }) {
     <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 12 }}>
       {CHEERS.map((c) => {
         const on = mine === c.kind
+        const Icon = CHEER_ICON[c.kind]
         return (
           <Pressable
             cssInterop={false}
@@ -1249,15 +1315,24 @@ export function CheerBar({ post }: { post: Post }) {
               transform: [{ scale: pressed ? 0.96 : 1 }],
             })}
           >
-            <Text
-              style={{
-                color: t.text,
-                fontFamily: fonts.semibold,
-                fontSize: 14,
-              }}
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
             >
-              {c.emoji} {compact(counts[c.kind])}
-            </Text>
+              <Icon
+                size={16}
+                color={on ? t.primary : t.muted}
+                strokeWidth={on ? 2 : 1.75}
+              />
+              <Text
+                style={{
+                  color: t.text,
+                  fontFamily: fonts.mono,
+                  fontSize: 14,
+                }}
+              >
+                {compact(counts[c.kind])}
+              </Text>
+            </View>
             <Text
               numberOfLines={1}
               style={{
@@ -1540,11 +1615,11 @@ export function NoteComposer({
               borderRadius: 12,
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: t.tsk,
+              backgroundColor: t.primary,
               opacity: text.trim() ? 1 : 0.4,
             }}
           >
-            <Text style={{ color: "#fff", fontFamily: fonts.semibold }}>
+            <Text style={{ color: t.onPrimary, fontFamily: fonts.semibold }}>
               Share
             </Text>
           </Pressable>

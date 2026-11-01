@@ -12,6 +12,7 @@ export const extras = {
   SlideInRight: chain,
   ZoomIn: chain,
   LinearTransition: chain,
+  ReduceMotion: { System: "system", Always: "always", Never: "never" },
   useAnimatedProps: (get: () => unknown) => get(),
   withSequence: (...values: unknown[]) => values[values.length - 1],
   withDelay: (_: number, value: unknown) => value,

@@ -80,7 +80,21 @@ export interface WidgetSnapshot {
   } | null
   /** The routine, workout or timer running now, for the Today widget. */
   live: { kind: LiveKind; title: string; href: string } | null
+  /** The apps the Apps widget opens: the ones the in-app launcher shows, in
+   * its order. Screen Time only where this build can read it. */
+  apps: AppKey[]
 }
+
+/** An app the Apps widget opens, through ``personalsop:///feature/<key>``. */
+export type AppKey =
+  | "habits"
+  | "tasks"
+  | "fitness"
+  | "nutrition"
+  | "focus"
+  | "finance"
+  | "screen"
+  | "journal"
 
 export type LiveKind = "routine" | "workout" | "timer"
 

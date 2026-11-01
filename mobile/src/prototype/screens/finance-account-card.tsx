@@ -113,12 +113,11 @@ export function useAccountColor(a: Account) {
   return key.startsWith("#") ? key : (t[key] ?? t["acct-blue"])
 }
 
-/** What the card says under the balance: how much of the limit is used, or
- * how fresh the balance is. */
+/** What the card says under the balance: how much of the limit is used, a
+ * deposit's maturity, the goal, or how the balance is kept. */
 function footnote(
   a: Account,
   balance: number,
-  nudgeDays: number,
 ): {
   text: string
   stale: boolean
@@ -135,42 +134,26 @@ function footnote(
       stale: days <= 0,
     }
   }
-  const note = freshness(a, nudgeDays)
-  // A stale balance outranks the goal: the goal % is only as good as it.
-  if (a.goal && !note.stale)
+  if (a.goal)
     return {
       text: `${Math.round((Math.max(0, balance) / a.goal) * 100)}% of goal`,
       stale: false,
     }
-  return note
-}
-
-function freshness(
-  a: Account,
-  nudgeDays: number,
-): { text: string; stale: boolean } {
-  if (a.manual) return { text: "Value you set", stale: false }
-  // Only banks and e-wallets have statements to match against.
-  if (a.type !== "bank" && a.type !== "ewallet")
-    return { text: "Kept up as you log", stale: false }
-  const days = C.lastReconciledDays(a)
-  if (days === null) return { text: "Not matched yet", stale: true }
+  // Balances are kept by logging; no account needs matching to a statement.
   return {
-    text: `Matched ${days === 0 ? "today" : `${days}d ago`}`,
-    stale: days > nudgeDays,
+    text: a.manual ? "Value you set" : "Kept up as you log",
+    stale: false,
   }
 }
 
 export function AccountCard({
   account: a,
   balance,
-  nudgeDays,
   compact = false,
   onPress,
 }: {
   account: Account
   balance: number
-  nudgeDays: number
   /** The small card in the Finance home row; full width otherwise. */
   compact?: boolean
   onPress?: () => void
@@ -179,7 +162,7 @@ export function AccountCard({
   const base = useAccountColor(a)
   const Icon = ICONS[a.type]
   const owed = a.type === "credit"
-  const note = footnote(a, balance, nudgeDays)
+  const note = footnote(a, balance)
   const used = owed && a.limit ? Math.min(1, Math.abs(balance) / a.limit) : null
   const label = `${a.name}, ${KIND[a.type]}, ${owed ? "owed " : balance < 0 ? "minus " : ""}${money(Math.abs(balance))}. ${note.text}`
   return (

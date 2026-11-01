@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Apps launcher: up to eight apps, four to a row, as the in-app
+     launcher shows them. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/unfurl_root" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:padding="10dp" android:background="@drawable/unfurl_widget_bg">
+<LinearLayout android:id="@+id/app_row_0" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal" android:gravity="center_vertical">
+    <LinearLayout android:id="@+id/app_tile_0" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center_horizontal">
+      <FrameLayout android:layout_width="44dp" android:layout_height="44dp">
+        <ImageView android:id="@+id/app_bg_0" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/unfurl_tile" android:alpha="0.15" android:importantForAccessibility="no" />
+        <ImageView android:id="@+id/app_icon_0" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="11dp" android:importantForAccessibility="no" />
+      </FrameLayout>
+      <TextView android:id="@+id/app_label_0" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:gravity="center" android:textSize="11sp" android:textColor="@color/unfurl_text" android:maxLines="1" android:ellipsize="end" />
+    </LinearLayout><LinearLayout android:id="@+id/app_tile_1" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center_horizontal">
+      <FrameLayout android:layout_width="44dp" android:layout_height="44dp">
+        <ImageView android:id="@+id/app_bg_1" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/unfurl_tile" android:alpha="0.15" android:importantForAccessibility="no" />
+        <ImageView android:id="@+id/app_icon_1" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="11dp" android:importantForAccessibility="no" />
+      </FrameLayout>
+      <TextView android:id="@+id/app_label_1" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:gravity="center" android:textSize="11sp" android:textColor="@color/unfurl_text" android:maxLines="1" android:ellipsize="end" />
+    </LinearLayout><LinearLayout android:id="@+id/app_tile_2" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center_horizontal">
+      <FrameLayout android:layout_width="44dp" android:layout_height="44dp">
+        <ImageView android:id="@+id/app_bg_2" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/unfurl_tile" android:alpha="0.15" android:importantForAccessibility="no" />
+        <ImageView android:id="@+id/app_icon_2" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="11dp" android:importantForAccessibility="no" />
+      </FrameLayout>
+      <TextView android:id="@+id/app_label_2" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:gravity="center" android:textSize="11sp" android:textColor="@color/unfurl_text" android:maxLines="1" android:ellipsize="end" />
+    </LinearLayout><LinearLayout android:id="@+id/app_tile_3" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center_horizontal">
+      <FrameLayout android:layout_width="44dp" android:layout_height="44dp">
+        <ImageView android:id="@+id/app_bg_3" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/unfurl_tile" android:alpha="0.15" android:importantForAccessibility="no" />
+        <ImageView android:id="@+id/app_icon_3" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="11dp" android:importantForAccessibility="no" />
+      </FrameLayout>
+      <TextView android:id="@+id/app_label_3" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:gravity="center" android:textSize="11sp" android:textColor="@color/unfurl_text" android:maxLines="1" android:ellipsize="end" />
+    </LinearLayout>
+</LinearLayout>
+<LinearLayout android:id="@+id/app_row_1" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal" android:gravity="center_vertical">
+    <LinearLayout android:id="@+id/app_tile_4" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center_horizontal">
+      <FrameLayout android:layout_width="44dp" android:layout_height="44dp">
+        <ImageView android:id="@+id/app_bg_4" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/unfurl_tile" android:alpha="0.15" android:importantForAccessibility="no" />
+        <ImageView android:id="@+id/app_icon_4" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="11dp" android:importantForAccessibility="no" />
+      </FrameLayout>
+      <TextView android:id="@+id/app_label_4" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:gravity="center" android:textSize="11sp" android:textColor="@color/unfurl_text" android:maxLines="1" android:ellipsize="end" />
+    </LinearLayout><LinearLayout android:id="@+id/app_tile_5" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center_horizontal">
+      <FrameLayout android:layout_width="44dp" android:layout_height="44dp">
+        <ImageView android:id="@+id/app_bg_5" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/unfurl_tile" android:alpha="0.15" android:importantForAccessibility="no" />
+        <ImageView android:id="@+id/app_icon_5" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="11dp" android:importantForAccessibility="no" />
+      </FrameLayout>
+      <TextView android:id="@+id/app_label_5" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:gravity="center" android:textSize="11sp" android:textColor="@color/unfurl_text" android:maxLines="1" android:ellipsize="end" />
+    </LinearLayout><LinearLayout android:id="@+id/app_tile_6" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center_horizontal">
+      <FrameLayout android:layout_width="44dp" android:layout_height="44dp">
+        <ImageView android:id="@+id/app_bg_6" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/unfurl_tile" android:alpha="0.15" android:importantForAccessibility="no" />
+        <ImageView android:id="@+id/app_icon_6" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="11dp" android:importantForAccessibility="no" />
+      </FrameLayout>
+      <TextView android:id="@+id/app_label_6" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:gravity="center" android:textSize="11sp" android:textColor="@color/unfurl_text" android:maxLines="1" android:ellipsize="end" />
+    </LinearLayout><LinearLayout android:id="@+id/app_tile_7" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center_horizontal">
+      <FrameLayout android:layout_width="44dp" android:layout_height="44dp">
+        <ImageView android:id="@+id/app_bg_7" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/unfurl_tile" android:alpha="0.15" android:importantForAccessibility="no" />
+        <ImageView android:id="@+id/app_icon_7" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="11dp" android:importantForAccessibility="no" />
+      </FrameLayout>
+      <TextView android:id="@+id/app_label_7" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:gravity="center" android:textSize="11sp" android:textColor="@color/unfurl_text" android:maxLines="1" android:ellipsize="end" />
+    </LinearLayout>
+</LinearLayout>
+</LinearLayout>

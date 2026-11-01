@@ -131,7 +131,10 @@ def test_stats_contributor(db: Session) -> None:
             category_id=dining.id,
             account_id=a.id,
             payee="Laptop",
-            at=_at(-1),
+            # The start of today's business day: inside this month's budget
+            # on every day of the month (yesterday is last month's on the 1st,
+            # so the budget was not blown), and never in the future.
+            at=DayClock().start_of(TODAY),
         )
         services.add_budget(
             ctx,

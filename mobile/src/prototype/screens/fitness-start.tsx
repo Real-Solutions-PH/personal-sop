@@ -2,13 +2,36 @@ import { type StartFrom, startWorkout } from "@domain/fitness/actions"
 import * as C from "@domain/fitness/calc"
 import { fitStore } from "@domain/fitness/store"
 import { Dumbbell, Plus, Repeat } from "lucide-react-native"
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { View } from "react-native"
+import { toast } from "sonner-native"
 import { Copy, Line, Tap } from "../native-kit"
 import { go } from "../navigation"
 import { useTheme } from "../theme"
 import { Sheet } from "../ui"
-export function StartWorkoutSheet({ onClose }: { onClose: () => void }) {
+/** Where the logger goes once a workout has started: an empty one opens
+ * straight on the exercise picker. */
+export const workoutHref = (empty: boolean) =>
+  empty ? "/fitness/workout?add=1" : "/fitness/workout"
+
+export function StartWorkoutSheet({
+  onClose,
+  onStarted,
+}: {
+  onClose: () => void
+  /** Already on the logger: what to do instead of navigating to it
+   * (``empty``: the workout has no exercises yet). */
+  onStarted?: (empty: boolean) => void
+}) {
+  const [open, setOpen] = useState(true),
+    // Run once the sheet's modal is fully gone: iOS ignores a navigation or
+    // another sheet presented while this one is still leaving, which left
+    // "Empty workout" looking like it did nothing.
+    then = useRef<(() => void) | null>(null),
+    leave = (next?: () => void) => {
+      then.current = next ?? null
+      setOpen(false)
+    }
   const s = fitStore.use((s) => s),
     t = useTheme(),
     // Highlight today's scheduled workout; fall back to the round-robin
@@ -19,23 +42,32 @@ export function StartWorkoutSheet({ onClose }: { onClose: () => void }) {
     const r = startWorkout(opts)
     if (!r.ok) {
       setErr(r)
+      // The banner sits at the top of the sheet, out of view of the rows
+      // further down.
+      toast.error(r.reason)
       return
     }
-    onClose()
-    go("/fitness/workout")
+    const empty = !r.workout.exercises.length
+    leave(() => (onStarted ? onStarted(empty) : go(workoutHref(empty))))
   }
   return (
-    <Sheet title="Start workout" open onClose={onClose}>
+    <Sheet
+      title="Start workout"
+      open={open}
+      onClose={() => leave()}
+      onClosed={() => {
+        onClose()
+        then.current?.()
+      }}
+    >
       <Copy size={14} muted>
         Sets prefill from last time, with the suggested weight or rep increase.
       </Copy>
       {err && (
         <Tap
           onPress={() => {
-            if (err.href) {
-              onClose()
-              go(err.href)
-            }
+            const href = err.href
+            if (href) leave(() => go(href))
           }}
           style={{
             padding: 12,
@@ -127,12 +159,7 @@ export function StartWorkoutSheet({ onClose }: { onClose: () => void }) {
           </View>
         </Line>
       </Tap>
-      <Tap
-        onPress={() => {
-          onClose()
-          go("/fitness/templates")
-        }}
-      >
+      <Tap onPress={() => leave(() => go("/fitness/templates"))}>
         <Copy size={14} muted style={{ textAlign: "center" }}>
           Manage templates
         </Copy>

@@ -581,7 +581,9 @@ def _add_account(ctx: Ctx, *, data: S.AccountCreate) -> Account:
     values = data.model_dump(exclude_unset=True, exclude={"id"})
     values.setdefault("opening_date", ctx.today)
     values.setdefault("sort_order", owned_repo.count_rows(ctx, Account))
-    if values.get("limit_minor") is not None and data.type != "credit":
+    if data.type == "credit":
+        raise invalid("credit_retired", "Credit cards can't be added")
+    if values.get("limit_minor") is not None:
         raise invalid("limit_not_credit", "Only a credit card has a limit")
     acc, _ = owned_repo.upsert(ctx, Account, data.id or uuid.uuid4(), values)
     st = _settings(ctx)
@@ -613,6 +615,10 @@ def _update_account(ctx: Ctx, account_id: uuid.UUID, data: S.AccountFields) -> A
     for key in ("name", "type", "opening_minor", "opening_date"):
         if key in patch and patch[key] is None:
             raise invalid("field_required", "That field cannot be empty")
+    # A card made before credit cards were retired stays one; nothing new
+    # becomes one.
+    if patch.get("type") == "credit" and acc.type != "credit":
+        raise invalid("credit_retired", "Credit cards can't be added")
     owned_repo.apply(acc, patch)
     if acc.limit_minor is not None and acc.type != "credit":
         raise invalid("limit_not_credit", "Only a credit card has a limit")
@@ -1686,14 +1692,9 @@ def home(ctx: Ctx) -> S.HomeOut:
         upcoming=[_occ_out(o) for o in occ if o.status in ("due", "upcoming")],
         due=[_occ_out(o) for o in calc.due_now(s)],
         pending_records=sum(1 for r in s.records if r.status == "pending"),
-        stale_accounts=[
-            v.id
-            for v in views
-            if not v.archived
-            and v.type in ("bank", "ewallet")
-            and (v.reconciled_days_ago if v.reconciled_days_ago is not None else 999)
-            > st.nudge_days
-        ],
+        # Accounts no longer need matching with a statement: nothing is
+        # stale. The field stays so older app builds keep parsing.
+        stale_accounts=[],
         projection_end_minor=r2(proj.months[-1].end) if proj and proj.months else None,
         projection_low=_low(proj.low) if proj else None,
         net_worth_series_minor=calc.net_worth_series(s, 30),
@@ -1813,6 +1814,7 @@ def reset(ctx: Ctx) -> FinanceSettings:
         "ai_scope",
         "disclaimer_ack",
         "nudge_days",
+        "bill_reminder",
         "setup_done",
     ):
         setattr(st, key, getattr(defaults, key))

@@ -45,10 +45,10 @@ export type Progress = {
 }
 /** Encouragement in place of a like: one per person per post. */
 export type Cheer = "keep_going" | "proud" | "inspired"
-export const CHEERS: { kind: Cheer; emoji: string; label: string }[] = [
-  { kind: "keep_going", emoji: "🔥", label: "Keep going" },
-  { kind: "proud", emoji: "👏", label: "Proud of you" },
-  { kind: "inspired", emoji: "💡", label: "Inspired" },
+export const CHEERS: { kind: Cheer; label: string }[] = [
+  { kind: "keep_going", label: "Keep going" },
+  { kind: "proud", label: "Proud of you" },
+  { kind: "inspired", label: "Inspired" },
 ]
 export type Area = "habits" | "tasks" | "fitness" | "finance"
 export type Trophy = {
@@ -150,6 +150,9 @@ export type Message = {
   replyTo?: string
   reactions: Record<string, string>
   system?: boolean
+  /** Deleted by its sender: the thread shows a "Message deleted" tombstone
+   * in its place, with nothing of the message left. */
+  deleted?: boolean
 }
 export type Chat = {
   id: string
@@ -949,6 +952,7 @@ export interface SocialRemote {
   addComment(postId: string, comment: Comment): Promise<unknown>
   likeComment(postId: string, id: string, on: boolean): Promise<unknown>
   deleteComment(postId: string, id: string): Promise<unknown>
+  restoreComment(postId: string, id: string): Promise<unknown>
   createStory(story: StoryItem): Promise<unknown>
   deleteStory(id: string): Promise<unknown>
   seen(id: string): Promise<unknown>
@@ -969,6 +973,7 @@ export interface SocialRemote {
     emoji: string | null,
   ): Promise<unknown>
   unsend(chatId: string, messageId: string): Promise<unknown>
+  restoreMessage(chatId: string, messageId: string): Promise<unknown>
   markRead(chatId: string): Promise<unknown>
   chatSettings(
     chatId: string,
@@ -1378,7 +1383,7 @@ export function toggleCommentLike(postId: string, commentId: string) {
     )
 }
 /** A comment and every reply under it (the server deletes them together). */
-function thread(comments: Comment[], id: string): Set<string> {
+export function commentThread(comments: Comment[], id: string): Set<string> {
   const out = new Set([id])
   let grew = true
   while (grew) {
@@ -1391,10 +1396,16 @@ function thread(comments: Comment[], id: string): Set<string> {
   }
   return out
 }
+/** Delete my comment (and the replies under it). Returns the undo. */
 export function deleteComment(postId: string, commentId: string) {
   const prev = postOf(postId)
+  const removed = prev
+    ? prev.comments.filter((c) =>
+        commentThread(prev.comments, commentId).has(c.id),
+      )
+    : []
   mapPost(postId, (p) => {
-    const gone = thread(p.comments, commentId)
+    const gone = commentThread(p.comments, commentId)
     return {
       ...p,
       comments: p.comments.filter((c) => !gone.has(c.id)),
@@ -1410,6 +1421,29 @@ export function deleteComment(postId: string, commentId: string) {
       () => putPost(prev),
       "delete the comment",
     )
+  return () => {
+    mapPost(postId, (p) => {
+      const ids = new Set(p.comments.map((c) => c.id))
+      const back = removed.filter((c) => !ids.has(c.id))
+      return {
+        ...p,
+        comments: [...p.comments, ...back].sort((a, b) => a.at - b.at),
+        commentCount:
+          p.commentCount === undefined
+            ? undefined
+            : p.commentCount + back.length,
+      }
+    })
+    send(
+      (r) => r.restoreComment(postId, commentId),
+      () =>
+        mapPost(postId, (p) => {
+          const gone = commentThread(p.comments, commentId)
+          return { ...p, comments: p.comments.filter((c) => !gone.has(c.id)) }
+        }),
+      "restore the comment",
+    )
+  }
 }
 export function createPost(
   p: Pick<Post, "caption" | "media"> &
@@ -1851,18 +1885,43 @@ export function reactTo(chatId: string, messageId: string, emoji: string) {
       mine ?? null,
     )
 }
+/** A deleted message as the thread keeps it: who and when, nothing else. */
+export function tombstone(m: Message): Message {
+  return { id: m.id, by: m.by, at: m.at, reactions: {}, deleted: true }
+}
+/** Delete my message: it becomes a tombstone for everyone in the chat.
+ * Returns the undo. */
 export function unsend(chatId: string, messageId: string) {
   const prev = chatOf(chatId)
+  const original = prev?.messages.find((m) => m.id === messageId)
   mapChat(chatId, (c) => ({
     ...c,
-    messages: c.messages.filter((m) => m.id !== messageId),
+    messages: c.messages.map((m) => (m.id === messageId ? tombstone(m) : m)),
   }))
   if (prev)
     send(
       (r) => r.unsend(chatId, messageId),
       () => putChat(prev),
-      "unsend the message",
+      "delete the message",
     )
+  return () => {
+    if (!original) return
+    mapChat(chatId, (c) => ({
+      ...c,
+      messages: c.messages.map((m) => (m.id === messageId ? original : m)),
+    }))
+    send(
+      (r) => r.restoreMessage(chatId, messageId),
+      () =>
+        mapChat(chatId, (c) => ({
+          ...c,
+          messages: c.messages.map((m) =>
+            m.id === messageId ? tombstone(m) : m,
+          ),
+        })),
+      "restore the message",
+    )
+  }
 }
 export function markChatRead(chatId: string) {
   mapChat(chatId, (c) =>
@@ -2034,13 +2093,13 @@ export const postingStore = create<{
 export function activityText(kind: Activity["kind"], text?: string): string {
   if (kind === "like") {
     const c = CHEERS.find((x) => x.kind === text)
-    if (c) return `cheered your progress: ${c.emoji} ${c.label}.`
+    if (c) return `cheered your progress: ${c.label}.`
     return text ? `${text}.` : "cheered your progress."
   }
   if (kind === "comment") return `commented: ${text ?? ""}`
   if (kind === "mention") return `mentioned you: ${text ?? ""}`
   if (kind === "follow") return "started following you."
-  return "liked your story."
+  return "cheered your check-in."
 }
 
 /** A group's system line. The server stores what happened ("left the

@@ -1,5 +1,6 @@
+import { palette } from "@domain/design/tokens"
 import { LinearGradient } from "expo-linear-gradient"
-import { Eye, Plus, Send, Trash2, X } from "lucide-react-native"
+import { Eye, Plus, Send, Star, Trash2, X } from "lucide-react-native"
 import { useEffect, useMemo, useRef, useState } from "react"
 import type { TextInputInstance } from "react-native"
 import {
@@ -35,9 +36,9 @@ import {
   Avatar,
   CheckInOverlay,
   CheckInSlide,
+  CheerSprout,
   haptic,
   isCheckIn,
-  LikeHeart,
   ProgressCard,
   VideoMedia,
 } from "./kit"
@@ -60,6 +61,9 @@ import {
   usePerson,
 } from "./store"
 
+/** The viewer is always on the dark ground, whatever the app theme. */
+const DARK = palette.dark
+
 const DURATION = { image: 5000, text: 6000, progress: 7000, video: 10000 }
 /** A slide whose media has not rendered by then counts as failed. */
 export const LOAD_TIMEOUT_MS = 15_000
@@ -78,14 +82,14 @@ function Bar({
     <View
       style={{
         flex: 1,
-        height: 2.5,
+        height: 3,
         borderRadius: 2,
-        backgroundColor: "#ffffff55",
+        backgroundColor: "#ffffff33",
         overflow: "hidden",
       }}
     >
       <Animated.View
-        style={[{ height: "100%", backgroundColor: "#fff" }, style]}
+        style={[{ height: "100%", backgroundColor: DARK.primary }, style]}
       />
     </View>
   )
@@ -188,7 +192,7 @@ function SlideBody({
     )
   return (
     <LinearGradient
-      colors={item.bg ?? ["#d62976", "#4f5bd5"]}
+      colors={item.bg ?? [DARK.background, palette.light.moss]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={{
@@ -400,7 +404,7 @@ export function StoryViewer({ id }: { id: string }) {
       <View
         style={{
           flex: 1,
-          backgroundColor: "#000",
+          backgroundColor: DARK.background,
           alignItems: "center",
           justifyContent: "center",
         }}
@@ -465,7 +469,13 @@ export function StoryViewer({ id }: { id: string }) {
     input.current?.blur()
   }
   return (
-    <View style={{ flex: 1, backgroundColor: "#000", paddingTop: safe.top }}>
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: DARK.background,
+        paddingTop: safe.top,
+      }}
+    >
       <GestureDetector gesture={gesture}>
         <Animated.View
           style={[
@@ -623,20 +633,25 @@ export function StoryViewer({ id }: { id: string }) {
               {item.audience === "close" && (
                 <View
                   style={{
-                    backgroundColor: "#1aa34a",
-                    borderRadius: 8,
-                    paddingHorizontal: 6,
-                    paddingVertical: 1,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 4,
+                    borderWidth: 1,
+                    borderColor: DARK.life,
+                    borderRadius: 999,
+                    paddingHorizontal: 8,
+                    paddingVertical: 2,
                   }}
                 >
+                  <Star size={12} color={DARK.life} />
                   <Text
                     style={{
                       color: "#fff",
-                      fontSize: 10,
-                      fontFamily: fonts.bold,
+                      fontSize: 12,
+                      fontFamily: fonts.medium,
                     }}
                   >
-                    CLOSE FRIENDS
+                    Close friends
                   </Text>
                 </View>
               )}
@@ -665,7 +680,7 @@ export function StoryViewer({ id }: { id: string }) {
             paddingHorizontal: 12,
             paddingTop: 10,
             paddingBottom: Math.max(safe.bottom, 10),
-            backgroundColor: "#000",
+            backgroundColor: DARK.background,
           }}
         >
           {mine ? (
@@ -753,7 +768,9 @@ export function StoryViewer({ id }: { id: string }) {
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={
-                      item.liked ? "Unlike story" : "Like story"
+                      item.liked
+                        ? "Take back your cheer"
+                        : "Cheer this check-in"
                     }
                     onPress={() => {
                       haptic.pop()
@@ -761,15 +778,30 @@ export function StoryViewer({ id }: { id: string }) {
                     }}
                     style={{ padding: 8 }}
                   >
-                    <LikeHeart liked={!!item.liked} size={26} color="#fff" />
+                    <CheerSprout liked={!!item.liked} size={26} color="#fff" />
                   </Pressable>
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel="Quick reaction"
-                    onPress={() => sendReply("🔥")}
-                    style={{ padding: 8 }}
+                    accessibilityLabel="Send Keep going"
+                    onPress={() => sendReply("Keep going")}
+                    style={({ pressed }) => ({
+                      minHeight: 44,
+                      paddingHorizontal: 12,
+                      borderRadius: 22,
+                      justifyContent: "center",
+                      backgroundColor: "#ffffff1f",
+                      opacity: pressed ? 0.72 : 1,
+                    })}
                   >
-                    <Text style={{ fontSize: 22 }}>🔥</Text>
+                    <Text
+                      style={{
+                        color: "#fff",
+                        fontFamily: fonts.medium,
+                        fontSize: 14,
+                      }}
+                    >
+                      Keep going
+                    </Text>
                   </Pressable>
                 </>
               )}

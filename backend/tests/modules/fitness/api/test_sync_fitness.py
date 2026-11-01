@@ -1,7 +1,7 @@
 """The fitness entities and actions through ``/sync/push`` and ``/sync/pull``."""
 
 import uuid
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 from fastapi.testclient import TestClient
@@ -395,6 +395,95 @@ def test_rest_timer_round_trips_through_its_actions(
 
     assert push(client, h, op("action", "fitness.rest.skip"))[0]["status"] == "applied"
     assert last_rest()["deleted"] is True
+
+
+def _at(op_: dict[str, Any], when: datetime) -> dict[str, Any]:
+    return {**op_, "at": when.isoformat()}
+
+
+def _instant(v: str) -> datetime:
+    return datetime.fromisoformat(v.replace("Z", "+00:00"))
+
+
+def test_queued_ops_apply_as_of_when_the_person_made_them(
+    client: TestClient, db: Session
+) -> None:
+    """A workout logged on a slow or offline link reaches the server minutes
+    later; the start, the tick and the rest it started keep the phone's
+    times, so the pull that follows matches what the phone already shows."""
+    _, h = signed_in(db)
+    ids = exercise_ids(client, h)
+    t0 = utcnow().replace(microsecond=0) - timedelta(minutes=40)
+    t1 = t0 + timedelta(minutes=3)
+    wid, weid, sid = uuid.uuid4(), uuid.uuid4(), uuid.uuid4()
+    res = push(
+        client,
+        h,
+        _at(op("action", "fitness.start_workout", workout_id=str(wid)), t0),
+        _at(
+            op(
+                "upsert",
+                "workout_exercise",
+                weid,
+                workout_id=str(wid),
+                exercise_id=ids["Barbell Row"],
+                position=0,
+            ),
+            t0,
+        ),
+        _at(
+            op(
+                "upsert",
+                "workout_set",
+                sid,
+                workout_exercise_id=str(weid),
+                position=0,
+                reps=8,
+                weight=60,
+            ),
+            t0,
+        ),
+        _at(
+            op(
+                "action",
+                "fitness.toggle_set",
+                workout_id=str(wid),
+                workout_exercise_id=str(weid),
+                set_id=str(sid),
+            ),
+            t1,
+        ),
+        _at(op("action", "fitness.rest.start", sec=90), t1),
+    )
+    assert [r["status"] for r in res] == ["applied"] * 5
+    assert _instant(res[0]["result"]["workout"]["started_at"]) == t0
+    assert _instant(res[3]["result"]["set"]["completed_at"]) == t1
+    assert _instant(res[4]["result"]["rest"]["ends_at"]) == t1 + timedelta(seconds=90)
+    rows = {(c["entity"], c["id"]): c for c in pull_all(client, h)}
+    assert _instant(rows[("workout", str(wid))]["row"]["started_at"]) == t0
+    assert _instant(rows[("workout_set", str(sid))]["row"]["completed_at"]) == t1
+
+
+def test_an_implausible_device_time_falls_back_to_the_servers(
+    client: TestClient, db: Session
+) -> None:
+    _, h = signed_in(db)
+    before = utcnow()
+    ahead = push(
+        client,
+        h,
+        _at(op("action", "fitness.rest.start", sec=60), before + timedelta(hours=2)),
+    )[0]
+    ends = _instant(ahead["result"]["rest"]["ends_at"])
+    assert before + timedelta(seconds=60) <= ends <= utcnow() + timedelta(seconds=60)
+    stale = push(
+        client,
+        h,
+        _at(op("action", "fitness.rest.start", sec=60), before - timedelta(days=45)),
+    )[0]
+    assert _instant(stale["result"]["rest"]["ends_at"]) >= before + timedelta(
+        seconds=60
+    )
 
 
 def test_target_adjustment_is_one_row_per_day_near_today(

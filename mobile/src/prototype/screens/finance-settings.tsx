@@ -32,6 +32,7 @@ import {
 import { go } from "../navigation"
 import { Switch } from "../switch"
 import { useTheme } from "../theme"
+import { TimeInput } from "../time-input"
 import { Button, confirm, Empty, Screen, Sheet } from "../ui"
 import { FinChip } from "./finance-projection"
 export function FinanceDisclaimer({
@@ -297,21 +298,25 @@ export function FinanceSettings() {
             t.fin,
           )}
         </Frame>
-        <SectionHeading>Statement matching</SectionHeading>
-        <Frame style={{ padding: 16, gap: 8 }}>
-          <Copy size={12} muted weight="medium" style={caps}>
-            Remind me when an account hasn't been matched with a statement for
-          </Copy>
-          {chips(
-            [14, 21, 30, 45].map((v) => (
-              <FinChip
-                key={v}
-                label={`${v} days`}
-                active={st.nudgeDays === v}
-                onPress={() => A.updateSettings({ nudgeDays: v })}
+        <SectionHeading>Bill reminders</SectionHeading>
+        <Frame style={{ padding: 16 }}>
+          <Line style={{ gap: 8 }}>
+            <View style={{ flex: 1 }}>
+              <Copy size={14}>Remind me about bills</Copy>
+              <Copy size={12} muted>
+                A notification on this phone every day for the week before a
+                bill is due, and each day it's overdue, until it's paid. Clear
+                the time to turn it off.
+              </Copy>
+            </View>
+            <View style={{ width: 112 }}>
+              <TimeInput
+                label="Bill reminder time"
+                value={st.billReminder}
+                onChange={(billReminder) => A.updateSettings({ billReminder })}
               />
-            )),
-          )}
+            </View>
+          </Line>
         </Frame>
         <SectionHeading>Data</SectionHeading>
         <Frame style={{ paddingHorizontal: 12, paddingVertical: 4 }}>

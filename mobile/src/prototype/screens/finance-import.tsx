@@ -140,8 +140,6 @@ function ImportStart() {
         eligible[0]
       )?.id ||
       "",
-    a = s.accounts.find((a) => a.id === acct),
-    days = a ? C.lastReconciledDays(a) : null,
     samples = A.SAMPLE_FILES.map((f) =>
       liveMode ? { ...f, ...LIVE_SAMPLE_META[f.key] } : f,
     ),
@@ -195,19 +193,6 @@ function ImportStart() {
           ))}
         </Line>
       </ScrollView>
-      {a && (
-        <Copy
-          size={12}
-          style={{
-            color:
-              days !== null && days > s.settings.nudgeDays ? t.warn : t.muted,
-          }}
-        >
-          {a.lastReconciled
-            ? `Last matched ${C.shortDate(a.lastReconciled)} (${days} days ago)`
-            : "Never matched with a statement"}
-        </Copy>
-      )}
       <Copy size={12} muted weight="medium" style={caps}>
         File
       </Copy>

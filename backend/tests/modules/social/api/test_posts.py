@@ -7,7 +7,7 @@ from typing import Any
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
-from app.modules.social.models import Post
+from app.modules.social.models import Comment, Post
 from tests.modules.social.api.conftest import Bus, Trio
 from tests.modules.social.api.helpers import API, code, ok
 
@@ -355,10 +355,12 @@ def test_comments_reply_like_and_delete(client: TestClient, trio: Trio) -> None:
         ok(client.delete(f"{url}/{c1['id']}/like", headers=trio.cy.headers))["likes"]
         == 0
     )
-    # A stranger cannot delete; the post owner can, and replies go with it.
-    r = client.delete(f"{url}/{c1['id']}", headers=trio.cy.headers)
-    assert r.status_code == 403 and code(r) == "comment_forbidden"
-    ok(client.delete(f"{url}/{c1['id']}", headers=trio.ana.headers), 204)
+    # Only the author can delete: not a stranger, not even the post's owner.
+    for other in (trio.cy, trio.ana):
+        r = client.delete(f"{url}/{c1['id']}", headers=other.headers)
+        assert r.status_code == 403 and code(r) == "comment_forbidden"
+    # The author can, and the replies under it go with it.
+    ok(client.delete(f"{url}/{c1['id']}", headers=trio.ben.headers), 204)
     assert ok(client.get(url, headers=trio.cy.headers))["count"] == 0
 
 
@@ -417,7 +419,8 @@ def test_comment_activity_and_mentions(
     # Mentioning yourself records nothing.
     assert ok(client.get(f"{API}/activity", headers=trio.ben.headers))["count"] == 0
     assert bus.types(trio.cy) == ["social.activity"]
-    assert bus.types(trio.ana) == ["social.activity"]
+    # The post's author also gets the live "a comment arrived" nudge.
+    assert sorted(bus.types(trio.ana)) == ["social.activity", "social.comment"]
 
 
 def test_caption_mentions_on_create_and_edit(client: TestClient, trio: Trio) -> None:
@@ -458,3 +461,87 @@ def test_delete_and_restore_tell_followers(
         "action": "restored",
     } in bus.of(trio.ben, "social.post")
     assert not bus.of(trio.cy, "social.post")
+
+
+def test_comment_delete_undo_brings_back_its_replies(
+    client: TestClient, trio: Trio, db: Session, bus: Bus
+) -> None:
+    p = _post(client, trio.ana.headers)
+    url = f"{API}/posts/{p['id']}/comments"
+    c1 = ok(client.post(url, headers=trio.ben.headers, json={"text": "Monster"}))
+    c2 = ok(
+        client.post(
+            url,
+            headers=trio.ana.headers,
+            json={"text": "thanks", "reply_to_id": c1["id"]},
+        )
+    )
+    bus.clear()
+    ok(client.delete(f"{url}/{c1['id']}", headers=trio.ben.headers), 204)
+    gone = {"post_id": p["id"], "comment_id": c1["id"], "action": "deleted"}
+    # The post's author and their followers update at once.
+    assert gone in bus.of(trio.ana, "social.comment")
+    assert gone in bus.of(trio.ben, "social.comment")
+    assert ok(client.get(url, headers=trio.cy.headers))["count"] == 0
+    assert not [
+        a
+        for a in ok(client.get(f"{API}/activity", headers=trio.ana.headers))["data"]
+        if a["kind"] == "comment"
+    ]
+    # Nobody but the author can undo it.
+    r = client.post(f"{url}/{c1['id']}/restore", headers=trio.ana.headers)
+    assert r.status_code == 403 and code(r) == "comment_forbidden"
+    bus.clear()
+    back = ok(client.post(f"{url}/{c1['id']}/restore", headers=trio.ben.headers))
+    assert [c["id"] for c in back["data"]] == [c1["id"], c2["id"]]
+    assert [c["id"] for c in ok(client.get(url, headers=trio.cy.headers))["data"]] == [
+        c1["id"],
+        c2["id"],
+    ]
+    assert {
+        "post_id": p["id"],
+        "comment_id": c1["id"],
+        "action": "restored",
+    } in bus.of(trio.ana, "social.comment")
+    # Its notification comes back with it.
+    assert [
+        a["kind"]
+        for a in ok(client.get(f"{API}/activity", headers=trio.ana.headers))["data"]
+        if a["kind"] == "comment"
+    ] == ["comment"]
+    # Restoring a live comment is harmless; after the window it is refused.
+    ok(client.post(f"{url}/{c1['id']}/restore", headers=trio.ben.headers))
+    ok(client.delete(f"{url}/{c1['id']}", headers=trio.ben.headers), 204)
+    row = db.get(Comment, uuid.UUID(c1["id"]))
+    assert row is not None
+    db.refresh(row)
+    assert row.deleted_at is not None
+    row.deleted_at = row.deleted_at - timedelta(minutes=5)
+    db.add(row)
+    db.commit()
+    r = client.post(f"{url}/{c1['id']}/restore", headers=trio.ben.headers)
+    assert r.status_code == 409 and code(r) == "undo_expired"
+
+
+def test_comment_reply_deleted_alone_restores_alone(
+    client: TestClient, trio: Trio
+) -> None:
+    """Undoing a reply's delete does not resurrect anything else, and a reply
+    whose parent has gone since cannot come back."""
+    p = _post(client, trio.ana.headers)
+    url = f"{API}/posts/{p['id']}/comments"
+    c1 = ok(client.post(url, headers=trio.ben.headers, json={"text": "Monster"}))
+    c2 = ok(
+        client.post(
+            url,
+            headers=trio.cy.headers,
+            json={"text": "agreed", "reply_to_id": c1["id"]},
+        )
+    )
+    ok(client.delete(f"{url}/{c2['id']}", headers=trio.cy.headers), 204)
+    back = ok(client.post(f"{url}/{c2['id']}/restore", headers=trio.cy.headers))
+    assert [c["id"] for c in back["data"]] == [c2["id"]]
+    ok(client.delete(f"{url}/{c2['id']}", headers=trio.cy.headers), 204)
+    ok(client.delete(f"{url}/{c1['id']}", headers=trio.ben.headers), 204)
+    r = client.post(f"{url}/{c2['id']}/restore", headers=trio.cy.headers)
+    assert r.status_code == 409 and code(r) == "undo_expired"

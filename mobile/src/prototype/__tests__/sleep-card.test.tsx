@@ -63,13 +63,11 @@ const fromWeek = async (days: readonly string[]) =>
     const i = [6, 5, 4, 3, 2, 1, 0].findIndex((n) => calDay(-n) === d)
     return i < 0 ? null : (week[i] ?? null)
   })
-// The clock is pinned mid-month, as on most days: "this month" then spans
-// more than this week. On the 1st the month is one day long and its average
-// is today's figure, which the expectations below don't describe. Only Date
-// is faked, so the real timers still drive findBy and waitFor.
-const pinMidMonth = () =>
+// Mid-month, so "this month" has more days than the week shown; on the 1st
+// the month's average is today's and the figures can't be told apart. Only
+// Date is faked: the screens' timers and promises run as usual.
+const pinDay = () => {
   jest.useFakeTimers({
-    now: new Date(2026, 9, 15, 12),
     doNotFake: [
       "hrtime",
       "nextTick",
@@ -87,8 +85,10 @@ const pinMidMonth = () =>
       "clearTimeout",
     ],
   })
+  jest.setSystemTime(new Date(2026, 9, 22, 12))
+}
 beforeEach(() => {
-  pinMidMonth()
+  pinDay()
   mockAsked = async () => true
   mockReadSleep.mockReset()
   mockReadSleep.mockImplementation(fromWeek)

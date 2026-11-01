@@ -29,6 +29,12 @@ module.exports = (config) => ({
     fin: tone("fin"),
     life: tone("life"),
     warn: tone("warn"),
+    foc: tone("foc"),
+    scr: tone("scr"),
+    // Fern's own greens: the orb and the Fern buttons only (docs/brand/fern.md).
+    moss: tone("moss"),
+    frond: tone("frond"),
+    sprout: tone("sprout"),
   },
   entitlements: {
     // A keychain group under the team's own prefix, which a free (personal)

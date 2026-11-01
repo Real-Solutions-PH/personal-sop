@@ -7,9 +7,12 @@ import { BACKEND_DEFAULTED } from "../lib/backend-env"
 import { CiStack } from "../lib/ci-stack"
 import { RATE_LIMITS } from "../lib/cloudflare"
 import {
+  applySizingOverrides,
+  connectionBudget,
   IMAGES,
   LOOKS_LIKE_ARN_SUFFIX,
   loadConfig,
+  maxConnections,
   PROFILES,
   THIRD_PARTY_SECRET,
   TUNNEL_TOKEN_SECRET,
@@ -33,6 +36,7 @@ function synth(extra: Record<string, unknown> = {}) {
 
 const { ci, prod } = synth()
 const production = synth({ "unfurl:profile": "production" }).prod
+const lean = synth({ "unfurl:profile": "lean" }).prod
 
 type Container = {
   Name: string
@@ -351,9 +355,10 @@ describe("profiles", () => {
     Object.values(t.findResources("AWS::ECS::Service")).find(
       (s) => s.Properties.ServiceName === name,
     )?.Properties.DesiredCount
+  const apiCommand = (t: Template) => container("unfurl-api", "api", t).Command
 
-  test("lean is the default in cdk.json", () => {
-    expect(cdkJson.context["unfurl:profile"]).toBe("lean")
+  test("production (100 people at once) is what cdk.json deploys", () => {
+    expect(cdkJson.context["unfurl:profile"]).toBe("production")
   })
 
   test("lean (up to 5 users): every task at Fargate's smallest size, one uvicorn worker", () => {
@@ -363,50 +368,111 @@ describe("profiles", () => {
       "unfurl-gotrue",
       "unfurl-tunnel",
     ]) {
-      prod.hasResourceProperties("AWS::ECS::TaskDefinition", {
+      lean.hasResourceProperties("AWS::ECS::TaskDefinition", {
         Family: family,
         Cpu: "256",
         Memory: "512",
       })
     }
-    expect(container("unfurl-api", "api").Command).toEqual([
-      "fastapi",
-      "run",
-      "--workers",
-      "1",
-      "--port",
-      "8000",
-      "app/main.py",
-    ])
+    expect(apiCommand(lean)?.slice(0, 2)).toEqual(["uvicorn", "app.main:app"])
+    expect(apiCommand(lean)).toContain("--workers")
+    const c = apiCommand(lean) ?? []
+    expect(c[c.indexOf("--workers") + 1]).toBe("1")
+    // One task, nothing to scale between.
+    expect(
+      Object.keys(
+        lean.findResources("AWS::ApplicationAutoScaling::ScalableTarget"),
+      ),
+    ).toHaveLength(0)
   })
 
-  test("production: the API runs two uvicorn workers in 1 GB", () => {
+  test("production: the API runs two uvicorn workers in 1 vCPU / 2 GB", () => {
     production.hasResourceProperties("AWS::ECS::TaskDefinition", {
       Family: "unfurl-api",
-      Cpu: "512",
-      Memory: "1024",
+      Cpu: "1024",
+      Memory: "2048",
     })
-    const [api] = Object.values(
-      production.findResources("AWS::ECS::TaskDefinition", {
-        Properties: { Family: "unfurl-api" },
-      }),
+    const c = apiCommand(production) ?? []
+    expect(c[c.indexOf("--workers") + 1]).toBe("2")
+  })
+
+  test("the API keeps idle connections longer than the tunnel does (300 s)", () => {
+    const c = apiCommand(production) ?? []
+    expect(Number(c[c.indexOf("--timeout-keep-alive") + 1])).toBeGreaterThan(
+      300,
     )
-    expect(api.Properties.ContainerDefinitions[0].Command.slice(2, 4)).toEqual([
-      "--workers",
-      "2",
-    ])
+    expect(c).toContain("--proxy-headers")
+  })
+
+  test("production: the API scales from 2 to 4 tasks on CPU", () => {
+    production.hasResourceProperties(
+      "AWS::ApplicationAutoScaling::ScalableTarget",
+      {
+        MinCapacity: 2,
+        MaxCapacity: 4,
+        ScalableDimension: "ecs:service:DesiredCount",
+      },
+    )
+    production.hasResourceProperties(
+      "AWS::ApplicationAutoScaling::ScalingPolicy",
+      {
+        PolicyType: "TargetTrackingScaling",
+        TargetTrackingScalingPolicyConfiguration: Match.objectLike({
+          TargetValue: 60,
+          PredefinedMetricSpecification: {
+            PredefinedMetricType: "ECSServiceAverageCPUUtilization",
+          },
+        }),
+      },
+    )
+  })
+
+  test("GoTrue's connection pool is capped (unset, it has no ceiling)", () => {
+    expect(
+      Number(
+        envValue(
+          container("unfurl-gotrue", "gotrue"),
+          "GOTRUE_DB_MAX_POOL_SIZE",
+        ),
+      ),
+    ).toBe(10)
+  })
+
+  test("every pool at full scale-out fits the database's connections", () => {
+    for (const sizing of Object.values(PROFILES)) {
+      expect(connectionBudget(sizing).total).toBeLessThanOrEqual(
+        maxConnections(sizing.database),
+      )
+    }
+    // 4 API tasks x 2 workers x 32, the worker's 32, GoTrue 2 x 10, 10 spare.
+    expect(connectionBudget(PROFILES.production).total).toBe(318)
+    expect(maxConnections("t4g.micro")).toBe(101)
+    expect(maxConnections("t4g.medium")).toBe(405)
+  })
+
+  test("a size whose pools would overrun the database is refused at synth", () => {
+    expect(() =>
+      applySizingOverrides(PROFILES.production, { database: "t4g.small" }),
+    ).toThrow(/exceed db.t4g.small/)
+    expect(() =>
+      applySizingOverrides(PROFILES.production, { database: "t4g.nano" }),
+    ).toThrow(/DB_MEMORY_GIB/)
+    expect(() =>
+      applySizingOverrides(PROFILES.production, { api: { maxCount: 1 } }),
+    ).toThrow(/maxCount must be at least/)
   })
 
   test("scaling is configuration: overrides change counts, sizes and the DB class", () => {
     const scaled = synth({
+      "unfurl:profile": "lean",
       "unfurl:sizingOverrides": {
-        api: { count: 3, cpu: 512, memoryMiB: 1024, workers: 2 },
+        api: { count: 2, cpu: 512, memoryMiB: 1024, workers: 1, maxCount: 2 },
         database: "t4g.small",
       },
     }).prod
     scaled.hasResourceProperties("AWS::ECS::Service", {
       ServiceName: "unfurl-api",
-      DesiredCount: 3,
+      DesiredCount: 2,
     })
     scaled.hasResourceProperties("AWS::ECS::TaskDefinition", {
       Family: "unfurl-api",
@@ -426,6 +492,7 @@ describe("profiles", () => {
 
   test("overrides from the command line arrive as JSON text and work too", () => {
     const cli = synth({
+      "unfurl:profile": "lean",
       "unfurl:sizingOverrides": '{"gotrue":{"count":2}}',
     }).prod
     cli.hasResourceProperties("AWS::ECS::Service", {
@@ -456,23 +523,23 @@ describe("profiles", () => {
       "unfurl-worker",
       "unfurl-tunnel",
     ]) {
-      expect(service(prod, name)).toBe(1)
+      expect(service(lean, name)).toBe(1)
     }
-    prod.hasResourceProperties("AWS::RDS::DBInstance", {
+    lean.hasResourceProperties("AWS::RDS::DBInstance", {
       DBInstanceClass: "db.t4g.micro",
     })
-    prod.hasResourceProperties("AWS::ElastiCache::ReplicationGroup", {
+    lean.hasResourceProperties("AWS::ElastiCache::ReplicationGroup", {
       CacheNodeType: "cache.t4g.micro",
     })
   })
 
-  test("production: two API, GoTrue and tunnel tasks, db.t4g.small", () => {
+  test("production: two API, GoTrue and tunnel tasks, db.t4g.medium", () => {
     expect(service(production, "unfurl-api")).toBe(2)
     expect(service(production, "unfurl-gotrue")).toBe(2)
     expect(service(production, "unfurl-tunnel")).toBe(2)
     expect(service(production, "unfurl-worker")).toBe(1)
     production.hasResourceProperties("AWS::RDS::DBInstance", {
-      DBInstanceClass: "db.t4g.small",
+      DBInstanceClass: "db.t4g.medium",
     })
   })
 
@@ -480,6 +547,7 @@ describe("profiles", () => {
     const allowed: Record<number, number[]> = {
       256: [512, 1024, 2048],
       512: [1024, 2048, 3072, 4096],
+      1024: [2048, 3072, 4096, 5120, 6144, 7168, 8192],
     }
     for (const sizing of Object.values(PROFILES)) {
       for (const t of [

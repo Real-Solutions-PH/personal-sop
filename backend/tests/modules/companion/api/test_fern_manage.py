@@ -41,7 +41,7 @@ def test_moving_every_scheduled_item_off_an_account_and_undo_moves_them_back(
 
     api: Any = user(client, db)
     api.assign("chat")
-    black = api.account("Maya Black", "credit")
+    black = api.account("Maya Black", "ewallet")
     savings = api.account("Maya Savings", "bank")
     planned(api, "Land payment", black, 3_600_000, 25)
     planned(api, "Gym", black, 100_000, 15)
@@ -154,7 +154,15 @@ def test_removing_a_transaction_waits_for_confirm_and_undo_brings_it_back(
     assert [r.id for r in live(rows_of(api, FinRecord))] != []
 
 
-def test_edit_account_makes_it_a_credit_card_and_undo_restores(
+def test_fern_cannot_make_a_credit_card() -> None:
+    from app.modules.capture.agent import AccountArgs, AccountEditArgs
+
+    for args in (AccountArgs, AccountEditArgs):
+        allowed = args.model_json_schema()["properties"]["type"]
+        assert "credit" not in str(allowed), args.__name__
+
+
+def test_edit_account_changes_its_type_and_undo_restores(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     from app.modules.finance.models import Account
@@ -165,13 +173,13 @@ def test_edit_account_makes_it_a_credit_card_and_undo_restores(
     step = setup_step(
         api,
         client,
-        "maya black is a credit card with a 50k limit",
+        "maya black is an e-wallet",
         monkeypatch,
-        act("edit_account", account="Maya Black", type="credit", credit_limit=50000),
+        act("edit_account", account="Maya Black", type="ewallet"),
     )
     assert step["ok"] and step["state"] == "saved"
     acc = next(a for a in live(rows_of(api, Account)) if a.name == "Maya Black")
-    assert (acc.type, acc.limit_minor) == ("credit", 5_000_000)
+    assert (acc.type, acc.limit_minor) == ("ewallet", None)
 
     undo(api, step)
     acc = next(a for a in live(rows_of(api, Account)) if a.name == "Maya Black")

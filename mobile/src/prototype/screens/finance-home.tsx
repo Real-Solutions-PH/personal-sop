@@ -204,11 +204,6 @@ export function FinanceHome({
         .filter((a) => a.type === "credit")
         .reduce((v, a) => v + Math.min(0, bal[a.id]), 0),
     ),
-    stale = accounts.filter(
-      (a) =>
-        (a.type === "bank" || a.type === "ewallet") &&
-        (N.lastReconciledDays(a) ?? 999) > s.settings.nudgeDays,
-    ),
     pending = s.records.filter((r) => r.status === "pending"),
     report = reportData(s, "this")
   const shortcuts = [
@@ -285,7 +280,11 @@ export function FinanceHome({
               >
                 {[
                   { label: "Available", value: money(available) },
-                  { label: "Owed on cards", value: money(owed) },
+                  // Credit cards can no longer be added; an older card still
+                  // owing something keeps its line.
+                  ...(owed > 0
+                    ? [{ label: "Owed on cards", value: money(owed) }]
+                    : []),
                 ].map((m, i) => (
                   <View
                     key={m.label}
@@ -345,33 +344,8 @@ export function FinanceHome({
               </Tap>
             ))}
           </Line>
-          {(stale.length > 0 || pending.length > 0) && (
+          {pending.length > 0 && (
             <View style={{ marginTop: 12, gap: 8 }}>
-              {stale.slice(0, 2).map((a) => (
-                <Tap
-                  key={a.id}
-                  onPress={() => go(`/finance/import?account=${a.id}`)}
-                  style={{
-                    paddingHorizontal: 12,
-                    paddingVertical: 10,
-                    borderRadius: 16,
-                    backgroundColor: `${t.warn}1a`,
-                  }}
-                >
-                  <Line>
-                    <History size={16} color={t.warn} />
-                    <Copy size={14} style={{ flex: 1 }}>
-                      {a.name} not matched with a statement
-                      {a.lastReconciled
-                        ? ` for ${N.lastReconciledDays(a)} days`
-                        : " yet"}
-                    </Copy>
-                    <Copy size={14} weight="semibold" style={{ color: t.warn }}>
-                      Import
-                    </Copy>
-                  </Line>
-                </Tap>
-              ))}
               {pending.length > 0 && (
                 <Frame style={{ padding: 12 }}>
                   <Line style={{ gap: 8, marginBottom: 4 }}>

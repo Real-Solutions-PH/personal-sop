@@ -329,6 +329,7 @@ export type app__modules__finance__schema__SettingsPublic = {
     ai_scope: string;
     disclaimer_ack: boolean;
     nudge_days: number;
+    bill_reminder: (string | null);
     proj_excluded_planned: Array<(string)>;
     setup_done: boolean;
     version: number;
@@ -494,6 +495,7 @@ export type app__modules__social__schema__MessagePublic = {
     reactions: {
         [key: string]: (string);
     };
+    deleted?: boolean;
 };
 
 export type app__modules__social__schema__MessagesPublic = {
@@ -3668,6 +3670,7 @@ export type SettingsFields = {
     ai_scope?: ('aggregates' | 'records' | null);
     disclaimer_ack?: (boolean | null);
     nudge_days?: (number | null);
+    bill_reminder?: (string | null);
     proj_excluded_planned?: (Array<(string)> | null);
     setup_done?: (boolean | null);
 };
@@ -3961,6 +3964,7 @@ export type SyncOp = {
         [key: string]: unknown;
     };
     base_version?: (number | null);
+    at?: (string | null);
 };
 
 export type kind16 = 'upsert' | 'delete' | 'action';
@@ -6831,6 +6835,13 @@ export type SocialDeleteCommentData = {
 
 export type SocialDeleteCommentResponse = (void);
 
+export type SocialRestoreCommentData = {
+    commentId: string;
+    postId: string;
+};
+
+export type SocialRestoreCommentResponse = (CommentsPublic);
+
 export type SocialReadTrayResponse = (StoryTray);
 
 export type SocialCreateStoryData = {
@@ -6988,6 +6999,13 @@ export type SocialUnsendData = {
 };
 
 export type SocialUnsendResponse = (void);
+
+export type SocialRestoreMessageData = {
+    chatId: string;
+    messageId: string;
+};
+
+export type SocialRestoreMessageResponse = (app__modules__social__schema__MessagePublic);
 
 export type SocialReactData = {
     chatId: string;

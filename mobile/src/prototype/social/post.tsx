@@ -1,4 +1,4 @@
-import { ChevronLeft, Heart, X } from "lucide-react-native"
+import { ChevronLeft, Sprout, X } from "lucide-react-native"
 import { useEffect, useRef, useState } from "react"
 import type { TextInputInstance } from "react-native"
 import {
@@ -15,12 +15,13 @@ import Animated, { FadeIn, FadeInDown } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { back } from "../navigation"
 import { fonts, useTheme } from "../theme"
-import { confirm, Empty } from "../ui"
-import { Avatar, Bounce, haptic, LikeHeart, Name, PersonAvatar } from "./kit"
+import { confirm, Empty, undo } from "../ui"
+import { Avatar, Bounce, CheerSprout, haptic, Name, PersonAvatar } from "./kit"
 import { PostCard } from "./post-card"
 import {
   addComment,
   type Comment,
+  commentThread,
   deleteComment,
   ME,
   openPostLive,
@@ -86,7 +87,7 @@ function CommentRow({
       onLongPress={() => {
         if (c.by !== ME) return
         haptic.pop()
-        confirm("Delete comment?", c.text, () => deleteComment(postId, c.id))
+        remove(postId, c)
       }}
       accessibilityHint={c.by === ME ? "Long press to delete" : undefined}
       style={{
@@ -121,7 +122,7 @@ function CommentRow({
                 fontFamily: fonts.semibold,
               }}
             >
-              {c.likes} like{c.likes > 1 ? "s" : ""}
+              {c.likes} cheer{c.likes > 1 ? "s" : ""}
             </Text>
           )}
           <Text
@@ -131,23 +132,57 @@ function CommentRow({
           >
             Reply
           </Text>
+          {c.by === ME && (
+            <Text
+              accessibilityRole="button"
+              accessibilityLabel="Delete comment"
+              onPress={() => remove(postId, c)}
+              style={{
+                color: t.muted,
+                fontSize: 12,
+                fontFamily: fonts.semibold,
+              }}
+            >
+              Delete
+            </Text>
+          )}
         </View>
       </View>
       <Bounce
-        label={c.liked ? "Unlike comment" : "Like comment"}
+        label={c.liked ? "Take back your cheer" : "Cheer comment"}
         onPress={() => {
           haptic.tap()
           toggleCommentLike(postId, c.id)
         }}
         style={{ minWidth: 32 }}
       >
-        <LikeHeart liked={c.liked} size={14} color={t.muted} />
+        <CheerSprout liked={c.liked} size={14} color={t.muted} />
       </Bounce>
     </Pressable>
   )
 }
 
-const QUICK = ["❤️", "🙌", "🔥", "👏", "💪", "😍", "😮", "😂"]
+const QUICK = ["🌱", "🙌", "🔥", "👏", "💪", "😍", "😮", "😂"]
+
+/** Delete my comment (and its replies) after a confirm, with an Undo. */
+function remove(postId: string, c: Comment) {
+  const replies =
+    commentThread(
+      socialStore.get().posts.find((p) => p.id === postId)?.comments ?? [],
+      c.id,
+    ).size - 1
+  confirm(
+    "Delete comment?",
+    replies
+      ? `Its ${replies === 1 ? "reply goes" : `${replies} replies go`} with it.`
+      : "It will be removed for everyone.",
+    () => {
+      const restore = deleteComment(postId, c.id)
+      undo("Comment deleted", restore)
+    },
+    "Delete",
+  )
+}
 
 export function PostDetail({ id }: { id: string }) {
   const t = useTheme()
@@ -356,19 +391,21 @@ export function PostDetail({ id }: { id: string }) {
                 accessibilityRole="button"
                 onPress={() => submit()}
                 style={{
-                  backgroundColor: t.tsk,
+                  backgroundColor: t.primary,
                   borderRadius: 16,
                   paddingHorizontal: 14,
                   height: 32,
                   justifyContent: "center",
                 }}
               >
-                <Text style={{ color: "#fff", fontFamily: fonts.semibold }}>
+                <Text
+                  style={{ color: t.onPrimary, fontFamily: fonts.semibold }}
+                >
                   Post
                 </Text>
               </Pressable>
             ) : (
-              <Heart size={18} color={t.muted} style={{ marginRight: 8 }} />
+              <Sprout size={18} color={t.muted} style={{ marginRight: 8 }} />
             )}
           </View>
         </View>
