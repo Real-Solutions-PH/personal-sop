@@ -21,7 +21,12 @@ def create_jobs_app() -> procrastinate.App:
             "user": settings.POSTGRES_USER,
             "password": settings.POSTGRES_PASSWORD,
             "dbname": settings.POSTGRES_DB,
-        }
+            "application_name": "unfurl-jobs",
+        },
+        # One connection kept open (psycopg_pool's default keeps four), so
+        # every API worker's idle queue pool costs the database one slot.
+        min_size=1,
+        max_size=settings.JOBS_DB_POOL_MAX,
     )
     return procrastinate.App(
         connector=connector,

@@ -17,6 +17,8 @@ NOTE_TTL = timedelta(hours=24)
 # How long after a post delete the author may still undo it. The device shows
 # a few seconds of toast; the server allows for a slow round trip on top.
 POST_UNDO_WINDOW = timedelta(seconds=60)
+# The same grace for a deleted comment or chat message.
+UNDO_WINDOW = POST_UNDO_WINDOW
 # The for-you candidate window: the tenant's posts from the last two weeks.
 FOR_YOU_WINDOW = timedelta(days=14)
 FOR_YOU_CANDIDATES = 500

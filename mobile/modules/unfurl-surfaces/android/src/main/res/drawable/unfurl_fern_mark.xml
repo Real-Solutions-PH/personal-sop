@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The fiddlehead (FERN_PATHS in src/prototype/companion/brand.tsx), white,
+     at 72% of the orb: the 24-unit mark is drawn in a 33-unit box. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="33dp" android:height="33dp" android:viewportWidth="33.33" android:viewportHeight="33.33">
+  <group android:translateX="4.67" android:translateY="4.67">
+    <path android:pathData="M7.5 21.5 C7.5 16.5 8.6 12.6 11.6 10.1 C14.2 7.9 18.7 8.4 18.9 12.1 C19.1 15 16 16.4 14 14.9 C12.5 13.8 12.9 11.4 14.8 11.2 C16.1 11.1 16.9 12.3 16.2 13.2" android:strokeColor="#FFFFFFFF" android:strokeWidth="2.2" android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000" />
+    <path android:pathData="M8 18 C6.3 17 4.6 17.2 3.6 18.5" android:strokeColor="#FFFFFFFF" android:strokeWidth="2.2" android:strokeLineCap="round" android:fillColor="#00000000" />
+    <path android:pathData="M8.9 14.4 C7.5 13.2 5.8 13 4.7 13.9" android:strokeColor="#FFFFFFFF" android:strokeWidth="2.2" android:strokeLineCap="round" android:fillColor="#00000000" />
+  </group>
+</vector>

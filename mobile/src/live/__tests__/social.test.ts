@@ -6,6 +6,7 @@ import {
   cheer,
   connectSocial,
   createPost,
+  deleteComment,
   deletePost,
   ME,
   openChatLive,
@@ -718,7 +719,7 @@ test("undo right after delete restores only once the delete has landed", async (
   expect(socialStore.get().posts.map((p) => p.id)).toEqual([POST])
 })
 
-test("a read in flight when I unsend a message does not bring it back", async () => {
+test("a read in flight when I delete a message does not bring it back", async () => {
   const msg = {
     id: "m1",
     chat_id: CHAT,
@@ -762,10 +763,13 @@ test("a read in flight when I unsend a message does not bring it back", async ()
   answer({ data: [msg], count: 1 })
   await opened
   await settle()
-  expect(socialStore.get().chats[0].messages).toEqual([])
+  // It stays as a tombstone, with nothing of the message left.
+  expect(socialStore.get().chats[0].messages).toEqual([
+    { id: "m1", by: ME, at: expect.any(Number), reactions: {}, deleted: true },
+  ])
 })
 
-test("a chat list read in flight when I unsend does not bring the message back", async () => {
+test("a chat list read in flight when I delete does not bring the message back", async () => {
   const msg = {
     id: "m1",
     chat_id: CHAT,
@@ -829,5 +833,181 @@ test("a chat list read in flight when I unsend does not bring the message back",
   })
   await refreshing
   await settle()
-  expect(socialStore.get().chats[0].messages).toEqual([])
+  // It stays as a tombstone, with nothing of the message left.
+  expect(socialStore.get().chats[0].messages).toEqual([
+    { id: "m1", by: ME, at: expect.any(Number), reactions: {}, deleted: true },
+  ])
+})
+
+const oneChat = () =>
+  socialStore.set((s) => ({
+    ...s,
+    chats: [
+      {
+        id: CHAT,
+        members: [ANA],
+        messages: [
+          { id: "m1", by: ME, at: 0, text: "Oops typo", reactions: {} },
+        ],
+        muted: false,
+        pinned: false,
+        readAt: 0,
+      },
+    ],
+  }))
+
+test("deleting a message leaves a tombstone, and Undo restores it after the delete lands", async () => {
+  oneChat()
+  let land: (v: unknown) => void = () => {}
+  const { http, calls } = fakeHttp({
+    [`DELETE /social/chats/${CHAT}/messages/m1`]: () =>
+      new Promise((resolve) => {
+        land = resolve
+      }),
+    [`POST /social/chats/${CHAT}/messages/m1/restore`]: () => ({
+      id: "m1",
+      chat_id: CHAT,
+      sender_id: MEID,
+      at: "2026-10-19T08:00:00Z",
+      text: "Oops typo",
+      media: null,
+      post_id: null,
+      story_id: null,
+      reply_to_id: null,
+      system: false,
+      reactions: {},
+      deleted: false,
+    }),
+  })
+  connectSocial(createSocialLive({ http, userId: MEID }))
+  const restore = unsend(CHAT, "m1")
+  expect(socialStore.get().chats[0].messages).toEqual([
+    { id: "m1", by: ME, at: 0, reactions: {}, deleted: true },
+  ])
+  restore()
+  // Shown back at once, but the restore waits for the delete to land, or
+  // the delete would arrive second and win.
+  expect(socialStore.get().chats[0].messages[0].text).toBe("Oops typo")
+  await settle()
+  expect(calls.map((c) => c.method)).toEqual(["DELETE"])
+  land(undefined)
+  await settle()
+  expect(calls.map((c) => c.method)).toEqual(["DELETE", "POST"])
+  const [m] = socialStore.get().chats[0].messages
+  expect(m.deleted).toBeFalsy()
+  expect(m.text).toBe("Oops typo")
+})
+
+test("someone else deleting a message turns it into a tombstone live", () => {
+  oneChat()
+  const { http } = fakeHttp({})
+  const live = createSocialLive({ http, userId: MEID })
+  connectSocial(live)
+  live.handleEvent({
+    type: "chat.message",
+    data: { chat_id: CHAT, message_id: "m1", action: "unsent" },
+  } as never)
+  expect(socialStore.get().chats[0].messages).toEqual([
+    { id: "m1", by: ME, at: 0, reactions: {}, deleted: true },
+  ])
+})
+
+test("a comment deleted elsewhere leaves the open post at once", () => {
+  socialStore.set((s) => ({
+    ...s,
+    posts: [
+      {
+        id: POST,
+        by: ANA,
+        at: 0,
+        caption: "",
+        media: [],
+        likes: 0,
+        liked: false,
+        saved: false,
+        likedBy: [],
+        comments: [
+          { id: "c1", by: ANA, text: "a", at: 1, likes: 0, liked: false },
+          {
+            id: "c2",
+            by: ME,
+            text: "b",
+            at: 2,
+            likes: 0,
+            liked: false,
+            replyTo: "c1",
+          },
+          { id: "c3", by: ME, text: "c", at: 3, likes: 0, liked: false },
+        ],
+      } as never,
+    ],
+  }))
+  const { http } = fakeHttp({})
+  const live = createSocialLive({ http, userId: MEID })
+  connectSocial(live)
+  live.handleEvent({
+    type: "social.comment",
+    data: { post_id: POST, comment_id: "c1", action: "deleted" },
+  } as never)
+  expect(socialStore.get().posts[0].comments.map((c) => c.id)).toEqual(["c3"])
+})
+
+test("Undo on a comment delete waits for the delete, then restores the thread", async () => {
+  socialStore.set((s) => ({
+    ...s,
+    posts: [
+      {
+        id: POST,
+        by: ANA,
+        at: 0,
+        caption: "",
+        media: [],
+        likes: 0,
+        liked: false,
+        saved: false,
+        likedBy: [],
+        comments: [
+          { id: "c1", by: ME, text: "mine", at: 1, likes: 0, liked: false },
+        ],
+      } as never,
+    ],
+  }))
+  let land: (v: unknown) => void = () => {}
+  const { http, calls } = fakeHttp({
+    [`DELETE /social/posts/${POST}/comments/c1`]: () =>
+      new Promise((resolve) => {
+        land = resolve
+      }),
+    [`POST /social/posts/${POST}/comments/c1/restore`]: () => ({
+      data: [
+        {
+          id: "c1",
+          post_id: POST,
+          author: brief(MEID, "Me", "me"),
+          text: "mine",
+          created_at: "2026-10-19T08:00:00Z",
+          likes: 0,
+          liked: false,
+          reply_to_id: null,
+        },
+      ],
+      count: 1,
+    }),
+  })
+  connectSocial(createSocialLive({ http, userId: MEID }))
+  const restore = deleteComment(POST, "c1")
+  expect(socialStore.get().posts[0].comments).toEqual([])
+  restore()
+  expect(socialStore.get().posts[0].comments.map((c) => c.id)).toEqual(["c1"])
+  await settle()
+  expect(calls.map((c) => c.method)).toEqual(["DELETE"])
+  land(undefined)
+  await settle()
+  expect(calls.map((c) => `${c.method} ${c.path}`)).toEqual([
+    `DELETE /social/posts/${POST}/comments/c1`,
+    `POST /social/posts/${POST}/comments/c1/restore`,
+  ])
+  expect(socialStore.get().posts[0].comments.map((c) => c.text)).toEqual([
+    "mine",
+  ])
 })

@@ -2,6 +2,7 @@
 unsend, read state, mute/pin/hide, typing, and the push fallback."""
 
 import uuid
+from datetime import timedelta
 from typing import Any
 
 from fastapi.testclient import TestClient
@@ -9,7 +10,7 @@ from sqlmodel import Session, col, func, select
 
 from app.modules.profile.models import PushDevice
 from app.modules.social import services
-from app.modules.social.models import Chat
+from app.modules.social.models import Chat, ChatMessage
 from tests.modules.social.api.conftest import Bus, Person, Pushes, Trio
 from tests.modules.social.api.helpers import API, code, ok
 
@@ -229,14 +230,61 @@ def test_unsend_is_sender_only(client: TestClient, trio: Trio, bus: Bus) -> None
         ),
         204,
     )
-    assert (
-        ok(client.get(f"{API}/chats/{cid}/messages", headers=trio.ben.headers))["count"]
-        == 0
-    )
+    # The thread keeps a tombstone with nothing of the message left.
+    page = ok(client.get(f"{API}/chats/{cid}/messages", headers=trio.ben.headers))
+    assert page["count"] == 1
+    (tomb,) = page["data"]
+    assert tomb["id"] == m["id"] and tomb["deleted"] is True
+    assert (tomb["text"], tomb["media"], tomb["reactions"]) == (None, None, {})
     assert bus.of(trio.ben, "chat.message") == [
         {"chat_id": cid, "message_id": m["id"], "action": "unsent"}
     ]
     assert bus.of(trio.cy) == []
+    # Deleting again is harmless and tells nobody twice.
+    bus.clear()
+    ok(
+        client.delete(
+            f"{API}/chats/{cid}/messages/{m['id']}", headers=trio.ana.headers
+        ),
+        204,
+    )
+    assert bus.of(trio.ben) == []
+    # A deleted message cannot be reacted to or replied to.
+    r = client.put(
+        f"{API}/chats/{cid}/messages/{m['id']}/reaction",
+        headers=trio.ben.headers,
+        json={"emoji": "🔥"},
+    )
+    assert r.status_code == 404
+
+
+def test_deleted_message_undo(
+    client: TestClient, trio: Trio, bus: Bus, db: Session
+) -> None:
+    cid = _direct(client, trio.ana, trio.ben)["id"]
+    m = _send(client, trio.ana, cid, "oops")
+    url = f"{API}/chats/{cid}/messages/{m['id']}"
+    ok(client.delete(url, headers=trio.ana.headers), 204)
+    r = client.post(f"{url}/restore", headers=trio.ben.headers)
+    assert r.status_code == 403 and code(r) == "not_sender"
+    bus.clear()
+    back = ok(client.post(f"{url}/restore", headers=trio.ana.headers))
+    assert (back["text"], back["deleted"]) == ("oops", False)
+    (event,) = bus.of(trio.ben, "chat.message")
+    assert (event["message_id"], event["action"]) == (m["id"], "restored")
+    page = ok(client.get(f"{API}/chats/{cid}/messages", headers=trio.ben.headers))
+    assert [(x["text"], x["deleted"]) for x in page["data"]] == [("oops", False)]
+    # After the undo window it stays deleted.
+    ok(client.delete(url, headers=trio.ana.headers), 204)
+    row = db.get(ChatMessage, uuid.UUID(m["id"]))
+    assert row is not None
+    db.refresh(row)
+    assert row.deleted_at is not None
+    row.deleted_at = row.deleted_at - timedelta(minutes=5)
+    db.add(row)
+    db.commit()
+    r = client.post(f"{url}/restore", headers=trio.ana.headers)
+    assert r.status_code == 409 and code(r) == "undo_expired"
 
 
 def test_reactions_set_replace_remove(client: TestClient, trio: Trio, bus: Bus) -> None:
