@@ -47,7 +47,7 @@ struct SnapAndLogIntent: AppIntent {
 
 // MARK: - Ask Fern without opening the app
 
-struct AskFernIntent: AppIntent {
+struct AskFernIntent: AppIntent, ForegroundContinuableIntent {
   static let title: LocalizedStringResource = "Ask Fern"
   static let description = IntentDescription("Ask Fern anything or tell her what to log, and hear the answer without opening Unfurl.")
   static let authenticationPolicy: IntentAuthenticationPolicy = .requiresAuthentication
@@ -86,7 +86,7 @@ struct AskFernIntent: AppIntent {
 
 // MARK: - Quick expense
 
-struct QuickExpenseIntent: AppIntent {
+struct QuickExpenseIntent: AppIntent, ForegroundContinuableIntent {
   static let title: LocalizedStringResource = "Log an expense"
   static let description = IntentDescription("Log spending like “₱250 lunch” without opening Unfurl, and see today's spend against your daily cap.")
   static let authenticationPolicy: IntentAuthenticationPolicy = .requiresAuthentication
@@ -230,7 +230,7 @@ enum FocusKind: String, AppEnum {
   ]
 }
 
-struct StartFocusIntent: AppIntent {
+struct StartFocusIntent: AppIntent, ForegroundContinuableIntent {
   static let title: LocalizedStringResource = "Start focus"
   static let description = IntentDescription("Start a focus session or Pomodoro. It shows on the Lock Screen while it runs.")
   static let authenticationPolicy: IntentAuthenticationPolicy = .requiresAuthentication
@@ -255,7 +255,7 @@ struct StartFocusIntent: AppIntent {
   }
 }
 
-struct StopFocusIntent: AppIntent {
+struct StopFocusIntent: AppIntent, ForegroundContinuableIntent {
   static let title: LocalizedStringResource = "Stop focus"
   static let description = IntentDescription("End the focus session that is running and keep the time you focused.")
   static let authenticationPolicy: IntentAuthenticationPolicy = .requiresAuthentication
@@ -273,7 +273,7 @@ struct StopFocusIntent: AppIntent {
 
 // MARK: - What's left today
 
-struct WhatsLeftIntent: AppIntent {
+struct WhatsLeftIntent: AppIntent, ForegroundContinuableIntent {
   static let title: LocalizedStringResource = "What's left today"
   static let description = IntentDescription("Calories, protein, carbs and fat left today, and how much you can still spend.")
   static let authenticationPolicy: IntentAuthenticationPolicy = .requiresAuthentication
