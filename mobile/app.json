@@ -112,6 +112,12 @@
           "background": false
         }
       ],
+      [
+        "expo-notifications",
+        {
+          "sounds": ["./assets/sounds/unfurl.wav"]
+        }
+      ],
       "@react-native-community/datetimepicker",
       "expo-asset",
       "expo-font",

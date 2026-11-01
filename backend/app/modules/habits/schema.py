@@ -75,6 +75,7 @@ class HabitFields(BaseModel):
     step: float | None = Field(default=None, gt=0, le=100000)
     schedule: Schedule | None = Field(default=None, max_length=7)
     reminder: bool | None = None
+    nag_every_min: int | None = Field(default=None, ge=15, le=720)
     link_workout: bool | None = None
 
     @field_validator("schedule")
@@ -140,6 +141,7 @@ class HabitPublic(BaseModel):
     step: float | None
     schedule: list[dict[str, object]]
     reminder: bool
+    nag_every_min: int | None = None
     status: str
     link_workout: bool
     archived_at: datetime | None

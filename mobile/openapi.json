@@ -23458,6 +23458,13 @@
             "anyOf": [{ "type": "boolean" }, { "type": "null" }],
             "title": "Reminder"
           },
+          "nag_every_min": {
+            "anyOf": [
+              { "type": "integer", "maximum": 720.0, "minimum": 15.0 },
+              { "type": "null" }
+            ],
+            "title": "Nag Every Min"
+          },
           "link_workout": {
             "anyOf": [{ "type": "boolean" }, { "type": "null" }],
             "title": "Link Workout"
@@ -23637,6 +23644,10 @@
             "title": "Schedule"
           },
           "reminder": { "type": "boolean", "title": "Reminder" },
+          "nag_every_min": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Nag Every Min"
+          },
           "status": { "type": "string", "title": "Status" },
           "link_workout": { "type": "boolean", "title": "Link Workout" },
           "archived_at": {
@@ -23774,6 +23785,13 @@
           "reminder": {
             "anyOf": [{ "type": "boolean" }, { "type": "null" }],
             "title": "Reminder"
+          },
+          "nag_every_min": {
+            "anyOf": [
+              { "type": "integer", "maximum": 720.0, "minimum": 15.0 },
+              { "type": "null" }
+            ],
+            "title": "Nag Every Min"
           },
           "link_workout": {
             "anyOf": [{ "type": "boolean" }, { "type": "null" }],
@@ -27162,6 +27180,10 @@
           "estimate_min": {
             "anyOf": [{ "type": "integer" }, { "type": "null" }],
             "title": "Estimate Min"
+          },
+          "nag_every_min": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Nag Every Min"
           },
           "version": { "type": "integer", "title": "Version" },
           "days_late": { "type": "integer", "title": "Days Late" }
@@ -32247,6 +32269,10 @@
             "anyOf": [{ "type": "integer" }, { "type": "null" }],
             "title": "Estimate Min"
           },
+          "nag_every_min": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Nag Every Min"
+          },
           "version": { "type": "integer", "title": "Version" },
           "repeat_text": {
             "anyOf": [{ "type": "string" }, { "type": "null" }],
@@ -32457,6 +32483,10 @@
             "anyOf": [{ "type": "integer" }, { "type": "null" }],
             "title": "Estimate Min"
           },
+          "nag_every_min": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Nag Every Min"
+          },
           "version": { "type": "integer", "title": "Version" }
         },
         "type": "object",
@@ -32549,6 +32579,13 @@
               { "type": "null" }
             ],
             "title": "Estimate Min"
+          },
+          "nag_every_min": {
+            "anyOf": [
+              { "type": "integer", "maximum": 720.0, "minimum": 15.0 },
+              { "type": "null" }
+            ],
+            "title": "Nag Every Min"
           }
         },
         "type": "object",

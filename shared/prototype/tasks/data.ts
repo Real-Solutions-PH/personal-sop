@@ -65,6 +65,9 @@ export interface Task {
   /** How long it should take, in minutes; Focus shows time spent against
    * it (ADR-0025). */
   estimateMin?: number
+  /** Keep reminding me: once overdue, remind again every this many minutes
+   * for the rest of that day. Absent or null = off. */
+  nagEveryMin?: number | null
   status: TaskStatus
   completedAt: string | null
   deletedAt: string | null

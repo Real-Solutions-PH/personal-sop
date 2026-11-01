@@ -51,6 +51,10 @@ class Habit(OwnedRow, table=True):
             "rule_max_min IS NULL OR rule_max_min BETWEEN 0 AND 1440",
             name="ck_habit_rule_max",
         ),
+        CheckConstraint(
+            "nag_every_min IS NULL OR nag_every_min BETWEEN 15 AND 720",
+            name="ck_habit_nag_every",
+        ),
     )
 
     name: str = Field(max_length=80)
@@ -61,6 +65,9 @@ class Habit(OwnedRow, table=True):
     step: float | None = Field(default=None, sa_type=Float)
     schedule: list[dict[str, object]] = Field(default_factory=list, sa_type=JSONB)
     reminder: bool = False
+    # "Keep reminding me": once a timed slot passes undone, remind again
+    # every this many minutes for the rest of that day. NULL = off.
+    nag_every_min: int | None = Field(default=None, sa_type=Integer)
     status: str = Field(default="active", sa_type=String(8))  # type: ignore
     link_workout: bool = False
     archived_at: datetime | None = Field(default=None, sa_type=tstz())  # type: ignore

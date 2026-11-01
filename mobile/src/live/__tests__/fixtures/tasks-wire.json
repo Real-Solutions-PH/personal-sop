@@ -28,6 +28,7 @@
       "starred": true,
       "tags": [],
       "estimate_min": null,
+      "nag_every_min": null,
       "cleared_at": null,
       "source": "manual",
       "parse_state": "parsed",
@@ -40,6 +41,14 @@
     "name": "task",
     "data": {
       "notes": "ask about the card fee"
+    }
+  },
+  {
+    "entity": "task",
+    "kind": "upsert",
+    "name": "task",
+    "data": {
+      "nag_every_min": 60
     }
   },
   {
@@ -96,6 +105,7 @@
       "starred": false,
       "tags": [],
       "estimate_min": null,
+      "nag_every_min": null,
       "cleared_at": null,
       "source": "manual",
       "parse_state": "parsed",
@@ -133,6 +143,7 @@
       "starred": false,
       "tags": [],
       "estimate_min": null,
+      "nag_every_min": null,
       "cleared_at": null,
       "source": "manual",
       "parse_state": "parsed",

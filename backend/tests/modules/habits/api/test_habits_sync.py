@@ -336,3 +336,16 @@ def test_a_run_can_be_reset_and_started_over(client: TestClient, db: Session) ->
         if c["entity"] == "habit_log" and c["row"]["habit_id"] == str(bed)
     ]
     assert [x["status"] for x in logs] == ["done"]
+
+
+def test_keep_reminding_round_trips_through_sync(
+    client: TestClient, db: Session
+) -> None:
+    _, h = signed_in(db)
+    hid = uuid.uuid4()
+    res = _push(client, h, _op("upsert", "habit", hid, name="Meds", nag_every_min=60))
+    assert res[0]["status"] == "applied", res
+    rows = {c["id"]: c["row"] for c in _pull(client, h)}
+    assert rows[str(hid)]["nag_every_min"] == 60
+    bad = _push(client, h, _op("upsert", "habit", hid, nag_every_min=5))
+    assert bad[0]["status"] != "applied", bad
