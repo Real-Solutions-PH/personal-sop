@@ -261,6 +261,7 @@ describe("diffs on store edits", () => {
           step: null,
           schedule: [{ days: [0, 1, 2, 3, 4, 5, 6] }],
           reminder: true,
+          nag_every_min: null,
           status: "active",
           link_workout: false,
           archived_at: null,

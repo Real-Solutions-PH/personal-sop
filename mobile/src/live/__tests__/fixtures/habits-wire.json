@@ -8,6 +8,7 @@
       "default_reminder": true,
       "streak_nudge": true
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": true
   },
   {
@@ -27,6 +28,7 @@
         }
       ],
       "reminder": true,
+      "nag_every_min": null,
       "status": "active",
       "link_workout": false,
       "archived_at": null,
@@ -35,6 +37,7 @@
       "rule_group_id": null,
       "rule_max_min": null
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": true
   },
   {
@@ -44,6 +47,7 @@
     "data": {
       "name": "Stretch 15m"
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": false
   },
   {
@@ -53,6 +57,7 @@
     "data": {
       "status": "paused"
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": false
   },
   {
@@ -65,6 +70,7 @@
       "to_day": null,
       "reason": "Travel"
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": true
   },
   {
@@ -74,17 +80,20 @@
     "data": {
       "status": "active"
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": false
   },
   {
     "kind": "delete",
     "name": "habit_pause",
-    "id": "c1fd82ca-7bbe-5a5f-aaad-6050bf998a84"
+    "id": "c1fd82ca-7bbe-5a5f-aaad-6050bf998a84",
+    "at": "2026-10-19T01:00:00.000Z"
   },
   {
     "kind": "delete",
     "name": "habit",
-    "id": "00000000-0000-4000-8000-000000000002"
+    "id": "00000000-0000-4000-8000-000000000002",
+    "at": "2026-10-19T01:00:00.000Z"
   },
   {
     "kind": "upsert",
@@ -103,6 +112,7 @@
         }
       ],
       "reminder": true,
+      "nag_every_min": null,
       "status": "active",
       "link_workout": false,
       "archived_at": null,
@@ -111,6 +121,7 @@
       "rule_group_id": null,
       "rule_max_min": null
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": true
   },
   {
@@ -122,6 +133,7 @@
       "default_reminder": true,
       "streak_nudge": true
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": false
   },
   {
@@ -137,6 +149,7 @@
       "source": "tap",
       "note": null
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": true
   },
   {
@@ -147,6 +160,7 @@
       "status": "done",
       "value": 8
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": false
   },
   {
@@ -158,6 +172,7 @@
       "value": null,
       "note": "Out all day"
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": false
   },
   {
@@ -168,12 +183,14 @@
       "status": "done",
       "value": 8
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": false
   },
   {
     "kind": "delete",
     "name": "habit_log",
-    "id": "00000000-0000-4000-8000-000000000013"
+    "id": "00000000-0000-4000-8000-000000000013",
+    "at": "2026-10-19T01:00:00.000Z"
   },
   {
     "kind": "upsert",
@@ -192,6 +209,7 @@
         }
       ],
       "reminder": true,
+      "nag_every_min": null,
       "status": "active",
       "link_workout": false,
       "archived_at": null,
@@ -200,6 +218,7 @@
       "rule_group_id": null,
       "rule_max_min": null
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": true
   },
   {
@@ -219,6 +238,7 @@
         }
       ],
       "reminder": true,
+      "nag_every_min": null,
       "status": "active",
       "link_workout": false,
       "archived_at": null,
@@ -227,6 +247,7 @@
       "rule_group_id": null,
       "rule_max_min": null
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": true
   },
   {
@@ -238,6 +259,7 @@
       "default_reminder": true,
       "streak_nudge": true
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": false
   },
   {
@@ -255,6 +277,7 @@
       "reminder": true,
       "status": "active"
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": true
   },
   {
@@ -267,6 +290,7 @@
       "position": 0,
       "minutes": 2
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": true
   },
   {
@@ -279,6 +303,7 @@
       "position": 1,
       "minutes": 5
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": true
   },
   {
@@ -289,6 +314,7 @@
       "habit_id": "00000000-0000-4000-8000-000000000020",
       "minutes": 5
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": false
   },
   {
@@ -299,12 +325,14 @@
       "habit_id": "00000000-0000-4000-8000-000000000019",
       "minutes": 2
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": false
   },
   {
     "kind": "delete",
     "name": "routine_step",
-    "id": "c660bed0-b633-5e6c-8b1e-925d22d35e77"
+    "id": "c660bed0-b633-5e6c-8b1e-925d22d35e77",
+    "at": "2026-10-19T01:00:00.000Z"
   },
   {
     "kind": "upsert",
@@ -323,6 +351,7 @@
         }
       ],
       "reminder": true,
+      "nag_every_min": null,
       "status": "active",
       "link_workout": false,
       "archived_at": null,
@@ -331,6 +360,7 @@
       "rule_group_id": null,
       "rule_max_min": null
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": true
   },
   {
@@ -350,6 +380,7 @@
         }
       ],
       "reminder": true,
+      "nag_every_min": null,
       "status": "active",
       "link_workout": false,
       "archived_at": null,
@@ -358,6 +389,7 @@
       "rule_group_id": null,
       "rule_max_min": null
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": true
   },
   {
@@ -377,6 +409,7 @@
         }
       ],
       "reminder": true,
+      "nag_every_min": null,
       "status": "active",
       "link_workout": false,
       "archived_at": null,
@@ -385,6 +418,7 @@
       "rule_group_id": null,
       "rule_max_min": null
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": true
   },
   {
@@ -402,6 +436,7 @@
       "reminder": true,
       "status": "active"
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": true
   },
   {
@@ -414,6 +449,7 @@
       "position": 0,
       "minutes": 2
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": true
   },
   {
@@ -426,6 +462,7 @@
       "position": 1,
       "minutes": 10
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": true
   },
   {
@@ -438,6 +475,7 @@
       "position": 2,
       "minutes": 5
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": true
   },
   {
@@ -449,6 +487,7 @@
       "default_reminder": true,
       "streak_nudge": true
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": false
   },
   {
@@ -457,13 +496,15 @@
     "data": {
       "routine_id": "00000000-0000-4000-8000-000000000034",
       "run_id": "00000000-0000-4000-8000-000000000043"
-    }
+    },
+    "at": "2026-10-19T01:00:00.000Z"
   },
   {
     "kind": "upsert",
     "name": "routine_run",
     "id": "00000000-0000-4000-8000-000000000043",
     "data": {},
+    "at": "2026-10-19T01:00:00.000Z",
     "create": true
   },
   {
@@ -471,28 +512,32 @@
     "name": "habits.run.add_minute",
     "data": {
       "run_id": "00000000-0000-4000-8000-000000000043"
-    }
+    },
+    "at": "2026-10-19T01:00:00.000Z"
   },
   {
     "kind": "action",
     "name": "habits.run.toggle_pause",
     "data": {
       "run_id": "00000000-0000-4000-8000-000000000043"
-    }
+    },
+    "at": "2026-10-19T01:00:00.000Z"
   },
   {
     "kind": "action",
     "name": "habits.run.toggle_pause",
     "data": {
       "run_id": "00000000-0000-4000-8000-000000000043"
-    }
+    },
+    "at": "2026-10-19T01:00:00.000Z"
   },
   {
     "kind": "action",
     "name": "habits.run.done",
     "data": {
       "run_id": "00000000-0000-4000-8000-000000000043"
-    }
+    },
+    "at": "2026-10-19T01:00:00.000Z"
   },
   {
     "kind": "upsert",
@@ -507,6 +552,7 @@
       "source": "routine",
       "note": null
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": true
   },
   {
@@ -514,14 +560,16 @@
     "name": "habits.run.back",
     "data": {
       "run_id": "00000000-0000-4000-8000-000000000043"
-    }
+    },
+    "at": "2026-10-19T01:00:00.000Z"
   },
   {
     "kind": "action",
     "name": "habits.run.done",
     "data": {
       "run_id": "00000000-0000-4000-8000-000000000043"
-    }
+    },
+    "at": "2026-10-19T01:00:00.000Z"
   },
   {
     "kind": "upsert",
@@ -530,6 +578,7 @@
     "data": {
       "value": 2
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": false
   },
   {
@@ -537,7 +586,8 @@
     "name": "habits.run.skip",
     "data": {
       "run_id": "00000000-0000-4000-8000-000000000043"
-    }
+    },
+    "at": "2026-10-19T01:00:00.000Z"
   },
   {
     "kind": "upsert",
@@ -552,6 +602,7 @@
       "source": "routine",
       "note": null
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": true
   },
   {
@@ -571,6 +622,7 @@
         }
       ],
       "reminder": true,
+      "nag_every_min": null,
       "status": "active",
       "link_workout": false,
       "archived_at": null,
@@ -579,6 +631,7 @@
       "rule_group_id": null,
       "rule_max_min": null
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": true
   },
   {
@@ -598,6 +651,7 @@
         }
       ],
       "reminder": true,
+      "nag_every_min": null,
       "status": "active",
       "link_workout": false,
       "archived_at": null,
@@ -606,6 +660,7 @@
       "rule_group_id": null,
       "rule_max_min": null
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": true
   },
   {
@@ -623,6 +678,7 @@
       "reminder": true,
       "status": "active"
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": true
   },
   {
@@ -635,6 +691,7 @@
       "position": 0,
       "minutes": 2
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": true
   },
   {
@@ -647,6 +704,7 @@
       "position": 1,
       "minutes": 5
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": true
   },
   {
@@ -658,6 +716,7 @@
       "default_reminder": true,
       "streak_nudge": true
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": false
   },
   {
@@ -666,13 +725,15 @@
     "data": {
       "routine_id": "00000000-0000-4000-8000-000000000060",
       "run_id": "00000000-0000-4000-8000-000000000067"
-    }
+    },
+    "at": "2026-10-19T01:00:00.000Z"
   },
   {
     "kind": "upsert",
     "name": "routine_run",
     "id": "00000000-0000-4000-8000-000000000067",
     "data": {},
+    "at": "2026-10-19T01:00:00.000Z",
     "create": true
   },
   {
@@ -680,7 +741,8 @@
     "name": "habits.run.exit",
     "data": {
       "run_id": "00000000-0000-4000-8000-000000000067"
-    }
+    },
+    "at": "2026-10-19T01:00:00.000Z"
   },
   {
     "kind": "action",
@@ -688,7 +750,8 @@
     "data": {
       "routine_id": "00000000-0000-4000-8000-000000000060",
       "run_id": "00000000-0000-4000-8000-000000000067"
-    }
+    },
+    "at": "2026-10-19T01:00:00.000Z"
   },
   {
     "kind": "upsert",
@@ -707,6 +770,7 @@
         }
       ],
       "reminder": true,
+      "nag_every_min": null,
       "status": "active",
       "link_workout": false,
       "archived_at": null,
@@ -715,6 +779,7 @@
       "rule_group_id": null,
       "rule_max_min": null
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": true
   },
   {
@@ -726,6 +791,7 @@
       "default_reminder": true,
       "streak_nudge": true
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": false
   },
   {
@@ -733,13 +799,15 @@
     "name": "habits.timer.start",
     "data": {
       "habit_id": "00000000-0000-4000-8000-000000000072"
-    }
+    },
+    "at": "2026-10-19T01:00:00.000Z"
   },
   {
     "kind": "upsert",
     "name": "habit_timer",
     "id": "71a97603-ff5f-5e75-8314-433b6ec2aaf3",
     "data": {},
+    "at": "2026-10-19T01:00:00.000Z",
     "create": true
   },
   {
@@ -747,24 +815,28 @@
     "name": "habits.timer.extend",
     "data": {
       "sec": 300
-    }
+    },
+    "at": "2026-10-19T01:00:00.000Z"
   },
   {
     "kind": "action",
     "name": "habits.timer.pause",
-    "data": {}
+    "data": {},
+    "at": "2026-10-19T01:00:00.000Z"
   },
   {
     "kind": "action",
     "name": "habits.timer.resume",
-    "data": {}
+    "data": {},
+    "at": "2026-10-19T01:00:00.000Z"
   },
   {
     "kind": "action",
     "name": "habits.timer.finish",
     "data": {
       "minutes": 12
-    }
+    },
+    "at": "2026-10-19T01:00:00.000Z"
   },
   {
     "kind": "upsert",
@@ -779,36 +851,42 @@
       "source": "timer",
       "note": null
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": true
   },
   {
     "kind": "delete",
     "name": "habit_timer",
-    "id": "71a97603-ff5f-5e75-8314-433b6ec2aaf3"
+    "id": "71a97603-ff5f-5e75-8314-433b6ec2aaf3",
+    "at": "2026-10-19T01:00:00.000Z"
   },
   {
     "kind": "action",
     "name": "habits.timer.start",
     "data": {
       "habit_id": "00000000-0000-4000-8000-000000000072"
-    }
+    },
+    "at": "2026-10-19T01:00:00.000Z"
   },
   {
     "kind": "upsert",
     "name": "habit_timer",
     "id": "71a97603-ff5f-5e75-8314-433b6ec2aaf3",
     "data": {},
+    "at": "2026-10-19T01:00:00.000Z",
     "create": false
   },
   {
     "kind": "action",
     "name": "habits.timer.discard",
-    "data": {}
+    "data": {},
+    "at": "2026-10-19T01:00:00.000Z"
   },
   {
     "kind": "delete",
     "name": "habit_timer",
-    "id": "71a97603-ff5f-5e75-8314-433b6ec2aaf3"
+    "id": "71a97603-ff5f-5e75-8314-433b6ec2aaf3",
+    "at": "2026-10-19T01:00:00.000Z"
   },
   {
     "kind": "upsert",
@@ -819,6 +897,7 @@
       "default_reminder": true,
       "streak_nudge": true
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": false
   },
   {
@@ -828,6 +907,7 @@
     "data": {
       "week_start": 0
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": false
   },
   {
@@ -839,6 +919,7 @@
       "default_reminder": true,
       "streak_nudge": true
     },
+    "at": "2026-10-19T01:00:00.000Z",
     "create": false
   }
 ]

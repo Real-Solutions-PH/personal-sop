@@ -35,23 +35,34 @@ class PushTicket:
 PushSender = Callable[[list[PushMessage]], list[PushTicket]]
 
 
+# The app's own notification sound, bundled by the expo-notifications config
+# plugin (mobile/app.json). A build without it plays the system default.
+SOUND = "unfurl.wav"
+# Android plays a channel's sound, not the message's; the app creates this
+# channel with ``SOUND`` (mobile local-reminders.ts).
+ANDROID_CHANNEL = "reminders"
+
+
+def expo_message(m: PushMessage) -> dict[str, Any]:
+    """One Expo push request body for ``m``."""
+    return {
+        "to": m.token,
+        "title": m.title,
+        "body": m.body,
+        "data": m.data,
+        "sound": SOUND,
+        "channelId": ANDROID_CHANNEL,
+        **({"threadId": m.thread, "collapseId": m.thread} if m.thread else {}),
+    }
+
+
 def _expo_sender(messages: list[PushMessage]) -> list[PushTicket]:
     headers = {"Accept": "application/json", "Content-Type": "application/json"}
     if settings.EXPO_ACCESS_TOKEN:
         headers["Authorization"] = (
             f"Bearer {settings.EXPO_ACCESS_TOKEN.get_secret_value()}"
         )
-    body = [
-        {
-            "to": m.token,
-            "title": m.title,
-            "body": m.body,
-            "data": m.data,
-            "sound": "default",
-            **({"threadId": m.thread, "collapseId": m.thread} if m.thread else {}),
-        }
-        for m in messages
-    ]
+    body = [expo_message(m) for m in messages]
     resp = httpx.post(settings.EXPO_PUSH_URL, json=body, headers=headers, timeout=15)
     resp.raise_for_status()
     tickets: list[PushTicket] = []

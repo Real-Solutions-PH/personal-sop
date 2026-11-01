@@ -7,6 +7,7 @@ import * as H from "@domain/habits/logic"
 import { habitsStore } from "@domain/habits/store"
 import { dayKey } from "@domain/lib/day"
 import * as A from "@domain/tasks/actions"
+import type { Task } from "@domain/tasks/data"
 import { useStats, useTodayData } from "@domain/tasks/hooks"
 import * as T from "@domain/tasks/logic"
 import { tasksStore } from "@domain/tasks/store"
@@ -18,6 +19,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  CircleCheck,
   CloudSun,
   Flame,
   History,
@@ -69,6 +71,7 @@ import { useTheme } from "../theme"
 import { Button, confirm, Screen, Sheet, undo } from "../ui"
 import { Ring } from "../visual"
 import { useMoney } from "./finance"
+import { LockedPreview } from "./locked-preview"
 import { StarterLists } from "./task-lists"
 import { TaskStats } from "./task-stats"
 import { TaskRow } from "./tasks"
@@ -196,21 +199,11 @@ export function TaskPlanPanel({
           value={view}
           onChange={setView}
           options={[
+            // Five short labels fit a 320pt phone; "late" is the rows' word.
             { value: "today", label: "Today" },
-            { value: "upcoming", label: "Upcoming" },
-            {
-              value: "overdue",
-              label: (
-                <Copy size={14} weight="medium" muted={view !== "overdue"}>
-                  Overdue{" "}
-                  {d.overdue.length > 0 && (
-                    <Copy size={10} style={{ color: t.warn }}>
-                      {d.overdue.length}
-                    </Copy>
-                  )}
-                </Copy>
-              ),
-            },
+            { value: "upcoming", label: "Next" },
+            { value: "overdue", label: "Late" },
+            { value: "done", label: "Done" },
             { value: "lists", label: "Lists" },
           ]}
         />
@@ -315,6 +308,8 @@ export function TaskPlanPanel({
             </>
           )}
         </View>
+      ) : view === "done" ? (
+        <DoneView onToday={() => setView("today")} />
       ) : view === "overdue" ? (
         <View style={{ marginTop: 12 }}>
           {d.overdue.length ? (
@@ -466,6 +461,99 @@ export function TaskPlanPanel({
           Move all to today
         </Button>
       </Sheet>
+    </View>
+  )
+}
+/** How far back the Done view reaches; older ones are in Completed. */
+const DONE_DAYS = 14
+const DONE_SAMPLE = [
+  { id: "sample-1", title: "Pay the electric bill", h: 9 },
+  { id: "sample-2", title: "Take vitamins", h: 8 },
+].map(
+  ({ id, title, h }) =>
+    ({
+      id,
+      title,
+      listId: null,
+      dueDate: dayKey(),
+      dueTime: null,
+      remindAt: null,
+      recurrence: null,
+      notes: null,
+      starred: false,
+      status: "done",
+      completedAt: new Date(new Date().setHours(h, 5, 0, 0)).toISOString(),
+      deletedAt: null,
+      clearedAt: null,
+      createdAt: new Date().toISOString(),
+      source: "manual",
+      parseState: "parsed",
+      originalDue: null,
+      rescheduleCount: 0,
+      order: 0,
+    }) as Task,
+)
+/** What got done, newest first, grouped by the day it was done. Ticking a
+ * row reopens it (with Undo). */
+function DoneView({ onToday }: { onToday: () => void }) {
+  const tasks = tasksStore.use((s) => s.tasks),
+    lists = tasksStore.use((s) => s.lists),
+    today = dayKey(),
+    from = T.addDays(today, -(DONE_DAYS - 1)),
+    shop = new Set(lists.filter((l) => l.kind === "shopping").map((l) => l.id)),
+    done = tasks
+      .filter(
+        (task) =>
+          task.status === "done" &&
+          !task.clearedAt &&
+          !(task.listId && shop.has(task.listId)) &&
+          (T.doneDay(task) ?? "") >= from,
+      )
+      .sort((a, b) => (b.completedAt ?? "").localeCompare(a.completedAt ?? "")),
+    days = [...new Set(done.map((task) => T.doneDay(task) ?? ""))]
+  const label = (day: string) =>
+    day === today
+      ? "Today"
+      : day === T.addDays(today, -1)
+        ? "Yesterday"
+        : T.fmtDayLong(day)
+  return (
+    <View>
+      {done.length ? (
+        days.map((day) => {
+          const rows = done.filter((task) => T.doneDay(task) === day)
+          return (
+            <View key={day}>
+              <SectionHeading>
+                {label(day)} · {rows.length}
+              </SectionHeading>
+              {rows.map((task) => (
+                <TaskRow key={task.id} task={task} compact showActions />
+              ))}
+            </View>
+          )
+        })
+      ) : (
+        <View style={{ marginTop: 12 }}>
+          <LockedPreview
+            locked
+            icon={CircleCheck}
+            title="Nothing done in the last two weeks"
+            detail="Tick a task and it lands here with the time you finished it. Tap its tick again to reopen it."
+            action={{ label: "See today's tasks", onPress: onToday }}
+          >
+            {DONE_SAMPLE.map((task) => (
+              <TaskRow key={task.id} task={task} compact />
+            ))}
+          </LockedPreview>
+        </View>
+      )}
+      <LinkRow
+        title="Older and deleted tasks"
+        icon={History}
+        accent="tsk"
+        href="/tasks/completed"
+      />
     </View>
   )
 }

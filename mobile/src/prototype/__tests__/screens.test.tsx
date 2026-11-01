@@ -157,7 +157,7 @@ test("Plan exposes the full overdue queue separately from today's preview", () =
   const { TaskPlanPanel } = require("../screens/plan")
   const view = render(<TaskPlanPanel />, { wrapper })
   expect(screen.getByText(/more overdue/)).toBeTruthy()
-  fireEvent.press(screen.getByRole("tab", { name: "overdue" }))
+  fireEvent.press(screen.getByRole("tab", { name: "Late" }))
   expect(screen.queryByText(/more overdue/)).toBeNull()
   expect(screen.getByText(/slipped/)).toBeTruthy()
   view.unmount()

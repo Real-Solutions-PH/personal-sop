@@ -289,6 +289,7 @@ def complete(
         )
         data["remind_at"] = t.remind_at + timedelta(days=shift) if t.remind_at else None
         data["series_parent_id"] = t.id
+        data["nag_every_min"] = t.nag_every_min
         nid = next_occurrence_id(t.id, due)
         existing = owned_repo.get(ctx, Task, nid, include_deleted=True)
         if existing is None:

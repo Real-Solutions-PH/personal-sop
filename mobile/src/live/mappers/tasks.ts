@@ -135,6 +135,7 @@ export function taskMapper(): Mapper<TasksState, Task> {
       starred: t.starred,
       tags: t.tags ?? [],
       estimate_min: t.estimateMin ?? null,
+      nag_every_min: t.nagEveryMin ?? null,
       cleared_at: t.clearedAt,
       source: t.source,
       parse_state: t.parseState,
@@ -160,6 +161,9 @@ export function taskMapper(): Mapper<TasksState, Task> {
         starred: Boolean(row.starred),
         tags: Array.isArray(row.tags) ? row.tags.map(String) : [],
         ...(row.estimate_min ? { estimateMin: Number(row.estimate_min) } : {}),
+        ...(row.nag_every_min
+          ? { nagEveryMin: Number(row.nag_every_min) }
+          : {}),
         status: STATUSES.includes(status) ? status : "open",
         completedAt: instant(row.completed_at),
         deletedAt: instant(row.deleted_at),

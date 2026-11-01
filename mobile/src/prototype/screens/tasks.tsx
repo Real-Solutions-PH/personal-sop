@@ -43,6 +43,17 @@ import { IconButton, Ring } from "../visual"
 import { ListGlyph, ListEditor as NativeListEditor } from "./task-lists"
 
 /** A task's tags as small neutral pills, under its title in the lists. */
+/** When a task was ticked: "3:42 PM", or "Tue 3:42 PM" when the day is
+ * not given by the surrounding list and is not today. */
+function doneLabel(at: Date, withDay: boolean) {
+  const time = at.toLocaleTimeString("en-PH", {
+    hour: "numeric",
+    minute: "2-digit",
+  })
+  return withDay && dayKey(at) !== dayKey()
+    ? `${at.toLocaleDateString("en-PH", { weekday: "short" })} ${time}`
+    : time
+}
 export function TagChips({ tags }: { tags?: string[] }) {
   const t = useTheme()
   if (!tags?.length) return null
@@ -114,7 +125,12 @@ export function TaskRow({
   }
   // An empty meta line would sit under the title and pull it above the
   // checkbox's centre, so it only renders when it has something to say.
+  const doneAt =
+    task.status === "done" && task.completedAt
+      ? new Date(task.completedAt)
+      : null
   const hasMeta =
+    !!doneAt ||
     (showDay && !!task.dueDate) ||
     !!task.dueTime ||
     !!task.recurrence ||
@@ -145,7 +161,8 @@ export function TaskRow({
               flexDirection: "row",
               gap: compact ? 12 : 10,
               alignItems: "center",
-              paddingVertical: compact ? 0 : 9,
+              // A wrapped title grows the row; this keeps it off the next.
+              paddingVertical: compact ? 6 : 9,
               minHeight: 56,
               paddingHorizontal: compact ? 4 : 0,
             }}
@@ -171,8 +188,8 @@ export function TaskRow({
               delayLongPress={350}
               style={{ flex: 1, gap: compact ? 2 : 3 }}
             >
+              {/* The title is what the row is: it wraps, never truncates. */}
               <Text
-                numberOfLines={compact ? 1 : undefined}
                 style={{
                   fontFamily: compact ? fonts.medium : fonts.semibold,
                   fontSize: compact ? 16 : 17,
@@ -192,12 +209,36 @@ export function TaskRow({
                   <View
                     style={{
                       flexDirection: "row",
+                      flexWrap: "wrap",
                       alignItems: "center",
-                      gap: 6,
-                      height: 16,
+                      columnGap: 6,
+                      rowGap: 2,
+                      minHeight: 16,
                     }}
                   >
-                    {showDay && task.dueDate && (
+                    {doneAt && (
+                      <View
+                        accessible
+                        accessibilityLabel={`Done at ${doneLabel(doneAt, showDay)}`}
+                        style={{
+                          flexDirection: "row",
+                          gap: 2,
+                          alignItems: "center",
+                        }}
+                      >
+                        <Check size={12} color={t.tsk} />
+                        <Text
+                          style={{
+                            fontFamily: fonts.medium,
+                            fontSize: 12,
+                            color: t.tsk,
+                          }}
+                        >
+                          {doneLabel(doneAt, showDay)}
+                        </Text>
+                      </View>
+                    )}
+                    {showDay && task.dueDate && !doneAt && (
                       <Text
                         style={{
                           fontFamily: L.isOverdue(task)

@@ -37,6 +37,7 @@ import {
   undo,
 } from "../ui"
 import { isDay } from "../validation"
+import { KeepReminding } from "./keep-reminding"
 
 const SOURCE: Record<Task["source"], string> = {
   manual: "Added manually",
@@ -393,6 +394,20 @@ export function TaskDetail({ id }: { id: string }) {
             )}
           </Line>
         ))}
+      </Frame>
+      <Frame style={{ padding: 12, backgroundColor: "transparent" }}>
+        <KeepReminding
+          accent="tsk"
+          value={task.nagEveryMin}
+          unavailable={
+            task.dueDate || task.remindAt
+              ? undefined
+              : "Add a date first: repeats start once the task is overdue."
+          }
+          // The switch and its line say what changed: no toast (only
+          // toasts that carry Undo are shown).
+          onChange={(min) => A.updateTask(id, { nagEveryMin: min })}
+        />
       </Frame>
       {task.remindAt && task.status === "open" && (
         <Line style={{ gap: 8 }}>

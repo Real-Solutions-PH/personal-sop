@@ -30,6 +30,9 @@ export interface Habit {
   step?: number
   schedule: ScheduleSlot[]
   reminder: boolean
+  /** Keep reminding me: once a timed slot passes undone, remind again every
+   * this many minutes for the rest of that day. Absent or null = off. */
+  nagEveryMin?: number | null
   status: HabitStatus
   pauses: PauseRange[]
   linkWorkout: boolean

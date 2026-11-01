@@ -22,6 +22,7 @@ import { Switch } from "../switch"
 import { fonts, useTheme } from "../theme"
 import { Button, Choices, confirm, Empty, Screen, Sheet } from "../ui"
 import { Schedule, validSchedule } from "./habits"
+import { KeepReminding } from "./keep-reminding"
 
 export function HabitForm({
   id,
@@ -56,6 +57,7 @@ export function HabitForm({
       old?.reminder ?? s.settings.defaultReminder,
     ),
     [linked, setLinked] = useState(h?.linkWorkout ?? false),
+    [nag, setNag] = useState<number | null>(h?.nagEveryMin ?? null),
     groups = useScreen()
       .groups.filter((g) => !g.archivedAt)
       .sort((a, b) => a.sortOrder - b.sortOrder),
@@ -155,6 +157,7 @@ export function HabitForm({
           unit: type === "count" ? unit || undefined : undefined,
           step: type === "count" ? Number(step) || 1 : undefined,
           linkWorkout: linked,
+          nagEveryMin: reminder ? nag : null,
           // Turning the option off makes the habit manual again from today.
           ...(h?.rule ? { rule: undefined } : {}),
         }
@@ -410,6 +413,18 @@ export function HabitForm({
               Arrives as a notification on this phone at the scheduled time,
               even offline.
             </Copy>
+          )}
+          {reminder && !routine && !auto && (
+            <KeepReminding
+              accent="hab"
+              value={nag}
+              onChange={setNag}
+              unavailable={
+                schedule.some((slot) => slot.time)
+                  ? undefined
+                  : "Set a time in the schedule first: repeats start once that time passes."
+              }
+            />
           )}
           {!routine &&
             !auto &&

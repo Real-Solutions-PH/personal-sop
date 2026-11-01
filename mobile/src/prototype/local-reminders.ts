@@ -6,11 +6,16 @@
 // Bills (planned expenses and transfers) get one reminder a day for the
 // week before they're due and each day they're overdue, until paid or
 // skipped.
+// "Keep reminding me" (``nagEveryMin`` on a task or habit) repeats an
+// overdue reminder every that many minutes until the day ends, outside
+// quiet hours. They are dated one-offs, so a completion (here, or synced
+// from the widget or Fern) drops the rest at the next rebuild.
 
 import { addDays, type Occurrence, occurrencesIn } from "@domain/finance/calc"
 import { finStore } from "@domain/finance/store"
 import { fitStore } from "@domain/fitness/store"
 import type { Habit, HabitLog, Routine } from "@domain/habits/data"
+import { isPausedOn } from "@domain/habits/logic"
 import { habitsStore } from "@domain/habits/store"
 import { dayKey, weekday } from "@domain/lib/day"
 import { money } from "@domain/lib/money"
@@ -67,7 +72,65 @@ export interface MoreReminders {
   billReminder?: string | null
   /** Formats a bill's amount; omitted (hide amounts on) leaves it out. */
   billAmount?: (n: number) => string
+  /** Quiet hours (Tasks settings), HH:MM; repeats skip them. */
+  quiet?: { start: string; end: string }
+  /** When a task with a due day but no time or reminder is due. */
+  defaultRemindTime?: string
 }
+
+/** The sound bundled by the expo-notifications plugin (app.json); the
+ * server's pushes name the same file (backend shared/push.py). */
+export const SOUND = "unfurl.wav"
+/** Android plays a channel's sound, so reminders get their own channel. */
+export const CHANNEL = "reminders"
+/** Days of habit repeats planned ahead, today included. */
+const NAG_DAYS = 3
+
+const mins = (t: string) => {
+  const p = hm(t)
+  return p ? p.hour * 60 + p.minute : null
+}
+/** Is ``d``'s wall-clock time inside ``[start, end)``? Windows may wrap
+ * midnight (22:00–07:00); start == end is never quiet. Same rule as the
+ * server's tasks ``in_quiet_hours``. */
+export function inQuiet(d: Date, quiet?: { start: string; end: string }) {
+  if (!quiet) return false
+  const s = mins(quiet.start),
+    e = mins(quiet.end),
+    m = d.getHours() * 60 + d.getMinutes()
+  if (s === null || e === null || s === e) return false
+  return s < e ? m >= s && m < e : m >= s || m < e
+}
+
+/** The repeats after ``anchor``: every ``every`` minutes, later than
+ * ``now``, before the end of ``anchor``'s day, outside quiet hours. */
+export function nagTimes(
+  anchor: Date,
+  every: number,
+  now: Date,
+  quiet?: { start: string; end: string },
+): Date[] {
+  if (!(every >= 15)) return []
+  const end = new Date(
+    anchor.getFullYear(),
+    anchor.getMonth(),
+    anchor.getDate() + 1,
+  ).getTime()
+  const out: Date[] = []
+  for (let k = 1; ; k++) {
+    const at = new Date(anchor.getTime() + k * every * 60_000)
+    if (at.getTime() >= end) return out
+    if (at > now && !inQuiet(at, quiet)) out.push(at)
+  }
+}
+
+/** A repeat's id part: its local day and minute, stable across rebuilds. */
+const stamp = (d: Date) => {
+  const p = (n: number) => String(n).padStart(2, "0")
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}${p(d.getMinutes())}`
+}
+const fmtHm = (d: Date) =>
+  d.toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit" })
 
 /** iOS allows 64 pending notifications; leave room for the system's own. */
 export const MAX_PENDING = 60
@@ -142,11 +205,30 @@ export function planReminders(
         })
     }
   }
+  const nagPlans: Planned[] = []
   for (const h of habits) {
     if (!h.reminder || h.status !== "active") continue
     const log = more.logs?.find((l) => l.habitId === h.id && l.day === today),
       // Done or skipped; a count habit part-way there still needs the nudge.
       doneToday = !!log && (log.status !== "partial" || h.type === "check")
+    if (h.nagEveryMin)
+      for (let n = doneToday ? 1 : 0; n < NAG_DAYS; n++) {
+        const wd = (weekday(today) + n) % 7
+        for (const slot of h.schedule) {
+          const time = slot.time ? hm(slot.time) : null
+          if (!time || !slot.days.includes(wd)) continue
+          const due = onDay(n, time)
+          if (isPausedOn(h, dayKey(due))) continue
+          for (const at of nagTimes(due, h.nagEveryMin, now, more.quiet))
+            nagPlans.push({
+              id: `habit-${h.id}-nag-${stamp(at)}`,
+              title: `${h.icon} ${h.name}`,
+              body: `Still not done. It was due at ${fmtHm(due)}. Tap to check it off.`,
+              href: `/habits/${h.id}`,
+              at,
+            })
+        }
+      }
     for (const slot of h.schedule) {
       const time = slot.time ? hm(slot.time) : null
       if (!time) continue
@@ -178,6 +260,19 @@ export function planReminders(
       href: `/tasks/task/${t.id}`,
       at,
     }))
+  for (const t of tasks) {
+    if (t.status !== "open" || !t.nagEveryMin) continue
+    const due = taskDue(t, more.defaultRemindTime)
+    if (!due) continue
+    for (const at of nagTimes(due, t.nagEveryMin, now, more.quiet))
+      nagPlans.push({
+        id: `task-${t.id}-nag-${stamp(at)}`,
+        title: t.title,
+        body: `Still open. It was due at ${fmtHm(due)}. Tap to finish it.`,
+        href: `/tasks/task/${t.id}`,
+        at,
+      })
+  }
   const billPlans: Planned[] = []
   const billTime = more.billReminder ? hm(more.billReminder) : null
   for (const o of more.bills ?? []) {
@@ -206,8 +301,21 @@ export function planReminders(
   // Recurring habit reminders first (few, and they repeat), then the
   // soonest dated bill and task reminders in the room left.
   const habitsKept = habitPlans.slice(0, MAX_PENDING)
-  const dated = [...billPlans, ...taskPlans].sort((a, b) => time(a) - time(b))
+  const dated = [...billPlans, ...taskPlans, ...nagPlans].sort(
+    (a, b) => time(a) - time(b),
+  )
   return [...habitsKept, ...dated.slice(0, MAX_PENDING - habitsKept.length)]
+}
+
+/** When a task counts as overdue: its reminder, else its due time, else
+ * its due day at the default reminder time. */
+function taskDue(t: Task, defaultTime = "09:00"): Date | null {
+  if (t.remindAt) return new Date(t.remindAt)
+  if (!t.dueDate) return null
+  const time = hm(t.dueTime ?? defaultTime)
+  if (!time) return null
+  const [y, m, d] = t.dueDate.split("-").map(Number) as [number, number, number]
+  return new Date(y, m - 1, d, time.hour, time.minute)
 }
 
 const load = () => require("expo-notifications") as Notifications
@@ -245,20 +353,39 @@ export async function syncReminders(
       ),
       billReminder: finStore.get().settings.billReminder,
       billAmount: privacyStore.get().hidden ? undefined : (n) => money(n),
+      quiet: {
+        start: tasksStore.get().settings.quietStart,
+        end: tasksStore.get().settings.quietEnd,
+      },
+      defaultRemindTime: tasksStore.get().settings.defaultRemindTime,
     },
   )
   for (const p of plan)
     await N.scheduleNotificationAsync({
       identifier: p.id,
-      content: { title: p.title, body: p.body, data: { href: p.href } },
+      content: {
+        title: p.title,
+        body: p.body,
+        data: { href: p.href },
+        sound: SOUND,
+      },
       trigger:
         "at" in p
-          ? { type: N.SchedulableTriggerInputTypes.DATE, date: p.at }
+          ? {
+              type: N.SchedulableTriggerInputTypes.DATE,
+              date: p.at,
+              channelId: CHANNEL,
+            }
           : "daily" in p
-            ? { type: N.SchedulableTriggerInputTypes.DAILY, ...p.daily }
+            ? {
+                type: N.SchedulableTriggerInputTypes.DAILY,
+                ...p.daily,
+                channelId: CHANNEL,
+              }
             : {
                 type: N.SchedulableTriggerInputTypes.WEEKLY,
                 ...p.weekly,
+                channelId: CHANNEL,
               },
     })
   return plan.length
@@ -286,8 +413,13 @@ export async function scheduleEatBackReminder(
       // No number: more burning by 20:00 would make it wrong.
       body: "Apple Health counted calories you haven't added to today's budget. Tap to add them, or ignore.",
       data: { href: "/nutrition" },
+      sound: SOUND,
     },
-    trigger: { type: N.SchedulableTriggerInputTypes.DATE, date: at },
+    trigger: {
+      type: N.SchedulableTriggerInputTypes.DATE,
+      date: at,
+      channelId: CHANNEL,
+    },
   })
 }
 
@@ -302,8 +434,13 @@ export async function sendTestReminder(N: Notifications = load()) {
       title: "Reminders work",
       body: "This is what a reminder looks like.",
       data: { href: "/tasks" },
+      sound: SOUND,
     },
-    trigger: { type: N.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 3 },
+    trigger: {
+      type: N.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      seconds: 3,
+      channelId: CHANNEL,
+    },
   })
   return true
 }
@@ -334,6 +471,12 @@ export function startReminders() {
       }
     },
   })
+  if (Platform.OS === "android")
+    void N.setNotificationChannelAsync(CHANNEL, {
+      name: "Reminders",
+      importance: N.AndroidImportance.HIGH,
+      sound: SOUND,
+    }).catch(() => {})
   N.addNotificationResponseReceivedListener((r) =>
     openNotification(r.notification.request.content.data),
   )

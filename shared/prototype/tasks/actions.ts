@@ -217,6 +217,7 @@ export function completeTask(id: string): Task | null {
       // (tasks ops.next_occurrence_id), so an offline tick and its replay
       // never make two.
       id: derivedId("task-next", t.id, due),
+      ...(t.nagEveryMin ? { nagEveryMin: t.nagEveryMin } : {}),
       remindAt: t.remindAt
         ? new Date(
             new Date(t.remindAt).getTime() + shift * 86400000,
@@ -272,6 +273,7 @@ export function updateTask(
       | "dueTime"
       | "tags"
       | "estimateMin"
+      | "nagEveryMin"
     >
   >,
 ): void {

@@ -144,6 +144,7 @@ function habitMapper(
       step: h.step ?? null,
       schedule: scheduleOut(h.schedule),
       reminder: h.reminder,
+      nag_every_min: h.nagEveryMin ?? null,
       status: h.status,
       link_workout: h.linkWorkout,
       archived_at: h.archivedAt ? dayToInstant(h.archivedAt) : null,
@@ -165,6 +166,9 @@ function habitMapper(
         step: optNum(row.step),
         schedule: scheduleIn(row.schedule),
         reminder: Boolean(row.reminder),
+        ...(row.nag_every_min
+          ? { nagEveryMin: Number(row.nag_every_min) }
+          : {}),
         status: str(row.status) as HabitStatus,
         pauses: cur?.pauses ?? [],
         linkWorkout: Boolean(row.link_workout),
