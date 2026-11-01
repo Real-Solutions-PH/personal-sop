@@ -797,7 +797,7 @@ function JournalEditor({ id }: { id?: string }) {
           : { text: "Saves as you type", color: t.muted, icon: null }
   return (
     <Screen
-      title={existing ? dayLabel(existing.day) : "New entry"}
+      title={entryId.current ? dayLabel(day) : "New entry"}
       actions={
         <Line style={{ gap: 0 }}>
           <IconTap

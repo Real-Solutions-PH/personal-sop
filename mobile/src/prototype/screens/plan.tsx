@@ -199,21 +199,10 @@ export function TaskPlanPanel({
           value={view}
           onChange={setView}
           options={[
+            // Five short labels fit a 320pt phone; "late" is the rows' word.
             { value: "today", label: "Today" },
-            { value: "upcoming", label: "Upcoming" },
-            {
-              value: "overdue",
-              label: (
-                <Copy size={14} weight="medium" muted={view !== "overdue"}>
-                  Overdue{" "}
-                  {d.overdue.length > 0 && (
-                    <Copy size={10} style={{ color: t.warn }}>
-                      {d.overdue.length}
-                    </Copy>
-                  )}
-                </Copy>
-              ),
-            },
+            { value: "upcoming", label: "Next" },
+            { value: "overdue", label: "Late" },
             { value: "done", label: "Done" },
             { value: "lists", label: "Lists" },
           ]}

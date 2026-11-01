@@ -120,7 +120,7 @@ it("Done lists finished tasks with their time, and a tick reopens one", () => {
   fireEvent.press(screen.getByText("Done"))
   expect(screen.getByText("Renew passport")).toBeTruthy()
   expect(screen.queryByText("Still open")).toBeNull()
-  expect(screen.getByText(/^Done 3:42/)).toBeTruthy()
+  expect(screen.getByLabelText(/^Done at 3:42/)).toBeTruthy()
   jest.useFakeTimers()
   fireEvent.press(screen.getByLabelText("Reopen task"))
   // The tick commits after its short animation beat.
