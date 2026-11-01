@@ -47,7 +47,7 @@ members' histories now share rows that no longer record which name each set
 was logged under) and the log keeps what was merged.
 
 Revision ID: c5e1d0a7b391
-Revises: a9e3c51d7b42
+Revises: b7e3d9a41c52
 Create Date: 2026-10-31
 
 """
@@ -60,7 +60,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision = "c5e1d0a7b391"
-down_revision = "a9e3c51d7b42"
+down_revision = "b7e3d9a41c52"
 branch_labels = None
 depends_on = None
 
