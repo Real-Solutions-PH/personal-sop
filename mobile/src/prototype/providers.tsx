@@ -10,11 +10,12 @@ import NetInfo, { type NetInfoState } from "@react-native-community/netinfo"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { useFonts } from "expo-font"
 import { type ReactNode, useCallback, useEffect, useState } from "react"
-import { ActivityIndicator, Pressable, Text, View } from "react-native"
+import { Pressable, Text, View } from "react-native"
 import { GestureHandlerRootView } from "react-native-gesture-handler"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
 import { liveMode } from "@/live/config"
+import { BootScreen } from "./boot/boot-screen"
 import { contactGraceEnds, reachable } from "./connectivity"
 import { connectHealthWorkouts } from "./health-workouts"
 import { sessionStore, startLiveSession } from "./session"
@@ -150,20 +151,10 @@ export function PrototypeProviders({ children }: { children: ReactNode }) {
               </Pressable>
             </View>
           )}
-          {!error && (!ready || (!fontsLoaded && !fontError)) && (
-            <View
-              style={{
-                flex: 1,
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 12,
-              }}
-            >
-              <ActivityIndicator accessibilityLabel="Opening Unfurl" />
-              <Text>Opening Unfurl…</Text>
-            </View>
-          )}
           {ready && (fontsLoaded || fontError) && children}
+          <BootScreen
+            ready={!!error || (ready && (fontsLoaded || !!fontError))}
+          />
           <AppToaster />
         </QueryClientProvider>
       </SafeAreaProvider>

@@ -220,6 +220,8 @@ export interface FinSettings {
   aiScope: AdvisorScope
   disclaimerAck: boolean
   nudgeDays: number
+  /** HH:MM for a bill's daily reminders the week before it's due; empty = off. */
+  billReminder: string
   projExcludedPlanned: string[]
 }
 export interface FinState {
@@ -1030,6 +1032,7 @@ function generate(): Seed {
         aiScope: "aggregates",
         disclaimerAck: false,
         nudgeDays: 21,
+        billReminder: "09:00",
         projExcludedPlanned: [],
       },
     },

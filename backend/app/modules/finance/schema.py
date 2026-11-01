@@ -667,6 +667,10 @@ class SettingsFields(BaseModel):
     ai_scope: Scope | None = None
     disclaimer_ack: bool | None = None
     nudge_days: int | None = Field(default=None, ge=0, le=90)
+    # HH:MM in the user's clock, or null to turn bill reminders off.
+    bill_reminder: str | None = Field(
+        default=None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$"
+    )
     proj_excluded_planned: list[uuid.UUID] | None = Field(default=None, max_length=500)
     setup_done: bool | None = None
 
@@ -684,6 +688,7 @@ class SettingsPublic(BaseModel):
     ai_scope: str
     disclaimer_ack: bool
     nudge_days: int
+    bill_reminder: str | None
     proj_excluded_planned: list[str]
     setup_done: bool
     version: int

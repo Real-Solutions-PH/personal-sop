@@ -807,6 +807,8 @@ export function settingsMapper(userId: string, cats: Cats) {
       ai_scope: v.aiScope,
       disclaimer_ack: v.disclaimerAck,
       nudge_days: v.nudgeDays,
+      // HH:MM, or null with bill reminders off (empty locally).
+      bill_reminder: v.billReminder || null,
       proj_excluded_planned: v.projExcludedPlanned,
       // Server-owned: it remembers these when a record is written.
       last_account_id:
@@ -825,6 +827,7 @@ export function settingsMapper(userId: string, cats: Cats) {
       aiScope: row.ai_scope === "records" ? "records" : "aggregates",
       disclaimerAck: Boolean(row.disclaimer_ack),
       nudgeDays: Number(row.nudge_days),
+      billReminder: str(row.bill_reminder) ?? "",
       projExcludedPlanned: ((row.proj_excluded_planned ?? []) as unknown[]).map(
         String,
       ),

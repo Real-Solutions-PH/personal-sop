@@ -81,11 +81,11 @@ const fromWeek = async (days: readonly string[]) =>
     const i = [6, 5, 4, 3, 2, 1, 0].findIndex((n) => calDay(-n) === d)
     return i < 0 ? null : day(week[i] ?? 0)
   })
-// The month views count the month's days so far: pinned mid-month, or on
-// the 1st (one day so far) the week of fixture days doesn't fit in it.
-const midMonth = () =>
+// Mid-month, so "this month" has more days than the week shown; on the 1st
+// the month's average is today's and the figures can't be told apart. Only
+// Date is faked: the screens' timers and promises run as usual.
+const pinDay = () => {
   jest.useFakeTimers({
-    now: new Date(2026, 9, 15, 12),
     doNotFake: [
       "hrtime",
       "nextTick",
@@ -103,8 +103,10 @@ const midMonth = () =>
       "clearTimeout",
     ],
   })
+  jest.setSystemTime(new Date(2026, 9, 22, 12))
+}
 beforeEach(() => {
-  midMonth()
+  pinDay()
   mockAvailable = true
   mockAsked = async () => true
   mockConnect.mockClear()
