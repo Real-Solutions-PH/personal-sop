@@ -35,8 +35,15 @@ function synth(extra: Record<string, unknown> = {}) {
 }
 
 const { ci, prod } = synth()
-const production = synth({ "unfurl:profile": "production" }).prod
-const lean = synth({ "unfurl:profile": "lean" }).prod
+// The bare profiles, without cdk.json's sizing overrides.
+const production = synth({
+  "unfurl:profile": "production",
+  "unfurl:sizingOverrides": {},
+}).prod
+const lean = synth({
+  "unfurl:profile": "lean",
+  "unfurl:sizingOverrides": {},
+}).prod
 
 type Container = {
   Name: string
@@ -357,8 +364,20 @@ describe("profiles", () => {
     )?.Properties.DesiredCount
   const apiCommand = (t: Template) => container("unfurl-api", "api", t).Command
 
-  test("production (100 people at once) is what cdk.json deploys", () => {
-    expect(cdkJson.context["unfurl:profile"]).toBe("production")
+  test("cdk.json deploys lean with a 0.5 vCPU / 1 GB API (UAT, up to 8 people)", () => {
+    expect(cdkJson.context["unfurl:profile"]).toBe("lean")
+    prod.hasResourceProperties("AWS::ECS::TaskDefinition", {
+      Family: "unfurl-api",
+      Cpu: "512",
+      Memory: "1024",
+    })
+    for (const family of ["unfurl-worker", "unfurl-gotrue", "unfurl-tunnel"]) {
+      prod.hasResourceProperties("AWS::ECS::TaskDefinition", {
+        Family: family,
+        Cpu: "256",
+        Memory: "512",
+      })
+    }
   })
 
   test("lean (up to 5 users): every task at Fargate's smallest size, one uvicorn worker", () => {
