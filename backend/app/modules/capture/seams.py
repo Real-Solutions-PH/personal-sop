@@ -13,8 +13,8 @@ callers turn a failure into a stable error code.
 
 import asyncio
 import base64
-import json
 import re
+import time
 from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor, wait
 from typing import Any, TypeVar
@@ -86,39 +86,59 @@ def ask_text(
     return text_of(out).strip()
 
 
-def ask_many(
-    ctx: Ctx,
-    jobs: list[tuple[ai.ResolvedModel, str, list[tuple[bytes, str]]]],
-    *,
-    system: str,
-    deadline: float,
-) -> list[str | None]:
-    """Several model calls at once, each ``(model, text, images)``; each
-    answer in ``jobs`` order, None for one that failed, answered nothing or
-    missed ``deadline`` seconds. Only the calls run in threads: every
-    ``ai_usage`` row is written here, on the request's own session."""
+class Calls:
+    """Model calls running in threads, collected as they are needed:
+    a caller can act on the first answers and leave a slower call it no
+    longer needs. Every ``ai_usage`` row is written on the caller's thread
+    (the request's session), once per call, by :meth:`answer` or
+    :meth:`close`."""
 
-    def message(text: str, images: list[tuple[bytes, str]]) -> list[BaseMessage]:
+    def __init__(self, *, system: str, workers: int = 6) -> None:
+        self.system = system
+        self.pool = ThreadPoolExecutor(max_workers=workers)
+        self.jobs: list[tuple[ai.ResolvedModel, Any]] = []
+        self.answers: dict[int, str | None] = {}
+
+    def start(
+        self, r: ai.ResolvedModel, text: str, images: list[tuple[bytes, str]]
+    ) -> int:
         content: list[str | dict[Any, Any]] = [{"type": "text", "text": text}]
         for data, mime in images:
             url = f"data:{mime};base64,{base64.b64encode(data).decode()}"
             content.append({"type": "image_url", "image_url": {"url": url}})
-        return [SystemMessage(system), HumanMessage(content=content)]
+        msgs = [SystemMessage(self.system), HumanMessage(content=content)]
+        self.jobs.append((r, self.pool.submit(ai.build_chat_model(r).invoke, msgs)))
+        return len(self.jobs) - 1
 
-    pool = ThreadPoolExecutor(max_workers=max(1, min(len(jobs), 12)))
-    futures = [
-        pool.submit(ai.build_chat_model(r).invoke, message(text, images))
-        for r, text, images in jobs
-    ]
-    done, _ = wait(futures, timeout=deadline)
-    pool.shutdown(wait=False, cancel_futures=True)
-    out: list[str | None] = []
-    for (r, _, _), f in zip(jobs, futures, strict=True):
-        msg = f.result() if f in done and f.exception() is None else None
+    def wait(self, ids: Sequence[int], deadline: float) -> None:
+        """Until every call in ``ids`` ended or ``deadline`` (monotonic)."""
+        left = max(0.0, deadline - time.monotonic())
+        wait([self.jobs[i][1] for i in ids], timeout=left)
+
+    def answer(self, ctx: Ctx, i: int) -> str | None:
+        """Call ``i``'s answer once it ended (None while it runs, or when it
+        failed or said nothing); metered the first time it is read done."""
+        if i in self.answers:
+            return self.answers[i]
+        r, f = self.jobs[i]
+        if not f.done():
+            return None
+        msg = f.result() if f.exception() is None else None
         meter(ctx, r, msg if isinstance(msg, AIMessage) else None, ok=msg is not None)
-        said = text_of(msg).strip() if msg is not None else ""
-        out.append(said or None)
-    return out
+        self.answers[i] = (text_of(msg).strip() or None) if msg is not None else None
+        return self.answers[i]
+
+    def close(self, ctx: Ctx) -> None:
+        """Meter what was never read and stop waiting for it."""
+        for i, (r, f) in enumerate(self.jobs):
+            if i in self.answers:
+                continue
+            if f.done():
+                self.answer(ctx, i)
+            else:
+                f.cancel()
+                meter(ctx, r, None, ok=False)
+        self.pool.shutdown(wait=False, cancel_futures=True)
 
 
 # ---------------------------------------------------------------- voice
@@ -307,16 +327,15 @@ def text_of(msg: BaseMessage) -> str:
     return "".join(parts)
 
 
-_JSON = re.compile(r"\{.*\}", re.S)
-
-
 def parse_json(text: str, schema: type[M]) -> M:
-    m = _JSON.search(text)
-    if m is None:
+    from app.modules.capture.photo_read import json_object
+
+    obj = json_object(text)
+    if obj is None:
         raise SeamError("model_bad_output")
     try:
-        return schema.model_validate(json.loads(m.group(0)))
-    except (ValueError, ValidationError):
+        return schema.model_validate(obj)
+    except ValidationError:
         raise SeamError("model_bad_output") from None
 
 

@@ -66,7 +66,30 @@ NUTRIENTS = (
     ("protein_g", "protein", "g"),
     ("sodium_mg", "sodium", "mg"),
 )
-_JSON = re.compile(r"\{.*\}", re.S)
+_THINK = re.compile(r"<think>.*?</think>", re.S | re.I)
+_DECODER = json.JSONDecoder()
+
+
+def json_object(text: str | None) -> dict[str, Any] | None:
+    """The JSON object in a model's answer, or None. Thinking models put
+    their reasoning (``<think>…</think>``, often with braces in it) or a
+    sentence before the JSON; taking everything from the first "{" to the
+    last "}" then fails to parse and a good answer was thrown away. So the
+    thinking goes first, then the widest object that parses wins."""
+    if not text:
+        return None
+    body = _THINK.sub("", text)
+    best: tuple[int, dict[str, Any]] | None = None
+    at = body.find("{")
+    while at >= 0:
+        try:
+            obj, end = _DECODER.raw_decode(body, at)
+        except ValueError:
+            obj, end = None, at
+        if isinstance(obj, dict) and (best is None or end - at > best[0]):
+            best = (end - at, obj)
+        at = body.find("{", max(end, at + 1))
+    return best[1] if best else None
 
 
 def prepare(data: bytes, mime: str) -> tuple[bytes, str]:
@@ -97,13 +120,8 @@ def parse(text: str | None) -> list[dict[str, Any]] | None:
     """A reader's photos, or None when it did not answer the JSON asked."""
     if not text:
         return None
-    m = _JSON.search(text)
-    if m is None:
-        return None
-    try:
-        photos = json.loads(m.group(0)).get("photos")
-    except (ValueError, AttributeError):
-        return None
+    obj = json_object(text)
+    photos = obj.get("photos") if obj is not None else None
     if not isinstance(photos, list):
         return None
     return [p for p in photos if isinstance(p, dict)]

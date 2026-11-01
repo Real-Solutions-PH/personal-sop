@@ -263,9 +263,12 @@ class Settings(BaseSettings):
     # each label number is decided by majority, so one misread digit never
     # becomes a logged value (measured on real labels: 96% agreed and right,
     # the rest flagged unclear, none agreed and wrong). The first listed is
-    # also the one whose plate and text description is used.
+    # also the one whose plate and text description is used. Order is cost:
+    # the first reads every photo, the second joins for labels, and the
+    # third (the dearest, Kimi K3 at $3/$15 per M tokens) is asked only when
+    # the first two disagree on a label number (capture.public._read_photos).
     NEBIUS_VISION_READERS: str = (
-        "Qwen/Qwen3.8-27B,moonshotai/Kimi-K3,openbmb/MiniCPM-V-4_5"
+        "Qwen/Qwen3.8-27B,openbmb/MiniCPM-V-4_5,moonshotai/Kimi-K3"
     )
     # How long a photo read waits for its readers; a slow one is left out.
     VISION_READ_DEADLINE_SECONDS: float = 30.0

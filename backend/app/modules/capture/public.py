@@ -3,11 +3,13 @@
 None of these commit unless the docstring says so: the calling use case does.
 """
 
+import time
 import uuid
 from collections.abc import Callable
 from datetime import date, timedelta
 from typing import Any, Literal
 
+from fastapi import HTTPException
 from langchain_core.messages import BaseMessage
 from langchain_core.tools import BaseTool
 from sqlmodel import col
@@ -110,34 +112,89 @@ def describe_photos(
     images: list[tuple[bytes, str]] = []
     read: list[uuid.UUID] = []
     for mid in media_ids:
-        m = media.require_ready(ctx, mid, kinds=("image",))
-        data = media.read_bytes(m, max_bytes=seams.IMAGE_MAX_BYTES)
+        # A photo still uploading (or gone) is left out with a note instead
+        # of failing the whole reply.
+        try:
+            m = media.require_ready(ctx, mid, kinds=("image",))
+            data = media.read_bytes(m, max_bytes=seams.IMAGE_MAX_BYTES)
+        except HTTPException:
+            continue
         images.append(photo_read.prepare(data, m.mime))
         read.append(mid)
-    # Each photo in its own request to every reader, all at once: one photo
-    # per request reads labels far more exactly than several together.
+    if not images:
+        return (f"[{label} attached; they could not be opened just now]", [])
     said_text = f"The message with them says: {said or '(no text)'}"
-    jobs = [
-        (r, f"{said_text}\nThis is photo {i + 1} of {n}.", [img])
-        for i, img in enumerate(images)
-        for r in readers
-    ]
-    answers = seams.ask_many(
-        ctx,
-        jobs,
-        system=photo_read.READER + (photo_read.CAREFUL if careful else ""),
-        deadline=settings.VISION_READ_DEADLINE_SECONDS,
-    )
-    k = len(readers)
-    per_photo = [answers[i * k : (i + 1) * k] for i in range(len(images))]
+    system = photo_read.READER + (photo_read.CAREFUL if careful else "")
+    per_photo = _read_photos(ctx, readers, images, said_text, system)
     merged = photo_read.merge(per_photo)
     if merged:
         return (photo_read.render(merged, label), read)
     # A reader that answered in words instead of the JSON asked for.
-    said_any = next((a for a in answers if a), None)
+    said_any = next((a for answers in per_photo for a in answers if a), None)
     if said_any:
         return (f"[{label} attached. What they show:\n{said_any}]", read)
     return (f"[{label} attached; they could not be read just now]", read)
+
+
+def _read_photos(
+    ctx: Ctx,
+    readers: list[ResolvedModel],
+    images: list[tuple[bytes, str]],
+    said_text: str,
+    system: str,
+) -> list[list[str | None]]:
+    """Every photo's answers, readers in order of preference.
+
+    Measured on real labels (the reason for several readers): one model
+    misreads a label digit now and then, and two that agree are right. But
+    every photo used to wait for all three readers, the slowest (and
+    dearest) included, up to the 30 s deadline, before Fern said a word.
+    Now each photo goes to the first two readers at once, and:
+
+    - a plate, a receipt or a screen uses the first reader's answer as soon
+      as it is in (its numbers are estimates or plain text; no vote);
+    - a label waits for the second reader too and votes;
+    - only when those two disagree on a label number does the third reader
+      look, carefully, as the tie-breaker.
+    """
+    n = len(images)
+    calls = seams.Calls(system=system, workers=max(1, min(2 * n, 8)))
+    deadline = time.monotonic() + settings.VISION_READ_DEADLINE_SECONDS
+
+    def text(i: int) -> str:
+        return f"{said_text}\nThis is photo {i + 1} of {n}."
+
+    first = [calls.start(readers[0], text(i), [img]) for i, img in enumerate(images)]
+    second = (
+        [calls.start(readers[1], text(i), [img]) for i, img in enumerate(images)]
+        if len(readers) > 1
+        else []
+    )
+    try:
+        calls.wait(first, deadline)
+        out: list[list[str | None]] = []
+        for i in range(n):
+            a = calls.answer(ctx, first[i])
+            got = photo_read.parse(a)
+            kind = str(got[0].get("kind")) if got else None
+            answers = [a]
+            if second and kind in (None, "label"):
+                # A label is voted on; a photo the first could not read is
+                # read by the second.
+                calls.wait([second[i]], deadline)
+                answers.append(calls.answer(ctx, second[i]))
+                if (
+                    len(readers) > 2
+                    and kind == "label"
+                    and (photo_read.merge_photo(answers) or {}).get("unclear")
+                ):
+                    third = calls.start(readers[2], text(i), [images[i]])
+                    calls.wait([third], deadline)
+                    answers.append(calls.answer(ctx, third))
+            out.append(answers if any(answers) else [None])
+        return out
+    finally:
+        calls.close(ctx)
 
 
 def speak_text(ctx: Ctx, text: str) -> bytes:
