@@ -5,7 +5,7 @@
 // The day's totals against the targets are the rings above, not repeated.
 import * as C from "@domain/fitness/calc"
 import type { Meal } from "@domain/fitness/data"
-import { View } from "react-native"
+import { Text, View } from "react-native"
 import {
   BREAKDOWN_KEYS,
   type BreakdownKey,
@@ -51,42 +51,46 @@ export function MealBreakdown({ meals }: { meals: Meal[] }) {
             All from {name(b.rows.find((r) => r.totals)?.meal as Meal)} so far
           </Copy>
         ) : (
-          <Line style={{ flexWrap: "wrap", gap: 6 }}>
-            {BREAKDOWN_KEYS.map((k) => {
-              const top = b.top[k],
-                col = COLUMNS[k]
-              if (!top) return null
-              const meal = byId.get(top.mealId) as Meal
-              return (
-                <View
-                  key={k}
-                  accessible
-                  accessibilityLabel={`Most ${col.label === "kcal" ? "calories" : col.label.toLowerCase()} from ${name(meal)}, ${pct(top.share)} of the day`}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 4,
-                    borderRadius: 12,
-                    paddingHorizontal: 8,
-                    paddingVertical: 3,
-                    backgroundColor: `${t[col.accent]}1f`,
-                  }}
-                >
-                  <Copy
-                    size={12}
-                    weight="semibold"
-                    maxScale={CELL_SCALE}
-                    style={{ color: t[col.accent] }}
+          // One line per meal that tops something: "Lunch  Calories 54%
+          // Protein 55%", so a meal that leads every macro is named once.
+          <View style={{ gap: 4 }}>
+            {[...new Set(BREAKDOWN_KEYS.map((k) => b.top[k]?.mealId))]
+              .filter((id): id is string => !!id)
+              .map((id) => {
+                const meal = byId.get(id) as Meal,
+                  keys = BREAKDOWN_KEYS.filter((k) => b.top[k]?.mealId === id)
+                return (
+                  <View
+                    key={id}
+                    accessible
+                    accessibilityLabel={`Most ${keys.map((k) => `${k === "kcal" ? "calories" : k} (${pct(b.top[k]?.share ?? 0)})`).join(", ")} from ${name(meal)}`}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 8,
+                      flexWrap: "wrap",
+                    }}
                   >
-                    {col.label === "kcal" ? "Calories" : col.label}
-                  </Copy>
-                  <Copy size={12} maxScale={CELL_SCALE}>
-                    {name(meal)} {pct(top.share)}
-                  </Copy>
-                </View>
-              )
-            })}
-          </Line>
+                    <Copy size={13} weight="medium" maxScale={CELL_SCALE}>
+                      {name(meal)}
+                    </Copy>
+                    {keys.map((k) => (
+                      <Copy key={k} size={12} maxScale={CELL_SCALE}>
+                        <Text
+                          style={{
+                            color: t[COLUMNS[k].accent],
+                            fontWeight: "600",
+                          }}
+                        >
+                          {k === "kcal" ? "Calories" : COLUMNS[k].label}
+                        </Text>{" "}
+                        {pct(b.top[k]?.share ?? 0)}
+                      </Copy>
+                    ))}
+                  </View>
+                )
+              })}
+          </View>
         )}
       </View>
       <Line
@@ -106,6 +110,7 @@ export function MealBreakdown({ meals }: { meals: Meal[] }) {
             maxScale={CELL_SCALE}
             style={{
               width: CELL,
+              paddingRight: 6,
               textAlign: "right",
               color: t[COLUMNS[k].accent],
             }}
@@ -146,19 +151,34 @@ export function MealBreakdown({ meals }: { meals: Meal[] }) {
                   {what}
                 </Copy>
               </View>
+              {/* Waiting for its estimate: one note across the columns. */}
+              {!r.totals && (
+                <Copy
+                  size={12}
+                  muted
+                  maxScale={CELL_SCALE}
+                  style={{
+                    width: CELL * 4,
+                    textAlign: "right",
+                    paddingRight: 6,
+                  }}
+                >
+                  Estimating…
+                </Copy>
+              )}
               {BREAKDOWN_KEYS.map((k) => {
+                if (!r.totals) return null
                 const col = COLUMNS[k],
                   top = b.top[k]?.mealId === r.meal.id && !one
                 return (
                   <View
                     key={k}
                     style={{
-                      width: CELL,
+                      width: CELL - 4,
                       alignItems: "flex-end",
                       paddingVertical: 2,
-                      paddingRight: 4,
-                      marginLeft: 2,
-                      marginRight: -4,
+                      paddingRight: 6,
+                      marginLeft: 4,
                       borderRadius: 8,
                       backgroundColor: top
                         ? `${t[col.accent]}26`
@@ -174,14 +194,10 @@ export function MealBreakdown({ meals }: { meals: Meal[] }) {
                         fontVariant: ["tabular-nums"],
                       }}
                     >
-                      {r.totals ? num(r.totals[k]) : "…"}
+                      {num(r.totals[k])}
                     </Copy>
                     <Copy size={11} muted maxScale={CELL_SCALE}>
-                      {r.totals
-                        ? pct(r.share[k])
-                        : k === "kcal"
-                          ? "pending"
-                          : ""}
+                      {pct(r.share[k])}
                     </Copy>
                   </View>
                 )

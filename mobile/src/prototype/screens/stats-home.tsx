@@ -840,7 +840,7 @@ function NowAndRange({ days, locked }: { days: number; locked: boolean }) {
                 >
                   {locked ? "—" : `${rate}%`}
                 </Copy>
-                {!locked && <Delta value={delta} />}
+                {!locked && delta !== 0 && <Delta value={delta} />}
               </Line>
               <ChevronRight size={16} color={t.muted} />
             </Line>
