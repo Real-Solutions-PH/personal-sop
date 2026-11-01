@@ -134,11 +134,13 @@ def test_fitness_items_due_are_named_so_a_day_without_habits_is_not_empty(
     )
 
 
-def test_an_earlier_days_chat_is_not_sent_to_the_model(
+def test_an_earlier_days_replies_are_not_sent_to_the_model(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Yesterday's reply states yesterday's facts; sent along, the model
-    repeated it over today's. Only the current day's messages go out."""
+    repeated it over today's. An earlier day's replies stay out; the
+    person's own words from the two days before go, dated, so what they
+    asked and decided is not forgotten."""
     from datetime import timedelta
 
     from app.modules.companion.models import CompanionMessage
@@ -159,7 +161,7 @@ def test_an_earlier_days_chat_is_not_sent_to_the_model(
     model = install(monkeypatch, say("Fine."))
     ask(api, "How am I doing today?")
     sent = " ".join(str(m.content) for m in model.seen[0][1:])
-    assert "How was yesterday?" not in sent
+    assert "] How was yesterday?" in sent and "[said " in sent
     assert "You did 1 of 2 yesterday." not in sent
     assert "First question today" in sent and "Earlier today." in sent
 
@@ -237,9 +239,9 @@ def test_steps_are_capped_and_each_call_input_stays_bounded(
     refused = [m for m in tools if "too_many_calls_in_one_turn" in str(m.content)]
     assert len(tools) == 24 and len(refused) == 8
     sizes = [sum(len(str(m.content)) for m in sent) for sent in model.seen]
-    # system + 6 x 600 history + 24 short tool results: far below the 48k
-    # characters the old 12 x 4000 history alone would send
-    assert max(sizes) < 18_000, sizes
+    # system + 12 x 1000 history + 24 short tool results: still far below
+    # the 48k characters the old 12 x 4000 history alone would send
+    assert max(sizes) < 26_000, sizes
     assert [u.input_tokens for u in usage_rows(api)] == [120] * services.MAX_STEPS
 
 

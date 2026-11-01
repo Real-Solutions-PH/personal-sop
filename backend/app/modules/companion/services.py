@@ -61,8 +61,13 @@ Emit = Callable[[str, dict[str, Any]], None]
 # MAX_STEPS model calls and MAX_TOOL_CALLS tool calls (enough to look
 # something up, write several records and answer); tool results are cut in
 # capture's loop (``agent.MAX_TOOL_RESULT_CHARS``).
-HISTORY = 6
-HISTORY_CHARS = 600
+# The turn sends the chat's last HISTORY messages word for word: today's,
+# and the person's own from the HISTORY_DAYS before (dated; earlier-day
+# replies stay out, see ``_history``). Was 6 messages of 600 characters,
+# today only: Fern forgot what was said an hour or a day before.
+HISTORY = 12
+HISTORY_CHARS = 1000
+HISTORY_DAYS = 2
 MAX_STEPS = 6
 # The reply's last line when the person sent another message and asked
 # for it at once ("Send now").
@@ -802,7 +807,9 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
             tags=a.tags,
             importance=a.importance,
             always_on=a.always_on,
-            source="said",
+            # "said" only when the person asked for it to be kept; Fern
+            # saving on its own (mid-reply, or in `learn`) is "inferred".
+            source="said" if _ASKS_TO_REMEMBER.search(run.said or "") else "inferred",
             judge=run.judge,
         )
         out: dict[str, Any] = {
@@ -1392,11 +1399,20 @@ def _remember_first(
 
 
 # Learning without being asked: after a reply, the person's message is read
-# once more for lasting facts about them. Only a message that speaks about
-# them is read, so most turns cost nothing extra.
+# once more for lasting facts and preferences. Only a message that speaks
+# about them, states a habit, or pushes back on the reply is read, so most
+# turns cost nothing extra.
 _ABOUT_ME = re.compile(
     r"\b(i|i'?m|im|i'?ve|i'?d|my|me|mine|myself|we|our|ako|ko|akin|aking|"
     r"namin|kami)\b",
+    re.I,
+)
+# A standing habit or wish said in passing ("I always use zero-cal sugar",
+# "just give me the portion"): worth keeping even inside a log.
+_STANDING = re.compile(
+    r"\b(always|usually|never|every ?time|from now on|prefer|instead of|"
+    r"just (give|tell|show)|give me|don'?t (give|tell|show|ask|add)|stop|"
+    r"lagi|palagi|parati|ayoko|huwag)\b",
     re.I,
 )
 LEARN = """Read the person's message and keep what will still be true and
@@ -1407,21 +1423,45 @@ lasting likes and dislikes, routines, and how they want answers. One call
 per separate fact, as a short third-person statement with its kind; set
 always_on only for a hard constraint (an allergy, a medical rule).
 
+A lasting habit or preference said while logging something IS worth
+keeping, as the habit, not the log: "I had a De-Stresso latte, I always use
+zero-cal sugar there" keeps "Uses zero-calorie sugar in drinks at
+De-Stresso" (kind preference), not the latte.
+
+When the message pushes back on the assistant's reply (shown as REPLY IT
+ANSWERS), keep the lasting wish behind it as a response_style memory,
+stated plainly and positively: "JUST GIVE ME THE PORTION" after a long
+answer keeps "Wants portions given directly (grams per food) without
+preamble". A one-off fix to one entry is not a lasting wish.
+
 Do NOT keep: what they did or ate today, a purchase or a log entry, a
-question, a request or command, a feeling of the moment, or anything about
-the assistant. Most messages hold nothing lasting: then call nothing."""
+question, a one-time request, a feeling of the moment, or anything about
+the assistant itself. Most messages hold nothing lasting: then call
+nothing."""
 
 
-def learn(ctx: Ctx, text: str, *, already: bool) -> list[str]:
-    """Save lasting facts the message holds that nobody asked to keep; runs
-    after the reply has streamed. ``already``: this turn saved a memory
-    (asked for, or by the reply itself), so the message isn't read again."""
-    if (
-        already
-        or len(text) < 12
-        or text.rstrip().endswith("?")
-        or not _ABOUT_ME.search(text)
-    ):
+def learn(
+    ctx: Ctx,
+    text: str,
+    *,
+    already: bool,
+    wrote: bool = False,
+    follows: str | None = None,
+    pushback: bool = False,
+) -> list[str]:
+    """Save lasting facts and preferences the message holds that nobody
+    asked to keep; runs after the reply has streamed. ``already``: this
+    turn saved a memory with remember_fact, so the message isn't read
+    again. A turn that logged something is still read: seen live, "I
+    always use zero-calorie sugar at De-Stresso", said while logging a
+    drink, was never kept, and the next estimate had 24 g of sugar. On such
+    a turn (``wrote``) only a standing habit or wish is worth the call: "log
+    my lunch" speaks about them and holds nothing lasting. ``pushback``:
+    the message corrects or scolds the reply ``follows``, whose start is
+    shown so the wish behind it can be kept."""
+    about_me = bool(_ABOUT_ME.search(text)) and not text.rstrip().endswith("?")
+    asks = pushback or bool(_STANDING.search(text)) or (about_me and not wrote)
+    if already or len(text) < 12 or not asks:
         return []
     resolved = _resolve(ctx)
     if resolved is None:
@@ -1439,12 +1479,15 @@ def learn(ctx: Ctx, text: str, *, already: bool) -> list[str]:
             ):
                 saved.append(name)
 
+    said = text
+    if pushback and follows:
+        said = f"REPLY IT ANSWERS (start): {follows[:600]}\n\nTHEIR MESSAGE: {text}"
     try:
         capture.run_agent(
             ctx,
             resolved,
             system=LEARN,
-            messages=[HumanMessage(text)],
+            messages=[HumanMessage(said)],
             tools=[tool],
             on_text=lambda d: None,
             max_turns=2,
@@ -1722,10 +1765,13 @@ SUMMARY_MSG_CHARS = 400
 SUMMARY_MAX_MSGS = 40
 SUMMARISE = """You keep a running summary of a person's conversation with
 their life assistant. Merge the OLD SUMMARY with the NEW MESSAGES into one
-summary of at most 150 words: ongoing threads, decisions, promises,
-questions still open, how the conversation has gone. Leave out numbers that
-change daily (totals, balances, macros) and anything the assistant only
-looked up. Plain text, no lists."""
+summary of at most 200 words: ongoing threads, decisions, promises,
+questions still open, preferences and corrections they gave (how they want
+answers, what was wrong), how the conversation has gone. Keep the numbers
+that were decided or stated as lasting (a target, a budget, a usual
+portion, a dose); leave out numbers that change daily (today's totals,
+balances, macros left) and anything the assistant only looked up. Plain
+text, no lists."""
 
 
 def _summary_row(ctx: Ctx) -> Companion | CompanionThread:
@@ -1793,6 +1839,20 @@ def refresh_summary(ctx: Ctx, resolved: ai.ResolvedModel) -> None:
     row.summary_through = older[-1].created_at
     ctx.session.add(row)
     ctx.session.flush()
+
+
+def summarise_later(ctx: Ctx, thread_id: uuid.UUID | None) -> None:
+    """``refresh_summary`` for the chat ``thread_id``, after the reply is
+    out (the route calls it), so folding older messages never delays one."""
+    resolved = _resolve(ctx)
+    if resolved is None:
+        return
+    token = _THREAD.set(thread_for(ctx, thread_id))
+    try:
+        refresh_summary(ctx, resolved)
+    finally:
+        _THREAD.reset(token)
+    ctx.commit()
 
 
 def _window_rows(ctx: Ctx) -> list[CompanionMessage]:
@@ -1932,15 +1992,23 @@ def _settle_step_states(ctx: Ctx, steps: list[Step]) -> None:
 def _history(ctx: Ctx, rows: list[CompanionMessage]) -> list[BaseMessage]:
     out: list[BaseMessage] = []
     for m in reversed(rows):
+        day = ctx.clock.day_of(m.created_at)
         # An earlier day's replies state that day's facts; sent along, the
         # model repeats them over TODAY's (yesterday's "1 of 2 done", today).
-        if ctx.clock.day_of(m.created_at) != ctx.today:
+        # The person's own words from the days before still carry what
+        # they asked and decided, so they go, dated.
+        if day != ctx.today and (
+            m.role != "me" or (ctx.today - day).days > HISTORY_DAYS
+        ):
             continue
         if m.role == "me":
             read = _photo_read(m)
             if m.text or read:
+                when = "" if day == ctx.today else f"[said {day.isoformat()}] "
                 out.append(
-                    HumanMessage(f"{(m.text or '')[:HISTORY_CHARS]}\n\n{read}".strip())
+                    HumanMessage(
+                        f"{when}{(m.text or '')[:HISTORY_CHARS]}\n\n{read}".strip()
+                    )
                 )
             continue
         # What a reply did goes in the system prompt (``_earlier_actions``),
@@ -1968,24 +2036,24 @@ def _ask_ai(
     *,
     photos: list[uuid.UUID] | None = None,
 ) -> AskOut:
-    refresh_summary(ctx, resolved)
-    # Memories kept while no embedding model answered, or from before the
-    # memory layer, are embedded as they are next needed.
-    memory.backfill(ctx, limit=20)
+    # The summary and memory embeddings are kept up to date after the reply
+    # (``summarise_later``, ``memory.backfill`` from the route): run here,
+    # they put a model call and an embedding call before the first word.
     first = brain.first_name(user_name)
 
     def make_system() -> str:
         # Built after any memory this message asked for is saved, so the
         # reply already follows it.
-        mems = memory.always_on(ctx)
+        # Always-on memories, those relevant to this message (recalled
+        # without a tool call) and the rules learned from feedback.
+        mems = memory.context_block(ctx, text)
         return SYSTEM.format(sol=sol_name, user=first) + CONTEXT.format(
             today=ctx.today.isoformat(),
             now=ctx.now.astimezone(ctx.clock.zone).strftime("%A %Y-%m-%d %H:%M"),
             day_start=f"{ctx.clock.start_hour:02d}:00",
             currency=ctx.currency.phrase,
             today_facts=json.dumps(grounding.snapshot(ctx), ensure_ascii=False),
-            memories="\n".join(f"- [{m.id}] ({m.kind}) {m.text}" for m in mems)
-            or "(nothing yet)",
+            memories=mems,
             summary=_summary_block(ctx),
             earlier=_earlier_actions(ctx, rows),
             trackers=json.dumps(

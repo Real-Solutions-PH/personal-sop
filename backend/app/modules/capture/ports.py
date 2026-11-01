@@ -129,14 +129,26 @@ def build_world(ctx: Ctx, *, at: datetime | None = None) -> World:
 # ---------------------------------------------------------------- reads
 
 
+# A run of capitalised words not at a sentence start: a name, a place, a
+# brand ("De-Stresso", "Ana", "UST") in a memory Fern keeps.
+_PROPER = re.compile(r"(?<![.!?]\s)(?<!^)\b([A-Z][\w'&-]+(?:\s+[A-Z][\w'&-]+){0,2})")
+
+
 def speech_names(ctx: Ctx) -> tuple[list[str], list[str]]:
-    """(habit, exercise and account names; food library names): the
-    person's own words for speech to text to expect. Archived habits and
-    accounts are left out."""
+    """(the person's own names; food library names): words for speech to
+    text to expect. Habit, exercise and account names; the payees they pay
+    most (cafés, shops, people: "De-Stresso" was heard as "the stress
+    oh"); and the names and places in what Fern remembers about them.
+    Archived habits and accounts are left out."""
+    from app.modules.companion import memory
+
     exercises, foods = fitness.names_for_speech(ctx)
     names = [h.name for h in habits.list_habits(ctx) if h.status != "archived"]
     names += exercises
     names += [a.name for a in finance.list_accounts(ctx) if not a.archived]
+    names += finance.frequent_payees(ctx)
+    for m in memory.live(ctx):
+        names += [p for p in _PROPER.findall(m.text) if p not in ("Fern", "I")]
     return names, foods
 
 

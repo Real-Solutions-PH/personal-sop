@@ -197,6 +197,25 @@ def _read_photos(
         calls.close(ctx)
 
 
+def cards_in_states(ctx: Ctx, card_ids: list[str], states: tuple[str, ...]) -> int:
+    """How many of the person's cards ``card_ids`` are in one of ``states``
+    (Fern's feedback counts a discarded or undone card against its reply)."""
+    ids = []
+    for c in card_ids:
+        try:
+            ids.append(uuid.UUID(c))
+        except ValueError:
+            continue
+    if not ids:
+        return 0
+    return owned_repo.count_rows(
+        ctx,
+        RecordCard,
+        col(RecordCard.id).in_(ids),
+        col(RecordCard.state).in_(states),
+    )
+
+
 def speak_text(ctx: Ctx, text: str) -> bytes:
     """``text`` read aloud as MP3 by the server's voice; checks the spend
     cap first and meters the call. 503 ``speech_unavailable`` without a

@@ -19,15 +19,23 @@ one (the old is superseded and kept as history), or is different. Without
 an embedding model memories are still kept, matched by hash only, and
 embedded later by :func:`backfill`.
 
+Every turn's context is built by :func:`context_block`: the always-on
+memories, then the memories most relevant to the message (recalled
+automatically, no tool call needed, within :data:`RECALL_CHARS`), then the
+rules Fern learned from everyone's feedback (:mod:`feedback`, de-identified
+and approved; never one person's data).
+
 Everything here is scoped to the signed-in owner and tenant; no query reads
 another person's memories.
 """
 
 import hashlib
+import math
 import re
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import Any, Literal
 
 from sqlalchemy import text as sql
@@ -55,6 +63,20 @@ QUERY_PREFIX = (
     "about them that answer it\nQuery: "
 )
 RECALL_MIN = 0.30
+# Auto-recall: memories relevant to the message go into the turn's context
+# without the model asking (seen live: "I always use zero-calorie sugar at
+# De-Stresso" was kept, but Fern never called recall_memories and estimated
+# 24 g of sugar). RECALL_FETCH candidates are re-ranked (see `_rerank`) and
+# kept while they fit RECALL_CHARS (~300 tokens).
+AUTO_RECALL_K = 6
+RECALL_FETCH = 12
+RECALL_CHARS = 1200
+# A memory used in the last USED_RECENTLY days, or used often, wins a tie
+# with one never used. Equally relevant memories still get adjacent ranks
+# (one rank step apart, 1/61 - 1/62 at the top), so the bonus reaches two
+# steps at most: enough to reorder near-equals, never to lift a memory far
+# past a more relevant one.
+USED_RECENTLY = timedelta(days=14)
 
 Verdict = Literal["same", "update", "contradicts", "different"]
 Judge = Callable[[str, str], Verdict]
@@ -224,6 +246,24 @@ def _refresh(
     return m
 
 
+def _rerank(ctx: Ctx, scored: list[tuple[Memory, float]]) -> list[Memory]:
+    """Fused relevance first; among near-equals, the memory that is more
+    important, used more often and used lately. The bonus is at most two
+    rank steps (importance 0.6, use 0.7, recent use 0.7), so it orders
+    near-equals and never lifts a memory far past a more relevant one."""
+    step = 1 / 61 - 1 / 62
+
+    def score(item: tuple[Memory, float]) -> float:
+        m, fused = item
+        bonus = (m.importance - 3) / 2 * 0.6
+        bonus += min(1.0, math.log1p(m.use_count) / math.log1p(20)) * 0.7
+        if m.last_used_at is not None and ctx.now - m.last_used_at <= USED_RECENTLY:
+            bonus += 0.7
+        return fused + bonus * step
+
+    return [m for m, _ in sorted(scored, key=score, reverse=True)]
+
+
 def recall(
     ctx: Ctx,
     query: str,
@@ -232,7 +272,8 @@ def recall(
     k: int = RECALL_K,
 ) -> list[Memory]:
     """The live memories most relevant to ``query``: vector and full-text
-    rankings fused (reciprocal rank, k=60). Marks them used."""
+    rankings fused (reciprocal rank, k=60), re-ranked by importance and use
+    (``_rerank``). Marks them used."""
     words = [w for w in re.findall(r"\w+", query.casefold()) if len(w) > 2][:12]
     emb = _embed_one(ctx, QUERY_PREFIX + query)
     kind_sql = "AND kind = ANY(:kinds)" if kinds else ""
@@ -241,7 +282,7 @@ def recall(
         "owner": ctx.user_id,
         "tenant": ctx.tenant_id,
         "kinds": kinds or [],
-        "k": k,
+        "k": max(k, RECALL_FETCH),
     }
     base = (
         "FROM memory WHERE owner_id = :owner AND tenant_id = :tenant "
@@ -274,11 +315,12 @@ def recall(
         ),
         params,
     ).all()
-    ids = [r[0] for r in rows]
+    fused = {r[0]: float(r[1]) for r in rows}
     found = {
-        m.id: m for m in owned_repo.list_rows(ctx, Memory, col(Memory.id).in_(ids))
+        m.id: m
+        for m in owned_repo.list_rows(ctx, Memory, col(Memory.id).in_(list(fused)))
     }
-    out = [found[i] for i in ids if i in found]
+    out = _rerank(ctx, [(found[i], f) for i, f in fused.items() if i in found])[:k]
     for m in out:
         m.last_used_at = ctx.now
         m.use_count += 1
@@ -310,3 +352,44 @@ def backfill(ctx: Ctx, *, limit: int = 50) -> int:
         ctx.session.add(m)
     ctx.session.flush()
     return len(rows)
+
+
+def _line(m: Memory) -> str:
+    return f"- [{m.id}] ({m.kind}) {m.text}"
+
+
+def context_block(ctx: Ctx, query: str) -> str:
+    """Everything Fern keeps that this turn should see, as prompt lines:
+    the always-on memories, the memories most relevant to ``query``
+    (recalled here, so the model needs no tool call to see them), and the
+    approved rules learned from everyone's feedback. Each part has its own
+    budget, so a long memory list never crowds out the rules."""
+    from app.modules.companion import feedback
+
+    pinned = always_on(ctx)
+    lines = [_line(m) for m in pinned] or ["(nothing yet)"]
+    seen = {m.id for m in pinned}
+    relevant: list[str] = []
+    used = 0
+    if query.strip():
+        for m in recall(ctx, query, k=AUTO_RECALL_K):
+            if m.id in seen:
+                continue
+            if used + len(m.text) > RECALL_CHARS:
+                break
+            relevant.append(_line(m))
+            used += len(m.text)
+    if relevant:
+        lines += [
+            "RELEVANT TO THIS MESSAGE (recalled for you; follow these when they "
+            "apply, e.g. a stated ingredient or habit changes an estimate):",
+            *relevant,
+        ]
+    rules = feedback.active_rules(ctx)
+    if rules:
+        lines += [
+            "HOW TO ANSWER (learned from many people's feedback on Fern; the "
+            "person's own memories above win where they differ):",
+            *(f"- {r}" for r in rules),
+        ]
+    return "\n".join(lines)

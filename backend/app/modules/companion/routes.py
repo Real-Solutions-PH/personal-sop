@@ -9,11 +9,15 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from fastapi.responses import Response, StreamingResponse
 
-from app.modules.companion import gate, notify, runs, services, turn
+from app.modules.companion import feedback, gate, memory, notify, runs, services, turn
 from app.modules.companion.schema import (
     AskIn,
     AskOut,
     CompanionState,
+    FeedbackIn,
+    FeedbackPublic,
+    FernRuleDecision,
+    FernRulePublic,
     InsightsOut,
     MemoryIn,
     MemoryPublic,
@@ -22,11 +26,17 @@ from app.modules.companion.schema import (
     Metric,
     RenameIn,
     ReplyOut,
+    RuleStatus,
     SeriesOut,
     TrackerIn,
     TrackerPublic,
 )
-from app.modules.iam.deps import release_connection, require_permission
+from app.modules.iam.deps import (
+    get_current_active_superuser,
+    release_connection,
+    require_permission,
+)
+from app.modules.profile import public as profile
 from app.shared.context import Ctx, CtxDep, make_ctx
 from app.shared.events import publish
 from app.shared.pagination import PaginationDep
@@ -182,21 +192,12 @@ def ask_stream(
         # A person who left the app (the phone dropped this stream) hears
         # that the reply is ready; one still in the app sees it arrive.
         notify.reply_pushed(ctx, out)
-        # The reply is out; what the message says about them that will last
-        # is kept now, unless this turn already saved a memory. A failure
+        # The reply is out: what the turn teaches is learned now. A failure
         # here is logged and never reaches the finished reply.
         try:
-            services.learn(
-                ctx,
-                data.text,
-                # A turn that saved a memory, or recorded what the message
-                # asked for (a task, a meal), has used it already.
-                already=any(
-                    s.ok
-                    and (s.name == "remember_fact" or s.name in services.WRITE_TOOLS)
-                    for s in stream.steps
-                ),
-            )
+            me = next((m for m in out.messages if m.role == "me"), None)
+            if me is not None:
+                _after_reply(ctx, data.text, me.id, stream, data.thread_id)
         except Exception as exc:  # noqa: BLE001 - after the reply, best effort
             ctx.session.rollback()
             log.warning("companion learn failed: %s", type(exc).__name__)
@@ -213,6 +214,96 @@ def ask_stream(
         runs.tail(uid, run_id, last_event_id),
         media_type="text/event-stream",
         headers=SSE_HEADERS,
+    )
+
+
+def _after_reply(
+    ctx: Ctx,
+    text: str,
+    me_id: uuid.UUID,
+    stream: turn.TurnStream,
+    thread_id: uuid.UUID | None,
+) -> None:
+    """Learning that waits until the reply is out (none of it delays a word):
+
+    1. the message's pushback on the reply before it, and cards the person
+       undid, become feedback signals (``feedback``);
+    2. lasting facts and preferences in the message are kept, also on a
+       turn that logged something (``services.learn``);
+    3. waiting thumbs-down notes are learned from, for the person and, de-
+       identified, for every Fern (``feedback.digest``);
+    4. memories still without an embedding are embedded for recall, and
+       older messages are folded into the chat's summary.
+    """
+    signal = feedback.record_turn_signal(ctx, me_id, text)
+    feedback.record_undos(ctx, me_id)
+    services.learn(
+        ctx,
+        text,
+        # A memory saved this turn (asked for, or by the reply) has used
+        # the message already; a write (a task, a meal) has not: a habit
+        # said while logging is still worth keeping.
+        already=any(s.ok and s.name == "remember_fact" for s in stream.steps),
+        wrote=any(s.ok and s.name in services.WRITE_TOOLS for s in stream.steps),
+        follows=signal[1].text if signal else None,
+        pushback=signal is not None,
+    )
+    mems = " ".join(m.text for m in memory.live(ctx))
+    feedback.digest(
+        ctx,
+        private=" ".join(
+            [
+                ctx.user.full_name or "",
+                ctx.user.email,
+                profile.get_profile(ctx).name or "",
+                mems,
+                text,
+            ]
+        ),
+        learn=lambda words, reply: services.learn(
+            ctx, words, already=False, follows=reply, pushback=True
+        ),
+    )
+    memory.backfill(ctx, limit=20)
+    ctx.commit()
+    services.summarise_later(ctx, thread_id)
+
+
+@router.put(
+    "/messages/{message_id}/feedback",
+    response_model=FeedbackPublic | None,
+    dependencies=WRITE,
+)
+def rate_reply(ctx: CtxDep, message_id: uuid.UUID, data: FeedbackIn) -> Any:
+    """Thumbs up or down on one Fern reply (``rating: null`` clears it). A
+    thumbs-down may carry a reason chip and a short note; Fern learns from
+    it after its next reply (``feedback.digest``)."""
+    row = feedback.rate(
+        ctx, message_id, rating=data.rating, reason=data.reason, note=data.note
+    )
+    return FeedbackPublic.model_validate(row) if row is not None else None
+
+
+ADMIN = [Depends(get_current_active_superuser)]
+
+
+@router.get("/fern-rules", response_model=list[FernRulePublic], dependencies=ADMIN)
+def list_rules(ctx: CtxDep, status: RuleStatus | None = None) -> Any:
+    """Every rule learned for all of Fern, most supported first (admins).
+    Rules hold no personal data; only approved ones, or ones past the
+    automatic threshold, shape answers."""
+    return [
+        FernRulePublic.model_validate(r) for r in feedback.rules(ctx=ctx, status=status)
+    ]
+
+
+@router.patch(
+    "/fern-rules/{rule_id}", response_model=FernRulePublic, dependencies=ADMIN
+)
+def decide_rule(ctx: CtxDep, rule_id: uuid.UUID, data: FernRuleDecision) -> Any:
+    """Approve, reject or re-open a shared rule, optionally rewording it."""
+    return FernRulePublic.model_validate(
+        feedback.decide(ctx, rule_id, data.status, data.text)
     )
 
 

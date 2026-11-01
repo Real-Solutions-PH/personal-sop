@@ -160,11 +160,13 @@ def test_agent_blocks_and_a_write_stream_as_ag_ui(
     ]
     assert done["engine"] == "ai" and done["capture"]["source"] == "chat"
     assert done["capture"]["cards"][0]["kind"] == "workout"
-    # Trackers are in the model's context; a plain fact is not (it is found
-    # with recall_memories), only how to answer and who they are.
+    # Trackers are in the model's context. A plain fact is not always on
+    # (only how to answer and who they are), but one relevant to the message
+    # is recalled into it without a tool call.
     system = model.seen[0][0].content
     assert "ABOUT THEM" in system and "workouts" in system
-    assert "Training for a 10K" not in system
+    pinned, relevant = system.split("RELEVANT TO THIS MESSAGE")
+    assert "Training for a 10K" not in pinned and "Training for a 10K" in relevant
     with Session(db_engine) as s:
         purposes = [
             u.purpose
