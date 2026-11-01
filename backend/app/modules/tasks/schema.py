@@ -173,6 +173,7 @@ class TaskUpdate(BaseModel):
     remind_at: Instant | None = None
     due_time: HM | None = None
     estimate_min: int | None = Field(default=None, ge=1, le=6000)
+    nag_every_min: int | None = Field(default=None, ge=15, le=720)
 
 
 class TaskSync(BaseModel):
@@ -190,6 +191,7 @@ class TaskSync(BaseModel):
     starred: bool | None = None
     tags: Tags | None = None
     estimate_min: int | None = Field(default=None, ge=1, le=6000)
+    nag_every_min: int | None = Field(default=None, ge=15, le=720)
     cleared_at: Instant | None = None
     source: TaskSource | None = None
     parse_state: ParseState | None = None
@@ -260,6 +262,7 @@ class TaskPublic(BaseModel):
     sort_order: int
     series_parent_id: uuid.UUID | None
     estimate_min: int | None = None
+    nag_every_min: int | None = None
     version: int
 
 

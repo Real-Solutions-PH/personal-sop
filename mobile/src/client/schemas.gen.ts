@@ -6385,6 +6385,19 @@ export const HabitCreateSchema = {
             ],
             title: 'Reminder'
         },
+        nag_every_min: {
+            anyOf: [
+                {
+                    type: 'integer',
+                    maximum: 720,
+                    minimum: 15
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Nag Every Min'
+        },
         link_workout: {
             anyOf: [
                 {
@@ -6673,6 +6686,17 @@ export const HabitPublicSchema = {
             type: 'boolean',
             title: 'Reminder'
         },
+        nag_every_min: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Nag Every Min'
+        },
         status: {
             type: 'string',
             title: 'Status'
@@ -6880,6 +6904,19 @@ export const HabitUpdateSchema = {
                 }
             ],
             title: 'Reminder'
+        },
+        nag_every_min: {
+            anyOf: [
+                {
+                    type: 'integer',
+                    maximum: 720,
+                    minimum: 15
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Nag Every Min'
         },
         link_workout: {
             anyOf: [
@@ -11908,6 +11945,17 @@ export const OverdueTaskSchema = {
                 }
             ],
             title: 'Estimate Min'
+        },
+        nag_every_min: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Nag Every Min'
         },
         version: {
             type: 'integer',
@@ -19563,6 +19611,17 @@ export const TaskDetailSchema = {
             ],
             title: 'Estimate Min'
         },
+        nag_every_min: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Nag Every Min'
+        },
         version: {
             type: 'integer',
             title: 'Version'
@@ -19868,6 +19927,17 @@ export const TaskPublicSchema = {
             ],
             title: 'Estimate Min'
         },
+        nag_every_min: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Nag Every Min'
+        },
         version: {
             type: 'integer',
             title: 'Version'
@@ -19989,6 +20059,19 @@ export const TaskUpdateSchema = {
                 }
             ],
             title: 'Estimate Min'
+        },
+        nag_every_min: {
+            anyOf: [
+                {
+                    type: 'integer',
+                    maximum: 720,
+                    minimum: 15
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Nag Every Min'
         }
     },
     type: 'object',

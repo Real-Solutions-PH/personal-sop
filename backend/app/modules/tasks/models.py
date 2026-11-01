@@ -66,6 +66,10 @@ class Task(OwnedRow, table=True):
             "estimate_min IS NULL OR estimate_min BETWEEN 1 AND 6000",
             name="ck_task_estimate",
         ),
+        CheckConstraint(
+            "nag_every_min IS NULL OR nag_every_min BETWEEN 15 AND 720",
+            name="ck_task_nag_every",
+        ),
     )
 
     title: str = Field(max_length=280)
@@ -95,6 +99,10 @@ class Task(OwnedRow, table=True):
     # How long the person expects it to take; Focus shows time spent
     # against it (ADR-0025).
     estimate_min: int | None = Field(default=None, sa_type=Integer)
+    # "Keep reminding me": once overdue, remind again every this many
+    # minutes for the rest of that day. NULL = off. The phone schedules
+    # the repeats as local notifications.
+    nag_every_min: int | None = Field(default=None, sa_type=Integer)
     # The task this one was spawned from by recurrence (derived id lineage).
     series_parent_id: uuid.UUID | None = Field(
         default=None, foreign_key="task.id", ondelete="SET NULL"

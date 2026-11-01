@@ -1627,6 +1627,7 @@ export type HabitCreate = {
     step?: (number | null);
     schedule?: (Array<ScheduleSlot> | null);
     reminder?: (boolean | null);
+    nag_every_min?: (number | null);
     link_workout?: (boolean | null);
     id?: (string | null);
 };
@@ -1677,6 +1678,7 @@ export type HabitPublic = {
         [key: string]: unknown;
     }>;
     reminder: boolean;
+    nag_every_min?: (number | null);
     status: string;
     link_workout: boolean;
     archived_at: (string | null);
@@ -1735,6 +1737,7 @@ export type HabitUpdate = {
     step?: (number | null);
     schedule?: (Array<ScheduleSlot> | null);
     reminder?: (boolean | null);
+    nag_every_min?: (number | null);
     link_workout?: (boolean | null);
     sort_order?: (number | null);
 };
@@ -2700,6 +2703,7 @@ export type OverdueTask = {
     sort_order: number;
     series_parent_id: (string | null);
     estimate_min?: (number | null);
+    nag_every_min?: (number | null);
     version: number;
     days_late: number;
 };
@@ -4086,6 +4090,7 @@ export type TaskDetail = {
     sort_order: number;
     series_parent_id: (string | null);
     estimate_min?: (number | null);
+    nag_every_min?: (number | null);
     version: number;
     repeat_text?: (string | null);
     list_name?: string;
@@ -4128,6 +4133,7 @@ export type TaskPublic = {
     sort_order: number;
     series_parent_id: (string | null);
     estimate_min?: (number | null);
+    nag_every_min?: (number | null);
     version: number;
 };
 
@@ -4154,6 +4160,7 @@ export type TaskUpdate = {
     remind_at?: (string | null);
     due_time?: (string | null);
     estimate_min?: (number | null);
+    nag_every_min?: (number | null);
 };
 
 export type TemplateItemOut = {
