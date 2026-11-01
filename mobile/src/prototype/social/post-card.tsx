@@ -347,12 +347,6 @@ function PostMenu({
             Icon: UserMinus,
             run: () => toggleFollow(post.by),
           },
-          {
-            label: "Report",
-            Icon: Ellipsis,
-            danger: true,
-            run: () => {},
-          },
         ]),
   ]
   return (

@@ -419,20 +419,7 @@ export function AccountForm({ onBack }: { onBack: () => void }) {
                 color: t.text,
               }}
             >
-              I agree to the{" "}
-              <Text
-                accessibilityRole="link"
-                style={{ fontFamily: fonts.medium, color: t.primary }}
-              >
-                Terms of Service
-              </Text>{" "}
-              and{" "}
-              <Text
-                accessibilityRole="link"
-                style={{ fontFamily: fonts.medium, color: t.primary }}
-              >
-                Privacy Policy
-              </Text>
+              I agree to the Terms of Service and Privacy Policy
             </Text>
           </Checkbox>
           {show("terms") && (
