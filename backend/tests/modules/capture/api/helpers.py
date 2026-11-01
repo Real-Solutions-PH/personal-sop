@@ -32,10 +32,14 @@ def call(name: str, **args: Any) -> dict[str, Any]:
 
 
 def say(
-    text: str = "", *calls: dict[str, Any], tokens: tuple[int, int] = (120, 30)
+    text: str = "",
+    *calls: dict[str, Any],
+    tokens: tuple[int, int] = (120, 30),
+    thinking: str = "",
 ) -> AIMessage:
     return AIMessage(
         content=text,
+        additional_kwargs={"reasoning_content": thinking} if thinking else {},
         tool_calls=list(calls),
         usage_metadata={
             "input_tokens": tokens[0],
@@ -85,6 +89,16 @@ class ScriptedModel(BaseChatModel):
         **kwargs: Any,
     ) -> Iterator[ChatGenerationChunk]:
         msg = self._next(messages)
+        # A reasoning model's thinking streams first, as the provider sends
+        # it (``reasoning_content`` on each chunk).
+        think = str(msg.additional_kwargs.get("reasoning_content") or "")
+        for i, w in enumerate(think.split(" ") if think else []):
+            yield ChatGenerationChunk(
+                message=AIMessageChunk(
+                    content="",
+                    additional_kwargs={"reasoning_content": w if i == 0 else f" {w}"},
+                )
+            )
         text = msg.content if isinstance(msg.content, str) else ""
         words = text.split(" ") if text else []
         for i, w in enumerate(words):

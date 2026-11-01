@@ -6,7 +6,7 @@ import { Geist_500Medium } from "@expo-google-fonts/geist/500Medium"
 import { Geist_600SemiBold } from "@expo-google-fonts/geist/600SemiBold"
 import { GeistMono_400Regular } from "@expo-google-fonts/geist-mono/400Regular"
 import { GeistMono_500Medium } from "@expo-google-fonts/geist-mono/500Medium"
-import NetInfo from "@react-native-community/netinfo"
+import NetInfo, { type NetInfoState } from "@react-native-community/netinfo"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { useFonts } from "expo-font"
 import { type ReactNode, useCallback, useEffect, useState } from "react"
@@ -16,7 +16,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
 import { liveMode } from "@/live/config"
 import { BootScreen } from "./boot/boot-screen"
-import { reachable } from "./connectivity"
+import { contactGraceEnds, reachable } from "./connectivity"
 import { connectHealthWorkouts } from "./health-workouts"
 import { sessionStore, startLiveSession } from "./session"
 import { prototypeStorage } from "./storage"
@@ -98,18 +98,28 @@ export function PrototypeProviders({ children }: { children: ReactNode }) {
       })
     }
   }, [])
-  useEffect(
-    () =>
-      NetInfo.addEventListener((state) => {
-        const online = reachable(state)
-        setConnectivity(online)
-        if (online && liveMode)
-          (
-            require("@/live/runtime") as typeof import("@/live/runtime")
-          ).syncNow()
-      }),
-    [],
-  )
+  useEffect(() => {
+    let recheck: ReturnType<typeof setTimeout> | undefined
+    const apply = (state: NetInfoState, again = false) => {
+      clearTimeout(recheck)
+      const online = reachable(state)
+      setConnectivity(online)
+      // Online only on the server's recent answer: look again once that
+      // grace runs out, in case the server has stopped answering since.
+      if (online && state.isInternetReachable === false)
+        recheck = setTimeout(
+          () => apply(state, true),
+          Math.max(contactGraceEnds() - Date.now(), 0) + 50,
+        )
+      if (online && liveMode && !again)
+        (require("@/live/runtime") as typeof import("@/live/runtime")).syncNow()
+    }
+    const off = NetInfo.addEventListener((state) => apply(state))
+    return () => {
+      clearTimeout(recheck)
+      off()
+    }
+  }, [])
   // Live mode: the Supabase session decides whether the person is signed in;
   // a restored session starts sync without a sign-in screen.
   useEffect(() => {

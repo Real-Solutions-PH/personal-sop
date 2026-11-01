@@ -4963,10 +4963,18 @@ export type CompanionAskData = {
 export type CompanionAskResponse = (AskOut);
 
 export type CompanionAskStreamData = {
+    lastEventId?: (string | null);
     requestBody: app__modules__companion__schema__AskIn;
 };
 
 export type CompanionAskStreamResponse = (unknown);
+
+export type CompanionReplyEventsData = {
+    lastEventId?: (string | null);
+    messageId: string;
+};
+
+export type CompanionReplyEventsResponse = (unknown);
 
 export type CompanionStopReplyData = {
     messageId: string;

@@ -10,11 +10,19 @@ import { LinearGradient } from "expo-linear-gradient"
 import { Mic, MicOff, Pause, Play, Send, Trash2 } from "lucide-react-native"
 import { useEffect, useRef, useState } from "react"
 import { AppState, View } from "react-native"
+import { toast } from "sonner-native"
 import { liveMode } from "@/live/config"
 import { stopSpeech } from "@/live/speech"
 import { Copy, IconTap, Line } from "../native-kit"
-import { useTheme } from "../theme"
+import { fonts, useTheme } from "../theme"
 import { Button, Sheet } from "../ui"
+
+/** The longest recording the server transcribes (its DICTATION_MAX_SEC).
+ * The sheet counts down to it and stops there, keeping what was said,
+ * rather than letting a longer one be refused after the fact. */
+export const VOICE_MAX_SEC = 300
+/** The countdown turns to the warning colour this close to the limit. */
+const WARN_SEC = 30
 
 const samples: Record<string, string> = {
   meal: "two eggs, pandesal and coffee for breakfast",
@@ -28,7 +36,7 @@ export function CaptureVoice({
   hint,
   onClose,
   onDone,
-  maxSec = 300,
+  maxSec = VOICE_MAX_SEC,
   onRecording,
 }: {
   hint?: string
@@ -53,6 +61,8 @@ export function CaptureVoice({
     finishing = useRef(false),
     timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const seconds = Math.min(maxSec, status.durationMillis / 1000)
+  const left = Math.max(0, Math.ceil(maxSec - seconds))
+  const near = left <= WARN_SEC
   const serverTranscribes = liveMode && onRecording !== undefined
   async function start() {
     // The person is about to talk: Fern stops reading aloud.
@@ -80,9 +90,13 @@ export function CaptureVoice({
       if (mounted.current) setPhase("denied")
     }
   }
-  async function finish(simulated = false) {
+  async function finish(simulated = false, atLimit = false) {
     if (finishing.current) return
     finishing.current = true
+    if (atLimit)
+      toast(
+        `Stopped at the ${Math.round(maxSec / 60)}-minute limit. Your recording is kept.`,
+      )
     try {
       if (status.isRecording || phase === "paused") await recorder.stop()
     } catch {}
@@ -134,7 +148,7 @@ export function CaptureVoice({
         Math.min(1, 10 ** ((status.metering ?? -50) / 30)),
       )
       setLevels((x) => [...x.slice(1), level])
-      if (seconds >= maxSec) void finish()
+      if (seconds >= maxSec) void finish(false, true)
     }
   }, [status.durationMillis, status.metering])
   return (
@@ -196,13 +210,54 @@ export function CaptureVoice({
       ) : (
         <>
           <Copy size={14} muted>
-            Talk naturally — several things at once is fine. Max{" "}
-            {Math.round(maxSec / 60)} min.
+            Talk naturally — several things at once is fine. It stops by itself
+            at {Math.round(maxSec / 60)} min and keeps what you said.
           </Copy>
           <View style={{ alignItems: "center", gap: 16, paddingBottom: 8 }}>
-            <Copy size={48} weight="display">
-              {fmtDuration(seconds)}
-            </Copy>
+            <View style={{ alignItems: "center", gap: 6, width: "100%" }}>
+              <Copy size={48} weight="display">
+                {fmtDuration(seconds)}
+              </Copy>
+              {/* How much of the limit is used, and what is left of it. */}
+              <View
+                accessible
+                accessibilityRole="progressbar"
+                accessibilityLabel={`${fmtDuration(left)} left of ${Math.round(maxSec / 60)} minutes`}
+                accessibilityValue={{
+                  min: 0,
+                  max: maxSec,
+                  now: Math.round(seconds),
+                }}
+                style={{
+                  width: "60%",
+                  height: 4,
+                  borderRadius: 2,
+                  overflow: "hidden",
+                  backgroundColor: t.soft,
+                }}
+              >
+                <View
+                  testID="voice-limit-fill"
+                  style={{
+                    width: `${(seconds / maxSec) * 100}%`,
+                    height: "100%",
+                    backgroundColor: near ? t.warn : t.primary,
+                  }}
+                />
+              </View>
+              <Copy
+                size={13}
+                muted={!near}
+                style={{
+                  fontFamily: fonts.mono,
+                  ...(near ? { color: t.warn } : {}),
+                }}
+              >
+                {near
+                  ? `${fmtDuration(left)} left · stops at ${fmtDuration(maxSec)}`
+                  : `${fmtDuration(left)} left`}
+              </Copy>
+            </View>
             <View
               style={{
                 height: 80,

@@ -83,6 +83,12 @@ function replayAsk(rec: Recorded, body: Row): Frame[] {
   })
 }
 
+/** A turn that ended with nothing to store (the stream's last frame). */
+const ended: Frame = [
+  "message",
+  { type: "RUN_FINISHED", threadId: "t", runId: "r", result: { messages: [] } },
+]
+
 function sseResponse(frames: Frame[], onRead?: () => void): Response {
   const enc = new TextEncoder()
   const chunks = frames.map(
@@ -512,7 +518,7 @@ test("an online question shows before the server answers", async () => {
   expect(
     companionStore.get().messages.map((m) => [m.role, m.text, m.status]),
   ).toEqual([["me", "how am I doing?", "sending"]])
-  answer(sseResponse([]))
+  answer(sseResponse([ended]))
   await flush()
 })
 
@@ -699,6 +705,12 @@ test("narration before a tool call streams, then gives way to the answer", async
           delta: "39 g left.",
         }),
         f({ type: "TEXT_MESSAGE_END", messageId: "b" }),
+        f({
+          type: "RUN_FINISHED",
+          threadId: "t",
+          runId: meId,
+          result: { messages: [] },
+        }),
       ],
       () => {
         const t = companionStore
@@ -745,10 +757,10 @@ test("a question sent while Fern is answering waits, then goes when the reply en
     ["first", "sending"],
     ["second", "queued"],
   ])
-  answers[0](sseResponse([]))
+  answers[0](sseResponse([ended]))
   await flush()
   expect(asks().map(([, b]) => b.text)).toEqual(["first", "second"])
-  answers[1](sseResponse([]))
+  answers[1](sseResponse([ended]))
   await flush()
 })
 

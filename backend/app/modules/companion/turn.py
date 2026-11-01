@@ -15,13 +15,18 @@ written.
 import json
 import time
 import uuid
-from collections.abc import Callable, Iterator
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
 from ag_ui.core import (
     BaseEvent,
     CustomEvent,
+    ReasoningEndEvent,
+    ReasoningMessageContentEvent,
+    ReasoningMessageEndEvent,
+    ReasoningMessageStartEvent,
+    ReasoningStartEvent,
     RunErrorEvent,
     RunFinishedEvent,
     RunStartedEvent,
@@ -51,6 +56,9 @@ Sink = Callable[[BaseEvent], None]
 # one reply, each step listing the same refusals.
 # How often a running reply asks whether it was told to stop.
 STOP_CHECK_SECONDS = 0.3
+# The model's thinking streams a word at a time; it goes out at most this
+# often, gathered (the first piece at once).
+REASONING_FLUSH_SECONDS = 0.25
 
 ONCE_A_TURN = frozenset({"recall_memories", "confirm_pending", "discard_pending"})
 
@@ -424,6 +432,11 @@ class TurnStream(capture.LoopHooks):
     stop_check: Callable[[], bool] = lambda: False
     _stopped: bool = False
     _checked_at: float = 0.0
+    # The model's thinking being shown: its message id, what is gathered
+    # but not yet sent, and when it was last sent.
+    _think_id: str | None = None
+    _think_buf: str = ""
+    _think_at: float = 0.0
 
     # ---------------------------------------------------------- run
 
@@ -431,6 +444,7 @@ class TurnStream(capture.LoopHooks):
         self.sink(RunStartedEvent(thread_id=self.thread_id, run_id=self.run_id))
 
     def finished(self, result: dict[str, Any]) -> None:
+        self.end_reasoning()
         self.end_text()
         self.sink(
             RunFinishedEvent(
@@ -439,17 +453,56 @@ class TurnStream(capture.LoopHooks):
         )
 
     def failed(self, code: str, message: str) -> None:
+        self.end_reasoning()
         self.end_text()
         self.sink(RunErrorEvent(message=message, code=code))
 
     def custom(self, name: str, value: Any) -> None:
         self.sink(CustomEvent(name=name, value=value))
 
+    # ---------------------------------------------------------- reasoning
+
+    def reasoning(self, delta: str) -> None:
+        """The model's thinking as it writes it, shown apart from the reply
+        (the app folds it away) and never stored with it."""
+        if not delta:
+            return
+        if self._think_id is None:
+            self._think_id = str(uuid.uuid4())
+            self.sink(ReasoningStartEvent(message_id=self._think_id))
+            self.sink(
+                ReasoningMessageStartEvent(message_id=self._think_id, role="reasoning")
+            )
+        self._think_buf += delta
+        if time.monotonic() - self._think_at >= REASONING_FLUSH_SECONDS:
+            self._send_reasoning()
+
+    def _send_reasoning(self) -> None:
+        if self._think_id is not None and self._think_buf:
+            self.sink(
+                ReasoningMessageContentEvent(
+                    message_id=self._think_id, delta=self._think_buf
+                )
+            )
+            self._think_buf = ""
+        self._think_at = time.monotonic()
+
+    def end_reasoning(self) -> None:
+        if self._think_id is None:
+            return
+        self._send_reasoning()
+        self.sink(ReasoningMessageEndEvent(message_id=self._think_id))
+        self.sink(ReasoningEndEvent(message_id=self._think_id))
+        self._think_id = None
+        self._think_at = 0.0
+
     # ---------------------------------------------------------- text
 
     def text(self, delta: str) -> None:
         if not delta:
             return
+        # The answer starts: the thinking before it is over.
+        self.end_reasoning()
         self._show(self._screen(delta))
 
     def _screen(self, delta: str) -> str:
@@ -540,6 +593,7 @@ class TurnStream(capture.LoopHooks):
         # A call that goes on to use tools was narrating its plan ("let me
         # check your macros…"), not answering: the app drops that text, so
         # only the answer stays (it still streams as it is written).
+        self.end_reasoning()
         planning = bool(getattr(message, "tool_calls", None))
         if planning:
             self._held = self._screened = ""  # held back, so never shown
@@ -628,76 +682,3 @@ class TurnStream(capture.LoopHooks):
         if not self.steps:
             return None
         return {"t": "steps", "items": [s.public() for s in self.steps]}
-
-
-# A reply stream is never silent for longer than this: a model that thinks
-# for minutes sends nothing, and the phone (45 s) and the tunnel in front of
-# the API (100 s) both cut a silent response.
-HEARTBEAT_SECONDS = 15.0
-PING = ": ping\n\n"
-
-
-def stream_events(
-    work: Callable[[Sink], None],
-    *,
-    name: str = "companion-turn",
-    heartbeat_s: float = HEARTBEAT_SECONDS,
-    on_heartbeat: Callable[[], None] | None = None,
-) -> Iterator[str]:
-    """Run ``work(sink)`` on a worker thread and yield its AG-UI events as
-    SSE as they come (``data: {...}`` frames, ``ag_ui`` encoding). After
-    ``heartbeat_s`` with no event it yields an SSE comment (``: ping``) and
-    calls ``on_heartbeat``; once the client is gone it keeps calling
-    ``on_heartbeat`` (no ping) until the worker ends. The generator waits for
-    the worker before it ends, so the request's database session outlives
-    every use of it. An unexpected failure becomes a ``RUN_ERROR`` with a
-    fixed message, never the exception's text."""
-    import logging
-    import queue
-    import threading
-
-    from ag_ui.encoder import EventEncoder
-
-    log = logging.getLogger(__name__)
-    enc = EventEncoder()
-    q: queue.Queue[BaseEvent | None] = queue.Queue()
-
-    def run_it() -> None:
-        try:
-            work(q.put)
-        except Exception as exc:  # noqa: BLE001 - reported as an event, never as text
-            log.warning("companion turn failed: %s", type(exc).__name__, exc_info=True)
-            q.put(
-                RunErrorEvent(
-                    message="Couldn't finish that reply.", code="reply_failed"
-                )
-            )
-        finally:
-            q.put(None)
-
-    def beat() -> None:
-        if on_heartbeat is None:
-            return
-        try:
-            on_heartbeat()
-        except Exception as exc:  # noqa: BLE001 - a missed beat never ends the reply
-            log.warning("companion heartbeat failed: %s", type(exc).__name__)
-
-    t = threading.Thread(target=run_it, name=name, daemon=True)
-    t.start()
-    try:
-        while True:
-            try:
-                item = q.get(timeout=heartbeat_s)
-            except queue.Empty:
-                beat()
-                yield PING
-                continue
-            if item is None:
-                break
-            yield enc.encode(item)
-    finally:
-        while t.is_alive():
-            t.join(timeout=heartbeat_s)
-            if t.is_alive():
-                beat()

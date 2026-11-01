@@ -155,6 +155,9 @@ export function SolMessage({ m, name }: { m: Msg; name: string }) {
   // Until the reply ends its orb keeps working, as the design's thinking
   // state: quick breath, brighter glow, the frond swaying.
   const writing = answering((s) => s.id === m.id)
+  // The model's thinking comes before what it answered, as it happened.
+  const thought = m.blocks?.filter((b) => b.t === "thinking") ?? []
+  const rest = m.blocks?.filter((b) => b.t !== "thinking") ?? []
   return (
     <Animated.View
       entering={FadeInDown.springify().damping(18)}
@@ -169,6 +172,9 @@ export function SolMessage({ m, name }: { m: Msg; name: string }) {
         >
           {name}
         </Text>
+        {thought.map((b, i) => (
+          <BlockView key={`thought-${i}`} block={b} />
+        ))}
         {!!text && (
           <Text
             style={{
@@ -181,7 +187,7 @@ export function SolMessage({ m, name }: { m: Msg; name: string }) {
             {text}
           </Text>
         )}
-        {m.blocks?.map((b, i) => (
+        {rest.map((b, i) => (
           <BlockView key={i} block={b} />
         ))}
         {writing && !text && !m.blocks?.length && (
@@ -396,6 +402,15 @@ function useTimeline() {
     return items.sort((a, b) => a.at - b.at)
   }, [messages, captures])
 }
+type TimelineEntry = ReturnType<typeof useTimeline>[number]
+/** Questions waiting to be sent (behind the reply being written, or for a
+ * connection) come after everything else, in the order they were typed:
+ * after the reply and Fern's "Thinking" line, never above them. */
+function splitWaiting(timeline: TimelineEntry[]) {
+  const waiting = (x: TimelineEntry) =>
+    x.node.kind === "msg" && x.node.m.status === "queued"
+  return [timeline.filter((x) => !waiting(x)), timeline.filter(waiting)]
+}
 function TimelineItem({
   node,
   name,
@@ -598,6 +613,7 @@ export function CompanionChat() {
   const name = companionStore.use((s) => s.name)
   const trackers = companionStore.use((s) => s.trackers)
   const timeline = useTimeline()
+  const [settled, waiting] = useMemo(() => splitWaiting(timeline), [timeline])
   const params = useLocalSearchParams<{
     q?: string
     hint?: string
@@ -722,7 +738,7 @@ export function CompanionChat() {
         {timeline.length === 0 ? (
           <Welcome name={name} />
         ) : (
-          timeline.map((x) => {
+          settled.map((x) => {
             const day = dayKey(new Date(x.at))
             const sep = day !== lastDay
             lastDay = day
@@ -735,6 +751,9 @@ export function CompanionChat() {
           })
         )}
         <Thinking name={name} />
+        {waiting.map((x) => (
+          <TimelineItem key={x.key} node={x.node} name={name} />
+        ))}
         {timeline.length > 0 && !on && (
           <Chips prompts={["How am I doing?", "Coach me", "Plan my day"]} />
         )}
@@ -794,6 +813,7 @@ export function CompanionDrawer({ bottom }: { bottom: number }) {
   const grow = useSharedValue(0)
   const scroller = useRef<ScrollViewInstance>(null)
   const timeline = useTimeline()
+  const [settled, waiting] = useMemo(() => splitWaiting(timeline), [timeline])
   const [chats, setChats] = useState(false)
   const [typing, setTyping] = useState(false)
   // The keyboard's height, tracked directly: a KeyboardAvoidingView inside
@@ -1035,11 +1055,14 @@ export function CompanionDrawer({ bottom }: { bottom: number }) {
             {timeline.length === 0 ? (
               <Welcome name={name} compact />
             ) : (
-              timeline.map((x) => (
+              settled.map((x) => (
                 <TimelineItem key={x.key} node={x.node} name={name} />
               ))
             )}
             <Thinking name={name} />
+            {waiting.map((x) => (
+              <TimelineItem key={x.key} node={x.node} name={name} />
+            ))}
           </ScrollView>
           <ThreadComposer
             onText={(v, hint, photos) => ask(v, hint, photos)}

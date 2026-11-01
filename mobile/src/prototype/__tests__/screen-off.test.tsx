@@ -350,13 +350,12 @@ describe("screen data while off", () => {
     expect(dashStore.get().goals.some((g) => g.id === "g-scr")).toBe(true)
   })
 
-  test("Stats has no Screen corner, area or card", () => {
+  test("Stats has no Screen corner, area or card", async () => {
     const { StatsHome } = require("../screens/stats-home")
     screenStore.set({ groups: [ALL], days: [row(1), row(2)] })
     const shown = render(<StatsHome />, { wrapper })
-    expect(
-      screen.getByLabelText(/^Area hexagon: /).props.accessibilityLabel,
-    ).toMatch(/Screen/)
+    // Shown once iOS answers that Screen Time is connected.
+    expect(await screen.findByLabelText(/^Area hexagon: .*Screen/)).toBeTruthy()
     expect(screen.queryAllByText("Screen time").length).toBeGreaterThan(0)
     shown.unmount()
 

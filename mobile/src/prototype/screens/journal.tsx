@@ -144,7 +144,6 @@ function JournalVoice({
   return (
     <CaptureVoice
       hint="journal"
-      maxSec={600}
       onClose={onClose}
       onDone={(text) => onDone(text)}
       // Live: what was said, transcribed on the server. Without this the

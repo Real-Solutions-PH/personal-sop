@@ -15356,17 +15356,29 @@
       "post": {
         "tags": ["companion"],
         "summary": "Ask Stream",
-        "description": "Ask the companion; the turn streams as AG-UI events (ADR-0015):\n``RUN_STARTED``, a ``STEP_STARTED``/``STEP_FINISHED`` per model call and\ntool, ``TEXT_MESSAGE_*`` for the reply, ``TOOL_CALL_*`` per tool with a\none-line outcome in ``TOOL_CALL_RESULT``, ``CUSTOM`` events for the\nstored question (``message``), cards (``card``, ``ask``, ``info``),\nblocks (``block``) and a router capture (``capture``), then\n``RUN_FINISHED`` with the whole answer, or ``RUN_ERROR``. Validation\nhappens before the stream opens.",
+        "description": "Ask the companion; the turn streams as AG-UI events (ADR-0015):\n``RUN_STARTED``, a ``STEP_STARTED``/``STEP_FINISHED`` per model call and\ntool, ``TEXT_MESSAGE_*`` for the reply, ``TOOL_CALL_*`` per tool with a\none-line outcome in ``TOOL_CALL_RESULT``, ``CUSTOM`` events for the\nstored question (``message``), cards (``card``, ``ask``, ``info``),\nblocks (``block``) and a router capture (``capture``), then\n``RUN_FINISHED`` with the whole answer, or ``RUN_ERROR``. While the\nmodel reasons, ``REASONING_*`` events carry its thinking as it is\nwritten. Validation happens before the stream opens.\n\nThe turn runs on its own (``runs``): dropping this stream never stops\nit, every frame carries an ``id`` to resume from, and sending the same\nquestion ``id`` again reads the reply already running.",
         "operationId": "companion-ask_stream",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "Last-Event-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Last-Event-Id"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/app__modules__companion__schema__AskIn"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -15374,15 +15386,58 @@
             "content": { "text/event-stream": {} }
           },
           "4XX": {
-            "description": "Client Error",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/ErrorResponse" }
               }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
+    "/api/v1/companion/messages/{message_id}/events": {
+      "get": {
+        "tags": ["companion"],
+        "summary": "Reply Events",
+        "description": "The reply to the question ``message_id`` as it is being written, for\nan app that comes back to the chat: every AG-UI event so far (or those\nafter ``Last-Event-ID``), then each new one live, the same frames as\n``/ask/stream``. 404 once the reply's events are no longer kept (about\nan hour after it ended); ``/messages/{id}/reply`` still has it.",
+        "operationId": "companion-reply_events",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "message_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Message Id"
+            }
+          },
+          {
+            "name": "Last-Event-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Last-Event-Id"
             }
           }
-        },
-        "security": [{ "HTTPBearer": [] }]
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "text/event-stream": {} }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
       }
     },
     "/api/v1/companion/messages/{message_id}/stop": {
