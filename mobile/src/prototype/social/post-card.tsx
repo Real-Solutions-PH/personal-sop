@@ -1,11 +1,12 @@
+import { palette } from "@domain/design/tokens"
 import {
   Bookmark,
   Check,
   Ellipsis,
+  Forward,
   Link2,
   MessageCircle,
   PlusCircle,
-  Send,
   Share2,
   Trash2,
   UserMinus,
@@ -77,7 +78,7 @@ export function Caption({
         /^[#@]/.test(p) ? (
           <Text
             key={i}
-            style={{ color: t.tsk }}
+            style={{ color: t.primary }}
             onPress={() => go(`/social/explore?q=${encodeURIComponent(p)}`)}
           >
             {p}
@@ -182,14 +183,14 @@ export function SendSheet({
                       width: 22,
                       height: 22,
                       borderRadius: 11,
-                      backgroundColor: t.tsk,
+                      backgroundColor: t.primary,
                       borderWidth: 2,
                       borderColor: t.bg,
                       alignItems: "center",
                       justifyContent: "center",
                     }}
                   >
-                    <Check size={12} color="#fff" strokeWidth={3} />
+                    <Check size={12} color={t.onPrimary} strokeWidth={3} />
                   </Animated.View>
                 )}
               </View>
@@ -251,7 +252,7 @@ export function SendSheet({
                     : {
                         kind: "text",
                         text: post.caption,
-                        bg: ["#d62976", "#4f5bd5"],
+                        bg: [palette.dark.background, palette.light.moss],
                       },
               )
               toast.success("Added to your story")
@@ -391,6 +392,9 @@ function PostMenu({
   )
 }
 
+/** The feed card's gap from the screen edge. */
+const CARD_INSET = 12
+
 export const PostCard = memo(function PostCard({
   post,
   width,
@@ -410,8 +414,22 @@ export const PostCard = memo(function PostCard({
   const liker = usePerson(likedBy ?? "")
   const commentCount = Math.max(post.commentCount ?? 0, post.comments.length)
   const photoFirst = post.media.length > 0
+  // A flat card, progress first: what moved, then the picture, then what
+  // they said, then the cheers. The media sits inside the card's border.
+  const inner = width - CARD_INSET * 2 - 2
   return (
-    <View style={{ paddingBottom: 20 }}>
+    <View
+      style={{
+        marginHorizontal: CARD_INSET,
+        marginBottom: 16,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: t.line,
+        backgroundColor: t.card,
+        overflow: "hidden",
+        paddingBottom: 4,
+      }}
+    >
       <View
         style={{
           flexDirection: "row",
@@ -447,11 +465,16 @@ export const PostCard = memo(function PostCard({
           <Ellipsis size={20} color={t.text} />
         </Bounce>
       </View>
+      {post.progress && photoFirst && (
+        <View style={{ marginBottom: 12 }}>
+          <StatStrip progress={post.progress} />
+        </View>
+      )}
       {hasMedia ? (
         <MediaCarousel
           media={post.media}
           progress={post.progress}
-          width={width}
+          width={inner}
           active={active}
           onDoubleTap={() => {
             haptic.pop()
@@ -459,8 +482,23 @@ export const PostCard = memo(function PostCard({
           }}
         />
       ) : null}
-      <View style={{ gap: 12, marginTop: hasMedia ? 12 : 0 }}>
-        {post.progress && photoFirst && <StatStrip progress={post.progress} />}
+      {(!!post.caption || (!detail && commentCount > 0)) && (
+        <View style={{ paddingHorizontal: 14, paddingTop: 12, gap: 4 }}>
+          {!!post.caption && (
+            <Caption by={post.by} text={post.caption} full={detail} />
+          )}
+          {!detail && commentCount > 0 && (
+            <Text
+              onPress={() => go(`/social/post/${post.id}`)}
+              style={{ color: t.muted, fontSize: 14, fontFamily: fonts.body }}
+            >
+              View {commentCount > 1 ? `all ${commentCount} ` : ""}
+              comment{commentCount > 1 ? "s" : ""}
+            </Text>
+          )}
+        </View>
+      )}
+      <View style={{ gap: 8, marginTop: 12 }}>
         <CheerBar post={post} />
         <View
           style={{
@@ -499,24 +537,10 @@ export const PostCard = memo(function PostCard({
           >
             <MessageCircle size={22} color={t.text} />
           </Bounce>
-          <Bounce label="Send" onPress={() => setSend(true)}>
-            <Send size={21} color={t.text} />
+          <Bounce label="Share" onPress={() => setSend(true)}>
+            <Forward size={20} color={t.text} />
           </Bounce>
         </View>
-      </View>
-      <View style={{ paddingHorizontal: 14, gap: 4 }}>
-        {!!post.caption && (
-          <Caption by={post.by} text={post.caption} full={detail} />
-        )}
-        {!detail && commentCount > 0 && (
-          <Text
-            onPress={() => go(`/social/post/${post.id}`)}
-            style={{ color: t.muted, fontSize: 14, fontFamily: fonts.body }}
-          >
-            View {commentCount > 1 ? `all ${commentCount} ` : ""}
-            comment{commentCount > 1 ? "s" : ""}
-          </Text>
-        )}
       </View>
       <PostMenu post={post} open={menu} onClose={() => setMenu(false)} />
       <SendSheet postId={post.id} open={send} onClose={() => setSend(false)} />

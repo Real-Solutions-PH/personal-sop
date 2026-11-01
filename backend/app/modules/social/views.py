@@ -313,6 +313,21 @@ def messages(ctx: Ctx, rows: Sequence[ChatMessage]) -> list[MessagePublic]:
             chat_id=m.chat_id,
             sender_id=m.owner_id,
             at=m.at,
+            text=None,
+            media=None,
+            post_id=None,
+            story_id=None,
+            reply_to_id=None,
+            system=m.system,
+            reactions={},
+            deleted=True,
+        )
+        if m.deleted_at is not None
+        else MessagePublic(
+            id=m.id,
+            chat_id=m.chat_id,
+            sender_id=m.owner_id,
+            at=m.at,
             text=m.text,
             media=_media(found, m.media_id, "image", None) if m.media_id else None,
             post_id=m.post_id,
