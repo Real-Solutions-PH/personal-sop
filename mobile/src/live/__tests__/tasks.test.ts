@@ -260,6 +260,21 @@ describe("store edits become sync ops", () => {
     })
   })
 
+  test("keep reminding me is one field write, and reads back", () => {
+    const e = engine()
+    const t = createTask({ title: "Take meds", dueDate: today() })
+    e.capture()
+    updateTask(t.id, { nagEveryMin: 60 })
+    const ops = record(e.capture())
+    expect(ops).toHaveLength(1)
+    expect(ops[0]).toMatchObject({
+      kind: "upsert",
+      name: "task",
+      id: t.id,
+      data: { nag_every_min: 60 },
+    })
+  })
+
   test("a later due date is a plain due_date write; the counts stay local", () => {
     const e = engine()
     const t = createTask({ title: "Renew passport", dueDate: today() })

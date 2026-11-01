@@ -7,10 +7,12 @@ import {
   type Mood,
 } from "@domain/capture/data"
 import { journalDraft } from "@domain/capture/parse"
-import { captureStore, isOnline } from "@domain/capture/store"
+import { captureStore, isOnline, useOnline } from "@domain/capture/store"
 import { dayKey, dayOffset, weekday } from "@domain/lib/day"
 import {
   Briefcase,
+  Check,
+  CloudOff,
   Compass,
   Flame,
   HeartPulse,
@@ -25,8 +27,16 @@ import {
   Users,
   Wallet,
 } from "lucide-react-native"
-import { useEffect, useState } from "react"
-import { ScrollView, TextInput, View } from "react-native"
+import { useEffect, useRef, useState } from "react"
+import {
+  Keyboard,
+  Platform,
+  ScrollView,
+  TextInput,
+  useWindowDimensions,
+  View,
+} from "react-native"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
 import Svg, {
   Circle,
   G,
@@ -641,8 +651,26 @@ function JournalList() {
     </Screen>
   )
 }
+/** How long typing pauses before the entry is written. */
+export const AUTOSAVE_MS = 700
+type SaveState =
+  | { kind: "idle" }
+  | { kind: "pending" }
+  | { kind: "saved"; at: Date }
+  | { kind: "blocked"; why: string }
+const parseTags = (tags: string) =>
+  tags
+    .split(/[,\s]+/)
+    .map((s) => s.replace(/^#/, "").trim().toLowerCase())
+    .filter(Boolean)
+/** Notes-style: a page-high writing surface that saves itself while you
+ * type (to this phone first; sync sends it on). No Save button: leaving
+ * keeps what is written, and a new entry left empty is never kept. */
 function JournalEditor({ id }: { id?: string }) {
   const t = useTheme(),
+    safe = useSafeAreaInsets(),
+    { height } = useWindowDimensions(),
+    online = useOnline(),
     existing = captureStore.use((s) => s.journal.find((j) => j.id === id)),
     [body, setBody] = useState(existing?.body ?? ""),
     [day, setDay] = useState(existing?.day ?? dayKey()),
@@ -652,14 +680,92 @@ function JournalEditor({ id }: { id?: string }) {
     [priv, setPriv] = useState(existing?.private ?? true),
     [transcript, setTranscript] = useState(existing?.transcript),
     [dictate, setDictate] = useState(false),
-    [showTranscript, setShowTranscript] = useState(false)
+    [showTranscript, setShowTranscript] = useState(false),
+    [save, setSave] = useState<SaveState>({ kind: "idle" }),
+    [keyboard, setKeyboard] = useState(0),
+    // The entry this page writes to: the opened one, or the one it created.
+    entryId = useRef(existing?.id),
+    createdHere = useRef(false),
+    edited = useRef(false),
+    emptyNow = useRef(!existing?.body.trim()),
+    latest = useRef<() => void>(() => {})
   // A voice entry's words arrive while it is open: show them unless the
   // person has started writing.
   const words = existing?.transcription ? undefined : existing?.body
   useEffect(() => {
     if (words) setBody((old) => old || words)
   }, [words])
-  if (id && !existing)
+  useEffect(() => {
+    const show = Keyboard.addListener(
+        Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+        (e) => setKeyboard(e.endCoordinates.height),
+      ),
+      hide = Keyboard.addListener(
+        Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+        () => setKeyboard(0),
+      )
+    return () => {
+      show.remove()
+      hide.remove()
+    }
+  }, [])
+  // Write what is on screen now. Empty or future-dated text is not saved.
+  emptyNow.current = !body.trim()
+  latest.current = () => {
+    if (!edited.current) return
+    const text = body.trim()
+    if (!text) {
+      setSave({ kind: "blocked", why: "Not saved while empty" })
+      return
+    }
+    if (day > dayKey()) {
+      setSave({ kind: "blocked", why: "Pick today or an earlier day" })
+      return
+    }
+    const input = {
+      body: text,
+      day,
+      mood,
+      area,
+      tags: parseTags(tags),
+      private: priv,
+      transcript,
+    }
+    if (entryId.current) A.updateJournalEntry(entryId.current, input)
+    else {
+      entryId.current = A.addJournalEntry({
+        ...input,
+        source: transcript ? "voice" : "text",
+      }).id
+      createdHere.current = true
+    }
+    edited.current = false
+    setSave({ kind: "saved", at: new Date() })
+  }
+  // Debounced autosave: every change restarts the wait.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the fields are the trigger; latest.current reads them
+  useEffect(() => {
+    if (!edited.current) return
+    setSave({ kind: "pending" })
+    const timer = setTimeout(() => latest.current(), AUTOSAVE_MS)
+    return () => clearTimeout(timer)
+  }, [body, day, mood, area, tags, priv, transcript])
+  // Leaving writes anything still waiting; a new entry emptied is dropped.
+  useEffect(
+    () => () => {
+      latest.current()
+      const e = entryId.current
+      if (e && createdHere.current && emptyNow.current) A.deleteJournalEntry(e)
+    },
+    [],
+  )
+  const edit =
+    <V,>(set: (v: V) => void) =>
+    (v: V) => {
+      edited.current = true
+      set(v)
+    }
+  if (id && !existing && !entryId.current)
     return (
       <Screen title="Entry">
         <Copy>Entry not found</Copy>
@@ -667,136 +773,123 @@ function JournalEditor({ id }: { id?: string }) {
         <Button href="/journal">Journal</Button>
       </Screen>
     )
+  // The writing surface fills what the header, the save line and the
+  // keyboard (or the bottom bar) leave; details sit below the fold.
+  const surface = Math.max(
+    220,
+    height - safe.top - 56 - 52 - (keyboard ? keyboard : safe.bottom + 64) - 24,
+  )
+  const status =
+    save.kind === "pending"
+      ? { text: "Saving…", color: t.muted, icon: null }
+      : save.kind === "blocked"
+        ? { text: save.why, color: t.warn, icon: null }
+        : save.kind === "saved" || entryId.current
+          ? {
+              text: `${online ? "Saved" : "Saved on this phone · syncs when online"}${
+                save.kind === "saved"
+                  ? ` · ${timeLabel(save.at.toISOString())}`
+                  : ""
+              }`,
+              color: t.muted,
+              icon: online ? Check : CloudOff,
+            }
+          : { text: "Saves as you type", color: t.muted, icon: null }
   return (
     <Screen
-      footer={
-        <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
-          <Button
-            disabled={!body.trim() || day > dayKey()}
-            onPress={() => {
-              const input = {
-                body: body.trim(),
-                day,
-                mood,
-                area,
-                tags: tags
-                  .split(/[,\s]+/)
-                  .map((s) => s.replace(/^#/, "").trim().toLowerCase())
-                  .filter(Boolean),
-                private: priv,
-                transcript,
-              }
-              if (existing) {
-                A.updateJournalEntry(existing.id, input)
-                toast.success("Entry updated")
-              } else {
-                const e = A.addJournalEntry({
-                  ...input,
-                  source: transcript ? "voice" : "text",
-                })
-                toast.success("Journal entry saved", {
-                  action: {
-                    label: "Undo",
-                    onClick: () => A.deleteJournalEntry(e.id),
-                  },
-                })
-              }
-              go("/journal")
-            }}
-          >
-            {existing ? "Save changes" : "Save entry"}
-          </Button>
-        </View>
-      }
       title={existing ? dayLabel(existing.day) : "New entry"}
       actions={
-        existing && (
+        <Line style={{ gap: 0 }}>
           <IconTap
             size={44}
-            icon={Trash2}
-            label="Delete entry"
-            onPress={() => {
-              const gone = A.deleteJournalEntry(existing.id)
-              go("/journal")
-              if (gone)
-                toast("Entry deleted", {
-                  action: {
-                    label: "Undo",
-                    onClick: () => A.restoreJournalEntry(gone),
-                  },
-                })
-            }}
+            icon={Mic}
+            label="Dictate"
+            color={t.life}
+            onPress={() => setDictate(true)}
           />
-        )
+          {entryId.current && (
+            <IconTap
+              size={44}
+              icon={Trash2}
+              label="Delete entry"
+              onPress={() => {
+                const gone = entryId.current
+                  ? A.deleteJournalEntry(entryId.current)
+                  : undefined
+                edited.current = false
+                createdHere.current = false
+                go("/journal")
+                if (gone)
+                  toast("Entry deleted", {
+                    action: {
+                      label: "Undo",
+                      onClick: () => A.restoreJournalEntry(gone),
+                    },
+                  })
+              }}
+            />
+          )}
+        </Line>
       }
-    >
-      <View>
-        <Line style={{ gap: 8 }}>
+      pinned={
+        <Line style={{ gap: 8, minHeight: 44 }}>
           <View style={{ width: 140 }}>
             <DateField
               hideLabel
               label="Entry date"
               value={day}
-              onChangeText={setDay}
+              onChangeText={edit(setDay)}
             />
           </View>
-          {existing && (
-            <Copy size={12} muted>
-              {timeLabel(existing.createdAt)}
-            </Copy>
-          )}
-          <Tap
-            onPress={() => setDictate(true)}
+          <View
+            accessibilityLiveRegion="polite"
             style={{
-              marginLeft: "auto",
-              height: 44,
-              paddingHorizontal: 16,
-              borderRadius: 22,
-              backgroundColor: border(t.life, 0.15),
+              flex: 1,
               flexDirection: "row",
-              gap: 6,
               alignItems: "center",
+              justifyContent: "flex-end",
+              gap: 4,
             }}
           >
-            <Mic size={16} color={t.life} />
-            <Copy size={14} weight="medium" style={{ color: t.life }}>
-              Dictate
+            {status.icon && <status.icon size={14} color={status.color} />}
+            <Copy size={12} style={{ color: status.color, flexShrink: 1 }}>
+              {status.text}
             </Copy>
-          </Tap>
+          </View>
         </Line>
+      }
+    >
+      <View>
         {existing && <TranscriptionNote e={existing} />}
         <TextInput
           accessibilityLabel="Entry"
           value={body}
-          onChangeText={setBody}
+          onChangeText={edit(setBody)}
+          autoFocus={!existing}
           multiline
-          numberOfLines={10}
-          placeholder="What happened? What did you notice? Who are you becoming?"
+          scrollEnabled
+          placeholder="What happened today? What did you notice? Who are you becoming?"
           placeholderTextColor={t.muted}
           style={{
-            height: 292,
-            marginTop: 12,
-            padding: 16,
-            borderWidth: 1,
-            borderColor: border(t.line, 0.6),
-            borderRadius: 16,
-            backgroundColor: t.card,
-            fontSize: 16,
-            lineHeight: 26,
+            height: surface,
+            paddingTop: 4,
+            paddingBottom: 16,
+            fontSize: 18,
+            lineHeight: 28,
             fontFamily: fonts.body,
             color: t.text,
             textAlignVertical: "top",
           }}
         />
         <SectionHeading>Mood</SectionHeading>
-        <MoodPicker value={mood} onChange={setMood} />
+        <MoodPicker value={mood} onChange={edit(setMood)} />
         <SectionHeading>Area</SectionHeading>
-        <AreaPicker value={area} onChange={setArea} />
+        <AreaPicker value={area} onChange={edit(setArea)} />
         <SectionHeading>Tags</SectionHeading>
         <TextInput
           accessibilityLabel="Tags"
           value={tags}
-          onChangeText={setTags}
+          onChangeText={edit(setTags)}
           placeholder="sleep, gratitude, win"
           placeholderTextColor={t.muted}
           style={{
@@ -826,7 +919,7 @@ function JournalEditor({ id }: { id?: string }) {
               accent="life"
               label="Private"
               value={priv}
-              onChange={setPriv}
+              onChange={edit(setPriv)}
             />
           </Line>
         </Frame>
@@ -863,6 +956,7 @@ function JournalEditor({ id }: { id?: string }) {
             const d = journalDraft(text, "voice")
             if (d.payload.kind !== "journal") return
             const content = d.payload.body
+            edited.current = true
             setBody((old) => (old ? `${old}\n\n${content}` : content))
             setTranscript(text)
             if (!mood) setMood(d.payload.mood)
