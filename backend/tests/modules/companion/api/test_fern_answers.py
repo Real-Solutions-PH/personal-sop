@@ -37,6 +37,14 @@ PORTION_ASK = (
 )
 
 
+@pytest.fixture(autouse=True)
+def no_learning(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The step after a reply that reads the message for lasting facts makes
+    its own model call when the message speaks of "me" or "my"; these
+    replays script only the reply, so it is switched off here."""
+    monkeypatch.setattr(services, "learn", lambda *a, **k: [])
+
+
 def reply_of(events: list[dict[str, Any]]) -> dict[str, Any]:
     out: dict[str, Any] = events[-1]["result"]["messages"][1]
     return out
