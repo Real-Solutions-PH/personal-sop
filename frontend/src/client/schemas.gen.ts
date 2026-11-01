@@ -5081,6 +5081,173 @@ export const FacetsOutSchema = {
     title: 'FacetsOut'
 } as const;
 
+export const FeedbackInSchema = {
+    properties: {
+        rating: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['up', 'down']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Rating'
+        },
+        reason: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['wrong', 'too_long', 'missed', 'slow', 'other']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Reason'
+        },
+        note: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 280
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Note'
+        }
+    },
+    type: 'object',
+    required: ['rating'],
+    title: 'FeedbackIn',
+    description: `A thumb on a Fern reply; \`\`rating: null\`\` takes it back. \`\`reason\`\`
+and \`\`note\`\` are kept only with a thumbs-down.`
+} as const;
+
+export const FeedbackPublicSchema = {
+    properties: {
+        message_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Message Id'
+        },
+        rating: {
+            type: 'string',
+            enum: ['up', 'down'],
+            title: 'Rating'
+        },
+        reason: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['wrong', 'too_long', 'missed', 'slow', 'other']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Reason'
+        },
+        note: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Note'
+        }
+    },
+    type: 'object',
+    required: ['message_id', 'rating', 'reason', 'note'],
+    title: 'FeedbackPublic'
+} as const;
+
+export const FernRuleDecisionSchema = {
+    properties: {
+        status: {
+            type: 'string',
+            enum: ['proposed', 'approved', 'rejected'],
+            title: 'Status'
+        },
+        text: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 200,
+                    minLength: 10
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Text'
+        }
+    },
+    type: 'object',
+    required: ['status'],
+    title: 'FernRuleDecision'
+} as const;
+
+export const FernRulePublicSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        text: {
+            type: 'string',
+            title: 'Text'
+        },
+        status: {
+            type: 'string',
+            enum: ['proposed', 'approved', 'rejected'],
+            title: 'Status'
+        },
+        evidence: {
+            type: 'integer',
+            title: 'Evidence'
+        },
+        users: {
+            type: 'integer',
+            title: 'Users'
+        },
+        created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At'
+        },
+        updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At'
+        },
+        decided_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Decided At'
+        }
+    },
+    type: 'object',
+    required: ['id', 'text', 'status', 'evidence', 'users', 'created_at', 'updated_at', 'decided_at'],
+    title: 'FernRulePublic',
+    description: `A rule learned for every Fern: its text and how much stands behind
+it (signals, distinct people). Holds no personal data.`
+} as const;
+
 export const FinishInSchema = {
     properties: {
         minutes: {

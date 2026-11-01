@@ -68,6 +68,7 @@ import { ask } from "./brain"
 import { ChatsSheet } from "./chats"
 import { launchFern } from "./launch"
 import { Orb } from "./orb"
+import { DownReasons, ThumbButtons } from "./reply-feedback"
 import {
   answering,
   chatCaptures,
@@ -194,11 +195,12 @@ export function SolMessage({ m, name }: { m: Msg; name: string }) {
           <ThinkLine>Thinking</ThinkLine>
         )}
         {!!text && !writing && <ReplyActions id={m.id} text={text} />}
+        {!!text && !writing && <DownReasons id={m.id} />}
       </View>
     </Animated.View>
   )
 }
-/** Under a reply: read it aloud (play / pause) and copy it. */
+/** Under a reply: read it aloud (play / pause), copy it, and rate it. */
 function ReplyActions({ id, text }: { id: string; text: string }) {
   const t = useTheme()
   const now = useSpeaking((s) => (s.id === id ? s.state : "idle"))
@@ -244,6 +246,7 @@ function ReplyActions({ id, text }: { id: string; text: string }) {
         color={t.muted}
         onPress={() => void copyText(text)}
       />
+      <ThumbButtons id={id} />
     </Line>
   )
 }
