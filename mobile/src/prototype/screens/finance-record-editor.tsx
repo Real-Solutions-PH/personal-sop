@@ -201,7 +201,11 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
               : "New transaction"
       }
       open
-      onClose={picker ? () => setPicker(false) : onClose}
+      // Choosing a category is a step: back returns to the transaction,
+      // close (X, backdrop, drag) closes the whole sheet.
+      onBack={picker ? () => setPicker(false) : undefined}
+      backLabel="Back to transaction"
+      onClose={onClose}
     >
       {picker ? (
         <CategoryPicker
