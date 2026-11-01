@@ -63,12 +63,36 @@ const fromWeek = async (days: readonly string[]) =>
     const i = [6, 5, 4, 3, 2, 1, 0].findIndex((n) => calDay(-n) === d)
     return i < 0 ? null : (week[i] ?? null)
   })
+// The month views count the month's days so far: pinned mid-month, or on
+// the 1st (one day so far) the week of fixture days doesn't fit in it.
+const midMonth = () =>
+  jest.useFakeTimers({
+    now: new Date(2026, 9, 15, 12),
+    doNotFake: [
+      "hrtime",
+      "nextTick",
+      "performance",
+      "queueMicrotask",
+      "requestAnimationFrame",
+      "cancelAnimationFrame",
+      "requestIdleCallback",
+      "cancelIdleCallback",
+      "setImmediate",
+      "clearImmediate",
+      "setInterval",
+      "clearInterval",
+      "setTimeout",
+      "clearTimeout",
+    ],
+  })
 beforeEach(() => {
+  midMonth()
   mockAsked = async () => true
   mockReadSleep.mockReset()
   mockReadSleep.mockImplementation(fromWeek)
   jest.mocked(router.push).mockClear()
 })
+afterEach(() => jest.useRealTimers())
 
 test("hours and minutes", () => {
   expect(hm(425)).toBe("7h 05m")

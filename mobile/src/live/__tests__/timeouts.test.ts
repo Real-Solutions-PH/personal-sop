@@ -5,7 +5,11 @@
 import { seed as captureSeed } from "@domain/capture/data"
 import { captureStore } from "@domain/capture/store"
 import { configureNotifications } from "@domain/lib/platform"
-import { reachable } from "@/prototype/connectivity"
+import {
+  CONTACT_GRACE_MS,
+  noteServerContact,
+  reachable,
+} from "@/prototype/connectivity"
 import { createLiveCapture, STREAM_GAP_MS } from "../capture"
 import { DICTATE_TIMEOUT_MS, dictate } from "../dictate"
 import {
@@ -134,6 +138,7 @@ test("a reply stream that goes quiet is dropped and the capture queued", async (
 })
 
 test("a network without internet is offline; an unchecked one is not", () => {
+  noteServerContact(0) // never heard from the server
   expect(reachable({ isConnected: true, isInternetReachable: false })).toBe(
     false,
   )
@@ -142,4 +147,17 @@ test("a network without internet is offline; an unchecked one is not", () => {
   )
   expect(reachable({ isConnected: true, isInternetReachable: null })).toBe(true)
   expect(reachable({ isConnected: true, isInternetReachable: true })).toBe(true)
+})
+
+test("a failed probe right after the server answered is not offline", () => {
+  const now = 1_000_000
+  noteServerContact(now)
+  const noProbe = { isConnected: true, isInternetReachable: false }
+  // A reply streaming in proves the link works, whatever the probe says.
+  expect(reachable(noProbe, now + CONTACT_GRACE_MS - 1)).toBe(true)
+  // Once the grace runs out, the probe decides.
+  expect(reachable(noProbe, now + CONTACT_GRACE_MS)).toBe(false)
+  // No network at all is offline, however recent the last answer.
+  expect(reachable({ isConnected: false }, now + 1)).toBe(false)
+  noteServerContact(0)
 })
