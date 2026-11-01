@@ -120,6 +120,8 @@ function setup(over: {
   stream: ReturnType<typeof controlled>
   reply?: (path: string) => Promise<Row>
   online?: () => boolean
+  /** The reply's event stream (GET /companion/messages/{id}/events). */
+  get?: (path: string) => Promise<Response>
 }) {
   let emit: (e: ServerEvent) => void = () => {}
   const request = jest.fn(async (_m: string, path: string) => {
@@ -130,6 +132,7 @@ function setup(over: {
   const deps: LiveCaptureDeps = {
     http: { request, raw: jest.fn() } as never,
     post: async () => over.stream.res,
+    ...(over.get ? { get: jest.fn(over.get) } : {}),
     fetch: async () => {
       throw new Error("unused")
     },
@@ -349,4 +352,145 @@ describe("relaunch with a reply still being read back", () => {
     await jest.advanceTimersByTimeAsync(2000)
     expect(msgs()[0].status).toBe("failed")
   })
+})
+
+// ---------------------------------------------------------------------------
+// Live thinking, following a running reply, and the order of the chat
+// ---------------------------------------------------------------------------
+
+const reply = () => msgs().find((m) => m.role === "sol")
+const thinkingBlock = () => reply()?.blocks?.find((b) => b.t === "thinking")
+const think = (s: ReturnType<typeof controlled>, ...deltas: string[]) => {
+  s.event({ type: "REASONING_START", messageId: "r1" })
+  s.event({
+    type: "REASONING_MESSAGE_START",
+    messageId: "r1",
+    role: "reasoning",
+  })
+  for (const delta of deltas)
+    s.event({ type: "REASONING_MESSAGE_CONTENT", messageId: "r1", delta })
+}
+const answer = (s: ReturnType<typeof controlled>, text: string) => {
+  s.event({ type: "REASONING_MESSAGE_END", messageId: "r1" })
+  s.event({ type: "REASONING_END", messageId: "r1" })
+  s.event({ type: "TEXT_MESSAGE_START", messageId: "t1", role: "assistant" })
+  s.event({ type: "TEXT_MESSAGE_CONTENT", messageId: "t1", delta: text })
+}
+const finish = (
+  s: ReturnType<typeof controlled>,
+  meId: string,
+  text: string,
+) => {
+  s.event({
+    type: "RUN_FINISHED",
+    threadId: "t",
+    runId: meId,
+    result: { messages: [me(meId), sol(meId, text)] },
+  })
+  s.end()
+}
+
+test("the model's thinking streams into its own folded block, before the answer", async () => {
+  const s = controlled()
+  const { live } = setup({ stream: s })
+  ask(live)
+  await jest.advanceTimersByTimeAsync(0)
+  think(s, "Rice is about", " 2.7 g protein per 100 g.")
+  await jest.advanceTimersByTimeAsync(0)
+  expect(thinkingBlock()).toEqual({
+    t: "thinking",
+    text: "Rice is about 2.7 g protein per 100 g.",
+    done: false,
+  })
+  // The thinking is not the reply's text.
+  expect(reply()?.text).toBeUndefined()
+  // No separate "Thinking…" row while the thinking itself shows.
+  expect(thinking.getState().on).toBe(false)
+  answer(s, "About 9 g in all.")
+  await jest.advanceTimersByTimeAsync(0)
+  expect(thinkingBlock()).toMatchObject({ done: true })
+  expect(reply()?.text).toBe("About 9 g in all.")
+})
+
+test("a dropped stream follows the running reply again from its first event", async () => {
+  const s = controlled()
+  const again = controlled()
+  let followed = ""
+  const { live, reads } = setup({
+    stream: s,
+    get: async (path) => {
+      followed = path
+      return again.res
+    },
+  })
+  ask(live)
+  await jest.advanceTimersByTimeAsync(0)
+  const meId = String(question()?.id)
+  s.event({ type: "CUSTOM", name: "message", value: me(meId) })
+  think(s, "Working it out")
+  await jest.advanceTimersByTimeAsync(0)
+  s.fail(new NetworkError("the app went to the background"))
+  await jest.advanceTimersByTimeAsync(0)
+  expect(followed).toBe(`/companion/messages/${meId}/events`)
+  // Still at work while the replay opens and runs.
+  expect(replying.getState().id).toBe(meId)
+  // The replay rebuilds the reply as it stands, then goes on live.
+  again.event({ type: "CUSTOM", name: "message", value: me(meId) })
+  think(again, "Working it out", " — rice and egg.")
+  await jest.advanceTimersByTimeAsync(0)
+  expect(thinkingBlock()).toMatchObject({
+    text: "Working it out — rice and egg.",
+  })
+  answer(again, "About 9 g.")
+  finish(again, meId, "About 9 g.")
+  await jest.advanceTimersByTimeAsync(0)
+  expect(reply()?.text).toBe("About 9 g.")
+  expect(reads()).toBe(0)
+  expect(mockToast).not.toHaveBeenCalled()
+  expect(replying.getState().id).toBeNull()
+  expect(companionStore.get().inFlight).toBeNull()
+})
+
+test("relaunched mid-reply, the app rejoins it: at work, then the reply so far, then live", async () => {
+  const id = "5d4f3b2a-1c0e-4f9a-8b7c-6d5e4f3a2b1e"
+  companionStore.set((st) => ({
+    ...st,
+    messages: [{ id, role: "me", at: Date.now(), text: "hi", threadId: "c1" }],
+    inFlight: { id, threadId: "c1" },
+  }))
+  const replay = controlled()
+  setup({ stream: controlled(), get: async () => replay.res })
+  await jest.advanceTimersByTimeAsync(0)
+  expect(replying.getState().id).toBe(id)
+  expect(thinking.getState().on).toBe(true)
+  think(replay, "Halfway through")
+  await jest.advanceTimersByTimeAsync(0)
+  expect(thinkingBlock()).toMatchObject({ text: "Halfway through" })
+  answer(replay, "Done.")
+  finish(replay, id, "Done.")
+  await jest.advanceTimersByTimeAsync(0)
+  expect(reply()?.text).toBe("Done.")
+  expect(replying.getState().id).toBeNull()
+  expect(companionStore.get().inFlight).toBeNull()
+})
+
+test("a reply sits right after its question; questions typed meanwhile come after it", async () => {
+  const s = controlled()
+  const { live } = setup({ stream: s })
+  live.ask("first", undefined, false, undefined)
+  await jest.advanceTimersByTimeAsync(1000)
+  live.ask("second", undefined, false, undefined)
+  await jest.advanceTimersByTimeAsync(1000)
+  think(s, "Thinking about the first")
+  await jest.advanceTimersByTimeAsync(0)
+  const first = msgs().find((m) => m.text === "first")
+  const second = msgs().find((m) => m.text === "second")
+  expect(second?.status).toBe("queued")
+  const order = [...msgs()].sort((a, b) => a.at - b.at)
+  expect(order.map((m) => m.text ?? "(reply)")).toEqual([
+    "first",
+    "(reply)",
+    "second",
+  ])
+  expect(reply()?.at).toBe((first?.at ?? 0) + 1)
 })

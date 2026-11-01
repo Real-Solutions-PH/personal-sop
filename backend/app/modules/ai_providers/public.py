@@ -18,14 +18,16 @@ those two and route there; the order is check_budget -> resolve_model ->
 build_chat_model -> record_usage.
 """
 
+import functools
 import math
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, replace
 from datetime import date, datetime
-from typing import Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_core.outputs import ChatGenerationChunk
 from pydantic import SecretStr
 from sqlmodel import col, func, select
 
@@ -39,6 +41,9 @@ from app.modules.ai_providers.models import (
 from app.shared import crypto
 from app.shared.context import Ctx
 from app.shared.domain import domain_error
+
+if TYPE_CHECKING:
+    from langchain_openai import ChatOpenAI
 
 Purpose = Literal["chat", "capture", "vision", "transcription", "advisor", "embedding"]
 
@@ -66,10 +71,37 @@ class ResolvedModel:
     source: Literal["user", "server"]
 
 
-def _openai_compatible(resolved: ResolvedModel) -> BaseChatModel:
+@functools.cache
+def _chat_openai() -> "type[ChatOpenAI]":
     from langchain_openai import ChatOpenAI
 
-    return ChatOpenAI(
+    class ReasoningChatOpenAI(ChatOpenAI):
+        """``ChatOpenAI`` that keeps a streamed ``reasoning_content`` delta
+        (DeepSeek and other reasoning models on OpenAI-compatible servers)
+        in the chunk's ``additional_kwargs``; the base class drops it, so a
+        model thinking for a minute looked silent."""
+
+        def _convert_chunk_to_generation_chunk(
+            self,
+            chunk: dict[str, Any],
+            default_chunk_class: type,
+            base_generation_info: dict[str, Any] | None,
+        ) -> ChatGenerationChunk | None:
+            gen = super()._convert_chunk_to_generation_chunk(
+                chunk, default_chunk_class, base_generation_info
+            )
+            choices = chunk.get("choices") or []
+            delta = (choices[0].get("delta") or {}) if choices else {}
+            think = delta.get("reasoning_content")
+            if gen is not None and isinstance(think, str) and think:
+                gen.message.additional_kwargs["reasoning_content"] = think
+            return gen
+
+    return ReasoningChatOpenAI
+
+
+def _openai_compatible(resolved: ResolvedModel) -> BaseChatModel:
+    return _chat_openai()(
         model=resolved.model,
         api_key=resolved.api_key,
         base_url=resolved.base_url,

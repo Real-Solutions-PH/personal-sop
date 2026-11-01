@@ -6,10 +6,10 @@ import logging
 import uuid
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from fastapi.responses import Response, StreamingResponse
 
-from app.modules.companion import gate, notify, services, turn
+from app.modules.companion import gate, notify, runs, services, turn
 from app.modules.companion.schema import (
     AskIn,
     AskOut,
@@ -26,7 +26,7 @@ from app.modules.companion.schema import (
     TrackerIn,
     TrackerPublic,
 )
-from app.modules.iam.deps import require_permission
+from app.modules.iam.deps import release_connection, require_permission
 from app.shared.context import Ctx, CtxDep, make_ctx
 from app.shared.events import publish
 from app.shared.pagination import PaginationDep
@@ -98,25 +98,33 @@ def ask(ctx: CtxDep, data: AskIn) -> Any:
     response_class=StreamingResponse,
     responses={200: {"content": {"text/event-stream": {}}}},
 )
-def ask_stream(ctx: CtxDep, data: AskIn) -> StreamingResponse:
+def ask_stream(
+    ctx: CtxDep,
+    data: AskIn,
+    last_event_id: str | None = Header(default=None, alias="Last-Event-ID"),
+) -> StreamingResponse:
     """Ask the companion; the turn streams as AG-UI events (ADR-0015):
     ``RUN_STARTED``, a ``STEP_STARTED``/``STEP_FINISHED`` per model call and
     tool, ``TEXT_MESSAGE_*`` for the reply, ``TOOL_CALL_*`` per tool with a
     one-line outcome in ``TOOL_CALL_RESULT``, ``CUSTOM`` events for the
     stored question (``message``), cards (``card``, ``ask``, ``info``),
     blocks (``block``) and a router capture (``capture``), then
-    ``RUN_FINISHED`` with the whole answer, or ``RUN_ERROR``. Validation
-    happens before the stream opens."""
+    ``RUN_FINISHED`` with the whole answer, or ``RUN_ERROR``. While the
+    model reasons, ``REASONING_*`` events carry its thinking as it is
+    written. Validation happens before the stream opens.
+
+    The turn runs on its own (``runs``): dropping this stream never stops
+    it, every frame carries an ``id`` to resume from, and sending the same
+    question ``id`` again reads the reply already running."""
     run_id = str(data.id or uuid.uuid4())
     thread = str(data.thread_id or "latest")
     user = ctx.user
+    uid = ctx.user_id
 
     def work(sink: turn.Sink) -> None:
-        # The turn owns its database session. The request's session closes
-        # when the phone drops the connection (the app leaves the chat or
-        # goes to the background); a reply still being written on it then
-        # failed half-saved. On its own session the reply always finishes
-        # and is stored, and the app picks it up on its next sync.
+        # The turn owns its database session and outlives this request: the
+        # phone drops the stream when the app leaves the chat or goes to the
+        # background, and the reply still finishes and is stored.
         sessions = get_tenant_scoped_session(user)
         own = make_ctx(next(sessions), user)
         try:
@@ -193,10 +201,42 @@ def ask_stream(ctx: CtxDep, data: AskIn) -> StreamingResponse:
             ctx.session.rollback()
             log.warning("companion learn failed: %s", type(exc).__name__)
 
+    # A resend of the same question (the app retrying after a dropped
+    # connection) reads the reply already being written.
+    runs.start(
+        uid, run_id, work, on_heartbeat=lambda: gate.refresh_run(uid, run_id, thread)
+    )
+    # The stream needs nothing from the request's session: hand its
+    # connection back now, not when a reply minutes long ends.
+    release_connection(ctx.session)
     return StreamingResponse(
-        turn.stream_events(
-            work, on_heartbeat=lambda: gate.refresh_run(ctx.user_id, run_id, thread)
-        ),
+        runs.tail(uid, run_id, last_event_id),
+        media_type="text/event-stream",
+        headers=SSE_HEADERS,
+    )
+
+
+@router.get(
+    "/messages/{message_id}/events",
+    dependencies=READ,
+    response_class=StreamingResponse,
+    responses={200: {"content": {"text/event-stream": {}}}},
+)
+def reply_events(
+    ctx: CtxDep,
+    message_id: uuid.UUID,
+    last_event_id: str | None = Header(default=None, alias="Last-Event-ID"),
+) -> StreamingResponse:
+    """The reply to the question ``message_id`` as it is being written, for
+    an app that comes back to the chat: every AG-UI event so far (or those
+    after ``Last-Event-ID``), then each new one live, the same frames as
+    ``/ask/stream``. 404 once the reply's events are no longer kept (about
+    an hour after it ended); ``/messages/{id}/reply`` still has it."""
+    if not runs.exists(ctx.user_id, str(message_id)):
+        raise HTTPException(status_code=404, detail="Reply not found")
+    release_connection(ctx.session)
+    return StreamingResponse(
+        runs.tail(ctx.user_id, str(message_id), last_event_id),
         media_type="text/event-stream",
         headers=SSE_HEADERS,
     )

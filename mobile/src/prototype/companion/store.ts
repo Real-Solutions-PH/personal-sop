@@ -26,6 +26,9 @@ export type Block =
   | { t: "memory" }
   | { t: "chips"; prompts: string[] }
   | { t: "steps"; items: StepItem[] }
+  /** The model's thinking while it works on a reply, streamed as written
+   * and folded away; ``done`` once the answer (or a tool) has started. */
+  | { t: "thinking"; text: string; done?: boolean }
   /** The day's food against the target, as Fern pulled it up. */
   | { t: "nutrition"; day: string }
   /** Photos sent with a message: media ids, and links when known (local
@@ -150,6 +153,9 @@ export type CompanionState = {
   activeThread?: string | null
   /** The chat each entry logged from chat was logged in, by entry id. */
   captureChats?: Record<string, string>
+  /** The question whose reply was being written when the app last ran:
+   * kept across a restart, so coming back follows that reply again. */
+  inFlight?: { id: string; threadId: string } | null
 }
 
 /** The companion's default name (brand: docs/brand/fern.md). A user may

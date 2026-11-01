@@ -79,6 +79,11 @@ class LoopHooks:
     def model_finished(self, turn: int, message: BaseMessage) -> None:
         return None
 
+    def reasoning(self, delta: str) -> None:
+        """A piece of the model's thinking (a reasoning model's
+        ``reasoning_content``), as it streams; never part of the reply."""
+        return None
+
     def tool_started(self, call_id: str, name: str, args: dict[str, Any]) -> None:
         return None
 
@@ -155,6 +160,9 @@ def run_loop(
             for chunk in bound.stream([SystemMessage(system), *state["messages"]]):
                 if h.stopped():
                     break
+                think = chunk.additional_kwargs.get("reasoning_content")
+                if isinstance(think, str) and think:
+                    h.reasoning(think)
                 delta = _text(chunk)
                 if delta:
                     on_text(delta)
