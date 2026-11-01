@@ -6,6 +6,7 @@ import { dayKey } from "@domain/lib/day"
 import { configureStorage, resetAll } from "@domain/lib/store"
 import { tasksStore } from "@domain/tasks/store"
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -80,6 +81,7 @@ beforeEach(() => {
   resetAll()
 })
 test("the task form creates a task that can be completed from the native list", () => {
+  jest.useFakeTimers()
   const view = render(<TaskNew />, { wrapper })
   expect(screen.getByText("New task")).toBeTruthy()
   fireEvent.changeText(screen.getByLabelText("Task"), "Native test task")
@@ -97,10 +99,13 @@ test("the task form creates a task that can be completed from the native list", 
   )
   expect(screen.getByText("Native test task")).toBeTruthy()
   fireEvent.press(screen.getByRole("checkbox", { name: "Done" }))
+  // The tick plays its celebration before the task is marked done.
+  act(() => jest.advanceTimersByTime(1000))
   expect(tasksStore.get().tasks.find((t) => t.id === task?.id)?.status).toBe(
     "done",
   )
   list.unmount()
+  jest.useRealTimers()
 })
 test("habit editor rejects an empty name and persists a named habit", () => {
   render(<HabitForm />, { wrapper })
@@ -130,13 +135,15 @@ test("Today's plan ticks an item done in one tap and hides completed setup", () 
   const view = render(<Today />, { wrapper })
   expect(screen.queryByText("Finish setting up")).toBeNull()
   expect(screen.queryByText("Make this yours")).toBeNull()
-  // Each habit and task on today's plan has its own done button.
-  const [next] = screen.getAllByRole("button", { name: /^Mark .* done$/ })
+  // Each habit and task on today's plan has its own done check.
+  const [next] = screen.getAllByRole("checkbox", { name: /^Mark .* done$/ })
   {
     const before =
       habitsStore.get().logs.filter((l) => l.status === "done").length +
       tasksStore.get().tasks.filter((t) => t.status === "done").length
     fireEvent.press(next)
+    // It commits after the check's celebration beat.
+    act(() => jest.advanceTimersByTime(1000))
     const after =
       habitsStore.get().logs.filter((l) => l.status === "done").length +
       tasksStore.get().tasks.filter((t) => t.status === "done").length

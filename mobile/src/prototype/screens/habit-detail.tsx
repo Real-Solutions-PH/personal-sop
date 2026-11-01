@@ -17,7 +17,7 @@ import {
 import { useState } from "react"
 import { View } from "react-native"
 import { FocusTimeCard } from "../focus-kit"
-import { Burst, feel, markCompletion } from "../motion"
+import { Cheer, feel, markCompletion } from "../motion"
 import { Copy, Frame, IconTap, Line, SectionHeading, Tap } from "../native-kit"
 import { go } from "../navigation"
 import { useTheme } from "../theme"
@@ -340,8 +340,7 @@ export function HabitDetail({ id }: { id: string }) {
           <RuleToday habit={h} log={log} />
         ) : (
           <Line style={{ gap: 8 }}>
-            <View style={{ flex: 1 }}>
-              <Burst fire={marked} color={t.hab} size={56} />
+            <Cheer fire={marked} color={t.hab} style={{ flex: 1 }}>
               <Button
                 tone={
                   h.type === "check" && log?.status === "done"
@@ -376,7 +375,7 @@ export function HabitDetail({ id }: { id: string }) {
                       ? "✓ Done today — undo"
                       : "Mark done today"}
               </Button>
-            </View>
+            </Cheer>
             <Button tone="quiet" onPress={() => setLogDay(today)}>
               Log…
             </Button>

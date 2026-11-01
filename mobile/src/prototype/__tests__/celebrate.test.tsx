@@ -9,7 +9,7 @@ import * as Haptics from "expo-haptics"
 import type { ReactNode } from "react"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
-import { AnimatedCheck, StreakChip } from "../motion"
+import { AnimatedCheck, MOTION, StreakChip, TickRow } from "../motion"
 import { TaskPlanPanel } from "../screens/plan"
 import { TaskDetail } from "../screens/task-detail"
 import { TaskRow } from "../screens/tasks"
@@ -98,8 +98,12 @@ const success = () =>
   (Haptics.notificationAsync as jest.Mock).mock.calls.filter(
     ([kind]) => kind === "success",
   ).length
-const burst = () =>
-  screen.queryAllByTestId("burst", { includeHiddenElements: true })
+const hidden = { includeHiddenElements: true }
+const burst = () => screen.queryAllByTestId("burst", hidden)
+const particles = () => screen.queryAllByTestId("burst-particle", hidden)
+const flash = () => screen.queryAllByTestId("row-flash", hidden)
+// Past the commit beat, with a little slack.
+const beat = MOTION.commit + 40
 
 beforeEach(() => {
   jest.useFakeTimers()
@@ -136,9 +140,9 @@ test("checking bursts with a success haptic; unchecking does neither", () => {
   fireEvent.press(screen.getByRole("checkbox"))
   expect(burst()).toHaveLength(1)
   expect(success()).toBe(1)
-  act(() => jest.advanceTimersByTime(400))
+  act(() => jest.advanceTimersByTime(beat))
   expect(onToggle).toHaveBeenCalledTimes(1)
-  act(() => jest.advanceTimersByTime(400))
+  act(() => jest.advanceTimersByTime(beat))
   expect(burst()).toHaveLength(0)
   view.rerender(check({ onToggle, checked: true }))
   fireEvent.press(screen.getByRole("checkbox"))
@@ -160,14 +164,42 @@ test("celebrate plays the pop and burst without toggling", () => {
   expect(onToggle).not.toHaveBeenCalled()
 })
 
-test("reduced motion: no burst, and the toggle commits at once", () => {
+test("reduced motion still shows a tick: a halo and a row flash, no particles", () => {
+  // iOS Reduce Motion was on for the phone that saw nothing at all.
   mockMotion.reduced = true
   const onToggle = jest.fn()
-  render(check({ onToggle }), { wrapper })
+  render(<TickRow>{check({ onToggle })}</TickRow>, { wrapper })
+  fireEvent.press(screen.getByRole("checkbox"))
+  expect(burst()).toHaveLength(1)
+  expect(particles()).toHaveLength(0)
+  expect(flash()).toHaveLength(1)
+  expect(success()).toBe(1)
+  // The beat is kept so the fade is seen before the row moves.
+  expect(onToggle).not.toHaveBeenCalled()
+  act(() => jest.advanceTimersByTime(beat))
+  expect(onToggle).toHaveBeenCalledTimes(1)
+})
+
+test("full motion sprays particles and flashes its row; unticking does not", () => {
+  const onToggle = jest.fn()
+  const view = render(<TickRow>{check({ onToggle })}</TickRow>, { wrapper })
+  fireEvent.press(screen.getByRole("checkbox"))
+  expect(particles().length).toBeGreaterThan(0)
+  expect(flash()).toHaveLength(1)
+  act(() => jest.advanceTimersByTime(1000))
+  view.rerender(<TickRow>{check({ onToggle, checked: true })}</TickRow>)
+  const before = success()
+  fireEvent.press(screen.getByRole("checkbox"))
+  expect(burst()).toHaveLength(0)
+  expect(success()).toBe(before)
+})
+
+test("beat 0 commits at once and the tick still plays", () => {
+  const onToggle = jest.fn()
+  render(check({ onToggle, beat: 0 }), { wrapper })
   fireEvent.press(screen.getByRole("checkbox"))
   expect(onToggle).toHaveBeenCalledTimes(1)
-  expect(burst()).toHaveLength(0)
-  expect(success()).toBe(1)
+  expect(burst()).toHaveLength(1)
 })
 
 test("swiping a task complete bursts its check with one haptic", () => {
@@ -177,7 +209,7 @@ test("swiping a task complete bursts its check with one haptic", () => {
   expect(burst()).toHaveLength(1)
   // The swipe's own success buzz; the check stays quiet.
   expect(success()).toBe(1)
-  act(() => jest.advanceTimersByTime(400))
+  act(() => jest.advanceTimersByTime(beat))
   expect(tasksStore.get().tasks[0].status).toBe("done")
   expect(toast).toHaveBeenCalledWith("Task complete", expect.anything())
 })
@@ -199,7 +231,7 @@ test("completing the last habit shows the all-done moment once per day", () => {
   render(<HabitsCard />, { wrapper })
   expect(screen.queryByText("All habits done today")).toBeNull()
   fireEvent.press(screen.getByRole("checkbox", { name: "Complete Read" }))
-  act(() => jest.advanceTimersByTime(400))
+  act(() => jest.advanceTimersByTime(beat))
   expect(screen.getByText("All habits done today")).toBeTruthy()
   expect(mockStorage.get("sop:celebrated:habits")).toBeTruthy()
   act(() => jest.advanceTimersByTime(200))
@@ -208,10 +240,10 @@ test("completing the last habit shows the all-done moment once per day", () => {
   // Reopen and redo the same day: the banner returns without replaying.
   fireEvent.press(screen.getByText("DONE · 2"))
   fireEvent.press(screen.getByRole("checkbox", { name: "Reopen Read" }))
-  act(() => jest.advanceTimersByTime(400))
+  act(() => jest.advanceTimersByTime(beat))
   expect(screen.queryByText("All habits done today")).toBeNull()
   fireEvent.press(screen.getByRole("checkbox", { name: "Complete Read" }))
-  act(() => jest.advanceTimersByTime(400))
+  act(() => jest.advanceTimersByTime(beat))
   expect(screen.getByText("All habits done today")).toBeTruthy()
   expect(success()).toBe(buzz + 1)
   expect(Haptics.impactAsync).toHaveBeenCalledTimes(2)
@@ -237,7 +269,7 @@ test("clearing today's last task pulses the ring once per day", () => {
   render(<TaskPlanPanel />, { wrapper })
   expect(screen.queryByTestId("tasks-clear")).toBeNull()
   fireEvent.press(screen.getByRole("checkbox", { name: "Done" }))
-  act(() => jest.advanceTimersByTime(400))
+  act(() => jest.advanceTimersByTime(beat))
   expect(screen.getByTestId("tasks-clear")).toBeTruthy()
   expect(screen.getByText("Today's clear")).toBeTruthy()
   expect(mockStorage.get("sop:celebrated:tasks")).toBeTruthy()
@@ -255,7 +287,7 @@ test("task detail completes through an accessible animated check", () => {
   render(<TaskDetail id={task.id} />, { wrapper })
   fireEvent.press(screen.getByRole("checkbox", { name: "Complete" }))
   expect(burst()).toHaveLength(1)
-  act(() => jest.advanceTimersByTime(400))
+  act(() => jest.advanceTimersByTime(beat))
   expect(tasksStore.get().tasks[0].status).toBe("done")
   expect(toast).toHaveBeenCalledWith("Task complete", expect.anything())
 })

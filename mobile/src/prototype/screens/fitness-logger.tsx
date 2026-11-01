@@ -29,7 +29,7 @@ import { TextInput, View } from "react-native"
 import Animated from "react-native-reanimated"
 import { toast } from "sonner-native"
 import { LiveNotice } from "@/surfaces/live-notice"
-import { rowEnter, rowExit } from "../motion"
+import { AnimatedCheck, rowEnter, rowExit, TickRow } from "../motion"
 import {
   Bar,
   border,
@@ -493,8 +493,10 @@ export function WorkoutLogger() {
                     dismissLabel="Delete set"
                     background={t.card}
                   >
-                    <Line
+                    <TickRow
                       style={{
+                        flexDirection: "row",
+                        alignItems: "center",
                         gap: 8,
                         paddingHorizontal: 4,
                         paddingVertical: 4,
@@ -560,34 +562,42 @@ export function WorkoutLogger() {
                         </Tap>
                       ))}
                       <View style={{ width: 44 }}>
-                        <Tap
-                          label={C.isDone(set) ? "Undo set" : "Complete set"}
-                          onPress={() =>
-                            needsWeight
-                              ? setEditing({ we: we.id, set: set.id })
-                              : A.toggleSet(w.id, we.id, set.id)
-                          }
-                          style={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: 12,
-                            borderWidth: 2,
-                            borderColor: C.isDone(set) ? t.fit : t.line,
-                            backgroundColor: C.isDone(set)
-                              ? t.fit
-                              : "transparent",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                        >
-                          <Check
-                            size={20}
-                            strokeWidth={3}
-                            color={C.isDone(set) ? t.bg : t.muted}
+                        {needsWeight ? (
+                          // No weight yet: the check asks for one first.
+                          <Tap
+                            label="Complete set"
+                            onPress={() =>
+                              setEditing({ we: we.id, set: set.id })
+                            }
+                            style={{
+                              width: 40,
+                              height: 40,
+                              borderRadius: 12,
+                              borderWidth: 2,
+                              borderColor: t.line,
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <Check size={20} strokeWidth={3} color={t.muted} />
+                          </Tap>
+                        ) : (
+                          // A set stays where it is, so it commits at once
+                          // and the tick plays on.
+                          <AnimatedCheck
+                            checked={C.isDone(set)}
+                            onToggle={() => A.toggleSet(w.id, we.id, set.id)}
+                            label={C.isDone(set) ? "Undo set" : "Complete set"}
+                            color={t.fit}
+                            idle={t.line}
+                            size={40}
+                            square
+                            checkColor={t.bg}
+                            beat={0}
                           />
-                        </Tap>
+                        )}
                       </View>
-                    </Line>
+                    </TickRow>
                   </SwipeRow>
                 )
               })}

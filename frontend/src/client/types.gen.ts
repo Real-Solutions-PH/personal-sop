@@ -329,6 +329,7 @@ export type app__modules__finance__schema__SettingsPublic = {
     ai_scope: string;
     disclaimer_ack: boolean;
     nudge_days: number;
+    bill_reminder: (string | null);
     proj_excluded_planned: Array<(string)>;
     setup_done: boolean;
     version: number;
@@ -3694,6 +3695,7 @@ export type SettingsFields = {
     ai_scope?: ('aggregates' | 'records' | null);
     disclaimer_ack?: (boolean | null);
     nudge_days?: (number | null);
+    bill_reminder?: (string | null);
     proj_excluded_planned?: (Array<(string)> | null);
     setup_done?: (boolean | null);
 };

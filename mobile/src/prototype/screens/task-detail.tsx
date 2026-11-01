@@ -21,7 +21,7 @@ import { useEffect, useRef, useState } from "react"
 import { ScrollView, TextInput, View } from "react-native"
 import { toast } from "sonner-native"
 import { FocusTimeCard } from "../focus-kit"
-import { AnimatedCheck } from "../motion"
+import { AnimatedCheck, TickRow } from "../motion"
 import { border, Copy, Frame, IconTap, Line, Tap } from "../native-kit"
 import { go } from "../navigation"
 import { fonts, useTheme } from "../theme"
@@ -208,52 +208,54 @@ export function TaskDetail({ id }: { id: string }) {
     }
   return (
     <Screen title="Task">
-      <Line style={{ alignItems: "flex-start", gap: 12 }}>
-        <AnimatedCheck
-          checked={done}
-          onToggle={tick}
-          label={done ? "Mark not done" : "Complete"}
-          color={t.tsk}
-          idle={t.muted}
-          size={28}
-          square={shopping}
-          checkColor={t.bg}
-        />
-        <TextInput
-          accessibilityLabel="Title"
-          {...title}
-          // Grows with the title instead of scrolling inside one line.
-          multiline
-          scrollEnabled={false}
-          style={{
-            flex: 1,
-            minWidth: 0,
-            paddingVertical: 8,
-            paddingHorizontal: 0,
-            fontFamily: fonts.semibold,
-            fontSize: 20,
-            lineHeight: 27.5,
-            color: done ? t.muted : t.text,
-            textDecorationLine: done ? "line-through" : "none",
-          }}
-        />
-        <Tap
-          label={task.starred ? "Unstar" : "Star"}
-          onPress={() => A.updateTask(id, { starred: !task.starred })}
-          style={{
-            width: 40,
-            height: 40,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Star
-            size={20}
-            color={task.starred ? t.warn : t.muted}
-            fill={task.starred ? t.warn : "none"}
+      <TickRow>
+        <Line style={{ alignItems: "flex-start", gap: 12 }}>
+          <AnimatedCheck
+            checked={done}
+            onToggle={tick}
+            label={done ? "Mark not done" : "Complete"}
+            color={t.tsk}
+            idle={t.muted}
+            size={28}
+            square={shopping}
+            checkColor={t.bg}
           />
-        </Tap>
-      </Line>
+          <TextInput
+            accessibilityLabel="Title"
+            {...title}
+            // Grows with the title instead of scrolling inside one line.
+            multiline
+            scrollEnabled={false}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              paddingVertical: 8,
+              paddingHorizontal: 0,
+              fontFamily: fonts.semibold,
+              fontSize: 20,
+              lineHeight: 27.5,
+              color: done ? t.muted : t.text,
+              textDecorationLine: done ? "line-through" : "none",
+            }}
+          />
+          <Tap
+            label={task.starred ? "Unstar" : "Star"}
+            onPress={() => A.updateTask(id, { starred: !task.starred })}
+            style={{
+              width: 40,
+              height: 40,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Star
+              size={20}
+              color={task.starred ? t.warn : t.muted}
+              fill={task.starred ? t.warn : "none"}
+            />
+          </Tap>
+        </Line>
+      </TickRow>
       {deleted && (
         <Line
           style={{
