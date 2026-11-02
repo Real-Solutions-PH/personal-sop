@@ -17,6 +17,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
+from app.core.config import settings
 from app.modules.ai_providers import public as ai
 from app.modules.companion import memory, routing, services
 from app.modules.companion.models import Memory
@@ -365,14 +366,16 @@ def test_older_conversation_is_folded_into_a_summary(
             headers=api.h,
             json={"text": f"message number {i} about the trip to Cebu"},
         )
-    # Those six messages were yesterday's: after the next reply (never
-    # before it) they are folded into the summary, one call, and the turn
-    # after that has the summary in context.
+    # Those six messages were yesterday's, and the history budget holds
+    # only the newest couple: after the next reply (never before it) what
+    # slid out is folded into the summary, one call, and the turn after
+    # that has the summary in context.
     with ctx_for(api.user) as ctx:  # type: ignore[attr-defined]
         for m in owned_repo.list_rows(ctx, CompanionMessage):
             m.created_at -= timedelta(days=1)
             ctx.session.add(m)
         ctx.session.commit()
+    monkeypatch.setattr(settings, "FERN_HISTORY_MAX_TOKENS", 30)
     model = install(
         monkeypatch,
         say("Sure."),
@@ -392,7 +395,8 @@ def test_older_conversation_is_folded_into_a_summary(
         # Each chat keeps its own summary; these turns all went to one.
         [thread] = owned_repo.list_rows(ctx, CompanionThread)
         assert thread.summary_through is not None
-    # Nothing new to fold: the next turn makes no summary call.
+    # Nothing new slides out: the next turn makes no summary call.
+    monkeypatch.setattr(settings, "FERN_HISTORY_MAX_TOKENS", 64_000)
     model = install(monkeypatch, say("Again."))
     client.post("/api/v1/companion/ask/stream", headers=api.h, json={"text": "hi"})
     assert len(model.seen) == 1

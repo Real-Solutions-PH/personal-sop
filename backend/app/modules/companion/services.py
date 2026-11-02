@@ -10,6 +10,7 @@ line with the companion's messages.
 """
 
 import json
+import math
 import re
 import uuid
 from collections.abc import Callable
@@ -25,6 +26,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import ColumnElement
 from sqlmodel import col
 
+from app.core.config import settings
 from app.modules.ai_providers import public as ai
 from app.modules.capture import public as capture
 from app.modules.companion import (
@@ -70,18 +72,30 @@ from app.shared.context import Ctx
 from app.shared.ids import derived_id
 
 Emit = Callable[[str, dict[str, Any]], None]
-# What one companion answer may cost. The model sees the last HISTORY messages
-# of the user's current day, each cut to HISTORY_CHARS, and gets at most
-# MAX_STEPS model calls and MAX_TOOL_CALLS tool calls (enough to look
-# something up, write several records and answer); tool results are cut in
-# capture's loop (``agent.MAX_TOOL_RESULT_CHARS``).
-# The turn sends the chat's last HISTORY messages word for word: today's,
-# and the person's own from the HISTORY_DAYS before (dated; earlier-day
-# replies stay out, see ``_history``). Was 6 messages of 600 characters,
-# today only: Fern forgot what was said an hour or a day before.
-HISTORY = 12
-HISTORY_CHARS = 1000
-HISTORY_DAYS = 2
+# What one companion answer may cost: at most MAX_STEPS model calls and
+# MAX_TOOL_CALLS tool calls (enough to look something up, write several
+# records and answer); tool results are cut in capture's loop
+# (``agent.MAX_TOOL_RESULT_CHARS``).
+#
+# The turn sends the whole chat, word for word, newest first until
+# ``history_budget`` is spent; what no longer fits slides into the chat's
+# summary (``refresh_summary``), never cut mid-message. Was the last 12
+# messages, each cut to 1,000 characters, with earlier days' replies left
+# out: a long chat lost its start (Kai, 2026-11-02).
+#
+# Tokens are estimated, not counted: the models' tokenizers differ and are
+# not all public. Measured on DeepSeek-V4-Flash (2026-11-02): English chat
+# 3.4 characters a token, Taglish 3.1, JSON 3.0; 2.5 overestimates by 20-35%,
+# so a budget is never overrun.
+CHARS_PER_TOKEN = 2.5
+# A message's role and separators.
+MSG_OVERHEAD_TOKENS = 4
+# Room a turn needs besides its history: the system prompt and tools
+# (measured 14k tokens with 12 messages of history), tool results (up to
+# MAX_TOOL_CALLS of agent.MAX_TOOL_RESULT_CHARS) and the reply.
+TURN_RESERVE_TOKENS = 32_000
+# Rows read to fill the budget; a chat longer than this sends its newest.
+HISTORY_MAX_ROWS = 2_000
 MAX_STEPS = 6
 # The reply when the person sent another message and asked for it at once
 # ("Send now") before this one had any words. A reply that has words ends
@@ -691,6 +705,14 @@ class OverviewArgs(BaseModel):
     days: Annotated[int, Field(ge=1, le=366)] = 30
 
 
+class DiscardArgs(BaseModel):
+    what: str | None = Field(
+        default=None,
+        description="Words naming the one waiting entry to drop (its food or "
+        "title); leave out to drop every waiting entry.",
+    )
+
+
 class NoArgs(BaseModel):
     pass
 
@@ -1191,9 +1213,9 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
         )
 
     def discard_pending(**kw: Any) -> dict[str, Any]:
-        NoArgs(**kw)
+        a = DiscardArgs(**kw)
         return capture.settle_waiting(
-            ctx, action="discard", keep_capture=run.turn_capture()
+            ctx, action="discard", keep_capture=run.turn_capture(), matching=a.what
         )
 
     def portion_plan(**kw: Any) -> dict[str, Any]:
@@ -1366,9 +1388,10 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
         ),
         (
             discard_pending,
-            NoArgs,
-            "Drop every entry from recent chat turns that is waiting for the "
-            "user's OK, when they say cancel, no, don't save it.",
+            DiscardArgs,
+            "Drop entries from recent chat turns that are waiting for the "
+            "user's OK: every one when they say cancel, no, don't save it; "
+            "with `what`, only the entry those words name (to correct it).",
         ),
         (
             portion_plan,
@@ -1417,6 +1440,15 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
     ]
 
 
+# Kai, build 25: a photo meal waited as "black rice snack"; "it is ube"
+# failed twice, because the rules said never to record a waiting entry
+# again and no tool could change one, so the model claimed a fix it could
+# not make. A correction drops that one entry and records it again.
+CORRECT_WAITING = (
+    "when they correct an entry still waiting (another food, name or amount: "
+    '"it is ube"), call `discard_pending` with `what` naming that entry, then '
+    "record it again, corrected, with the tool that made it, in this reply."
+)
 SYSTEM = """You are {sol}, the companion inside Personal SOP, a life-logging
 app. The user is {user}. NOW at the end gives today's date, the time where
 they live and when their day rolls over: before the rollover "today" in their
@@ -1534,7 +1566,8 @@ be told to register or add them; listing them back is not recording them.
   so never explain how to confirm. Never call it done.
 - When they say confirm, yes, save it or go ahead about entries waiting
   from earlier, call `confirm_pending`; when they say cancel or don't save
-  it, call `discard_pending`. Never record those entries again. Report
+  it, call `discard_pending`. Never record those entries again, except to
+  correct one: {correct_waiting} Report
   what `confirm_pending` could not save and why (an expense needs an
   account first). To save again something they Undid, `redo_undone`.
 - A write that returns an error did not happen; say so plainly.
@@ -2169,12 +2202,9 @@ def unbacked_claim(
     return not wrote and asks and bool(_CLAIMS_A_WRITE.search(answer))
 
 
-# Fold older messages into the summary once a day's conversation is behind
-# (SUMMARY_AFTER of them from earlier days), or within a long day once
-# SUMMARY_AFTER_TODAY have fallen out of the window: one short call then,
-# instead of resending or losing them.
-SUMMARY_AFTER = 4
-SUMMARY_AFTER_TODAY = 20
+# Messages that slid out of the history window (``history_budget``) are
+# folded into the chat's summary after the reply, at most SUMMARY_MAX_MSGS
+# per call, so the start of a long chat is never simply lost.
 SUMMARY_MSG_CHARS = 400
 SUMMARY_MAX_MSGS = 40
 SUMMARISE = """You keep a running summary of a person's conversation with
@@ -2205,15 +2235,11 @@ def _summary_block(ctx: Ctx) -> str:
 
 
 def refresh_summary(ctx: Ctx, resolved: ai.ResolvedModel) -> None:
-    """Fold the messages older than the turn window into the summary once
-    SUMMARY_AFTER of them have built up. One short model call; a failure
+    """Fold the messages that slid out of the turn's history window into the
+    summary. One short model call, only when something slid out; a failure
     leaves the summary as it was (the next turn tries again)."""
     row = _summary_row(ctx)
-    # Only what _history actually sends is excluded: an earlier day's
-    # message in the last HISTORY is not sent, so it is summarised.
-    window = {
-        m.id for m in _window_rows(ctx) if ctx.clock.day_of(m.created_at) == ctx.today
-    }
+    window = {m.id for m in _window_rows(ctx, history_budget(resolved))}
     where: list[ColumnElement[bool]] = [
         col(CompanionMessage.text).is_not(None),
         *_thread_where(),
@@ -2227,12 +2253,12 @@ def refresh_summary(ctx: Ctx, resolved: ai.ResolvedModel) -> None:
             CompanionMessage,
             *where,
             order_by=[col(CompanionMessage.created_at)],
-            limit=SUMMARY_MAX_MSGS + HISTORY,
+            limit=SUMMARY_MAX_MSGS,
         )
+        # The window is the newest block, so these come first.
         if m.id not in window
-    ][:SUMMARY_MAX_MSGS]
-    earlier_days = [m for m in older if ctx.clock.day_of(m.created_at) < ctx.today]
-    if len(earlier_days) < SUMMARY_AFTER and len(older) < SUMMARY_AFTER_TODAY:
+    ]
+    if not older:
         return
     lines = "\n".join(
         f"{'Person' if m.role == 'me' else 'Assistant'} "
@@ -2269,14 +2295,40 @@ def summarise_later(ctx: Ctx, thread_id: uuid.UUID | None) -> None:
     ctx.commit()
 
 
-def _window_rows(ctx: Ctx) -> list[CompanionMessage]:
-    return owned_repo.list_rows(
+def estimate_tokens(text: str) -> int:
+    """A message's tokens, estimated high (see CHARS_PER_TOKEN)."""
+    return math.ceil(len(text) / CHARS_PER_TOKEN) + MSG_OVERHEAD_TOKENS
+
+
+def history_budget(resolved: ai.ResolvedModel) -> int:
+    """Tokens the chat's history may take in one turn: the model's window
+    less the turn's own room, at most ``FERN_HISTORY_MAX_TOKENS`` (cost and
+    the time to read a long prompt)."""
+    room = ai.context_window(resolved) - TURN_RESERVE_TOKENS
+    return max(0, min(settings.FERN_HISTORY_MAX_TOKENS, room))
+
+
+def _window_rows(ctx: Ctx, budget: int) -> list[CompanionMessage]:
+    """The chat's messages the turn sends, newest first: whole messages
+    until ``budget`` tokens; the first that does not fit ends the window
+    (nothing older is sent, so the history never skips a message)."""
+    rows = owned_repo.list_rows(
         ctx,
         CompanionMessage,
         *_thread_where(),
         order_by=[col(CompanionMessage.created_at).desc()],
-        limit=HISTORY,
+        limit=HISTORY_MAX_ROWS,
     )
+    out: list[CompanionMessage] = []
+    spent = 0
+    for m in rows:
+        sent = _sent(ctx, m)
+        cost = estimate_tokens(str(sent.content) if sent else "")
+        if spent + cost > budget:
+            break
+        spent += cost
+        out.append(m)
+    return out
 
 
 # Said in place of a reply that ended with no words and nothing done, so a
@@ -2403,39 +2455,58 @@ def _settle_step_states(ctx: Ctx, steps: list[Step]) -> None:
                 c["state"] = states[str(c["card_id"])]
 
 
+# Stamps on an earlier day's messages. That day's replies state that
+# day's figures; sent bare, the model repeated them as today's (yesterday's
+# "1 of 2 done", today). They used to be left out, which also lost what was
+# discussed; now they go word for word, stamped, and the prompt says TODAY
+# wins (EARLIER_DAYS). A stamp copied into a reply is screened out of it
+# (turn.INTERNAL_NOTES).
+SAID = "[said {day}] "
+REPLIED = "[earlier reply, {day}] "
+EARLIER_DAYS = """Messages stamped [said <date>] or [earlier reply, <date>] are
+from that day: the figures in them were true then. Today's figures come
+from TODAY and your tools; never repeat an earlier day's figure as today's,
+and never write such a stamp yourself."""
+
+
+_STAMP = re.compile(r"^\[(?:said|earlier reply,) \d{4}-\d{2}-\d{2}\] ")
+
+
+def _unstamped(text: str) -> str:
+    """A history message's words without its day stamp."""
+    return _STAMP.sub("", text, count=1)
+
+
+def _sent(ctx: Ctx, m: CompanionMessage) -> BaseMessage | None:
+    """``m`` as the model gets it in the history; None when it carries
+    nothing (a question with no text and no photo reading)."""
+    day = ctx.clock.day_of(m.created_at)
+    earlier = day != ctx.today
+    if m.role == "me":
+        read = _photo_read(m)
+        if not (m.text or read):
+            return None
+        when = SAID.format(day=day.isoformat()) if earlier else ""
+        return HumanMessage(f"{when}{m.text or ''}\n\n{read}".strip())
+    # What a reply did goes in the system prompt (``_earlier_actions``),
+    # never in its text: a note there was copied into new replies. An
+    # older reply that already holds one is sent without it.
+    text = strip_internal(m.text or "")
+    fallback = (
+        ACTED_REPLY if any(i.get("summary") for i in _step_items(m)) else FAILED_REPLY
+    )
+    when = REPLIED.format(day=day.isoformat()) if earlier else ""
+    return AIMessage(f"{when}{text or fallback}")
+
+
+def _spans_days(ctx: Ctx, rows: list[CompanionMessage]) -> bool:
+    """Whether the window holds an earlier day's message (stamped)."""
+    return any(ctx.clock.day_of(m.created_at) != ctx.today for m in rows)
+
+
 def _history(ctx: Ctx, rows: list[CompanionMessage]) -> list[BaseMessage]:
-    out: list[BaseMessage] = []
-    for m in reversed(rows):
-        day = ctx.clock.day_of(m.created_at)
-        # An earlier day's replies state that day's facts; sent along, the
-        # model repeats them over TODAY's (yesterday's "1 of 2 done", today).
-        # The person's own words from the days before still carry what
-        # they asked and decided, so they go, dated.
-        if day != ctx.today and (
-            m.role != "me" or (ctx.today - day).days > HISTORY_DAYS
-        ):
-            continue
-        if m.role == "me":
-            read = _photo_read(m)
-            if m.text or read:
-                when = "" if day == ctx.today else f"[said {day.isoformat()}] "
-                out.append(
-                    HumanMessage(
-                        f"{when}{(m.text or '')[:HISTORY_CHARS]}\n\n{read}".strip()
-                    )
-                )
-            continue
-        # What a reply did goes in the system prompt (``_earlier_actions``),
-        # never in its text: a note there was copied into new replies. An
-        # older reply that already holds one is sent without it.
-        text = strip_internal(m.text or "")[:HISTORY_CHARS]
-        fallback = (
-            ACTED_REPLY
-            if any(i.get("summary") for i in _step_items(m))
-            else FAILED_REPLY
-        )
-        out.append(AIMessage(text or fallback))
-    return out
+    """The window's messages, oldest first, as the model gets them."""
+    return [s for m in reversed(rows) if (s := _sent(ctx, m)) is not None]
 
 
 def _last_exchange(history: list[BaseMessage]) -> tuple[str, str]:
@@ -2444,9 +2515,9 @@ def _last_exchange(history: list[BaseMessage]) -> tuple[str, str]:
     asked = answered = ""
     for m in reversed(history):
         if isinstance(m, AIMessage) and not answered and not asked:
-            answered = str(m.content)
+            answered = _unstamped(str(m.content))
         elif isinstance(m, HumanMessage):
-            asked = str(m.content)
+            asked = _unstamped(str(m.content))
             break
     if answered in (FAILED_REPLY, ACTED_REPLY):
         answered = ""
@@ -2512,13 +2583,16 @@ def _ask_ai(
         mems = memory.context_block(ctx, text)
         facts = grounding.snapshot(ctx)
         grounds[:] = [facts, mems]
-        return SYSTEM.format(sol=sol_name, user=first) + CONTEXT.format(
+        return SYSTEM.format(
+            sol=sol_name, user=first, correct_waiting=CORRECT_WAITING
+        ) + CONTEXT.format(
             now_line=now_line(ctx),
             currency=ctx.currency.phrase,
             today_facts=json.dumps(facts, ensure_ascii=False),
             memories=mems,
             turn=turn_note,
-            summary=_summary_block(ctx),
+            summary=_summary_block(ctx)
+            + (f"\n{EARLIER_DAYS}\n" if _spans_days(ctx, rows) else ""),
             earlier=_earlier_actions(ctx, rows),
             trackers=json.dumps(
                 [
@@ -2533,7 +2607,7 @@ def _ask_ai(
             ),
         )
 
-    rows = _window_rows(ctx)
+    rows = _window_rows(ctx, history_budget(resolved))
     history = _history(ctx, rows)
     me = _message(
         ctx,

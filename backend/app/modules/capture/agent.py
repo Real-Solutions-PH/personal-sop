@@ -14,6 +14,7 @@ logs every write, so an AI write is undoable the same way as a rules write.
 
 import builtins
 import json
+import logging
 import re
 import time
 import uuid
@@ -49,6 +50,8 @@ from app.modules.iam.deps import release_connection
 from app.shared.context import Ctx
 from app.shared.currency import money
 from app.shared.money import MAX_MINOR
+
+log = logging.getLogger(__name__)
 
 MAX_TURNS = 6
 # A first call asked to think (``run_loop`` ``think_first``) that is still
@@ -294,6 +297,13 @@ def run_loop(
                 except seams.SeamError as exc:
                     result = {"error": exc.code}
                 calls += 1
+            if isinstance(result, dict) and result.get("error"):
+                # A refused or failed tool left no trace (a correction that
+                # failed twice showed nothing in the logs). The tool and its
+                # code only: the arguments hold what the person said.
+                log.warning(
+                    "tool %s returned error %s", tc["name"], str(result["error"])[:80]
+                )
             h.tool_finished(call_id, tc["name"], result)
             out.append(
                 ToolMessage(

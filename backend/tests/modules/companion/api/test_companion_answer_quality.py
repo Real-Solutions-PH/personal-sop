@@ -22,6 +22,7 @@ from langchain_core.messages import (
 from langchain_core.outputs import ChatGenerationChunk
 from sqlmodel import Session, select
 
+from app.core.config import settings
 from app.core.db import engine as db_engine
 from app.modules.ai_providers.models import AIUsage
 from app.modules.capture import agent
@@ -134,13 +135,13 @@ def test_fitness_items_due_are_named_so_a_day_without_habits_is_not_empty(
     )
 
 
-def test_an_earlier_days_replies_are_not_sent_to_the_model(
+def test_an_earlier_days_replies_are_sent_stamped_with_their_day(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Yesterday's reply states yesterday's facts; sent along, the model
-    repeated it over today's. An earlier day's replies stay out; the
-    person's own words from the two days before go, dated, so what they
-    asked and decided is not forgotten."""
+    """Yesterday's reply states yesterday's facts; sent bare, the model
+    repeated it over today's. It goes word for word, stamped with its day,
+    and the prompt says TODAY wins (services.EARLIER_DAYS); left out, the
+    chat lost what was discussed."""
     from datetime import timedelta
 
     from app.modules.companion.models import CompanionMessage
@@ -162,8 +163,9 @@ def test_an_earlier_days_replies_are_not_sent_to_the_model(
     ask(api, "How am I doing today?")
     sent = " ".join(str(m.content) for m in model.seen[0][1:])
     assert "] How was yesterday?" in sent and "[said " in sent
-    assert "You did 1 of 2 yesterday." not in sent
+    assert "[earlier reply, " in sent and "] You did 1 of 2 yesterday." in sent
     assert "First question today" in sent and "Earlier today." in sent
+    assert services.EARLIER_DAYS in str(model.seen[0][0].content)
 
 
 # ---------------------------------------------------------------- plain text
@@ -207,9 +209,9 @@ def test_steps_are_capped_and_each_call_input_stays_bounded(
 ) -> None:
     """A model that never stops calling tools, a long thread of long
     messages, and a turn with too many tool calls: the answer still takes at
-    most MAX_STEPS calls, and each call carries at most HISTORY prior
-    messages of at most HISTORY_CHARS, at most MAX_TOOL_CALLS_PER_TURN real
-    results of at most MAX_TOOL_RESULT_CHARS each."""
+    most MAX_STEPS calls; each call carries the whole chat, every message in
+    full, within the history budget, and at most MAX_TOOL_CALLS_PER_TURN
+    real results of at most MAX_TOOL_RESULT_CHARS each."""
     api = user(client, db, accounts=False)
     long = "hey " + "x" * 3990
     for _ in range(10):  # the router answers greetings: 20 stored messages
@@ -232,17 +234,21 @@ def test_steps_are_capped_and_each_call_input_stays_bounded(
             and not getattr(m, "tool_calls", None)
             and m.content != "how am I doing?"
         ]
-        assert len(convo) == services.HISTORY
-        assert all(len(str(m.content)) <= services.HISTORY_CHARS for m in convo)
+        # 20 stored messages, all sent and none cut.
+        assert len(convo) == 20
+        assert all(len(str(m.content)) == len(long) for m in convo[::2])
+        assert sum(services.estimate_tokens(str(m.content)) for m in convo) <= (
+            settings.FERN_HISTORY_MAX_TOKENS
+        )
         assert isinstance(sent[-1], (HumanMessage, ToolMessage))
     # the third call holds two tool turns, each of 12 calls: 8 ran, 4 refused
     tools = [m for m in model.seen[2] if isinstance(m, ToolMessage)]
     refused = [m for m in tools if "too_many_calls_in_one_turn" in str(m.content)]
     assert len(tools) == 24 and len(refused) == 8
     sizes = [sum(len(str(m.content)) for m in sent) for sent in model.seen]
-    # system + 12 x 1000 history + 24 short tool results: still far below
-    # the 48k characters the old 12 x 4000 history alone would send
-    assert max(sizes) < 26_000, sizes
+    # The whole chat goes, within the history budget's characters.
+    budget_chars = settings.FERN_HISTORY_MAX_TOKENS * services.CHARS_PER_TOKEN
+    assert max(sizes) < budget_chars + 30_000, sizes
     assert [u.input_tokens for u in usage_rows(api)] == [120] * services.MAX_STEPS
 
 

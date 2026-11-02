@@ -462,3 +462,90 @@ def test_step_results_carry_the_capture(
         if e.get("type") == "TOOL_CALL_RESULT" and "card_id" in e["content"]
     )
     assert result["capture_id"] == events[-1]["result"]["capture"]["id"]
+
+
+# ------------------------------------------------- correcting what waits
+
+
+def test_a_correction_to_a_waiting_meal_replaces_only_that_one(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Kai, build 25: a photo logged "black rice snack" waiting for his OK;
+    "it is ube" failed twice ("I didn't manage to record that"). The prompt
+    said never to record a waiting entry again and no tool could change one,
+    so the model claimed a fix it had no way to make. A correction now drops
+    that one entry and records it again, corrected; the rest still waits."""
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    install(
+        monkeypatch,
+        say("", call("log_meal", **meal("Black rice snack"))),
+        say("The black rice snack is waiting for your OK."),
+    )
+    stream(api, client, "log this black rice snack")
+    install(
+        monkeypatch,
+        say("", call("log_meal", **meal("Iced coffee"))),
+        say("The iced coffee is waiting for your OK."),
+    )
+    stream(api, client, "log this iced coffee")
+    model = install(
+        monkeypatch,
+        say(
+            "",
+            call("discard_pending", what="black rice snack"),
+            call("log_meal", **meal("Ube snack")),
+        ),
+        say("Changed it to ube; it is waiting for your OK."),
+    )
+    events = stream(api, client, "it is ube")
+    rice, coffee, ube = meal_cards(api)
+    assert (rice.state, coffee.state, ube.state) == (
+        "discarded",
+        "proposed",
+        "proposed",
+    )
+    assert reply_of(events)["text"] == "Changed it to ube; it is waiting for your OK."
+    assert services.CORRECT_WAITING in str(model.seen[0][0].content)
+
+
+def test_discard_pending_without_words_still_drops_everything_waiting(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    for food in ("Black rice snack", "Iced coffee"):
+        install(
+            monkeypatch,
+            say("", call("log_meal", **meal(food))),
+            say("Waiting for your OK."),
+        )
+        stream(api, client, f"log {food}")
+    install(monkeypatch, say("", call("discard_pending")), say("Dropped both."))
+    stream(api, client, "cancel those")
+    assert [c.state for c in meal_cards(api)] == ["discarded", "discarded"]
+
+
+def test_a_tool_error_is_logged_with_its_tool_and_code_only(
+    client: TestClient,
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A turn whose tool refused left no trace in the logs (the ube turns
+    showed nothing at 02:51 or 02:55). The tool and its error code are
+    logged now; never its arguments, which hold what the person said."""
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    install(
+        monkeypatch,
+        say("", call("confirm_pending")),
+        say("Nothing was saved."),
+    )
+    with caplog.at_level("WARNING", logger="app.modules.capture.agent"):
+        stream(api, client, "my secret lunch words")
+    lines = [
+        r.getMessage() for r in caplog.records if r.name == "app.modules.capture.agent"
+    ]
+    assert any("confirm_pending" in x and "they_did_not_confirm" in x for x in lines)
+    assert not any("secret lunch" in x for x in lines)

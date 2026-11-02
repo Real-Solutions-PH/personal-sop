@@ -3,6 +3,7 @@
 None of these commit unless the docstring says so: the calling use case does.
 """
 
+import re
 import time
 import uuid
 from collections.abc import Callable
@@ -465,18 +466,24 @@ def settle_waiting(
     *,
     action: Literal["confirm", "discard"],
     keep_capture: uuid.UUID | None = None,
+    matching: str | None = None,
 ) -> dict[str, Any]:
     """Confirm or discard what recent chat turns left waiting (Fern's
     ``confirm_pending`` / ``discard_pending``). A card the module refuses
     stays waiting and is reported with the reason (an expense with no
     account says so). Cards on ``keep_capture`` (the asking turn's own) are
-    left alone: they have their own Confirm and Discard. Flushes only."""
+    left alone: they have their own Confirm and Discard. ``matching`` (words
+    naming an entry) narrows it to the entries whose label holds one of
+    them. Flushes only."""
+    words = {w for w in re.findall(r"\w+", (matching or "").lower()) if len(w) > 2}
     done: list[str] = []
     refused: list[dict[str, str]] = []
     for card in waiting_chat_cards(ctx):
         if keep_capture is not None and card.capture_id == keep_capture:
             continue
         label = card_label(ctx, card)
+        if words and not words & set(re.findall(r"\w+", label.lower())):
+            continue
         if action == "discard":
             C.discard_row(ctx, card)
             done.append(label)

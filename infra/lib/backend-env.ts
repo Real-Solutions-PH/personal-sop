@@ -49,6 +49,10 @@ export const BACKEND_DEFAULTED: Record<string, string> = {
   AI_CREDENTIALS_KEK_VERSION: "1 until the first key rotation.",
   AI_REQUEST_TIMEOUT_SECONDS: "Code default.",
   AI_THINKING: "Code default (off: replies took minutes with thinking on).",
+  AI_CONTEXT_WINDOW_DEFAULT:
+    "Code default (128k): the window assumed for a model the catalogue does not list.",
+  FERN_HISTORY_MAX_TOKENS:
+    "Code default (64k): Fern's chat history cap; raise only to spend more per reply.",
   FERN_RULE_VOTER_SALT: "Falls back to the credentials KEK.",
   MEDIA_MAX_IMAGE_MB: "Code default.",
   MEDIA_MAX_VIDEO_MB: "Code default.",
