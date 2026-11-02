@@ -1,5 +1,18 @@
-import { at, dayOffset, weekday } from "../lib/day"
+import { DAY_START_HOUR, dayOffset, weekday } from "../lib/day"
 import type { HabitRule } from "../screen/data"
+
+/** How long the finish watcher treats a routine as just finished. */
+const SETTLED_MS = 6 * 60 * 60 * 1000
+/** A time on a business day. Between midnight and the 04:00 day start the
+ * calendar is a day ahead, so a seed stamped by the calendar (``at``) put
+ * yesterday's evening routine a few hours ago, where it read as a fresh
+ * finish; an hour before the day start belongs to the next calendar date. */
+function onDay(day: string, hh: number, mm: number): string {
+  const d = new Date(`${day}T00:00:00`)
+  if (hh < DAY_START_HOUR) d.setDate(d.getDate() + 1)
+  d.setHours(hh, mm, 0, 0)
+  return d.toISOString()
+}
 export type HabitType = "check" | "duration" | "count"
 export type HabitStatus = "active" | "paused" | "archived"
 export type LogStatus = "done" | "partial" | "skipped"
@@ -344,7 +357,11 @@ export function seedHabits(): HabitsState {
       if (d === 0 && (hh > nowH || nowH < 5)) continue
       const p = Math.min(0.97, h.p + trend + slump + hot + (h.wdMod?.[wd] ?? 0))
       const jitter = Math.round((j - 0.3) * 50)
-      const loggedAt = at(d, hh, Math.max(0, Math.min(59, mm + (jitter % 59))))
+      const loggedAt = onDay(
+        day,
+        hh,
+        Math.max(0, Math.min(59, mm + (jitter % 59))),
+      )
       const id = `sl-${n++}`
       if (x < p) {
         let value: number | undefined
@@ -409,15 +426,18 @@ export function seedHabits(): HabitsState {
         return { habitId: s.habitId, status: "done", actualSec }
       })
       const completed = results.every((x) => x.status !== "not_reached")
-      const startedAt = at(d, hh, mm + 5)
+      const startedAt = onDay(day, hh, mm + 5)
+      const endedAt = new Date(new Date(startedAt).getTime() + total * 1000)
+      // Seeded runs are history: one that ended within the finish watcher's
+      // window (last night's wind-down, opened at 4 am) would land as a
+      // fresh "Routine done" card, so the seed leaves it out.
+      if (Date.now() - endedAt.getTime() < SETTLED_MS) continue
       runs.push({
         id: `run-${rt.id}-${d}`,
         routineId: rt.id,
         day,
         startedAt,
-        endedAt: new Date(
-          new Date(startedAt).getTime() + total * 1000,
-        ).toISOString(),
+        endedAt: endedAt.toISOString(),
         steps: rt.steps,
         results,
         current: results.filter((x) => x.status !== "not_reached").length,
