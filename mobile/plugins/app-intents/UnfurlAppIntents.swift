@@ -62,25 +62,49 @@ struct AskFernIntent: AppIntent, ForegroundContinuableIntent {
   func perform() async throws -> some IntentResult & ProvidesDialog & ShowsSnippetView {
     let text = question.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !text.isEmpty else { throw $question.needsValueError("What do you want to ask Fern?") }
-    guard let reply = await ShortcutRequests.ask("askFern", ["text": text], timeout: 25),
+    // Siri gives an intent about ten seconds, then says "Something went
+    // wrong" (the Shortcuts app waits longer). The app answers within seven
+    // (FERN_SHORTCUT_WAIT_MS in src/surfaces/requests.ts).
+    guard let reply = await ShortcutRequests.ask("askFern", ["text": text], timeout: 8),
           reply["pending"] as? Bool != true else {
       // Not answered in time: the reply goes on in the app, or the question,
       // still queued, is asked as the app opens.
-      throw needsToContinueInForegroundError("Fern is still on it. Open Unfurl to see her answer.") {
+      throw needsToContinueInForegroundError("Fern is still working on it. Open Unfurl to see her answer.") {
         ShortcutRequests.open("/fern?mode=chat")
       }
     }
     if let error = reply["error"] as? String { throw ShortcutError(error) }
-    let answer = (reply["text"] as? String) ?? ""
+    let answer = FernAnswer(reply)
     if reply["needsApp"] as? Bool == true {
       throw needsToContinueInForegroundError(
-        IntentDialog(stringLiteral: answer.isEmpty ? "Fern needs you to confirm this in Unfurl." : "\(answer)\n\nConfirm it in Unfurl.")
+        IntentDialog(stringLiteral: "\(answer.spoken) Confirm it in Unfurl.")
       ) {
         ShortcutRequests.open("/fern?mode=chat")
       }
     }
-    let shown = answer.isEmpty ? "Done." : answer
-    return .result(dialog: IntentDialog(stringLiteral: shown), view: FernReplySnippet(text: shown))
+    // Said and shown once: the dialog is the short answer, the card under it
+    // only the rest. With no screen (AirPods, CarPlay) Siri reads ``full``,
+    // which says where the rest is.
+    let rest = answer.lines.isEmpty && !answer.more ? "" : " The rest is in your Fern chat."
+    return .result(
+      dialog: IntentDialog(full: "\(answer.spoken)\(rest)", supporting: "\(answer.spoken)"),
+      view: FernReplySnippet(answer: answer)
+    )
+  }
+}
+
+/** The reply the app wrote for a Shortcut (``shortcutAnswer`` in
+ * src/surfaces/requests.ts); an older app sends only ``text``. */
+struct FernAnswer {
+  var spoken: String
+  var lines: [String]
+  var more: Bool
+
+  init(_ r: [String: Any]) {
+    let said = (r["spoken"] as? String) ?? (r["text"] as? String) ?? ""
+    spoken = said.isEmpty ? "Done." : said
+    lines = (r["lines"] as? [String]) ?? []
+    more = (r["more"] as? Bool) ?? false
   }
 }
 
@@ -391,22 +415,47 @@ private enum SnippetTone {
   static let over = Color(red: 0.80, green: 0.22, blue: 0.18)
 }
 
+/** The card under Fern's spoken answer: only what the answer did not say,
+ * one item a line, then where the whole reply is. It draws its own surface
+ * from the same colour scheme as its text, so it reads on Siri's dark sheet
+ * and the Shortcuts app's light one (plain text came out black on dark). */
 struct FernReplySnippet: View {
-  var text: String
+  var answer: FernAnswer
+  @Environment(\.colorScheme) private var scheme
+
+  private var dark: Bool { scheme == .dark }
+  private var surface: Color {
+    dark ? Color(red: 0.12, green: 0.14, blue: 0.13) : Color(red: 0.95, green: 0.96, blue: 0.95)
+  }
+  private var ink: Color { dark ? Color(white: 0.95) : Color(red: 0.07, green: 0.08, blue: 0.07) }
+  private var muted: Color { dark ? Color(white: 0.70) : Color(red: 0.33, green: 0.36, blue: 0.34) }
+  private var fern: Color { dark ? Color(red: 0.49, green: 0.80, blue: 0.60) : SnippetTone.fern }
+
   var body: some View {
-    HStack(alignment: .top, spacing: 10) {
-      Image(systemName: "leaf.fill")
-        .font(.system(size: 15, weight: .semibold))
-        .foregroundStyle(.white)
-        .frame(width: 30, height: 30)
-        .background(Circle().fill(SnippetTone.fern))
-        .accessibilityHidden(true)
-      Text(text)
-        .font(.body)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .fixedSize(horizontal: false, vertical: true)
+    VStack(alignment: .leading, spacing: 10) {
+      ForEach(Array(answer.lines.enumerated()), id: \.offset) { _, line in
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+          Circle()
+            .fill(fern)
+            .frame(width: 6, height: 6)
+            .alignmentGuide(.firstTextBaseline) { $0[.bottom] + 2 }
+            .accessibilityHidden(true)
+          Text(line)
+            .font(.body)
+            .foregroundStyle(ink)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+      }
+      Label(answer.more ? "More in your Fern chat" : "Saved in your Fern chat", systemImage: "leaf.fill")
+        .font(.footnote.weight(.medium))
+        .foregroundStyle(answer.lines.isEmpty ? muted : fern)
     }
-    .padding()
+    .padding(14)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(surface))
+    .padding(.horizontal, 12)
+    .padding(.vertical, 8)
   }
 }
 

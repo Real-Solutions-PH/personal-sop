@@ -144,6 +144,51 @@ function needsApp(m: Msg): boolean {
   return false
 }
 
+/** Siri gives an intent about ten seconds before it says "Something went
+ * wrong" (the Shortcuts app waits longer), so Ask Fern answers within this
+ * and otherwise hands over to the app, where the reply goes on. */
+export const FERN_SHORTCUT_WAIT_MS = 7_000
+
+/** Longest answer Siri reads aloud. */
+const SPOKEN_MAX = 200
+/** Lines on the card under it; the rest is in the chat. */
+const LINES_MAX = 8
+
+export type ShortcutAnswer = {
+  /** Read aloud and shown: the first sentence, or the whole answer. */
+  spoken: string
+  /** The rest, one item or sentence a line, never repeating ``spoken``. */
+  lines: string[]
+  /** More is in the chat than these show. */
+  more: boolean
+}
+
+const cut = (s: string, max: number) =>
+  s.length <= max ? s : `${s.slice(0, max - 1).replace(/\s+\S*$/, "")}…`
+
+/** Fern's reply as Siri and Shortcuts show it: a short spoken answer, and
+ * the rest as lines on the card (FernReplySnippet in
+ * plugins/app-intents/UnfurlAppIntents.swift). */
+export function shortcutAnswer(text: string): ShortcutAnswer {
+  const parts = text
+    .split(/\n+/)
+    .map((l) => l.replace(/^\s*(?:[•*-]|\d+[.)])\s+/, "").trim())
+    .filter(Boolean)
+    .flatMap((l) => l.split(/(?<=[.!?])\s+(?=\S)/))
+    .map((l) => l.trim())
+    .filter(Boolean)
+  const whole = parts.join(" ")
+  if (whole.length <= SPOKEN_MAX && parts.length <= 2)
+    return { spoken: whole, lines: [], more: false }
+  const [first = "", ...rest] = parts
+  const spoken = cut(first, SPOKEN_MAX)
+  return {
+    spoken,
+    lines: rest.slice(0, LINES_MAX),
+    more: rest.length > LINES_MAX || spoken !== first,
+  }
+}
+
 /** Fern's finished reply to the question asked after ``before`` was taken,
  * or null while she is still on it. */
 export function fernReply(before: Set<string>): Reply | null {
@@ -162,13 +207,17 @@ export function fernReply(before: Set<string>): Reply | null {
   const text = (sol.text ?? "").trim()
   return {
     text: text.length > 900 ? `${text.slice(0, 897).trimEnd()}…` : text,
+    ...shortcutAnswer(text),
     needsApp: needsApp(sol),
   }
 }
 
 export async function askFern(
   text: string,
-  { fernTimeoutMs = 22_000, pollMs = 250 }: Partial<RequestDeps> = {},
+  {
+    fernTimeoutMs = FERN_SHORTCUT_WAIT_MS,
+    pollMs = 250,
+  }: Partial<RequestDeps> = {},
 ): Promise<Reply> {
   const before = new Set(companionStore.get().messages.map((m) => m.id))
   ask(text)

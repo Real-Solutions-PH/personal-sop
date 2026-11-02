@@ -93,10 +93,20 @@ def _habits_due(ctx: Ctx) -> list[dict[str, Any]]:
             {
                 "habit": h.name,
                 "time": (slot.time if slot else None) or None,
-                "done": log is not None and log.status == "done",
+                "status": _STATUS.get(log.status, "to do") if log else "to do",
             }
         )
     return out
+
+
+# A log's status as the Today card counts it: a skipped habit is handled, not
+# left to do, and a count or timer habit part-way there is still to do.
+_STATUS = {"done": "done", "skipped": "skipped", "partial": "started"}
+
+
+def _left(hs: list[dict[str, Any]]) -> int:
+    """The Today card's "N left today": due, less done and skipped."""
+    return sum(1 for h in hs if h["status"] not in ("done", "skipped"))
 
 
 def _tasks_due(ctx: Ctx) -> tuple[list[dict[str, Any]], list[dict[str, Any]], int]:
@@ -118,7 +128,7 @@ def plan(ctx: Ctx) -> list[dict[str, Any]]:
     hs = [
         {"what": h["habit"], "kind": "habit", "time": h["time"]}
         for h in _habits_due(ctx)
-        if not h["done"]
+        if h["status"] not in ("done", "skipped")
     ]
     overdue, due, _ = _tasks_due(ctx)
     ts = [
@@ -133,12 +143,14 @@ def snapshot(ctx: Ctx) -> dict[str, Any]:
     """The facts the companion may state without calling a tool."""
     cur = ctx.currency
     out: dict[str, Any] = {
-        "date": ctx.today.isoformat(),
+        # By name, as the reply should say it (see ``services.now_line``).
+        "day": f"{ctx.today.strftime('%A')} {ctx.today.day} {ctx.today.strftime('%B')}",
         "currency": f"{cur.code} ({cur.symbol})",
     }
     out.update(scores(ctx))
     hs = _habits_due(ctx)
     out["habits_due_today"] = hs
+    out["habits_left_today"] = _left(hs)
     # Named, so the model knows what is left: the ring's fitness count alone
     # read as "nothing due" whenever no habit or task was.
     out["fitness_due_today"] = [
