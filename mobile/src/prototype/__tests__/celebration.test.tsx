@@ -200,24 +200,22 @@ const finished = (heavy: boolean) => {
 }
 
 describe("workout summary", () => {
-  it("leads with Share, Post and Done; Share picks the PR card", () => {
+  it("leads with Share and Done; Share picks the PR card", () => {
     const id = finished(true)
     render(<WorkoutDetail id={id} summary />, { wrapper })
     expect(screen.getByTestId("celebration")).toBeTruthy()
     expect(leaves()).toHaveLength(18)
     fireEvent.press(screen.getByText("Share"))
     expect(router.push).toHaveBeenCalledWith(`/fitness/share/${id}?template=pr`)
-    fireEvent.press(screen.getByText("Post"))
-    expect(router.push).toHaveBeenCalledWith(
-      `/fitness/share/${id}?template=pr&post=1`,
-    )
+    // Posting lives on the share page, not on the summary.
+    expect(screen.queryByText("Post")).toBeNull()
     fireEvent.press(screen.getByText("Done"))
     expect(toast.success).not.toHaveBeenCalled()
     expect(router.replace).toHaveBeenCalledWith("/fitness")
   })
 
-  it("hides Post with Community off", () => {
-    setShown("social", false)
+  it("has no Post button with Community on either", () => {
+    setShown("social", true)
     const id = finished(false)
     render(<WorkoutDetail id={id} summary />, { wrapper })
     expect(screen.getByText("Share")).toBeTruthy()
@@ -249,7 +247,8 @@ describe("routine summary", () => {
     expect(screen.getByTestId("celebration")).toBeTruthy()
     expect(screen.getByText(`${r.name} done!`)).toBeTruthy()
     expect(Haptics.notificationAsync).toHaveBeenCalledTimes(1)
-    expect(screen.getByText("Post")).toBeTruthy()
+    expect(screen.getByText("Share")).toBeTruthy()
+    expect(screen.queryByText("Post")).toBeNull()
   })
 
   it("stays calm for a partial run", () => {

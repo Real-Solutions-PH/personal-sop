@@ -5,6 +5,7 @@ import { createStore, uid } from "@domain/lib/store"
 import { create } from "zustand"
 import { liveMode } from "@/live/config"
 import type { Accent } from "../theme"
+import type { Framing } from "./crop"
 
 // Prototype mode: every action mutates this local store only. Live mode:
 // the same actions also call the server (see "live mode" below), and
@@ -26,6 +27,16 @@ export type Media = {
   height?: number
   /** The full image's type when it is not a JPEG (a share card's PNG). */
   mime?: string
+  /** On this device only, before posting: the uncut photo and where it sits
+   * in the post frame (framing offsets in frame-width units), so the crop
+   * can be changed again. */
+  edit?: {
+    uri: string
+    width: number
+    height: number
+    framing: Framing
+    png?: boolean
+  }
 }
 export type ProgressStat = { label: string; value: string; unit?: string }
 export type Progress = {

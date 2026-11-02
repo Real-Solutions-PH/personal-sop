@@ -145,11 +145,14 @@ export async function pickPhotos(limit = 10): Promise<string[]> {
     return []
   }
 }
-export async function copyText(text: string) {
+/** Copies ``text``; false (with the error shown) when it could not. */
+export async function copyText(text: string): Promise<boolean> {
   try {
     await Clipboard.setStringAsync(text)
+    return true
   } catch {
     toast.error("Could not copy")
+    return false
   }
 }
 export function encodeCsv(rows: string[][]) {

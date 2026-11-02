@@ -45,6 +45,7 @@ import { Sparkline } from "../chart"
 import { go } from "../navigation"
 import { type Accent, fonts, useTheme } from "../theme"
 import { Sheet } from "../ui"
+import { cutToFrame, frameRatio } from "./crop"
 import { RemoteImage } from "./remote-image"
 import {
   CHEERS,
@@ -821,7 +822,7 @@ export function MediaCarousel({
   active: boolean
   onDoubleTap: () => void
 }) {
-  const t = useTheme()
+  const _t = useTheme()
   const [page, setPage] = useState(0)
   const burst = useCheerBurst()
   // Photos lead; the stat strip under them carries the numbers, so the
@@ -834,9 +835,15 @@ export function MediaCarousel({
   const shown = pair ? media.slice(2) : media
   const card = progress && !media.length
   const pages = (pair ? 1 : 0) + shown.length + (card ? 1 : 0)
-  // Square when a stat strip follows, so the numbers stay near the photo;
-  // 4:5 for a plain photo post and for a card-only post.
-  const height = Math.round(width * (progress && !card ? 1 : 1.25))
+  // The frame the photos were cut to (4:5 or 1:1). Without one: square
+  // when a stat strip follows, so the numbers stay near the photo; 4:5 for
+  // a plain photo post and for a card-only post.
+  const first = media.find((m) => m.kind === "image")?.ratio
+  const height = Math.round(
+    first && cutToFrame(first)
+      ? width / frameRatio(first)
+      : width * (progress && !card ? 1 : 1.25),
+  )
   // The worklet may close over plain functions only: `burst` also holds the
   // heart element, which Worklets cannot copy (the feed failed to render).
   const fire = burst.fire
@@ -879,22 +886,17 @@ export function MediaCarousel({
                 style={{ width, height, backgroundColor: "#000" }}
               />
             ) : (
-              <View
+              // Every photo fills the frame: posts made here are cut to it,
+              // and an older tall card is cropped rather than letterboxed.
+              <RemoteImage
                 key={m.uri + i}
-                style={{
-                  backgroundColor: m.ratio && m.ratio < 0.75 ? "#000" : t.soft,
-                }}
-              >
-                <RemoteImage
-                  media={m}
-                  width={width}
-                  height={height}
-                  // Tall share cards (9:16) letterbox instead of cropping.
-                  fit={m.ratio && m.ratio < 0.75 ? "contain" : "cover"}
-                  active={active}
-                  accessibilityLabel={`Photo ${i + 1 + (pair ? 1 : 0)} of ${pages}`}
-                />
-              </View>
+                media={m}
+                width={width}
+                height={height}
+                fit="cover"
+                active={active}
+                accessibilityLabel={`Photo ${i + 1 + (pair ? 1 : 0)} of ${pages}`}
+              />
             ),
           )}
           {card && (

@@ -22,7 +22,6 @@ import {
 import { useContext, useRef, useState } from "react"
 import { PanResponder, Pressable, View } from "react-native"
 import { Celebration, useCelebrate } from "../celebration"
-import { useShown } from "../extras"
 import {
   border,
   Copy,
@@ -814,7 +813,6 @@ export function RoutineSummary({ id, runId }: { id: string; runId?: string }) {
     run =
       s.runs.find((r) => r.id === runId && r.routineId === id) ??
       [...s.runs].reverse().find((r) => r.routineId === id),
-    social = useShown("social"),
     // A partial or abandoned run gets the calm header: no burst, no haptic.
     play = useCelebrate(run?.id ?? id, !!run && L.runState(run) === "completed")
   if (!r || !run)
@@ -1017,13 +1015,6 @@ export function RoutineSummary({ id, runId }: { id: string; runId?: string }) {
         <View style={{ flex: 1 }}>
           <Button href={shareUrl}>Share</Button>
         </View>
-        {social && (
-          <View style={{ flex: 1 }}>
-            <Button tone="quiet" href={`${shareUrl}&post=1`}>
-              Post
-            </Button>
-          </View>
-        )}
         <View style={{ flex: 1 }}>
           <Button tone="quiet" href="/today">
             Done
