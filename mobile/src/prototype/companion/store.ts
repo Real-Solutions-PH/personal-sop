@@ -248,7 +248,11 @@ export const retryAsk = (id: string) => retryBackend?.(id)
 
 /** The question whose reply is being written now (live mode). A question
  * sent meanwhile waits behind it, queued, the way chat assistants do. */
-export const replying = create<{ id: string | null }>(() => ({ id: null }))
+export const replying = create<{
+  id: string | null
+  /** Rejoined at launch (the app stopped mid-reply), not asked now. */
+  rejoined?: boolean
+}>(() => ({ id: null }))
 let stopBackend: (() => void) | null = null
 export const setStopReply = (b: (() => void) | null) => {
   stopBackend = b
@@ -361,15 +365,23 @@ export function newChat(): string {
   return t.id
 }
 /** The chat Fern's drawer opens on: a new one every time, except while a
- * reply is still being written, which keeps its chat so the answer is seen
- * arriving. */
+ * reply asked in this launch is still being written, which keeps its chat
+ * so the answer is seen arriving. A reply rejoined at launch never does: it
+ * can run for minutes, and every open landed on the old chat (build 25);
+ * it still lands in its own chat, under Chats. */
 export function chatForDrawer(): string {
   const cur = currentThread(companionStore.get())
-  if (cur && replying.getState().id) {
+  const r = replying.getState()
+  if (cur && r.id && !r.rejoined) {
     openChat(cur)
     return cur
   }
   return newChat()
+}
+/** Whether Fern's work in progress belongs on the chat on screen: no reply
+ * is in flight (the prototype), or the one in flight is this chat's. */
+export function workingHere(s: CompanionState): boolean {
+  return !s.inFlight || s.inFlight.threadId === currentThread(s)
 }
 /** The chat a new message goes to (making one when there is none). */
 export function threadForSend(): string {

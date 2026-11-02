@@ -78,6 +78,7 @@ import {
   type Msg,
   openChat,
   thinking,
+  workingHere,
 } from "./store"
 
 const greeting = () => {
@@ -87,7 +88,8 @@ const greeting = () => {
 
 /** Fern is at work: thinking before a reply, or still writing one. */
 function useWorking() {
-  const on = thinking((s) => s.on)
+  const here = companionStore.use(workingHere)
+  const on = thinking((s) => s.on) && here
   const writing = answering((s) => s.id !== null)
   return on || writing
 }
@@ -140,13 +142,37 @@ function Dot({
 function ThinkLine({ children }: { children: string }) {
   const t = useTheme()
   return (
-    <View style={{ flexDirection: "row", alignItems: "center" }}>
-      <Text style={{ color: t.muted, fontFamily: fonts.body, fontSize: 15 }}>
+    <View
+      accessibilityLiveRegion="polite"
+      style={{ flexDirection: "row", alignItems: "center" }}
+    >
+      {/* A new stage fades in where the last one was. */}
+      <Animated.Text
+        key={children}
+        entering={FadeIn.duration(200)}
+        style={{ color: t.muted, fontFamily: fonts.body, fontSize: 15 }}
+      >
         {children}
-      </Text>
+      </Animated.Text>
       <ThinkDots />
     </View>
   )
+}
+/** What Fern is doing before a reply has words, named, so the wait is never
+ * a bare "Thinking": the message is read (the first model call), then, once
+ * a step ran or the thinking ended, the answer is put together. Live
+ * thinking and a running step show their own progress, so then nothing. */
+const READING = "Reading your message"
+const COMPOSING = "Putting it together"
+function stageOf(blocks: Msg["blocks"]): string | null {
+  const all = blocks ?? []
+  const live = all.some((b) => b.t === "thinking" && !b.done)
+  const running = all.some(
+    (b) => b.t === "steps" && b.items.some((s) => s.running),
+  )
+  if (live || running) return null
+  const progressed = all.some((b) => b.t === "thinking" || b.t === "steps")
+  return progressed ? COMPOSING : READING
 }
 export function SolMessage({ m, name }: { m: Msg; name: string }) {
   const t = useTheme()
@@ -159,6 +185,7 @@ export function SolMessage({ m, name }: { m: Msg; name: string }) {
   // The model's thinking comes before what it answered, as it happened.
   const thought = m.blocks?.filter((b) => b.t === "thinking") ?? []
   const rest = m.blocks?.filter((b) => b.t !== "thinking") ?? []
+  const stage = stageOf(m.blocks)
   return (
     <Animated.View
       entering={FadeInDown.springify().damping(18)}
@@ -191,9 +218,7 @@ export function SolMessage({ m, name }: { m: Msg; name: string }) {
         {rest.map((b, i) => (
           <BlockView key={i} block={b} />
         ))}
-        {writing && !text && !m.blocks?.length && (
-          <ThinkLine>Thinking</ThinkLine>
-        )}
+        {writing && !text && stage && <ThinkLine>{stage}</ThinkLine>}
         {!!text && !writing && <ReplyActions id={m.id} text={text} />}
         {!!text && !writing && <DownReasons id={m.id} />}
       </View>
@@ -348,7 +373,9 @@ function SentPhoto({ url, media }: { url: string | null; media?: string }) {
 function Thinking({ name }: { name: string }) {
   const t = useTheme()
   const on = thinking((s) => s.on)
-  if (!on) return null
+  // A reply being written for another chat shows there, not here.
+  const here = companionStore.use(workingHere)
+  if (!on || !here) return null
   // Laid out as the reply it turns into: the working orb, the name, and a
   // line saying what Fern is doing.
   return (
@@ -365,7 +392,7 @@ function Thinking({ name }: { name: string }) {
         >
           {name}
         </Text>
-        <ThinkLine>Thinking</ThinkLine>
+        <ThinkLine>{READING}</ThinkLine>
       </View>
     </Animated.View>
   )

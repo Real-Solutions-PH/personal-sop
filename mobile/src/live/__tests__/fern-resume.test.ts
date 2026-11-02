@@ -4,7 +4,14 @@
 // offline.
 import type { StorageAdapter } from "@domain/lib/store"
 import { configureStorage, resetAll } from "@domain/lib/store"
-import { companionStore, replying, thinking } from "@/prototype/companion/store"
+import {
+  chatForDrawer,
+  companionStore,
+  currentThread,
+  replying,
+  thinking,
+  workingHere,
+} from "@/prototype/companion/store"
 import {
   createLiveCapture,
   type LiveCaptureDeps,
@@ -472,6 +479,45 @@ test("relaunched mid-reply, the app rejoins it: at work, then the reply so far, 
   expect(reply()?.text).toBe("Done.")
   expect(replying.getState().id).toBeNull()
   expect(companionStore.get().inFlight).toBeNull()
+})
+
+test("relaunched mid-reply, opening Fern starts a new chat; the reply lands in its own", async () => {
+  // Kai, build 25: "the last chat convo still shows up when clicking fern
+  // after closing". A reply rejoined at launch kept ``replying`` set, and
+  // the drawer kept the chat of a reply being written, for as long as the
+  // rejoin ran (up to ten minutes of following and reading back).
+  const id = "5d4f3b2a-1c0e-4f9a-8b7c-6d5e4f3a2b1e"
+  companionStore.set((st) => ({
+    ...st,
+    threads: [{ id: "c1", title: "hi", lastAt: Date.now(), createdAt: 0 }],
+    activeThread: "c1",
+    messages: [{ id, role: "me", at: Date.now(), text: "hi", threadId: "c1" }],
+    inFlight: { id, threadId: "c1" },
+  }))
+  const replay = controlled()
+  setup({ stream: controlled(), get: async () => replay.res })
+  await jest.advanceTimersByTimeAsync(0)
+  expect(replying.getState().id).toBe(id)
+  const opened = chatForDrawer()
+  expect(opened).not.toBe("c1")
+  expect(currentThread(companionStore.get())).toBe(opened)
+  // The new chat shows no "working" line for a reply that is not its own.
+  expect(workingHere(companionStore.get())).toBe(false)
+  answer(replay, "Done.")
+  await jest.advanceTimersByTimeAsync(0)
+  expect(reply()?.threadId).toBe("c1")
+  // Still the new chat on screen.
+  expect(currentThread(companionStore.get())).toBe(opened)
+})
+
+test("a reply asked now keeps its chat when the drawer reopens, and says it is working there", async () => {
+  const s = controlled()
+  const { live } = setup({ stream: s })
+  ask(live)
+  await jest.advanceTimersByTimeAsync(0)
+  const asked = question()?.threadId
+  expect(chatForDrawer()).toBe(asked)
+  expect(workingHere(companionStore.get())).toBe(true)
 })
 
 test("a reply sits right after its question; questions typed meanwhile come after it", async () => {

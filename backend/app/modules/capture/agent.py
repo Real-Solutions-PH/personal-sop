@@ -15,6 +15,7 @@ logs every write, so an AI write is undoable the same way as a rules write.
 import builtins
 import json
 import re
+import time
 import uuid
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
@@ -50,6 +51,11 @@ from app.shared.currency import money
 from app.shared.money import MAX_MINOR
 
 MAX_TURNS = 6
+# A first call asked to think (``run_loop`` ``think_first``) that is still
+# only thinking after this long is asked again without thinking. Measured
+# on DeepSeek-V4-Flash (2026-11-02): a first call with thinking took at most
+# 2.5 s, so 8 s only cuts the tail that made replies take minutes.
+THINK_CAP_SECONDS = 8.0
 # Bounds on what one model call is sent. A tool result past MAX_TOOL_RESULT_CHARS
 # is cut (the model sees that it was); calls past MAX_TOOL_CALLS_PER_TURN in one
 # turn are answered with an error instead of run, so a runaway turn cannot grow
@@ -179,9 +185,15 @@ def run_loop(
     max_turns: int = MAX_TURNS,
     max_tool_calls: int | None = None,
     hooks: LoopHooks | None = None,
+    think_first: bool = False,
 ) -> str:
     """Run the model/tools graph; returns the model's final text. Every
     model call is metered; a provider failure raises ``SeamError``.
+
+    ``think_first`` lets a reasoning model think on the first call only
+    (``ai.thinking_options``), so its plan streams to ``hooks.reasoning``
+    from the first second; past ``THINK_CAP_SECONDS`` of thinking alone
+    the call is asked again without it.
 
     ``max_tool_calls`` caps the tool calls of the whole run (past it a call
     is answered with an error instead of run); ``hooks`` hears each model
@@ -203,20 +215,43 @@ def run_loop(
             release_connection(ctx.session)
         acc: BaseMessage | None = None
         usages: list[dict[str, Any]] = []
+        opts = (
+            ai.thinking_options(resolved) if think_first and not state["turns"] else {}
+        )
         try:
-            for chunk in bound.stream([SystemMessage(system), *state["messages"]]):
-                if h.stopped():
+            while True:
+                started, shown, cut = time.monotonic(), False, False
+                for chunk in bound.stream(
+                    [SystemMessage(system), *state["messages"]], **opts
+                ):
+                    if h.stopped():
+                        break
+                    think = chunk.additional_kwargs.get("reasoning_content")
+                    if isinstance(think, str) and think:
+                        h.reasoning(think)
+                        if (
+                            opts
+                            and not shown
+                            and time.monotonic() - started >= THINK_CAP_SECONDS
+                        ):
+                            cut = True
+                            break
+                    delta = _text(chunk)
+                    if delta:
+                        shown = True
+                        on_text(delta)
+                    if getattr(chunk, "tool_call_chunks", None):
+                        shown = True
+                    u = getattr(chunk, "usage_metadata", None)
+                    if u:
+                        usages.append(dict(u))
+                    acc = chunk if acc is None else acc + chunk  # type: ignore[assignment]
+                if not cut:
                     break
-                think = chunk.additional_kwargs.get("reasoning_content")
-                if isinstance(think, str) and think:
-                    h.reasoning(think)
-                delta = _text(chunk)
-                if delta:
-                    on_text(delta)
-                u = getattr(chunk, "usage_metadata", None)
-                if u:
-                    usages.append(dict(u))
-                acc = chunk if acc is None else acc + chunk  # type: ignore[assignment]
+                # Thought too long: what it thought stays shown, the call is
+                # counted, and it is asked again without thinking.
+                seams.meter(ctx, resolved, None)
+                acc, usages, opts = None, [], {}
         except Exception:  # noqa: BLE001 - a provider error becomes a stable code
             seams.meter(ctx, resolved, None, ok=False)
             raise seams.SeamError("model_unavailable") from None

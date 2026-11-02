@@ -110,8 +110,9 @@ def _chat_openai() -> "type[ChatOpenAI]":
             try:
                 return super()._generate(*args, **kwargs)
             except openai.BadRequestError:
-                if not self.extra_body:
+                if not (self.extra_body or kwargs.get("extra_body")):
                     raise
+                kwargs.pop("extra_body", None)
                 return self._plain()._generate(*args, **kwargs)
 
         def _stream(self, *args: Any, **kwargs: Any) -> Any:
@@ -123,8 +124,9 @@ def _chat_openai() -> "type[ChatOpenAI]":
             except StopIteration:
                 return
             except openai.BadRequestError:
-                if not self.extra_body:
+                if not (self.extra_body or kwargs.get("extra_body")):
                     raise
+                kwargs.pop("extra_body", None)
                 yield from self._plain()._stream(*args, **kwargs)
                 return
             yield first
@@ -163,6 +165,26 @@ def speed_options(resolved: ResolvedModel) -> dict[str, Any]:
             "thinking": False,
             "extra_body": {"chat_template_kwargs": {"enable_thinking": False}},
         }
+    return {}
+
+
+def thinking_options(resolved: ResolvedModel) -> dict[str, Any]:
+    """Per-call options that turn thinking back on for one call of a model
+    built with :func:`speed_options` (pass them to ``stream``/``invoke``).
+
+    Why (2026-11-02): with thinking off everywhere, Fern sent nothing while
+    it planned and the person watched a bare "Thinking". Measured on
+    DeepSeek-V4-Flash: thinking on a turn's first call shows the plan's
+    first words in 1.1-1.4 s and costs 0.3-0.8 s, so the companion asks for
+    it there only (``capture.agent.run_loop`` ``think_first``, with a cap).
+    Empty when the family has no switch or the provider refused it."""
+    if (resolved.base_url, resolved.model) in _REFUSED:
+        return {}
+    name = resolved.model.casefold()
+    if "deepseek" in name:
+        return {"extra_body": {"chat_template_kwargs": {"thinking": True}}}
+    if "qwen3" in name and "embedding" not in name:
+        return {"extra_body": {"chat_template_kwargs": {"enable_thinking": True}}}
     return {}
 
 
