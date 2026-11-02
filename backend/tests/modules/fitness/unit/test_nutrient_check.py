@@ -147,6 +147,14 @@ def test_missing_sugar_and_sodium_do_not_refuse_an_estimate() -> None:
     assert missing_details(RICE) == []
 
 
+def test_missing_sat_fat_and_fiber_are_flagged_too() -> None:
+    # Seen live 2026-11-01: Fern saved a day of meals with no saturated fat
+    # and nothing said so, because only sugar and sodium were asked for.
+    bare = {k: v for k, v in RICE.items() if k not in ("sat_fat", "fiber")}
+    assert estimate_problems(bare) == []
+    assert missing_details(bare) == ["fiber", "sat_fat"]
+
+
 def test_every_problem_reads_in_plain_words() -> None:
     items = [
         {k: v for k, v in RICE.items() if k != "grams"},

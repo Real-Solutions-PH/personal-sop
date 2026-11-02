@@ -721,8 +721,12 @@ class MealItemArgs(BaseModel):
     protein: Annotated[float, Field(ge=0, le=2000)] = 0
     carbs: Annotated[float, Field(ge=0, le=2000)] = 0
     fat: Annotated[float, Field(ge=0, le=2000)] = 0
-    fiber: Annotated[float, Field(ge=0, le=2000)] | None = None
-    sat_fat: Annotated[float, Field(ge=0, le=2000)] | None = None
+    fiber: Annotated[float, Field(ge=0, le=2000)] | None = Field(
+        default=None, description=fitness_tools.FIBER_SAYS
+    )
+    sat_fat: Annotated[float, Field(ge=0, le=2000)] | None = Field(
+        default=None, description=fitness_tools.SAT_FAT_SAYS
+    )
     sugar: Annotated[float, Field(ge=0, le=2000)] | None = Field(
         default=None, description=fitness_tools.SUGAR_SAYS
     )

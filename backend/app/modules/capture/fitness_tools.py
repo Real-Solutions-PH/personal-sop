@@ -57,8 +57,10 @@ def _fx() -> Any:
 
 # ------------------------------------------------------------- arguments
 
-# Asked for on every estimate (the daily limits count them); a meal sent
-# without them is still saved, with a warning on its card.
+# Asked for on every estimate (the daily goals and limits count them); a
+# meal sent without them is still saved, with a warning on its card.
+FIBER_SAYS = "Grams of total fiber; estimate it, 0 when there is none."
+SAT_FAT_SAYS = "Grams of saturated fat; estimate it, 0 when there is none."
 SUGAR_SAYS = "Grams of sugar; estimate it, 0 when there is none."
 SODIUM_SAYS = "Milligrams of sodium; estimate it, 0 when there is none."
 
@@ -208,8 +210,8 @@ class ItemArgs(BaseModel):
     protein: Macro = 0
     carbs: Macro = 0
     fat: Macro = 0
-    fiber: Macro | None = None
-    sat_fat: Macro | None = None
+    fiber: Macro | None = Field(default=None, description=FIBER_SAYS)
+    sat_fat: Macro | None = Field(default=None, description=SAT_FAT_SAYS)
     sugar: Macro | None = Field(default=None, description=SUGAR_SAYS)
     sodium: Annotated[float, Field(ge=0, le=100000)] | None = Field(
         default=None, description=SODIUM_SAYS

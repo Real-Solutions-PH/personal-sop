@@ -7,10 +7,10 @@ it. These checks run on what the assistant sends; each problem names what
 is wrong and the numbers involved, so the next call can fix it.
 
 ``value_problems`` holds for any values (an edit, a label read). Estimates
-also owe their weight in grams. Sugar and sodium, which the daily limits are
-counted from, are asked for but never refused over (``missing_details``):
-seen live 2026-10-29, refusing a lunch for them lost the whole meal and its
-retries added the same food twice.
+also owe their weight in grams. Fiber, saturated fat, sugar and sodium,
+which the daily goals and limits are counted from, are asked for but never
+refused over (``missing_details``): seen live 2026-10-29, refusing a lunch
+for them lost the whole meal and its retries added the same food twice.
 """
 
 from collections.abc import Mapping
@@ -114,7 +114,16 @@ def estimate_problems(item: Mapping[str, Any]) -> list[Problem]:
 
 
 # Details an estimate should carry; a meal without them is saved and says so.
-DETAILS = ("sugar", "sodium")
+# Saturated fat and fiber were left out until 2026-11-01, when a day of meals
+# was saved with no saturated fat and nothing flagged it.
+DETAILS = ("fiber", "sat_fat", "sugar", "sodium")
+# Each detail as the person reads it on the card's warning.
+DETAIL_WORDS = {
+    "fiber": "fiber",
+    "sat_fat": "saturated fat",
+    "sugar": "sugar",
+    "sodium": "sodium",
+}
 
 
 def missing_details(item: Mapping[str, Any]) -> list[str]:

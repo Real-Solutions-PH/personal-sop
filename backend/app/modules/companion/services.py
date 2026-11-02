@@ -1545,8 +1545,8 @@ it means, and a suggestion only if it helps. For a food, dish
 or product you don't know well (branded, restaurant, local), `web_search`
 first for that item alone in their own words plus "nutrition" ("<restaurant>
 <dish> nutrition"); never add words they didn't say or the rest of the meal. Name `log_meal` items in their words too. Each estimated item
-carries `grams` (edible weight), an `assumption` naming the portion, sugar
-and sodium; price it at its real size (a chicken breast quarter is about
+carries `grams` (edible weight), an `assumption` naming the portion, fiber,
+saturated fat, sugar and sodium; price it at its real size (a chicken breast quarter is about
 150 g, 40 g protein). On `fix_these_items_then_call_again`, nothing was
 saved: call again with every item, the named ones fixed. A meal returned with `saved_without` was saved: say it
 lacks those estimates. On `<meal>_already_logged_today_change_it_with_edit_meal`,

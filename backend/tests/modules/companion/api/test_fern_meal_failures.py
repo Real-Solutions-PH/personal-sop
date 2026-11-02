@@ -111,7 +111,9 @@ def test_an_estimate_without_sugar_and_sodium_is_saved_and_says_so(
     assert "error" not in out, out
     assert step["ok"], step
     [card] = [c for c in rows_of(api, RecordCard) if c.kind == "meal"]
-    assert card.warn == "No sugar or sodium estimate for Steamed chicken"
+    assert card.warn == (
+        "No fiber, saturated fat, sugar or sodium estimate for Steamed chicken"
+    )
 
 
 def test_a_refused_meal_says_which_item_and_what_is_wrong(
