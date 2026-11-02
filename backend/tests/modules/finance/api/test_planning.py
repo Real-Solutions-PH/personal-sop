@@ -9,7 +9,7 @@ from sqlmodel import Session
 
 from app.shared.day import DayClock
 from app.shared.ids import derived_id
-from tests.modules.finance.api.helpers import API, Fin
+from tests.modules.finance.api.helpers import Fin
 from tests.utils.mobile import signed_in
 
 TODAY = DayClock().today()  # a new user has the default clock
@@ -235,9 +235,12 @@ def test_settle_skip_unskip_snooze(client: TestClient, db: Session) -> None:
     assert [(o["orig"], o["day"], o["status"]) for o in occ] == [
         (TODAY.isoformat(), (TODAY + timedelta(days=5)).isoformat(), "upcoming")
     ]
-    # A planned item with a paid occurrence cannot be deleted.
-    r = f.c.delete(f"{API}/planned/{p['id']}", headers=f.h)
-    assert r.status_code == 409 and r.json()["code"] == "planned_has_records"
+    # A planned item with a paid occurrence is deleted too: it is gone from
+    # the list and its paid record keeps its link.
+    f.delete(f"/planned/{p['id']}")
+    f.get(f"/planned/{p['id']}", status=404)
+    assert p["id"] not in {x["id"] for x in f.get("/planned")["data"]}
+    assert f.get(f"/records/{rec['id']}")["planned_id"] == p["id"]
 
 
 def test_auto_log_is_idempotent(client: TestClient, db: Session) -> None:

@@ -1174,13 +1174,10 @@ def _update_planned(
 
 
 def delete_planned(ctx: Ctx, *, planned_id: uuid.UUID) -> None:
-    """Only a planned item that never settled can be deleted; archive (or
-    end) the rest so its history keeps its link."""
+    """Tombstone a planned item, paid history or not: the delete is soft,
+    so records it settled keep their ``planned_id`` (pointing at the
+    tombstone) and a re-push of the same id (Undo) revives it."""
     p = _planned(ctx, planned_id)
-    if owned_repo.count_rows(ctx, FinRecord, col(FinRecord.planned_id) == p.id):
-        raise conflict(
-            "planned_has_records", "It has paid occurrences — archive it instead"
-        )
     owned_repo.soft_delete(ctx, p)
     _dirty(ctx, ctx.today)
     ctx.commit()

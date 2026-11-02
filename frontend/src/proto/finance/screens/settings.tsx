@@ -385,7 +385,7 @@ export function ArchivedScreen() {
           id: p.id,
           name: p.name,
           restore: () => updatePlanned(p.id, { archived: false }),
-          del: () => purge(p.name, deletePlanned(p.id)),
+          del: () => purge(p.name, deletePlanned(p.id) !== null),
         })),
       )}
     </Screen>

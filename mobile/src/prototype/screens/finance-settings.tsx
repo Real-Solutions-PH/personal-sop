@@ -426,7 +426,7 @@ export function FinanceArchived() {
             id: p.id,
             name: p.name,
             restore: () => A.updatePlanned(p.id, { archived: false }),
-            remove: () => A.deletePlanned(p.id),
+            remove: () => A.deletePlanned(p.id) !== null,
           })),
       },
     ]

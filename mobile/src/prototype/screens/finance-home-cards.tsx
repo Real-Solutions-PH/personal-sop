@@ -19,6 +19,24 @@ const SHOWN = 3
 const signed = (money: (v: number) => string, v: number) =>
   `${v >= 0 ? "+" : "−"}${money(Math.abs(v))}`
 
+/** "₱spent / ₱left": what went out, then what is left of the limit, or
+ * the overage in the bad colour once it is blown. */
+export function SpentLeft({ spent, limit }: { spent: number; limit: number }) {
+  const t = useTheme(),
+    money = useMoney(),
+    over = spent > limit
+  return (
+    <View testID="budget-spent-left">
+      <Copy size={12}>
+        {money(spent)} /{" "}
+        <Text style={{ color: over ? t.bad : t.text }}>
+          {over ? `−${money(spent - limit)}` : money(limit - spent)}
+        </Text>
+      </Copy>
+    </View>
+  )
+}
+
 /** The month's budget headline (the overall budget, or the category
  * budgets added together when there is none) and the three fullest
  * category budgets. Dimmed only when there is no budget at all. */
@@ -131,25 +149,14 @@ export function BudgetsSection({ s }: { s: FinState }) {
                     }}
                   >
                     <Copy size={12} style={{ flex: 1 }}>
-                      {v.b.name} ·{" "}
-                      {v.limit >= v.spent
-                        ? `${money(v.limit - v.spent)} left`
-                        : `${money(v.spent - v.limit)} over`}
+                      {v.b.name}
                     </Copy>
-                    <Copy
-                      size={12}
-                      style={{
-                        color:
-                          v.pct > 1 ? t.bad : v.pct > v.pace ? t.warn : t.muted,
-                      }}
-                    >
-                      {Math.round(v.pct * 100)}%
-                    </Copy>
+                    <SpentLeft spent={v.spent} limit={v.limit} />
                   </Line>
                   <Bar
-                    value={v.pct}
-                    color={v.pct > 1 ? t.bad : t.fin}
-                    target={v.pace}
+                    value={1 - v.pct}
+                    color={v.pct > v.pace ? t.warn : t.fin}
+                    target={1 - v.pace}
                   />
                 </View>
               ))}

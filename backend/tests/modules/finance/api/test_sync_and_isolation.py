@@ -236,6 +236,39 @@ def test_tombstones_replay_and_restore(client: TestClient, db: Session) -> None:
     assert f.get(f"/records/{rid}")["amount_minor"] == 7_500
 
 
+def test_planned_delete_with_history_tombstones_and_restores(
+    client: TestClient, db: Session
+) -> None:
+    """Deleting a paid scheduled payment through sync reaches every device as
+    a tombstone; the device's Undo (restore, then upsert) brings it back."""
+    f = _fin(client, db)
+    a = f.account("BPI", type="bank", opening=1_000_000)
+    anchor = (TODAY - timedelta(days=7)).isoformat()
+    pid = uuid.uuid4()
+    fields = {
+        "name": "Netflix",
+        "type": "expense",
+        "amount_minor": 54_900,
+        "account_id": a,
+        "schedule": {"kind": "weekly", "every": 1, "anchor": anchor},
+        "start": anchor,
+    }
+    _applied(f.push(op("upsert", "planned_item", pid, **fields)))
+    _applied(f.push(op("action", "finance.settle", planned_id=str(pid), day=anchor)))
+    cursor = f.pull()["cursor"]
+    _applied(f.push(op("delete", "planned_item", pid)))
+    tomb = [c for c in f.pull(cursor)["changes"] if c["id"] == str(pid)]
+    assert tomb and tomb[0]["deleted"] and tomb[0]["row"] is None
+    f.get(f"/planned/{pid}", status=404)
+    _applied(
+        f.push(
+            {**op("upsert", "planned_item", pid), "data": {"deleted_at": None}},
+            op("upsert", "planned_item", pid, **fields),
+        )
+    )
+    assert f.get(f"/planned/{pid}")["name"] == "Netflix"
+
+
 def test_settle_replayed_through_sync_creates_one_record(
     client: TestClient, db: Session
 ) -> None:

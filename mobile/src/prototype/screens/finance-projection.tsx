@@ -16,6 +16,7 @@ import { useState } from "react"
 import { ScrollView, Text, View } from "react-native"
 import { toast } from "sonner-native"
 import { FinanceLineChart } from "../chart"
+import { Stepper } from "../fitness-controls"
 import { MoneyInput } from "../money-input"
 import {
   border,
@@ -110,6 +111,11 @@ export function Projection() {
     [month, setMonth] = useState(p.month ?? C.addMonths(cur, 3)),
     [mode, setMode] = useState("lump"),
     [n, setN] = useState(12),
+    // Installment terms: a downpayment draft ("5000.50") and the interest
+    // rate in percent, per month or per year; 0% is a plain split.
+    [down, setDown] = useState(""),
+    [rate, setRate] = useState(0),
+    [per, setPer] = useState<"month" | "year">("month"),
     // Any term the card offers, not only the preset chips: typed months,
     // kept between 2 and 60 (the longest 0% plans banks run).
     [custom, setCustom] = useState<string | null>(null),
@@ -122,12 +128,27 @@ export function Projection() {
     // setting, so the saved horizon is untouched.
     [range, setRange] = useState<DateRange | null>(() => rangeFromParams(p)),
     horizon = s.settings.horizon,
+    plan =
+      mode === "inst" && Number(amount) > 0
+        ? C.installmentPlan({
+            priceMinor: Number(amount) * 100,
+            downMinor: Math.round((Number(down) || 0) * 100),
+            months: n,
+            rateHundredths: Math.round(rate * 100),
+            per,
+          })
+        : null,
+    downMinor = plan ? Number(amount) * 100 - plan.financedMinor : 0,
     whatIf =
       whatOpen && Number(amount) > 0
         ? {
             amount: Number(amount),
             month,
             installments: mode === "inst" ? n : 1,
+            ...(plan && {
+              down: downMinor / 100,
+              monthly: plan.monthlyMinor / 100,
+            }),
           }
         : null,
     proj = C.project(s, {
@@ -193,10 +214,25 @@ export function Projection() {
       return
     }
     const date = `${month}-15`
+    if (plan && downMinor > 0)
+      A.addPlanned({
+        name: `${name || "Planned purchase"} downpayment`,
+        type: "expense",
+        amount: downMinor / 100,
+        estimated: false,
+        accountId: from,
+        categoryId: "shopping",
+        schedule: { kind: "once", date },
+        start: date,
+        end: { kind: "never" },
+        autoLog: false,
+        isWhatIf: draft,
+        inProjection: !draft,
+      })
     A.addPlanned({
       name: name || "Planned purchase",
       type: mode === "inst" ? "transfer" : "expense",
-      amount: mode === "inst" ? Math.round(Number(amount) / n) : Number(amount),
+      amount: plan ? plan.monthlyMinor / 100 : Number(amount),
       estimated: false,
       accountId: from,
       toAccountId: mode === "inst" ? card?.id : undefined,
@@ -569,7 +605,7 @@ export function Projection() {
             onChange={setMode}
             options={[
               { value: "lump", label: "Pay in full" },
-              { value: "inst", label: "0% installments" },
+              { value: "inst", label: "Installments" },
             ]}
           />
           {mode === "inst" ? (
@@ -616,10 +652,58 @@ export function Projection() {
                   )}
                 </View>
               )}
-              <Copy size={12} muted>
-                {money(Math.round(Number(amount || 0) / n))}/mo on{" "}
-                {card?.name ?? "a credit card"}
-              </Copy>
+              <MoneyInput
+                label={`Downpayment ${currencySymbol()}`}
+                placeholder="0"
+                value={down}
+                onChange={setDown}
+              />
+              <Line style={{ gap: 12, alignItems: "flex-end" }}>
+                <View style={{ flex: 1 }}>
+                  <Stepper
+                    label="Interest"
+                    unit="%"
+                    value={rate}
+                    onChange={setRate}
+                    step={0.25}
+                    max={99}
+                    decimals={2}
+                    compact
+                  />
+                </View>
+                <View style={{ width: 150 }}>
+                  <Segmented
+                    value={per}
+                    onChange={setPer}
+                    options={[
+                      { value: "month", label: "/ month" },
+                      { value: "year", label: "/ year" },
+                    ]}
+                  />
+                </View>
+              </Line>
+              {plan && (
+                <View testID="installment-plan" style={{ gap: 2 }}>
+                  <Copy weight="semibold">
+                    {money(plan.monthlyMinor / 100)}/mo × {n} on{" "}
+                    {card?.name ?? "a credit card"}
+                  </Copy>
+                  <Copy
+                    size={12}
+                    style={{ color: plan.interestMinor ? t.warn : t.good }}
+                  >
+                    {plan.interestMinor
+                      ? `${money(plan.interestMinor / 100)} interest`
+                      : "No interest"}
+                  </Copy>
+                  <Copy size={12} muted>
+                    {money(plan.totalMinor / 100)} in all
+                    {downMinor > 0
+                      ? ` · ${money(downMinor / 100)} down in ${C.monthLabel(month)}`
+                      : ""}
+                  </Copy>
+                </View>
+              )}
             </>
           ) : (
             chiprow(

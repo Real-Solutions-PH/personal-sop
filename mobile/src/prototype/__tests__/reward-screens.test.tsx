@@ -1,6 +1,7 @@
 // The money moments on screen: the record editor warns before and after a
 // save that breaks a budget (with a warning haptic, never a toast of its
 // own), and the budget list cheers last month's kept budgets once.
+import { palette } from "@domain/design/tokens"
 import type { Budget, FinRecord } from "@domain/finance/data"
 import { finStore } from "@domain/finance/store"
 import { configureStorage, resetAll } from "@domain/lib/store"
@@ -186,4 +187,25 @@ it("cheers last month's kept budgets once, and names the one that went over", ()
   first.unmount()
   render(<Budgets />, { wrapper })
   expect(screen.queryByTestId("budget-kept", hidden)).toBeNull()
+})
+
+it("a budget reads spent / left, and an overage in the bad colour", () => {
+  finStore.set((s) => ({
+    ...s,
+    budgets: [
+      budget("Food", 12000, ["food"]),
+      budget("Taxi", 1000, ["transport"]),
+    ],
+    records: [
+      spend("a", 1234.5, "food", "2026-11-05"),
+      spend("b", 1500, "transport", "2026-11-06"),
+    ],
+  }))
+  render(<Budgets />, { wrapper })
+  const [taxi, food] = screen.getAllByTestId("budget-spent-left")
+  expect(food).toHaveTextContent("₱1,234.50 / ₱10,765.50")
+  expect(taxi).toHaveTextContent("₱1,500 / −₱500")
+  // The overage alone carries the bad colour; the spent figure does not.
+  expect(screen.getByText("−₱500")).toHaveStyle({ color: palette.light.bad })
+  expect(screen.getByText("over budget")).toBeTruthy()
 })
