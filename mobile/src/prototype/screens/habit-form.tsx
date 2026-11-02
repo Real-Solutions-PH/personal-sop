@@ -11,9 +11,10 @@ import { useScreen } from "@domain/screen/store"
 import { useLocalSearchParams } from "expo-router"
 import { CalendarClock, ChevronRight } from "lucide-react-native"
 import { useState } from "react"
-import { ScrollView, TextInput, View } from "react-native"
+import { TextInput, View } from "react-native"
 import { toast } from "sonner-native"
 import { Stepper } from "../fitness-controls"
+import { IconField } from "../icon-picker"
 import { Copy, Frame, Line, Segmented, Tap } from "../native-kit"
 import { back, go } from "../navigation"
 import { askForReminders } from "../reminders"
@@ -227,36 +228,13 @@ export function HabitForm({
             </Copy>
           )}
         </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={{ marginHorizontal: -16 }}
-          contentContainerStyle={{
-            paddingHorizontal: 16,
-            paddingVertical: 2,
-            gap: 8,
-          }}
-        >
-          {ICONS.map((i) => (
-            <Tap
-              key={i}
-              label={`Choose ${i}`}
-              onPress={() => setIcon(i)}
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 16,
-                backgroundColor: i === icon ? `${t.hab}40` : t.soft,
-                borderWidth: i === icon ? 2 : 0,
-                borderColor: t.hab,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Copy size={20}>{i}</Copy>
-            </Tap>
-          ))}
-        </ScrollView>
+        <IconField
+          value={icon}
+          onChange={setIcon}
+          name={name}
+          accent="hab"
+          fallback={ICONS}
+        />
         {!routine && (
           <Frame style={{ padding: 16, gap: 12 }}>
             {toggle(

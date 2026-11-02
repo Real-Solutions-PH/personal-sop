@@ -25,3 +25,4 @@ Start new ADRs from [template.md](template.md).
 | [0027](0027-screen-time.md) | Screen time: lower-bound minutes from DeviceActivity thresholds, auto habits, gated entitlement |
 | [0028](0028-share-card-gradients.md) | Gradients on share artwork only (Fern and Dusk grounds); the interface stays flat |
 | [0029](0029-fern-replay-eval-dataset.md) | Fern replay eval: scrubbed real chats in the repository, hashed denylist guard |
+| [0030](0030-record-icons-are-emoji.md) | Icons people pick for their own records are emoji from one catalogue; interface icons stay lucide |

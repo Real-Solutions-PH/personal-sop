@@ -36,6 +36,7 @@ Context pack for human + AI programmers building this SaaS. Fill each template; 
 | [adr/](adr/) | Architecture Decision Records — one file per decision | Tech lead |
 | [adr/0028-share-card-gradients.md](adr/0028-share-card-gradients.md) | Gradients allowed on share artwork only, amending the brand's flat rule (2026-10-30) | Design |
 | [adr/0029-fern-replay-eval-dataset.md](adr/0029-fern-replay-eval-dataset.md) | Fern replay eval dataset: scrubbed real chats in the public repository (2026-11-02) | Testing |
+| [adr/0030-record-icons-are-emoji.md](adr/0030-record-icons-are-emoji.md) | Icons people pick for their records are emoji from one catalogue; interface icons stay lucide (2026-11-02) | Design |
 | [runbook.md](runbook.md) | Deploy, rollback, backup/restore, common ops, incidents | DevOps |
 
 ### Feature specs and plans
