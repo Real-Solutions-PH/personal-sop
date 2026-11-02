@@ -157,7 +157,9 @@ it("after Save & add another: the warning stays, a warning haptic, Undo toast", 
   )
   fireEvent.press(screen.getByText("Save & add another"))
   expect(Haptics.notificationAsync).toHaveBeenCalledWith("warning")
-  expect(screen.getByText("Food budget now over by ₱420", { exact: false })).toBeTruthy()
+  expect(
+    screen.getByText("Food budget now over by ₱420", { exact: false }),
+  ).toBeTruthy()
   const [msg, opts] = (toast as jest.Mock).mock.calls[0]
   expect(msg).toContain("Food budget now over by ₱420")
   expect(opts.action.label).toBe("Undo")
@@ -166,7 +168,10 @@ it("after Save & add another: the warning stays, a warning haptic, Undo toast", 
 it("cheers last month's kept budgets once, and names the one that went over", () => {
   finStore.set((s) => ({
     ...s,
-    budgets: [budget("Groceries", 5000, ["food"]), budget("Taxi", 100, ["transport"])],
+    budgets: [
+      budget("Groceries", 5000, ["food"]),
+      budget("Taxi", 100, ["transport"]),
+    ],
     records: [
       spend("a", 1000, "food", "2026-10-05"),
       spend("b", 300, "transport", "2026-10-06"),

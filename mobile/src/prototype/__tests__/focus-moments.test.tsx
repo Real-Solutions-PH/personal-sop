@@ -1,8 +1,9 @@
 // Ending a focus session lands as a card saying what it came to (time,
 // sets, and how far the day is from its goal) instead of a silent stop, and
 // the daily goal is cheered once a day.
-import { DEFAULT_SETTINGS } from "@domain/focus/data"
+
 import * as A from "@domain/focus/actions"
+import { DEFAULT_SETTINGS } from "@domain/focus/data"
 import { focusStore } from "@domain/focus/store"
 import { liveStore } from "@domain/lib/live"
 import { configureStorage, resetAll } from "@domain/lib/store"
