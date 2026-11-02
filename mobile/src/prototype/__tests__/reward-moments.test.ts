@@ -14,9 +14,7 @@ import { type GoalNote, missedGoals, noteGoals, periodOf } from "../goal-ledger"
 import { AT_RISK_TIME, type AtRisk, atRiskPlan } from "../local-reminders"
 import { claimOnce, levelStep, momentsSeen, noteLevel } from "../moments-seen"
 
-// The set-end tap and chime are not under test here, and the motion module
-// pulls in Reanimated.
-jest.mock("../motion", () => ({ feel: { success: jest.fn() } }))
+// The set-end chime is not under test here.
 jest.mock("../chime", () => ({ chime: jest.fn() }))
 jest.mock("expo-router", () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn() },

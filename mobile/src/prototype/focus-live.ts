@@ -8,9 +8,9 @@ import type { FocusState } from "@domain/focus/data"
 import * as L from "@domain/focus/logic"
 import { focusStore } from "@domain/focus/store"
 import { type Live, liveStore } from "@domain/lib/live"
+import * as Haptics from "expo-haptics"
 import { AppState, Platform } from "react-native"
 import { chime } from "./chime"
-import { feel } from "./motion"
 
 type Notifications = typeof import("expo-notifications")
 
@@ -160,7 +160,11 @@ export function startFocusLive() {
       newlyFinished(finished, next).length &&
       AppState.currentState === "active"
     ) {
-      feel.success()
+      // expo-haptics, not motion's feel: this module loads outside any screen
+      // (the widgets' bridge), where Reanimated must not be pulled in.
+      void Haptics.notificationAsync(
+        Haptics.NotificationFeedbackType.Success,
+      ).catch(() => {})
       chime()
     }
     finished = next
