@@ -114,24 +114,27 @@ function ReviewCardBody({ id, opened }: { id: string; opened: boolean }) {
             </Copy>
           </View>
         )}
-        <View style={{ flex: 1 }} />
-        {won > 0 && (
-          <Line style={{ gap: 4 }}>
-            <Trophy size={14} color={t.good} />
-            <Copy size={12} weight="medium" style={{ color: t.good }}>
-              {won} {won === 1 ? "win" : "wins"}
-            </Copy>
-          </Line>
-        )}
-        {misses.length > 0 && (
-          <Line style={{ gap: 4 }}>
-            <X size={14} color={t.bad} />
-            <Copy size={12} weight="medium" style={{ color: t.bad }}>
-              {misses.length} missed
-            </Copy>
-          </Line>
-        )}
       </View>
+      {(won > 0 || misses.length > 0) && (
+        <Line style={{ gap: 16 }}>
+          {won > 0 && (
+            <Line style={{ gap: 4 }}>
+              <Trophy size={14} color={t.good} />
+              <Copy size={12} weight="medium" style={{ color: t.good }}>
+                {won} {won === 1 ? "win" : "wins"}
+              </Copy>
+            </Line>
+          )}
+          {misses.length > 0 && (
+            <Line style={{ gap: 4 }}>
+              <X size={14} color={t.bad} />
+              <Copy size={12} weight="medium" style={{ color: t.bad }}>
+                {misses.length} missed
+              </Copy>
+            </Line>
+          )}
+        </Line>
+      )}
       <Copy size={14} muted lines={3}>
         {summary}
       </Copy>
