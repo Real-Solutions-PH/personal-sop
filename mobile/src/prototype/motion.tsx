@@ -4,6 +4,7 @@ import { LinearGradient } from "expo-linear-gradient"
 import { usePathname } from "expo-router"
 import { Check, Flame } from "lucide-react-native"
 import {
+  type ComponentRef,
   createContext,
   type ReactNode,
   useCallback,
@@ -40,6 +41,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated"
 import Svg, { Circle } from "react-native-svg"
+import { anchor, type Box, Overlay } from "./overlay"
 import { prototypeStorage } from "./storage"
 import { stepTab } from "./tab-swipe"
 import { fonts, useTheme } from "./theme"
@@ -225,9 +227,11 @@ const spring = (to: number, config: { damping: number; stiffness: number }) =>
 const PARTICLES = 12
 /**
  * A completion's reward, centred on its parent each time `fire` goes up: a
- * soft flash, a ripple ring and twelve particles spraying out in a wide oval
- * (so they stay inside a list row). Never touchable, gone after the burst.
- * Under Reduce Motion it is a halo that fades in and out where it stands.
+ * soft flash, a ripple ring and twelve particles spraying out in a wide oval.
+ * It is drawn in the top overlay layer at the parent's window position, so
+ * no card, header, tab bar or sheet can clip or cover it. Never touchable,
+ * gone after the burst. Under Reduce Motion it is a halo that fades in and
+ * out where it stands.
  */
 export function Burst({
   fire,
@@ -242,11 +246,14 @@ export function Burst({
   const t = useSharedValue(0)
   const [live, setLive] = useState(false)
   const [angles, setAngles] = useState<number[]>([])
+  const [box, setBox] = useState<Box | null>(null)
+  const at = useRef<ComponentRef<typeof View>>(null)
   const seen = useRef(fire)
   useEffect(() => {
     if (fire === seen.current) return
     seen.current = fire
     if (fire <= 0) return
+    if (at.current) anchor.measure(at.current, setBox)
     // ±10° of jitter so no two bursts look stamped.
     setAngles(
       Array.from(
@@ -275,17 +282,61 @@ export function Burst({
           transform: [{ scale: 0.7 + 1.1 * t.value }],
         },
   )
-  if (!live) return null
+  return (
+    <>
+      <View
+        ref={at}
+        collapsable={false}
+        pointerEvents="none"
+        style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+      />
+      {live && box && (
+        <Overlay>
+          <BurstAt
+            box={box}
+            t={t}
+            reduced={reduced}
+            ring={ring}
+            flash={flash}
+            angles={angles}
+            color={color}
+            size={size}
+          />
+        </Overlay>
+      )}
+    </>
+  )
+}
+/** The burst itself, in the overlay layer over ``box``. */
+function BurstAt({
+  box,
+  t,
+  reduced,
+  ring,
+  flash,
+  angles,
+  color,
+  size,
+}: {
+  box: Box
+  t: SharedValue<number>
+  reduced: boolean
+  ring: ReturnType<typeof useAnimatedStyle>
+  flash: ReturnType<typeof useAnimatedStyle>
+  angles: number[]
+  color: string
+  size: number
+}) {
   return (
     <View
       testID="burst"
       pointerEvents="none"
       style={{
         position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
+        left: box.x,
+        top: box.y,
+        width: box.width,
+        height: box.height,
         alignItems: "center",
         justifyContent: "center",
       }}
