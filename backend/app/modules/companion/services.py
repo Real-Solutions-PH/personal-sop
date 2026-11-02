@@ -705,6 +705,14 @@ class OverviewArgs(BaseModel):
     days: Annotated[int, Field(ge=1, le=366)] = 30
 
 
+class DiscardArgs(BaseModel):
+    what: str | None = Field(
+        default=None,
+        description="Words naming the one waiting entry to drop (its food or "
+        "title); leave out to drop every waiting entry.",
+    )
+
+
 class NoArgs(BaseModel):
     pass
 
@@ -1205,9 +1213,9 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
         )
 
     def discard_pending(**kw: Any) -> dict[str, Any]:
-        NoArgs(**kw)
+        a = DiscardArgs(**kw)
         return capture.settle_waiting(
-            ctx, action="discard", keep_capture=run.turn_capture()
+            ctx, action="discard", keep_capture=run.turn_capture(), matching=a.what
         )
 
     def portion_plan(**kw: Any) -> dict[str, Any]:
@@ -1380,9 +1388,10 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
         ),
         (
             discard_pending,
-            NoArgs,
-            "Drop every entry from recent chat turns that is waiting for the "
-            "user's OK, when they say cancel, no, don't save it.",
+            DiscardArgs,
+            "Drop entries from recent chat turns that are waiting for the "
+            "user's OK: every one when they say cancel, no, don't save it; "
+            "with `what`, only the entry those words name (to correct it).",
         ),
         (
             portion_plan,
@@ -1431,6 +1440,15 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
     ]
 
 
+# Kai, build 25: a photo meal waited as "black rice snack"; "it is ube"
+# failed twice, because the rules said never to record a waiting entry
+# again and no tool could change one, so the model claimed a fix it could
+# not make. A correction drops that one entry and records it again.
+CORRECT_WAITING = (
+    "when they correct an entry still waiting (another food, name or amount: "
+    '"it is ube"), call `discard_pending` with `what` naming that entry, then '
+    "record it again, corrected, with the tool that made it, in this reply."
+)
 SYSTEM = """You are {sol}, the companion inside Personal SOP, a life-logging
 app. The user is {user}. NOW at the end gives today's date, the time where
 they live and when their day rolls over: before the rollover "today" in their
@@ -1548,7 +1566,8 @@ be told to register or add them; listing them back is not recording them.
   so never explain how to confirm. Never call it done.
 - When they say confirm, yes, save it or go ahead about entries waiting
   from earlier, call `confirm_pending`; when they say cancel or don't save
-  it, call `discard_pending`. Never record those entries again. Report
+  it, call `discard_pending`. Never record those entries again, except to
+  correct one: {correct_waiting} Report
   what `confirm_pending` could not save and why (an expense needs an
   account first). To save again something they Undid, `redo_undone`.
 - A write that returns an error did not happen; say so plainly.
@@ -2564,7 +2583,9 @@ def _ask_ai(
         mems = memory.context_block(ctx, text)
         facts = grounding.snapshot(ctx)
         grounds[:] = [facts, mems]
-        return SYSTEM.format(sol=sol_name, user=first) + CONTEXT.format(
+        return SYSTEM.format(
+            sol=sol_name, user=first, correct_waiting=CORRECT_WAITING
+        ) + CONTEXT.format(
             now_line=now_line(ctx),
             currency=ctx.currency.phrase,
             today_facts=json.dumps(facts, ensure_ascii=False),
