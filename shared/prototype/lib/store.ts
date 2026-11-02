@@ -25,12 +25,21 @@ const browserStorage: StorageAdapter = {
 }
 let storage = browserStorage
 let report: (error: unknown) => void = () => {}
+let defer: ((write: () => void) => void) | null = null
 export function configureStorage(
   adapter: StorageAdapter,
   onError: (error: unknown) => void = () => {},
+  opts: {
+    /** Writes a change later instead of inside `set`. A store is the whole
+     * domain serialised, so writing it on every tick blocks the tap that
+     * made the change; memory stays the source of truth meanwhile, and
+     * `flushStores` writes anything still waiting (call it on background). */
+    defer?: (write: () => void) => void
+  } = {},
 ) {
   storage = adapter
   report = onError
+  defer = opts.defer ?? null
 }
 const registry: Array<{
   key: string
@@ -56,6 +65,7 @@ export function createStore<T>(
   const persist = opts.persist !== false
   let state: T | undefined
   let pending: "set" | "remove" | null = null
+  let queued = false
   const server = seed()
   const listeners = new Set<() => void>()
   const get = (): T => {
@@ -96,7 +106,14 @@ export function createStore<T>(
     state =
       typeof next === "function" ? (next as (previous: T) => T)(get()) : next
     pending = "set"
-    flush()
+    if (!defer) flush()
+    else if (!queued) {
+      queued = true
+      defer(() => {
+        queued = false
+        flush()
+      })
+    }
     emit()
   }
   const subscribe = (listener: () => void) => {
@@ -129,6 +146,9 @@ export function createStore<T>(
   }
   const reset = () => {
     state = seed()
+    // A waiting write (its timer may never fire, e.g. a test's fake clock)
+    // must not keep the next change from scheduling its own.
+    queued = false
     pending = "remove"
     flush()
     emit()
