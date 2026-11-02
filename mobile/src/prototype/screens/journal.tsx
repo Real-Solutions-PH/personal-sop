@@ -27,7 +27,7 @@ import {
   Users,
   Wallet,
 } from "lucide-react-native"
-import { useEffect, useRef, useState } from "react"
+import { useContext, useEffect, useRef, useState } from "react"
 import {
   Keyboard,
   Platform,
@@ -57,7 +57,7 @@ import {
 import { go } from "../navigation"
 import { Switch } from "../switch"
 import { fonts, useTheme } from "../theme"
-import { Button, DateField, Screen } from "../ui"
+import { Button, DateField, PageScroll, Screen } from "../ui"
 import { CaptureVoice } from "./capture-voice"
 import { MoodPicker, moodIcons } from "./mood-picker"
 
@@ -665,6 +665,72 @@ const parseTags = (tags: string) =>
 /** Notes-style: a page-high writing surface that saves itself while you
  * type (to this phone first; sync sends it on). No Save button: leaving
  * keeps what is written, and a new entry left empty is never kept. */
+/** The entry's text. It grows with what is written, so the page is the one
+ * scroller and the entry reads from its first line to its last; while the
+ * caret is at the end, the page follows it, above the keyboard too. */
+function EntryText({
+  value,
+  onChangeText,
+  autoFocus,
+  minHeight,
+  keyboard,
+  pageTop,
+}: {
+  value: string
+  onChangeText: (v: string) => void
+  autoFocus: boolean
+  minHeight: number
+  keyboard: number
+  pageTop: { current: number }
+}) {
+  const t = useTheme(),
+    reveal = useContext(PageScroll),
+    top = useRef(0),
+    atEnd = useRef(autoFocus),
+    caretBottom = useRef(0),
+    text = useRef(value)
+  text.current = value
+  // The keyboard rising shrinks the page: once it has settled, bring the
+  // caret back above it.
+  useEffect(() => {
+    if (!keyboard || !atEnd.current) return
+    const timer = setTimeout(() => reveal(caretBottom.current), 300)
+    return () => clearTimeout(timer)
+  }, [keyboard, reveal])
+  return (
+    <TextInput
+      accessibilityLabel="Entry"
+      value={value}
+      onChangeText={onChangeText}
+      autoFocus={autoFocus}
+      multiline
+      scrollEnabled={false}
+      onLayout={(e) => {
+        top.current = e.nativeEvent.layout.y
+      }}
+      onSelectionChange={(e) => {
+        atEnd.current = e.nativeEvent.selection.end >= text.current.length
+      }}
+      onContentSizeChange={(e) => {
+        caretBottom.current =
+          pageTop.current + top.current + e.nativeEvent.contentSize.height + 20
+        if (atEnd.current) reveal(caretBottom.current)
+      }}
+      placeholder="What happened today? What did you notice? Who are you becoming?"
+      placeholderTextColor={t.muted}
+      style={{
+        minHeight,
+        paddingTop: 4,
+        paddingBottom: 16,
+        fontSize: 18,
+        lineHeight: 28,
+        fontFamily: fonts.body,
+        color: t.text,
+        textAlignVertical: "top",
+      }}
+    />
+  )
+}
 function JournalEditor({ id }: { id?: string }) {
   const t = useTheme(),
     safe = useSafeAreaInsets(),
@@ -687,7 +753,9 @@ function JournalEditor({ id }: { id?: string }) {
     createdHere = useRef(false),
     edited = useRef(false),
     emptyNow = useRef(!existing?.body.trim()),
-    latest = useRef<() => void>(() => {})
+    latest = useRef<() => void>(() => {}),
+    // Where the details block (the entry's parent) starts in the page.
+    pageTop = useRef(0)
   // A voice entry's words arrive while it is open: show them unless the
   // person has started writing.
   const words = existing?.transcription ? undefined : existing?.body
@@ -772,8 +840,10 @@ function JournalEditor({ id }: { id?: string }) {
         <Button href="/journal">Journal</Button>
       </Screen>
     )
-  // The writing surface fills what the header, the save line and the
-  // keyboard (or the bottom bar) leave; details sit below the fold.
+  // The writing surface fills at least what the header, the save line and
+  // the keyboard (or the bottom bar) leave, and grows with its text: the
+  // page is the one scroller, so the entry reads from its first line to its
+  // last, and the details sit below it.
   const surface = Math.max(
     220,
     height - safe.top - 56 - 52 - (keyboard ? keyboard : safe.bottom + 64) - 24,
@@ -858,27 +928,19 @@ function JournalEditor({ id }: { id?: string }) {
         </Line>
       }
     >
-      <View>
+      <View
+        onLayout={(e) => {
+          pageTop.current = e.nativeEvent.layout.y
+        }}
+      >
         {existing && <TranscriptionNote e={existing} />}
-        <TextInput
-          accessibilityLabel="Entry"
+        <EntryText
           value={body}
           onChangeText={edit(setBody)}
           autoFocus={!existing}
-          multiline
-          scrollEnabled
-          placeholder="What happened today? What did you notice? Who are you becoming?"
-          placeholderTextColor={t.muted}
-          style={{
-            height: surface,
-            paddingTop: 4,
-            paddingBottom: 16,
-            fontSize: 18,
-            lineHeight: 28,
-            fontFamily: fonts.body,
-            color: t.text,
-            textAlignVertical: "top",
-          }}
+          minHeight={surface}
+          keyboard={keyboard}
+          pageTop={pageTop}
         />
         <SectionHeading>Mood</SectionHeading>
         <MoodPicker value={mood} onChange={edit(setMood)} />
