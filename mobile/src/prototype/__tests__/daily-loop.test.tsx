@@ -220,6 +220,26 @@ describe("the day's moments", () => {
     expect(screen.getByText("On target")).toBeTruthy()
   })
 
+  it("a log stamped ahead of this clock does not hide a widget tap", () => {
+    const view = render(<DayMomentWatcher />, { wrapper })
+    jest.setSystemTime(Date.now() + 60_000)
+    const at = (ms: number) => new Date(Date.now() + ms).toISOString()
+    const base = { day: dayKey(), status: "done", source: "tap" } as const
+    act(() =>
+      habitsStore.set((s) => ({
+        ...s,
+        logs: [
+          ...s.logs,
+          { ...base, id: "f1", habitId: "h2", loggedAt: at(3_600_000) },
+          { ...base, id: "w2", habitId: "h1", loggedAt: at(0) },
+        ] as HabitLog[],
+      })),
+    )
+    ring(8)
+    view.rerender(<DayMomentWatcher />)
+    expect(screen.getByText("On target")).toBeTruthy()
+  })
+
   it("a pulled log stamped minutes ago plays nothing", () => {
     const view = render(<DayMomentWatcher />, { wrapper })
     jest.setSystemTime(Date.now() + 600_000)

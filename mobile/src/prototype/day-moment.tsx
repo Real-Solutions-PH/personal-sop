@@ -65,11 +65,19 @@ export function DayMomentWatcher({ hidden = false }: { hidden?: boolean }) {
   const path = usePathname()
   // The newest habit log's stamp: a widget or lock-screen tap logs through
   // the in-app action, so it counts as a completion here too.
-  // (A re-log replaces its row in place, so take the newest, not the last.)
+  // (A re-log replaces its row in place, so take the newest, not the last;
+  // a stamp ahead of this clock, from a device running fast, is skipped so
+  // it cannot hide a tap made here.)
   const lastLogAt = habitsStore.use((s) => {
+    const now = Date.now()
     let at: string | undefined
     for (const l of s.logs)
-      if (l.loggedAt && (!at || l.loggedAt > at)) at = l.loggedAt
+      if (
+        l.loggedAt &&
+        (!at || l.loggedAt > at) &&
+        Date.parse(l.loggedAt) <= now
+      )
+        at = l.loggedAt
     return at
   })
   const habits = ring.per.habits
