@@ -55,6 +55,8 @@ class ScriptedModel(BaseChatModel):
     script: list[AIMessage]
     seen: list[list[BaseMessage]]
     fail: bool = False
+    # The request options of each call, in order (``extra_body`` …).
+    opts: list[dict[str, Any]] = []
 
     @property
     def _llm_type(self) -> str:
@@ -79,6 +81,7 @@ class ScriptedModel(BaseChatModel):
         run_manager: CallbackManagerForLLMRun | None = None,
         **kwargs: Any,
     ) -> ChatResult:
+        self.opts.append(dict(kwargs))
         return ChatResult(generations=[ChatGeneration(message=self._next(messages))])
 
     def _stream(
@@ -88,6 +91,7 @@ class ScriptedModel(BaseChatModel):
         run_manager: CallbackManagerForLLMRun | None = None,
         **kwargs: Any,
     ) -> Iterator[ChatGenerationChunk]:
+        self.opts.append(dict(kwargs))
         msg = self._next(messages)
         # A reasoning model's thinking streams first, as the provider sends
         # it (``reasoning_content`` on each chunk).
@@ -125,7 +129,7 @@ class ScriptedModel(BaseChatModel):
 def install(
     monkeypatch: pytest.MonkeyPatch, *script: AIMessage, fail: bool = False
 ) -> ScriptedModel:
-    model = ScriptedModel(script=list(script), seen=[], fail=fail)
+    model = ScriptedModel(script=list(script), seen=[], opts=[], fail=fail)
     monkeypatch.setattr(ai_public, "model_factory", lambda resolved: model)
     return model
 

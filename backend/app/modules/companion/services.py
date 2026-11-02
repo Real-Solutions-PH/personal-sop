@@ -2640,6 +2640,9 @@ def _ask_ai(
         max_turns=MAX_STEPS,
         max_tool_calls=MAX_TOOL_CALLS,
         hooks=stream,
+        # The plan streams as it forms; later calls stay quick (see
+        # ai.thinking_options).
+        think_first=True,
     )
     answer, tables = shaped(reply)
     unbacked = unbacked_claim(

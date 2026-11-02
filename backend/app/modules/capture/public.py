@@ -284,6 +284,7 @@ def run_agent(
     max_turns: int = agent.MAX_TURNS,
     max_tool_calls: int | None = None,
     hooks: agent.LoopHooks | None = None,
+    think_first: bool = False,
 ) -> str:
     """The metered model/tools LangGraph loop capture runs, for the other AI
     surfaces (the companion, the finance advisor). Raises :class:`SeamError` when the
@@ -298,6 +299,7 @@ def run_agent(
         max_turns=max_turns,
         max_tool_calls=max_tool_calls,
         hooks=hooks,
+        think_first=think_first,
     )
 
 

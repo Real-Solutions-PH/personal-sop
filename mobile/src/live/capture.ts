@@ -1365,9 +1365,10 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
     meId: string,
     threadId: string,
     run: () => Promise<void>,
+    rejoined = false,
   ) {
     setInFlight({ id: meId, threadId })
-    replying.setState({ id: meId })
+    replying.setState({ id: meId, rejoined })
     try {
       await run()
     } finally {
@@ -1488,12 +1489,17 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
     const view = replyView(meId, threadId)
     if (companionStore.get().messages.some((m) => m.id === meId && m.status))
       markAsk(meId, "resuming")
-    void busyWith(meId, threadId, async () => {
-      await recover(meId, view)
-      // The question was stored with the reply; a local copy left waiting
-      // is the server's now.
-      if (view.ended && !view.failed) dropAsk(meId)
-    })
+    void busyWith(
+      meId,
+      threadId,
+      async () => {
+        await recover(meId, view)
+        // The question was stored with the reply; a local copy left waiting
+        // is the server's now.
+        if (view.ended && !view.failed) dropAsk(meId)
+      },
+      true,
+    )
   }
 
   const ask: AskBackend = (text, hint, routedToCapture, photos) => {

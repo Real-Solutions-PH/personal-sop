@@ -119,3 +119,35 @@ def test_a_refused_switch_is_dropped_and_the_call_answers(streamed: bool) -> Non
     assert ["chat_template_kwargs" in b for b in seen] == [True, False]
     # Never sent again to that model on that server.
     assert public.speed_options(resolved) == {}
+
+
+# ------------------------------------------------- thinking on one call
+
+
+def test_one_call_can_ask_a_family_with_a_switch_to_think() -> None:
+    assert public.thinking_options(_resolved("deepseek-ai/DeepSeek-V4-Flash-0731")) == {
+        "extra_body": {"chat_template_kwargs": {"thinking": True}}
+    }
+    assert public.thinking_options(_resolved("Qwen/Qwen3.8-27B")) == {
+        "extra_body": {"chat_template_kwargs": {"enable_thinking": True}}
+    }
+    assert public.thinking_options(_resolved("openbmb/MiniCPM-V-4_5")) == {}
+
+
+def test_a_refused_thinking_call_is_asked_again_without_it() -> None:
+    seen: list[dict[str, Any]] = []
+    base = f"https://llm-{uuid.uuid4().hex[:6]}.example.com/v1"
+    resolved = _resolved("deepseek-ai/DeepSeek-V4-Flash-0731", base)
+    model = public._chat_openai()(
+        model=resolved.model,
+        api_key=resolved.api_key,
+        base_url=base,
+        max_retries=0,
+        extra_body=public.speed_options(resolved)["extra_body"],
+        http_client=httpx.Client(transport=_server(seen)),
+    )
+    think = public.thinking_options(resolved)
+    text = "".join(str(c.content) for c in model.stream([HumanMessage("hi")], **think))
+    assert text == "hi"
+    assert ["chat_template_kwargs" in b for b in seen] == [True, False]
+    assert public.thinking_options(resolved) == {}

@@ -53,10 +53,10 @@ const msg = (text?: string) =>
   ({ id: "m1", role: "sol", text, at: new Date().toISOString() }) as never
 const orb = () => screen.getByRole("image", { name: "Fern" })
 
-it("a reply with no words yet says Fern is thinking, its orb working", () => {
+it("a reply with no words yet says what Fern is doing, its orb working", () => {
   answering.setState({ id: "m1" })
   render(<SolMessage m={msg()} name="Fern" />)
-  expect(screen.getByText("Thinking")).toBeTruthy()
+  expect(screen.getByText("Reading your message")).toBeTruthy()
   expect(orb().props.accessibilityState).toMatchObject({ busy: true })
 })
 
@@ -64,7 +64,7 @@ it("the orb keeps working while the words stream, and rests when they end", () =
   answering.setState({ id: "m1" })
   render(<SolMessage m={msg("Logged your breakfast")} name="Fern" />)
   expect(orb().props.accessibilityState).toMatchObject({ busy: true })
-  expect(screen.queryByText("Thinking")).toBeNull()
+  expect(screen.queryByText("Reading your message")).toBeNull()
   expect(screen.queryByLabelText("Copy reply")).toBeNull()
   act(() => answering.setState({ id: null }))
   expect(orb().props.accessibilityState).toMatchObject({ busy: false })

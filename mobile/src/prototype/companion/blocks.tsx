@@ -41,7 +41,7 @@ import {
 } from "lucide-react-native"
 import { useEffect, useMemo, useState } from "react"
 import { ActivityIndicator, Pressable, Text, View } from "react-native"
-import Animated, { FadeInDown } from "react-native-reanimated"
+import Animated, { FadeIn, FadeInDown } from "react-native-reanimated"
 import { Trend } from "../chart"
 import { Donut, FIN_PALETTE } from "../finance-charts"
 import { GrowBar } from "../motion"
@@ -1288,63 +1288,67 @@ function ThinkingBlock({ text, done }: { text: string; done?: boolean }) {
       ?.replace(/[*#`_]/g, "")
       .trim() ?? ""
   const label = done ? "Thought it through" : "Thinking"
+  // Fades in once, when the thinking starts; the text then streams in
+  // place (no motion on every new word).
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ expanded: open }}
-      accessibilityLabel={
-        open ? `${label}. Hide thinking` : `${label}. Show thinking`
-      }
-      onPress={() => setOpen((o) => !o)}
-      style={{
-        borderLeftWidth: 2,
-        borderLeftColor: t.line,
-        paddingLeft: 10,
-        paddingVertical: 2,
-        gap: 4,
-      }}
-    >
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-        <Brain size={14} color={t.muted} />
-        <Text
-          style={{ color: t.muted, fontFamily: fonts.semibold, fontSize: 12 }}
-        >
-          {done ? label : `${label}…`}
-        </Text>
-        {open ? (
-          <ChevronDown size={14} color={t.muted} />
-        ) : (
-          <ChevronRight size={14} color={t.muted} />
-        )}
-      </View>
-      {open ? (
-        <Text
-          style={{
-            color: t.muted,
-            fontFamily: fonts.body,
-            fontSize: 13,
-            lineHeight: 19,
-          }}
-        >
-          {text.trim()}
-        </Text>
-      ) : (
-        !done &&
-        !!latest && (
+    <Animated.View entering={FadeIn.duration(200)}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        accessibilityLabel={
+          open ? `${label}. Hide thinking` : `${label}. Show thinking`
+        }
+        onPress={() => setOpen((o) => !o)}
+        style={{
+          borderLeftWidth: 2,
+          borderLeftColor: t.line,
+          paddingLeft: 10,
+          paddingVertical: 2,
+          gap: 4,
+        }}
+      >
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <Brain size={14} color={t.muted} />
           <Text
-            numberOfLines={2}
+            style={{ color: t.muted, fontFamily: fonts.semibold, fontSize: 12 }}
+          >
+            {done ? label : `${label}…`}
+          </Text>
+          {open ? (
+            <ChevronDown size={14} color={t.muted} />
+          ) : (
+            <ChevronRight size={14} color={t.muted} />
+          )}
+        </View>
+        {open ? (
+          <Text
             style={{
               color: t.muted,
               fontFamily: fonts.body,
               fontSize: 13,
-              lineHeight: 18,
+              lineHeight: 19,
             }}
           >
-            {latest}
+            {text.trim()}
           </Text>
-        )
-      )}
-    </Pressable>
+        ) : (
+          !done &&
+          !!latest && (
+            <Text
+              numberOfLines={2}
+              style={{
+                color: t.muted,
+                fontFamily: fonts.body,
+                fontSize: 13,
+                lineHeight: 18,
+              }}
+            >
+              {latest}
+            </Text>
+          )
+        )}
+      </Pressable>
+    </Animated.View>
   )
 }
 /** A table Fern sent (portions per food, a breakdown). Up to three columns
