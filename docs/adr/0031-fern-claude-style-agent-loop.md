@@ -64,15 +64,32 @@ None.
 ## Consequences
 
 **Positive:**
-- Judge +0.10 on the replay eval. The multiple-choice criterion went from
-  0.08 to 0.50.
+- On the shipped code against master (2026-11-03):
+
+  | Measure | Master | This change |
+  |---|---|---|
+  | Judge | 0.718 | 0.771 |
+  | Failure cases passing (of 161) | 40 | 53 |
+  | Checks passed (of 371) | 185 | 213 |
+  | Filling every field | 0.37 | 0.60 |
+  | Multiple-choice asks | 0.20 | 0.40 |
+
+  Guard cases held 21 of 21.
 - One prompt instead of a rule per incident. A failure becomes a replay
   case first (ADR-0029), and a rule only if the case needs one.
 
 **Negative:**
-- About 45% more input tokens per turn: every tool's schema is sent each
-  call, and thinking runs every call. Mean latency is about 10% higher
-  under load (median unchanged).
+- More model calls and tokens: every tool's schema is sent each call, and
+  thinking runs every call. Measured on the shipped code against master
+  (2026-11-03, the same 182 cases at the same time):
+
+  | Measure | Master | This change |
+  |---|---|---|
+  | Model calls per case | 4.8 | 6.1 |
+  | Input tokens per case | 53,754 | 75,519 (+40%) |
+  | Cost for all 182 cases | ₱86 | ₱121 (+40%) |
+  | Seconds per turn, mean | 14.0 | 20.9 |
+  | Seconds per turn, p90 | 22.0 | 36.2 |
 - A meal estimated without its details now costs one more model call.
 
 **Follow-ups:**
