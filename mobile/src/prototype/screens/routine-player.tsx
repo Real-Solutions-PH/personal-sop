@@ -16,6 +16,7 @@ import { useEffect, useRef, useState } from "react"
 import { Pressable, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { LiveNotice } from "@/surfaces/live-notice"
+import { feel, markCompletion } from "../motion"
 import {
   Copy,
   Countdown,
@@ -84,6 +85,12 @@ export function RoutinePlayer({ id }: { id: string }) {
   }
   const act = (fn: typeof A.stepDone) => {
     if (!run) return
+    // Every step answers: a done step lands with a tap and counts as a
+    // completion (the day's moments can follow it); a skip stays quiet.
+    if (fn !== A.stepSkip) {
+      feel.tap()
+      markCompletion()
+    }
     fn(run)
     if (
       habitsStore.get().runs.find((x) => x.id === run.id)?.state === "completed"

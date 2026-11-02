@@ -2,7 +2,7 @@ import { dayKey } from "@domain/lib/day"
 import * as Haptics from "expo-haptics"
 import { LinearGradient } from "expo-linear-gradient"
 import { usePathname } from "expo-router"
-import { Check, Flame } from "lucide-react-native"
+import { Check, Flame, Trophy } from "lucide-react-native"
 import {
   type ComponentRef,
   createContext,
@@ -42,6 +42,7 @@ import Animated, {
 } from "react-native-reanimated"
 import Svg, { Circle } from "react-native-svg"
 import { anchor, type Box, Overlay } from "./overlay"
+import { isMilestone } from "./rewards"
 import { prototypeStorage } from "./storage"
 import { stepTab } from "./tab-swipe"
 import { fonts, useTheme } from "./theme"
@@ -79,6 +80,16 @@ export const feel = {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(
       () => {},
     ),
+  /** Something went less well than hoped: a miss, a limit crossed. */
+  warning: () =>
+    void Haptics.notificationAsync(
+      Haptics.NotificationFeedbackType.Warning,
+    ).catch(() => {}),
+  /** Something failed or was refused. */
+  error: () =>
+    void Haptics.notificationAsync(
+      Haptics.NotificationFeedbackType.Error,
+    ).catch(() => {}),
 }
 
 /** When this device last completed something by hand, and whether that was
@@ -89,7 +100,8 @@ export function markCompletion(swipe = false) {
   local.at = Date.now()
   if (swipe) local.swipe = local.at
 }
-export const completedRecently = (ms = 2000) => Date.now() - local.at < ms
+export const completedAgo = () => Date.now() - local.at
+export const completedRecently = (ms = 2000) => completedAgo() < ms
 const swipedRecently = () => Date.now() - local.swipe < 300
 
 /** `#rgb`/`#rrggbb` at `alpha` as rgba; anything else is returned as is. */
@@ -436,6 +448,13 @@ const writeDay = (key: string, day: string) => {
     // Without storage the moment may replay on the next launch.
   }
 }
+/** Claims a ``useDayMoment`` key for today from outside the screen that
+ * shows it (an app-wide card): true if it had not played today. */
+export function claimDayMoment(key: string, day = dayKey()) {
+  if (readDay(key) === day) return false
+  writeDay(key, day)
+  return true
+}
 /**
  * A once-a-day moment, e.g. every habit done: "new" the first time today
  * `reached` turns true right after a completion on this device, "seen"
@@ -511,46 +530,85 @@ export function Shimmer({ color = "rgba(255, 255, 255, 0.35)" }) {
 
 /** A habit's flame and streak. When the streak grows while it is on screen
  * the chip bumps and the number counts up to the new value. */
-export function StreakChip({ streak }: { streak: number }) {
+export function StreakChip({
+  streak,
+  from,
+  lost = 0,
+}: {
+  streak: number
+  /** Where the count starts on mount: one less bumps it as it appears. */
+  from?: number
+  /** The streak that broke on yesterday's miss (shown while ``streak`` is
+   * 0, for that day only). */
+  lost?: number
+}) {
   const t = useTheme()
   const reduced = useReducedMotion()
   const scale = useSharedValue(1)
-  const prev = useRef(streak)
-  const n = useCountUp(streak, MOTION.base * 2, streak)
+  const prev = useRef(from ?? streak)
+  const n = useCountUp(streak, MOTION.base * 2, from ?? streak)
+  // A milestone day (7, 30, 100, 365) wears gold with a trophy.
+  const milestone = isMilestone(streak)
   useEffect(() => {
     if (streak > prev.current && !reduced)
       scale.value = withSequence(
-        withTiming(1.3, { duration: 120 }),
-        withSpring(1, { damping: 8, stiffness: 260 }),
+        withTiming(milestone ? 1.6 : 1.3, { duration: 140 }),
+        withSpring(1, { damping: milestone ? 6 : 8, stiffness: 260 }),
       )
+    if (streak > prev.current && milestone) feel.success()
     prev.current = streak
-  }, [streak, reduced, scale])
+  }, [streak, reduced, scale, milestone])
   const bump = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }))
-  if (streak <= 0) return null
+  if (streak <= 0)
+    return lost > 0 ? (
+      <View
+        testID="streak-lost"
+        accessibilityLabel={`Streak lost, was ${lost} days`}
+        style={{
+          borderRadius: 12,
+          backgroundColor: alpha(t.bad, 0.1),
+          paddingHorizontal: 6,
+          paddingVertical: 1,
+        }}
+      >
+        <Text
+          style={{
+            fontFamily: fonts.medium,
+            fontSize: 11,
+            lineHeight: 14,
+            color: t.bad,
+          }}
+        >
+          streak lost · was {lost}
+        </Text>
+      </View>
+    ) : null
+  const tone = milestone ? t.life : t.warn
+  const Icon = milestone ? Trophy : Flame
   return (
     <Animated.View
-      testID="streak-chip"
-      accessibilityLabel={`${streak}-day streak`}
+      testID={milestone ? "streak-milestone" : "streak-chip"}
+      accessibilityLabel={`${streak}-day streak${milestone ? ", a milestone" : ""}`}
       style={[
         {
           flexDirection: "row",
           alignItems: "center",
           gap: 2,
           borderRadius: 12,
-          backgroundColor: alpha(t.warn, 0.15),
+          backgroundColor: alpha(tone, milestone ? 0.22 : 0.15),
           paddingHorizontal: 6,
           paddingVertical: 1,
         },
         bump,
       ]}
     >
-      <Flame size={12} color={t.warn} />
+      <Icon size={12} color={tone} />
       <Text
         style={{
           fontFamily: fonts.semibold,
           fontSize: 11,
           lineHeight: 14,
-          color: t.warn,
+          color: tone,
         }}
       >
         {Math.round(n)}

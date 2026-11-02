@@ -24,6 +24,7 @@ import {
   Tap,
 } from "../native-kit"
 import { go } from "../navigation"
+import { streakLost } from "../rewards"
 import { useTheme } from "../theme"
 import { Button, Choices, confirm, Empty, Field, Screen, Sheet } from "../ui"
 import { HabitActions } from "./habit-actions"
@@ -62,7 +63,13 @@ export function HabitsList() {
     .map((h) => ({
       h,
       st: L.effectiveStatus(h, today),
-      streak: L.streaks(h, idx, today).current,
+      ...(() => {
+        const x = L.streaks(h, idx, today)
+        return {
+          streak: x.current,
+          lost: streakLost(x.broken, x.current, today),
+        }
+      })(),
       rate: L.habitStats(h, idx, dayOffset(-29), today, today).rate,
       time: L.slotFor(h.schedule, today)?.time ?? h.schedule[0]?.time,
     }))
@@ -165,7 +172,7 @@ export function HabitsList() {
                 : "No habits match."}
             </Copy>
           )}
-          {rows.map(({ h, st, streak, rate }, i) =>
+          {rows.map(({ h, st, streak, lost, rate }, i) =>
             mode === "today" ? (
               <HabitRow key={h.id} habit={h} />
             ) : (
@@ -245,7 +252,7 @@ export function HabitsList() {
                         <Copy size={11} muted>
                           {Math.round(rate * 100)}%
                         </Copy>
-                        <StreakChip streak={streak} />
+                        <StreakChip streak={streak} lost={lost} />
                       </Line>
                     </View>
                     {!reorder && <ChevronRight size={16} color={t.muted} />}

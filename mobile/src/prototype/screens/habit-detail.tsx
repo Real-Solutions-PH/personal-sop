@@ -17,9 +17,10 @@ import {
 import { useState } from "react"
 import { View } from "react-native"
 import { FocusTimeCard } from "../focus-kit"
-import { Cheer, feel, markCompletion } from "../motion"
+import { Cheer, feel, markCompletion, StreakChip } from "../motion"
 import { Copy, Frame, IconTap, Line, SectionHeading, Tap } from "../native-kit"
 import { go } from "../navigation"
+import { streakLost } from "../rewards"
 import { useTheme } from "../theme"
 import { Button, confirm, DateField, Empty, Field, Screen, Sheet } from "../ui"
 import { HabitLog } from "./habits"
@@ -234,6 +235,7 @@ export function HabitDetail({ id }: { id: string }) {
     prev = L.habitStats(h, idx, dayOffset(-59), dayOffset(-30), today),
     long = L.habitStats(h, idx, dayOffset(-89), today, today),
     st = L.streaks(h, idx, today),
+    lost = streakLost(st.broken, st.current, today),
     log = idx.get(L.lk(id, today)),
     pause = L.currentPause(h, today),
     routines = s.routines.filter(
@@ -425,6 +427,16 @@ export function HabitDetail({ id }: { id: string }) {
           >
             🏆 New best — this is your longest streak yet.
           </Copy>
+        )}
+        {(lost > 0 || log?.status === "skipped") && (
+          <Line style={{ gap: 8, flexWrap: "wrap" }}>
+            <StreakChip streak={st.current} lost={lost} />
+            {log?.status === "skipped" && (
+              <Copy size={13} muted>
+                Skipped today — streak kept
+              </Copy>
+            )}
+          </Line>
         )}
       </View>
       <FocusTimeCard

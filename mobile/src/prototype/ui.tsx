@@ -51,6 +51,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
 import { screenShown } from "./boot/first-screen"
+import { feel } from "./motion"
 import { back, go } from "./navigation"
 import { Switch } from "./switch"
 import { fonts, useTheme } from "./theme"
@@ -1064,9 +1065,7 @@ export function SwipeRow({
         if (side === "left" && onDismiss) {
           ref.current?.close()
           onDismiss()
-          void Haptics.notificationAsync(
-            Haptics.NotificationFeedbackType.Warning,
-          ).catch(() => {})
+          feel.warning()
         }
       }}
       onSwipeableClose={() => setDirection(null)}

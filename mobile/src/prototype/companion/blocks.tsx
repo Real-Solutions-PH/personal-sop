@@ -39,12 +39,12 @@ import {
   Wallet,
   X,
 } from "lucide-react-native"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { ActivityIndicator, Pressable, Text, View } from "react-native"
-import Animated, { FadeIn, FadeInDown } from "react-native-reanimated"
+import Animated, { FadeIn, FadeInDown, ZoomIn } from "react-native-reanimated"
 import { Trend } from "../chart"
 import { Donut, FIN_PALETTE } from "../finance-charts"
-import { GrowBar } from "../motion"
+import { feel, GrowBar, markCompletion } from "../motion"
 import { go } from "../navigation"
 import { CaptureSummary } from "../screens/capture-summary"
 import { useMoney } from "../screens/finance"
@@ -1146,6 +1146,20 @@ function StepCard({
   useEffect(() => {
     if (loading && captureId) ensureCapture(captureId)
   }, [loading, captureId])
+  // Saving while the card is on screen (a Confirm, a Redo) lands with a
+  // check pop and a success tap, and counts as a completion here, so the
+  // day's moments (all habits done, on target) follow it. A card that was
+  // already saved when it appeared stays quiet.
+  const was = useRef(now)
+  const [saved, setSaved] = useState(0)
+  useEffect(() => {
+    const before = was.current
+    was.current = now
+    if (now !== "saved" || before === "saved" || before === "edited") return
+    markCompletion()
+    feel.success()
+    setSaved((n) => n + 1)
+  }, [now])
   if (loading) return <StepButton label="Confirm" disabled />
   if (live === "proposed")
     return (
@@ -1155,7 +1169,29 @@ function StepCard({
       </View>
     )
   if (live === "saved" || live === "edited")
-    return <StepButton label="Undo" onPress={() => undoCard(id)} />
+    return (
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+        {saved > 0 && (
+          <Animated.View
+            key={saved}
+            testID="card-saved-pop"
+            entering={ZoomIn.springify().damping(10)}
+            accessibilityLabel="Saved"
+            style={{
+              width: 22,
+              height: 22,
+              borderRadius: 11,
+              backgroundColor: t.good,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Check size={13} color={t.onPrimary} strokeWidth={3} />
+          </Animated.View>
+        )}
+        <StepButton label="Undo" onPress={() => undoCard(id)} />
+      </View>
+    )
   if (live === "undone")
     // An entry undone by mistake can be saved again from where it was undone.
     return (
