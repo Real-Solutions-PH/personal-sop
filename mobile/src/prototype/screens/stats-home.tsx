@@ -15,13 +15,19 @@ import {
   Share2,
   Sparkles,
   Target,
+  TrendingDown,
+  TrendingUp,
   Trophy,
+  X,
 } from "lucide-react-native"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Text, View } from "react-native"
 import { ScrollView as GHScrollView } from "react-native-gesture-handler"
 import Svg, { Circle, G, Polygon, Line as SvgLine } from "react-native-svg"
-import { ArcCircle, CountUp, GrowBar, SwipeSegments } from "../motion"
+import { BigMoment } from "../big-moment"
+import { useNoteGoals } from "../goal-ledger"
+import { dismissDrop, momentsSeen, noteLevel } from "../moments-seen"
+import { ArcCircle, alpha, CountUp, GrowBar, SwipeSegments } from "../motion"
 import {
   Bar,
   border,
@@ -71,6 +77,99 @@ function Delta({
       {value > 0 ? "▲" : value < 0 ? "▼" : "—"}
       {Math.abs(value)}
     </Copy>
+  )
+}
+const LEVEL_NAMES = [
+  "Getting started",
+  "Building",
+  "Steady",
+  "Strong",
+  "Excellent",
+  "Peak",
+]
+const LEVEL_FLOORS = [0, 40, 55, 65, 75, 85]
+/** Level changes, judged on the last 7 days whatever range is showing, and
+ * only once the score has settled (the server's answer when signed in), so
+ * the device's own estimate never fakes a change. A level reached for the
+ * first time gets the big pop-up; a drop leaves a note in the bad colour
+ * until it is dismissed. */
+function LevelWatch() {
+  const t = useTheme(),
+    ls = D.useLifeScore(7),
+    settled = ls.status === "off" || ls.source === "server",
+    level = D.levelFor(ls.score),
+    index = ls.score === null ? -1 : LEVEL_NAMES.indexOf(level.name),
+    drop = momentsSeen.use((s) => s.drop),
+    [up, setUp] = useState<string | null>(null)
+  useEffect(() => {
+    if (!settled || index < 0) return
+    const step = noteLevel(index, LEVEL_NAMES)
+    if (step.kind === "up") setUp(LEVEL_NAMES[index])
+  }, [settled, index])
+  useEffect(() => {
+    if (!up) return
+    const id = setTimeout(() => setUp(null), 4200)
+    return () => clearTimeout(id)
+  }, [up])
+  // How far the score is from the level it fell from.
+  const floor = LEVEL_FLOORS[LEVEL_NAMES.indexOf(drop.from)],
+    back = floor !== undefined && ls.score !== null ? floor - ls.score : 0
+  return (
+    <>
+      {drop.from && drop.to && (
+        <View
+          testID="level-down"
+          accessibilityLiveRegion="polite"
+          style={{
+            marginTop: 12,
+            flexDirection: "row",
+            alignItems: "flex-start",
+            gap: 10,
+            borderRadius: 14,
+            paddingLeft: 12,
+            paddingVertical: 10,
+            backgroundColor: alpha(t.bad, 0.12),
+          }}
+        >
+          <TrendingDown size={18} color={t.bad} style={{ marginTop: 1 }} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Copy size={14} weight="semibold" style={{ color: t.bad }}>
+              Level down: {drop.from} → {drop.to}
+            </Copy>
+            <Copy size={12} style={{ color: t.text }}>
+              Your last 7 days scored {ls.score ?? "—"}.
+              {back > 0 ? ` ${back} more gets ${drop.from} back.` : ""}
+            </Copy>
+          </View>
+          <IconTap
+            size={40}
+            icon={X}
+            label="Dismiss"
+            color={t.muted}
+            onPress={dismissDrop}
+          />
+        </View>
+      )}
+      {up && (
+        <BigMoment
+          testID="level-up"
+          label="Level up"
+          title={up}
+          detail={
+            <Copy size={14} muted style={{ textAlign: "center" }}>
+              Your Life Score over the last 7 days is {ls.score}.
+              {level.next
+                ? ` ${level.next.floor - (ls.score ?? 0)} more for ${level.next.name}.`
+                : " The top level."}
+            </Copy>
+          }
+          badge={<TrendingUp size={34} color="#fff" />}
+          tint={t.life}
+          say={`Level up: ${up}. Life Score ${ls.score}.`}
+          onClose={() => setUp(null)}
+        />
+      )}
+    </>
   )
 }
 function LifeHero({
@@ -864,13 +963,13 @@ export function StatsHome() {
     screenOn = useScreenTimeShown(),
     cur = D.useAllMisses(dayOffset(-(days - 1)), dayKey()),
     prev = D.useAllMisses(dayOffset(-(days * 2 - 1)), dayOffset(-days)),
-    goals = D.useGoals()
-      .filter((g) => g.goal.status === "active")
-      .slice(0, 3),
+    allGoals = D.useGoals(),
+    goals = allGoals.filter((g) => g.goal.status === "active").slice(0, 3),
     weights = D.useWeights(),
     [weightSheet, setWeightSheet] = useState(false),
     score = D.useLifeScore(days),
     locked = target.logged < 3
+  useNoteGoals(allGoals)
   const count = (items: typeof cur, k?: string) =>
       items.filter((m) => (!k || m.module === k) && !notes[m.id]).length,
     delta =
@@ -934,6 +1033,7 @@ export function StatsHome() {
           />
         </View>
         <NowAndRange days={days} locked={locked} />
+        {!locked && <LevelWatch />}
         <PatternsCard />
         <LockedPreview
           locked={locked}

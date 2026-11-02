@@ -5,6 +5,7 @@ import {
   useAchievements,
   useAllMisses,
   useEnabled,
+  useGoals,
 } from "@domain/dash/hooks"
 import { dashStore, markTrophiesSeen, noteMiss } from "@domain/dash/store"
 import { dayKey, dayOffset } from "@domain/lib/day"
@@ -14,6 +15,8 @@ import { useFocusEffect, useLocalSearchParams, usePathname } from "expo-router"
 import { Award, Lock, Trophy } from "lucide-react-native"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { ScrollView, View } from "react-native"
+import { useNoteGoals } from "../goal-ledger"
+import { MissedGoals } from "../missed-goals"
 import {
   Bar,
   border,
@@ -55,7 +58,9 @@ export function Misses() {
     keys = MODULE_KEYS.filter((k) => enabled[k]),
     [filter, setFilter] = useState("all"),
     [noting, setNoting] = useState<(typeof cur)[number] | null>(null),
-    [text, setText] = useState("")
+    [text, setText] = useState(""),
+    goals = useGoals()
+  useNoteGoals(goals)
   const count = (l: typeof cur, k?: string) =>
     l.filter((m) => (!k || m.module === k) && !notes[m.id]).length
   const delta = (n: number) => (
@@ -133,6 +138,7 @@ export function Misses() {
           against on-target rate.
         </Copy>
       </Frame>
+      <MissedGoals goals={goals.map((g) => g.goal)} link />
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}

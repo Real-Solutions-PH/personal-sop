@@ -423,6 +423,75 @@ export async function scheduleEatBackReminder(
   })
 }
 
+/** The evening nudge when the on-target streak is about to break. */
+export const AT_RISK_ID = "streak-at-risk"
+export const AT_RISK_TIME = { hour: 20, minute: 30 }
+
+export interface AtRisk {
+  /** Today's due habits and tasks, and how many are done. */
+  due: number
+  done: number
+  /** Share of due items that puts a day on target (Settings). */
+  threshold: number
+  /** On-target days in a row before today. */
+  streak: number
+  /** The evening wrap-up push time; empty = evening pushes off. */
+  evening: string
+  quiet?: { start: string; end: string }
+}
+
+/** Tonight's "streak at risk" reminder, or null: only while today is below
+ * target with an on-target streak to lose, evening pushes on, 20:30 still
+ * ahead and outside quiet hours. Pure. */
+export function atRiskPlan(r: AtRisk, now: Date) {
+  if (r.streak <= 0 || r.due <= 0 || !r.evening) return null
+  const need = Math.ceil(r.threshold * r.due - 1e-9) - r.done
+  if (need <= 0) return null
+  const at = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    AT_RISK_TIME.hour,
+    AT_RISK_TIME.minute,
+  )
+  if (now >= at || inQuiet(at, r.quiet)) return null
+  const days = r.streak === 1 ? "1-day" : `${r.streak}-day`
+  return {
+    at,
+    title: `🔥 Your ${days} streak is at risk`,
+    body: `${r.done} of ${r.due} done today. ${need} more ${need === 1 ? "keeps" : "keep"} it going.`,
+    href: "/",
+  }
+}
+
+/** Set or clear tonight's at-risk reminder. Its id is outside ``OURS``, so
+ * rebuilding task and habit reminders keeps it. */
+export async function scheduleAtRiskReminder(
+  r: AtRisk,
+  N: Notifications = load(),
+  now: Date = new Date(),
+) {
+  if (Platform.OS === "web") return
+  if ((await N.getPermissionsAsync()).status !== "granted") return
+  await N.cancelScheduledNotificationAsync(AT_RISK_ID).catch(() => {})
+  const plan = atRiskPlan(r, now)
+  if (!plan) return
+  await N.scheduleNotificationAsync({
+    identifier: AT_RISK_ID,
+    content: {
+      title: plan.title,
+      body: plan.body,
+      data: { href: plan.href },
+      sound: SOUND,
+    },
+    trigger: {
+      type: N.SchedulableTriggerInputTypes.DATE,
+      date: plan.at,
+      channelId: CHANNEL,
+    },
+  })
+}
+
 /** A real notification a few seconds from now, to see reminders work. */
 export async function sendTestReminder(N: Notifications = load()) {
   if (Platform.OS === "web") return false

@@ -8,7 +8,9 @@ import type { FocusState } from "@domain/focus/data"
 import * as L from "@domain/focus/logic"
 import { focusStore } from "@domain/focus/store"
 import { type Live, liveStore } from "@domain/lib/live"
+import * as Haptics from "expo-haptics"
 import { AppState, Platform } from "react-native"
+import { chime } from "./chime"
 
 type Notifications = typeof import("expo-notifications")
 
@@ -59,6 +61,37 @@ export function phaseNotice(s: FocusState, now = Date.now()) {
         : `Tap to start set ${set + 1}.`,
   }
 }
+
+/** Sets that ran their full length, as ``session:set`` keys: the set's
+ * closed focus time reached what it was planned for (a second's slack). A
+ * set skipped or ended early is not in it. Sessions started within the last
+ * day only. */
+export function finishedSets(s: FocusState, now = Date.now()): Set<string> {
+  const since = now - 86_400_000
+  const recent = new Set(
+    s.sessions
+      .filter((x) => new Date(x.startedAt).getTime() >= since)
+      .map((x) => x.id),
+  )
+  const sets = new Map<string, { sec: number; planned: number }>()
+  for (const g of s.segments) {
+    if (g.kind !== "focus" || !recent.has(g.sessionId) || !g.endedAt) continue
+    const key = `${g.sessionId}:${g.setIndex}`
+    const x = sets.get(key) ?? { sec: 0, planned: 0 }
+    x.sec +=
+      (new Date(g.endedAt).getTime() - new Date(g.startedAt).getTime()) / 1000
+    x.planned = Math.max(x.planned, g.plannedSec ?? 0)
+    sets.set(key, x)
+  }
+  const out = new Set<string>()
+  for (const [k, x] of sets)
+    if (x.planned > 0 && x.sec >= x.planned - 1) out.add(k)
+  return out
+}
+
+/** Keys in ``now`` that ``before`` did not have. */
+export const newlyFinished = (before: Set<string>, now: Set<string>) =>
+  [...now].filter((k) => !before.has(k))
 
 const sameLive = (a: Live | null, b: Live | null) =>
   a?.kind === b?.kind &&
@@ -113,18 +146,49 @@ export function startFocusLive() {
     } catch {
       N = null // the native module is missing from this build
     }
+  // Sets already finished when the app starts are history, not news, and
+  // so are the ones written down on coming back (the notification told).
+  let finished = finishedSets(focusStore.get())
+  let away = false
+  let wake: ReturnType<typeof setTimeout> | null = null
   const onChange = () => {
+    // A set that runs out while the app is open answers with a success tap
+    // and a chime.
+    const next = finishedSets(focusStore.get())
+    if (
+      !away &&
+      newlyFinished(finished, next).length &&
+      AppState.currentState === "active"
+    ) {
+      // expo-haptics, not motion's feel: this module loads outside any screen
+      // (the widgets' bridge), where Reanimated must not be pulled in.
+      void Haptics.notificationAsync(
+        Haptics.NotificationFeedbackType.Success,
+      ).catch(() => {})
+      chime()
+    }
+    finished = next
     syncLiveBar()
     if (N) void scheduleNotice(N).catch(() => {})
+    // Nothing else ticks the timer off its own screen: write the phase
+    // down as it ends, so the chime comes on time wherever the app is.
+    if (wake) clearTimeout(wake)
+    const end = phaseNotice({
+      ...focusStore.get(),
+      settings: { ...focusStore.get().settings, notify: true },
+    })?.at.getTime()
+    if (end) wake = setTimeout(() => tickFocus(), end - Date.now() + 300)
+  }
+  const quietly = () => {
+    away = true
+    tickFocus()
+    away = false
+    onChange()
   }
   focusStore.subscribe(onChange)
   AppState.addEventListener("change", (state) => {
-    if (state === "active") {
-      tickFocus()
-      onChange()
-    }
+    if (state === "active") quietly()
   })
   // A set that ended while the app was closed is written down at launch.
-  tickFocus()
-  onChange()
+  quietly()
 }

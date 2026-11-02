@@ -64,7 +64,7 @@ import { Copy, Line, Segmented, Tap } from "./native-kit"
 import { go } from "./navigation"
 import { signed } from "./share-format"
 import { keep, prepareImage } from "./social/media"
-import { addStory, type Media, setPostDraft } from "./social/store"
+import { addStory, deleteStory, type Media, setPostDraft } from "./social/store"
 import { type Accent, fonts, useTheme } from "./theme"
 
 export type CardFormat = "9:16" | "4:5" | "1:1"
@@ -1011,14 +1011,17 @@ export function ShareComposer<K extends string>({
       return
     }
     const m = await asMedia(uri)
-    addStory({
+    const story = addStory({
       kind: "image",
       uri: m.uri,
       previewUri: m.previewUri,
       lqip: m.lqip,
     })
-    toast.success("Added to your story", {
-      action: { label: "View", onClick: () => go("/social/stories/me") },
+    // The story ring shows it landed; the toast is only there to take it
+    // back.
+    toast("Added to your story", {
+      action: { label: "Undo", onClick: () => deleteStory(story.id) },
+      duration: 5000,
     })
   }
   if (shareRef) shareRef.current = doShare

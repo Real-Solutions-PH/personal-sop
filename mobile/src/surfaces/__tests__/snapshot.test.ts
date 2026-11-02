@@ -109,12 +109,21 @@ it("habits are today's due ones, open first, with their streaks", () => {
 })
 
 it("a habit that completes from screen time is never checkable on a widget", () => {
-  const st = habitsStore.get()
-  const target = st.habits.find(
-    (h) =>
-      h.type === "check" && h.status !== "archived" && H.isDue(h, dayKey()),
-  )
-  if (!target) throw new Error("seed has no due check habit")
+  // From the habits the widget shows now: it keeps the first few by
+  // now / later / anytime, so the seed's first due habit can fall off the
+  // list at some hours of the day.
+  const shown = new Set(buildSnapshot(input()).habits.items.map((i) => i.id))
+  const target = habitsStore
+    .get()
+    .habits.find(
+      (h) =>
+        h.type === "check" &&
+        !h.rule &&
+        h.status !== "archived" &&
+        H.isDue(h, dayKey()) &&
+        shown.has(h.id),
+    )
+  if (!target) throw new Error("the widget shows no due check habit")
   habitsStore.set((s) => ({
     ...s,
     habits: s.habits.map((h) =>

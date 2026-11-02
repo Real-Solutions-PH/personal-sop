@@ -24,6 +24,8 @@ import {
 import { useState } from "react"
 import { ScrollView, TextInput, View } from "react-native"
 import { toast } from "sonner-native"
+import { useNoteGoals } from "../goal-ledger"
+import { MissedGoals } from "../missed-goals"
 import { MoneyInput } from "../money-input"
 import {
   Bar,
@@ -283,6 +285,7 @@ export function Goals() {
           ? g.goal.status === "archived"
           : g.goal.status === "active" && (v === "hit" ? g.hit : !g.hit),
       ).length
+  useNoteGoals(goals)
   return (
     <Screen
       title="Goals"
@@ -308,6 +311,7 @@ export function Goals() {
           ]}
         />
       )}
+      {tab === "active" && <MissedGoals goals={goals.map((g) => g.goal)} />}
       {list.length ? (
         <Frame style={{ paddingHorizontal: 12, paddingVertical: 4 }}>
           {list.map((g, i) => (

@@ -2,10 +2,13 @@ import * as A from "@domain/finance/actions"
 import * as C from "@domain/finance/calc"
 import { finStore } from "@domain/finance/store"
 import { dayKey } from "@domain/lib/day"
-import { Pencil, Plus } from "lucide-react-native"
-import { useState } from "react"
-import { View } from "react-native"
+import { Check, Pencil, Plus } from "lucide-react-native"
+import { useEffect, useState } from "react"
+import { Text, View } from "react-native"
+import { useMomentTimer } from "../big-moment"
 import { FinanceLineChart } from "../chart"
+import { MomentCard } from "../moment"
+import { claimOnce, seen } from "../moments-seen"
 import {
   Bar,
   Copy,
@@ -16,7 +19,7 @@ import {
   Tap,
 } from "../native-kit"
 import { go } from "../navigation"
-import { useTheme } from "../theme"
+import { fonts, useTheme } from "../theme"
 import { Button, Empty, Screen } from "../ui"
 import { Ring } from "../visual"
 import { useMoney } from "./finance"
@@ -31,7 +34,24 @@ export function Budgets({ id }: { id?: string }) {
     views = s.budgets.filter((b) => !b.archived).map((b) => C.budgetView(s, b)),
     mk = C.monthOf(dayKey(), s.settings.monthStartDay),
     catMap = C.catMap(s),
-    v = b ? C.budgetView(s, b) : null
+    v = b ? C.budgetView(s, b) : null,
+    lastMk = C.addMonths(mk, -1),
+    lastEnd = C.monthRange(lastMk, s.settings.monthStartDay)[1],
+    // Last month's verdict, for the budgets that were live and used then.
+    last = s.budgets
+      .filter((x) => !x.archived && x.startDate <= lastEnd)
+      .map((x) => C.budgetView(s, x, lastMk))
+      .filter((x) => x.spent > 0),
+    kept = last.filter((x) => x.pct <= 1),
+    blown = last.filter((x) => x.pct > 1),
+    keptKey = `budget-month:${lastMk}`,
+    // Decided once on opening the list: the month's close is cheered the
+    // first time it is seen on this phone, never again.
+    [cheer] = useState(() => !id && kept.length > 0 && !seen(keptKey)),
+    [moment, closeMoment] = useMomentTimer(cheer, 4200)
+  useEffect(() => {
+    if (cheer) claimOnce(keptKey)
+  }, [cheer, keptKey])
   const recs =
       b && v
         ? s.records
@@ -310,6 +330,16 @@ export function Budgets({ id }: { id?: string }) {
             <Copy size={12} muted style={{ marginTop: 4 }}>
               Bar marker = where you should be today
             </Copy>
+            {last.length > 0 && (
+              <LastMonth
+                month={C.monthLabel(lastMk, true)}
+                kept={kept.length}
+                total={last.length}
+                blown={blown.map(
+                  (x) => `${x.b.name} over by ${money(x.spent - x.limit)}`,
+                )}
+              />
+            )}
           </Frame>
           <View style={{ marginTop: -12 }}>
             {views.some((v) => v.b.categoryIds === null) && (
@@ -389,6 +419,69 @@ export function Budgets({ id }: { id?: string }) {
         </>
       )}
       {open && <BudgetEditor id={id} onClose={() => setOpen(false)} />}
+      {moment && (
+        <MomentCard
+          kind="budget"
+          testID="budget-kept"
+          label="Budget kept"
+          title={
+            kept.length === last.length
+              ? `Every budget kept in ${C.monthLabel(lastMk, true)}`
+              : `${kept.length} of ${last.length} budgets kept in ${C.monthLabel(lastMk, true)}`
+          }
+          detail={
+            <Text
+              style={{
+                fontFamily: fonts.body,
+                fontSize: 13,
+                lineHeight: 18,
+                color: t.muted,
+              }}
+            >
+              {kept.map((x) => x.b.name).join(", ")}
+              {blown.length ? (
+                <Text style={{ color: t.bad, fontFamily: fonts.medium }}>
+                  {` · ${blown.map((x) => x.b.name).join(", ")} went over`}
+                </Text>
+              ) : null}
+            </Text>
+          }
+          badge={<Check size={24} color="#fff" strokeWidth={3} />}
+          tint={t.good}
+          say={`Budgets kept in ${C.monthLabel(lastMk, true)}: ${kept.map((x) => x.b.name).join(", ")}.${blown.length ? ` Over: ${blown.map((x) => x.b.name).join(", ")}.` : ""}`}
+          hint="Dismisses"
+          onOpen={closeMoment}
+          onClose={closeMoment}
+        />
+      )}
     </Screen>
+  )
+}
+
+/** How last month closed: budgets kept in the good colour, each one that
+ * went over in the bad colour with what it cost. */
+function LastMonth({
+  month,
+  kept,
+  total,
+  blown,
+}: {
+  month: string
+  kept: number
+  total: number
+  blown: string[]
+}) {
+  const t = useTheme()
+  return (
+    <View testID="budgets-last-month" style={{ marginTop: 12, gap: 2 }}>
+      <Copy size={12} style={{ color: kept === total ? t.good : t.text }}>
+        {month}: {kept}/{total} kept
+      </Copy>
+      {blown.map((x) => (
+        <Copy key={x} size={12} style={{ color: t.bad }}>
+          {x}
+        </Copy>
+      ))}
+    </View>
   )
 }
