@@ -21,34 +21,14 @@ import { captureUi } from "@domain/lib/capture"
 import { dayOffset } from "@domain/lib/day"
 import { createStore } from "@domain/lib/store"
 import { usePathname } from "expo-router"
-import { Award, ChevronRight } from "lucide-react-native"
+import { Award } from "lucide-react-native"
 import { useEffect, useMemo, useState } from "react"
-import {
-  AccessibilityInfo,
-  AppState,
-  Pressable,
-  Text,
-  View,
-} from "react-native"
-import Animated, {
-  FadeIn,
-  FadeInUp,
-  FadeOut,
-  FadeOutUp,
-  ReduceMotion,
-  useAnimatedStyle,
-  useReducedMotion,
-  useSharedValue,
-  withDelay,
-  withSpring,
-} from "react-native-reanimated"
-import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { AppState } from "react-native"
 import { prototypeMode } from "./mode"
-import { feel, MOTION } from "./motion"
+import { MomentCard, momentSlot } from "./moment"
 import { Copy } from "./native-kit"
 import { go } from "./navigation"
-import { Overlay } from "./overlay"
-import { fonts, useTheme } from "./theme"
+import { useTheme } from "./theme"
 
 /** At most this many cards in a row; the last then counts the rest. */
 const SHOWN = 3
@@ -136,6 +116,9 @@ export function TrophyQueue({
   const seen = dashStore.use((s) => s.seenTrophies)
   const path = usePathname()
   const drawer = captureUi.use((s) => s.open)
+  const other = momentSlot.use(
+    (s) => s.holder !== null && s.holder !== "trophy",
+  )
   const [active, setActive] = useState(foreground(AppState.currentState))
   // One check's worth: up to three cards, every id that qualified.
   const [run, setRun] = useState<{ items: Trophy[]; ids: string[] } | null>(
@@ -151,7 +134,7 @@ export function TrophyQueue({
   }, [])
   // The Trophy case shows and marks them itself; the rest wait their turn.
   const suppressed =
-    hidden || drawer || !active || path.startsWith("/stats/trophies")
+    hidden || drawer || other || !active || path.startsWith("/stats/trophies")
   useEffect(() => {
     if (run || suppressed || !trophies) return
     const due = newTrophies(trophies, seen)
@@ -190,6 +173,7 @@ export function TrophyQueue({
       key={current.id}
       trophy={current}
       more={last && rest > 0 ? rest : 0}
+      onClose={() => setShowing(false)}
       onOpen={() => {
         setRun(null)
         go(
@@ -207,115 +191,33 @@ export function TrophyMoment({
   trophy,
   more = 0,
   onOpen,
+  onClose,
 }: {
   trophy: Trophy
   /** Trophies earned with this one that get no card of their own. */
   more?: number
   onOpen: () => void
+  onClose?: () => void
 }) {
   const t = useTheme()
-  const inset = useSafeAreaInsets()
-  const reduced = useReducedMotion()
   const tint = t[COLORS[trophy.type]]
-  const pop = useSharedValue(reduced ? 1 : 0.6)
-  useEffect(() => {
-    feel.success()
-    AccessibilityInfo.announceForAccessibility(
-      `Trophy earned: ${trophy.title}. ${trophy.detail}`,
-    )
-    if (!reduced)
-      pop.value = withDelay(
-        MOTION.fast,
-        withSpring(1, { damping: 9, stiffness: 260 }),
-      )
-  }, [reduced, pop, trophy.title, trophy.detail])
-  const medal = useAnimatedStyle(() => ({ transform: [{ scale: pop.value }] }))
-  // In from the top edge and back out the same way; a plain fade under
-  // Reduce Motion, which still plays so the moment is never silent.
-  const never = ReduceMotion.Never
-  const entering = reduced
-    ? FadeIn.duration(200).reduceMotion(never)
-    : FadeInUp.duration(220).reduceMotion(never)
-  const exiting = reduced
-    ? FadeOut.duration(150).reduceMotion(never)
-    : FadeOutUp.duration(150).reduceMotion(never)
   return (
-    <Overlay>
-      <View
-        pointerEvents="box-none"
-        style={{
-          position: "absolute",
-          top: inset.top + 8,
-          left: 16,
-          right: 16,
-          alignItems: "center",
-        }}
-      >
-        <Animated.View
-          testID="trophy-overlay"
-          entering={entering}
-          exiting={exiting}
-          style={{ width: "100%", maxWidth: 420 }}
-        >
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Trophy earned: ${trophy.title}. ${trophy.detail}`}
-            accessibilityHint={
-              more ? "Opens the Trophy case" : "Opens this trophy"
-            }
-            onPress={onOpen}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 12,
-              paddingVertical: 12,
-              paddingLeft: 12,
-              paddingRight: 8,
-              minHeight: 64,
-              borderRadius: 18,
-              borderWidth: 1,
-              borderColor: t.line,
-              backgroundColor: t.card,
-              boxShadow: "0px 8px 24px rgba(0, 0, 0, 0.28)",
-            }}
-          >
-            <Animated.View
-              style={[
-                {
-                  width: 44,
-                  height: 44,
-                  borderRadius: 22,
-                  backgroundColor: tint,
-                  alignItems: "center",
-                  justifyContent: "center",
-                },
-                medal,
-              ]}
-            >
-              <Award size={22} color={t.onPrimary} strokeWidth={2.2} />
-            </Animated.View>
-            <View style={{ flex: 1, gap: 2 }}>
-              <Copy size={12} weight="medium" style={{ color: tint }}>
-                {more ? `Trophy earned · ${more} more` : "Trophy earned"}
-              </Copy>
-              <Text
-                style={{
-                  fontFamily: fonts.semibold,
-                  fontSize: 16,
-                  lineHeight: 21,
-                  color: t.text,
-                }}
-              >
-                {trophy.title}
-              </Text>
-              <Copy size={13} muted lines={2}>
-                {trophy.detail}
-              </Copy>
-            </View>
-            <ChevronRight size={18} color={t.muted} />
-          </Pressable>
-        </Animated.View>
-      </View>
-    </Overlay>
+    <MomentCard
+      kind="trophy"
+      testID="trophy-overlay"
+      label={more ? `Trophy earned · ${more} more` : "Trophy earned"}
+      title={trophy.title}
+      detail={
+        <Copy size={13} muted lines={2}>
+          {trophy.detail}
+        </Copy>
+      }
+      badge={<Award size={22} color={t.onPrimary} strokeWidth={2.2} />}
+      tint={tint}
+      say={`Trophy earned: ${trophy.title}. ${trophy.detail}`}
+      hint={more ? "Opens the Trophy case" : "Opens this trophy"}
+      onOpen={onOpen}
+      onClose={onClose}
+    />
   )
 }

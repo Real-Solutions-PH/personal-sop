@@ -8,6 +8,7 @@ import * as Haptics from "expo-haptics"
 import { router } from "expo-router"
 import type { ReactNode } from "react"
 import { SafeAreaProvider } from "react-native-safe-area-context"
+import { momentSlot } from "../moment"
 import { anchor, OverlayHost, resetOverlay } from "../overlay"
 import {
   presentedStore,
@@ -114,6 +115,7 @@ beforeEach(() => {
   resetAll()
   resetPresented()
   resetOverlay()
+  momentSlot.set({ holder: null })
   anchor.measure = (_, done) => done({ x: 0, y: 0, width: 0, height: 0 })
   dashStore.set((s) => ({ ...s, seenTrophies: [] }))
   captureUi.set({ open: false, ctx: {} })
@@ -161,9 +163,27 @@ test("it draws over everything without blocking the screen", () => {
 
 test("a tap opens that trophy in the Trophy case", () => {
   render(<TrophyQueue trophies={[trophy("a")]} />, { wrapper })
-  fireEvent.press(screen.getByRole("button"))
+  fireEvent.press(screen.getByLabelText(/^Trophy earned/))
   expect(push).toHaveBeenCalledWith("/stats/trophies?open=a")
   expect(card()).toBeNull()
+})
+
+test("Dismiss closes the card early; the next one follows", () => {
+  render(<TrophyQueue trophies={[trophy("b"), trophy("a", dayOffset(-1))]} />, {
+    wrapper,
+  })
+  fireEvent.press(screen.getByLabelText("Dismiss"))
+  expect(screen.queryByText("Title a")).toBeNull()
+  act(() => jest.advanceTimersByTime(350))
+  expect(screen.getByText("Title b")).toBeTruthy()
+})
+
+test("it waits while another moment holds the top of the screen", () => {
+  act(() => momentSlot.set({ holder: "routine" }))
+  render(<TrophyQueue trophies={[trophy("a")]} />, { wrapper })
+  expect(card()).toBeNull()
+  act(() => momentSlot.set({ holder: null }))
+  expect(card()).toBeTruthy()
 })
 
 test("two trophies land one after the other, oldest first", () => {
@@ -186,7 +206,7 @@ test("five qualify: three cards, the third counts the rest and opens the case", 
   pass()
   expect(screen.getByText("Title c")).toBeTruthy()
   expect(screen.getByText("Trophy earned · 2 more")).toBeTruthy()
-  fireEvent.press(screen.getByRole("button"))
+  fireEvent.press(screen.getByLabelText(/^Trophy earned/))
   expect(push).toHaveBeenCalledWith("/stats/trophies")
   // The same five on the next refetch present nothing.
   view.rerender(<TrophyQueue trophies={[...five]} />)
