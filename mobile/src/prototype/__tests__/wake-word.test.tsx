@@ -3,6 +3,7 @@
 // composer on screen starts dictating.
 import { configureStorage, resetAll } from "@domain/lib/store"
 import { act, render } from "@testing-library/react-native"
+import type { AppStateStatus } from "react-native"
 
 type Listener = (e: never) => void
 const mockListeners: Record<string, Listener | undefined> = {}
@@ -92,8 +93,19 @@ beforeEach(() => {
     trouble: null,
   })
   dictating.setState({ on: false })
+  appState("active")
 })
 afterEach(() => jest.useRealTimers())
+
+/** The app's foreground state as the code under test reads it. */
+function appState(s: string) {
+  const { AppState } = require("react-native") as typeof import("react-native")
+  Object.defineProperty(AppState, "currentState", {
+    value: s,
+    configurable: true,
+    writable: true,
+  })
+}
 
 describe("wakeCommand", () => {
   test.each([
@@ -302,6 +314,39 @@ describe("the composer", () => {
       await act(async () => fire("end", null))
       await act(async () => jest.advanceTimersByTime(5_000))
       expect(onText).not.toHaveBeenCalled()
+    })
+
+    test("a Back Tap launch waits for the app to be on screen before listening", async () => {
+      // The shortcut hands the app the link while iOS is still bringing it
+      // forward; the recogniser started then and was closed at once.
+      const { AppState } =
+        require("react-native") as typeof import("react-native")
+      const handlers: ((s: AppStateStatus) => void)[] = []
+      appState("background")
+      const listen = jest
+        .spyOn(AppState, "addEventListener")
+        .mockImplementation((_, fn) => {
+          handlers.push(fn)
+          return {
+            remove: () => handlers.splice(handlers.indexOf(fn), 1),
+          } as never
+        })
+      try {
+        render(<ThreadComposer onText={jest.fn()} hints={false} wakeTarget />)
+        await act(async () => {
+          launchFern("talk", "t4")
+        })
+        expect(mockModule.start).not.toHaveBeenCalled()
+        await act(async () => jest.advanceTimersByTime(3_000))
+        appState("active")
+        await act(async () => {
+          for (const h of [...handlers]) h("active")
+        })
+        expect(mockModule.start).toHaveBeenCalledTimes(1)
+        expect(talkLaunch.getState().at).toBeNull()
+      } finally {
+        listen.mockRestore()
+      }
     })
 
     test("plain dictation still waits for Send", async () => {

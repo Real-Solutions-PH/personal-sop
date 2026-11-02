@@ -1459,7 +1459,8 @@ is missing, say plainly that you don't have it yet and suggest logging it. Zero
 or empty means none, so say so, never praise consistency you cannot see. Today's
 due items are habits_due_today, tasks_due_today, fitness_due_today and
 nutrition_due_today together; say "Nothing is due today." only when all four
-are empty. The life score the
+are empty. How many habits are left is habits_left_today (a skipped habit is
+handled, like on their Today card). The life score the
 user sees on Today is life_score_7_days_shown_on_today. TODAY is current;
 where an earlier message in this chat says otherwise, TODAY is right.
 
@@ -1605,7 +1606,7 @@ Trust label numbers read from photos over library or web values.
 # What changes every turn goes after the rules, so the rules and the tools
 # stay one prefix a provider can cache across turns and days.
 CONTEXT = """
-NOW: today is {today}; it is {now} where they live; their day rolls over at {day_start}.
+NOW: {now_line}
 
 TODAY (JSON, from the user's records; a missing key is unknown, not zero;
 money is in {currency}):
@@ -1620,6 +1621,39 @@ What you are tracking for them:
 {earlier}
 {summary}
 {turn}"""
+
+
+def _day_name(d: date) -> str:
+    return f"{d.strftime('%A')} {d.day} {d.strftime('%B')}"
+
+
+def now_line(ctx: Ctx) -> str:
+    """Their day as their Today screen shows it, named the way they say it.
+
+    Between midnight and the day's start hour the open day is still the
+    previous date, on the phone and here. Handed both dates in ISO, the model
+    wrote "On 2026-11-01 (your records haven't rolled over…)". It now gets the
+    open day by name and is told to call it today. The ISO dates stay, for
+    tool arguments: told only the business day, it once filed "tonight at
+    9pm" on the day before."""
+    local = ctx.now.astimezone(ctx.clock.zone)
+    today = ctx.today
+    clock = f"it is {local:%A %Y-%m-%d %H:%M} where they live"
+    rolls = f"their day rolls over at {ctx.clock.start_hour:02d}:00"
+    if today == local.date():
+        said = f"today is {_day_name(today)} ({today.isoformat()}); {clock}; {rolls}."
+    else:
+        said = (
+            f"{clock}, before {rolls}, so {_day_name(today)} ({today.isoformat()}) "
+            "is still open: it is the day TODAY below and their Today screen show, "
+            "and what they mean by today."
+        )
+    return (
+        f'{said} In replies call it today and name any day by weekday and date ("'
+        f'{_day_name(today)}"), never as YYYY-MM-DD (that form is for tool '
+        "arguments), and never talk about records rolling over."
+    )
+
 
 # The internal record of what a turn did, copied into a reply by a model
 # that saw the format: a whole line that opens with one, or a
@@ -2475,9 +2509,7 @@ def _ask_ai(
         facts = grounding.snapshot(ctx)
         grounds[:] = [facts, mems]
         return SYSTEM.format(sol=sol_name, user=first) + CONTEXT.format(
-            today=ctx.today.isoformat(),
-            now=ctx.now.astimezone(ctx.clock.zone).strftime("%A %Y-%m-%d %H:%M"),
-            day_start=f"{ctx.clock.start_hour:02d}:00",
+            now_line=now_line(ctx),
             currency=ctx.currency.phrase,
             today_facts=json.dumps(facts, ensure_ascii=False),
             memories=mems,

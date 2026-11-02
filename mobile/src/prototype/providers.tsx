@@ -18,6 +18,7 @@ import { liveMode } from "@/live/config"
 import { BootGate } from "./boot/boot-screen"
 import { contactGraceEnds, reachable } from "./connectivity"
 import { connectHealthWorkouts } from "./health-workouts"
+import { OverlayHost } from "./overlay"
 import { healProfilePhoto } from "./profile-photo-heal"
 import { sessionStore, startLiveSession } from "./session"
 import { prototypeStorage } from "./storage"
@@ -159,6 +160,8 @@ export function PrototypeProviders({ children }: { children: ReactNode }) {
             {children}
           </BootGate>
           <AppToaster />
+          {/* Celebrations, above every screen, sheet and toast. */}
+          <OverlayHost />
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

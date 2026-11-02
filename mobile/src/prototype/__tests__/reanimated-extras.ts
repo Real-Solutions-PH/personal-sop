@@ -8,6 +8,7 @@ export const extras = {
   FadeOut: chain,
   FadeInDown: chain,
   FadeInUp: chain,
+  FadeOutUp: chain,
   SlideInLeft: chain,
   SlideInRight: chain,
   ZoomIn: chain,

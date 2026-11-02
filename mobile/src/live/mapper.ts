@@ -46,6 +46,11 @@ export interface Mapper<S = unknown, L = unknown> {
    * pushed): a ``rejected`` result for one makes the engine pull everything
    * again. */
   resyncOnReject?: readonly string[]
+  /** Actions that change this entity's rows without naming a row id (a
+   * user's one rest timer: fitness.rest.adjust carries only a delta). A
+   * pulled row waits while one is queued, as it does for an action naming
+   * its id, so a reply from before the last tap never winds it back. */
+  heldBy?: readonly string[]
   /** Creates of this entity are pushed ahead of every other mapper's
    * field writes in the same capture (still after actions): rows other
    * entities point at (a category a new transaction uses). Its edits and

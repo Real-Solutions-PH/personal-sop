@@ -84,7 +84,7 @@ test("Fern's nutrition card shows today's rings and limits", () => {
   }))
   render(<BlockView block={{ t: "nutrition", day }} />)
   expect(screen.getByText("NUTRITION · TODAY")).toBeTruthy()
-  expect(screen.getByText("1400")).toBeTruthy() // kcal left
+  expect(screen.getByText("1,400")).toBeTruthy() // kcal left
   expect(screen.getByText("STAY UNDER · TODAY")).toBeTruthy()
   expect(screen.getByText("2,300 / 2,000 mg · 300 mg over")).toBeTruthy()
 })

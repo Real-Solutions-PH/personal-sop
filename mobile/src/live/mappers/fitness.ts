@@ -1235,6 +1235,7 @@ export function restMapper(userId: string): Mapper<S, RestRow> {
           : s,
     actionFields: ["ends_at", "duration_sec"],
     actionsOnly: true,
+    heldBy: ["fitness.rest.start", "fitness.rest.adjust", "fitness.rest.skip"],
     actions: (prev, next) =>
       restActions(prev?.rest ?? null, next?.rest ?? null),
   }
