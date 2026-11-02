@@ -25,6 +25,7 @@ import { Ring } from "../visual"
 import { useMoney } from "./finance"
 import { BudgetEditor } from "./finance-budget-editor"
 import { FinanceRecord } from "./finance-home"
+import { SpentLeft } from "./finance-home-cards"
 export function Budgets({ id }: { id?: string }) {
   const t = useTheme(),
     s = finStore.use((s) => s),
@@ -113,15 +114,13 @@ export function Budgets({ id }: { id?: string }) {
                 paddingVertical: 2,
               }}
             >
-              {over
-                ? `over by ${money(view.spent - view.limit)}`
-                : ahead
-                  ? "ahead of pace"
-                  : "on track"}
+              {over ? "over budget" : ahead ? "ahead of pace" : "on track"}
             </Copy>
           </Line>
           <View style={{ marginTop: 12 }}>
-            <Bar value={view.pct} color={t.fin} target={view.pace} />
+            {/* Starts full and drains as money is spent; the marker is
+                what should still be left today at an even pace. */}
+            <Bar value={1 - view.pct} color={t.fin} target={1 - view.pace} />
           </View>
           <Line
             style={{
@@ -132,9 +131,7 @@ export function Budgets({ id }: { id?: string }) {
               marginTop: 8,
             }}
           >
-            <Copy size={12} style={{ color: over ? t.bad : t.text }}>
-              {money(view.spent)} of {money(view.limit)}
-            </Copy>
+            <SpentLeft spent={view.spent} limit={view.limit} />
             <Copy size={12} muted>
               {view.daysLeft === 0 ? "Last day" : `${view.daysLeft} days left`}{" "}
               · {money(view.safePerDay)}/day
@@ -170,16 +167,23 @@ export function Budgets({ id }: { id?: string }) {
           </Copy>
           <Frame style={{ padding: 16 }}>
             <Line style={{ gap: 16 }}>
-              <Ring value={v.pct} size={96} strokeWidth={10} color={t.fin}>
+              <Ring
+                value={Math.max(0, 1 - v.pct)}
+                size={96}
+                strokeWidth={10}
+                color={t.fin}
+              >
                 <Copy
                   size={20}
                   weight="semibold"
                   style={{ color: v.pct > 1 ? t.bad : t.text }}
                 >
-                  {Math.round(v.pct * 100)}%
+                  {v.pct > 1
+                    ? `−${Math.round((v.pct - 1) * 100)}%`
+                    : `${Math.round((1 - v.pct) * 100)}%`}
                 </Copy>
                 <Copy size={10} muted>
-                  used
+                  {v.pct > 1 ? "over" : "left"}
                 </Copy>
               </Ring>
               <View style={{ flex: 1, gap: 2 }}>

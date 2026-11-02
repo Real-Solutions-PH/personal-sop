@@ -27,7 +27,6 @@ from app.modules.finance.models import (
 )
 from app.shared import owned_repo
 from app.shared.context import Ctx
-from app.shared.domain import conflict
 
 # ``calc`` is re-exported for read-only use: the deterministic Q&A computes
 # over ``load_state`` with it.
@@ -332,14 +331,9 @@ def restore_records(ctx: Ctx, *, record_ids: list[uuid.UUID]) -> None:
 
 
 def delete_planned(ctx: Ctx, *, planned_id: uuid.UUID) -> None:
-    """Undo of ``add_planned`` from chat: tombstones the item (refused, like
-    the REST delete, once an occurrence has been paid)."""
-    p = services._planned(ctx, planned_id)
-    if owned_repo.count_rows(ctx, FinRecord, col(FinRecord.planned_id) == p.id):
-        raise conflict(
-            "planned_has_records", "It has paid occurrences — archive it instead"
-        )
-    owned_repo.soft_delete(ctx, p)
+    """Undo of ``add_planned`` from chat: tombstones the item, like the REST
+    delete (paid records keep their link to the tombstone)."""
+    owned_repo.soft_delete(ctx, services._planned(ctx, planned_id))
 
 
 def spend_between(ctx: Ctx, first: date, last: date) -> int:

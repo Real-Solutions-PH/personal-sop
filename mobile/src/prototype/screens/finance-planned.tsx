@@ -4,7 +4,7 @@ import type { PlannedItem } from "@domain/finance/data"
 import { finStore } from "@domain/finance/store"
 import { dayKey } from "@domain/lib/day"
 import { useLocalSearchParams } from "expo-router"
-import { ArrowLeftRight, Pencil, Plus, Tag } from "lucide-react-native"
+import { ArrowLeftRight, Pencil, Plus, Tag, Trash2 } from "lucide-react-native"
 import { useState } from "react"
 import { ScrollView, Text, View } from "react-native"
 import {
@@ -17,7 +17,7 @@ import {
   Segmented,
   Tap,
 } from "../native-kit"
-import { go } from "../navigation"
+import { back, go } from "../navigation"
 import { fonts, radius, useTheme } from "../theme"
 import { Button, Empty, Screen, Sheet, undo } from "../ui"
 import { PlannedEditor, RecordEditor, useMoney } from "./finance"
@@ -212,8 +212,8 @@ export function Planned({ id }: { id?: string }) {
       record?: boolean
     } | null>(null),
     p = s.planned.find((p) => p.id === id),
-    live = s.planned.filter((p) => !p.archived),
     today = dayKey(),
+    live = s.planned.filter((p) => !p.archived && !C.hasEnded(p, today)),
     upcoming = C.occurrencesIn(s, today, C.addDays(today, 30)).filter(
       (o) => o.status !== "paid" && o.status !== "skipped",
     ),
@@ -378,40 +378,35 @@ export function Planned({ id }: { id?: string }) {
               </View>
             </Line>
             <Line style={{ gap: 8 }}>
-              <View style={{ flex: 1 }}>
-                <Button
-                  tone="quiet"
-                  onPress={() => {
-                    if (p.isWhatIf) {
+              {p.isWhatIf && (
+                <View style={{ flex: 1 }}>
+                  <Button
+                    tone="quiet"
+                    onPress={() =>
                       A.updatePlanned(p.id, {
                         isWhatIf: false,
                         inProjection: true,
                       })
-                    } else {
-                      const end = p.end
-                      A.updatePlanned(p.id, {
-                        end: { kind: "date", date: today },
-                      })
-                      undo(`${p.name} ends today`, () =>
-                        A.updatePlanned(p.id, { end }),
-                      )
                     }
-                  }}
-                >
-                  {p.isWhatIf ? "Make it real" : "End it"}
-                </Button>
-              </View>
+                  >
+                    Make it real
+                  </Button>
+                </View>
+              )}
               <View style={{ flex: 1 }}>
                 <Button
                   tone="danger"
+                  icon={Trash2}
                   onPress={() => {
-                    A.updatePlanned(p.id, { archived: true })
-                    undo(`${p.name} archived`, () =>
-                      A.updatePlanned(p.id, { archived: false }),
-                    )
+                    // Gone from every device (a sync tombstone); paid
+                    // occurrences stay in transactions.
+                    const gone = A.deletePlanned(p.id)
+                    if (!gone) return
+                    back("/finance/planned")
+                    undo(`Deleted ${p.name}`, () => A.restorePlanned(gone))
                   }}
                 >
-                  Archive
+                  Delete
                 </Button>
               </View>
             </Line>

@@ -423,11 +423,27 @@ export function updatePlanned(id: string, patch: Partial<PlannedItem>) {
     planned: s.planned.map((p) => (p.id === id ? { ...p, ...patch } : p)),
   }))
 }
-export function deletePlanned(id: string): boolean {
-  const s = finStore.get()
-  if (s.records.some((r) => r.plannedId === id)) return false
+/** Removes a planned item, paid history or not: the sync engine tombstones
+ * it on every device, and the records it settled keep their ``plannedId``.
+ * Returns what ``restorePlanned`` needs to put it back (Undo). */
+export function deletePlanned(
+  id: string,
+): { item: PlannedItem; at: number } | null {
+  const at = finStore.get().planned.findIndex((p) => p.id === id)
+  const item = finStore.get().planned[at]
+  if (!item) return null
   set((x) => ({ ...x, planned: x.planned.filter((p) => p.id !== id) }))
-  return true
+  return { item, at }
+}
+/** Undo of ``deletePlanned``: the same id back where it was, which the sync
+ * engine pushes as a restore of the tombstone. */
+export function restorePlanned(gone: { item: PlannedItem; at: number }) {
+  set((x) => {
+    if (x.planned.some((p) => p.id === gone.item.id)) return x
+    const planned = [...x.planned]
+    planned.splice(Math.min(gone.at, planned.length), 0, gone.item)
+    return { ...x, planned }
+  })
 }
 export function settleOccurrence(
   plannedId: string,
@@ -487,7 +503,13 @@ export function settleOccurrence(
   // replace it in place, never a second row with the same id.
   const prev = finStore.get().records.find((r) => r.id === id)
   if (!prev) return { record: addRecord(record), updated: false }
-  const next: FinRecord = { ...prev, ...record, id, status: "cleared", at: iso }
+  const next: FinRecord = {
+    ...prev,
+    ...record,
+    id,
+    status: "cleared",
+    at: iso,
+  }
   set((s) => ({
     ...s,
     records: s.records

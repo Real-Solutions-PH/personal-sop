@@ -10,11 +10,13 @@ import { finStore } from "@domain/finance/store"
 import { dayKey } from "@domain/lib/day"
 import { useCurrency } from "@domain/lib/money"
 import { useLocalSearchParams } from "expo-router"
+import { Trash2 } from "lucide-react-native"
 import { useState } from "react"
 import { View } from "react-native"
 import { toast } from "sonner-native"
 import { MoneyInput } from "../money-input"
 import { Copy, Segmented, Tap } from "../native-kit"
+import { back } from "../navigation"
 import { useTheme } from "../theme"
 import { Button, Choices, DateField, Field, Sheet, Toggle, undo } from "../ui"
 import { isDay } from "../validation"
@@ -300,19 +302,16 @@ function Editor({
           {p && (
             <Button
               tone="danger"
+              icon={Trash2}
               onPress={() => {
-                if (!A.deletePlanned(p.id)) {
-                  A.updatePlanned(p.id, { archived: true })
-                  undo(`${p.name} archived (it has history)`, () =>
-                    A.updatePlanned(p.id, { archived: false }),
-                  )
-                }
+                const gone = A.deletePlanned(p.id)
                 onClose()
+                if (!gone) return
+                back("/finance/planned")
+                undo(`Deleted ${p.name}`, () => A.restorePlanned(gone))
               }}
             >
-              {s.records.some((r) => r.plannedId === p.id)
-                ? "Archive"
-                : "Delete"}
+              Delete
             </Button>
           )}
           <Button

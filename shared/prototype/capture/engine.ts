@@ -504,7 +504,7 @@ function revert(card: RecordCard): boolean {
       return gone.length > 0
     }
     case "planned":
-      return deletePlanned(ref)
+      return deletePlanned(ref) !== null
     case "task":
       removeTasks(card.refs)
       return true

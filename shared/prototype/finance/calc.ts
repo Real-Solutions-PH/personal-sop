@@ -398,6 +398,14 @@ export function occurrences(
   }
   return out
 }
+/** A recurring item whose end rule leaves no occurrence after ``on``: over,
+ * so off the scheduled list (its paid occurrences stay in transactions).
+ * Covers items "ended" before Delete existed, which set ``end`` to that
+ * day. */
+export function hasEnded(p: PlannedItem, on = today()): boolean {
+  if (p.schedule.kind === "once" || p.end.kind === "never") return false
+  return occurrences(p, addDays(on, 1), "9999-12-31").length === 0
+}
 export type OccStatus = "paid" | "skipped" | "due" | "upcoming" | "overdue"
 export interface Occurrence {
   item: PlannedItem
@@ -547,6 +555,44 @@ export interface WhatIf {
   amount: number
   month: string
   installments: number
+  /** Paid in ``month`` on top of the first installment. */
+  down?: number
+  /** Each installment, when it is not ``(amount - down) / installments``
+   * (interest on top). */
+  monthly?: number
+}
+export interface InstallmentPlan {
+  financedMinor: number
+  monthlyMinor: number
+  interestMinor: number
+  totalMinor: number
+}
+/** An installment purchase in integer cents. Interest is add-on, as cards
+ * and dealers quote it: financed × rate × months, the rate in hundredths of
+ * a percent (150 = 1.50%) per month or per year (a twelfth a month). Every
+ * figure is computed exactly in integers and rounded once, half up. */
+export function installmentPlan(p: {
+  priceMinor: number
+  downMinor: number
+  months: number
+  rateHundredths: number
+  per: "month" | "year"
+}): InstallmentPlan {
+  const months = Math.max(1, Math.round(p.months))
+  const financed = Math.max(0, p.priceMinor - Math.max(0, p.downMinor))
+  const F = BigInt(financed),
+    n = BigInt(months),
+    r = BigInt(Math.max(0, Math.round(p.rateHundredths))),
+    k = 10000n * (p.per === "year" ? 12n : 1n)
+  const half = (num: bigint, den: bigint) =>
+    Number((2n * num + den) / (2n * den))
+  const interest = half(F * r * n, k)
+  return {
+    financedMinor: financed,
+    monthlyMinor: half(F * k + F * r * n, k * n),
+    interestMinor: interest,
+    totalMinor: p.priceMinor + interest,
+  }
 }
 export function avgUnplanned(s: FinState) {
   const t = today()
@@ -630,7 +676,9 @@ export function project(
     if (w && w.amount > 0) {
       const idx = monthIndex(w.month, cur)
       const n = Math.max(1, w.installments)
-      if (i >= idx && i < idx + n) whatIf = w.amount / n
+      const down = w.down ?? 0
+      if (i === idx) whatIf += down
+      if (i >= idx && i < idx + n) whatIf += w.monthly ?? (w.amount - down) / n
     }
     const netBase = inflow - plannedOut - unplanned
     endBase += netBase
