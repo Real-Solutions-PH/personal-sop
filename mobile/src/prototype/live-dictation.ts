@@ -139,8 +139,15 @@ export function useLiveDictation(
   async function start(before: string): Promise<boolean> {
     const m = speech()
     if (!m) return false
+    // Claimed before the waits below, not after: the app coming to the
+    // foreground (a Back Tap or Shortcut launch) re-armed "Hey Fern" during
+    // them, it took the recogniser back, and this dictation closed itself.
+    dictating.setState({ on: true })
     const perm = await m.requestPermissionsAsync().catch(() => null)
-    if (!perm?.granted) return false
+    if (!perm?.granted) {
+      dictating.setState({ on: false })
+      return false
+    }
     // The person is about to talk: Fern stops reading aloud, and "Hey Fern"
     // lets go of the recogniser before dictation takes it (one tap, not two).
     stopSpeech()

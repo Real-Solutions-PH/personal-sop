@@ -471,7 +471,10 @@ export class SyncEngine {
     const shown: Change[] = []
     for (const c of changes) {
       const key = `${c.entity}:${c.id}`
-      const r = rebase(c, pending ? pending(c) : (queued as SyncOp[]))
+      const heldBy = this.deps.mappers.find(
+        (m) => m.entity === c.entity,
+      )?.heldBy
+      const r = rebase(c, pending ? pending(c) : (queued as SyncOp[]), heldBy)
       if (r) {
         delete this.deferred[key]
         shown.push(r)
@@ -564,10 +567,15 @@ const canonical = (v: unknown) =>
 /** ``c`` as it will be once ``ops`` reach the server, or null while one of
  * them makes the server's row meaningless to show (a delete, an action on
  * the row, an undo of a delete the server's tombstone predates). */
-function rebase(c: Change, ops: SyncOp[]): Change | null {
+function rebase(
+  c: Change,
+  ops: SyncOp[],
+  heldBy: readonly string[] = [],
+): Change | null {
   let fields: Payload | null = null
   for (const op of ops) {
     if (op.kind === "action") {
+      if (heldBy.includes(op.name)) return null
       // An id the action names, alone or in a list (tasks.remove task_ids).
       if (
         Object.values(op.data ?? {})

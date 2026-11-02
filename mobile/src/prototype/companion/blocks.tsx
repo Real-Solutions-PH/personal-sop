@@ -751,7 +751,8 @@ function PlanBlock() {
         (h) =>
           h.status !== "archived" &&
           H.isDue(h, k) &&
-          idx.get(H.lk(h.id, k))?.status !== "done",
+          // Skipped is handled, as on the Today card (and Fern's text).
+          !["done", "skipped"].includes(idx.get(H.lk(h.id, k))?.status ?? ""),
       )
       .map((h) => ({
         id: h.id,

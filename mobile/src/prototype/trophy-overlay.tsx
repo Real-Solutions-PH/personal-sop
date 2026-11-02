@@ -1,8 +1,10 @@
-// A trophy earned in the last two days that the person has not seen yet is
-// presented over whatever screen is open: a medal rising in, its ring
-// sweeping round, then its title and detail. Trophies are derived on read,
-// so a new one is noticed by diffing the achievements the device already
-// refetches after every sync against the trophies marked seen.
+// A trophy earned in the last two days that this person has not seen yet
+// lands as a brief card at the top of the screen, over everything (it draws
+// in the overlay layer): the medal pops in, says what was earned, and leaves
+// on its own. It never blocks: the rest of the screen keeps taking touches,
+// and a tap on the card opens that trophy in the Trophy case. Trophies are
+// derived on read, so a new one is noticed by diffing the achievements the
+// device refetches after every sync against the ones already marked.
 import {
   type Trophy,
   type TrophyType,
@@ -17,37 +19,22 @@ import {
 import { dashStore, markTrophiesSeen } from "@domain/dash/store"
 import { captureUi } from "@domain/lib/capture"
 import { dayOffset } from "@domain/lib/day"
+import { createStore } from "@domain/lib/store"
 import { usePathname } from "expo-router"
 import { Award } from "lucide-react-native"
-import { type ComponentRef, useEffect, useMemo, useRef, useState } from "react"
-import {
-  AccessibilityInfo,
-  AppState,
-  findNodeHandle,
-  Pressable,
-  Text,
-  View,
-} from "react-native"
-import Animated, {
-  FadeIn,
-  FadeOut,
-  useAnimatedStyle,
-  useReducedMotion,
-  useSharedValue,
-  withSpring,
-} from "react-native-reanimated"
-import Svg from "react-native-svg"
+import { useEffect, useMemo, useState } from "react"
+import { AppState } from "react-native"
 import { prototypeMode } from "./mode"
-import { ArcCircle, alpha, feel, MOTION, Shimmer } from "./motion"
+import { MomentCard, momentSlot } from "./moment"
 import { Copy } from "./native-kit"
 import { go } from "./navigation"
-import { fonts, useTheme } from "./theme"
-import { Button } from "./ui"
+import { useTheme } from "./theme"
 
-/** At most this many present in a row; the last offers the Trophy case. */
+/** At most this many cards in a row; the last then counts the rest. */
 const SHOWN = 3
-const GAP = 400
-const LAND = 650
+/** How long a card stays: long enough to read its title and detail. */
+export const TROPHY_MS = 3200
+const GAP = 300
 const COLORS: Record<TrophyType, "fit" | "life" | "hab" | "fin" | "tsk"> = {
   pr: "fit",
   streak: "life",
@@ -61,18 +48,28 @@ const COLORS: Record<TrophyType, "fit" | "life" | "hab" | "fin" | "tsk"> = {
 const foreground = (s: string | null | undefined) =>
   s !== "background" && s !== "inactive"
 
-/** Presented once per launch, whatever later responses say. */
-const presented = new Set<string>()
-/** For tests: forget what this launch presented. */
-export const resetPresented = () => presented.clear()
+/** The trophies this phone has presented, newest last. The synced seen list
+ * can briefly come back older from a pull that raced the mark; this record
+ * is the device's own, so a trophy never presents twice here. */
+export const presentedStore = createStore("trophies-presented", () => ({
+  ids: [] as string[],
+}))
+const KEEP = 300
+function markPresented(ids: string[]) {
+  presentedStore.set((s) => ({
+    ids: [...s.ids.filter((x) => !ids.includes(x)), ...ids].slice(-KEEP),
+  }))
+}
+/** For tests: forget what this phone presented. */
+export const resetPresented = () => presentedStore.set({ ids: [] })
 
-/** Trophies to present now, oldest first: unseen, not yet presented this
- * launch, and dated today or yesterday (records are dated the day before). */
+/** Trophies to present now, oldest first: unseen, never presented on this
+ * phone, and dated today or yesterday (records are dated the day before). */
 export function newTrophies(trophies: Trophy[], seen: string[]): Trophy[] {
   const from = dayOffset(-1)
-  const known = new Set(seen)
+  const known = new Set([...seen, ...presentedStore.get().ids])
   return trophies
-    .filter((x) => !known.has(x.id) && !presented.has(x.id) && x.day >= from)
+    .filter((x) => !known.has(x.id) && x.day >= from)
     .sort((a, b) => a.day.localeCompare(b.day) || a.id.localeCompare(b.id))
 }
 
@@ -96,10 +93,18 @@ function ServerWatcher({ hidden }: { hidden: boolean }) {
   return <TrophyQueue trophies={trophies} hidden={hidden} />
 }
 function LocalWatcher({ hidden }: { hidden: boolean }) {
-  return <TrophyQueue trophies={useTrophies()} hidden={hidden} />
+  const trophies = useTrophies()
+  // Signed in to a server, only its answer counts: the device's own
+  // estimate can date (and so name) a trophy differently, and would
+  // present it a second time when the server's version arrives.
+  const server = useServerStat<ServerAchievements>(statKey.achievements())
+  const settled = server.status === "off" || server.source === "server"
+  return (
+    <TrophyQueue trophies={settled ? trophies : undefined} hidden={hidden} />
+  )
 }
 
-/** Picks what to present and presents it one at a time. */
+/** Picks what to present and presents it one card at a time. */
 export function TrophyQueue({
   trophies,
   hidden = false,
@@ -111,8 +116,11 @@ export function TrophyQueue({
   const seen = dashStore.use((s) => s.seenTrophies)
   const path = usePathname()
   const drawer = captureUi.use((s) => s.open)
+  const other = momentSlot.use(
+    (s) => s.holder !== null && s.holder !== "trophy",
+  )
   const [active, setActive] = useState(foreground(AppState.currentState))
-  // One check's worth: up to three to show, every id that qualified.
+  // One check's worth: up to three cards, every id that qualified.
   const [run, setRun] = useState<{ items: Trophy[]; ids: string[] } | null>(
     null,
   )
@@ -126,231 +134,90 @@ export function TrophyQueue({
   }, [])
   // The Trophy case shows and marks them itself; the rest wait their turn.
   const suppressed =
-    hidden || drawer || !active || path.startsWith("/stats/trophies")
+    hidden || drawer || other || !active || path.startsWith("/stats/trophies")
   useEffect(() => {
     if (run || suppressed || !trophies) return
     const due = newTrophies(trophies, seen)
     if (!due.length) return
-    for (const x of due) presented.add(x.id)
-    setRun({ items: due.slice(0, SHOWN), ids: due.map((x) => x.id) })
+    // Marked as they start, so a relaunch, a crash or a second refetch
+    // never replays them.
+    const ids = due.map((x) => x.id)
+    markPresented(ids)
+    markTrophiesSeen(ids)
+    setRun({ items: due.slice(0, SHOWN), ids })
     setIndex(0)
     setShowing(true)
   }, [run, suppressed, trophies, seen])
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  useEffect(
-    () => () => {
-      if (timer.current) clearTimeout(timer.current)
-    },
-    [],
-  )
-  if (!run || suppressed) return null
+  // Each card leaves on its own; the clock stops while something hides it.
+  useEffect(() => {
+    if (!run || suppressed) return
+    if (!showing) {
+      const id = setTimeout(() => {
+        if (index + 1 >= run.items.length) setRun(null)
+        else {
+          setIndex(index + 1)
+          setShowing(true)
+        }
+      }, GAP)
+      return () => clearTimeout(id)
+    }
+    const id = setTimeout(() => setShowing(false), TROPHY_MS)
+    return () => clearTimeout(id)
+  }, [run, suppressed, showing, index])
+  if (!run || suppressed || !showing) return null
   const current = run.items[index]
   const last = index === run.items.length - 1
-  const more = run.ids.length > run.items.length
-  const finish = () => {
-    markTrophiesSeen(run.ids)
-    setRun(null)
-  }
-  const next = () => {
-    markTrophiesSeen([current.id])
-    if (last) return finish()
-    setShowing(false)
-    timer.current = setTimeout(() => {
-      // A trophy gone from a later response (its log undone) is skipped.
-      const live = new Set(trophies?.map((x) => x.id))
-      let i = index + 1
-      while (i < run.items.length - 1 && !live.has(run.items[i].id)) i++
-      setIndex(i)
-      setShowing(true)
-    }, GAP)
-  }
-  if (!showing) return null
+  const rest = run.ids.length - run.items.length
   return (
-    <TrophyReveal
+    <TrophyMoment
       key={current.id}
       trophy={current}
-      onNice={next}
-      secondary={
-        last && more
-          ? {
-              label: `See all ${run.ids.length} new`,
-              onPress: () => {
-                finish()
-                go("/stats/trophies")
-              },
-            }
-          : {
-              label: "View",
-              onPress: () => {
-                markTrophiesSeen(last ? run.ids : [current.id])
-                setRun(null)
-                go(`/stats/trophies?open=${current.id}`)
-              },
-            }
-      }
+      more={last && rest > 0 ? rest : 0}
+      onClose={() => setShowing(false)}
+      onOpen={() => {
+        setRun(null)
+        go(
+          last && rest > 0
+            ? "/stats/trophies"
+            : `/stats/trophies?open=${current.id}`,
+        )
+      }}
     />
   )
 }
 
-/** The medal reveal itself, over everything, until dismissed. */
-export function TrophyReveal({
+/** One earned trophy, as a card at the top of the screen. */
+export function TrophyMoment({
   trophy,
-  onNice,
-  secondary,
+  more = 0,
+  onOpen,
+  onClose,
 }: {
   trophy: Trophy
-  onNice: () => void
-  secondary: { label: string; onPress: () => void }
+  /** Trophies earned with this one that get no card of their own. */
+  more?: number
+  onOpen: () => void
+  onClose?: () => void
 }) {
   const t = useTheme()
-  const reduced = useReducedMotion()
   const tint = t[COLORS[trophy.type]]
-  const [landed, setLanded] = useState(reduced)
-  const rise = useSharedValue(reduced ? 1 : 0)
-  const title = useRef<ComponentRef<typeof Text>>(null)
-  useEffect(() => {
-    const say = `Trophy earned: ${trophy.title}. ${trophy.detail}`
-    const land = () => {
-      setLanded(true)
-      feel.success()
-      const node = findNodeHandle(title.current)
-      if (node) AccessibilityInfo.setAccessibilityFocus(node)
-      AccessibilityInfo.announceForAccessibility(say)
-    }
-    if (reduced) {
-      land()
-      return
-    }
-    rise.value = withSpring(1, { damping: 14, stiffness: 90, mass: 1 })
-    const id = setTimeout(land, LAND)
-    return () => clearTimeout(id)
-  }, [reduced, rise, trophy.title, trophy.detail])
-  const medal = useAnimatedStyle(() => ({
-    opacity: Math.min(1, rise.value * 1.5),
-    transform: [
-      { translateY: 24 * (1 - rise.value) },
-      { scale: 0.6 + 0.4 * rise.value },
-    ],
-  }))
-  // Text follows the medal, 150 ms apart; nothing moves under Reduce Motion.
-  const enter = (i: number) =>
-    reduced ? undefined : FadeIn.delay(i * 150).duration(MOTION.base)
   return (
-    <Animated.View
+    <MomentCard
+      kind="trophy"
       testID="trophy-overlay"
-      accessibilityViewIsModal
-      entering={FadeIn.duration(reduced ? 200 : 320)}
-      exiting={FadeOut.duration(reduced ? 200 : MOTION.base)}
-      style={{
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 100,
-        elevation: 100,
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 32,
-      }}
-    >
-      <Pressable
-        accessibilityLabel="Dismiss"
-        onPress={onNice}
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: alpha(t.bg, 0.85),
-        }}
-      />
-      <Animated.View style={[{ width: 136, height: 136 }, medal]}>
-        <View
-          style={{
-            position: "absolute",
-            top: 8,
-            left: 8,
-            width: 120,
-            height: 120,
-            borderRadius: 60,
-            overflow: "hidden",
-            backgroundColor: tint,
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 2,
-          }}
-        >
-          <Award size={44} color={t.onPrimary} strokeWidth={2.2} />
-          <Copy size={18} weight="semibold" style={{ color: t.onPrimary }}>
-            {trophy.value}
-          </Copy>
-          {landed && !reduced && <Shimmer />}
-        </View>
-        {landed && (
-          <Svg
-            width={136}
-            height={136}
-            style={{ position: "absolute", top: 0, left: 0 }}
-            pointerEvents="none"
-          >
-            <ArcCircle
-              cx={68}
-              cy={68}
-              r={65}
-              value={1}
-              stroke={tint}
-              strokeWidth={3}
-              strokeLinecap="round"
-              transform="rotate(-90 68 68)"
-              duration={MOTION.reveal}
-            />
-          </Svg>
-        )}
-      </Animated.View>
-      {landed && (
-        <View style={{ alignItems: "center", gap: 8, marginTop: 24 }}>
-          <Animated.View entering={enter(0)}>
-            <Copy
-              size={12}
-              weight="medium"
-              muted
-              style={{ letterSpacing: 0.8, textAlign: "center" }}
-            >
-              TROPHY EARNED
-            </Copy>
-          </Animated.View>
-          <Animated.View entering={enter(1)}>
-            <Text
-              ref={title}
-              accessibilityRole="header"
-              style={{
-                fontFamily: fonts.display,
-                fontSize: 26,
-                color: t.text,
-                textAlign: "center",
-              }}
-            >
-              {trophy.title}
-            </Text>
-          </Animated.View>
-          <Animated.View entering={enter(2)}>
-            <Copy size={15} muted style={{ textAlign: "center" }}>
-              {trophy.detail}
-            </Copy>
-          </Animated.View>
-          <Animated.View
-            entering={enter(3)}
-            style={{ flexDirection: "row", gap: 12, marginTop: 16 }}
-          >
-            <Button tone="quiet" onPress={secondary.onPress}>
-              {secondary.label}
-            </Button>
-            <Button onPress={onNice}>Nice</Button>
-          </Animated.View>
-        </View>
-      )}
-    </Animated.View>
+      label={more ? `Trophy earned · ${more} more` : "Trophy earned"}
+      title={trophy.title}
+      detail={
+        <Copy size={13} muted lines={2}>
+          {trophy.detail}
+        </Copy>
+      }
+      badge={<Award size={22} color={t.onPrimary} strokeWidth={2.2} />}
+      tint={tint}
+      say={`Trophy earned: ${trophy.title}. ${trophy.detail}`}
+      hint={more ? "Opens the Trophy case" : "Opens this trophy"}
+      onOpen={onOpen}
+      onClose={onClose}
+    />
   )
 }

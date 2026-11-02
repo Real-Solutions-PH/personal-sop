@@ -125,6 +125,9 @@ describe("Fern's reply", () => {
     replying.setState({ id: null })
     expect(R.fernReply(before)).toEqual({
       text: "₱1,240 today.",
+      spoken: "₱1,240 today.",
+      lines: [],
+      more: false,
       needsApp: false,
     })
   })
@@ -177,13 +180,65 @@ describe("Fern's reply", () => {
   it("askFern sends the question and returns the answer", async () => {
     const r = await R.askFern("what's left", { pollMs: 1 })
     expect(mockAsk).toHaveBeenCalledWith("what's left")
-    expect(r).toEqual({ text: "You asked: what's left", needsApp: false })
+    expect(r).toMatchObject({ text: "You asked: what's left", needsApp: false })
   })
 
   it("gives up with pending when no reply comes in time", async () => {
     mockAsk.mockImplementationOnce(() => {})
     const r = await R.askFern("hello", { pollMs: 1, fernTimeoutMs: 20 })
     expect(r).toEqual({ pending: true })
+  })
+})
+
+describe("Fern's answer for Siri and Shortcuts", () => {
+  // Siri reads the short answer aloud and shows it; the card under it holds
+  // only the rest, so no sentence shows twice.
+  it("a short answer is all spoken and leaves the card empty", () => {
+    expect(R.shortcutAnswer("Logged 2 eggs. 140 kcal.")).toEqual({
+      spoken: "Logged 2 eggs. 140 kcal.",
+      lines: [],
+      more: false,
+    })
+  })
+
+  it("a long answer speaks its first sentence and lists the rest once", () => {
+    const text =
+      "On Sunday you have five tasks due, none done yet: Upgrade the pH workflow, due 23:59. " +
+      "Prepare the memory layer plan. Review the schema overlap. Plus 7 more open tasks beyond these. " +
+      "Want me to list those too?"
+    const a = R.shortcutAnswer(text)
+    expect(a.spoken).toBe(
+      "On Sunday you have five tasks due, none done yet: Upgrade the pH workflow, due 23:59.",
+    )
+    expect(a.lines).toEqual([
+      "Prepare the memory layer plan.",
+      "Review the schema overlap.",
+      "Plus 7 more open tasks beyond these.",
+      "Want me to list those too?",
+    ])
+    expect(a.more).toBe(false)
+    const shown = [a.spoken, ...a.lines]
+    expect(new Set(shown).size).toBe(shown.length)
+  })
+
+  it("keeps a list's items as lines and caps the card", () => {
+    const text = `Your habits left today:\n${Array.from({ length: 12 }, (_, i) => `• Habit ${i + 1}`).join("\n")}`
+    const a = R.shortcutAnswer(text)
+    expect(a.spoken).toBe("Your habits left today:")
+    expect(a.lines[0]).toBe("Habit 1")
+    expect(a.lines.length).toBe(8)
+    expect(a.more).toBe(true)
+  })
+
+  it("a first sentence too long to say is cut at a word", () => {
+    const a = R.shortcutAnswer(`${"word ".repeat(80)}end.`)
+    expect(a.spoken.length).toBeLessThanOrEqual(200)
+    expect(a.spoken.endsWith("…")).toBe(true)
+    expect(a.more).toBe(true)
+  })
+
+  it("answers within Siri's wait, which is about ten seconds", () => {
+    expect(R.FERN_SHORTCUT_WAIT_MS).toBeLessThanOrEqual(7_500)
   })
 })
 

@@ -364,9 +364,16 @@ enum SurfaceTaps {
   }
 
   /** Moves the lock-screen activity on at once, so the tap feels immediate
-   * even while the app is still starting. */
+   * even while the app is still starting. Taps run one at a time: each
+   * reads the state the previous one wrote, so four quick +15s are +60s
+   * (run side by side, two read the same state and one was lost). */
   @available(iOS 16.2, *)
   static func advanceActivity(type: String, target: String, key: String?) async {
+    await LiveTapLine.shared.run { await advanceNow(type: type, target: target, key: key) }
+  }
+
+  @available(iOS 16.2, *)
+  private static func advanceNow(type: String, target: String, key: String?) async {
     for activity in Activity<UnfurlActivityAttributes>.activities where activity.attributes.id == target {
       let current = activity.content.state
       // A second tap on an already-advanced step changes nothing.
@@ -378,6 +385,25 @@ enum SurfaceTaps {
         await activity.end(ActivityContent(state: current, staleDate: nil), dismissalPolicy: .immediate)
       }
     }
+  }
+}
+
+/** One tap after another: a tap waits for the one before it to finish,
+ * awaits included (an actor alone would let a second tap in while the
+ * first awaits its update). */
+@available(iOS 16.2, *)
+actor LiveTapLine {
+  static let shared = LiveTapLine()
+  private var tail: Task<Void, Never>?
+
+  func run(_ work: @escaping @Sendable () async -> Void) async {
+    let before = tail
+    let task = Task {
+      await before?.value
+      await work()
+    }
+    tail = task
+    await task.value
   }
 }
 

@@ -8,7 +8,14 @@ import * as Haptics from "expo-haptics"
 import { router } from "expo-router"
 import type { ReactNode } from "react"
 import { SafeAreaProvider } from "react-native-safe-area-context"
-import { resetPresented, TrophyQueue } from "../trophy-overlay"
+import { momentSlot } from "../moment"
+import { anchor, OverlayHost, resetOverlay } from "../overlay"
+import {
+  presentedStore,
+  resetPresented,
+  TROPHY_MS,
+  TrophyQueue,
+} from "../trophy-overlay"
 
 const mockMotion = { reduced: false }
 const mockPath = { current: "/today" }
@@ -29,6 +36,14 @@ jest.mock("expo-router", () => ({
   },
   useLocalSearchParams: () => ({}),
   usePathname: () => mockPath.current,
+}))
+const mockServer: { status: string; source: string } = {
+  status: "off",
+  source: "local",
+}
+jest.mock("@domain/dash/server-stats", () => ({
+  ...jest.requireActual("@domain/dash/server-stats"),
+  useServerStat: () => ({ data: undefined, ...mockServer }),
 }))
 jest.mock("@domain/dash/hooks", () => ({
   ...jest.requireActual("@domain/dash/hooks"),
@@ -64,8 +79,12 @@ const metrics = {
   frame: { x: 0, y: 0, width: 390, height: 844 },
   insets: { top: 44, left: 0, right: 0, bottom: 34 },
 }
+// The card draws in the top layer, as in the app.
 const wrapper = ({ children }: { children: ReactNode }) => (
-  <SafeAreaProvider initialMetrics={metrics}>{children}</SafeAreaProvider>
+  <SafeAreaProvider initialMetrics={metrics}>
+    {children}
+    <OverlayHost />
+  </SafeAreaProvider>
 )
 const push = router.push as jest.Mock
 
@@ -79,12 +98,11 @@ const trophy = (id: string, day = dayOffset(0)): Trophy => ({
   href: "/stats/trophies",
 })
 const seen = () => dashStore.get().seenTrophies
-/** Let the medal land (its text and buttons follow). */
-const land = () => act(() => jest.advanceTimersByTime(700))
-const nice = () => {
-  fireEvent.press(screen.getByText("Nice"))
-  act(() => jest.advanceTimersByTime(450))
-  land()
+const card = () => screen.queryByTestId("trophy-overlay")
+/** One card's stay plus the gap before the next. */
+const pass = () => {
+  act(() => jest.advanceTimersByTime(TROPHY_MS))
+  act(() => jest.advanceTimersByTime(350))
 }
 
 beforeEach(() => {
@@ -96,129 +114,192 @@ beforeEach(() => {
   })
   resetAll()
   resetPresented()
+  resetOverlay()
+  momentSlot.set({ holder: null })
+  anchor.measure = (_, done) => done({ x: 0, y: 0, width: 0, height: 0 })
   dashStore.set((s) => ({ ...s, seenTrophies: [] }))
   captureUi.set({ open: false, ctx: {} })
   mockMotion.reduced = false
   mockPath.current = "/today"
+  mockServer.status = "off"
+  mockServer.source = "local"
+  mockLocal.trophies = []
   jest.clearAllMocks()
 })
 afterEach(() => jest.useRealTimers())
 
-test("a new trophy presents; Nice marks it seen and closes", () => {
+test("a new trophy lands as a card that says what was earned", () => {
   render(<TrophyQueue trophies={[trophy("a")]} />, { wrapper })
-  expect(screen.getByTestId("trophy-overlay")).toBeTruthy()
-  land()
+  expect(card()).toBeTruthy()
+  expect(screen.getByText("Trophy earned")).toBeTruthy()
   expect(screen.getByText("Title a")).toBeTruthy()
   expect(screen.getByText("Detail a")).toBeTruthy()
   expect(Haptics.notificationAsync).toHaveBeenCalledWith("success")
-  fireEvent.press(screen.getByText("Nice"))
-  expect(seen()).toEqual(["a"])
-  expect(screen.queryByTestId("trophy-overlay")).toBeNull()
 })
 
-test("View opens the Trophy case on that trophy and marks it seen", () => {
+test("it is marked the moment it lands, and leaves on its own", () => {
   render(<TrophyQueue trophies={[trophy("a")]} />, { wrapper })
-  land()
-  fireEvent.press(screen.getByText("View"))
-  expect(push).toHaveBeenCalledWith("/stats/trophies?open=a")
   expect(seen()).toEqual(["a"])
+  expect(presentedStore.get().ids).toEqual(["a"])
+  act(() => jest.advanceTimersByTime(TROPHY_MS - 100))
+  expect(card()).toBeTruthy()
+  act(() => jest.advanceTimersByTime(200))
+  expect(card()).toBeNull()
 })
 
-test("two trophies present one after the other, oldest first", () => {
+test("it draws over everything without blocking the screen", () => {
+  render(<TrophyQueue trophies={[trophy("a")]} />, { wrapper })
+  const layer = screen.getByTestId("overlay-layer")
+  let node = card()?.parent
+  while (node && node !== layer) node = node.parent
+  expect(node).toBe(layer)
+  // The layer and the card's frame pass touches through; only the card
+  // itself takes them.
+  expect(layer.props.pointerEvents).toBe("box-none")
+  let frame = card()?.parent
+  while (frame && frame.props.pointerEvents === undefined) frame = frame.parent
+  expect(frame?.props.pointerEvents).toBe("box-none")
+})
+
+test("a tap opens that trophy in the Trophy case", () => {
+  render(<TrophyQueue trophies={[trophy("a")]} />, { wrapper })
+  fireEvent.press(screen.getByLabelText(/^Trophy earned/))
+  expect(push).toHaveBeenCalledWith("/stats/trophies?open=a")
+  expect(card()).toBeNull()
+})
+
+test("Dismiss closes the card early; the next one follows", () => {
   render(<TrophyQueue trophies={[trophy("b"), trophy("a", dayOffset(-1))]} />, {
     wrapper,
   })
-  land()
-  expect(screen.getByText("Title a")).toBeTruthy()
-  nice()
+  fireEvent.press(screen.getByLabelText("Dismiss"))
+  expect(screen.queryByText("Title a")).toBeNull()
+  act(() => jest.advanceTimersByTime(350))
   expect(screen.getByText("Title b")).toBeTruthy()
-  fireEvent.press(screen.getByText("Nice"))
-  expect(seen().sort()).toEqual(["a", "b"])
-  expect(screen.queryByTestId("trophy-overlay")).toBeNull()
 })
 
-test("five qualify: three present, the third offers See all, all five are seen", () => {
+test("it waits while another moment holds the top of the screen", () => {
+  act(() => momentSlot.set({ holder: "routine" }))
+  render(<TrophyQueue trophies={[trophy("a")]} />, { wrapper })
+  expect(card()).toBeNull()
+  act(() => momentSlot.set({ holder: null }))
+  expect(card()).toBeTruthy()
+})
+
+test("two trophies land one after the other, oldest first", () => {
+  render(<TrophyQueue trophies={[trophy("b"), trophy("a", dayOffset(-1))]} />, {
+    wrapper,
+  })
+  expect(screen.getByText("Title a")).toBeTruthy()
+  pass()
+  expect(screen.getByText("Title b")).toBeTruthy()
+  pass()
+  expect(card()).toBeNull()
+  expect(seen().sort()).toEqual(["a", "b"])
+})
+
+test("five qualify: three cards, the third counts the rest and opens the case", () => {
   const five = ["a", "b", "c", "d", "e"].map((id) => trophy(id))
   const view = render(<TrophyQueue trophies={five} />, { wrapper })
-  land()
-  nice()
-  nice()
-  expect(screen.getByText("Title c")).toBeTruthy()
-  expect(screen.getByText("See all 5 new")).toBeTruthy()
-  fireEvent.press(screen.getByText("Nice"))
   expect(seen().sort()).toEqual(["a", "b", "c", "d", "e"])
+  pass()
+  pass()
+  expect(screen.getByText("Title c")).toBeTruthy()
+  expect(screen.getByText("Trophy earned · 2 more")).toBeTruthy()
+  fireEvent.press(screen.getByLabelText(/^Trophy earned/))
+  expect(push).toHaveBeenCalledWith("/stats/trophies")
   // The same five on the next refetch present nothing.
   view.rerender(<TrophyQueue trophies={[...five]} />)
-  expect(screen.queryByTestId("trophy-overlay")).toBeNull()
-})
-
-test("See all marks every qualifying trophy and opens the Trophy case", () => {
-  const five = ["a", "b", "c", "d", "e"].map((id) => trophy(id))
-  render(<TrophyQueue trophies={five} />, { wrapper })
-  land()
-  nice()
-  nice()
-  fireEvent.press(screen.getByText("See all 5 new"))
-  expect(push).toHaveBeenCalledWith("/stats/trophies")
-  expect(seen().sort()).toEqual(["a", "b", "c", "d", "e"])
+  expect(card()).toBeNull()
 })
 
 test("an old unseen trophy never presents", () => {
   render(<TrophyQueue trophies={[trophy("old", dayOffset(-7))]} />, {
     wrapper,
   })
-  expect(screen.queryByTestId("trophy-overlay")).toBeNull()
+  expect(card()).toBeNull()
   expect(seen()).toEqual([])
 })
 
 test("a trophy already seen (e.g. on another device) does not present", () => {
   dashStore.set((s) => ({ ...s, seenTrophies: ["a"] }))
   render(<TrophyQueue trophies={[trophy("a")]} />, { wrapper })
-  expect(screen.queryByTestId("trophy-overlay")).toBeNull()
+  expect(card()).toBeNull()
+})
+
+test("relaunching never replays it, even if a pull reset the seen list", () => {
+  render(<TrophyQueue trophies={[trophy("a")]} />, { wrapper }).unmount()
+  resetOverlay()
+  // An older copy of the synced seen list arrives after the mark.
+  dashStore.set((s) => ({ ...s, seenTrophies: [] }))
+  render(<TrophyQueue trophies={[trophy("a")]} />, { wrapper })
+  expect(card()).toBeNull()
+})
+
+test("one newly earned on a later sync lands; the earlier one does not again", () => {
+  const view = render(<TrophyQueue trophies={[trophy("a")]} />, { wrapper })
+  pass()
+  view.rerender(<TrophyQueue trophies={[trophy("a"), trophy("b")]} />)
+  expect(screen.getByText("Title b")).toBeTruthy()
+  expect(screen.queryByText("Title a")).toBeNull()
 })
 
 test("nothing presents before a successful load", () => {
   render(<TrophyQueue trophies={undefined} />, { wrapper })
-  expect(screen.queryByTestId("trophy-overlay")).toBeNull()
+  expect(card()).toBeNull()
 })
 
 test("it waits on the Trophy case, the Fern drawer or a full-screen view", () => {
   mockPath.current = "/stats/trophies"
   const view = render(<TrophyQueue trophies={[trophy("a")]} />, { wrapper })
-  expect(screen.queryByTestId("trophy-overlay")).toBeNull()
+  expect(card()).toBeNull()
   mockPath.current = "/today"
   act(() => captureUi.set({ open: true, ctx: {} }))
   view.rerender(<TrophyQueue trophies={[trophy("a")]} />)
-  expect(screen.queryByTestId("trophy-overlay")).toBeNull()
+  expect(card()).toBeNull()
   act(() => captureUi.set({ open: false, ctx: {} }))
   view.rerender(<TrophyQueue trophies={[trophy("a")]} hidden />)
-  expect(screen.queryByTestId("trophy-overlay")).toBeNull()
+  expect(card()).toBeNull()
   view.rerender(<TrophyQueue trophies={[trophy("a")]} />)
-  expect(screen.getByTestId("trophy-overlay")).toBeTruthy()
+  expect(card()).toBeTruthy()
 })
 
-test("a dismissed trophy refetched again does not present twice", () => {
+test("its clock stops while something hides it", () => {
   const view = render(<TrophyQueue trophies={[trophy("a")]} />, { wrapper })
-  land()
-  fireEvent.press(screen.getByText("Nice"))
-  // Even if the seen mark had not landed yet, this launch presented it.
-  dashStore.set((s) => ({ ...s, seenTrophies: [] }))
+  act(() => jest.advanceTimersByTime(TROPHY_MS - 500))
+  view.rerender(<TrophyQueue trophies={[trophy("a")]} hidden />)
+  act(() => jest.advanceTimersByTime(TROPHY_MS * 2))
   view.rerender(<TrophyQueue trophies={[trophy("a")]} />)
-  expect(screen.queryByTestId("trophy-overlay")).toBeNull()
+  // Back in full: a fresh stay, not the leftover half second.
+  act(() => jest.advanceTimersByTime(TROPHY_MS - 100))
+  expect(card()).toBeTruthy()
 })
 
-test("reduced motion: usable at once, the text already there", () => {
+test("reduced motion: the card still lands and leaves", () => {
   mockMotion.reduced = true
   render(<TrophyQueue trophies={[trophy("a")]} />, { wrapper })
   expect(screen.getByText("Title a")).toBeTruthy()
-  fireEvent.press(screen.getByText("Nice"))
-  expect(seen()).toEqual(["a"])
+  expect(Haptics.notificationAsync).toHaveBeenCalledWith("success")
+  pass()
+  expect(card()).toBeNull()
 })
 
 test("prototype mode reads the trophies the device computes", () => {
   const { TrophyWatcher } = require("../trophy-overlay")
   mockLocal.trophies = [trophy("local")]
   render(<TrophyWatcher />, { wrapper })
-  land()
+  expect(screen.getByText("Title local")).toBeTruthy()
+})
+
+test("signed in, it waits for the server's answer before presenting", () => {
+  const { TrophyWatcher } = require("../trophy-overlay")
+  mockLocal.trophies = [trophy("local")]
+  mockServer.status = "loading"
+  const view = render(<TrophyWatcher />, { wrapper })
+  expect(card()).toBeNull()
+  expect(seen()).toEqual([])
+  mockServer.status = "ready"
+  mockServer.source = "server"
+  view.rerender(<TrophyWatcher />)
   expect(screen.getByText("Title local")).toBeTruthy()
 })

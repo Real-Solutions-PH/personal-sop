@@ -5,7 +5,7 @@
 
 import { createStore } from "@domain/lib/store"
 import { Check, Dumbbell } from "lucide-react-native"
-import { useEffect, useRef, useState } from "react"
+import { type ComponentRef, useEffect, useRef, useState } from "react"
 import { Text, View } from "react-native"
 import Animated, {
   Easing,
@@ -22,6 +22,7 @@ import Svg, { Path } from "react-native-svg"
 import { FERN_PATHS } from "./companion/brand"
 import { feel, MOTION, useCountUp } from "./motion"
 import { Copy, Line } from "./native-kit"
+import { anchor, type Box, Overlay } from "./overlay"
 import { fonts, useTheme } from "./theme"
 
 /** The workouts and runs already celebrated on this phone, newest last.
@@ -76,29 +77,49 @@ function Burst({ colors }: { colors: string[] }) {
     })),
   ).current
   const progress = useSharedValue(0)
+  const at = useRef<ComponentRef<typeof View>>(null)
+  const [box, setBox] = useState<Box | null>(null)
+  const [live, setLive] = useState(true)
   useEffect(() => {
+    if (at.current) anchor.measure(at.current, setBox)
     progress.value = withTiming(1, {
       duration: BURST_MS,
       easing: Easing.out(Easing.cubic),
     })
+    const id = setTimeout(() => setLive(false), BURST_MS + 80)
+    return () => clearTimeout(id)
   }, [progress])
+  // Measured here, drawn in the top layer: nothing on the page covers it.
   return (
-    <View
-      pointerEvents="none"
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-      style={{
-        position: "absolute",
-        top: "50%",
-        left: "50%",
-        width: 0,
-        height: 0,
-      }}
-    >
-      {leaves.map((leaf, i) => (
-        <LeafView key={i} leaf={leaf} progress={progress} />
-      ))}
-    </View>
+    <>
+      <View
+        ref={at}
+        collapsable={false}
+        pointerEvents="none"
+        style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+      />
+      {live && box && (
+        <Overlay>
+          <View
+            testID="celebration-burst"
+            pointerEvents="none"
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={{
+              position: "absolute",
+              left: box.x + box.width / 2,
+              top: box.y + box.height / 2,
+              width: 0,
+              height: 0,
+            }}
+          >
+            {leaves.map((leaf, i) => (
+              <LeafView key={i} leaf={leaf} progress={progress} />
+            ))}
+          </View>
+        </Overlay>
+      )}
+    </>
   )
 }
 

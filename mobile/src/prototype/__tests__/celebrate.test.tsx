@@ -10,6 +10,7 @@ import type { ReactNode } from "react"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
 import { AnimatedCheck, MOTION, StreakChip, TickRow } from "../motion"
+import { anchor, OverlayHost, resetOverlay } from "../overlay"
 import { TaskPlanPanel } from "../screens/plan"
 import { TaskDetail } from "../screens/task-detail"
 import { TaskRow } from "../screens/tasks"
@@ -95,8 +96,12 @@ const metrics = {
   frame: { x: 0, y: 0, width: 390, height: 844 },
   insets: { top: 44, left: 0, right: 0, bottom: 34 },
 }
+// Bursts draw in the top layer, as in the app.
 const wrapper = ({ children }: { children: ReactNode }) => (
-  <SafeAreaProvider initialMetrics={metrics}>{children}</SafeAreaProvider>
+  <SafeAreaProvider initialMetrics={metrics}>
+    {children}
+    <OverlayHost />
+  </SafeAreaProvider>
 )
 const success = () =>
   (Haptics.notificationAsync as jest.Mock).mock.calls.filter(
@@ -122,6 +127,8 @@ beforeEach(() => {
   mockMotion.reduced = false
   mockStorage.clear()
   jest.clearAllMocks()
+  resetOverlay()
+  anchor.measure = (_, done) => done({ x: 300, y: 760, width: 44, height: 44 })
 })
 afterEach(() => {
   jest.useRealTimers()
@@ -153,6 +160,26 @@ test("checking bursts with a success haptic; unchecking does neither", () => {
   expect(burst()).toHaveLength(0)
   expect(Haptics.impactAsync).toHaveBeenCalledWith("light")
   expect(success()).toBe(1)
+})
+
+test("a burst draws in the top layer at its check's window position", () => {
+  render(check({}), { wrapper })
+  fireEvent.press(screen.getByRole("checkbox"))
+  const layer = screen.getByTestId("overlay-layer", hidden)
+  const [b] = burst()
+  // Inside the layer, not inside the check that fired it.
+  let node = b.parent
+  while (node && node !== layer) node = node.parent
+  expect(node).toBe(layer)
+  expect(b.props.style).toMatchObject({
+    position: "absolute",
+    left: 300,
+    top: 760,
+    width: 44,
+    height: 44,
+  })
+  expect(b.props.pointerEvents).toBe("none")
+  expect(layer.props.pointerEvents).toBe("box-none")
 })
 
 test("celebrate plays the pop and burst without toggling", () => {
