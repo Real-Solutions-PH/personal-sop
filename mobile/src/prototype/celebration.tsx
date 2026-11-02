@@ -1,10 +1,18 @@
-// The finish moment for a workout or a routine: the fiddlehead draws itself
-// and settles, one quiet burst of leaves in the area colours, the numbers
-// count up and the phone gives one success tap. It plays once per finished
-// workout or run; opened again later it shows settled, with no burst.
+// The finish moment for a workout, a run or walk, or a routine: the
+// fiddlehead draws itself and settles, one quiet burst of leaves in the area
+// colours, the numbers count up and the phone gives one success tap. A
+// record set on the way (a run's best pace) lands as a line under it. It
+// plays once per finished session; opened again later it shows settled,
+// with no burst.
 
 import { createStore } from "@domain/lib/store"
-import { Check, Dumbbell } from "lucide-react-native"
+import {
+  Activity,
+  Check,
+  Dumbbell,
+  Footprints,
+  Trophy,
+} from "lucide-react-native"
 import { type ComponentRef, useEffect, useRef, useState } from "react"
 import { Text, View } from "react-native"
 import Animated, {
@@ -241,22 +249,26 @@ export function Celebration({
   subtitle,
   icon,
   stats,
+  record,
   play,
 }: {
   /** Picks the accent (fitness or habits) and the icon. */
-  kind: "workout" | "routine"
+  kind: "workout" | "run" | "walk" | "routine"
   title: string
   subtitle: string
-  /** The routine's emoji; workouts show a dumbbell. */
+  /** The routine's emoji; the others show their own icon. */
   icon?: string
   stats: { label: string; value: number; format: (n: number) => string }[]
+  /** A record this session set: "Best pace yet · 5:12 /km". */
+  record?: string
   /** True only on the first showing after finishing. */
   play: boolean
 }) {
   const t = useTheme(),
     reduced = useReducedMotion(),
     moving = play && !reduced,
-    accent = kind === "workout" ? t.fit : t.hab,
+    accent = kind === "routine" ? t.hab : t.fit,
+    Icon = kind === "run" ? Activity : kind === "walk" ? Footprints : Dumbbell,
     pop = useSharedValue(moving ? 0.9 : 1),
     badge = useSharedValue(moving ? 0 : 1)
   useEffect(() => {
@@ -317,8 +329,8 @@ export function Celebration({
               justifyContent: "center",
             }}
           >
-            {kind === "workout" || !icon ? (
-              <Dumbbell size={16} color={accent} strokeWidth={2} />
+            {kind !== "routine" || !icon ? (
+              <Icon size={16} color={accent} strokeWidth={2} />
             ) : (
               <Copy size={16}>{icon}</Copy>
             )}
@@ -360,6 +372,36 @@ export function Celebration({
       <Copy size={14} muted style={{ textAlign: "center" }}>
         {subtitle}
       </Copy>
+      {record && (
+        <Animated.View
+          testID="celebration-record"
+          style={[
+            {
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+              paddingHorizontal: 10,
+              paddingVertical: 4,
+              borderRadius: 99,
+              backgroundColor: `${t.good}1f`,
+            },
+            badgeStyle,
+          ]}
+        >
+          <Trophy size={14} color={t.good} />
+          <Text
+            style={{
+              fontFamily: fonts.semibold,
+              fontSize: 13,
+              lineHeight: 18,
+              color: t.good,
+              fontVariant: ["tabular-nums"],
+            }}
+          >
+            {record}
+          </Text>
+        </Animated.View>
+      )}
       {stats.length > 0 && (
         <Line style={{ gap: 12, marginTop: 12, alignSelf: "stretch" }}>
           {stats.map((x, i) => (

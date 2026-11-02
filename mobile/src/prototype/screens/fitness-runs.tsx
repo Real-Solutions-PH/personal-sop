@@ -10,7 +10,7 @@
 // /fitness/runs — history: this week's distance, then every session as a
 //   row that leads with its route's shape and distance and opens it.
 
-import { addDays, weekStart } from "@domain/fitness/calc"
+import { addDays, relDay, weekStart } from "@domain/fitness/calc"
 import type { RunKind, RunSession } from "@domain/fitness/data"
 import * as RL from "@domain/fitness/run-live"
 import * as R from "@domain/fitness/runs"
@@ -38,7 +38,8 @@ import {
 import { useState } from "react"
 import { Pressable, Text, TextInput, View } from "react-native"
 import { toast } from "sonner-native"
-import { useCelebrate } from "../celebration"
+import { runRecord } from "../body-rewards"
+import { Celebration, useCelebrate } from "../celebration"
 import {
   border,
   Copy,
@@ -603,7 +604,7 @@ export function RunDetail({
   const r = R.runsOf(s).find((x) => x.id === id)
   const [name, setName] = useState(r?.name ?? "")
   const [method, setMethod] = useState(false)
-  useCelebrate(id, summary)
+  const fresh = useCelebrate(id, summary)
   if (!r)
     return (
       <Screen title={summary ? "Summary" : "Session"}>
@@ -627,6 +628,25 @@ export function RunDetail({
   const save = () =>
     RL.patchRun(id, (x) => ({ ...x, name: name.trim() || x.name }))
   const when = new Date(r.startedAt)
+  const paceDelta = delta !== null && delta !== 0 && (
+    <Copy
+      size={12}
+      style={{
+        color: delta < 0 ? t.good : t.warn,
+        textAlign: summary ? "center" : undefined,
+      }}
+    >
+      {delta < 0 ? "▲" : "▼"} {R.fmtPace(Math.abs(delta)).replace(/^0:/, "")}
+      {Math.abs(delta) < 60 ? " s" : ""} {delta < 0 ? "faster" : "slower"} than
+      last
+    </Copy>
+  )
+  const rec = summary ? runRecord(R.runsOf(s), r) : undefined
+  const record = rec?.pace
+    ? `Best pace yet · ${R.fmtPace(rec.pace.sec)} /km`
+    : rec?.split
+      ? `Fastest km yet · ${R.fmtPace(rec.split.split.sec)} at km ${rec.split.split.km}`
+      : undefined
   return (
     <Screen
       title={summary ? `${R.kindLabel(r.kind)} complete` : r.name}
@@ -639,6 +659,33 @@ export function RunDetail({
         />
       }
     >
+      {summary && (
+        <Celebration
+          kind={r.kind}
+          title={`${r.name} done`}
+          subtitle={relDay(r.startedAt)}
+          stats={[
+            {
+              label: "Distance",
+              value: r.distanceM,
+              format: (n) => `${R.fmtKm(n)} km`,
+            },
+            {
+              label: "Pace",
+              value: avg ?? 0,
+              format: (n) => (avg === null ? "—" : `${R.fmtPace(n)}/km`),
+            },
+            {
+              label: "Time",
+              value: r.movingSec,
+              format: (n) => R.fmtClock(n),
+            },
+          ]}
+          record={record}
+          play={fresh && r.distanceM > 0}
+        />
+      )}
+      {summary && paceDelta}
       <RouteMap points={r.route} height={240} />
       <Copy size={14} muted style={{ marginTop: 10 }}>
         {when.toLocaleDateString("en-PH", {
@@ -652,39 +699,41 @@ export function RunDetail({
           minute: "2-digit",
         })}
       </Copy>
-      <Text
-        accessibilityLabel={`${R.fmtKm(r.distanceM)} kilometres`}
-        style={{
-          fontFamily: fonts.displayMedium,
-          fontVariant: ["tabular-nums"],
-          fontSize: 56,
-          lineHeight: 64,
-          color: t.text,
-        }}
-      >
-        {R.fmtKm(r.distanceM)}
-        <Text style={{ fontSize: 22, color: t.muted }}> km</Text>
-      </Text>
-      <Peers>
-        {[
-          <Figure
-            key="t"
-            value={R.fmtClock(r.movingSec)}
-            label="Moving time"
-          />,
-          <View key="p">
-            <Figure value={R.fmtPace(avg)} unit="/km" label="Average pace" />
-            {delta !== null && delta !== 0 && (
-              <Copy size={12} style={{ color: delta < 0 ? t.good : t.warn }}>
-                {delta < 0 ? "▲" : "▼"}{" "}
-                {R.fmtPace(Math.abs(delta)).replace(/^0:/, "")}
-                {Math.abs(delta) < 60 ? " s" : ""}{" "}
-                {delta < 0 ? "faster" : "slower"} than last
-              </Copy>
-            )}
-          </View>,
-        ]}
-      </Peers>
+      {/* The summary's celebration already leads with these figures. */}
+      {!summary && (
+        <>
+          <Text
+            accessibilityLabel={`${R.fmtKm(r.distanceM)} kilometres`}
+            style={{
+              fontFamily: fonts.displayMedium,
+              fontVariant: ["tabular-nums"],
+              fontSize: 56,
+              lineHeight: 64,
+              color: t.text,
+            }}
+          >
+            {R.fmtKm(r.distanceM)}
+            <Text style={{ fontSize: 22, color: t.muted }}> km</Text>
+          </Text>
+          <Peers>
+            {[
+              <Figure
+                key="t"
+                value={R.fmtClock(r.movingSec)}
+                label="Moving time"
+              />,
+              <View key="p">
+                <Figure
+                  value={R.fmtPace(avg)}
+                  unit="/km"
+                  label="Average pace"
+                />
+                {paceDelta}
+              </View>,
+            ]}
+          </Peers>
+        </>
+      )}
       <View style={{ marginTop: 14 }}>
         <Extras
           hr={r.avgHr}

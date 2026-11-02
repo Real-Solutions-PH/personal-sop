@@ -4,6 +4,7 @@ import { dayKey } from "@domain/lib/day"
 import { ChevronRight, Share2, TriangleAlert } from "lucide-react-native"
 import { useState } from "react"
 import { View } from "react-native"
+import { lastWeekShort } from "../body-rewards"
 import { Sparkline } from "../chart"
 import { GrowBar } from "../motion"
 import {
@@ -34,6 +35,8 @@ export function FitnessStats({ embedded = false }: { embedded?: boolean }) {
     ),
     cur = C.periodSummary(s, days),
     prev = C.periodSummary(s, days, -days),
+    // Said on Monday, while last week can still be learned from.
+    short = lastWeekShort(s),
     latest = finished.at(-1),
     stalls = s.exercises.filter(
       (e) => !e.archived && C.isStalled(C.exerciseHistory(s, e.id)),
@@ -195,6 +198,26 @@ export function FitnessStats({ embedded = false }: { embedded?: boolean }) {
               {cur.missed ? `${cur.missed} missed` : "No misses"}
             </Copy>
           </Line>
+          {short && (
+            <View
+              testID="last-week-short"
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                marginTop: 8,
+                paddingHorizontal: 8,
+                paddingVertical: 6,
+                borderRadius: 8,
+                backgroundColor: border(t.bad, 0.12),
+              }}
+            >
+              <TriangleAlert size={14} color={t.bad} />
+              <Copy size={12} weight="medium" style={{ color: t.bad, flex: 1 }}>
+                {`Last week ${short.count}/${short.target} sessions, ${short.target - short.count} short of your target`}
+              </Copy>
+            </View>
+          )}
         </Frame>
         {heading("Weekly volume")}
         <Frame style={{ padding: 16 }}>

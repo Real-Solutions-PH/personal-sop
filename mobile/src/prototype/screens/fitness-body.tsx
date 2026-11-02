@@ -14,10 +14,14 @@ import {
   Settings,
   Target,
 } from "lucide-react-native"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { View } from "react-native"
 import { toast } from "sonner-native"
+import { FLASH_MS, FlashLine, weighInSaved } from "../body-moments"
+import type { WeighStep } from "../body-rewards"
 import { FitnessTrend, Sparkline } from "../chart"
+import { MomentCard } from "../moment"
+import { Burst } from "../motion"
 import {
   Bar,
   border,
@@ -116,10 +120,13 @@ export function WeighInEditor({
   entry,
   open,
   onClose,
+  onLogged,
 }: {
   entry?: WeighIn
   open: boolean
   onClose: () => void
+  /** A new weigh-in landed, with its step toward the goal. */
+  onLogged?: (step: WeighStep | null) => void
 }) {
   const s = fitStore.use((s) => s),
     [weight, setWeight] = useState(
@@ -153,13 +160,16 @@ export function WeighInEditor({
         note,
         bodyFatPct: fat ? Number(fat) : undefined,
       })
-    else
+    else {
+      const step = weighInSaved(Number(weight), measuredAt)
       A.logWeighIn(
         Number(weight),
         measuredAt,
         note,
         fat ? Number(fat) : undefined,
       )
+      onLogged?.(step)
+    }
     onClose()
   }
   return (
@@ -278,7 +288,20 @@ export function Body({
       first.weightKg !== target
         ? (first.weightKg - avg) / (first.weightKg - target)
         : undefined,
-    today = C.dailyWeights(s).get(dayKey())
+    today = C.dailyWeights(s).get(dayKey()),
+    [logged, setLogged] = useState<{ step: WeighStep; at: number } | null>(
+      null,
+    ),
+    step = logged?.step
+  // The step stays a moment, the goal card a little longer.
+  useEffect(() => {
+    if (!logged) return
+    const id = setTimeout(
+      () => setLogged(null),
+      logged.step.reached ? 4200 : FLASH_MS,
+    )
+    return () => clearTimeout(id)
+  }, [logged])
   const addWeigh = () => {
     setEntry(undefined)
     setAdd(true)
@@ -302,6 +325,11 @@ export function Body({
               }}
             >
               <View>
+                <Burst
+                  fire={step?.reached ? (logged?.at ?? 0) : 0}
+                  color={t.good}
+                  size={96}
+                />
                 {!hub && (
                   <Copy size={12} muted>
                     7-day average
@@ -347,6 +375,39 @@ export function Body({
               )}
             </Line>
           </Tap>
+          {step && (
+            <View style={{ marginTop: 8 }}>
+              <FlashLine
+                testID="weigh-step"
+                text={step.text}
+                tone={
+                  step.toward === true
+                    ? "good"
+                    : step.toward === false
+                      ? "warn"
+                      : "muted"
+                }
+              />
+            </View>
+          )}
+          {step?.reached && target !== undefined && (
+            <MomentCard
+              kind="goal-weight"
+              testID="goal-weight-reached"
+              label="Goal weight reached"
+              title={`${C.kg(target)} reached`}
+              detail={
+                <Copy size={13} muted>
+                  {`Weighed ${C.kg(step.kg)} today${first ? ` · started at ${C.kg(first.weightKg)}` : ""}`}
+                </Copy>
+              }
+              badge={<Target size={22} color={t.bg} />}
+              tint={t.good}
+              say={`Goal weight reached: ${C.kg(target)}.`}
+              hint="Opens your body page"
+              onOpen={() => go("/fitness/body")}
+            />
+          )}
           {hub && (
             <Line
               style={{
@@ -612,6 +673,7 @@ export function Body({
           entry={entry}
           open={add}
           onClose={() => setAdd(false)}
+          onLogged={(x) => x && setLogged({ step: x, at: Date.now() })}
         />
       )}
       {goal && <GoalSheet open={goal} onClose={() => setGoal(false)} />}

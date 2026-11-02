@@ -24,8 +24,11 @@ import {
   Target,
   UtensilsCrossed,
 } from "lucide-react-native"
-import { type ReactNode, useState } from "react"
+import { type ReactNode, useEffect, useState } from "react"
 import { ScrollView, View } from "react-native"
+import { FlashLine, mealSaved, useMealFlash } from "../body-moments"
+import { dayIntake } from "../body-rewards"
+import { Cheer } from "../motion"
 import {
   Bar,
   border,
@@ -66,9 +69,12 @@ export function ringLayout(width: number) {
 export function MacroRings({
   totals,
   target,
+  cheer = 0,
 }: {
   totals: Macros
   target?: Macros
+  /** Goes up when the protein goal is reached: its ring pops and bursts. */
+  cheer?: number
 }) {
   const t = useTheme(),
     [width, setWidth] = useState(0),
@@ -123,16 +129,22 @@ export function MacroRings({
           key={m.key}
           style={{ flex: 1, minWidth: 0, alignItems: "center", gap: 4 }}
         >
-          <Ring
-            size={small}
-            strokeWidth={small >= 56 ? 5 : 4}
+          <Cheer
+            fire={m.key === "protein" ? cheer : 0}
             color={t[m.accent]}
-            value={target ? totals[m.key] / target[m.key] : 0}
+            size={small}
           >
-            <Copy size={small >= 52 ? 12 : 11} weight="semibold">
-              {Math.round(totals[m.key]).toLocaleString("en-US")}
-            </Copy>
-          </Ring>
+            <Ring
+              size={small}
+              strokeWidth={small >= 56 ? 5 : 4}
+              color={t[m.accent]}
+              value={target ? totals[m.key] / target[m.key] : 0}
+            >
+              <Copy size={small >= 52 ? 12 : 11} weight="semibold">
+                {Math.round(totals[m.key]).toLocaleString("en-US")}
+              </Copy>
+            </Ring>
+          </Cheer>
           <View>
             <Copy
               size={10}
@@ -266,7 +278,24 @@ export function Nutrition({
         return true
       })
       .slice(0, 5),
-    adherence = C.adherence(s, Number(range))
+    adherence = C.adherence(s, Number(range)),
+    flash = useMealFlash(day),
+    [cheer, setCheer] = useState({ protein: 0, fiber: 0 })
+  // Set after the page is up, so a goal reached on the form it came from
+  // still pops here: each Cheer fires on a change, not on its first value.
+  useEffect(() => {
+    if (!flash?.goals.length) return
+    setCheer({
+      protein: flash.goals.includes("protein") ? flash.at : 0,
+      fiber: flash.goals.includes("fiber") ? flash.at : 0,
+    })
+  }, [flash?.at, flash?.goals])
+  const kcalOver = flash?.over.find((x) => x.key === "kcal"),
+    limitFlash = Object.fromEntries(
+      (flash?.over ?? [])
+        .filter((x) => x.key !== "kcal")
+        .map((x) => [x.key, x.text]),
+    )
   const pill = (text: string, color: string) => (
     <Copy
       size={11}
@@ -433,7 +462,34 @@ export function Nutrition({
         />
       </Line>
       <Frame style={{ padding: 16 }}>
-        <MacroRings totals={totals.totals} target={target} />
+        <MacroRings
+          totals={totals.totals}
+          target={target}
+          cheer={cheer.protein}
+        />
+        {!!flash && (kcalOver || flash.goals.length > 0) && (
+          <Line style={{ marginTop: 10, gap: 6, flexWrap: "wrap" }}>
+            {kcalOver && (
+              <FlashLine testID="kcal-over" text={kcalOver.text} tone="bad" />
+            )}
+            {flash.goals.includes("protein") && (
+              <FlashLine
+                testID="protein-hit"
+                text="Protein goal hit"
+                tone="good"
+              />
+            )}
+            {flash.goals.includes("fiber") && (
+              <Cheer fire={cheer.fiber} color={t.good} size={40}>
+                <FlashLine
+                  testID="fiber-hit"
+                  text="Fiber goal hit"
+                  tone="good"
+                />
+              </Cheer>
+            )}
+          </Line>
+        )}
         {target ? (
           <Line style={{ marginTop: 12, gap: 8, flexWrap: "wrap" }}>
             <Copy size={12} muted>
@@ -473,7 +529,11 @@ export function Nutrition({
             borderColor: border(t.line, 0.5),
           }}
         >
-          <LimitList detail={detail} limits={limitsFor(target)} />
+          <LimitList
+            detail={detail}
+            limits={limitsFor(target)}
+            flash={limitFlash}
+          />
         </View>
       </Frame>
       <Button icon={Plus} onPress={() => go(`/nutrition/new?day=${day}`)}>
@@ -584,8 +644,11 @@ export function Nutrition({
               <Tap
                 key={m.id}
                 onPress={() => {
+                  const before = dayIntake(fitStore.get(), day)
                   const c = A.duplicateMeal(m.id, day)
-                  if (c) undo(`Logged ${c.label}`, () => A.deleteMeal(c.id))
+                  if (!c) return
+                  mealSaved(before, day)
+                  undo(`Logged ${c.label}`, () => A.deleteMeal(c.id))
                 }}
                 style={{
                   width: 160,

@@ -71,7 +71,7 @@ jest.mock("../media", () => ({
 const { celebrateStore } =
   require("../celebration") as typeof import("../celebration")
 const { momentSlot } = require("../moment") as typeof import("../moment")
-const { ROUTINE_MS, RoutineDoneWatcher, finishedRuns, routineStreak } =
+const { ROUTINE_MS, FinishWatcher, finishedRuns, routineStreak } =
   require("../routine-done") as typeof import("../routine-done")
 const { RoutineSummary } =
   require("../screens/routines") as typeof import("../screens/routines")
@@ -135,7 +135,7 @@ afterEach(() => {
 
 test("a routine finished from another screen lands as a card", () => {
   const r = routine()
-  render(<RoutineDoneWatcher />, { wrapper })
+  render(<FinishWatcher />, { wrapper })
   expect(card()).toBeNull()
   let id = ""
   act(() => {
@@ -157,7 +157,7 @@ test("it draws in the top layer, never blocks, and leaves on its own", () => {
   act(() => {
     finish(routine())
   })
-  render(<RoutineDoneWatcher />, { wrapper })
+  render(<FinishWatcher />, { wrapper })
   const layer = screen.getByTestId("overlay-layer", hidden)
   let node = card()?.parent
   while (node && node !== layer) node = node.parent
@@ -175,7 +175,7 @@ test("a tap opens its summary, which then shows settled", () => {
   act(() => {
     id = finish(r)
   })
-  render(<RoutineDoneWatcher />, { wrapper })
+  render(<FinishWatcher />, { wrapper })
   fireEvent.press(screen.getByLabelText(new RegExp(`^${r.name} done`)))
   expect(router.push).toHaveBeenCalledWith(
     `/habits/routines/${r.id}/summary?run=${id}`,
@@ -192,7 +192,7 @@ test("Dismiss closes it at once", () => {
   act(() => {
     finish(routine())
   })
-  render(<RoutineDoneWatcher />, { wrapper })
+  render(<FinishWatcher />, { wrapper })
   fireEvent.press(screen.getByLabelText("Dismiss"))
   expect(card()).toBeNull()
 })
@@ -200,7 +200,7 @@ test("Dismiss closes it at once", () => {
 test("on the routine's own pages it stays out; the summary plays instead", () => {
   const r = routine()
   mockPath.current = `/habits/routines/${r.id}/play`
-  const view = render(<RoutineDoneWatcher />, { wrapper })
+  const view = render(<FinishWatcher />, { wrapper })
   let id = ""
   act(() => {
     id = finish(r)
@@ -208,17 +208,17 @@ test("on the routine's own pages it stays out; the summary plays instead", () =>
   expect(card()).toBeNull()
   // The player hands over to the summary, which celebrates the run.
   mockPath.current = `/habits/routines/${r.id}/summary`
-  view.rerender(<RoutineDoneWatcher />)
+  view.rerender(<FinishWatcher />)
   render(<RoutineSummary id={r.id} runId={id} />, { wrapper })
   expect(screen.getByTestId("celebration")).toBeTruthy()
   // Leaving the summary never brings the card after it.
   mockPath.current = "/today"
-  view.rerender(<RoutineDoneWatcher />)
+  view.rerender(<FinishWatcher />)
   expect(card()).toBeNull()
 })
 
 test("finished while in the background: it lands when the app comes back", () => {
-  render(<RoutineDoneWatcher />, { wrapper })
+  render(<FinishWatcher />, { wrapper })
   act(() => appState("background"))
   act(() => {
     finish(routine())
@@ -232,9 +232,9 @@ test("once per run: a relaunch does not replay it", () => {
   act(() => {
     finish(routine())
   })
-  render(<RoutineDoneWatcher />, { wrapper }).unmount()
+  render(<FinishWatcher />, { wrapper }).unmount()
   resetOverlay()
-  render(<RoutineDoneWatcher />, { wrapper })
+  render(<FinishWatcher />, { wrapper })
   expect(card()).toBeNull()
 })
 
@@ -243,7 +243,7 @@ test("skipped steps say so, in the warning colour", () => {
   act(() => {
     finish(r, 1)
   })
-  render(<RoutineDoneWatcher />, { wrapper })
+  render(<FinishWatcher />, { wrapper })
   expect(screen.getByText("Routine finished")).toBeTruthy()
   const skipped = screen.getByText("· 1 skipped")
   expect(skipped.props.style.color).toBe("#94600e")
@@ -259,7 +259,7 @@ test("it waits while a trophy card holds the top, then lands", () => {
   act(() => {
     finish(routine())
   })
-  render(<RoutineDoneWatcher />, { wrapper })
+  render(<FinishWatcher />, { wrapper })
   expect(card()).toBeNull()
   act(() => momentSlot.set({ holder: null }))
   expect(card()).toBeTruthy()
@@ -269,7 +269,7 @@ test("steps ticked with no timer claim no time", () => {
   act(() => {
     finish(routine())
   })
-  render(<RoutineDoneWatcher />, { wrapper })
+  render(<FinishWatcher />, { wrapper })
   expect(screen.queryByText(/00:00/)).toBeNull()
 })
 
@@ -278,7 +278,7 @@ test("reduced motion: the card still lands", () => {
   act(() => {
     finish(routine())
   })
-  render(<RoutineDoneWatcher />, { wrapper })
+  render(<FinishWatcher />, { wrapper })
   expect(card()).toBeTruthy()
   expect(Haptics.notificationAsync).toHaveBeenCalledWith("success")
 })

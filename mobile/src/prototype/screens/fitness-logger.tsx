@@ -4,6 +4,7 @@ import type { Exercise, WorkoutSet } from "@domain/fitness/data"
 import { fitStore } from "@domain/fitness/store"
 import { fmtDuration } from "@domain/lib/day"
 import { liveStore } from "@domain/lib/live"
+import { createStore } from "@domain/lib/store"
 import { router, useLocalSearchParams } from "expo-router"
 import {
   ArrowDown,
@@ -29,7 +30,15 @@ import { TextInput, View } from "react-native"
 import Animated from "react-native-reanimated"
 import { toast } from "sonner-native"
 import { LiveNotice } from "@/surfaces/live-notice"
-import { AnimatedCheck, rowEnter, rowExit, TickRow } from "../motion"
+import { newSetPr } from "../body-rewards"
+import {
+  AnimatedCheck,
+  Cheer,
+  feel,
+  rowEnter,
+  rowExit,
+  TickRow,
+} from "../motion"
 import {
   Bar,
   border,
@@ -43,6 +52,7 @@ import {
   ToolButton,
 } from "../native-kit"
 import { go, replace } from "../navigation"
+import { finishingHere } from "../routine-done"
 import { fonts, useTheme } from "../theme"
 import {
   Button,
@@ -58,6 +68,74 @@ import {
 import { displayMass } from "../units"
 import { CreateExerciseRow, ExerciseEditor } from "./fitness"
 import { StartWorkoutSheet } from "./fitness-start"
+
+/** The sets that beat a record as they were ticked, by set id, while the
+ * app runs: the badge stays on the row for the rest of the workout. */
+export const setPrStore = createStore(
+  "set-prs",
+  () => ({ sets: {} as Record<string, { kind: C.PrKind; at: number }> }),
+  { persist: false },
+)
+
+/** Ticks a set, and when the tick beat the exercise's record (heaviest,
+ * estimated 1-rep max or volume, against every finished workout and the
+ * sets before it today) badges the row and adds a firm tap after the
+ * check's own. Returns the record. */
+export function tickSet(workoutId: string, weId: string, setId: string) {
+  const before = fitStore.get().workouts.find((x) => x.id === workoutId)
+  const done = A.toggleSet(workoutId, weId, setId)
+  if (!done || !before) {
+    setPrStore.set((p) => {
+      const { [setId]: _gone, ...sets } = p.sets
+      return { sets }
+    })
+    return undefined
+  }
+  const s = fitStore.get(),
+    after = s.workouts.find((x) => x.id === workoutId)
+  const pr = after && newSetPr(s, before, after, weId)
+  if (!pr) return undefined
+  setPrStore.set((p) => ({
+    sets: { ...p.sets, [setId]: { kind: pr.kind, at: Date.now() } },
+  }))
+  setTimeout(() => feel.impact(), 120)
+  return pr
+}
+
+/** "PR" on a set that beat the record; it pops with a burst the moment it
+ * lands and sits still after. */
+function PrBadge({ kind, at }: { kind: C.PrKind; at: number }) {
+  const t = useTheme(),
+    [fire, setFire] = useState(0)
+  // Only a fresh record cheers; one from earlier in the workout just sits.
+  useEffect(() => {
+    if (Date.now() - at < 1500) setFire(at)
+  }, [at])
+  return (
+    <Cheer fire={fire} color={t.good} size={36}>
+      <View
+        testID="set-pr"
+        accessible
+        accessibilityLabel={`Personal record: ${C.prLabel[kind]}`}
+        style={{
+          alignSelf: "flex-start",
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 3,
+          paddingHorizontal: 6,
+          paddingVertical: 1,
+          borderRadius: 99,
+          backgroundColor: border(t.good, 0.18),
+        }}
+      >
+        <TrendingUp size={11} color={t.good} />
+        <Copy size={11} weight="semibold" style={{ color: t.good }}>
+          PR
+        </Copy>
+      </View>
+    </Cheer>
+  )
+}
 
 /** The rest countdown, pinned under the header so it never scrolls away.
  * ``rest`` is the seconds left (negative once rest is over). */
@@ -150,6 +228,7 @@ export function WorkoutLogger() {
     s = fitStore.use((s) => s),
     t = useTheme(),
     now = useNow(),
+    prs = setPrStore.use((x) => x.sets),
     w = s.workouts.find((w) =>
       p.edit
         ? w.id === p.edit
@@ -242,6 +321,8 @@ export function WorkoutLogger() {
           ?.sets.find((x) => x.id === editing.set)
       : undefined
   const finishWorkout = (mode: "remove" | "done", endAt?: string) => {
+    // Its summary celebrates it; the off-screen card stays out of the way.
+    finishingHere(w.id)
     if (A.finishWorkout(w.id, { unfinished: mode, endAt })) {
       setFinish(false)
       setResume(false)
@@ -516,13 +597,19 @@ export function WorkoutLogger() {
                       >
                         {label}
                       </Copy>
-                      <Copy size={12} muted lines={1} style={{ flex: 1 }}>
-                        {ghost
-                          ? timed
-                            ? C.fmtSpan(C.setSeconds(ghost))
-                            : `${mass(ghost)}×${ghost.reps}`
-                          : "—"}
-                      </Copy>
+                      {C.isDone(set) && prs[set.id] ? (
+                        <View style={{ flex: 1 }}>
+                          <PrBadge {...prs[set.id]} />
+                        </View>
+                      ) : (
+                        <Copy size={12} muted lines={1} style={{ flex: 1 }}>
+                          {ghost
+                            ? timed
+                              ? C.fmtSpan(C.setSeconds(ghost))
+                              : `${mass(ghost)}×${ghost.reps}`
+                            : "—"}
+                        </Copy>
+                      )}
                       {[
                         timed
                           ? ex?.track === "speed"
@@ -585,7 +672,7 @@ export function WorkoutLogger() {
                           // and the tick plays on.
                           <AnimatedCheck
                             checked={C.isDone(set)}
-                            onToggle={() => A.toggleSet(w.id, we.id, set.id)}
+                            onToggle={() => tickSet(w.id, we.id, set.id)}
                             label={C.isDone(set) ? "Undo set" : "Complete set"}
                             color={t.fit}
                             idle={t.line}
