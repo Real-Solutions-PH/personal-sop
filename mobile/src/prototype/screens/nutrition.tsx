@@ -38,6 +38,7 @@ import { Button, Empty, Screen, undo } from "../ui"
 import { Ring } from "../visual"
 import { ActivityCard } from "./activity-card"
 import { LimitList } from "./nutrient-limits"
+import { NutritionInsights } from "./nutrition-insights"
 import { MealBreakdown } from "./nutrition-meal-breakdown"
 import { NutritionTrend } from "./nutrition-trend"
 import { StatsShell } from "./stats-shell"
@@ -83,9 +84,10 @@ export function MacroRings({
           color: left !== undefined && left < 0 ? t.bad : t.text,
         }}
       >
-        {left === undefined
+        {(left === undefined
           ? Math.round(totals.kcal)
-          : Math.abs(Math.round(left))}
+          : Math.abs(Math.round(left))
+        ).toLocaleString("en-US")}
       </Copy>
       <Copy size={10} muted style={{ marginTop: 2 }}>
         {left === undefined
@@ -123,7 +125,7 @@ export function MacroRings({
             value={target ? totals[m.key] / target[m.key] : 0}
           >
             <Copy size={small >= 52 ? 12 : 11} weight="semibold">
-              {Math.round(totals[m.key])}
+              {Math.round(totals[m.key]).toLocaleString("en-US")}
             </Copy>
           </Ring>
           <View>
@@ -417,45 +419,23 @@ export function Nutrition({
             </Button>
           </View>
         )}
+        {/* Goals fill rings; limits are bars to stay under. Both say what
+            is left of this day, so they share the card. */}
+        <View
+          style={{
+            marginTop: 16,
+            paddingTop: 16,
+            borderTopWidth: 1,
+            borderColor: border(t.line, 0.5),
+          }}
+        >
+          <LimitList detail={detail} limits={limitsFor(target)} />
+        </View>
       </Frame>
-      <MealBreakdown meals={meals} />
       <Button icon={Plus} onPress={() => go(`/nutrition/new?day=${day}`)}>
         Log a meal
       </Button>
-      <ActivityCard day={day} />
-      <Frame style={{ padding: 16 }}>
-        <LimitList detail={detail} limits={limitsFor(target)} />
-      </Frame>
-      <NutritionTrend onPickDay={setDay} />
-      <Line style={{ gap: 8 }}>
-        <View style={{ flex: 1 }}>
-          <Button
-            icon={History}
-            tone="quiet"
-            onPress={() => go("/nutrition/history")}
-          >
-            History
-          </Button>
-        </View>
-        <View style={{ flex: 1 }}>
-          <Button
-            icon={Target}
-            tone="quiet"
-            onPress={() => go("/nutrition/targets")}
-          >
-            Targets
-          </Button>
-        </View>
-        <View style={{ flex: 1 }}>
-          <Button
-            icon={Share2}
-            tone="quiet"
-            onPress={() => go("/nutrition/share")}
-          >
-            Share
-          </Button>
-        </View>
-      </Line>
+      <NutritionInsights day={day} />
       {!meals.length ? (
         <Empty
           title="Nothing logged — snap your plate"
@@ -504,7 +484,7 @@ export function Nutrition({
                     <Line>
                       <MealThumb meal={m} />
                       <View style={{ flex: 1 }}>
-                        <Copy size={14} weight="medium" lines={1}>
+                        <Copy size={14} weight="medium">
                           {m.items.length
                             ? m.items
                                 .map((i) => i.name.replace(/\s*\(.*\)/, ""))
@@ -542,6 +522,7 @@ export function Nutrition({
           )
         })
       )}
+      <MealBreakdown meals={meals} />
       {!!recent.length && (
         <View style={{ marginTop: -12 }}>
           <SectionHeading>Quick re-log</SectionHeading>
@@ -587,6 +568,37 @@ export function Nutrition({
           </ScrollView>
         </View>
       )}
+      <ActivityCard day={day} />
+      <NutritionTrend onPickDay={setDay} />
+      <Line style={{ gap: 8 }}>
+        <View style={{ flex: 1 }}>
+          <Button
+            icon={History}
+            tone="quiet"
+            onPress={() => go("/nutrition/history")}
+          >
+            History
+          </Button>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Button
+            icon={Target}
+            tone="quiet"
+            onPress={() => go("/nutrition/targets")}
+          >
+            Targets
+          </Button>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Button
+            icon={Share2}
+            tone="quiet"
+            onPress={() => go("/nutrition/share")}
+          >
+            Share
+          </Button>
+        </View>
+      </Line>
       {children}
     </StatsShell>
   )
