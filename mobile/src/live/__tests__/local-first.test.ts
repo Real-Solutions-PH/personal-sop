@@ -9,6 +9,7 @@ import { logExpense } from "@domain/finance/actions"
 import { finStore } from "@domain/finance/store"
 import {
   addSet,
+  adjustRest,
   finishWorkout,
   startWorkout,
   toggleSet,
@@ -94,6 +95,19 @@ class SlowServer implements Http {
         duration_sec: sec,
         ends_at: new Date(new Date(when).getTime() + sec * 1000).toISOString(),
       })
+    }
+    if (op.name === "fitness.rest.adjust") {
+      // As services.adjust_rest: both fields move by the delta.
+      const cur = this.rows.get("rest")?.row
+      if (cur) {
+        const delta = Number(d.delta)
+        this.write("rest_timer", "rest", {
+          duration_sec: Math.max(0, Number(cur.duration_sec) + delta),
+          ends_at: new Date(
+            new Date(String(cur.ends_at)).getTime() + delta * 1000,
+          ).toISOString(),
+        })
+      }
     }
     if (op.name === "tasks.complete")
       this.write("task", String(d.task_id), {
@@ -380,6 +394,63 @@ test("on a slow link the elapsed time and the rest countdown never jump", async 
   expect(ticked.values().filter(Boolean)).toHaveLength(1)
   expect(server.rows.get(w.id)?.row.started_at).toBe(w.startedAt)
   expect(server.rows.get("rest")?.row.ends_at).toBe(fitStore.get().rest?.endsAt)
+})
+
+describe("rapid rest taps on a slow link add up exactly", () => {
+  async function resting(server: SlowServer) {
+    const { e, w, we } = await workoutInProgress(server)
+    toggleSet(w.id, we.id, we.sets[0].id)
+    await jest.advanceTimersByTimeAsync(30_000)
+    expect(e.pending()).toBe(0)
+    const rest = fitStore.get().rest
+    if (!rest) throw new Error("no rest")
+    return { e, start: new Date(rest.endsAt).getTime() }
+  }
+  const endsAt = () => {
+    const r = fitStore.get().rest
+    return r ? new Date(r.endsAt).getTime() : null
+  }
+  const serverEnds = (server: SlowServer) =>
+    new Date(String(server.rows.get("rest")?.row.ends_at)).getTime()
+
+  test.each([
+    ["each tap while the previous push is in flight", 700],
+    ["all four inside one capture", 50],
+    ["one tap per round trip", LATENCY + 100],
+  ])("4 × +15 is +60: %s", async (_, gap) => {
+    const server = new SlowServer()
+    const { e, start } = await resting(server)
+    server.latency = LATENCY
+    const seen = watch(endsAt)
+    for (let i = 0; i < 4; i++) {
+      adjustRest(15)
+      await jest.advanceTimersByTimeAsync(gap)
+    }
+    await jest.advanceTimersByTimeAsync(30_000)
+    seen.off()
+
+    expect(e.pending()).toBe(0)
+    expect(endsAt()).toBe(start + 60_000)
+    expect(serverEnds(server)).toBe(start + 60_000)
+    // Only ever forward: a pulled row from before the last tap never
+    // pulls the countdown back.
+    const shown = seen.values().filter((v): v is number => v !== null)
+    expect(shown).toEqual([...shown].sort((a, b) => a - b))
+  })
+
+  test("+15 then −15 twice, mixed while in flight, nets −15", async () => {
+    const server = new SlowServer()
+    const { e, start } = await resting(server)
+    server.latency = LATENCY
+    for (const d of [15, -15, -15]) {
+      adjustRest(d)
+      await jest.advanceTimersByTimeAsync(700)
+    }
+    await jest.advanceTimersByTimeAsync(30_000)
+    expect(e.pending()).toBe(0)
+    expect(endsAt()).toBe(start - 15_000)
+    expect(serverEnds(server)).toBe(start - 15_000)
+  })
 })
 
 test("replies to this device's own writes never re-render the logger", async () => {
