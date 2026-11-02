@@ -8,7 +8,6 @@
 import * as C from "@domain/fitness/calc"
 import { fitStore } from "@domain/fitness/store"
 import { createStore } from "@domain/lib/store"
-import * as Haptics from "expo-haptics"
 import { useEffect, useState } from "react"
 import { Text, View } from "react-native"
 import Animated, {
@@ -36,12 +35,6 @@ import { fonts, useTheme } from "./theme"
 export const FLASH_MS = 3200
 /** A flash older than this when its page opens is history, not news. */
 const STALE_MS = 6000
-
-/** Until the shared warning tap lands in ./motion. */
-export const warnTap = () =>
-  void Haptics.notificationAsync(
-    Haptics.NotificationFeedbackType.Warning,
-  ).catch(() => {})
 
 // ------------------------------------------------------------------ meals
 
@@ -79,7 +72,7 @@ export function mealSaved(before: ReturnType<typeof dayIntake>, day: string) {
       ...Object.fromEntries(goals.map((k) => [k, day])),
     }))
   markCompletion()
-  if (over.length) warnTap()
+  if (over.length) feel.warning()
   else feel.success()
   mealFlash.set({ day, at: Date.now(), over, goals })
 }
