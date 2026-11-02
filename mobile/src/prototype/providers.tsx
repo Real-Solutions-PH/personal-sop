@@ -18,6 +18,7 @@ import { liveMode } from "@/live/config"
 import { BootGate } from "./boot/boot-screen"
 import { contactGraceEnds, reachable } from "./connectivity"
 import { connectHealthWorkouts } from "./health-workouts"
+import { healProfilePhoto } from "./profile-photo-heal"
 import { sessionStore, startLiveSession } from "./session"
 import { prototypeStorage } from "./storage"
 import { AppToaster } from "./toaster"
@@ -68,6 +69,8 @@ export function PrototypeProviders({ children }: { children: ReactNode }) {
         })
       })
       flushStores()
+      // An update moves the app's files: the avatar follows its file.
+      healProfilePhoto()
       setReady(true)
     } catch {
       setError("Local storage could not be opened. Please try again.")

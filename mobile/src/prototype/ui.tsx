@@ -498,6 +498,9 @@ export function Empty({
 }
 /** Pauses the page's scrolling while a drag inside it runs. */
 export const ScrollLock = createContext<(locked: boolean) => void>(() => {})
+/** Scrolls the page so content down to ``y`` (from the top of the page's
+ * content) shows above its bottom edge; no-op when it already does. */
+export const PageScroll = createContext<(y: number) => void>(() => {})
 
 export function Screen({
   title,
@@ -536,6 +539,13 @@ export function Screen({
   // A hairline appears under the header once content scrolls beneath it.
   const [scrolled, setScrolled] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  const view = useRef({ top: 0, height: 0 })
+  const reveal = useCallback((y: number) => {
+    const { top, height } = view.current
+    if (!height || y <= top + height) return
+    view.current.top = y - height
+    scroller.current?.scrollTo({ y: y - height, animated: false })
+  }, [])
   const refresh = async () => {
     if (!onRefresh) return
     setRefreshing(true)
@@ -645,7 +655,11 @@ export function Screen({
         ref={scroller}
         scrollEnabled={!locked}
         scrollEventThrottle={64}
+        onLayout={(e) => {
+          view.current.height = e.nativeEvent.layout.height
+        }}
         onScroll={(e) => {
+          view.current.top = e.nativeEvent.contentOffset.y
           const next = e.nativeEvent.contentOffset.y > 4
           if (next !== scrolled) setScrolled(next)
         }}
@@ -671,7 +685,9 @@ export function Screen({
           gap: prototypeLayout ? 12 : 8,
         }}
       >
-        <ScrollLock.Provider value={setLocked}>{children}</ScrollLock.Provider>
+        <ScrollLock.Provider value={setLocked}>
+          <PageScroll.Provider value={reveal}>{children}</PageScroll.Provider>
+        </ScrollLock.Provider>
       </ScrollView>
       {footer}
     </KeyboardAvoidingView>
