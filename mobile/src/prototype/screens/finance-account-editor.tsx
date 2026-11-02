@@ -118,7 +118,12 @@ export function AccountEditor({
           />
         </View>
         <View style={{ flex: 1 }}>
-          <DateField label="As of" value={date} onChangeText={setDate} />
+          <DateField
+            label="As of"
+            value={date}
+            onChangeText={setDate}
+            maximumDate={dayKey()}
+          />
         </View>
       </Line>
       {type === "credit" && (
@@ -167,6 +172,7 @@ export function AccountEditor({
               label="Goal date"
               value={goalBy}
               onChangeText={setGoalBy}
+              minimumDate={dayKey()}
             />
           )}
           <Line style={{ paddingVertical: 4 }}>
@@ -194,6 +200,7 @@ export function AccountEditor({
               label="Matures on"
               value={matures}
               onChangeText={setMatures}
+              minimumDate={date || undefined}
             />
           )}
         </>

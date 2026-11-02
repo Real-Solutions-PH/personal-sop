@@ -279,6 +279,8 @@ export function PayloadForm({
                   <View style={{ flex: 1 }}>
                     <DateField
                       label="Due date"
+                      clearable
+                      placeholder="No date"
                       value={task.dueDate ?? ""}
                       onChangeText={(dueDate) =>
                         update({ dueDate: dueDate || null })

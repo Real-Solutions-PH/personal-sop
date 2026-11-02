@@ -4,6 +4,7 @@ import {
   CalendarDays,
   Check,
   ChevronLeft,
+  Clock,
   Ellipsis,
   type LucideIcon,
   Trash2,
@@ -51,6 +52,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
 import { screenShown } from "./boot/first-screen"
+import { formatPick, parseDay, startOf, toClock, toDay } from "./date-pick"
 import { feel } from "./motion"
 import { back, go } from "./navigation"
 import { Switch } from "./switch"
@@ -1254,21 +1256,44 @@ export async function shareText(message: string) {
   }
 }
 
+/** The one date (or time) field. A tap opens the picker: on iOS a sheet
+ * with the calendar (or wheel) already showing and a Done to keep it; on
+ * Android the system dialog. The field shows the formatted day, never a
+ * raw key, and nothing about it opens a keyboard. Web keeps a text field.
+ * Values stay local ``YYYY-MM-DD`` days or ``HH:mm`` times. */
 export function DateField({
   label,
   value,
   onChangeText,
   mode = "date",
   hideLabel = false,
+  minimumDate,
+  maximumDate,
+  defaultValue,
+  clearable = false,
+  placeholder,
 }: {
   label: string
   value: string
   onChangeText: (value: string) => void
   mode?: "date" | "time"
   hideLabel?: boolean
+  /** Earliest day that can be picked (``YYYY-MM-DD``). */
+  minimumDate?: string
+  /** Latest day that can be picked (``YYYY-MM-DD``). */
+  maximumDate?: string
+  /** Where the picker opens while the field is empty (else today / 09:00). */
+  defaultValue?: string
+  /** An optional field: shows a clear (×) while it holds a value. */
+  clearable?: boolean
+  /** Shown while empty. */
+  placeholder?: string
 }) {
   const t = useTheme()
   const [open, setOpen] = useState(false)
+  const [turning, setTurning] = useState(() =>
+    startOf(mode, value, defaultValue, minimumDate, maximumDate),
+  )
   if (Platform.OS === "web")
     return (
       <Field
@@ -1276,69 +1301,149 @@ export function DateField({
         label={label}
         value={value}
         onChangeText={onChangeText}
+        placeholder={placeholder}
       />
     )
-  const parsed =
+  const Picker = (
+    require("@react-native-community/datetimepicker") as typeof import("@react-native-community/datetimepicker")
+  ).default
+  const bounds =
     mode === "date"
-      ? new Date(`${value}T12:00:00`)
-      : new Date(`2000-01-01T${value || "09:00"}:00`)
-  const date = Number.isNaN(parsed.getTime()) ? new Date() : parsed
-  const Picker = open
-    ? (
-        require("@react-native-community/datetimepicker") as typeof import("@react-native-community/datetimepicker")
-      ).default
-    : null
-  const pad = (n: number) => String(n).padStart(2, "0")
+      ? {
+          minimumDate: parseDay(minimumDate ?? "") ?? undefined,
+          maximumDate: parseDay(maximumDate ?? "") ?? undefined,
+        }
+      : {}
+  const write = (d: Date) =>
+    onChangeText(mode === "date" ? toDay(d) : toClock(d))
+  const shown = value ? formatPick(mode, value) : ""
+  const empty =
+    placeholder ?? (mode === "date" ? "Choose a date" : "Choose a time")
   return (
     <View style={{ gap: 6, marginVertical: 8 }}>
       {!hideLabel && (
         <Text
           style={{ fontFamily: fonts.medium, fontSize: 12, color: t.muted }}
         >
-          {label.replace(" (YYYY-MM-DD)", "").replace(" (HH:mm)", "")}
+          {label}
         </Text>
       )}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={label}
-        onPress={() => setOpen(true)}
+      <View
         style={{
           minHeight: 44,
           backgroundColor: t.card,
           borderWidth: 1,
-          borderColor: t.line,
+          borderColor: open ? t.accent : t.line,
           borderRadius: 12,
-          paddingHorizontal: 12,
           flexDirection: "row",
           alignItems: "center",
-          justifyContent: "space-between",
-          gap: 8,
         }}
       >
-        <Text style={{ fontFamily: fonts.body, fontSize: 14, color: t.text }}>
-          {value || `Choose ${mode}`}
-        </Text>
-        <CalendarDays size={16} color={t.muted} />
-      </Pressable>
-      {Picker && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={label}
+          accessibilityValue={{ text: shown || "Not set" }}
+          accessibilityHint={`Opens a ${mode} picker`}
+          onPress={() => {
+            setTurning(
+              startOf(mode, value, defaultValue, minimumDate, maximumDate),
+            )
+            setOpen(true)
+          }}
+          style={{
+            flex: 1,
+            minHeight: 42,
+            paddingHorizontal: 12,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 8,
+          }}
+        >
+          <Text
+            numberOfLines={1}
+            style={{
+              flexShrink: 1,
+              fontFamily: fonts.body,
+              fontSize: 14,
+              color: shown ? t.text : t.muted,
+            }}
+          >
+            {shown || empty}
+          </Text>
+          {!(clearable && value) &&
+            (mode === "date" ? (
+              <CalendarDays size={16} color={t.muted} />
+            ) : (
+              <Clock size={16} color={t.muted} />
+            ))}
+        </Pressable>
+        {clearable && !!value && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Clear ${label}`}
+            hitSlop={8}
+            onPress={() => onChangeText("")}
+            style={{
+              width: 40,
+              minHeight: 42,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <X size={16} color={t.muted} />
+          </Pressable>
+        )}
+      </View>
+      {Picker && open && Platform.OS === "android" && (
         <Picker
-          value={date}
+          value={turning}
           mode={mode}
-          display={Platform.OS === "ios" ? "spinner" : "default"}
+          display="default"
+          {...bounds}
           onChange={(event, next) => {
-            if (Platform.OS !== "ios" || event.type === "dismissed")
-              setOpen(false)
-            if (event.type === "set" && next)
-              onChangeText(
-                mode === "date"
-                  ? `${next.getFullYear()}-${pad(next.getMonth() + 1)}-${pad(next.getDate())}`
-                  : `${pad(next.getHours())}:${pad(next.getMinutes())}`,
-              )
+            setOpen(false)
+            if (event.type === "set" && next) write(next)
           }}
         />
       )}
-      {open && Platform.OS === "ios" && (
-        <Button onPress={() => setOpen(false)}>Done</Button>
+      {Platform.OS === "ios" && (
+        <Sheet title={label} open={open} onClose={() => setOpen(false)}>
+          <View style={{ alignItems: "center" }}>
+            {Picker && (
+              <Picker
+                testID="date-wheel"
+                value={turning}
+                mode={mode}
+                display={mode === "date" ? "inline" : "spinner"}
+                themeVariant={t.dark ? "dark" : "light"}
+                accentColor={t.accent}
+                textColor={t.text}
+                {...bounds}
+                onChange={(_, next) => next && setTurning(next)}
+              />
+            )}
+          </View>
+          <Button
+            onPress={() => {
+              write(turning)
+              setOpen(false)
+            }}
+          >
+            Done
+          </Button>
+          {clearable && !!value && (
+            <Button
+              tone="quiet"
+              onPress={() => {
+                onChangeText("")
+                setOpen(false)
+              }}
+            >
+              Clear
+            </Button>
+          )}
+        </Sheet>
       )}
     </View>
   )

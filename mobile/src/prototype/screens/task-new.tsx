@@ -111,12 +111,21 @@ export function TaskNew({ listId, day }: { listId?: string; day?: string }) {
             </Button>
           ))}
         </Line>
-        <DateField label="Date" value={date} onChangeText={setDate} />
+        <DateField
+          label="Date"
+          value={date}
+          onChangeText={setDate}
+          clearable
+          placeholder="No date"
+        />
         <DateField
           label="Time (optional)"
           value={time}
           onChangeText={setTime}
           mode="time"
+          defaultValue={defaultTime}
+          clearable
+          placeholder="Any time"
         />
         <Choices
           label="Remind me"

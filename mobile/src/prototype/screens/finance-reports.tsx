@@ -120,6 +120,7 @@ function CustomRangeSheet({
             label="From"
             value={draft.from}
             onChangeText={(from) => setDraft({ ...draft, from })}
+            maximumDate={draft.to || dayKey()}
           />
         </View>
         <View style={{ flex: 1 }}>
@@ -127,6 +128,8 @@ function CustomRangeSheet({
             label="To"
             value={draft.to}
             onChangeText={(to) => setDraft({ ...draft, to })}
+            minimumDate={draft.from || undefined}
+            maximumDate={dayKey()}
           />
         </View>
       </Line>

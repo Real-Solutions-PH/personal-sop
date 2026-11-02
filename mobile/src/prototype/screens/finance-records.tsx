@@ -448,6 +448,9 @@ export function Records({ accountId }: { accountId?: string }) {
                 label="From"
                 value={draft.from}
                 onChangeText={(from) => setDraft({ ...draft, from })}
+                maximumDate={draft.to || undefined}
+                clearable
+                placeholder="Any"
               />
             </View>
             <View style={{ flex: 1 }}>
@@ -455,6 +458,9 @@ export function Records({ accountId }: { accountId?: string }) {
                 label="To"
                 value={draft.to}
                 onChangeText={(to) => setDraft({ ...draft, to })}
+                minimumDate={draft.from || undefined}
+                clearable
+                placeholder="Any"
               />
             </View>
           </Line>

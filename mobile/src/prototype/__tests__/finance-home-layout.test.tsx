@@ -6,7 +6,7 @@ import { finStore } from "@domain/finance/store"
 import { dayKey } from "@domain/lib/day"
 import { privacyStore } from "@domain/lib/privacy"
 import { configureStorage, resetAll } from "@domain/lib/store"
-import { fireEvent, render, screen } from "@testing-library/react-native"
+import { act, fireEvent, render, screen } from "@testing-library/react-native"
 import type { ReactNode } from "react"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
@@ -118,12 +118,16 @@ function texts(node: ReturnType<typeof screen.toJSON>): string[] {
 }
 const allText = () => texts(screen.toJSON()).join("\n")
 /** Picks a day in the date field with this label. */
-function pickDay(label: string, day: string) {
+async function pickDay(label: string, day: string) {
   fireEvent.press(screen.getByRole("button", { name: label }))
   fireEvent.changeText(
     screen.getAllByLabelText("Date picker").slice(-1)[0],
     day,
   )
+  // iOS keeps the turned day until Done; the next sheet waits until this
+  // one's modal is gone.
+  fireEvent.press(screen.getAllByText("Done").slice(-1)[0])
+  await act(() => new Promise((r) => setTimeout(r, 450)))
 }
 
 test("the home's sections come in the agreed order", () => {
@@ -221,13 +225,13 @@ test("Reports keeps its periods and the income vs expense card", () => {
   expect(screen.getByText("Income vs expense")).toBeTruthy()
 })
 
-test("a custom report range applies without a toast and travels in card links", () => {
+test("a custom report range applies without a toast and travels in card links", async () => {
   const { router } = require("expo-router")
   render(<Reports />, { wrapper })
   fireEvent.press(screen.getByText("Custom"))
   const t = dayKey()
-  pickDay("From", addDays(t, -9))
-  pickDay("To", t)
+  await pickDay("From", addDays(t, -9))
+  await pickDay("To", t)
   fireEvent.press(screen.getByRole("button", { name: "Apply" }))
   expect(toast).not.toHaveBeenCalledWith(expect.stringMatching(/^Showing /))
   fireEvent.press(screen.getByRole("button", { name: "Spend by category" }))
@@ -236,10 +240,10 @@ test("a custom report range applies without a toast and travels in card links", 
   )
 })
 
-test("a report range over 400 days is refused and the sheet stays open", () => {
+test("a report range over 400 days is refused and the sheet stays open", async () => {
   render(<Reports />, { wrapper })
   fireEvent.press(screen.getByText("Custom"))
-  pickDay("From", addDays(dayKey(), -500))
+  await pickDay("From", addDays(dayKey(), -500))
   fireEvent.press(screen.getByRole("button", { name: "Apply" }))
   expect(toast.error).toHaveBeenCalledWith("Pick a range of up to 400 days")
   expect(screen.getByRole("button", { name: "Apply" })).toBeTruthy()

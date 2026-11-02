@@ -290,6 +290,7 @@ export function Projection() {
                 <DateField
                   label="From"
                   value={range.from}
+                  maximumDate={range.to}
                   onChangeText={(from) =>
                     isDayKey(from) && pick({ ...range, from })
                   }
@@ -299,6 +300,7 @@ export function Projection() {
                 <DateField
                   label="To"
                   value={range.to}
+                  minimumDate={range.from}
                   onChangeText={(to) => isDayKey(to) && pick({ ...range, to })}
                 />
               </View>

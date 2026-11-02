@@ -1,13 +1,15 @@
 import { Clock } from "lucide-react-native"
 import { useEffect, useState } from "react"
 import { Platform, TextInput, View } from "react-native"
+import { parseClock } from "./date-pick"
 import { Copy, Tap } from "./native-kit"
 import { fonts, useTheme } from "./theme"
 import { Button, Sheet } from "./ui"
 
 const hhmm = (d: Date) =>
   `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`
-const asDate = (v: string) => new Date(`2000-01-01T${v}:00`)
+// An unset or unreadable time opens on 09:00, and Done saves that.
+const asDate = (v: string) => parseClock(v) ?? parseClock("09:00")!
 
 /** Compact time control. One tap opens the time wheel: Android's clock
  * dialog, and on iOS a sheet with the wheel already turning (the inline

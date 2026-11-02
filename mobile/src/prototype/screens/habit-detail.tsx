@@ -640,7 +640,15 @@ export function HabitDetail({ id }: { id: string }) {
             </Tap>
           ))}
         </Line>
-        <DateField label="Resume on" value={until} onChangeText={setUntil} />
+        <DateField
+          label="Resume on"
+          value={until}
+          onChangeText={setUntil}
+          minimumDate={dayOffset(1)}
+          defaultValue={dayOffset(7)}
+          clearable
+          placeholder="When I resume it"
+        />
         <Field
           label="Reason (optional)"
           value={reason}

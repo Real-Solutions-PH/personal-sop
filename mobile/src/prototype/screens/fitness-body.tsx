@@ -184,7 +184,12 @@ export function WeighInEditor({
         onChangeText={setWeight}
         keyboardType="decimal-pad"
       />
-      <DateField label="Date" value={day} onChangeText={setDay} />
+      <DateField
+        label="Date"
+        value={day}
+        onChangeText={setDay}
+        maximumDate={dayKey()}
+      />
       <Field
         label="Body fat % (optional)"
         value={fat}
