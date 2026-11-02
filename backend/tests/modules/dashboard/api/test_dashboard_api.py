@@ -223,6 +223,26 @@ def test_reviews(client: TestClient, db: Session) -> None:
     assert ok(client.get(f"{API}/reviews", headers=h))["count"] == 1
 
 
+def test_review_opened_at_syncs(client: TestClient, db: Session) -> None:
+    """Today's weekly review card leaves a day after the review is opened, on
+    every device, so the first open is a synced field."""
+    _, h = signed_in(db)
+    today = ok(client.get(f"{STATS}/today", headers=h))["day"]
+    key = monday_key(today)
+    row_id = str(uuid.uuid4())
+    opened = "2026-11-03T01:30:00+00:00"
+    op = {"op_id": str(uuid.uuid4()), "kind": "upsert", "name": "review",
+          "id": row_id, "data": {"key": key, "opened_at": opened}}  # fmt: skip
+    res = client.post(f"{SYNC}/push", headers=h, json={"ops": [op]}).json()
+    assert [r["status"] for r in res["results"]] == ["applied"], res
+    pulled = client.get(f"{SYNC}/pull", headers=h).json()["changes"]
+    row = next(c for c in pulled if c["entity"] == "review")["data"]
+    assert row["opened_at"].startswith("2026-11-03T01:30:00")
+    assert row["done"] is False
+    listed = ok(client.get(f"{API}/reviews", headers=h))["data"][0]
+    assert listed["opened_at"].startswith("2026-11-03T01:30:00")
+
+
 def test_review_reflection_goes_to_journal(client: TestClient, db: Session) -> None:
     _, h = signed_in(db)
     key = monday_key(ok(client.get(f"{STATS}/today", headers=h))["day"])

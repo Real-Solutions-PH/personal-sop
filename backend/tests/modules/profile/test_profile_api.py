@@ -291,5 +291,33 @@ def test_profile_and_modules_sync(client: TestClient, db: Session) -> None:
     assert {"profile", "module_pref", "identity"} <= {c["entity"] for c in pulled}
 
 
+def test_module_order_syncs(client: TestClient, db: Session) -> None:
+    """Settings → Sections order: each module's place rides on its row, and
+    a write that leaves it out (an older app) keeps the place it had."""
+    _, h = signed_in(db)
+    ids = {m: str(uuid.uuid4()) for m in ("finance", "habits")}
+
+    def push(module: str, data: dict[str, object]) -> list[str]:
+        op = {"op_id": str(uuid.uuid4()), "kind": "upsert", "name": "module_pref",
+              "id": ids[module], "data": {"module": module, **data}}  # fmt: skip
+        res = client.post(
+            f"{settings.API_V1_STR}/sync/push", headers=h, json={"ops": [op]}
+        ).json()["results"]
+        return [r["status"] for r in res]
+
+    assert push("finance", {"sort_order": 0, "enabled": True, "weight": 2}) == [
+        "applied"
+    ]
+    assert push("habits", {"sort_order": 1}) == ["applied"]
+    assert push("finance", {"enabled": False}) == ["applied"]
+    order = {m["module"]: m["sort_order"] for m in client.get(API, headers=h).json()["modules"]}
+    assert (order["finance"], order["habits"]) == (0, 1)
+    pulled = client.get(f"{settings.API_V1_STR}/sync/pull", headers=h).json()["changes"]
+    rows = {c["data"]["module"]: c["data"] for c in pulled if c["entity"] == "module_pref"}
+    assert rows["finance"]["sort_order"] == 0 and rows["finance"]["enabled"] is False
+    assert rows["habits"]["sort_order"] == 1
+    assert push("habits", {"sort_order": 100}) != ["applied"]
+
+
 def test_unauthenticated_is_401(client: TestClient) -> None:
     assert client.get(API).status_code == 401
