@@ -47,7 +47,6 @@ import {
   IconTap,
   Line,
   SectionHeading,
-  SmallButton,
   Tap,
 } from "../native-kit"
 import { go, replace } from "../navigation"
@@ -808,7 +807,7 @@ export function RunDetail({
 
 // ------------------------------------------------------------------ history
 
-function weekRuns(runs: RunSession[]) {
+export function weekRuns(runs: RunSession[]) {
   const start = weekStart(dayKey())
   const end = addDays(start, 7)
   return runs.filter((r) => {
@@ -991,65 +990,5 @@ export function RunHistory() {
         </>
       )}
     </Screen>
-  )
-}
-
-/** Fitness page: start a run or walk, with this week's distance; the
- * whole card opens the history. While one runs, it says so and opens it. */
-export function RunCard() {
-  const t = useTheme()
-  const runs = R.runsOf(fitStore.use((s) => s))
-  const active = RL.runLiveStore.use((s) => s.active)
-  const week = R.runTotals(weekRuns(runs))
-  const start = (kind: RunKind) => go(`${RUN_HREF}?kind=${kind}`)
-  return (
-    <Frame style={{ padding: 16, gap: 10, marginTop: 12 }}>
-      <Tap onPress={() => go(active ? RUN_HREF : "/fitness/runs")}>
-        <Line style={{ gap: 10 }}>
-          <View
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 12,
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: border(t.fit, 0.14),
-            }}
-          >
-            <Activity size={18} color={t.fit} />
-          </View>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Copy weight="semibold">Run or walk</Copy>
-            <Copy size={12} muted>
-              {active
-                ? `${R.kindLabel(active.kind)} in progress`
-                : week.count
-                  ? `${R.fmtKm(week.distanceM)} km this week · ${week.count} ${week.count === 1 ? "session" : "sessions"}`
-                  : "GPS route, pace and splits"}
-            </Copy>
-          </View>
-          <ChevronRight size={16} color={t.muted} />
-        </Line>
-      </Tap>
-      {!active && (
-        <Line style={{ gap: 8 }}>
-          <SmallButton
-            accent="fit"
-            icon={Activity}
-            onPress={() => start("run")}
-          >
-            Start run
-          </SmallButton>
-          <SmallButton
-            accent="fit"
-            quiet
-            icon={Footprints}
-            onPress={() => start("walk")}
-          >
-            Start walk
-          </SmallButton>
-        </Line>
-      )}
-    </Frame>
   )
 }
