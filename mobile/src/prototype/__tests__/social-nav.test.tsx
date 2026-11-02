@@ -143,5 +143,8 @@ test("the empty compose area is a button that opens the library", async () => {
   const area = screen.getByLabelText("Add photos or videos from your library")
   expect(area.props.accessibilityRole).toBe("button")
   fireEvent.press(area)
-  await waitFor(() => expect(pickMedia).toHaveBeenCalledWith({ camera: false }))
+  // Photos are cut to the post's frame, 4:5 until another is chosen.
+  await waitFor(() =>
+    expect(pickMedia).toHaveBeenCalledWith({ camera: false, ratio: 0.8 }),
+  )
 })
