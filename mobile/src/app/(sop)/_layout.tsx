@@ -37,7 +37,7 @@ import { prototypeMode } from "@/prototype/mode"
 import { replace } from "@/prototype/navigation"
 import { applyDraft, getDraft } from "@/prototype/onboarding-draft"
 import { startRestAlarm } from "@/prototype/rest-alarm"
-import { RoutineDoneWatcher } from "@/prototype/routine-done"
+import { FinishWatcher } from "@/prototype/routine-done"
 import { startRunTracker } from "@/prototype/run-tracker"
 import { startScreenSync } from "@/prototype/screen-sync"
 import { CaptureOverlay } from "@/prototype/screens/capture"
@@ -344,7 +344,7 @@ export default function PrototypeLayout() {
             <WakeWordListener onChatPage={path === "/capture"} />
             <SurfacesBridge />
             <TrophyWatcher hidden={focus} />
-            <RoutineDoneWatcher hidden={focus} />
+            <FinishWatcher hidden={focus} />
             <AtRiskWatcher />
             <DayMomentWatcher hidden={focus} />
           </>

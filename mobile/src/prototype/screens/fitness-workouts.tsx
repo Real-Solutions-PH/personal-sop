@@ -457,7 +457,7 @@ export function WorkoutDetail({
           <Copy size={12} muted>
             {x.label}
             {summary && x.label === "Volume" && delta !== undefined && (
-              <Copy size={12} style={{ color: delta >= 0 ? t.good : t.muted }}>
+              <Copy size={12} style={{ color: delta >= 0 ? t.good : t.bad }}>
                 {" "}
                 {delta >= 0 ? "▲" : "▼"}
                 {Math.abs(delta)}% vs last
@@ -513,7 +513,7 @@ export function WorkoutDetail({
               style={{
                 textAlign: "center",
                 marginTop: -12,
-                color: delta >= 0 ? t.good : t.muted,
+                color: delta >= 0 ? t.good : t.bad,
               }}
             >
               Volume {delta >= 0 ? "▲" : "▼"}

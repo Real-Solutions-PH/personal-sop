@@ -27,6 +27,8 @@ import {
 import { useState } from "react"
 import { TextInput, type TextInputProps, View } from "react-native"
 import { toast } from "sonner-native"
+import { mealSaved } from "../body-moments"
+import { dayIntake } from "../body-rewards"
 import {
   Bar,
   border,
@@ -644,11 +646,13 @@ export function ManualMeal() {
             onPress={() => {
               const eatenAt = stamp()
               if (!eatenAt) return
+              const before = dayIntake(fitStore.get(), day)
               const meal = A.logMeal({
                 items: items.map(({ id: _id, ...rest }) => rest),
                 eatenAt,
                 label,
               })
+              mealSaved(before, day)
               undo(
                 `Logged ${meal.label} · ${Math.round(totals.kcal)} kcal`,
                 () => A.deleteMeal(meal.id),

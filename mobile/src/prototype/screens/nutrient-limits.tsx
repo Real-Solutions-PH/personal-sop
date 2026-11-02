@@ -10,6 +10,7 @@ import { fitStore } from "@domain/fitness/store"
 import { dayKey } from "@domain/lib/day"
 import { Gauge } from "lucide-react-native"
 import { View } from "react-native"
+import { FlashLine } from "../body-moments"
 import { Copy, Line } from "../native-kit"
 import { useTheme } from "../theme"
 
@@ -47,6 +48,7 @@ export function LimitBar({
   max,
   scope = "day",
   overDays,
+  flash,
 }: {
   k: LimitKey
   amount: number | undefined
@@ -55,6 +57,8 @@ export function LimitBar({
   scope?: Scope
   /** For an average: how many of the days went over. */
   overDays?: number
+  /** The save that just carried it over: "+0.8 g over". */
+  flash?: string
 }) {
   const t = useTheme()
   const { label, unit } = LIMIT_LABEL[k]
@@ -134,6 +138,9 @@ export function LimitBar({
           }}
         />
       </Line>
+      {flash && (
+        <FlashLine testID={`limit-over-${k}`} text={flash} tone="bad" />
+      )}
     </View>
   )
 }
@@ -146,6 +153,7 @@ export function LimitList({
   scope = "day",
   only = false,
   overDays,
+  flash,
 }: {
   detail: Partial<Record<LimitKey, number>>
   limits?: Limits
@@ -153,6 +161,8 @@ export function LimitList({
   overDays?: Partial<Record<LimitKey, number>>
   /** Only the limits a value is known for (a meal card). */
   only?: boolean
+  /** Per limit, the save that just carried it over. */
+  flash?: Partial<Record<LimitKey, string>>
 }) {
   const t = useTheme()
   const today = useTodayLimits()
@@ -179,6 +189,7 @@ export function LimitList({
           max={max[k]}
           scope={scope}
           overDays={overDays?.[k]}
+          flash={flash?.[k]}
         />
       ))}
     </View>
