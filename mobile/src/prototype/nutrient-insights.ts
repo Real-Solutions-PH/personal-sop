@@ -13,6 +13,8 @@ export const NUTRIENTS = [
   "sodium",
   "protein",
   "fiber",
+  "fiberSoluble",
+  "fiberInsoluble",
   "carbs",
   "fat",
   "kcal",
@@ -20,7 +22,14 @@ export const NUTRIENTS = [
 export type NutrientKey = (typeof NUTRIENTS)[number]
 
 /** Detail values an item may not carry; macros are always there. */
-const OPTIONAL = new Set<NutrientKey>(["sugar", "satFat", "sodium", "fiber"])
+const OPTIONAL = new Set<NutrientKey>([
+  "sugar",
+  "satFat",
+  "sodium",
+  "fiber",
+  "fiberSoluble",
+  "fiberInsoluble",
+])
 
 export interface FoodRow {
   /** As written the latest time it was eaten, without its portion note. */

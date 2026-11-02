@@ -170,6 +170,8 @@ class MacroTargetPublic(_Row):
     sugar_max_g: float | None = None
     sodium_max_mg: float | None = None
     fiber_g: float | None = None
+    fiber_soluble_g: float | None = None
+    fiber_insoluble_g: float | None = None
 
 
 class TargetAdjustmentPublic(_Row):
@@ -202,6 +204,8 @@ class MealItemPublic(_Row):
     assumption: str | None
     fiber: float | None = None
     sat_fat: float | None = None
+    fiber_soluble: float | None = None
+    fiber_insoluble: float | None = None
     sugar: float | None = None
     sodium: float | None = None
 
@@ -328,6 +332,8 @@ class MacroTargetIn(BaseModel):
     sugar_max_g: float | None = OptMacro
     sodium_max_mg: float | None = OptMacro
     fiber_g: float | None = OptMacro
+    fiber_soluble_g: float | None = OptMacro
+    fiber_insoluble_g: float | None = OptMacro
 
 
 class TargetAdjustmentIn(BaseModel):
@@ -359,6 +365,8 @@ class MealItemIn(BaseModel):
     assumption: str | None = Field(default=None, max_length=280)
     fiber: float | None = OptMacro
     sat_fat: float | None = OptMacro
+    fiber_soluble: float | None = OptMacro
+    fiber_insoluble: float | None = OptMacro
     sugar: float | None = OptMacro
     sodium: float | None = Field(default=None, ge=0, le=100000)
 
@@ -569,7 +577,14 @@ class DuplicateMeal(BaseModel):
     id: uuid.UUID | None = None
 
 
-LIMIT_FIELDS = ("sat_fat_max_g", "sugar_max_g", "sodium_max_mg", "fiber_g")
+LIMIT_FIELDS = (
+    "sat_fat_max_g",
+    "sugar_max_g",
+    "sodium_max_mg",
+    "fiber_g",
+    "fiber_soluble_g",
+    "fiber_insoluble_g",
+)
 
 
 class TargetSet(BaseModel):
@@ -582,6 +597,8 @@ class TargetSet(BaseModel):
     sugar_max_g: float | None = OptMacro
     sodium_max_mg: float | None = OptMacro
     fiber_g: float | None = OptMacro
+    fiber_soluble_g: float | None = OptMacro
+    fiber_insoluble_g: float | None = OptMacro
 
 
 # --------------------------------------------------------------------------

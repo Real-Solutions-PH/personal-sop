@@ -22,7 +22,18 @@ from app.shared import owned_repo
 from app.shared.context import Ctx
 from app.shared.domain import conflict
 
-NUTRIENTS = ("kcal", "protein", "carbs", "fat", "fiber", "sat_fat", "sugar", "sodium")
+NUTRIENTS = (
+    "kcal",
+    "protein",
+    "carbs",
+    "fat",
+    "fiber",
+    "sat_fat",
+    "fiber_soluble",
+    "fiber_insoluble",
+    "sugar",
+    "sodium",
+)
 # Units that count pieces or servings rather than weigh.
 COUNT_UNITS = {
     "",
@@ -71,6 +82,8 @@ class FoodDraft:
     fat: float = 0
     fiber: float | None = None
     sat_fat: float | None = None
+    fiber_soluble: float | None = None
+    fiber_insoluble: float | None = None
     sugar: float | None = None
     sodium: float | None = None
     basis: str = "100g"
@@ -148,6 +161,8 @@ def save_food(ctx: Ctx, d: FoodDraft) -> tuple[FoodItem, bool]:
         "fat": d.fat,
         "fiber": d.fiber,
         "sat_fat": d.sat_fat,
+        "fiber_soluble": d.fiber_soluble,
+        "fiber_insoluble": d.fiber_insoluble,
         "sugar": d.sugar,
         "sodium": d.sodium,
         "source": d.source,

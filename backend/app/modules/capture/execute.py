@@ -322,6 +322,8 @@ def execute(
                 assumption=i.get("assumption"),
                 fiber=_num(i.get("fiber")),
                 sat_fat=_num(i.get("sat_fat")),
+                fiber_soluble=_num(i.get("fiber_soluble")),
+                fiber_insoluble=_num(i.get("fiber_insoluble")),
                 sugar=_num(i.get("sugar")),
                 sodium=_num(i.get("sodium")),
             )

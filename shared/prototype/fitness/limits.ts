@@ -54,6 +54,8 @@ export function limitLevel(amount: number, limit: number) {
 
 type Detail = {
   fiber?: number
+  fiberSoluble?: number
+  fiberInsoluble?: number
   satFat?: number
   sugar?: number
   sodium?: number
@@ -66,6 +68,26 @@ export function detailTotals(items: readonly Detail[]) {
   for (const key of ["fiber", "satFat", "sugar", "sodium"] as const) {
     const known = items.filter((i) => i[key] !== undefined)
     if (known.length) out[key] = known.reduce((a, i) => a + (i[key] ?? 0), 0)
+  }
+  return out
+}
+
+/** Fiber by kind: each kind added from the items that carry it, and the
+ * fiber no item splits (``unsplit``). An item logged before the split was
+ * tracked carries only its total, and that total is shown as not split
+ * rather than shared out by a guessed ratio, because the soluble share
+ * differs too much by food (about half of oats, a tenth of wheat bran). */
+export function fiberSplit(items: readonly Detail[]) {
+  const out: { soluble?: number; insoluble?: number; unsplit: number } = {
+    unsplit: 0,
+  }
+  for (const i of items) {
+    if (i.fiberSoluble !== undefined)
+      out.soluble = (out.soluble ?? 0) + i.fiberSoluble
+    if (i.fiberInsoluble !== undefined)
+      out.insoluble = (out.insoluble ?? 0) + i.fiberInsoluble
+    const known = (i.fiberSoluble ?? 0) + (i.fiberInsoluble ?? 0)
+    out.unsplit += Math.max(0, (i.fiber ?? 0) - known)
   }
   return out
 }

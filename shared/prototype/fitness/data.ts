@@ -151,6 +151,9 @@ export interface NutrientLimits {
   sugarMax?: number
   sodiumMax?: number
   fiberGoal?: number
+  /** Goals for each kind of fiber; no default, so absent = none set. */
+  fiberSolubleGoal?: number
+  fiberInsolubleGoal?: number
 }
 export interface MacroTarget extends Macros, NutrientLimits {
   id: string
@@ -167,6 +170,10 @@ export interface MealItem extends Macros {
   assumption?: string
   /** Optional detail: grams (sodium in milligrams); absent = unknown. */
   fiber?: number
+  /** The two parts of ``fiber``; absent when the split is not known, as on
+   * every item logged before it was tracked. */
+  fiberSoluble?: number
+  fiberInsoluble?: number
   satFat?: number
   sugar?: number
   sodium?: number

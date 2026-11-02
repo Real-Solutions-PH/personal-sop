@@ -321,6 +321,8 @@ class ItemDraft:
     # Optional detail (unknown stays None): grams, sodium in milligrams.
     fiber: float | None = None
     sat_fat: float | None = None
+    fiber_soluble: float | None = None
+    fiber_insoluble: float | None = None
     sugar: float | None = None
     sodium: float | None = None
 
@@ -366,6 +368,12 @@ def scale_item(it: ItemDraft, qty: float) -> ItemDraft:
         fat=js_round(it.fat * f),
         fiber=None if it.fiber is None else js_round(it.fiber * f),
         sat_fat=None if it.sat_fat is None else js_round(it.sat_fat * f),
+        fiber_soluble=None
+        if it.fiber_soluble is None
+        else js_round(it.fiber_soluble * f),
+        fiber_insoluble=None
+        if it.fiber_insoluble is None
+        else js_round(it.fiber_insoluble * f),
         sugar=None if it.sugar is None else js_round(it.sugar * f),
         sodium=None if it.sodium is None else js_round(it.sodium * f),
     )

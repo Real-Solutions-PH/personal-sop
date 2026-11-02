@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from app.modules.capture import fitness_tools, ports
 from app.modules.capture.agent import MealItemArgs
 
-DETAILS = ("fiber", "sat_fat", "sugar", "sodium")
+DETAILS = ("fiber", "fiber_soluble", "fiber_insoluble", "sat_fat", "sugar", "sodium")
 
 
 @pytest.mark.parametrize("model", [MealItemArgs, fitness_tools.ItemArgs])
@@ -28,6 +28,8 @@ def test_the_warning_names_saturated_fat_in_plain_words() -> None:
         "carbs": 8,
         "fat": 18,
         "fiber": 0.5,
+        "fiber_soluble": 0.1,
+        "fiber_insoluble": 0.4,
         "sugar": 0,
         "sodium": 600,
     }

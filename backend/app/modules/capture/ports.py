@@ -361,7 +361,9 @@ def meal_missing_details(items: list[dict[str, Any]]) -> str | None:
 
     def either(words: list[str]) -> str:
         # "fiber, sugar or sodium"
-        return " or ".join([", ".join(words[:-1]), words[-1]] if len(words) > 1 else words)
+        return " or ".join(
+            [", ".join(words[:-1]), words[-1]] if len(words) > 1 else words
+        )
 
     def names(ns: list[str]) -> str:
         return ", ".join(ns[:3]) + (f" and {len(ns) - 3} more" if len(ns) > 3 else "")
@@ -373,6 +375,38 @@ def meal_missing_details(items: list[dict[str, Any]]) -> str | None:
     )
     # The card's warning column holds 280 characters.
     return text[:WARN_MAX] or None
+
+
+# A meal logged again this soon after with the same foods is the same meal
+# said twice, whatever its label. Seen live 2026-11-01: "Lunch: rice,
+# menudo, fried egg" at 07:34, then "Breakfast: 150g rice, 67.5g menudo,
+# 47.6g fried egg" at 07:36, and 408 kcal counted twice.
+SAME_MEAL_WITHIN = timedelta(minutes=30)
+# Two tellings of one meal can estimate its portions a little differently.
+SAME_MEAL_KCAL_SHARE = 0.25
+
+
+def _food_key(name: object) -> str:
+    """ "Fried egg (1 large)" and "fried egg" are one food."""
+    return " ".join(re.sub(r"\(.*?\)", " ", str(name)).casefold().split())
+
+
+def same_meal_just_saved(ctx: Ctx, items: list[dict[str, Any]]) -> uuid.UUID | None:
+    """A meal saved in the last ``SAME_MEAL_WITHIN`` with exactly these foods
+    and about these calories, under any label."""
+    names = {_food_key(i.get("name", "")) for i in items} - {""}
+    kcal = sum(float(i.get("kcal") or 0) for i in items)
+    since = ctx.now - SAME_MEAL_WITHIN
+    for m in fitness.recent_meals(ctx, days=1):
+        if m.created_at < since:
+            continue
+        rows = fitness.chat.meal_item_rows(ctx, m.id)
+        if {_food_key(r.name) for r in rows} != names:
+            continue
+        saved = sum(r.kcal for r in rows)
+        if abs(saved - kcal) <= SAME_MEAL_KCAL_SHARE * max(saved, kcal, 1):
+            return m.id
+    return None
 
 
 def saved_meal_with(

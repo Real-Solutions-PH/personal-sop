@@ -727,6 +727,12 @@ class MealItemArgs(BaseModel):
     sat_fat: Annotated[float, Field(ge=0, le=2000)] | None = Field(
         default=None, description=fitness_tools.SAT_FAT_SAYS
     )
+    fiber_soluble: Annotated[float, Field(ge=0, le=2000)] | None = Field(
+        default=None, description=fitness_tools.FIBER_SOLUBLE_SAYS
+    )
+    fiber_insoluble: Annotated[float, Field(ge=0, le=2000)] | None = Field(
+        default=None, description=fitness_tools.FIBER_INSOLUBLE_SAYS
+    )
     sugar: Annotated[float, Field(ge=0, le=2000)] | None = Field(
         default=None, description=fitness_tools.SUGAR_SAYS
     )
@@ -753,7 +759,9 @@ _CHECK_ONLY = ("grams", "alcohol")
 
 def _stored_item(i: MealItemArgs) -> dict[str, Any]:
     """The item as saved: its weight goes into the assumption shown with it."""
-    it = i.model_dump(exclude_none=True, exclude=set(_CHECK_ONLY))
+    it = fitness_tools.weighed(
+        i.model_dump(exclude_none=True, exclude=set(_CHECK_ONLY)), i.grams
+    )
     if i.grams:
         weight = f"about {i.grams:g} g"
         it["assumption"] = f"{i.assumption}, {weight}" if i.assumption else weight
@@ -989,6 +997,8 @@ class FoodArgs(BaseModel):
     fat: Annotated[float, Field(ge=0, le=2000)] = 0
     fiber: Annotated[float, Field(ge=0, le=2000)] | None = None
     sat_fat: Annotated[float, Field(ge=0, le=2000)] | None = None
+    fiber_soluble: Annotated[float, Field(ge=0, le=2000)] | None = None
+    fiber_insoluble: Annotated[float, Field(ge=0, le=2000)] | None = None
     sugar: Annotated[float, Field(ge=0, le=2000)] | None = Field(
         default=None, description="Added sugar in grams (total if not split)."
     )
@@ -1957,6 +1967,15 @@ def capture_tools(run: Run) -> list[BaseTool]:
                     "error": f"{label}_already_logged_today_change_it_with_edit_meal",
                     "meal_id": str(saved),
                 }
+        # The same foods just saved under another label are the same meal
+        # said twice, not a second one.
+        if not a.eaten_again:
+            same = ports.same_meal_just_saved(run.ctx, items)
+            if same is not None:
+                return {
+                    "error": "same_meal_just_logged_change_it_with_edit_meal",
+                    "meal_id": str(same),
+                }
         missing = ports.meal_missing_details(items)
         d = RecordDraft(
             kind="meal",
@@ -2000,6 +2019,8 @@ def capture_tools(run: Run) -> list[BaseTool]:
                 fat=a.fat,
                 fiber=a.fiber,
                 sat_fat=a.sat_fat,
+                fiber_soluble=a.fiber_soluble,
+                fiber_insoluble=a.fiber_insoluble,
                 sugar=a.sugar,
                 sodium=a.sodium,
                 basis=a.basis,

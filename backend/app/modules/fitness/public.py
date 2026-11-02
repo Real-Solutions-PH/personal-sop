@@ -59,6 +59,8 @@ class MealItemDraft:
     assumption: str | None = None
     fiber: float | None = None
     sat_fat: float | None = None
+    fiber_soluble: float | None = None
+    fiber_insoluble: float | None = None
     sugar: float | None = None
     sodium: float | None = None
 
@@ -129,6 +131,8 @@ def _item(d: MealItemDraft) -> F.ItemDraft:
         d.assumption,
         fiber=d.fiber,
         sat_fat=d.sat_fat,
+        fiber_soluble=d.fiber_soluble,
+        fiber_insoluble=d.fiber_insoluble,
         sugar=d.sugar,
         sodium=d.sodium,
     )
@@ -343,6 +347,8 @@ def nutrition_today(ctx: Ctx) -> dict[str, Any]:
         for k, v in {
             "fiber_g": known("fiber"),
             "sat_fat_g": known("sat_fat"),
+            "fiber_soluble_g": known("fiber_soluble"),
+            "fiber_insoluble_g": known("fiber_insoluble"),
             "sugar_g": known("sugar"),
             "sodium_mg": known("sodium"),
         }.items()
@@ -368,6 +374,16 @@ def nutrition_today(ctx: Ctx) -> dict[str, Any]:
                 "sodium_max_mg": t.sodium_max_mg,
                 "fiber_g": t.fiber_g,
             }.items()
+        }
+        # The fiber split has no default to fall back to: a goal shows only
+        # when the user set one.
+        out["target"] |= {
+            k: v
+            for k, v in {
+                "fiber_soluble_g": t.fiber_soluble_g,
+                "fiber_insoluble_g": t.fiber_insoluble_g,
+            }.items()
+            if v is not None
         }
     if t is not None:
         out |= _plan_ahead(ctx, counted, eaten, out["left"], out["target"])
@@ -527,7 +543,18 @@ def recent_weigh_ins(ctx: Ctx, *, days: int = 30) -> list[WeighIn]:
 # ------------------------------------------------- facts for Fern's reads
 
 
-_NUTRIENTS = ("kcal", "protein", "carbs", "fat", "fiber", "sat_fat", "sugar", "sodium")
+_NUTRIENTS = (
+    "kcal",
+    "protein",
+    "carbs",
+    "fat",
+    "fiber",
+    "sat_fat",
+    "fiber_soluble",
+    "fiber_insoluble",
+    "sugar",
+    "sodium",
+)
 
 
 def meal_item_facts(ctx: Ctx, first: date, last: date) -> list[dict[str, Any]]:

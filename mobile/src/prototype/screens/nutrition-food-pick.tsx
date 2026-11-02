@@ -51,6 +51,8 @@ export function libraryItem(
     carbs: s.carbs,
     fat: s.fat,
     ...(s.fiber !== null ? { fiber: s.fiber } : {}),
+    ...(s.fiber_soluble != null ? { fiberSoluble: s.fiber_soluble } : {}),
+    ...(s.fiber_insoluble != null ? { fiberInsoluble: s.fiber_insoluble } : {}),
     ...(s.sat_fat !== null ? { satFat: s.sat_fat } : {}),
     ...(s.sugar !== null ? { sugar: s.sugar } : {}),
     ...(s.sodium !== null ? { sodium: s.sodium } : {}),

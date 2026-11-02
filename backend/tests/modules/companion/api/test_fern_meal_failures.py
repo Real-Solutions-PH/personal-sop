@@ -112,7 +112,40 @@ def test_an_estimate_without_sugar_and_sodium_is_saved_and_says_so(
     assert step["ok"], step
     [card] = [c for c in rows_of(api, RecordCard) if c.kind == "meal"]
     assert card.warn == (
-        "No fiber, saturated fat, sugar or sodium estimate for Steamed chicken"
+        "No fiber, soluble fiber, insoluble fiber, saturated fat, sugar or "
+        "sodium estimate for Steamed chicken"
+    )
+
+
+def test_a_fiber_split_heavier_than_its_fiber_is_refused(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = fern(client, db)
+    # 1 cup cooked oatmeal has 4 g fiber; 3 + 3 g of parts cannot fit in it.
+    oats = {
+        "name": "Oatmeal",
+        "kcal": 166,
+        "protein": 6,
+        "carbs": 28,
+        "fat": 3.6,
+        "fiber": 4,
+        "fiber_soluble": 3,
+        "fiber_insoluble": 3,
+        "sat_fat": 0.7,
+        "sugar": 0.6,
+        "sodium": 9,
+        "grams": 234,
+    }
+    step, _ = turn(
+        api,
+        client,
+        monkeypatch,
+        "oatmeal for breakfast",
+        act("log_meal", description="Breakfast: oatmeal", items=[oats]),
+    )
+    assert not step["ok"]
+    assert step["summary"] == (
+        "Not saved: Oatmeal has more soluble and insoluble fiber than fiber"
     )
 
 
@@ -265,3 +298,171 @@ def test_the_missing_estimate_warning_fits_the_card_column() -> None:
     warn = ports.meal_missing_details(items)
     assert warn is not None and len(warn) <= ports.WARN_MAX
     assert warn.endswith("and 27 more")
+
+
+# Seen live 2026-11-01 (every value below as logged, macros worked to agree
+# within the kcal check): "Lunch: rice, menudo, fried egg" at 07:34, then
+# "Breakfast: 150g rice, 67.5g menudo, 47.6g fried egg" at 07:36. The second
+# had another label, so the same-label check let it through and the day
+# counted 408 kcal twice.
+SILOG = [
+    {
+        "name": "Rice",
+        "qty": 150,
+        "unit": "g",
+        "kcal": 195,
+        "protein": 4,
+        "carbs": 43,
+        "fat": 0.4,
+        "fiber": 0.6,
+        "fiber_soluble": 0.1,
+        "fiber_insoluble": 0.5,
+        "sat_fat": 0.1,
+        "sugar": 0.1,
+        "sodium": 2,
+        "grams": 150,
+    },
+    {
+        "name": "Menudo",
+        "qty": 67.5,
+        "unit": "g",
+        "kcal": 120,
+        "protein": 8,
+        "carbs": 4,
+        "fat": 8,
+        "fiber": 0.8,
+        "fiber_soluble": 0.3,
+        "fiber_insoluble": 0.5,
+        "sat_fat": 2.5,
+        "sugar": 2,
+        "sodium": 300,
+        "grams": 67.5,
+    },
+    {
+        "name": "Fried egg",
+        "qty": 47.6,
+        "unit": "g",
+        "kcal": 90,
+        "protein": 6.3,
+        "carbs": 0.4,
+        "fat": 7,
+        "fiber": 0,
+        "fiber_soluble": 0,
+        "fiber_insoluble": 0,
+        "sat_fat": 2,
+        "sugar": 0.2,
+        "sodium": 95,
+        "grams": 47.6,
+    },
+]
+
+
+def _log_silog(
+    api: Api, client: TestClient, monkeypatch: pytest.MonkeyPatch, **kw: Any
+) -> Any:
+    return turn(
+        api,
+        client,
+        monkeypatch,
+        "breakfast was rice, menudo and a fried egg",
+        act(
+            "log_meal",
+            description="Breakfast: 150g rice, 67.5g menudo, 47.6g fried egg",
+            items=SILOG,
+            confidence=0.9,
+            **kw,
+        ),
+    )
+
+
+def _saved_lunch(api: Api) -> str:
+    """The 07:34 lunch, saved (the card confirmed), as it was live."""
+    items = [{k: v for k, v in i.items() if k != "grams"} for i in SILOG]
+    return str(
+        api.post(
+            "/fitness/meals",
+            {
+                "label": "lunch",
+                "raw_input": "Lunch: rice, menudo, fried egg",
+                "items": items,
+            },
+        )["id"]
+    )
+
+
+def test_the_same_meal_again_under_another_label_is_refused(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = fern(client, db)
+    meal_id = _saved_lunch(api)
+    _, model = _log_silog(api, client, monkeypatch)
+    out = tool_result(model)
+    assert out["error"] == "same_meal_just_logged_change_it_with_edit_meal"
+    assert out["meal_id"] == meal_id
+    assert not [c for c in rows_of(api, RecordCard) if c.kind == "meal"]
+
+
+def test_the_same_meal_eaten_again_is_still_logged(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = fern(client, db)
+    _saved_lunch(api)
+    _, model = _log_silog(api, client, monkeypatch, eaten_again=True)
+    assert "error" not in tool_result(model)
+
+
+def test_a_different_meal_soon_after_is_logged(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = fern(client, db)
+    _saved_lunch(api)
+    _, model = turn(
+        api,
+        client,
+        monkeypatch,
+        "and a snack of rice",
+        act(
+            "log_meal",
+            description="Snack: rice",
+            items=[SILOG[0]],
+            confidence=0.9,
+        ),
+    )
+    # Rice alone is not the same meal as rice, menudo and egg.
+    assert "error" not in tool_result(model)
+
+
+def test_a_gram_amount_takes_the_items_weight(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Seen live 2026-10-31: an iced latte's milk was sent as 1 g with its
+    weight, 100 g, in ``grams``; the card said 1 g of milk for 61 kcal."""
+    api = fern(client, db)
+    milk = {
+        "name": "Whole milk (iced latte base)",
+        "qty": 1,
+        "unit": "g",
+        "kcal": 61,
+        "protein": 3.2,
+        "carbs": 4.8,
+        "fat": 3.3,
+        "fiber": 0,
+        "fiber_soluble": 0,
+        "fiber_insoluble": 0,
+        "sat_fat": 1.9,
+        "sugar": 0,
+        "sodium": 43,
+        "grams": 100,
+        "assumption": "about 100 g whole milk",
+    }
+    _, model = turn(
+        api,
+        client,
+        monkeypatch,
+        "had an iced latte for a snack",
+        act("log_meal", description="Snack: iced latte", items=[milk], confidence=0.9),
+    )
+    assert "error" not in tool_result(model)
+    [card] = [c for c in rows_of(api, RecordCard) if c.kind == "meal"]
+    [item] = card.payload["items"]
+    assert (item["qty"], item["unit"]) == (100, "g")

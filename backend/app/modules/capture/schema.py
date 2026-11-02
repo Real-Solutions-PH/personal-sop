@@ -157,6 +157,8 @@ class MealItemIn(_P):
     # Optional detail: grams; sodium in milligrams.
     fiber: Annotated[float, Field(ge=0, le=2000)] | None = None
     sat_fat: Annotated[float, Field(ge=0, le=2000)] | None = None
+    fiber_soluble: Annotated[float, Field(ge=0, le=2000)] | None = None
+    fiber_insoluble: Annotated[float, Field(ge=0, le=2000)] | None = None
     sugar: Annotated[float, Field(ge=0, le=2000)] | None = None
     sodium: Annotated[float, Field(ge=0, le=100000)] | None = None
 

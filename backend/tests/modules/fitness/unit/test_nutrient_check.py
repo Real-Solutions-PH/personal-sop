@@ -21,6 +21,9 @@ RICE = {
     "carbs": 44.5,
     "fat": 0.4,
     "fiber": 0.6,
+    # USDA does not split rice's fiber; mostly insoluble, as in grains.
+    "fiber_soluble": 0.1,
+    "fiber_insoluble": 0.5,
     "sat_fat": 0.1,
     "sugar": 0.1,
     "sodium": 2,
@@ -45,6 +48,28 @@ def test_sugar_above_carbs() -> None:
 
 def test_fiber_above_carbs() -> None:
     assert codes(value_problems(RICE | {"fiber": 50})) == ["fiber_more_than_carbs"]
+
+
+def test_fiber_split_above_its_total() -> None:
+    # 0.4 + 0.8 = 1.2 g of parts against 0.6 g of fiber: over by more than
+    # the 0.5 g of rounding a label allows.
+    [p] = value_problems(RICE | {"fiber_soluble": 0.4, "fiber_insoluble": 0.8})
+    assert p["problem"] == "fiber_split_more_than_fiber"
+    assert involves(p) == {"fiber_soluble", "fiber_insoluble", "fiber"}
+
+
+def test_fiber_split_above_carbs_without_a_total() -> None:
+    # No total fiber given: the parts are still part of carbs.
+    item = {k: v for k, v in RICE.items() if k != "fiber"}
+    item |= {"carbs": 44.5, "fiber_soluble": 30, "fiber_insoluble": 20}
+    assert codes(value_problems(item)) == ["fiber_split_more_than_carbs"]
+
+
+def test_one_part_of_the_split_alone_is_checked() -> None:
+    assert codes(value_problems(RICE | {"fiber_soluble": 2})) == [
+        "fiber_split_more_than_fiber"
+    ]
+    assert value_problems(RICE | {"fiber_soluble": 0.6}) == []
 
 
 def test_sat_fat_above_fat() -> None:
@@ -155,11 +180,22 @@ def test_missing_sat_fat_and_fiber_are_flagged_too() -> None:
     assert missing_details(bare) == ["fiber", "sat_fat"]
 
 
+def test_missing_fiber_split_is_flagged() -> None:
+    bare = {
+        k: v for k, v in RICE.items() if k not in ("fiber_soluble", "fiber_insoluble")
+    }
+    assert estimate_problems(bare) == []
+    assert missing_details(bare) == ["fiber_soluble", "fiber_insoluble"]
+
+
 def test_every_problem_reads_in_plain_words() -> None:
     items = [
         {k: v for k, v in RICE.items() if k != "grams"},
         RICE | {"sugar": 60, "fiber": 60, "sat_fat": 5, "kcal": 900},
         RICE | {"grams": 10, "kcal": 205},
+        RICE | {"fiber_soluble": 2},
+        {k: v for k, v in RICE.items() if k != "fiber"}
+        | {"fiber_soluble": 30, "fiber_insoluble": 20},
     ]
     found = {p["problem"]: p for it in items for p in estimate_problems(it)}
     assert set(found) == set(PLAIN)

@@ -1,7 +1,12 @@
 import * as A from "@domain/fitness/actions"
 import * as C from "@domain/fitness/calc"
 import type { Macros, Meal } from "@domain/fitness/data"
-import { dayDetail, fiberGoalFor, limitsFor } from "@domain/fitness/limits"
+import {
+  dayDetail,
+  fiberGoalFor,
+  fiberSplit,
+  limitsFor,
+} from "@domain/fitness/limits"
 import { fitStore } from "@domain/fitness/store"
 import { openCapture } from "@domain/lib/capture"
 import { dayKey } from "@domain/lib/day"
@@ -166,6 +171,38 @@ export function MacroRings({
         </Line>
       )}
     </View>
+  )
+}
+/** The day's fiber by kind under the totals line: "Fiber: soluble 2 / 10 g
+ * · insoluble 3 / 20 g · 1 g not split". Drawn once an item carries a split
+ * or a goal for one is set; fiber from items logged before the split was
+ * tracked is said as "not split" (see ``fiberSplit``). */
+export function FiberSplitLine({
+  items,
+  soluble: solubleGoal,
+  insoluble: insolubleGoal,
+}: {
+  items: Parameters<typeof fiberSplit>[0]
+  soluble?: number
+  insoluble?: number
+}) {
+  const f = fiberSplit(items),
+    g = (v: number) =>
+      v.toLocaleString("en-US", { maximumFractionDigits: v < 10 ? 1 : 0 }),
+    kind = (label: string, v: number | undefined, goal?: number) =>
+      v === undefined && goal === undefined
+        ? null
+        : `${label} ${v === undefined ? "—" : g(v)}${goal === undefined ? "" : ` / ${g(goal)}`} g`
+  const parts = [
+    kind("soluble", f.soluble, solubleGoal),
+    kind("insoluble", f.insoluble, insolubleGoal),
+  ].filter(Boolean)
+  if (!parts.length) return null
+  if (f.unsplit > 0) parts.push(`${g(f.unsplit)} g not split`)
+  return (
+    <Copy size={12} muted style={{ marginTop: 6 }}>
+      {`Fiber: ${parts.join(" · ")}`}
+    </Copy>
   )
 }
 export function MealThumb({ meal, size = 44 }: { meal: Meal; size?: number }) {
@@ -419,6 +456,13 @@ export function Nutrition({
             </Button>
           </View>
         )}
+        <FiberSplitLine
+          items={meals
+            .filter((m) => m.status !== "pending_estimate")
+            .flatMap((m) => m.items)}
+          soluble={target?.fiberSolubleGoal}
+          insoluble={target?.fiberInsolubleGoal}
+        />
         {/* Goals fill rings; limits are bars to stay under. Both say what
             is left of this day, so they share the card. */}
         <View

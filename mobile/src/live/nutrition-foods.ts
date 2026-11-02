@@ -23,6 +23,8 @@ export interface LibraryFood {
   carbs: number
   fat: number
   fiber: number | null
+  fiber_soluble?: number | null
+  fiber_insoluble?: number | null
   sat_fat: number | null
   sugar: number | null
   sodium: number | null
@@ -54,6 +56,8 @@ export type FoodPatch = Partial<
     | "carbs"
     | "fat"
     | "fiber"
+    | "fiber_soluble"
+    | "fiber_insoluble"
     | "sat_fat"
     | "sugar"
     | "sodium"
