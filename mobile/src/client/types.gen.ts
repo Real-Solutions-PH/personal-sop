@@ -2534,6 +2534,7 @@ export type ModulePrefPublic = {
     module: 'habits' | 'tasks' | 'fitness' | 'nutrition' | 'focus' | 'finance' | 'screen';
     enabled: boolean;
     weight: number;
+    sort_order?: number;
 };
 
 export type module = 'habits' | 'tasks' | 'fitness' | 'nutrition' | 'focus' | 'finance' | 'screen';
@@ -2541,6 +2542,7 @@ export type module = 'habits' | 'tasks' | 'fitness' | 'nutrition' | 'focus' | 'f
 export type ModulePrefUpdate = {
     enabled?: (boolean | null);
     weight?: (number | null);
+    sort_order?: (number | null);
 };
 
 export type Monthly = {
@@ -3441,6 +3443,7 @@ export type ReviewPublic = {
     key: string;
     done: boolean;
     done_at: (string | null);
+    opened_at?: (string | null);
     reflection: (string | null);
     focus: (string | null);
     updated_at: string;

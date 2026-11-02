@@ -11237,6 +11237,11 @@ export const ModulePrefPublicSchema = {
         weight: {
             type: 'integer',
             title: 'Weight'
+        },
+        sort_order: {
+            type: 'integer',
+            title: 'Sort Order',
+            default: 0
         }
     },
     type: 'object',
@@ -11269,6 +11274,19 @@ export const ModulePrefUpdateSchema = {
                 }
             ],
             title: 'Weight'
+        },
+        sort_order: {
+            anyOf: [
+                {
+                    type: 'integer',
+                    maximum: 99,
+                    minimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Sort Order'
         }
     },
     type: 'object',
@@ -16166,6 +16184,18 @@ export const ReviewPublicSchema = {
                 }
             ],
             title: 'Done At'
+        },
+        opened_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Opened At'
         },
         reflection: {
             anyOf: [

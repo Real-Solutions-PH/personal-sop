@@ -162,11 +162,13 @@ class ModulePrefPublic(BaseModel):
     module: ModuleKey
     enabled: bool
     weight: int
+    sort_order: int = 0
 
 
 class ModulePrefUpdate(BaseModel):
     enabled: bool | None = None
     weight: int | None = Field(default=None, ge=0, le=10)
+    sort_order: int | None = Field(default=None, ge=0, le=99)
 
 
 class ModulePrefSync(ModulePrefUpdate):
@@ -180,6 +182,7 @@ class ModulePrefRow(BaseModel):
     module: ModuleKey
     enabled: bool
     weight: int
+    sort_order: int
     version: int
 
 

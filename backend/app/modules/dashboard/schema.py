@@ -92,6 +92,7 @@ class ReviewSyncIn(BaseModel):
     key: str | None = Field(default=None, max_length=16)
     done: bool | None = None
     done_at: datetime | None = None
+    opened_at: datetime | None = None
     reflection: str | None = Field(default=None, max_length=4000)
     focus: str | None = Field(default=None, max_length=64)
 
@@ -103,6 +104,7 @@ class ReviewPublic(BaseModel):
     key: str
     done: bool
     done_at: datetime | None
+    opened_at: datetime | None = None
     reflection: str | None
     focus: str | None
     updated_at: datetime

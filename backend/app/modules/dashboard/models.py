@@ -44,6 +44,9 @@ class Review(OwnedRow, table=True):
     done_at: datetime | None = Field(default=None, sa_type=tstz())  # type: ignore
     reflection: str | None = Field(default=None, max_length=4000)
     focus: str | None = Field(default=None, max_length=64)
+    # First time the person opened the review: Today's card stays until then
+    # and for one day after, on every device.
+    opened_at: datetime | None = Field(default=None, sa_type=tstz())  # type: ignore
 
 
 class WrapUp(OwnedRow, table=True):

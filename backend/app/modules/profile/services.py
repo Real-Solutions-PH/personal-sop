@@ -180,9 +180,15 @@ def complete_signup(ctx: Ctx, data: CompleteSignup) -> UserProfile:
 
 def list_modules(ctx: Ctx) -> list[ModulePrefPublic]:
     settings = public.module_settings(ctx)
+    order = {p.module: p.sort_order for p in owned_repo.list_rows(ctx, ModulePref)}
     return [
         ModulePrefPublic.model_validate(
-            {"module": k, "enabled": settings[k].enabled, "weight": settings[k].weight}
+            {
+                "module": k,
+                "enabled": settings[k].enabled,
+                "weight": settings[k].weight,
+                "sort_order": order.get(k, 0),
+            }
         )
         for k in MODULE_KEYS
     ]
@@ -200,6 +206,8 @@ def set_module(ctx: Ctx, module: str, data: ModulePrefUpdate) -> list[ModulePref
         "enabled": current.enabled if data.enabled is None else data.enabled,
         "weight": current.weight if data.weight is None else data.weight,
     }
+    if data.sort_order is not None:
+        values["sort_order"] = data.sort_order
     if row is None:
         owned_repo.insert(ctx, ModulePref, values)
     else:
