@@ -84,7 +84,8 @@ export function finishedSets(s: FocusState, now = Date.now()): Set<string> {
     sets.set(key, x)
   }
   const out = new Set<string>()
-  for (const [k, x] of sets) if (x.planned > 0 && x.sec >= x.planned - 1) out.add(k)
+  for (const [k, x] of sets)
+    if (x.planned > 0 && x.sec >= x.planned - 1) out.add(k)
   return out
 }
 

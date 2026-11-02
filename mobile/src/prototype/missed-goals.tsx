@@ -36,7 +36,7 @@ export function MissedGoals({
     >
       {missed.map((m) => {
         const row = (
-          <View style={{ flexDirection: "row", gap: 8 }}>
+          <View key={m.goal.id} style={{ flexDirection: "row", gap: 8 }}>
             <CircleX size={16} color={t.bad} style={{ marginTop: 2 }} />
             <View style={{ flex: 1 }}>
               <Copy size={14} weight="medium" style={{ color: t.bad }}>
@@ -58,7 +58,7 @@ export function MissedGoals({
             {row}
           </Tap>
         ) : (
-          <View key={m.goal.id}>{row}</View>
+          row
         )
       })}
     </View>

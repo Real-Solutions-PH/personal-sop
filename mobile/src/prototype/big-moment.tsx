@@ -91,7 +91,10 @@ export function BigMoment({
           entering={
             reduced
               ? FadeIn.duration(200).reduceMotion(never)
-              : ZoomIn.springify().damping(14).stiffness(220).reduceMotion(never)
+              : ZoomIn.springify()
+                  .damping(14)
+                  .stiffness(220)
+                  .reduceMotion(never)
           }
           exiting={FadeOut.duration(160).reduceMotion(never)}
           style={{

@@ -44,17 +44,13 @@ export function levelStep(
 }
 
 /** Record a settled level and say what to show for it. */
-export function noteLevel(
-  now: number,
-  names: readonly string[],
-): LevelStep {
+export function noteLevel(now: number, names: readonly string[]): LevelStep {
   const s = momentsSeen.get()
   const step = levelStep(s.level, now, s.keys)
   momentsSeen.set((x) => ({
     ...x,
     level: now,
-    keys:
-      step.kind === "up" ? [...x.keys, step.key].slice(-KEEP) : x.keys,
+    keys: step.kind === "up" ? [...x.keys, step.key].slice(-KEEP) : x.keys,
     drop:
       step.kind === "down"
         ? { from: names[s.level] ?? "", to: names[now] ?? "" }

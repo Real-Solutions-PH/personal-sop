@@ -105,8 +105,7 @@ export function FocusTimer() {
     closeGoal = () => setGoalMoment(false)
   const streak = useMemo(
     () => (endedUp || goalUp ? C.streaks(s, 400, now).current : 0),
-    // biome-ignore lint/correctness/useExhaustiveDependencies: read as a card appears
-    [endedUp, goalUp],
+    [endedUp, goalUp, s, now],
   )
   const lengths: [number, number, number, number] =
     preset === "custom"

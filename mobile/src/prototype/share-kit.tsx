@@ -64,12 +64,7 @@ import { Copy, Line, Segmented, Tap } from "./native-kit"
 import { go } from "./navigation"
 import { signed } from "./share-format"
 import { keep, prepareImage } from "./social/media"
-import {
-  addStory,
-  deleteStory,
-  type Media,
-  setPostDraft,
-} from "./social/store"
+import { addStory, deleteStory, type Media, setPostDraft } from "./social/store"
 import { type Accent, fonts, useTheme } from "./theme"
 
 export type CardFormat = "9:16" | "4:5" | "1:1"

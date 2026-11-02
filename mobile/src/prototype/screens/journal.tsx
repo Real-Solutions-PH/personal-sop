@@ -27,13 +27,7 @@ import {
   Users,
   Wallet,
 } from "lucide-react-native"
-import {
-  type ReactNode,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from "react"
+import { type ReactNode, useContext, useEffect, useRef, useState } from "react"
 import {
   Keyboard,
   Platform,
@@ -59,6 +53,7 @@ import Svg, {
   Text as SvgText,
 } from "react-native-svg"
 import { toast } from "sonner-native"
+import { feel, StreakChip } from "../motion"
 import {
   border,
   Copy,
@@ -68,7 +63,6 @@ import {
   SectionHeading,
   Tap,
 } from "../native-kit"
-import { feel, StreakChip } from "../motion"
 import { go } from "../navigation"
 import { Switch } from "../switch"
 import { fonts, useTheme } from "../theme"
@@ -391,7 +385,9 @@ export function journalStreak(days: Set<string>, today = dayKey()) {
 }
 const streakOf = (journal: readonly { day: string; tags: string[] }[]) =>
   journalStreak(
-    new Set(journal.filter((e) => !e.tags.includes(CHECK_IN)).map((e) => e.day)),
+    new Set(
+      journal.filter((e) => !e.tags.includes(CHECK_IN)).map((e) => e.day),
+    ),
   )
 
 /** Pops its child when ``on`` goes up while on screen. */

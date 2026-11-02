@@ -15,6 +15,8 @@ import { useFocusEffect, useLocalSearchParams, usePathname } from "expo-router"
 import { Award, Lock, Trophy } from "lucide-react-native"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { ScrollView, View } from "react-native"
+import { useNoteGoals } from "../goal-ledger"
+import { MissedGoals } from "../missed-goals"
 import {
   Bar,
   border,
@@ -25,8 +27,6 @@ import {
   Segmented,
   Tap,
 } from "../native-kit"
-import { useNoteGoals } from "../goal-ledger"
-import { MissedGoals } from "../missed-goals"
 import { go } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import { Button, Field, Screen, Sheet } from "../ui"

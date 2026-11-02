@@ -4,35 +4,15 @@
 // ran their full length, and which goals ended a period unmet.
 
 import type { Goal } from "@domain/dash/data"
-import type {
-  Account,
-  Budget,
-  FinRecord,
-  FinState,
-} from "@domain/finance/data"
+import type { Account, Budget, FinRecord, FinState } from "@domain/finance/data"
 import { finStore } from "@domain/finance/store"
 import type { FocusState } from "@domain/focus/data"
 import { configureStorage, resetAll } from "@domain/lib/store"
-import {
-  budgetHits,
-  goalsReached,
-  hitLine,
-  withDraft,
-} from "../budget-alerts"
+import { budgetHits, goalsReached, hitLine, withDraft } from "../budget-alerts"
 import { finishedSets, newlyFinished } from "../focus-live"
-import {
-  type GoalNote,
-  missedGoals,
-  noteGoals,
-  periodOf,
-} from "../goal-ledger"
+import { type GoalNote, missedGoals, noteGoals, periodOf } from "../goal-ledger"
 import { AT_RISK_TIME, type AtRisk, atRiskPlan } from "../local-reminders"
-import {
-  claimOnce,
-  levelStep,
-  momentsSeen,
-  noteLevel,
-} from "../moments-seen"
+import { claimOnce, levelStep, momentsSeen, noteLevel } from "../moments-seen"
 
 // The set-end tap and chime are not under test here, and the motion module
 // pulls in Reanimated.
@@ -260,7 +240,10 @@ describe("atRiskPlan", () => {
   it("respects evening pushes off, quiet hours and the hour passed", () => {
     expect(atRiskPlan({ ...base, evening: "" }, afternoon)).toBeNull()
     expect(
-      atRiskPlan({ ...base, quiet: { start: "20:00", end: "07:00" } }, afternoon),
+      atRiskPlan(
+        { ...base, quiet: { start: "20:00", end: "07:00" } },
+        afternoon,
+      ),
     ).toBeNull()
     expect(atRiskPlan(base, new Date(2026, 10, 10, 20, 31))).toBeNull()
   })
@@ -381,7 +364,13 @@ describe("goal periods", () => {
   it("a month goal reads last month", () => {
     const month = goal("m", "month")
     const notes: GoalNote[] = [
-      { goalId: "m", period: "2026-10", day: "2026-10-30", value: "6h", hit: false },
+      {
+        goalId: "m",
+        period: "2026-10",
+        day: "2026-10-30",
+        value: "6h",
+        hit: false,
+      },
     ]
     expect(missedGoals(notes, [month], "2026-11-10")).toEqual([
       { goal: month, period: "2026-10", value: "6h" },

@@ -27,13 +27,7 @@ import Svg, { Circle, G, Polygon, Line as SvgLine } from "react-native-svg"
 import { BigMoment } from "../big-moment"
 import { useNoteGoals } from "../goal-ledger"
 import { dismissDrop, momentsSeen, noteLevel } from "../moments-seen"
-import {
-  alpha,
-  ArcCircle,
-  CountUp,
-  GrowBar,
-  SwipeSegments,
-} from "../motion"
+import { ArcCircle, alpha, CountUp, GrowBar, SwipeSegments } from "../motion"
 import {
   Bar,
   border,

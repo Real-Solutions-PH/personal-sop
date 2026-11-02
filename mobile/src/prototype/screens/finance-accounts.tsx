@@ -24,6 +24,7 @@ import { useEffect, useState } from "react"
 import { View } from "react-native"
 import { BigMoment, useMomentTimer } from "../big-moment"
 import { FinanceLineChart } from "../chart"
+import { claimOnce, seen } from "../moments-seen"
 import { MoneyInput } from "../money-input"
 import {
   Bar,
@@ -34,7 +35,6 @@ import {
   SectionHeading,
   Tap,
 } from "../native-kit"
-import { claimOnce, seen } from "../moments-seen"
 import { go } from "../navigation"
 import { useTheme } from "../theme"
 import { Button, confirm, Empty, Screen, Sheet, undo } from "../ui"

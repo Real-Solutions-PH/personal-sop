@@ -24,6 +24,8 @@ import {
 import { useState } from "react"
 import { ScrollView, TextInput, View } from "react-native"
 import { toast } from "sonner-native"
+import { useNoteGoals } from "../goal-ledger"
+import { MissedGoals } from "../missed-goals"
 import { MoneyInput } from "../money-input"
 import {
   Bar,
@@ -35,8 +37,6 @@ import {
   Segmented,
   Tap,
 } from "../native-kit"
-import { useNoteGoals } from "../goal-ledger"
-import { MissedGoals } from "../missed-goals"
 import { fonts, useTheme } from "../theme"
 import { Button, confirm, Screen, Sheet } from "../ui"
 

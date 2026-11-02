@@ -6,9 +6,9 @@ import { Check, Pencil, Plus } from "lucide-react-native"
 import { useEffect, useState } from "react"
 import { Text, View } from "react-native"
 import { useMomentTimer } from "../big-moment"
+import { FinanceLineChart } from "../chart"
 import { MomentCard } from "../moment"
 import { claimOnce, seen } from "../moments-seen"
-import { FinanceLineChart } from "../chart"
 import {
   Bar,
   Copy,
