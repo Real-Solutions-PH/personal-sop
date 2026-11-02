@@ -14,8 +14,20 @@ import { Ring } from "../visual"
 import { useMoney } from "./finance"
 import { RecurringNet } from "./finance-monthly-net"
 import { OutlookRow } from "./finance-outlook"
+import { EmptyFoot } from "./locked-preview"
 
 const SHOWN = 3
+const SAMPLE_BUDGET = {
+  source: "overall" as const,
+  limit: 15000,
+  spent: 5700,
+  left: 9300,
+  pct: 0.38,
+  pace: 0.45,
+  safePerDay: 465,
+  daysLeft: 20,
+  count: 1,
+}
 const signed = (money: (v: number) => string, v: number) =>
   `${v >= 0 ? "+" : "−"}${money(Math.abs(v))}`
 
@@ -43,25 +55,22 @@ export function SpentLeft({ spent, limit }: { spent: number; limit: number }) {
 export function BudgetsSection({ s }: { s: FinState }) {
   const t = useTheme()
   const money = useMoney()
-  const sum = N.budgetSummary(s)
+  const real = N.budgetSummary(s)
+  // With no budget at all the card draws a plausible month, dimmed.
+  const sum = real ?? SAMPLE_BUDGET
   const top = s.budgets
     .filter((b) => !b.archived && b.categoryIds !== null)
     .map((b) => N.budgetView(s, b))
     .sort((a, b) => b.pct - a.pct)
     .slice(0, SHOWN)
   const left = sum?.left ?? 0
-  const scope = !sum
-    ? "Set a monthly budget"
-    : sum.source === "overall"
+  const scope =
+    sum.source === "overall"
       ? `Left of ${money(sum.limit)} this month`
       : `Left of ${money(sum.limit)} across ${sum.count} category ${sum.count === 1 ? "budget" : "budgets"}`
   const tiles = [
-    {
-      label: "Safe / day",
-      value: money(sum?.safePerDay ?? 0),
-      color: t.fin,
-    },
-    { label: "Spent", value: money(sum?.spent ?? 0), color: t.text },
+    { label: "Safe / day", value: money(sum.safePerDay), color: t.fin },
+    { label: "Spent", value: money(sum.spent), color: t.text },
   ]
   return (
     <View>
@@ -78,7 +87,7 @@ export function BudgetsSection({ s }: { s: FinState }) {
       </SectionHeading>
       <Frame style={{ padding: 16 }}>
         <Tap onPress={() => go("/finance/budgets")} label="Budgets">
-          <View style={{ opacity: sum ? 1 : 0.32, gap: 16 }}>
+          <View style={{ opacity: real ? 1 : 0.32, gap: 16 }}>
             <Line style={{ gap: 16 }}>
               <Ring
                 value={sum ? Math.max(0, 1 - sum.pct) : 0}
@@ -163,6 +172,13 @@ export function BudgetsSection({ s }: { s: FinState }) {
             </View>
           )}
         </Tap>
+        {!real && (
+          <EmptyFoot
+            testID="budget-empty"
+            hint="A monthly budget shows what is safe to spend each day."
+            action={{ label: "Set budget", href: "/finance/budgets?new=1" }}
+          />
+        )}
       </Frame>
     </View>
   )

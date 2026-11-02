@@ -358,6 +358,11 @@ export function FinanceReview() {
       <View style={{ marginTop: -12 }}>
         <SectionHeading>Where it went</SectionHeading>
         <Frame style={{ padding: 16, gap: 12 }}>
+          {!d.where.length && (
+            <Copy size={14} muted>
+              Nothing spent in this period.
+            </Copy>
+          )}
           {d.where.slice(0, 7).map((w) => (
             <Tap
               key={w.id}
@@ -480,6 +485,11 @@ export function FinanceReview() {
               <Copy size={14}>Subscriptions</Copy>
               <Copy size={14}>{money(d.subs)}</Copy>
             </Line>
+          )}
+          {!d.leaks.length && !(d.subs > 0) && (
+            <Copy size={14} muted>
+              No leaks. No small spend repeated enough to add up.
+            </Copy>
           )}
         </Frame>
         <SectionHeading>No-spend calendar</SectionHeading>

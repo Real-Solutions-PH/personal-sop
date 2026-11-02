@@ -46,10 +46,11 @@ import {
   CategoryCard,
   ExpectedNetWorthCard,
   SavingsRateCard,
+  SpendActionShown,
   TopPayeesCard,
   WeekdayCard,
 } from "./finance-report-cards"
-import { LockedPreview } from "./locked-preview"
+import { Dimmed, EmptyFoot, LockedPreview } from "./locked-preview"
 
 export const sourceLabel = (source: FinRecord["source"]) =>
   ({
@@ -76,8 +77,75 @@ export function FinanceRecord({
     category = s.categories.find((c) => c.id === record.categoryId),
     account = s.accounts.find((a) => a.id === record.accountId)
   return (
-    <Tap
+    <RecordRow
       onPress={onPress ?? (() => go(`/finance/records/${record.id}`))}
+      selected={selected}
+      icon={
+        selected
+          ? "✓"
+          : record.type === "transfer"
+            ? "⇄"
+            : (category?.icon ?? "💸")
+      }
+      title={
+        record.payee ??
+        (record.type === "transfer"
+          ? `${account?.name} → ${s.accounts.find((a) => a.id === record.toAccountId)?.name}`
+          : (category?.name ?? "Untitled"))
+      }
+      pending={record.status === "pending"}
+      meta={`${
+        record.type === "transfer"
+          ? `${account?.name ?? "?"} → ${s.accounts.find((a) => a.id === record.toAccountId)?.name ?? "?"}`
+          : `${category?.name ?? "Uncategorised"} · ${account?.name ?? "?"}`
+      } · ${new Date(record.at).toLocaleTimeString("en-PH", {
+        hour: "numeric",
+        minute: "2-digit",
+      })}${record.source !== "manual" ? ` · ${sourceLabel(record.source)}` : ""}`}
+      amount={`${
+        record.type === "income" ? "+" : record.type === "expense" ? "−" : ""
+      }${money(record.amount)}`}
+      amountColor={
+        record.type === "income"
+          ? t.fin
+          : record.type === "transfer"
+            ? t.muted
+            : t.text
+      }
+      foreign={
+        record.origCurrency && record.origAmount
+          ? foreignAmount(record.origAmount, record.origCurrency)
+          : undefined
+      }
+    />
+  )
+}
+/** One transaction's row: icon, payee, where and when, and the amount. */
+function RecordRow({
+  icon,
+  title,
+  meta,
+  amount,
+  amountColor,
+  foreign,
+  pending,
+  selected,
+  onPress,
+}: {
+  icon: string
+  title: string
+  meta: string
+  amount: string
+  amountColor?: string
+  foreign?: string
+  pending?: boolean
+  selected?: boolean
+  onPress?: () => void
+}) {
+  const t = useTheme()
+  return (
+    <Tap
+      onPress={onPress ?? (() => {})}
       style={{
         paddingVertical: 8,
         paddingHorizontal: 4,
@@ -97,68 +165,71 @@ export function FinanceRecord({
             backgroundColor: t.soft,
           }}
         >
-          <Copy size={18}>
-            {selected
-              ? "✓"
-              : record.type === "transfer"
-                ? "⇄"
-                : (category?.icon ?? "💸")}
-          </Copy>
+          <Copy size={18}>{icon}</Copy>
         </View>
         <View style={{ flex: 1 }}>
           <Line style={{ gap: 4, flexWrap: "wrap" }}>
-            <Copy weight="medium">
-              {record.payee ??
-                (record.type === "transfer"
-                  ? `${account?.name} → ${s.accounts.find((a) => a.id === record.toAccountId)?.name}`
-                  : (category?.name ?? "Untitled"))}
-            </Copy>
-            {record.status === "pending" && (
-              <FinPill tone="warn">review</FinPill>
-            )}
+            <Copy weight="medium">{title}</Copy>
+            {pending && <FinPill tone="warn">review</FinPill>}
           </Line>
           <Copy size={12} muted>
-            {record.type === "transfer"
-              ? `${account?.name ?? "?"} → ${s.accounts.find((a) => a.id === record.toAccountId)?.name ?? "?"}`
-              : `${category?.name ?? "Uncategorised"} · ${account?.name ?? "?"}`}{" "}
-            ·{" "}
-            {new Date(record.at).toLocaleTimeString("en-PH", {
-              hour: "numeric",
-              minute: "2-digit",
-            })}
-            {record.source !== "manual"
-              ? ` · ${sourceLabel(record.source)}`
-              : ""}
+            {meta}
           </Copy>
         </View>
         <View style={{ alignItems: "flex-end" }}>
           <Copy
             size={16}
             weight="semibold"
-            style={{
-              color:
-                record.type === "income"
-                  ? t.fin
-                  : record.type === "transfer"
-                    ? t.muted
-                    : t.text,
-            }}
+            style={{ color: amountColor ?? t.text }}
           >
-            {record.type === "income"
-              ? "+"
-              : record.type === "expense"
-                ? "−"
-                : ""}
-            {money(record.amount)}
+            {amount}
           </Copy>
-          {record.origCurrency && record.origAmount ? (
+          {foreign ? (
             <Copy size={12} muted>
-              {foreignAmount(record.origAmount, record.origCurrency)}
+              {foreign}
             </Copy>
           ) : null}
         </View>
       </Line>
     </Tap>
+  )
+}
+/** What the Recent list holds once spending is logged, drawn dimmed above
+ * the step that adds the first one. */
+const SAMPLE_RECENT = [
+  {
+    icon: "🛒",
+    title: "Puregold",
+    meta: "Groceries · GCash · 6:42 PM",
+    amount: 1284.5,
+  },
+  {
+    icon: "🚕",
+    title: "Grab",
+    meta: "Transport · GCash · 8:15 AM",
+    amount: 236,
+  },
+  {
+    icon: "☕",
+    title: "Starbucks",
+    meta: "Coffee · Cash · 7:50 AM",
+    amount: 185,
+  },
+]
+export function SampleRecords() {
+  const money = useMoney()
+  return (
+    <>
+      {SAMPLE_RECENT.map((r) => (
+        <RecordRow
+          key={r.title}
+          icon={r.icon}
+          title={r.title}
+          meta={r.meta}
+          amount={`−${money(r.amount)}`}
+        />
+      ))}
+    </>
   )
 }
 /** An amount kept in another currency, as spent: "$100.00", "€12.50". */
@@ -405,12 +476,14 @@ export function FinanceHome({
             ))}
           </View>
           <View style={{ marginTop: 24, gap: 12 }}>
-            <SavingsRateCard d={report} period="this" />
-            <CategoryCard d={report} period="this" />
-            <ExpectedNetWorthCard d={report} period="this" s={s} />
-            <BudgetHistoryCard d={report} period="this" s={s} />
-            <TopPayeesCard d={report} period="this" />
-            <WeekdayCard d={report} period="this" />
+            <SpendActionShown.Provider value>
+              <SavingsRateCard d={report} period="this" />
+              <CategoryCard d={report} period="this" />
+              <ExpectedNetWorthCard d={report} period="this" s={s} />
+              <BudgetHistoryCard d={report} period="this" s={s} />
+              <TopPayeesCard d={report} period="this" />
+              <WeekdayCard d={report} period="this" />
+            </SpendActionShown.Provider>
           </View>
           <SectionHeading
             action={
@@ -423,15 +496,33 @@ export function FinanceHome({
           >
             Recent
           </SectionHeading>
-          <Frame style={{ paddingHorizontal: 16, paddingVertical: 4 }}>
-            {s.records
-              .slice()
-              .sort((a, b) => b.at.localeCompare(a.at))
-              .slice(0, 5)
-              .map((r) => (
-                <FinanceRecord key={r.id} record={r} />
-              ))}
-          </Frame>
+          {s.records.length ? (
+            <Frame style={{ paddingHorizontal: 16, paddingVertical: 4 }}>
+              {s.records
+                .slice()
+                .sort((a, b) => b.at.localeCompare(a.at))
+                .slice(0, 5)
+                .map((r) => (
+                  <FinanceRecord key={r.id} record={r} />
+                ))}
+            </Frame>
+          ) : (
+            <Frame
+              testID="recent-empty"
+              style={{ paddingHorizontal: 16, paddingVertical: 12 }}
+            >
+              <Dimmed>
+                <SampleRecords />
+              </Dimmed>
+              <EmptyFoot
+                hint="Your latest spending and income land here."
+                action={{
+                  label: "Add expense",
+                  onPress: () => setAdding(true),
+                }}
+              />
+            </Frame>
+          )}
         </LockedPreview>
       </View>
       <RecordEditor

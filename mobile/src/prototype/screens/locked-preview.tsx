@@ -2,7 +2,7 @@
 // under one card that says what is missing and the one step that fills it.
 // The person sees what the page will hold instead of a placeholder.
 import type { LucideIcon } from "lucide-react-native"
-import { Lock } from "lucide-react-native"
+import { Lock, Plus } from "lucide-react-native"
 import type { ReactNode } from "react"
 import { View } from "react-native"
 import { Copy, Frame, Line } from "../native-kit"
@@ -94,5 +94,54 @@ export function LockedPreview({
         {children}
       </View>
     </>
+  )
+}
+
+/** The foot of a single card drawn dimmed from sample data: why it is empty
+ * and the one step that fills it. The card above stays its real shape. */
+export function EmptyFoot({
+  hint,
+  action,
+  icon = Plus,
+  testID,
+}: {
+  hint: string
+  /** Left out when the step that fills it is already on the page. */
+  action?: { label: string; onPress?: () => void; href?: string }
+  icon?: LucideIcon
+  testID?: string
+}) {
+  return (
+    <Line testID={testID} style={{ marginTop: 12, gap: 12 }}>
+      <Copy size={13} muted style={{ flex: 1 }}>
+        {hint}
+      </Copy>
+      {action && (
+        <Button
+          small
+          tone="quiet"
+          icon={icon}
+          href={action.href}
+          onPress={action.onPress}
+        >
+          {action.label}
+        </Button>
+      )}
+    </Line>
+  )
+}
+
+/** Sample content drawn at the empty-state strength: dimmed, inert and
+ * hidden from screen readers, which read the hint beside it instead. */
+export function Dimmed({ children }: { children: ReactNode }) {
+  return (
+    <View
+      pointerEvents="none"
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{ opacity: 0.32 }}
+    >
+      {children}
+    </View>
   )
 }

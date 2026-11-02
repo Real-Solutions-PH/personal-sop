@@ -8,7 +8,6 @@ import type { LucideIcon } from "lucide-react-native"
 import {
   ChevronRight,
   Minus,
-  Percent,
   Plus,
   Scale,
   Settings,
@@ -37,7 +36,7 @@ import { go } from "../navigation"
 import { useTheme } from "../theme"
 import { Button, DateField, Field, Screen, Sheet, undo } from "../ui"
 import { isDay } from "../validation"
-import { LockedPreview } from "./locked-preview"
+import { Dimmed, EmptyFoot, LockedPreview } from "./locked-preview"
 import { StatsShell } from "./stats-shell"
 export function GoalSheet({
   open,
@@ -254,6 +253,29 @@ function Chip({
     </Tap>
   )
 }
+/** What the page holds once someone weighs in, drawn dimmed behind the
+ * first-weigh-in card: twelve weeks of mornings drifting from 75.0 to 72.6 kg,
+ * with a body-fat reading about once a week. Fixed values, so the preview
+ * looks the same on every open. */
+export function sampleWeighIns(now = Date.now()): WeighIn[] {
+  const wobble = [0.2, -0.1, 0.3, 0, -0.2, 0.1, 0.25]
+  const out: WeighIn[] = []
+  for (let n = 84; n >= 1; n--) {
+    if (n % 5 === 2) continue
+    const at = new Date(now - n * 86400000)
+    at.setHours(6, 40, 0, 0)
+    const kg = 72.6 + (2.4 * n) / 84 + wobble[n % 7]
+    out.push({
+      id: `sample-${n}`,
+      measuredAt: at.toISOString(),
+      weightKg: Math.round(kg * 10) / 10,
+      ...(n % 7 === 0
+        ? { bodyFatPct: Math.round((21.4 + (2.2 * n) / 84) * 10) / 10 }
+        : {}),
+    })
+  }
+  return out
+}
 export function Body({
   hub = false,
   embedded = false,
@@ -262,7 +284,11 @@ export function Body({
   /** A section of the Fitness page instead of its own screen. */
   embedded?: boolean
 }) {
-  const s = fitStore.use((s) => s),
+  const real = fitStore.use((s) => s),
+    // With no weigh-ins the page draws its real layout from sample mornings,
+    // dimmed and inert under the first-weigh-in card.
+    empty = !real.weighIns.length,
+    s = empty ? { ...real, weighIns: sampleWeighIns() } : real,
     t = useTheme(),
     p = useLocalSearchParams<{ log?: string; weigh?: string; goal?: string }>(),
     [range, setRange] = useState("84"),
@@ -315,7 +341,7 @@ export function Body({
     <>
       <LockedPreview
         gap={12}
-        locked={!sorted.length}
+        locked={empty}
         color={t.fit}
         title="No weigh-ins yet"
         detail="Your first weigh-in sets the starting point. Weigh in each morning; the 7-day average smooths out daily noise."
@@ -732,32 +758,18 @@ export function Body({
 function BodyFat({ onLog }: { onLog: () => void }) {
   const s = fitStore.use((s) => s),
     t = useTheme(),
-    points = s.weighIns
+    real = s.weighIns.filter((w) => w.bodyFatPct !== undefined),
+    // No reading yet: the card draws sample readings, dimmed, above the
+    // step that adds the first.
+    empty = !real.length,
+    points = (empty ? sampleWeighIns() : real)
       .filter((w) => w.bodyFatPct !== undefined)
       .sort((a, b) => a.measuredAt.localeCompare(b.measuredAt)),
     last = points.at(-1),
     base = points.find(
       (p) => new Date(p.measuredAt).getTime() >= Date.now() - 30 * 86400000,
     )
-  if (!last)
-    return (
-      <Frame style={{ padding: 16 }}>
-        <Line>
-          <Percent size={20} color={t.fit} />
-          <View style={{ flex: 1 }}>
-            <Copy size={14} weight="medium">
-              Track body fat
-            </Copy>
-            <Copy size={12} muted>
-              Add it when you weigh in — from a smart scale or calipers.
-            </Copy>
-          </View>
-          <Button small tone="quiet" onPress={onLog}>
-            Add
-          </Button>
-        </Line>
-      </Frame>
-    )
+  if (!last) return null
   const delta =
       base && base !== last
         ? Math.round((last.bodyFatPct! - base.bodyFatPct!) * 10) / 10
@@ -766,8 +778,8 @@ function BodyFat({ onLog }: { onLog: () => void }) {
     lean = last.weightKg - fat,
     oldFat = base ? (base.weightKg * base.bodyFatPct!) / 100 : undefined,
     oldLean = base && oldFat !== undefined ? base.weightKg - oldFat : undefined
-  return (
-    <Frame style={{ padding: 16 }}>
+  const card = (
+    <>
       <Line style={{ justifyContent: "space-between", alignItems: "flex-end" }}>
         <View>
           <Copy size={30} weight="displayMedium" style={{ color: t.fit }}>
@@ -843,6 +855,18 @@ function BodyFat({ onLog }: { onLog: () => void }) {
           </View>
         ))}
       </Line>
+    </>
+  )
+  return (
+    <Frame style={{ padding: 16 }}>
+      {empty ? <Dimmed>{card}</Dimmed> : card}
+      {empty && (
+        <EmptyFoot
+          testID="body-fat-empty"
+          hint="Add body fat when you weigh in, from a smart scale or calipers."
+          action={{ label: "Add", onPress: onLog }}
+        />
+      )}
     </Frame>
   )
 }

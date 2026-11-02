@@ -2,6 +2,7 @@ import * as A from "@domain/finance/actions"
 import * as C from "@domain/finance/calc"
 import { finStore } from "@domain/finance/store"
 import { dayKey } from "@domain/lib/day"
+import { useLocalSearchParams } from "expo-router"
 import { Check, Pencil, Plus } from "lucide-react-native"
 import { useEffect, useState } from "react"
 import { Text, View } from "react-native"
@@ -27,11 +28,13 @@ import { BudgetEditor } from "./finance-budget-editor"
 import { FinanceRecord } from "./finance-home"
 import { SpentLeft } from "./finance-home-cards"
 export function Budgets({ id }: { id?: string }) {
+  const params = useLocalSearchParams<{ new?: string }>()
   const t = useTheme(),
     s = finStore.use((s) => s),
     money = useMoney(),
     b = s.budgets.find((b) => b.id === id),
-    [open, setOpen] = useState(false),
+    // "Set budget" on an empty card lands here with the editor open.
+    [open, setOpen] = useState(params.new === "1"),
     views = s.budgets.filter((b) => !b.archived).map((b) => C.budgetView(s, b)),
     mk = C.monthOf(dayKey(), s.settings.monthStartDay),
     catMap = C.catMap(s),

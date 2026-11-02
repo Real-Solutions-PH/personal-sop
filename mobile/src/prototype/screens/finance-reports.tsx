@@ -10,7 +10,7 @@ import { finStore } from "@domain/finance/store"
 import { dayKey } from "@domain/lib/day"
 import { useLocalSearchParams } from "expo-router"
 import { ChevronRight, Share2 } from "lucide-react-native"
-import { useState } from "react"
+import { type ReactNode, useState } from "react"
 import { View } from "react-native"
 import { toast } from "sonner-native"
 import { FinanceLineChart } from "../chart"
@@ -38,7 +38,9 @@ import {
   ExpectedNetWorthCard,
   periodQuery,
   ReportCard,
+  type ReportData,
   SavingsRateCard,
+  SpendActionShown,
   TopPayeesCard,
   WeekdayCard,
 } from "./finance-report-cards"
@@ -152,6 +154,50 @@ function CustomRangeSheet({
   )
 }
 
+// Six months of a plausible salary against spending, for an empty card.
+const SAMPLE_PAIRS: [number, number][] = [
+  [45000, 38200],
+  [45000, 41500],
+  [47500, 36900],
+  [45000, 43800],
+  [45000, 35100],
+  [52000, 39400],
+]
+/** Income against spending, month by month. */
+function IncomeExpenseCard({
+  d,
+  href,
+  children,
+}: {
+  d: ReportData
+  href: string
+  children?: ReactNode
+}) {
+  const none = !d.months.some((m) => m.income > 0 || m.spend > 0)
+  const pairs: [number, number][] = none
+    ? SAMPLE_PAIRS.slice(-Math.max(1, d.months.length))
+    : d.months.map((m) => [m.income, m.spend])
+  return (
+    <ReportCard
+      title="Income vs expense"
+      href={href}
+      empty={
+        none
+          ? {
+              hint: "What came in against what went out, each month.",
+              action: { label: "Add income", href: "/finance?add=income" },
+            }
+          : undefined
+      }
+    >
+      <PairBars
+        pairs={pairs}
+        labels={d.months.map((m) => C.monthLabel(m.key))}
+      />
+      {children}
+    </ReportCard>
+  )
+}
 export function Reports({ kind }: { kind?: string }) {
   const s = finStore.use((s) => s),
     t = useTheme(),
@@ -231,6 +277,9 @@ export function Reports({ kind }: { kind?: string }) {
       </Screen>
     )
   const segValue = custom ? "custom" : p
+  // Nothing logged in the period: each report shows its card's sample,
+  // dimmed, with the step that fills it, instead of empty rows and ₱0s.
+  const flowless = !(d.flow.spend > 0) && !(d.flow.income > 0)
   const body = (
     <>
       {kind && (
@@ -278,21 +327,25 @@ export function Reports({ kind }: { kind?: string }) {
           <BudgetHistoryCard d={d} period={p} s={s} />
           <TopPayeesCard d={d} period={p} />
           <WeekdayCard d={d} period={p} />
-          <ReportCard
-            title="Income vs expense"
-            href={`/finance/reports/cashflow${q}`}
-          >
-            <PairBars
-              pairs={d.months.map((m) => [m.income, m.spend])}
-              labels={d.months.map((m) => C.monthLabel(m.key))}
-            />
+          <IncomeExpenseCard d={d} href={`/finance/reports/cashflow${q}`}>
             {p === "this" && <RecurringNet s={s} />}
-          </ReportCard>
+          </IncomeExpenseCard>
           <Button
             tone="quiet"
             href={`/finance/review?from=${d.r.from}&to=${d.r.to}`}
           >{`Review ${custom ? d.r.label : d.r.label.toLowerCase()}`}</Button>
         </>
+      ) : flowless &&
+        (kind === "category" || kind === "payees" || kind === "weekday") ? (
+        kind === "category" ? (
+          <CategoryCard d={d} period={p} />
+        ) : kind === "payees" ? (
+          <TopPayeesCard d={d} period={p} />
+        ) : (
+          <WeekdayCard d={d} period={p} />
+        )
+      ) : kind === "cashflow" && flowless ? (
+        <IncomeExpenseCard d={d} href="/finance?add=expense" />
       ) : kind === "category" ? (
         <>
           <Frame style={{ padding: 16, alignItems: "center" }}>
@@ -506,43 +559,47 @@ export function Reports({ kind }: { kind?: string }) {
         />
       }
     >
-      <Segmented
-        value={segValue}
-        onChange={(v) => {
-          if (v === "custom") setSheet(true)
-          else setP(v as Fixed)
-        }}
-        options={[
-          ...FIXED,
-          {
-            value: "custom",
-            label: custom
-              ? `${dayMonth(p.from)} – ${dayMonth(p.to)}`
-              : "Custom",
-          },
-        ]}
-      />
-      {custom ? (
-        <View style={{ gap: 12 }}>{body}</View>
-      ) : (
-        <SwipeSegments
-          value={p}
-          options={FIXED.map((o) => o.value)}
-          onChange={setP}
-          gap={12}
-        >
-          {body}
-        </SwipeSegments>
-      )}
-      <CustomRangeSheet
-        open={sheet}
-        initial={custom ? p : { from: C.addDays(dayKey(), -29), to: dayKey() }}
-        onClose={() => setSheet(false)}
-        onApply={(r) => {
-          setP(r)
-          setSheet(false)
-        }}
-      />
+      <SpendActionShown.Provider value={!kind}>
+        <Segmented
+          value={segValue}
+          onChange={(v) => {
+            if (v === "custom") setSheet(true)
+            else setP(v as Fixed)
+          }}
+          options={[
+            ...FIXED,
+            {
+              value: "custom",
+              label: custom
+                ? `${dayMonth(p.from)} – ${dayMonth(p.to)}`
+                : "Custom",
+            },
+          ]}
+        />
+        {custom ? (
+          <View style={{ gap: 12 }}>{body}</View>
+        ) : (
+          <SwipeSegments
+            value={p}
+            options={FIXED.map((o) => o.value)}
+            onChange={setP}
+            gap={12}
+          >
+            {body}
+          </SwipeSegments>
+        )}
+        <CustomRangeSheet
+          open={sheet}
+          initial={
+            custom ? p : { from: C.addDays(dayKey(), -29), to: dayKey() }
+          }
+          onClose={() => setSheet(false)}
+          onApply={(r) => {
+            setP(r)
+            setSheet(false)
+          }}
+        />
+      </SpendActionShown.Provider>
     </Screen>
   )
 }
