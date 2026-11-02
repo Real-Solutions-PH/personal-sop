@@ -265,3 +265,21 @@ test("patched log index and cached figures match a cold computation", () => {
     }
   }
 })
+
+test("a repeated habit and day keeps the full index's last-one-wins", () => {
+  const h = A.createHabit({ name: "Run", icon: "🏃" })
+  const first = A.checkHabit(h.id, dayOffset(-1)) as HabitLog
+  L.logIndex(habitsStore.get().logs)
+  // A second log for the same habit and day (as a merge could leave), put
+  // before the first: the later one in the list still speaks for the day.
+  const twin: HabitLog = { ...first, id: "twin", status: "skipped" }
+  habitsStore.set((s) => ({ ...s, logs: [twin, ...s.logs] }))
+  expect(
+    L.logIndex(habitsStore.get().logs).get(L.lk(h.id, dayOffset(-1)))?.id,
+  ).toBe(first.id)
+  // Removing that later one hands the day to the twin.
+  habitsStore.set((s) => ({ ...s, logs: s.logs.filter((l) => l !== first) }))
+  expect(
+    L.logIndex(habitsStore.get().logs).get(L.lk(h.id, dayOffset(-1)))?.id,
+  ).toBe("twin")
+})
