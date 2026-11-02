@@ -1947,10 +1947,17 @@ def capture_tools(run: Run) -> list[BaseTool]:
             items = [_stored_item(i) for i in a.items]
             confidence = a.confidence
         else:
+            # The built-in food table knows calories and macros only: a meal
+            # saved from it carried no fiber, saturated fat, sugar or sodium,
+            # and the day's limits read "not tracked yet" (2026-11-02). Its
+            # items go back as a starting point for Fern to send in full.
             est = ports.meal_estimate(run.ctx, a.description)
             if est is None:
                 return {"error": "meal_not_recognised_send_items"}
-            items, confidence = est.items, est.confidence
+            return {
+                "error": "send_items_with_every_nutrient",
+                "starting_point": est.items,
+            }
         # The person's own food library wins over any estimate; a meal made
         # only of library foods is known, not guessed.
         items, from_library = ports.library_items(run.ctx, items)

@@ -321,11 +321,11 @@ def apply_library(
             out.append(it)
             continue
         food, values = hit
-        out.append(
-            {k: v for k, v in it.items() if k not in NUTRIENTS}
-            | values
-            | {"assumption": f"From your food library: {food.name}"}
-        )
+        # The library wins for every nutrient it knows; one it doesn't know
+        # keeps the item's own estimate. Seen live 2026-11-02: saved foods
+        # with calories and macros only wiped the sugar, sodium and
+        # saturated fat of every meal that named them.
+        out.append(it | values | {"assumption": f"From your food library: {food.name}"})
         food.use_count = (food.use_count or 0) + 1
         food.last_used_at = ctx.now
         ctx.session.add(food)

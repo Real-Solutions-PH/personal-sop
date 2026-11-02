@@ -51,6 +51,11 @@ def meal_estimate(ctx: Ctx, text: str) -> MealEstimate | None:
         }
         if i.assumption is not None:
             it["assumption"] = i.assumption
+        # Every detail the estimate has, so a meal's limits can count it.
+        for key in fitness.nutrient_check.DETAILS:
+            value = getattr(i, key, None)
+            if value is not None:
+                it[key] = value
         items.append(it)
     return MealEstimate(items=items, confidence=d.confidence, follow_up=d.follow_up)
 

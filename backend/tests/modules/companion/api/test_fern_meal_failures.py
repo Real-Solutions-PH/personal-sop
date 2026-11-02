@@ -466,3 +466,27 @@ def test_a_gram_amount_takes_the_items_weight(
     [card] = [c for c in rows_of(api, RecordCard) if c.kind == "meal"]
     [item] = card.payload["items"]
     assert (item["qty"], item["unit"]) == (100, "g")
+
+
+def test_a_meal_sent_without_items_is_sent_back_for_them(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The built-in food table knows calories and macros only, so a meal
+    logged from its description alone saved no fiber, saturated fat, sugar
+    or sodium, and the day's limits read "not tracked yet" (2026-11-02).
+    Fern gets the table's items back to send with every nutrient."""
+    api = fern(client, db)
+    _, model = turn(
+        api,
+        client,
+        monkeypatch,
+        "breakfast was garlic rice and an egg",
+        act("log_meal", description="Breakfast: garlic rice and egg"),
+    )
+    out = tool_result(model)
+    assert out["error"] == "send_items_with_every_nutrient"
+    assert [i["name"] for i in out["starting_point"]] == [
+        "Garlic rice (sinangag)",
+        "Fried egg",
+    ]
+    assert not [c for c in rows_of(api, RecordCard) if c.kind == "meal"]

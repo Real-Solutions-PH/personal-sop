@@ -58,8 +58,6 @@ AREAS: dict[str, Area] = {
             "fat",
             "fiber",
             "sat_fat",
-            "fiber_soluble",
-            "fiber_insoluble",
             "sugar",
             "sodium",
         ),
