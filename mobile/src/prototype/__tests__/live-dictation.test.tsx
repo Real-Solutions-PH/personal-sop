@@ -22,7 +22,7 @@ jest.mock("expo-speech-recognition", () => ({
 jest.mock("expo-audio", () => ({}))
 jest.mock("expo-file-system", () => ({}))
 
-const { composeDictation, useLiveDictation } =
+const { composeDictation, dictating, useLiveDictation } =
   require("../live-dictation") as typeof import("../live-dictation")
 const { speaking } = require("@/live/speech") as typeof import("@/live/speech")
 const { createWakeListener, wake } =
@@ -127,6 +127,30 @@ test("one tap: Fern stops talking and Hey Fern lets go before dictation starts",
   expect(result.current.listening).toBe(true)
   expect(wake.getState().armed).toBe(false)
   wakeListener.dispose()
+})
+
+test("Hey Fern stands down from the first moment of a start, not the last", async () => {
+  // The app coming forward (Back Tap, a Shortcut) re-armed Hey Fern while
+  // dictation waited for the microphone permission; Hey Fern took the
+  // recogniser back and the new dictation closed by itself.
+  let grant: (v: { granted: boolean }) => void = () => {}
+  mockModule.requestPermissionsAsync.mockReturnValueOnce(
+    new Promise((r) => {
+      grant = r
+    }),
+  )
+  const { result } = renderHook(() => useLiveDictation(jest.fn(), jest.fn()))
+  let started: Promise<boolean> = Promise.resolve(false)
+  act(() => {
+    started = result.current.start("")
+  })
+  expect(dictating.getState().on).toBe(true)
+  await act(async () => {
+    grant({ granted: false })
+    expect(await started).toBe(false)
+  })
+  // No dictation after all: Hey Fern may listen again.
+  expect(dictating.getState().on).toBe(false)
 })
 
 /** A text box: ``setText`` as React's state setter takes it. */
