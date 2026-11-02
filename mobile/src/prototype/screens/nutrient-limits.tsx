@@ -8,10 +8,10 @@ import {
 } from "@domain/fitness/limits"
 import { fitStore } from "@domain/fitness/store"
 import { dayKey } from "@domain/lib/day"
-import { Gauge } from "lucide-react-native"
+import { ChevronRight, Gauge } from "lucide-react-native"
 import { View } from "react-native"
 import { FlashLine } from "../body-moments"
-import { Copy, Line } from "../native-kit"
+import { Copy, Line, Tap } from "../native-kit"
 import { useTheme } from "../theme"
 
 // Limits read differently from goals on purpose. Goals (calories, protein,
@@ -37,7 +37,7 @@ export function useTodayLimits(): Limits {
 const fmt = (n: number, unit: string) =>
   unit === "mg"
     ? Math.round(n).toLocaleString("en-US")
-    : String(Math.round(n * 10) / 10)
+    : (Math.round(n * 10) / 10).toLocaleString("en-US")
 
 /** One limit. ``scope`` "day" says how much room is left; "meal" says what
  * share of the daily max this one meal uses. ``amount`` undefined means no
@@ -49,6 +49,7 @@ export function LimitBar({
   scope = "day",
   overDays,
   flash,
+  onPress,
 }: {
   k: LimitKey
   amount: number | undefined
@@ -59,6 +60,8 @@ export function LimitBar({
   overDays?: number
   /** The save that just carried it over: "+0.8 g over". */
   flash?: string
+  /** Opens this limit's breakdown; the bar becomes a control. */
+  onPress?: () => void
 }) {
   const t = useTheme()
   const { label, unit } = LIMIT_LABEL[k]
@@ -74,32 +77,32 @@ export function LimitBar({
         : scope === "meal"
           ? `${fmt(amount, unit)} / ${fmt(max, unit)} ${unit} · ${Math.round(share * 100)}% of max`
           : `${fmt(amount, unit)} / ${fmt(max, unit)} ${unit} · ${fmt(max - amount, unit)} ${unit} room`
-  return (
-    <View
-      accessible
-      accessibilityLabel={
-        known
-          ? `${label}: ${fmt(amount, unit)} ${unit} of a ${fmt(max, unit)} ${unit} daily limit, ${level === "over" ? "over the limit" : `${fmt(max - amount, unit)} ${unit} of room left`}`
-          : `${label}: not tracked yet, daily limit ${fmt(max, unit)} ${unit}`
-      }
-      style={{ gap: 4 }}
-    >
-      {/* On a narrow card the figures wrap under their own width rather
-          than run into the label. */}
+  const said = known
+    ? `${label}: ${fmt(amount, unit)} ${unit} of a ${fmt(max, unit)} ${unit} daily limit, ${level === "over" ? "over the limit" : `${fmt(max - amount, unit)} ${unit} of room left`}`
+    : `${label}: not tracked yet, daily limit ${fmt(max, unit)} ${unit}`
+  const body = (
+    <>
+      {/* On a narrow card, or at a large text size, the figures move under
+          the label rather than squeeze beside it. */}
       <Line
         style={{
           justifyContent: "space-between",
           alignItems: "flex-start",
           gap: 8,
+          flexWrap: "wrap",
         }}
       >
-        <Copy size={12} weight="medium">
-          {label}
-        </Copy>
+        <Line style={{ gap: 2 }}>
+          <Copy size={12} weight="medium">
+            {label}
+          </Copy>
+          {onPress && <ChevronRight size={12} color={t.muted} />}
+        </Line>
         <Copy
           size={12}
           style={{
-            flexShrink: 1,
+            flexGrow: 1,
+            maxWidth: "100%",
             textAlign: "right",
             color: level === "under" || !known ? t.muted : color,
           }}
@@ -141,6 +144,19 @@ export function LimitBar({
       {flash && (
         <FlashLine testID={`limit-over-${k}`} text={flash} tone="bad" />
       )}
+    </>
+  )
+  return onPress ? (
+    <Tap
+      label={`${said}. Open the ${label.toLowerCase()} breakdown`}
+      onPress={onPress}
+      style={{ gap: 4 }}
+    >
+      {body}
+    </Tap>
+  ) : (
+    <View accessible accessibilityLabel={said} style={{ gap: 4 }}>
+      {body}
     </View>
   )
 }
@@ -154,6 +170,7 @@ export function LimitList({
   only = false,
   overDays,
   flash,
+  onOpen,
 }: {
   detail: Partial<Record<LimitKey, number>>
   limits?: Limits
@@ -163,6 +180,8 @@ export function LimitList({
   only?: boolean
   /** Per limit, the save that just carried it over. */
   flash?: Partial<Record<LimitKey, string>>
+  /** Each bar opens that limit's breakdown. */
+  onOpen?: (k: LimitKey) => void
 }) {
   const t = useTheme()
   const today = useTodayLimits()
@@ -173,12 +192,12 @@ export function LimitList({
     <View style={{ gap: 8 }}>
       <Line style={{ gap: 6 }}>
         <Gauge size={14} color={t.muted} />
-        <Copy size={11} muted weight="semibold" style={{ letterSpacing: 0.6 }}>
+        <Copy size={12} muted weight="semibold">
           {scope === "meal"
-            ? "STAY UNDER · SHARE OF DAILY MAX"
+            ? "Stay under · share of daily max"
             : scope === "average"
-              ? "STAY UNDER · DAILY AVERAGE"
-              : "STAY UNDER · TODAY"}
+              ? "Stay under · daily average"
+              : "Stay under · today"}
         </Copy>
       </Line>
       {keys.map((k) => (
@@ -190,6 +209,7 @@ export function LimitList({
           scope={scope}
           overDays={overDays?.[k]}
           flash={flash?.[k]}
+          onPress={onOpen ? () => onOpen(k) : undefined}
         />
       ))}
     </View>

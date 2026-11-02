@@ -83,7 +83,7 @@ test("each item lists its nutrients; limits read as a share of the day", () => {
       "P 20g · C 40g · F 15g · Fiber 2g · Sat fat 9g · Sugar 6g · Sodium 1,700 mg",
     ),
   ).toBeTruthy()
-  expect(screen.getByText("STAY UNDER · SHARE OF DAILY MAX")).toBeTruthy()
+  expect(screen.getByText("Stay under · share of daily max")).toBeTruthy()
   // 9 of 20 g saturated fat; 36 of 50 g sugar (72%); 2,300 of 2,000 mg sodium.
   expect(screen.getByText("9 / 20 g · 45% of max")).toBeTruthy()
   expect(screen.getByText("36 / 50 g · 72% of max")).toBeTruthy()
@@ -97,6 +97,6 @@ test("each item lists its nutrients; limits read as a share of the day", () => {
 
 test("a meal without nutrient detail shows no limits section", () => {
   render(<CaptureSummary card={card([{ ...base, name: "Rice", kcal: 205 }])} />)
-  expect(screen.queryByText("STAY UNDER · SHARE OF DAILY MAX")).toBeNull()
+  expect(screen.queryByText("Stay under · share of daily max")).toBeNull()
   expect(screen.getByText("P 20g · C 40g · F 15g")).toBeTruthy()
 })

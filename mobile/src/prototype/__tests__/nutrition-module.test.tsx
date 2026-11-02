@@ -23,7 +23,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context"
 import { FoodLibrary } from "../screens/nutrition-foods"
 import { NutritionHome } from "../screens/nutrition-home"
 import { ManualMeal } from "../screens/nutrition-meals"
-import { NutritionTrend } from "../screens/nutrition-trend"
+import { NutrientDetail } from "../screens/nutrition-nutrient"
 
 jest.mock("react-native-reanimated", () => ({
   __esModule: true,
@@ -232,7 +232,7 @@ describe("state saved before the split", () => {
   })
 })
 
-test("the Nutrition page holds the day, the stats and the links", () => {
+test("the Nutrition page holds the overview, the day's meals, the chart and the links once", () => {
   fitStore.set((s) => ({
     ...s,
     targets: [target],
@@ -240,13 +240,71 @@ test("the Nutrition page holds the day, the stats and the links", () => {
   }))
   render(<NutritionHome />, { wrapper })
   expect(screen.getByText("Nutrition")).toBeTruthy()
-  expect(screen.getByText("CALORIES BY MACRO")).toBeTruthy()
-  expect(screen.getByText("Average calories")).toBeTruthy()
-  expect(screen.getByText("Meal history")).toBeTruthy()
-  expect(screen.getByText("Food library")).toBeTruthy()
+  expect(screen.getByText("Today's meals")).toBeTruthy()
+  expect(screen.getByText("Calories by macro")).toBeTruthy()
+  // One set of links, at the bottom; no second stats section, filter,
+  // activity card or floating re-log row.
+  expect(screen.getAllByText("Meal history")).toHaveLength(1)
+  expect(screen.getAllByText("Food library")).toHaveLength(1)
+  expect(screen.queryByText("Stats")).toBeNull()
+  expect(screen.queryByText("7d")).toBeNull()
+  expect(screen.queryByText("Activity")).toBeNull()
+  expect(screen.queryByText("QUICK RE-LOG")).toBeNull()
+  expect(screen.queryByText("Quick re-log")).toBeNull()
 })
 
-test("each macro's target is a line on the calories chart, not its own chart", () => {
+test("every ring and limit opens its breakdown for the page's day and period", () => {
+  fitStore.set((s) => ({
+    ...s,
+    targets: [target],
+    meals: [meal("a", dayKey(), 900, 60)],
+  }))
+  render(<NutritionHome />, { wrapper })
+  fireEvent.press(screen.getByLabelText(/^Protein: 60 of 140 g\./))
+  expect(router.push).toHaveBeenLastCalledWith(
+    `/nutrition/nutrient/protein?day=${dayKey()}&range=1`,
+  )
+  fireEvent.press(screen.getByLabelText(/^Calories: 900 of 2,000 kcal\./))
+  expect(router.push).toHaveBeenLastCalledWith(
+    `/nutrition/nutrient/kcal?day=${dayKey()}&range=1`,
+  )
+  fireEvent.press(screen.getByLabelText(/^Sodium: not tracked yet/))
+  expect(router.push).toHaveBeenLastCalledWith(
+    `/nutrition/nutrient/sodium?day=${dayKey()}&range=1`,
+  )
+  fireEvent.press(screen.getByLabelText(/^Fiber: /))
+  expect(router.push).toHaveBeenLastCalledWith(
+    `/nutrition/nutrient/fiber?day=${dayKey()}&range=1`,
+  )
+  // The page's one filter travels with the breakdown.
+  fireEvent.press(screen.getByText("7 days"))
+  fireEvent.press(screen.getByLabelText(/^Fat: .* a day on average\./))
+  expect(router.push).toHaveBeenLastCalledWith(
+    `/nutrition/nutrient/fat?day=${dayKey()}&range=7`,
+  )
+})
+
+test("a period shows daily averages over its settled days", () => {
+  // Two settled days, 2,000 and 2,600 kcal; today, still open, is left out
+  // of the average: (2,000 + 2,600) / 2 = 2,300.
+  fitStore.set((s) => ({
+    ...s,
+    targets: [target],
+    meals: [
+      meal("a", dayOffset(-1), 2000, 140),
+      meal("b", dayOffset(-2), 2600, 60),
+      meal("c", dayKey(), 500, 20),
+    ],
+  }))
+  render(<NutritionHome range="7" />, { wrapper })
+  expect(screen.getByText("A day on average, over 2 logged days")).toBeTruthy()
+  expect(
+    screen.getByLabelText(/^Calories: 2,300 of 2,000 kcal a day on average\./),
+  ).toBeTruthy()
+  expect(screen.getByText("Stay under · daily average")).toBeTruthy()
+})
+
+test("each macro's target is a dashed line on the calories chart", () => {
   fitStore.set((s) => ({
     ...s,
     targets: [target],
@@ -255,13 +313,10 @@ test("each macro's target is a line on the calories chart, not its own chart", (
       meal("b", dayOffset(-2), 2000, 140),
     ],
   }))
-  render(<NutritionHome />, { wrapper })
-  // The separate per-macro charts are gone; one chart carries the targets.
-  expect(screen.queryByText("MACROS BY DAY")).toBeNull()
-  expect(screen.queryByLabelText(/by day: average/)).toBeNull()
+  render(<NutritionHome range="7" />, { wrapper })
   expect(
     screen.getByLabelText(
-      /^Calories by macro, last 14 days: .*; targets protein 140 g, carbs 220 g, fat 60 g$/,
+      /^Calories by macro, 7 days to .*; targets protein 140 g, carbs 220 g, fat 60 g$/,
     ),
   ).toBeTruthy()
   // Stacked as the bars are: protein 560 kcal, then carbs to 1,440, then
@@ -269,16 +324,16 @@ test("each macro's target is a line on the calories chart, not its own chart", (
   for (const key of ["protein", "carbs", "fat"])
     expect(screen.getByTestId(`macro-target-${key}`)).toBeTruthy()
   // Each macro's grams against its target sit under the chart.
-  expect(screen.getByText("avg 105 / 140 g · hit on 1 of 2 days")).toBeTruthy()
+  expect(screen.getByText("avg 105 / 140 g")).toBeTruthy()
+  expect(screen.getByText("hit on 1 of 2 days")).toBeTruthy()
   expect(
-    screen.getByText("avg 200 / 220 g · within 10% on 2 of 2 days"),
+    screen.getByLabelText(
+      /^Carbs: avg 200 \/ 220 g · within 10% on 2 of 2 days\./,
+    ),
   ).toBeTruthy()
   expect(
-    screen.getByText("avg 60 / 60 g · within 10% on 2 of 2 days"),
+    screen.getByLabelText(/^Fat: avg 60 \/ 60 g · within 10% on 2 of 2 days\./),
   ).toBeTruthy()
-  // What was eaten sits over the split the targets ask for.
-  expect(screen.getByText("Eaten")).toBeTruthy()
-  expect(screen.getByText("Target")).toBeTruthy()
 })
 
 test("macro targets that don't make the calorie target keep one calorie line", () => {
@@ -289,24 +344,100 @@ test("macro targets that don't make the calorie target keep one calorie line", (
   }))
   render(<NutritionHome />, { wrapper })
   expect(screen.queryByTestId("macro-target-protein")).toBeNull()
+  expect(screen.getByTestId("kcal-target")).toBeTruthy()
 })
 
-test("with nothing logged the stats show dimmed, under one card", () => {
+test("with nothing logged the page keeps its real displays", () => {
   fitStore.set((s) => ({ ...s, targets: [target], meals: [] }))
   render(<NutritionHome />, { wrapper })
-  expect(screen.getByText("Your nutrition stats start here")).toBeTruthy()
-  // The real tiles stay on the page, dimmed.
+  // The chart stays on the page, dimmed, under one card.
   expect(
-    screen.getByText("Calories on target", { includeHiddenElements: true }),
+    screen.getByText("Where your calories come from starts here"),
+  ).toBeTruthy()
+  expect(
+    screen.getByText("Calories by macro", { includeHiddenElements: true }),
+  ).toBeTruthy()
+  // Every slot is there, and logs straight into itself.
+  fireEvent.press(screen.getByLabelText("Log dinner"))
+  expect(router.push).toHaveBeenLastCalledWith(
+    `/nutrition/new?day=${dayKey()}&label=dinner`,
+  )
+})
+
+test("a nutrient's breakdown ranks foods and meals, by amount or per calorie", () => {
+  const day = dayOffset(-1)
+  const m = (
+    id: string,
+    label: "lunch" | "dinner",
+    items: [string, number, number][],
+  ) => ({
+    ...meal(id, day, 0, 0),
+    label,
+    items: items.map(([name, kcal, protein], i) => ({
+      id: `${id}-${i}`,
+      name,
+      qty: 1,
+      unit: "serving",
+      kcal,
+      protein,
+      carbs: 10,
+      fat: 5,
+    })),
+  })
+  fitStore.set((s) => ({
+    ...s,
+    targets: [target],
+    meals: [
+      // Lunch 60 g in 800 kcal (7.5 g per 100); dinner 40 g in 300 kcal
+      // (13 g per 100, whole from 10 up): lunch gives the most, dinner the most per calorie.
+      m("l", "lunch", [
+        ["Chicken", 500, 50],
+        ["Rice", 300, 10],
+      ]),
+      m("d", "dinner", [["Tuna", 300, 40]]),
+    ],
+  }))
+  render(<NutrientDetail nutrient="protein" day={day} period="1" />, {
+    wrapper,
+  })
+  // The day's protein against the goal: 100 of 140 g.
+  expect(screen.getByText("100 g")).toBeTruthy()
+  expect(screen.getByText("40 g to go")).toBeTruthy()
+  expect(screen.getByText("Top foods for protein")).toBeTruthy()
+  expect(
+    screen.getByLabelText(/^Chicken: 50 g protein, 50% of the total/),
+  ).toBeTruthy()
+  // Protein opens on per calorie.
+  expect(screen.getByText("Most protein per calorie")).toBeTruthy()
+  expect(screen.getByText("13 g")).toBeTruthy()
+  fireEvent.press(screen.getByText("Most"))
+  expect(screen.getByText("Meals with the most protein")).toBeTruthy()
+  expect(screen.getByText("60 g")).toBeTruthy()
+  expect(screen.getByTestId("nutrient-goal-line")).toBeTruthy()
+})
+
+test("an empty breakdown shows its real cards dimmed, with one way to fill it", () => {
+  fitStore.set((s) => ({ ...s, targets: [target], meals: [] }))
+  render(<NutrientDetail nutrient="sugar" period="7" />, { wrapper })
+  expect(screen.getByText("Your sugar breakdown starts here")).toBeTruthy()
+  expect(
+    screen.getByText("Top foods for sugar", { includeHiddenElements: true }),
   ).toBeTruthy()
 })
 
-test("the empty goal history's Log a meal opens the meal form", () => {
-  // The card sits on /nutrition itself, so linking back there did nothing.
-  fitStore.set((s) => ({ ...s, targets: [target], meals: [] }))
-  render(<NutritionTrend />, { wrapper })
-  fireEvent.press(screen.getByText("Log a meal"))
-  expect(router.push).toHaveBeenCalledWith("/nutrition/new")
+test("Log meal offers the meals eaten before, one tap with Undo", () => {
+  fitStore.set((s) => ({
+    ...s,
+    targets: [target],
+    meals: [meal("a", dayOffset(-1), 650, 40)],
+  }))
+  render(<ManualMeal />, { wrapper })
+  expect(screen.getByText("Eat again")).toBeTruthy()
+  fireEvent.press(screen.getByLabelText("Log Adobo again, 650 kcal"))
+  // A copy of the same foods, wherever the business day's cut-off puts it.
+  expect(fitStore.get().meals).toHaveLength(2)
+  expect(fitStore.get().meals[1].items[0].name).toBe("Adobo")
+  expect(router.replace).toHaveBeenLastCalledWith(`/nutrition?day=${dayKey()}`)
 })
 
 test("Log meal offers the barcode scanner", () => {

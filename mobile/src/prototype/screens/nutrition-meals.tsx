@@ -16,6 +16,7 @@ import {
   Camera,
   CloudOff,
   Copy as CopyIcon,
+  History,
   Mic,
   Minus,
   Plus,
@@ -591,11 +592,15 @@ export function MealDetail({ id }: { id: string }) {
     </Screen>
   )
 }
+const LABELS: MealLabel[] = ["breakfast", "lunch", "snack", "dinner"]
 export function ManualMeal() {
-  const p = useLocalSearchParams<{ day?: string }>(),
+  const p = useLocalSearchParams<{ day?: string; label?: string }>(),
     day = p.day ?? dayKey(),
     t = useTheme(),
-    [label, setLabel] = useState<MealLabel>(C.labelForTime(new Date())),
+    // An empty slot on the Nutrition page opens this already on it.
+    [label, setLabel] = useState<MealLabel>(
+      LABELS.find((l) => l === p.label) ?? C.labelForTime(new Date()),
+    ),
     [time, setTime] = useState(new Date().toTimeString().slice(0, 5)),
     [text, setText] = useState(""),
     [err, setErr] = useState(false),
@@ -704,6 +709,7 @@ export function ManualMeal() {
           ))}
         </Line>
       </Frame>
+      <EatAgain day={day} />
       <Frame style={{ padding: 16, gap: 8 }}>
         <Line style={{ gap: 8 }}>
           <Sparkles size={16} color={t.nut} />
@@ -956,5 +962,92 @@ export function ManualMeal() {
         </View>
       )}
     </Screen>
+  )
+}
+
+/** Meals eaten on other days, newest first, each once: one tap logs the
+ * same foods again on this day, with Undo, and goes back to the day. */
+function EatAgain({ day }: { day: string }) {
+  const t = useTheme(),
+    meals = fitStore.use((s) => s.meals),
+    seen = new Set<string>(),
+    recent = [...meals]
+      .filter(
+        (m) => m.status === "confirmed" && dayKey(new Date(m.eatenAt)) !== day,
+      )
+      .sort((a, b) => b.eatenAt.localeCompare(a.eatenAt))
+      .filter((m) => {
+        const key = m.items.map((i) => i.name).join("|")
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+      .slice(0, 5)
+  if (!recent.length) return null
+  return (
+    <Frame style={{ paddingVertical: 8 }}>
+      <Line style={{ gap: 8, paddingHorizontal: 16, paddingVertical: 6 }}>
+        <History size={16} color={t.nut} />
+        <Copy size={14} weight="medium" style={{ flex: 1 }}>
+          Eat again
+        </Copy>
+      </Line>
+      {recent.map((m) => {
+        const what = m.items
+          .map((i) => i.name.replace(/\s*\(.*\)/, ""))
+          .join(", ")
+        const kcal = Math.round(C.mealTotals(m).kcal).toLocaleString("en-US")
+        return (
+          <Tap
+            key={m.id}
+            label={`Log ${what} again, ${kcal} kcal`}
+            onPress={() => {
+              const before = dayIntake(fitStore.get(), day)
+              const c = A.duplicateMeal(m.id, day)
+              if (!c) return
+              mealSaved(before, day)
+              undo(`Logged ${c.label} · ${kcal} kcal`, () => A.deleteMeal(c.id))
+              replace(`/nutrition?day=${day}`)
+            }}
+            style={{
+              paddingHorizontal: 16,
+              paddingVertical: 10,
+              borderTopWidth: 1,
+              borderColor: border(t.line, 0.5),
+            }}
+          >
+            <Line style={{ gap: 12, alignItems: "flex-start" }}>
+              <View style={{ flex: 1 }}>
+                <Copy size={14} weight="medium">
+                  {what}
+                </Copy>
+                <Copy size={12} muted>
+                  {`${m.label[0].toUpperCase()}${m.label.slice(1)} · ${C.fmtDay(C.mealDay(m))}`}
+                </Copy>
+              </View>
+              <Copy
+                size={13}
+                weight="semibold"
+                style={{ fontVariant: ["tabular-nums"], paddingTop: 1 }}
+              >
+                {`${kcal} kcal`}
+              </Copy>
+              <View
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 14,
+                  backgroundColor: `${t.nut}26`,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Plus size={16} color={t.nut} />
+              </View>
+            </Line>
+          </Tap>
+        )
+      })}
+    </Frame>
   )
 }
