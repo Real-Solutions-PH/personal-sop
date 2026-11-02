@@ -161,3 +161,82 @@ export function bestMeals(meals: readonly Meal[]) {
   rows.sort((a, b) => b.per100 - a.per100 || b.protein - a.protein)
   return { rows, skipped }
 }
+
+export interface MealRank {
+  /** The latest time it was eaten, to name and open. */
+  meal: Meal
+  /** How many times the same foods were logged as a meal. */
+  count: number
+  /** Across every time it was eaten. */
+  kcal: number
+  protein: number
+  amount: number
+  /** ``key`` per 100 kcal. */
+  per100: number
+}
+
+/** Meals ranked by one nutrient: the most of it each time eaten
+ * (``"amount"``), or the most of it for their calories (``"per100"``,
+ * which leaves out meals under ``MIN_MEAL_KCAL``, counted in ``skipped``).
+ * The same foods eaten again are one row with a count. A meal none of
+ * whose items carries an optional value is counted in ``unknown``, never
+ * ranked as zero. */
+export function rankMeals(
+  meals: readonly Meal[],
+  key: NutrientKey,
+  by: "amount" | "per100",
+) {
+  let skipped = 0,
+    unknown = 0
+  const groups = new Map<
+    string,
+    { meal: Meal; count: number; t: Macros; amount: number }
+  >()
+  for (const meal of counted(meals)) {
+    const t = mealTotals(meal)
+    let amount: number
+    if (OPTIONAL.has(key)) {
+      const known = meal.items
+        .map((i) => (i as MealItem)[key])
+        .filter((v): v is number => v !== undefined)
+      if (!known.length) {
+        unknown++
+        continue
+      }
+      amount = known.reduce((a, v) => a + v, 0)
+    } else amount = t[key as keyof Macros]
+    if (by === "per100" && t.kcal < MIN_MEAL_KCAL) {
+      skipped++
+      continue
+    }
+    const id = meal.items
+      .map((i) => foodLabel(i.name).toLowerCase())
+      .sort()
+      .join("|")
+    const g = groups.get(id)
+    if (g)
+      groups.set(id, {
+        meal,
+        count: g.count + 1,
+        t: sumMacros([g.t, t]),
+        amount: g.amount + amount,
+      })
+    else groups.set(id, { meal, count: 1, t, amount })
+  }
+  const rows: MealRank[] = [...groups.values()]
+    .filter((g) => g.amount > 0)
+    .map(({ meal, count, t, amount }) => ({
+      meal,
+      count,
+      kcal: t.kcal,
+      protein: t.protein,
+      amount,
+      per100: t.kcal ? (amount / t.kcal) * 100 : 0,
+    }))
+  rows.sort((a, b) =>
+    by === "per100"
+      ? b.per100 - a.per100 || b.amount - a.amount
+      : b.amount / b.count - a.amount / a.count,
+  )
+  return { rows, skipped, unknown }
+}

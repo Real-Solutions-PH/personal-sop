@@ -1,7 +1,7 @@
 // Which foods gave the most of a nutrient, and which meals gave the most
 // protein per calorie, worked out by hand below.
 import type { Meal, MealItem } from "@domain/fitness/data"
-import { bestMeals, topFoods } from "../nutrient-insights"
+import { bestMeals, rankMeals, topFoods } from "../nutrient-insights"
 
 let n = 0
 const item = (
@@ -203,5 +203,42 @@ describe("bestMeals", () => {
 
   test("no meals, no rows", () => {
     expect(bestMeals([])).toEqual({ rows: [], skipped: 0 })
+  })
+})
+
+describe("rankMeals", () => {
+  // Breakfast: 9 g sugar in 300 kcal (3 g per 100 kcal). Snack: 30 g in
+  // 150 kcal (20 per 100), eaten twice. Lunch: no sugar recorded. Drink:
+  // 12 g in 60 kcal, a bite under 100 kcal.
+  const meals = [
+    meal("b", "08:00", [item("Oats", { kcal: 300, sugar: 9 })]),
+    meal("s1", "15:00", [item("Halo-halo", { kcal: 150, sugar: 30 })]),
+    meal("l", "12:00", [item("Adobo", { kcal: 600, protein: 40 })]),
+    meal("d", "10:00", [item("Juice", { kcal: 60, sugar: 12 })]),
+    meal("s2", "16:00", [item("halo-halo (small)", { kcal: 150, sugar: 30 })]),
+  ]
+  test("by amount ranks the most each time eaten, a repeat once", () => {
+    const r = rankMeals(meals, "sugar", "amount")
+    expect(r.rows.map((x) => [x.meal.id, x.count, x.amount])).toEqual([
+      ["s2", 2, 60],
+      ["d", 1, 12],
+      ["b", 1, 9],
+    ])
+    // Lunch carries no sugar value: not ranked as zero.
+    expect(r.unknown).toBe(1)
+    expect(r.skipped).toBe(0)
+  })
+  test("per 100 kcal leaves out bites and ranks by density", () => {
+    const r = rankMeals(meals, "sugar", "per100")
+    expect(r.rows.map((x) => [x.meal.id, x.per100])).toEqual([
+      ["s2", 20],
+      ["b", 3],
+    ])
+    expect(r.skipped).toBe(1)
+  })
+  test("a macro is always known", () => {
+    const r = rankMeals(meals, "protein", "amount")
+    expect(r.rows.map((x) => x.meal.id)).toEqual(["l"])
+    expect(r.unknown).toBe(0)
   })
 })

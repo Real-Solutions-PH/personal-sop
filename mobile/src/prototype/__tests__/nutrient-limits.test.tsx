@@ -51,7 +51,7 @@ test("averages count only the days that carry the value", () => {
 
 test("today: room left, over, and not tracked", () => {
   render(<LimitList detail={{ satFat: 8, sodium: 2300 }} />)
-  expect(screen.getByText("STAY UNDER · TODAY")).toBeTruthy()
+  expect(screen.getByText("Stay under · today")).toBeTruthy()
   expect(screen.getByText("8 / 20 g · 12 g room")).toBeTruthy()
   expect(screen.getByText("2,300 / 2,000 mg · 300 mg over")).toBeTruthy()
   expect(screen.getByText("not tracked yet · under 50 g")).toBeTruthy()
