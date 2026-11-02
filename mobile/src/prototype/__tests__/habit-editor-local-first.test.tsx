@@ -232,9 +232,7 @@ test("patched log index and cached figures match a cold computation", () => {
     seed = (seed * 1103515245 + 12345) % 2 ** 31
     return seed % n
   }
-  const habits = Array.from({ length: 4 }, (_, i) =>
-    A.createHabit({ name: `H${i}`, icon: "✅" }),
-  )
+  for (let i = 0; i < 4; i++) A.createHabit({ name: `H${i}`, icon: "✅" })
   const start = dayOffset(-40)
   habitsStore.set((s) => ({
     ...s,
@@ -256,9 +254,7 @@ test("patched log index and cached figures match a cold computation", () => {
     expect([...idx.entries()].sort()).toEqual([...cold.entries()].sort())
     for (const x of now) {
       const fresh = { ...x }
-      expect(L.streaks(x, idx, today)).toEqual(
-        L.streaks(fresh, cold, today),
-      )
+      expect(L.streaks(x, idx, today)).toEqual(L.streaks(fresh, cold, today))
       expect(L.habitStats(x, idx, start, today, today)).toEqual(
         L.habitStats(fresh, cold, start, today, today),
       )

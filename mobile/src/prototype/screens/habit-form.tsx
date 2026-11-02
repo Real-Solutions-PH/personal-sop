@@ -60,9 +60,7 @@ export function HabitForm({
         { days: EVERY_DAY, ...(routine ? { time: "06:00" } : {}) },
       ],
     ),
-    [reminder, setReminder] = useState(
-      old?.reminder ?? defaultReminder,
-    ),
+    [reminder, setReminder] = useState(old?.reminder ?? defaultReminder),
     [linked, setLinked] = useState(h?.linkWorkout ?? false),
     [nag, setNag] = useState<number | null>(h?.nagEveryMin ?? null),
     allGroups = screenStore.use((s) => s.groups),
@@ -180,9 +178,7 @@ export function HabitForm({
       return
     }
     const created = A.createHabit(data),
-      parent = habitsStore
-        .get()
-        .routines.find((r) => r.id === p.addToRoutine)
+      parent = habitsStore.get().routines.find((r) => r.id === p.addToRoutine)
     if (parent) {
       A.setRoutineSteps(parent.id, [
         ...parent.steps,
