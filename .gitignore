@@ -14,3 +14,6 @@ pnpm-lock.yaml
 .env.local
 # Superpowers brainstorm scratch (visual-companion mockups)
 .superpowers/
+
+# Fern replay eval results (ADR-0029): replies quote personal chats
+backend/fern-eval-out/

@@ -24,3 +24,4 @@ Start new ADRs from [template.md](template.md).
 | [0026](0026-eas-build-submit-and-update.md) | EAS Build, Submit and Update for iOS releases (no Xcode, over-the-air JS updates) |
 | [0027](0027-screen-time.md) | Screen time: lower-bound minutes from DeviceActivity thresholds, auto habits, gated entitlement |
 | [0028](0028-share-card-gradients.md) | Gradients on share artwork only (Fern and Dusk grounds); the interface stays flat |
+| [0029](0029-fern-replay-eval-dataset.md) | Fern replay eval: scrubbed real chats in the repository, hashed denylist guard |

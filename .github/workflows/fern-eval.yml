@@ -1,0 +1,79 @@
+name: Fern eval
+
+# Replays Fern's recorded chats (backend/tests/eval/fern, ADR-0029) against the
+# real chat model on every change to the chat agent. A case that passed in
+# baseline.json, and every guard case, must still pass; the score table is in
+# the job summary. Without the NEBIUS_API_KEY secret the job says so and stops.
+
+on:
+  pull_request:
+    paths:
+      - backend/app/modules/companion/**
+      - backend/app/modules/capture/**
+      - backend/app/modules/ai_providers/**
+      - backend/tests/eval/fern/**
+      - .github/workflows/fern-eval.yml
+
+concurrency:
+  group: fern-eval-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fern-eval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      HAS_KEY: ${{ secrets.NEBIUS_API_KEY != '' }}
+    steps:
+      - name: No model key
+        if: env.HAS_KEY != 'true'
+        run: echo "::notice::Fern eval skipped; add the NEBIUS_API_KEY repository secret to run it."
+      - name: Checkout
+        if: env.HAS_KEY == 'true'
+        uses: actions/checkout@v7
+      - name: Seed .env for CI
+        if: env.HAS_KEY == 'true'
+        run: cp .env.example .env
+      - name: Set up Python
+        if: env.HAS_KEY == 'true'
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: Install uv
+        if: env.HAS_KEY == 'true'
+        uses: astral-sh/setup-uv@v7
+      - name: Set up Supabase CLI
+        if: env.HAS_KEY == 'true'
+        uses: supabase/setup-cli@v3
+        with:
+          version: latest
+      - name: Start Supabase auth stack
+        if: env.HAS_KEY == 'true'
+        run: supabase start
+      - if: env.HAS_KEY == 'true'
+        run: docker compose up -d --wait db redis
+      - name: Migrate DB
+        if: env.HAS_KEY == 'true'
+        run: uv run bash scripts/prestart.sh
+        working-directory: backend
+      - name: Replay
+        if: env.HAS_KEY == 'true'
+        run: |
+          set +e
+          FERN_EVAL=1 FERN_EVAL_JUDGE=0 uv run pytest tests/eval/fern/test_fern_replay.py -p no:cacheprovider -q
+          status=$?
+          uv run python -m tests.eval.fern.report --judge --gate >> "$GITHUB_STEP_SUMMARY" || status=1
+          exit $status
+        working-directory: backend
+        env:
+          NEBIUS_API_KEY: ${{ secrets.NEBIUS_API_KEY }}
+          REDIS_URL: redis://localhost:6379/0
+      - name: Store results
+        if: always() && env.HAS_KEY == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: fern-eval
+          path: backend/fern-eval-out
+          retention-days: 7
+      - if: always() && env.HAS_KEY == 'true'
+        run: docker compose down -v --remove-orphans
