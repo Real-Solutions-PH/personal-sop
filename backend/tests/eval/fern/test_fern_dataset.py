@@ -20,7 +20,9 @@ from . import harness
 CASES = harness.load_cases()
 DENY = {
     line.strip()
-    for line in (Path(__file__).parent / "scrub_denylist.sha256").read_text().splitlines()
+    for line in (Path(__file__).parent / "scrub_denylist.sha256")
+    .read_text()
+    .splitlines()
     if line.strip() and not line.startswith("#")
 }
 
@@ -40,9 +42,7 @@ def test_the_dataset_covers_failures_and_guards() -> None:
 def _grams(text: str) -> set[str]:
     words = re.findall(r"[a-z0-9@.]+", text.lower())
     return {
-        " ".join(words[i : i + n])
-        for n in (1, 2, 3)
-        for i in range(len(words) - n + 1)
+        " ".join(words[i : i + n]) for n in (1, 2, 3) for i in range(len(words) - n + 1)
     }
 
 
@@ -53,7 +53,9 @@ def test_no_case_holds_a_scrubbed_term() -> None:
     assert DENY
     for p in sorted(harness.CASES.glob("*.json")):
         hits = [
-            g for g in _grams(p.read_text()) if hashlib.sha256(g.encode()).hexdigest() in DENY
+            g
+            for g in _grams(p.read_text())
+            if hashlib.sha256(g.encode()).hexdigest() in DENY
         ]
         assert not hits, f"{p.name} holds a scrubbed term"
 

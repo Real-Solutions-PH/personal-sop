@@ -35,6 +35,7 @@ Context pack for human + AI programmers building this SaaS. Fill each template; 
 | [ia/](ia/README.md) | Information architecture — screens, flows, open questions per module | Design |
 | [adr/](adr/) | Architecture Decision Records — one file per decision | Tech lead |
 | [adr/0028-share-card-gradients.md](adr/0028-share-card-gradients.md) | Gradients allowed on share artwork only, amending the brand's flat rule (2026-10-30) | Design |
+| [adr/0029-fern-replay-eval-dataset.md](adr/0029-fern-replay-eval-dataset.md) | Fern replay eval dataset: scrubbed real chats in the public repository (2026-11-02) | Testing |
 | [runbook.md](runbook.md) | Deploy, rollback, backup/restore, common ops, incidents | DevOps |
 
 ### Feature specs and plans

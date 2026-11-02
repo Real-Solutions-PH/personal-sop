@@ -7,8 +7,9 @@ criterion the case names 0 (failed), 1 (partly) or 2 (met), with one line
 of reason; a criterion the turn gives no chance to show is "na".
 
 The judge model is the server's Nebius key with ``FERN_EVAL_JUDGE_MODEL``
-(default a larger model than the one under test, so the judge is not
-grading its own habits).
+(default an instruct model from another family than the one under test,
+so the judge is not grading its own habits, and quick enough to judge the
+whole dataset in minutes).
 """
 
 import json
@@ -22,9 +23,11 @@ from pydantic import SecretStr
 from app.core.config import settings
 from app.modules.ai_providers import public as ai
 
-from .harness import CRITERIA, Case, Trace
+from .harness import CRITERIA, Case
 
-JUDGE_MODEL = os.environ.get("FERN_EVAL_JUDGE_MODEL", "deepseek-ai/DeepSeek-V4-Pro")
+JUDGE_MODEL = os.environ.get(
+    "FERN_EVAL_JUDGE_MODEL", "Qwen/Qwen3-235B-A22B-Instruct-2507"
+)
 
 SYSTEM = """You grade one turn of Fern, the chat agent of a personal
 life-tracking app (meals and macros, workouts, habits, tasks, money). You
@@ -45,23 +48,30 @@ Answer with JSON only:
 {"scores": {"<n>": {"score": 0|1|2|"na", "why": "<one line>"}}, "summary": "<one line>"}"""
 
 
+PER_CRITERION = re.compile(
+    r'"(\d+)"\s*:\s*\{\s*"score"\s*:\s*"?(na|\d)"?\s*,\s*"why"\s*:\s*"((?:[^"\\]|\\.)*)"'
+)
+
+
 def _criteria(case: Case) -> list[int]:
     return sorted(set(case.criteria) | {1, 3, 5, 9})
 
 
-def prompt(case: Case, trace: Trace) -> str:
+def prompt(case: Case, done: dict[str, Any]) -> str:
     listed = "\n".join(f"{n}. {CRITERIA[n]}" for n in _criteria(case))
     return "\n\n".join(
         [
             f"CRITERIA TO SCORE:\n{listed}",
             "CHAT SO FAR:\n"
-            + "\n".join(f"[{m.at.isoformat()}] {m.role}: {m.text}" for m in case.history),
+            + "\n".join(
+                f"[{m.at.isoformat()}] {m.role}: {m.text}" for m in case.history
+            ),
             "RECORDS AT THAT MOMENT (JSON):\n"
             + json.dumps(case.records, ensure_ascii=False, default=str)[:12_000],
             "THE PERSON SENT:\n"
             + "\n".join(f"[{s.at.isoformat()}] {s.text}" for s in case.turn),
             "WHAT FERN DID (JSON):\n"
-            + json.dumps(trace.public(), ensure_ascii=False, default=str)[:16_000],
+            + json.dumps(done, ensure_ascii=False, default=str)[:20_000],
             f"WHAT GOOD LOOKS LIKE:\n{case.should_have}\n{case.rubric}",
         ]
     )
@@ -84,11 +94,10 @@ def _model() -> Any:
     return ai.build_chat_model(resolved)
 
 
-def judge(case: Case, trace: Trace) -> dict[str, Any]:
+def judge(case: Case, done: dict[str, Any]) -> dict[str, Any]:
+    """Scores ``done`` (a :meth:`Trace.public`)."""
     """{"scores": {n: {"score", "why"}}, "summary", "score": 0..1}."""
-    reply = _model().invoke(
-        [SystemMessage(SYSTEM), HumanMessage(prompt(case, trace))]
-    )
+    reply = _model().invoke([SystemMessage(SYSTEM), HumanMessage(prompt(case, done))])
     text = str(reply.content)
     found = re.search(r"\{.*\}", text, re.S)
     try:
@@ -96,6 +105,14 @@ def judge(case: Case, trace: Trace) -> dict[str, Any]:
     except json.JSONDecodeError:
         out = {}
     scores = out.get("scores") or {}
+    if not scores:
+        # The judge's JSON is sometimes off by a brace; each criterion's
+        # score still reads on its own.
+        scores = {
+            n: {"score": int(v) if v.isdigit() else v, "why": why}
+            for n, v, why in PER_CRITERION.findall(text)
+        }
+        out["scores"] = scores
     got = [
         int(v["score"])
         for v in scores.values()

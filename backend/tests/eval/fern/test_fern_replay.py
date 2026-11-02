@@ -6,10 +6,11 @@ and the ``Fern eval`` CI job on changes to the chat agent). Each case's
 result goes to ``FERN_EVAL_OUT`` (default ``backend/fern-eval-out``) as
 JSON; ``report.py`` turns them into the score table.
 
-A case passes when all its deterministic checks pass. The gate is
-``baseline.json``: a case that passed there must still pass (a guard case
-always must). A failure case that still fails is reported, not failed:
-those are the known gaps the next change is meant to close.
+A case passes when all its deterministic checks pass. Every guard case
+must pass here. Failure cases are reported, not failed one by one (the
+model is not deterministic: about a tenth of them flip between two runs of
+the same code); ``report.py --gate`` holds the whole run to
+``baseline.json`` instead.
 """
 
 import json
@@ -30,8 +31,8 @@ from .judge import JUDGE_MODEL, judge
 
 LIVE = os.environ.get("FERN_EVAL") == "1" and bool(settings.NEBIUS_API_KEY)
 OUT = Path(os.environ.get("FERN_EVAL_OUT", Path(__file__).parents[3] / "fern-eval-out"))
-BASELINE = json.loads((Path(__file__).parent / "baseline.json").read_text())
 ONLY = {c for c in os.environ.get("FERN_EVAL_CASES", "").split(",") if c}
+JUDGE = os.environ.get("FERN_EVAL_JUDGE", "1") == "1"
 REPEATS = int(os.environ.get("FERN_EVAL_REPEATS", "1"))
 
 pytestmark = pytest.mark.skipif(
@@ -60,7 +61,8 @@ def test_replay(
         with Session(engine) as session:
             trace = harness.run_case(session, user, case)
         checks = harness.check(case, trace)
-        verdict = judge(case, trace)
+        # Judged here, or later over the saved results (report.py --judge).
+        verdict = judge(case, trace.public()) if JUDGE else None
         runs.append(
             {
                 "run": n,
@@ -91,7 +93,6 @@ def test_replay(
             default=str,
         )
     )
-    was = BASELINE.get(case.id, {}).get("passed")
     failed = [c.name + ": " + c.detail for c in harness.check(case, trace) if not c.ok]
-    if case.kind == "guard" or was:
+    if case.kind == "guard":
         assert passed, f"{case.id} regressed: {failed}"

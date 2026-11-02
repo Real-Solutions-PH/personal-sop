@@ -26,7 +26,6 @@ from sqlalchemy import Date, DateTime, select
 from sqlalchemy import Uuid as SAUuid
 from sqlmodel import Session, SQLModel
 
-from app.modules.iam.users.models import User
 from app.modules.ai_providers.models import AIUsage
 from app.modules.capture.models import Capture, RecordCard
 from app.modules.companion import services
@@ -47,6 +46,7 @@ from app.modules.fitness.models import (
     WorkoutTemplate,
 )
 from app.modules.habits.models import Habit, HabitLog
+from app.modules.iam.users.models import User
 from app.modules.profile import public as profile
 from app.modules.tasks.models import Task
 from app.shared.context import Ctx, make_ctx
@@ -180,8 +180,7 @@ class Case(BaseModel):
 
 def load_cases() -> list[Case]:
     return [
-        Case.model_validate_json(p.read_text())
-        for p in sorted(CASES.glob("*.json"))
+        Case.model_validate_json(p.read_text()) for p in sorted(CASES.glob("*.json"))
     ]
 
 
@@ -290,7 +289,15 @@ class Trace:
     def public(self) -> dict[str, Any]:
         return {
             "calls": [
-                {"name": c.name, "args": c.args, "turn": c.turn} for c in self.calls
+                {
+                    "name": c.name,
+                    "args": c.args,
+                    "result": json.dumps(c.result, default=str, ensure_ascii=False)[
+                        :1500
+                    ],
+                    "turn": c.turn,
+                }
+                for c in self.calls
             ],
             "replies": self.replies,
             "blocks": self.blocks,
@@ -404,11 +411,18 @@ def run_case(session: Session, user: User, case: Case) -> Trace:
             ).scalars()
             trace.written[table] = [_row(r) for r in rows]
     for card in session.execute(
-        select(RecordCard).where(RecordCard.id.in_(_cards(session, user.id) - cards_before))  # type: ignore[attr-defined]
+        select(RecordCard).where(
+            RecordCard.id.in_(_cards(session, user.id) - cards_before)
+        )  # type: ignore[attr-defined]
     ).scalars():
         if card.state in ("proposed", "needs_input"):
             trace.waiting.append(
-                {"kind": card.kind, "state": card.state, "ask": card.ask, "payload": card.payload}
+                {
+                    "kind": card.kind,
+                    "state": card.state,
+                    "ask": card.ask,
+                    "payload": card.payload,
+                }
             )
     for u in session.execute(
         select(AIUsage).where(AIUsage.owner_id == user.id)  # type: ignore[arg-type]
@@ -457,14 +471,18 @@ def _items(trace: Trace, table: str) -> list[dict[str, Any]]:
             if c["kind"] in ("meal", "mealLog"):
                 rows.extend(c["payload"].get("items") or [])
     if table == "meal":
-        rows.extend(c["payload"] for c in trace.waiting if c["kind"] in ("meal", "mealLog"))
+        rows.extend(
+            c["payload"] for c in trace.waiting if c["kind"] in ("meal", "mealLog")
+        )
     if table == "task":
         for c in trace.waiting:
             if c["kind"] == "task":
                 rows.extend(c["payload"].get("tasks") or [])
     if table == "fin_record":
         rows.extend(
-            c["payload"] for c in trace.waiting if c["kind"] in ("expense", "income", "transfer")
+            c["payload"]
+            for c in trace.waiting
+            if c["kind"] in ("expense", "income", "transfer")
         )
     return rows
 
@@ -514,13 +532,17 @@ def check(case: Case, trace: Trace) -> list[Check]:
             Check(f"called one of {group}", bool(hit), f"called {names}", [3, 5, 9])
         )
     for t in e.tools_none:
-        out.append(Check(f"did not call {t}", t not in names, f"called {names}", [4, 9]))
+        out.append(
+            Check(f"did not call {t}", t not in names, f"called {names}", [4, 9])
+        )
     if e.read_first:
         reads = [i for i, n in enumerate(names) if n in e.read_first]
         writes = [i for i, n in enumerate(names) if n in services.WRITE_TOOLS]
         ok = bool(reads) and (not writes or min(reads) < min(writes))
         out.append(
-            Check(f"read {e.read_first} before answering", ok, f"called {names}", [4, 9])
+            Check(
+                f"read {e.read_first} before answering", ok, f"called {names}", [4, 9]
+            )
         )
     for a in e.tool_args:
         vals = [
@@ -530,7 +552,9 @@ def check(case: Case, trace: Trace) -> list[Check]:
             for v in _dig(c.args, a.path.split("."))
         ]
         if a.present is not None:
-            ok = bool(vals) == a.present and (not a.present or all(v not in (None, "") for v in vals))
+            ok = bool(vals) == a.present and (
+                not a.present or all(v not in (None, "") for v in vals)
+            )
         elif a.one_of is not None:
             ok = bool(vals) and all(v in a.one_of for v in vals)
         else:
@@ -541,9 +565,7 @@ def check(case: Case, trace: Trace) -> list[Check]:
         out.append(Check(f"wrote {n}+ {table}", got >= n, f"wrote {got}", [6, 10]))
     for table, cols in e.fields.items():
         rows = _items(trace, table)
-        blank = sorted(
-            {c for r in rows for c in cols if r.get(c) in (None, "")}
-        )
+        blank = sorted({c for r in rows for c in cols if r.get(c) in (None, "")})
         out.append(
             Check(
                 f"{table} fields filled",
@@ -580,10 +602,24 @@ def check(case: Case, trace: Trace) -> list[Check]:
         out.append(Check("answered without asking", not q_any, "", [5]))
     if e.replies_max is not None:
         n = len([r for r in trace.replies if r.strip()])
-        out.append(Check(f"at most {e.replies_max} replies", n <= e.replies_max, f"{n} replies", [7]))
+        out.append(
+            Check(
+                f"at most {e.replies_max} replies",
+                n <= e.replies_max,
+                f"{n} replies",
+                [7],
+            )
+        )
     text = "\n".join(trace.replies).lower()
     for any_of in [e.reply_any] if e.reply_any else []:
-        out.append(Check(f"reply mentions one of {any_of}", any(s.lower() in text for s in any_of), "", [1]))
+        out.append(
+            Check(
+                f"reply mentions one of {any_of}",
+                any(s.lower() in text for s in any_of),
+                "",
+                [1],
+            )
+        )
     for s in e.reply_none:
         out.append(Check(f"reply avoids {s!r}", s.lower() not in text, "", [1, 4]))
     return out
