@@ -491,25 +491,39 @@ export function Part({
     </View>
   )
 }
+/** The brand's progress track (docs/brand Progress): 6 pt, fully rounded. */
+export const BAR_HEIGHT = 6
 export function Bar({
   value,
   color,
   target,
-  height = 8,
+  height = BAR_HEIGHT,
 }: {
   value: number
   color: string
   target?: number
   height?: number
 }) {
-  const t = useTheme()
+  const t = useTheme(),
+    radius = height / 2
   return (
-    <View style={{ flex: 1, height, backgroundColor: t.soft, borderRadius: 4 }}>
+    // flex: 1 gives the track its width in a row; min/max pin its height so
+    // a column parent with room to spare cannot stretch it.
+    <View
+      style={{
+        flex: 1,
+        height,
+        minHeight: height,
+        maxHeight: height,
+        backgroundColor: t.soft,
+        borderRadius: radius,
+      }}
+    >
       <View
         style={{
           width: `${Math.max(0, Math.min(1, value)) * 100}%`,
           height,
-          borderRadius: 4,
+          borderRadius: radius,
           backgroundColor: color,
         }}
       />
@@ -519,7 +533,7 @@ export function Bar({
             position: "absolute",
             left: `${target * 100}%`,
             top: -4,
-            height: 16,
+            height: height + 8,
             width: 2,
             borderRadius: 1,
             backgroundColor: border(t.text, 0.7),

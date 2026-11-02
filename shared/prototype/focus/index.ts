@@ -64,7 +64,8 @@ function useMetrics(days: number): Metric[] {
         key: "focused",
         label: "Focused time",
         value: L.fmtHm(a.total),
-        delta: (a.total - b.total) / 60,
+        // Whole minutes: the totals are seconds.
+        delta: Math.round((a.total - b.total) / 60),
         goodWhen: "up",
         shareable: true,
       },
@@ -73,7 +74,9 @@ function useMetrics(days: number): Metric[] {
         label: "Average a day",
         value: a.avg === null ? "—" : L.fmtHm(a.avg),
         delta:
-          a.avg !== null && b.avg !== null ? (a.avg - b.avg) / 60 : undefined,
+          a.avg !== null && b.avg !== null
+            ? Math.round((a.avg - b.avg) / 60)
+            : undefined,
         goodWhen: "up",
         shareable: true,
       },

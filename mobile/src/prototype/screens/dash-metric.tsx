@@ -2,6 +2,7 @@ import type { ModuleKey } from "@domain/contract"
 import { AREA } from "@domain/dash/data"
 import { fmtGoal, moduleByKey, parseMetric, useGoals } from "@domain/dash/hooks"
 import { dayKey, dayOffset } from "@domain/lib/day"
+import { absNum } from "@domain/lib/num"
 import { useLocalSearchParams } from "expo-router"
 import { Target } from "lucide-react-native"
 import { useState } from "react"
@@ -153,7 +154,7 @@ function Detail({
                 }}
               >
                 {metric.delta
-                  ? `${metric.delta > 0 ? "↑" : "↓"} ${Math.abs(metric.delta)}`
+                  ? `${metric.delta > 0 ? "↑" : "↓"} ${absNum(metric.delta)}`
                   : "—"}
               </Copy>
               <Copy size={14} muted>

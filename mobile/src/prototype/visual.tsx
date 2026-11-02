@@ -1,3 +1,4 @@
+import { num } from "@domain/lib/num"
 import { LinearGradient } from "expo-linear-gradient"
 import {
   ArrowDown,
@@ -237,7 +238,7 @@ export function Metric({
           fontVariant: ["tabular-nums"],
         }}
       >
-        {value}
+        {typeof value === "number" ? num(value) : value}
       </Text>
       <Text style={{ fontFamily: fonts.body, fontSize: 12, color: t.muted }}>
         {label}

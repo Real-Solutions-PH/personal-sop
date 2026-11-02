@@ -1,4 +1,5 @@
 import { compact } from "@domain/finance/calc"
+import { num } from "@domain/lib/num"
 import { privacyStore } from "@domain/lib/privacy"
 import { Pressable, Text, View } from "react-native"
 import Svg, {
@@ -11,6 +12,7 @@ import Svg, {
   Text as SvgText,
 } from "react-native-svg"
 import { GrowBar, Reveal } from "./motion"
+import { BAR_HEIGHT } from "./native-kit"
 import { fonts, useTheme } from "./theme"
 
 export function Trend({
@@ -96,12 +98,18 @@ export function Bar({
       >
         {label} · {formatted}
       </Text>
-      <View style={{ height: 8, backgroundColor: t.soft, borderRadius: 4 }}>
+      <View
+        style={{
+          height: BAR_HEIGHT,
+          backgroundColor: t.soft,
+          borderRadius: BAR_HEIGHT / 2,
+        }}
+      >
         <View
           style={{
             width: `${Math.min(100, Math.max(0, (value / Math.max(1, max)) * 100))}%`,
-            height: 8,
-            borderRadius: 4,
+            height: BAR_HEIGHT,
+            borderRadius: BAR_HEIGHT / 2,
             backgroundColor: t.accent,
           }}
         />
@@ -431,7 +439,7 @@ export function FitnessTrend({
   goal,
   height = 160,
   labels,
-  fmt = (n: number) => n.toFixed(1),
+  fmt = (n: number) => num(n),
 }: {
   line: (number | undefined)[]
   dots?: (number | undefined)[]

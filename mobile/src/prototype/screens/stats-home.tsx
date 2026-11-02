@@ -3,6 +3,7 @@ import { useFacets } from "@domain/dash/facets"
 import * as D from "@domain/dash/hooks"
 import { dashStore, resetWeights, setWeight } from "@domain/dash/store"
 import { dayKey, dayOffset } from "@domain/lib/day"
+import { absNum } from "@domain/lib/num"
 import { module as SCR } from "@domain/screen"
 import { useLocalSearchParams } from "expo-router"
 import {
@@ -75,7 +76,7 @@ function Delta({
       }}
     >
       {value > 0 ? "▲" : value < 0 ? "▼" : "—"}
-      {Math.abs(value)}
+      {absNum(value)}
     </Copy>
   )
 }
