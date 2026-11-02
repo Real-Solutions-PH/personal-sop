@@ -310,10 +310,15 @@ def test_module_order_syncs(client: TestClient, db: Session) -> None:
     ]
     assert push("habits", {"sort_order": 1}) == ["applied"]
     assert push("finance", {"enabled": False}) == ["applied"]
-    order = {m["module"]: m["sort_order"] for m in client.get(API, headers=h).json()["modules"]}
+    order = {
+        m["module"]: m["sort_order"]
+        for m in client.get(API, headers=h).json()["modules"]
+    }
     assert (order["finance"], order["habits"]) == (0, 1)
     pulled = client.get(f"{settings.API_V1_STR}/sync/pull", headers=h).json()["changes"]
-    rows = {c["data"]["module"]: c["data"] for c in pulled if c["entity"] == "module_pref"}
+    rows = {
+        c["row"]["module"]: c["row"] for c in pulled if c["entity"] == "module_pref"
+    }
     assert rows["finance"]["sort_order"] == 0 and rows["finance"]["enabled"] is False
     assert rows["habits"]["sort_order"] == 1
     assert push("habits", {"sort_order": 100}) != ["applied"]

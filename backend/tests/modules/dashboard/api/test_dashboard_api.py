@@ -236,7 +236,7 @@ def test_review_opened_at_syncs(client: TestClient, db: Session) -> None:
     res = client.post(f"{SYNC}/push", headers=h, json={"ops": [op]}).json()
     assert [r["status"] for r in res["results"]] == ["applied"], res
     pulled = client.get(f"{SYNC}/pull", headers=h).json()["changes"]
-    row = next(c for c in pulled if c["entity"] == "review")["data"]
+    row = next(c for c in pulled if c["entity"] == "review")["row"]
     assert row["opened_at"].startswith("2026-11-03T01:30:00")
     assert row["done"] is False
     listed = ok(client.get(f"{API}/reviews", headers=h))["data"][0]
