@@ -6,6 +6,7 @@ import { useState } from "react"
 import { ScrollView, View } from "react-native"
 import { toast } from "sonner-native"
 import { DragHandle } from "../drag-handle"
+import { IconField } from "../icon-picker"
 import {
   border,
   Copy,
@@ -21,7 +22,8 @@ import { useTheme } from "../theme"
 import { Button, Choices, confirm, Field, Screen, Sheet, undo } from "../ui"
 import { FinChip } from "./finance-projection"
 
-const EMOJI = [
+/** What Suggested offers before the name matches anything. */
+const CATEGORY_ICONS = [
   "🍽️",
   "☕",
   "🛒",
@@ -93,7 +95,6 @@ export function CategoryForm({
   onDeleting?: (name: string | null) => void
 }) {
   const s = finStore.use((s) => s),
-    t = useTheme(),
     ex = s.categories.find((c) => c.id === id),
     pre = s.categories.find((c) => c.id === parentId),
     [name, setName] = useState(ex?.name ?? presetName ?? ""),
@@ -201,28 +202,13 @@ export function CategoryForm({
           <Copy size={12} muted>
             Icon
           </Copy>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4 }}>
-            {EMOJI.map((e) => (
-              <Tap
-                key={e}
-                label={`Icon ${e}`}
-                onPress={() => setIcon(e)}
-                style={{
-                  width: "10.1%",
-                  aspectRatio: 1,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: 8,
-                  backgroundColor:
-                    icon === e ? `${t.fin}33` : border(t.soft, 0.5),
-                  borderWidth: icon === e ? 1 : 0,
-                  borderColor: t.fin,
-                }}
-              >
-                <Copy size={18}>{e}</Copy>
-              </Tap>
-            ))}
-          </View>
+          <IconField
+            value={icon}
+            onChange={setIcon}
+            name={name}
+            accent="fin"
+            fallback={CATEGORY_ICONS}
+          />
           <Copy size={12} muted>
             Sub-category of
           </Copy>

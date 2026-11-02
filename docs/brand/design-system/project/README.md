@@ -67,7 +67,7 @@ Unfurl is the all-in-one life tracker you talk to. People log habits, tasks, tra
 - The logo is always flat: no gradient, glow or shadow on the mark, the lockup or the app icon.
 - App icon: the white fiddlehead on a solid moss square. Dark icon: `sprout` mark on `#121513`. Files: `assets/Logos/`.
 - Inside the app the mark becomes Fern's orb, which alone carries the gradient and glow.
-- Icons are lucide outlines at 1.75 stroke (active tab 2.0), 18 pt in controls, 22 pt in the tab bar. One family, outline only, never emoji.
+- Icons are lucide outlines at 1.75 stroke (active tab 2.0), 18 pt in controls, 22 pt in the tab bar. One family, outline only, never emoji. The one exception is the icon a person picks for their own habit, routine or category, which is an emoji they chose (see [ADR-0030](../../../adr/0030-record-icons-are-emoji.md)).
 - Module icons: habits `target`, tasks `square-check-big`, training `dumbbell`, nutrition `utensils`, money `wallet`, journal `book-open`, weigh-ins `scale`.
 
 ## Components at a glance

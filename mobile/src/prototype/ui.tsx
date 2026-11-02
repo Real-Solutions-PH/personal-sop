@@ -793,10 +793,14 @@ export function Sheet({
   onBack,
   backLabel = "Back",
   onClosed,
+  fill,
   children,
 }: {
   title: string
   open: boolean
+  /** Full height, and the children scroll themselves (a virtualized list
+   * must not sit inside the sheet's own ScrollView). */
+  fill?: boolean
   onClose: () => void
   /** A step inside the sheet: shows a back chevron before the title. */
   onBack?: () => void
@@ -924,6 +928,7 @@ export function Sheet({
           style={[
             {
               maxHeight: "88%",
+              height: fill ? "88%" : undefined,
               backgroundColor: t.bg,
               borderTopLeftRadius: 24,
               borderTopRightRadius: 24,
@@ -1004,13 +1009,17 @@ export function Sheet({
               </View>
             </View>
           </GestureDetector>
-          <ScrollView
-            keyboardShouldPersistTaps="handled"
-            bounces={false}
-            contentContainerStyle={{ gap: 12, paddingBottom: 4 }}
-          >
-            {children}
-          </ScrollView>
+          {fill ? (
+            <View style={{ flex: 1 }}>{children}</View>
+          ) : (
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              bounces={false}
+              contentContainerStyle={{ gap: 12, paddingBottom: 4 }}
+            >
+              {children}
+            </ScrollView>
+          )}
         </Animated.View>
       </KeyboardAvoidingView>
     </Modal>
