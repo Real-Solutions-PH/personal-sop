@@ -6,7 +6,13 @@ import { finStore } from "@domain/finance/store"
 import { dayKey } from "@domain/lib/day"
 import { privacyStore } from "@domain/lib/privacy"
 import { configureStorage, resetAll } from "@domain/lib/store"
-import { act, fireEvent, render, screen } from "@testing-library/react-native"
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react-native"
 import type { ReactNode } from "react"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
@@ -198,7 +204,7 @@ test("category budgets alone give a live summary, not the locked preview", () =>
   const n = finStore.get().budgets.filter((b) => !b.archived).length
   expect(n).toBeGreaterThan(0)
   render(<FinanceHome />, { wrapper })
-  expect(screen.queryByText("Set a monthly budget")).toBeNull()
+  expect(screen.queryByTestId("budget-empty")).toBeNull()
   expect(
     screen.getByText(
       new RegExp(`^Left of ₱[\\d,.]+ across ${n} category budgets?$`),
@@ -209,7 +215,8 @@ test("category budgets alone give a live summary, not the locked preview", () =>
 test("with no budget at all the card says to set one", () => {
   finStore.set((x) => ({ ...x, budgets: [] }))
   render(<FinanceHome />, { wrapper })
-  expect(screen.getByText("Set a monthly budget")).toBeTruthy()
+  const foot = within(screen.getByTestId("budget-empty"))
+  expect(foot.getByRole("button", { name: "Set budget" })).toBeTruthy()
 })
 
 test("with amounts hidden no peso figure shows on the home", () => {

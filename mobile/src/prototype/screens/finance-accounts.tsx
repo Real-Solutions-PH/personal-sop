@@ -41,8 +41,9 @@ import { Button, confirm, Empty, Screen, Sheet, undo } from "../ui"
 import { RecordEditor, useMoney } from "./finance"
 import { AccountCard, useAccountColor } from "./finance-account-card"
 import { AccountEditor } from "./finance-account-editor"
-import { FinanceRecord } from "./finance-home"
+import { FinanceRecord, SampleRecords } from "./finance-home"
 import { FinPill } from "./finance-planned"
+import { Dimmed, EmptyFoot } from "./locked-preview"
 
 const groups: Record<AccountType, string> = {
   cash: "Cash",
@@ -391,13 +392,18 @@ export function Accounts({ id }: { id?: string }) {
                 <FinanceRecord key={r.id} record={r} />
               ))}
               {!recs.length && (
-                <Copy
-                  size={14}
-                  muted
-                  style={{ paddingVertical: 24, textAlign: "center" }}
-                >
-                  No transactions on this account yet.
-                </Copy>
+                <View testID="account-records-empty" style={{ padding: 8 }}>
+                  <Dimmed>
+                    <SampleRecords />
+                  </Dimmed>
+                  <EmptyFoot
+                    hint="Spending and income paid from this account land here."
+                    action={{
+                      label: "Add expense",
+                      href: "/finance?add=expense",
+                    }}
+                  />
+                </View>
               )}
             </Frame>
           </View>

@@ -28,6 +28,7 @@ import { AdvisorAnswer, type AdvisorQuestion, advisorQuestion } from "./finance"
 import { FinPill } from "./finance-planned"
 import { FinChip } from "./finance-projection"
 import { FinanceDisclaimer } from "./finance-settings"
+import { Dimmed, EmptyFoot } from "./locked-preview"
 
 const suggested = (c: CurrencyInfo) => [
   `Can I afford a ${moneyCompact(45000, c)} laptop in December?`,
@@ -36,6 +37,12 @@ const suggested = (c: CurrencyInfo) => [
   "How big should my emergency fund be?",
   "Should I start investing — MP2 or index funds?",
 ]
+// What the past-threads list looks like once a few questions are asked.
+const SAMPLE_THREADS = [
+  { title: "Can I afford a new phone?", messages: 4, date: "Oct 28" },
+  { title: "Where did my food money go?", messages: 6, date: "Oct 21" },
+]
+
 export function FinanceAdvisor() {
   const s = finStore.use((s) => s),
     t = useTheme(),
@@ -347,13 +354,19 @@ export function FinanceAdvisor() {
         onClose={() => setThreads(false)}
       >
         {!s.threads.length && (
-          <Copy
-            size={14}
-            muted
-            style={{ paddingVertical: 24, textAlign: "center" }}
-          >
-            No threads yet.
-          </Copy>
+          <View testID="threads-empty">
+            <Dimmed>
+              {SAMPLE_THREADS.map((x) => (
+                <View key={x.title} style={{ paddingVertical: 12 }}>
+                  <Copy weight="medium">{x.title}</Copy>
+                  <Copy size={14} muted>
+                    {x.messages} messages · {x.date}
+                  </Copy>
+                </View>
+              ))}
+            </Dimmed>
+            <EmptyFoot hint="Every question you ask the advisor is kept here to pick up later." />
+          </View>
         )}
         {s.threads.map((x) => (
           <Line key={x.id}>

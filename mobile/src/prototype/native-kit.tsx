@@ -120,12 +120,15 @@ export function Countdown({
 export function Line({
   children,
   style,
+  testID,
 }: {
   children: ReactNode
   style?: ViewStyle
+  testID?: string
 }) {
   return (
     <View
+      testID={testID}
       style={{ flexDirection: "row", alignItems: "center", gap: 12, ...style }}
     >
       {children}
@@ -394,9 +397,11 @@ export function SmallButton({
 export function Frame({
   children,
   style,
+  testID,
 }: {
   children: ReactNode
   style?: ViewStyle
+  testID?: string
 }) {
   const t = useTheme()
   // A padded card holds content (text, then a button), so its children get
@@ -405,6 +410,7 @@ export function Frame({
   const pad = typeof style?.padding === "number" ? style.padding : 0
   return (
     <View
+      testID={testID}
       style={{
         borderRadius: 16,
         borderWidth: 1,

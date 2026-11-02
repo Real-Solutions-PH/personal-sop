@@ -40,7 +40,13 @@ import {
   undo,
 } from "../ui"
 import { RecordEditor, useMoney } from "./finance"
-import { FinanceRecord, foreignAmount, sourceLabel } from "./finance-home"
+import {
+  FinanceRecord,
+  foreignAmount,
+  SampleRecords,
+  sourceLabel,
+} from "./finance-home"
+import { Dimmed, EmptyFoot } from "./locked-preview"
 
 type Filter = {
   type: string
@@ -331,11 +337,22 @@ export function Records({ accountId }: { accountId?: string }) {
           </Copy>
         </Line>
       </View>
-      {!rows.length ? (
-        <>
-          <Empty
-            title={s.records.length ? "Nothing matches" : "No transactions yet"}
+      {!s.records.length ? (
+        <Frame
+          testID="records-empty"
+          style={{ paddingHorizontal: 16, paddingVertical: 12 }}
+        >
+          <Dimmed>
+            <SampleRecords />
+          </Dimmed>
+          <EmptyFoot
+            hint="Every expense, income and transfer you log lands here, newest first."
+            action={{ label: "Add expense", href: "/finance?add=expense" }}
           />
+        </Frame>
+      ) : !rows.length ? (
+        <>
+          <Empty title="Nothing matches" />
           <Button
             tone="quiet"
             onPress={() => {

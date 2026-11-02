@@ -21,6 +21,7 @@ import { back, go } from "../navigation"
 import { fonts, radius, useTheme } from "../theme"
 import { Button, Empty, Screen, Sheet, undo } from "../ui"
 import { PlannedEditor, RecordEditor, useMoney } from "./finance"
+import { Dimmed, EmptyFoot } from "./locked-preview"
 export function FinPill({
   children,
   tone = "muted",
@@ -45,6 +46,41 @@ export function FinPill({
     </View>
   )
 }
+// What an empty list draws, dimmed, so the tab shows what it will hold.
+const SAMPLE_PLANNED = [
+  {
+    icon: "💼",
+    name: "Salary",
+    when: "Monthly on the 15th · BPI",
+    amount: 45000,
+  },
+  {
+    icon: "💡",
+    name: "Meralco",
+    when: "Monthly on the 8th · GCash",
+    amount: -3200,
+  },
+  {
+    icon: "📺",
+    name: "Netflix",
+    when: "Monthly on the 21st · BPI",
+    amount: -549,
+  },
+]
+const SAMPLE_ONCE = [
+  {
+    icon: "🧾",
+    name: "Car registration",
+    when: "Once on 14 Dec · BPI",
+    amount: -2850,
+  },
+  {
+    icon: "🎁",
+    name: "13th month pay",
+    when: "Once on 15 Dec · BPI",
+    amount: 45000,
+  },
+]
 function PlannedIcon({ p }: { p: PlannedItem }) {
   const s = finStore.use((s) => s),
     t = useTheme(),
@@ -232,6 +268,7 @@ export function Planned({ id }: { id?: string }) {
           .filter((o) => o.item.id === id)
           .reverse()
       : [],
+    past = history.filter((o) => o.status !== "upcoming" && o.status !== "due"),
     next = p
       ? C.occurrencesIn(s, C.addDays(today, -14), C.addDays(today, 400), {
           includeWhatIf: true,
@@ -465,76 +502,94 @@ export function Planned({ id }: { id?: string }) {
             </Frame>
             <SectionHeading>History</SectionHeading>
             <Frame style={{ paddingHorizontal: 12, paddingVertical: 4 }}>
-              {history
-                .filter((o) => o.status !== "upcoming" && o.status !== "due")
-                .map((o) => {
-                  const r = s.records.find((r) => r.id === o.recordId),
-                    variance = r ? r.amount - p.amount : 0
-                  return (
-                    <Tap
-                      key={o.orig}
-                      onPress={() => r && go(`/finance/records/${r.id}`)}
+              {past.map((o) => {
+                const r = s.records.find((r) => r.id === o.recordId),
+                  variance = r ? r.amount - p.amount : 0
+                return (
+                  <Tap
+                    key={o.orig}
+                    onPress={() => r && go(`/finance/records/${r.id}`)}
+                  >
+                    <Line
+                      style={{
+                        paddingVertical: 10,
+                        justifyContent: "space-between",
+                      }}
                     >
+                      <Copy size={14}>{C.shortDate(o.orig)}</Copy>
+                      <Line style={{ gap: 8 }}>
+                        {r && (
+                          <>
+                            <Copy size={14}>{money(r.amount)}</Copy>
+                            {variance !== 0 && (
+                              <Copy
+                                size={12}
+                                style={{
+                                  color:
+                                    variance > 0 === (p.type === "income")
+                                      ? t.good
+                                      : t.bad,
+                                }}
+                              >
+                                {variance > 0 ? "+" : "−"}
+                                {Math.abs(
+                                  Math.round((variance / p.amount) * 100),
+                                )}
+                                %
+                              </Copy>
+                            )}
+                          </>
+                        )}
+                        <FinPill
+                          tone={
+                            r
+                              ? "good"
+                              : o.status === "skipped"
+                                ? "muted"
+                                : "bad"
+                          }
+                        >
+                          {r
+                            ? p.type === "income"
+                              ? "received"
+                              : "paid"
+                            : o.status === "skipped"
+                              ? "skipped"
+                              : "missed"}
+                        </FinPill>
+                      </Line>
+                    </Line>
+                  </Tap>
+                )
+              })}
+              {!past.length && (
+                <View
+                  testID="planned-history-empty"
+                  style={{ paddingBottom: 8 }}
+                >
+                  <Dimmed>
+                    {[1, 2, 3].map((n) => (
                       <Line
+                        key={n}
                         style={{
                           paddingVertical: 10,
                           justifyContent: "space-between",
                         }}
                       >
-                        <Copy size={14}>{C.shortDate(o.orig)}</Copy>
+                        <Copy size={14}>
+                          {C.shortDate(C.addDays(today, -30 * n))}
+                        </Copy>
                         <Line style={{ gap: 8 }}>
-                          {r && (
-                            <>
-                              <Copy size={14}>{money(r.amount)}</Copy>
-                              {variance !== 0 && (
-                                <Copy
-                                  size={12}
-                                  style={{
-                                    color:
-                                      variance > 0 === (p.type === "income")
-                                        ? t.good
-                                        : t.bad,
-                                  }}
-                                >
-                                  {variance > 0 ? "+" : "−"}
-                                  {Math.abs(
-                                    Math.round((variance / p.amount) * 100),
-                                  )}
-                                  %
-                                </Copy>
-                              )}
-                            </>
-                          )}
-                          <FinPill
-                            tone={
-                              r
-                                ? "good"
-                                : o.status === "skipped"
-                                  ? "muted"
-                                  : "bad"
-                            }
-                          >
-                            {r
-                              ? p.type === "income"
-                                ? "received"
-                                : "paid"
-                              : o.status === "skipped"
-                                ? "skipped"
-                                : "missed"}
+                          <Copy size={14}>{money(p.amount)}</Copy>
+                          <FinPill tone="good">
+                            {p.type === "income" ? "received" : "paid"}
                           </FinPill>
                         </Line>
                       </Line>
-                    </Tap>
-                  )
-                })}
-              {history.length === 0 && (
-                <Copy
-                  size={14}
-                  muted
-                  style={{ paddingVertical: 16, textAlign: "center" }}
-                >
-                  No history yet.
-                </Copy>
+                    ))}
+                  </Dimmed>
+                  <EmptyFoot hint="Each past date lands here as paid or missed, with how far it was off." />
+                </View>
               )}
             </Frame>
           </View>
@@ -644,15 +699,59 @@ export function Planned({ id }: { id?: string }) {
               </Tap>
             ))}
             {!list.length && (
-              <Copy
-                size={14}
-                muted
-                style={{ paddingVertical: 24, textAlign: "center" }}
-              >
-                {tab === "whatif"
-                  ? "No drafts. Try one from the projection."
-                  : "Nothing here yet."}
-              </Copy>
+              <View testID="planned-empty" style={{ paddingVertical: 8 }}>
+                <Dimmed>
+                  {(tab === "once" ? SAMPLE_ONCE : SAMPLE_PLANNED).map((x) => (
+                    <Line
+                      key={x.name}
+                      style={{ paddingVertical: 8, paddingHorizontal: 4 }}
+                    >
+                      <View
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 20,
+                          backgroundColor: t.soft,
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Copy size={20}>{x.icon}</Copy>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Copy weight="medium">{x.name}</Copy>
+                        <Copy size={14} muted>
+                          {x.when}
+                        </Copy>
+                      </View>
+                      <Copy
+                        weight="semibold"
+                        style={{ color: x.amount > 0 ? t.good : t.text }}
+                      >
+                        {x.amount > 0 ? "+" : "−"}
+                        {money(Math.abs(x.amount))}
+                      </Copy>
+                    </Line>
+                  ))}
+                </Dimmed>
+                <EmptyFoot
+                  hint={
+                    tab === "whatif"
+                      ? "Drafts let you test a purchase against your projection."
+                      : tab === "once"
+                        ? "A one-off bill or payout you know is coming."
+                        : "Salary, rent and bills that repeat, so the month ahead is never a surprise."
+                  }
+                  action={
+                    tab === "whatif"
+                      ? {
+                          label: "Try one",
+                          href: "/finance/projection?whatif=1",
+                        }
+                      : { label: "Add", onPress: () => setEdit(true) }
+                  }
+                />
+              </View>
             )}
           </Frame>
         </>
