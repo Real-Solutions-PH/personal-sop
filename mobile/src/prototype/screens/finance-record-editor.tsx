@@ -339,6 +339,14 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
                 : `Getting the ${inCur} rate…`}
             </Copy>
           )}
+          {/* Next to the amount: the cost is seen while it can still change. */}
+          {hits.length > 0 && (
+            <BudgetWarning
+              hits={hits}
+              saved={landed.length > 0}
+              money={(v) => money(v, cur)}
+            />
+          )}
           <Choices
             label={type === "transfer" ? "From" : "Account"}
             value={account}
@@ -466,13 +474,6 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
                 </Copy>
               </Line>
             </Tap>
-          )}
-          {hits.length > 0 && (
-            <BudgetWarning
-              hits={hits}
-              saved={landed.length > 0}
-              money={(v) => money(v, cur)}
-            />
           )}
           <Line>
             {settles ? null : record ? (
