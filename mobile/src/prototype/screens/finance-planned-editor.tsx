@@ -1,4 +1,5 @@
 import * as A from "@domain/finance/actions"
+import { addDays, occurrences } from "@domain/finance/calc"
 import type {
   EndRule,
   PlannedItem,
@@ -80,12 +81,13 @@ function Editor({
   const [endKind, setEndKind] = useState<EndRule["kind"]>(
     init.end?.kind ?? (params.count ? "count" : "never"),
   )
-  const [end, setEnd] = useState(
-    init.end?.kind === "date"
-      ? init.end.date
-      : init.end?.kind === "count"
-        ? String(init.end.n)
-        : (params.count ?? ""),
+  // The end day and the count are kept apart, so switching "Ends" never
+  // shows a count as a date or a date as a count.
+  const [endDay, setEndDay] = useState(
+    init.end?.kind === "date" ? init.end.date : "",
+  )
+  const [count, setCount] = useState(
+    init.end?.kind === "count" ? String(init.end.n) : (params.count ?? ""),
   )
   const [auto, setAuto] = useState(init.autoLog ?? false)
   const [whatIf, setWhatIf] = useState(init.isWhatIf ?? false)
@@ -244,11 +246,24 @@ function Editor({
               }))}
             />
           )}
-          {schedule !== "once" && endKind !== "never" && (
+          {schedule !== "once" && endKind === "date" && (
+            <DateField
+              label="End date"
+              value={endDay}
+              onChangeText={setEndDay}
+              minimumDate={isDay(date) ? date : undefined}
+              defaultValue={nextAfterStart(
+                ruleOf(schedule, interval, date),
+                date,
+              )}
+            />
+          )}
+          {schedule !== "once" && endKind === "count" && (
             <Field
-              label={endKind === "date" ? "End date" : "Occurrences"}
-              value={end}
-              onChangeText={setEnd}
+              label="Occurrences"
+              keyboardType="number-pad"
+              value={count}
+              onChangeText={setCount}
             />
           )}
           {type === "transfer" && (
@@ -308,9 +323,9 @@ function Editor({
                 !account ||
                 (type !== "transfer" && !category) ||
                 !isDay(date) ||
-                (endKind === "date" && (!isDay(end) || end < date)) ||
+                (endKind === "date" && (!isDay(endDay) || endDay < date)) ||
                 (endKind === "count" &&
-                  (!Number.isInteger(Number(end)) || Number(end) < 1)) ||
+                  (!Number.isInteger(Number(count)) || Number(count) < 1)) ||
                 (schedule === "semimonthly" &&
                   (interval.split(",").length !== 2 ||
                     interval
@@ -326,34 +341,12 @@ function Editor({
                 toast.error("Check the planned item fields")
                 return
               }
-              const rule: Schedule =
-                schedule === "once"
-                  ? { kind: "once", date }
-                  : schedule === "monthly"
-                    ? {
-                        kind: "monthly",
-                        day: Math.max(1, Math.min(31, Number(interval) || 1)),
-                      }
-                    : schedule === "semimonthly"
-                      ? {
-                          kind: "semimonthly",
-                          days: interval
-                            .split(",")
-                            .map((v) =>
-                              Math.max(1, Math.min(31, Number(v) || 15)),
-                            )
-                            .slice(0, 2) as [number, number],
-                        }
-                      : {
-                          kind: "weekly",
-                          every: Math.max(1, Number(interval) || 1),
-                          anchor: date,
-                        }
+              const rule = ruleOf(schedule, interval, date)
               const endRule: EndRule =
                 endKind === "date"
-                  ? { kind: "date", date: end }
+                  ? { kind: "date", date: endDay }
                   : endKind === "count"
-                    ? { kind: "count", n: Math.max(1, Number(end) || 1) }
+                    ? { kind: "count", n: Math.max(1, Number(count) || 1) }
                     : { kind: "never" }
               const input = {
                 name,
@@ -382,4 +375,43 @@ function Editor({
       )}
     </Sheet>
   )
+}
+
+/** The schedule the form describes. */
+function ruleOf(
+  kind: Schedule["kind"],
+  interval: string,
+  date: string,
+): Schedule {
+  return kind === "once"
+    ? { kind: "once", date }
+    : kind === "monthly"
+      ? {
+          kind: "monthly",
+          day: Math.max(1, Math.min(31, Number(interval) || 1)),
+        }
+      : kind === "semimonthly"
+        ? {
+            kind: "semimonthly",
+            days: interval
+              .split(",")
+              .map((v) => Math.max(1, Math.min(31, Number(v) || 15)))
+              .slice(0, 2) as [number, number],
+          }
+        : {
+            kind: "weekly",
+            every: Math.max(1, Number(interval) || 1),
+            anchor: date,
+          }
+}
+/** Where an empty end date opens: the payment's next occurrence after the
+ * first one on or after the start, so "end after the next one" is a tap. */
+export function nextAfterStart(rule: Schedule, start: string) {
+  if (!isDay(start) || rule.kind === "once") return undefined
+  const days = occurrences(
+    { schedule: rule, start, end: { kind: "never" } } as PlannedItem,
+    start,
+    addDays(start, 120),
+  )
+  return days[1] ?? days[0]
 }

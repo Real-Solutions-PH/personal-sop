@@ -10,6 +10,7 @@ import { PRESETS, type PresetKey } from "@domain/focus/data"
 import * as L from "@domain/focus/logic"
 import * as P from "@domain/focus/past"
 import { useFocusState } from "@domain/focus/store"
+import { dayKey } from "@domain/lib/day"
 import { AlertCircle, Clock, Trash2 } from "lucide-react-native"
 import { useEffect, useState } from "react"
 import { View } from "react-native"
@@ -163,6 +164,7 @@ export function PastSessionSheet({
           <View style={{ flex: 1.2 }}>
             <DateField
               label="Day"
+              maximumDate={dayKey()}
               value={d.date}
               onChangeText={(date) => set({ date })}
             />

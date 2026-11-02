@@ -957,10 +957,11 @@ function JournalEditor({ id }: { id?: string }) {
       }
       pinned={
         <Line style={{ gap: 8, minHeight: 44 }}>
-          <View style={{ width: 140 }}>
+          <View style={{ minWidth: 140 }}>
             <DateField
               hideLabel
               label="Entry date"
+              maximumDate={dayKey()}
               value={day}
               onChangeText={edit(setDay)}
             />

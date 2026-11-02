@@ -89,7 +89,9 @@ export function Schedule({
           </Actions>
           <DateField
             mode="time"
-            label="Time (HH:mm, blank for anytime)"
+            label="Time"
+            clearable
+            placeholder="Any time"
             value={slot.time ?? ""}
             onChangeText={(time) =>
               onChange(
@@ -310,7 +312,12 @@ export function HabitLog({
           onChangeText={setValue}
         />
       )}
-      <DateField label="Day (YYYY-MM-DD)" value={date} onChangeText={setDate} />
+      <DateField
+        label="Day"
+        value={date}
+        onChangeText={setDate}
+        maximumDate={dayKey()}
+      />
       <Actions>
         <Button tone="quiet" onPress={() => setDate(dayKey())}>
           Today
