@@ -11,6 +11,7 @@ import { configureStorage, resetAll } from "@domain/lib/store"
 import { act, fireEvent, render, screen } from "@testing-library/react-native"
 import type { ReactNode } from "react"
 import { SafeAreaProvider } from "react-native-safe-area-context"
+import { anchor, OverlayHost, resetOverlay } from "../overlay"
 
 const mockMotion = { reduced: false }
 jest.mock("expo-router", () => ({
@@ -80,8 +81,12 @@ const metrics = {
   frame: { x: 0, y: 0, width: 390, height: 844 },
   insets: { top: 44, left: 0, right: 0, bottom: 34 },
 }
+// The leaves draw in the top layer, as in the app.
 const wrapper = ({ children }: { children: ReactNode }) => (
-  <SafeAreaProvider initialMetrics={metrics}>{children}</SafeAreaProvider>
+  <SafeAreaProvider initialMetrics={metrics}>
+    {children}
+    <OverlayHost />
+  </SafeAreaProvider>
 )
 const hidden = { includeHiddenElements: true }
 const leaves = () => screen.queryAllByTestId("celebration-leaf", hidden)
@@ -94,6 +99,9 @@ beforeEach(() => {
     removeItem: () => {},
   })
   resetAll()
+  resetOverlay()
+  anchor.measure = (_, done) =>
+    done({ x: 115, y: 200, width: 160, height: 120 })
   mockMotion.reduced = false
   Haptics.notificationAsync.mockClear()
   router.push.mockClear()
@@ -126,6 +134,17 @@ describe("Celebration", () => {
     expect(screen.getByRole("header").props.children).toBe("Push A complete")
     // The final value is readable from the first frame.
     expect(screen.getByLabelText("Sets 12")).toBeTruthy()
+  })
+
+  it("draws its leaves in the top layer, centred on the medal", () => {
+    render(<Hero id="w9" />, { wrapper })
+    const layer = screen.getByTestId("overlay-layer", hidden)
+    const b = screen.getByTestId("celebration-burst", hidden)
+    expect(b.parent?.parent).toBe(layer)
+    expect(b.props.style).toMatchObject({ left: 195, top: 260 })
+    // Gone once the burst has played.
+    act(() => jest.advanceTimersByTime(1300))
+    expect(leaves()).toHaveLength(0)
   })
 
   it("shows settled the second time: no leaves, no haptic", () => {
