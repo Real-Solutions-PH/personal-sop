@@ -137,12 +137,16 @@ export function RoutineDoneCard({
   const t = useTheme()
   const done = run.results.filter((x) => x.status === "done").length
   const skipped = run.results.filter((x) => x.status === "skipped").length
-  const took = fmtDuration(L.runActualSec(run))
+  const sec = L.runActualSec(run)
+  // Each fact stays whole on its line; a separator never starts one. Steps
+  // ticked through with no timer carry no time, so none is claimed.
+  const nb = (x: string) => x.replace(/ /g, "\u00a0")
   const parts = [
     `${done} of ${run.steps.length} steps`,
-    took,
+    ...(sec > 0 ? [fmtDuration(sec)] : []),
     ...(streak > 1 ? [`${streak}-day streak`] : []),
   ]
+  const sep = "\u00a0· "
   const skips = skipped ? `${skipped} skipped` : ""
   const say = `${routine.name} ${skipped ? "finished" : "done"}. ${parts.join(", ")}${skips ? `, ${skips}` : ""}.`
   return (
@@ -161,10 +165,10 @@ export function RoutineDoneCard({
             fontVariant: ["tabular-nums"],
           }}
         >
-          {parts.join(" · ")}
+          {parts.map(nb).join(sep)}
           {skips ? (
             <Text style={{ color: t.warn, fontFamily: fonts.medium }}>
-              {` · ${skips}`}
+              {`${sep}${nb(skips)}`}
             </Text>
           ) : null}
         </Text>

@@ -245,7 +245,7 @@ test("skipped steps say so, in the warning colour", () => {
   })
   render(<RoutineDoneWatcher />, { wrapper })
   expect(screen.getByText("Routine finished")).toBeTruthy()
-  const skipped = screen.getByText(" · 1 skipped")
+  const skipped = screen.getByText("· 1 skipped")
   expect(skipped.props.style.color).toBe("#94600e")
   expect(
     screen.getByText(
@@ -263,6 +263,14 @@ test("it waits while a trophy card holds the top, then lands", () => {
   expect(card()).toBeNull()
   act(() => momentSlot.set({ holder: null }))
   expect(card()).toBeTruthy()
+})
+
+test("steps ticked with no timer claim no time", () => {
+  act(() => {
+    finish(routine())
+  })
+  render(<RoutineDoneWatcher />, { wrapper })
+  expect(screen.queryByText(/00:00/)).toBeNull()
 })
 
 test("reduced motion: the card still lands", () => {
