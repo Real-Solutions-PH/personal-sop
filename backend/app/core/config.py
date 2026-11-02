@@ -320,6 +320,15 @@ class Settings(BaseSettings):
     # Off: Fern's replies took one to three minutes with DeepSeek thinking
     # before each of a turn's two to four calls.
     AI_THINKING: bool = False
+    # Fern's chat history: the whole chat is sent word for word until this
+    # many (estimated) tokens, or the model's window minus the turn's own
+    # room if that is smaller; older messages then slide into the chat's
+    # summary (companion.services.history_budget). 64k is hundreds of
+    # messages; raise it to use more of a 1M-token window at more cost.
+    FERN_HISTORY_MAX_TOKENS: int = 64_000
+    # The context window assumed for a model the catalogue does not list (a
+    # user's own provider): 128k, what current chat models offer at least.
+    AI_CONTEXT_WINDOW_DEFAULT: int = 131_072
 
     # Mobile API — media uploads (presigned MinIO URLs).
     MEDIA_BUCKET: str = "media"

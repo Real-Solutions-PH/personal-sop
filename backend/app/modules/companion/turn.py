@@ -393,7 +393,15 @@ class Step:
 # The internal record of what a turn did, which a model copying the
 # history's format may write into its reply: never shown (see
 # ``services.strip_internal`` for the stored reply).
-INTERNAL_NOTES = ("done this turn", "already done", "what your earlier replies")
+# A day stamp on the history's earlier messages (services.REPLIED, SAID)
+# is screened out too, should the model copy one.
+INTERNAL_NOTES = (
+    "done this turn",
+    "already done",
+    "what your earlier replies",
+    "earlier reply,",
+    "said 20",
+)
 _OPENERS = {"[": "]", "(": ")"}
 
 

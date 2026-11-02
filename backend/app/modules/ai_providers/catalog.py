@@ -157,3 +157,42 @@ NEBIUS_IDS: frozenset[str] = frozenset(m.id for m in NEBIUS)
 
 def find(model_id: str) -> CatalogModel | None:
     return next((m for m in NEBIUS if m.id == model_id), None)
+
+
+# Context windows in tokens, as Nebius's ``/v1/models`` lists them
+# (``context_length``, checked 2026-11-02). Fern sends a chat's history up to
+# a budget drawn from these (``companion.services.history_budget``).
+CONTEXT_WINDOWS: dict[str, int] = {
+    "deepseek-ai/DeepSeek-V4-Flash-0731": 1_048_576,
+    "zai-org/GLM-5.3-Flash": 1_048_576,
+    "nvidia/Nemotron-3_5-Lightning": 1_048_576,
+    "openai/gpt-oss-120b": 131_072,
+    "Qwen/Qwen3-235B-A22B-Instruct-2507": 262_144,
+    "Qwen/Qwen3-30B-A3B-Instruct-2507": 262_144,
+    "reflection/beam": 1_048_576,
+    "nvidia/Nemotron-3.5-Super-VL": 1_048_576,
+    "deepseek-ai/DeepSeek-V4.1-Flash": 1_048_576,
+    "MiniMaxAI/MiniMax-M3": 1_048_576,
+    "nvidia/nemotron-3-super-120b-a12b": 262_144,
+    "Qwen/Qwen3.8-27B": 262_144,
+    "Qwen/Qwen3.5-397B-A17B": 262_144,
+    "openbmb/MiniCPM-V-4_5": 32_000,
+    "moonshotai/Kimi-K2.6": 262_144,
+    "moonshotai/Kimi-K2.7-Code": 262_144,
+    "nvidia/Nemotron-3-Ultra-550b-a55b": 1_048_576,
+    "NousResearch/Hermes-4-405B": 131_072,
+    "meta-models/muse-spark-open": 1_048_576,
+    "deepseek-ai/DeepSeek-V4-Pro-0813": 1_048_576,
+    "zai-org/GLM-5.3": 1_048_576,
+    "zai-org/GLM-5.2": 1_048_576,
+    "zai-org/GLM-5.1": 202_752,
+    "deepseek-ai/DeepSeek-V4-Pro": 1_048_576,
+    "moonshotai/Kimi-K3": 1_048_576,
+    "google/gemma-3-27b-it": 110_000,
+    "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": 262_144,
+}
+
+
+def context_window(model_id: str) -> int | None:
+    """The model's context window in tokens, when the catalogue lists it."""
+    return CONTEXT_WINDOWS.get(model_id)

@@ -168,6 +168,12 @@ def speed_options(resolved: ResolvedModel) -> dict[str, Any]:
     return {}
 
 
+def context_window(resolved: ResolvedModel) -> int:
+    """How many tokens the model takes in one call: the catalogue's number,
+    else ``AI_CONTEXT_WINDOW_DEFAULT`` (a model on a user's own provider)."""
+    return catalog.context_window(resolved.model) or settings.AI_CONTEXT_WINDOW_DEFAULT
+
+
 def thinking_options(resolved: ResolvedModel) -> dict[str, Any]:
     """Per-call options that turn thinking back on for one call of a model
     built with :func:`speed_options` (pass them to ``stream``/``invoke``).
