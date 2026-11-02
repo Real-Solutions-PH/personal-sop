@@ -298,6 +298,11 @@ class MacroTarget(OwnedRow, table=True):
             " AND (fiber_g IS NULL OR fiber_g >= 0)",
             name="ck_macro_target_limits_nonneg",
         ),
+        CheckConstraint(
+            "(fiber_soluble_g IS NULL OR fiber_soluble_g >= 0)"
+            " AND (fiber_insoluble_g IS NULL OR fiber_insoluble_g >= 0)",
+            name="ck_macro_target_fiber_split_nonneg",
+        ),
     )
 
     effective_from: date
@@ -311,6 +316,9 @@ class MacroTarget(OwnedRow, table=True):
     sugar_max_g: float | None = Field(default=None, sa_type=Float)
     sodium_max_mg: float | None = Field(default=None, sa_type=Float)
     fiber_g: float | None = Field(default=None, sa_type=Float)
+    # Goals for each kind of fiber in grams; NULL means none is set.
+    fiber_soluble_g: float | None = Field(default=None, sa_type=Float)
+    fiber_insoluble_g: float | None = Field(default=None, sa_type=Float)
 
 
 class TargetAdjustment(OwnedRow, table=True):
@@ -366,6 +374,11 @@ class MealItem(OwnedRow, table=True):
             " AND (sugar IS NULL OR sugar >= 0) AND (sodium IS NULL OR sodium >= 0)",
             name="ck_meal_item_detail_nonneg",
         ),
+        CheckConstraint(
+            "(fiber_soluble IS NULL OR fiber_soluble >= 0)"
+            " AND (fiber_insoluble IS NULL OR fiber_insoluble >= 0)",
+            name="ck_meal_item_fiber_split_nonneg",
+        ),
     )
 
     meal_id: uuid.UUID = Field(foreign_key="meal.id", ondelete="CASCADE", index=True)
@@ -383,6 +396,10 @@ class MealItem(OwnedRow, table=True):
     sat_fat: float | None = Field(default=None, sa_type=Float)
     sugar: float | None = Field(default=None, sa_type=Float)
     sodium: float | None = Field(default=None, sa_type=Float)
+    # Total fiber split by kind, in grams; NULL when the split is not known
+    # (every item logged before it was tracked carries only its total).
+    fiber_soluble: float | None = Field(default=None, sa_type=Float)
+    fiber_insoluble: float | None = Field(default=None, sa_type=Float)
 
 
 class FitnessSettings(OwnedRow, table=True):
@@ -478,6 +495,11 @@ class FoodItem(OwnedRow, table=True):
             name="ck_food_item_detail_nonneg",
         ),
         CheckConstraint(
+            "(fiber_soluble IS NULL OR fiber_soluble >= 0)"
+            " AND (fiber_insoluble IS NULL OR fiber_insoluble >= 0)",
+            name="ck_food_item_fiber_split_nonneg",
+        ),
+        CheckConstraint(
             "unit_grams IS NULL OR unit_grams > 0", name="ck_food_item_unit_grams"
         ),
     )
@@ -498,6 +520,10 @@ class FoodItem(OwnedRow, table=True):
     sat_fat: float | None = Field(default=None, sa_type=Float)
     sugar: float | None = Field(default=None, sa_type=Float)
     sodium: float | None = Field(default=None, sa_type=Float)
+    # Total fiber split by kind, in grams; NULL when the split is not known
+    # (every item logged before it was tracked carries only its total).
+    fiber_soluble: float | None = Field(default=None, sa_type=Float)
+    fiber_insoluble: float | None = Field(default=None, sa_type=Float)
     source: str = Field(default="said", sa_type=String(8))  # type: ignore
     source_url: str | None = Field(default=None, max_length=500)
     # Where an imported row came from (a Notion page URL), so a re-import

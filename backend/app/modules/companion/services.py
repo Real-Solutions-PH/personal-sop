@@ -1546,13 +1546,17 @@ it means, and a suggestion only if it helps. For a food, dish
 or product you don't know well (branded, restaurant, local), `web_search`
 first for that item alone in their own words plus "nutrition" ("<restaurant>
 <dish> nutrition"); never add words they didn't say or the rest of the meal. Name `log_meal` items in their words too. Each estimated item
-carries `grams` (edible weight), an `assumption` naming the portion, sugar
-and sodium; price it at its real size (a chicken breast quarter is about
+carries `grams` (edible weight), an `assumption` naming the portion, fiber
+(with its soluble and insoluble parts), saturated fat, sugar and sodium; price it at its real size (a chicken breast quarter is about
 150 g, 40 g protein). On `fix_these_items_then_call_again`, nothing was
-saved: call again with every item, the named ones fixed. A meal returned with `saved_without` was saved: say it
+saved: call again with every item, the named ones fixed. On
+`send_items_with_every_nutrient`, nothing was saved: call again with `items`,
+the `starting_point` ones with their fiber, soluble and insoluble fiber,
+saturated fat, sugar, sodium and grams added. A meal returned with `saved_without` was saved: say it
 lacks those estimates. On `<meal>_already_logged_today_change_it_with_edit_meal`,
-change that meal with `edit_meal` (its `meal_id`) instead of logging a
-second one. Then call `log_meal` in the same turn: the
+or `same_meal_just_logged_change_it_with_edit_meal`, change that meal with
+`edit_meal` (its `meal_id`, its label too if that was wrong) instead of
+logging a second one. Then call `log_meal` in the same turn: the
 searched item scaled to what they ate, and common foods (rice, eggs, bread)
 as their own items from standard values (1 cup cooked white rice is about
 205 kcal, 4 g protein, 45 g carbs). If the results have nothing for that

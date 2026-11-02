@@ -22919,6 +22919,14 @@
             "anyOf": [{ "type": "number" }, { "type": "null" }],
             "title": "Sat Fat"
           },
+          "fiber_soluble": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Fiber Soluble"
+          },
+          "fiber_insoluble": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Fiber Insoluble"
+          },
           "sugar": {
             "anyOf": [{ "type": "number" }, { "type": "null" }],
             "title": "Sugar"
@@ -22972,6 +22980,8 @@
           "fat",
           "fiber",
           "sat_fat",
+          "fiber_soluble",
+          "fiber_insoluble",
           "sugar",
           "sodium",
           "source",
@@ -23068,6 +23078,20 @@
               { "type": "null" }
             ],
             "title": "Sat Fat"
+          },
+          "fiber_soluble": {
+            "anyOf": [
+              { "type": "number", "maximum": 100000.0, "minimum": 0.0 },
+              { "type": "null" }
+            ],
+            "title": "Fiber Soluble"
+          },
+          "fiber_insoluble": {
+            "anyOf": [
+              { "type": "number", "maximum": 100000.0, "minimum": 0.0 },
+              { "type": "null" }
+            ],
+            "title": "Fiber Insoluble"
           },
           "sugar": {
             "anyOf": [
@@ -25625,6 +25649,14 @@
           "fiber_g": {
             "anyOf": [{ "type": "number" }, { "type": "null" }],
             "title": "Fiber G"
+          },
+          "fiber_soluble_g": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Fiber Soluble G"
+          },
+          "fiber_insoluble_g": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Fiber Insoluble G"
           }
         },
         "type": "object",
@@ -25852,6 +25884,20 @@
             ],
             "title": "Sat Fat"
           },
+          "fiber_soluble": {
+            "anyOf": [
+              { "type": "number", "maximum": 2000.0, "minimum": 0.0 },
+              { "type": "null" }
+            ],
+            "title": "Fiber Soluble"
+          },
+          "fiber_insoluble": {
+            "anyOf": [
+              { "type": "number", "maximum": 2000.0, "minimum": 0.0 },
+              { "type": "null" }
+            ],
+            "title": "Fiber Insoluble"
+          },
           "sugar": {
             "anyOf": [
               { "type": "number", "maximum": 2000.0, "minimum": 0.0 },
@@ -25901,6 +25947,14 @@
           "sat_fat": {
             "anyOf": [{ "type": "number" }, { "type": "null" }],
             "title": "Sat Fat"
+          },
+          "fiber_soluble": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Fiber Soluble"
+          },
+          "fiber_insoluble": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Fiber Insoluble"
           },
           "sugar": {
             "anyOf": [{ "type": "number" }, { "type": "null" }],
@@ -32019,6 +32073,20 @@
               { "type": "null" }
             ],
             "title": "Fiber G"
+          },
+          "fiber_soluble_g": {
+            "anyOf": [
+              { "type": "number", "maximum": 100000.0, "minimum": 0.0 },
+              { "type": "null" }
+            ],
+            "title": "Fiber Soluble G"
+          },
+          "fiber_insoluble_g": {
+            "anyOf": [
+              { "type": "number", "maximum": 100000.0, "minimum": 0.0 },
+              { "type": "null" }
+            ],
+            "title": "Fiber Insoluble G"
           }
         },
         "type": "object",

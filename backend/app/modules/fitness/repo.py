@@ -287,6 +287,8 @@ def _load_state(ctx: Ctx, *, meals: bool) -> C.FitState:
                 sugar_max_g=t.sugar_max_g,
                 sodium_max_mg=t.sodium_max_mg,
                 fiber_g=t.fiber_g,
+                fiber_soluble_g=t.fiber_soluble_g,
+                fiber_insoluble_g=t.fiber_insoluble_g,
             )
             for t in owned_repo.list_rows(
                 ctx, MacroTarget, order_by=[col(MacroTarget.effective_from)]

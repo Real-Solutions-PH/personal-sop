@@ -1270,6 +1270,8 @@ def _item_data(d: F.ItemDraft) -> dict[str, Any]:
         "assumption": d.assumption,
         "fiber": d.fiber,
         "sat_fat": d.sat_fat,
+        "fiber_soluble": d.fiber_soluble,
+        "fiber_insoluble": d.fiber_insoluble,
         "sugar": d.sugar,
         "sodium": d.sodium,
     }
@@ -1539,6 +1541,8 @@ def _draft(it: MealItem) -> F.ItemDraft:
         it.assumption,
         fiber=it.fiber,
         sat_fat=it.sat_fat,
+        fiber_soluble=it.fiber_soluble,
+        fiber_insoluble=it.fiber_insoluble,
         sugar=it.sugar,
         sodium=it.sodium,
     )
@@ -1693,6 +1697,8 @@ def set_macro_target(
     sugar_max_g: float | None = None,
     sodium_max_mg: float | None = None,
     fiber_g: float | None = None,
+    fiber_soluble_g: float | None = None,
+    fiber_insoluble_g: float | None = None,
 ) -> MacroTarget:
     """A new target version effective from today; past days keep theirs.
     A limit left None reads as the WHO default."""
@@ -1711,6 +1717,8 @@ def set_macro_target(
             "sugar_max_g": sugar_max_g,
             "sodium_max_mg": sodium_max_mg,
             "fiber_g": fiber_g,
+            "fiber_soluble_g": fiber_soluble_g,
+            "fiber_insoluble_g": fiber_insoluble_g,
         },
         natural_key=("effective_from",),
     )

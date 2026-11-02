@@ -40,6 +40,8 @@ const NUTRIENT: Record<NutrientKey, { label: string; unit: string }> = {
   sodium: { label: "Sodium", unit: "mg" },
   protein: { label: "Protein", unit: "g" },
   fiber: { label: "Fiber", unit: "g" },
+  fiberSoluble: { label: "Soluble fiber", unit: "g" },
+  fiberInsoluble: { label: "Insoluble fiber", unit: "g" },
   carbs: { label: "Carbs", unit: "g" },
   fat: { label: "Fat", unit: "g" },
   kcal: { label: "Calories", unit: "kcal" },
@@ -208,7 +210,11 @@ function TopFoods({
       ? limitsFor(target)[nutrient as keyof typeof LIMIT_LABEL]
       : nutrient === "fiber"
         ? fiberGoalFor(target)
-        : target?.[nutrient as (typeof MACRO_KEYS)[number]],
+        : nutrient === "fiberSoluble"
+          ? target?.fiberSolubleGoal
+          : nutrient === "fiberInsoluble"
+            ? target?.fiberInsolubleGoal
+            : target?.[nutrient as (typeof MACRO_KEYS)[number]],
     // Nothing logged carries this value: say so, never "0 g".
     untracked = !r.known && r.unknown > 0,
     level =
@@ -232,7 +238,9 @@ function TopFoods({
             ? t.life
             : nutrient === "kcal"
               ? t.nut
-              : nutrient === "fiber"
+              : nutrient === "fiber" ||
+                  nutrient === "fiberSoluble" ||
+                  nutrient === "fiberInsoluble"
                 ? t.good
                 : level === "under"
                   ? t.muted

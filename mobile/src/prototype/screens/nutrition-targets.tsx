@@ -33,6 +33,10 @@ export function MacroTargets() {
       sugarMax: current?.sugarMax ?? DAILY_LIMITS.sugar,
       sodiumMax: current?.sodiumMax ?? DAILY_LIMITS.sodium,
       fiberGoal: current?.fiberGoal ?? FIBER_GOAL,
+      // 0 means no goal: the split has no default, and a goal of none
+      // eaten is not one anyone sets.
+      fiberSolubleGoal: current?.fiberSolubleGoal ?? 0,
+      fiberInsolubleGoal: current?.fiberInsolubleGoal ?? 0,
     }),
     [suggestion, setSuggestion] = useState<Plan | null>(null),
     [planning, setPlanning] = useState(false),
@@ -153,6 +157,8 @@ export function MacroTargets() {
                   sugarMax: DAILY_LIMITS.sugar,
                   sodiumMax: DAILY_LIMITS.sodium,
                   fiberGoal: FIBER_GOAL,
+                  fiberSolubleGoal: 0,
+                  fiberInsolubleGoal: 0,
                 })
               }
             >
@@ -209,6 +215,39 @@ export function MacroTargets() {
             unit="g"
             decimals={0}
           />
+          <Line style={{ gap: 12, marginTop: -8 }}>
+            <View style={{ flex: 1 }}>
+              <Stepper
+                compact
+                label="Soluble"
+                value={limits.fiberSolubleGoal}
+                onChange={(fiberSolubleGoal) =>
+                  setLimits({ ...limits, fiberSolubleGoal })
+                }
+                step={1}
+                max={TARGET_MAX.fiber}
+                unit="g"
+                decimals={0}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Stepper
+                compact
+                label="Insoluble"
+                value={limits.fiberInsolubleGoal}
+                onChange={(fiberInsolubleGoal) =>
+                  setLimits({ ...limits, fiberInsolubleGoal })
+                }
+                step={1}
+                max={TARGET_MAX.fiber}
+                unit="g"
+                decimals={0}
+              />
+            </View>
+          </Line>
+          <Copy size={12} muted style={{ marginTop: -12 }}>
+            Parts of the fiber goal; 0 leaves one unset.
+          </Copy>
           <PlanNotes notes={notes} field="fiber" />
           <Copy size={12} muted>
             Defaults follow WHO guidance for a 2,000 kcal day. Today, Nutrition
@@ -337,9 +376,20 @@ export function MacroTargets() {
                 limits.sugarMax,
                 limits.sodiumMax,
                 limits.fiberGoal,
+                limits.fiberSolubleGoal,
+                limits.fiberInsolubleGoal,
               ].every((n) => Number.isFinite(n) && n >= 0)
             ) {
               toast.error("Enter limits of zero or more")
+              return
+            }
+            if (
+              limits.fiberSolubleGoal + limits.fiberInsolubleGoal >
+              limits.fiberGoal
+            ) {
+              toast.error(
+                "Soluble and insoluble goals add up to more than the fiber goal",
+              )
               return
             }
             // A limit left at its default is stored as unset, so it keeps
@@ -359,6 +409,8 @@ export function MacroTargets() {
                   : limits.sodiumMax,
               fiberGoal:
                 limits.fiberGoal === FIBER_GOAL ? undefined : limits.fiberGoal,
+              fiberSolubleGoal: limits.fiberSolubleGoal || undefined,
+              fiberInsolubleGoal: limits.fiberInsolubleGoal || undefined,
             }
             setMacroTarget({ ...t, ...own })
             replace("/nutrition")

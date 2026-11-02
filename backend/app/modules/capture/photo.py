@@ -155,6 +155,8 @@ class ItemOut(Lenient):
     assumption: str | None = Field(default=None, max_length=200)
     fiber: float | None = Field(default=None, ge=0, le=2000)
     sat_fat: float | None = Field(default=None, ge=0, le=2000)
+    fiber_soluble: float | None = Field(default=None, ge=0, le=2000)
+    fiber_insoluble: float | None = Field(default=None, ge=0, le=2000)
     sugar: float | None = Field(default=None, ge=0, le=2000)
     sodium: float | None = Field(default=None, ge=0, le=100000)
 
@@ -188,6 +190,8 @@ class LabelOut(Lenient):
     fat: float = Field(default=0, ge=0, le=2000)
     fiber: float | None = Field(default=None, ge=0, le=2000)
     sat_fat: float | None = Field(default=None, ge=0, le=2000)
+    fiber_soluble: float | None = Field(default=None, ge=0, le=2000)
+    fiber_insoluble: float | None = Field(default=None, ge=0, le=2000)
     sugar: float | None = Field(default=None, ge=0, le=2000)
     sodium: float | None = Field(default=None, ge=0, le=100000)
     servings: float | None = Field(default=None, gt=0, le=100)
@@ -240,7 +244,7 @@ PROMPTS: dict[str, str] = {
         'themselves ("I mean ...") or say the same food twice, it is one '
         "item, as last said: "
         '{"items": [{"name", "qty", "unit", "kcal", "protein", "carbs", "fat", '
-        '"fiber", "sat_fat", "sugar", "sodium", "assumption"}], '
+        '"fiber", "sat_fat", "fiber_soluble", "fiber_insoluble", "sugar", "sodium", "assumption"}], '
         '"confidence": 0-1, "follow_up": {"question", "options": [..]} or null}'
     ),
     "receipt": (
@@ -250,7 +254,7 @@ PROMPTS: dict[str, str] = {
     "label": (
         'Read the nutrition label per serving: {"name" (brand and product), '
         '"serving" (as printed), "serving_grams" (the serving weight in grams, '
-        'or null), "kcal", "protein", "carbs", "fat", "fiber", "sat_fat", '
+        'or null), "kcal", "protein", "carbs", "fat", "fiber", "sat_fat", "fiber_soluble", "fiber_insoluble", '
         '"sugar" (added sugar when listed, else total), "sodium" (milligrams), '
         '"servings" (eaten, or null when not stated)}. Copy the printed '
         "numbers exactly; null for any the label does not show."
@@ -329,7 +333,18 @@ _GRAMS = re.compile(
     r"(?=\s*(?:,|\.|;|\bthen\b|\band\b|\bi mean\b|\bplus\b|\d|$))",
     re.I,
 )
-_NUTRIENTS = ("kcal", "protein", "carbs", "fat", "fiber", "sat_fat", "sugar", "sodium")
+_NUTRIENTS = (
+    "kcal",
+    "protein",
+    "carbs",
+    "fat",
+    "fiber",
+    "sat_fat",
+    "fiber_soluble",
+    "fiber_insoluble",
+    "sugar",
+    "sodium",
+)
 _FILLER = {"of", "the", "and", "with", "some", "plus"}
 
 
@@ -465,6 +480,8 @@ def save_label_food(ctx: Ctx, lb: LabelOut) -> None:
             fat=lb.fat,
             fiber=lb.fiber,
             sat_fat=lb.sat_fat,
+            fiber_soluble=lb.fiber_soluble,
+            fiber_insoluble=lb.fiber_insoluble,
             sugar=lb.sugar,
             sodium=lb.sodium,
             basis="serving",
@@ -492,6 +509,8 @@ def _label_draft(lb: LabelOut) -> RecordDraft:
             for k, v in {
                 "fiber": lb.fiber,
                 "sat_fat": lb.sat_fat,
+                "fiber_soluble": lb.fiber_soluble,
+                "fiber_insoluble": lb.fiber_insoluble,
                 "sugar": lb.sugar,
                 "sodium": lb.sodium,
             }.items()

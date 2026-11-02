@@ -82,6 +82,8 @@ export interface MealItemDraft {
   assumption?: string
   /** Optional detail: grams (sodium in milligrams); absent = unknown. */
   fiber?: number
+  fiberSoluble?: number
+  fiberInsoluble?: number
   satFat?: number
   sugar?: number
   sodium?: number

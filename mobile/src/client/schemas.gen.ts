@@ -5765,6 +5765,28 @@ export const FoodOutSchema = {
             ],
             title: 'Sat Fat'
         },
+        fiber_soluble: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Fiber Soluble'
+        },
+        fiber_insoluble: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Fiber Insoluble'
+        },
         sugar: {
             anyOf: [
                 {
@@ -5852,7 +5874,7 @@ export const FoodOutSchema = {
         }
     },
     type: 'object',
-    required: ['id', 'name', 'aliases', 'basis', 'unit_grams', 'state', 'kcal', 'protein', 'carbs', 'fat', 'fiber', 'sat_fat', 'sugar', 'sodium', 'source', 'verified', 'use_count', 'last_used_at'],
+    required: ['id', 'name', 'aliases', 'basis', 'unit_grams', 'state', 'kcal', 'protein', 'carbs', 'fat', 'fiber', 'sat_fat', 'fiber_soluble', 'fiber_insoluble', 'sugar', 'sodium', 'source', 'verified', 'use_count', 'last_used_at'],
     title: 'FoodOut',
     description: `One food of the shared library. Amounts are per \`\`basis\`\` (per 100 g,
 per piece or per serving); sodium is in milligrams, every other amount in
@@ -6003,6 +6025,32 @@ export const FoodPatchSchema = {
                 }
             ],
             title: 'Sat Fat'
+        },
+        fiber_soluble: {
+            anyOf: [
+                {
+                    type: 'number',
+                    maximum: 100000,
+                    minimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Fiber Soluble'
+        },
+        fiber_insoluble: {
+            anyOf: [
+                {
+                    type: 'number',
+                    maximum: 100000,
+                    minimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Fiber Insoluble'
         },
         sugar: {
             anyOf: [
@@ -9777,6 +9825,28 @@ export const MacroTargetPublicSchema = {
                 }
             ],
             title: 'Fiber G'
+        },
+        fiber_soluble_g: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Fiber Soluble G'
+        },
+        fiber_insoluble_g: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Fiber Insoluble G'
         }
     },
     type: 'object',
@@ -10060,6 +10130,32 @@ export const MealItemInSchema = {
             ],
             title: 'Sat Fat'
         },
+        fiber_soluble: {
+            anyOf: [
+                {
+                    type: 'number',
+                    maximum: 2000,
+                    minimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Fiber Soluble'
+        },
+        fiber_insoluble: {
+            anyOf: [
+                {
+                    type: 'number',
+                    maximum: 2000,
+                    minimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Fiber Insoluble'
+        },
         sugar: {
             anyOf: [
                 {
@@ -10178,6 +10274,28 @@ export const MealItemPublicSchema = {
                 }
             ],
             title: 'Sat Fat'
+        },
+        fiber_soluble: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Fiber Soluble'
+        },
+        fiber_insoluble: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Fiber Insoluble'
         },
         sugar: {
             anyOf: [
@@ -19429,6 +19547,32 @@ export const TargetSetSchema = {
                 }
             ],
             title: 'Fiber G'
+        },
+        fiber_soluble_g: {
+            anyOf: [
+                {
+                    type: 'number',
+                    maximum: 100000,
+                    minimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Fiber Soluble G'
+        },
+        fiber_insoluble_g: {
+            anyOf: [
+                {
+                    type: 'number',
+                    maximum: 100000,
+                    minimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Fiber Insoluble G'
         }
     },
     type: 'object',

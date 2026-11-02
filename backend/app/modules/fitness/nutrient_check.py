@@ -7,10 +7,10 @@ it. These checks run on what the assistant sends; each problem names what
 is wrong and the numbers involved, so the next call can fix it.
 
 ``value_problems`` holds for any values (an edit, a label read). Estimates
-also owe their weight in grams. Sugar and sodium, which the daily limits are
-counted from, are asked for but never refused over (``missing_details``):
-seen live 2026-10-29, refusing a lunch for them lost the whole meal and its
-retries added the same food twice.
+also owe their weight in grams. Fiber, saturated fat, sugar and sodium,
+which the daily goals and limits are counted from, are asked for but never
+refused over (``missing_details``): seen live 2026-10-29, refusing a lunch
+for them lost the whole meal and its retries added the same food twice.
 """
 
 from collections.abc import Mapping
@@ -38,6 +38,8 @@ _INVOLVES = {
     "sugar_more_than_carbs": {"sugar", "carbs"},
     "fiber_more_than_carbs": {"fiber", "carbs"},
     "sat_fat_more_than_fat": {"sat_fat", "fat"},
+    "fiber_split_more_than_fiber": {"fiber_soluble", "fiber_insoluble", "fiber"},
+    "fiber_split_more_than_carbs": {"fiber_soluble", "fiber_insoluble", "carbs"},
     "kcal_does_not_match_macros": {"kcal", "protein", "carbs", "fat"},
 }
 
@@ -68,6 +70,21 @@ def value_problems(item: Mapping[str, Any]) -> list[Problem]:
             out.append(
                 {"problem": f"{part}_more_than_{whole}", part: v, whole: whole_value}
             )
+    # Soluble and insoluble fiber are the two parts of fiber, and fiber is
+    # part of carbs: together they can be neither.
+    sol, insol = _num(item, "fiber_soluble"), _num(item, "fiber_insoluble")
+    if sol is not None or insol is not None:
+        split = (sol or 0) + (insol or 0)
+        for whole, whole_value in (("fiber", _num(item, "fiber")), ("carbs", carbs)):
+            if whole_value is not None and split > whole_value + SLACK_G:
+                out.append(
+                    {
+                        "problem": f"fiber_split_more_than_{whole}",
+                        "fiber_soluble": sol,
+                        "fiber_insoluble": insol,
+                        whole: whole_value,
+                    }
+                )
     kcal, expected = _num(item, "kcal"), kcal_from_macros(item)
     if kcal is not None and expected is not None:
         if abs(kcal - expected) > max(KCAL_SLACK, KCAL_SHARE * max(kcal, expected)):
@@ -114,7 +131,18 @@ def estimate_problems(item: Mapping[str, Any]) -> list[Problem]:
 
 
 # Details an estimate should carry; a meal without them is saved and says so.
-DETAILS = ("sugar", "sodium")
+# Saturated fat and fiber were left out until 2026-11-01, when a day of meals
+# was saved with no saturated fat and nothing flagged it.
+DETAILS = ("fiber", "fiber_soluble", "fiber_insoluble", "sat_fat", "sugar", "sodium")
+# Each detail as the person reads it on the card's warning.
+DETAIL_WORDS = {
+    "fiber": "fiber",
+    "fiber_soluble": "soluble fiber",
+    "fiber_insoluble": "insoluble fiber",
+    "sat_fat": "saturated fat",
+    "sugar": "sugar",
+    "sodium": "sodium",
+}
 
 
 def missing_details(item: Mapping[str, Any]) -> list[str]:
@@ -127,6 +155,8 @@ PLAIN = {
     "sugar_more_than_carbs": "has more sugar than carbs",
     "fiber_more_than_carbs": "has more fiber than carbs",
     "sat_fat_more_than_fat": "has more saturated fat than fat",
+    "fiber_split_more_than_fiber": "has more soluble and insoluble fiber than fiber",
+    "fiber_split_more_than_carbs": "has more soluble and insoluble fiber than carbs",
     "kcal_does_not_match_macros": "has calories that don't add up from its "
     "protein, carbs and fat",
     "more_than_900_kcal_per_100g": "has more calories than its weight can hold",

@@ -22,7 +22,18 @@ from app.shared import owned_repo
 from app.shared.context import Ctx
 from app.shared.domain import conflict
 
-NUTRIENTS = ("kcal", "protein", "carbs", "fat", "fiber", "sat_fat", "sugar", "sodium")
+NUTRIENTS = (
+    "kcal",
+    "protein",
+    "carbs",
+    "fat",
+    "fiber",
+    "sat_fat",
+    "fiber_soluble",
+    "fiber_insoluble",
+    "sugar",
+    "sodium",
+)
 # Units that count pieces or servings rather than weigh.
 COUNT_UNITS = {
     "",
@@ -71,6 +82,8 @@ class FoodDraft:
     fat: float = 0
     fiber: float | None = None
     sat_fat: float | None = None
+    fiber_soluble: float | None = None
+    fiber_insoluble: float | None = None
     sugar: float | None = None
     sodium: float | None = None
     basis: str = "100g"
@@ -148,6 +161,8 @@ def save_food(ctx: Ctx, d: FoodDraft) -> tuple[FoodItem, bool]:
         "fat": d.fat,
         "fiber": d.fiber,
         "sat_fat": d.sat_fat,
+        "fiber_soluble": d.fiber_soluble,
+        "fiber_insoluble": d.fiber_insoluble,
         "sugar": d.sugar,
         "sodium": d.sodium,
         "source": d.source,
@@ -306,11 +321,11 @@ def apply_library(
             out.append(it)
             continue
         food, values = hit
-        out.append(
-            {k: v for k, v in it.items() if k not in NUTRIENTS}
-            | values
-            | {"assumption": f"From your food library: {food.name}"}
-        )
+        # The library wins for every nutrient it knows; one it doesn't know
+        # keeps the item's own estimate. Seen live 2026-11-02: saved foods
+        # with calories and macros only wiped the sugar, sodium and
+        # saturated fat of every meal that named them.
+        out.append(it | values | {"assumption": f"From your food library: {food.name}"})
         food.use_count = (food.use_count or 0) + 1
         food.last_used_at = ctx.now
         ctx.session.add(food)

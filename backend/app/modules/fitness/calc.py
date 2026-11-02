@@ -115,6 +115,8 @@ class TargetS(Macros):
     sugar_max_g: float | None = None
     sodium_max_mg: float | None = None
     fiber_g: float | None = None
+    fiber_soluble_g: float | None = None
+    fiber_insoluble_g: float | None = None
 
 
 @dataclass

@@ -57,10 +57,37 @@ def _fx() -> Any:
 
 # ------------------------------------------------------------- arguments
 
-# Asked for on every estimate (the daily limits count them); a meal sent
-# without them is still saved, with a warning on its card.
+# Asked for on every estimate (the daily goals and limits count them); a
+# meal sent without them is still saved, with a warning on its card.
+FIBER_SAYS = "Grams of total fiber; estimate it, 0 when there is none."
+SAT_FAT_SAYS = "Grams of saturated fat; estimate it, 0 when there is none."
+FIBER_SOLUBLE_SAYS = (
+    "Grams of soluble fiber (oats, beans, fruit), part of fiber; estimate it, "
+    "0 when there is none."
+)
+FIBER_INSOLUBLE_SAYS = (
+    "Grams of insoluble fiber (bran, whole grains, vegetable skins), part of "
+    "fiber; estimate it, 0 when there is none."
+)
 SUGAR_SAYS = "Grams of sugar; estimate it, 0 when there is none."
 SODIUM_SAYS = "Milligrams of sodium; estimate it, 0 when there is none."
+
+
+# Units that are a weight in grams: the amount IS the weight.
+GRAM_UNITS = frozenset({"g", "gram", "grams"})
+
+
+def weighed(item: dict[str, Any], grams: float | None) -> dict[str, Any]:
+    """An item in grams carries its weight as its amount. Seen live
+    2026-10-31: an iced latte's milk came as 1 g with ``grams`` 100, and the
+    card read "1 g whole milk" for 61 kcal. The weight is set rather than
+    the item refused: the nutrition already matches ``grams``, so only the
+    amount was wrong, and refusing a meal over details lost it before
+    (2026-10-29). Millilitres are left alone, because a volume and its
+    weight differ by the food's density (100 ml of oil is about 92 g)."""
+    if grams and str(item.get("unit", "")).strip().casefold() in GRAM_UNITS:
+        return item | {"qty": grams}
+    return item
 
 
 class FindLogsArgs(BaseModel):
@@ -208,8 +235,12 @@ class ItemArgs(BaseModel):
     protein: Macro = 0
     carbs: Macro = 0
     fat: Macro = 0
-    fiber: Macro | None = None
-    sat_fat: Macro | None = None
+    fiber: Macro | None = Field(default=None, description=FIBER_SAYS)
+    sat_fat: Macro | None = Field(default=None, description=SAT_FAT_SAYS)
+    fiber_soluble: Macro | None = Field(default=None, description=FIBER_SOLUBLE_SAYS)
+    fiber_insoluble: Macro | None = Field(
+        default=None, description=FIBER_INSOLUBLE_SAYS
+    )
     sugar: Macro | None = Field(default=None, description=SUGAR_SAYS)
     sodium: Annotated[float, Field(ge=0, le=100000)] | None = Field(
         default=None, description=SODIUM_SAYS
@@ -237,6 +268,8 @@ class ItemEditArgs(BaseModel):
     fat: Macro | None = None
     fiber: Macro | None = None
     sat_fat: Macro | None = None
+    fiber_soluble: Macro | None = None
+    fiber_insoluble: Macro | None = None
     sugar: Macro | None = None
     sodium: Annotated[float, Field(ge=0, le=100000)] | None = Field(
         default=None, description="milligrams"
@@ -251,6 +284,8 @@ _ITEM_VALUES = (
     "fat",
     "fiber",
     "sat_fat",
+    "fiber_soluble",
+    "fiber_insoluble",
     "sugar",
     "sodium",
 )
@@ -302,6 +337,8 @@ class TargetArgs(BaseModel):
     sugar_max_g: Macro | None = None
     sodium_max_mg: Annotated[float, Field(ge=0, le=100000)] | None = None
     fiber_g: Macro | None = None
+    fiber_soluble_g: Macro | None = None
+    fiber_insoluble_g: Macro | None = None
 
 
 class SettingsArgs(BaseModel):
@@ -334,6 +371,8 @@ class FoodEditArgs(BaseModel):
     fat: Macro | None = None
     fiber: Macro | None = None
     sat_fat: Macro | None = None
+    fiber_soluble: Macro | None = None
+    fiber_insoluble: Macro | None = None
     sugar: Macro | None = None
     sodium: Annotated[float, Field(ge=0, le=100000)] | None = None
     aliases: list[Annotated[str, Field(max_length=80)]] | None = Field(
@@ -850,7 +889,10 @@ def fitness_tools(run: "Run", *, manage: Manage, card: Card) -> list[BaseTool]:
             )
             if found:
                 wrong.append({"item": it.name, "problems": found})
-            added = it.model_dump(exclude_none=True, exclude={"grams", "alcohol"})
+            added = weighed(
+                it.model_dump(exclude_none=True, exclude={"grams", "alcohol"}),
+                it.grams,
+            )
             if it.grams:
                 weight = f"about {it.grams:g} g"
                 added["assumption"] = (
@@ -902,6 +944,8 @@ def fitness_tools(run: "Run", *, manage: Manage, card: Card) -> list[BaseTool]:
                     "fat": it.fat,
                     "fiber": it.fiber,
                     "sat_fat": it.sat_fat,
+                    "fiber_soluble": it.fiber_soluble,
+                    "fiber_insoluble": it.fiber_insoluble,
                     "sugar": it.sugar,
                     "sodium": it.sodium,
                 }.items()
@@ -1078,8 +1122,9 @@ def fitness_tools(run: "Run", *, manage: Manage, card: Card) -> list[BaseTool]:
         (
             set_macro_target,
             TargetArgs,
-            "Change the daily macro target or a limit (saturated fat, sugar, "
-            "sodium, fiber) from today; what is not given stays.",
+            "Change the daily macro target, a limit (saturated fat, sugar, "
+            "sodium) or a fiber goal (total, soluble, insoluble) from today; "
+            "what is not given stays.",
         ),
         (
             fitness_settings,

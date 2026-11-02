@@ -864,6 +864,8 @@ export function macroTargetMapper(): Mapper<S, MacroTarget> {
       sugar_max_g: t.sugarMax ?? null,
       sodium_max_mg: t.sodiumMax ?? null,
       fiber_g: t.fiberGoal ?? null,
+      fiber_soluble_g: t.fiberSolubleGoal ?? null,
+      fiber_insoluble_g: t.fiberInsolubleGoal ?? null,
     }),
     fromServer: (row) => ({
       id: str(row.id),
@@ -880,6 +882,12 @@ export function macroTargetMapper(): Mapper<S, MacroTarget> {
         ? { sodiumMax: Number(row.sodium_max_mg) }
         : {}),
       ...(row.fiber_g != null ? { fiberGoal: Number(row.fiber_g) } : {}),
+      ...(row.fiber_soluble_g != null
+        ? { fiberSolubleGoal: Number(row.fiber_soluble_g) }
+        : {}),
+      ...(row.fiber_insoluble_g != null
+        ? { fiberInsolubleGoal: Number(row.fiber_insoluble_g) }
+        : {}),
     }),
     // One target per day: a pulled row replaces a local row for the same
     // day under another id (the server's upsert reuses its row by day).
@@ -1047,6 +1055,8 @@ export function mealItemMapper(held: Held<ItemRowM>): Mapper<S, ItemRowM> {
       fat: r.fat,
       assumption: r.assumption ?? null,
       fiber: r.fiber ?? null,
+      fiber_soluble: r.fiberSoluble ?? null,
+      fiber_insoluble: r.fiberInsoluble ?? null,
       sat_fat: r.satFat ?? null,
       sugar: r.sugar ?? null,
       sodium: r.sodium ?? null,
@@ -1065,6 +1075,12 @@ export function mealItemMapper(held: Held<ItemRowM>): Mapper<S, ItemRowM> {
         fat: Number(row.fat),
         ...(row.assumption != null ? { assumption: str(row.assumption) } : {}),
         ...(row.fiber != null ? { fiber: Number(row.fiber) } : {}),
+        ...(row.fiber_soluble != null
+          ? { fiberSoluble: Number(row.fiber_soluble) }
+          : {}),
+        ...(row.fiber_insoluble != null
+          ? { fiberInsoluble: Number(row.fiber_insoluble) }
+          : {}),
         ...(row.sat_fat != null ? { satFat: Number(row.sat_fat) } : {}),
         ...(row.sugar != null ? { sugar: Number(row.sugar) } : {}),
         ...(row.sodium != null ? { sodium: Number(row.sodium) } : {}),

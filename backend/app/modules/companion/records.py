@@ -51,7 +51,16 @@ class Area:
 AREAS: dict[str, Area] = {
     "meals": Area(
         fitness.meal_item_facts,
-        ("kcal", "protein", "carbs", "fat", "fiber", "sat_fat", "sugar", "sodium"),
+        (
+            "kcal",
+            "protein",
+            "carbs",
+            "fat",
+            "fiber",
+            "sat_fat",
+            "sugar",
+            "sodium",
+        ),
         ("meal", "food"),
     ),
     "workouts": Area(
