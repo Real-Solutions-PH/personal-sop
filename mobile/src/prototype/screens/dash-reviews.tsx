@@ -18,6 +18,7 @@ import {
 } from "@domain/dash/hooks"
 import { dashStore, saveReview } from "@domain/dash/store"
 import { dayKey } from "@domain/lib/day"
+import { absNum } from "@domain/lib/num"
 import {
   Check,
   ChevronRight,
@@ -237,9 +238,7 @@ function Review({ id }: { id: string }) {
               : t.bad,
       }}
     >
-      {n == null || n === 0
-        ? "—"
-        : `${n > 0 ? "▲" : "▼"}${Math.abs(n)}${suffix}`}
+      {n == null || n === 0 ? "—" : `${n > 0 ? "▲" : "▼"}${absNum(n)}${suffix}`}
     </Copy>
   )
   const dot = (k: keyof typeof colors) => (

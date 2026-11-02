@@ -2,17 +2,11 @@
 // big, so every value is grouped ("1,234") and, past a width budget,
 // abbreviated ("12.3k", "1.2M"). Pure, so tests pin the strings exactly.
 
-const MINUS = "−"
+import { MINUS, num } from "@domain/lib/num"
 
 /** "1234567" → "1,234,567"; keeps up to `decimals` fraction digits. */
 export function group(n: number, decimals = 0): string {
-  if (!Number.isFinite(n)) return "—"
-  const rounded = Number(Math.abs(n).toFixed(decimals))
-  const sign = n < 0 && rounded !== 0 ? MINUS : ""
-  const [whole, frac] = rounded.toFixed(decimals).split(".")
-  const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-  const tail = frac?.replace(/0+$/, "")
-  return `${sign}${grouped}${tail ? `.${tail}` : ""}`
+  return num(n, decimals)
 }
 
 const STEPS = [
