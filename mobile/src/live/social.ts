@@ -292,6 +292,10 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
   const unsent = new Set<string>()
   const unsending = new Map<string, Promise<unknown>>()
   const deletingComment = new Map<string, Promise<unknown>>()
+  // Comments I posted that the server has not answered yet: a read of the
+  // post's comments that lands meanwhile keeps them (and a deleted one,
+  // above, stays gone) instead of replacing the list with its older copy.
+  const postingComment = new Set<string>()
   /** The last message send per chat; the next one waits for it. */
   const sending = new Map<string, Promise<unknown>>()
   // When I last wrote my note / each story (client clock): a list read that
@@ -860,9 +864,16 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
         p.id === id
           ? {
               ...p,
-              comments: comments.data.map((c) =>
-                overlayComment(id, mapComment(c)),
-              ),
+              comments: [
+                ...comments.data
+                  .filter((c) => !deletingComment.has(c.id))
+                  .map((c) => overlayComment(id, mapComment(c))),
+                ...p.comments.filter(
+                  (c) =>
+                    postingComment.has(c.id) &&
+                    !comments.data.some((w) => w.id === c.id),
+                ),
+              ],
             }
           : p,
       ),
@@ -1191,28 +1202,23 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
       return postWrite("POST", `/social/posts/${id}/restore`)
     },
     async addComment(postId, comment) {
-      const w = await http.request<WComment>(
-        "POST",
-        `/social/posts/${postId}/comments`,
-        {
-          id: comment.id,
-          text: comment.text,
-          reply_to_id: comment.replyTo ?? null,
-        },
-      )
-      set((s) => ({
-        ...s,
-        posts: s.posts.map((p) =>
-          p.id === postId
-            ? {
-                ...p,
-                comments: p.comments.map((c) =>
-                  c.id === comment.id ? mapComment(w) : c,
-                ),
-              }
-            : p,
-        ),
-      }))
+      postingComment.add(comment.id)
+      try {
+        const w = await http.request<WComment>(
+          "POST",
+          `/social/posts/${postId}/comments`,
+          {
+            id: comment.id,
+            text: comment.text,
+            reply_to_id: comment.replyTo ?? null,
+          },
+        )
+        // Upserted, not only replaced: a read that landed while this was
+        // in flight may have dropped the optimistic row.
+        mergeComments(postId, [w])
+      } finally {
+        postingComment.delete(comment.id)
+      }
     },
     likeComment: (postId, id, on) =>
       http.request(onOff(on), `${commentPath(postId, id)}/like`),

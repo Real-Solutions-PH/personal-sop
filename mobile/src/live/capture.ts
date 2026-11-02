@@ -101,6 +101,7 @@ import {
 import { messageFromServer, withMessages } from "./mappers/companion"
 import { categoryIds, fromMinor } from "./mappers/finance"
 import { type UploadInput, uploadMedia } from "./media"
+import { refreshQueries } from "./query-refresh"
 import { onServerEvent, queueAction, syncNow } from "./runtime"
 import { toggleSpeech } from "./speech"
 
@@ -1668,7 +1669,12 @@ export function captureMappers(userId: string) {
     release: releaseFile,
     online: isOnline,
     act: queueAction,
-    kick: syncNow,
+    // A capture's reply can write rows the sync engine pulls and server
+    // lists it does not (Fern's library foods): refresh both.
+    kick: () => {
+      syncNow()
+      refreshQueries("capture.done")
+    },
     cats: categoryIds(userId),
     watch: onConnectivityChange,
     listen: onServerEvent,

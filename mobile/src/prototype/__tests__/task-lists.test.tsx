@@ -178,3 +178,17 @@ test("groceries falls back to the first shopping list", () => {
   })
   expect(A.listKeys(tasksStore.get().lists)).toEqual({ groceries: shop.id })
 })
+
+test("a list made from the Lists screen is saved and shows at once", () => {
+  render(<TaskLists />, { wrapper })
+  fireEvent.press(screen.getByLabelText("New list"))
+  fireEvent.changeText(
+    screen.getByPlaceholderText("List name — e.g. Side hustle"),
+    "Side hustle",
+  )
+  fireEvent.press(screen.getByText("Create list"))
+  expect(tasksStore.get().lists.some((l) => l.name === "Side hustle")).toBe(
+    true,
+  )
+  expect(screen.getByText("Side hustle")).toBeTruthy()
+})

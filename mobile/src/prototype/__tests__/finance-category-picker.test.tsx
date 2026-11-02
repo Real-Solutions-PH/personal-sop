@@ -58,6 +58,8 @@ jest.mock("../media", () => ({ exportCsv: jest.fn(), pickPhoto: jest.fn() }))
 
 const { CategoryPicker } =
   require("../screens/finance-category-picker") as typeof import("../screens/finance-category-picker")
+const { Categories } =
+  require("../screens/finance-categories") as typeof import("../screens/finance-categories")
 const { Projection } =
   require("../screens/finance-projection") as typeof import("../screens/finance-projection")
 
@@ -182,4 +184,26 @@ test("the minimum balance is typed as money", () => {
   // A trailing point survives while typing.
   fireEvent.changeText(field, "12,500.")
   expect(screen.getByDisplayValue("12,500.")).toBeTruthy()
+})
+
+// The Categories screen opens the editor with no onAdded listener: the save
+// must still create the row, and the list must show it without a reload.
+test("a sub-category added on the Categories screen is saved and listed", () => {
+  render(<Categories />, { wrapper })
+  fireEvent.press(screen.getByLabelText("Add sub-category to Food"))
+  fireEvent.changeText(screen.getByLabelText("Name"), "Snacks")
+  fireEvent.press(screen.getByText("Save"))
+  const snacks = finStore.get().categories.find((c) => c.name === "Snacks")
+  expect(snacks?.parentId).toBe("food")
+  expect(screen.getByText("Snacks")).toBeTruthy()
+})
+
+test("a main category added on the Categories screen is saved and listed", () => {
+  render(<Categories />, { wrapper })
+  fireEvent.press(screen.getByLabelText("Add category"))
+  fireEvent.changeText(screen.getByLabelText("Name"), "Pets")
+  fireEvent.press(screen.getByText("Save"))
+  const pets = finStore.get().categories.find((c) => c.name === "Pets")
+  expect(pets?.parentId).toBeUndefined()
+  expect(screen.getByText("Pets")).toBeTruthy()
 })

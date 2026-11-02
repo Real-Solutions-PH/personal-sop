@@ -259,7 +259,12 @@ export function ListEditor({
                   icon,
                 }
                 if (list) A.updateList(list.id, input)
-                else onCreated?.(A.createList(input))
+                else {
+                  // Create first: an optional call skips its arguments, so
+                  // with no listener the list would never be made.
+                  const made = A.createList(input)
+                  onCreated?.(made)
+                }
                 onClose()
               }}
             >
