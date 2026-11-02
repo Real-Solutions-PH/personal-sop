@@ -234,6 +234,31 @@ describe("workout logger", () => {
     expect(screen.getByText("Zercher Squat")).toBeTruthy()
   })
 
+  it("Replace in the exercise options swaps the exercise once the options are gone", () => {
+    addCatalog(
+      { id: "x-hammer", name: "Cable Hammer Curl" },
+      { id: "x-rope", name: "Landmine Twist" },
+    )
+    const w = startEmpty()
+    A.addExercises(w.id, ["x-hammer"])
+    const we = workout(w.id)?.exercises[0]
+    render(<WorkoutLogger />, { wrapper })
+    fireEvent.press(screen.getByLabelText("Options for Cable Hammer Curl"))
+    fireEvent.press(screen.getByText("Replace"))
+    // The options sheet is still leaving: the picker must not be presented
+    // over it (iOS dismisses both when the options sheet goes).
+    expect(screen.queryByText("Replace exercise")).toBeNull()
+    act(() => jest.advanceTimersByTime(400))
+    expect(screen.getByText("Replace exercise")).toBeTruthy()
+    fireEvent.press(screen.getByText("Landmine Twist"))
+    const now = workout(w.id)?.exercises
+    expect(now?.map((e) => e.exerciseId)).toEqual(["x-rope"])
+    // The same slot keeps its place; its sets are the new exercise's plan.
+    expect(now?.[0].id).toBe(we?.id)
+    act(() => jest.advanceTimersByTime(400))
+    expect(screen.getByLabelText("Options for Landmine Twist")).toBeTruthy()
+  })
+
   // Exercises are one shared catalog: the picker lists live exercises only,
   // and "Create" never makes a second exercise with a name already taken.
   const addCatalog = (...rows: object[]) =>
