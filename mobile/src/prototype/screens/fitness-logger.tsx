@@ -170,6 +170,11 @@ export function WorkoutLogger() {
     [picked, setPicked] = useState<string[]>([]),
     [editing, setEditing] = useState<{ we: string; set: string } | null>(null),
     [menu, setMenu] = useState<string | null>(null),
+    // "Replace" in the options: the workout exercise to replace, held until
+    // the options sheet is gone. The picker sheet comes first in the tree,
+    // so opened in the same tap it was presented over the leaving options
+    // and iOS dismissed it with them: Replace did nothing.
+    [replacing, setReplacing] = useState<string | null>(null),
     [note, setNote] = useState<string | null>(null),
     [finish, setFinish] = useState(false),
     [start, setStart] = useState(false),
@@ -749,6 +754,11 @@ export function WorkoutLogger() {
         title="Exercise options"
         open={menu !== null}
         onClose={() => setMenu(null)}
+        onClosed={() => {
+          if (!replacing) return
+          openPicker(replacing)
+          setReplacing(null)
+        }}
       >
         {we && (
           <>
@@ -766,7 +776,7 @@ export function WorkoutLogger() {
               tone="quiet"
               icon={Replace}
               onPress={() => {
-                openPicker(we.id)
+                setReplacing(we.id)
                 setMenu(null)
               }}
             >
