@@ -24,6 +24,8 @@ class FoodOut(BaseModel):
     fat: float
     fiber: float | None
     sat_fat: float | None
+    fiber_soluble: float | None
+    fiber_insoluble: float | None
     sugar: float | None
     sodium: float | None
     notes: str | None = None
@@ -58,6 +60,8 @@ class FoodPatch(BaseModel):
     fat: float | None = Amount
     fiber: float | None = Amount
     sat_fat: float | None = Amount
+    fiber_soluble: float | None = Amount
+    fiber_insoluble: float | None = Amount
     sugar: float | None = Amount
     sodium: float | None = Amount
     notes: str | None = Field(default=None, max_length=500)

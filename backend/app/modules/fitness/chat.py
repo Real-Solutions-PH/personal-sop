@@ -76,6 +76,8 @@ TARGET_FIELDS = (
     "sugar_max_g",
     "sodium_max_mg",
     "fiber_g",
+    "fiber_soluble_g",
+    "fiber_insoluble_g",
 )
 SETTINGS_FIELDS = (
     "units",
@@ -356,6 +358,8 @@ _ITEM = (
     "assumption",
     "fiber",
     "sat_fat",
+    "fiber_soluble",
+    "fiber_insoluble",
     "sugar",
     "sodium",
 )
@@ -731,6 +735,8 @@ def _edit_meal(ctx: Ctx, row_id: uuid.UUID, ch: dict[str, Any]) -> dict[str, Any
                     it.get("assumption"),
                     fiber=it.get("fiber"),
                     sat_fat=it.get("sat_fat"),
+                    fiber_soluble=it.get("fiber_soluble"),
+                    fiber_insoluble=it.get("fiber_insoluble"),
                     sugar=it.get("sugar"),
                     sodium=it.get("sodium"),
                 ),

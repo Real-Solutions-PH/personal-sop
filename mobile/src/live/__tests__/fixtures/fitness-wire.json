@@ -2282,6 +2282,8 @@
       "fat": 0,
       "assumption": null,
       "fiber": null,
+      "fiber_soluble": null,
+      "fiber_insoluble": null,
       "sat_fat": null,
       "sugar": null,
       "sodium": null
@@ -2304,6 +2306,8 @@
       "fat": 24,
       "assumption": null,
       "fiber": null,
+      "fiber_soluble": null,
+      "fiber_insoluble": null,
       "sat_fat": null,
       "sugar": null,
       "sodium": null
@@ -2344,6 +2348,8 @@
       "fat": 0,
       "assumption": null,
       "fiber": null,
+      "fiber_soluble": null,
+      "fiber_insoluble": null,
       "sat_fat": null,
       "sugar": null,
       "sodium": null
@@ -2366,6 +2372,8 @@
       "fat": 24,
       "assumption": null,
       "fiber": null,
+      "fiber_soluble": null,
+      "fiber_insoluble": null,
       "sat_fat": null,
       "sugar": null,
       "sodium": null
@@ -2439,6 +2447,8 @@
       "fat": 5,
       "assumption": null,
       "fiber": null,
+      "fiber_soluble": null,
+      "fiber_insoluble": null,
       "sat_fat": null,
       "sugar": null,
       "sodium": null
@@ -2458,7 +2468,9 @@
       "sat_fat_max_g": null,
       "sugar_max_g": null,
       "sodium_max_mg": null,
-      "fiber_g": null
+      "fiber_g": null,
+      "fiber_soluble_g": null,
+      "fiber_insoluble_g": null
     }
   },
   {
@@ -2486,7 +2498,28 @@
       "sat_fat_max_g": 13,
       "sugar_max_g": 26,
       "sodium_max_mg": null,
-      "fiber_g": 27
+      "fiber_g": 27,
+      "fiber_soluble_g": null,
+      "fiber_insoluble_g": null
+    }
+  },
+  {
+    "entity": "macro_target",
+    "kind": "upsert",
+    "name": "macro_target",
+    "create": true,
+    "data": {
+      "effective_from": "2026-10-19",
+      "kcal": 2100,
+      "protein": 140,
+      "carbs": 200,
+      "fat": 65,
+      "sat_fat_max_g": null,
+      "sugar_max_g": null,
+      "sodium_max_mg": null,
+      "fiber_g": 30,
+      "fiber_soluble_g": 10,
+      "fiber_insoluble_g": 20
     }
   }
 ]

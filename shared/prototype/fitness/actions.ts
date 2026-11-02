@@ -1078,6 +1078,8 @@ export function setMacroTarget(m: Macros & NutrientLimits): MacroTarget {
         sugarMax: prev.sugarMax,
         sodiumMax: prev.sodiumMax,
         fiberGoal: prev.fiberGoal,
+        fiberSolubleGoal: prev.fiberSolubleGoal,
+        fiberInsolubleGoal: prev.fiberInsolubleGoal,
       }
     : {}
   const t: MacroTarget = stripUndefined({

@@ -58,6 +58,9 @@ describe("scaleFood", () => {
       carbs: 0,
       fat: 5.4,
       fiber: null,
+      // A food saved before the split was tracked has none: unknown.
+      fiber_soluble: null,
+      fiber_insoluble: null,
       sat_fat: 1.5,
       sugar: null,
       sodium: 111,

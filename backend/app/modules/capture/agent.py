@@ -756,8 +756,18 @@ class MealItemArgs(BaseModel):
     protein: Annotated[float, Field(ge=0, le=2000)] = 0
     carbs: Annotated[float, Field(ge=0, le=2000)] = 0
     fat: Annotated[float, Field(ge=0, le=2000)] = 0
-    fiber: Annotated[float, Field(ge=0, le=2000)] | None = None
-    sat_fat: Annotated[float, Field(ge=0, le=2000)] | None = None
+    fiber: Annotated[float, Field(ge=0, le=2000)] | None = Field(
+        default=None, description=fitness_tools.FIBER_SAYS
+    )
+    sat_fat: Annotated[float, Field(ge=0, le=2000)] | None = Field(
+        default=None, description=fitness_tools.SAT_FAT_SAYS
+    )
+    fiber_soluble: Annotated[float, Field(ge=0, le=2000)] | None = Field(
+        default=None, description=fitness_tools.FIBER_SOLUBLE_SAYS
+    )
+    fiber_insoluble: Annotated[float, Field(ge=0, le=2000)] | None = Field(
+        default=None, description=fitness_tools.FIBER_INSOLUBLE_SAYS
+    )
     sugar: Annotated[float, Field(ge=0, le=2000)] | None = Field(
         default=None, description=fitness_tools.SUGAR_SAYS
     )
@@ -784,7 +794,9 @@ _CHECK_ONLY = ("grams", "alcohol")
 
 def _stored_item(i: MealItemArgs) -> dict[str, Any]:
     """The item as saved: its weight goes into the assumption shown with it."""
-    it = i.model_dump(exclude_none=True, exclude=set(_CHECK_ONLY))
+    it = fitness_tools.weighed(
+        i.model_dump(exclude_none=True, exclude=set(_CHECK_ONLY)), i.grams
+    )
     if i.grams:
         weight = f"about {i.grams:g} g"
         it["assumption"] = f"{i.assumption}, {weight}" if i.assumption else weight
@@ -1020,6 +1032,8 @@ class FoodArgs(BaseModel):
     fat: Annotated[float, Field(ge=0, le=2000)] = 0
     fiber: Annotated[float, Field(ge=0, le=2000)] | None = None
     sat_fat: Annotated[float, Field(ge=0, le=2000)] | None = None
+    fiber_soluble: Annotated[float, Field(ge=0, le=2000)] | None = None
+    fiber_insoluble: Annotated[float, Field(ge=0, le=2000)] | None = None
     sugar: Annotated[float, Field(ge=0, le=2000)] | None = Field(
         default=None, description="Added sugar in grams (total if not split)."
     )
@@ -1968,10 +1982,17 @@ def capture_tools(run: Run) -> list[BaseTool]:
             items = [_stored_item(i) for i in a.items]
             confidence = a.confidence
         else:
+            # The built-in food table knows calories and macros only: a meal
+            # saved from it carried no fiber, saturated fat, sugar or sodium,
+            # and the day's limits read "not tracked yet" (2026-11-02). Its
+            # items go back as a starting point for Fern to send in full.
             est = ports.meal_estimate(run.ctx, a.description)
             if est is None:
                 return {"error": "meal_not_recognised_send_items"}
-            items, confidence = est.items, est.confidence
+            return {
+                "error": "send_items_with_every_nutrient",
+                "starting_point": est.items,
+            }
         # The person's own food library wins over any estimate; a meal made
         # only of library foods is known, not guessed.
         items, from_library = ports.library_items(run.ctx, items)
@@ -1987,6 +2008,15 @@ def capture_tools(run: Run) -> list[BaseTool]:
                 return {
                     "error": f"{label}_already_logged_today_change_it_with_edit_meal",
                     "meal_id": str(saved),
+                }
+        # The same foods just saved under another label are the same meal
+        # said twice, not a second one.
+        if not a.eaten_again:
+            same = ports.same_meal_just_saved(run.ctx, items)
+            if same is not None:
+                return {
+                    "error": "same_meal_just_logged_change_it_with_edit_meal",
+                    "meal_id": str(same),
                 }
         missing = ports.meal_missing_details(items)
         d = RecordDraft(
@@ -2031,6 +2061,8 @@ def capture_tools(run: Run) -> list[BaseTool]:
                 fat=a.fat,
                 fiber=a.fiber,
                 sat_fat=a.sat_fat,
+                fiber_soluble=a.fiber_soluble,
+                fiber_insoluble=a.fiber_insoluble,
                 sugar=a.sugar,
                 sodium=a.sodium,
                 basis=a.basis,

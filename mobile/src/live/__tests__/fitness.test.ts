@@ -875,6 +875,8 @@ describe("store edits become sync ops", () => {
       sugar_max_g: null,
       sodium_max_mg: null,
       fiber_g: null,
+      fiber_soluble_g: null,
+      fiber_insoluble_g: null,
     })
     const sid = derivedId("singleton", USER, "fitness_settings")
     expect(upsertOf(ops, sid)).toMatchObject({
@@ -995,6 +997,72 @@ describe("pulled rows", () => {
     const reset = setMacroTarget({ ...t, sugarMax: undefined })
     expect("sugarMax" in reset).toBe(false)
     expect(reset.satFatMax).toBe(13)
+  })
+
+  test("fiber goals by kind sync, and re-saving macros keeps them", () => {
+    const e = engine()
+    const seen = new Set<string>()
+    setMacroTarget({
+      kcal: 2000,
+      protein: 140,
+      carbs: 200,
+      fat: 65,
+      fiberGoal: 30,
+      fiberSolubleGoal: 10,
+      fiberInsolubleGoal: 20,
+    })
+    const t = setMacroTarget({ kcal: 2100, protein: 140, carbs: 200, fat: 65 })
+    expect(t).toMatchObject({ fiberSolubleGoal: 10, fiberInsolubleGoal: 20 })
+    expect(upsertOf(step(e, seen), t.id)).toMatchObject({
+      fiber_g: 30,
+      fiber_soluble_g: 10,
+      fiber_insoluble_g: 20,
+    })
+    const m = fitnessMappers(USER).find(
+      (x) => x.entity === "macro_target",
+    ) as AnyMapper
+    expect(
+      m.fromServer(
+        { ...m.toServer(t, fitStore.get()), id: t.id },
+        fitStore.get(),
+      ),
+    ).toEqual(t)
+  })
+
+  test("a meal item's fiber split survives the round trip; none stays none", () => {
+    const m = fitnessMappers(USER).find(
+      (x) => x.entity === "meal_item",
+    ) as AnyMapper
+    const s = seed()
+    const meal = s.meals[0]
+    const [first] = meal.items
+    const split = { ...first, fiber: 4, fiberSoluble: 2, fiberInsoluble: 2 }
+    const state = {
+      ...s,
+      meals: [{ ...meal, items: [split, ...meal.items.slice(1)] }],
+    }
+    const row = m
+      .list(state)
+      .find((r) => (r as { id: string }).id === first.id) as {
+      fiberSoluble?: number
+    }
+    expect(row.fiberSoluble).toBe(2)
+    const wire = m.toServer(row, state) as Record<string, unknown>
+    expect([wire.fiber_soluble, wire.fiber_insoluble]).toEqual([2, 2])
+    const back = m.fromServer({ ...wire, id: m.id(row) }, state)
+    expect(back).toEqual(row)
+    // An item with no split sends null and comes back without the keys.
+    const {
+      fiberSoluble: _a,
+      fiberInsoluble: _b,
+      ...bare
+    } = row as Record<string, unknown>
+    const plain = m.toServer(bare, state) as Record<string, unknown>
+    expect(plain.fiber_soluble).toBeNull()
+    expect(
+      "fiberSoluble" in
+        (m.fromServer({ ...plain, id: m.id(bare) }, state) as object),
+    ).toBe(false)
   })
 
   test("a pulled target carries the limits it has, and only those", () => {

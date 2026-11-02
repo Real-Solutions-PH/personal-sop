@@ -1540,6 +1540,8 @@ export type FoodOut = {
     fat: number;
     fiber: (number | null);
     sat_fat: (number | null);
+    fiber_soluble: (number | null);
+    fiber_insoluble: (number | null);
     sugar: (number | null);
     sodium: (number | null);
     notes?: (string | null);
@@ -1567,6 +1569,8 @@ export type FoodPatch = {
     fat?: (number | null);
     fiber?: (number | null);
     sat_fat?: (number | null);
+    fiber_soluble?: (number | null);
+    fiber_insoluble?: (number | null);
     sugar?: (number | null);
     sodium?: (number | null);
     notes?: (string | null);
@@ -2280,6 +2284,8 @@ export type MacroTargetPublic = {
     sugar_max_g?: (number | null);
     sodium_max_mg?: (number | null);
     fiber_g?: (number | null);
+    fiber_soluble_g?: (number | null);
+    fiber_insoluble_g?: (number | null);
 };
 
 export type MealCreate = {
@@ -2314,6 +2320,8 @@ export type MealItemIn = {
     assumption?: (string | null);
     fiber?: (number | null);
     sat_fat?: (number | null);
+    fiber_soluble?: (number | null);
+    fiber_insoluble?: (number | null);
     sugar?: (number | null);
     sodium?: (number | null);
 };
@@ -2334,6 +2342,8 @@ export type MealItemPublic = {
     assumption: (string | null);
     fiber?: (number | null);
     sat_fat?: (number | null);
+    fiber_soluble?: (number | null);
+    fiber_insoluble?: (number | null);
     sugar?: (number | null);
     sodium?: (number | null);
 };
@@ -4083,6 +4093,8 @@ export type TargetSet = {
     sugar_max_g?: (number | null);
     sodium_max_mg?: (number | null);
     fiber_g?: (number | null);
+    fiber_soluble_g?: (number | null);
+    fiber_insoluble_g?: (number | null);
 };
 
 export type TargetsOut = {

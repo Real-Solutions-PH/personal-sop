@@ -13,7 +13,15 @@ def _item(it: F.ItemDraft) -> dict[str, Any]:
     out = asdict(it)
     # Optional fields the prototype's items never carry (an unset
     # assumption, and nutrient detail the food table does not have).
-    for key in ("assumption", "fiber", "sat_fat", "sugar", "sodium"):
+    for key in (
+        "assumption",
+        "fiber",
+        "sat_fat",
+        "fiber_soluble",
+        "fiber_insoluble",
+        "sugar",
+        "sodium",
+    ):
         if out[key] is None:
             del out[key]
     return out

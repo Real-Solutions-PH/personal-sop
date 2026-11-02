@@ -34,6 +34,8 @@ export const NUTRIENTS = [
   "carbs",
   "fat",
   "fiber",
+  "fiber_soluble",
+  "fiber_insoluble",
   "sat_fat",
   "sugar",
   "sodium",
@@ -48,6 +50,9 @@ export interface Scalable {
   carbs: number
   fat: number
   fiber: number | null
+  /** Absent on a food saved before the fiber split was tracked. */
+  fiber_soluble?: number | null
+  fiber_insoluble?: number | null
   sat_fat: number | null
   sugar: number | null
   sodium: number | null
@@ -60,6 +65,9 @@ export type Scaled = {
   carbs: number
   fat: number
   fiber: number | null
+  /** Absent on a food saved before the fiber split was tracked. */
+  fiber_soluble?: number | null
+  fiber_insoluble?: number | null
   sat_fat: number | null
   sugar: number | null
   sodium: number | null

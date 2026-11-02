@@ -327,3 +327,45 @@ def test_a_notion_row_imports_once_and_re_imports_in_place(db: Session) -> None:
         )
         assert rice.aliases == ["kanin", "plain rice", "rice"]
         assert L.find_food(ctx, "kanin") is rice
+
+
+def test_a_library_food_keeps_the_estimates_it_does_not_know(db: Session) -> None:
+    """Seen live 2026-11-02: every Fern meal that matched a saved food lost
+    its sugar, sodium and saturated fat, because the saved food carried
+    only calories and macros, and the day's limits read "not tracked yet".
+    The library wins for what it knows; the estimate stays for the rest."""
+    user_, _ = signed_in(db)
+    with ctx_for(user_) as ctx:
+        L.save_food(
+            ctx,
+            L.FoodDraft(
+                name="White rice, cooked",
+                kcal=130,
+                protein=2.7,
+                carbs=28.2,
+                fat=0.3,
+                sat_fat=0.1,
+                basis="100g",
+                aliases=["rice"],
+            ),
+        )
+        ctx.session.commit()
+        said = {
+            "name": "rice",
+            "qty": 150,
+            "unit": "g",
+            "kcal": 200,
+            "protein": 4,
+            "carbs": 44,
+            "fat": 0.5,
+            "fiber": 0.6,
+            "sat_fat": 0.2,
+            "sugar": 0.1,
+            "sodium": 2,
+        }
+        [item], used = L.apply_library(ctx, [said])
+    assert used == ["White rice, cooked"]
+    # Known to the library, scaled to 150 g: 130 x 1.5, 0.1 x 1.5.
+    assert (item["kcal"], item["sat_fat"]) == (195.0, 0.2)
+    # Unknown to it: the estimate as sent.
+    assert (item["fiber"], item["sugar"], item["sodium"]) == (0.6, 0.1, 2)
