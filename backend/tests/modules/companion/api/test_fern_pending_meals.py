@@ -17,6 +17,7 @@ from app.core.db import engine as db_engine
 from app.modules.capture.models import RecordCard
 from app.modules.fitness.models import Meal
 from tests.modules.capture.api.helpers import Api, call, install, parse_agui, say, user
+from tests.modules.companion.api.meal_items import full
 
 
 def stream(api: Api, client: TestClient, text: str) -> list[dict[str, Any]]:
@@ -49,15 +50,7 @@ def breakfast(*foods: tuple[str, float]) -> dict[str, Any]:
         "description": "Breakfast: " + " + ".join(n for n, _ in foods),
         # All carbs, so the energy adds up (4 kcal per gram).
         "items": [
-            {
-                "name": n,
-                "kcal": k,
-                "carbs": k / 4,
-                "sugar": 0,
-                "sodium": 0,
-                "grams": 100,
-            }
-            for n, k in foods
+            full({"name": n, "kcal": k, "carbs": k / 4, "grams": 100}) for n, k in foods
         ],
         "confidence": 0.5,
     }

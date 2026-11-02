@@ -189,6 +189,7 @@ def run_loop(
     max_tool_calls: int | None = None,
     hooks: LoopHooks | None = None,
     think_first: bool = False,
+    think_every: bool = False,
 ) -> str:
     """Run the model/tools graph; returns the model's final text. Every
     model call is metered; a provider failure raises ``SeamError``.
@@ -219,7 +220,9 @@ def run_loop(
         acc: BaseMessage | None = None
         usages: list[dict[str, Any]] = []
         opts = (
-            ai.thinking_options(resolved) if think_first and not state["turns"] else {}
+            ai.thinking_options(resolved)
+            if think_every or (think_first and not state["turns"])
+            else {}
         )
         try:
             while True:
@@ -763,9 +766,9 @@ class MealItemArgs(BaseModel):
     qty: Annotated[float, Field(ge=0, le=10000)] = 1
     unit: Annotated[str, Field(max_length=24)] = "serving"
     kcal: Annotated[float, Field(ge=0, le=20000)]
-    protein: Annotated[float, Field(ge=0, le=2000)] = 0
-    carbs: Annotated[float, Field(ge=0, le=2000)] = 0
-    fat: Annotated[float, Field(ge=0, le=2000)] = 0
+    protein: Annotated[float, Field(ge=0, le=2000)] | None = None
+    carbs: Annotated[float, Field(ge=0, le=2000)] | None = None
+    fat: Annotated[float, Field(ge=0, le=2000)] | None = None
     fiber: Annotated[float, Field(ge=0, le=2000)] | None = Field(
         default=None, description=fitness_tools.FIBER_SAYS
     )
@@ -802,11 +805,16 @@ class MealItemArgs(BaseModel):
 _CHECK_ONLY = ("grams", "alcohol")
 
 
+MACROS = ("protein", "carbs", "fat")
+
+
 def _stored_item(i: MealItemArgs) -> dict[str, Any]:
     """The item as saved: its weight goes into the assumption shown with it."""
     it = fitness_tools.weighed(
         i.model_dump(exclude_none=True, exclude=set(_CHECK_ONLY)), i.grams
     )
+    for k in MACROS:
+        it.setdefault(k, 0.0)  # sent without, after being asked once
     if i.grams:
         weight = f"about {i.grams:g} g"
         it["assumption"] = f"{i.assumption}, {weight}" if i.assumption else weight
@@ -1283,6 +1291,8 @@ def _waiting_removal(run: Run, entity: str, ids: list[str]) -> RecordCard | None
 
 def capture_tools(run: Run) -> list[BaseTool]:
     w = run.world
+    # Items sent back once this reply for the values they left out.
+    asked_for: set[str] = set()
 
     def log_expense(**kw: Any) -> dict[str, Any]:
         a = ExpenseArgs(**kw)
@@ -1984,6 +1994,20 @@ def capture_tools(run: Run) -> list[BaseTool]:
     def log_meal(**kw: Any) -> dict[str, Any]:
         a = MealArgs(**kw)
         if a.items:
+            # Every item carries every value the day's goals and limits count
+            # (the replay eval: meals were saved with kcal and macros only).
+            # Sent back once per reply, nothing saved; the second time it is
+            # saved and says what it lacks (``saved_without``).
+            gaps = [
+                g
+                for g in ports.meal_item_gaps(
+                    run.ctx, [i.model_dump(exclude_none=True) for i in a.items]
+                )
+                if g["item"] not in asked_for
+            ]
+            if gaps:
+                asked_for.update(g["item"] for g in gaps)
+                return {"error": "send_items_with_every_nutrient", "items": gaps}
             wrong = ports.meal_item_problems(
                 run.ctx, [i.model_dump(exclude_none=True) for i in a.items]
             )

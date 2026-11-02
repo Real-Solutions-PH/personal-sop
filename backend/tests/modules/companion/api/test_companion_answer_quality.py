@@ -80,7 +80,7 @@ def test_an_empty_day_is_stated_as_empty_and_the_plan_tool_says_so(
     assert facts["currency"] == "PHP (₱)"
     assert facts["on_target_streak_days"] == 0
     assert facts["habits_due_today"] == [] and facts["tasks_due_today_count"] == 0
-    assert "Never invent" in system and "First, decide the job" in system
+    assert "Never invent" in system and "How you work" in system
     plan = tool_results(model, 1)["plan_day"]
     assert plan == {"shown": "plan", "items": [], "nothing_pending": True}
 

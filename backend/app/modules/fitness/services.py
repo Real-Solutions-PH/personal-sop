@@ -152,9 +152,22 @@ def ensure_settings(ctx: Ctx) -> FitnessSettings:
     if row is not None and row.deleted_at is None:
         return row
     if row is None:
-        row = owned_repo.insert(ctx, FitnessSettings, {})
-        _seed_library(ctx)
-        return row
+        # Two first touches at once (the app's first screens, or Fern's
+        # reads running in parallel) both find no row: the loser waits on
+        # the winner's insert, then trips ``uq_fitness_settings_owner``.
+        # Inside a SAVEPOINT it reads the winner's row instead.
+        try:
+            with ctx.session.begin_nested():
+                row = owned_repo.insert(ctx, FitnessSettings, {})
+        except IntegrityError:
+            row = repo.get_settings(ctx)
+            if row is None:
+                raise
+        else:
+            _seed_library(ctx)
+            return row
+        if row.deleted_at is None:
+            return row
     owned_repo.restore(ctx, row)
     return row
 

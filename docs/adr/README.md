@@ -26,3 +26,4 @@ Start new ADRs from [template.md](template.md).
 | [0028](0028-share-card-gradients.md) | Gradients on share artwork only (Fern and Dusk grounds); the interface stays flat |
 | [0029](0029-fern-replay-eval-dataset.md) | Fern replay eval: scrubbed real chats in the repository, hashed denylist guard |
 | [0030](0030-record-icons-are-emoji.md) | Icons people pick for their own records are emoji from one catalogue; interface icons stay lucide |
+| [0031](0031-fern-claude-style-agent-loop.md) | Fern works each turn as a Claude-style agent loop (every tool, thinking every call, todo, multiple-choice asks) |
