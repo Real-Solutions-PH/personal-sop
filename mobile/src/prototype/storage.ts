@@ -2,6 +2,13 @@ import type { StorageAdapter } from "@domain/lib/store"
 import { Platform } from "react-native"
 
 let opened: StorageAdapter | null = null
+/** How long a store change waits before it is written: past the tap that
+ * made it (its press feedback and the re-render it caused), and long enough
+ * that a burst of edits is written once. */
+export const WRITE_DELAY_MS = 250
+export const deferWrite = (write: () => void) => {
+  setTimeout(write, WRITE_DELAY_MS)
+}
 /** The one adapter every store and the live sync engine share. */
 export function prototypeStorage(): StorageAdapter {
   opened ??= openPrototypeStorage()

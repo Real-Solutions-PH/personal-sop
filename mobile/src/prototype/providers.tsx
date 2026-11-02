@@ -10,7 +10,7 @@ import NetInfo, { type NetInfoState } from "@react-native-community/netinfo"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { useFonts } from "expo-font"
 import { type ReactNode, useCallback, useEffect, useState } from "react"
-import { Pressable, Text, View } from "react-native"
+import { AppState, Pressable, Text, View } from "react-native"
 import { GestureHandlerRootView } from "react-native-gesture-handler"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
@@ -21,7 +21,7 @@ import { connectHealthWorkouts } from "./health-workouts"
 import { OverlayHost } from "./overlay"
 import { healProfilePhoto } from "./profile-photo-heal"
 import { sessionStore, startLiveSession } from "./session"
-import { prototypeStorage } from "./storage"
+import { deferWrite, prototypeStorage } from "./storage"
 import { AppToaster } from "./toaster"
 
 // Live mode: server statistics refresh when a screen regains focus. Installed
@@ -48,12 +48,15 @@ export function PrototypeProviders({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null)
   const initialize = useCallback(() => {
     try {
-      configureStorage(prototypeStorage(), () =>
-        queueMicrotask(() =>
-          setError(
-            "Local data could not be read or saved. Keep the app open and retry before closing.",
+      configureStorage(
+        prototypeStorage(),
+        () =>
+          queueMicrotask(() =>
+            setError(
+              "Local data could not be read or saved. Keep the app open and retry before closing.",
+            ),
           ),
-        ),
+        { defer: deferWrite },
       )
       configureNotifications((message, options) => {
         const show =
@@ -78,6 +81,14 @@ export function PrototypeProviders({ children }: { children: ReactNode }) {
     }
   }, [])
   useEffect(initialize, [initialize])
+  // Store writes wait a beat (deferWrite): leaving the foreground writes
+  // whatever is still waiting, since the app may not be woken again.
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state !== "active") flushStores()
+    })
+    return () => sub.remove()
+  }, [])
   useEffect(() => connectWorkoutHabits(), [])
   useEffect(() => connectHealthWorkouts(), [])
   useEffect(() => {

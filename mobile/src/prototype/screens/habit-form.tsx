@@ -7,10 +7,10 @@ import {
 } from "@domain/habits/data"
 import { scheduleLabel } from "@domain/habits/logic"
 import { habitsStore } from "@domain/habits/store"
-import { useScreen } from "@domain/screen/store"
+import { screenStore } from "@domain/screen/store"
 import { useLocalSearchParams } from "expo-router"
 import { CalendarClock, ChevronRight } from "lucide-react-native"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { TextInput, View } from "react-native"
 import { toast } from "sonner-native"
 import { Stepper } from "../fitness-controls"
@@ -32,11 +32,17 @@ export function HabitForm({
   id?: string
   routine?: boolean
 }) {
+  // Narrow reads: ticks, timers and sync merges change the habits store
+  // while the form is open, and none of them should re-render it.
   const t = useTheme(),
-    s = habitsStore.use((s) => s),
     p = useLocalSearchParams<Record<string, string>>(),
-    h = routine ? undefined : s.habits.find((h) => h.id === id),
-    r = routine ? s.routines.find((r) => r.id === id) : undefined,
+    h = habitsStore.use((s) =>
+      routine ? undefined : s.habits.find((h) => h.id === id),
+    ),
+    r = habitsStore.use((s) =>
+      routine ? s.routines.find((r) => r.id === id) : undefined,
+    ),
+    defaultReminder = habitsStore.use((s) => s.settings.defaultReminder),
     old = r ?? h
   const [name, setName] = useState(old?.name ?? p.name ?? ""),
     [icon, setIcon] = useState(old?.icon ?? p.icon ?? (routine ? "🌅" : "✅")),
@@ -55,13 +61,18 @@ export function HabitForm({
       ],
     ),
     [reminder, setReminder] = useState(
-      old?.reminder ?? s.settings.defaultReminder,
+      old?.reminder ?? defaultReminder,
     ),
     [linked, setLinked] = useState(h?.linkWorkout ?? false),
     [nag, setNag] = useState<number | null>(h?.nagEveryMin ?? null),
-    groups = useScreen()
-      .groups.filter((g) => !g.archivedAt)
-      .sort((a, b) => a.sortOrder - b.sortOrder),
+    allGroups = screenStore.use((s) => s.groups),
+    groups = useMemo(
+      () =>
+        allGroups
+          .filter((g) => !g.archivedAt)
+          .sort((a, b) => a.sortOrder - b.sortOrder),
+      [allGroups],
+    ),
     // Completes from screen time: a group and "none" or a minute limit.
     [auto, setAuto] = useState(!routine && !!h?.rule),
     [groupId, setGroupId] = useState(h?.rule?.groupId ?? groups[0]?.id ?? ""),
@@ -169,7 +180,9 @@ export function HabitForm({
       return
     }
     const created = A.createHabit(data),
-      parent = s.routines.find((r) => r.id === p.addToRoutine)
+      parent = habitsStore
+        .get()
+        .routines.find((r) => r.id === p.addToRoutine)
     if (parent) {
       A.setRoutineSteps(parent.id, [
         ...parent.steps,

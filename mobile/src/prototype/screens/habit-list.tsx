@@ -11,7 +11,7 @@ import {
   Plus,
   Repeat,
 } from "lucide-react-native"
-import { useState } from "react"
+import { memo, useCallback, useState } from "react"
 import { View } from "react-native"
 import { feel, StreakChip } from "../motion"
 import {
@@ -44,6 +44,128 @@ const defaults: Filters = {
   tod: "all",
   sort: "manual",
 }
+/** One row of the All view. Memoised on plain props (the week as a string),
+ * so ticking one habit re-renders that row, not every row. */
+const AllRow = memo(function AllRow({
+  h,
+  st,
+  streak,
+  lost,
+  rate,
+  week,
+  reorder,
+  first,
+  last,
+  onActions,
+}: {
+  h: Habit
+  st: string
+  streak: number
+  lost: number
+  rate: number
+  week: string
+  reorder: boolean
+  first: boolean
+  last: boolean
+  onActions: (h: Habit) => void
+}) {
+  const t = useTheme()
+  return (
+    <Line style={{ gap: 0 }}>
+      <Tap
+        onPress={() => go(`/habits/${h.id}`)}
+        onLongPress={() => {
+          feel.tap()
+          onActions(h)
+        }}
+        hint="Long press for actions"
+        longPressLabel="Habit actions"
+        style={{
+          flex: 1,
+          padding: 10,
+          opacity: st === "paused" ? 0.6 : 1,
+        }}
+      >
+        <Line>
+          <View
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 16,
+              backgroundColor: `${t.hab}1f`,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Copy size={20}>{h.icon}</Copy>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Line style={{ gap: 6 }}>
+              <Copy weight="medium" lines={1} style={{ flexShrink: 1 }}>
+                {h.name}
+              </Copy>
+              {st === "paused" && (
+                <Copy size={10} muted>
+                  PAUSED
+                </Copy>
+              )}
+            </Line>
+            <Copy size={12} muted lines={1}>
+              {L.scheduleLabel(h.schedule)}
+            </Copy>
+            <Line style={{ gap: 8, marginTop: 4 }}>
+              <Line style={{ gap: 4 }}>
+                {week.split(",").map((c, i) => {
+                  return (
+                    <View
+                      key={i}
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: 4,
+                        backgroundColor:
+                          c === "done"
+                            ? t.hab
+                            : c === "missed"
+                              ? `${t.bad}66`
+                              : c === "partial"
+                                ? `${t.hab}73`
+                                : c === "skipped"
+                                  ? `${t.warn}59`
+                                  : t.soft,
+                      }}
+                    />
+                  )
+                })}
+              </Line>
+              <Copy size={11} muted>
+                {Math.round(rate * 100)}%
+              </Copy>
+              <StreakChip streak={streak} lost={lost} />
+            </Line>
+          </View>
+          {!reorder && <ChevronRight size={16} color={t.muted} />}
+        </Line>
+      </Tap>
+      {reorder && (
+        <View>
+          <IconTap
+            size={32}
+            icon={ArrowUp}
+            label={`Move ${h.name} up`}
+            onPress={() => !first && A.reorderHabit(h.id, -1)}
+          />
+          <IconTap
+            size={32}
+            icon={ArrowDown}
+            label={`Move ${h.name} down`}
+            onPress={() => !last && A.reorderHabit(h.id, 1)}
+          />
+        </View>
+      )}
+    </Line>
+  )
+})
 export function HabitsList() {
   const t = useTheme(),
     s = habitsStore.use((s) => s),
@@ -54,6 +176,10 @@ export function HabitsList() {
     [reorder, setReorder] = useState(false),
     [actionsFor, setActionsFor] = useState<Habit | null>(null),
     [actionsOpen, setActionsOpen] = useState(false),
+    openActions = useCallback((h: Habit) => {
+      setActionsFor(h)
+      setActionsOpen(true)
+    }, []),
     today = dayKey(),
     idx = L.logIndex(s.logs),
     all = s.habits.filter((h) => h.status !== "archived"),
@@ -176,107 +302,21 @@ export function HabitsList() {
             mode === "today" ? (
               <HabitRow key={h.id} habit={h} />
             ) : (
-              <Line key={h.id} style={{ gap: 0 }}>
-                <Tap
-                  onPress={() => go(`/habits/${h.id}`)}
-                  onLongPress={() => {
-                    feel.tap()
-                    setActionsFor(h)
-                    setActionsOpen(true)
-                  }}
-                  hint="Long press for actions"
-                  longPressLabel="Habit actions"
-                  style={{
-                    flex: 1,
-                    padding: 10,
-                    opacity: st === "paused" ? 0.6 : 1,
-                  }}
-                >
-                  <Line>
-                    <View
-                      style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 16,
-                        backgroundColor: `${t.hab}1f`,
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Copy size={20}>{h.icon}</Copy>
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Line style={{ gap: 6 }}>
-                        <Copy
-                          weight="medium"
-                          lines={1}
-                          style={{ flexShrink: 1 }}
-                        >
-                          {h.name}
-                        </Copy>
-                        {st === "paused" && (
-                          <Copy size={10} muted>
-                            PAUSED
-                          </Copy>
-                        )}
-                      </Line>
-                      <Copy size={12} muted lines={1}>
-                        {L.scheduleLabel(h.schedule)}
-                      </Copy>
-                      <Line style={{ gap: 8, marginTop: 4 }}>
-                        <Line style={{ gap: 4 }}>
-                          {Array.from({ length: 7 }, (_, i) => {
-                            const c = L.cellFor(h, dayOffset(i - 6), idx, today)
-                            return (
-                              <View
-                                key={i}
-                                style={{
-                                  width: 8,
-                                  height: 8,
-                                  borderRadius: 4,
-                                  backgroundColor:
-                                    c === "done"
-                                      ? t.hab
-                                      : c === "missed"
-                                        ? `${t.bad}66`
-                                        : c === "partial"
-                                          ? `${t.hab}73`
-                                          : c === "skipped"
-                                            ? `${t.warn}59`
-                                            : t.soft,
-                                }}
-                              />
-                            )
-                          })}
-                        </Line>
-                        <Copy size={11} muted>
-                          {Math.round(rate * 100)}%
-                        </Copy>
-                        <StreakChip streak={streak} lost={lost} />
-                      </Line>
-                    </View>
-                    {!reorder && <ChevronRight size={16} color={t.muted} />}
-                  </Line>
-                </Tap>
-                {reorder && (
-                  <View>
-                    <IconTap
-                      size={32}
-                      icon={ArrowUp}
-                      label={`Move ${h.name} up`}
-                      onPress={() => i > 0 && A.reorderHabit(h.id, -1)}
-                    />
-                    <IconTap
-                      size={32}
-                      icon={ArrowDown}
-                      label={`Move ${h.name} down`}
-                      onPress={() =>
-                        i < rows.length - 1 && A.reorderHabit(h.id, 1)
-                      }
-                    />
-                  </View>
-                )}
-              </Line>
+              <AllRow
+                key={h.id}
+                h={h}
+                st={st}
+                streak={streak}
+                lost={lost}
+                rate={rate}
+                week={Array.from({ length: 7 }, (_, i) =>
+                  L.cellFor(h, dayOffset(i - 6), idx, today),
+                ).join(",")}
+                reorder={reorder}
+                first={i === 0}
+                last={i === rows.length - 1}
+                onActions={openActions}
+              />
             ),
           )}
         </Frame>

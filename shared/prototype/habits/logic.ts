@@ -21,13 +21,91 @@ export type Cell =
   | "future"
 const idxCache = new WeakMap<HabitLog[], Map<string, HabitLog>>()
 export const lk = (habitId: string, day: string) => `${habitId}|${day}`
+let lastIdx: { logs: HabitLog[]; m: Map<string, HabitLog> } | null = null
 export function logIndex(logs: HabitLog[]): Map<string, HabitLog> {
   let m = idxCache.get(logs)
   if (!m) {
-    m = new Map(logs.map((l) => [lk(l.habitId, l.day), l]))
+    m =
+      (lastIdx && patchIndex(lastIdx.logs, lastIdx.m, logs)) ?? fullIndex(logs)
     idxCache.set(logs, m)
   }
+  lastIdx = { logs, m }
   return m
+}
+const fullIndex = (logs: HabitLog[]) =>
+  new Map(logs.map((l) => [lk(l.habitId, l.day), l]))
+/** A tick replaces, appends or removes one log, so the new list is the last
+ * one with a short run changed: copy the last index and patch that run
+ * instead of rebuilding every key. Null when the change is not that shape,
+ * or a key repeats (the full build's last-one-wins applies then). */
+function patchIndex(
+  prev: HabitLog[],
+  prevIdx: Map<string, HabitLog>,
+  next: HabitLog[],
+): Map<string, HabitLog> | null {
+  if (prevIdx.size !== prev.length) return null
+  let a = 0
+  const shortest = Math.min(prev.length, next.length)
+  while (a < shortest && prev[a] === next[a]) a++
+  let b = 0
+  while (
+    b < shortest - a &&
+    prev[prev.length - 1 - b] === next[next.length - 1 - b]
+  )
+    b++
+  const gone = prev.slice(a, prev.length - b),
+    added = next.slice(a, next.length - b)
+  if (gone.length + added.length > 16) return null
+  const m = new Map(prevIdx)
+  for (const l of gone) m.delete(lk(l.habitId, l.day))
+  for (const l of added) m.set(lk(l.habitId, l.day), l)
+  return m.size === next.length ? m : null
+}
+/** Each habit's logs, in index order, built once per index. */
+const byHabitCache = new WeakMap<
+  Map<string, HabitLog>,
+  Map<string, HabitLog[]>
+>()
+function habitLogs(idx: Map<string, HabitLog>, id: string): HabitLog[] {
+  let m = byHabitCache.get(idx)
+  if (!m) {
+    m = new Map()
+    for (const l of idx.values()) {
+      const list = m.get(l.habitId)
+      if (list) list.push(l)
+      else m.set(l.habitId, [l])
+    }
+    byHabitCache.set(idx, m)
+  }
+  return m.get(id) ?? []
+}
+/** A habit's figures depend only on the habit, its own logs and the days
+ * asked for (`cellFor`). Every store change makes a new index, so caching
+ * by index alone redid every habit's whole history when one was ticked;
+ * this keeps a result until that habit or one of its logs changes. */
+const perHabit = new Map<
+  string,
+  { h: Habit; logs: HabitLog[]; value: unknown }
+>()
+function memoHabit<T>(
+  key: string,
+  h: Habit,
+  idx: Map<string, HabitLog>,
+  compute: () => T,
+): T {
+  const logs = habitLogs(idx, h.id),
+    hit = perHabit.get(key)
+  if (
+    hit &&
+    hit.h === h &&
+    hit.logs.length === logs.length &&
+    hit.logs.every((l, i) => l === logs[i])
+  )
+    return hit.value as T
+  const value = compute()
+  if (perHabit.size > 2000) perHabit.clear()
+  perHabit.set(key, { h, logs, value })
+  return value
 }
 export const slotFor = (schedule: ScheduleSlot[], day: string) =>
   schedule.find((s) => s.days.includes(weekday(day)))
@@ -97,6 +175,17 @@ export function habitStats(
   to: string,
   today = dayKey(),
 ): HabitStats {
+  return memoHabit(`stats|${h.id}|${from}|${to}|${today}`, h, idx, () =>
+    computeStats(h, idx, from, to, today),
+  )
+}
+function computeStats(
+  h: Habit,
+  idx: Map<string, HabitLog>,
+  from: string,
+  to: string,
+  today: string,
+): HabitStats {
   const s = {
     scheduled: 0,
     done: 0,
@@ -145,6 +234,11 @@ export function streaks(
   idx: Map<string, HabitLog>,
   today = dayKey(),
 ) {
+  return memoHabit(`streaks|${h.id}|${today}`, h, idx, () =>
+    computeStreaks(h, idx, today),
+  )
+}
+function computeStreaks(h: Habit, idx: Map<string, HabitLog>, today: string) {
   let current = 0
   let d = today
   while (d >= h.createdAt) {
