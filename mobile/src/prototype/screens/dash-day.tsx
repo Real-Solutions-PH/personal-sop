@@ -32,6 +32,7 @@ import {
 } from "lucide-react-native"
 import { useState } from "react"
 import { TextInput, View } from "react-native"
+import { announceSealed } from "../day-moment"
 import { useShown } from "../extras"
 import {
   border,
@@ -497,6 +498,8 @@ export function WrapUp() {
                     due: ring.due,
                     reflection: text.trim() || undefined,
                   })
+                  // The stamp lands over Today, where sealing goes back to.
+                  announceSealed({ onTarget, done: ring.done, due: ring.due })
                   if (text.trim())
                     addJournalEntry({
                       body: text.trim(),

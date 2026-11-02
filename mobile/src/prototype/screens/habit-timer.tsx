@@ -8,6 +8,7 @@ import { useEffect, useState } from "react"
 import { View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { LiveNotice } from "@/surfaces/live-notice"
+import { feel, markCompletion } from "../motion"
 import { Copy, Countdown, IconTap, Line, Tap } from "../native-kit"
 import { back, go } from "../navigation"
 import { useTheme } from "../theme"
@@ -249,6 +250,10 @@ export function HabitTimer({ id }: { id: string }) {
         <Button
           disabled={!(Number(minutes) > 0)}
           onPress={() => {
+            // A logged session is a completion: a success tap, and the
+            // day's moments (all habits done, on target) can follow it.
+            feel.success()
+            markCompletion()
             A.finishTimer(Number(minutes))
             setFinish(false)
             go(`/habits/${id}`)

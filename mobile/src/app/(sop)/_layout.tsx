@@ -29,6 +29,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { syncReady } from "@/live/ready"
 import { FernMark, fernPalette } from "@/prototype/companion/brand"
+import { DayMomentWatcher } from "@/prototype/day-moment"
 import { startFocusLive } from "@/prototype/focus-live"
 import { LiveBar } from "@/prototype/live-bar"
 import { startReminders } from "@/prototype/local-reminders"
@@ -345,6 +346,7 @@ export default function PrototypeLayout() {
             <TrophyWatcher hidden={focus} />
             <RoutineDoneWatcher hidden={focus} />
             <AtRiskWatcher />
+            <DayMomentWatcher hidden={focus} />
           </>
         )}
         {!focus && (

@@ -245,11 +245,11 @@ export function TaskRow({
                             ? fonts.medium
                             : fonts.body,
                           fontSize: 12,
-                          color: L.isOverdue(task) ? t.warn : t.muted,
+                          color: L.isOverdue(task) ? t.bad : t.muted,
                         }}
                       >
                         {L.isOverdue(task)
-                          ? `${L.diffDays(task.dueDate, dayKey())}d late`
+                          ? `late ${L.diffDays(task.dueDate, dayKey())}d`
                           : L.fmtDay(task.dueDate)}
                       </Text>
                     )}
@@ -278,15 +278,25 @@ export function TaskRow({
                           alignItems: "center",
                         }}
                       >
-                        <CalendarClock size={12} color={t.warn} />
+                        {/* Pushed three times or more is a pattern, not
+                            a one-off: it says so in the bad colour. */}
+                        <CalendarClock
+                          size={12}
+                          color={task.rescheduleCount >= 3 ? t.bad : t.warn}
+                        />
                         <Text
                           style={{
-                            fontFamily: fonts.body,
+                            fontFamily:
+                              task.rescheduleCount >= 3
+                                ? fonts.medium
+                                : fonts.body,
                             fontSize: 12,
-                            color: t.warn,
+                            color: task.rescheduleCount >= 3 ? t.bad : t.warn,
                           }}
                         >
-                          {task.rescheduleCount}×
+                          {task.rescheduleCount >= 3
+                            ? `pushed ${task.rescheduleCount}×`
+                            : `${task.rescheduleCount}×`}
                         </Text>
                       </View>
                     )}
@@ -324,10 +334,17 @@ export function TaskRow({
                   style={{
                     fontFamily: fonts.body,
                     fontSize: 12,
-                    color: L.isOverdue(task) ? t.warn : t.muted,
+                    color: L.isOverdue(task) ? t.bad : t.muted,
                   }}
                 >
-                  {task.dueDate ? L.fmtDay(task.dueDate) : "No date"}
+                  {task.dueDate
+                    ? L.isOverdue(task)
+                      ? `late ${L.diffDays(task.dueDate, dayKey())}d · ${L.fmtDay(task.dueDate)}`
+                      : L.fmtDay(task.dueDate)
+                    : "No date"}
+                  {task.rescheduleCount >= 3
+                    ? ` · pushed ${task.rescheduleCount}×`
+                    : ""}
                   {task.dueTime ? ` · ${task.dueTime}` : ""}
                   {task.recurrence ? ` · ${L.fmtRepeat(task.recurrence)}` : ""}
                 </Text>
@@ -744,7 +761,7 @@ export function Tasks({
                   fontFamily: fonts.medium,
                   fontSize: 12,
                   letterSpacing: 0.8,
-                  color: L.isOverdue(task) ? t.warn : t.muted,
+                  color: L.isOverdue(task) ? t.bad : t.muted,
                   marginTop: 16,
                   marginBottom: 4,
                 }}

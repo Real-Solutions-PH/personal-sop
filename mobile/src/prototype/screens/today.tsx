@@ -37,6 +37,7 @@ import {
   CheckSquare,
   ChevronDown,
   ChevronRight,
+  CircleCheck,
   Dumbbell,
   Flame,
   type LucideIcon,
@@ -65,6 +66,7 @@ import Animated, { FadeInDown } from "react-native-reanimated"
 import { toast } from "sonner-native"
 import { AppLauncher } from "../app-launcher"
 import { Sparkline } from "../chart"
+import { FirstWeekStrip, YesterdayStrip } from "../daily-strips"
 import { extrasStore } from "../extras"
 import {
   AnimatedCheck,
@@ -94,6 +96,7 @@ import {
 } from "../native-kit"
 import { go } from "../navigation"
 import { PrivacyEye } from "../privacy-eye"
+import { streakLost } from "../rewards"
 import { useScreenSetUp } from "../screen-sync"
 import { CommunityButton, CommunityCard } from "../social/today-card"
 import { fonts, radius, useTheme } from "../theme"
@@ -108,6 +111,7 @@ import { HabitActions } from "./habit-actions"
 import { HabitLog } from "./habits"
 import { MoodCheckIn } from "./mood-check-in"
 import { NutritionDay } from "./nutrition-day"
+import { ClearRing } from "./plan"
 import {
   AutoMark,
   RuleRing,
@@ -457,7 +461,9 @@ function RuleTodayHabit({ habit }: { habit: Habit }) {
     today = dayKey(),
     idx = H.logIndex(logs),
     log = idx.get(H.lk(habit.id, today)),
-    streak = H.streaks(habit, idx, today).current,
+    st = H.streaks(habit, idx, today),
+    streak = st.current,
+    lost = streakLost(st.broken, st.current, today),
     done = log?.status === "done",
     state = useRuleState(habit, today),
     [actions, setActions] = useState(false)
@@ -509,7 +515,7 @@ function RuleTodayHabit({ habit }: { habit: Habit }) {
                 done={done}
               />
               <AutoMark />
-              <StreakChip streak={streak} />
+              <StreakChip streak={streak} lost={lost} />
             </Line>
           </Tap>
         </Line>
@@ -530,7 +536,9 @@ function ManualTodayHabit({ habit }: { habit: Habit }) {
     today = dayKey(),
     idx = H.logIndex(logs),
     log = idx.get(H.lk(habit.id, today)),
-    streak = H.streaks(habit, idx, today).current,
+    st = H.streaks(habit, idx, today),
+    streak = st.current,
+    lost = streakLost(st.broken, st.current, today),
     done = log?.status === "done"
   const toggle = () => {
     if (done) HA.clearLog(habit.id, today)
@@ -607,10 +615,10 @@ function ManualTodayHabit({ habit }: { habit: Habit }) {
                     {log?.value !== undefined
                       ? ` · ${H.valueLabel(habit, log.value)}`
                       : ""}
-                    {log?.status === "skipped" ? " · skipped" : ""}
+                    {log?.status === "skipped" ? " · skipped, streak kept" : ""}
                   </Copy>
                   {habit.rule && <ScreenOffMark />}
-                  <StreakChip streak={streak} />
+                  <StreakChip streak={streak} lost={lost} />
                 </Line>
               </Tap>
               {habit.type === "count" && !done && (
@@ -926,16 +934,32 @@ function TasksCard() {
     stats = useStats(7),
     lists = tasksStore.use((s) => s.lists),
     grocery = lists.find((l) => l.kind === "shopping" && !l.archivedAt),
-    dueNow = d.due.filter((task) => isDueNow(task)).length
+    dueNow = d.due.filter((task) => isDueNow(task)).length,
+    count = d.due.length + d.doneDueToday.length + d.overdue.length,
+    // The same once-a-day moment as the Plan tab's ring: whichever is on
+    // screen when the last task goes plays it; the other shows it settled.
+    clear = useDayMoment(
+      "sop:celebrated:tasks",
+      d.everHadTasks && count > 0 && d.due.length === 0,
+    )
   return (
     <Group title="Tasks" icon={CheckSquare} accent="tsk" href="/tasks">
       <TasksStats />
       <Part style={{ paddingHorizontal: 12, paddingBottom: 8 }}>
         <Line style={{ gap: 8, paddingHorizontal: 4 }}>
-          <Copy size={14} weight="medium">
-            {d.doneDueToday.length}/
-            {d.due.length + d.doneDueToday.length + d.overdue.length}
-          </Copy>
+          <ClearRing play={clear === "new"}>
+            <Copy size={14} weight="medium">
+              {d.doneDueToday.length}/{count}
+            </Copy>
+          </ClearRing>
+          {clear && (
+            <Line style={{ gap: 2 }}>
+              <CircleCheck size={14} color={t.tsk} />
+              <Copy size={12} weight="medium" style={{ color: t.tsk }}>
+                Today's tasks cleared
+              </Copy>
+            </Line>
+          )}
           {stats.streak > 1 && (
             <Line style={{ gap: 2 }}>
               <Flame size={14} color={t.warn} />
@@ -1786,6 +1810,8 @@ export function Today() {
         </Line>
       }
     >
+      <YesterdayStrip />
+      <FirstWeekStrip />
       <TodayPlan />
       {shown.weather && <WeatherCard />}
       {shown.calendar && <CalendarCard />}

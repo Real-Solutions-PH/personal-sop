@@ -77,7 +77,13 @@ import { TaskStats } from "./task-stats"
 import { TaskRow } from "./tasks"
 
 /** Today's tasks cleared: the ring pulses once with a burst around it. */
-function ClearRing({ play, children }: { play: boolean; children: ReactNode }) {
+export function ClearRing({
+  play,
+  children,
+}: {
+  play: boolean
+  children: ReactNode
+}) {
   const t = useTheme()
   const reduced = useReducedMotion()
   const scale = useSharedValue(1)
@@ -156,7 +162,7 @@ export function TaskPlanPanel({
           <Line style={{ gap: 8 }}>
             {d.overdue.length > 0 && (
               <Tap onPress={() => setTriage(true)}>
-                <Copy size={12} weight="medium" style={{ color: t.warn }}>
+                <Copy size={12} weight="medium" style={{ color: t.bad }}>
                   {d.overdue.length} overdue
                 </Copy>
               </Tap>
@@ -234,7 +240,7 @@ export function TaskPlanPanel({
                   </Tap>
                 }
               >
-                <Copy size={12} weight="medium" style={{ color: t.warn }}>
+                <Copy size={12} weight="medium" style={{ color: t.bad }}>
                   OVERDUE · {d.overdue.length}
                 </Copy>
               </SectionHeading>
