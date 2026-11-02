@@ -1631,25 +1631,27 @@ def now_line(ctx: Ctx) -> str:
     """Their day as their Today screen shows it, named the way they say it.
 
     Between midnight and the day's start hour the open day is still the
-    previous date, on the phone and here. The model was handed both dates in
-    ISO and told the person "your records haven't rolled over"; it now gets
-    the open day by name and is told to call it today."""
+    previous date, on the phone and here. Handed both dates in ISO, the model
+    wrote "On 2026-11-01 (your records haven't rolled over…)". It now gets the
+    open day by name and is told to call it today. The ISO dates stay, for
+    tool arguments: told only the business day, it once filed "tonight at
+    9pm" on the day before."""
     local = ctx.now.astimezone(ctx.clock.zone)
     today = ctx.today
-    said = (
-        f"today is {_day_name(today)}; it is {local.strftime('%H:%M')} where they live."
-    )
-    if today != local.date():
+    clock = f"it is {local:%A %Y-%m-%d %H:%M} where they live"
+    rolls = f"their day rolls over at {ctx.clock.start_hour:02d}:00"
+    if today == local.date():
+        said = f"today is {_day_name(today)} ({today.isoformat()}); {clock}; {rolls}."
+    else:
         said = (
-            f"it is {_day_name(local.date())}, {local.strftime('%H:%M')} where they "
-            f"live, before their day rolls over at {ctx.clock.start_hour:02d}:00, so "
-            f"{_day_name(today)} is still open: it is the day TODAY below and their "
-            f"Today screen show, and it is what they mean by today."
+            f"{clock}, before {rolls}, so {_day_name(today)} ({today.isoformat()}) "
+            "is still open: it is the day TODAY below and their Today screen show, "
+            "and what they mean by today."
         )
     return (
-        f'{said} Call it today; name a day by weekday and date ("Sunday 1 '
-        f'November"), never write a date as YYYY-MM-DD, and never talk about '
-        f"records rolling over."
+        f'{said} In replies call it today and name any day by weekday and date ("'
+        f'{_day_name(today)}"), never as YYYY-MM-DD (that form is for tool '
+        "arguments), and never talk about records rolling over."
     )
 
 

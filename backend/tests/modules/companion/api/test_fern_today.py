@@ -55,7 +55,7 @@ def test_the_plan_leaves_out_a_skipped_habit(client: TestClient, db: Session) ->
     api = user(client, db, accounts=False)
     skipped, _open = habit(api, "Walk"), habit(api, "Bath")
     api.post(f"/habits/{skipped}/skip", {})
-    plan = grounding.plan(make_ctx(db, api.user))
+    plan = grounding.plan(make_ctx(db, api.user))  # type: ignore[attr-defined]
     assert [p["what"] for p in plan] == ["Bath"]
 
 
@@ -87,9 +87,9 @@ def test_before_rollover_today_is_named_as_the_open_day_not_an_iso_date(
         client, db, monkeypatch, datetime(2026, 11, 1, 19, 33, tzinfo=timezone.utc)
     )
     now = system.split("NOW:", 1)[1].split("\n", 1)[0]
-    assert "Sunday 1 November" in now and "Monday 2 November, 03:33" in now
-    assert "2026-11-01" not in now
-    assert "never write a date as YYYY-MM-DD" in system
+    assert "Sunday 1 November (2026-11-01) is still open" in now
+    assert "it is Monday 2026-11-02 03:33 where they live" in now
+    assert "never as YYYY-MM-DD" in now and "rolling over" in now
 
 
 def test_after_rollover_today_is_the_calendar_day(
@@ -109,8 +109,9 @@ def test_the_facts_name_the_day_instead_of_an_iso_date(
     from app.modules.companion import grounding
 
     api = user(client, db, accounts=False)
+    who = api.user  # type: ignore[attr-defined]
     ctx = context.make_ctx(
-        db, api.user, now=datetime(2026, 11, 1, 19, 33, tzinfo=timezone.utc)
+        db, who, now=datetime(2026, 11, 1, 19, 33, tzinfo=timezone.utc)
     )
     facts = grounding.snapshot(ctx)
     assert facts["day"] == "Sunday 1 November" and "date" not in facts
