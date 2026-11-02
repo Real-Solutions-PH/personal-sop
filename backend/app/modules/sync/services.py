@@ -26,7 +26,7 @@ from typing import Any
 
 from fastapi import HTTPException
 from pydantic import ValidationError
-from sqlalchemy import func
+from sqlalchemy import func, text
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import col, select
 
@@ -214,13 +214,42 @@ def max_version(ctx: Ctx) -> int:
     return best
 
 
+def _settled_before(ctx: Ctx) -> int:
+    """The oldest transaction id still writing, as a 32-bit ``xid``.
+
+    ``version`` comes from a sequence when a row is written, not when its
+    transaction commits. A Fern turn writes its records, then keeps its
+    transaction open for the rest of the reply (seen live 2026-11-02: about
+    30 s). Meanwhile a quicker write commits a higher version, a pull hands it
+    out, and the client's cursor moves past the turn's lower versions before
+    they are visible: those rows never reach the phone. A pull therefore only
+    hands out rows whose writer committed before every transaction still
+    running began; later ones wait one pull, until the older writers end.
+    """
+    xmin8 = ctx.session.exec(
+        select(text("pg_snapshot_xmin(pg_current_snapshot())::text::bigint"))
+    ).one()
+    return int(xmin8) % (1 << 32)
+
+
 def pull(ctx: Ctx, cursor: int, limit: int) -> SyncPull:
     batch: list[tuple[int, Entity, OwnedRow]] = []
+    horizon = _settled_before(ctx)
     for entity in registry().entities.values():
         model = entity.model
+        table = model.__table__.name  # type: ignore[attr-defined]
+        # age() counts back from the next xid, so an older writer has a larger
+        # age; it is wraparound-safe, and a frozen row's age is the maximum.
+        settled = text(
+            f'age("{table}".xmin) > age(CAST(CAST(:horizon AS text) AS xid))'
+        ).bindparams(horizon=horizon)
         rows = ctx.session.exec(
             select(model)
-            .where(*owned_repo.scope(ctx, model), col(model.version) > cursor)
+            .where(
+                *owned_repo.scope(ctx, model),
+                col(model.version) > cursor,
+                settled,
+            )
             .order_by(col(model.version))
             .limit(limit + 1)
         ).all()

@@ -221,3 +221,35 @@ def test_another_users_row_is_invisible(client: TestClient, db: Session) -> None
     assert res["code"] == "integrity_conflict"
     mine = client.get(f"{API}/sync/pull", headers=alice).json()["changes"]
     assert mine[0]["row"]["text"] == "alice's"
+
+
+@pytest.mark.usefixtures("stand_in_registry")
+def test_a_row_committed_late_is_not_skipped(client: TestClient, db: Session) -> None:
+    """A long transaction (a Fern turn) writes a row first and commits last;
+    a quick write in between commits a higher version. The pull in between
+    must not move the cursor past the slow row, or the phone never sees it."""
+    from sqlalchemy import text
+
+    from app.core.db import engine
+
+    _, headers = signed_in(db)
+    slow_id, quick_id = uuid.uuid4(), uuid.uuid4()
+    _push(client, headers, _op("upsert", "identity", slow_id, text="before"))
+    cursor = client.get(f"{API}/sync/pull", headers=headers).json()["cursor"]
+
+    with engine.connect() as slow:
+        tx = slow.begin()
+        slow.execute(
+            text("UPDATE identity SET text = 'from the slow turn' WHERE id = :i"),
+            {"i": slow_id},
+        )
+        _push(client, headers, _op("upsert", "identity", quick_id, text="quick"))
+        mid = client.get(f"{API}/sync/pull?cursor={cursor}", headers=headers).json()
+        # Neither row is handed out yet: the quick one waits for the slow one.
+        assert mid["changes"] == []
+        assert mid["cursor"] == cursor
+        tx.commit()
+
+    after = client.get(f"{API}/sync/pull?cursor={cursor}", headers=headers).json()
+    got = {c["id"]: c["row"]["text"] for c in after["changes"]}
+    assert got == {str(slow_id): "from the slow turn", str(quick_id): "quick"}
