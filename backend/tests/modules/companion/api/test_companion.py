@@ -164,7 +164,7 @@ def test_agent_blocks_and_a_write_stream_as_ag_ui(
     # (only how to answer and who they are), but one relevant to the message
     # is recalled into it without a tool call.
     system = model.seen[0][0].content
-    assert "ABOUT THEM" in system and "workouts" in system
+    assert "ABOUT THEM" in system and "training" in system
     pinned, relevant = system.split("RELEVANT TO THIS MESSAGE")
     assert "Training for a 10K" not in pinned and "Training for a 10K" in relevant
     with Session(db_engine) as s:

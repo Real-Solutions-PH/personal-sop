@@ -19,7 +19,7 @@ from sqlmodel import Session
 
 from app.core.config import settings
 from app.modules.ai_providers import public as ai
-from app.modules.companion import memory, routing, services
+from app.modules.companion import memory, services
 from app.modules.companion.models import Memory
 from app.shared import owned_repo
 from tests.modules.capture.api.helpers import (
@@ -216,25 +216,8 @@ def test_always_on_holds_how_to_answer_and_who_they_are(db: Session) -> None:
         }
 
 
-def test_tool_groups_follow_the_words(db: Session) -> None:
-    del db
-    hi = routing.pick("hi Fern", [])
-    assert hi is not None and "log_expense" not in hi and "recall_memories" in hi
-    money = routing.pick("spent 200 on lunch", [])
-    assert money is not None
-    assert {"log_expense", "log_meal"} <= money and "create_habit" not in money
-    # "do it" leans on the message before it.
-    follow = routing.pick("yes do it", ["add milk to my shopping list"])
-    assert follow is not None and "create_tasks" in follow
-    long = "I have been thinking a lot about where the year is going honestly"
-    assert routing.pick(long, []) is None
-    assert routing.pick("hi", [], photos=True) is None
-    # Asked to write something without naming what: every tool.
-    assert routing.pick("how's my week? add something to help", []) is None
-
-
 @pytest.mark.usefixtures("embeddings")
-def test_a_turn_offers_fewer_tools_and_keeps_style_in_context(
+def test_a_turn_offers_every_tool_and_keeps_style_in_context(
     client: TestClient,
     db: Session,
     monkeypatch: pytest.MonkeyPatch,
@@ -258,13 +241,14 @@ def test_a_turn_offers_fewer_tools_and_keeps_style_in_context(
         "/api/v1/companion/ask/stream", headers=api.h, json={"text": "hi Fern"}
     )
     assert parse_agui(r.text)[-1]["type"] == "RUN_FINISHED"
-    assert "log_expense" not in offered[0] and len(offered[0]) < 25
+    # Every tool, every turn: the model gathers in one round (loop.py).
+    assert {"log_expense", "todo", "ask_choice", "recall_memories"} <= set(offered[0])
     system = model.seen[0][0].content
     assert "Answer in Taglish, briefly" in system
     # Not always-on: found with recall_memories when needed.
     assert "Sister Ana" not in system
     # The rules come first; what changes each turn comes after them.
-    assert system.index("NOW:") > system.index("Memory:")
+    assert system.index("NOW:") > system.index("How you work")
 
 
 @pytest.mark.usefixtures("embeddings")

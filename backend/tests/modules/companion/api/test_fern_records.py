@@ -26,6 +26,10 @@ INASAL = {
     "protein": 40,
     "carbs": 4,
     "fat": 17,
+    "fiber": 0,
+    "fiber_soluble": 0,
+    "fiber_insoluble": 0,
+    "sat_fat": 5,
     "sugar": 2,
     "sodium": 600,
     "grams": 150,
@@ -93,7 +97,7 @@ def test_log_meal_sends_an_unchecked_estimate_back(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     api = fern(client, db)
-    bad = {k: v for k, v in INASAL.items() if k not in ("grams", "sugar")}
+    bad = {k: v for k, v in INASAL.items() if k != "grams"}
     _, model = turn(
         api,
         client,
@@ -105,7 +109,6 @@ def test_log_meal_sends_an_unchecked_estimate_back(
     assert out["error"] == "fix_these_items_then_call_again"
     [item] = out["items"]
     assert item["item"] == "Chicken inasal pecho"
-    # Missing sugar alone is flagged on the saved meal, never refused.
     assert {p["problem"] for p in item["problems"]} == {"grams_missing"}
     assert not [c for c in rows_of(api, RecordCard) if c.kind == "meal"]
 

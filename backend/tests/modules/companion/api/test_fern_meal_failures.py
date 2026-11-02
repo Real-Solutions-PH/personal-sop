@@ -18,6 +18,7 @@ from app.modules.capture.models import RecordCard
 from app.modules.companion import services
 from app.modules.fitness.models import Meal, MealItem
 from tests.modules.capture.api.helpers import Api, install, say
+from tests.modules.companion.api.meal_items import full
 from tests.modules.companion.api.test_fern_agent import act, live, rows_of, stream
 from tests.modules.companion.api.test_fern_fitness import fern, tool_result, turn
 
@@ -30,6 +31,10 @@ POLVORON = {
     "protein": 2,
     "carbs": 18,
     "fat": 8,
+    "fiber": 0.5,
+    "fiber_soluble": 0.2,
+    "fiber_insoluble": 0.3,
+    "sat_fat": 5,
     "sugar": 9,
     "sodium": 40,
     "grams": 30,
@@ -91,30 +96,63 @@ def _steps(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return items
 
 
-def test_an_estimate_without_sugar_and_sodium_is_saved_and_says_so(
+def test_an_estimate_without_its_details_is_sent_back_once_then_saved(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """Criterion 10 of the replay eval: every logged food carries every
+    value the day counts. The first try without them saves nothing and
+    names what is missing; a second try still without them is saved and
+    says so (no loop)."""
     api = fern(client, db)
-    step, model = turn(
-        api,
-        client,
-        monkeypatch,
-        "lunch was steamed chicken",
-        act(
-            "log_meal",
-            description="Lunch: steamed chicken",
-            items=[CHICKEN],
-            confidence=0.9,
-        ),
+    lunch = act(
+        "log_meal",
+        description="Lunch: steamed chicken",
+        items=[CHICKEN],
+        confidence=0.9,
     )
-    out = tool_result(model)
-    assert "error" not in out, out
-    assert step["ok"], step
+    model = install(monkeypatch, say("", lunch), say("", lunch), say("Done."))
+    stream(api, client, "lunch was steamed chicken")
+    first = tool_result(model)
+    assert first == {
+        "error": "send_items_with_every_nutrient",
+        "items": [
+            {
+                "item": "Steamed chicken",
+                "missing": [
+                    "fiber",
+                    "fiber_soluble",
+                    "fiber_insoluble",
+                    "sat_fat",
+                    "sugar",
+                    "sodium",
+                ],
+            }
+        ],
+    }
     [card] = [c for c in rows_of(api, RecordCard) if c.kind == "meal"]
     assert card.warn == (
         "No fiber, soluble fiber, insoluble fiber, saturated fat, sugar or "
         "sodium estimate for Steamed chicken"
     )
+
+
+def test_an_item_without_its_macros_is_sent_back_for_them(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Protein, carbs and fat no longer default to 0 unsaid."""
+    api = fern(client, db)
+    kcal_only = {"name": "Halo-halo", "kcal": 300, "grams": 250}
+    _, model = turn(
+        api,
+        client,
+        monkeypatch,
+        "had halo-halo",
+        act("log_meal", description="Snack: halo-halo", items=[kcal_only]),
+    )
+    out = tool_result(model)
+    assert out["error"] == "send_items_with_every_nutrient"
+    assert out["items"][0]["missing"][:3] == ["protein", "carbs", "fat"]
+    assert not rows_of(api, Meal)
 
 
 def test_a_fiber_split_heavier_than_its_fiber_is_refused(
@@ -153,7 +191,7 @@ def test_a_refused_meal_says_which_item_and_what_is_wrong(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     api = fern(client, db)
-    no_weight = {k: v for k, v in CHICKEN.items() if k != "grams"}
+    no_weight = full({k: v for k, v in CHICKEN.items() if k != "grams"})
     step, _ = turn(
         api,
         client,
@@ -186,7 +224,7 @@ def test_a_claim_after_a_refused_write_names_what_failed(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     api = fern(client, db)
-    no_weight = {k: v for k, v in CHICKEN.items() if k != "grams"}
+    no_weight = full({k: v for k, v in CHICKEN.items() if k != "grams"})
     install(
         monkeypatch,
         say("", act("log_meal", description="Lunch: chicken", items=[no_weight])),

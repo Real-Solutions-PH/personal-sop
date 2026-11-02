@@ -103,6 +103,8 @@ RUNNING: dict[str, str] = {
     "suggest": "Suggesting next questions",
     "read_photos": "Looking at your photos",
     "web_search": "Searching the web",
+    "todo": "Planning the steps",
+    "ask_choice": "Asking you to choose",
     "nutrition_status": "Checking today's macros",
     "focus_status": "Checking your focus time",
     "start_focus": "Starting the focus timer",

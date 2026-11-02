@@ -24,6 +24,7 @@ from app.modules.companion.models import (
     Memory,
 )
 from tests.modules.capture.api.helpers import Api, install, parse_agui, say, user
+from tests.modules.companion.api.meal_items import full
 from tests.utils.mobile import ctx_for
 
 
@@ -82,15 +83,17 @@ def test_a_habit_said_while_logging_is_kept_as_inferred(
                 "log_meal",
                 description="Iced latte",
                 items=[
-                    {
-                        "name": "iced latte",
-                        "qty": 1,
-                        "kcal": 90,
-                        "protein": 5,
-                        "carbs": 9,
-                        "fat": 3.5,
-                        "grams": 350,
-                    }
+                    full(
+                        {
+                            "name": "iced latte",
+                            "qty": 1,
+                            "kcal": 90,
+                            "protein": 5,
+                            "carbs": 9,
+                            "fat": 3.5,
+                            "grams": 350,
+                        }
+                    )
                 ],
             ),
         ),

@@ -8,7 +8,6 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
-from app.modules.companion import routing
 from tests.modules.capture.api.helpers import Api, call, install, say, user
 from tests.modules.companion.api.test_fern_agent import (
     live,
@@ -253,19 +252,3 @@ def test_an_unknown_account_changes_nothing(
     step = events[-1]["result"]["messages"][1]["blocks"][0]["items"][0]
     assert not step["ok"]
     assert "no account with that name" in step["summary"]
-
-
-@pytest.mark.parametrize(
-    "text,tool",
-    [
-        ("move all scheduled from maya black to maya savings", "edit_scheduled"),
-        ("delete that expense", "remove_item"),
-        ("rename the gym task", "edit_task"),
-        ("fix the amount of my last grab", "edit_transaction"),
-        ("that jollibee was 320 not 250", "edit_transaction"),
-        ("the rent should be 13000", "edit_scheduled"),
-    ],
-)
-def test_words_about_changing_things_offer_the_edit_tools(text: str, tool: str) -> None:
-    names = routing.pick(text, [])
-    assert names is not None and tool in names

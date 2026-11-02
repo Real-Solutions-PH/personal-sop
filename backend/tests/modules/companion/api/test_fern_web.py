@@ -10,6 +10,7 @@ from sqlmodel import Session
 from app.core.config import settings
 from app.modules.companion import web
 from tests.modules.capture.api.helpers import call, install, parse_agui, say, user
+from tests.modules.companion.api.meal_items import full
 
 
 def ask(client: TestClient, api: Any, text: str) -> list[dict[str, Any]]:
@@ -46,18 +47,20 @@ def test_an_unknown_dish_is_searched_then_logged_with_those_numbers(
                 "log_meal",
                 description="Classic Savory chicken, 1 piece",
                 items=[
-                    {
-                        "name": "Classic Savory chicken",
-                        "qty": 1,
-                        "unit": "piece",
-                        "kcal": 420,
-                        "protein": 34,
-                        "carbs": 12,
-                        "fat": 26,
-                        "sugar": 1,
-                        "sodium": 800,
-                        "grams": 200,
-                    }
+                    full(
+                        {
+                            "name": "Classic Savory chicken",
+                            "qty": 1,
+                            "unit": "piece",
+                            "kcal": 420,
+                            "protein": 34,
+                            "carbs": 12,
+                            "fat": 26,
+                            "sugar": 1,
+                            "sodium": 800,
+                            "grams": 200,
+                        }
+                    )
                 ],
                 confidence=0.8,
             ),
@@ -110,16 +113,18 @@ def test_a_promise_to_log_after_searching_gets_the_corrective_pass(
                 "log_meal",
                 description="Classic Savory chicken",
                 items=[
-                    {
-                        "name": "Classic Savory chicken",
-                        "kcal": 420,
-                        "protein": 34,
-                        "carbs": 12,
-                        "fat": 26,
-                        "sugar": 1,
-                        "sodium": 800,
-                        "grams": 200,
-                    }
+                    full(
+                        {
+                            "name": "Classic Savory chicken",
+                            "kcal": 420,
+                            "protein": 34,
+                            "carbs": 12,
+                            "fat": 26,
+                            "sugar": 1,
+                            "sodium": 800,
+                            "grams": 200,
+                        }
+                    )
                 ],
                 confidence=0.8,
             ),
@@ -169,26 +174,30 @@ def test_logging_a_meal_hands_back_the_day_with_it_counted(
                 "log_meal",
                 description="chicken and rice",
                 items=[
-                    {
-                        "name": "Chicken",
-                        "kcal": 350,
-                        "protein": 25,
-                        "carbs": 30,
-                        "fat": 15,
-                        "sugar": 2,
-                        "sodium": 500,
-                        "grams": 200,
-                    },
-                    {
-                        "name": "Rice",
-                        "kcal": 205,
-                        "protein": 4,
-                        "carbs": 45,
-                        "fat": 0.5,
-                        "sugar": 0,
-                        "sodium": 2,
-                        "grams": 158,
-                    },
+                    full(
+                        {
+                            "name": "Chicken",
+                            "kcal": 350,
+                            "protein": 25,
+                            "carbs": 30,
+                            "fat": 15,
+                            "sugar": 2,
+                            "sodium": 500,
+                            "grams": 200,
+                        }
+                    ),
+                    full(
+                        {
+                            "name": "Rice",
+                            "kcal": 205,
+                            "protein": 4,
+                            "carbs": 45,
+                            "fat": 0.5,
+                            "sugar": 0,
+                            "sodium": 2,
+                            "grams": 158,
+                        }
+                    ),
                 ],
                 confidence=0.5,
             ),
