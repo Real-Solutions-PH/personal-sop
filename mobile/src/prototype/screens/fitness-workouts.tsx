@@ -21,7 +21,6 @@ import { ScrollView, TextInput, View } from "react-native"
 import Animated, { FadeInDown } from "react-native-reanimated"
 import { toast } from "sonner-native"
 import { Celebration, useCelebrate } from "../celebration"
-import { useShown } from "../extras"
 import {
   border,
   Copy,
@@ -384,7 +383,6 @@ export function WorkoutDetail({
     [menu, setMenu] = useState(false),
     [name, setName] = useState(w?.name ?? ""),
     [notes, setNotes] = useState(w?.notes ?? ""),
-    social = useShown("social"),
     // The summary alone plays and records it; the history page never does.
     fresh = useCelebrate(id, summary)
   if (!w)
@@ -527,13 +525,6 @@ export function WorkoutDetail({
                 Share
               </Button>
             </View>
-            {social && (
-              <View style={{ flex: 1 }}>
-                <Button tone="quiet" onPress={() => go(`${shareUrl}&post=1`)}>
-                  Post
-                </Button>
-              </View>
-            )}
             <View style={{ flex: 1 }}>
               <Button
                 tone="quiet"

@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from "expo-router"
-import { Camera, Images, MapPin, Sparkles, X } from "lucide-react-native"
+import { Camera, Crop, Images, MapPin, Sparkles, X } from "lucide-react-native"
 import { useEffect, useRef, useState } from "react"
 import {
   Image,
@@ -17,8 +17,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { back, replace } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import { confirm, Toggle } from "../ui"
+import { frameRatio, type PostRatio } from "./crop"
+import { FrameEditor } from "./frame-editor"
 import { Avatar, Bounce, haptic, ProgressCard, VideoMedia } from "./kit"
-import { pickMedia } from "./media"
+import { framePhoto, pickMedia } from "./media"
 import { useProgressSources } from "./sources"
 import {
   addStory,
@@ -99,7 +101,7 @@ export function ProgressPicker({
 export function Compose() {
   const t = useTheme()
   const safe = useSafeAreaInsets()
-  const params = useLocalSearchParams<{ progress?: string }>()
+  const params = useLocalSearchParams<{ progress?: string; adjust?: string }>()
   const width = Math.min(useWindowDimensions().width, 600)
   const draft = socialStore.use((s) => s.drafts.post)
   const [media, setMedia] = useState<Media[]>(draft?.media ?? [])
@@ -113,6 +115,46 @@ export function Compose() {
     !!params.progress || !!draft?.progress,
   )
   const [page, setPage] = useState(0)
+  // One frame for the whole post, as the feed draws it: 4:5 or 1:1.
+  const [frame, setFrame] = useState<PostRatio>(() =>
+    frameRatio(draft?.media?.find((m) => m.kind === "image")?.ratio),
+  )
+  const [editing, setEditing] = useState<number | null>(null)
+  // A share card arrives with the editor open on it.
+  const adjusted = useRef(false)
+  useEffect(() => {
+    if (adjusted.current || params.adjust !== "1") return
+    const i = media.findIndex((m) => m.edit)
+    if (i < 0) return
+    adjusted.current = true
+    setFrame(frameRatio(media[i].ratio))
+    setEditing(i)
+  }, [media, params.adjust])
+  /** Cut the photo again from its original; on a new frame every photo of
+   * the post is cut to it, each keeping where it was placed. */
+  const reframe = async (
+    i: number,
+    ratio: PostRatio,
+    framing: NonNullable<Media["edit"]>["framing"],
+  ) => {
+    touched.current = true
+    const all = ratio !== frame
+    setFrame(ratio)
+    const next = await Promise.all(
+      media.map(async (m, j) => {
+        const e = m.edit
+        if (!e || (j !== i && !all)) return m
+        try {
+          return await framePhoto(e, ratio, j === i ? framing : e.framing, {
+            png: e.png,
+          })
+        } catch {
+          return m
+        }
+      }),
+    )
+    setMedia(next)
+  }
   // Live mode: the server's draft can arrive after the screen opens; take it
   // until the person starts editing.
   const touched = useRef(false)
@@ -125,7 +167,7 @@ export function Compose() {
   const dirty = media.length > 0 || !!progress || caption.trim().length > 0
   const canShare = media.length > 0 || !!progress
   const add = async (camera: boolean) => {
-    const picked = await pickMedia({ camera })
+    const picked = await pickMedia({ camera, ratio: frame })
     if (picked.length) {
       haptic.tap()
       touched.current = true
@@ -166,6 +208,8 @@ export function Compose() {
     replace("/social")
   }
   const previewW = width - 32
+  const previewH = Math.round(previewW / frame)
+  const edited = editing === null ? undefined : media[editing]
   const pages = media.length + (progress ? 1 : 0)
   return (
     <KeyboardAvoidingView
@@ -245,7 +289,7 @@ export function Compose() {
                   exiting={FadeOut}
                   style={{
                     width: previewW,
-                    height: previewW * 1.25,
+                    height: previewH,
                     borderRadius: 16,
                     overflow: "hidden",
                     backgroundColor: t.soft,
@@ -258,19 +302,49 @@ export function Compose() {
                       style={{ width: "100%", height: "100%" }}
                     />
                   ) : (
-                    <Image
-                      source={{ uri: m.uri }}
-                      resizeMode={
-                        m.ratio && m.ratio < 0.75 ? "contain" : "cover"
-                      }
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Adjust photo ${i + 1}`}
+                      disabled={!m.edit}
+                      onPress={() => setEditing(i)}
+                    >
+                      <Image
+                        source={{ uri: m.uri }}
+                        resizeMode="cover"
+                        style={{ width: "100%", height: "100%" }}
+                        accessibilityLabel={`Selected photo ${i + 1}`}
+                      />
+                    </Pressable>
+                  )}
+                  {m.edit && (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Crop photo ${i + 1}`}
+                      onPress={() => setEditing(i)}
                       style={{
-                        width: "100%",
-                        height: "100%",
-                        backgroundColor:
-                          m.ratio && m.ratio < 0.75 ? "#000" : undefined,
+                        position: "absolute",
+                        left: 10,
+                        bottom: 10,
+                        minHeight: 32,
+                        paddingHorizontal: 10,
+                        borderRadius: 16,
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 6,
+                        backgroundColor: "#000000aa",
                       }}
-                      accessibilityLabel={`Selected photo ${i + 1}`}
-                    />
+                    >
+                      <Crop size={15} color="#ffffff" />
+                      <Text
+                        style={{
+                          color: "#ffffff",
+                          fontFamily: fonts.semibold,
+                          fontSize: 13,
+                        }}
+                      >
+                        {frame === 1 ? "1:1" : "4:5"}
+                      </Text>
+                    </Pressable>
                   )}
                   <Pressable
                     accessibilityRole="button"
@@ -303,7 +377,7 @@ export function Compose() {
                   <ProgressCard
                     progress={progress}
                     width={previewW}
-                    height={previewW * 1.25}
+                    height={previewH}
                   />
                 </Animated.View>
               )}
@@ -573,6 +647,19 @@ export function Compose() {
           />
         </View>
       </ScrollView>
+      {edited?.edit && editing !== null && (
+        <FrameEditor
+          source={edited.edit}
+          ratio={frame}
+          framing={edited.edit.framing}
+          onCancel={() => setEditing(null)}
+          onDone={(ratio, framing) => {
+            const i = editing
+            setEditing(null)
+            void reframe(i, ratio, framing)
+          }}
+        />
+      )}
     </KeyboardAvoidingView>
   )
 }

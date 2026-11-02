@@ -2,6 +2,15 @@ import * as ImageManipulator from "expo-image-manipulator"
 import * as ImagePicker from "expo-image-picker"
 import { Platform } from "react-native"
 import { toast } from "sonner-native"
+import {
+  CENTRED,
+  clampFraming,
+  DEFAULT_RATIO,
+  type Framing,
+  type PostRatio,
+  pixelCrop,
+  type Size,
+} from "./crop"
 import type { Media } from "./store"
 
 /** Copy a picked/captured file into app storage so it survives cache purges. */
@@ -116,10 +125,62 @@ export async function prepareImage(
   }
 }
 
-/** A picked photo with its renditions; a photo the manipulator cannot read
- * is kept as it is (full only). */
-async function withRenditions(uri: string, ratio?: number): Promise<Media> {
+/** A photo cut to a post frame and given its renditions. The original is
+ * kept on ``edit`` so the framing can be changed again before posting. A
+ * share card (``png``) is cut as a PNG so its gradients are not
+ * re-encoded. */
+export async function framePhoto(
+  source: { uri: string; width?: number; height?: number },
+  ratio: PostRatio = DEFAULT_RATIO,
+  framing: Framing = CENTRED,
+  opts: { png?: boolean } = {},
+): Promise<Media> {
+  const M = ImageManipulator
+  let size: Size
+  if (source.width && source.height)
+    size = { width: source.width, height: source.height }
+  else {
+    const info = await M.manipulateAsync(source.uri, [])
+    size = { width: info.width, height: info.height }
+  }
+  // The crop is computed on a frame 1 point wide; framings are stored in
+  // frame-width units, so the frame's on-screen size never matters.
+  const frame = { width: 1, height: 1 / ratio }
+  const crop = pixelCrop(size, frame, framing)
+  const cut = await M.manipulateAsync(source.uri, [{ crop }], {
+    compress: 1,
+    format: opts.png ? M.SaveFormat.PNG : M.SaveFormat.JPEG,
+  })
+  const p = await prepareImage(cut.uri, { keepPng: opts.png })
+  return {
+    kind: "image",
+    uri: p.full,
+    mime: p.fullMime,
+    previewUri: p.preview,
+    lqip: p.lqip,
+    width: p.width,
+    height: p.height,
+    ratio,
+    edit: {
+      uri: source.uri,
+      width: size.width,
+      height: size.height,
+      framing: clampFraming(size, frame, framing),
+      png: opts.png,
+    },
+  }
+}
+
+/** A picked photo with its renditions, cut at its centre to ``frame`` when
+ * it is for a post; a photo the manipulator cannot read is kept as it is
+ * (full only). */
+async function withRenditions(
+  uri: string,
+  ratio?: number,
+  frame?: PostRatio,
+): Promise<Media> {
   try {
+    if (frame) return await framePhoto({ uri: await keep(uri, "jpg") }, frame)
     const p = await prepareImage(uri)
     return {
       kind: "image",
@@ -140,10 +201,13 @@ export async function pickMedia({
   camera = false,
   multiple = true,
   video = true,
+  ratio: frame,
 }: {
   camera?: boolean
   multiple?: boolean
   video?: boolean
+  /** A post's frame: each photo is cut to it at its centre. */
+  ratio?: PostRatio
 } = {}): Promise<Media[]> {
   try {
     const types: ImagePicker.MediaType[] = video
@@ -174,7 +238,7 @@ export async function pickMedia({
     return Promise.all(
       result.assets.map(async (a): Promise<Media> => {
         const ratio = a.width && a.height ? a.width / a.height : undefined
-        if (a.type !== "video") return withRenditions(a.uri, ratio)
+        if (a.type !== "video") return withRenditions(a.uri, ratio, frame)
         return { kind: "video", uri: await keep(a.uri, "mp4"), ratio }
       }),
     )

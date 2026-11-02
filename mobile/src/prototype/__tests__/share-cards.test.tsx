@@ -6,8 +6,8 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { configureStorage, resetAll } from "@domain/lib/store"
-import { fireEvent, render } from "@testing-library/react-native"
-import type { ReactElement } from "react"
+import { act, fireEvent, render } from "@testing-library/react-native"
+import type { ReactElement, ReactNode } from "react"
 import {
   Dimensions,
   PixelRatio,
@@ -15,6 +15,7 @@ import {
   StyleSheet,
   Text,
 } from "react-native"
+import { SafeAreaProvider } from "react-native-safe-area-context"
 import { luminance } from "../color-picker"
 import { Artwork } from "../screens/dash-share"
 import { WorkoutCard } from "../screens/fitness-share"
@@ -65,6 +66,15 @@ jest.mock("sonner-native", () => ({
     warning: jest.fn(),
   }),
 }))
+// The caption editor is a Sheet, which drags to close.
+jest.mock("react-native-gesture-handler", () => {
+  const chain: object = new Proxy({}, { get: () => () => chain })
+  return {
+    Gesture: new Proxy({}, { get: () => () => chain }),
+    GestureDetector: ({ children }: { children: ReactNode }) => children,
+    ScrollView: require("react-native").ScrollView,
+  }
+})
 jest.mock("react-native-view-shot", () => ({ captureRef: jest.fn() }))
 jest.mock("expo-sharing", () => ({
   isAvailableAsync: jest.fn(),
@@ -536,7 +546,8 @@ test("the composer can centre its last card", () => {
       {null}
     </ShareComposer>,
   )
-  const pad = r.UNSAFE_getByType(ScrollView).props.contentContainerStyle
+  // The card carousel; the background row below it scrolls too.
+  const pad = r.UNSAFE_getAllByType(ScrollView)[0].props.contentContainerStyle
     .paddingHorizontal as number
   // Centring a card needs (screen − card) / 2 on each side; with less, the
   // scroll stops before the last card reaches the middle.
@@ -655,6 +666,84 @@ test.each<CardFormat>([
   expect(style.height).toBeUndefined()
 })
 
+test("the gradient is drawn at the card's size after a size change", () => {
+  // react-native-svg does not measure a `100%` size again when its box
+  // changes shape: a card switched from Story to 4:5 or Square kept the
+  // Story gradient and showed its dark base as a band.
+  const r = render(card(300, { format: "9:16", backdrop: "fern", photo: null }))
+  for (const format of ["4:5", "1:1", "9:16"] as const) {
+    r.rerender(card(300, { format, backdrop: "fern", photo: null }))
+    const ground = r.getByTestId("card-ground")
+    const svg = ground.findAll(
+      (n) => typeof n.props.width === "number" && n.props.fill === undefined,
+    )[0]
+    expect(svg?.props.width).toBe(300)
+    expect(svg?.props.height).toBe(
+      300 * { "9:16": 16 / 9, "4:5": 1.25, "1:1": 1 }[format],
+    )
+  }
+})
+
+const SAFE = {
+  frame: { x: 0, y: 0, width: 390, height: 844 },
+  insets: { top: 0, left: 0, right: 0, bottom: 0 },
+}
+
+test("Caption opens an editor whose text is copied and posted", async () => {
+  const { copyText } = require("../media")
+  copyText.mockResolvedValue(true)
+  const { captureRef } = require("react-native-view-shot")
+  captureRef.mockReset()
+  captureRef.mockRejectedValue(new Error("no image in tests"))
+  const r = render(
+    <SafeAreaProvider initialMetrics={SAFE}>
+      <ShareComposer
+        value="card"
+        onChange={() => {}}
+        caption="Push A · Unfurl"
+        items={[{ key: "card", label: "Card", render: card }]}
+      >
+        {null}
+      </ShareComposer>
+    </SafeAreaProvider>,
+  )
+  fireEvent.press(r.getByText("Caption"))
+  const input = r.getByTestId("caption-input")
+  expect(input.props.value).toBe("Push A · Unfurl")
+  fireEvent.changeText(input, "Leg day done")
+  await act(async () => {
+    fireEvent.press(r.getByText("Copy"))
+  })
+  expect(copyText).toHaveBeenCalledWith("Leg day done")
+  // The button says it worked, in place of a toast.
+  expect(r.getByText("Copied")).toBeTruthy()
+  fireEvent.press(r.getByText("Done"))
+  await act(async () => {
+    fireEvent.press(r.getByText("Post"))
+  })
+  expect(socialStore.get().drafts.post?.caption).toBe("Leg day done")
+})
+
+test("the background row scrolls, with the screen inset at both ends", () => {
+  const r = render(
+    <ShareComposer
+      value="card"
+      onChange={() => {}}
+      caption=""
+      items={[{ key: "card", label: "Card", render: card }]}
+    >
+      {null}
+    </ShareComposer>,
+  )
+  const row = r.getByTestId("backdrop-row")
+  expect(row.props.horizontal).toBe(true)
+  expect(StyleSheet.flatten(row.props.contentContainerStyle)).toMatchObject({
+    paddingHorizontal: 16,
+  })
+  // Every option is in the row, the last one included.
+  expect(r.getByLabelText("Sticker background")).toBeTruthy()
+})
+
 test("the composer opens on the Fern ground", () => {
   const looks: CardLook[] = []
   render(
@@ -753,39 +842,4 @@ test("a failed capture shows the share error toast", async () => {
   expect(toast.error).toHaveBeenCalledWith(
     "Could not share this image. You can still copy its caption.",
   )
-})
-
-test("autoPost opens the feed composer once, after layout", async () => {
-  const { captureRef } = require("react-native-view-shot")
-  captureRef.mockReset()
-  captureRef.mockRejectedValue(new Error("not in tests"))
-  jest.spyOn(global, "requestAnimationFrame").mockImplementation((cb) => {
-    cb(0)
-    return 0
-  })
-  const { router } = require("expo-router")
-  router.push.mockClear()
-  const r = render(
-    <ShareComposer
-      value="card"
-      onChange={() => {}}
-      caption="Push A"
-      autoPost
-      items={[{ key: "card", label: "Card", render: card }]}
-    >
-      {null}
-    </ShareComposer>,
-  )
-  for (let i = 0; i < 2; i++)
-    fireEvent(
-      r.getByTestId("card-export", { includeHiddenElements: true }),
-      "layout",
-      {
-        nativeEvent: { layout: { width: 360, height: 640 } },
-      },
-    )
-  await new Promise((done) => setTimeout(done, 0))
-  expect(socialStore.get().drafts.post?.caption).toBe("Push A")
-  expect(router.push).toHaveBeenCalledTimes(1)
-  captureRef.mockReset()
 })

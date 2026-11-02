@@ -11,6 +11,7 @@ import { palette } from "@domain/design/tokens"
 import * as Sharing from "expo-sharing"
 import {
   Camera,
+  Check,
   Copy as CopyIcon,
   Download,
   Ellipsis,
@@ -63,9 +64,11 @@ import { copyText, pickPhoto } from "./media"
 import { Copy, Line, Segmented, Tap } from "./native-kit"
 import { go } from "./navigation"
 import { signed } from "./share-format"
-import { keep, prepareImage } from "./social/media"
+import { CENTRED, frameRatio } from "./social/crop"
+import { framePhoto, keep, prepareImage } from "./social/media"
 import { addStory, deleteStory, type Media, setPostDraft } from "./social/store"
 import { type Accent, fonts, useTheme } from "./theme"
+import { Button, Field, Sheet } from "./ui"
 
 export type CardFormat = "9:16" | "4:5" | "1:1"
 const BACKDROPS = [
@@ -601,7 +604,7 @@ export function Dots({
 
 /** A gradient ground behind everything on the card, drawn in SVG so it
  * renders alike on every platform and is captured at full resolution. */
-function CardGround() {
+function CardGround({ width, height }: { width: number; height: number }) {
   const { c } = useCard(),
     id = `ground-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`
   if (!c.gradient) return null
@@ -610,13 +613,17 @@ function CardGround() {
   // `100%` itself while absolute in the padded card, Yoga measured it
   // against the content box, and the gradient stopped a padding short of
   // the right and bottom edges, in the preview and the exported image.
+  // Its size is given in points, not `100%`: react-native-svg does not
+  // measure a percentage again when the card changes shape, so a card
+  // switched from Story to 4:5 or Square kept the old gradient and showed
+  // its dark base as a band.
   return (
     <View
       testID="card-ground"
       pointerEvents="none"
       style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
     >
-      <Svg width="100%" height="100%" preserveAspectRatio="none">
+      <Svg width={width} height={height} preserveAspectRatio="none">
         <Defs>
           <LinearGradient id={id} x1="0" y1="0" x2="1" y2="1">
             {stops.map((color, i) => (
@@ -628,7 +635,7 @@ function CardGround() {
             ))}
           </LinearGradient>
         </Defs>
-        <Rect x="0" y="0" width="100%" height="100%" fill={`url(#${id})`} />
+        <Rect x={0} y={0} width={width} height={height} fill={`url(#${id})`} />
       </Svg>
     </View>
   )
@@ -765,7 +772,7 @@ export function CardFrame({
             backgroundColor: c.bg,
           }}
         >
-          <CardGround />
+          <CardGround width={width} height={width * ratioOf(look.format)} />
           {look.backdrop === "photo" && look.photo && (
             <>
               <Image
@@ -878,7 +885,6 @@ export function ShareComposer<K extends string>({
   beforeShare,
   onLookChange,
   shareRef,
-  autoPost = false,
 }: {
   value: K
   onChange: (key: K) => void
@@ -895,15 +901,21 @@ export function ShareComposer<K extends string>({
   beforeShare?: (proceed: () => Promise<void>) => void
   onLookChange?: (look: CardLook) => void
   shareRef?: { current: (() => Promise<void>) | null }
-  /** Open the feed composer with this card once it has been laid out. */
-  autoPost?: boolean
 }) {
   const t = useTheme(),
     social = useShown("social")
   const [format, setFormat] = useState<CardFormat>("9:16"),
     [backdrop, setBackdrop] = useState<CardBackdrop>("fern"),
     [photo, setPhoto] = useState<string | null>(null),
-    [color, setColor] = useState<string>(palette.light.primary)
+    [color, setColor] = useState<string>(palette.light.primary),
+    // The caption that goes with a post and is copied for other apps:
+    // the card's own until the person edits it.
+    [edited, setEdited] = useState<string | null>(null),
+    [captionOpen, setCaptionOpen] = useState(false),
+    // Mounted from the first open on, so it can animate out after that.
+    [captionUsed, setCaptionUsed] = useState(false),
+    [copied, setCopied] = useState(false)
+  const text = edited ?? caption
   const screen = useWindowDimensions().width,
     windowWidth = Math.min(screen, 480),
     inset = (windowWidth - 32) * 0.18,
@@ -924,7 +936,6 @@ export function ShareComposer<K extends string>({
     exportShot = useRef<HostInstance | null>(null),
     exportWidth = 1080 / PixelRatio.get(),
     exportNode = () => exportShot.current ?? target(value),
-    posted = useRef(false),
     scroll = useRef<ScrollViewInstance>(null)
   useEffect(() => {
     if (!formats.includes(format)) setFormat(formats[0])
@@ -950,7 +961,7 @@ export function ShareComposer<K extends string>({
           return
         }
       }
-      await Share.share({ message: caption })
+      await Share.share({ message: text })
     } catch {
       toast.error("Could not share this image. You can still copy its caption.")
     }
@@ -996,13 +1007,30 @@ export function ShareComposer<K extends string>({
       return { kind: "image", uri, ratio }
     }
   }
+  /** The card in a post frame (1:1 cards stay square, the rest go 4:5),
+   * opened in the frame editor so it can be placed before posting. */
   const toFeed = async () => {
     const uri = await capture()
-    setPostDraft({
-      caption,
-      media: uri ? [await asMedia(uri)] : [],
-    })
-    go(uri ? "/social/compose" : "/social/compose?progress=1")
+    let media: Media | undefined
+    if (uri)
+      try {
+        media = await framePhoto(
+          { uri },
+          frameRatio(1 / ratioOf(format)),
+          CENTRED,
+          { png: true },
+        )
+      } catch {
+        media = await asMedia(uri)
+      }
+    setPostDraft({ caption: text, media: media ? [media] : [] })
+    go(
+      !media
+        ? "/social/compose?progress=1"
+        : media.edit
+          ? "/social/compose?adjust=1"
+          : "/social/compose",
+    )
   }
   const toStory = async () => {
     const uri = await capture()
@@ -1116,11 +1144,6 @@ export function ShareComposer<K extends string>({
               testID="card-export"
               collapsable={false}
               style={{ width: exportWidth }}
-              onLayout={() => {
-                if (!autoPost || posted.current) return
-                posted.current = true
-                requestAnimationFrame(() => void toFeed())
-              }}
             >
               <CardShotContext.Provider
                 value={(v) => {
@@ -1160,7 +1183,15 @@ export function ShareComposer<K extends string>({
               ]
             : []),
           { label: "Save", Icon: Download, action: share },
-          { label: "Caption", Icon: CopyIcon, action: () => copyText(caption) },
+          {
+            label: "Caption",
+            Icon: CopyIcon,
+            action: () => {
+              setCopied(false)
+              setCaptionUsed(true)
+              setCaptionOpen(true)
+            },
+          },
           { label: "More", Icon: Ellipsis, action: share },
         ].map(({ label, Icon, action }) => (
           <Tap
@@ -1207,7 +1238,15 @@ export function ShareComposer<K extends string>({
       >
         Background
       </Copy>
-      <Line style={{ justifyContent: "space-between", gap: 4 }}>
+      {/* Wider than a phone: it scrolls, with the screen's inset at both
+          ends so the last option can be reached whole. */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        testID="backdrop-row"
+        style={{ marginHorizontal: -16 }}
+        contentContainerStyle={{ paddingHorizontal: 16, gap: 4 }}
+      >
         {BACKDROPS.map((b) => (
           <Tap
             key={b.key}
@@ -1258,7 +1297,7 @@ export function ShareComposer<K extends string>({
             <Copy size={12}>{b.label}</Copy>
           </Tap>
         ))}
-      </Line>
+      </ScrollView>
       {backdrop === "photo" && (
         <Tap
           label={photo ? "Change photo" : "Choose a photo"}
@@ -1353,6 +1392,47 @@ export function ShareComposer<K extends string>({
         </Line>
       )}
       {children}
+      {captionUsed && (
+        <Sheet
+          title="Caption"
+          open={captionOpen}
+          onClose={() => setCaptionOpen(false)}
+        >
+          <Field
+            label="Caption"
+            hideLabel
+            testID="caption-input"
+            value={text}
+            onChangeText={(v) => {
+              setEdited(v.slice(0, 2200))
+              setCopied(false)
+            }}
+            placeholder="Write a caption…"
+            multiline
+            numberOfLines={4}
+          />
+          <Copy size={12} muted style={{ paddingHorizontal: 4 }}>
+            Goes with your post. Copy it to paste under the image in another
+            app.
+          </Copy>
+          <Line style={{ gap: 8, marginTop: 8 }}>
+            <View style={{ flex: 1 }}>
+              <Button
+                tone="quiet"
+                icon={copied ? Check : CopyIcon}
+                onPress={() => void copyText(text).then(setCopied)}
+              >
+                {copied ? "Copied" : "Copy"}
+              </Button>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Button icon={Check} onPress={() => setCaptionOpen(false)}>
+                Done
+              </Button>
+            </View>
+          </Line>
+        </Sheet>
+      )}
     </View>
   )
 }
