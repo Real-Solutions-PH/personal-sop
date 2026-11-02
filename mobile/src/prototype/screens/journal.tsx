@@ -27,7 +27,13 @@ import {
   Users,
   Wallet,
 } from "lucide-react-native"
-import { useContext, useEffect, useRef, useState } from "react"
+import {
+  type ReactNode,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react"
 import {
   Keyboard,
   Platform,
@@ -36,6 +42,14 @@ import {
   useWindowDimensions,
   View,
 } from "react-native"
+import Animated, {
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withSequence,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import Svg, {
   Circle,
@@ -54,6 +68,7 @@ import {
   SectionHeading,
   Tap,
 } from "../native-kit"
+import { feel, StreakChip } from "../motion"
 import { go } from "../navigation"
 import { Switch } from "../switch"
 import { fonts, useTheme } from "../theme"
@@ -364,6 +379,42 @@ export function Journal({
     <JournalList />
   )
 }
+/** Days in a row with an entry, up to today (or yesterday while today has
+ * none yet: an open day does not break the streak). */
+export function journalStreak(days: Set<string>, today = dayKey()) {
+  const noon = new Date(`${today}T12:00:00`)
+  const back = (n: number) => dayOffset(n, noon)
+  let n = 0
+  const base = days.has(today) ? 0 : -1
+  while (days.has(back(base - n))) n++
+  return n
+}
+const streakOf = (journal: readonly { day: string; tags: string[] }[]) =>
+  journalStreak(
+    new Set(journal.filter((e) => !e.tags.includes(CHECK_IN)).map((e) => e.day)),
+  )
+
+/** Pops its child when ``on`` goes up while on screen. */
+function Bump({ on, children }: { on: number; children: ReactNode }) {
+  const reduced = useReducedMotion()
+  const scale = useSharedValue(1)
+  const prev = useRef(on)
+  useEffect(() => {
+    if (on > prev.current && !reduced)
+      scale.value = withSequence(
+        withTiming(1.25, { duration: 120 }),
+        withSpring(1, { damping: 8, stiffness: 260 }),
+      )
+    prev.current = on
+  }, [on, reduced, scale])
+  const pop = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }))
+  return (
+    <Animated.View style={[{ alignSelf: "flex-start" }, pop]}>
+      {children}
+    </Animated.View>
+  )
+}
+
 function JournalList() {
   const t = useTheme(),
     all = captureStore.use((s) => s.journal),
@@ -392,9 +443,7 @@ function JournalList() {
         days.has(dayOffset(i - 27)) ? 1 : 0,
       ),
     ]
-  let streak = 0,
-    base = days.has(dayKey()) ? 0 : -1
-  while (days.has(dayOffset(base - streak))) streak++
+  const streak = journalStreak(days)
   return (
     <Screen
       title="Journal"
@@ -429,13 +478,15 @@ function JournalList() {
               { label: "Entries", value: entries.length },
             ].map((x, i) => (
               <View key={x.label} style={{ flex: 1 }}>
-                <Copy
-                  size={28}
-                  weight="display"
-                  style={{ color: i === 0 ? t.life : t.text }}
-                >
-                  {x.value}
-                </Copy>
+                <Bump on={i === 0 ? streak : 0}>
+                  <Copy
+                    size={28}
+                    weight="display"
+                    style={{ color: i === 0 ? t.life : t.text }}
+                  >
+                    {x.value}
+                  </Copy>
+                </Bump>
                 <Line style={{ gap: 4 }}>
                   {i === 0 && <Flame size={14} color={t.life} />}
                   <Copy size={12} muted>
@@ -737,6 +788,7 @@ function JournalEditor({ id }: { id?: string }) {
     { height } = useWindowDimensions(),
     online = useOnline(),
     existing = captureStore.use((s) => s.journal.find((j) => j.id === id)),
+    streak = captureStore.use((s) => streakOf(s.journal)),
     [body, setBody] = useState(existing?.body ?? ""),
     [day, setDay] = useState(existing?.day ?? dayKey()),
     [mood, setMood] = useState(existing?.mood),
@@ -809,6 +861,13 @@ function JournalEditor({ id }: { id?: string }) {
     edited.current = false
     setSave({ kind: "saved", at: new Date() })
   }
+  // The save that starts today's entry grows the streak: the chip by the
+  // save line bumps and the phone taps once.
+  const lastStreak = useRef(streak)
+  useEffect(() => {
+    if (streak > lastStreak.current) feel.success()
+    lastStreak.current = streak
+  }, [streak])
   // Debounced autosave: every change restarts the wait.
   // biome-ignore lint/correctness/useExhaustiveDependencies: the fields are the trigger; latest.current reads them
   useEffect(() => {
@@ -924,6 +983,9 @@ function JournalEditor({ id }: { id?: string }) {
             <Copy size={12} style={{ color: status.color, flexShrink: 1 }}>
               {status.text}
             </Copy>
+            {entryId.current && day === dayKey() && (
+              <StreakChip streak={streak} />
+            )}
           </View>
         </Line>
       }

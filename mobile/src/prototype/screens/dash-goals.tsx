@@ -35,6 +35,8 @@ import {
   Segmented,
   Tap,
 } from "../native-kit"
+import { useNoteGoals } from "../goal-ledger"
+import { MissedGoals } from "../missed-goals"
 import { fonts, useTheme } from "../theme"
 import { Button, confirm, Screen, Sheet } from "../ui"
 
@@ -283,6 +285,7 @@ export function Goals() {
           ? g.goal.status === "archived"
           : g.goal.status === "active" && (v === "hit" ? g.hit : !g.hit),
       ).length
+  useNoteGoals(goals)
   return (
     <Screen
       title="Goals"
@@ -308,6 +311,7 @@ export function Goals() {
           ]}
         />
       )}
+      {tab === "active" && <MissedGoals goals={goals.map((g) => g.goal)} />}
       {list.length ? (
         <Frame style={{ paddingHorizontal: 12, paddingVertical: 4 }}>
           {list.map((g, i) => (

@@ -37,6 +37,7 @@ import { replace } from "@/prototype/navigation"
 import { applyDraft, getDraft } from "@/prototype/onboarding-draft"
 import { startRestAlarm } from "@/prototype/rest-alarm"
 import { RoutineDoneWatcher } from "@/prototype/routine-done"
+import { AtRiskWatcher } from "@/prototype/streak-at-risk"
 import { startRunTracker } from "@/prototype/run-tracker"
 import { startScreenSync } from "@/prototype/screen-sync"
 import { CaptureOverlay } from "@/prototype/screens/capture"
@@ -343,6 +344,7 @@ export default function PrototypeLayout() {
             <SurfacesBridge />
             <TrophyWatcher hidden={focus} />
             <RoutineDoneWatcher hidden={focus} />
+            <AtRiskWatcher />
           </>
         )}
         {!focus && (

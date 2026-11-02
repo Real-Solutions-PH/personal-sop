@@ -29,16 +29,20 @@ import {
   SkipForward,
   Square,
   Target,
+  Timer,
 } from "lucide-react-native"
 import { useEffect, useMemo, useState } from "react"
-import { ScrollView, View } from "react-native"
+import { ScrollView, Text, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { useMomentTimer } from "../big-moment"
 import {
   FocusTimeline,
   ItemPicker,
   SessionStrip,
   TimerRing,
 } from "../focus-kit"
+import { MomentCard } from "../moment"
+import { claimOnce } from "../moments-seen"
 import { Copy, Frame, IconTap, Line, Segmented, Tap } from "../native-kit"
 import { back, go } from "../navigation"
 import { fonts, useTheme } from "../theme"
@@ -58,7 +62,10 @@ export function FocusTimer() {
     [pick, setPick] = useState(false),
     [next, setNext] = useState<FocusItem | null>(null),
     [ending, setEnding] = useState(false),
-    [logging, setLogging] = useState(false)
+    [logging, setLogging] = useState(false),
+    // The session just ended, shown as a card in place of a silent stop.
+    [ended, setEnded] = useState<Ended | null>(null),
+    [goalMoment, setGoalMoment] = useState(false)
   // Write down a set that ended on screen, so it syncs as it happens.
   // biome-ignore lint/correctness/useExhaustiveDependencies: now is the clock tick
   useEffect(() => A.tickFocus(), [now])
@@ -81,6 +88,26 @@ export function FocusTimer() {
           : [],
       [s, session, today, now],
     )
+  const goalKey = `focus-goal:${today}`,
+    goalHit = goal > 0 && todaySec >= goal
+  // The daily goal is cheered once a day, the moment it is crossed (or the
+  // first time this screen sees it crossed).
+  const [endedUp, closeEnded] = useMomentTimer(!!ended, 4500)
+  useEffect(() => {
+    if (goalHit && !endedUp && claimOnce(goalKey)) setGoalMoment(true)
+  }, [goalHit, endedUp, goalKey])
+  useEffect(() => {
+    if (!goalMoment) return
+    const id = setTimeout(() => setGoalMoment(false), 4000)
+    return () => clearTimeout(id)
+  }, [goalMoment])
+  const goalUp = goalMoment && !endedUp,
+    closeGoal = () => setGoalMoment(false)
+  const streak = useMemo(
+    () => (endedUp || goalUp ? C.streaks(s, 400, now).current : 0),
+    // biome-ignore lint/correctness/useExhaustiveDependencies: read as a card appears
+    [endedUp, goalUp],
+  )
   const lengths: [number, number, number, number] =
     preset === "custom"
       ? [
@@ -423,6 +450,22 @@ export function FocusTimer() {
         </Copy>
         <Button
           onPress={() => {
+            if (tl) {
+              const sec = L.focusSec(tl, now)
+              setEnded({
+                key: tl.sess.id,
+                title: item?.title ?? "Focus session",
+                sec,
+                sets:
+                  tl.sess.mode === "pomodoro"
+                    ? [L.setsCompleted(tl, now), tl.sess.setsBeforeLong]
+                    : null,
+                // This session carried the day over the goal: one card says
+                // both, and the goal card does not follow.
+                goal: goal > 0 && todaySec >= goal && claimOnce(goalKey),
+                short: goal > 0 && todaySec < goal ? goal - todaySec : 0,
+              })
+            }
             A.stopFocus()
             setEnding(false)
           }}
@@ -443,7 +486,108 @@ export function FocusTimer() {
         </Button>
       </Sheet>
       <PastSessionSheet open={logging} onClose={() => setLogging(false)} />
+      {endedUp && ended && (
+        <SessionDone
+          key={ended.key}
+          ended={ended}
+          streak={streak}
+          onClose={closeEnded}
+        />
+      )}
+      {goalUp && !endedUp && (
+        <MomentCard
+          kind="focus"
+          testID="focus-goal-moment"
+          label="Daily focus goal reached"
+          title={`${L.fmtHm(goal)} of deep work today`}
+          detail={
+            streak > 1 ? (
+              <Copy size={13} muted>
+                {streak}-day goal streak
+              </Copy>
+            ) : null
+          }
+          badge={<Target size={22} color="#fff" />}
+          tint={t.good}
+          say={`Daily focus goal reached: ${L.fmtHm(goal)}.${streak > 1 ? ` ${streak}-day goal streak.` : ""}`}
+          hint="Opens focus stats"
+          onOpen={() => {
+            closeGoal()
+            go("/focus/stats")
+          }}
+          onClose={closeGoal}
+        />
+      )}
     </View>
+  )
+}
+
+interface Ended {
+  key: string
+  title: string
+  sec: number
+  /** Sets finished of the planned run; null for a stopwatch. */
+  sets: [number, number] | null
+  /** This session reached today's goal. */
+  goal: boolean
+  /** Seconds still short of today's goal; 0 when met or none is set. */
+  short: number
+}
+
+/** What a session came to: its time, its sets, the goal streak. A day
+ * still short of its goal says by how much, in the warning colour. */
+function SessionDone({
+  ended: e,
+  streak,
+  onClose,
+}: {
+  ended: Ended
+  streak: number
+  onClose: () => void
+}) {
+  const t = useTheme()
+  const nb = (x: string) => x.replace(/ /g, "\u00a0")
+  const parts = [
+    L.fmtHm(e.sec),
+    ...(e.sets ? [`${e.sets[0]} of ${e.sets[1]} sets`] : []),
+    ...(streak > 1 ? [`${streak}-day goal streak`] : []),
+  ]
+  const sep = "\u00a0· "
+  const short = e.short > 0 ? `${L.fmtHm(e.short)} to today's goal` : ""
+  return (
+    <MomentCard
+      kind="focus"
+      testID="focus-session-done"
+      label={e.goal ? "Session done · daily goal reached" : "Session done"}
+      title={e.title}
+      detail={
+        <Text
+          style={{
+            fontFamily: fonts.body,
+            fontSize: 13,
+            lineHeight: 18,
+            color: t.muted,
+            fontVariant: ["tabular-nums"],
+          }}
+        >
+          {parts.map(nb).join(sep)}
+          {short ? (
+            <Text style={{ color: t.warn, fontFamily: fonts.medium }}>
+              {`${sep}${nb(short)}`}
+            </Text>
+          ) : null}
+        </Text>
+      }
+      badge={<Timer size={22} color="#fff" />}
+      tint={e.goal ? t.good : t.foc}
+      say={`Focus session done: ${parts.join(", ")}${short ? `, ${short}` : ""}.`}
+      hint="Opens focus stats"
+      onOpen={() => {
+        onClose()
+        go("/focus/stats")
+      }}
+      onClose={onClose}
+    />
   )
 }
 

@@ -5,10 +5,19 @@ import { convert, fxStore, refreshRate } from "@domain/finance/fx"
 import { finStore } from "@domain/finance/store"
 import { dayKey } from "@domain/lib/day"
 import { money, useCurrency } from "@domain/lib/money"
-import { Paperclip } from "lucide-react-native"
-import { useEffect, useState } from "react"
+import * as Haptics from "expo-haptics"
+import { Paperclip, TriangleAlert } from "lucide-react-native"
+import { useEffect, useMemo, useState } from "react"
 import { View } from "react-native"
 import { toast } from "sonner-native"
+import {
+  type BudgetHit,
+  budgetHits,
+  goalsReached,
+  hitLine,
+  withDraft,
+} from "../budget-alerts"
+import { alpha, feel } from "../motion"
 import { MoneyInput } from "../money-input"
 import { Copy, Line, Segmented, Tap } from "../native-kit"
 import { Switch } from "../switch"
@@ -67,7 +76,10 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
     [refund, setRefund] = useState(!!init.isRefund),
     [receipt, setReceipt] = useState(!!init.receipt),
     [picker, setPicker] = useState(false),
-    [tried, setTried] = useState(false)
+    [tried, setTried] = useState(false),
+    // What the last "Save & add another" did to the budgets, until the next
+    // amount is typed.
+    [landed, setLanded] = useState<BudgetHit[]>([])
   const accounts = s.accounts.filter((a) => !a.archived),
     catKind = type === "income" && !refund ? "income" : "expense",
     _cats = s.categories.filter((c) => !c.archived && c.kind === catKind),
@@ -95,6 +107,34 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
       : foreign && !fx
         ? `Couldn't get the ${inCur} rate — try again online, or enter it in ${cur.code}`
         : undefined
+  // What saving would do to this month's budgets, shown before Save so the
+  // cost is known while it can still be changed.
+  const draftAt = /^([01]\d|2[0-3]):[0-5]\d$/.test(time) ? time : "12:00"
+  const ahead = useMemo(
+    () =>
+      type !== "expense" || amountError || !category || !isDay(date)
+        ? []
+        : budgetHits(
+            s,
+            withDraft(
+              s,
+              {
+                id: record?.id ?? "draft",
+                type: "expense",
+                amount: n,
+                accountId: account,
+                categoryId: category,
+                at: new Date(`${date}T${draftAt}:00`).toISOString(),
+                source: "manual",
+                status: "cleared",
+              },
+              record?.id,
+            ),
+            date,
+          ),
+    [s, type, amountError, category, date, draftAt, n, account, record?.id],
+  )
+  const hits = landed.length ? landed : ahead
   // A record kept in another currency: fetch today's rate as it opens.
   // biome-ignore lint/correctness/useExhaustiveDependencies: on open only
   useEffect(() => {
@@ -110,6 +150,24 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
       (type === "transfer" ? !to || to === account : !category)
     )
       return
+    const before = finStore.get()
+    // After the write: warn for a budget it broke, cheer a savings goal it
+    // reached. Both ride on the Undo toast's line, since the sheet closes.
+    const outcome = () => {
+      const after = finStore.get()
+      const broke = budgetHits(before, after, date)
+      const reached = goalsReached(before, after)
+      if (broke.length)
+        void Haptics.notificationAsync(
+          Haptics.NotificationFeedbackType.Warning,
+        ).catch(() => {})
+      else if (reached.length) feel.success()
+      const say = [
+        ...broke.slice(0, 1).map((h) => hitLine(h, (v) => money(v, cur))),
+        ...reached.map((a) => `${a.name} goal reached 🎉`),
+      ]
+      return { broke, say: say.length ? ` · ${say.join(" · ")}` : "" }
+    }
     const at = new Date(`${date}T${time}:00`).toISOString(),
       input = {
         type,
@@ -147,7 +205,7 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
       // before this save), so it says nothing: the list shows it.
       else if (!r.updated) {
         onSaved?.(r.record)
-        undo(`Recorded ${plan?.name ?? "payment"}`, () =>
+        undo(`Recorded ${plan?.name ?? "payment"}${outcome().say}`, () =>
           A.deleteRecords([r.record.id]),
         )
       }
@@ -156,6 +214,7 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
     }
     if (record) {
       A.updateRecord(record.id, input)
+      outcome()
       onClose()
       return
     }
@@ -172,10 +231,12 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
       created = [r.transfer, ...(r.fee ? [r.fee] : [])]
     } else created = [A.addRecord({ ...input, source: "manual" })]
     onSaved?.(created[0])
-    undo(`Saved ${money(n, cur)}`, () =>
+    const result = outcome()
+    undo(`Saved ${money(n, cur)}${result.say}`, () =>
       A.deleteRecords(created.map((r) => r.id)),
     )
     if (again) {
+      setLanded(result.broke)
       setAmount("")
       setPayee("")
       setNote("")
@@ -253,7 +314,10 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
           <MoneyInput
             label={`Amount ${foreign ? inCur : cur.symbol}`}
             value={amount}
-            onChange={setAmount}
+            onChange={(v) => {
+              setAmount(v)
+              setLanded([])
+            }}
             placeholder="0"
             error={tried ? amountError : undefined}
             style={{
@@ -403,6 +467,13 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
               </Line>
             </Tap>
           )}
+          {hits.length > 0 && (
+            <BudgetWarning
+              hits={hits}
+              saved={landed.length > 0}
+              money={(v) => money(v, cur)}
+            />
+          )}
           <Line>
             {settles ? null : record ? (
               <Button
@@ -429,5 +500,48 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
         </>
       )}
     </Sheet>
+  )
+}
+
+/** The budgets a save breaks, in the bad colour (amber when only ahead of
+ * pace), above the Save button. */
+function BudgetWarning({
+  hits,
+  saved,
+  money,
+}: {
+  hits: BudgetHit[]
+  saved: boolean
+  money: (n: number) => string
+}) {
+  const t = useTheme()
+  const color = hits.some((h) => h.kind === "over") ? t.bad : t.warn
+  return (
+    <View
+      testID="budget-warning"
+      accessibilityLiveRegion="polite"
+      style={{
+        flexDirection: "row",
+        gap: 8,
+        alignItems: "flex-start",
+        borderRadius: 12,
+        padding: 12,
+        backgroundColor: alpha(color, 0.12),
+      }}
+    >
+      <TriangleAlert size={16} color={color} style={{ marginTop: 1 }} />
+      <View style={{ flex: 1, gap: 2 }}>
+        {hits.slice(0, 2).map((h) => (
+          <Copy
+            key={h.id}
+            size={13}
+            weight="medium"
+            style={{ color: h.kind === "over" ? t.bad : t.warn }}
+          >
+            {hitLine(h, money, saved)}
+          </Copy>
+        ))}
+      </View>
+    </View>
   )
 }

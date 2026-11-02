@@ -14,13 +14,15 @@ import {
   FileUp,
   Landmark,
   Pencil,
+  PiggyBank,
   Plus,
   Scale,
   Smartphone,
   TrendingUp,
 } from "lucide-react-native"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { View } from "react-native"
+import { BigMoment, useMomentTimer } from "../big-moment"
 import { FinanceLineChart } from "../chart"
 import { MoneyInput } from "../money-input"
 import {
@@ -32,6 +34,7 @@ import {
   SectionHeading,
   Tap,
 } from "../native-kit"
+import { claimOnce, seen } from "../moments-seen"
 import { go } from "../navigation"
 import { useTheme } from "../theme"
 import { Button, confirm, Empty, Screen, Sheet, undo } from "../ui"
@@ -90,7 +93,27 @@ function SavingsPanel({
   const t = useTheme(),
     money = useMoney(),
     s = finStore.use((s) => s),
-    v = C.savingsView(s, a, balance)
+    v = C.savingsView(s, a, balance),
+    goalKey = `savings-goal:${a.id}:${a.goal ?? 0}`,
+    // Cheered once, and only when the goal was crossed in the last two
+    // weeks: a goal long since reached is no news the first time this
+    // build opens it.
+    [cheer] = useState(
+      () =>
+        !!a.goal &&
+        balance >= a.goal &&
+        !seen(goalKey) &&
+        (C.balances({
+          ...s,
+          records: s.records.filter(
+            (r) => C.recDay(r) < C.addDays(dayKey(), -13),
+          ),
+        })[a.id] ?? a.opening) < a.goal,
+    ),
+    [moment, closeMoment] = useMomentTimer(cheer)
+  useEffect(() => {
+    if (cheer) claimOnce(goalKey)
+  }, [cheer, goalKey])
   const row = (label: string, value: string) => (
     <Line key={label} style={{ justifyContent: "space-between" }}>
       <Copy size={14} muted>
@@ -121,6 +144,22 @@ function SavingsPanel({
                 : `${money(a.goal - balance)} to go`}
           </Copy>
         </>
+      )}
+      {moment && a.goal && (
+        <BigMoment
+          testID="savings-goal-moment"
+          label="Savings goal reached"
+          title={a.name}
+          detail={
+            <Copy size={14} muted style={{ textAlign: "center" }}>
+              {money(Math.max(0, balance))} saved of your {money(a.goal)} goal
+            </Copy>
+          }
+          badge={<PiggyBank size={34} color="#fff" />}
+          tint={t.fin}
+          say={`Savings goal reached: ${a.name}, ${money(a.goal)}.`}
+          onClose={closeMoment}
+        />
       )}
       {a.rate !== undefined && row("Interest", `${a.rate}% a year`)}
       {v.monthlyInterest !== null &&
