@@ -1,5 +1,5 @@
-import type { CalendarItem } from "@domain/contract"
-import { AREA, MODULE_KEYS, weekStartKey } from "@domain/dash/data"
+import type { CalendarItem, ModuleKey } from "@domain/contract"
+import { AREA, MODULE_KEYS } from "@domain/dash/data"
 import * as D from "@domain/dash/hooks"
 import {
   dashStore,
@@ -60,7 +60,7 @@ import {
   Wallet,
   X,
 } from "lucide-react-native"
-import { useEffect, useState } from "react"
+import { type ReactNode, useEffect, useState } from "react"
 import { Platform, Text, View } from "react-native"
 import Animated, { FadeInDown } from "react-native-reanimated"
 import { toast } from "sonner-native"
@@ -104,6 +104,7 @@ import { Button, Screen, SwipeRow, undo, useNow } from "../ui"
 import { Ring } from "../visual"
 import { refreshWeather } from "../weather"
 import { WeatherCard } from "../weather-card"
+import { WeeklyReviewCard } from "../weekly-review-card"
 import { CalendarCard } from "./calendar-card"
 import { RecordEditor, useMoney } from "./finance"
 import { DueSheet } from "./finance-planned"
@@ -136,7 +137,8 @@ export function DayHero() {
     s = dashStore.use((s) => s),
     ring = D.useTodayRing(),
     streak = D.useOnTarget(7),
-    ls = D.useLifeScore(7)
+    ls = D.useLifeScore(7),
+    order = D.useModuleOrder()
   const pct = ring.due ? ring.done / ring.due : 1,
     need = Math.max(0, Math.ceil(ring.due * s.targetThreshold) - ring.done)
   const headline = !ring.due
@@ -251,8 +253,9 @@ export function DayHero() {
           </View>
         </Line>
       </View>
-      {MODULE_KEYS.filter((k) => s.enabled[k] && ring.per[k].due > 0).map(
-        (k) => (
+      {order
+        .filter((k) => s.enabled[k] && ring.per[k].due > 0)
+        .map((k) => (
           <Tap
             key={k}
             onPress={() => go(`/${k}`)}
@@ -279,8 +282,7 @@ export function DayHero() {
               <ChevronRight size={16} color={t.muted} />
             </Line>
           </Tap>
-        ),
-      )}
+        ))}
     </Frame>
   )
 }
@@ -1597,32 +1599,24 @@ function GoalsAndContext({ evening }: { evening: boolean }) {
     misses = D.useAllMisses(dayOffset(-1), dayOffset(-1)),
     fresh = trophies.find((x) => !s.seenTrophies.includes(x.id)),
     tomorrow = D.useAllCalendar(dayOffset(1), dayOffset(1))
-  const review = !s.reviews[`w-${weekStartKey(1)}`]?.done
-  const context = review
+  // The weekly review has its own card at the top of Today.
+  const context = fresh
     ? {
-        title: "Weekly review is ready",
-        detail: "3 minutes · wins, misses, one focus",
-        href: "/stats/reviews",
-        icon: Sparkles,
-        color: t.primary,
+        title: `New: ${fresh.title}`,
+        detail: fresh.detail,
+        href: "/stats/trophies",
+        icon: Trophy,
+        color: t.life,
       }
-    : fresh
+    : misses.length
       ? {
-          title: `New: ${fresh.title}`,
-          detail: fresh.detail,
-          href: "/stats/trophies",
-          icon: Trophy,
-          color: t.life,
+          title: `${misses.length} misses yesterday`,
+          detail: "Look, note, move on.",
+          href: "/stats/misses",
+          icon: X,
+          color: t.bad,
         }
-      : misses.length
-        ? {
-            title: `${misses.length} misses yesterday`,
-            detail: "Look, note, move on.",
-            href: "/stats/misses",
-            icon: X,
-            color: t.bad,
-          }
-        : null
+      : null
   return (
     <>
       {goals.length > 0 && (
@@ -1722,6 +1716,16 @@ function GoalsAndContext({ evening }: { evening: boolean }) {
     </>
   )
 }
+/** Today's card for each module, placed in the person's order (Settings →
+ * Sections). Screen time has no Today card. */
+const MODULE_CARDS: Partial<Record<ModuleKey, () => ReactNode>> = {
+  habits: HabitsCard,
+  tasks: TasksCard,
+  fitness: FitnessCards,
+  nutrition: NutritionCard,
+  focus: FocusCard,
+  finance: FinanceCard,
+}
 export function Today() {
   const t = useTheme(),
     s = dashStore.use((s) => s),
@@ -1742,7 +1746,8 @@ export function Today() {
     nut = fitStore.use((s) => s.targets.length + s.meals.length),
     foc = focusStore.use((s) => s.sessions.length + (s.settingsSaved ? 1 : 0)),
     scr = useScreenSetUp(),
-    shown = extrasStore.use((s) => s)
+    shown = extrasStore.use((s) => s),
+    order = D.useModuleOrder()
   const has = {
       habits,
       tasks,
@@ -1810,6 +1815,7 @@ export function Today() {
         </Line>
       }
     >
+      <WeeklyReviewCard now={now} />
       <YesterdayStrip />
       <FirstWeekStrip />
       <TodayPlan />
@@ -1886,12 +1892,12 @@ export function Today() {
         </Frame>
       )}
       {shown.journal && <MoodCheckIn />}
-      {s.enabled.habits && <HabitsCard />}
-      {s.enabled.tasks && <TasksCard />}
-      {s.enabled.fitness && <FitnessCards />}
-      {s.enabled.nutrition && <NutritionCard />}
-      {s.enabled.focus && <FocusCard />}
-      {s.enabled.finance && <FinanceCard />}
+      {order
+        .filter((k) => s.enabled[k])
+        .map((k) => {
+          const Card = MODULE_CARDS[k]
+          return Card ? <Card key={k} /> : null
+        })}
       {shown.social && <CommunityCard />}
       <GoalsAndContext evening={evening} />
     </Screen>

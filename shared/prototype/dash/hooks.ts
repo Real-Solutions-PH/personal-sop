@@ -14,6 +14,7 @@ import {
   type Goal,
   type MetricRef,
   MODULE_KEYS,
+  orderModules,
   type ShareTemplate,
 } from "./data"
 import {
@@ -52,9 +53,15 @@ export { byKey as moduleByKey }
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v))
 export const useEnabled = () => dashStore.use((s) => s.enabled)
 export const useWeights = () => dashStore.use((s) => s.weights)
+/** Every module in the person's order (Settings → Sections). */
+export function useModuleOrder(): ModuleKey[] {
+  const order = dashStore.use((s) => s.order)
+  return useMemo(() => orderModules(order), [order])
+}
 export function useEnabledKeys(): ModuleKey[] {
-  const e = useEnabled()
-  return useMemo(() => MODULE_KEYS.filter((k) => e[k]), [e])
+  const e = useEnabled(),
+    order = useModuleOrder()
+  return useMemo(() => order.filter((k) => e[k]), [e, order])
 }
 /** The device's own rates; ``rated`` is false for an area with nothing to
  * rate, which reads as 0 but is left out of the Life Score. */

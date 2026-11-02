@@ -3,7 +3,6 @@ import {
   AREA,
   addDaysKey,
   type MetricRef,
-  MODULE_KEYS,
   monthStartKey,
   weekStartKey,
 } from "@domain/dash/data"
@@ -11,12 +10,12 @@ import {
   onTargetStats,
   useAllMetrics,
   useAllMisses,
-  useEnabled,
+  useEnabledKeys,
   useLifeScore,
   useOnTarget,
   useTrophies,
 } from "@domain/dash/hooks"
-import { dashStore, saveReview } from "@domain/dash/store"
+import { dashStore, markReviewOpened, saveReview } from "@domain/dash/store"
 import { dayKey } from "@domain/lib/day"
 import { absNum } from "@domain/lib/num"
 import {
@@ -27,7 +26,7 @@ import {
   Star,
   Trophy,
 } from "lucide-react-native"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { TextInput, View } from "react-native"
 import {
   border,
@@ -172,29 +171,17 @@ function ReviewList() {
     </Screen>
   )
 }
-function Review({ id }: { id: string }) {
+/** A review's numbers and the AI's read of them, shared by the review
+ * page and Today's weekly review card so both say the same thing. */
+export function useReviewDigest(id: string) {
   const p = periodOf(id),
-    t = useTheme(),
-    r = dashStore.use((s) => s.reviews[id]),
     len = p?.kind === "week" ? 7 : 30,
     target = useOnTarget(365),
-    metrics = useAllMetrics(len),
     ls = useLifeScore(len),
     misses = useAllMisses(p?.from ?? dayKey(), p?.to ?? dayKey()),
     trophies = useTrophies(),
-    enabled = useEnabled(),
-    keys = MODULE_KEYS.filter((k) => enabled[k]),
-    [reflection, setReflection] = useState(r?.reflection ?? ""),
-    [focus, setFocus] = useState<MetricRef | undefined>(r?.focus),
-    [aiOn, setAiOn] = useState(true),
-    [goalFor, setGoalFor] = useState<MetricRef | null>(null)
-  if (!p)
-    return (
-      <Screen title="Review">
-        <Copy>Review not found</Copy>
-        <Button href="/stats/reviews">All reviews</Button>
-      </Screen>
-    )
+    keys = useEnabledKeys()
+  if (!p) return null
   const series = target.series.filter((d) => d.day >= p.from && d.day <= p.to),
     cur = onTargetStats(series),
     prev = onTargetStats(
@@ -211,7 +198,67 @@ function Review({ id }: { id: string }) {
     targetDelta =
       cur.rate !== null && prev.rate !== null
         ? Math.round((cur.rate - prev.rate) * 100)
-        : null,
+        : null
+  const summary = `You hit the target on ${cur.onTarget} of ${cur.scored} scored days (${pct(cur.rate)})${
+    targetDelta !== null
+      ? `, ${targetDelta >= 0 ? "up" : "down"} ${Math.abs(targetDelta)} points on the ${p.kind} before`
+      : ""
+  }. ${
+    strongest
+      ? `${AREA[strongest].label} carried it at ${Math.round(ls.rates[strongest] * 100)}%`
+      : ""
+  }${
+    weakest && weakest !== strongest
+      ? `, while ${AREA[weakest].label.toLowerCase()} lagged at ${Math.round(ls.rates[weakest] * 100)}%`
+      : ""
+  }.`
+  const tip =
+    weakest === "tasks"
+      ? "block 30 minutes on Saturday for anything pushed twice."
+      : weakest === "fitness"
+        ? "book your sessions on the calendar like meetings."
+        : weakest === "finance"
+          ? "set a no-spend day midweek to cool the leak."
+          : "stack your weakest habit onto the morning routine."
+  return {
+    p,
+    len,
+    ls,
+    misses,
+    cur,
+    best,
+    wins,
+    strongest,
+    weakest,
+    targetDelta,
+    summary,
+    tip,
+  }
+}
+function Review({ id }: { id: string }) {
+  const p = periodOf(id),
+    t = useTheme(),
+    r = dashStore.use((s) => s.reviews[id]),
+    len = p?.kind === "week" ? 7 : 30,
+    metrics = useAllMetrics(len),
+    digest = useReviewDigest(id),
+    keys = useEnabledKeys(),
+    [reflection, setReflection] = useState(r?.reflection ?? ""),
+    [focus, setFocus] = useState<MetricRef | undefined>(r?.focus),
+    [aiOn, setAiOn] = useState(true),
+    [goalFor, setGoalFor] = useState<MetricRef | null>(null)
+  // Opening the page is what Today's weekly review card waits for.
+  useEffect(() => {
+    if (periodOf(id)) markReviewOpened(id)
+  }, [id])
+  if (!p || !digest)
+    return (
+      <Screen title="Review">
+        <Copy>Review not found</Copy>
+        <Button href="/stats/reviews">All reviews</Button>
+      </Screen>
+    )
+  const { ls, misses, cur, best, wins, targetDelta } = digest,
     share = `/stats/share?t=${p.kind === "week" ? "weekly" : "monthly"}`,
     focusOptions = [
       { ref: "life", label: "Life Score" },
@@ -414,32 +461,12 @@ function Review({ id }: { id: string }) {
                 Summary
               </Copy>
             </Line>
-            <Copy size={14}>
-              You hit the target on {cur.onTarget} of {cur.scored} scored days (
-              {pct(cur.rate)})
-              {targetDelta !== null
-                ? `, ${targetDelta >= 0 ? "up" : "down"} ${Math.abs(targetDelta)} points on the ${p.kind} before`
-                : ""}
-              .{" "}
-              {strongest
-                ? `${AREA[strongest].label} carried it at ${Math.round(ls.rates[strongest] * 100)}%`
-                : ""}
-              {weakest && weakest !== strongest
-                ? `, while ${AREA[weakest].label.toLowerCase()} lagged at ${Math.round(ls.rates[weakest] * 100)}%`
-                : ""}
-              .
-            </Copy>
+            <Copy size={14}>{digest.summary}</Copy>
             <Copy size={14} muted style={{ marginTop: 8 }}>
               <Copy size={14} weight="semibold">
                 Try:{" "}
               </Copy>
-              {weakest === "tasks"
-                ? "block 30 minutes on Saturday for anything pushed twice."
-                : weakest === "fitness"
-                  ? "book your sessions on the calendar like meetings."
-                  : weakest === "finance"
-                    ? "set a no-spend day midweek to cool the leak."
-                    : "stack your weakest habit onto the morning routine."}
+              {digest.tip}
             </Copy>
           </View>
         )}

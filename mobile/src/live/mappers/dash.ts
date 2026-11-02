@@ -438,6 +438,7 @@ export function reviewMapper(userId: string) {
       key,
       done: r.done,
       done_at: r.doneAt ?? null,
+      opened_at: r.openedAt ?? null,
       reflection: r.reflection ?? null,
       focus: r.focus ?? null,
     }),
@@ -446,6 +447,7 @@ export function reviewMapper(userId: string) {
       if (!key) return null
       const value: ReviewState = { done: Boolean(row.done) }
       if (str(row.done_at)) value.doneAt = String(row.done_at)
+      if (str(row.opened_at)) value.openedAt = String(row.opened_at)
       if (str(row.reflection)) value.reflection = String(row.reflection)
       if (str(row.focus)) value.focus = String(row.focus)
       return { key, value }

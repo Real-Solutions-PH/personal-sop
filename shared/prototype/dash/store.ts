@@ -6,6 +6,7 @@ import {
   type DashState,
   type Goal,
   type Identity,
+  orderModules,
   type ReviewState,
   type ShareTemplate,
   seed,
@@ -103,6 +104,18 @@ export const setWeight = (m: ModuleKey, w: number) =>
   set((s) => ({ ...s, weights: { ...s.weights, [m]: w } }))
 export const resetWeights = () =>
   set((s) => ({ ...s, weights: seed().weights }))
+/** Moves a module's cards to ``to`` in the person's order. */
+export const moveModule = (k: ModuleKey, to: number) =>
+  set((s) => {
+    const order = orderModules(s.order).filter((x) => x !== k)
+    order.splice(Math.max(0, Math.min(order.length, to)), 0, k)
+    return { ...s, order }
+  })
+/** Marks a review opened, once: the first open is what Today counts from. */
+export const markReviewOpened = (id: string, at = new Date()) => {
+  if (dashStore.get().reviews[id]?.openedAt) return
+  saveReview(id, { openedAt: at.toISOString() })
+}
 export const setEnabled = (m: ModuleKey, on: boolean) =>
   set((s) => ({ ...s, enabled: { ...s.enabled, [m]: on } }))
 export const updateProfile = (p: Partial<DashState["profile"]>) =>

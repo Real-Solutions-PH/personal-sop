@@ -50,6 +50,8 @@ def _upsert_module(ctx: Ctx, row_id: uuid.UUID, payload: BaseModel) -> ModulePre
         "enabled": current.enabled if payload.enabled is None else payload.enabled,
         "weight": current.weight if payload.weight is None else payload.weight,
     }
+    if payload.sort_order is not None:
+        data["sort_order"] = payload.sort_order
     row, _ = owned_repo.upsert(ctx, ModulePref, row_id, data, natural_key=("module",))
     return row
 

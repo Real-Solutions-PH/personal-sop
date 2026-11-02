@@ -1,4 +1,4 @@
-import { useEnabled } from "@domain/dash/hooks"
+import { useEnabled, useModuleOrder } from "@domain/dash/hooks"
 import {
   BookOpen,
   CheckSquare,
@@ -18,6 +18,7 @@ import { fonts, useTheme } from "./theme"
 export function AppLauncher({ title = "Your apps" }: { title?: string }) {
   const t = useTheme(),
     enabled = useEnabled(),
+    order = useModuleOrder(),
     journal = useShown("journal")
   const apps = [
     {
@@ -77,9 +78,14 @@ export function AppLauncher({ title = "Your apps" }: { title?: string }) {
       accent: "life",
     },
   ] as const
-  const shown = apps.filter((a) =>
-    a.key === "journal" ? journal : enabled[a.key],
-  )
+  // Modules in the person's order (Settings → Sections), Journal last.
+  const place = (k: string) => {
+    const i = order.indexOf(k as (typeof order)[number])
+    return i < 0 ? order.length : i
+  }
+  const shown = apps
+    .filter((a) => (a.key === "journal" ? journal : enabled[a.key]))
+    .sort((a, b) => place(a.key) - place(b.key))
   // Six apps share a phone's width, so each tile gives up a little room;
   // past six they wrap into rows of four, which keeps room for the names.
   const wrap = shown.length > 6,

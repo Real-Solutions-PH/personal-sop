@@ -111,11 +111,19 @@ class ModulePref(OwnedRow, table=True):
         UniqueConstraint("owner_id", "module", name="uq_module_pref"),
         enum_check("module", MODULE_KEYS, name="ck_module_pref_module"),
         CheckConstraint("weight BETWEEN 0 AND 10", name="ck_module_pref_weight"),
+        CheckConstraint(
+            "sort_order BETWEEN 0 AND 99", name="ck_module_pref_sort_order"
+        ),
     )
 
     module: str = Field(sa_type=String(16))  # type: ignore
     enabled: bool = True
     weight: int = Field(default=1, sa_type=Integer)
+    # Place of the module's cards in the app (Settings → Sections); ties fall
+    # back to the default module order, so untouched rows all stay 0.
+    sort_order: int = Field(
+        default=0, sa_type=Integer, sa_column_kwargs={"server_default": "0"}
+    )
 
 
 class Identity(OwnedRow, table=True):

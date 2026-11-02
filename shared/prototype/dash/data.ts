@@ -9,6 +9,31 @@ export const MODULE_KEYS: ModuleKey[] = [
   "finance",
   "screen",
 ]
+/** Every module once, in the person's order: listed keys first, then any
+ * missing (or new) module in its default place. */
+export function orderModules(
+  order: readonly string[] | undefined,
+): ModuleKey[] {
+  const seen = new Set<ModuleKey>()
+  for (const k of order ?? [])
+    if (MODULE_KEYS.includes(k as ModuleKey)) seen.add(k as ModuleKey)
+  for (const k of MODULE_KEYS) seen.add(k)
+  return [...seen]
+}
+/** How long Today keeps a weekly review's card once it has been opened. */
+export const REVIEW_CARD_MS = 24 * 60 * 60 * 1000
+/** Today shows a review's card until it is opened and for a day after;
+ * an unopened review never leaves on its own. A review marked done before
+ * opens were tracked counts as opened when it was done. */
+export function reviewCardShown(
+  r: ReviewState | undefined,
+  now: number,
+): boolean {
+  const opened = r?.openedAt ?? r?.doneAt
+  if (!opened) return true
+  const at = Date.parse(opened)
+  return Number.isNaN(at) || now - at < REVIEW_CARD_MS
+}
 export const AREA = {
   habits: { label: "Habits", accent: "hab" },
   tasks: { label: "Tasks", accent: "tsk" },
@@ -67,6 +92,8 @@ export interface Notif {
 export interface ReviewState {
   done: boolean
   doneAt?: string
+  /** First time the review was opened; Today's card leaves a day after. */
+  openedAt?: string
   reflection?: string
   focus?: MetricRef
 }
@@ -99,6 +126,8 @@ export interface DashState {
   profilePhotoPending?: { uri: string | null; mediaId?: string }
   weights: Record<ModuleKey, number>
   enabled: Record<ModuleKey, boolean>
+  /** The modules' card order (Settings → Sections); read via orderModules. */
+  order?: ModuleKey[]
   goals: Goal[]
   reviews: Record<string, ReviewState>
   notifs: Notif[]
