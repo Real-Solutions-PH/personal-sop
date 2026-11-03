@@ -4,6 +4,7 @@ import type { Workout } from "@domain/fitness/data"
 import * as RN from "@domain/fitness/runs"
 import { fitStore } from "@domain/fitness/store"
 import { dayKey } from "@domain/lib/day"
+import { useSharedMemo } from "@domain/lib/memo"
 import {
   ChevronRight,
   Dumbbell,
@@ -32,14 +33,29 @@ import {
 } from "../native-kit"
 import { go, replace } from "../navigation"
 import { fonts, useTheme } from "../theme"
-import { Button, confirm, Empty, Screen, Sheet, undo } from "../ui"
+import {
+  Button,
+  confirm,
+  Empty,
+  MoreRows,
+  Screen,
+  Sheet,
+  undo,
+  usePaged,
+} from "../ui"
 export function Workouts() {
   const s = fitStore.use((s) => s),
     t = useTheme(),
     [q, setQ] = useState(""),
     [template, setTemplate] = useState<string | null>(null),
-    prMap = C.prsByWorkout(C.allPrs(s)),
-    rows = C.finished(s)
+    // Every PR across the history: once per change to the workouts, kept
+    // across visits to this screen.
+    prMap = useSharedMemo(
+      "fitness.prsByWorkout",
+      () => C.prsByWorkout(C.allPrs(s)),
+      [s],
+    ),
+    all = C.finished(s)
       .reverse()
       .filter((w) => !template || w.templateId === template)
       .filter(
@@ -52,9 +68,10 @@ export function Workouts() {
               ?.name.toLowerCase()
               .includes(q.trim().toLowerCase()),
           ),
-      )
+      ),
+    { rows, more, hasMore } = usePaged(all, `${template}|${q}`)
   return (
-    <Screen title="Workouts">
+    <Screen title="Workouts" onEndReached={more}>
       <Line
         style={{
           height: 36,
@@ -109,7 +126,7 @@ export function Workouts() {
           </Tap>
         ))}
       </ScrollView>
-      {!rows.length ? (
+      {!all.length ? (
         <Empty
           title={
             q || template
@@ -188,6 +205,7 @@ export function Workouts() {
               </View>
             )
           })}
+          {hasMore && <MoreRows />}
         </View>
       )}
     </Screen>

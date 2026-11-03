@@ -30,7 +30,7 @@ import {
 import { go } from "../navigation"
 import { Switch } from "../switch"
 import { fonts, useTheme } from "../theme"
-import { Button, confirm, Screen } from "../ui"
+import { Button, confirm, groupBy, MoreRows, Screen, usePaged } from "../ui"
 import { Reply } from "./capture"
 
 const sourceLabel = {
@@ -204,7 +204,8 @@ export function CaptureHistory() {
             ? rs.some((r) => r.state === "undone")
             : filter === "all" || c.source === filter
     }),
-    days = [...new Set(list.map((c) => dayKey(new Date(c.at))))]
+    byDay = groupBy(list, (c) => dayKey(new Date(c.at))),
+    page = usePaged([...byDay.keys()], `${q}|${filter}|${mod}`)
   const chip = (
     key: string,
     label: string,
@@ -235,7 +236,7 @@ export function CaptureHistory() {
     </Tap>
   )
   return (
-    <Screen title="Capture history">
+    <Screen title="Capture history" onEndReached={page.more}>
       <View>
         <Frame style={{ padding: 16 }}>
           <Line style={{ gap: 8 }}>
@@ -325,27 +326,26 @@ export function CaptureHistory() {
             ),
           )}
         </ScrollView>
-        {days.map((d) => (
+        {page.rows.map((d) => (
           <View key={d}>
             <SectionHeading>{dayLabel(d)}</SectionHeading>
             <Frame style={{ paddingHorizontal: 12 }}>
-              {list
-                .filter((c) => dayKey(new Date(c.at)) === d)
-                .map((c) => (
-                  <View
-                    key={c.id}
-                    style={{
-                      borderBottomWidth: 1,
-                      borderBottomColor: border(t.line, 0.4),
-                    }}
-                  >
-                    <CaptureRow cap={c} />
-                  </View>
-                ))}
+              {(byDay.get(d) ?? []).map((c) => (
+                <View
+                  key={c.id}
+                  style={{
+                    borderBottomWidth: 1,
+                    borderBottomColor: border(t.line, 0.4),
+                  }}
+                >
+                  <CaptureRow cap={c} />
+                </View>
+              ))}
             </Frame>
           </View>
         ))}
-        {!days.length && (
+        {page.hasMore && <MoreRows />}
+        {!byDay.size && (
           <View style={{ padding: 32, alignItems: "center", gap: 12 }}>
             <Copy weight="semibold">
               {all.length ? "Nothing matches" : "No captures yet"}
