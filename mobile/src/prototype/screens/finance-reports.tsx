@@ -302,7 +302,7 @@ export function Reports({ kind }: { kind?: string }) {
                   padding: 12,
                   gap: 4,
                   borderColor: `${t.fin}4d`,
-                  backgroundColor: `${t.fin}0d`,
+                  backgroundColor: t.soft,
                 }}
               >
                 <Copy size={12} style={{ color: t.fin }}>
@@ -353,7 +353,7 @@ export function Reports({ kind }: { kind?: string }) {
               <Copy size={18} weight="semibold">
                 {money(d.flow.spend)}
               </Copy>
-              <Copy size={10} muted>
+              <Copy size={12} muted>
                 spent
               </Copy>
             </Donut>
@@ -387,7 +387,7 @@ export function Reports({ kind }: { kind?: string }) {
                       </Copy>
                       {prev > 0 && (
                         <Copy
-                          size={11}
+                          size={12}
                           style={{ color: dl > 0 ? t.bad : t.good }}
                         >
                           {dl > 0 ? "▲" : "▼"}

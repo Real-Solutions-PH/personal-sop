@@ -69,7 +69,7 @@ export function BudgetsSection({ s }: { s: FinState }) {
       ? `Left of ${money(sum.limit)} this month`
       : `Left of ${money(sum.limit)} across ${sum.count} category ${sum.count === 1 ? "budget" : "budgets"}`
   const tiles = [
-    { label: "Safe / day", value: money(sum.safePerDay), color: t.fin },
+    { label: "Safe / day", value: money(sum.safePerDay) },
     { label: "Spent", value: money(sum.spent), color: t.text },
   ]
   return (
@@ -335,7 +335,7 @@ export function CashFlowSection({ s }: { s: FinState }) {
                 <Copy
                   size={14}
                   weight="medium"
-                  style={{ color: t.fin, textAlign: "center" }}
+                  style={{ color: t.primary, textAlign: "center" }}
                 >
                   Show all {o.items.length}
                 </Copy>
@@ -367,7 +367,7 @@ export function SavingsSection({ s }: { s: FinState }) {
         padding: 16,
         marginTop: 12,
         borderColor: `${t.fin}4d`,
-        backgroundColor: `${t.fin}0d`,
+        backgroundColor: t.soft,
       }}
     >
       <Tap onPress={() => go("/finance/projection")}>
@@ -377,7 +377,7 @@ export function SavingsSection({ s }: { s: FinState }) {
             Savings projection
           </Copy>
           {proj.hasIncome && (
-            <Copy size={14} weight="semibold" style={{ color: t.fin }}>
+            <Copy size={14} weight="semibold" style={{ color: t.primary }}>
               Plan a purchase →
             </Copy>
           )}

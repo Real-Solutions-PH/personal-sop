@@ -47,12 +47,7 @@ function IconHeading({
       style={{ gap: 6, marginTop: 24, marginBottom: 8, paddingHorizontal: 4 }}
     >
       <Icon size={14} color={t.muted} />
-      <Copy
-        size={12}
-        weight="medium"
-        muted
-        style={{ letterSpacing: 0.6, textTransform: "uppercase" }}
-      >
+      <Copy size={12} weight="medium" muted>
         {children}
       </Copy>
     </Line>
@@ -258,7 +253,7 @@ export function FinanceReview() {
           {
             label: "No-spend days",
             value: String(d.ns.count),
-            color: t.fin,
+
             hint: "wants only",
           },
           {
@@ -312,7 +307,7 @@ export function FinanceReview() {
             </Copy>
             {!!x.hint && (
               <Copy
-                size={11}
+                size={12}
                 muted={!x.hintColor}
                 style={x.hintColor ? { color: x.hintColor } : undefined}
               >
@@ -326,7 +321,7 @@ export function FinanceReview() {
         style={{
           padding: 16,
           borderColor: `${t.fin}4d`,
-          backgroundColor: `${t.fin}0d`,
+          backgroundColor: t.soft,
         }}
       >
         <Line style={{ gap: 8, marginBottom: 8 }}>
@@ -351,7 +346,7 @@ export function FinanceReview() {
             ? `, and ${d.spikes[0].cat?.name} jumped ${Math.round((d.spikes[0].v / d.spikes[0].prev - 1) * 100)}% vs last month.`
             : "."}
         </Copy>
-        <Copy size={11} muted style={{ marginTop: 8 }}>
+        <Copy size={12} muted style={{ marginTop: 8 }}>
           AI commentary from your own data — not licensed financial advice.
         </Copy>
       </Frame>
@@ -379,7 +374,7 @@ export function FinanceReview() {
                 <Line style={{ gap: 8 }}>
                   {w.prev > 0 && (
                     <Copy
-                      size={11}
+                      size={12}
                       style={{ color: w.v > w.prev ? t.bad : t.good }}
                     >
                       {w.v > w.prev ? "▲" : "▼"}
@@ -467,7 +462,7 @@ export function FinanceReview() {
               </Copy>
               <View style={{ alignItems: "flex-end" }}>
                 <Copy size={14}>{money(x.v)}</Copy>
-                <Copy size={11} muted>
+                <Copy size={12} muted>
                   ≈ {money(x.v * 12)} a year
                 </Copy>
               </View>
@@ -497,7 +492,7 @@ export function FinanceReview() {
           <Line style={{ alignItems: "stretch", gap: 4 }}>
             <View style={{ width: 10, justifyContent: "space-around" }}>
               {["S", "M", "T", "W", "T", "F", "S"].map((v, i) => (
-                <Copy key={`label-${i}`} size={10} muted>
+                <Copy key={`label-${i}`} size={12} muted>
                   {v}
                 </Copy>
               ))}
@@ -537,12 +532,12 @@ export function FinanceReview() {
                     width: 24,
                     height: 24,
                     borderRadius: 12,
-                    backgroundColor: `${t.fin}26`,
+                    backgroundColor: t.soft,
                     alignItems: "center",
                     justifyContent: "center",
                   }}
                 >
-                  <Copy size={12} weight="semibold" style={{ color: t.fin }}>
+                  <Copy size={12} weight="semibold">
                     {i + 1}
                   </Copy>
                 </View>
@@ -558,7 +553,7 @@ export function FinanceReview() {
             </Frame>
           ))}
         </View>
-        <Copy size={11} muted style={{ padding: 4 }}>
+        <Copy size={12} muted style={{ padding: 4 }}>
           AI commentary from your own data — not licensed financial advice.
         </Copy>
         <SectionHeading>Your note</SectionHeading>

@@ -219,11 +219,11 @@ export function AccountCard({
               {a.name}
             </Copy>
             <Copy
-              size={10}
+              size={12}
               lines={1}
-              style={{ color: "rgba(255,255,255,0.78)", letterSpacing: 0.6 }}
+              style={{ color: "rgba(255,255,255,0.78)" }}
             >
-              {KIND[a.type].toUpperCase()}
+              {KIND[a.type]}
             </Copy>
           </View>
         </View>
@@ -237,7 +237,7 @@ export function AccountCard({
             {!owed && balance < 0 ? "−" : ""}
             {money(Math.abs(balance))}
           </Copy>
-          <Copy size={10} lines={1} style={{ color: "rgba(255,255,255,0.78)" }}>
+          <Copy size={12} lines={1} style={{ color: "rgba(255,255,255,0.78)" }}>
             {owed ? "owed" : balance < 0 ? "overdrawn" : "available"}
           </Copy>
         </View>
@@ -259,7 +259,7 @@ export function AccountCard({
                 }}
               />
             </View>
-            <Copy size={10} style={{ color: "rgba(255,255,255,0.85)" }}>
+            <Copy size={12} style={{ color: "rgba(255,255,255,0.85)" }}>
               {note.text}
             </Copy>
           </View>
@@ -275,7 +275,7 @@ export function AccountCard({
                 }}
               />
             )}
-            <Copy size={10} style={{ color: "rgba(255,255,255,0.85)" }}>
+            <Copy size={12} style={{ color: "rgba(255,255,255,0.85)" }}>
               {note.text}
             </Copy>
           </View>

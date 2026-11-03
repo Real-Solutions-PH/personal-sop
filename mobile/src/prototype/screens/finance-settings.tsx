@@ -23,6 +23,7 @@ import { exportCsv } from "../media"
 import { MoneyInput } from "../money-input"
 import {
   Copy,
+  chosen,
   Frame,
   Line,
   SectionHeading,
@@ -76,8 +77,7 @@ export function FinanceDisclaimer({
           <Frame
             style={{
               padding: 12,
-              borderColor: scope === o.v ? t.fin : t.line,
-              backgroundColor: scope === o.v ? `${t.fin}1a` : t.card,
+              ...chosen(t, scope === o.v),
             }}
           >
             <Copy size={14} weight="medium">
@@ -104,7 +104,6 @@ export function FinanceDisclaimer({
     </Sheet>
   )
 }
-const caps = { textTransform: "uppercase", letterSpacing: 0.6 } as const
 export function FinanceSettings() {
   const s = finStore.use((s) => s),
     st = s.settings,
@@ -164,7 +163,7 @@ export function FinanceSettings() {
         <SectionHeading>Logging</SectionHeading>
         <Frame style={{ padding: 16, gap: 8 }}>
           <CurrencyRow />
-          <Copy size={12} muted weight="medium" style={caps}>
+          <Copy size={12} muted weight="medium">
             Default account
           </Copy>
           {chips(
@@ -179,7 +178,7 @@ export function FinanceSettings() {
                 />
               )),
           )}
-          <Copy size={11} muted>
+          <Copy size={12} muted>
             Pre-selected in quick-add and chat when you don't say which.
           </Copy>
           {row(
@@ -188,12 +187,7 @@ export function FinanceSettings() {
             () => go("/finance/apple-pay"),
             "Set up an iPhone Shortcuts automation",
           )}
-          <Copy
-            size={12}
-            muted
-            weight="medium"
-            style={{ ...caps, marginTop: 8 }}
-          >
+          <Copy size={12} muted weight="medium" style={{ marginTop: 8 }}>
             Month starts on day
           </Copy>
           <Line style={{ gap: 8, flexWrap: "wrap" }}>
@@ -233,7 +227,7 @@ export function FinanceSettings() {
               />
             ))}
           </Line>
-          <Copy size={11} muted>
+          <Copy size={12} muted>
             Budgets, reviews and stats use this cycle.
           </Copy>
           {togg(
@@ -245,7 +239,7 @@ export function FinanceSettings() {
         </Frame>
         <SectionHeading>Forecast</SectionHeading>
         <Frame style={{ padding: 16, gap: 8 }}>
-          <Copy size={12} muted weight="medium" style={caps}>
+          <Copy size={12} muted weight="medium">
             Forecast length
           </Copy>
           <Segmented
@@ -270,13 +264,13 @@ export function FinanceSettings() {
             onChange={setFloor}
             onBlur={() => A.updateSettings({ safetyFloor: Number(floor || 0) })}
           />
-          <Copy size={11} muted>
+          <Copy size={12} muted>
             What-ifs warn when your balance would dip below this.
           </Copy>
         </Frame>
         <SectionHeading>AI</SectionHeading>
         <Frame style={{ padding: 16, gap: 8 }}>
-          <Copy size={12} muted weight="medium" style={caps}>
+          <Copy size={12} muted weight="medium">
             Data the AI may see
           </Copy>
           <Segmented
@@ -287,7 +281,7 @@ export function FinanceSettings() {
               { value: "records", label: "Individual transactions" },
             ]}
           />
-          <Copy size={11} muted>
+          <Copy size={12} muted>
             Applies to the advisor and statement reading.
           </Copy>
           {row(

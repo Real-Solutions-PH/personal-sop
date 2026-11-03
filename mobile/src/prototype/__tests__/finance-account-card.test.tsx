@@ -68,7 +68,7 @@ test("a credit card says what is owed and how much of the limit is used", () => 
     />,
   )
   expect(screen.getByText("Maya Black")).toBeTruthy()
-  expect(screen.getByText("CREDIT CARD")).toBeTruthy()
+  expect(screen.getByText("Credit card")).toBeTruthy()
   expect(screen.getByText("owed")).toBeTruthy()
   expect(screen.getByText("40% of limit used")).toBeTruthy()
 })

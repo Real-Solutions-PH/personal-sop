@@ -535,7 +535,7 @@ export function Body({
                         backgroundColor: x.color,
                       }}
                     />
-                    <Copy size={11} muted>
+                    <Copy size={12} muted>
                       {x.label}
                     </Copy>
                   </Line>
@@ -558,10 +558,10 @@ export function Body({
                     </Copy>
                   </Line>
                   <Copy
-                    size={11}
+                    size={12}
                     style={{
-                      color: t.fit,
-                      backgroundColor: `${t.fit}1a`,
+                      color: t.muted,
+                      backgroundColor: t.soft,
                       borderRadius: 99,
                       paddingHorizontal: 8,
                       paddingVertical: 2,
@@ -719,7 +719,7 @@ export function Body({
         actions={
           <Tap label="All entries" onPress={() => go("/fitness/body")}>
             <Line style={{ gap: 2, minHeight: 44 }}>
-              <Copy size={13} weight="medium" style={{ color: t.fit }}>
+              <Copy size={13} weight="medium" style={{ color: t.primary }}>
                 All entries
               </Copy>
               <ChevronRight size={16} color={t.fit} />
@@ -782,7 +782,7 @@ function BodyFat({ onLog }: { onLog: () => void }) {
     <>
       <Line style={{ justifyContent: "space-between", alignItems: "flex-end" }}>
         <View>
-          <Copy size={30} weight="displayMedium" style={{ color: t.fit }}>
+          <Copy size={30} weight="displayMedium">
             {last.bodyFatPct}%
           </Copy>
           <Copy size={12} muted>

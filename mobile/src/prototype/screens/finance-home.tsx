@@ -151,7 +151,7 @@ function RecordRow({
         paddingHorizontal: 4,
         minHeight: 56,
         borderRadius: 12,
-        backgroundColor: selected ? `${t.fin}1a` : undefined,
+        backgroundColor: selected ? t.soft : undefined,
       }}
     >
       <Line>

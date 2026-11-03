@@ -247,8 +247,8 @@ function KindChoice({
               minHeight: 64,
               borderRadius: 16,
               borderWidth: on ? 2 : 1,
-              borderColor: on ? t.fit : border(t.line, 0.8),
-              backgroundColor: on ? `${t.fit}14` : t.card,
+              borderColor: on ? t.text : border(t.line, 0.8),
+              backgroundColor: t.card,
               alignItems: "center",
               justifyContent: "center",
               flexDirection: "row",
@@ -301,8 +301,8 @@ function PlaceChoice({
               minHeight: 48,
               borderRadius: 14,
               borderWidth: on ? 2 : 1,
-              borderColor: on ? t.fit : border(t.line, 0.8),
-              backgroundColor: on ? `${t.fit}14` : t.card,
+              borderColor: on ? t.text : border(t.line, 0.8),
+              backgroundColor: t.card,
               alignItems: "center",
               justifyContent: "center",
               flexDirection: "row",
@@ -1226,8 +1226,8 @@ function ReadingsSheet({
             }}
           >
             <Line style={{ gap: 4, minHeight: 32 }}>
-              <Undo2 size={14} color={t.fit} />
-              <Copy size={13} weight="semibold" style={{ color: t.fit }}>
+              <Undo2 size={14} color={t.primary} />
+              <Copy size={13} weight="semibold" style={{ color: t.primary }}>
                 Undo
               </Copy>
             </Line>

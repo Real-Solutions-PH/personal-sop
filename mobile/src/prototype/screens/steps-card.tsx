@@ -115,7 +115,7 @@ export function StepsCard() {
         accessibilityLabel={`${label}: ${n(v)} steps a day on average`}
         style={{ flex: 1 }}
       >
-        <Copy size={11} muted>
+        <Copy size={12} muted>
           {label}
         </Copy>
         <Copy weight="medium">{n(v)}</Copy>
@@ -124,10 +124,10 @@ export function StepsCard() {
   return (
     <Frame style={{ padding: 16, marginTop: 16, gap: 4 }}>
       <Line style={{ justifyContent: "space-between" }}>
-        <Copy size={12} muted style={{ letterSpacing: 0.6 }}>
+        <Copy size={13} weight="medium" muted>
           {isToday
-            ? "STEPS TODAY"
-            : `STEPS · ${longDay(weekOffsets[pick] ?? 0).toUpperCase()}`}
+            ? "Steps today"
+            : `Steps · ${longDay(weekOffsets[pick] ?? 0)}`}
         </Copy>
         <Tap label="Step details" onPress={() => go("/fitness/steps")}>
           <Line style={{ gap: 2 }}>
@@ -138,7 +138,7 @@ export function StepsCard() {
           </Line>
         </Tap>
       </Line>
-      <Copy size={30} weight="displayMedium" style={{ color: t.fit }}>
+      <Copy size={30} weight="displayMedium">
         {n(shown?.steps ?? 0)}
       </Copy>
       <Copy size={12} muted>

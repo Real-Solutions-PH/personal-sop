@@ -514,15 +514,15 @@ export function Projection() {
             ]}
           />
           <Line style={{ gap: 16, paddingHorizontal: 4 }}>
-            <Copy size={11} muted>
+            <Copy size={12} muted>
               ━ Baseline
             </Copy>
             {whatIf && (
-              <Copy size={11} muted>
+              <Copy size={12} muted>
                 ━ With {name || "purchase"}
               </Copy>
             )}
-            <Copy size={11} muted>
+            <Copy size={12} muted>
               ┄ Minimum balance
             </Copy>
           </Line>
@@ -842,7 +842,7 @@ export function Projection() {
             Months you could cover
           </Copy>
           <Copy
-            size={11}
+            size={12}
             style={{
               color: runway >= 3 ? t.good : runway >= 1 ? t.warn : t.bad,
             }}

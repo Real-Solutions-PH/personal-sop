@@ -80,10 +80,8 @@ export function SleepCard() {
   return (
     <Frame style={{ padding: 16, marginTop: 16, gap: 4 }}>
       <Line style={{ justifyContent: "space-between" }}>
-        <Copy size={12} muted style={{ letterSpacing: 0.6 }}>
-          {isLast
-            ? "LAST NIGHT"
-            : `SLEEP · ${longDay(offsets[pick] ?? 0).toUpperCase()}`}
+        <Copy size={13} weight="medium" muted>
+          {isLast ? "Last night" : `Sleep · ${longDay(offsets[pick] ?? 0)}`}
         </Copy>
         <Tap label="Sleep details" onPress={() => go("/fitness/sleep")}>
           <Line style={{ gap: 2 }}>
@@ -94,7 +92,7 @@ export function SleepCard() {
           </Line>
         </Tap>
       </Line>
-      <Copy size={30} weight="displayMedium" style={{ color: t.fit }}>
+      <Copy size={30} weight="displayMedium">
         {shown ? hm(shown) : "—"}
       </Copy>
       <View
@@ -102,7 +100,7 @@ export function SleepCard() {
         accessibilityLabel={`This week: ${hm(avg)} a night on average`}
         style={{ marginTop: 8 }}
       >
-        <Copy size={11} muted>
+        <Copy size={12} muted>
           This week
         </Copy>
         <Copy weight="medium">{hm(avg)}</Copy>

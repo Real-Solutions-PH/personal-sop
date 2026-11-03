@@ -288,7 +288,7 @@ export function Records({ accountId }: { accountId?: string }) {
             <SlidersHorizontal size={16} color={count ? t.fin : t.text} />
             {count > 0 && (
               <Copy
-                size={10}
+                size={12}
                 style={{
                   position: "absolute",
                   right: -4,
@@ -705,7 +705,7 @@ export function RecordDetail({ id }: { id: string }) {
             .map((x) => (
               <Copy
                 key={x.label}
-                size={11}
+                size={12}
                 style={{
                   color: x.color,
                   backgroundColor: `${x.color}26`,
@@ -807,7 +807,7 @@ export function RecordDetail({ id }: { id: string }) {
                   <Copy size={14} muted>
                     {x.label}
                   </Copy>
-                  <Copy size={14} style={{ color: t.fin }}>
+                  <Copy size={14} style={{ color: t.text }}>
                     {x.value}
                   </Copy>
                 </Line>

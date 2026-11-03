@@ -20,7 +20,7 @@ import { privacyStore } from "@domain/lib/privacy"
 import { ChevronDown } from "lucide-react-native"
 import { type ReactNode, useMemo, useState } from "react"
 import { View } from "react-native"
-import { Copy, Line, Tap } from "../native-kit"
+import { Copy, chosen, Line, Tap } from "../native-kit"
 import { go } from "../navigation"
 import { useTheme } from "../theme"
 import { Button } from "../ui"
@@ -57,9 +57,7 @@ function AnswerChip({
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 18,
-        borderWidth: 1,
-        borderColor: accent ? t.fin : t.line,
-        backgroundColor: accent ? `${t.fin}26` : t.card,
+        ...chosen(t, !!accent),
       }}
     >
       <Copy size={12} style={{ color: accent ? t.fin : t.text }}>
@@ -81,7 +79,7 @@ function Lesson({ children }: { children: ReactNode }) {
         borderColor: `${t.fin}4d`,
         borderRadius: 12,
         padding: 10,
-        backgroundColor: `${t.fin}0d`,
+        backgroundColor: t.soft,
       }}
     >
       <Copy size={12}>

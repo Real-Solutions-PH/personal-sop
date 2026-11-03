@@ -129,7 +129,7 @@ function PrBadge({ kind, at }: { kind: C.PrKind; at: number }) {
         }}
       >
         <TrendingUp size={11} color={t.good} />
-        <Copy size={11} weight="semibold" style={{ color: t.good }}>
+        <Copy size={12} weight="semibold" style={{ color: t.good }}>
           PR
         </Copy>
       </View>
@@ -415,7 +415,7 @@ export function WorkoutLogger() {
                 >
                   {v.value}
                 </Copy>
-                <Copy size={11} muted>
+                <Copy size={12} muted>
                   {v.label}
                 </Copy>
               </View>
@@ -484,7 +484,7 @@ export function WorkoutLogger() {
                     {suggestion.kind !== "new" && (
                       <TrendingUp size={12} color={t.fit} />
                     )}
-                    <Copy size={11} style={{ color: t.fit }}>
+                    <Copy size={12}>
                       {suggestion.kind === "new" ? "New" : suggestion.badge}
                     </Copy>
                   </Line>
@@ -537,14 +537,12 @@ export function WorkoutLogger() {
               ].map((x, i) => (
                 <Copy
                   key={`${i}-${x}`}
-                  size={10}
+                  size={12}
                   muted
                   style={{
                     width: i === 0 ? 32 : i === 4 ? 44 : undefined,
                     flex: i > 0 && i < 4 ? 1 : undefined,
                     textAlign: i > 1 ? "center" : "left",
-                    letterSpacing: 0.5,
-                    textTransform: "uppercase",
                   }}
                 >
                   {x}
@@ -582,7 +580,7 @@ export function WorkoutLogger() {
                         paddingVertical: 4,
                         borderRadius: 12,
                         backgroundColor: C.isDone(set)
-                          ? `${t.fit}1a`
+                          ? border(t.good, 0.12)
                           : "transparent",
                       }}
                     >

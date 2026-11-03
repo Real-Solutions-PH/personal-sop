@@ -194,7 +194,7 @@ export function Workouts() {
                         }}
                       >
                         <Trophy size={12} color={t.warn} />
-                        <Copy size={11} style={{ color: t.warn }}>
+                        <Copy size={12} style={{ color: t.warn }}>
                           {prs}
                         </Copy>
                       </Line>

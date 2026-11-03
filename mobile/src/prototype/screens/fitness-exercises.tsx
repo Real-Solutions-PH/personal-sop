@@ -152,7 +152,7 @@ export function Exercises({ id }: { id?: string }) {
         paddingVertical: 2,
       }}
     >
-      <Copy size={11} weight="medium" style={{ color }}>
+      <Copy size={12} weight="medium" style={{ color }}>
         {label}
       </Copy>
     </View>
@@ -279,7 +279,7 @@ export function Exercises({ id }: { id?: string }) {
                   onPress={() => setAllDupes(true)}
                   style={{ alignSelf: "flex-start", paddingVertical: 4 }}
                 >
-                  <Copy size={14} weight="medium" style={{ color: t.fit }}>
+                  <Copy size={14} weight="medium" style={{ color: t.primary }}>
                     See all ({dupes.length})
                   </Copy>
                 </Tap>
@@ -378,8 +378,7 @@ export function Exercises({ id }: { id?: string }) {
               <Frame
                 style={{
                   padding: 16,
-                  backgroundColor: `${t.fit}1a`,
-                  borderColor: `${t.fit}66`,
+                  backgroundColor: t.soft,
                   marginTop: 4,
                 }}
               >
@@ -439,7 +438,6 @@ export function Exercises({ id }: { id?: string }) {
                       value: C.kgShort(
                         Math.round((best?.stats.bestE1rm ?? 0) * 10) / 10,
                       ),
-                      color: t.fit,
                     },
                     {
                       label: "Best set",

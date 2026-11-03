@@ -10,6 +10,7 @@ import { IconField } from "../icon-picker"
 import {
   border,
   Copy,
+  chosen,
   Frame,
   IconTap,
   Line,
@@ -374,13 +375,13 @@ export function Categories() {
             borderRadius: 20,
             paddingHorizontal: 10,
             paddingVertical: 4,
-            backgroundColor: c.discretionary ? `${t.fin}26` : t.soft,
+            ...chosen(t, c.discretionary),
           }}
         >
           <Copy
-            size={11}
+            size={12}
             weight="medium"
-            style={{ color: c.discretionary ? t.fin : t.muted }}
+            style={{ color: c.discretionary ? t.text : t.muted }}
           >
             {c.discretionary ? "want" : "need"}
           </Copy>

@@ -130,7 +130,7 @@ function Heading({
       {link && (
         <Tap label={link.label} onPress={() => go(link.href)}>
           <Line style={{ gap: 2, minHeight: 44 }}>
-            <Copy size={13} weight="medium" style={{ color: t.fit }}>
+            <Copy size={13} weight="medium" style={{ color: t.primary }}>
               {link.label}
             </Copy>
             <ChevronRight size={16} color={t.fit} />
@@ -289,7 +289,7 @@ function Training({ s, onStart }: { s: FitnessState; onStart: () => void }) {
                   }}
                 >
                   <Copy
-                    size={11}
+                    size={12}
                     weight="medium"
                     style={{ color: up ? t.good : t.muted }}
                   >
@@ -400,7 +400,7 @@ function PrChip({ count }: { count: number }) {
       }}
     >
       <Trophy size={12} color={t.warn} />
-      <Copy size={11} weight="medium" style={{ color: t.warn }}>
+      <Copy size={12} weight="medium" style={{ color: t.warn }}>
         {count === 1 ? "1 PR" : `${count} PRs`}
       </Copy>
     </Line>
@@ -759,7 +759,7 @@ function Progress({ s }: { s: FitnessState }) {
                         }}
                       >
                         <TriangleAlert size={11} color={t.warn} />
-                        <Copy size={11} style={{ color: t.warn }}>
+                        <Copy size={12} style={{ color: t.warn }}>
                           Stalled
                         </Copy>
                       </Line>
@@ -832,10 +832,10 @@ function Progress({ s }: { s: FitnessState }) {
             </Line>
             {big ? (
               <Line style={{ justifyContent: "space-between", marginTop: 4 }}>
-                <Copy size={10} muted>
+                <Copy size={12} muted>
                   8 weeks ago
                 </Copy>
-                <Copy size={10} muted>
+                <Copy size={12} muted>
                   Now
                 </Copy>
               </Line>
@@ -844,7 +844,7 @@ function Progress({ s }: { s: FitnessState }) {
                 {weeks.map((w, i) => (
                   <Copy
                     key={w.start}
-                    size={10}
+                    size={12}
                     muted
                     style={{ flex: 1, textAlign: "center" }}
                   >
