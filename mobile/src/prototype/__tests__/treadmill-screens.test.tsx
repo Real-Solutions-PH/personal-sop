@@ -286,3 +286,14 @@ it("the calorie note says when a steep incline is counted as 15%", () => {
   fireEvent.press(screen.getByText("How calories are estimated"))
   expect(screen.getByText(/counted as 15%/)).toBeTruthy()
 })
+
+it("after a switch and a save, the sheet reopens on the saved distance", async () => {
+  fitStore.set((s) => ({ ...s, runs: [walk()] }))
+  render(<RunDetail id="w1" />, { wrapper })
+  fireEvent.press(screen.getByText("Recorded on a treadmill?"))
+  await act(async () => {})
+  fireEvent.changeText(screen.getByLabelText("Distance"), "2.5")
+  fireEvent.press(screen.getByText("Save readings"))
+  fireEvent.press(screen.getByLabelText("Edit treadmill distance and incline"))
+  expect(screen.getByLabelText("Distance").props.value).toBe("2.5")
+})

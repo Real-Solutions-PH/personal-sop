@@ -287,10 +287,19 @@ export function restoreReadings(id: string, prev: RunSession) {
 
 /** The treadmill's own distance and incline, entered after the session;
  * calories follow them. A null incline clears it. */
+/** Sessions whose treadmill readings the person entered: a later Health
+ * read never replaces them (this app run; after a relaunch no read is
+ * pending). */
+const byHand = new Set<string>()
+export const enteredByHand = (id: string) => byHand.has(id)
+
 export function setTreadmillReadings(
   id: string,
   v: { distanceM: number; inclinePct: number | null },
+  /** Typed from the machine's display, not read from Health. */
+  manual = false,
 ) {
+  if (manual) byHand.add(id)
   patchRun(id, (r) => {
     const { inclinePct: _old, ...rest } = r
     const distanceM = Math.max(0, Math.round(v.distanceM))

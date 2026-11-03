@@ -1019,7 +1019,8 @@ export function RunDetail({
         <ReadingsSheet
           run={r}
           switched={switched}
-          suggestedM={motionM}
+          // Only right after a switch: once saved, the record is the truth.
+          suggestedM={switched ? motionM : undefined}
           onClose={(how) => {
             setReadings(false)
             setSwitched(undefined)
@@ -1066,10 +1067,14 @@ function ReadingsSheet({
   const save = () => {
     const prev = run
     const back = switched
-    RL.setTreadmillReadings(run.id, {
-      distanceM: km * 1000,
-      inclinePct: incline > 0 ? incline : null,
-    })
+    RL.setTreadmillReadings(
+      run.id,
+      {
+        distanceM: km * 1000,
+        inclinePct: incline > 0 ? incline : null,
+      },
+      true,
+    )
     undo("Treadmill readings saved", () =>
       back
         ? RL.unmarkTreadmill(run.id, back)

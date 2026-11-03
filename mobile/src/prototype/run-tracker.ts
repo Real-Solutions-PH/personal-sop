@@ -12,6 +12,7 @@
 import { onWorkoutFinished, updateWorkoutHealth } from "@domain/fitness/actions"
 import {
   addFixes,
+  enteredByHand,
   type Fix,
   finishRun,
   onRunFinished,
@@ -198,7 +199,8 @@ export function startRunTracker() {
           run.indoor &&
           h.distanceM !== null &&
           now?.distanceM === ours &&
-          now.inclinePct === undefined
+          now.inclinePct === undefined &&
+          !enteredByHand(run.id)
         ) {
           setTreadmillReadings(run.id, {
             distanceM: h.distanceM,

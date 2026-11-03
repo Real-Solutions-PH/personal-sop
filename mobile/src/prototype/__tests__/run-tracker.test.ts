@@ -96,3 +96,28 @@ it("reads the treadmill distance again a little later, Health being slow", async
     jest.useRealTimers()
   }
 })
+
+it("a distance saved by hand is never replaced, even when unchanged", async () => {
+  jest.useFakeTimers({
+    doNotFake: ["nextTick", "setImmediate", "queueMicrotask"],
+  })
+  try {
+    startRunTracker()
+    RL.startRun("walk", Date.now() - 1_200_000, { indoor: true })
+    await Promise.resolve()
+    const done = RL.finishRun()!
+    await Promise.resolve()
+    await Promise.resolve()
+    // Confirmed as it stood: same distance, no incline.
+    RL.setTreadmillReadings(
+      done.id,
+      { distanceM: 2400, inclinePct: null },
+      true,
+    )
+    mockReading = { steps: 3500, hr: null, distanceM: 2600 }
+    await jest.advanceTimersByTimeAsync(120_000)
+    expect(R.runsOf(fitStore.get())[0].distanceM).toBe(2400)
+  } finally {
+    jest.useRealTimers()
+  }
+})
