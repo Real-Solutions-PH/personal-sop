@@ -293,14 +293,17 @@ export function Trophies() {
   }, [trophies])
   return (
     <Screen title="Trophy case">
-      <Line style={{ gap: 6 }}>
+      {/* Five counts wrap three to a row, so every label stays whole at
+          12 pt instead of breaking mid-word. */}
+      <Line style={{ gap: 6, flexWrap: "wrap" }}>
         {order.map((type) => {
           const all = catalog.filter((a) => a.type === type)
           return (
             <View
               key={type}
               style={{
-                flex: 1,
+                flexGrow: 1,
+                flexBasis: "30%",
                 padding: 8,
                 borderRadius: 12,
                 backgroundColor: border(t.soft, 0.5),
