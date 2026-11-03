@@ -167,8 +167,15 @@ export function cardInk(look: CardLook): CardInk {
     mark: stops ? palette.light.sprout : dark ? p.sprout : p.primary,
     good: p.good,
     bad: p.bad,
-    area: (a) => p[a],
+    // A chosen colour can sit right on an area's own (purple on the habits
+    // purple): below 3:1, the graphics minimum, that area draws in ink.
+    area: (a) => (custom && contrast(p[a], custom) < 3 ? p.foreground : p[a]),
   }
+}
+/** The WCAG contrast ratio of two ``#rrggbb`` colours. */
+function contrast(a: string, b: string): number {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x)
+  return (hi + 0.05) / (lo + 0.05)
 }
 
 /** One kit point: the card library draws on a 360-wide canvas, and its sizes
@@ -583,10 +590,14 @@ export function Figures({
 export function Body({
   children,
   end = false,
+  fill = false,
 }: {
   children: ReactNode
   /** Sit on the bottom of the room (charts), not the top (lists). */
   end?: boolean
+  /** Hand the whole room to a chart that sizes itself to it (the leaf
+   * flower), so it grows into it rather than being dropped. */
+  fill?: boolean
 }) {
   const { q } = useCard(),
     { measure } = useContext(FitContext),
@@ -604,7 +615,7 @@ export function Body({
           position: "absolute",
           left: 0,
           right: 0,
-          ...(end ? { bottom: 0 } : { top: 0 }),
+          ...(fill ? { top: 0, bottom: 0 } : end ? { bottom: 0 } : { top: 0 }),
           gap: 6 * P * q,
         }}
         onLayout={(e) => measure("inner", e.nativeEvent.layout.height)}
@@ -1613,7 +1624,7 @@ export function CardFrame({
                   style={{
                     position: "absolute",
                     inset: 0,
-                    backgroundColor: alpha(c.bg, 0.55),
+                    backgroundColor: alpha(c.bg, 0.65),
                   }}
                 />
               </>
@@ -1705,6 +1716,7 @@ export function ShareComposer<K extends string>({
   beforeShare,
   onLookChange,
   shareRef,
+  postFormats,
 }: {
   value: K
   onChange: (key: K) => void
@@ -1721,6 +1733,9 @@ export function ShareComposer<K extends string>({
   beforeShare?: (proceed: () => Promise<void>) => void
   onLookChange?: (look: CardLook) => void
   shareRef?: { current: (() => Promise<void>) | null }
+  /** Sizes a card can be laid out in for a post, when they differ from
+   * ``formats`` (a story-only card that has a 4:5 layout). */
+  postFormats?: CardFormat[]
 }) {
   const t = useTheme(),
     social = useShown("social")
@@ -1756,6 +1771,14 @@ export function ShareComposer<K extends string>({
     exportShot = useRef<HostInstance | null>(null),
     exportWidth = 1080 / PixelRatio.get(),
     exportNode = () => exportShot.current ?? target(value),
+    // A post frame is 4:5 at most, so a story-sized card posted as it is
+    // would lose its top and bottom to the crop: the post is laid out at
+    // 4:5 instead, in a second hidden copy, when the card has that size.
+    postFormat: CardFormat =
+      format === "9:16" && (postFormats ?? formats).includes("4:5")
+        ? "4:5"
+        : format,
+    postShot = useRef<HostInstance | null>(null),
     scroll = useRef<ScrollViewInstance>(null)
   useEffect(() => {
     if (!formats.includes(format)) setFormat(formats[0])
@@ -1787,8 +1810,9 @@ export function ShareComposer<K extends string>({
     }
   }
   // Render the selected card to a PNG for the in-app feed/story.
-  const capture = async () => {
-    const node = exportNode()
+  const capture = async (shape: CardFormat = format) => {
+    const node =
+      shape !== format ? (postShot.current ?? exportNode()) : exportNode()
     if (!node) return null
     try {
       if (Platform.OS === "web")
@@ -1799,7 +1823,7 @@ export function ShareComposer<K extends string>({
       const uri = await captureRef(node, {
         format: "png",
         quality: 1,
-        ...exportSize(format),
+        ...exportSize(node === postShot.current ? shape : format),
       })
       return await keep(uri, "png")
     } catch {
@@ -1809,8 +1833,11 @@ export function ShareComposer<K extends string>({
   /** The card as a community photo: the PNG itself as the full image (no
    * re-encoding of its gradients) plus a preview and a placeholder. A card
    * that cannot be prepared is posted as it is. */
-  const asMedia = async (uri: string): Promise<Media> => {
-    const ratio = 1 / ratioOf(format)
+  const asMedia = async (
+    uri: string,
+    shape: CardFormat = format,
+  ): Promise<Media> => {
+    const ratio = 1 / ratioOf(shape)
     try {
       const p = await prepareImage(uri, { keepPng: true })
       return {
@@ -1830,18 +1857,19 @@ export function ShareComposer<K extends string>({
   /** The card in a post frame (1:1 cards stay square, the rest go 4:5),
    * opened in the frame editor so it can be placed before posting. */
   const toFeed = async () => {
-    const uri = await capture()
+    const shape = postShot.current ? postFormat : format
+    const uri = await capture(shape)
     let media: Media | undefined
     if (uri)
       try {
         media = await framePhoto(
           { uri },
-          frameRatio(1 / ratioOf(format)),
+          frameRatio(1 / ratioOf(shape)),
           CENTRED,
           { png: true },
         )
       } catch {
-        media = await asMedia(uri)
+        media = await asMedia(uri, shape)
       }
     setPostDraft({ caption: text, media: media ? [media] : [] })
     go(
@@ -1973,6 +2001,24 @@ export function ShareComposer<K extends string>({
                 {selected.render(exportWidth, look)}
               </CardShotContext.Provider>
             </View>
+            {social && postFormat !== format && (
+              <View
+                testID="card-post"
+                collapsable={false}
+                style={{ width: exportWidth }}
+              >
+                <CardShotContext.Provider
+                  value={(v) => {
+                    postShot.current = v
+                  }}
+                >
+                  {selected.render(exportWidth, {
+                    ...look,
+                    format: postFormat,
+                  })}
+                </CardShotContext.Provider>
+              </View>
+            )}
           </View>
         )}
         <Line style={{ justifyContent: "center", gap: 8, marginTop: 8 }}>

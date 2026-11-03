@@ -16,7 +16,7 @@ import {
   Utensils,
   Wallet,
 } from "lucide-react-native"
-import { type ReactNode, useEffect, useState } from "react"
+import { type ReactNode, useEffect, useId, useState } from "react"
 import { Pressable, Text, View } from "react-native"
 import Animated, {
   useAnimatedStyle,
@@ -27,7 +27,15 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated"
-import Svg, { Circle, G, Path } from "react-native-svg"
+import Svg, {
+  Circle,
+  Defs,
+  Ellipse,
+  G,
+  Path,
+  RadialGradient,
+  Stop,
+} from "react-native-svg"
 import { FERN_PATHS } from "../companion/brand"
 import { type Accent, fonts } from "../theme"
 import { jitter, leaf, type Point, rng, smooth } from "./scribble"
@@ -174,13 +182,30 @@ export interface PetalShape {
   label: Point
   side: "left" | "right" | "centre"
 }
+/** Where the tip labels sit, in drawing units: how wide a side label is,
+ * how far it starts from its tip across and along, and the room a top or
+ * bottom label needs past its tip. ``none`` draws no labels. */
+export interface LabelBox {
+  width: number
+  across: number
+  along: number
+  room: number
+}
+const STATS_LABELS: LabelBox = { width: 62, across: 16, along: 20, room: 34 }
+export const NO_LABELS: LabelBox = { width: 0, across: 0, along: 0, room: 6 }
 /** The flower's geometry in a 312-wide box of height `h`. Pure, so the tier
  * thresholds and the paths can be tested without rendering. */
-export function rosetteShape(petals: Petal[], h: number, labelWidth = 62) {
-  const cx = W / 2,
+export function rosetteShape(
+  petals: Petal[],
+  h: number,
+  labels: number | LabelBox = STATS_LABELS,
+) {
+  const box =
+      typeof labels === "number" ? { ...STATS_LABELS, width: labels } : labels,
+    cx = W / 2,
     cy = h / 2,
     n = Math.max(1, petals.length),
-    // A side label needs `labelWidth` units beside its tip; the petals
+    // A side label needs `box.width` units beside its tip; the petals
     // shorten until the widest one fits inside the drawing.
     side = Math.max(
       0.3,
@@ -188,7 +213,10 @@ export function rosetteShape(petals: Petal[], h: number, labelWidth = 62) {
         Math.abs(Math.cos(-Math.PI / 2 + (k * 2 * Math.PI) / n)),
       ),
     ),
-    R = Math.max(8, Math.min(h / 2 - 34, (cx - 2 - labelWidth) / side - 16)),
+    R = Math.max(
+      8,
+      Math.min(h / 2 - box.room, (cx - 2 - box.width) / side - box.across),
+    ),
     tier = flowerTier(petals)
   const shapes: PetalShape[] = petals.map((p, k) => {
     const a = -Math.PI / 2 + (k * 2 * Math.PI) / n,
@@ -209,7 +237,7 @@ export function rosetteShape(petals: Petal[], h: number, labelWidth = 62) {
           ? { bud: curl(tip[0], tip[1], a, 4.2, 1, 9, 0.5) }
           : {}),
       tip,
-      label: [cx + c * (R + 16), cy + Math.sin(a) * (R + 20)],
+      label: [cx + c * (R + box.across), cy + Math.sin(a) * (R + box.along)],
       side: c > 0.3 ? "right" : c < -0.3 ? "left" : "centre",
     }
   })
@@ -284,6 +312,22 @@ function Glow({ children }: { children: ReactNode }) {
   )
 }
 
+/** A card's tip labels at ``fontU`` drawing units: the icon and the value
+ * (no change, the card's hero carries that). */
+export function cardLabels(fontU: number, padU = 8): LabelBox {
+  const row = fontU * 1.3 + padU
+  return {
+    width: fontU * 3.3,
+    across: fontU * 0.5 + 4,
+    along: row / 2 + fontU * 0.4 + 4,
+    room: row + fontU * 0.4 + 6,
+  }
+}
+/** Below this petal length (in drawing units) labels crowd the flower, so a
+ * card draws it bare instead: bigger, with the card's own line naming the
+ * strongest and weakest area. */
+export const MIN_LABELLED_R = 44
+
 export function Rosette({
   petals,
   ink,
@@ -291,6 +335,8 @@ export function Rosette({
   selected,
   onSelect,
   font: fontSize,
+  card = false,
+  halo,
 }: {
   petals: Petal[]
   ink: RosetteInk
@@ -301,16 +347,28 @@ export function Rosette({
   onSelect?: (key: string) => void
   /** The value's size in points; by default it scales with the drawing. */
   font?: number
+  /** Share artwork: Geist values with no change, sized and placed from
+   * ``font``, and no labels when they would crowd the petals. */
+  card?: boolean
+  /** A soft ground behind the flower and its labels (a photo card). */
+  halo?: string
 }) {
   const [width, setWidth] = useState(0),
+    haloId = `halo${useId().replace(/[^a-zA-Z0-9]/g, "")}`,
     k = width / W,
     // The labels are sized to the drawing, as the share kit sizes them.
     font = fontSize ?? Math.max(9, 12.5 * k),
+    labelled = card && k > 0 ? cardLabels(font / k, 8 / k) : null,
+    bare =
+      card &&
+      (!labelled || rosetteShape(petals, height, labelled).R < MIN_LABELLED_R),
     // A label set larger than that takes more of the drawing's width.
     shape = rosetteShape(
       petals,
       height,
-      k > 0 ? Math.max(62, (62 * font) / (12.5 * k)) : 62,
+      bare
+        ? NO_LABELS
+        : (labelled ?? (k > 0 ? Math.max(62, (62 * font) / (12.5 * k)) : 62)),
     ),
     { cx, cy, hubR, tier } = shape,
     icon = Math.round(font * 1.1),
@@ -343,6 +401,30 @@ export function Rosette({
       onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
       style={{ width: "100%", aspectRatio: W / height }}
     >
+      {!!halo && (
+        <Svg
+          width="100%"
+          height="100%"
+          viewBox={box}
+          style={layer}
+          pointerEvents="none"
+        >
+          <Defs>
+            <RadialGradient id={haloId} cx="50%" cy="50%" r="50%">
+              <Stop offset="0" stopColor={halo} stopOpacity={0.82} />
+              <Stop offset="0.7" stopColor={halo} stopOpacity={0.62} />
+              <Stop offset="1" stopColor={halo} stopOpacity={0} />
+            </RadialGradient>
+          </Defs>
+          <Ellipse
+            cx={cx}
+            cy={cy}
+            rx={W / 2}
+            ry={height / 2}
+            fill={`url(#${haloId})`}
+          />
+        </Svg>
+      )}
       {tier === "all100" && (
         <Bloom key="ring" style={layer}>
           <Svg width="100%" height="100%" viewBox={box}>
@@ -470,9 +552,10 @@ export function Rosette({
         ) : null,
       )}
       {shape.petals.map((s, i) => {
+        if (bare) return null
         const p = petals[i],
           v = rateOf(p.value),
-          dl = p.off || p.prev === undefined ? 0 : v - rateOf(p.prev),
+          dl = card || p.off || p.prev === undefined ? 0 : v - rateOf(p.prev),
           Icon = p.icon,
           row = (
             <>
@@ -484,13 +567,25 @@ export function Rosette({
               <Text
                 allowFontScaling={false}
                 numberOfLines={1}
-                adjustsFontSizeToFit
+                adjustsFontSizeToFit={!card}
                 minimumFontScale={0.6}
                 style={{
-                  fontFamily: fonts.mono,
+                  fontFamily: card ? fonts.semibold : fonts.mono,
                   fontSize: font,
                   lineHeight: font * 1.25,
                   color: p.off ? ink.muted : ink.ink,
+                  ...(card
+                    ? {
+                        fontVariant: ["tabular-nums" as const],
+                        letterSpacing: -0.02 * font,
+                      }
+                    : {}),
+                  ...(halo
+                    ? {
+                        textShadowColor: halo,
+                        textShadowRadius: font * 0.4,
+                      }
+                    : {}),
                 }}
               >
                 {p.off ? "—" : v}

@@ -163,6 +163,33 @@ describe("card colours", () => {
         expect(v).toMatch(hex)
     }
   })
+  test.each([
+    "#7a3fb8",
+    "#3e63dd",
+    "#1f8a5a",
+    "#d9a441",
+    "#c2185b",
+  ])("on a %s ground every area keeps 3:1 or draws in ink", (color) => {
+    const c = cardInk({
+      format: "9:16",
+      backdrop: "custom",
+      photo: null,
+      color,
+    })
+    for (const a of [
+      "hab",
+      "tsk",
+      "fit",
+      "nut",
+      "foc",
+      "fin",
+      "scr",
+      "life",
+    ] as const) {
+      const v = c.area(a)
+      expect(v === c.ink || contrast(v, color) >= 3).toBe(true)
+    }
+  })
   test("a pale chosen colour gets dark ink, a deep one light ink", () => {
     const look = (color: string): CardLook => ({
       format: "1:1",
@@ -958,6 +985,65 @@ test("Caption opens an editor whose text is copied and posted", async () => {
     fireEvent.press(r.getByText("Post"))
   })
   expect(socialStore.get().drafts.post?.caption).toBe("Leg day done")
+})
+
+test.each([
+  [
+    "a story card with a 4:5 size",
+    ["9:16", "4:5"],
+    undefined,
+    "card-post",
+    1350,
+  ],
+  [
+    "a story-only card with a 4:5 post layout",
+    ["9:16"],
+    ["9:16", "4:5"],
+    "card-post",
+    1350,
+  ],
+  ["a story-only card", ["9:16"], undefined, "card-export", 1920],
+] as const)("Post captures %s from the layout a post frame holds whole", async (_, formats, postFormats, copy, height) => {
+  const { captureRef } = require("react-native-view-shot")
+  captureRef.mockReset()
+  captureRef.mockResolvedValue("file:///card.png")
+  const formatsSeen: string[] = []
+  const r = render(
+    <SafeAreaProvider initialMetrics={SAFE}>
+      <ShareComposer
+        value="card"
+        onChange={() => {}}
+        caption=""
+        formats={[...formats]}
+        postFormats={postFormats ? [...postFormats] : undefined}
+        items={[
+          {
+            key: "card",
+            label: "Card",
+            render: (width: number, look: CardLook) => {
+              formatsSeen.push(look.format)
+              return card(width, look)
+            },
+          },
+        ]}
+      >
+        {null}
+      </ShareComposer>
+    </SafeAreaProvider>,
+  )
+  await act(async () => {
+    fireEvent.press(r.getByText("Post"))
+  })
+  const [node, opts] = captureRef.mock.calls[0]
+  const from = r.getByTestId(copy, { includeHiddenElements: true })
+  expect(from.findAll((n) => n.props.testID === "card-shot")[0]?.instance).toBe(
+    node,
+  )
+  // 2× in tests: points, not pixels.
+  expect(opts).toMatchObject({ width: 540, height: height / 2 })
+  expect(formatsSeen).toContain(copy === "card-post" ? "4:5" : "9:16")
+  const media = socialStore.get().drafts.post?.media?.[0]
+  expect(media?.ratio).toBeCloseTo(copy === "card-post" ? 0.8 : 9 / 16)
 })
 
 test("the background row scrolls, with the screen inset at both ends", () => {
