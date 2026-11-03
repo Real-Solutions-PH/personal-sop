@@ -14,6 +14,7 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from "react-native-reanimated"
+import { LineTrack } from "./brand/line"
 import { go } from "./navigation"
 import { type Accent, fonts, useTheme } from "./theme"
 
@@ -497,7 +498,7 @@ export function Part({
     </View>
   )
 }
-/** The brand's progress track (docs/brand Progress): 6 pt, fully rounded. */
+/** The brand's progress track (docs/brand Progress): 6 pt, drawn by hand (ADR-0032). */
 export const BAR_HEIGHT = 6
 export function Bar({
   value,
@@ -521,18 +522,11 @@ export function Bar({
         height,
         minHeight: height,
         maxHeight: height,
-        backgroundColor: t.soft,
         borderRadius: radius,
       }}
     >
-      <View
-        style={{
-          width: `${Math.max(0, Math.min(1, value)) * 100}%`,
-          height,
-          borderRadius: radius,
-          backgroundColor: color,
-        }}
-      />
+      {/* The brand's hand-drawn line (ADR-0032): dotted track, scribbled fill. */}
+      <LineTrack value={value} color={color} height={height} />
       {target !== undefined && (
         <View
           style={{

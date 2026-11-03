@@ -11,6 +11,8 @@ import Svg, {
   Polyline,
   Text as SvgText,
 } from "react-native-svg"
+import { LineStem } from "./brand/line"
+import { type Point, smooth } from "./brand/scribble"
 import { GrowBar, Reveal } from "./motion"
 import { BAR_HEIGHT } from "./native-kit"
 import { fonts, useTheme } from "./theme"
@@ -174,14 +176,15 @@ export function DailyBars({
           <GrowBar
             index={i}
             height={Math.max(3, (v / max) * 82)}
-            style={{
-              width: "100%",
-              borderTopLeftRadius: 6,
-              borderTopRightRadius: 6,
-              backgroundColor: color ?? t.life,
-              opacity: i === lit ? 1 : 0.45,
-            }}
-          />
+            style={{ width: "100%" }}
+          >
+            <LineStem
+              color={color ?? t.life}
+              width={values.length > 14 ? 3 : 7}
+              seed={i + 3}
+              opacity={i === lit ? 1 : 0.45}
+            />
+          </GrowBar>
           <Text
             // A month of bars leaves ~6pt a column: "15" must not wrap.
             numberOfLines={1}
@@ -224,6 +227,14 @@ export function Sparkline({
         `${(i / (values.length - 1)) * 100},${height - ((v - min) / span) * (height - 4) - 2}`,
     )
     .join(" ")
+  const curve = smooth(
+    values.map(
+      (v, i): Point => [
+        (i / (values.length - 1)) * 100,
+        height - ((v - min) / span) * (height - 4) - 2,
+      ],
+    ),
+  )
   return (
     <View
       accessibilityRole="image"
@@ -241,13 +252,26 @@ export function Sparkline({
             <Polygon
               points={`${points} 100,${height} 0,${height}`}
               fill={color}
-              opacity={0.15}
+              opacity={0.12}
             />
           )}
-          <Polyline
-            points={points}
+          {/* The brand's hand-drawn line (ADR-0032): a smooth stroke and a
+              thinner echo just off it. */}
+          <Path
+            d={curve}
             stroke={color}
-            strokeWidth={2}
+            strokeWidth={2.4}
+            strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
+            fill="none"
+          />
+          <Path
+            d={curve}
+            stroke={color}
+            strokeWidth={1}
+            strokeLinecap="round"
+            opacity={0.5}
+            transform="translate(0.4 -0.8)"
             vectorEffect="non-scaling-stroke"
             fill="none"
           />

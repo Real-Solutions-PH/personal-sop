@@ -27,3 +27,4 @@ Start new ADRs from [template.md](template.md).
 | [0029](0029-fern-replay-eval-dataset.md) | Fern replay eval: scrubbed real chats in the repository, hashed denylist guard |
 | [0030](0030-record-icons-are-emoji.md) | Icons people pick for their own records are emoji from one catalogue; interface icons stay lucide |
 | [0031](0031-fern-claude-style-agent-loop.md) | Fern works each turn as a Claude-style agent loop (every tool, thinking every call, todo, multiple-choice asks) |
+| [0032](0032-hand-drawn-line-in-the-app.md) | The brand's hand-drawn line in the app's shared chart parts; chrome stays calm |

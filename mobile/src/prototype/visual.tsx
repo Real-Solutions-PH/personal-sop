@@ -139,12 +139,17 @@ export function Ring({
             <Stop offset="1" stopColor={gradientColors?.[1] ?? t.life} />
           </SvgGradient>
         </Defs>
+        {/* The brand's hand-drawn line (ADR-0032): a dotted track, the arc,
+            and a thinner echo of it just inside. */}
         <Circle
           cx={size / 2}
           cy={size / 2}
           r={r}
-          stroke={hero ? "#ffffff26" : t.soft}
-          strokeWidth={stroke}
+          stroke={hero ? "#ffffff66" : t.muted}
+          strokeWidth={Math.max(1.2, stroke * 0.3)}
+          strokeDasharray={`0.5 ${Math.max(3, stroke * 0.9)}`}
+          strokeLinecap="round"
+          opacity={0.5}
           fill="none"
         />
         <ArcCircle
@@ -156,6 +161,17 @@ export function Ring({
           strokeWidth={stroke}
           strokeLinecap="round"
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+        <ArcCircle
+          cx={size / 2}
+          cy={size / 2}
+          r={r - stroke * 0.22}
+          value={p}
+          stroke={hero ? `url(#${gradientId})` : (color ?? t.accent)}
+          strokeWidth={Math.max(1, stroke * 0.38)}
+          strokeLinecap="round"
+          opacity={0.5}
+          transform={`rotate(-89 ${size / 2} ${size / 2})`}
         />
         {target !== undefined && (
           <Circle
