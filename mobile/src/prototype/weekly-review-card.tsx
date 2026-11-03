@@ -2,6 +2,9 @@ import { addDaysKey, reviewCardShown, weekStartKey } from "@domain/dash/data"
 import { dashStore, markReviewOpened } from "@domain/dash/store"
 import { Check, ChevronRight, Sparkles, Trophy, X } from "lucide-react-native"
 import { View } from "react-native"
+import { fernPalette } from "./companion/brand"
+import { FernSprite, type FernState } from "./companion/fern-sprite"
+import { companionStore } from "./companion/store"
 import { border, Copy, Line, Tap } from "./native-kit"
 import { go } from "./navigation"
 import { useReviewDigest } from "./screens/dash-reviews"
@@ -15,7 +18,8 @@ const day = (key: string) =>
 
 /**
  * Last week's review, pinned to the top of Today: the verdict, wins and
- * misses, and the AI's read in a few lines. The whole card opens the review.
+ * misses, and the AI's read in a few lines, said by Fern (consoling on a
+ * low week, celebrating on a good one). The whole card opens the review.
  * It stays until the review is opened (here or anywhere else) and leaves a
  * day after; ``openedAt`` syncs, so every device agrees.
  */
@@ -30,10 +34,26 @@ export function WeeklyReviewCard({ now }: { now: number }) {
   return <ReviewCardBody id={id} opened={Boolean(r?.openedAt ?? r?.doneAt)} />
 }
 
+/**
+ * How Fern meets the week, by the same verdict as the card's colour: a win
+ * when the week is up on the one before (or level and on target), a miss
+ * when it is down or below the bar, and neither while it has no rate yet.
+ */
+export function weekMood(
+  rate: number | null,
+  delta: number | null,
+  threshold: number,
+): FernState {
+  if (delta) return delta > 0 ? "celebrating" : "consoling"
+  if (rate === null) return "idle"
+  return rate >= threshold ? "celebrating" : "consoling"
+}
+
 function ReviewCardBody({ id, opened }: { id: string; opened: boolean }) {
   const t = useTheme(),
     d = useReviewDigest(id),
-    threshold = dashStore.use((s) => s.targetThreshold)
+    threshold = dashStore.use((s) => s.targetThreshold),
+    name = companionStore.use((s) => s.name)
   if (!d) return null
   const { p, cur, targetDelta, wins, misses, best, summary } = d
   const won = wins.length + (best ? 1 : 0)
@@ -48,6 +68,7 @@ function ReviewCardBody({ id, opened }: { id: string; opened: boolean }) {
         ? t.good
         : t.muted
   const rate = cur.rate === null ? "—" : `${Math.round(cur.rate * 100)}%`
+  const mood = weekMood(cur.rate, targetDelta, threshold)
   const label = [
     `Weekly review, ${day(p.from)} to ${day(p.to)}`,
     `${rate} on target`,
@@ -56,7 +77,7 @@ function ReviewCardBody({ id, opened }: { id: string; opened: boolean }) {
       : "",
     won ? `${won} ${won === 1 ? "win" : "wins"}` : "",
     misses.length ? `${misses.length} missed` : "",
-    summary,
+    `${name}: ${summary}`,
   ]
     .filter(Boolean)
     .join(". ")
@@ -135,9 +156,23 @@ function ReviewCardBody({ id, opened }: { id: string; opened: boolean }) {
           )}
         </Line>
       )}
-      <Copy size={14} muted lines={3}>
-        {summary}
-      </Copy>
+      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 10 }}>
+        <FernSprite size={36} state={mood} decorative />
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: fernPalette(t.dark).mist,
+            borderRadius: 16,
+            borderTopLeftRadius: 4,
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+          }}
+        >
+          <Copy size={14} lines={3} style={{ color: t.text }}>
+            {summary}
+          </Copy>
+        </View>
+      </View>
     </Tap>
   )
 }
