@@ -1,15 +1,21 @@
 // Fern as the C1 wreath sprite: each of the seven states draws its own face
-// and mood marks, consoling wilts to the dry colours, and Reduced Motion or
-// `still` hold a pose with nothing extra moving in.
+// and mood marks, consoling wilts to the dry colours, `still` holds a pose,
+// and Reduced Motion keeps the face alive while the body stays put.
 import { configureStorage, resetAll } from "@domain/lib/store"
-import { render, screen } from "@testing-library/react-native"
+import { act, render, screen } from "@testing-library/react-native"
+import { cloneElement } from "react"
 import { Circle, Ellipse, Path, Stop } from "react-native-svg"
 import type { ReactTestInstance } from "react-test-renderer"
 import { fernMoods, fernPalette } from "../companion/brand"
 import { FERN_STATES, fernShapes } from "../companion/fern-geometry"
 import { renameCompanion } from "../companion/store"
 
-const mockMotion = { reduced: true }
+// `at` pins the sprite's clock (ms); `repeats` records how it was started.
+const mockMotion = {
+  reduced: true,
+  at: undefined as number | undefined,
+  repeats: [] as unknown[][],
+}
 jest.mock("react-native-reanimated", () => ({
   __esModule: true,
   ...require("./reanimated-extras").extras,
@@ -17,7 +23,14 @@ jest.mock("react-native-reanimated", () => ({
   useSharedValue: (value: unknown) =>
     require("react").useRef({ value }).current,
   useAnimatedStyle: (get: () => unknown) => get(),
-  withTiming: (value: unknown) => value,
+  withTiming: (value: unknown, config: unknown) => {
+    mockMotion.repeats.push(["timing", config])
+    return mockMotion.at ?? value
+  },
+  withRepeat: (anim: unknown, ...rest: unknown[]) => {
+    mockMotion.repeats.push(["repeat", ...rest])
+    return anim
+  },
   useReducedMotion: () => mockMotion.reduced,
 }))
 
@@ -32,6 +45,8 @@ beforeEach(() => {
   })
   resetAll()
   mockMotion.reduced = true
+  mockMotion.at = undefined
+  mockMotion.repeats = []
 })
 
 const p = fernPalette(false),
@@ -99,13 +114,19 @@ test("speaking: the mouth opens and lines pulse either side", () => {
 })
 
 test("celebrating: happy eyes, the curl opened, joy and love twinkles", () => {
-  render(<FernSprite size={88} state="celebrating" dark={false} />)
+  const live = render(<FernSprite size={88} state="celebrating" dark={false} />)
   const s = fernShapes("celebrating", false)
   expect(drawn(s.happyEyes)).toHaveLength(1)
+  // The curl unfurls: the closed one fades out as the open one fades in.
   expect(drawn(s.curlOpen)).toHaveLength(1)
-  expect(drawn(s.curl)).toHaveLength(0)
+  expect(drawn(s.curl)).toHaveLength(1)
   expect(filled(m.joy)).toHaveLength(3)
   expect(filled(m.love)).toHaveLength(2)
+  live.unmount()
+  // A still pose holds it open.
+  render(<FernSprite size={88} state="celebrating" still dark={false} />)
+  expect(drawn(s.curlOpen)).toHaveLength(1)
+  expect(drawn(s.curl)).toHaveLength(0)
 })
 
 test("consoling: wilts to dry olive and straw, with dewy eyes and falling leaves", () => {
@@ -158,4 +179,70 @@ test("decorative leaves the row's label to speak for it", () => {
       .accessibilityLabel,
   ).toBe(undefined)
   expect(screen.queryByTestId("fern-consoling")).toBeNull()
+})
+
+// Every moving part's transform, as the sprite styled it at the pinned clock.
+const transforms = () =>
+  screen.UNSAFE_root.findAll(
+    (n: ReactTestInstance) =>
+      Array.isArray(n.props.style) && !!n.props.style[0]?.transformOrigin,
+  ).flatMap(
+    (n) =>
+      (n.props.style[1]?.transform ?? []) as Record<string, number | string>[],
+  )
+/** Render, then once more: the clock starts in an effect after the first. */
+const renderAt = (ui: React.ReactElement) =>
+  render(ui).rerender(cloneElement(ui))
+const scaled = (key: "scale" | "scaleY") =>
+  transforms()
+    .map((x) => x[key])
+    .filter((v): v is number => typeof v === "number" && Math.abs(v - 1) > 1e-3)
+
+// 2.1 s in: mid-blink (eyes at 0.1) and past the top of a breath.
+test("idle breathes and blinks", () => {
+  mockMotion.reduced = false
+  mockMotion.at = 2100
+  renderAt(<FernSprite size={88} state="idle" dark={false} />)
+  expect(scaled("scale").some((v) => v > 1.02)).toBe(true)
+  expect(scaled("scaleY")).toContainEqual(expect.closeTo(0.1, 3))
+})
+
+test("Reduced Motion: the clock still runs, Fern blinks but does not breathe", () => {
+  mockMotion.at = 2100
+  renderAt(<FernSprite size={88} state="idle" dark={false} />)
+  // Reanimated would jump the clock to its end under Reduce Motion.
+  expect(mockMotion.repeats).toContainEqual([
+    "timing",
+    expect.objectContaining({ reduceMotion: "never" }),
+  ])
+  expect(mockMotion.repeats).toContainEqual([
+    "repeat",
+    -1,
+    false,
+    undefined,
+    "never",
+  ])
+  expect(scaled("scale")).toEqual([])
+  expect(scaled("scaleY")).toContainEqual(expect.closeTo(0.1, 3))
+})
+
+test("still starts no clock and moves nothing", () => {
+  mockMotion.reduced = false
+  mockMotion.at = 2100
+  renderAt(<FernSprite size={88} state="idle" still dark={false} />)
+  expect(mockMotion.repeats).toEqual([])
+  expect(scaled("scale")).toEqual([])
+  expect(scaled("scaleY")).toEqual([])
+})
+
+test("arriving settles into idle instead of holding its last frame", () => {
+  jest.useFakeTimers()
+  try {
+    render(<FernSprite size={88} state="arriving" dark={false} />)
+    expect(screen.getByTestId("fern-arriving")).toBeTruthy()
+    act(() => jest.advanceTimersByTime(2000))
+    expect(screen.getByTestId("fern-idle")).toBeTruthy()
+  } finally {
+    jest.useRealTimers()
+  }
 })

@@ -2,8 +2,10 @@
 // Reanimated. fern-geometry.ts holds the shapes; this file stacks them in
 // layers (one Svg per moving part, all sharing the same box) and plays the
 // brand kit's keyframes on them from one clock. Every motion is a transform,
-// an opacity or a stroke drawing on. Reduced Motion and `still` show the
-// pose with nothing moving, as the kit's `.still` does.
+// an opacity or a stroke drawing on. `still` shows the pose with nothing
+// moving, as the kit's `.still` does. Reduced Motion keeps Fern alive but
+// calm: the face (a blink, a glance, the mouth), fades and strokes drawing
+// on still play; nothing bobs, sways, hops or travels.
 
 import {
   createContext,
@@ -12,11 +14,13 @@ import {
   useEffect,
   useId,
   useMemo,
+  useState,
 } from "react"
 import { View } from "react-native"
 import Animated, {
   cancelAnimation,
   Easing,
+  ReduceMotion,
   type SharedValue,
   useAnimatedProps,
   useAnimatedStyle,
@@ -56,6 +60,8 @@ type Motion = {
   ease?: Ease
   /** Plays once and holds its last frame (arriving), instead of looping. */
   once?: boolean
+  /** A small move of the face that still plays under Reduced Motion. */
+  calm?: boolean
   rotate?: Track
   scale?: Track
   scaleY?: Track
@@ -157,6 +163,7 @@ const M = {
   eEyes: {
     dur: 5,
     once: true,
+    calm: true,
     scaleY: [
       [0, 0.05],
       [0.3, 0.05],
@@ -196,6 +203,7 @@ const M = {
   },
   blink: {
     dur: 4.2,
+    calm: true,
     scaleY: [
       [0, 1],
       [0.46, 1],
@@ -206,6 +214,7 @@ const M = {
   },
   glance: {
     dur: 3,
+    calm: true,
     tx: [
       [0, 0],
       [0.3, 0],
@@ -216,7 +225,7 @@ const M = {
       [1, 0],
     ],
   },
-  talk: { dur: 0.42, scaleY: swing(0.4, 1) },
+  talk: { dur: 0.42, calm: true, scaleY: swing(0.4, 1) },
   well: { dur: 4, scaleY: DRAIN },
   drain: { dur: 4, opacity: DRAIN },
   unfurl: {
@@ -348,6 +357,8 @@ type Ctx = {
   k: number
   clock: SharedValue<number>
   live: boolean
+  /** Reduced Motion: only opacity and `calm` motions play. */
+  calm: boolean
 }
 const SpriteCtx = createContext<Ctx | null>(null)
 const useCtx = () => useContext(SpriteCtx) as Ctx
@@ -368,14 +379,17 @@ function Part({
   rotate?: number
   children: ReactNode
 }) {
-  const { size, vb, k, clock, live } = useCtx()
+  const { size, vb, k, clock, live, calm } = useCtx()
   const style = useAnimatedStyle(() => {
     const p = live && motion ? progress(clock.value, motion) : -1
     if (!motion || p < 0)
       return { opacity: 1, transform: [{ rotate: `${rotate}deg` }] }
     const e = motion.ease ?? "inOut"
+    const opacity = motion.opacity ? at(p, motion.opacity, e) : 1
+    if (calm && !motion.calm)
+      return { opacity, transform: [{ rotate: `${rotate}deg` }] }
     return {
-      opacity: motion.opacity ? at(p, motion.opacity, e) : 1,
+      opacity,
       transform: [
         { translateX: (motion.tx ? at(p, motion.tx, e) : 0) * k },
         { translateY: (motion.ty ? at(p, motion.ty, e) : 0) * k },
@@ -501,6 +515,8 @@ function Dry({ on, children }: { on: boolean; children: ReactNode }) {
 }
 
 const HOUR = 3_600_000
+/** The arrival's face and wreath are in by then (eBody, eEyes, eCurl). */
+const ARRIVAL_MS = 2_000
 
 export type FernSpriteProps = {
   size: number
@@ -521,7 +537,7 @@ export type FernSpriteProps = {
  */
 export function FernSprite({
   size,
-  state = "idle",
+  state: asked = "idle",
   still = false,
   dark,
   decorative = false,
@@ -530,7 +546,18 @@ export function FernSprite({
   const name = companionStore.use((s) => s.name)
   const isDark = dark ?? t.dark
   const reduced = useReducedMotion()
-  const live = !still && !reduced
+  const live = !still
+  const calm = reduced
+  // Arriving plays once; then Fern rests, breathing and blinking, instead
+  // of holding the last frame.
+  const [arrived, setArrived] = useState(false)
+  useEffect(() => {
+    setArrived(false)
+    if (asked !== "arriving" || !live) return
+    const id = setTimeout(() => setArrived(true), ARRIVAL_MS)
+    return () => clearTimeout(id)
+  }, [asked, live])
+  const state: FernState = asked === "arriving" && arrived ? "idle" : asked
   const small = size < 32
   const s = useMemo(() => fernShapes(state, small), [state, small])
   const p = fernPalette(isDark),
@@ -542,18 +569,26 @@ export function FernSprite({
     cancelAnimation(clock)
     clock.value = 0
     if (!live) return
+    // Reanimated jumps an animation to its end while Reduced Motion is on;
+    // the clock must run so the calm motions can play.
     clock.value = withRepeat(
-      withTiming(HOUR, { duration: HOUR, easing: Easing.linear }),
+      withTiming(HOUR, {
+        duration: HOUR,
+        easing: Easing.linear,
+        reduceMotion: ReduceMotion.Never,
+      }),
       -1,
       false,
+      undefined,
+      ReduceMotion.Never,
     )
     return () => cancelAnimation(clock)
   }, [live, state, clock])
 
   const vb = s.viewBox
   const ctx = useMemo<Ctx>(
-    () => ({ size, vb, k: size / vb[2], clock, live }),
-    [size, vb, clock, live],
+    () => ({ size, vb, k: size / vb[2], clock, live, calm }),
+    [size, vb, clock, live, calm],
   )
   const sw = small ? 2.6 : size > 80 ? 1.5 : 1.9
   const happy = state === "celebrating",
@@ -924,6 +959,7 @@ export function FernSprite({
         </Part>
         {mood}
         {live &&
+          !calm &&
           s.lift.map((l) => (
             <Part
               key={l.d}

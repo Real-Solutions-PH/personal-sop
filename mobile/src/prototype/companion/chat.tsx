@@ -40,6 +40,7 @@ import Animated, {
   FadeIn,
   FadeInDown,
   interpolate,
+  ReduceMotion,
   runOnJS,
   useAnimatedStyle,
   useReducedMotion,
@@ -60,7 +61,7 @@ import { IconTap, Line } from "../native-kit"
 import { go } from "../navigation"
 import { chatPage } from "../notifications"
 import { Exchange, ThreadComposer } from "../screens/capture-thread"
-import { fonts, useTheme } from "../theme"
+import { fonts, radius, space, useTheme } from "../theme"
 import { JumpToLatest, Screen } from "../ui"
 import { wake } from "../wake-word"
 import { AskStatus } from "./ask-status"
@@ -94,23 +95,43 @@ function useWorking() {
   const writing = answering((s) => s.id !== null)
   return on || writing
 }
-/** Three soft dots after the line saying what Fern is doing. Still under
- * reduced motion. */
+// Reanimated skips every animation while iOS Reduce Motion is on, which
+// left the chat with no motion at all. Under it, rows still fade in (no
+// rise) and the dots still pulse: fades are not motion the setting asks
+// to remove.
+const never = ReduceMotion.Never
+const fadeIn = (ms = 200) => FadeIn.duration(ms).reduceMotion(never)
+/** How a new row arrives: rising a little, or only fading in under
+ * Reduce Motion. */
+function useArrive() {
+  const reduced = useReducedMotion()
+  return {
+    reduced,
+    rise: (ms = 220) => (reduced ? fadeIn(ms) : FadeInDown.duration(ms)),
+  }
+}
+/** Three soft dots after the line saying what Fern is doing, pulsing in
+ * turn (opacity only, so also under Reduce Motion). */
 function ThinkDots() {
   const t = useTheme()
-  const reduced = useReducedMotion()
   const p = useSharedValue(0)
   useEffect(() => {
-    if (!reduced)
-      p.value = withRepeat(
-        withTiming(1, { duration: 1200, easing: Easing.linear }),
-        -1,
-      )
-  }, [reduced, p])
+    p.value = withRepeat(
+      withTiming(1, {
+        duration: 1200,
+        easing: Easing.linear,
+        reduceMotion: never,
+      }),
+      -1,
+      false,
+      undefined,
+      never,
+    )
+  }, [p])
   return (
     <View style={{ flexDirection: "row", gap: 3, marginLeft: 4 }}>
       {[0, 1, 2].map((i) => (
-        <Dot key={i} p={p} i={i} color={t.muted} still={reduced} />
+        <Dot key={i} p={p} i={i} color={t.muted} />
       ))}
     </View>
   )
@@ -119,17 +140,14 @@ function Dot({
   p,
   i,
   color,
-  still,
 }: {
   p: { value: number }
   i: number
   color: string
-  still: boolean
 }) {
   const style = useAnimatedStyle(() => ({
-    opacity: still
-      ? 0.6
-      : 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(2 * Math.PI * (p.value - i / 3))),
+    opacity:
+      0.3 + 0.7 * (0.5 + 0.5 * Math.sin(2 * Math.PI * (p.value - i / 3))),
   }))
   return (
     <Animated.View
@@ -150,7 +168,7 @@ function ThinkLine({ children }: { children: string }) {
       {/* A new stage fades in where the last one was. */}
       <Animated.Text
         key={children}
-        entering={FadeIn.duration(200)}
+        entering={fadeIn()}
         style={{ color: t.muted, fontFamily: fonts.body, fontSize: 15 }}
       >
         {children}
@@ -187,9 +205,10 @@ export function SolMessage({ m, name }: { m: Msg; name: string }) {
   const thought = m.blocks?.filter((b) => b.t === "thinking") ?? []
   const rest = m.blocks?.filter((b) => b.t !== "thinking") ?? []
   const stage = stageOf(m.blocks)
+  const { reduced } = useArrive()
   return (
     <Animated.View
-      entering={FadeInDown.springify().damping(18)}
+      entering={reduced ? fadeIn() : FadeInDown.springify().damping(18)}
       style={{ flexDirection: "row", gap: 8, alignItems: "flex-start" }}
     >
       <View style={{ marginTop: 2 }}>
@@ -287,11 +306,9 @@ function MyMessage({ m }: { m: Msg }) {
           key: `${i}-${u ?? ""}`,
         }))
       : []
+  const { rise } = useArrive()
   return (
-    <Animated.View
-      entering={FadeInDown.duration(220)}
-      style={{ alignItems: "flex-end", gap: 6 }}
-    >
+    <Animated.View entering={rise()} style={{ alignItems: "flex-end", gap: 6 }}>
       {shots.length > 0 && (
         <View
           style={{
@@ -389,7 +406,7 @@ function Thinking({ name }: { name: string }) {
   // line saying what Fern is doing.
   return (
     <Animated.View
-      entering={FadeIn}
+      entering={fadeIn(250)}
       style={{ flexDirection: "row", gap: 8, alignItems: "flex-start" }}
     >
       <View style={{ marginTop: 2 }}>
@@ -517,6 +534,7 @@ function Welcome({
   const me = dashStore.use((s) => s.profile.name.split(" ")[0])
   const ring = D.useTodayRing()
   const left = Math.max(0, ring.due - ring.done)
+  const { reduced } = useArrive()
   return (
     <View
       style={{
@@ -551,17 +569,25 @@ function Welcome({
           : "Today's plan is done. Steady work. Want a recap, or a look at tomorrow?"}
       </Text>
       {/* Cards go in rows of two; each row stretches both cards to the
-          taller one, so a row never has a short card beside a long one. */}
-      <View style={{ gap: 8, alignSelf: "stretch" }}>
+          taller one, so a row never has a short card beside a long one.
+          The brand's FernHome: flat cards on a hairline, icons in Fern's
+          primary green. */}
+      <View style={{ gap: space.sm, alignSelf: "stretch" }}>
         {pairs(CAPABILITIES).map((row, r) => (
           <View
             key={row[0].label}
-            style={{ flexDirection: "row", gap: 8, alignItems: "stretch" }}
+            style={{
+              flexDirection: "row",
+              gap: space.sm,
+              alignItems: "stretch",
+            }}
           >
             {row.map((c, j) => (
               <Animated.View
                 key={c.label}
-                entering={FadeInDown.delay(60 * (r * 2 + j))}
+                entering={(reduced ? fadeIn() : FadeInDown.duration(260)).delay(
+                  60 * (r * 2 + j),
+                )}
                 style={{ flex: 1 }}
               >
                 <Pressable
@@ -571,21 +597,23 @@ function Welcome({
                   onPress={() => ask(c.prompt)}
                   style={({ pressed }) => ({
                     flex: 1,
-                    padding: 12,
-                    gap: 4,
-                    borderRadius: 16,
+                    padding: space.md,
+                    gap: space.xs,
+                    borderRadius: radius.card,
                     borderWidth: 1,
                     borderColor: t.line,
                     backgroundColor: pressed ? t.soft : t.card,
                     minHeight: 92,
+                    transform: [{ scale: pressed ? 0.98 : 1 }],
                   })}
                 >
-                  <c.icon size={18} color={t.hab} />
+                  <c.icon size={18} strokeWidth={2} color={t.primary} />
                   <Text
                     style={{
                       color: t.text,
                       fontFamily: fonts.semibold,
                       fontSize: 14,
+                      lineHeight: 20,
                     }}
                   >
                     {c.label}
