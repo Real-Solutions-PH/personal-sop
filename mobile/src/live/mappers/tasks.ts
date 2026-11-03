@@ -119,6 +119,7 @@ function restoredLocally(s: TasksState, id: string): boolean {
 export function taskMapper(): Mapper<TasksState, Task> {
   return {
     entity: "task",
+    pureRows: true,
     store: tasksStore,
     // A deleted task stays in the store for Recently deleted, but it is not
     // a live server row: leaving the list is what sends its delete op.

@@ -370,6 +370,7 @@ export function workoutMapper(
 ): Mapper<S, SyncedWorkout> {
   return {
     entity: "workout",
+    pureRows: true,
     store: fitStore,
     list: (s) => s.workouts,
     id: (w) => w.id,
@@ -739,6 +740,7 @@ function placeRows<
 export function weighInMapper(): Mapper<S, WeighIn> {
   return {
     entity: "weigh_in",
+    pureRows: true,
     store: fitStore,
     list: (s) => s.weighIns,
     id: (w) => w.id,
@@ -781,6 +783,7 @@ const optNum = (v: unknown) => (v == null ? undefined : Number(v))
 export function runMapper(): Mapper<S, RunSession> {
   return {
     entity: "run_session",
+    pureRows: true,
     store: fitStore,
     list: (s) => s.runs ?? [],
     id: (r) => r.id,
@@ -954,6 +957,7 @@ function followUpIn(v: unknown): Meal["followUp"] {
 export function mealMapper(held: Held<ItemRowM>): Mapper<S, Meal> {
   return {
     entity: "meal",
+    pureRows: true,
     store: fitStore,
     list: (s) => s.meals,
     id: (m) => m.id,

@@ -69,6 +69,7 @@ export function groupMapper(): Mapper<ScreenState, ScreenGroup> {
 export function dayMapper(): Mapper<ScreenState, ScreenDay> {
   return {
     entity: "screen_day",
+    pureRows: true,
     store: screenStore,
     list: (s) => s.days,
     id: (d) => d.id,

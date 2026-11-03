@@ -7,7 +7,7 @@
 // simply wait in the outbox.
 
 import { newId } from "@domain/lib/ids"
-import type { StorageAdapter } from "@domain/lib/store"
+import { type StorageAdapter, storeState, trackReads } from "@domain/lib/store"
 import { ApiError, type Http, NetworkError } from "./http"
 import { type AnyMapper, diffEntity, type Payload } from "./mapper"
 import type { Outbox, SyncOp } from "./outbox"
@@ -43,12 +43,16 @@ export interface EngineDeps {
   batch?: number
 }
 
+// What the server holds, per entity (one key each, so a change to one
+// entity rewrites that entity alone, not every synced row).
 const SNAP_KEY = "sop-live:snapshot"
 const CURSOR_KEY = "sop-live:cursor"
 // The local rows as of the last capture, so a transition made while the
 // engine was not running (before sign-in finished, on an offline launch)
-// still becomes its action op when the engine starts.
+// still becomes its action op when the engine starts. Per entity as well.
 export const PREVIOUS_KEY = "sop-live:previous"
+// The entities that have per-entity keys, so they can be forgotten.
+const ENTITIES_KEY = "sop-live:entities"
 export const DEAD_LETTER_KEY = "sop-live:dead-letter"
 const DELETED_KEY = "sop-live:deleted"
 const DEFERRED_KEY = "sop-live:deferred"
@@ -63,6 +67,29 @@ const SYNC_TIMEOUT_MS = 30_000
 // the whole batch, so no per-op receipt exists). Retrying the same batch can
 // never succeed, and every op queued behind it would wait forever.
 const MALFORMED = new Set([400, 413, 422])
+
+/** Every key the engine keeps for one account (signing out forgets them). */
+export function forgetSyncState(storage: StorageAdapter) {
+  let entities: string[] = []
+  try {
+    entities = JSON.parse(storage.getItem(ENTITIES_KEY) ?? "[]")
+  } catch {}
+  for (const e of entities) {
+    storage.removeItem(`${SNAP_KEY}:${e}`)
+    storage.removeItem(`${PREVIOUS_KEY}:${e}`)
+  }
+  for (const key of [
+    "sop-live:outbox",
+    SNAP_KEY,
+    CURSOR_KEY,
+    PREVIOUS_KEY,
+    ENTITIES_KEY,
+    "sop-live:deleted",
+    "sop-live:deferred",
+    DEAD_LETTER_KEY,
+  ])
+    storage.removeItem(key)
+}
 
 export class SyncEngine {
   private snapshot: Record<string, Record<string, Payload>> = {}
@@ -82,16 +109,38 @@ export class SyncEngine {
   private deferred: Record<string, Change> = {}
   /** When the latest local edit not yet captured was made (epoch ms). */
   private editedAt: number | null = null
+  /** Per mapper, the stores its last diff read and their state then: while
+   * none has changed, its diff is empty and is skipped. A tap changes one
+   * store, so the capture after it diffs that store's entities only. */
+  private inputs = new Map<AnyMapper, Map<string, unknown>>()
+  /** Per entity, rows a pull or an adopt moved on outside a diff: the next
+   * diff compares them field by field whatever their identity. */
+  private recheck = new Map<string, Set<string>>()
+  /** Entities whose snapshot or baseline changed since the last persist. */
+  private dirty = new Set<string>()
+  private bookkeepingDirty = false
+  /** Saved in the single-key format of older builds: rewritten per entity. */
+  private legacy = false
   readonly rejected: OpResult[] = []
 
   constructor(private deps: EngineDeps) {
     let stored: Record<string, Record<string, unknown>> = {}
+    const get = (key: string) => deps.storage.getItem(key)
     try {
-      this.snapshot = JSON.parse(deps.storage.getItem(SNAP_KEY) ?? "{}")
-      this.cursor = Number(deps.storage.getItem(CURSOR_KEY) ?? 0) || 0
-      this.deleted = JSON.parse(deps.storage.getItem(DELETED_KEY) ?? "{}")
-      stored = JSON.parse(deps.storage.getItem(PREVIOUS_KEY) ?? "{}")
-      this.deferred = JSON.parse(deps.storage.getItem(DEFERRED_KEY) ?? "{}")
+      const snap = get(SNAP_KEY)
+      const prev = get(PREVIOUS_KEY)
+      this.legacy = snap !== null || prev !== null
+      this.snapshot = JSON.parse(snap ?? "{}")
+      stored = JSON.parse(prev ?? "{}")
+      for (const m of deps.mappers) {
+        const s = get(`${SNAP_KEY}:${m.entity}`)
+        if (s !== null) this.snapshot[m.entity] = JSON.parse(s)
+        const p = get(`${PREVIOUS_KEY}:${m.entity}`)
+        if (p !== null) stored[m.entity] = JSON.parse(p)
+      }
+      this.cursor = Number(get(CURSOR_KEY) ?? 0) || 0
+      this.deleted = JSON.parse(get(DELETED_KEY) ?? "{}")
+      this.deferred = JSON.parse(get(DEFERRED_KEY) ?? "{}")
     } catch {
       this.snapshot = {}
       this.cursor = 0
@@ -100,6 +149,7 @@ export class SyncEngine {
       this.snapshot[m.entity] ??= {}
       // No stored baseline (first run): the current rows are the baseline.
       this.previous[m.entity] = stored[m.entity] ?? this.index(m, m.store.get())
+      if (this.legacy || !stored[m.entity]) this.dirty.add(m.entity)
     }
   }
 
@@ -109,12 +159,56 @@ export class SyncEngine {
     return out
   }
 
+  /** Write what changed since the last persist: the cursor, and the
+   * snapshot and baseline of the entities marked dirty. */
   private persist() {
-    this.deps.storage.setItem(SNAP_KEY, JSON.stringify(this.snapshot))
-    this.deps.storage.setItem(CURSOR_KEY, String(this.cursor))
-    this.deps.storage.setItem(DELETED_KEY, JSON.stringify(this.deleted))
-    this.deps.storage.setItem(PREVIOUS_KEY, JSON.stringify(this.previous))
-    this.deps.storage.setItem(DEFERRED_KEY, JSON.stringify(this.deferred))
+    const { storage } = this.deps
+    storage.setItem(CURSOR_KEY, String(this.cursor))
+    if (this.dirty.size || this.legacy)
+      storage.setItem(
+        ENTITIES_KEY,
+        JSON.stringify(this.deps.mappers.map((m) => m.entity)),
+      )
+    for (const e of this.dirty) {
+      storage.setItem(
+        `${SNAP_KEY}:${e}`,
+        JSON.stringify(this.snapshot[e] ?? {}),
+      )
+      storage.setItem(
+        `${PREVIOUS_KEY}:${e}`,
+        JSON.stringify(this.previous[e] ?? {}),
+      )
+    }
+    this.dirty.clear()
+    if (this.legacy) {
+      storage.removeItem(SNAP_KEY)
+      storage.removeItem(PREVIOUS_KEY)
+      this.legacy = false
+    }
+    if (this.bookkeepingDirty) {
+      storage.setItem(DELETED_KEY, JSON.stringify(this.deleted))
+      storage.setItem(DEFERRED_KEY, JSON.stringify(this.deferred))
+      this.bookkeepingDirty = false
+    }
+  }
+
+  /** Whether none of the stores the mapper's last diff read has changed
+   * since (false when it has no diff on record). */
+  private unchanged(m: AnyMapper) {
+    const seen = this.inputs.get(m)
+    if (!seen) return false
+    for (const [key, state] of seen) if (storeState(key) !== state) return false
+    return true
+  }
+
+  /** Forget a mapper's recorded inputs: its next capture diffs it again. */
+  private touch(entity: string, ids: Iterable<string> = []) {
+    for (const m of this.deps.mappers)
+      if (m.entity === entity) this.inputs.delete(m)
+    this.dirty.add(entity)
+    const set = this.recheck.get(entity) ?? new Set<string>()
+    for (const id of ids) set.add(id)
+    this.recheck.set(entity, set)
   }
 
   /** Watch the mapped stores. Call once at app start (after sign-in). */
@@ -187,12 +281,14 @@ export class SyncEngine {
     const snap = this.snapshot[m.entity]
     this.previous[m.entity] ??= {}
     const prev = this.previous[m.entity]
+    const rows = this.byId(m, state)
     for (const id of ids) {
-      const local = this.find(m, state, id)
+      const local = rows.get(id)
       if (local === undefined || !snap[id]) continue
       snap[id] = m.toServer(local, state)
       prev[id] = local
     }
+    this.touch(m.entity, ids)
     this.persist()
   }
 
@@ -201,8 +297,12 @@ export class SyncEngine {
    * had, so the next diff upserts every local row; ``previous`` is kept, so
    * no state-change actions are replayed. Returns the ops queued. */
   reupload(): number {
-    for (const m of this.deps.mappers) this.snapshot[m.entity] = {}
+    for (const m of this.deps.mappers) {
+      this.snapshot[m.entity] = {}
+      this.touch(m.entity)
+    }
     this.deleted = {}
+    this.bookkeepingDirty = true
     const ops = this.capture()
     void this.sync()
     return ops.length
@@ -218,59 +318,10 @@ export class SyncEngine {
     const ops: SyncOp[] = []
     const early = new Set<SyncOp>()
     for (const m of this.deps.mappers) {
-      const state = m.store.get()
-      const snap = this.snapshot[m.entity]
-      const d = diffEntity(m, state, snap, this.previous[m.entity] ?? {})
-      for (const a of d.actions)
-        ops.push({ op_id: newId(), kind: "action", name: a.name, data: a.data })
-      const gone = new Set(this.deleted[m.entity] ?? [])
-      // Rows a mapper action already names (e.g. tasks.restore {task_id}).
-      const acted = new Set(
-        d.actions.flatMap((a) => Object.values(a.data ?? {}).map(String)),
-      )
-      for (const u of d.upserts) {
-        // Undo of this device's own delete: the server keeps the tombstone
-        // and refuses a plain upsert onto it (so another device's stale edit
-        // cannot revive a row), so restore it explicitly first, unless the
-        // mapper's own action already restores it or the create carries no
-        // fields (an action-owned row, e.g. a habit timer).
-        if (
-          u.create &&
-          gone.delete(u.id) &&
-          !acted.has(u.id) &&
-          Object.keys(u.data).length
-        ) {
-          const restore: SyncOp = {
-            op_id: newId(),
-            kind: "upsert",
-            name: m.entity,
-            id: u.id,
-            data: { deleted_at: null },
-          }
-          ops.push(restore)
-          if (m.createsFirst) early.add(restore)
-        }
-        const op: SyncOp = {
-          op_id: newId(),
-          kind: "upsert",
-          name: m.entity,
-          id: u.id,
-          data: u.data,
-        }
-        ops.push(op)
-        if (u.create && m.createsFirst) early.add(op)
-        snap[u.id] = {
-          ...(snap[u.id] ?? {}),
-          ...m.toServer(this.find(m, state, u.id), state),
-        }
-      }
-      for (const id of d.deletes) {
-        ops.push({ op_id: newId(), kind: "delete", name: m.entity, id })
-        delete snap[id]
-        gone.add(id)
-      }
-      this.deleted[m.entity] = [...gone].slice(-DELETED_LIMIT)
-      this.previous[m.entity] = this.index(m, state)
+      // Pull-only: nothing to send, and its baseline only moves on a merge.
+      if (m.readOnly || this.unchanged(m)) continue
+      const { keys } = trackReads(() => this.captureOne(m, ops, early))
+      this.inputs.set(m, new Map([...keys].map((k) => [k, storeState(k)])))
     }
     // Actions run first in the batch only within one capture: a create of a
     // row the action derives must not precede the action that derives it.
@@ -283,8 +334,84 @@ export class SyncEngine {
     return ops
   }
 
-  private find(m: AnyMapper, state: unknown, id: string) {
-    return m.list(state).find((l: unknown) => m.id(l) === id)
+  /** Diff one mapper into ``ops`` and move its snapshot and baseline on. */
+  private captureOne(m: AnyMapper, ops: SyncOp[], early: Set<SyncOp>) {
+    const state = m.store.get()
+    const snap = this.snapshot[m.entity]
+    const d = diffEntity(
+      m,
+      state,
+      snap,
+      this.previous[m.entity] ?? {},
+      this.recheck.get(m.entity),
+    )
+    this.recheck.delete(m.entity)
+    const before = ops.length
+    const rows = d.upserts.length ? this.byId(m, state) : null
+    for (const a of d.actions)
+      ops.push({ op_id: newId(), kind: "action", name: a.name, data: a.data })
+    const gone = new Set(this.deleted[m.entity] ?? [])
+    // Rows a mapper action already names (e.g. tasks.restore {task_id}).
+    const acted = new Set(
+      d.actions.flatMap((a) => Object.values(a.data ?? {}).map(String)),
+    )
+    for (const u of d.upserts) {
+      // Undo of this device's own delete: the server keeps the tombstone
+      // and refuses a plain upsert onto it (so another device's stale edit
+      // cannot revive a row), so restore it explicitly first, unless the
+      // mapper's own action already restores it or the create carries no
+      // fields (an action-owned row, e.g. a habit timer).
+      if (
+        u.create &&
+        gone.delete(u.id) &&
+        !acted.has(u.id) &&
+        Object.keys(u.data).length
+      ) {
+        const restore: SyncOp = {
+          op_id: newId(),
+          kind: "upsert",
+          name: m.entity,
+          id: u.id,
+          data: { deleted_at: null },
+        }
+        ops.push(restore)
+        if (m.createsFirst) early.add(restore)
+      }
+      const op: SyncOp = {
+        op_id: newId(),
+        kind: "upsert",
+        name: m.entity,
+        id: u.id,
+        data: u.data,
+      }
+      ops.push(op)
+      if (u.create && m.createsFirst) early.add(op)
+      snap[u.id] = {
+        ...(snap[u.id] ?? {}),
+        ...m.toServer(rows?.get(u.id), state),
+      }
+    }
+    for (const id of d.deletes) {
+      ops.push({ op_id: newId(), kind: "delete", name: m.entity, id })
+      delete snap[id]
+      gone.add(id)
+    }
+    if (d.deletes.length || d.upserts.some((u) => u.create)) {
+      this.deleted[m.entity] = [...gone].slice(-DELETED_LIMIT)
+      this.bookkeepingDirty = true
+    }
+    const was = this.previous[m.entity] ?? {}
+    const now = this.index(m, state)
+    this.previous[m.entity] = now
+    // Saved again only when a row moved on: the rows of a store whose
+    // other entities changed keep their identity and their saved copy.
+    if (ops.length > before || moved(was, now)) this.dirty.add(m.entity)
+  }
+
+  private byId(m: AnyMapper, state: unknown) {
+    const out = new Map<string, unknown>()
+    for (const l of m.list(state)) out.set(m.id(l), l)
+    return out
   }
 
   /** Push the outbox, then pull until caught up. Single-flight. */
@@ -476,9 +603,13 @@ export class SyncEngine {
       )?.heldBy
       const r = rebase(c, pending ? pending(c) : (queued as SyncOp[]), heldBy)
       if (r) {
+        if (key in this.deferred) this.bookkeepingDirty = true
         delete this.deferred[key]
         shown.push(r)
-      } else this.deferred[key] = c
+      } else {
+        this.deferred[key] = c
+        this.bookkeepingDirty = true
+      }
     }
     this.merge(shown)
   }
@@ -528,6 +659,7 @@ export class SyncEngine {
         for (const id of dels) delete snap[id]
         for (const l of ups) snap[m.id(l)] = m.toServer(l, next)
         this.previous[m.entity] = this.index(m, next)
+        this.touch(m.entity, [...dels, ...ups.map((l) => m.id(l))])
       }
     } finally {
       this.applying = false
@@ -545,6 +677,14 @@ export class SyncEngine {
   settled() {
     return !this.timer && this.deps.outbox.size() === 0
   }
+}
+
+/** Whether any row of ``now`` is not the very object ``was`` held. */
+function moved(was: Record<string, unknown>, now: Record<string, unknown>) {
+  const ids = Object.keys(now)
+  if (ids.length !== Object.keys(was).length) return true
+  for (const id of ids) if (was[id] !== now[id]) return true
+  return false
 }
 
 /** Equal as rows: same fields and values, key order and fields left

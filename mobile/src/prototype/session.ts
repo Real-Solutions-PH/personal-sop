@@ -353,15 +353,10 @@ export async function resetPassword(password: string) {
  * starts clean. */
 function forgetLiveDevice() {
   runtime().stopLive()
-  for (const key of [
-    "sop-live:outbox",
-    "sop-live:snapshot",
-    "sop-live:cursor",
-    "sop-live:previous",
-    "sop-live:deferred",
-    "sop-live:owner",
-  ])
-    storage().removeItem(key)
+  ;(require("@/live/engine") as typeof import("@/live/engine")).forgetSyncState(
+    storage(),
+  )
+  storage().removeItem("sop-live:owner")
   ;(require("@/live/blank") as typeof import("@/live/blank")).clearToBlank()
 }
 /** Changes made on this device that the server has not acknowledged:

@@ -47,6 +47,26 @@ const registry: Array<{
   reset(): void
   flush(): boolean
 }> = []
+// Stores read while `trackReads` runs (null: not tracking).
+let reads: Set<string> | null = null
+/** Runs `fn` and returns the keys of every store it read. For work derived
+ * from several stores (the sync engine's diff), so it can be skipped while
+ * none of them changed. */
+export function trackReads<T>(fn: () => T): { value: T; keys: Set<string> } {
+  const outer = reads
+  const keys = new Set<string>()
+  reads = keys
+  try {
+    return { value: fn(), keys }
+  } finally {
+    reads = outer
+    if (outer) for (const k of keys) outer.add(k)
+  }
+}
+/** A store's current state by key (undefined for an unknown key). */
+export function storeState(key: string): unknown {
+  return registry.find((store) => store.key === key)?.get()
+}
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value)
 export function createStore<T>(
@@ -69,6 +89,7 @@ export function createStore<T>(
   const server = seed()
   const listeners = new Set<() => void>()
   const get = (): T => {
+    reads?.add(key)
     if (state !== undefined) return state
     const defaults = seed()
     try {

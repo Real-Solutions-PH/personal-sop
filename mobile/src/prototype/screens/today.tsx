@@ -60,7 +60,7 @@ import {
   Wallet,
   X,
 } from "lucide-react-native"
-import { type ReactNode, useEffect, useState } from "react"
+import { type ComponentType, memo, useEffect, useMemo, useState } from "react"
 import { Platform, Text, View } from "react-native"
 import Animated, { FadeInDown } from "react-native-reanimated"
 import { toast } from "sonner-native"
@@ -295,7 +295,7 @@ function TodayPlan() {
   const t = useTheme(),
     today = dayKey(),
     items = D.useLocalCalendar(today, today),
-    now = useNow(),
+    now = useMinuteNow(),
     hm = new Date(now).toTimeString().slice(0, 5)
   const open = items.filter((i) => !i.done),
     done = items.length - open.length,
@@ -675,14 +675,7 @@ function ManualTodayHabit({ habit }: { habit: Habit }) {
   )
 }
 /** The time, refreshed each minute (enough for routine windows). */
-function useMinuteNow() {
-  const [now, setNow] = useState(Date.now())
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 60_000)
-    return () => clearInterval(id)
-  }, [])
-  return now
-}
+const useMinuteNow = () => useNow(60_000)
 
 /** Every habit done today: slides in once with a shimmer and a double
  * haptic, then stays put for the rest of the day while it holds. */
@@ -1276,7 +1269,8 @@ function NutritionCard() {
 function FocusCard() {
   const t = useTheme(),
     f = focusStore.use((x) => x),
-    now = useNow(),
+    // Seconds only while a session runs; the card otherwise shows minutes.
+    now = useNow(liveTimeline(f, Date.now()) ? 1000 : 60_000),
     today = dayKey(new Date(now)),
     sec = C.rangeStats(f, today, today, now).byDay[today] ?? 0,
     goal = C.goalSec(f),
@@ -1335,6 +1329,35 @@ function FocusCard() {
     </Group>
   )
 }
+/** What the finance card shows, from the whole finance state. */
+function financeToday(s: ReturnType<typeof finStore.get>, today: string) {
+  const overall = s.budgets.find((b) => !b.archived && b.categoryIds === null),
+    lastMonth = N.addMonths(N.monthOf(today, s.settings.monthStartDay), -1),
+    proj = N.project(s, {
+      horizon: 12,
+      includeUnplanned: s.settings.includeUnplanned,
+      excludedPlanned: s.settings.projExcludedPlanned,
+    })
+  return {
+    lastMonth,
+    budget: overall ? N.budgetView(s, overall) : null,
+    due: N.occurrencesIn(s, N.addDays(today, -14), N.addDays(today, 1)).filter(
+      (o) => o.status === "overdue" || o.status === "due",
+    ),
+    pending: s.records.filter((r) => r.status === "pending").length,
+    spentToday: N.flowIn(s, today, today).spend,
+    reviewReady:
+      Number(today.slice(8, 10)) <= 7 &&
+      !s.lookbacks.some((l) => l.period === lastMonth),
+    // Shown only with income to project from.
+    last: proj.hasIncome ? proj.months.at(-1) : undefined,
+    alerts: s.budgets
+      .filter((b) => !b.archived && b.categoryIds !== null)
+      .map((b) => N.budgetView(s, b))
+      .filter((v) => v.pct >= 0.8)
+      .sort((a, b) => b.pct - a.pct),
+  }
+}
 function FinanceCard() {
   const t = useTheme(),
     s = finStore.use((s) => s),
@@ -1347,27 +1370,10 @@ function FinanceCard() {
       null,
     ),
     today = dayKey(),
-    overall = s.budgets.find((b) => !b.archived && b.categoryIds === null),
-    budget = overall ? N.budgetView(s, overall) : null,
-    due = N.occurrencesIn(s, N.addDays(today, -14), N.addDays(today, 1)).filter(
-      (o) => o.status === "overdue" || o.status === "due",
-    ),
-    pending = s.records.filter((r) => r.status === "pending").length,
-    lastMonth = N.addMonths(N.monthOf(today, s.settings.monthStartDay), -1),
-    reviewReady =
-      Number(today.slice(8, 10)) <= 7 &&
-      !s.lookbacks.some((l) => l.period === lastMonth),
-    proj = N.project(s, {
-      horizon: 12,
-      includeUnplanned: s.settings.includeUnplanned,
-      excludedPlanned: s.settings.projExcludedPlanned,
-    }),
-    last = proj.months.at(-1),
-    alerts = s.budgets
-      .filter((b) => !b.archived && b.categoryIds !== null)
-      .map((b) => N.budgetView(s, b))
-      .filter((v) => v.pct >= 0.8)
-      .sort((a, b) => b.pct - a.pct)
+    // Projection, budgets and occurrences walk every record: worked out
+    // once per change to the finance data (or day), never per render.
+    { budget, due, pending, spentToday, lastMonth, reviewReady, last, alerts } =
+      useMemo(() => financeToday(s, today), [s, today])
   const info = (
     Icon: LucideIcon,
     title: string,
@@ -1414,7 +1420,7 @@ function FinanceCard() {
                     Spent today
                   </Copy>
                   <Copy size={20} weight="semibold">
-                    {money(N.flowIn(s, today, today).spend)}
+                    {money(spentToday)}
                   </Copy>
                 </View>
               </Line>
@@ -1530,7 +1536,7 @@ function FinanceCard() {
                 )}
             </View>
           )}
-          {proj.hasIncome && last && (
+          {last && (
             <View
               style={{
                 borderTopWidth: 1,
@@ -1718,18 +1724,33 @@ function GoalsAndContext({ evening }: { evening: boolean }) {
 }
 /** Today's card for each module, placed in the person's order (Settings →
  * Sections). Screen time has no Today card. */
-const MODULE_CARDS: Partial<Record<ModuleKey, () => ReactNode>> = {
-  habits: HabitsCard,
-  tasks: TasksCard,
-  fitness: FitnessCards,
-  nutrition: NutritionCard,
-  focus: FocusCard,
-  finance: FinanceCard,
+// Each section is memoised: Today re-renders when its own inputs change (the
+// minute, the dashboard, the plan's ring) and a section only re-renders for
+// the stores it reads, so ticking a habit does not rebuild the finance card.
+const MODULE_CARDS: Partial<Record<ModuleKey, ComponentType>> = {
+  habits: memo(HabitsCard),
+  tasks: memo(TasksCard),
+  fitness: memo(FitnessCards),
+  nutrition: memo(NutritionCard),
+  focus: memo(FocusCard),
+  finance: memo(FinanceCard),
 }
+const WeeklyReview = memo(WeeklyReviewCard)
+const Yesterday = memo(YesterdayStrip)
+const FirstWeek = memo(FirstWeekStrip)
+const Plan = memo(TodayPlan)
+const Weather = memo(WeatherCard)
+const Calendar = memo(CalendarCard)
+const Launcher = memo(AppLauncher)
+const Mood = memo(MoodCheckIn)
+const Community = memo(CommunityCard)
+const Goals = memo(GoalsAndContext)
 export function Today() {
   const t = useTheme(),
     s = dashStore.use((s) => s),
-    now = useNow(),
+    // A minute is enough for the greeting, the date and evening mode; a
+    // per-second clock here re-rendered the whole page every second.
+    now = useMinuteNow(),
     date = new Date(now),
     { mode } = useLocalSearchParams<{ mode?: string }>(),
     evening =
@@ -1815,12 +1836,12 @@ export function Today() {
         </Line>
       }
     >
-      <WeeklyReviewCard now={now} />
-      <YesterdayStrip />
-      <FirstWeekStrip />
-      <TodayPlan />
-      {shown.weather && <WeatherCard />}
-      {shown.calendar && <CalendarCard />}
+      <WeeklyReview now={now} />
+      <Yesterday />
+      <FirstWeek />
+      <Plan />
+      {shown.weather && <Weather />}
+      {shown.calendar && <Calendar />}
       {!s.setupHidden && pending.length > 0 && (
         <Frame style={{ padding: 16 }}>
           <Line>
@@ -1840,7 +1861,7 @@ export function Today() {
           </Line>
         </Frame>
       )}
-      <AppLauncher />
+      <Launcher />
       {evening ? (
         <Frame style={{ padding: 16 }}>
           <Tap onPress={() => go("/today/wrap-up")}>
@@ -1891,15 +1912,15 @@ export function Today() {
           </Line>
         </Frame>
       )}
-      {shown.journal && <MoodCheckIn />}
+      {shown.journal && <Mood />}
       {order
         .filter((k) => s.enabled[k])
         .map((k) => {
           const Card = MODULE_CARDS[k]
           return Card ? <Card key={k} /> : null
         })}
-      {shown.social && <CommunityCard />}
-      <GoalsAndContext evening={evening} />
+      {shown.social && <Community />}
+      <Goals evening={evening} />
     </Screen>
   )
 }

@@ -61,6 +61,7 @@ const presetIn = (v: unknown): FocusSession["preset"] =>
 export function sessionMapper(): Mapper<FocusState, FocusSession> {
   return {
     entity: "focus_session",
+    pureRows: true,
     store: focusStore,
     list: (s) => s.sessions,
     id: (x) => x.id,
@@ -124,6 +125,7 @@ export function sessionMapper(): Mapper<FocusState, FocusSession> {
 export function segmentMapper(): Mapper<FocusState, FocusSegment> {
   return {
     entity: "focus_segment",
+    pureRows: true,
     store: focusStore,
     list: (s) => s.segments,
     id: (g) => g.id,
