@@ -57,7 +57,7 @@ export function SleepDetail() {
     shown = nights[at],
     tile = (label: string, value: string) => (
       <View key={label} style={{ width: "46%" }}>
-        <Copy size={11} muted>
+        <Copy size={12} muted>
           {label}
         </Copy>
         <Copy weight="medium">{value}</Copy>
@@ -67,10 +67,10 @@ export function SleepDetail() {
     <Screen title="Sleep">
       {toggle}
       <Frame style={{ padding: 16, gap: 4 }}>
-        <Copy size={12} muted style={{ letterSpacing: 0.6 }}>
-          {longDay(offsets[at] ?? 0).toUpperCase()}
+        <Copy size={13} weight="medium" muted>
+          {longDay(offsets[at] ?? 0)}
         </Copy>
-        <Copy size={30} weight="displayMedium" style={{ color: t.fit }}>
+        <Copy size={30} weight="displayMedium">
           {shown ? hm(shown) : "—"}
         </Copy>
         <DailyBars

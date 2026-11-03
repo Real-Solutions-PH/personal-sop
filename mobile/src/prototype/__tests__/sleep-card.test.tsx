@@ -123,7 +123,7 @@ test("stats skip nights with no data instead of counting them as 0h", () => {
 test("card: last night and the week's average", async () => {
   render(<SleepCard />)
   expect(await screen.findByText("7h 30m")).toBeTruthy()
-  expect(screen.getByText("LAST NIGHT")).toBeTruthy()
+  expect(screen.getByText("Last night")).toBeTruthy()
   // (420+390+480+400+360+450)/6 = 416.67 → 6h 57m
   expect(
     screen.getByLabelText("This week: 6h 57m a night on average"),
@@ -141,7 +141,7 @@ test("card: nothing tracked this week, no card", async () => {
   mockReadSleep.mockImplementation(async (d) => d.map(() => 0))
   render(<SleepCard />)
   await act(async () => {})
-  expect(screen.queryByText("LAST NIGHT")).toBeNull()
+  expect(screen.queryByText("Last night")).toBeNull()
   expect(screen.queryByText("0h 00m")).toBeNull()
 })
 
@@ -150,7 +150,7 @@ test("card: before Health is allowed, nothing (Steps shows the Connect button)",
   render(<SleepCard />)
   await act(async () => {})
   expect(screen.queryByText("Connect Apple Health")).toBeNull()
-  expect(screen.queryByText("LAST NIGHT")).toBeNull()
+  expect(screen.queryByText("Last night")).toBeNull()
 })
 
 test("Today's row: last night and the 7-night average, opens Sleep", async () => {

@@ -108,7 +108,7 @@ export function Budgets({ id }: { id?: string }) {
               {view.b.name}
             </Copy>
             <Copy
-              size={11}
+              size={12}
               style={{
                 color,
                 backgroundColor: `${color}1a`,
@@ -185,7 +185,7 @@ export function Budgets({ id }: { id?: string }) {
                     ? `−${Math.round((v.pct - 1) * 100)}%`
                     : `${Math.round((1 - v.pct) * 100)}%`}
                 </Copy>
-                <Copy size={10} muted>
+                <Copy size={12} muted>
                   {v.pct > 1 ? "over" : "left"}
                 </Copy>
               </Ring>
@@ -283,7 +283,7 @@ export function Budgets({ id }: { id?: string }) {
                     >
                       {Math.round(p.pct * 100)}%
                     </Copy>
-                    <Copy size={11}>
+                    <Copy size={12}>
                       {p.spent === 0 ? "no data" : p.pct > 1 ? "blown" : "kept"}
                     </Copy>
                   </Frame>
@@ -328,7 +328,7 @@ export function Budgets({ id }: { id?: string }) {
       ) : views.length ? (
         <>
           <Frame style={{ padding: 16 }}>
-            <Copy size={30} weight="displayMedium" style={{ color: t.fin }}>
+            <Copy size={30} weight="displayMedium">
               {views.filter((v) => v.pct <= 1).length}/{views.length}
             </Copy>
             <Copy size={12} muted>

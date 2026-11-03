@@ -134,7 +134,7 @@ export function FitnessRoutine() {
             }}
             style={{ paddingVertical: 14, alignItems: "center" }}
           >
-            <Copy size={14} style={{ color: t.fit }}>
+            <Copy size={14} style={{ color: t.primary }}>
               + New template
             </Copy>
           </Tap>

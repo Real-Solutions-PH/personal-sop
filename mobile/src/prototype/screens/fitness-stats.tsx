@@ -134,7 +134,6 @@ export function FitnessStats({ embedded = false }: { embedded?: boolean }) {
               label: `Sessions (target ${Math.round(cur.target)})`,
               value: cur.sessions,
               delta: cur.sessions - prev.sessions,
-              color: t.fit,
             },
             { label: "PRs", value: cur.prs, delta: cur.prs - prev.prs },
             {
@@ -177,7 +176,7 @@ export function FitnessStats({ embedded = false }: { embedded?: boolean }) {
             {weeks.map((w) => (
               <Copy
                 key={w.start}
-                size={10}
+                size={12}
                 muted
                 style={{ flex: 1, textAlign: "center" }}
               >

@@ -181,14 +181,14 @@ test("card: tapping a day's bar shows that day's steps", async () => {
   await screen.findByText("7,000")
   fireEvent.press(screen.getByLabelText(`${label(-3)}: 10,000 steps`))
   expect(screen.getByText("10,000")).toBeTruthy()
-  expect(screen.getByText(`STEPS · ${label(-3).toUpperCase()}`)).toBeTruthy()
+  expect(screen.getByText(`Steps · ${label(-3)}`)).toBeTruthy()
   expect(screen.getByText("5.2 km that day")).toBeTruthy()
   expect(
     screen.getByLabelText(`${label(-3)}: 10,000 steps`).props
       .accessibilityState,
   ).toMatchObject({ selected: true })
   fireEvent.press(screen.getByLabelText(`${label(0)}: 7,000 steps`))
-  expect(screen.getByText("STEPS TODAY")).toBeTruthy()
+  expect(screen.getByText("Steps today")).toBeTruthy()
 })
 
 test("card: Details opens the steps screen", async () => {
@@ -209,7 +209,7 @@ test("card: before Health is allowed, a Connect button instead of zeros", async 
   mockAsked = async () => false
   render(<StepsCard />)
   const connect = await screen.findByText("Connect Apple Health")
-  expect(screen.queryByText("STEPS TODAY")).toBeNull()
+  expect(screen.queryByText("Steps today")).toBeNull()
   await act(async () => fireEvent.press(connect))
   expect(mockConnect).toHaveBeenCalled()
   expect(await screen.findByText("7,000")).toBeTruthy()

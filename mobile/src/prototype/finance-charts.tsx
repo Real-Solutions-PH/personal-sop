@@ -119,7 +119,7 @@ export function PairBars({
         {labels.map((l) => (
           <Copy
             key={l}
-            size={10}
+            size={12}
             muted
             style={{ flex: 1, textAlign: "center" }}
           >
@@ -162,7 +162,7 @@ export function FinanceBars({
               }}
             />
           </View>
-          <Copy size={10} muted style={{ textAlign: "center" }}>
+          <Copy size={12} muted style={{ textAlign: "center" }}>
             {labels[i]}
           </Copy>
         </View>

@@ -5,7 +5,7 @@ import { Dumbbell, Plus, Repeat } from "lucide-react-native"
 import { useRef, useState } from "react"
 import { View } from "react-native"
 import { toast } from "sonner-native"
-import { Copy, Line, Tap } from "../native-kit"
+import { Copy, chosen, Line, Tap } from "../native-kit"
 import { go } from "../navigation"
 import { useTheme } from "../theme"
 import { Sheet } from "../ui"
@@ -98,9 +98,7 @@ export function StartWorkoutSheet({
               )
             }
             style={{
-              borderWidth: 1,
-              borderColor: next?.id === tpl.id ? t.fit : t.line,
-              backgroundColor: next?.id === tpl.id ? `${t.fit}1a` : t.card,
+              ...chosen(t, next?.id === tpl.id),
               padding: 12,
               borderRadius: 16,
             }}
@@ -125,7 +123,7 @@ export function StartWorkoutSheet({
                     {tpl.name}
                   </Copy>
                   {next?.id === tpl.id && (
-                    <Copy size={11} style={{ color: t.fit }}>
+                    <Copy size={12} style={{ color: t.fit }}>
                       Up next
                     </Copy>
                   )}

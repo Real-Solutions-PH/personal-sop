@@ -35,6 +35,7 @@ import {
 } from "@/live/finance-import"
 import {
   Copy,
+  chosen as chosenStyle,
   Frame,
   IconTap,
   Line,
@@ -119,7 +120,6 @@ export function ImportStatement({ id }: { id?: string }) {
     <Done imp={imp} />
   )
 }
-const caps = { textTransform: "uppercase", letterSpacing: 0.6 } as const
 function ImportStart() {
   const s = finStore.use((s) => s),
     t = useTheme(),
@@ -179,7 +179,7 @@ function ImportStart() {
         Upload a bank or e-wallet statement. I'll read it, match it against your
         transactions, and show you every difference before anything changes.
       </Copy>
-      <Copy size={12} muted weight="medium" style={caps}>
+      <Copy size={12} muted weight="medium">
         Account
       </Copy>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -195,7 +195,7 @@ function ImportStart() {
           ))}
         </Line>
       </ScrollView>
-      <Copy size={12} muted weight="medium" style={caps}>
+      <Copy size={12} muted weight="medium">
         File
       </Copy>
       <View style={{ gap: 8 }}>
@@ -203,8 +203,8 @@ function ImportStart() {
           <Frame
             style={{
               padding: 12,
-              borderColor: t.fin,
-              backgroundColor: `${t.fin}1a`,
+              borderWidth: 2,
+              borderColor: t.text,
             }}
           >
             <Line>
@@ -244,8 +244,7 @@ function ImportStart() {
               <Frame
                 style={{
                   padding: 12,
-                  borderColor: file === f.key ? t.fin : t.line,
-                  backgroundColor: file === f.key ? `${t.fin}1a` : t.card,
+                  ...chosenStyle(t, file === f.key),
                 }}
               >
                 <Line>
@@ -298,7 +297,7 @@ function ImportStart() {
           </View>
         </Line>
       </View>
-      <Copy size={11} muted>
+      <Copy size={12} muted>
         {liveMode
           ? "Pick a sample statement, or Browse files for a CSV export."
           : "Prototype: pick one of these sample files."}
@@ -548,7 +547,7 @@ function ImportCounts({
           >
             {x.n}
           </Copy>
-          <Copy size={10} muted>
+          <Copy size={12} muted>
             {x.label}
           </Copy>
         </Frame>
@@ -817,7 +816,7 @@ function Review({ imp }: { imp: StatementImport }) {
                       {money(r.amount)}
                     </Copy>
                   </Line>
-                  <Copy size={10} muted style={{ marginTop: 2 }}>
+                  <Copy size={12} muted style={{ marginTop: 2 }}>
                     {r.raw}
                   </Copy>
                   <Line style={{ gap: 6, flexWrap: "wrap", marginTop: 6 }}>
@@ -834,11 +833,11 @@ function Review({ imp }: { imp: StatementImport }) {
                     >
                       {r.state === "probable" ? "conflict" : r.state}
                     </FinPill>
-                    <Copy size={11} muted>
+                    <Copy size={12} muted>
                       {C.shortDate(r.date)} {r.time}
                     </Copy>
                     {r.state === "new" && (
-                      <Copy size={11} muted>
+                      <Copy size={12} muted>
                         ·{" "}
                         {s.categories.find((c) => c.id === r.categoryId)
                           ?.name ?? "no category"}
@@ -848,7 +847,7 @@ function Review({ imp }: { imp: StatementImport }) {
                       <FinPill tone="warn">unsure</FinPill>
                     )}
                     {r.decision === "ignore" && (
-                      <Copy size={11} muted>
+                      <Copy size={12} muted>
                         · will ignore
                       </Copy>
                     )}
@@ -876,11 +875,11 @@ function Review({ imp }: { imp: StatementImport }) {
                           },
                         ].map((x, i) => (
                           <View key={x.label} style={{ flex: 1 }}>
-                            <Copy size={11} muted>
+                            <Copy size={12} muted>
                               {x.label}
                             </Copy>
                             <Copy
-                              size={11}
+                              size={12}
                               style={{
                                 color:
                                   rec.amount !== r.amount
@@ -897,7 +896,7 @@ function Review({ imp }: { imp: StatementImport }) {
                               {money(x.amount)}
                             </Copy>
                             <Copy
-                              size={11}
+                              size={12}
                               style={{
                                 color:
                                   C.recDay(rec) !== r.date
@@ -912,7 +911,7 @@ function Review({ imp }: { imp: StatementImport }) {
                           </View>
                         ))}
                       </Line>
-                      <Copy size={11} muted>
+                      <Copy size={12} muted>
                         Default:{" "}
                         {r.decision === "take"
                           ? "take statement, keep my category"
@@ -925,13 +924,13 @@ function Review({ imp }: { imp: StatementImport }) {
                     </View>
                   )}
                   {r.state === "matched" && rec && (
-                    <Copy size={11} muted style={{ marginTop: 4 }}>
+                    <Copy size={12} muted style={{ marginTop: 4 }}>
                       ✓ {rec.payee} · fills exact time {r.time} (you logged{" "}
                       {C.timeOf(rec.at)})
                     </Copy>
                   )}
                   {r.reason && r.state !== "probable" && (
-                    <Copy size={11} muted style={{ marginTop: 4 }}>
+                    <Copy size={12} muted style={{ marginTop: 4 }}>
                       {r.reason}
                     </Copy>
                   )}
@@ -1042,7 +1041,7 @@ function RowFix({
       </Copy>
       <Line style={{ gap: 8, alignItems: "stretch" }}>
         <Frame style={{ flex: 1, padding: 12, backgroundColor: t.soft }}>
-          <Copy size={11} muted>
+          <Copy size={12} muted>
             STATEMENT
           </Copy>
           <Copy size={14} weight="medium">
@@ -1055,15 +1054,15 @@ function RowFix({
           <Copy size={12} muted>
             {C.shortDate(r.date)} · {r.time}
           </Copy>
-          <Copy size={10} muted>
+          <Copy size={12} muted>
             {r.raw}
           </Copy>
-          <Copy size={10} muted>
+          <Copy size={12} muted>
             Ref {r.ref}
           </Copy>
         </Frame>
         <Frame style={{ flex: 1, padding: 12, backgroundColor: t.soft }}>
-          <Copy size={11} muted>
+          <Copy size={12} muted>
             YOUR TRANSACTION
           </Copy>
           {rec ? (
@@ -1082,7 +1081,7 @@ function RowFix({
               <Copy size={12} muted>
                 {C.shortDate(C.recDay(rec))} · {C.timeOf(rec.at)}
               </Copy>
-              <Copy size={11} muted>
+              <Copy size={12} muted>
                 {s.categories.find((c) => c.id === rec.categoryId)?.name ??
                   s.accounts.find((a) => a.id === rec.toAccountId)?.name}
               </Copy>

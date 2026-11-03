@@ -129,7 +129,7 @@ export function FinanceOutlook() {
             <Copy
               size={14}
               weight="medium"
-              style={{ color: t.fin, textAlign: "center" }}
+              style={{ color: t.primary, textAlign: "center" }}
             >
               {all ? "Show fewer" : `Show all ${o.items.length}`}
             </Copy>

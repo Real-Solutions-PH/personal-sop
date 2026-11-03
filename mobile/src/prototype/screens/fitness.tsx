@@ -62,9 +62,9 @@ export function CreateExerciseRow({
               backgroundColor: `${t.fit}26`,
             }}
           >
-            <Check size={16} color={t.fit} />
+            <Check size={16} color={t.primary} />
           </View>
-          <Copy weight="medium" style={{ color: t.fit }}>
+          <Copy weight="medium" style={{ color: t.primary }}>
             {`Use “${existing.name}”`}
           </Copy>
         </Line>
@@ -87,9 +87,9 @@ export function CreateExerciseRow({
             backgroundColor: `${t.fit}26`,
           }}
         >
-          <Plus size={16} color={t.fit} />
+          <Plus size={16} color={t.primary} />
         </View>
-        <Copy weight="medium" style={{ color: t.fit }}>
+        <Copy weight="medium" style={{ color: t.primary }}>
           {name ? `Create “${name}”` : "New exercise"}
         </Copy>
       </Line>

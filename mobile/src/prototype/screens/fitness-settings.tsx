@@ -155,10 +155,10 @@ export function FitnessSettings() {
                 </Copy>
               </View>
               <Copy
-                size={11}
+                size={12}
                 style={{
-                  color: t.fit,
-                  backgroundColor: `${t.fit}1a`,
+                  color: t.muted,
+                  backgroundColor: t.soft,
                   paddingHorizontal: 8,
                   paddingVertical: 2,
                   borderRadius: 99,

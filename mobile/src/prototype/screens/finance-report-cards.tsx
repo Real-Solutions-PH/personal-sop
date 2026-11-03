@@ -147,7 +147,7 @@ export function SavingsRateCard({
             <Copy size={14} muted style={{ flex: 1 }}>
               Savings rate
             </Copy>
-            <Copy size={24} weight="displayMedium" style={{ color: t.fin }}>
+            <Copy size={24} weight="displayMedium">
               {C.pct(C.savingsRate(flow))}
             </Copy>
           </Line>

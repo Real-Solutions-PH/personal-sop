@@ -40,7 +40,7 @@ export function FinPill({
         paddingVertical: 2,
       }}
     >
-      <Copy size={11} weight="medium" lines={1} style={{ color: t[tone] }}>
+      <Copy size={12} weight="medium" lines={1} style={{ color: t[tone] }}>
         {children}
       </Copy>
     </View>
@@ -455,7 +455,6 @@ export function Planned({ id }: { id?: string }) {
               {
                 label: "Plan accuracy",
                 value: `${Math.max(0, Math.round(accuracy * 100))}%`,
-                color: t.fin,
               },
             ])}
           <View style={{ marginTop: -12, width: "100%" }}>
@@ -599,7 +598,7 @@ export function Planned({ id }: { id?: string }) {
           {stats([
             { label: "In / month", value: money(income), color: t.good },
             { label: "Out / month", value: money(out) },
-            { label: "Net / month", value: money(income - out), color: t.fin },
+            { label: "Net / month", value: money(income - out) },
           ])}
           <View style={{ marginTop: -12, width: "100%" }}>
             <SectionHeading
@@ -640,7 +639,7 @@ export function Planned({ id }: { id?: string }) {
                             : border(t.line, 0.6),
                     }}
                   >
-                    <Copy size={11} muted>
+                    <Copy size={12} muted>
                       {C.dayLabel(o.day)}
                     </Copy>
                     <Copy size={14} weight="medium" style={{ marginTop: 4 }}>
@@ -690,7 +689,7 @@ export function Planned({ id }: { id?: string }) {
                       {signed(p)}
                     </Copy>
                     {p.estimated && (
-                      <Copy size={10} muted>
+                      <Copy size={12} muted>
                         estimate
                       </Copy>
                     )}

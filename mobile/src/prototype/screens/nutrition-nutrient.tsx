@@ -378,7 +378,7 @@ function Amount({
           return (
             <Copy
               key={p.day}
-              size={10}
+              size={12}
               muted={p.day !== day}
               weight={p.day === day ? "semibold" : "body"}
               lines={1}
@@ -421,7 +421,7 @@ const ShowAll = ({
         borderColor: border(t.line, 0.5),
       }}
     >
-      <Copy size={13} weight="medium" style={{ color: t.nut }}>
+      <Copy size={13} weight="medium" style={{ color: t.primary }}>
         {all
           ? `Show top ${SHOWN}`
           : `Show all ${count.toLocaleString("en-US")} ${noun}`}
@@ -513,7 +513,7 @@ function TopFoods({
                 >
                   {withUnit(f.amount, unit)}
                 </Copy>
-                <Copy size={11} muted>
+                <Copy size={12} muted>
                   {pct(f.share)}
                 </Copy>
               </View>
@@ -645,7 +645,7 @@ function TopMeals({
                   >
                     {hero}
                   </Copy>
-                  <Copy size={11} muted>
+                  <Copy size={12} muted>
                     {mode === "per100"
                       ? "per 100 kcal"
                       : nutrient === "kcal"

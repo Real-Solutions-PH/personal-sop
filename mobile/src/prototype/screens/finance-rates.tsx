@@ -72,7 +72,7 @@ export function Rates() {
                       : `${r.product} · ${KINDS.find((k) => k.v === r.kind)?.label}`}
                   </Copy>
                 </View>
-                <Copy size={16} weight="medium" style={{ color: t.fin }}>
+                <Copy size={16} weight="medium" style={{ color: t.text }}>
                   {rateLabel(r)}
                 </Copy>
               </Line>

@@ -21,6 +21,7 @@ import { MoneyInput } from "../money-input"
 import {
   border,
   Copy,
+  chosen,
   Frame,
   IconTap,
   Line,
@@ -61,17 +62,12 @@ export function FinChip({
         flexDirection: "row",
         alignItems: "center",
         gap: 8,
-        borderWidth: 1,
-        borderColor: active ? "transparent" : t.line,
-        backgroundColor: active ? t.fin : t.card,
+        // Selected is a 2 pt ink outline, never an area-colour fill.
+        ...chosen(t, active),
       }}
     >
       {leading}
-      <Copy
-        size={14}
-        weight="medium"
-        style={{ color: active ? t.onPrimary : t.text }}
-      >
+      <Copy size={14} weight="medium">
         {label}
       </Copy>
     </Tap>
@@ -514,15 +510,15 @@ export function Projection() {
             ]}
           />
           <Line style={{ gap: 16, paddingHorizontal: 4 }}>
-            <Copy size={11} muted>
+            <Copy size={12} muted>
               ━ Baseline
             </Copy>
             {whatIf && (
-              <Copy size={11} muted>
+              <Copy size={12} muted>
                 ━ With {name || "purchase"}
               </Copy>
             )}
-            <Copy size={11} muted>
+            <Copy size={12} muted>
               ┄ Minimum balance
             </Copy>
           </Line>
@@ -842,7 +838,7 @@ export function Projection() {
             Months you could cover
           </Copy>
           <Copy
-            size={11}
+            size={12}
             style={{
               color: runway >= 3 ? t.good : runway >= 1 ? t.warn : t.bad,
             }}

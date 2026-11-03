@@ -252,7 +252,7 @@ export function Accounts({ id }: { id?: string }) {
                 justifyContent: "center",
               }}
             >
-              <Copy size={14} style={{ color: reorder ? t.fin : t.muted }}>
+              <Copy size={14} style={{ color: reorder ? t.text : t.muted }}>
                 {reorder ? "Done" : "Reorder"}
               </Copy>
             </Tap>
@@ -487,7 +487,7 @@ export function Accounts({ id }: { id?: string }) {
                   size={30}
                   weight="displayMedium"
                   fit
-                  style={{ color: t.fin }}
+                  style={{ color: t.text }}
                 >
                   {money(C.netWorth(s, bal))}
                 </Copy>

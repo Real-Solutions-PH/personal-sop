@@ -186,7 +186,7 @@ export function FinanceAdvisor() {
           onPress={() => ask(text.trim())}
         />
       </Line>
-      <Copy size={11} muted style={{ textAlign: "center", marginTop: 6 }}>
+      <Copy size={12} muted style={{ textAlign: "center", marginTop: 6 }}>
         AI commentary from your own data — not licensed financial advice.
       </Copy>
     </View>
@@ -314,7 +314,7 @@ export function FinanceAdvisor() {
                 >
                   <Line style={{ gap: 6 }}>
                     <Bot size={14} color={t.fin} />
-                    <Copy size={11} muted>
+                    <Copy size={12} muted>
                       AI ·{" "}
                       {m.scope === "records"
                         ? "individual transactions"

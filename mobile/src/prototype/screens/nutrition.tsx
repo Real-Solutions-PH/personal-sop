@@ -150,7 +150,7 @@ export function MacroRings({
       >
         {num(left === undefined ? totals.kcal : Math.abs(left))}
       </Copy>
-      <Copy size={10} muted maxScale={1.15} style={{ marginTop: 2 }}>
+      <Copy size={12} muted maxScale={1.15} style={{ marginTop: 2 }}>
         {left === undefined
           ? average
             ? "kcal a day"
@@ -199,7 +199,7 @@ export function MacroRings({
             <View>
               <Line style={{ gap: 1, justifyContent: "center" }}>
                 <Copy
-                  size={10}
+                  size={12}
                   muted
                   maxScale={1.3}
                   style={{ textAlign: "center", lineHeight: 12.5 }}
@@ -210,7 +210,7 @@ export function MacroRings({
               </Line>
               {target && (
                 <Copy
-                  size={10}
+                  size={12}
                   muted
                   maxScale={1.3}
                   style={{ textAlign: "center", lineHeight: 12.5 }}
@@ -248,7 +248,7 @@ export function MacroRings({
           </Ring>
           <View>
             <Copy
-              size={10}
+              size={12}
               muted
               maxScale={1.3}
               style={{ textAlign: "center", lineHeight: 12.5 }}
@@ -256,7 +256,7 @@ export function MacroRings({
               Fiber
             </Copy>
             <Copy
-              size={10}
+              size={12}
               muted
               maxScale={1.3}
               style={{ textAlign: "center", lineHeight: 12.5 }}
@@ -428,7 +428,7 @@ function PageLinks() {
 
 const pill = (text: string, color: string) => (
   <Copy
-    size={11}
+    size={12}
     weight="medium"
     style={{
       color,
@@ -748,7 +748,7 @@ function DayMeals({ day }: { day: string }) {
           }}
         />
       </View>
-      <Copy size={11} weight="semibold" style={{ color: t.nut }}>
+      <Copy size={12} weight="semibold" style={{ color: t.nut }}>
         {`Now · ${C.fmtTime(now.toISOString())}`}
       </Copy>
       <View style={{ flex: 1, height: 1, backgroundColor: `${t.nut}55` }} />
@@ -810,11 +810,11 @@ function DayMeals({ day }: { day: string }) {
                         {SLOT_LABEL[slot]}
                       </Copy>
                       <Line style={{ gap: 4 }}>
-                        <Plus size={14} color={t.nut} />
+                        <Plus size={14} color={t.primary} />
                         <Copy
                           size={12}
                           weight="medium"
-                          style={{ color: t.nut }}
+                          style={{ color: t.primary }}
                         >
                           Log
                         </Copy>
@@ -1066,7 +1066,7 @@ function CaloriesByMacro({
           {days.map((d, i) => (
             <Copy
               key={d.day}
-              size={10}
+              size={12}
               muted={d.day !== day}
               weight={d.day === day ? "semibold" : "body"}
               style={{ flex: 1, textAlign: "center" }}
@@ -1123,7 +1123,7 @@ function CaloriesByMacro({
                     </Line>
                     {days && (
                       <Copy
-                        size={11}
+                        size={12}
                         style={{
                           textAlign: "right",
                           color:
