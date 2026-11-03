@@ -311,13 +311,37 @@ export function rescheduleBy(id: string, days: number): void {
   if (!t) return
   setDue(id, addDays(today(), days))
 }
+/** Due today. A time of day still ahead today stays; one already past is
+ * dropped rather than landing the task late again. A reminder still ahead
+ * (a snooze) stays as it is; an older one moves to today at its clock time
+ * if that is still ahead, and is dropped otherwise. */
+export function moveToToday(id: string): void {
+  const t = getTask(id)
+  if (!t) return
+  const tk = today()
+  const now = Date.now()
+  const ahead = (hhmm: string) => new Date(isoAt(tk, hhmm)).getTime() > now
+  const clock = (iso: string) => {
+    const d = new Date(iso)
+    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`
+  }
+  const dueTime = t.dueTime && ahead(t.dueTime) ? t.dueTime : null
+  const remind = t.remindAt ? clock(t.remindAt) : null
+  const remindAt =
+    t.remindAt && new Date(t.remindAt).getTime() > now
+      ? t.remindAt
+      : remind && ahead(remind)
+        ? isoAt(tk, remind)
+        : null
+  setDue(id, tk, dueTime, remindAt)
+}
 export function moveAllOverdueToToday(): number {
   const tk = today()
   const ids = tasksStore
     .get()
     .tasks.filter((t) => isOverdue(t, tk))
     .map((t) => t.id)
-  for (const id of ids) setDue(id, tk)
+  for (const id of ids) moveToToday(id)
   return ids.length
 }
 export function snoozeTask(id: string, minutes = 60): void {

@@ -457,6 +457,21 @@ export function TaskRow({
             >
               Snooze 1 hour
             </Button>
+            {L.isOverdue(task) && (
+              <Button
+                tone="quiet"
+                onPress={() => {
+                  const { dueDate, dueTime, remindAt } = task
+                  A.moveToToday(task.id)
+                  undo("Moved to today", () =>
+                    A.setDue(task.id, dueDate, dueTime, remindAt),
+                  )
+                  setOpen(false)
+                }}
+              >
+                Today
+              </Button>
+            )}
             <Button
               tone="quiet"
               onPress={() => {
@@ -696,7 +711,26 @@ export function Tasks({
             </Button>
           </Actions>
           {filter === "overdue" && (
-            <Button tone="quiet" onPress={() => A.moveAllOverdueToToday()}>
+            <Button
+              tone="quiet"
+              onPress={() => {
+                const old = tasksStore
+                  .get()
+                  .tasks.filter((x) => L.isOverdue(x))
+                  .map(({ id, dueDate, dueTime, remindAt }) => ({
+                    id,
+                    dueDate,
+                    dueTime,
+                    remindAt,
+                  }))
+                A.moveAllOverdueToToday()
+                undo("Moved overdue tasks to today", () =>
+                  old.forEach((x) => {
+                    A.setDue(x.id, x.dueDate, x.dueTime, x.remindAt)
+                  }),
+                )
+              }}
+            >
               Move overdue to today
             </Button>
           )}

@@ -28,6 +28,7 @@ import {
   getTask,
   type ListInput,
   moveAllOverdueToToday,
+  moveToToday,
   removeTasks,
   restoreTask,
   setDue,
@@ -753,7 +754,7 @@ export function TriageSheet() {
                   <div className="mt-2 flex gap-1.5 pl-10">
                     {(
                       [
-                        ["Today", () => setDue(t.id, tk)],
+                        ["Today", () => moveToToday(t.id)],
                         ["Tmrw", () => setDue(t.id, addDays(tk, 1))],
                         ["Pick", () => setPick(t)],
                       ] as const
