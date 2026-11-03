@@ -45,6 +45,9 @@ const fmt = (day: string) =>
     day: "numeric",
     year: "numeric",
   })
+/** First letter up, the rest as written: "records" → "Records". */
+const sentence = (w: string) => w.charAt(0).toUpperCase() + w.slice(1)
+
 export function Misses() {
   const p = useLocalSearchParams<{ range?: string }>(),
     [range, setRange] = useState(p.range?.replace("d", "") || "7"),
@@ -317,7 +320,7 @@ export function Trophies() {
                 </Copy>
               </Copy>
               <Copy size={12} muted>
-                {TROPHY_LABEL[type].split(" ").at(-1)}
+                {sentence(TROPHY_LABEL[type].split(" ").at(-1) ?? "")}
               </Copy>
             </View>
           )
