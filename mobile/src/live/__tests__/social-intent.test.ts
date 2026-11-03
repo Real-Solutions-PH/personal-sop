@@ -6,7 +6,9 @@ import {
   addComment,
   cheer,
   connectSocial,
+  deleteComment,
   ME,
+  openPostLive,
   type Post,
   reactTo,
   type SocialRemote,
@@ -468,5 +470,60 @@ describe("live responses and reads", () => {
       isFollowing: false,
       followers: 10,
     })
+  })
+})
+
+// A post's comments are re-read when it opens and on every live comment
+// event (my own included): a read answered before my write reached the
+// server must not undo the write on screen.
+describe("comment writes against a stale read", () => {
+  const wireComment = (id: string, text: string, by = ANA) => ({
+    id,
+    post_id: POST,
+    author: brief(by, by === ANA ? "Ana" : "Me"),
+    text,
+    created_at: "2026-10-19T08:00:00Z",
+    likes: 0,
+    liked: false,
+    reply_to_id: null,
+  })
+  const mine = () => post().comments.find((c) => c.text === "great")
+  function live(answer: (c: { method: string; path: string }) => unknown) {
+    const d = deferredHttp(answer)
+    connectSocial(createSocialLive({ http: d.http, userId: MEID }))
+    return d
+  }
+
+  test("a comment I post survives a read that predates it", async () => {
+    const { calls } = live((c) =>
+      c.method === "POST"
+        ? wireComment(mine()?.id ?? "", "great", MEID)
+        : c.path.endsWith("/comments?limit=100")
+          ? { data: [wireComment("c1", "nice")], next: null }
+          : wirePost(),
+    )
+    addComment(POST, "great")
+    void openPostLive(POST)
+    await settle()
+    expect(calls).toHaveLength(3)
+    // POST (call 0) still in flight; the post and comment reads land.
+    for (const c of calls.slice(1)) await c.release()
+    expect(mine()).toBeTruthy()
+    await calls[0].release()
+    expect(post().comments.filter((c) => c.text === "great")).toHaveLength(1)
+  })
+
+  test("a comment I delete stays gone when a read still has it", async () => {
+    const { calls } = live((c) =>
+      c.path.endsWith("/comments?limit=100")
+        ? { data: [wireComment("c1", "nice")], next: null }
+        : wirePost(),
+    )
+    deleteComment(POST, "c1")
+    void openPostLive(POST)
+    await settle()
+    expect(calls).toHaveLength(3)
+    for (const c of calls.slice(1)) await c.release()
+    expect(post().comments.map((c) => c.id)).not.toContain("c1")
   })
 })

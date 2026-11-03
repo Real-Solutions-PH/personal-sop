@@ -35,6 +35,10 @@ if (liveMode)
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
 })
+if (liveMode)
+  (
+    require("@/live/query-refresh") as typeof import("@/live/query-refresh")
+  ).installQueryRefresh(queryClient)
 
 export function PrototypeProviders({ children }: { children: ReactNode }) {
   const [fontsLoaded, fontError] = useFonts({

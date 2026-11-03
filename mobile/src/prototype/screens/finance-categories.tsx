@@ -281,7 +281,12 @@ export function CategoryForm({
                     discretionary: kind === "expense" && disc,
                   }
                   if (ex) A.updateCategory(ex.id, input)
-                  else onAdded?.(A.addCategory(input).id)
+                  else {
+                    // Create first: an optional call skips its arguments, so
+                    // with no listener the category would never be added.
+                    const added = A.addCategory(input)
+                    onAdded?.(added.id)
+                  }
                   onClose()
                 }}
               >
