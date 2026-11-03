@@ -6,19 +6,23 @@ import { tasksStore } from "@domain/tasks/store"
 import { useLocalSearchParams } from "expo-router"
 import {
   AlarmClock,
+  ArrowRight,
+  CalendarCheck,
   CalendarClock,
   Check,
   Ellipsis,
+  type LucideIcon,
   Plus,
   Repeat,
 } from "lucide-react-native"
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { Pressable, Text, View } from "react-native"
 import Animated from "react-native-reanimated"
 import { toast } from "sonner-native"
 import {
   AnimatedCheck,
   feel,
+  markCompletion,
   rowEnter,
   rowExit,
   TickRow,
@@ -80,6 +84,54 @@ export function TagChips({ tags }: { tags?: string[] }) {
   )
 }
 
+/** One-tap actions under a row: an icon over a short word each, sharing
+ * the width (stacked, so "Tomorrow" fits a quarter of a phone sheet), every
+ * target at least 44pt tall. */
+function QuickActions({
+  title,
+  actions,
+}: {
+  title: string
+  actions: {
+    verb: string
+    label?: string
+    icon: LucideIcon
+    color?: string
+    onPress: () => void
+  }[]
+}) {
+  const t = useTheme()
+  return (
+    <Line style={{ gap: 8, paddingLeft: 40, paddingBottom: 6 }}>
+      {actions.map((a) => (
+        <Tap
+          key={a.verb}
+          label={`${a.label ?? a.verb}: ${title}`}
+          onPress={a.onPress}
+          style={{
+            flex: 1,
+            minHeight: 44,
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 2,
+            paddingVertical: 4,
+          }}
+        >
+          <a.icon size={18} color={a.color ?? t.tsk} />
+          <Copy
+            size={12}
+            weight="medium"
+            lines={1}
+            maxScale={1.2}
+            style={{ color: a.color ?? t.text }}
+          >
+            {a.verb}
+          </Copy>
+        </Tap>
+      ))}
+    </Line>
+  )
+}
 export function TaskRow({
   task,
   compact = false,
@@ -87,6 +139,7 @@ export function TaskRow({
   showDay = false,
   showList = true,
   surface,
+  quick = false,
 }: {
   task: Task
   compact?: boolean
@@ -95,6 +148,9 @@ export function TaskRow({
   showList?: boolean
   /** Background of the surface the row sits on (e.g. a card). */
   surface?: string
+  /** Triage: one-tap Done, Today, Tomorrow and More under the row, in
+   * place of its actions button. */
+  quick?: boolean
 }) {
   const t = useTheme()
   const list = tasksStore.use((s) => s.lists.find((l) => l.id === task.listId))
@@ -146,6 +202,31 @@ export function TaskRow({
     )
   }
   const swipe = useSwipeComplete(task.status === "done", toggle)
+  // A new date for the task, with an Undo that puts back the old date, time
+  // and reminder.
+  const redate = (message: string, change: () => void) => {
+    const { dueDate, dueTime, remindAt } = task
+    change()
+    undo(message, () => A.setDue(task.id, dueDate, dueTime, remindAt))
+  }
+  // A quick action fires once per version of the task: a second tap before
+  // the row leaves (or re-renders with the change) does nothing.
+  const acted = useRef<Task | null>(null)
+  const once = (fn: () => void) => () => {
+    if (acted.current === task) return
+    acted.current = task
+    fn()
+  }
+  // Triage's Done: felt at once, and counted toward an all-done moment
+  // (as a tick of the check is), without waiting out the check's beat.
+  const finish = () => {
+    feel.success()
+    markCompletion(true)
+    toggle()
+  }
+  const toToday = () => redate("Moved to today", () => A.moveToToday(task.id))
+  const toTomorrow = () =>
+    redate("Moved to tomorrow", () => A.rescheduleBy(task.id, 1))
   return (
     <>
       {/* No layout transition: rows move between sections whose
@@ -351,7 +432,7 @@ export function TaskRow({
               )}
               <TagChips tags={task.tags} />
             </Pressable>
-            {compact && showActions ? (
+            {quick ? null : compact && showActions ? (
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`Actions for ${task.title}`}
@@ -375,6 +456,31 @@ export function TaskRow({
               )
             )}
           </TickRow>
+          {quick && (
+            <QuickActions
+              title={task.title}
+              actions={[
+                {
+                  verb: "Done",
+                  icon: Check,
+                  color: t.good,
+                  onPress: once(finish),
+                },
+                { verb: "Today", icon: CalendarCheck, onPress: once(toToday) },
+                {
+                  verb: "Tomorrow",
+                  icon: ArrowRight,
+                  onPress: once(toTomorrow),
+                },
+                {
+                  verb: "More",
+                  label: "More actions",
+                  icon: Ellipsis,
+                  onPress: () => setOpen(true),
+                },
+              ]}
+            />
+          )}
         </SwipeRow>
       </Animated.View>
       <Sheet
@@ -461,11 +567,7 @@ export function TaskRow({
               <Button
                 tone="quiet"
                 onPress={() => {
-                  const { dueDate, dueTime, remindAt } = task
-                  A.moveToToday(task.id)
-                  undo("Moved to today", () =>
-                    A.setDue(task.id, dueDate, dueTime, remindAt),
-                  )
+                  toToday()
                   setOpen(false)
                 }}
               >
@@ -475,7 +577,7 @@ export function TaskRow({
             <Button
               tone="quiet"
               onPress={() => {
-                A.rescheduleBy(task.id, 1)
+                toTomorrow()
                 setOpen(false)
               }}
             >
