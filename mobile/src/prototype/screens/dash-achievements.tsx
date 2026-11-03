@@ -9,7 +9,7 @@ import {
 } from "@domain/dash/hooks"
 import { dashStore, markTrophiesSeen, noteMiss } from "@domain/dash/store"
 import { dayKey, dayOffset } from "@domain/lib/day"
-import { rescheduleBy } from "@domain/tasks/actions"
+import { moveToToday } from "@domain/tasks/actions"
 import { LinearGradient } from "expo-linear-gradient"
 import { useFocusEffect, useLocalSearchParams, usePathname } from "expo-router"
 import { Award, Lock, Trophy } from "lucide-react-native"
@@ -190,7 +190,7 @@ export function Misses() {
                     <Line style={{ paddingLeft: 16, marginTop: 6, gap: 6 }}>
                       {m.id.startsWith("task-overdue:") &&
                         chip("→ Today", false, () =>
-                          rescheduleBy(m.id.slice(13), 0),
+                          moveToToday(m.id.slice(13)),
                         )}
                       {chip(notes[m.id] ? "Edit note" : "Note", false, () => {
                         setText(notes[m.id] ?? "")

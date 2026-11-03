@@ -7,7 +7,7 @@ import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import type { Miss, ModuleKey } from "../contract"
 import { dayKey, dayOffset } from "../lib/day"
-import { rescheduleBy } from "../tasks/actions"
+import { moveToToday } from "../tasks/actions"
 import { Btn, Card, Chip, Empty, Screen, SectionTitle } from "../ui/kit"
 import { AREA } from "./data"
 import {
@@ -198,7 +198,7 @@ export function MissesScreen() {
                             <button
                               type="button"
                               onClick={() => {
-                                rescheduleBy(taskId, 0)
+                                moveToToday(taskId)
                                 toast.success("Moved to today")
                               }}
                               className="inline-flex h-11 items-center gap-1 rounded-full bg-tsk/15 px-2.5 font-medium text-tsk text-xs"
