@@ -802,6 +802,8 @@ export function runMapper(): Mapper<S, RunSession> {
       route: r.route,
       splits: r.splits.map((x) => ({ km: x.km, sec: x.sec, elev_m: x.elevM })),
       notes: r.notes ?? null,
+      indoor: r.indoor ?? false,
+      incline_pct: r.inclinePct ?? null,
     }),
     fromServer: (row) => {
       const kind = row.kind as RunKind
@@ -834,6 +836,8 @@ export function runMapper(): Mapper<S, RunSession> {
             )
           : [],
         ...(row.notes != null ? { notes: str(row.notes) } : {}),
+        ...(row.indoor === true ? { indoor: true } : {}),
+        ...opt("inclinePct", row.incline_pct),
       }
     },
     merge: (s, ups, dels) =>

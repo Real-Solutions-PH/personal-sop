@@ -166,6 +166,8 @@ def _upsert_run_session(ctx: Ctx, row_id: uuid.UUID, p: BaseModel) -> OwnedRow:
     for key in ("route", "splits"):
         if key in data and data[key] is None:
             data[key] = []
+    if "indoor" in data and data["indoor"] is None:
+        del data["indoor"]
     if p.splits is not None:
         # Every split carries all three keys (elev_m null when unknown).
         data["splits"] = [s.model_dump() for s in p.splits]

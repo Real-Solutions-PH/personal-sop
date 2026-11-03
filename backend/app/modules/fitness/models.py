@@ -254,6 +254,10 @@ class RunSession(OwnedRow, table=True):
         CheckConstraint(
             "kcal IS NULL OR (kcal >= 0 AND kcal <= 20000)", name="ck_run_session_kcal"
         ),
+        CheckConstraint(
+            "incline_pct IS NULL OR (incline_pct >= 0 AND incline_pct <= 40)",
+            name="ck_run_session_incline",
+        ),
     )
 
     kind: str = Field(sa_type=String(4))  # type: ignore
@@ -278,6 +282,12 @@ class RunSession(OwnedRow, table=True):
         sa_column_kwargs={"server_default": text("'[]'::jsonb")},
     )
     notes: str | None = Field(default=None, max_length=2000)
+    # On a treadmill: no route, and distance_m is what the person entered
+    # from the machine (or the phone's step-based estimate until they do).
+    indoor: bool = Field(
+        default=False, sa_column_kwargs={"server_default": text("false")}
+    )
+    incline_pct: float | None = Field(default=None, sa_type=Float)
 
 
 class MacroTarget(OwnedRow, table=True):

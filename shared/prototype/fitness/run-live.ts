@@ -15,6 +15,7 @@ import {
   runKcal,
   summarize,
   thin,
+  treadmillKcal,
   weightAt,
 } from "./runs"
 import { fitStore } from "./store"
@@ -34,6 +35,11 @@ export interface ActiveRun {
   /** False when only a foreground watch could start: the route stops
    * recording while the screen is locked, and the screen says so. */
   background?: boolean
+  /** On a treadmill: no GPS; distance is the phone's motion estimate. */
+  indoor?: boolean
+  /** Apple Health's walking + running distance for the session so far
+   * (metres); the treadmill's distance until the person enters it. */
+  distanceM?: number
 }
 
 export const runLiveStore = createStore<{ active: ActiveRun | null }>(
@@ -53,7 +59,11 @@ export const sessionSec = (r: ActiveRun, now = Date.now()) => sec(r, now)
 export const movingSec = (r: ActiveRun, now = Date.now()) =>
   movingAt(r.pauses, sec(r, now))
 
-export function startRun(kind: RunKind, now = Date.now()): ActiveRun {
+export function startRun(
+  kind: RunKind,
+  now = Date.now(),
+  opts: { indoor?: boolean } = {},
+): ActiveRun {
   const cur = runLiveStore.get().active
   if (cur) return cur
   const r: ActiveRun = {
@@ -62,6 +72,7 @@ export function startRun(kind: RunKind, now = Date.now()): ActiveRun {
     startedAt: new Date(now).toISOString(),
     points: [],
     pauses: [],
+    ...(opts.indoor ? { indoor: true } : {}),
   }
   runLiveStore.set({ active: r })
   return r
@@ -124,7 +135,7 @@ export function setRunTracking(background: boolean) {
   patch((r) => (r.background === background ? r : { ...r, background }))
 }
 
-export function setRunHealth(h: Pick<ActiveRun, "steps" | "hr">) {
+export function setRunHealth(h: Pick<ActiveRun, "steps" | "hr" | "distanceM">) {
   patch((r) => ({ ...r, ...h }))
 }
 
@@ -133,15 +144,34 @@ export function snapshotRun(r: ActiveRun, now = Date.now()): RunSession {
   const end = sec(r, now)
   // A pause still open at the finish ends at the finish.
   const pauses: Pause[] = r.pauses.map(([a, b]) => [a, b ?? end])
-  const sum = summarize(r.points, pauses)
   const weight = weightAt(fitStore.get(), r.startedAt).kg
+  const moving = Math.round(movingAt(pauses, end))
+  if (r.indoor) {
+    const distanceM = Math.round(r.distanceM ?? 0)
+    return {
+      id: r.id,
+      kind: r.kind,
+      name: defaultRunName(r.kind, new Date(r.startedAt)),
+      startedAt: r.startedAt,
+      endedAt: new Date(now).toISOString(),
+      movingSec: moving,
+      distanceM,
+      ...(r.steps != null ? { steps: r.steps } : {}),
+      ...(r.hr ? { avgHr: r.hr.avg, maxHr: r.hr.max } : {}),
+      kcal: treadmillKcal(distanceM, moving, 0, weight),
+      route: [],
+      splits: [],
+      indoor: true,
+    }
+  }
+  const sum = summarize(r.points, pauses)
   return {
     id: r.id,
     kind: r.kind,
     name: defaultRunName(r.kind, new Date(r.startedAt)),
     startedAt: r.startedAt,
     endedAt: new Date(now).toISOString(),
-    movingSec: Math.round(movingAt(pauses, end)),
+    movingSec: moving,
     distanceM: Math.round(sum.distanceM),
     ...(sum.elevationGainM !== null
       ? { elevationGainM: sum.elevationGainM }
@@ -189,11 +219,58 @@ export function deleteRun(id: string): RunSession | undefined {
   }))
   return r
 }
-export function restoreRun(r: RunSession) {
+/** Puts a session back: a deleted one (`replace` false), or an earlier
+ * version of one still listed (`replace` true, the Undo of an edit). */
+export function restoreRun(r: RunSession, replace = false) {
   fitStore.set((s) => ({
     ...s,
-    runs: [...(s.runs ?? []), r].sort((a, b) =>
-      a.startedAt.localeCompare(b.startedAt),
+    runs: [...(s.runs ?? []).filter((x) => !replace || x.id !== r.id), r].sort(
+      (a, b) => a.startedAt.localeCompare(b.startedAt),
     ),
   }))
+}
+
+const kgAt = (at: string) => weightAt(fitStore.get(), at).kg
+
+/** A session recorded with GPS that was really on a treadmill: the route,
+ * splits and climb are dropped and calories re-estimated from the distance
+ * as it stands (the person then enters the machine's). Returns the session
+ * as it was, for Undo. */
+export function markTreadmill(id: string): RunSession | undefined {
+  const before = (fitStore.get().runs ?? []).find((x) => x.id === id)
+  if (!before || before.indoor) return undefined
+  patchRun(id, (r) => {
+    const { elevationGainM: _climb, ...rest } = r
+    return {
+      ...rest,
+      indoor: true,
+      route: [],
+      splits: [],
+      kcal: treadmillKcal(r.distanceM, r.movingSec, 0, kgAt(r.startedAt)),
+    }
+  })
+  return before
+}
+
+/** The treadmill's own distance and incline, entered after the session;
+ * calories follow them. A null incline clears it. */
+export function setTreadmillReadings(
+  id: string,
+  v: { distanceM: number; inclinePct: number | null },
+) {
+  patchRun(id, (r) => {
+    const { inclinePct: _old, ...rest } = r
+    const distanceM = Math.max(0, Math.round(v.distanceM))
+    return {
+      ...rest,
+      distanceM,
+      ...(v.inclinePct != null ? { inclinePct: v.inclinePct } : {}),
+      kcal: treadmillKcal(
+        distanceM,
+        r.movingSec,
+        v.inclinePct ?? 0,
+        kgAt(r.startedAt),
+      ),
+    }
+  })
 }

@@ -685,6 +685,8 @@ def recent_run_sessions(
             "max_hr": r.max_hr,
             "kcal": r.kcal,
             "splits": r.splits,
+            "indoor": r.indoor,
+            "incline_pct": r.incline_pct,
         }
         for r in rows
     ]

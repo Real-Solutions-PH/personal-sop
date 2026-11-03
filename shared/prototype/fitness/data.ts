@@ -121,11 +121,16 @@ export interface RunSession {
   steps?: number
   avgHr?: number
   maxHr?: number
-  /** Estimated active kcal (./runs runKcal). */
+  /** Estimated active kcal (./runs runKcal, or treadmillKcal indoors). */
   kcal?: number
   route: RunPoint[]
   splits: RunSplit[]
   notes?: string
+  /** On a treadmill: no route or splits, and distanceM is the machine's
+   * reading once entered (the phone's motion estimate until then). */
+  indoor?: boolean
+  /** The treadmill's incline, 0–40%. */
+  inclinePct?: number
 }
 export interface RestTimer {
   endsAt: string

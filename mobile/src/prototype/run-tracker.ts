@@ -18,7 +18,9 @@ import {
   patchRun,
   runLiveStore,
   setRunHealth,
+  setTreadmillReadings,
 } from "@domain/fitness/run-live"
+import { fitStore } from "@domain/fitness/store"
 import { AppState, Platform } from "react-native"
 import { connectHealth, healthAvailable, readWindow } from "./health"
 
@@ -142,6 +144,8 @@ async function refreshHealth() {
   setRunHealth({
     ...(h.steps !== null ? { steps: h.steps } : {}),
     ...(h.hr ? { hr: h.hr } : {}),
+    // On a treadmill the motion distance is the session's distance.
+    ...(r.indoor && h.distanceM !== null ? { distanceM: h.distanceM } : {}),
   })
 }
 
@@ -156,7 +160,8 @@ export function startRunTracker() {
   const sync = () => {
     const active = runLiveStore.get().active
     if (active && !timer) {
-      void startTracking(active.kind)
+      // A treadmill session has no route: location is never asked for.
+      if (!active.indoor) void startTracking(active.kind)
       void refreshHealth()
       timer = setInterval(() => {
         if (AppState.currentState === "active") void refreshHealth()
@@ -171,12 +176,28 @@ export function startRunTracker() {
   sync()
   onRunFinished((run) => {
     if (!healthAvailable()) return
-    void readWindow(new Date(run.startedAt), new Date(run.endedAt)).then((h) =>
-      patchRun(run.id, (r) => ({
-        ...r,
-        ...(h.steps !== null ? { steps: h.steps } : {}),
-        ...(h.hr ? { avgHr: h.hr.avg, maxHr: h.hr.max } : {}),
-      })),
+    void readWindow(new Date(run.startedAt), new Date(run.endedAt)).then(
+      (h) => {
+        patchRun(run.id, (r) => ({
+          ...r,
+          ...(h.steps !== null ? { steps: h.steps } : {}),
+          ...(h.hr ? { avgHr: h.hr.avg, maxHr: h.hr.max } : {}),
+        }))
+        // Health can lag the last minutes, so the whole window's motion
+        // distance replaces the last poll's, unless the person has already
+        // entered the treadmill's own reading.
+        const now = (fitStore.get().runs ?? []).find((x) => x.id === run.id)
+        if (
+          run.indoor &&
+          h.distanceM !== null &&
+          now?.distanceM === run.distanceM &&
+          now.inclinePct === undefined
+        )
+          setTreadmillReadings(run.id, {
+            distanceM: h.distanceM,
+            inclinePct: null,
+          })
+      },
     )
   })
   onWorkoutFinished((w) => {

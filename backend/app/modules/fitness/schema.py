@@ -157,6 +157,8 @@ class RunSessionPublic(_Row):
     route: list[tuple[float, float, float | None, float]] = []
     splits: list[RunSplitPublic] = []
     notes: str | None
+    indoor: bool = False
+    incline_pct: float | None = None
 
 
 class MacroTargetPublic(_Row):
@@ -320,6 +322,8 @@ class RunSessionIn(BaseModel):
     route: list[RoutePoint] | None = Field(default=None, max_length=MAX_ROUTE_POINTS)
     splits: list[RunSplit] | None = Field(default=None, max_length=MAX_SPLITS)
     notes: str | None = Field(default=None, max_length=2000)
+    indoor: bool | None = None
+    incline_pct: float | None = Field(default=None, ge=0, le=40)
 
 
 class MacroTargetIn(BaseModel):

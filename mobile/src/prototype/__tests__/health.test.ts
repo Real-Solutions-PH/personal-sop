@@ -40,6 +40,7 @@ jest.mock("@kingstinct/react-native-healthkit", () => ({
   queryStatisticsForQuantity: (id: string, s: unknown, o: unknown) =>
     mockStats(id, s, o),
   queryWorkoutSamples: (o: unknown) => mockWorkouts(o),
+  queryQuantitySamples: async () => [],
   queryCategorySamples: (id: string, o: unknown) => mockSleep(id, o),
   queryStatisticsCollectionForQuantity: (
     id: string,
@@ -69,6 +70,7 @@ import {
   readActivity,
   readDays,
   readSleep,
+  readWindow,
 } from "../health"
 
 beforeEach(() => {
@@ -272,4 +274,25 @@ test("a build without the native module reads as no Health", () => {
   })
   const h = require("../health") as typeof import("../health")
   expect(h.healthAvailable()).toBe(false)
+})
+
+test("a session's window: steps and walking + running distance in metres", async () => {
+  const r = await readWindow(at(28, 7), at(28, 7, 40))
+  expect(r.steps).toBe(8412)
+  // The mock answers 6.27 in whatever unit is asked; metres are asked for
+  // and rounded.
+  expect(r.distanceM).toBe(6)
+  const call = mockStats.mock.calls.find(
+    (c) => c[0] === "HKQuantityTypeIdentifierDistanceWalkingRunning",
+  )
+  if (!call) throw new Error("distance is read")
+  expect((call[2] as { unit: string }).unit).toBe("m")
+})
+
+test("a session's window in Expo Go: sample steps and distance", async () => {
+  mockEnv = "storeClient"
+  const r = await readWindow(at(28, 7), at(28, 7, 40))
+  // 95 steps and 75 m a minute for 40 minutes.
+  expect(r).toMatchObject({ steps: 3800, distanceM: 3000 })
+  expect(mockStats).not.toHaveBeenCalled()
 })
