@@ -9,6 +9,8 @@
 //       walking (under 8 km/h)  VO2 = 0.1·v + 1.8·v·grade
 //       running                 VO2 = 0.2·v + 0.9·v·grade
 //     kcal = VO2 (ml/kg/min) × kg × minutes / 1000 × 5 kcal per litre O2.
+//     On a treadmill there is no track: one stretch at the average speed
+//     (distance over moving time) up the machine's incline (treadmillKcal).
 //   - lifting: the session's time not spent on timed cardio sets, capped at
 //     3 hours, at MET 3.5 (resistance training, moderate) or 5.0 (vigorous)
 //     when it averaged 3 or more working sets per 10 minutes (Compendium of

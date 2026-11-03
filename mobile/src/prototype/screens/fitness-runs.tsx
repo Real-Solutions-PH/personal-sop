@@ -9,6 +9,10 @@
 //   splits (one bar per km, fastest marked), then climb, kcal, steps, HR.
 // /fitness/runs — history: this week's distance, then every session as a
 //   row that leads with its route's shape and distance and opens it.
+// On a treadmill (chosen at the start, or switched to from a GPS record)
+//   there is no map or GPS: a drawn treadmill takes the map's place, the
+//   distance is the phone's motion estimate until the machine's is
+//   entered, and pace compares only with other treadmill sessions.
 
 import { addDays, relDay, weekStart } from "@domain/fitness/calc"
 import type { RunKind, RunSession } from "@domain/fitness/data"
@@ -729,6 +733,9 @@ export function RunDetail({
   const [name, setName] = useState(r?.name ?? "")
   const [method, setMethod] = useState(false)
   const [readings, setReadings] = useState(false)
+  // The session as it was before "Recorded on a treadmill?", for the
+  // readings sheet's Undo.
+  const [switched, setSwitched] = useState<RunSession>()
   const fresh = useCelebrate(id, summary)
   if (!r)
     return (
@@ -756,7 +763,7 @@ export function RunDetail({
   const toTreadmill = () => {
     const before = RL.markTreadmill(id)
     if (!before) return
-    undo("Switched to treadmill", () => RL.restoreRun(before, true))
+    setSwitched(before)
     setReadings(true)
   }
   const editReadings = (
@@ -817,7 +824,7 @@ export function RunDetail({
             },
           ]}
           record={record}
-          play={fresh && r.distanceM > 0}
+          play={fresh && (r.distanceM > 0 || indoor)}
         />
       )}
       {summary && paceDelta}
@@ -995,7 +1002,16 @@ export function RunDetail({
           </Button>
         </View>
       )}
-      {readings && <ReadingsSheet run={r} onClose={() => setReadings(false)} />}
+      {readings && (
+        <ReadingsSheet
+          run={r}
+          switched={switched}
+          onClose={() => {
+            setReadings(false)
+            setSwitched(undefined)
+          }}
+        />
+      )}
     </Screen>
   )
 }
@@ -1004,11 +1020,15 @@ export function RunDetail({
  * follow them. Saving shows Undo. */
 function ReadingsSheet({
   run,
+  switched,
   onClose,
 }: {
   run: RunSession
+  /** Just switched from GPS: the session before, which Undo puts back. */
+  switched?: RunSession
   onClose: () => void
 }) {
+  const t = useTheme()
   const [km, setKm] = useState(Math.round(run.distanceM / 10) / 100)
   const [incline, setIncline] = useState(run.inclinePct ?? 0)
   const save = () => {
@@ -1022,6 +1042,25 @@ function ReadingsSheet({
   }
   return (
     <Sheet open onClose={onClose} title="Treadmill readings">
+      {switched && (
+        <Line style={{ gap: 8 }}>
+          <Info size={14} color={t["chart-1"]} />
+          <Copy size={13} style={{ color: t["chart-1"], flex: 1 }}>
+            Switched from GPS: the route, splits and climb are gone.
+          </Copy>
+          <Tap
+            label="Undo the switch to treadmill"
+            onPress={() => {
+              RL.restoreRun(switched, true)
+              onClose()
+            }}
+          >
+            <Copy size={13} weight="semibold" style={{ color: t.fit }}>
+              Undo
+            </Copy>
+          </Tap>
+        </Line>
+      )}
       <Copy size={14} muted>
         From the treadmill's display, which is more accurate than your phone on
         a belt. Calories and pace follow these.

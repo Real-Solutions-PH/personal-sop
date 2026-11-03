@@ -12,7 +12,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react-native"
 import type { ReactNode } from "react"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
-import { OverlayHost, resetOverlay } from "../overlay"
+import { anchor, OverlayHost, resetOverlay } from "../overlay"
 
 const mockPath = { current: "/today" }
 jest.mock("expo-router", () => ({
@@ -78,6 +78,8 @@ jest.mock("../run-tracker", () => ({
 }))
 
 const mockParams: { kind?: string } = {}
+const { celebrateStore } =
+  require("../celebration") as typeof import("../celebration")
 const { RunDetail, RunScreen } =
   require("../screens/fitness-runs") as typeof import("../screens/fitness-runs")
 
@@ -100,7 +102,9 @@ beforeEach(() => {
   })
   resetAll()
   resetOverlay()
+  anchor.measure = (_, done) => done({ x: 0, y: 0, width: 40, height: 40 })
   fitStore.set((s) => ({ ...s, weighIns: [], runs: [] }))
+  celebrateStore.set({ ids: [] })
   jest.clearAllMocks()
 })
 
@@ -174,7 +178,7 @@ it("entering the treadmill's distance and incline re-estimates calories, with Un
   expect(R.runsOf(fitStore.get())[0].distanceM).toBe(500)
 })
 
-it("a GPS walk that was on a treadmill is switched, with Undo", () => {
+it("a GPS walk that was on a treadmill is switched, with Undo in the sheet", () => {
   fitStore.set((s) => ({ ...s, runs: [walk()] }))
   render(<RunDetail id="w1" />, { wrapper })
   fireEvent.press(screen.getByText("Recorded on a treadmill?"))
@@ -182,16 +186,10 @@ it("a GPS walk that was on a treadmill is switched, with Undo", () => {
   expect(r).toMatchObject({ indoor: true, route: [] })
   // The readings sheet opens straight away for the machine's distance.
   expect(screen.getByText("Save readings")).toBeTruthy()
-  expect(toast).toHaveBeenCalledWith(
-    "Switched to treadmill",
-    expect.objectContaining({
-      action: expect.objectContaining({ label: "Undo" }),
-    }),
-  )
-  const undo = (toast as unknown as jest.Mock).mock.calls.at(-1)[1].action
-    .onClick
-  act(() => undo())
+  // Undo sits in the sheet, where a toast would cover the incline.
+  fireEvent.press(screen.getByLabelText("Undo the switch to treadmill"))
   expect(R.runsOf(fitStore.get())[0].route).toHaveLength(2)
+  expect(R.runsOf(fitStore.get())[0].indoor).toBeUndefined()
 })
 
 it("pace compares only with the last treadmill walk, and hides with none", () => {
@@ -219,4 +217,16 @@ it("pace compares only with the last treadmill walk, and hides with none", () =>
   render(<RunDetail id="w1" />, { wrapper })
   // 3,000 m vs 2,400 m in 40 min: 13:20 vs 16:40 /km, 3:20 faster.
   expect(screen.getByText(/3:20 faster than last/)).toBeTruthy()
+})
+
+it("a treadmill walk is celebrated even before its distance is known", () => {
+  fitStore.set((s) => ({ ...s, runs: [treadmill({ distanceM: 0 })] }))
+  render(<RunDetail id="w1" summary />, { wrapper })
+  expect(
+    screen.queryAllByTestId("celebration-leaf", { includeHiddenElements: true })
+      .length,
+  ).toBeGreaterThan(0)
+  expect(
+    screen.getByLabelText("Edit treadmill distance and incline"),
+  ).toBeTruthy()
 })
